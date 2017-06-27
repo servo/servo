@@ -28,7 +28,7 @@ pub use self::background::BackgroundSize;
 pub use self::border::{BorderImageSlice, BorderImageWidth, BorderImageSideWidth};
 pub use self::border::{BorderRadius, BorderCornerRadius};
 pub use self::color::{Color, RGBAColor};
-pub use self::effects::FilterList;
+pub use self::effects::Filter;
 pub use self::flex::FlexBasis;
 pub use self::image::{Gradient, GradientItem, ImageLayer, LineDirection, Image, ImageRect};
 #[cfg(feature = "gecko")]

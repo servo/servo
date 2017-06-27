@@ -13,9 +13,8 @@ use gfx::display_list::{BorderDetails, BorderRadii, BoxShadowClipMode, ClippingR
 use gfx::display_list::{DisplayItem, DisplayList, DisplayListTraversal, StackingContextType};
 use msg::constellation_msg::PipelineId;
 use style::computed_values::{image_rendering, mix_blend_mode, transform_style};
-use style::computed_values::filter;
-use style::values::computed::BorderStyle;
-use style::values::generics::effects::Filter;
+use style::values::computed::{BorderStyle, Filter};
+use style::values::generics::effects::Filter as GenericFilter;
 use webrender_traits::{self, DisplayListBuilder, ExtendMode};
 use webrender_traits::{LayoutTransform, ClipId, ClipRegionToken};
 
@@ -202,21 +201,21 @@ trait ToFilterOps {
     fn to_filter_ops(&self) -> Vec<webrender_traits::FilterOp>;
 }
 
-impl ToFilterOps for filter::T {
+impl ToFilterOps for Vec<Filter> {
     fn to_filter_ops(&self) -> Vec<webrender_traits::FilterOp> {
-        let mut result = Vec::with_capacity(self.0.len());
-        for filter in self.0.iter() {
+        let mut result = Vec::with_capacity(self.len());
+        for filter in self.iter() {
             match *filter {
-                Filter::Blur(radius) => result.push(webrender_traits::FilterOp::Blur(radius)),
-                Filter::Brightness(amount) => result.push(webrender_traits::FilterOp::Brightness(amount)),
-                Filter::Contrast(amount) => result.push(webrender_traits::FilterOp::Contrast(amount)),
-                Filter::Grayscale(amount) => result.push(webrender_traits::FilterOp::Grayscale(amount)),
-                Filter::HueRotate(angle) => result.push(webrender_traits::FilterOp::HueRotate(angle.radians())),
-                Filter::Invert(amount) => result.push(webrender_traits::FilterOp::Invert(amount)),
-                Filter::Opacity(amount) => result.push(webrender_traits::FilterOp::Opacity(amount.into())),
-                Filter::Saturate(amount) => result.push(webrender_traits::FilterOp::Saturate(amount)),
-                Filter::Sepia(amount) => result.push(webrender_traits::FilterOp::Sepia(amount)),
-                Filter::DropShadow(ref shadow) => match *shadow {},
+                GenericFilter::Blur(radius) => result.push(webrender_traits::FilterOp::Blur(radius)),
+                GenericFilter::Brightness(amount) => result.push(webrender_traits::FilterOp::Brightness(amount)),
+                GenericFilter::Contrast(amount) => result.push(webrender_traits::FilterOp::Contrast(amount)),
+                GenericFilter::Grayscale(amount) => result.push(webrender_traits::FilterOp::Grayscale(amount)),
+                GenericFilter::HueRotate(angle) => result.push(webrender_traits::FilterOp::HueRotate(angle.radians())),
+                GenericFilter::Invert(amount) => result.push(webrender_traits::FilterOp::Invert(amount)),
+                GenericFilter::Opacity(amount) => result.push(webrender_traits::FilterOp::Opacity(amount.into())),
+                GenericFilter::Saturate(amount) => result.push(webrender_traits::FilterOp::Saturate(amount)),
+                GenericFilter::Sepia(amount) => result.push(webrender_traits::FilterOp::Sepia(amount)),
+                GenericFilter::DropShadow(ref shadow) => match *shadow {},
             }
         }
         result

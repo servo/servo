@@ -5,21 +5,21 @@
 //! Animated types for CSS values related to effects.
 
 use properties::animated_properties::{Animatable, IntermediateColor};
+use properties::longhands::filter::computed_value::T as ComputedFilterList;
 #[cfg(not(feature = "gecko"))]
 use values::Impossible;
 use values::computed::{Angle, Number};
 #[cfg(feature = "gecko")]
 use values::computed::effects::Filter as ComputedFilter;
-#[cfg(feature = "gecko")]
-use values::computed::effects::FilterList as ComputedFilterList;
 use values::computed::effects::SimpleShadow as ComputedSimpleShadow;
 use values::computed::length::Length;
 use values::generics::effects::Filter as GenericFilter;
-use values::generics::effects::FilterList as GenericFilterList;
 use values::generics::effects::SimpleShadow as GenericSimpleShadow;
 
 /// An animated value for the `filter` property.
-pub type FilterList = GenericFilterList<Filter>;
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Debug, PartialEq)]
+pub struct FilterList(pub Vec<Filter>);
 
 /// An animated value for a single `filter`.
 #[cfg(feature = "gecko")]
@@ -32,19 +32,31 @@ pub type Filter = GenericFilter<Angle, Number, Length, Impossible>;
 /// An animated value for the `drop-shadow()` filter.
 pub type SimpleShadow = GenericSimpleShadow<IntermediateColor, Length, Length>;
 
-#[cfg(feature = "gecko")]
 impl From<ComputedFilterList> for FilterList {
+    #[cfg(not(feature = "gecko"))]
     #[inline]
     fn from(filters: ComputedFilterList) -> Self {
-        filters.0.into_vec().into_iter().map(|f| f.into()).collect::<Vec<_>>().into()
+        FilterList(filters.0)
+    }
+
+    #[cfg(feature = "gecko")]
+    #[inline]
+    fn from(filters: ComputedFilterList) -> Self {
+        FilterList(filters.0.into_iter().map(|f| f.into()).collect())
     }
 }
 
-#[cfg(feature = "gecko")]
 impl From<FilterList> for ComputedFilterList {
+    #[cfg(not(feature = "gecko"))]
     #[inline]
     fn from(filters: FilterList) -> Self {
-        filters.0.into_vec().into_iter().map(|f| f.into()).collect::<Vec<_>>().into()
+        ComputedFilterList(filters.0)
+    }
+
+    #[cfg(feature = "gecko")]
+    #[inline]
+    fn from(filters: FilterList) -> Self {
+        ComputedFilterList(filters.0.into_iter().map(|f| f.into()).collect())
     }
 }
 

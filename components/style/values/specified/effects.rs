@@ -12,16 +12,12 @@ use values::Impossible;
 use values::computed::{Context, Number as ComputedNumber, ToComputedValue};
 use values::computed::effects::SimpleShadow as ComputedSimpleShadow;
 use values::generics::effects::Filter as GenericFilter;
-use values::generics::effects::FilterList as GenericFilterList;
 use values::generics::effects::SimpleShadow as GenericSimpleShadow;
 use values::specified::{Angle, Percentage};
 use values::specified::color::Color;
 use values::specified::length::Length;
 #[cfg(feature = "gecko")]
 use values::specified::url::SpecifiedUrl;
-
-/// A specified value for the `filter` property.
-pub type FilterList = GenericFilterList<Filter>;
 
 /// A specified value for a single `filter`.
 #[cfg(feature = "gecko")]
@@ -45,23 +41,6 @@ pub enum Factor {
 
 /// A specified value for the `drop-shadow()` filter.
 pub type SimpleShadow = GenericSimpleShadow<Option<Color>, Length, Option<Length>>;
-
-impl Parse for FilterList {
-    #[inline]
-    fn parse<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>
-    ) -> Result<Self, ParseError<'i>> {
-        let mut filters = vec![];
-        while let Ok(filter) = input.try(|i| Filter::parse(context, i)) {
-            filters.push(filter);
-        }
-        if filters.is_empty() {
-            input.expect_ident_matching("none")?;
-        }
-        Ok(GenericFilterList(filters.into_boxed_slice()))
-    }
-}
 
 impl Parse for Filter {
     #[inline]
@@ -113,7 +92,7 @@ impl Parse for Factor {
 
 impl ToComputedValue for Factor {
     /// This should actually be `ComputedNumberOrPercentage`, but layout uses
-    /// `computed::effects::FilterList` directly in `StackingContext`.
+    /// `computed::effects::Filter` directly in `StackingContext`.
     type ComputedValue = ComputedNumber;
 
     #[inline]

@@ -88,7 +88,7 @@
             use std::fmt;
             #[allow(unused_imports)]
             use style_traits::HasViewportPercentage;
-            use style_traits::ToCss;
+            use style_traits::{Separator, ToCss};
 
             pub mod single_value {
                 #[allow(unused_imports)]
@@ -186,7 +186,7 @@
                         % endif
                     }
                     for i in iter {
-                        dest.write_str(", ")?;
+                        dest.write_str(::style_traits::${separator}::separator())?;
                         i.to_css(dest)?;
                     }
                     Ok(())
@@ -213,7 +213,7 @@
                         % endif
                     }
                     for i in iter {
-                        dest.write_str(", ")?;
+                        dest.write_str(::style_traits::${separator}::separator())?;
                         i.to_css(dest)?;
                     }
                     Ok(())
