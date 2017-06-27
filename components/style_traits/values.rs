@@ -5,7 +5,7 @@
 //! Helper types and traits for the handling of CSS values.
 
 use app_units::Au;
-use cssparser::{ParseError, Parser, UnicodeRange, serialize_string};
+use cssparser::{BasicParseError, ParseError, Parser, Token, UnicodeRange, serialize_string};
 use std::fmt::{self, Write};
 
 /// Serialises a value according to its CSS representation.
@@ -191,6 +191,12 @@ pub struct Comma;
 /// separated by spaces.
 pub struct Space;
 
+/// Type used as the associated type in the `OneOrMoreSeparated` trait on a
+/// type to indicate that a serialized list of elements of this type is
+/// separated by commas, but spaces without commas are also allowed when
+/// parsing.
+pub struct CommaWithSpace;
+
 /// A trait satisfied by the types corresponding to separators.
 pub trait Separator {
     /// The separator string that the satisfying separator type corresponds to.
@@ -240,9 +246,36 @@ impl Separator for Space {
     where
         F: for<'tt> FnMut(&mut Parser<'i, 'tt>) -> Result<T, ParseError<'i, E>>
     {
-        let mut results = vec![];
+        let mut results = vec![parse_one(input)?];
         while let Ok(item) = input.try(&mut parse_one) {
             results.push(item);
+        }
+        Ok(results)
+    }
+}
+
+impl Separator for CommaWithSpace {
+    fn separator() -> &'static str {
+        ", "
+    }
+
+    fn parse<'i, 't, F, T, E>(
+        input: &mut Parser<'i, 't>,
+        mut parse_one: F,
+    ) -> Result<Vec<T>, ParseError<'i, E>>
+    where
+        F: for<'tt> FnMut(&mut Parser<'i, 'tt>) -> Result<T, ParseError<'i, E>>
+    {
+        let mut results = vec![parse_one(input)?];
+        loop {
+            let comma = input.try(|i| i.expect_comma()).is_ok();
+            if let Ok(item) = input.try(&mut parse_one) {
+                results.push(item);
+            } else if comma {
+                return Err(BasicParseError::UnexpectedToken(Token::Comma).into());
+            } else {
+                break;
+            }
         }
         Ok(results)
     }

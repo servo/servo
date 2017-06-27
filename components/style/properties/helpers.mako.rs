@@ -217,13 +217,12 @@
 
             pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                                  -> Result<SpecifiedValue, ParseError<'i>> {
+                use style_traits::Separator;
                 #[allow(unused_imports)]
-                use parser::parse_space_or_comma_separated;
+                use style_traits::{Comma, CommaWithSpace};
 
                 <%
-                    parse_func = "Parser::parse_comma_separated"
-                    if space_separated_allowed:
-                        parse_func = "parse_space_or_comma_separated"
+                    separator = "CommaWithSpace" if space_separated_allowed else "Comma"
                 %>
 
                 % if allow_empty:
@@ -232,7 +231,7 @@
                     }
                 % endif
 
-                ${parse_func}(input, |parser| {
+                ${separator}::parse(input, |parser| {
                     single_value::parse(context, parser)
                 }).map(SpecifiedValue)
             }
