@@ -4,17 +4,8 @@
 
 //! Generic types for CSS values related to effects.
 
-use std::fmt;
-use style_traits::ToCss;
 #[cfg(feature = "gecko")]
 use values::specified::url::SpecifiedUrl;
-
-/// A generic value for the `filter` property.
-///
-/// Keyword `none` is represented by an empty slice.
-#[cfg_attr(feature = "servo", derive(Deserialize, HeapSizeOf, Serialize))]
-#[derive(Clone, Debug, HasViewportPercentage, PartialEq, ToComputedValue)]
-pub struct FilterList<Filter>(pub Box<[Filter]>);
 
 /// A generic value for a single `filter`.
 #[cfg_attr(feature = "servo", derive(Deserialize, HeapSizeOf, Serialize))]
@@ -70,40 +61,4 @@ pub struct SimpleShadow<Color, SizeLength, ShapeLength> {
     pub vertical: SizeLength,
     /// Blur radius.
     pub blur: ShapeLength,
-}
-
-impl<F> FilterList<F> {
-    /// Returns `none`.
-    #[inline]
-    pub fn none() -> Self {
-        FilterList(vec![].into_boxed_slice())
-    }
-}
-
-impl<F> From<Vec<F>> for FilterList<F> {
-    #[inline]
-    fn from(vec: Vec<F>) -> Self {
-        FilterList(vec.into_boxed_slice())
-    }
-}
-
-impl<F> ToCss for FilterList<F>
-where
-    F: ToCss,
-{
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-    where
-        W: fmt::Write
-    {
-        if let Some((first, rest)) = self.0.split_first() {
-            first.to_css(dest)?;
-            for filter in rest {
-                dest.write_str(" ")?;
-                filter.to_css(dest)?;
-            }
-            Ok(())
-        } else {
-            dest.write_str("none")
-        }
-    }
 }

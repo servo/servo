@@ -9,7 +9,7 @@ use counter_style::{Symbols, parse_counter_style_name};
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use std::fmt;
-use style_traits::{OneOrMoreSeparated, CommaSeparator, ToCss, ParseError, StyleParseError};
+use style_traits::{Comma, OneOrMoreSeparated, ParseError, StyleParseError, ToCss};
 use super::CustomIdent;
 use values::specified::url::SpecifiedUrl;
 
@@ -125,7 +125,7 @@ pub struct FontSettingTag<T> {
 }
 
 impl<T> OneOrMoreSeparated for FontSettingTag<T> {
-    type S = CommaSeparator;
+    type S = Comma;
 }
 
 impl<T: ToCss> ToCss for FontSettingTag<T> {

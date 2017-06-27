@@ -28,7 +28,8 @@ use std::cmp::{self, Ordering};
 use std::collections::HashMap;
 use std::fmt;
 use std::sync::Arc;
-use style::computed_values::{border_style, filter, image_rendering};
+use style::computed_values::{border_style, image_rendering};
+use style::values::computed::Filter;
 use style_traits::cursor::Cursor;
 use text::TextRun;
 use text::glyph::ByteIndex;
@@ -419,7 +420,7 @@ pub struct StackingContext {
     pub z_index: i32,
 
     /// CSS filters to be applied to this stacking context (including opacity).
-    pub filters: filter::T,
+    pub filters: Vec<Filter>,
 
     /// The blend mode with which this stacking context blends with its backdrop.
     pub mix_blend_mode: MixBlendMode,
@@ -448,7 +449,7 @@ impl StackingContext {
                bounds: &Rect<Au>,
                overflow: &Rect<Au>,
                z_index: i32,
-               filters: filter::T,
+               filters: Vec<Filter>,
                mix_blend_mode: MixBlendMode,
                transform: Option<Transform3D<f32>>,
                transform_style: TransformStyle,
@@ -479,7 +480,7 @@ impl StackingContext {
                              &Rect::zero(),
                              &Rect::zero(),
                              0,
-                             filter::T::none(),
+                             vec![],
                              MixBlendMode::Normal,
                              None,
                              TransformStyle::Flat,

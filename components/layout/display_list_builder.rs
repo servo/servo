@@ -2010,7 +2010,7 @@ impl FragmentDisplayListBuilding for Fragment {
 
         // Create the filter pipeline.
         let effects = self.style().get_effects();
-        let mut filters = effects.filter.clone().0.into_vec();
+        let mut filters = effects.filter.0.clone();
         if effects.opacity != 1.0 {
             filters.push(Filter::Opacity(effects.opacity))
         }

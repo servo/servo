@@ -80,14 +80,15 @@
     `initial_value` need not be defined for these.
 </%doc>
 <%def name="vector_longhand(name, gecko_only=False, allow_empty=False,
-            delegate_animate=False, space_separated_allowed=False, **kwargs)">
+            delegate_animate=False, separator='Comma', **kwargs)">
     <%call expr="longhand(name, vector=True, **kwargs)">
         % if not gecko_only:
+            #[allow(unused_imports)]
             use smallvec::SmallVec;
             use std::fmt;
             #[allow(unused_imports)]
             use style_traits::HasViewportPercentage;
-            use style_traits::ToCss;
+            use style_traits::{Separator, ToCss};
 
             pub mod single_value {
                 #[allow(unused_imports)]
@@ -113,13 +114,23 @@
             pub mod computed_value {
                 pub use super::single_value::computed_value as single_value;
                 pub use self::single_value::T as SingleComputedValue;
+                % if allow_empty and allow_empty != "NotInitial":
+                use std::vec::IntoIter;
+                % else:
                 use smallvec::{IntoIter, SmallVec};
+                % endif
                 use values::computed::ComputedVecIter;
 
                 /// The computed value, effectively a list of single values.
                 #[derive(Debug, Clone, PartialEq)]
                 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-                pub struct T(pub SmallVec<[single_value::T; 1]>);
+                pub struct T(
+                    % if allow_empty and allow_empty != "NotInitial":
+                    pub Vec<single_value::T>,
+                    % else:
+                    pub SmallVec<[single_value::T; 1]>,
+                    % endif
+                );
 
                 % if delegate_animate:
                     use properties::animated_properties::Animatable;
@@ -149,7 +160,11 @@
 
                 impl IntoIterator for T {
                     type Item = single_value::T;
+                    % if allow_empty and allow_empty != "NotInitial":
+                    type IntoIter = IntoIter<single_value::T>;
+                    % else:
                     type IntoIter = IntoIter<[single_value::T; 1]>;
+                    % endif
                     fn into_iter(self) -> Self::IntoIter {
                         self.0.into_iter()
                     }
@@ -171,7 +186,7 @@
                         % endif
                     }
                     for i in iter {
-                        dest.write_str(", ")?;
+                        dest.write_str(::style_traits::${separator}::separator())?;
                         i.to_css(dest)?;
                     }
                     Ok(())
@@ -198,7 +213,7 @@
                         % endif
                     }
                     for i in iter {
-                        dest.write_str(", ")?;
+                        dest.write_str(::style_traits::${separator}::separator())?;
                         i.to_css(dest)?;
                     }
                     Ok(())
@@ -207,7 +222,7 @@
 
             pub fn get_initial_value() -> computed_value::T {
                 % if allow_empty and allow_empty != "NotInitial":
-                    computed_value::T(SmallVec::new())
+                    computed_value::T(vec![])
                 % else:
                     let mut v = SmallVec::new();
                     v.push(single_value::get_initial_value());
@@ -217,14 +232,7 @@
 
             pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                                  -> Result<SpecifiedValue, ParseError<'i>> {
-                #[allow(unused_imports)]
-                use parser::parse_space_or_comma_separated;
-
-                <%
-                    parse_func = "Parser::parse_comma_separated"
-                    if space_separated_allowed:
-                        parse_func = "parse_space_or_comma_separated"
-                %>
+                use style_traits::Separator;
 
                 % if allow_empty:
                     if input.try(|input| input.expect_ident_matching("none")).is_ok() {
@@ -232,7 +240,7 @@
                     }
                 % endif
 
-                ${parse_func}(input, |parser| {
+                ::style_traits::${separator}::parse(input, |parser| {
                     single_value::parse(context, parser)
                 }).map(SpecifiedValue)
             }

@@ -5,7 +5,7 @@
 //! Helper types and traits for the handling of CSS values.
 
 use app_units::Au;
-use cssparser::{UnicodeRange, serialize_string};
+use cssparser::{BasicParseError, ParseError, Parser, Token, UnicodeRange, serialize_string};
 use std::fmt::{self, Write};
 
 /// Serialises a value according to its CSS representation.
@@ -184,38 +184,102 @@ where
 /// Type used as the associated type in the `OneOrMoreSeparated` trait on a
 /// type to indicate that a serialized list of elements of this type is
 /// separated by commas.
-pub struct CommaSeparator;
+pub struct Comma;
 
 /// Type used as the associated type in the `OneOrMoreSeparated` trait on a
 /// type to indicate that a serialized list of elements of this type is
 /// separated by spaces.
-pub struct SpaceSeparator;
+pub struct Space;
+
+/// Type used as the associated type in the `OneOrMoreSeparated` trait on a
+/// type to indicate that a serialized list of elements of this type is
+/// separated by commas, but spaces without commas are also allowed when
+/// parsing.
+pub struct CommaWithSpace;
 
 /// A trait satisfied by the types corresponding to separators.
 pub trait Separator {
     /// The separator string that the satisfying separator type corresponds to.
     fn separator() -> &'static str;
+
+    /// Parses a sequence of values separated by this separator.
+    ///
+    /// The given closure is called repeatedly for each item in the sequence.
+    ///
+    /// Successful results are accumulated in a vector.
+    ///
+    /// This method returns `Err(_)` the first time a closure does or if
+    /// the separators aren't correct.
+    fn parse<'i, 't, F, T, E>(
+        parser: &mut Parser<'i, 't>,
+        parse_one: F,
+    ) -> Result<Vec<T>, ParseError<'i, E>>
+    where
+        F: for<'tt> FnMut(&mut Parser<'i, 'tt>) -> Result<T, ParseError<'i, E>>;
 }
 
-impl Separator for CommaSeparator {
+impl Separator for Comma {
     fn separator() -> &'static str {
         ", "
     }
-}
 
-impl Separator for SpaceSeparator {
-    fn separator() -> &'static str {
-        " "
+    fn parse<'i, 't, F, T, E>(
+        input: &mut Parser<'i, 't>,
+        parse_one: F,
+    ) -> Result<Vec<T>, ParseError<'i, E>>
+    where
+        F: for<'tt> FnMut(&mut Parser<'i, 'tt>) -> Result<T, ParseError<'i, E>>
+    {
+        input.parse_comma_separated(parse_one)
     }
 }
 
-/// Trait that indicates that satisfying separator types are comma separators.
-/// This seems kind of redundant, but we aren't able to express type equality
-/// constraints yet.
-/// https://github.com/rust-lang/rust/issues/20041
-pub trait IsCommaSeparator {}
+impl Separator for Space {
+    fn separator() -> &'static str {
+        " "
+    }
 
-impl IsCommaSeparator for CommaSeparator {}
+    fn parse<'i, 't, F, T, E>(
+        input: &mut Parser<'i, 't>,
+        mut parse_one: F,
+    ) -> Result<Vec<T>, ParseError<'i, E>>
+    where
+        F: for<'tt> FnMut(&mut Parser<'i, 'tt>) -> Result<T, ParseError<'i, E>>
+    {
+        let mut results = vec![parse_one(input)?];
+        while let Ok(item) = input.try(&mut parse_one) {
+            results.push(item);
+        }
+        Ok(results)
+    }
+}
+
+impl Separator for CommaWithSpace {
+    fn separator() -> &'static str {
+        ", "
+    }
+
+    fn parse<'i, 't, F, T, E>(
+        input: &mut Parser<'i, 't>,
+        mut parse_one: F,
+    ) -> Result<Vec<T>, ParseError<'i, E>>
+    where
+        F: for<'tt> FnMut(&mut Parser<'i, 'tt>) -> Result<T, ParseError<'i, E>>
+    {
+        let mut results = vec![parse_one(input)?];
+        loop {
+            let comma = input.try(|i| i.expect_comma()).is_ok();
+            if let Ok(item) = input.try(&mut parse_one) {
+                results.push(item);
+            } else if comma {
+                return Err(BasicParseError::UnexpectedToken(Token::Comma).into());
+            } else {
+                break;
+            }
+        }
+        Ok(results)
+    }
+}
 
 /// Marker trait on T to automatically implement ToCss for Vec<T> when T's are
 /// separated by some delimiter `delim`.
@@ -225,7 +289,7 @@ pub trait OneOrMoreSeparated {
 }
 
 impl OneOrMoreSeparated for UnicodeRange {
-    type S = CommaSeparator;
+    type S = Comma;
 }
 
 impl<T> ToCss for Vec<T> where T: ToCss + OneOrMoreSeparated {

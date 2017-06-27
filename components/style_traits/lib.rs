@@ -71,7 +71,7 @@ pub mod values;
 #[macro_use]
 pub mod viewport;
 
-pub use values::{ToCss, OneOrMoreSeparated, CommaSeparator, SpaceSeparator, IsCommaSeparator};
+pub use values::{Comma, CommaWithSpace, OneOrMoreSeparated, Separator, Space, ToCss};
 pub use viewport::HasViewportPercentage;
 
 /// The error type for all CSS parsing routines.
