@@ -275,13 +275,6 @@ impl<'ln> TNode for GeckoNode<'ln> {
         }
     }
 
-    fn children_and_traversal_children_might_differ(&self) -> bool {
-        match self.as_element() {
-            Some(e) => e.xbl_binding_anonymous_content().is_some(),
-            None => false,
-        }
-    }
-
     fn opaque(&self) -> OpaqueNode {
         let ptr: usize = self.0 as *const _ as usize;
         OpaqueNode(ptr)

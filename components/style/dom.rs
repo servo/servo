@@ -127,10 +127,6 @@ pub trait TNode : Sized + Copy + Clone + Debug + NodeInfo {
     /// Get this node's children from the perspective of a restyle traversal.
     fn traversal_children(&self) -> LayoutIterator<Self::ConcreteChildrenIterator>;
 
-    /// Returns whether `children()` and `traversal_children()` might return
-    /// iterators over different nodes.
-    fn children_and_traversal_children_might_differ(&self) -> bool;
-
     /// Converts self into an `OpaqueNode`.
     fn opaque(&self) -> OpaqueNode;
 
