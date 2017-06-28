@@ -3171,17 +3171,56 @@ pub extern "C" fn Servo_StyleSet_ResolveForDeclarations(raw_data: RawServoStyleS
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_StyleSet_MightHaveAttributeDependency(raw_data: RawServoStyleSetBorrowed,
-                                                              local_name: *mut nsIAtom) -> bool {
+pub extern "C" fn Servo_StyleSet_MightHaveAttributeDependency(
+    raw_data: RawServoStyleSetBorrowed,
+    element: RawGeckoElementBorrowed,
+    local_name: *mut nsIAtom,
+) -> bool {
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
-    unsafe { Atom::with(local_name, |atom| data.stylist.might_have_attribute_dependency(atom)) }
+    let element = GeckoElement(element);
+    let mut has_dep = false;
+
+    unsafe {
+        Atom::with(local_name, |atom| {
+            has_dep = data.stylist.might_have_attribute_dependency(atom);
+
+            if !has_dep {
+                // TODO(emilio): Consider optimizing this storing attribute
+                // dependencies from UA sheets separately, so we could optimize
+                // the above lookup if cut_off_inheritance is true.
+                element.each_xbl_stylist(|stylist| {
+                    has_dep =
+                        has_dep || stylist.might_have_attribute_dependency(atom);
+                });
+            }
+        })
+    }
+
+    has_dep
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_StyleSet_HasStateDependency(raw_data: RawServoStyleSetBorrowed,
-                                                    state: u64) -> bool {
+pub extern "C" fn Servo_StyleSet_HasStateDependency(
+    raw_data: RawServoStyleSetBorrowed,
+    element: RawGeckoElementBorrowed,
+    state: u64,
+) -> bool {
+    let element = GeckoElement(element);
+
+    let state = ElementState::from_bits_truncate(state);
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
-    data.stylist.might_have_state_dependency(ElementState::from_bits_truncate(state))
+
+    let mut has_dep = data.stylist.might_have_state_dependency(state);
+    if !has_dep {
+        // TODO(emilio): Consider optimizing this storing attribute
+        // dependencies from UA sheets separately, so we could optimize
+        // the above lookup if cut_off_inheritance is true.
+        element.each_xbl_stylist(|stylist| {
+            has_dep = has_dep || stylist.might_have_state_dependency(state);
+        });
+    }
+
+    has_dep
 }
 
 #[no_mangle]
