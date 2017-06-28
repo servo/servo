@@ -1234,16 +1234,24 @@ mod shorthand_serialization {
 
     mod effects {
         pub use super::*;
-        pub use style::properties::longhands::box_shadow::SpecifiedValue as BoxShadow;
-        pub use style::values::specified::Shadow;
+        pub use style::properties::longhands::box_shadow::SpecifiedValue as BoxShadowList;
+        pub use style::values::specified::effects::{BoxShadow, SimpleShadow};
 
         #[test]
         fn box_shadow_should_serialize_correctly() {
             let mut properties = Vec::new();
-            let shadow_val = Shadow { offset_x: Length::from_px(1f32), offset_y: Length::from_px(2f32),
-            blur_radius: Length::from_px(3f32), spread_radius: Length::from_px(4f32), color: None, inset: false };
-            let shadow_decl = BoxShadow(vec![shadow_val]);
-            properties.push(PropertyDeclaration:: BoxShadow(shadow_decl));
+            let shadow_val = BoxShadow {
+                base: SimpleShadow {
+                    color: None,
+                    horizontal: Length::from_px(1f32),
+                    vertical: Length::from_px(2f32),
+                    blur: Some(Length::from_px(3f32)),
+                },
+                spread: Some(Length::from_px(4f32)),
+                inset: false,
+            };
+            let shadow_decl = BoxShadowList(vec![shadow_val]);
+            properties.push(PropertyDeclaration::BoxShadow(shadow_decl));
             let shadow_css = "box-shadow: 1px 2px 3px 4px;";
             let shadow = parse(|c, i| Ok(parse_property_declaration_list(c, i)), shadow_css).unwrap();
 

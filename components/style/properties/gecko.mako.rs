@@ -60,7 +60,7 @@ use std::ptr;
 use stylearc::Arc;
 use std::cmp;
 use values::{Auto, CustomIdent, Either, KeyframesName};
-use values::computed::{Filter, Shadow};
+use values::computed::effects::{BoxShadow, Filter, SimpleShadow};
 use values::specified::length::Percentage;
 use computed_values::border_style;
 
@@ -3173,13 +3173,13 @@ fn static_assert() {
 <%self:impl_trait style_struct_name="Effects"
                   skip_longhands="box-shadow clip filter">
     pub fn set_box_shadow<I>(&mut self, v: I)
-        where I: IntoIterator<Item = Shadow>,
+        where I: IntoIterator<Item = BoxShadow>,
               I::IntoIter: ExactSizeIterator
     {
         let v = v.into_iter();
         self.gecko.mBoxShadow.replace_with_new(v.len() as u32);
         for (servo, gecko_shadow) in v.zip(self.gecko.mBoxShadow.iter_mut()) {
-            gecko_shadow.set_from_shadow(servo);
+            gecko_shadow.set_from_box_shadow(servo);
         }
     }
 
@@ -3188,7 +3188,7 @@ fn static_assert() {
     }
 
     pub fn clone_box_shadow(&self) -> longhands::box_shadow::computed_value::T {
-        let buf = self.gecko.mBoxShadow.iter().map(|v| v.to_shadow()).collect();
+        let buf = self.gecko.mBoxShadow.iter().map(|v| v.to_box_shadow()).collect();
         longhands::box_shadow::computed_value::T(buf)
     }
 
@@ -3494,13 +3494,13 @@ fn static_assert() {
     ${impl_keyword_clone('text_align', 'mTextAlign', text_align_keyword)}
 
     pub fn set_text_shadow<I>(&mut self, v: I)
-        where I: IntoIterator<Item = Shadow>,
+        where I: IntoIterator<Item = SimpleShadow>,
               I::IntoIter: ExactSizeIterator
     {
         let v = v.into_iter();
         self.gecko.mTextShadow.replace_with_new(v.len() as u32);
         for (servo, gecko_shadow) in v.zip(self.gecko.mTextShadow.iter_mut()) {
-            gecko_shadow.set_from_shadow(servo);
+            gecko_shadow.set_from_simple_shadow(servo);
         }
     }
 
@@ -3509,7 +3509,7 @@ fn static_assert() {
     }
 
     pub fn clone_text_shadow(&self) -> longhands::text_shadow::computed_value::T {
-        let buf = self.gecko.mTextShadow.iter().map(|v| v.to_shadow()).collect();
+        let buf = self.gecko.mTextShadow.iter().map(|v| v.to_simple_shadow()).collect();
         longhands::text_shadow::computed_value::T(buf)
     }
 
