@@ -30,7 +30,7 @@ use gecko::global_style_data::GLOBAL_STYLE_DATA;
 use gecko::selector_parser::{SelectorImpl, NonTSPseudoClass, PseudoElement};
 use gecko::snapshot_helpers;
 use gecko_bindings::bindings;
-use gecko_bindings::bindings::{Gecko_DropStyleChildrenIterator, Gecko_MaybeCreateStyleChildrenIterator};
+use gecko_bindings::bindings::{Gecko_ConstructStyleChildrenIterator, Gecko_DestroyStyleChildrenIterator};
 use gecko_bindings::bindings::{Gecko_ElementState, Gecko_GetDocumentLWTheme};
 use gecko_bindings::bindings::{Gecko_GetLastChild, Gecko_GetNextStyleChild};
 use gecko_bindings::bindings::{Gecko_IsRootElement, Gecko_MatchesElement, Gecko_Namespace};
@@ -282,12 +282,23 @@ impl<'ln> TNode for GeckoNode<'ln> {
     }
 
     fn traversal_children(&self) -> LayoutIterator<GeckoChildrenIterator<'ln>> {
-        let maybe_iter = unsafe { Gecko_MaybeCreateStyleChildrenIterator(self.0) };
-        if let Some(iter) = maybe_iter.into_owned_opt() {
-            LayoutIterator(GeckoChildrenIterator::GeckoIterator(iter))
-        } else {
-            LayoutIterator(self.dom_children())
+        if let Some(element) = self.as_element() {
+            // This condition is similar to the check that
+            // StyleChildrenIterator::IsNeeded does, except that it might return
+            // true if we used to (but no longer) have anonymous content from
+            // ::before/::after, XBL bindings, or nsIAnonymousContentCreators.
+            if self.is_in_anonymous_subtree() ||
+               element.has_xbl_binding_with_content() ||
+               self.may_have_anonymous_children() {
+                unsafe {
+                    let mut iter: structs::StyleChildrenIterator = ::std::mem::zeroed();
+                    Gecko_ConstructStyleChildrenIterator(element.0, &mut iter);
+                    return LayoutIterator(GeckoChildrenIterator::GeckoIterator(iter));
+                }
+            }
         }
+
+        LayoutIterator(self.dom_children())
     }
 
     fn opaque(&self) -> OpaqueNode {
@@ -351,14 +362,14 @@ pub enum GeckoChildrenIterator<'a> {
     /// replaces it with the next sibling when requested.
     Current(Option<GeckoNode<'a>>),
     /// A Gecko-implemented iterator we need to drop appropriately.
-    GeckoIterator(bindings::StyleChildrenIteratorOwned),
+    GeckoIterator(structs::StyleChildrenIterator),
 }
 
 impl<'a> Drop for GeckoChildrenIterator<'a> {
     fn drop(&mut self) {
-        if let GeckoChildrenIterator::GeckoIterator(ref it) = *self {
+        if let GeckoChildrenIterator::GeckoIterator(ref mut it) = *self {
             unsafe {
-                Gecko_DropStyleChildrenIterator(ptr::read(it as *const _));
+                Gecko_DestroyStyleChildrenIterator(it);
             }
         }
     }
