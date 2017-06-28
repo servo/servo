@@ -11,6 +11,7 @@ use std::ascii::AsciiExt;
 use std::borrow::{Borrow, Cow, ToOwned};
 use std::fmt;
 use std::hash::{Hash, Hasher};
+use std::marker::PhantomData;
 use std::ops;
 use std::ops::{Deref, DerefMut};
 use std::str;
@@ -152,19 +153,17 @@ pub fn is_token(s: &[u8]) -> bool {
 /// This type is currently `!Send`, in order to help with an independent
 /// experiment to store `JSString`s rather than Rust `String`s.
 #[derive(Clone, Debug, Eq, Hash, HeapSizeOf, Ord, PartialEq, PartialOrd)]
-pub struct DOMString(String);
-
-impl !Send for DOMString {}
+pub struct DOMString(String, PhantomData<*const ()>);
 
 impl DOMString {
     /// Creates a new `DOMString`.
     pub fn new() -> DOMString {
-        DOMString(String::new())
+        DOMString(String::new(), PhantomData)
     }
 
     /// Creates a new `DOMString` from a `String`.
     pub fn from_string(s: String) -> DOMString {
-        DOMString(s)
+        DOMString(s, PhantomData)
     }
 
     /// Appends a given string slice onto the end of this String.
@@ -197,7 +196,7 @@ impl Borrow<str> for DOMString {
 
 impl Default for DOMString {
     fn default() -> Self {
-        DOMString(String::new())
+        DOMString(String::new(), PhantomData)
     }
 }
 
@@ -244,7 +243,7 @@ impl<'a> PartialEq<&'a str> for DOMString {
 
 impl From<String> for DOMString {
     fn from(contents: String) -> DOMString {
-        DOMString(contents)
+        DOMString(contents, PhantomData)
     }
 }
 

@@ -9,7 +9,6 @@
 #![feature(mpsc_select)]
 #![feature(nonzero)]
 #![feature(on_unimplemented)]
-#![feature(optin_builtin_traits)]
 #![feature(option_entry)]
 #![feature(plugin)]
 #![feature(proc_macro)]
