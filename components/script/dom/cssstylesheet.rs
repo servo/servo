@@ -57,10 +57,14 @@ impl CSSStyleSheet {
     }
 
     fn rulelist(&self) -> Root<CSSRuleList> {
-        self.rulelist.or_init(|| CSSRuleList::new(self.global().as_window(),
-                                                  self,
-                                                  RulesSource::Rules(self.style_stylesheet
-                                                                         .rules.clone())))
+        self.rulelist.or_init(|| {
+            let rules = self.style_stylesheet.contents.rules.clone();
+            CSSRuleList::new(
+                self.global().as_window(),
+                self,
+                RulesSource::Rules(rules)
+            )
+        })
     }
 
     pub fn disabled(&self) -> bool {

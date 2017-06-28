@@ -93,7 +93,7 @@ impl CSSRuleList {
         let new_rule =
             css_rules.insert_rule(&parent_stylesheet.shared_lock,
                                   rule,
-                                  parent_stylesheet,
+                                  &parent_stylesheet.contents,
                                   index,
                                   nested,
                                   None)?;

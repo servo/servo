@@ -62,7 +62,7 @@ fn parse_rules(css: &str) -> Vec<(StyleSource, CascadeLevel)> {
                                  QuirksMode::NoQuirks,
                                  0u64);
     let guard = s.shared_lock.read();
-    let rules = s.rules.read_with(&guard);
+    let rules = s.contents.rules.read_with(&guard);
     rules.0.iter().filter_map(|rule| {
         match *rule {
             CssRule::Style(ref style_rule) => Some(style_rule),

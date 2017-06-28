@@ -8,7 +8,7 @@
 
 use cssparser::SourceLocation;
 use properties::PropertyDeclarationBlock;
-use shared_lock::{DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
+use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt;
 use style_traits::ToCss;
 use stylearc::Arc;
@@ -51,6 +51,7 @@ impl DeepCloneWithLock for PageRule {
         &self,
         lock: &SharedRwLock,
         guard: &SharedRwLockReadGuard,
+        _params: &DeepCloneParams,
     ) -> Self {
         PageRule {
             block: Arc::new(lock.wrap(self.block.read_with(&guard).clone())),

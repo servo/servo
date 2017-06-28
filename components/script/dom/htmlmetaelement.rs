@@ -27,7 +27,7 @@ use style::attr::AttrValue;
 use style::media_queries::MediaList;
 use style::str::HTML_SPACE_CHARACTERS;
 use style::stylearc::Arc;
-use style::stylesheets::{Stylesheet, CssRule, CssRules, Origin, ViewportRule};
+use style::stylesheets::{Stylesheet, StylesheetContents, CssRule, CssRules, Origin, ViewportRule};
 
 #[dom_struct]
 pub struct HTMLMetaElement {
@@ -103,17 +103,20 @@ impl HTMLMetaElement {
                     let shared_lock = document.style_shared_lock();
                     let rule = CssRule::Viewport(Arc::new(shared_lock.wrap(translated_rule)));
                     *self.stylesheet.borrow_mut() = Some(Arc::new(Stylesheet {
-                        rules: CssRules::new(vec![rule], shared_lock),
-                        origin: Origin::Author,
-                        shared_lock: shared_lock.clone(),
-                        url_data: RwLock::new(window_from_node(self).get_url()),
-                        namespaces: Default::default(),
+                        contents: StylesheetContents {
+                            rules: CssRules::new(vec![rule], shared_lock),
+                            origin: Origin::Author,
+                            namespaces: Default::default(),
+                            quirks_mode: document.quirks_mode(),
+                            url_data: RwLock::new(window_from_node(self).get_url()),
+                            // Viewport constraints are always recomputed on
+                            // resize; they don't need to force all styles to be
+                            // recomputed.
+                            dirty_on_viewport_size_change: AtomicBool::new(false),
+                        },
                         media: Arc::new(shared_lock.wrap(MediaList::empty())),
-                        // Viewport constraints are always recomputed on resize; they don't need to
-                        // force all styles to be recomputed.
-                        dirty_on_viewport_size_change: AtomicBool::new(false),
+                        shared_lock: shared_lock.clone(),
                         disabled: AtomicBool::new(false),
-                        quirks_mode: document.quirks_mode(),
                     }));
                     let doc = document_from_node(self);
                     doc.invalidate_stylesheets();
