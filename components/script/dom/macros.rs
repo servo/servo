@@ -303,7 +303,7 @@ macro_rules! make_nonzero_dimension_setter(
 /// For use on non-jsmanaged types
 /// Use #[derive(JSTraceable)] on JS managed types
 macro_rules! unsafe_no_jsmanaged_fields(
-    ($($ty:ident),+) => (
+    ($($ty:ty),+) => (
         $(
             #[allow(unsafe_code)]
             unsafe impl $crate::dom::bindings::trace::JSTraceable for $ty {
