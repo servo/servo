@@ -102,7 +102,6 @@ use std::mem as std_mem;
 use std::ops::{Deref, DerefMut};
 use std::process;
 use std::sync::{Arc, Mutex, MutexGuard};
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::thread;
 use style::animation::Animation;
@@ -189,9 +188,6 @@ pub struct LayoutThread {
 
     /// Receives newly-discovered animations.
     new_animations_receiver: Receiver<Animation>,
-
-    /// The number of Web fonts that have been requested but not yet loaded.
-    outstanding_web_fonts: Arc<AtomicUsize>,
 
     /// The root of the flow tree.
     root_flow: RefCell<Option<FlowRef>>,
@@ -391,8 +387,7 @@ fn add_font_face_rules(stylesheet: &Stylesheet,
                        guard: &SharedRwLockReadGuard,
                        device: &Device,
                        font_cache_thread: &FontCacheThread,
-                       font_cache_sender: &IpcSender<()>,
-                       outstanding_web_fonts_counter: &Arc<AtomicUsize>) {
+                       font_cache_sender: &IpcSender<()>) {
     if opts::get().load_webfonts_synchronously {
         let (sender, receiver) = ipc::channel().unwrap();
         stylesheet.effective_font_face_rules(&device, guard, |rule| {
@@ -408,7 +403,6 @@ fn add_font_face_rules(stylesheet: &Stylesheet,
         stylesheet.effective_font_face_rules(&device, guard, |rule| {
             if let Some(font_face) = rule.font_face() {
                 let effective_sources = font_face.effective_sources();
-                outstanding_web_fonts_counter.fetch_add(1, Ordering::SeqCst);
                 font_cache_thread.add_web_font(font_face.family().clone(),
                                               effective_sources,
                                               (*font_cache_sender).clone());
@@ -459,7 +453,6 @@ impl LayoutThread {
             ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_font_cache_receiver);
 
         let stylist = Stylist::new(device, QuirksMode::NoQuirks);
-        let outstanding_web_fonts_counter = Arc::new(AtomicUsize::new(0));
         let ua_stylesheets = &*UA_STYLESHEETS;
         let guard = ua_stylesheets.shared_lock.read();
         for stylesheet in &ua_stylesheets.user_or_user_agent_stylesheets {
@@ -467,8 +460,7 @@ impl LayoutThread {
                                 &guard,
                                 stylist.device(),
                                 &font_cache_thread,
-                                &ipc_font_cache_sender,
-                                &outstanding_web_fonts_counter);
+                                &ipc_font_cache_sender);
         }
 
         LayoutThread {
@@ -493,7 +485,6 @@ impl LayoutThread {
             generation: Cell::new(0),
             new_animations_sender: new_animations_sender,
             new_animations_receiver: new_animations_receiver,
-            outstanding_web_fonts: outstanding_web_fonts_counter,
             root_flow: RefCell::new(None),
             document_shared_lock: None,
             running_animations: StyleArc::new(RwLock::new(FnvHashMap::default())),
@@ -633,7 +624,6 @@ impl LayoutThread {
             },
             Request::FromFontCache => {
                 let _rw_data = possibly_locked_rw_data.lock();
-                self.outstanding_web_fonts.fetch_sub(1, Ordering::SeqCst);
                 font_context::invalidate_font_caches();
                 self.script_chan.send(ConstellationControlMsg::WebFontLoaded(self.id)).unwrap();
                 true
@@ -687,8 +677,7 @@ impl LayoutThread {
             }
             Msg::GetWebFontLoadState(sender) => {
                 let _rw_data = possibly_locked_rw_data.lock();
-                let outstanding_web_fonts = self.outstanding_web_fonts.load(Ordering::SeqCst);
-                sender.send(outstanding_web_fonts != 0).unwrap();
+                sender.send(!self.font_cache_thread.is_web_font_loading_finished()).unwrap();
             },
             Msg::CreateLayoutThread(info) => {
                 self.create_layout_thread(info)
@@ -814,8 +803,7 @@ impl LayoutThread {
                                 &guard,
                                 self.stylist.device(),
                                 &self.font_cache_thread,
-                                &self.font_cache_sender,
-                                &self.outstanding_web_fonts);
+                                &self.font_cache_sender);
         }
 
         possibly_locked_rw_data.block(rw_data);

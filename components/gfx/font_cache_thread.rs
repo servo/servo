@@ -108,6 +108,7 @@ pub enum Command {
     GetLastResortFontTemplate(FontTemplateDescriptor, IpcSender<Reply>),
     AddWebFont(LowercaseString, EffectiveSources, IpcSender<()>),
     AddDownloadedWebFont(LowercaseString, ServoUrl, Vec<u8>, IpcSender<()>),
+    FontLoadingFinished(IpcSender<Reply>),
     Exit(IpcSender<()>),
 }
 
@@ -115,6 +116,7 @@ pub enum Command {
 #[derive(Deserialize, Serialize, Debug)]
 pub enum Reply {
     GetFontTemplateReply(Option<FontTemplateInfo>),
+    FontLoadingState(bool),
 }
 
 /// The font cache thread itself. It maintains a list of reference counted
@@ -129,6 +131,7 @@ struct FontCache {
     core_resource_thread: CoreResourceThread,
     webrender_api: Option<webrender_traits::RenderApi>,
     webrender_fonts: HashMap<Atom, webrender_traits::FontKey>,
+    font_loading_counter: usize,
 }
 
 fn populate_generic_fonts() -> HashMap<FontFamily, LowercaseString> {
@@ -173,12 +176,17 @@ impl FontCache {
                     let _ = result.send(Reply::GetFontTemplateReply(Some(font_template)));
                 }
                 Command::AddWebFont(family_name, sources, result) => {
+                    self.font_loading_counter += 1;
                     self.handle_add_web_font(family_name, sources, result);
                 }
                 Command::AddDownloadedWebFont(family_name, url, bytes, result) => {
                     let templates = &mut self.web_families.get_mut(&family_name).unwrap();
                     templates.add_template(Atom::from(url.to_string()), Some(bytes));
+                    self.font_loading_counter -= 1;
                     drop(result.send(()));
+                }
+                Command::FontLoadingFinished(result) => {
+                    let _ = result.send(Reply::FontLoadingState(self.font_loading_counter == 0));
                 }
                 Command::Exit(result) => {
                     let _ = result.send(());
@@ -418,6 +426,7 @@ impl FontCacheThread {
                 core_resource_thread: core_resource_thread,
                 webrender_api: webrender_api,
                 webrender_fonts: HashMap::new(),
+                font_loading_counter: 0,
             };
 
             cache.refresh_local_families();
@@ -443,6 +452,7 @@ impl FontCacheThread {
             Reply::GetFontTemplateReply(data) => {
                 data
             }
+            _ => unreachable!(),
         }
     }
 
@@ -460,11 +470,28 @@ impl FontCacheThread {
             Reply::GetFontTemplateReply(data) => {
                 data.unwrap()
             }
+            _ => unreachable!(),
         }
     }
 
     pub fn add_web_font(&self, family: FamilyName, sources: EffectiveSources, sender: IpcSender<()>) {
         self.chan.send(Command::AddWebFont(LowercaseString::new(&family.name), sources, sender)).unwrap();
+    }
+
+    pub fn is_web_font_loading_finished(&self) -> bool {
+        let (response_chan, response_port) =
+            ipc::channel().expect("failed to create IPC channel");
+        self.chan.send(Command::FontLoadingFinished(response_chan)).unwrap();
+
+        let reply = response_port.recv()
+            .expect("failed to receive response to font request");
+
+        match reply {
+            Reply::FontLoadingState(data) => {
+                data
+            }
+            _ => unreachable!(),
+        }
     }
 
     pub fn exit(&self) {
