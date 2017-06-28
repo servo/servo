@@ -11,6 +11,8 @@ use gecko_bindings::structs::mozilla::css::URLValue;
 use gecko_bindings::structs::mozilla::MallocSizeOf;
 use gecko_bindings::structs::mozilla::Side;
 use gecko_bindings::structs::nsIContent;
+use gecko_bindings::structs::nsIDocument;
+use gecko_bindings::structs::nsIDocument_DocumentTheme;
 use gecko_bindings::structs::RawGeckoAnimationPropertySegment;
 use gecko_bindings::structs::RawGeckoComputedTiming;
 use gecko_bindings::structs::RawGeckoCSSPropertyIDList;
@@ -582,6 +584,10 @@ extern "C" {
 extern "C" {
     pub fn Gecko_GetXMLLangValue(element: RawGeckoElementBorrowed)
      -> *mut nsIAtom;
+}
+extern "C" {
+    pub fn Gecko_GetDocumentLWTheme(aDocument: *const nsIDocument)
+     -> nsIDocument_DocumentTheme;
 }
 extern "C" {
     pub fn Gecko_AtomAttrValue(element: RawGeckoElementBorrowed,

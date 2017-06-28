@@ -31,7 +31,8 @@ use gecko::selector_parser::{SelectorImpl, NonTSPseudoClass, PseudoElement};
 use gecko::snapshot_helpers;
 use gecko_bindings::bindings;
 use gecko_bindings::bindings::{Gecko_DropStyleChildrenIterator, Gecko_MaybeCreateStyleChildrenIterator};
-use gecko_bindings::bindings::{Gecko_ElementState, Gecko_GetLastChild, Gecko_GetNextStyleChild};
+use gecko_bindings::bindings::{Gecko_ElementState, Gecko_GetDocumentLWTheme};
+use gecko_bindings::bindings::{Gecko_GetLastChild, Gecko_GetNextStyleChild};
 use gecko_bindings::bindings::{Gecko_IsRootElement, Gecko_MatchesElement, Gecko_Namespace};
 use gecko_bindings::bindings::{Gecko_SetNodeFlags, Gecko_UnsetNodeFlags};
 use gecko_bindings::bindings::Gecko_ClassOrClassList;
@@ -62,6 +63,7 @@ use gecko_bindings::structs::ELEMENT_HAS_SNAPSHOT;
 use gecko_bindings::structs::EffectCompositor_CascadeLevel as CascadeLevel;
 use gecko_bindings::structs::NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE;
 use gecko_bindings::structs::NODE_IS_NATIVE_ANONYMOUS;
+use gecko_bindings::structs::nsIDocument_DocumentTheme as DocumentTheme;
 use gecko_bindings::sugar::ownership::{HasArcFFI, HasSimpleFFI};
 use logical_geometry::WritingMode;
 use media_queries::Device;
@@ -585,6 +587,12 @@ impl<'le> GeckoElement<'le> {
     #[inline]
     fn may_have_style_attribute(&self) -> bool {
         self.as_node().get_bool_flag(nsINode_BooleanFlag::ElementMayHaveStyle)
+    }
+
+    #[inline]
+    fn get_document_theme(&self) -> DocumentTheme {
+        let node = self.as_node();
+        unsafe { Gecko_GetDocumentLWTheme(node.owner_doc()) }
     }
 }
 
@@ -1658,6 +1666,15 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             },
             NonTSPseudoClass::MozIsHTML => {
                 self.is_html_element_in_html_document()
+            }
+            NonTSPseudoClass::MozLWTheme => {
+                self.get_document_theme() != DocumentTheme::Doc_Theme_None
+            }
+            NonTSPseudoClass::MozLWThemeBrightText => {
+                self.get_document_theme() == DocumentTheme::Doc_Theme_Bright
+            }
+            NonTSPseudoClass::MozLWThemeDarkText => {
+                self.get_document_theme() == DocumentTheme::Doc_Theme_Dark
             }
             NonTSPseudoClass::MozPlaceholder => false,
             NonTSPseudoClass::MozAny(ref sels) => {
