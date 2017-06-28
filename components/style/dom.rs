@@ -31,6 +31,7 @@ use std::fmt::Debug;
 use std::hash::Hash;
 use std::ops::Deref;
 use stylearc::Arc;
+use stylist::Stylist;
 use thread_state;
 
 pub use style_traits::UnsafeNode;
@@ -623,13 +624,32 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
         }
     }
 
-    /// Gets declarations from XBL bindings from the element. Only gecko element could have this.
-    fn get_declarations_from_xbl_bindings<V>(&self,
-                                             _pseudo_element: Option<&PseudoElement>,
-                                             _applicable_declarations: &mut V)
-                                             -> bool
-        where V: Push<ApplicableDeclarationBlock> + VecLike<ApplicableDeclarationBlock> {
+    /// Implements Gecko's `nsBindingManager::WalkRules`.
+    ///
+    /// Returns whether to cut off the inheritance.
+    fn each_xbl_stylist<F>(&self, _: F) -> bool
+    where
+        F: FnMut(&Stylist),
+    {
         false
+    }
+
+    /// Gets declarations from XBL bindings from the element.
+    fn get_declarations_from_xbl_bindings<V>(
+        &self,
+        pseudo_element: Option<&PseudoElement>,
+        applicable_declarations: &mut V
+    ) -> bool
+    where
+        V: Push<ApplicableDeclarationBlock> + VecLike<ApplicableDeclarationBlock>
+    {
+        self.each_xbl_stylist(|stylist| {
+            stylist.push_applicable_declarations_as_xbl_only_stylist(
+                self,
+                pseudo_element,
+                applicable_declarations
+            );
+        })
     }
 
     /// Gets the current existing CSS transitions, by |property, end value| pairs in a HashMap.

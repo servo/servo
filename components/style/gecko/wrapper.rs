@@ -80,7 +80,6 @@ use selectors::matching::{ElementSelectorFlags, LocalMatchingContext, MatchingCo
 use selectors::matching::{RelevantLinkStatus, VisitedHandlingMode};
 use selectors::sink::Push;
 use shared_lock::Locked;
-use smallvec::VecLike;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt;
@@ -91,6 +90,7 @@ use std::ptr;
 use string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
 use stylearc::Arc;
 use stylesheets::UrlExtraData;
+use stylist::Stylist;
 
 /// A simple wrapper over a non-null Gecko node (`nsINode`) pointer.
 ///
@@ -423,23 +423,21 @@ impl<'lb> GeckoXBLBinding<'lb> {
         }
     }
 
-    // Implements Gecko's nsXBLBinding::WalkRules().
-    fn get_declarations_for<E, V>(&self,
-                                  element: &E,
-                                  pseudo_element: Option<&PseudoElement>,
-                                  applicable_declarations: &mut V)
-        where E: TElement,
-              V: Push<ApplicableDeclarationBlock> + VecLike<ApplicableDeclarationBlock> {
-        if let Some(base_binding) = self.base_binding() {
-            base_binding.get_declarations_for(element, pseudo_element, applicable_declarations);
+    fn each_xbl_stylist<F>(self, mut f: &mut F)
+    where
+        F: FnMut(&Stylist),
+    {
+        if let Some(base) = self.base_binding() {
+            base.each_xbl_stylist(f);
         }
 
-        let raw_data = unsafe { bindings::Gecko_XBLBinding_GetRawServoStyleSet(self.0) };
+        let raw_data = unsafe {
+            bindings::Gecko_XBLBinding_GetRawServoStyleSet(self.0)
+        };
+
         if let Some(raw_data) = raw_data {
             let data = PerDocumentStyleData::from_ffi(&*raw_data).borrow();
-            data.stylist.push_applicable_declarations_as_xbl_only_stylist(element,
-                                                                          pseudo_element,
-                                                                          applicable_declarations);
+            f(&data.stylist);
         }
     }
 }
@@ -1112,30 +1110,27 @@ impl<'le> TElement for GeckoElement<'le> {
         self.may_have_animations() && unsafe { Gecko_ElementHasCSSTransitions(self.0) }
     }
 
-    // Implements Gecko's nsBindingManager::WalkRules(). Returns whether to cut off the
-    // inheritance.
-    fn get_declarations_from_xbl_bindings<V>(&self,
-                                             pseudo_element: Option<&PseudoElement>,
-                                             applicable_declarations: &mut V)
-                                             -> bool
-        where V: Push<ApplicableDeclarationBlock> + VecLike<ApplicableDeclarationBlock> {
-        // Walk the binding scope chain, starting with the binding attached to our content, up
-        // till we run out of scopes or we get cut off.
-
-        // If we are NAC, we want to get rules from our rule_hash_target.
+    fn each_xbl_stylist<F>(&self, mut f: F) -> bool
+    where
+        F: FnMut(&Stylist),
+    {
+        // Walk the binding scope chain, starting with the binding attached to
+        // our content, up till we run out of scopes or we get cut off.
+        //
+        // If we are a NAC pseudo-element, we want to get rules from our
+        // rule_hash_target, that is, our originating element.
         let mut current = Some(self.rule_hash_target());
 
         while let Some(element) = current {
             if let Some(binding) = element.get_xbl_binding() {
-                binding.get_declarations_for(self,
-                                             pseudo_element,
-                                             applicable_declarations);
+                binding.each_xbl_stylist(&mut f);
 
-                // If we're not looking at our original element, allow the binding to cut off
-                // style inheritance.
+                // If we're not looking at our original element, allow the
+                // binding to cut off style inheritance.
                 if element != *self {
                     if !binding.inherits_style() {
-                        // Go no further; we're not inheriting style from anything above here.
+                        // Go no further; we're not inheriting style from
+                        // anything above here.
                         break;
                     }
                 }
@@ -1149,8 +1144,8 @@ impl<'le> TElement for GeckoElement<'le> {
             current = element.get_xbl_binding_parent();
         }
 
-        // If current has something, this means we cut off inheritance at some point in the
-        // loop.
+        // If current has something, this means we cut off inheritance at some
+        // point in the loop.
         current.is_some()
     }
 
