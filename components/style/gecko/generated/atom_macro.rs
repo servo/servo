@@ -986,6 +986,8 @@ cfg_if! {
             pub static nsGkAtoms_handlers: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms4HARDE"]
             pub static nsGkAtoms_HARD: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms8haspopupE"]
+            pub static nsGkAtoms_haspopup: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms11hasSameNodeE"]
             pub static nsGkAtoms_hasSameNode: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms4hboxE"]
@@ -1562,6 +1564,8 @@ cfg_if! {
             pub static nsGkAtoms_onchargingtimechange: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms10oncheckingE"]
             pub static nsGkAtoms_onchecking: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms21onCheckboxStateChangeE"]
+            pub static nsGkAtoms_onCheckboxStateChange: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms7onclickE"]
             pub static nsGkAtoms_onclick: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms16onclirmodechangeE"]
@@ -1898,6 +1902,8 @@ cfg_if! {
             pub static nsGkAtoms_onptychange: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms18onradiostatechangeE"]
             pub static nsGkAtoms_onradiostatechange: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms18onRadioStateChangeE"]
+            pub static nsGkAtoms_onRadioStateChange: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms13onrdsdisabledE"]
             pub static nsGkAtoms_onrdsdisabled: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms12onrdsenabledE"]
@@ -4208,6 +4214,8 @@ cfg_if! {
             pub static nsGkAtoms_paintRequestTime: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms14pseudoPropertyE"]
             pub static nsGkAtoms_pseudoProperty: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms17manualNACPropertyE"]
+            pub static nsGkAtoms_manualNACProperty: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms8JapaneseE"]
             pub static nsGkAtoms_Japanese: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms7ChineseE"]
@@ -6099,6 +6107,8 @@ cfg_if! {
             pub static nsGkAtoms_handlers: *mut nsIAtom;
             #[link_name = "?HARD@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_HARD: *mut nsIAtom;
+            #[link_name = "?haspopup@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_haspopup: *mut nsIAtom;
             #[link_name = "?hasSameNode@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_hasSameNode: *mut nsIAtom;
             #[link_name = "?hbox@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -6675,6 +6685,8 @@ cfg_if! {
             pub static nsGkAtoms_onchargingtimechange: *mut nsIAtom;
             #[link_name = "?onchecking@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_onchecking: *mut nsIAtom;
+            #[link_name = "?onCheckboxStateChange@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_onCheckboxStateChange: *mut nsIAtom;
             #[link_name = "?onclick@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_onclick: *mut nsIAtom;
             #[link_name = "?onclirmodechange@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -7011,6 +7023,8 @@ cfg_if! {
             pub static nsGkAtoms_onptychange: *mut nsIAtom;
             #[link_name = "?onradiostatechange@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_onradiostatechange: *mut nsIAtom;
+            #[link_name = "?onRadioStateChange@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_onRadioStateChange: *mut nsIAtom;
             #[link_name = "?onrdsdisabled@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_onrdsdisabled: *mut nsIAtom;
             #[link_name = "?onrdsenabled@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -9321,6 +9335,8 @@ cfg_if! {
             pub static nsGkAtoms_paintRequestTime: *mut nsIAtom;
             #[link_name = "?pseudoProperty@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_pseudoProperty: *mut nsIAtom;
+            #[link_name = "?manualNACProperty@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_manualNACProperty: *mut nsIAtom;
             #[link_name = "?Japanese@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_Japanese: *mut nsIAtom;
             #[link_name = "?Chinese@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -11212,6 +11228,8 @@ cfg_if! {
             pub static nsGkAtoms_handlers: *mut nsIAtom;
             #[link_name = "\x01?HARD@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_HARD: *mut nsIAtom;
+            #[link_name = "\x01?haspopup@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_haspopup: *mut nsIAtom;
             #[link_name = "\x01?hasSameNode@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_hasSameNode: *mut nsIAtom;
             #[link_name = "\x01?hbox@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -11788,6 +11806,8 @@ cfg_if! {
             pub static nsGkAtoms_onchargingtimechange: *mut nsIAtom;
             #[link_name = "\x01?onchecking@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_onchecking: *mut nsIAtom;
+            #[link_name = "\x01?onCheckboxStateChange@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_onCheckboxStateChange: *mut nsIAtom;
             #[link_name = "\x01?onclick@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_onclick: *mut nsIAtom;
             #[link_name = "\x01?onclirmodechange@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -12124,6 +12144,8 @@ cfg_if! {
             pub static nsGkAtoms_onptychange: *mut nsIAtom;
             #[link_name = "\x01?onradiostatechange@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_onradiostatechange: *mut nsIAtom;
+            #[link_name = "\x01?onRadioStateChange@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_onRadioStateChange: *mut nsIAtom;
             #[link_name = "\x01?onrdsdisabled@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_onrdsdisabled: *mut nsIAtom;
             #[link_name = "\x01?onrdsenabled@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -14434,6 +14456,8 @@ cfg_if! {
             pub static nsGkAtoms_paintRequestTime: *mut nsIAtom;
             #[link_name = "\x01?pseudoProperty@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_pseudoProperty: *mut nsIAtom;
+            #[link_name = "\x01?manualNACProperty@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_manualNACProperty: *mut nsIAtom;
             #[link_name = "\x01?Japanese@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_Japanese: *mut nsIAtom;
             #[link_name = "\x01?Chinese@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -16328,6 +16352,8 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_handlers as *mut _) } };
 ("HARD") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_HARD as *mut _) } };
+("haspopup") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_haspopup as *mut _) } };
 ("has-same-node") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_hasSameNode as *mut _) } };
 ("hbox") =>
@@ -16904,6 +16930,8 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onchargingtimechange as *mut _) } };
 ("onchecking") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onchecking as *mut _) } };
+("onCheckboxStateChange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onCheckboxStateChange as *mut _) } };
 ("onclick") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onclick as *mut _) } };
 ("onclirmodechange") =>
@@ -17240,6 +17268,8 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onptychange as *mut _) } };
 ("onradiostatechange") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onradiostatechange as *mut _) } };
+("onRadioStateChange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onRadioStateChange as *mut _) } };
 ("onrdsdisabled") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onrdsdisabled as *mut _) } };
 ("onrdsenabled") =>
@@ -19550,6 +19580,8 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_paintRequestTime as *mut _) } };
 ("PseudoProperty") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pseudoProperty as *mut _) } };
+("ManualNACProperty") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_manualNACProperty as *mut _) } };
 ("ja") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_Japanese as *mut _) } };
 ("zh-CN") =>
