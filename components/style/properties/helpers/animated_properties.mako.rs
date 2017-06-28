@@ -19,8 +19,6 @@ use properties::longhands;
 use properties::longhands::background_size::computed_value::T as BackgroundSizeList;
 use properties::longhands::font_weight::computed_value::T as FontWeight;
 use properties::longhands::font_stretch::computed_value::T as FontStretch;
-use properties::longhands::text_shadow::computed_value::T as TextShadowList;
-use properties::longhands::box_shadow::computed_value::T as BoxShadowList;
 use properties::longhands::transform::computed_value::ComputedMatrix;
 use properties::longhands::transform::computed_value::ComputedOperation as TransformOperation;
 use properties::longhands::transform::computed_value::T as TransformList;
@@ -34,11 +32,14 @@ use std::cmp;
 use style_traits::ParseError;
 use super::ComputedValues;
 use values::{Auto, CSSFloat, CustomIdent, Either};
-use values::animated::effects::{Filter as AnimatedFilter, FilterList as AnimatedFilterList};
+use values::animated::effects::BoxShadowList as AnimatedBoxShadowList;
+use values::animated::effects::Filter as AnimatedFilter;
+use values::animated::effects::FilterList as AnimatedFilterList;
+use values::animated::effects::TextShadowList as AnimatedTextShadowList;
 use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 use values::computed::{BorderCornerRadius, ClipRect};
 use values::computed::{CalcLengthOrPercentage, Color, Context, ComputedValueAsSpecified};
-use values::computed::{LengthOrPercentage, MaxLength, MozLength, Shadow, ToComputedValue};
+use values::computed::{LengthOrPercentage, MaxLength, MozLength, ToComputedValue};
 use values::generics::{SVGPaint, SVGPaintKind};
 use values::generics::border::BorderCornerRadius as GenericBorderCornerRadius;
 use values::generics::effects::Filter;
@@ -2832,7 +2833,8 @@ impl IntermediateColor {
         }
     }
 
-    fn transparent() -> Self {
+    /// Returns a transparent intermediate color.
+    pub fn transparent() -> Self {
         IntermediateColor {
             color: IntermediateRGBA::transparent(),
             foreground_ratio: 0.,
@@ -3037,179 +3039,6 @@ impl Animatable for IntermediateSVGPaintKind {
             &SVGPaintKind::ContextStroke =>  Some(self.clone()),
             _ => None,
         }
-    }
-}
-
-#[derive(Copy, Clone, Debug, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[allow(missing_docs)]
-/// Intermediate type for box-shadow and text-shadow.
-/// The difference from normal shadow type is that this type uses
-/// IntermediateColor instead of ParserColor.
-pub struct IntermediateShadow {
-    pub offset_x: Au,
-    pub offset_y: Au,
-    pub blur_radius: Au,
-    pub spread_radius: Au,
-    pub color: IntermediateColor,
-    pub inset: bool,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[allow(missing_docs)]
-/// Intermediate type for box-shadow list and text-shadow list.
-pub struct IntermediateShadowList(pub Vec<IntermediateShadow>);
-
-type ShadowList = Vec<Shadow>;
-
-impl From<IntermediateShadowList> for ShadowList {
-    fn from(shadow_list: IntermediateShadowList) -> Self {
-        shadow_list.0.into_iter().map(|s| s.into()).collect()
-    }
-}
-
-impl From<ShadowList> for IntermediateShadowList {
-    fn from(shadow_list: ShadowList) -> IntermediateShadowList {
-        IntermediateShadowList(shadow_list.into_iter().map(|s| s.into()).collect())
-    }
-}
-
-% for ty in "Box Text".split():
-impl From<IntermediateShadowList> for ${ty}ShadowList {
-    #[inline]
-    fn from(shadow_list: IntermediateShadowList) -> Self {
-        ${ty}ShadowList(shadow_list.into())
-    }
-}
-
-impl From<${ty}ShadowList> for IntermediateShadowList {
-    #[inline]
-    fn from(shadow_list: ${ty}ShadowList) -> IntermediateShadowList {
-        shadow_list.0.into()
-    }
-}
-% endfor
-
-impl From<IntermediateShadow> for Shadow {
-    fn from(shadow: IntermediateShadow) -> Shadow {
-        Shadow {
-            offset_x: shadow.offset_x,
-            offset_y: shadow.offset_y,
-            blur_radius: shadow.blur_radius,
-            spread_radius: shadow.spread_radius,
-            color: shadow.color.into(),
-            inset: shadow.inset,
-        }
-    }
-}
-
-impl From<Shadow> for IntermediateShadow {
-    fn from(shadow: Shadow) -> IntermediateShadow {
-        IntermediateShadow {
-            offset_x: shadow.offset_x,
-            offset_y: shadow.offset_y,
-            blur_radius: shadow.blur_radius,
-            spread_radius: shadow.spread_radius,
-            color: shadow.color.into(),
-            inset: shadow.inset,
-        }
-    }
-}
-
-impl Animatable for IntermediateShadow {
-    #[inline]
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
-        // It can't be interpolated if inset does not match.
-        if self.inset != other.inset {
-            return Err(());
-        }
-
-        let x = self.offset_x.add_weighted(&other.offset_x, self_portion, other_portion)?;
-        let y = self.offset_y.add_weighted(&other.offset_y, self_portion, other_portion)?;
-        let color = self.color.add_weighted(&other.color, self_portion, other_portion)?;
-        let blur = self.blur_radius.add_weighted(&other.blur_radius, self_portion, other_portion)?;
-        let spread = self.spread_radius.add_weighted(&other.spread_radius, self_portion, other_portion)?;
-
-        Ok(IntermediateShadow {
-            offset_x: x,
-            offset_y: y,
-            blur_radius: blur,
-            spread_radius: spread,
-            color: color,
-            inset: self.inset,
-        })
-    }
-
-    #[inline]
-    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
-        self.compute_squared_distance(other).map(|sd| sd.sqrt())
-    }
-
-    #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
-        if self.inset != other.inset {
-            return Err(());
-        }
-        let list = [
-            self.offset_x.compute_distance(&other.offset_x)?,
-            self.offset_y.compute_distance(&other.offset_y)?,
-            self.blur_radius.compute_distance(&other.blur_radius)?,
-            self.color.compute_distance(&other.color)?,
-            self.spread_radius.compute_distance(&other.spread_radius)?,
-        ];
-        Ok(list.iter().fold(0.0f64, |sum, diff| sum + diff * diff))
-    }
-}
-
-/// https://drafts.csswg.org/css-transitions/#animtype-shadow-list
-impl Animatable for IntermediateShadowList {
-    #[inline]
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
-        // The inset value must change
-        let mut zero = IntermediateShadow {
-            offset_x: Au(0),
-            offset_y: Au(0),
-            blur_radius: Au(0),
-            spread_radius: Au(0),
-            color: IntermediateColor::transparent(),
-            inset: false,
-        };
-
-        let max_len = cmp::max(self.0.len(), other.0.len());
-
-        let mut result = Vec::with_capacity(max_len);
-
-        for i in 0..max_len {
-            let shadow = match (self.0.get(i), other.0.get(i)) {
-                (Some(shadow), Some(other)) => {
-                    shadow.add_weighted(other, self_portion, other_portion)?
-                }
-                (Some(shadow), None) => {
-                        zero.inset = shadow.inset;
-                        shadow.add_weighted(&zero, self_portion, other_portion).unwrap()
-                }
-                (None, Some(shadow)) => {
-                    zero.inset = shadow.inset;
-                    zero.add_weighted(&shadow, self_portion, other_portion).unwrap()
-                }
-                (None, None) => unreachable!(),
-            };
-            result.push(shadow);
-        }
-
-        Ok(IntermediateShadowList(result))
-    }
-
-    fn add(&self, other: &Self) -> Result<Self, ()> {
-        let len = self.0.len() + other.0.len();
-
-        let mut result = Vec::with_capacity(len);
-
-        result.extend(self.0.iter().cloned());
-        result.extend(other.0.iter().cloned());
-
-        Ok(IntermediateShadowList(result))
     }
 }
 

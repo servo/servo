@@ -57,7 +57,8 @@ use style::properties::style_structs;
 use style::servo::restyle_damage::REPAINT;
 use style::values::{Either, RGBA};
 use style::values::computed::{Gradient, GradientItem, LengthOrPercentage};
-use style::values::computed::{LengthOrPercentageOrAuto, NumberOrPercentage, Position, Shadow};
+use style::values::computed::{LengthOrPercentageOrAuto, NumberOrPercentage, Position};
+use style::values::computed::effects::SimpleShadow;
 use style::values::computed::image::{EndingShape, LineDirection};
 use style::values::generics::background::BackgroundSize;
 use style::values::generics::effects::Filter;
@@ -525,7 +526,7 @@ pub trait FragmentDisplayListBuilding {
                                             state: &mut DisplayListBuildState,
                                             text_fragment: &ScannedTextFragmentInfo,
                                             stacking_relative_content_box: &Rect<Au>,
-                                            text_shadow: Option<&Shadow>,
+                                            text_shadow: Option<&SimpleShadow>,
                                             clip: &Rect<Au>);
 
     /// Creates the display item for a text decoration: underline, overline, or line-through.
@@ -534,7 +535,7 @@ pub trait FragmentDisplayListBuilding {
                                               color: &RGBA,
                                               stacking_relative_box: &LogicalRect<Au>,
                                               clip: &Rect<Au>,
-                                              blur_radius: Au);
+                                              blur: Au);
 
     /// A helper method that `build_display_list` calls to create per-fragment-type display items.
     fn build_fragment_type_specific_display_items(&mut self,
@@ -1351,11 +1352,14 @@ impl FragmentDisplayListBuilding for Fragment {
                                                        clip: &Rect<Au>) {
         // NB: According to CSS-BACKGROUNDS, box shadows render in *reverse* order (front to back).
         for box_shadow in style.get_effects().box_shadow.0.iter().rev() {
-            let bounds =
-                shadow_bounds(&absolute_bounds.translate(&Vector2D::new(box_shadow.offset_x,
-                                                                        box_shadow.offset_y)),
-                              box_shadow.blur_radius,
-                              box_shadow.spread_radius);
+            let bounds = shadow_bounds(
+                &absolute_bounds.translate(&Vector2D::new(
+                    box_shadow.base.horizontal,
+                    box_shadow.base.vertical,
+                )),
+                box_shadow.base.blur,
+                box_shadow.spread,
+            );
 
             // TODO(pcwalton): Multiple border radii; elliptical border radii.
             let base = state.create_base_display_item(&bounds,
@@ -1366,10 +1370,10 @@ impl FragmentDisplayListBuilding for Fragment {
             state.add_display_item(DisplayItem::BoxShadow(box BoxShadowDisplayItem {
                 base: base,
                 box_bounds: *absolute_bounds,
-                color: style.resolve_color(box_shadow.color).to_gfx_color(),
-                offset: Vector2D::new(box_shadow.offset_x, box_shadow.offset_y),
-                blur_radius: box_shadow.blur_radius,
-                spread_radius: box_shadow.spread_radius,
+                color: style.resolve_color(box_shadow.base.color).to_gfx_color(),
+                offset: Vector2D::new(box_shadow.base.horizontal, box_shadow.base.vertical),
+                blur_radius: box_shadow.base.blur,
+                spread_radius: box_shadow.spread,
                 border_radius: model::specified_border_radius(style.get_border()
                                                                    .border_top_left_radius,
                                                               absolute_bounds.size).width,
@@ -2039,7 +2043,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                             state: &mut DisplayListBuildState,
                                             text_fragment: &ScannedTextFragmentInfo,
                                             stacking_relative_content_box: &Rect<Au>,
-                                            text_shadow: Option<&Shadow>,
+                                            text_shadow: Option<&SimpleShadow>,
                                             clip: &Rect<Au>) {
         // TODO(emilio): Allow changing more properties by ::selection
         let text_color = if let Some(shadow) = text_shadow {
@@ -2051,8 +2055,10 @@ impl FragmentDisplayListBuilding for Fragment {
         } else {
             self.style().get_color().color
         };
-        let offset = text_shadow.map(|s| Vector2D::new(s.offset_x, s.offset_y)).unwrap_or_else(Vector2D::zero);
-        let shadow_blur_radius = text_shadow.map(|s| s.blur_radius).unwrap_or(Au(0));
+        let offset = text_shadow.map_or(Vector2D::zero(), |s| {
+            Vector2D::new(s.horizontal, s.vertical)
+        });
+        let shadow_blur_radius = text_shadow.map(|s| s.blur).unwrap_or(Au(0));
 
         // Determine the orientation and cursor to use.
         let (orientation, cursor) = if self.style.writing_mode.is_vertical() {
@@ -2885,8 +2891,8 @@ fn position_to_offset(position: LengthOrPercentage, total_length: Au) -> f32 {
 
 /// Adjusts `content_rect` as necessary for the given spread, and blur so that the resulting
 /// bounding rect contains all of a shadow's ink.
-fn shadow_bounds(content_rect: &Rect<Au>, blur_radius: Au, spread_radius: Au) -> Rect<Au> {
-    let inflation = spread_radius + blur_radius * BLUR_INFLATION_FACTOR;
+fn shadow_bounds(content_rect: &Rect<Au>, blur: Au, spread: Au) -> Rect<Au> {
+    let inflation = spread + blur * BLUR_INFLATION_FACTOR;
     content_rect.inflate(inflation, inflation)
 }
 
