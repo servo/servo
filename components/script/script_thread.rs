@@ -380,23 +380,8 @@ impl Documents {
         self.find_document(pipeline_id).and_then(|doc| doc.find_iframe(browsing_context_id))
     }
 
-    pub fn iter<'a>(&'a self) -> DocumentsIter<'a> {
-        DocumentsIter {
-            iter: self.map.iter(),
-        }
-    }
-}
-
-#[allow(unrooted_must_root)]
-pub struct DocumentsIter<'a> {
-    iter: hash_map::Iter<'a, PipelineId, JS<Document>>,
-}
-
-impl<'a> Iterator for DocumentsIter<'a> {
-    type Item = (PipelineId, Root<Document>);
-
-    fn next(&mut self) -> Option<(PipelineId, Root<Document>)> {
-        self.iter.next().map(|(id, doc)| (*id, Root::from_ref(&**doc)))
+    pub fn iter<'a>(&'a self) -> impl Iterator<Item=(PipelineId, Root<Document>)> {
+        self.map.iter().map(|(id, doc)| (*id, Root::from_ref(&**doc)))
     }
 }
 
