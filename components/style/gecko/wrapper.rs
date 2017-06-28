@@ -227,6 +227,21 @@ impl<'ln> GeckoNode<'ln> {
     fn contains_non_whitespace_content(&self) -> bool {
         unsafe { Gecko_IsSignificantChild(self.0, true, false) }
     }
+
+    #[inline]
+    fn may_have_anonymous_children(&self) -> bool {
+        self.get_bool_flag(nsINode_BooleanFlag::ElementMayHaveAnonymousChildren)
+    }
+
+    /// This logic is duplicated in Gecko's nsIContent::IsInAnonymousSubtree.
+    #[inline]
+    fn is_in_anonymous_subtree(&self) -> bool {
+        use gecko_bindings::structs::NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE;
+        use gecko_bindings::structs::NODE_IS_IN_SHADOW_TREE;
+        self.flags() & (NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE as u32) != 0 ||
+        ((self.flags() & (NODE_IS_IN_SHADOW_TREE as u32) == 0) &&
+         self.as_element().map_or(false, |e| e.has_xbl_binding_parent()))
+    }
 }
 
 impl<'ln> NodeInfo for GeckoNode<'ln> {
@@ -508,8 +523,52 @@ impl<'le> GeckoElement<'le> {
         !self.get_xbl_binding_with_content().is_none()
     }
 
+    /// This and has_xbl_binding_parent duplicate the logic in Gecko's virtual
+    /// nsINode::GetBindingParent function, which only has two implementations:
+    /// one for XUL elements, and one for other elements.  We just hard code in
+    /// our knowledge of those two implementations here.
     fn get_xbl_binding_parent(&self) -> Option<Self> {
-        unsafe { bindings::Gecko_GetBindingParent(self.0).map(GeckoElement) }
+        if self.is_xul_element() {
+            // FIXME(heycam): Having trouble with bindgen on nsXULElement,
+            // where the binding parent is stored in a member variable
+            // rather than in slots.  So just get it through FFI for now.
+            unsafe { bindings::Gecko_GetBindingParent(self.0).map(GeckoElement) }
+        } else {
+            let binding_parent =
+                unsafe { self.get_non_xul_xbl_binding_parent_raw_content().as_ref() }
+                    .map(GeckoNode::from_content)
+                    .and_then(|n| n.as_element());
+            debug_assert!(binding_parent ==
+                            unsafe { bindings::Gecko_GetBindingParent(self.0).map(GeckoElement) });
+            binding_parent
+        }
+    }
+
+    fn get_non_xul_xbl_binding_parent_raw_content(&self) -> *mut nsIContent {
+        debug_assert!(!self.is_xul_element());
+        match self.get_dom_slots() {
+            Some(slots) => unsafe { *slots.__bindgen_anon_1.mBindingParent.as_ref() },
+            None => ptr::null_mut(),
+        }
+    }
+
+    fn has_xbl_binding_parent(&self) -> bool {
+        if self.is_xul_element() {
+            // FIXME(heycam): Having trouble with bindgen on nsXULElement,
+            // where the binding parent is stored in a member variable
+            // rather than in slots.  So just get it through FFI for now.
+            unsafe { bindings::Gecko_GetBindingParent(self.0).is_some() }
+        } else {
+            !self.get_non_xul_xbl_binding_parent_raw_content().is_null()
+        }
+    }
+
+    fn namespace_id(&self) -> i32 {
+        self.as_node().node_info().mInner.mNamespaceID
+    }
+
+    fn is_xul_element(&self) -> bool {
+        self.namespace_id() == (structs::root::kNameSpaceID_XUL as i32)
     }
 
     /// Clear the element data for a given element.
