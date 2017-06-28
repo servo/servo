@@ -176,6 +176,17 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
                 shared_context.stylist.invalidation_map(),
             );
 
+            // TODO(emilio): Consider storing dependencies from the UA sheet in
+            // a different map. If we do that, we can skip the stuff on the
+            // shared stylist iff cut_off_inheritance is true, and we can look
+            // just at that map.
+            let _cut_off_inheritance =
+                self.element.each_xbl_stylist(|stylist| {
+                    collector.collect_dependencies_in_invalidation_map(
+                        stylist.invalidation_map(),
+                    );
+                });
+
             collector.invalidates_self
         };
 
