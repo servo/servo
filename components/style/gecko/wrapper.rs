@@ -373,10 +373,11 @@ impl<'a> Iterator for GeckoChildrenIterator<'a> {
 }
 
 /// A Simple wrapper over a non-null Gecko `nsXBLBinding` pointer.
+#[derive(Clone, Copy)]
 pub struct GeckoXBLBinding<'lb>(pub &'lb RawGeckoXBLBinding);
 
 impl<'lb> GeckoXBLBinding<'lb> {
-    fn base_binding(&self) -> Option<GeckoXBLBinding> {
+    fn base_binding(&self) -> Option<Self> {
         unsafe { self.0.mNextBinding.mRawPtr.as_ref().map(GeckoXBLBinding) }
     }
 
@@ -386,6 +387,21 @@ impl<'lb> GeckoXBLBinding<'lb> {
 
     fn inherits_style(&self) -> bool {
         unsafe { bindings::Gecko_XBLBinding_InheritsStyle(self.0) }
+    }
+
+    // This duplicates the logic in Gecko's
+    // nsBindingManager::GetBindingWithContent.
+    fn get_binding_with_content(&self) -> Option<Self> {
+        let mut binding = *self;
+        loop {
+            if !binding.anon_content().is_null() {
+                return Some(binding);
+            }
+            binding = match binding.base_binding() {
+                Some(b) => b,
+                None => return None,
+            };
+        }
     }
 
     // Implements Gecko's nsXBLBinding::WalkRules().
@@ -480,8 +496,23 @@ impl<'le> GeckoElement<'le> {
         unsafe { slots.as_ref() }
     }
 
+    #[inline]
     fn get_xbl_binding(&self) -> Option<GeckoXBLBinding> {
+        if self.flags() & (structs::NODE_MAY_BE_IN_BINDING_MNGR as u32) == 0 {
+            return None;
+        }
+
         unsafe { bindings::Gecko_GetXBLBinding(self.0).map(GeckoXBLBinding) }
+    }
+
+    #[inline]
+    fn get_xbl_binding_with_content(&self) -> Option<GeckoXBLBinding> {
+        self.get_xbl_binding().and_then(|b| b.get_binding_with_content())
+    }
+
+    #[inline]
+    fn has_xbl_binding_with_content(&self) -> bool {
+        !self.get_xbl_binding_with_content().is_none()
     }
 
     fn get_xbl_binding_parent(&self) -> Option<Self> {
@@ -1061,16 +1092,9 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     fn xbl_binding_anonymous_content(&self) -> Option<GeckoNode<'le>> {
-        if self.flags() & (structs::NODE_MAY_BE_IN_BINDING_MNGR as u32) == 0 {
-            return None;
-        }
-
-        let anon_content = match self.get_xbl_binding() {
-            Some(binding) => binding.anon_content(),
-            None => return None,
-        };
-
-        unsafe { anon_content.as_ref().map(GeckoNode::from_content) }
+        self.get_xbl_binding_with_content()
+            .map(|b| unsafe { b.anon_content().as_ref() }.unwrap())
+            .map(GeckoNode::from_content)
     }
 
     fn get_css_transitions_info(&self)
