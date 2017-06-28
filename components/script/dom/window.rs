@@ -345,8 +345,15 @@ impl Window {
         self.window_proxy.get().unwrap()
     }
 
-    pub fn maybe_window_proxy(&self) -> Option<Root<WindowProxy>> {
+    /// Returns the window proxy if it has not been discarded.
+    /// https://html.spec.whatwg.org/multipage/#a-browsing-context-is-discarded
+    pub fn undiscarded_window_proxy(&self) -> Option<Root<WindowProxy>> {
         self.window_proxy.get()
+            .and_then(|window_proxy| if window_proxy.is_browsing_context_discarded() {
+                None
+            } else {
+                Some(window_proxy)
+            })
     }
 
     pub fn bluetooth_thread(&self) -> IpcSender<BluetoothRequest> {
@@ -670,13 +677,10 @@ impl WindowMethods for Window {
     // https://html.spec.whatwg.org/multipage/#dom-parent
     fn GetParent(&self) -> Option<Root<WindowProxy>> {
         // Steps 1-3.
-        let window_proxy = match self.maybe_window_proxy() {
+        let window_proxy = match self.undiscarded_window_proxy() {
             Some(window_proxy) => window_proxy,
             None => return None,
         };
-        if window_proxy.is_browsing_context_discarded() {
-            return None;
-        }
         // Step 4.
         if let Some(parent) = window_proxy.parent() {
             return Some(Root::from_ref(parent));
@@ -688,13 +692,10 @@ impl WindowMethods for Window {
     // https://html.spec.whatwg.org/multipage/#dom-top
     fn GetTop(&self) -> Option<Root<WindowProxy>> {
         // Steps 1-3.
-        let window_proxy = match self.maybe_window_proxy() {
+        let window_proxy = match self.undiscarded_window_proxy() {
             Some(window_proxy) => window_proxy,
             None => return None,
         };
-        if window_proxy.is_browsing_context_discarded() {
-            return None;
-        }
         // Steps 4-5.
         Some(Root::from_ref(window_proxy.top()))
     }
