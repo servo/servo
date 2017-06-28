@@ -874,6 +874,17 @@ extern "C" {
     pub fn Gecko_nsFont_Destroy(dst: *mut nsFont);
 }
 extern "C" {
+    pub fn Gecko_ClearAlternateValues(font: *mut nsFont, length: usize);
+}
+extern "C" {
+    pub fn Gecko_AppendAlternateValues(font: *mut nsFont, alternate_name: u32,
+                                       atom: *mut nsIAtom);
+}
+extern "C" {
+    pub fn Gecko_CopyAlternateValuesFrom(dest: *mut nsFont,
+                                         src: *const nsFont);
+}
+extern "C" {
     pub fn Gecko_SetImageOrientation(aVisibility: *mut nsStyleVisibility,
                                      aRadians: f64, aFlip: bool);
 }

@@ -1272,19 +1272,123 @@ ${helpers.single_keyword_system("font-kerning",
                                 spec="https://drafts.csswg.org/css-fonts/#propdef-font-kerning",
                                 animation_value_type="discrete")}
 
-/// FIXME: Implement proper handling of each values.
-/// https://github.com/servo/servo/issues/15957
 <%helpers:longhand name="font-variant-alternates" products="gecko" animation_value_type="none"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-alternates">
     use properties::longhands::system_font::SystemFont;
     use std::fmt;
     use style_traits::ToCss;
+    use values::CustomIdent;
 
     no_viewport_percentage!(SpecifiedValue);
 
+    #[derive(PartialEq, Clone, Debug)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub enum VariantAlternates {
+        Stylistic(CustomIdent),
+        Styleset(Box<[CustomIdent]>),
+        CharacterVariant(Box<[CustomIdent]>),
+        Swash(CustomIdent),
+        Ornaments(CustomIdent),
+        Annotation(CustomIdent),
+        HistoricalForms,
+    }
+
+    #[derive(Debug, Clone, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub struct VariantAlternatesList(pub Box<[VariantAlternates]>);
+
+    #[derive(Debug, Clone, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub enum SpecifiedValue {
+        Value(VariantAlternatesList),
+        System(SystemFont)
+    }
+
+    <%self:simple_system_boilerplate name="font_variant_alternates"></%self:simple_system_boilerplate>
+
+    impl ToCss for VariantAlternates {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            match *self {
+                % for value in "swash stylistic ornaments annotation".split():
+                VariantAlternates::${to_camel_case(value)}(ref atom) => {
+                    dest.write_str("${value}")?;
+                    dest.write_str("(")?;
+                    atom.to_css(dest)?;
+                    dest.write_str(")")
+                },
+                % endfor
+                % for value in "styleset character-variant".split():
+                VariantAlternates::${to_camel_case(value)}(ref vec) => {
+                    dest.write_str("${value}")?;
+                    dest.write_str("(")?;
+                    let mut iter = vec.iter();
+                    iter.next().unwrap().to_css(dest)?;
+                    for c in iter {
+                        dest.write_str(", ")?;
+                        c.to_css(dest)?;
+                    }
+                    dest.write_str(")")
+                },
+                % endfor
+                VariantAlternates::HistoricalForms => {
+                    dest.write_str("historical-forms")
+                },
+            }
+        }
+    }
+
+    impl ToCss for VariantAlternatesList {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            if self.0.is_empty() {
+                return dest.write_str("normal");
+            }
+
+            let mut iter = self.0.iter();
+            iter.next().unwrap().to_css(dest)?;
+            for alternate in iter {
+                dest.write_str(" ")?;
+                alternate.to_css(dest)?;
+            }
+            Ok(())
+        }
+    }
+
+    impl VariantAlternatesList {
+        /// Returns the length of all variant alternates.
+        pub fn len(&self) -> usize {
+            self.0.iter().fold(0, |acc, alternate| {
+                match *alternate {
+                    % for value in "Swash Stylistic Ornaments Annotation".split():
+                        VariantAlternates::${value}(_) => {
+                            acc + 1
+                        },
+                    % endfor
+                    % for value in "Styleset CharacterVariant".split():
+                        VariantAlternates::${value}(ref slice) => {
+                            acc + slice.len()
+                        }
+                    % endfor
+                    _ => acc,
+                }
+            })
+        }
+    }
+
+    pub mod computed_value {
+        pub type T = super::VariantAlternatesList;
+    }
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        VariantAlternatesList(vec![].into_boxed_slice())
+    }
+    #[inline]
+    pub fn get_initial_specified_value() -> SpecifiedValue {
+        SpecifiedValue::Value(VariantAlternatesList(vec![].into_boxed_slice()))
+    }
+
     bitflags! {
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub flags VariantAlternates: u8 {
+        pub flags ParsingFlags: u8 {
             const NORMAL = 0,
             const HISTORICAL_FORMS = 0x01,
             const STYLISTIC = 0x02,
@@ -1294,69 +1398,6 @@ ${helpers.single_keyword_system("font-kerning",
             const ORNAMENTS = 0x20,
             const ANNOTATION = 0x40,
         }
-    }
-
-    #[derive(Debug, Clone, PartialEq)]
-    pub enum SpecifiedValue {
-        Value(VariantAlternates),
-        System(SystemFont)
-    }
-
-    <%self:simple_system_boilerplate name="font_variant_alternates"></%self:simple_system_boilerplate>
-
-    <% font_variant_alternates_map = { "HISTORICAL_FORMS": "HISTORICAL",
-                                       "STYLISTIC": "STYLISTIC",
-                                       "STYLESET": "STYLESET",
-                                       "CHARACTER_VARIANT": "CHARACTER_VARIANT",
-                                       "SWASH": "SWASH",
-                                       "ORNAMENTS": "ORNAMENTS",
-                                       "ANNOTATION": "ANNOTATION" } %>
-    ${helpers.gecko_bitflags_conversion(font_variant_alternates_map, 'NS_FONT_VARIANT_ALTERNATES_',
-                                        'VariantAlternates', kw_type='u16')}
-
-    impl ToCss for VariantAlternates {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            if self.is_empty() {
-                return dest.write_str("normal")
-            }
-
-            let mut has_any = false;
-
-            macro_rules! write_value {
-                ($ident:ident => $str:expr) => {
-                    if self.intersects($ident) {
-                        if has_any {
-                            dest.write_str(" ")?;
-                        }
-                        has_any = true;
-                        dest.write_str($str)?;
-                    }
-                }
-            }
-
-            write_value!(HISTORICAL_FORMS => "historical-forms");
-            write_value!(STYLISTIC => "stylistic");
-            write_value!(STYLESET => "styleset");
-            write_value!(CHARACTER_VARIANT => "character-variant");
-            write_value!(SWASH => "swash");
-            write_value!(ORNAMENTS => "ornaments");
-            write_value!(ANNOTATION => "annotation");
-
-            debug_assert!(has_any);
-            Ok(())
-        }
-    }
-
-    pub mod computed_value {
-        pub type T = super::VariantAlternates;
-    }
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        computed_value::T::empty()
-    }
-    #[inline]
-    pub fn get_initial_specified_value() -> SpecifiedValue {
-        SpecifiedValue::Value(VariantAlternates::empty())
     }
 
     /// normal |
@@ -1369,35 +1410,63 @@ ${helpers.single_keyword_system("font-kerning",
     ///    annotation(<feature-value-name>) ]
     pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
                          -> Result<SpecifiedValue, ParseError<'i>> {
-        let mut result = VariantAlternates::empty();
-
+        let mut alternates = Vec::new();
         if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
-            return Ok(SpecifiedValue::Value(result))
+            return Ok(SpecifiedValue::Value(VariantAlternatesList(alternates.into_boxed_slice())));
         }
 
-        while let Ok(flag) = input.try(|input| {
-            Ok(match_ignore_ascii_case! { &input.expect_ident().map_err(|_| ())?,
-                "stylistic" => STYLISTIC,
-                "historical-forms" => HISTORICAL_FORMS,
-                "styleset" => STYLESET,
-                "character-variant" => CHARACTER_VARIANT,
-                "swash" => SWASH,
-                "ornaments" => ORNAMENTS,
-                "annotation" => ANNOTATION,
-                _ => return Err(()),
-            })
-        }) {
-            if result.intersects(flag) {
-                return Err(StyleParseError::UnspecifiedError.into())
+        let mut parsed_alternates = ParsingFlags::empty();
+        macro_rules! check_if_parsed(
+            ($flag:ident) => (
+                if parsed_alternates.contains($flag) {
+                    return Err(StyleParseError::UnspecifiedError.into())
+                }
+                parsed_alternates |= $flag;
+            )
+        );
+        while let Ok(_) = input.try(|input| {
+            match input.next()? {
+                Token::Ident(ident) => {
+                    if ident == "historical-forms" {
+                        check_if_parsed!(HISTORICAL_FORMS);
+                        alternates.push(VariantAlternates::HistoricalForms);
+                        Ok(())
+                    } else {
+                        return Err(StyleParseError::UnspecifiedError.into());
+                    }
+                },
+                Token::Function(name) => {
+                    input.parse_nested_block(|i| {
+                        match_ignore_ascii_case! { &name,
+                            % for value in "swash stylistic ornaments annotation".split():
+                            "${value}" => {
+                                check_if_parsed!(${value.upper()});
+                                let ident = CustomIdent::from_ident(i.expect_ident()?, &[])?;
+                                alternates.push(VariantAlternates::${to_camel_case(value)}(ident));
+                                Ok(())
+                            },
+                            % endfor
+                            % for value in "styleset character-variant".split():
+                            "${value}" => {
+                                check_if_parsed!(${to_rust_ident(value).upper()});
+                                let idents = i.parse_comma_separated(|i|
+                                    CustomIdent::from_ident(i.expect_ident()?, &[]))?;
+                                alternates.push(VariantAlternates::${to_camel_case(value)}(idents.into_boxed_slice()));
+                                Ok(())
+                            },
+                            % endfor
+                            _ => return Err(StyleParseError::UnspecifiedError.into()),
+                        }
+                    })
+                },
+                _ => Err(StyleParseError::UnspecifiedError.into()),
             }
-            result.insert(flag);
-        }
+        }) { }
 
-        if !result.is_empty() {
-            Ok(SpecifiedValue::Value(result))
-        } else {
-            Err(StyleParseError::UnspecifiedError.into())
+        if parsed_alternates.is_empty() {
+            return Err(StyleParseError::UnspecifiedError.into());
         }
+        Ok(SpecifiedValue::Value(VariantAlternatesList(alternates.into_boxed_slice())))
     }
 </%helpers:longhand>
 
@@ -2347,9 +2416,8 @@ ${helpers.single_keyword("-moz-math-variant",
                               -moz-info -moz-dialog -moz-button -moz-pull-down-menu
                               -moz-list -moz-field""".split()
             kw_font_props = """font_style font_variant_caps font_stretch
-                               font_kerning font_variant_position font_variant_alternates
-                               font_variant_ligatures font_variant_east_asian
-                               font_variant_numeric""".split()
+                               font_kerning font_variant_position font_variant_ligatures
+                               font_variant_east_asian font_variant_numeric""".split()
             kw_cast = """font_style font_variant_caps font_stretch
                          font_kerning font_variant_position""".split()
         %>
@@ -2428,6 +2496,7 @@ ${helpers.single_keyword("-moz-math-variant",
                     font_language_override: longhands::font_language_override::computed_value
                                                      ::T(system.languageOverride),
                     font_feature_settings: longhands::font_feature_settings::get_initial_value(),
+                    font_variant_alternates: longhands::font_variant_alternates::get_initial_value(),
                     system_font: *self,
                 };
                 unsafe { bindings::Gecko_nsFont_Destroy(&mut system); }
