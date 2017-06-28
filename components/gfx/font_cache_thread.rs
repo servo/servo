@@ -107,6 +107,7 @@ pub enum Command {
     GetFontTemplate(FontFamily, FontTemplateDescriptor, IpcSender<Reply>),
     GetLastResortFontTemplate(FontTemplateDescriptor, IpcSender<Reply>),
     AddWebFont(LowercaseString, EffectiveSources, IpcSender<()>),
+    FetchWebFont(LowercaseString, EffectiveSources, IpcSender<()>),
     AddDownloadedWebFont(LowercaseString, ServoUrl, Vec<u8>, IpcSender<()>),
     FontLoadingFinished(IpcSender<Reply>),
     Exit(IpcSender<()>),
@@ -127,6 +128,7 @@ struct FontCache {
     generic_fonts: HashMap<FontFamily, LowercaseString>,
     local_families: HashMap<LowercaseString, FontTemplates>,
     web_families: HashMap<LowercaseString, FontTemplates>,
+    unfetched_web_fonts: HashMap<LowercaseString, (EffectiveSources, IpcSender<()>)>,
     font_context: FontContextHandle,
     core_resource_thread: CoreResourceThread,
     webrender_api: Option<webrender_traits::RenderApi>,
@@ -176,14 +178,17 @@ impl FontCache {
                     let _ = result.send(Reply::GetFontTemplateReply(Some(font_template)));
                 }
                 Command::AddWebFont(family_name, sources, result) => {
-                    self.font_loading_counter += 1;
-                    self.handle_add_web_font(family_name, sources, result);
+                    self.unfetched_web_fonts.insert(family_name, (sources, result.clone()));
+                    result.send(()).unwrap();
+                }
+                Command::FetchWebFont(family_name, sources, result) => {
+                    self.get_web_font_from_source(family_name, sources, result);
                 }
                 Command::AddDownloadedWebFont(family_name, url, bytes, result) => {
                     let templates = &mut self.web_families.get_mut(&family_name).unwrap();
                     templates.add_template(Atom::from(url.to_string()), Some(bytes));
                     self.font_loading_counter -= 1;
-                    drop(result.send(()));
+                    result.send(()).unwrap();
                 }
                 Command::FontLoadingFinished(result) => {
                     let _ = result.send(Reply::FontLoadingState(self.font_loading_counter == 0));
@@ -196,13 +201,14 @@ impl FontCache {
         }
     }
 
-    fn handle_add_web_font(&mut self,
+    fn get_web_font_from_source(&mut self,
                            family_name: LowercaseString,
                            mut sources: EffectiveSources,
                            sender: IpcSender<()>) {
         let src = if let Some(src) = sources.next() {
             src
         } else {
+            self.font_loading_counter -= 1;
             sender.send(()).unwrap();
             return;
         };
@@ -249,7 +255,7 @@ impl FontCache {
                         FetchResponseMsg::ProcessResponseEOF(response) => {
                             trace!("@font-face {} EOF={:?}", family_name, response);
                             if response.is_err() || !*response_valid.lock().unwrap() {
-                                let msg = Command::AddWebFont(family_name.clone(), sources.clone(), sender.clone());
+                                let msg = Command::FetchWebFont(family_name.clone(), sources.clone(), sender.clone());
                                 channel_to_self.send(msg).unwrap();
                                 return;
                             }
@@ -261,7 +267,9 @@ impl FontCache {
                                     // FIXME(servo/fontsan#1): get an error message
                                     debug!("Sanitiser rejected web font: \
                                             family={} url={:?}", family_name, url);
-                                    let msg = Command::AddWebFont(family_name.clone(), sources.clone(), sender.clone());
+                                    let msg = Command::FetchWebFont(family_name.clone(),
+                                                                    sources.clone(),
+                                                                    sender.clone());
                                     channel_to_self.send(msg).unwrap();
                                     return;
                                 },
@@ -285,9 +293,10 @@ impl FontCache {
                     templates.add_template(Atom::from(&*path), None);
                 });
                 if found {
+                    self.font_loading_counter -= 1;
                     sender.send(()).unwrap();
                 } else {
-                    let msg = Command::AddWebFont(family_name, sources, sender);
+                    let msg = Command::FetchWebFont(family_name, sources, sender.clone());
                     self.channel_to_self.send(msg).unwrap();
                 }
             }
@@ -343,6 +352,11 @@ impl FontCache {
         if self.web_families.contains_key(&family_name) {
             let templates = self.web_families.get_mut(&family_name).unwrap();
             templates.find_font_for_style(desc, &self.font_context)
+        } else if self.unfetched_web_fonts.contains_key(&family_name) {
+            self.font_loading_counter += 1;
+            let (sources, result) = self.unfetched_web_fonts.remove(&family_name).unwrap();
+            self.get_web_font_from_source(family_name.clone(), sources, result);
+            None
         } else {
             None
         }
@@ -422,6 +436,7 @@ impl FontCacheThread {
                 generic_fonts: generic_fonts,
                 local_families: HashMap::new(),
                 web_families: HashMap::new(),
+                unfetched_web_fonts: HashMap::new(),
                 font_context: FontContextHandle::new(),
                 core_resource_thread: core_resource_thread,
                 webrender_api: webrender_api,
