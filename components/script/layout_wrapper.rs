@@ -187,12 +187,6 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
         self.children()
     }
 
-    fn children_and_traversal_children_might_differ(&self) -> bool {
-        // Servo doesn't have to worry about nodes being rearranged in the
-        // flattened tree like Gecko does (for XBL and Shadow DOM).  Yet.
-        false
-    }
-
     fn opaque(&self) -> OpaqueNode {
         unsafe { self.get_jsmanaged().opaque() }
     }

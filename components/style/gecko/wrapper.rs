@@ -30,7 +30,7 @@ use gecko::global_style_data::GLOBAL_STYLE_DATA;
 use gecko::selector_parser::{SelectorImpl, NonTSPseudoClass, PseudoElement};
 use gecko::snapshot_helpers;
 use gecko_bindings::bindings;
-use gecko_bindings::bindings::{Gecko_DropStyleChildrenIterator, Gecko_MaybeCreateStyleChildrenIterator};
+use gecko_bindings::bindings::{Gecko_ConstructStyleChildrenIterator, Gecko_DestroyStyleChildrenIterator};
 use gecko_bindings::bindings::{Gecko_ElementState, Gecko_GetDocumentLWTheme};
 use gecko_bindings::bindings::{Gecko_GetLastChild, Gecko_GetNextStyleChild};
 use gecko_bindings::bindings::{Gecko_IsRootElement, Gecko_MatchesElement, Gecko_Namespace};
@@ -227,6 +227,21 @@ impl<'ln> GeckoNode<'ln> {
     fn contains_non_whitespace_content(&self) -> bool {
         unsafe { Gecko_IsSignificantChild(self.0, true, false) }
     }
+
+    #[inline]
+    fn may_have_anonymous_children(&self) -> bool {
+        self.get_bool_flag(nsINode_BooleanFlag::ElementMayHaveAnonymousChildren)
+    }
+
+    /// This logic is duplicated in Gecko's nsIContent::IsInAnonymousSubtree.
+    #[inline]
+    fn is_in_anonymous_subtree(&self) -> bool {
+        use gecko_bindings::structs::NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE;
+        use gecko_bindings::structs::NODE_IS_IN_SHADOW_TREE;
+        self.flags() & (NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE as u32) != 0 ||
+        ((self.flags() & (NODE_IS_IN_SHADOW_TREE as u32) == 0) &&
+         self.as_element().map_or(false, |e| e.has_xbl_binding_parent()))
+    }
 }
 
 impl<'ln> NodeInfo for GeckoNode<'ln> {
@@ -267,19 +282,23 @@ impl<'ln> TNode for GeckoNode<'ln> {
     }
 
     fn traversal_children(&self) -> LayoutIterator<GeckoChildrenIterator<'ln>> {
-        let maybe_iter = unsafe { Gecko_MaybeCreateStyleChildrenIterator(self.0) };
-        if let Some(iter) = maybe_iter.into_owned_opt() {
-            LayoutIterator(GeckoChildrenIterator::GeckoIterator(iter))
-        } else {
-            LayoutIterator(self.dom_children())
+        if let Some(element) = self.as_element() {
+            // This condition is similar to the check that
+            // StyleChildrenIterator::IsNeeded does, except that it might return
+            // true if we used to (but no longer) have anonymous content from
+            // ::before/::after, XBL bindings, or nsIAnonymousContentCreators.
+            if self.is_in_anonymous_subtree() ||
+               element.has_xbl_binding_with_content() ||
+               self.may_have_anonymous_children() {
+                unsafe {
+                    let mut iter: structs::StyleChildrenIterator = ::std::mem::zeroed();
+                    Gecko_ConstructStyleChildrenIterator(element.0, &mut iter);
+                    return LayoutIterator(GeckoChildrenIterator::GeckoIterator(iter));
+                }
+            }
         }
-    }
 
-    fn children_and_traversal_children_might_differ(&self) -> bool {
-        match self.as_element() {
-            Some(e) => e.xbl_binding_anonymous_content().is_some(),
-            None => false,
-        }
+        LayoutIterator(self.dom_children())
     }
 
     fn opaque(&self) -> OpaqueNode {
@@ -343,14 +362,14 @@ pub enum GeckoChildrenIterator<'a> {
     /// replaces it with the next sibling when requested.
     Current(Option<GeckoNode<'a>>),
     /// A Gecko-implemented iterator we need to drop appropriately.
-    GeckoIterator(bindings::StyleChildrenIteratorOwned),
+    GeckoIterator(structs::StyleChildrenIterator),
 }
 
 impl<'a> Drop for GeckoChildrenIterator<'a> {
     fn drop(&mut self) {
-        if let GeckoChildrenIterator::GeckoIterator(ref it) = *self {
+        if let GeckoChildrenIterator::GeckoIterator(ref mut it) = *self {
             unsafe {
-                Gecko_DropStyleChildrenIterator(ptr::read(it as *const _));
+                Gecko_DestroyStyleChildrenIterator(it);
             }
         }
     }
@@ -373,10 +392,11 @@ impl<'a> Iterator for GeckoChildrenIterator<'a> {
 }
 
 /// A Simple wrapper over a non-null Gecko `nsXBLBinding` pointer.
+#[derive(Clone, Copy)]
 pub struct GeckoXBLBinding<'lb>(pub &'lb RawGeckoXBLBinding);
 
 impl<'lb> GeckoXBLBinding<'lb> {
-    fn base_binding(&self) -> Option<GeckoXBLBinding> {
+    fn base_binding(&self) -> Option<Self> {
         unsafe { self.0.mNextBinding.mRawPtr.as_ref().map(GeckoXBLBinding) }
     }
 
@@ -386,6 +406,21 @@ impl<'lb> GeckoXBLBinding<'lb> {
 
     fn inherits_style(&self) -> bool {
         unsafe { bindings::Gecko_XBLBinding_InheritsStyle(self.0) }
+    }
+
+    // This duplicates the logic in Gecko's
+    // nsBindingManager::GetBindingWithContent.
+    fn get_binding_with_content(&self) -> Option<Self> {
+        let mut binding = *self;
+        loop {
+            if !binding.anon_content().is_null() {
+                return Some(binding);
+            }
+            binding = match binding.base_binding() {
+                Some(b) => b,
+                None => return None,
+            };
+        }
     }
 
     // Implements Gecko's nsXBLBinding::WalkRules().
@@ -480,12 +515,71 @@ impl<'le> GeckoElement<'le> {
         unsafe { slots.as_ref() }
     }
 
+    #[inline]
     fn get_xbl_binding(&self) -> Option<GeckoXBLBinding> {
+        if self.flags() & (structs::NODE_MAY_BE_IN_BINDING_MNGR as u32) == 0 {
+            return None;
+        }
+
         unsafe { bindings::Gecko_GetXBLBinding(self.0).map(GeckoXBLBinding) }
     }
 
+    #[inline]
+    fn get_xbl_binding_with_content(&self) -> Option<GeckoXBLBinding> {
+        self.get_xbl_binding().and_then(|b| b.get_binding_with_content())
+    }
+
+    #[inline]
+    fn has_xbl_binding_with_content(&self) -> bool {
+        !self.get_xbl_binding_with_content().is_none()
+    }
+
+    /// This and has_xbl_binding_parent duplicate the logic in Gecko's virtual
+    /// nsINode::GetBindingParent function, which only has two implementations:
+    /// one for XUL elements, and one for other elements.  We just hard code in
+    /// our knowledge of those two implementations here.
     fn get_xbl_binding_parent(&self) -> Option<Self> {
-        unsafe { bindings::Gecko_GetBindingParent(self.0).map(GeckoElement) }
+        if self.is_xul_element() {
+            // FIXME(heycam): Having trouble with bindgen on nsXULElement,
+            // where the binding parent is stored in a member variable
+            // rather than in slots.  So just get it through FFI for now.
+            unsafe { bindings::Gecko_GetBindingParent(self.0).map(GeckoElement) }
+        } else {
+            let binding_parent =
+                unsafe { self.get_non_xul_xbl_binding_parent_raw_content().as_ref() }
+                    .map(GeckoNode::from_content)
+                    .and_then(|n| n.as_element());
+            debug_assert!(binding_parent ==
+                            unsafe { bindings::Gecko_GetBindingParent(self.0).map(GeckoElement) });
+            binding_parent
+        }
+    }
+
+    fn get_non_xul_xbl_binding_parent_raw_content(&self) -> *mut nsIContent {
+        debug_assert!(!self.is_xul_element());
+        match self.get_dom_slots() {
+            Some(slots) => unsafe { *slots.__bindgen_anon_1.mBindingParent.as_ref() },
+            None => ptr::null_mut(),
+        }
+    }
+
+    fn has_xbl_binding_parent(&self) -> bool {
+        if self.is_xul_element() {
+            // FIXME(heycam): Having trouble with bindgen on nsXULElement,
+            // where the binding parent is stored in a member variable
+            // rather than in slots.  So just get it through FFI for now.
+            unsafe { bindings::Gecko_GetBindingParent(self.0).is_some() }
+        } else {
+            !self.get_non_xul_xbl_binding_parent_raw_content().is_null()
+        }
+    }
+
+    fn namespace_id(&self) -> i32 {
+        self.as_node().node_info().mInner.mNamespaceID
+    }
+
+    fn is_xul_element(&self) -> bool {
+        self.namespace_id() == (structs::root::kNameSpaceID_XUL as i32)
     }
 
     /// Clear the element data for a given element.
@@ -1061,16 +1155,9 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     fn xbl_binding_anonymous_content(&self) -> Option<GeckoNode<'le>> {
-        if self.flags() & (structs::NODE_MAY_BE_IN_BINDING_MNGR as u32) == 0 {
-            return None;
-        }
-
-        let anon_content = match self.get_xbl_binding() {
-            Some(binding) => binding.anon_content(),
-            None => return None,
-        };
-
-        unsafe { anon_content.as_ref().map(GeckoNode::from_content) }
+        self.get_xbl_binding_with_content()
+            .map(|b| unsafe { b.anon_content().as_ref() }.unwrap())
+            .map(GeckoNode::from_content)
     }
 
     fn get_css_transitions_info(&self)
