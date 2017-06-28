@@ -956,12 +956,12 @@ pub extern "C" fn Servo_StyleSet_NoteStyleSheetsChanged(
 pub extern "C" fn Servo_StyleSheet_HasRules(raw_sheet: RawServoStyleSheetBorrowed) -> bool {
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
-    !Stylesheet::as_arc(&raw_sheet).rules.read_with(&guard).0.is_empty()
+    !Stylesheet::as_arc(&raw_sheet).contents.rules.read_with(&guard).0.is_empty()
 }
 
 #[no_mangle]
 pub extern "C" fn Servo_StyleSheet_GetRules(sheet: RawServoStyleSheetBorrowed) -> ServoCssRulesStrong {
-    Stylesheet::as_arc(&sheet).rules.clone().into_strong()
+    Stylesheet::as_arc(&sheet).contents.rules.clone().into_strong()
 }
 
 #[no_mangle]
@@ -976,7 +976,8 @@ pub extern "C" fn Servo_StyleSheet_SizeOfIncludingThis(malloc_size_of: MallocSiz
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
     let malloc_size_of = malloc_size_of.unwrap();
-    Stylesheet::as_arc(&sheet).malloc_size_of_children(&guard, malloc_size_of)
+    Stylesheet::as_arc(&sheet)
+        .contents.malloc_size_of_children(&guard, malloc_size_of)
 }
 
 fn read_locked_arc<T, R, F>(raw: &<Locked<T> as HasFFI>::FFIType, func: F) -> R
@@ -1026,12 +1027,16 @@ pub extern "C" fn Servo_CssRules_InsertRule(rules: ServoCssRulesBorrowed,
     let rule = unsafe { rule.as_ref().unwrap().as_str_unchecked() };
 
     let global_style_data = &*GLOBAL_STYLE_DATA;
-    match Locked::<CssRules>::as_arc(&rules).insert_rule(&global_style_data.shared_lock,
-                                                         rule,
-                                                         sheet,
-                                                         index as usize,
-                                                         nested,
-                                                         loader) {
+    let result = Locked::<CssRules>::as_arc(&rules).insert_rule(
+        &global_style_data.shared_lock,
+        rule,
+        &sheet.contents,
+        index as usize,
+        nested,
+        loader
+    );
+
+    match result {
         Ok(new_rule) => {
             *unsafe { rule_type.as_mut().unwrap() } = new_rule.rule_type() as u16;
             nsresult::NS_OK
@@ -1349,13 +1354,15 @@ pub extern "C" fn Servo_KeyframesRule_AppendRule(rule: RawServoKeyframesRuleBorr
                                                  css: *const nsACString) -> bool {
     let css = unsafe { css.as_ref().unwrap().as_str_unchecked() };
     let sheet = Stylesheet::as_arc(&sheet);
-    if let Ok(keyframe) = Keyframe::parse(css, sheet) {
-        write_locked_arc(rule, |rule: &mut KeyframesRule| {
-            rule.keyframes.push(keyframe);
-        });
-        true
-    } else {
-        false
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    match Keyframe::parse(css, &sheet.contents, &global_style_data.shared_lock) {
+        Ok(keyframe) => {
+            write_locked_arc(rule, |rule: &mut KeyframesRule| {
+                rule.keyframes.push(keyframe);
+            });
+            true
+        }
+        Err(..) => false,
     }
 }
 

@@ -10,7 +10,7 @@ use stylesheets::{CssRule, RulesMutateError};
 use stylesheets::loader::StylesheetLoader;
 use stylesheets::memory::{MallocSizeOfFn, MallocSizeOfWithGuard};
 use stylesheets::rule_parser::State;
-use stylesheets::stylesheet::Stylesheet;
+use stylesheets::stylesheet::StylesheetContents;
 
 /// A list of CSS rules.
 #[derive(Debug)]
@@ -101,7 +101,7 @@ pub trait CssRulesHelpers {
     fn insert_rule(&self,
                    lock: &SharedRwLock,
                    rule: &str,
-                   parent_stylesheet: &Stylesheet,
+                   parent_stylesheet_contents: &StylesheetContents,
                    index: usize,
                    nested: bool,
                    loader: Option<&StylesheetLoader>)
@@ -112,7 +112,7 @@ impl CssRulesHelpers for Arc<Locked<CssRules>> {
     fn insert_rule(&self,
                    lock: &SharedRwLock,
                    rule: &str,
-                   parent_stylesheet: &Stylesheet,
+                   parent_stylesheet_contents: &StylesheetContents,
                    index: usize,
                    nested: bool,
                    loader: Option<&StylesheetLoader>)
@@ -139,7 +139,13 @@ impl CssRulesHelpers for Arc<Locked<CssRules>> {
         // Step 3, 4
         // XXXManishearth should we also store the namespace map?
         let (new_rule, new_state) =
-            CssRule::parse(&rule, parent_stylesheet, state, loader)?;
+            CssRule::parse(
+                &rule,
+                parent_stylesheet_contents,
+                lock,
+                state,
+                loader
+            )?;
 
         {
             let mut write_guard = lock.write();

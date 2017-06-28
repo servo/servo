@@ -15,7 +15,7 @@ use selector_parser::SelectorImpl;
 use selectors::attr::CaseSensitivity;
 use selectors::parser::{Component, Selector};
 use shared_lock::SharedRwLockReadGuard;
-use stylesheets::{CssRule, Stylesheet};
+use stylesheets::{CssRule, StylesheetInDocument};
 use stylist::Stylist;
 
 /// An invalidation scope represents a kind of subtree that may need to be
@@ -80,11 +80,14 @@ impl StylesheetInvalidationSet {
     /// Analyze the given stylesheet, and collect invalidations from their
     /// rules, in order to avoid doing a full restyle when we style the document
     /// next time.
-    pub fn collect_invalidations_for(
+    pub fn collect_invalidations_for<S>(
         &mut self,
         stylist: &Stylist,
-        stylesheet: &Stylesheet,
-        guard: &SharedRwLockReadGuard)
+        stylesheet: &S,
+        guard: &SharedRwLockReadGuard
+    )
+    where
+        S: StylesheetInDocument,
     {
         debug!("StylesheetInvalidationSet::collect_invalidations_for");
         if self.fully_invalid {
@@ -92,7 +95,7 @@ impl StylesheetInvalidationSet {
             return;
         }
 
-        if stylesheet.disabled() ||
+        if !stylesheet.enabled() ||
            !stylesheet.is_effective_for_device(stylist.device(), guard) {
             debug!(" > Stylesheet was not effective");
             return; // Nothing to do here.

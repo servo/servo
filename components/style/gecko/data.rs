@@ -87,12 +87,14 @@ impl PerDocumentStyleDataImpl {
         let author_style_disabled = self.stylesheets.author_style_disabled();
         self.stylist.clear();
         let iter = self.stylesheets.flush(document_element);
-        self.stylist.rebuild(iter,
-                             &StylesheetGuards::same(guard),
-                             /* ua_sheets = */ None,
-                             /* stylesheets_changed = */ true,
-                             author_style_disabled,
-                             &mut extra_data);
+        self.stylist.rebuild(
+            iter,
+            &StylesheetGuards::same(guard),
+            /* ua_sheets = */ None,
+            /* stylesheets_changed = */ true,
+            author_style_disabled,
+            &mut extra_data
+        );
     }
 
     /// Get the default computed values for this document.

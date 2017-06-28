@@ -18,7 +18,7 @@ use shared_lock::{DeepCloneWithLock, SharedRwLock, SharedRwLockReadGuard, Locked
 use std::fmt;
 use style_traits::{PARSING_MODE_DEFAULT, ToCss, ParseError, StyleParseError};
 use stylearc::Arc;
-use stylesheets::{CssRuleType, Stylesheet};
+use stylesheets::{CssRuleType, StylesheetContents};
 use stylesheets::rule_parser::VendorPrefix;
 use values::KeyframesName;
 
@@ -202,23 +202,26 @@ impl ToCssWithGuard for Keyframe {
 
 impl Keyframe {
     /// Parse a CSS keyframe.
-    pub fn parse<'i>(css: &'i str, parent_stylesheet: &Stylesheet)
-                     -> Result<Arc<Locked<Self>>, ParseError<'i>> {
-        let url_data = parent_stylesheet.url_data.read();
+    pub fn parse<'i>(
+        css: &'i str,
+        parent_stylesheet_contents: &StylesheetContents,
+        lock: &SharedRwLock,
+    ) -> Result<Arc<Locked<Self>>, ParseError<'i>> {
+        let url_data = parent_stylesheet_contents.url_data.read();
         let error_reporter = NullReporter;
-        let context = ParserContext::new(parent_stylesheet.origin,
+        let context = ParserContext::new(parent_stylesheet_contents.origin,
                                          &url_data,
                                          &error_reporter,
                                          Some(CssRuleType::Keyframe),
                                          PARSING_MODE_DEFAULT,
-                                         parent_stylesheet.quirks_mode);
+                                         parent_stylesheet_contents.quirks_mode);
         let mut input = ParserInput::new(css);
         let mut input = Parser::new(&mut input);
 
         let mut declarations = SourcePropertyDeclaration::new();
         let mut rule_parser = KeyframeListParser {
             context: &context,
-            shared_lock: &parent_stylesheet.shared_lock,
+            shared_lock: &lock,
             declarations: &mut declarations,
         };
         parse_one_rule(&mut input, &mut rule_parser)

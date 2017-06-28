@@ -43,7 +43,7 @@ pub use self::page_rule::PageRule;
 pub use self::rule_parser::{State, TopLevelRuleParser};
 pub use self::rule_list::{CssRules, CssRulesHelpers};
 pub use self::rules_iterator::{AllRules, EffectiveRules, NestedRuleIterationCondition, RulesIterator};
-pub use self::stylesheet::{Namespaces, Stylesheet, UserAgentStylesheets};
+pub use self::stylesheet::{Namespaces, Stylesheet, StylesheetContents, StylesheetInDocument, UserAgentStylesheets};
 pub use self::style_rule::StyleRule;
 pub use self::supports_rule::SupportsRule;
 pub use self::viewport_rule::ViewportRule;
@@ -221,32 +221,33 @@ impl CssRule {
     /// Input state is None for a nested rule
     pub fn parse(
         css: &str,
-        parent_stylesheet: &Stylesheet,
+        parent_stylesheet_contents: &StylesheetContents,
+        shared_lock: &SharedRwLock,
         state: Option<State>,
         loader: Option<&StylesheetLoader>
     ) -> Result<(Self, State), SingleRuleParseError> {
-        let url_data = parent_stylesheet.url_data.read();
+        let url_data = parent_stylesheet_contents.url_data.read();
         let error_reporter = NullReporter;
         let context = ParserContext::new(
-            parent_stylesheet.origin,
+            parent_stylesheet_contents.origin,
             &url_data,
             &error_reporter,
             None,
             PARSING_MODE_DEFAULT,
-            parent_stylesheet.quirks_mode
+            parent_stylesheet_contents.quirks_mode,
         );
 
         let mut input = ParserInput::new(css);
         let mut input = Parser::new(&mut input);
 
-        let mut guard = parent_stylesheet.namespaces.write();
+        let mut guard = parent_stylesheet_contents.namespaces.write();
 
         // nested rules are in the body state
         let state = state.unwrap_or(State::Body);
         let mut rule_parser = TopLevelRuleParser {
-            stylesheet_origin: parent_stylesheet.origin,
+            stylesheet_origin: parent_stylesheet_contents.origin,
             context: context,
-            shared_lock: &parent_stylesheet.shared_lock,
+            shared_lock: &shared_lock,
             loader: loader,
             state: state,
             namespaces: Some(&mut *guard),

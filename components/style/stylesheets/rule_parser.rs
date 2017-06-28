@@ -29,7 +29,7 @@ use stylesheets::{StyleRule, SupportsRule, ViewportRule};
 use stylesheets::document_rule::DocumentCondition;
 use stylesheets::keyframes_rule::parse_keyframe_list;
 use stylesheets::loader::NoOpLoader;
-use stylesheets::stylesheet::{Namespaces, Stylesheet};
+use stylesheets::stylesheet::{Namespaces, Stylesheet, StylesheetContents};
 use stylesheets::supports_rule::SupportsCondition;
 use stylesheets::viewport_rule;
 use values::CustomIdent;
@@ -177,15 +177,17 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
                     ImportRule {
                         url: specified_url.take().unwrap(),
                         stylesheet: Arc::new(Stylesheet {
-                            rules: CssRules::new(Vec::new(), self.shared_lock),
+                            contents: StylesheetContents {
+                                rules: CssRules::new(Vec::new(), self.shared_lock),
+                                origin: self.context.stylesheet_origin,
+                                url_data: RwLock::new(self.context.url_data.clone()),
+                                dirty_on_viewport_size_change: AtomicBool::new(false),
+                                quirks_mode: self.context.quirks_mode,
+                                namespaces: RwLock::new(Namespaces::default()),
+                            },
                             media: media,
                             shared_lock: self.shared_lock.clone(),
-                            origin: self.context.stylesheet_origin,
-                            url_data: RwLock::new(self.context.url_data.clone()),
-                            namespaces: RwLock::new(Namespaces::default()),
-                            dirty_on_viewport_size_change: AtomicBool::new(false),
                             disabled: AtomicBool::new(false),
-                            quirks_mode: self.context.quirks_mode,
                         }),
                         source_location: location,
                     }

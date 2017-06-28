@@ -96,7 +96,9 @@ impl<'a, 'b, C> Iterator for RulesIterator<'a, 'b, C>
                                               import_rule) {
                             continue;
                         }
-                        import_rule.stylesheet.rules.read_with(self.guard).0.iter()
+                        import_rule
+                            .stylesheet.contents.rules
+                            .read_with(self.guard).0.iter()
                     }
                     CssRule::Document(ref doc_rule) => {
                         let doc_rule = doc_rule.read_with(self.guard);

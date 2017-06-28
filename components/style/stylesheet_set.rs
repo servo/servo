@@ -24,9 +24,9 @@ pub struct StylesheetSetEntry {
 pub struct StylesheetIterator<'a>(slice::Iter<'a, StylesheetSetEntry>);
 
 impl<'a> Iterator for StylesheetIterator<'a> {
-    type Item = &'a Arc<Stylesheet>;
+    type Item = &'a Stylesheet;
     fn next(&mut self) -> Option<Self::Item> {
-        self.0.next().map(|entry| &entry.sheet)
+        self.0.next().map(|entry| &*entry.sheet)
     }
 }
 
@@ -87,7 +87,7 @@ impl StylesheetSet {
         self.dirty = true;
         self.invalidations.collect_invalidations_for(
             stylist,
-            sheet,
+            &**sheet,
             guard)
     }
 
@@ -108,7 +108,7 @@ impl StylesheetSet {
         self.dirty = true;
         self.invalidations.collect_invalidations_for(
             stylist,
-            sheet,
+            &**sheet,
             guard)
     }
 
@@ -133,7 +133,7 @@ impl StylesheetSet {
         self.dirty = true;
         self.invalidations.collect_invalidations_for(
             stylist,
-            sheet,
+            &**sheet,
             guard)
     }
 
