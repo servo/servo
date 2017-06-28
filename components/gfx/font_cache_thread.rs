@@ -179,7 +179,6 @@ impl FontCache {
                 }
                 Command::AddWebFont(family_name, sources, result) => {
                     self.unfetched_web_fonts.insert(family_name, (sources, result.clone()));
-                    result.send(()).unwrap();
                 }
                 Command::FetchWebFont(family_name, sources, result) => {
                     self.get_web_font_from_source(family_name, sources, result);
