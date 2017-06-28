@@ -19,8 +19,7 @@ use std::fmt;
 use style_traits::{ToCss, ParseError, StyleParseError};
 use style_traits::values::specified::AllowedNumericType;
 use super::{Auto, CSSFloat, CSSInteger, Either, None_};
-use super::computed::{self, Context};
-use super::computed::{Shadow as ComputedShadow, ToComputedValue};
+use super::computed::{self, Context, ToComputedValue};
 use super::generics::grid::{TrackBreadth as GenericTrackBreadth, TrackSize as GenericTrackSize};
 use super::generics::grid::TrackList as GenericTrackList;
 use values::computed::ComputedValueAsSpecified;
@@ -33,7 +32,7 @@ pub use self::background::BackgroundSize;
 pub use self::border::{BorderCornerRadius, BorderImageSlice, BorderImageWidth};
 pub use self::border::{BorderImageSideWidth, BorderRadius, BorderSideWidth};
 pub use self::color::{Color, RGBAColor};
-pub use self::effects::Filter;
+pub use self::effects::{BoxShadow, Filter, SimpleShadow};
 pub use self::flex::FlexBasis;
 #[cfg(feature = "gecko")]
 pub use self::gecko::ScrollSnapPoint;
@@ -689,130 +688,6 @@ pub type TrackList = GenericTrackList<TrackSizeOrRepeat>;
 
 /// `<track-list> | none`
 pub type TrackListOrNone = Either<TrackList, None_>;
-
-#[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[allow(missing_docs)]
-pub struct Shadow {
-    pub offset_x: Length,
-    pub offset_y: Length,
-    pub blur_radius: Length,
-    pub spread_radius: Length,
-    pub color: Option<Color>,
-    pub inset: bool,
-}
-
-impl ToComputedValue for Shadow {
-    type ComputedValue = ComputedShadow;
-
-    #[inline]
-    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
-        ComputedShadow {
-            offset_x: self.offset_x.to_computed_value(context),
-            offset_y: self.offset_y.to_computed_value(context),
-            blur_radius: self.blur_radius.to_computed_value(context),
-            spread_radius: self.spread_radius.to_computed_value(context),
-            color: self.color.as_ref().unwrap_or(&Color::CurrentColor)
-                             .to_computed_value(context),
-            inset: self.inset,
-        }
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &ComputedShadow) -> Self {
-        Shadow {
-            offset_x: ToComputedValue::from_computed_value(&computed.offset_x),
-            offset_y: ToComputedValue::from_computed_value(&computed.offset_y),
-            blur_radius: ToComputedValue::from_computed_value(&computed.blur_radius),
-            spread_radius: ToComputedValue::from_computed_value(&computed.spread_radius),
-            color: Some(ToComputedValue::from_computed_value(&computed.color)),
-            inset: computed.inset,
-        }
-    }
-}
-
-impl ToCss for Shadow {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        if self.inset {
-            dest.write_str("inset ")?;
-        }
-        self.offset_x.to_css(dest)?;
-        dest.write_str(" ")?;
-        self.offset_y.to_css(dest)?;
-        dest.write_str(" ")?;
-        self.blur_radius.to_css(dest)?;
-        if self.spread_radius != Length::zero() {
-            dest.write_str(" ")?;
-            self.spread_radius.to_css(dest)?;
-        }
-        if let Some(ref color) = self.color {
-            dest.write_str(" ")?;
-            color.to_css(dest)?;
-        }
-        Ok(())
-    }
-}
-
-impl Shadow {
-    // disable_spread_and_inset is for filter: drop-shadow(...)
-    #[allow(missing_docs)]
-    pub fn parse<'i, 't>(context: &ParserContext,
-                         input: &mut Parser<'i, 't>,
-                         disable_spread_and_inset: bool)
-                         -> Result<Shadow, ParseError<'i>> {
-        let mut lengths = [Length::zero(), Length::zero(), Length::zero(), Length::zero()];
-        let mut lengths_parsed = false;
-        let mut color = None;
-        let mut inset = false;
-
-        loop {
-            if !inset && !disable_spread_and_inset {
-                if input.try(|input| input.expect_ident_matching("inset")).is_ok() {
-                    inset = true;
-                    continue
-                }
-            }
-            if !lengths_parsed {
-                if let Ok(value) = input.try(|i| Length::parse(context, i)) {
-                    lengths[0] = value;
-                    lengths[1] = Length::parse(context, input)?;
-                    if let Ok(value) = input.try(|i| Length::parse_non_negative(context, i)) {
-                        lengths[2] = value;
-                        if !disable_spread_and_inset {
-                            if let Ok(value) = input.try(|i| Length::parse(context, i)) {
-                                lengths[3] = value;
-                            }
-                        }
-                    }
-                    lengths_parsed = true;
-                    continue
-                }
-            }
-            if color.is_none() {
-                if let Ok(value) = input.try(|i| Color::parse(context, i)) {
-                    color = Some(value);
-                    continue
-                }
-            }
-            break
-        }
-
-        // Lengths must be specified.
-        if !lengths_parsed {
-            return Err(StyleParseError::UnspecifiedError.into())
-        }
-
-        debug_assert!(!disable_spread_and_inset || lengths[3] == Length::zero());
-        Ok(Shadow {
-            offset_x: lengths[0].take(),
-            offset_y: lengths[1].take(),
-            blur_radius: lengths[2].take(),
-            spread_radius: lengths[3].take(),
-            color: color,
-            inset: inset,
-        })
-    }
-}
 
 no_viewport_percentage!(SVGPaint);
 

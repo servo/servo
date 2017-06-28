@@ -407,21 +407,15 @@ ${helpers.predefined_type("word-spacing",
     % endif
 </%helpers:single_keyword_computed>
 
-<%helpers:vector_longhand name="text-shadow" allow_empty="True"
-                          animation_value_type="IntermediateShadowList"
-                          ignored_when_colors_disabled="True"
-                          spec="https://drafts.csswg.org/css-backgrounds/#box-shadow">
-    pub type SpecifiedValue = specified::Shadow;
-    pub mod computed_value {
-        use values::computed::Shadow;
-        pub type T = Shadow;
-    }
-
-    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                         -> Result<specified::Shadow, ParseError<'i>> {
-        specified::Shadow::parse(context, input, true)
-    }
-</%helpers:vector_longhand>
+${helpers.predefined_type(
+    "text-shadow",
+    "SimpleShadow",
+    None,
+    vector=True,
+    animation_value_type="AnimatedTextShadowList",
+    ignored_when_colors_disabled=True,
+    spec="https://drafts.csswg.org/css-text-decor-3/#text-shadow-property",
+)}
 
 <%helpers:longhand name="text-emphasis-style" products="gecko" need_clone="True" boxed="True"
                    animation_value_type="none"

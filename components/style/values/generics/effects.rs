@@ -4,8 +4,22 @@
 
 //! Generic types for CSS values related to effects.
 
+use std::fmt;
+use style_traits::values::{SequenceWriter, ToCss};
 #[cfg(feature = "gecko")]
 use values::specified::url::SpecifiedUrl;
+
+/// A generic value for a single `box-shadow`.
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
+pub struct BoxShadow<Color, SizeLength, ShapeLength> {
+    /// The base shadow.
+    pub base: SimpleShadow<Color, SizeLength, ShapeLength>,
+    /// The spread radius.
+    pub spread: ShapeLength,
+    /// Whether this is an inset box shadow.
+    pub inset: bool,
+}
 
 /// A generic value for a single `filter`.
 #[cfg_attr(feature = "servo", derive(Deserialize, HeapSizeOf, Serialize))]
@@ -61,4 +75,26 @@ pub struct SimpleShadow<Color, SizeLength, ShapeLength> {
     pub vertical: SizeLength,
     /// Blur radius.
     pub blur: ShapeLength,
+}
+
+impl<Color, SizeLength, ShapeLength> ToCss for BoxShadow<Color, SizeLength, ShapeLength>
+where
+    Color: ToCss,
+    SizeLength: ToCss,
+    ShapeLength: ToCss,
+{
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+    where
+        W: fmt::Write,
+    {
+        {
+            let mut writer = SequenceWriter::new(&mut *dest, " ");
+            writer.item(&self.base)?;
+            writer.item(&self.spread)?;
+        }
+        if self.inset {
+            dest.write_str(" inset")?;
+        }
+        Ok(())
+    }
 }
