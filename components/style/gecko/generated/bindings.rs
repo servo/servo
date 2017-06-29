@@ -1936,12 +1936,15 @@ extern "C" {
 extern "C" {
     pub fn Servo_StyleSet_MightHaveAttributeDependency(set:
                                                            RawServoStyleSetBorrowed,
+                                                       element:
+                                                           RawGeckoElementBorrowed,
                                                        local_name:
                                                            *mut nsIAtom)
      -> bool;
 }
 extern "C" {
     pub fn Servo_StyleSet_HasStateDependency(set: RawServoStyleSetBorrowed,
+                                             element: RawGeckoElementBorrowed,
                                              state: u64) -> bool;
 }
 extern "C" {

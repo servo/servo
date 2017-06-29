@@ -14,7 +14,7 @@ use invalidation::element::element_wrapper::{ElementSnapshot, ElementWrapper};
 use invalidation::element::invalidation_map::*;
 use invalidation::element::restyle_hints::*;
 use selector_map::SelectorMap;
-use selector_parser::SelectorImpl;
+use selector_parser::{SelectorImpl, Snapshot};
 use selectors::attr::CaseSensitivity;
 use selectors::matching::{MatchingContext, MatchingMode, VisitedHandlingMode};
 use selectors::matching::{matches_selector, matches_compound_selector};
@@ -159,52 +159,33 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
             let mut collector = InvalidationCollector {
                 wrapper: wrapper,
                 element: self.element,
+                snapshot: &snapshot,
                 shared_context: self.shared_context,
                 lookup_element: lookup_element,
                 removed_id: id_removed.as_ref(),
+                added_id: id_added.as_ref(),
                 classes_removed: &classes_removed,
+                classes_added: &classes_added,
+                state_changes: state_changes,
                 descendant_invalidations: &mut descendant_invalidations,
                 sibling_invalidations: &mut sibling_invalidations,
                 invalidates_self: false,
             };
 
-            let map = shared_context.stylist.invalidation_map();
+            collector.collect_dependencies_in_invalidation_map(
+                shared_context.stylist.invalidation_map(),
+            );
 
-            if let Some(ref id) = id_removed {
-                if let Some(deps) = map.id_to_selector.get(id, shared_context.quirks_mode) {
-                    collector.collect_dependencies_in_map(deps)
-                }
-            }
-
-            if let Some(ref id) = id_added {
-                if let Some(deps) = map.id_to_selector.get(id, shared_context.quirks_mode) {
-                    collector.collect_dependencies_in_map(deps)
-                }
-            }
-
-            for class in classes_added.iter().chain(classes_removed.iter()) {
-                if let Some(deps) = map.class_to_selector.get(class, shared_context.quirks_mode) {
-                    collector.collect_dependencies_in_map(deps)
-                }
-            }
-
-            let should_examine_attribute_selector_map =
-                snapshot.other_attr_changed() ||
-                (snapshot.class_changed() && map.has_class_attribute_selectors) ||
-                (snapshot.id_changed() && map.has_id_attribute_selectors);
-
-            if should_examine_attribute_selector_map {
-                collector.collect_dependencies_in_map(
-                    &map.other_attribute_affecting_selectors
-                )
-            }
-
-            if !state_changes.is_empty() {
-                collector.collect_state_dependencies(
-                    &map.state_affecting_selectors,
-                    state_changes,
-                )
-            }
+            // TODO(emilio): Consider storing dependencies from the UA sheet in
+            // a different map. If we do that, we can skip the stuff on the
+            // shared stylist iff cut_off_inheritance is true, and we can look
+            // just at that map.
+            let _cut_off_inheritance =
+                self.element.each_xbl_stylist(|stylist| {
+                    collector.collect_dependencies_in_invalidation_map(
+                        stylist.invalidation_map(),
+                    );
+                });
 
             collector.invalidates_self
         };
@@ -641,10 +622,14 @@ struct InvalidationCollector<'a, 'b: 'a, E>
 {
     element: E,
     wrapper: ElementWrapper<'b, E>,
+    snapshot: &'a Snapshot,
     shared_context: &'a SharedStyleContext<'b>,
     lookup_element: E,
     removed_id: Option<&'a Atom>,
+    added_id: Option<&'a Atom>,
     classes_removed: &'a SmallVec<[Atom; 8]>,
+    classes_added: &'a SmallVec<[Atom; 8]>,
+    state_changes: ElementState,
     descendant_invalidations: &'a mut InvalidationVector,
     sibling_invalidations: &'a mut InvalidationVector,
     invalidates_self: bool,
@@ -653,6 +638,51 @@ struct InvalidationCollector<'a, 'b: 'a, E>
 impl<'a, 'b: 'a, E> InvalidationCollector<'a, 'b, E>
     where E: TElement,
 {
+    fn collect_dependencies_in_invalidation_map(
+        &mut self,
+        map: &InvalidationMap,
+    ) {
+        let quirks_mode = self.shared_context.quirks_mode;
+        let removed_id = self.removed_id;
+        if let Some(ref id) = removed_id {
+            if let Some(deps) = map.id_to_selector.get(id, quirks_mode) {
+                self.collect_dependencies_in_map(deps)
+            }
+        }
+
+        let added_id = self.added_id;
+        if let Some(ref id) = added_id {
+            if let Some(deps) = map.id_to_selector.get(id, quirks_mode) {
+                self.collect_dependencies_in_map(deps)
+            }
+        }
+
+        for class in self.classes_added.iter().chain(self.classes_removed.iter()) {
+            if let Some(deps) = map.class_to_selector.get(class, quirks_mode) {
+                self.collect_dependencies_in_map(deps)
+            }
+        }
+
+        let should_examine_attribute_selector_map =
+            self.snapshot.other_attr_changed() ||
+            (self.snapshot.class_changed() && map.has_class_attribute_selectors) ||
+            (self.snapshot.id_changed() && map.has_id_attribute_selectors);
+
+        if should_examine_attribute_selector_map {
+            self.collect_dependencies_in_map(
+                &map.other_attribute_affecting_selectors
+            )
+        }
+
+        let state_changes = self.state_changes;
+        if !state_changes.is_empty() {
+            self.collect_state_dependencies(
+                &map.state_affecting_selectors,
+                state_changes,
+            )
+        }
+    }
+
     fn collect_dependencies_in_map(
         &mut self,
         map: &SelectorMap<Dependency>,
@@ -671,6 +701,7 @@ impl<'a, 'b: 'a, E> InvalidationCollector<'a, 'b, E>
             },
         );
     }
+
     fn collect_state_dependencies(
         &mut self,
         map: &SelectorMap<StateDependency>,
