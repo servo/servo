@@ -9,7 +9,7 @@
 use cssparser::{Parser, Token, SourceLocation, BasicParseError};
 use media_queries::Device;
 use parser::{Parse, ParserContext};
-use shared_lock::{DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
+use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt;
 use style_traits::{ToCss, ParseError, StyleParseError};
 use stylearc::Arc;
@@ -47,11 +47,12 @@ impl DeepCloneWithLock for DocumentRule {
         &self,
         lock: &SharedRwLock,
         guard: &SharedRwLockReadGuard,
+        params: &DeepCloneParams,
     ) -> Self {
         let rules = self.rules.read_with(guard);
         DocumentRule {
             condition: self.condition.clone(),
-            rules: Arc::new(lock.wrap(rules.deep_clone_with_lock(lock, guard))),
+            rules: Arc::new(lock.wrap(rules.deep_clone_with_lock(lock, guard, params))),
             source_location: self.source_location.clone(),
         }
     }

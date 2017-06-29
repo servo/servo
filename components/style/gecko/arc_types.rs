@@ -8,10 +8,10 @@
 
 #![allow(non_snake_case, missing_docs)]
 
+use gecko_bindings::bindings::{RawServoImportRule, RawServoSupportsRule};
 use gecko_bindings::bindings::{RawServoKeyframe, RawServoKeyframesRule};
 use gecko_bindings::bindings::{RawServoNamespaceRule, RawServoPageRule};
 use gecko_bindings::bindings::{RawServoRuleNode, RawServoRuleNodeStrong, RawServoDocumentRule, RawServoMediaRule};
-use gecko_bindings::bindings::{RawServoImportRule, RawServoSupportsRule};
 use gecko_bindings::bindings::{ServoComputedValues, ServoCssRules};
 use gecko_bindings::structs::{RawServoAnimationValue, RawServoDeclarationBlock, RawServoStyleRule, RawServoMediaList};
 use gecko_bindings::structs::RawServoStyleSheetContents;

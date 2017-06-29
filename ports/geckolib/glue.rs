@@ -932,16 +932,19 @@ pub extern "C" fn Servo_StyleSheet_GetRules(
 
 #[no_mangle]
 pub extern "C" fn Servo_StyleSheet_Clone(
-    raw_sheet: RawServoStyleSheetContentsBorrowed
+    raw_sheet: RawServoStyleSheetContentsBorrowed,
+    reference_sheet: *const ServoStyleSheet,
 ) -> RawServoStyleSheetContentsStrong {
-    use style::shared_lock::DeepCloneWithLock;
-
-    let contents: &Arc<StylesheetContents> = HasArcFFI::as_arc(&raw_sheet);
+    use style::shared_lock::{DeepCloneParams, DeepCloneWithLock};
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
+    let contents = StylesheetContents::as_arc(&raw_sheet);
+    let params = DeepCloneParams { reference_sheet };
+
     Arc::new(contents.deep_clone_with_lock(
         &global_style_data.shared_lock,
         &guard,
+        &params,
     )).into_strong()
 }
 
@@ -1072,7 +1075,13 @@ macro_rules! impl_basic_rule_funcs {
             let global_style_data = &*GLOBAL_STYLE_DATA;
             let guard = global_style_data.shared_lock.read();
             let rules = Locked::<CssRules>::as_arc(&rules).read_with(&guard);
-            match rules.0[index as usize] {
+            let index = index as usize;
+
+            if index >= rules.0.len() {
+                return Strong::null();
+            }
+
+            match rules.0[index] {
                 CssRule::$name(ref rule) => {
                     let location = rule.read_with(&guard).source_location;
                     *unsafe { line.as_mut().unwrap() } = location.line as u32;
@@ -1080,8 +1089,7 @@ macro_rules! impl_basic_rule_funcs {
                     rule.clone().into_strong()
                 },
                 _ => {
-                    unreachable!(concat!(stringify!($getter), "should only be called ",
-                                         "on a ", stringify!($name), " rule"));
+                    Strong::null()
                 }
             }
         }
@@ -1258,10 +1266,8 @@ pub extern "C" fn Servo_ImportRule_GetHref(rule: RawServoImportRuleBorrowed, res
 pub extern "C" fn Servo_ImportRule_GetSheet(
     rule: RawServoImportRuleBorrowed
 ) -> *const ServoStyleSheet {
-    read_locked_arc(rule, |_: &ImportRule| {
-        // TODO
-        unimplemented!()
-        // rule.stylesheet.0
+    read_locked_arc(rule, |rule: &ImportRule| {
+        rule.stylesheet.0.raw() as *const ServoStyleSheet
     })
 }
 

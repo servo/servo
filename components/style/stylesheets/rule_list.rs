@@ -4,7 +4,7 @@
 
 //! A list of CSS rules.
 
-use shared_lock::{DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard};
+use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard};
 use stylearc::Arc;
 use stylesheets::{CssRule, RulesMutateError};
 use stylesheets::loader::StylesheetLoader;
@@ -27,11 +27,12 @@ impl DeepCloneWithLock for CssRules {
     fn deep_clone_with_lock(
         &self,
         lock: &SharedRwLock,
-        guard: &SharedRwLockReadGuard
+        guard: &SharedRwLockReadGuard,
+        params: &DeepCloneParams,
     ) -> Self {
-        CssRules(
-            self.0.iter().map(|ref x| x.deep_clone_with_lock(lock, guard)).collect()
-        )
+        CssRules(self.0.iter().map(|x| {
+            x.deep_clone_with_lock(lock, guard, params)
+        }).collect())
     }
 }
 

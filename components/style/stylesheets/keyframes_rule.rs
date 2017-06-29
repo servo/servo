@@ -14,7 +14,7 @@ use properties::LonghandIdSet;
 use properties::animated_properties::AnimatableLonghand;
 use properties::longhands::transition_timing_function::single_value::SpecifiedValue as SpecifiedTimingFunction;
 use selectors::parser::SelectorParseError;
-use shared_lock::{DeepCloneWithLock, SharedRwLock, SharedRwLockReadGuard, Locked, ToCssWithGuard};
+use shared_lock::{DeepCloneParams, DeepCloneWithLock, SharedRwLock, SharedRwLockReadGuard, Locked, ToCssWithGuard};
 use std::fmt;
 use style_traits::{PARSING_MODE_DEFAULT, ToCss, ParseError, StyleParseError};
 use stylearc::Arc;
@@ -78,13 +78,17 @@ impl DeepCloneWithLock for KeyframesRule {
     fn deep_clone_with_lock(
         &self,
         lock: &SharedRwLock,
-        guard: &SharedRwLockReadGuard
+        guard: &SharedRwLockReadGuard,
+        params: &DeepCloneParams,
     ) -> Self {
         KeyframesRule {
             name: self.name.clone(),
             keyframes: self.keyframes.iter()
-                .map(|ref x| Arc::new(lock.wrap(
-                    x.read_with(guard).deep_clone_with_lock(lock, guard))))
+                .map(|x| {
+                    Arc::new(lock.wrap(
+                        x.read_with(guard).deep_clone_with_lock(lock, guard, params)
+                    ))
+                })
                 .collect(),
             vendor_prefix: self.vendor_prefix.clone(),
             source_location: self.source_location.clone(),
@@ -233,7 +237,8 @@ impl DeepCloneWithLock for Keyframe {
     fn deep_clone_with_lock(
         &self,
         lock: &SharedRwLock,
-        guard: &SharedRwLockReadGuard
+        guard: &SharedRwLockReadGuard,
+        _params: &DeepCloneParams,
     ) -> Keyframe {
         Keyframe {
             selector: self.selector.clone(),

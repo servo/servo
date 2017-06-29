@@ -10,7 +10,7 @@ use fnv::FnvHashMap;
 use media_queries::{MediaList, Device};
 use parking_lot::RwLock;
 use parser::{ParserContext, log_css_error};
-use shared_lock::{DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard};
+use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard};
 use std::mem;
 use std::sync::atomic::{AtomicBool, Ordering};
 use style_traits::PARSING_MODE_DEFAULT;
@@ -120,11 +120,13 @@ impl DeepCloneWithLock for StylesheetContents {
     fn deep_clone_with_lock(
         &self,
         lock: &SharedRwLock,
-        guard: &SharedRwLockReadGuard
+        guard: &SharedRwLockReadGuard,
+        params: &DeepCloneParams,
     ) -> Self {
         // Make a deep clone of the rules, using the new lock.
         let rules =
-            self.rules.read_with(guard).deep_clone_with_lock(lock, guard);
+            self.rules.read_with(guard)
+                .deep_clone_with_lock(lock, guard, params);
 
         let dirty_on_viewport_size_change =
             AtomicBool::new(self.dirty_on_viewport_size_change.load(Ordering::Relaxed));
@@ -257,14 +259,6 @@ pub trait StylesheetInDocument {
 impl StylesheetInDocument for Stylesheet {
     fn contents(&self, _: &SharedRwLockReadGuard) -> &StylesheetContents {
         &self.contents
-    }
-
-    fn is_effective_for_device(
-        &self,
-        device: &Device,
-        guard: &SharedRwLockReadGuard
-    ) -> bool {
-        self.media.read_with(guard).evaluate(device, self.contents.quirks_mode)
     }
 
     fn media<'a>(&'a self, guard: &'a SharedRwLockReadGuard) -> Option<&'a MediaList> {
@@ -442,8 +436,9 @@ impl Stylesheet {
     }
 }
 
+#[cfg(feature = "servo")]
 impl Clone for Stylesheet {
-    fn clone(&self) -> Stylesheet {
+    fn clone(&self) -> Self {
         // Create a new lock for our clone.
         let lock = self.shared_lock.clone();
         let guard = self.shared_lock.read();
@@ -451,7 +446,11 @@ impl Clone for Stylesheet {
         // Make a deep clone of the media, using the new lock.
         let media = self.media.read_with(&guard).clone();
         let media = Arc::new(lock.wrap(media));
-        let contents = self.contents.deep_clone_with_lock(&lock, &guard);
+        let contents = self.contents.deep_clone_with_lock(
+            &lock,
+            &guard,
+            &DeepCloneParams
+        );
 
         Stylesheet {
             contents,

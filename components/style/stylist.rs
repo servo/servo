@@ -997,9 +997,9 @@ impl Stylist {
                     }
                     CssRule::Import(ref lock) => {
                         let import_rule = lock.read_with(guard);
-                        let mq = import_rule.stylesheet.media.read_with(guard);
                         let effective_now =
-                            mq.evaluate(&self.device, self.quirks_mode);
+                            import_rule.stylesheet
+                                .is_effective_for_device(&self.device, guard);
                         let effective_then =
                             self.effective_media_query_results.was_effective(import_rule);
                         if effective_now != effective_then {

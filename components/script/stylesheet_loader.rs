@@ -268,12 +268,18 @@ impl<'a> StylesheetLoader<'a> {
 }
 
 impl<'a> StyleStylesheetLoader for StylesheetLoader<'a> {
+    /// Request a stylesheet after parsing a given `@import` rule, and return
+    /// the constructed `@import` rule.
     fn request_stylesheet(
         &self,
-        media: Arc<StyleLocked<MediaList>>,
-        make_import: &mut FnMut(Arc<StyleLocked<MediaList>>) -> ImportRule,
-        make_arc: &mut FnMut(ImportRule) -> Arc<StyleLocked<ImportRule>>,
-    ) -> Arc<StyleLocked<ImportRule>> {
+        url: SpecifiedUrl,
+        location: SourceLocation,
+        context: &ParserContext,
+        lock: &SharedRwLock,
+        media: Arc<Locked<MediaList>>,
+    ) -> Arc<Locked<ImportRule>> {
+        if !url.is_in
+
         let import = make_import(media);
         let url = import.url.url().expect("Invalid urls shouldn't enter the loader").clone();
 

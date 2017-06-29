@@ -9,9 +9,9 @@ use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use dom::TElement;
 use fnv::FnvHashMap;
 use gecko::rules::{CounterStyleRule, FontFaceRule};
-use gecko_bindings::bindings::RawServoStyleSet;
-use gecko_bindings::structs::RawGeckoPresContextOwned;
+use gecko_bindings::bindings::{self, RawServoStyleSet};
 use gecko_bindings::structs::{ServoStyleSheet, StyleSheetInfo, ServoStyleSheetInner};
+use gecko_bindings::structs::RawGeckoPresContextOwned;
 use gecko_bindings::structs::nsIDocument;
 use gecko_bindings::sugar::ownership::{HasArcFFI, HasBoxFFI, HasFFI, HasSimpleFFI};
 use invalidation::media_queries::{MediaListKey, ToMediaListKey};
@@ -24,7 +24,7 @@ use stylesheets::{Origin, StylesheetContents, StylesheetInDocument};
 use stylist::{ExtraStyleData, Stylist};
 
 /// Little wrapper to a Gecko style sheet.
-#[derive(PartialEq, Clone, Eq)]
+#[derive(PartialEq, Eq, Debug)]
 pub struct GeckoStyleSheet(*const ServoStyleSheet);
 
 impl ToMediaListKey for ::gecko::data::GeckoStyleSheet {
@@ -41,10 +41,20 @@ impl GeckoStyleSheet {
     #[inline]
     pub unsafe fn new(s: *const ServoStyleSheet) -> Self {
         debug_assert!(!s.is_null());
+        bindings::Gecko_StyleSheet_AddRef(s);
+        Self::from_addrefed(s)
+    }
+
+    /// Create a `GeckoStyleSheet` from a raw `ServoStyleSheet` pointer that
+    /// already holds a strong reference.
+    #[inline]
+    pub unsafe fn from_addrefed(s: *const ServoStyleSheet) -> Self {
+        debug_assert!(!s.is_null());
         GeckoStyleSheet(s)
     }
 
-    fn raw(&self) -> &ServoStyleSheet {
+    /// Get the raw `ServoStyleSheet` that we're wrapping.
+    pub fn raw(&self) -> &ServoStyleSheet {
         unsafe { &*self.0 }
     }
 
@@ -52,6 +62,19 @@ impl GeckoStyleSheet {
         unsafe {
             &*(self.raw()._base.mInner as *const StyleSheetInfo as *const ServoStyleSheetInner)
         }
+    }
+}
+
+impl Drop for GeckoStyleSheet {
+    fn drop(&mut self) {
+        unsafe { bindings::Gecko_StyleSheet_Release(self.0) };
+    }
+}
+
+impl Clone for GeckoStyleSheet {
+    fn clone(&self) -> Self {
+        unsafe { bindings::Gecko_StyleSheet_AddRef(self.0) };
+        GeckoStyleSheet(self.0)
     }
 }
 

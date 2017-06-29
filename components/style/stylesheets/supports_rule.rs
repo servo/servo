@@ -9,7 +9,7 @@ use cssparser::{Delimiter, parse_important, Parser, SourceLocation, Token};
 use parser::ParserContext;
 use properties::{PropertyId, PropertyDeclaration, SourcePropertyDeclaration};
 use selectors::parser::SelectorParseError;
-use shared_lock::{DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
+use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt;
 use style_traits::{ToCss, ParseError, StyleParseError};
 use stylearc::Arc;
@@ -48,12 +48,13 @@ impl DeepCloneWithLock for SupportsRule {
     fn deep_clone_with_lock(
         &self,
         lock: &SharedRwLock,
-        guard: &SharedRwLockReadGuard
+        guard: &SharedRwLockReadGuard,
+        params: &DeepCloneParams,
     ) -> Self {
         let rules = self.rules.read_with(guard);
         SupportsRule {
             condition: self.condition.clone(),
-            rules: Arc::new(lock.wrap(rules.deep_clone_with_lock(lock, guard))),
+            rules: Arc::new(lock.wrap(rules.deep_clone_with_lock(lock, guard, params))),
             enabled: self.enabled,
             source_location: self.source_location.clone(),
         }
