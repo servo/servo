@@ -97,7 +97,7 @@ impl ToCss for ComputedValue {
 /// DOM. CSSDeclarations expose property names as indexed properties, which
 /// need to be stable. So we keep an array of property names which order is
 /// determined on the order that they are added to the name-value map.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CustomPropertiesMap {
     /// Custom property name index.
     index: Vec<Name>,
@@ -142,13 +142,6 @@ impl CustomPropertiesMap {
     pub fn len(&self) -> usize {
         debug_assert_eq!(self.values.len(), self.index.len());
         self.values.len()
-    }
-}
-
-impl Eq for CustomPropertiesMap {}
-impl PartialEq for CustomPropertiesMap {
-    fn eq(&self, other: &CustomPropertiesMap) -> bool {
-        self.values == other.values && self.index == other.index
     }
 }
 
