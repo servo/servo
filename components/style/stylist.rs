@@ -412,7 +412,7 @@ impl Stylist {
 
         // Only use author stylesheets if author styles are enabled.
         let sheets_to_add = doc_stylesheets.filter(|s| {
-            !author_style_disabled || s.origin() != Origin::Author
+            !author_style_disabled || s.origin(guards.author) != Origin::Author
         });
 
         for stylesheet in sheets_to_add {
@@ -473,7 +473,7 @@ impl Stylist {
 
         self.effective_media_query_results.saw_effective(stylesheet);
 
-        let origin = stylesheet.origin();
+        let origin = stylesheet.origin(guard);
         for rule in stylesheet.effective_rules(&self.device, guard) {
             match *rule {
                 CssRule::Style(ref locked) => {
@@ -960,9 +960,7 @@ impl Stylist {
 
         for stylesheet in stylesheets {
             let effective_now =
-                stylesheet.media(|media_list| {
-                    media_list.evaluate(&self.device, self.quirks_mode)
-                });
+                stylesheet.is_effective_for_device(&self.device, guard);
 
             let effective_then =
                 self.effective_media_query_results.was_effective(stylesheet);

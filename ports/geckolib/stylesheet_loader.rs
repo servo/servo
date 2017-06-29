@@ -4,11 +4,11 @@
 
 use style::gecko_bindings::bindings::Gecko_LoadStyleSheet;
 use style::gecko_bindings::structs::{Loader, ServoStyleSheet, LoaderReusableStyleSheets};
-use style::gecko_bindings::sugar::ownership::{HasArcFFI, FFIArcHelpers};
+use style::gecko_bindings::sugar::ownership::FFIArcHelpers;
 use style::media_queries::MediaList;
 use style::shared_lock::Locked;
 use style::stylearc::Arc;
-use style::stylesheets::{ImportRule, Stylesheet, StylesheetLoader as StyleStylesheetLoader};
+use style::stylesheets::{ImportRule, StylesheetLoader as StyleStylesheetLoader};
 
 pub struct StylesheetLoader(*mut Loader, *mut ServoStyleSheet, *mut LoaderReusableStyleSheets);
 
@@ -40,7 +40,6 @@ impl StyleStylesheetLoader for StylesheetLoader {
             Gecko_LoadStyleSheet(self.0,
                                  self.1,
                                  self.2,
-                                 Stylesheet::arc_as_borrowed(&import.stylesheet),
                                  base_url_data,
                                  spec_bytes,
                                  spec_len as u32,

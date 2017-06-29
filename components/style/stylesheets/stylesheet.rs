@@ -187,24 +187,32 @@ macro_rules! rule_filter {
 /// A trait to represent a given stylesheet in a document.
 pub trait StylesheetInDocument {
     /// Get the contents of this stylesheet.
-    fn contents(&self) -> &StylesheetContents;
+    fn contents(&self, guard: &SharedRwLockReadGuard) -> &StylesheetContents;
 
     /// Get the stylesheet origin.
-    fn origin(&self) -> Origin {
-        self.contents().origin
+    fn origin(&self, guard: &SharedRwLockReadGuard) -> Origin {
+        self.contents(guard).origin
+    }
+
+    /// Get the stylesheet quirks mode.
+    fn quirks_mode(&self, guard: &SharedRwLockReadGuard) -> QuirksMode {
+        self.contents(guard).quirks_mode
     }
 
     /// Get the media associated with this stylesheet.
-    fn media<F, R>(&self, f: F) -> R
-    where
-        F: FnOnce(&MediaList) -> R;
+    fn media<'a>(&'a self, guard: &'a SharedRwLockReadGuard) -> Option<&'a MediaList>;
 
     /// Returns whether the style-sheet applies for the current device.
     fn is_effective_for_device(
         &self,
         device: &Device,
         guard: &SharedRwLockReadGuard
-    ) -> bool;
+    ) -> bool {
+        match self.media(guard) {
+            Some(medialist) => medialist.evaluate(device, self.quirks_mode(guard)),
+            None => true,
+        }
+    }
 
     /// Get whether this stylesheet is enabled.
     fn enabled(&self) -> bool;
@@ -219,7 +227,7 @@ pub trait StylesheetInDocument {
     where
         C: NestedRuleIterationCondition,
     {
-        self.contents().iter_rules(device, guard)
+        self.contents(guard).iter_rules(device, guard)
     }
 
     /// Return an iterator over the effective rules within the style-sheet, as
@@ -247,7 +255,7 @@ pub trait StylesheetInDocument {
 }
 
 impl StylesheetInDocument for Stylesheet {
-    fn contents(&self) -> &StylesheetContents {
+    fn contents(&self, _: &SharedRwLockReadGuard) -> &StylesheetContents {
         &self.contents
     }
 
@@ -259,12 +267,8 @@ impl StylesheetInDocument for Stylesheet {
         self.media.read_with(guard).evaluate(device, self.contents.quirks_mode)
     }
 
-    fn media<F, R>(&self, f: F) -> R
-    where
-        F: FnOnce(&MediaList) -> R
-    {
-        let guard = self.shared_lock.read();
-        f(self.media.read_with(&guard))
+    fn media<'a>(&'a self, guard: &'a SharedRwLockReadGuard) -> Option<&'a MediaList> {
+        Some(self.media.read_with(guard))
     }
 
     fn enabled(&self) -> bool {

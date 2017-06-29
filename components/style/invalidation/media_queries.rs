@@ -27,6 +27,13 @@ use stylesheets::{NestedRuleIterationCondition, Stylesheet};
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct MediaListKey(usize);
 
+impl MediaListKey {
+    /// Create a MediaListKey from a raw usize.
+    pub fn from_raw(k: usize) -> Self {
+        MediaListKey(k)
+    }
+}
+
 /// A trait to get a given `MediaListKey` for a given item that can hold a
 /// `MediaList`.
 pub trait ToMediaListKey : Sized {
