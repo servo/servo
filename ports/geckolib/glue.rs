@@ -1479,7 +1479,7 @@ pub extern "C" fn Servo_ResolvePseudoStyle(element: RawGeckoElementBorrowed,
         &pseudo,
         RuleInclusion::All,
         &data.styles,
-        ComputedValues::arc_from_borrowed(&inherited_style).map(|v| v.as_ref()),
+        ComputedValues::arc_from_borrowed(&inherited_style),
         &*doc_data,
         is_probe
     );
@@ -1533,7 +1533,7 @@ fn get_pseudo_style(
     pseudo: &PseudoElement,
     rule_inclusion: RuleInclusion,
     styles: &ElementStyles,
-    inherited_styles: Option<&ComputedValues>,
+    inherited_styles: Option<&Arc<ComputedValues>>,
     doc_data: &PerDocumentStyleDataImpl,
     is_probe: bool,
 ) -> Option<Arc<ComputedValues>> {
@@ -1563,7 +1563,7 @@ fn get_pseudo_style(
                 },
                 _ => {
                     debug_assert!(inherited_styles.is_none() ||
-                                  ptr::eq(inherited_styles.unwrap(),
+                                  ptr::eq(&**inherited_styles.unwrap(),
                                           &**styles.primary()));
                     styles.pseudos.get(&pseudo).cloned()
                 },
@@ -1572,7 +1572,7 @@ fn get_pseudo_style(
         PseudoElementCascadeType::Precomputed => unreachable!("No anonymous boxes"),
         PseudoElementCascadeType::Lazy => {
             debug_assert!(inherited_styles.is_none() ||
-                          ptr::eq(inherited_styles.unwrap(),
+                          ptr::eq(&**inherited_styles.unwrap(),
                                   &**styles.primary()));
             let base = if pseudo.inherits_from_default_values() {
                 doc_data.default_computed_values()
