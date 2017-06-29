@@ -2214,6 +2214,7 @@ impl VirtualMethods for Element {
         match attr.local_name() {
             &local_name!("style") => {
                 // Modifying the `style` attribute might change style.
+                node.dirty(NodeDamage::NodeStyleDamaged);
                 *self.style_attribute.borrow_mut() = match mutation {
                     AttributeMutation::Set(..) => {
                         // This is the fast path we use from
