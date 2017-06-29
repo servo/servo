@@ -20,8 +20,9 @@ fn test_moz_user_select() {
     assert_roundtrip_with_context!(_moz_user_select::parse, "toggle");
     assert_roundtrip_with_context!(_moz_user_select::parse, "tri-state");
     assert_roundtrip_with_context!(_moz_user_select::parse, "-moz-all");
-    assert_roundtrip_with_context!(_moz_user_select::parse, "-moz-none");
     assert_roundtrip_with_context!(_moz_user_select::parse, "-moz-text");
+    assert_eq!(parse(_moz_user_select::parse, "-moz-none"),
+               Ok(_moz_user_select::SpecifiedValue::none));
 
     assert!(parse(_moz_user_select::parse, "potato").is_err());
 }
