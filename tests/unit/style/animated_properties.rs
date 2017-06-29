@@ -7,12 +7,13 @@ use cssparser::RGBA;
 use style::properties::animated_properties::{Animatable, IntermediateRGBA};
 use style::properties::longhands::transform::computed_value::ComputedOperation as TransformOperation;
 use style::properties::longhands::transform::computed_value::T as TransformList;
+use style::values::animated::ToAnimatedValue;
 use style::values::specified::length::Percentage;
 
 fn interpolate_rgba(from: RGBA, to: RGBA, progress: f64) -> RGBA {
-    let from: IntermediateRGBA = from.into();
-    let to: IntermediateRGBA = to.into();
-    from.interpolate(&to, progress).unwrap().into()
+    let from = from.to_animated_value();
+    let to = to.to_animated_value();
+    RGBA::from_animated_value(from.interpolate(&to, progress).unwrap())
 }
 
 // Color

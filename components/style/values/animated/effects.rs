@@ -12,11 +12,8 @@ use properties::longhands::text_shadow::computed_value::T as ComputedTextShadowL
 use std::cmp;
 #[cfg(not(feature = "gecko"))]
 use values::Impossible;
+use values::animated::ToAnimatedValue;
 use values::computed::{Angle, Number};
-use values::computed::effects::BoxShadow as ComputedBoxShadow;
-#[cfg(feature = "gecko")]
-use values::computed::effects::Filter as ComputedFilter;
-use values::computed::effects::SimpleShadow as ComputedSimpleShadow;
 use values::computed::length::Length;
 use values::generics::effects::BoxShadow as GenericBoxShadow;
 use values::generics::effects::Filter as GenericFilter;
@@ -51,15 +48,17 @@ pub struct TextShadowList(pub Vec<SimpleShadow>);
 /// An animated value for the `drop-shadow()` filter.
 pub type SimpleShadow = GenericSimpleShadow<IntermediateColor, Length, Length>;
 
-impl From<BoxShadowList> for ComputedBoxShadowList {
-    fn from(list: BoxShadowList) -> Self {
-        ComputedBoxShadowList(list.0.into_iter().map(|s| s.into()).collect())
-    }
-}
+impl ToAnimatedValue for ComputedBoxShadowList {
+    type AnimatedValue = BoxShadowList;
 
-impl From<ComputedBoxShadowList> for BoxShadowList {
-    fn from(list: ComputedBoxShadowList) -> Self {
-        BoxShadowList(list.0.into_iter().map(|s| s.into()).collect())
+    #[inline]
+    fn to_animated_value(self) -> Self::AnimatedValue {
+        BoxShadowList(self.0.to_animated_value())
+    }
+
+    #[inline]
+    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+        ComputedBoxShadowList(ToAnimatedValue::from_animated_value(animated.0))
     }
 }
 
@@ -114,15 +113,17 @@ impl Animatable for BoxShadowList {
     }
 }
 
-impl From<TextShadowList> for ComputedTextShadowList {
-    fn from(list: TextShadowList) -> Self {
-        ComputedTextShadowList(list.0.into_iter().map(|s| s.into()).collect())
-    }
-}
+impl ToAnimatedValue for ComputedTextShadowList {
+    type AnimatedValue = TextShadowList;
 
-impl From<ComputedTextShadowList> for TextShadowList {
-    fn from(list: ComputedTextShadowList) -> Self {
-        TextShadowList(list.0.into_iter().map(|s| s.into()).collect())
+    #[inline]
+    fn to_animated_value(self) -> Self::AnimatedValue {
+        TextShadowList(self.0.to_animated_value())
+    }
+
+    #[inline]
+    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+        ComputedTextShadowList(ToAnimatedValue::from_animated_value(animated.0))
     }
 }
 
@@ -170,28 +171,6 @@ impl Animatable for TextShadowList {
     }
 }
 
-impl From<ComputedBoxShadow> for BoxShadow {
-    #[inline]
-    fn from(shadow: ComputedBoxShadow) -> Self {
-        BoxShadow {
-            base: shadow.base.into(),
-            spread: shadow.spread,
-            inset: shadow.inset,
-        }
-    }
-}
-
-impl From<BoxShadow> for ComputedBoxShadow {
-    #[inline]
-    fn from(shadow: BoxShadow) -> Self {
-        ComputedBoxShadow {
-            base: shadow.base.into(),
-            spread: shadow.spread,
-            inset: shadow.inset,
-        }
-    }
-}
-
 impl Animatable for BoxShadow {
     #[inline]
     fn add_weighted(
@@ -227,99 +206,32 @@ impl Animatable for BoxShadow {
     }
 }
 
-impl From<ComputedFilterList> for FilterList {
+
+impl ToAnimatedValue for ComputedFilterList {
+    type AnimatedValue = FilterList;
+
     #[cfg(not(feature = "gecko"))]
     #[inline]
-    fn from(filters: ComputedFilterList) -> Self {
-        FilterList(filters.0)
+    fn to_animated_value(self) -> Self::AnimatedValue {
+        FilterList(self.0)
     }
 
     #[cfg(feature = "gecko")]
     #[inline]
-    fn from(filters: ComputedFilterList) -> Self {
-        FilterList(filters.0.into_iter().map(|f| f.into()).collect())
+    fn to_animated_value(self) -> Self::AnimatedValue {
+        FilterList(self.0.to_animated_value())
     }
-}
 
-impl From<FilterList> for ComputedFilterList {
     #[cfg(not(feature = "gecko"))]
     #[inline]
-    fn from(filters: FilterList) -> Self {
-        ComputedFilterList(filters.0)
+    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+        ComputedFilterList(animated.0)
     }
 
     #[cfg(feature = "gecko")]
     #[inline]
-    fn from(filters: FilterList) -> Self {
-        ComputedFilterList(filters.0.into_iter().map(|f| f.into()).collect())
-    }
-}
-
-#[cfg(feature = "gecko")]
-impl From<ComputedFilter> for Filter {
-    #[inline]
-    fn from(filter: ComputedFilter) -> Self {
-        match filter {
-            GenericFilter::Blur(angle) => GenericFilter::Blur(angle),
-            GenericFilter::Brightness(factor) => GenericFilter::Brightness(factor),
-            GenericFilter::Contrast(factor) => GenericFilter::Contrast(factor),
-            GenericFilter::Grayscale(factor) => GenericFilter::Grayscale(factor),
-            GenericFilter::HueRotate(factor) => GenericFilter::HueRotate(factor),
-            GenericFilter::Invert(factor) => GenericFilter::Invert(factor),
-            GenericFilter::Opacity(factor) => GenericFilter::Opacity(factor),
-            GenericFilter::Saturate(factor) => GenericFilter::Saturate(factor),
-            GenericFilter::Sepia(factor) => GenericFilter::Sepia(factor),
-            GenericFilter::DropShadow(shadow) => {
-                GenericFilter::DropShadow(shadow.into())
-            },
-            GenericFilter::Url(url) => GenericFilter::Url(url),
-        }
-    }
-}
-
-#[cfg(feature = "gecko")]
-impl From<Filter> for ComputedFilter {
-    #[inline]
-    fn from(filter: Filter) -> Self {
-        match filter {
-            GenericFilter::Blur(angle) => GenericFilter::Blur(angle),
-            GenericFilter::Brightness(factor) => GenericFilter::Brightness(factor),
-            GenericFilter::Contrast(factor) => GenericFilter::Contrast(factor),
-            GenericFilter::Grayscale(factor) => GenericFilter::Grayscale(factor),
-            GenericFilter::HueRotate(factor) => GenericFilter::HueRotate(factor),
-            GenericFilter::Invert(factor) => GenericFilter::Invert(factor),
-            GenericFilter::Opacity(factor) => GenericFilter::Opacity(factor),
-            GenericFilter::Saturate(factor) => GenericFilter::Saturate(factor),
-            GenericFilter::Sepia(factor) => GenericFilter::Sepia(factor),
-            GenericFilter::DropShadow(shadow) => {
-                GenericFilter::DropShadow(shadow.into())
-            },
-            GenericFilter::Url(url) => GenericFilter::Url(url.clone())
-        }
-    }
-}
-
-impl From<ComputedSimpleShadow> for SimpleShadow {
-    #[inline]
-    fn from(shadow: ComputedSimpleShadow) -> Self {
-        SimpleShadow {
-            color: shadow.color.into(),
-            horizontal: shadow.horizontal,
-            vertical: shadow.vertical,
-            blur: shadow.blur,
-        }
-    }
-}
-
-impl From<SimpleShadow> for ComputedSimpleShadow {
-    #[inline]
-    fn from(shadow: SimpleShadow) -> Self {
-        ComputedSimpleShadow {
-            color: shadow.color.into(),
-            horizontal: shadow.horizontal,
-            vertical: shadow.vertical,
-            blur: shadow.blur,
-        }
+    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+        ComputedFilterList(ToAnimatedValue::from_animated_value(animated.0))
     }
 }
 

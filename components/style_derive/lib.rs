@@ -10,6 +10,7 @@ extern crate synstructure;
 use proc_macro::TokenStream;
 
 mod has_viewport_percentage;
+mod to_animated_value;
 mod to_computed_value;
 mod to_css;
 
@@ -17,6 +18,12 @@ mod to_css;
 pub fn derive_has_viewport_percentage(stream: TokenStream) -> TokenStream {
     let input = syn::parse_derive_input(&stream.to_string()).unwrap();
     has_viewport_percentage::derive(input).to_string().parse().unwrap()
+}
+
+#[proc_macro_derive(ToAnimatedValue)]
+pub fn derive_to_animated_value(stream: TokenStream) -> TokenStream {
+    let input = syn::parse_derive_input(&stream.to_string()).unwrap();
+    to_animated_value::derive(input).to_string().parse().unwrap()
 }
 
 #[proc_macro_derive(ToComputedValue)]
