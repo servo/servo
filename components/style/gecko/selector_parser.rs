@@ -174,7 +174,8 @@ impl NonTSPseudoClass {
         apply_non_ts_list!(pseudo_class_state)
     }
 
-    /// Returns true if the given pseudoclass should trigger style sharing cache revalidation.
+    /// Returns true if the given pseudoclass should trigger style sharing cache
+    /// revalidation.
     pub fn needs_cache_revalidation(&self) -> bool {
         self.state_flag().is_empty() &&
         !matches!(*self,
@@ -194,10 +195,15 @@ impl NonTSPseudoClass {
                   NonTSPseudoClass::MozIsHTML |
                   // :-moz-placeholder is parsed but never matches.
                   NonTSPseudoClass::MozPlaceholder |
-                  // :-moz-locale-dir depends only on the state of the document,
-                  // which is invariant across all the elements involved in a
-                  // given style cache.
-                  NonTSPseudoClass::MozLocaleDir(_)
+                  // :-moz-locale-dir and :-moz-window-inactive depend only on
+                  // the state of the document, which is invariant across all
+                  // the elements involved in a given style cache.
+                  NonTSPseudoClass::MozLocaleDir(_) |
+                  NonTSPseudoClass::MozWindowInactive |
+                  // Similar for the document themes.
+                  NonTSPseudoClass::MozLWTheme |
+                  NonTSPseudoClass::MozLWThemeBrightText |
+                  NonTSPseudoClass::MozLWThemeDarkText
         )
     }
 
