@@ -219,6 +219,7 @@ use gecko_bindings::structs::nsStyleTransformMatrix::MatrixTransformOperator;
 unsafe impl Send for nsStyleTransformMatrix::MatrixTransformOperator {}
 unsafe impl Sync for nsStyleTransformMatrix::MatrixTransformOperator {}
 use gecko_bindings::structs::RawGeckoGfxMatrix4x4;
+use gecko_bindings::structs::EventStates;
 pub type nsTArrayBorrowed_uintptr_t<'a> = &'a mut ::gecko_bindings::structs::nsTArray<usize>;
 pub type RawServoStyleSetOwned = ::gecko_bindings::sugar::ownership::Owned<RawServoStyleSet>;
 pub type RawServoStyleSetOwnedOrNull = ::gecko_bindings::sugar::ownership::OwnedOrNull<RawServoStyleSet>;
@@ -585,6 +586,10 @@ extern "C" {
 extern "C" {
     pub fn Gecko_GetDocumentLWTheme(aDocument: *const nsIDocument)
      -> nsIDocument_DocumentTheme;
+}
+extern "C" {
+    pub fn Gecko_GetDocumentState(aDocument: *const nsIDocument)
+     -> EventStates;
 }
 extern "C" {
     pub fn Gecko_AtomAttrValue(element: RawGeckoElementBorrowed,
