@@ -426,6 +426,7 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
                                    &style_pseudo,
                                    RuleInclusion::All,
                                    data.styles.primary(),
+                                   /* is_probe = */ false,
                                    &ServoMetricsProvider)
                                .unwrap()
                                .clone()

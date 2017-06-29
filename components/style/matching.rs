@@ -166,7 +166,7 @@ impl CascadeVisitedMode {
     /// Returns the computed values based on the cascade mode.  In visited mode,
     /// visited values are only returned if they already exist.  If they don't,
     /// we fallback to the regular, unvisited styles.
-    fn values<'a>(&self, values: &'a Arc<ComputedValues>) -> &'a Arc<ComputedValues> {
+    pub fn values<'a>(&self, values: &'a Arc<ComputedValues>) -> &'a Arc<ComputedValues> {
         if *self == CascadeVisitedMode::Visited && values.get_visited_style().is_some() {
             return values.visited_style();
         }
@@ -1211,8 +1211,10 @@ pub trait MatchMethods : TElement {
         // Compute rule nodes for eagerly-cascaded pseudo-elements.
         let mut matches_different_pseudos = false;
         SelectorImpl::each_eagerly_cascaded_pseudo_element(|pseudo| {
-            // For pseudo-elements, we only try to match visited rules if there
-            // are also unvisited rules.  (This matches Gecko's behavior.)
+            // For eager pseudo-elements, we only try to match visited rules if
+            // there are also unvisited rules.  (This matches Gecko's behavior
+            // for probing pseudo-elements, and for eager pseudo-elements Gecko
+            // does not try to resolve style if the probe says there isn't any.)
             if visited_handling == VisitedHandlingMode::RelevantLinkVisited &&
                !context.cascade_inputs().pseudos.has(&pseudo) {
                 return
