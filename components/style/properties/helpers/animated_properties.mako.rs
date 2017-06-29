@@ -31,7 +31,10 @@ use std::cmp;
 #[cfg(feature = "gecko")] use fnv::FnvHashMap;
 use style_traits::ParseError;
 use super::ComputedValues;
-use values::{Auto, CSSFloat, CustomIdent, Either};
+#[cfg(any(feature = "gecko", feature = "testing"))]
+use values::Auto;
+use values::{CSSFloat, CustomIdent, Either};
+use values::animated::ToAnimatedValue;
 use values::animated::effects::BoxShadowList as AnimatedBoxShadowList;
 use values::animated::effects::Filter as AnimatedFilter;
 use values::animated::effects::FilterList as AnimatedFilterList;
@@ -408,7 +411,8 @@ impl AnimatedProperty {
                             };
                         % endif
                         % if not prop.is_animatable_with_computed_value:
-                            let value: longhands::${prop.ident}::computed_value::T = value.into();
+                            let value: longhands::${prop.ident}::computed_value::T =
+                                ToAnimatedValue::from_animated_value(value);
                         % endif
                         style.mutate_${prop.style_struct.ident.strip("_")}().set_${prop.ident}(value);
                     }
@@ -425,13 +429,21 @@ impl AnimatedProperty {
                                     -> AnimatedProperty {
         match *property {
             % for prop in data.longhands:
-                % if prop.animatable:
-                    AnimatableLonghand::${prop.camel_case} => {
-                        AnimatedProperty::${prop.camel_case}(
-                            old_style.get_${prop.style_struct.ident.strip("_")}().clone_${prop.ident}().into(),
-                            new_style.get_${prop.style_struct.ident.strip("_")}().clone_${prop.ident}().into())
-                    }
-                % endif
+            % if prop.animatable:
+                AnimatableLonghand::${prop.camel_case} => {
+                    let old_computed = old_style.get_${prop.style_struct.ident.strip("_")}().clone_${prop.ident}();
+                    let new_computed = new_style.get_${prop.style_struct.ident.strip("_")}().clone_${prop.ident}();
+                    AnimatedProperty::${prop.camel_case}(
+                    % if prop.is_animatable_with_computed_value:
+                        old_computed,
+                        new_computed,
+                    % else:
+                        old_computed.to_animated_value(),
+                        new_computed.to_animated_value(),
+                    % endif
+                    )
+                }
+            % endif
             % endfor
         }
     }
@@ -492,7 +504,7 @@ impl AnimationValue {
                                 % if prop.is_animatable_with_computed_value:
                                     from
                                 % else:
-                                    &from.clone().into()
+                                    &ToAnimatedValue::from_animated_value(from.clone())
                                 % endif
                                 ))
                             % if prop.boxed:
@@ -520,13 +532,14 @@ impl AnimationValue {
                     longhands::system_font::resolve_system_font(sf, context);
                 }
             % endif
-                Some(AnimationValue::${prop.camel_case}(
-                % if prop.is_animatable_with_computed_value:
-                    val.to_computed_value(context)
-                % else:
-                    From::from(val.to_computed_value(context))
-                % endif
-                ))
+            let computed = val.to_computed_value(context);
+            Some(AnimationValue::${prop.camel_case}(
+            % if prop.is_animatable_with_computed_value:
+                computed
+            % else:
+                computed.to_animated_value()
+            % endif
+            ))
             },
             % endif
             % endfor
@@ -555,7 +568,7 @@ impl AnimationValue {
                             },
                         };
                         % if not prop.is_animatable_with_computed_value:
-                            let computed = From::from(computed);
+                        let computed = computed.to_animated_value();
                         % endif
                         Some(AnimationValue::${prop.camel_case}(computed))
                     },
@@ -617,13 +630,16 @@ impl AnimationValue {
             % for prop in data.longhands:
                 % if prop.animatable:
                     AnimatableLonghand::${prop.camel_case} => {
+                        let computed = computed_values
+                            .get_${prop.style_struct.ident.strip("_")}()
+                            .clone_${prop.ident}();
                         AnimationValue::${prop.camel_case}(
                         % if prop.is_animatable_with_computed_value:
-                            computed_values.get_${prop.style_struct.ident.strip("_")}().clone_${prop.ident}())
+                            computed
                         % else:
-                            From::from(computed_values.get_${prop.style_struct.ident.strip("_")}()
-                                                                 .clone_${prop.ident}()))
+                            computed.to_animated_value()
                         % endif
+                        )
                     }
                 % endif
             % endfor
@@ -2697,25 +2713,6 @@ impl<T, U> Animatable for Either<T, U>
     }
 }
 
-impl From<IntermediateRGBA> for RGBA {
-    fn from(extended_rgba: IntermediateRGBA) -> RGBA {
-        // RGBA::from_floats clamps each component values.
-        RGBA::from_floats(extended_rgba.red,
-                          extended_rgba.green,
-                          extended_rgba.blue,
-                          extended_rgba.alpha)
-    }
-}
-
-impl From<RGBA> for IntermediateRGBA {
-    fn from(rgba: RGBA) -> IntermediateRGBA {
-        IntermediateRGBA::new(rgba.red_f32(),
-                              rgba.green_f32(),
-                              rgba.blue_f32(),
-                              rgba.alpha_f32())
-    }
-}
-
 #[derive(Copy, Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 /// Unlike RGBA, each component value may exceed the range [0.0, 1.0].
@@ -2741,6 +2738,31 @@ impl IntermediateRGBA {
     #[inline]
     pub fn new(red: f32, green: f32, blue: f32, alpha: f32) -> Self {
         IntermediateRGBA { red: red, green: green, blue: blue, alpha: alpha }
+    }
+}
+
+impl ToAnimatedValue for RGBA {
+    type AnimatedValue = IntermediateRGBA;
+
+    #[inline]
+    fn to_animated_value(self) -> Self::AnimatedValue {
+        IntermediateRGBA::new(
+            self.red_f32(),
+            self.green_f32(),
+            self.blue_f32(),
+            self.alpha_f32(),
+        )
+    }
+
+    #[inline]
+    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+        // RGBA::from_floats clamps each component values.
+        RGBA::from_floats(
+            animated.red,
+            animated.green,
+            animated.blue,
+            animated.alpha,
+        )
     }
 }
 
@@ -2798,24 +2820,6 @@ impl Animatable for IntermediateRGBA {
     }
 }
 
-impl From<Either<Color, Auto>> for Either<IntermediateColor, Auto> {
-    fn from(from: Either<Color, Auto>) -> Either<IntermediateColor, Auto> {
-        match from {
-            Either::First(from) => Either::First(from.into()),
-            Either::Second(Auto) => Either::Second(Auto),
-        }
-    }
-}
-
-impl From<Either<IntermediateColor, Auto>> for Either<Color, Auto> {
-    fn from(from: Either<IntermediateColor, Auto>) -> Either<Color, Auto> {
-        match from {
-            Either::First(from) => Either::First(from.into()),
-            Either::Second(Auto) => Either::Second(Auto),
-        }
-    }
-}
-
 #[derive(Copy, Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
@@ -2852,6 +2856,26 @@ impl IntermediateColor {
         IntermediateRGBA {
             alpha: self.color.alpha * (1. - self.foreground_ratio),
             .. self.color
+        }
+    }
+}
+
+impl ToAnimatedValue for Color {
+    type AnimatedValue = IntermediateColor;
+
+    #[inline]
+    fn to_animated_value(self) -> Self::AnimatedValue {
+        IntermediateColor {
+            color: self.color.to_animated_value(),
+            foreground_ratio: self.foreground_ratio as f32 * (1. / 255.),
+        }
+    }
+
+    #[inline]
+    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+        Color {
+            color: RGBA::from_animated_value(animated.color),
+            foreground_ratio: (animated.foreground_ratio * 255.).round() as u8,
         }
     }
 }
@@ -2934,41 +2958,11 @@ impl Animatable for IntermediateColor {
     }
 }
 
-impl From<Color> for IntermediateColor {
-    fn from(color: Color) -> IntermediateColor {
-        IntermediateColor {
-            color: color.color.into(),
-            foreground_ratio: color.foreground_ratio as f32 * (1. / 255.),
-        }
-    }
-}
-
-impl From<IntermediateColor> for Color {
-    fn from(color: IntermediateColor) -> Color {
-        Color {
-            color: color.color.into(),
-            foreground_ratio: (color.foreground_ratio * 255.).round() as u8,
-        }
-    }
-}
-
 /// Animatable SVGPaint
 pub type IntermediateSVGPaint = SVGPaint<IntermediateRGBA>;
+
 /// Animatable SVGPaintKind
 pub type IntermediateSVGPaintKind = SVGPaintKind<IntermediateRGBA>;
-
-impl From<::values::computed::SVGPaint> for IntermediateSVGPaint {
-    fn from(paint: ::values::computed::SVGPaint) -> IntermediateSVGPaint {
-        paint.convert(|color| (*color).into())
-    }
-}
-
-impl From<IntermediateSVGPaint> for ::values::computed::SVGPaint {
-    fn from(paint: IntermediateSVGPaint) -> ::values::computed::SVGPaint {
-        paint.convert(|color| (*color).into())
-    }
-}
-
 
 impl Animatable for IntermediateSVGPaint {
     #[inline]

@@ -254,8 +254,8 @@ impl ToCss for FontSettingTagFloat {
 /// An SVG paint value
 ///
 /// https://www.w3.org/TR/SVG2/painting.html#SpecifyingPaint
-#[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Debug, PartialEq, ToAnimatedValue)]
 pub struct SVGPaint<ColorType> {
     /// The paint source
     pub kind: SVGPaintKind<ColorType>,
@@ -269,7 +269,7 @@ pub struct SVGPaint<ColorType> {
 /// to have a fallback, Gecko lets the context
 /// properties have a fallback as well.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Debug, PartialEq, ToCss)]
+#[derive(Clone, Debug, PartialEq, ToAnimatedValue, ToCss)]
 pub enum SVGPaintKind<ColorType> {
     /// `none`
     None,
