@@ -140,7 +140,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for UnrootedPass {
 
         if !in_derive_expn(span) {
             let def_id = cx.tcx.hir.local_def_id(id);
-            let sig = cx.tcx.type_of(def_id).fn_sig();
+            let sig = cx.tcx.type_of(def_id).fn_sig(cx.tcx);
 
             for (arg, ty) in decl.inputs.iter().zip(sig.inputs().0.iter()) {
                 if is_unrooted_ty(cx, ty, false) {

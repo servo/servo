@@ -219,6 +219,11 @@ version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
+name = "bitflags"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "bitreader"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -434,10 +439,10 @@ dependencies = [
 
 [[package]]
 name = "cocoa"
-version = "0.9.0"
+version = "0.9.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bitflags 0.9.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "block 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-graphics 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.23 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -453,12 +458,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "compiletest_helper"
 version = "0.0.1"
 dependencies = [
- "compiletest_rs 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "compiletest_rs 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "compiletest_rs"
-version = "0.2.6"
+version = "0.2.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "log 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -740,7 +745,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "embedding"
 version = "0.0.1"
 dependencies = [
- "cocoa 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cocoa 0.9.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "compositing 0.0.1",
  "devtools 0.0.1",
  "euclid 0.15.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2635,7 +2640,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "android_glue 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "cgl 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "cocoa 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cocoa 0.9.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-foundation 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-graphics 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "dwmapi-sys 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3536,6 +3541,7 @@ dependencies = [
 "checksum bitflags 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)" = "4f67931368edf3a9a51d29886d245f1c3db2f1ef0dcc9e35ff70341b78c10d23"
 "checksum bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)" = "aad18937a628ec6abcd26d1489012cc0e18c21798210f491af69ded9b881106d"
 "checksum bitflags 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)" = "1370e9fc2a6ae53aea8b7a5110edbd08836ed87c88736dfabccade1c2b44bff4"
+"checksum bitflags 0.9.1 (registry+https://github.com/rust-lang/crates.io-index)" = "4efd02e230a02e18f92fc2735f44597385ed02ad8f831e7c1c1156ee5e1ab3a5"
 "checksum bitreader 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "80b13e2ab064ff3aa0bdbf1eff533f9822dc37899821f5f98c67f263eab51707"
 "checksum block 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)" = "0d8c1fef690941d3e7788d328517591fecc684c084084702d6ff1641e993699a"
 "checksum blurdroid 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)" = "9880ddea1a97824ae9fc176f718e2a029491cd7d10bac4061ba4063569f4bc64"
@@ -3556,9 +3562,9 @@ dependencies = [
 "checksum clipboard-win 2.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "693b1280c514045382dfdbb78d1594b1b03cdb66320aeb7ebd2bd38d49bae959"
 "checksum cmake 0.1.22 (registry+https://github.com/rust-lang/crates.io-index)" = "d18d68987ed4c516dcc3e7913659bfa4076f5182eea4a7e0038bb060953e76ac"
 "checksum coco 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "c06169f5beb7e31c7c67ebf5540b8b472d23e3eade3b2ec7d1f5b504a85f91bd"
-"checksum cocoa 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)" = "f8d3fa729f0b38d496bcff4564c4cacd99f890e15c2235cc11ae8f4583d36c55"
+"checksum cocoa 0.9.2 (registry+https://github.com/rust-lang/crates.io-index)" = "4047fed6536f40cc2ae5e7834fb38e382c788270191c4cd69196f89686d076ce"
 "checksum color_quant 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "a475fc4af42d83d28adf72968d9bcfaf035a1a9381642d8e85d8a04957767b0d"
-"checksum compiletest_rs 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)" = "df47edea8bf052f23ce25a15cbf0be09c96911e3be943d1e81415bfaf0e74bf8"
+"checksum compiletest_rs 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)" = "617b23d0ed4f57b3bcff6b5fe0a78f0010f1efb636298317665a960b6dbc0533"
 "checksum cookie 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)" = "30b3493e12a550c2f96be785088d1da8d93189e7237c8a8d0d871bc9070334c3"
 "checksum core-foundation 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "f51ce3b8ebe311c56de14231eb57572c15abebd2d32b3bcb99bcdb9c101f5ac3"
 "checksum core-foundation-sys 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)" = "41115a6aa5d3e1e5ef98148373f25971d1fad53818553f216495f9e67e90a624"
