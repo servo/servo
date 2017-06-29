@@ -375,7 +375,7 @@ impl PropertyDeclarationIdSet {
             % else:
                 value: &DeclaredValue<longhands::${property.ident}::SpecifiedValue>,
             % endif
-            custom_properties: &Option<Arc<::custom_properties::ComputedValuesMap>>,
+            custom_properties: &Option<Arc<::custom_properties::CustomPropertiesMap>>,
             f: &mut F,
             error_reporter: &ParseErrorReporter,
             quirks_mode: QuirksMode)
@@ -406,7 +406,7 @@ impl PropertyDeclarationIdSet {
                 first_token_type: TokenSerializationType,
                 url_data: &UrlExtraData,
                 from_shorthand: Option<ShorthandId>,
-                custom_properties: &Option<Arc<::custom_properties::ComputedValuesMap>>,
+                custom_properties: &Option<Arc<::custom_properties::CustomPropertiesMap>>,
                 f: &mut F,
                 error_reporter: &ParseErrorReporter,
                 quirks_mode: QuirksMode)
@@ -1816,7 +1816,7 @@ pub struct ComputedValues {
     % for style_struct in data.active_style_structs():
         ${style_struct.ident}: Arc<style_structs::${style_struct.name}>,
     % endfor
-    custom_properties: Option<Arc<::custom_properties::ComputedValuesMap>>,
+    custom_properties: Option<Arc<::custom_properties::CustomPropertiesMap>>,
     /// The writing mode of this computed values struct.
     pub writing_mode: WritingMode,
     /// The keyword behind the current font-size property, if any
@@ -1839,7 +1839,7 @@ pub struct ComputedValues {
 impl ComputedValues {
     /// Construct a `ComputedValues` instance.
     pub fn new(
-        custom_properties: Option<Arc<::custom_properties::ComputedValuesMap>>,
+        custom_properties: Option<Arc<::custom_properties::CustomPropertiesMap>>,
         writing_mode: WritingMode,
         font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>,
         flags: ComputedValueFlags,
@@ -1937,7 +1937,7 @@ impl ComputedValues {
     // Aah! The << in the return type below is not valid syntax, but we must
     // escape < that way for Mako.
     /// Gets a reference to the custom properties map (if one exists).
-    pub fn get_custom_properties(&self) -> Option<<&::custom_properties::ComputedValuesMap> {
+    pub fn get_custom_properties(&self) -> Option<<&::custom_properties::CustomPropertiesMap> {
         self.custom_properties.as_ref().map(|x| &**x)
     }
 
@@ -1945,7 +1945,7 @@ impl ComputedValues {
     ///
     /// Cloning the Arc here is fine because it only happens in the case where
     /// we have custom properties, and those are both rare and expensive.
-    pub fn custom_properties(&self) -> Option<Arc<::custom_properties::ComputedValuesMap>> {
+    pub fn custom_properties(&self) -> Option<Arc<::custom_properties::CustomPropertiesMap>> {
         self.custom_properties.clone()
     }
 
@@ -2241,7 +2241,7 @@ impl ComputedValues {
             PropertyDeclarationId::Custom(name) => {
                 self.custom_properties
                     .as_ref()
-                    .and_then(|map| map.get(name))
+                    .and_then(|map| map.get_computed_value(name))
                     .map(|value| value.to_css_string())
                     .unwrap_or(String::new())
             }
@@ -2401,7 +2401,7 @@ pub struct StyleBuilder<'a> {
     /// The rule node representing the ordered list of rules matched for this
     /// node.
     rules: Option<StrongRuleNode>,
-    custom_properties: Option<Arc<::custom_properties::ComputedValuesMap>>,
+    custom_properties: Option<Arc<::custom_properties::CustomPropertiesMap>>,
     /// The writing mode flags.
     ///
     /// TODO(emilio): Make private.
@@ -2423,7 +2423,7 @@ impl<'a> StyleBuilder<'a> {
         inherited_style: &'a ComputedValues,
         reset_style: &'a ComputedValues,
         rules: Option<StrongRuleNode>,
-        custom_properties: Option<Arc<::custom_properties::ComputedValuesMap>>,
+        custom_properties: Option<Arc<::custom_properties::CustomPropertiesMap>>,
         writing_mode: WritingMode,
         font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>,
         visited_style: Option<Arc<ComputedValues>>,
@@ -2544,7 +2544,7 @@ impl<'a> StyleBuilder<'a> {
     ///
     /// Cloning the Arc here is fine because it only happens in the case where
     /// we have custom properties, and those are both rare and expensive.
-    fn custom_properties(&self) -> Option<Arc<::custom_properties::ComputedValuesMap>> {
+    fn custom_properties(&self) -> Option<Arc<::custom_properties::CustomPropertiesMap>> {
         self.custom_properties.clone()
     }
 }

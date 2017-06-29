@@ -3224,19 +3224,48 @@ pub extern "C" fn Servo_StyleSet_HasStateDependency(
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_GetCustomProperty(computed_values: ServoComputedValuesBorrowed,
-                                          name: *const nsAString, value: *mut nsAString) -> bool {
+pub extern "C" fn Servo_GetCustomPropertyValue(computed_values: ServoComputedValuesBorrowed,
+                                               name: *const nsAString,
+                                               value: *mut nsAString) -> bool {
     let custom_properties = match ComputedValues::as_arc(&computed_values).custom_properties() {
         Some(p) => p,
         None => return false,
     };
 
     let name = unsafe { Atom::from((&*name)) };
-    let computed_value = match custom_properties.get(&name) {
+    let computed_value = match custom_properties.get_computed_value(&name) {
         Some(v) => v,
         None => return false,
     };
 
     computed_value.to_css(unsafe { value.as_mut().unwrap() }).unwrap();
+    true
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_GetCustomPropertiesCount(computed_values: ServoComputedValuesBorrowed) -> u32 {
+    match ComputedValues::as_arc(&computed_values).custom_properties() {
+        Some(p) => p.len() as u32,
+        None => 0,
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_GetCustomPropertyNameAt(computed_values: ServoComputedValuesBorrowed,
+                                                index: u32,
+                                                name: *mut nsAString) -> bool {
+    let custom_properties = match ComputedValues::as_arc(&computed_values).custom_properties() {
+        Some(p) => p,
+        None => return false,
+    };
+
+    let property_name = match custom_properties.get_name_at(index) {
+        Some(n) => n,
+        None => return false,
+    };
+
+    let name = unsafe { name.as_mut().unwrap() };
+    name.assign(&*property_name.as_slice());
+
     true
 }

@@ -2710,6 +2710,22 @@ extern "C" {
                                              buffer: *mut nsAString);
 }
 extern "C" {
+    pub fn Servo_GetCustomPropertyValue(computed_values:
+                                            ServoComputedValuesBorrowed,
+                                        name: *const nsAString,
+                                        value: *mut nsAString) -> bool;
+}
+extern "C" {
+    pub fn Servo_GetCustomPropertiesCount(computed_values:
+                                              ServoComputedValuesBorrowed)
+     -> u32;
+}
+extern "C" {
+    pub fn Servo_GetCustomPropertyNameAt(arg1: ServoComputedValuesBorrowed,
+                                         index: u32, name: *mut nsAString)
+     -> bool;
+}
+extern "C" {
     pub fn Servo_GetStyleFont(computed_values:
                                   ServoComputedValuesBorrowedOrNull)
      -> *const nsStyleFont;
