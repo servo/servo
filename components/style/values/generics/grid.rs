@@ -380,26 +380,45 @@ pub struct TrackRepeat<L> {
 
 impl<L: ToCss> ToCss for TrackRepeat<L> {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        dest.write_str("repeat(")?;
-        self.count.to_css(dest)?;
-        dest.write_str(", ")?;
+        // If repeat count is an integer instead of a keyword, it should'n serialized
+        // with `repeat` function. It should serialized with `N` repeated form.
+        let repeat_count = match self.count {
+            RepeatCount::Number(integer) => integer.value(),
+            _ => {
+                dest.write_str("repeat(")?;
+                self.count.to_css(dest)?;
+                dest.write_str(", ")?;
+                1
+            },
+        };
 
-        let mut line_names_iter = self.line_names.iter();
-        for (i, (ref size, ref names)) in self.track_sizes.iter()
-                                              .zip(&mut line_names_iter).enumerate() {
-            if i > 0 {
+        for i in 0..repeat_count {
+            if i != 0 {
                 dest.write_str(" ")?;
             }
 
-            concat_serialize_idents("[", "] ", names, " ", dest)?;
-            size.to_css(dest)?;
+            let mut line_names_iter = self.line_names.iter();
+            for (i, (ref size, ref names)) in self.track_sizes.iter()
+                                                  .zip(&mut line_names_iter).enumerate() {
+                if i > 0 {
+                    dest.write_str(" ")?;
+                }
+
+                concat_serialize_idents("[", "] ", names, " ", dest)?;
+                size.to_css(dest)?;
+            }
+
+            if let Some(line_names_last) = line_names_iter.next() {
+                concat_serialize_idents(" [", "]", line_names_last, " ", dest)?;
+            }
         }
 
-        if let Some(line_names_last) = line_names_iter.next() {
-            concat_serialize_idents(" [", "]", line_names_last, " ", dest)?;
+        match self.count {
+            RepeatCount::AutoFill | RepeatCount::AutoFit => {
+                dest.write_str(")")?;
+            },
+            _ => {},
         }
-
-        dest.write_str(")")?;
         Ok(())
     }
 }
