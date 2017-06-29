@@ -174,10 +174,11 @@ impl PaintWorkletGlobalScope {
         // TODO: Step 10
         // Steps 11-12
         debug!("Invoking paint function {}.", name);
-        let args = unsafe { HandleValueArray::from_rooted_slice(&[
+        let args_slice = [
             ObjectValue(rendering_context.reflector().get_jsobject().get()),
             ObjectValue(paint_size.reflector().get_jsobject().get()),
-        ]) };
+        ];
+        let args = unsafe { HandleValueArray::from_rooted_slice(&args_slice) };
         rooted!(in(cx) let mut result = UndefinedValue());
         unsafe { Call(cx, paint_instance.handle(), paint_function.handle(), &args, result.handle_mut()); }
 
