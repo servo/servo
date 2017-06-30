@@ -2251,6 +2251,11 @@ extern "C" {
      -> RawServoAnimationValueStrong;
 }
 extern "C" {
+    pub fn Servo_ComputedValues_SpecifiesAnimationsOrTransitions(computed_values:
+                                                                     ServoComputedValuesBorrowed)
+     -> bool;
+}
+extern "C" {
     pub fn Servo_Property_IsAnimatable(property: nsCSSPropertyID) -> bool;
 }
 extern "C" {
@@ -2664,6 +2669,10 @@ extern "C" {
                                         ServoComputedValuesBorrowedOrNull,
                                     set: RawServoStyleSetBorrowed)
      -> ServoComputedValuesStrong;
+}
+extern "C" {
+    pub fn Servo_SetExplicitStyle(element: RawGeckoElementBorrowed,
+                                  primary_style: ServoComputedValuesBorrowed);
 }
 extern "C" {
     pub fn Servo_HasAuthorSpecifiedRules(element: RawGeckoElementBorrowed,
