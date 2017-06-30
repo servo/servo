@@ -288,6 +288,28 @@ trait PrivateMatchMethods: TElement {
         }
     }
 
+    /// Get the ComputedValues (if any) for our inheritance parent.
+    fn get_inherited_style_and_parent(&self) -> ParentElementAndStyle<Self> {
+        let parent_el = self.inheritance_parent();
+        let parent_data = parent_el.as_ref().and_then(|e| e.borrow_data());
+        let parent_style = parent_data.as_ref().map(|d| {
+            // Sometimes Gecko eagerly styles things without processing
+            // pending restyles first. In general we'd like to avoid this,
+            // but there can be good reasons (for example, needing to
+            // construct a frame for some small piece of newly-added
+            // content in order to do something specific with that frame,
+            // but not wanting to flush all of layout).
+            debug_assert!(cfg!(feature = "gecko") ||
+                          parent_el.unwrap().has_current_styles(d));
+            d.styles.primary()
+        });
+
+        ParentElementAndStyle {
+            element: parent_el,
+            style: parent_style.cloned(),
+        }
+    }
+
     /// A common path for the cascade used by both primary elements and eager
     /// pseudo-elements after collecting the appropriate rules to use.
     ///
@@ -318,23 +340,12 @@ trait PrivateMatchMethods: TElement {
 
         // Grab the inherited values.
         let parent_el;
-        let parent_data;
+        let element_and_style; // So parent_el and style_to_inherit_from are known live.
         let style_to_inherit_from = match cascade_target {
             CascadeTarget::Normal => {
-                parent_el = self.inheritance_parent();
-                parent_data = parent_el.as_ref().and_then(|e| e.borrow_data());
-                let parent_style = parent_data.as_ref().map(|d| {
-                    // Sometimes Gecko eagerly styles things without processing
-                    // pending restyles first. In general we'd like to avoid this,
-                    // but there can be good reasons (for example, needing to
-                    // construct a frame for some small piece of newly-added
-                    // content in order to do something specific with that frame,
-                    // but not wanting to flush all of layout).
-                    debug_assert!(cfg!(feature = "gecko") ||
-                                  parent_el.unwrap().has_current_styles(d));
-                    d.styles.primary()
-                });
-                parent_style.map(|s| cascade_visited.values(s))
+                element_and_style = self.get_inherited_style_and_parent();
+                parent_el = element_and_style.element;
+                element_and_style.style.as_ref().map(|s| cascade_visited.values(s))
             }
             CascadeTarget::EagerPseudo => {
                 parent_el = Some(self.clone());
@@ -876,6 +887,17 @@ trait PrivateMatchMethods: TElement {
 }
 
 impl<E: TElement> PrivateMatchMethods for E {}
+
+/// A struct that holds an element we inherit from and its ComputedValues.
+#[derive(Debug)]
+struct ParentElementAndStyle<E: TElement> {
+    /// Our style parent element.
+    element: Option<E>,
+    /// Element's primary ComputedValues.  Not a borrow because we can't prove
+    /// that the thing hanging off element won't change while we're passing this
+    /// struct around.
+    style: Option<Arc<ComputedValues>>,
+}
 
 /// Collects the outputs of the primary matching process, including the rule
 /// node and other associated data.
