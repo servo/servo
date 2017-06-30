@@ -47,6 +47,21 @@ pub struct RuleTree {
     root: StrongRuleNode,
 }
 
+impl Drop for RuleTree {
+    fn drop(&mut self) {
+        // GC the rule tree.
+        unsafe { self.gc(); }
+
+        // After the GC, the free list should be empty.
+        debug_assert!(self.root.get().next_free.load(Ordering::Relaxed) == FREE_LIST_SENTINEL);
+
+        // Remove the sentinel. This indicates that GCs will no longer occur.
+        // Any further drops of StrongRuleNodes must occur on the main thread,
+        // and will trigger synchronous dropping of the Rule nodes.
+        self.root.get().next_free.store(ptr::null_mut(), Ordering::Relaxed);
+    }
+}
+
 /// A style source for the rule node. It can either be a CSS style rule or a
 /// declaration block.
 ///
@@ -137,11 +152,6 @@ impl RuleTree {
     /// Get the root rule node.
     pub fn root(&self) -> StrongRuleNode {
         self.root.clone()
-    }
-
-    /// Returns true if there are no nodes in the tree aside from the rule node.
-    pub fn is_empty(&self) -> bool {
-        self.root.get().first_child.load(Ordering::Relaxed).is_null()
     }
 
     fn dump<W: Write>(&self, guards: &StylesheetGuards, writer: &mut W) {
@@ -569,6 +579,11 @@ pub struct RuleNode {
     prev_sibling_or_free_count: PrevSiblingOrFreeCount,
 
     /// The next item in the rule tree free list, that starts on the root node.
+    ///
+    /// When this is set to null, that means that the rule tree has been torn
+    /// down, and GCs will no longer occur. When this happens, StrongRuleNodes
+    /// may only be dropped on the main thread, and teardown happens
+    /// synchronously.
     next_free: AtomicPtr<RuleNode>,
 }
 
@@ -1391,6 +1406,20 @@ impl Drop for StrongRuleNode {
 
         let root = unsafe { &*node.root.as_ref().unwrap().ptr() };
         let free_list = &root.next_free;
+        let mut old_head = free_list.load(Ordering::Relaxed);
+
+        // If the free list is null, that means the last GC has already occurred.
+        // We require that any callers freeing at this point are on the main
+        // thread, and we drop the rule node synchronously.
+        if old_head.is_null() {
+            debug_assert!(!thread_state::get().is_worker() &&
+                          (thread_state::get().is_layout() ||
+                           thread_state::get().is_script()));
+            unsafe { node.remove_from_child_list(); }
+            log_drop(self.ptr());
+            let _ = unsafe { Box::from_raw(self.ptr()) };
+            return;
+        }
 
         // We're sure we're already in the free list, don't spinloop if we're.
         // Note that this is just a fast path, so it doesn't need to have an
@@ -1405,7 +1434,6 @@ impl Drop for StrongRuleNode {
         // synchronization, in order to guarantee that the next_free
         // reads/writes we do below are properly visible from multiple threads
         // racing.
-        let mut old_head = free_list.load(Ordering::Relaxed);
         loop {
             match free_list.compare_exchange_weak(old_head,
                                                   FREE_LIST_LOCKED,
