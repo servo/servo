@@ -138,3 +138,16 @@ bitflags! {
         const IN_AUTOFILL_PREVIEW_STATE = 1 << 51,
     }
 }
+
+bitflags! {
+    /// Event-based document states.
+    ///
+    /// NB: Is important for this to remain in sync with Gecko's
+    /// dom/base/nsIDocument.h.
+    pub flags DocumentState: u64 {
+        /// RTL locale: specific to the XUL localedir attribute
+        const NS_DOCUMENT_STATE_RTL_LOCALE = 1 << 0,
+        /// Window activation status
+        const NS_DOCUMENT_STATE_WINDOW_INACTIVE = 1 << 1,
+    }
+}

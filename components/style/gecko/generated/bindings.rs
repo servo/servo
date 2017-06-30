@@ -553,6 +553,9 @@ extern "C" {
     pub fn Gecko_ElementState(element: RawGeckoElementBorrowed) -> u64;
 }
 extern "C" {
+    pub fn Gecko_DocumentState(aDocument: *const nsIDocument) -> u64;
+}
+extern "C" {
     pub fn Gecko_IsTextNode(node: RawGeckoNodeBorrowed) -> bool;
 }
 extern "C" {
