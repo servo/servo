@@ -110,7 +110,7 @@ pip install virtualenv
 3. Install Git for Windows (https://git-scm.com/download/win). DO allow it to add git.exe to the PATH (default
 settings for the installer are fine).
 
-4. Install Visual Studio 2015 Community Edition (https://www.visualstudio.com/). You MUST add "Visual C++" to the
+4. Install Visual Studio Community 2017 (https://www.visualstudio.com/). You MUST add "Visual C++" to the
 list of installed components. It is not on by default.
 
 #### Cross-compilation for Android
