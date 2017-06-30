@@ -66,6 +66,7 @@ macro_rules! apply_non_ts_list {
                 // TODO(emilio): Needs pref check for
                 // full-screen-api.unprefix.enabled!
                 ("fullscreen", Fullscreen, fullscreen, IN_FULLSCREEN_STATE, _),
+                ("-moz-full-screen", MozFullScreen, mozFullScreen, IN_FULLSCREEN_STATE, _),
                 // TODO(emilio): This is inconsistently named (the capital R).
                 ("-moz-focusring", MozFocusRing, mozFocusRing, IN_FOCUSRING_STATE, _),
                 ("-moz-broken", MozBroken, mozBroken, IN_BROKEN_STATE, _),
