@@ -202,7 +202,7 @@ fn compute_damage(old: &ServoComputedValues, new: &ServoComputedValues) -> Servo
     add_if_not_equal!(old, new, damage,
                       [REPAINT, REPOSITION, STORE_OVERFLOW, BUBBLE_ISIZES, REFLOW_OUT_OF_FLOW,
                        REFLOW, RECONSTRUCT_FLOW], [
-        get_box.float, get_box.display, get_box.position, get_counters.content,
+        get_box.clear, get_box.float, get_box.display, get_box.position, get_counters.content,
         get_counters.counter_reset, get_counters.counter_increment,
         get_inheritedbox._servo_under_display_none,
         get_list.quotes, get_list.list_style_type,
