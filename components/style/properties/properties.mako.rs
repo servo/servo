@@ -1179,29 +1179,45 @@ impl ToCss for PropertyDeclaration {
     }
 }
 
-<%def name="property_pref_check(property)">
-    % if property.experimental and product == "servo":
-        if !PREFS.get("${property.experimental}")
-            .as_boolean().unwrap_or(false) {
-            return Err(PropertyDeclarationParseError::ExperimentalProperty)
-        }
-    % endif
-    % if product == "gecko":
-        <%
-            # gecko can't use the identifier `float`
-            # and instead uses `float_`
-            # XXXManishearth make this an attr on the property
-            # itself?
-            pref_ident = property.ident
-            if pref_ident == "float":
-                pref_ident = "float_"
-        %>
-        if structs::root::mozilla::SERVO_PREF_ENABLED_${pref_ident} {
-            let id = structs::${helpers.to_nscsspropertyid(property.ident)};
-            let enabled = unsafe { bindings::Gecko_PropertyId_IsPrefEnabled(id) };
-            if !enabled {
-                return Err(PropertyDeclarationParseError::ExperimentalProperty)
+<%def name="property_exposure_check(property)">
+    // For properties that are experimental but not internal, the pref will
+    // control its availability in all sheets.   For properties that are
+    // both experimental and internal, the pref only controls its
+    // availability in non-UA sheets (and in UA sheets it is always available).
+    let is_experimental =
+        % if property.experimental and product == "servo":
+            true;
+        % elif product == "gecko":
+            structs::root::mozilla::SERVO_PREF_ENABLED_${property.gecko_pref_ident};
+        % else:
+            false;
+        % endif
+
+    let passes_pref_check =
+        % if property.experimental and product == "servo":
+            PREFS.get("${property.experimental}").as_boolean().unwrap_or(false);
+        % elif product == "gecko":
+            {
+                let id = structs::${helpers.to_nscsspropertyid(property.ident)};
+                unsafe { bindings::Gecko_PropertyId_IsPrefEnabled(id) }
+            };
+        % else:
+            true;
+        % endif
+
+    % if property.internal:
+        if context.stylesheet_origin != Origin::UserAgent {
+            if is_experimental {
+                if !passes_pref_check {
+                    return Err(PropertyDeclarationParseError::ExperimentalProperty);
+                }
+            } else {
+                return Err(PropertyDeclarationParseError::UnknownProperty);
             }
+        }
+    % else:
+        if is_experimental && !passes_pref_check {
+            return Err(PropertyDeclarationParseError::ExperimentalProperty);
         }
     % endif
 </%def>
@@ -1418,18 +1434,13 @@ impl PropertyDeclaration {
                                 return Err(PropertyDeclarationParseError::AnimationPropertyInKeyframeBlock)
                             }
                         % endif
-                        % if property.internal:
-                            if context.stylesheet_origin != Origin::UserAgent {
-                                return Err(PropertyDeclarationParseError::UnknownProperty)
-                            }
-                        % endif
                         % if not property.allowed_in_page_rule:
                             if rule_type == CssRuleType::Page {
                                 return Err(PropertyDeclarationParseError::NotAllowedInPageRule)
                             }
                         % endif
 
-                        ${property_pref_check(property)}
+                        ${property_exposure_check(property)}
 
                         match longhands::${property.ident}::parse_declared(context, input) {
                             Ok(value) => {
@@ -1452,18 +1463,13 @@ impl PropertyDeclaration {
                             return Err(PropertyDeclarationParseError::AnimationPropertyInKeyframeBlock)
                         }
                     % endif
-                    % if shorthand.internal:
-                        if context.stylesheet_origin != Origin::UserAgent {
-                            return Err(PropertyDeclarationParseError::UnknownProperty)
-                        }
-                    % endif
                     % if not shorthand.allowed_in_page_rule:
                         if rule_type == CssRuleType::Page {
                             return Err(PropertyDeclarationParseError::NotAllowedInPageRule)
                         }
                     % endif
 
-                    ${property_pref_check(shorthand)}
+                    ${property_exposure_check(shorthand)}
 
                     match input.try(|i| CSSWideKeyword::parse(context, i)) {
                         Ok(keyword) => {

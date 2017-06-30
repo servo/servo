@@ -171,6 +171,7 @@ ${helpers.single_keyword("position", "static absolute relative fixed",
                                   gecko_enum_prefix="StyleFloat"
                                   gecko_inexhaustive="True"
                                   gecko_ffi_name="mFloat"
+                                  gecko_pref_ident="float_"
                                   spec="https://drafts.csswg.org/css-box/#propdef-float">
     no_viewport_percentage!(SpecifiedValue);
     impl ToComputedValue for SpecifiedValue {
