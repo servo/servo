@@ -571,6 +571,53 @@ pub struct RuleNode {
 unsafe impl Sync for RuleTree {}
 unsafe impl Send for RuleTree {}
 
+// On Gecko builds, hook into the leak checking machinery.
+#[cfg(feature = "gecko")]
+#[cfg(debug_assertions)]
+mod gecko_leak_checking {
+use std::mem::size_of;
+use std::os::raw::{c_char, c_void};
+use super::RuleNode;
+
+extern "C" {
+    pub fn NS_LogCtor(aPtr: *const c_void, aTypeName: *const c_char, aSize: u32);
+    pub fn NS_LogDtor(aPtr: *const c_void, aTypeName: *const c_char, aSize: u32);
+}
+
+static NAME: &'static [u8] = b"RuleNode\0";
+
+/// Logs the creation of a heap-allocated object to Gecko's leak-checking machinery.
+pub fn log_ctor(ptr: *const RuleNode) {
+    let s = NAME as *const [u8] as *const u8 as *const c_char;
+    unsafe {
+        NS_LogCtor(ptr as *const c_void, s, size_of::<RuleNode>() as u32);
+    }
+}
+
+/// Logs the destruction of a heap-allocated object to Gecko's leak-checking machinery.
+pub fn log_dtor(ptr: *const RuleNode) {
+    let s = NAME as *const [u8] as *const u8 as *const c_char;
+    unsafe {
+        NS_LogDtor(ptr as *const c_void, s, size_of::<RuleNode>() as u32);
+    }
+}
+
+}
+
+#[inline(always)]
+fn log_new(_ptr: *const RuleNode) {
+    #[cfg(feature = "gecko")]
+    #[cfg(debug_assertions)]
+    gecko_leak_checking::log_ctor(_ptr);
+}
+
+#[inline(always)]
+fn log_drop(_ptr: *const RuleNode) {
+    #[cfg(feature = "gecko")]
+    #[cfg(debug_assertions)]
+    gecko_leak_checking::log_dtor(_ptr);
+}
+
 impl RuleNode {
     fn new(root: WeakRuleNode,
            parent: StrongRuleNode,
@@ -730,6 +777,7 @@ impl StrongRuleNode {
         debug_assert!(n.parent.is_none() == !n.source.is_some());
 
         let ptr = Box::into_raw(n);
+        log_new(ptr);
 
         debug!("Creating rule node: {:p}", ptr);
 
@@ -948,6 +996,7 @@ impl StrongRuleNode {
 
             debug!("GC'ing {:?}", weak.ptr());
             node.remove_from_child_list();
+            log_drop(weak.ptr());
             let _ = Box::from_raw(weak.ptr());
         }
 
@@ -1331,6 +1380,7 @@ impl Drop for StrongRuleNode {
             debug!("Dropping root node!");
             // The free list should be null by this point
             debug_assert!(node.next_free.load(Ordering::Relaxed).is_null());
+            log_drop(self.ptr());
             let _ = unsafe { Box::from_raw(self.ptr()) };
             return;
         }
