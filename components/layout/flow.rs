@@ -1115,6 +1115,24 @@ impl BaseFlow {
         }
     }
 
+    /// Update the 'flags' field when computed styles have changed.
+    ///
+    /// These flags are initially set during flow construction.  They only need to be updated here
+    /// if they are based on properties that can change triggering `RECONSTRUCT_FLOW`.
+    pub fn update_flags(&mut self, style: &ServoComputedValues) {
+        // For absolutely-positioned flows, changes to top/bottom/left/right can cause these flags
+        // to get out of date:
+        if self.flags.contains(IS_ABSOLUTELY_POSITIONED) {
+            let logical_position = style.logical_position();
+            self.flags.set(INLINE_POSITION_IS_STATIC,
+                logical_position.inline_start == LengthOrPercentageOrAuto::Auto &&
+                logical_position.inline_end == LengthOrPercentageOrAuto::Auto);
+            self.flags.set(BLOCK_POSITION_IS_STATIC,
+                logical_position.block_start == LengthOrPercentageOrAuto::Auto &&
+                logical_position.block_end == LengthOrPercentageOrAuto::Auto);
+        }
+    }
+
     /// Return a new BaseFlow like this one but with the given children list
     pub fn clone_with_children(&self, children: FlowList) -> BaseFlow {
         BaseFlow {
@@ -1361,6 +1379,7 @@ impl<'a> MutableFlowUtils for &'a mut Flow {
     /// calling them individually, since there is no reason not to perform both operations.
     fn repair_style_and_bubble_inline_sizes(self, style: &::StyleArc<ServoComputedValues>) {
         self.repair_style(style);
+        mut_base(self).update_flags(style);
         self.bubble_inline_sizes();
     }
 
