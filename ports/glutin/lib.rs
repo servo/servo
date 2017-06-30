@@ -28,18 +28,13 @@ extern crate webrender_traits;
 #[cfg(target_os = "windows")] extern crate user32;
 #[cfg(target_os = "windows")] extern crate gdi32;
 
-use compositing::windowing::WindowEvent;
 use servo_config::opts;
 use std::rc::Rc;
 use window::Window;
 
 pub mod window;
 
-pub type WindowID = glutin::WindowID;
-
-pub trait NestedEventLoopListener {
-    fn handle_event_from_nested_event_loop(&mut self, event: WindowEvent) -> bool;
-}
+pub type WindowID = glutin::WindowId;
 
 pub fn create_window(parent: Option<WindowID>) -> Rc<Window> {
     // Read command-line options.
