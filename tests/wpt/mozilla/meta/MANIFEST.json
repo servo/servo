@@ -2435,6 +2435,18 @@
      {}
     ]
    ],
+   "css/incremental_postion.html": [
+    [
+     "/_mozilla/css/incremental_postion.html",
+     [
+      [
+       "/_mozilla/css/incremental_postion_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "css/incremental_text_color_a.html": [
     [
      "/_mozilla/css/incremental_text_color_a.html",
@@ -7907,6 +7919,11 @@
     ]
    ],
    "css/incremental_letter_spacing_ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/incremental_postion_ref.html": [
     [
      {}
     ]
@@ -22765,6 +22782,14 @@
   ],
   "css/incremental_letter_spacing_ref.html": [
    "3235e9662e37dc723364a1dd39e07157868dd290",
+   "support"
+  ],
+  "css/incremental_postion.html": [
+   "9b76486d50a94d23a0cb1142e72813e0bb60e5e9",
+   "reftest"
+  ],
+  "css/incremental_postion_ref.html": [
+   "da39a3ee5e6b4b0d3255bfef95601890afd80709",
    "support"
   ],
   "css/incremental_text_color_a.html": [
