@@ -2435,6 +2435,18 @@
      {}
     ]
    ],
+   "css/incremental_position.html": [
+    [
+     "/_mozilla/css/incremental_position.html",
+     [
+      [
+       "/_mozilla/css/incremental_position_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "css/incremental_text_color_a.html": [
     [
      "/_mozilla/css/incremental_text_color_a.html",
@@ -7907,6 +7919,11 @@
     ]
    ],
    "css/incremental_letter_spacing_ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/incremental_position_ref.html": [
     [
      {}
     ]
@@ -22806,6 +22823,14 @@
   ],
   "css/incremental_letter_spacing_ref.html": [
    "3235e9662e37dc723364a1dd39e07157868dd290",
+   "support"
+  ],
+  "css/incremental_position.html": [
+   "849f3f5ae1df8ecf3bcf3f1723b5a755afeb3316",
+   "reftest"
+  ],
+  "css/incremental_position_ref.html": [
+   "67ab51b29fb015b82bf98942e2e886b3de5ea2cd",
    "support"
   ],
   "css/incremental_text_color_a.html": [
