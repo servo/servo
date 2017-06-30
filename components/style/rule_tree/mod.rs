@@ -122,6 +122,10 @@ impl StyleSource {
 /// The root node doesn't have a null pointer in the free list, but this value.
 const FREE_LIST_SENTINEL: *mut RuleNode = 0x01 as *mut RuleNode;
 
+/// A second sentinel value for the free list, indicating that it's locked (i.e.
+/// another thread is currently adding an entry). We spin if we find this value.
+const FREE_LIST_LOCKED: *mut RuleNode = 0x02 as *mut RuleNode;
+
 impl RuleTree {
     /// Construct a new rule tree.
     pub fn new() -> Self {
@@ -1395,7 +1399,7 @@ impl Drop for StrongRuleNode {
             return;
         }
 
-        // Ensure we "lock" the free list head swapping it with a null pointer.
+        // Ensure we "lock" the free list head swapping it with FREE_LIST_LOCKED.
         //
         // Note that we use Acquire/Release semantics for the free list
         // synchronization, in order to guarantee that the next_free
@@ -1404,11 +1408,11 @@ impl Drop for StrongRuleNode {
         let mut old_head = free_list.load(Ordering::Relaxed);
         loop {
             match free_list.compare_exchange_weak(old_head,
-                                                  ptr::null_mut(),
+                                                  FREE_LIST_LOCKED,
                                                   Ordering::Acquire,
                                                   Ordering::Relaxed) {
                 Ok(..) => {
-                    if !old_head.is_null() {
+                    if old_head != FREE_LIST_LOCKED {
                         break;
                     }
                 },
