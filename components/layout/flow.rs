@@ -54,7 +54,8 @@ use style::context::SharedStyleContext;
 use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
 use style::properties::ServoComputedValues;
 use style::selector_parser::RestyleDamage;
-use style::servo::restyle_damage::{RECONSTRUCT_FLOW, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, REPOSITION};
+use style::servo::restyle_damage::{RECONSTRUCT_FLOW, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT};
+use style::servo::restyle_damage::{REPOSITION, UPDATE_FLOW_FLAGS};
 use style::values::computed::LengthOrPercentageOrAuto;
 use table::TableFlow;
 use table_caption::TableCaptionFlow;
@@ -1120,6 +1121,10 @@ impl BaseFlow {
     /// These flags are initially set during flow construction.  They only need to be updated here
     /// if they are based on properties that can change triggering `RECONSTRUCT_FLOW`.
     pub fn update_flags(&mut self, style: &ServoComputedValues) {
+        if !self.restyle_damage.contains(UPDATE_FLOW_FLAGS) {
+            return
+        }
+
         // For absolutely-positioned flows, changes to top/bottom/left/right can cause these flags
         // to get out of date:
         if self.flags.contains(IS_ABSOLUTELY_POSITIONED) {
@@ -1131,6 +1136,8 @@ impl BaseFlow {
                 logical_position.block_start == LengthOrPercentageOrAuto::Auto &&
                 logical_position.block_end == LengthOrPercentageOrAuto::Auto);
         }
+
+        self.restyle_damage.remove(UPDATE_FLOW_FLAGS);
     }
 
     /// Return a new BaseFlow like this one but with the given children list

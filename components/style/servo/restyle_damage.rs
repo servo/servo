@@ -15,7 +15,7 @@ use std::fmt;
 
 bitflags! {
     #[doc = "Individual layout actions that may be necessary after restyling."]
-    pub flags ServoRestyleDamage: u8 {
+    pub flags ServoRestyleDamage: u16 {
         #[doc = "Repaint the node itself."]
         #[doc = "Currently unused; need to decide how this propagates."]
         const REPAINT = 0x01,
@@ -49,7 +49,10 @@ bitflags! {
         const RESOLVE_GENERATED_CONTENT = 0x40,
 
         #[doc = "The entire flow needs to be reconstructed."]
-        const RECONSTRUCT_FLOW = 0x80
+        const RECONSTRUCT_FLOW = 0x80,
+
+        #[doc = "Flags set during flow construction may need to be reset."]
+        const UPDATE_FLOW_FLAGS = 0x100,
     }
 }
 
@@ -256,9 +259,11 @@ fn compute_damage(old: &ServoComputedValues, new: &ServoComputedValues) -> Servo
         get_position.flex_shrink,
         get_position.align_self
     ]) || add_if_not_equal!(old, new, damage,
-                            [REPAINT, REPOSITION, STORE_OVERFLOW, REFLOW_OUT_OF_FLOW], [
+                            [REPAINT, REPOSITION, STORE_OVERFLOW, REFLOW_OUT_OF_FLOW, UPDATE_FLOW_FLAGS], [
         get_position.top, get_position.left,
-        get_position.right, get_position.bottom,
+        get_position.right, get_position.bottom
+    ]) || add_if_not_equal!(old, new, damage,
+                            [REPAINT, REPOSITION, STORE_OVERFLOW, REFLOW_OUT_OF_FLOW], [
         get_effects.opacity,
         get_box.transform, get_box.transform_style, get_box.transform_origin,
         get_box.perspective, get_box.perspective_origin
