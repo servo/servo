@@ -10,7 +10,7 @@ use selectors::Element;
 use std::env;
 use std::fmt::Write;
 use std::ptr;
-use style::context::{QuirksMode, SharedStyleContext, StyleContext};
+use style::context::{CascadeInputs, QuirksMode, SharedStyleContext, StyleContext};
 use style::context::ThreadLocalStyleContext;
 use style::data::{ElementData, ElementStyles, RestyleData};
 use style::dom::{AnimationOnlyDirtyDescendants, DirtyDescendants};
@@ -1479,7 +1479,7 @@ pub extern "C" fn Servo_ResolvePseudoStyle(element: RawGeckoElementBorrowed,
         &pseudo,
         RuleInclusion::All,
         &data.styles,
-        ComputedValues::arc_from_borrowed(&inherited_style).map(|v| v.as_ref()),
+        ComputedValues::arc_from_borrowed(&inherited_style),
         &*doc_data,
         is_probe
     );
@@ -1533,7 +1533,7 @@ fn get_pseudo_style(
     pseudo: &PseudoElement,
     rule_inclusion: RuleInclusion,
     styles: &ElementStyles,
-    inherited_styles: Option<&ComputedValues>,
+    inherited_styles: Option<&Arc<ComputedValues>>,
     doc_data: &PerDocumentStyleDataImpl,
     is_probe: bool,
 ) -> Option<Arc<ComputedValues>> {
@@ -1550,20 +1550,20 @@ fn get_pseudo_style(
                         inherited_styles.unwrap_or(styles.primary());
                     let guards = StylesheetGuards::same(guard);
                     let metrics = get_metrics_provider_for_product();
-                    let rule_node = match styles.pseudos.get(&pseudo) {
-                        Some(styles) => styles.rules.as_ref(),
-                        None => None,
+                    let inputs = match styles.pseudos.get(&pseudo) {
+                        Some(styles) => CascadeInputs::new_from_style(styles),
+                        None => return None,
                     };
                     doc_data.stylist
-                        .compute_pseudo_element_style_with_rulenode(
-                            rule_node,
+                        .compute_pseudo_element_style_with_inputs(
+                            &inputs,
                             &guards,
                             inherited_styles,
                             &metrics)
                 },
                 _ => {
                     debug_assert!(inherited_styles.is_none() ||
-                                  ptr::eq(inherited_styles.unwrap(),
+                                  ptr::eq(&**inherited_styles.unwrap(),
                                           &**styles.primary()));
                     styles.pseudos.get(&pseudo).cloned()
                 },
@@ -1572,7 +1572,7 @@ fn get_pseudo_style(
         PseudoElementCascadeType::Precomputed => unreachable!("No anonymous boxes"),
         PseudoElementCascadeType::Lazy => {
             debug_assert!(inherited_styles.is_none() ||
-                          ptr::eq(inherited_styles.unwrap(),
+                          ptr::eq(&**inherited_styles.unwrap(),
                                   &**styles.primary()));
             let base = if pseudo.inherits_from_default_values() {
                 doc_data.default_computed_values()
@@ -1588,6 +1588,7 @@ fn get_pseudo_style(
                     &pseudo,
                     rule_inclusion,
                     base,
+                    is_probe,
                     &metrics)
         },
     };

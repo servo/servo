@@ -7,7 +7,7 @@
 use {Atom, LocalName, Namespace};
 use applicable_declarations::{ApplicableDeclarationBlock, ApplicableDeclarationList};
 use bit_vec::BitVec;
-use context::QuirksMode;
+use context::{CascadeInputs, QuirksMode};
 use dom::TElement;
 use element_state::ElementState;
 use error_reporting::create_error_reporter;
@@ -16,6 +16,7 @@ use font_metrics::FontMetricsProvider;
 use gecko_bindings::structs::{nsIAtom, StyleRuleInclusion};
 use invalidation::element::invalidation_map::InvalidationMap;
 use invalidation::media_queries::EffectiveMediaQueryResults;
+use matching::CascadeVisitedMode;
 use media_queries::Device;
 use properties::{self, CascadeFlags, ComputedValues};
 use properties::{AnimationRules, PropertyDeclarationBlock};
@@ -27,7 +28,7 @@ use selector_parser::{SelectorImpl, PseudoElement};
 use selectors::attr::NamespaceConstraint;
 use selectors::bloom::BloomFilter;
 use selectors::matching::{ElementSelectorFlags, matches_selector, MatchingContext, MatchingMode};
-use selectors::matching::AFFECTED_BY_PRESENTATIONAL_HINTS;
+use selectors::matching::{VisitedHandlingMode, AFFECTED_BY_PRESENTATIONAL_HINTS};
 use selectors::parser::{AncestorHashes, Combinator, Component, Selector, SelectorAndHashes};
 use selectors::parser::{SelectorIter, SelectorMethods};
 use selectors::sink::Push;
@@ -679,47 +680,90 @@ impl Stylist {
                                                   element: &E,
                                                   pseudo: &PseudoElement,
                                                   rule_inclusion: RuleInclusion,
-                                                  parent_style: &ComputedValues,
+                                                  parent_style: &Arc<ComputedValues>,
+                                                  is_probe: bool,
                                                   font_metrics: &FontMetricsProvider)
                                                   -> Option<Arc<ComputedValues>>
         where E: TElement,
     {
-        let rule_node =
-            self.lazy_pseudo_rules(guards, element, pseudo, rule_inclusion);
-        self.compute_pseudo_element_style_with_rulenode(rule_node.as_ref(),
-                                                        guards,
-                                                        parent_style,
-                                                        font_metrics)
+        let cascade_inputs =
+            self.lazy_pseudo_rules(guards, element, pseudo, is_probe, rule_inclusion);
+        self.compute_pseudo_element_style_with_inputs(&cascade_inputs,
+                                                      guards,
+                                                      parent_style,
+                                                      font_metrics)
     }
 
-    /// Computes a pseudo-element style lazily using the given rulenode.  This
-    /// can be used for truly lazy pseudo-elements or to avoid redoing selector
-    /// matching for eager pseudo-elements when we need to recompute their style
-    /// with a new parent style.
-    pub fn compute_pseudo_element_style_with_rulenode(&self,
-                                                      rule_node: Option<&StrongRuleNode>,
-                                                      guards: &StylesheetGuards,
-                                                      parent_style: &ComputedValues,
-                                                      font_metrics: &FontMetricsProvider)
-                                                      -> Option<Arc<ComputedValues>>
+    /// Computes a pseudo-element style lazily using the given CascadeInputs.
+    /// This can be used for truly lazy pseudo-elements or to avoid redoing
+    /// selector matching for eager pseudo-elements when we need to recompute
+    /// their style with a new parent style.
+    pub fn compute_pseudo_element_style_with_inputs(&self,
+                                                    inputs: &CascadeInputs,
+                                                    guards: &StylesheetGuards,
+                                                    parent_style: &Arc<ComputedValues>,
+                                                    font_metrics: &FontMetricsProvider)
+                                                    -> Option<Arc<ComputedValues>>
     {
-        let rule_node = match rule_node {
-            Some(rule_node) => rule_node,
-            None => return None
+        // We may have only visited rules in cases when we are actually
+        // resolving, not probing, pseudo-element style.
+        if !inputs.has_rules() && !inputs.has_visited_rules() {
+            return None
+        }
+
+        // We need to compute visited values if we have visited rules or if our
+        // parent has visited values.
+        let visited_values = if inputs.has_visited_rules() || parent_style.get_visited_style().is_some() {
+            // Slightly annoying: we know that inputs has either rules or
+            // visited rules, but we can't do inputs.rules() up front because
+            // maybe it just has visited rules, so can't unwrap_or.
+            let rule_node = match inputs.get_visited_rules() {
+                Some(rules) => rules,
+                None => inputs.rules()
+            };
+            // We want to use the visited bits (if any) from our parent style as
+            // our parent.
+            let mode = CascadeVisitedMode::Visited;
+            let inherited_style = mode.values(parent_style);
+            let computed =
+                properties::cascade(&self.device,
+                                    rule_node,
+                                    guards,
+                                    Some(inherited_style),
+                                    Some(inherited_style),
+                                    None,
+                                    None,
+                                    &create_error_reporter(),
+                                    font_metrics,
+                                    CascadeFlags::empty(),
+                                    self.quirks_mode);
+
+            Some(Arc::new(computed))
+        } else {
+            None
+        };
+
+        // We may not have non-visited rules, if we only had visited ones.  In
+        // that case we want to use the root rulenode for our non-visited rules.
+        let root;
+        let rules = if let Some(rules) = inputs.get_rules() {
+            rules
+        } else {
+            root = self.rule_tree.root();
+            &root
         };
 
         // Read the comment on `precomputed_values_for_pseudo` to see why it's
         // difficult to assert that display: contents nodes never arrive here
         // (tl;dr: It doesn't apply for replaced elements and such, but the
         // computed value is still "contents").
-        // Bug 1364242: We need to add visited support for lazy pseudos
         let computed =
             properties::cascade(&self.device,
-                                rule_node,
+                                rules,
                                 guards,
                                 Some(parent_style),
                                 Some(parent_style),
-                                None,
+                                visited_values,
                                 None,
                                 &create_error_reporter(),
                                 font_metrics,
@@ -729,7 +773,7 @@ impl Stylist {
         Some(Arc::new(computed))
     }
 
-    /// Computes the rule node for a lazily-cascaded pseudo-element.
+    /// Computes the cascade inputs for a lazily-cascaded pseudo-element.
     ///
     /// See the documentation on lazy pseudo-elements in
     /// docs/components/style.md
@@ -737,14 +781,15 @@ impl Stylist {
                                 guards: &StylesheetGuards,
                                 element: &E,
                                 pseudo: &PseudoElement,
+                                is_probe: bool,
                                 rule_inclusion: RuleInclusion)
-                                -> Option<StrongRuleNode>
+                                -> CascadeInputs
         where E: TElement
     {
         let pseudo = pseudo.canonical();
         debug_assert!(pseudo.is_lazy());
         if self.pseudos_map.get(&pseudo).is_none() {
-            return None
+            return CascadeInputs::default()
         }
 
         // Apply the selector flags. We should be in sequential mode
@@ -777,7 +822,7 @@ impl Stylist {
             }
         };
 
-        // Bug 1364242: We need to add visited support for lazy pseudos
+        let mut inputs = CascadeInputs::default();
         let mut declarations = ApplicableDeclarationList::new();
         let mut matching_context =
             MatchingContext::new(MatchingMode::ForStatelessPseudoElement,
@@ -792,19 +837,52 @@ impl Stylist {
                                           &mut declarations,
                                           &mut matching_context,
                                           &mut set_selector_flags);
-        if declarations.is_empty() {
-            return None
-        }
 
-        let rule_node =
-            self.rule_tree.insert_ordered_rules_with_important(
+        if !declarations.is_empty() {
+            let rule_node = self.rule_tree.insert_ordered_rules_with_important(
                 declarations.into_iter().map(|a| a.order_and_level()),
                 guards);
-        if rule_node == self.rule_tree.root() {
-            None
-        } else {
-            Some(rule_node)
+            if rule_node != self.rule_tree.root() {
+                inputs.set_rules(VisitedHandlingMode::AllLinksUnvisited,
+                                 rule_node);
+            }
+        };
+
+        if is_probe && !inputs.has_rules() {
+            // When probing, don't compute visited styles if we have no
+            // unvisited styles.
+            return inputs;
         }
+
+        if matching_context.relevant_link_found {
+            let mut declarations = ApplicableDeclarationList::new();
+            let mut matching_context =
+                MatchingContext::new_for_visited(MatchingMode::ForStatelessPseudoElement,
+                                                 None,
+                                                 VisitedHandlingMode::RelevantLinkVisited,
+                                                 self.quirks_mode);
+            self.push_applicable_declarations(element,
+                                              Some(&pseudo),
+                                              None,
+                                              None,
+                                              AnimationRules(None, None),
+                                              rule_inclusion,
+                                              &mut declarations,
+                                              &mut matching_context,
+                                              &mut set_selector_flags);
+            if !declarations.is_empty() {
+                let rule_node =
+                    self.rule_tree.insert_ordered_rules_with_important(
+                        declarations.into_iter().map(|a| a.order_and_level()),
+                        guards);
+                if rule_node != self.rule_tree.root() {
+                    inputs.set_rules(VisitedHandlingMode::RelevantLinkVisited,
+                                     rule_node);
+                }
+            }
+        }
+
+        inputs
     }
 
     /// Set a given device, which may change the styles that apply to the
