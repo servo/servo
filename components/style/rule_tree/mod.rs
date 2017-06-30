@@ -1329,10 +1329,8 @@ impl Drop for StrongRuleNode {
                          ptr::null_mut());
         if node.parent.is_none() {
             debug!("Dropping root node!");
-            // NOTE: Calling this is fine, because the rule tree root
-            // destructor needs to happen from the layout thread, where the
-            // stylist, and hence, the rule tree, is held.
-            unsafe { self.gc() };
+            // The free list should be null by this point
+            debug_assert!(node.next_free.load(Ordering::Relaxed).is_null());
             let _ = unsafe { Box::from_raw(self.ptr()) };
             return;
         }
