@@ -33,6 +33,7 @@ use net_traits::request::{CredentialsMode, Destination, RequestInit, Type as Req
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, StackRootTLS, get_reports, new_rt_and_cx};
 use script_runtime::ScriptThreadEventCategory::WorkerEvent;
 use script_traits::{TimerEvent, TimerSource, WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
+use script_traits::TimerSchedulerMsg;
 use servo_rand::random;
 use servo_url::ServoUrl;
 use std::mem::replace;
@@ -101,6 +102,7 @@ impl DedicatedWorkerGlobalScope {
                      receiver: Receiver<(TrustedWorkerAddress, WorkerScriptMsg)>,
                      timer_event_chan: IpcSender<TimerEvent>,
                      timer_event_port: Receiver<(TrustedWorkerAddress, TimerEvent)>,
+                     scheduler_chan: Sender<TimerSchedulerMsg>,
                      closing: Arc<AtomicBool>)
                      -> DedicatedWorkerGlobalScope {
         DedicatedWorkerGlobalScope {
@@ -109,6 +111,7 @@ impl DedicatedWorkerGlobalScope {
                                                                 runtime,
                                                                 from_devtools_receiver,
                                                                 timer_event_chan,
+                                                                scheduler_chan,
                                                                 Some(closing)),
             receiver: receiver,
             own_sender: own_sender,
@@ -120,6 +123,7 @@ impl DedicatedWorkerGlobalScope {
 
     #[allow(unsafe_code)]
     pub fn new(init: WorkerGlobalScopeInit,
+               scheduler_chan: Sender<TimerSchedulerMsg>,
                worker_url: ServoUrl,
                from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
                runtime: Runtime,
@@ -140,6 +144,7 @@ impl DedicatedWorkerGlobalScope {
                                                                   receiver,
                                                                   timer_event_chan,
                                                                   timer_event_port,
+                                                                  scheduler_chan,
                                                                   closing);
         unsafe {
             DedicatedWorkerGlobalScopeBinding::Wrap(cx, scope)
@@ -148,6 +153,7 @@ impl DedicatedWorkerGlobalScope {
 
     #[allow(unsafe_code)]
     pub fn run_worker_scope(init: WorkerGlobalScopeInit,
+                            scheduler_chan: Sender<TimerSchedulerMsg>,
                             worker_url: ServoUrl,
                             from_devtools_receiver: IpcReceiver<DevtoolScriptControlMsg>,
                             worker_rt_for_mainthread: Arc<Mutex<Option<SharedRt>>>,
@@ -214,7 +220,7 @@ impl DedicatedWorkerGlobalScope {
             });
 
             let global = DedicatedWorkerGlobalScope::new(
-                init, url, devtools_mpsc_port, runtime,
+                init, scheduler_chan, url, devtools_mpsc_port, runtime,
                 parent_sender.clone(), own_sender, receiver,
                 timer_ipc_chan, timer_rx, closing);
             // FIXME(njn): workers currently don't have a unique ID suitable for using in reporter

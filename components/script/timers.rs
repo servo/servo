@@ -26,6 +26,7 @@ use std::cmp::{self, Ord, Ordering};
 use std::collections::HashMap;
 use std::default::Default;
 use std::rc::Rc;
+use std::sync::mpsc::Sender;
 
 #[derive(JSTraceable, PartialEq, Eq, Copy, Clone, HeapSizeOf, Hash, PartialOrd, Ord, Debug)]
 pub struct OneshotTimerHandle(i32);
@@ -36,7 +37,7 @@ pub struct OneshotTimers {
     #[ignore_heap_size_of = "Defined in std"]
     timer_event_chan: IpcSender<TimerEvent>,
     #[ignore_heap_size_of = "Defined in std"]
-    scheduler_chan: IpcSender<TimerSchedulerMsg>,
+    scheduler_chan: Sender<TimerSchedulerMsg>,
     next_timer_handle: Cell<OneshotTimerHandle>,
     timers: DOMRefCell<Vec<OneshotTimer>>,
     suspended_since: Cell<Option<MsDuration>>,
@@ -110,7 +111,7 @@ impl PartialEq for OneshotTimer {
 
 impl OneshotTimers {
     pub fn new(timer_event_chan: IpcSender<TimerEvent>,
-               scheduler_chan: IpcSender<TimerSchedulerMsg>)
+               scheduler_chan: Sender<TimerSchedulerMsg>)
                -> OneshotTimers {
         OneshotTimers {
             js_timers: JsTimers::new(),

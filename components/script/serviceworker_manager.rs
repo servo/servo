@@ -15,7 +15,7 @@ use dom::serviceworkerregistration::longest_prefix_match;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use net_traits::{CustomResponseMediator, CoreResourceMsg};
-use script_traits::{ServiceWorkerMsg, ScopeThings, SWManagerMsg, SWManagerSenders, DOMMessage};
+use script_traits::{ServiceWorkerMsg, ScopeThings, SWManagerMsg, SWManagerSenders, DOMMessage, TimerSchedulerMsg};
 use servo_config::prefs::PREFS;
 use servo_url::ServoUrl;
 use std::collections::HashMap;
@@ -36,12 +36,15 @@ pub struct ServiceWorkerManager {
     own_sender: IpcSender<ServiceWorkerMsg>,
     // receiver to receive messages from constellation
     own_port: Receiver<ServiceWorkerMsg>,
+    // channel to send timed events
+    scheduler_chan: Sender<TimerSchedulerMsg>,
     // to receive resource messages
     resource_receiver: Receiver<CustomResponseMediator>
 }
 
 impl ServiceWorkerManager {
     fn new(own_sender: IpcSender<ServiceWorkerMsg>,
+           scheduler_chan: Sender<TimerSchedulerMsg>,
            from_constellation_receiver: Receiver<ServiceWorkerMsg>,
            resource_port: Receiver<CustomResponseMediator>) -> ServiceWorkerManager {
         ServiceWorkerManager {
@@ -49,11 +52,12 @@ impl ServiceWorkerManager {
             active_workers: HashMap::new(),
             own_sender: own_sender,
             own_port: from_constellation_receiver,
+            scheduler_chan: scheduler_chan,
             resource_receiver: resource_port
         }
     }
 
-    pub fn spawn_manager(sw_senders: SWManagerSenders) {
+    pub fn spawn_manager(sw_senders: SWManagerSenders, scheduler_chan: Sender<TimerSchedulerMsg>) {
         let (own_sender, from_constellation_receiver) = ipc::channel().unwrap();
         let (resource_chan, resource_port) = ipc::channel().unwrap();
         let from_constellation = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(from_constellation_receiver);
@@ -62,6 +66,7 @@ impl ServiceWorkerManager {
         let _ = sw_senders.swmanager_sender.send(SWManagerMsg::OwnSender(own_sender.clone()));
         thread::Builder::new().name("ServiceWorkerManager".to_owned()).spawn(move || {
             ServiceWorkerManager::new(own_sender,
+                                      scheduler_chan,
                                       from_constellation,
                                       resource_port).handle_message();
         }).expect("Thread spawning failed");
@@ -93,6 +98,7 @@ impl ServiceWorkerManager {
                                                                          page_info));
             };
             ServiceWorkerGlobalScope::run_serviceworker_scope(scope_things.clone(),
+                                                              self.scheduler_chan.clone(),
                                                               sender.clone(),
                                                               receiver,
                                                               devtools_receiver,

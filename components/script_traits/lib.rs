@@ -504,7 +504,7 @@ pub struct InitialScriptState {
     /// A sender for the layout thread to communicate to the constellation.
     pub layout_to_constellation_chan: IpcSender<LayoutMsg>,
     /// A channel to schedule timer events.
-    pub scheduler_chan: IpcSender<TimerSchedulerMsg>,
+    pub scheduler_chan: Sender<TimerSchedulerMsg>,
     /// A channel to the resource manager thread.
     pub resource_threads: ResourceThreads,
     /// A channel to the bluetooth thread.
@@ -790,8 +790,6 @@ pub struct WorkerGlobalScopeInit {
     pub from_devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>,
     /// Messages to send to constellation
     pub constellation_chan: IpcSender<ScriptMsg>,
-    /// Message to send to the scheduler
-    pub scheduler_chan: IpcSender<TimerSchedulerMsg>,
     /// The worker id
     pub worker_id: WorkerId,
     /// The pipeline id

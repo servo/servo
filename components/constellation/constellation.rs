@@ -226,7 +226,7 @@ pub struct Constellation<Message, LTF, STF> {
 
     /// A channel for the constellation to send messages to the
     /// timer thread.
-    scheduler_chan: IpcSender<TimerSchedulerMsg>,
+    scheduler_chan: Sender<TimerSchedulerMsg>,
 
     /// A channel for the constellation to send messages to the
     /// Webrender thread.

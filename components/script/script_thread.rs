@@ -481,7 +481,7 @@ pub struct ScriptThread {
     /// List of pipelines that have been owned and closed by this script thread.
     closed_pipelines: DOMRefCell<HashSet<PipelineId>>,
 
-    scheduler_chan: IpcSender<TimerSchedulerMsg>,
+    scheduler_chan: Sender<TimerSchedulerMsg>,
     timer_event_chan: Sender<TimerEvent>,
     timer_event_port: Receiver<TimerEvent>,
 

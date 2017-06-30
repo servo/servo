@@ -35,14 +35,14 @@ use net_traits::{IpcSend, load_whole_resource};
 use net_traits::request::{CredentialsMode, Destination, RequestInit as NetRequestInit, Type as RequestType};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
 use script_thread::RunnableWrapper;
-use script_traits::{TimerEvent, TimerEventId};
+use script_traits::{TimerEvent, TimerEventId, TimerSchedulerMsg};
 use script_traits::WorkerGlobalScopeInit;
 use servo_url::{MutableOrigin, ServoUrl};
 use std::default::Default;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::mpsc::Receiver;
+use std::sync::mpsc::{Receiver, Sender};
 use task_source::file_reading::FileReadingTaskSource;
 use task_source::networking::NetworkingTaskSource;
 use timers::{IsInterval, TimerCallback};
@@ -56,7 +56,6 @@ pub fn prepare_workerscope_init(global: &GlobalScope,
             time_profiler_chan: global.time_profiler_chan().clone(),
             from_devtools_sender: devtools_sender,
             constellation_chan: global.constellation_chan().clone(),
-            scheduler_chan: global.scheduler_chan().clone(),
             worker_id: global.get_next_worker_id(),
             pipeline_id: global.pipeline_id(),
             origin: global.origin().immutable().clone(),
@@ -98,6 +97,7 @@ impl WorkerGlobalScope {
                          runtime: Runtime,
                          from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
                          timer_event_chan: IpcSender<TimerEvent>,
+                         scheduler_chan: Sender<TimerSchedulerMsg>,
                          closing: Option<Arc<AtomicBool>>)
                          -> WorkerGlobalScope {
         WorkerGlobalScope {
@@ -108,7 +108,7 @@ impl WorkerGlobalScope {
                     init.mem_profiler_chan,
                     init.time_profiler_chan,
                     init.constellation_chan,
-                    init.scheduler_chan,
+                    scheduler_chan,
                     init.resource_threads,
                     timer_event_chan,
                     MutableOrigin::new(init.origin)),

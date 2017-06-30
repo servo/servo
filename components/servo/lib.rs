@@ -76,6 +76,7 @@ use constellation::{Constellation, InitialConstellationState, UnprivilegedPipeli
 use constellation::{FromCompositorLogger, FromScriptLogger};
 #[cfg(not(target_os = "windows"))]
 use constellation::content_process_sandbox_profile;
+use constellation::timer_scheduler::TimerScheduler;
 use env_logger::Logger as EnvLogger;
 #[cfg(not(target_os = "windows"))]
 use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
@@ -214,7 +215,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
                                                                     webrender_api_sender.clone());
 
         // Send the constellation's swmanager sender to service worker manager thread
-        script::init_service_workers(sw_senders);
+        script::init_service_workers(sw_senders, TimerScheduler::start());
 
         if cfg!(feature = "webdriver") {
             if let Some(port) = opts.webdriver_port {
@@ -342,7 +343,7 @@ fn create_constellation(user_agent: Cow<'static, str>,
     // channels to communicate with Service Worker Manager
     let sw_senders = SWManagerSenders {
         swmanager_sender: from_swmanager_sender,
-        resource_sender: resource_sender
+        resource_sender: resource_sender,
     };
 
     (constellation_chan, sw_senders)
@@ -394,12 +395,14 @@ pub fn run_content_process(token: String) {
 
     // send the required channels to the service worker manager
     let sw_senders = unprivileged_content.swmanager_senders();
+    let scheduler_chan = TimerScheduler::start();
+
     script::init();
-    script::init_service_workers(sw_senders);
+    script::init_service_workers(sw_senders, scheduler_chan.clone());
 
     unprivileged_content.start_all::<script_layout_interface::message::Msg,
                                      layout_thread::LayoutThread,
-                                     script::script_thread::ScriptThread>(true);
+                                     script::script_thread::ScriptThread>(true, scheduler_chan);
 }
 
 // This is a workaround for https://github.com/rust-lang/rust/pull/30175 until
