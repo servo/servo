@@ -375,7 +375,7 @@ pub extern "C" fn Servo_AnimationValues_GetZeroValue(
     -> RawServoAnimationValueStrong
 {
     let value_to_match = AnimationValue::as_arc(&value_to_match);
-    if let Some(zero_value) = value_to_match.get_zero_value() {
+    if let Ok(zero_value) = value_to_match.get_zero_value() {
         Arc::new(zero_value).into_strong()
     } else {
         RawServoAnimationValueStrong::null()
