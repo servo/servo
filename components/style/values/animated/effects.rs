@@ -4,7 +4,6 @@
 
 //! Animated types for CSS values related to effects.
 
-use app_units::Au;
 use properties::animated_properties::{Animatable, IntermediateColor};
 use properties::longhands::box_shadow::computed_value::T as ComputedBoxShadowList;
 use properties::longhands::filter::computed_value::T as ComputedFilterList;
@@ -19,10 +18,18 @@ use values::generics::effects::BoxShadow as GenericBoxShadow;
 use values::generics::effects::Filter as GenericFilter;
 use values::generics::effects::SimpleShadow as GenericSimpleShadow;
 
+/// An animated value for the `box-shadow` property.
+pub type BoxShadowList = ShadowList<BoxShadow>;
+
+/// An animated value for the `text-shadow` property.
+pub type TextShadowList = ShadowList<SimpleShadow>;
+
+/// An animated value for shadow lists.
+///
+/// https://drafts.csswg.org/css-transitions/#animtype-shadow-list
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, Debug, PartialEq)]
-/// An animated value for the `box-shadow` property.
-pub struct BoxShadowList(pub Vec<BoxShadow>);
+pub struct ShadowList<Shadow>(Vec<Shadow>);
 
 /// An animated value for a single `box-shadow`.
 pub type BoxShadow = GenericBoxShadow<IntermediateColor, Length, Length>;
@@ -40,11 +47,6 @@ pub type Filter = GenericFilter<Angle, Number, Length, SimpleShadow>;
 #[cfg(not(feature = "gecko"))]
 pub type Filter = GenericFilter<Angle, Number, Length, Impossible>;
 
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Debug, PartialEq)]
-/// An animated value for the `box-shadow` property.
-pub struct TextShadowList(pub Vec<SimpleShadow>);
-
 /// An animated value for the `drop-shadow()` filter.
 pub type SimpleShadow = GenericSimpleShadow<IntermediateColor, Length, Length>;
 
@@ -53,7 +55,7 @@ impl ToAnimatedValue for ComputedBoxShadowList {
 
     #[inline]
     fn to_animated_value(self) -> Self::AnimatedValue {
-        BoxShadowList(self.0.to_animated_value())
+        ShadowList(self.0.to_animated_value())
     }
 
     #[inline]
@@ -62,8 +64,10 @@ impl ToAnimatedValue for ComputedBoxShadowList {
     }
 }
 
-/// https://drafts.csswg.org/css-transitions/#animtype-shadow-list
-impl Animatable for BoxShadowList {
+impl<S> Animatable for ShadowList<S>
+where
+    S: Animatable + Clone,
+{
     #[inline]
     fn add_weighted(
         &self,
@@ -71,18 +75,6 @@ impl Animatable for BoxShadowList {
         self_portion: f64,
         other_portion: f64,
     ) -> Result<Self, ()> {
-        // The inset value must change
-        let mut zero = BoxShadow {
-            base: SimpleShadow {
-                color: IntermediateColor::transparent(),
-                horizontal: Au(0),
-                vertical: Au(0),
-                blur: Au(0),
-            },
-            spread: Au(0),
-            inset: false,
-        };
-
         let max_len = cmp::max(self.0.len(), other.0.len());
         let mut shadows = Vec::with_capacity(max_len);
         for i in 0..max_len {
@@ -91,23 +83,20 @@ impl Animatable for BoxShadowList {
                     shadow.add_weighted(other, self_portion, other_portion)?
                 },
                 (Some(shadow), None) => {
-                    zero.inset = shadow.inset;
-                    shadow.add_weighted(&zero, self_portion, other_portion)?
+                    shadow.add_weighted(&shadow.get_zero_value()?, self_portion, other_portion)?
                 },
                 (None, Some(shadow)) => {
-                    zero.inset = shadow.inset;
-                    zero.add_weighted(&shadow, self_portion, other_portion)?
+                    shadow.get_zero_value()?.add_weighted(&shadow, self_portion, other_portion)?
                 },
                 (None, None) => unreachable!(),
             });
         }
-
-        Ok(BoxShadowList(shadows))
+        Ok(ShadowList(shadows))
     }
 
     #[inline]
     fn add(&self, other: &Self) -> Result<Self, ()> {
-        Ok(BoxShadowList(
+        Ok(ShadowList(
             self.0.iter().cloned().chain(other.0.iter().cloned()).collect(),
         ))
     }
@@ -118,56 +107,12 @@ impl ToAnimatedValue for ComputedTextShadowList {
 
     #[inline]
     fn to_animated_value(self) -> Self::AnimatedValue {
-        TextShadowList(self.0.to_animated_value())
+        ShadowList(self.0.to_animated_value())
     }
 
     #[inline]
     fn from_animated_value(animated: Self::AnimatedValue) -> Self {
         ComputedTextShadowList(ToAnimatedValue::from_animated_value(animated.0))
-    }
-}
-
-/// https://drafts.csswg.org/css-transitions/#animtype-shadow-list
-impl Animatable for TextShadowList {
-    #[inline]
-    fn add_weighted(
-        &self,
-        other: &Self,
-        self_portion: f64,
-        other_portion: f64,
-    ) -> Result<Self, ()> {
-        let zero = SimpleShadow {
-            color: IntermediateColor::transparent(),
-            horizontal: Au(0),
-            vertical: Au(0),
-            blur: Au(0),
-        };
-
-        let max_len = cmp::max(self.0.len(), other.0.len());
-        let mut shadows = Vec::with_capacity(max_len);
-        for i in 0..max_len {
-            shadows.push(match (self.0.get(i), other.0.get(i)) {
-                (Some(shadow), Some(other)) => {
-                    shadow.add_weighted(other, self_portion, other_portion)?
-                },
-                (Some(shadow), None) => {
-                    shadow.add_weighted(&zero, self_portion, other_portion)?
-                },
-                (None, Some(shadow)) => {
-                    zero.add_weighted(&shadow, self_portion, other_portion)?
-                },
-                (None, None) => unreachable!(),
-            });
-        }
-
-        Ok(TextShadowList(shadows))
-    }
-
-    #[inline]
-    fn add(&self, other: &Self) -> Result<Self, ()> {
-        Ok(TextShadowList(
-            self.0.iter().cloned().chain(other.0.iter().cloned()).collect(),
-        ))
     }
 }
 
@@ -190,6 +135,15 @@ impl Animatable for BoxShadow {
     }
 
     #[inline]
+    fn get_zero_value(&self) -> Result<Self, ()> {
+        Ok(BoxShadow {
+            base: self.base.get_zero_value()?,
+            spread: self.spread.get_zero_value()?,
+            inset: self.inset,
+        })
+    }
+
+    #[inline]
     fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
         self.compute_squared_distance(other).map(|sd| sd.sqrt())
     }
@@ -205,7 +159,6 @@ impl Animatable for BoxShadow {
         )
     }
 }
-
 
 impl ToAnimatedValue for ComputedFilterList {
     type AnimatedValue = FilterList;
@@ -248,6 +201,16 @@ impl Animatable for SimpleShadow {
             horizontal: horizontal,
             vertical: vertical,
             blur: blur,
+        })
+    }
+
+    #[inline]
+    fn get_zero_value(&self) -> Result<Self, ()> {
+        Ok(SimpleShadow {
+            color: IntermediateColor::transparent(),
+            horizontal: self.horizontal.get_zero_value()?,
+            vertical: self.vertical.get_zero_value()?,
+            blur: self.blur.get_zero_value()?,
         })
     }
 
