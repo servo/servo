@@ -1684,14 +1684,59 @@ fn static_assert() {
     <% impl_simple_type_with_conversion("font_language_override", "mFont.languageOverride") %>
 
     pub fn set_font_variant_alternates(&mut self, v: longhands::font_variant_alternates::computed_value::T) {
-        self.gecko.mFont.variantAlternates = v.to_gecko_keyword()
+        use gecko_bindings::bindings::{Gecko_ClearAlternateValues, Gecko_AppendAlternateValues};
+        % for value in "normal swash stylistic ornaments annotation styleset character_variant historical".split():
+            use gecko_bindings::structs::NS_FONT_VARIANT_ALTERNATES_${value.upper()};
+        % endfor
+        use self::longhands::font_variant_alternates::VariantAlternates;
+
+        unsafe {
+            Gecko_ClearAlternateValues(&mut self.gecko.mFont, v.len());
+        }
+
+        if v.0.is_empty() {
+            self.gecko.mFont.variantAlternates = NS_FONT_VARIANT_ALTERNATES_NORMAL as u16;
+        }
+
+        for val in v.0.iter() {
+            match *val {
+                % for value in "Swash Stylistic Ornaments Annotation".split():
+                    VariantAlternates::${value}(ref ident) => {
+                        self.gecko.mFont.variantAlternates |= NS_FONT_VARIANT_ALTERNATES_${value.upper()} as u16;
+                        unsafe {
+                            Gecko_AppendAlternateValues(&mut self.gecko.mFont,
+                                                        NS_FONT_VARIANT_ALTERNATES_${value.upper()},
+                                                        ident.0.as_ptr());
+                        }
+                    },
+                % endfor
+                % for value in "styleset character_variant".split():
+                    VariantAlternates::${to_camel_case(value)}(ref slice) => {
+                        self.gecko.mFont.variantAlternates |= NS_FONT_VARIANT_ALTERNATES_${value.upper()} as u16;
+                        for ident in slice.iter() {
+                            unsafe {
+                                Gecko_AppendAlternateValues(&mut self.gecko.mFont,
+                                                            NS_FONT_VARIANT_ALTERNATES_${value.upper()},
+                                                            ident.0.as_ptr());
+                            }
+                        }
+                    },
+                % endfor
+                VariantAlternates::HistoricalForms => {
+                    self.gecko.mFont.variantAlternates |= NS_FONT_VARIANT_ALTERNATES_HISTORICAL as u16;
+                }
+            }
+        }
     }
 
     #[allow(non_snake_case)]
     pub fn copy_font_variant_alternates_from(&mut self, other: &Self) {
+        use gecko_bindings::bindings::Gecko_CopyAlternateValuesFrom;
+
         self.gecko.mFont.variantAlternates = other.gecko.mFont.variantAlternates;
-        // FIXME: Copy alternateValues as well.
-        // self.gecko.mFont.alternateValues = other.gecko.mFont.alternateValues;
+        unsafe {
+            Gecko_CopyAlternateValuesFrom(&mut self.gecko.mFont, &other.gecko.mFont);
+        }
     }
 
     ${impl_simple_type_with_conversion("font_variant_ligatures", "mFont.variantLigatures")}
