@@ -12,7 +12,7 @@ path = "lib.rs"
 [dependencies]
 app_units = "0.5"
 atomic_refcell = "0.1"
-bitflags = "0.7"
+bitflags = "0.8"
 canvas_traits = {path = "../canvas_traits"}
 euclid = "0.15"
 fnv = "1.0"
