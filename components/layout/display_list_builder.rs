@@ -1339,7 +1339,7 @@ impl FragmentDisplayListBuilding for Fragment {
                     gradient: gradient,
                 })
             }
-            GradientKind::Radial(ref shape, ref center) => {
+            GradientKind::Radial(ref shape, ref center, _angle) => {
                 let gradient = self.convert_radial_gradient(&bounds,
                                                             &gradient.items[..],
                                                             shape,
@@ -1484,7 +1484,7 @@ impl FragmentDisplayListBuilding for Fragment {
                             }),
                         }));
                     }
-                    GradientKind::Radial(ref shape, ref center) => {
+                    GradientKind::Radial(ref shape, ref center, _angle) => {
                         let grad = self.convert_radial_gradient(&bounds,
                                                                 &gradient.items[..],
                                                                 shape,
