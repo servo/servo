@@ -47,6 +47,21 @@ pub struct RuleTree {
     root: StrongRuleNode,
 }
 
+impl Drop for RuleTree {
+    fn drop(&mut self) {
+        // GC the rule tree.
+        unsafe { self.gc(); }
+
+        // After the GC, the free list should be empty.
+        debug_assert!(self.root.get().next_free.load(Ordering::Relaxed) == FREE_LIST_SENTINEL);
+
+        // Remove the sentinel. This indicates that GCs will no longer occur.
+        // Any further drops of StrongRuleNodes must occur on the main thread,
+        // and will trigger synchronous dropping of the Rule nodes.
+        self.root.get().next_free.store(ptr::null_mut(), Ordering::Relaxed);
+    }
+}
+
 /// A style source for the rule node. It can either be a CSS style rule or a
 /// declaration block.
 ///
@@ -122,6 +137,10 @@ impl StyleSource {
 /// The root node doesn't have a null pointer in the free list, but this value.
 const FREE_LIST_SENTINEL: *mut RuleNode = 0x01 as *mut RuleNode;
 
+/// A second sentinel value for the free list, indicating that it's locked (i.e.
+/// another thread is currently adding an entry). We spin if we find this value.
+const FREE_LIST_LOCKED: *mut RuleNode = 0x02 as *mut RuleNode;
+
 impl RuleTree {
     /// Construct a new rule tree.
     pub fn new() -> Self {
@@ -133,11 +152,6 @@ impl RuleTree {
     /// Get the root rule node.
     pub fn root(&self) -> StrongRuleNode {
         self.root.clone()
-    }
-
-    /// Returns true if there are no nodes in the tree aside from the rule node.
-    pub fn is_empty(&self) -> bool {
-        self.root.get().first_child.load(Ordering::Relaxed).is_null()
     }
 
     fn dump<W: Write>(&self, guards: &StylesheetGuards, writer: &mut W) {
@@ -565,11 +579,63 @@ pub struct RuleNode {
     prev_sibling_or_free_count: PrevSiblingOrFreeCount,
 
     /// The next item in the rule tree free list, that starts on the root node.
+    ///
+    /// When this is set to null, that means that the rule tree has been torn
+    /// down, and GCs will no longer occur. When this happens, StrongRuleNodes
+    /// may only be dropped on the main thread, and teardown happens
+    /// synchronously.
     next_free: AtomicPtr<RuleNode>,
 }
 
 unsafe impl Sync for RuleTree {}
 unsafe impl Send for RuleTree {}
+
+// On Gecko builds, hook into the leak checking machinery.
+#[cfg(feature = "gecko")]
+#[cfg(debug_assertions)]
+mod gecko_leak_checking {
+use std::mem::size_of;
+use std::os::raw::{c_char, c_void};
+use super::RuleNode;
+
+extern "C" {
+    pub fn NS_LogCtor(aPtr: *const c_void, aTypeName: *const c_char, aSize: u32);
+    pub fn NS_LogDtor(aPtr: *const c_void, aTypeName: *const c_char, aSize: u32);
+}
+
+static NAME: &'static [u8] = b"RuleNode\0";
+
+/// Logs the creation of a heap-allocated object to Gecko's leak-checking machinery.
+pub fn log_ctor(ptr: *const RuleNode) {
+    let s = NAME as *const [u8] as *const u8 as *const c_char;
+    unsafe {
+        NS_LogCtor(ptr as *const c_void, s, size_of::<RuleNode>() as u32);
+    }
+}
+
+/// Logs the destruction of a heap-allocated object to Gecko's leak-checking machinery.
+pub fn log_dtor(ptr: *const RuleNode) {
+    let s = NAME as *const [u8] as *const u8 as *const c_char;
+    unsafe {
+        NS_LogDtor(ptr as *const c_void, s, size_of::<RuleNode>() as u32);
+    }
+}
+
+}
+
+#[inline(always)]
+fn log_new(_ptr: *const RuleNode) {
+    #[cfg(feature = "gecko")]
+    #[cfg(debug_assertions)]
+    gecko_leak_checking::log_ctor(_ptr);
+}
+
+#[inline(always)]
+fn log_drop(_ptr: *const RuleNode) {
+    #[cfg(feature = "gecko")]
+    #[cfg(debug_assertions)]
+    gecko_leak_checking::log_dtor(_ptr);
+}
 
 impl RuleNode {
     fn new(root: WeakRuleNode,
@@ -730,6 +796,7 @@ impl StrongRuleNode {
         debug_assert!(n.parent.is_none() == !n.source.is_some());
 
         let ptr = Box::into_raw(n);
+        log_new(ptr);
 
         debug!("Creating rule node: {:p}", ptr);
 
@@ -948,6 +1015,7 @@ impl StrongRuleNode {
 
             debug!("GC'ing {:?}", weak.ptr());
             node.remove_from_child_list();
+            log_drop(weak.ptr());
             let _ = Box::from_raw(weak.ptr());
         }
 
@@ -1329,16 +1397,29 @@ impl Drop for StrongRuleNode {
                          ptr::null_mut());
         if node.parent.is_none() {
             debug!("Dropping root node!");
-            // NOTE: Calling this is fine, because the rule tree root
-            // destructor needs to happen from the layout thread, where the
-            // stylist, and hence, the rule tree, is held.
-            unsafe { self.gc() };
+            // The free list should be null by this point
+            debug_assert!(node.next_free.load(Ordering::Relaxed).is_null());
+            log_drop(self.ptr());
             let _ = unsafe { Box::from_raw(self.ptr()) };
             return;
         }
 
         let root = unsafe { &*node.root.as_ref().unwrap().ptr() };
         let free_list = &root.next_free;
+        let mut old_head = free_list.load(Ordering::Relaxed);
+
+        // If the free list is null, that means the last GC has already occurred.
+        // We require that any callers freeing at this point are on the main
+        // thread, and we drop the rule node synchronously.
+        if old_head.is_null() {
+            debug_assert!(!thread_state::get().is_worker() &&
+                          (thread_state::get().is_layout() ||
+                           thread_state::get().is_script()));
+            unsafe { node.remove_from_child_list(); }
+            log_drop(self.ptr());
+            let _ = unsafe { Box::from_raw(self.ptr()) };
+            return;
+        }
 
         // We're sure we're already in the free list, don't spinloop if we're.
         // Note that this is just a fast path, so it doesn't need to have an
@@ -1347,20 +1428,19 @@ impl Drop for StrongRuleNode {
             return;
         }
 
-        // Ensure we "lock" the free list head swapping it with a null pointer.
+        // Ensure we "lock" the free list head swapping it with FREE_LIST_LOCKED.
         //
         // Note that we use Acquire/Release semantics for the free list
         // synchronization, in order to guarantee that the next_free
         // reads/writes we do below are properly visible from multiple threads
         // racing.
-        let mut old_head = free_list.load(Ordering::Relaxed);
         loop {
             match free_list.compare_exchange_weak(old_head,
-                                                  ptr::null_mut(),
+                                                  FREE_LIST_LOCKED,
                                                   Ordering::Acquire,
                                                   Ordering::Relaxed) {
                 Ok(..) => {
-                    if !old_head.is_null() {
+                    if old_head != FREE_LIST_LOCKED {
                         break;
                     }
                 },
