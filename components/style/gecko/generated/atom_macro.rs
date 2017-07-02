@@ -4334,6 +4334,8 @@ cfg_if! {
             pub static nsGkAtoms_scrollbar_thumb_proportional: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms18overlay_scrollbarsE"]
             pub static nsGkAtoms_overlay_scrollbars: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms28windows_accent_color_appliesE"]
+            pub static nsGkAtoms_windows_accent_color_applies: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms21windows_default_themeE"]
             pub static nsGkAtoms_windows_default_theme: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms18mac_graphite_themeE"]
@@ -4384,6 +4386,8 @@ cfg_if! {
             pub static nsGkAtoms__moz_scrollbar_thumb_proportional: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms23_moz_overlay_scrollbarsE"]
             pub static nsGkAtoms__moz_overlay_scrollbars: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms33_moz_windows_accent_color_appliesE"]
+            pub static nsGkAtoms__moz_windows_accent_color_applies: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms26_moz_windows_default_themeE"]
             pub static nsGkAtoms__moz_windows_default_theme: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms23_moz_mac_graphite_themeE"]
@@ -9455,6 +9459,8 @@ cfg_if! {
             pub static nsGkAtoms_scrollbar_thumb_proportional: *mut nsIAtom;
             #[link_name = "?overlay_scrollbars@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_overlay_scrollbars: *mut nsIAtom;
+            #[link_name = "?windows_accent_color_applies@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_windows_accent_color_applies: *mut nsIAtom;
             #[link_name = "?windows_default_theme@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_windows_default_theme: *mut nsIAtom;
             #[link_name = "?mac_graphite_theme@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -9505,6 +9511,8 @@ cfg_if! {
             pub static nsGkAtoms__moz_scrollbar_thumb_proportional: *mut nsIAtom;
             #[link_name = "?_moz_overlay_scrollbars@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms__moz_overlay_scrollbars: *mut nsIAtom;
+            #[link_name = "?_moz_windows_accent_color_applies@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms__moz_windows_accent_color_applies: *mut nsIAtom;
             #[link_name = "?_moz_windows_default_theme@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms__moz_windows_default_theme: *mut nsIAtom;
             #[link_name = "?_moz_mac_graphite_theme@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -14576,6 +14584,8 @@ cfg_if! {
             pub static nsGkAtoms_scrollbar_thumb_proportional: *mut nsIAtom;
             #[link_name = "\x01?overlay_scrollbars@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_overlay_scrollbars: *mut nsIAtom;
+            #[link_name = "\x01?windows_accent_color_applies@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_windows_accent_color_applies: *mut nsIAtom;
             #[link_name = "\x01?windows_default_theme@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_windows_default_theme: *mut nsIAtom;
             #[link_name = "\x01?mac_graphite_theme@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -14626,6 +14636,8 @@ cfg_if! {
             pub static nsGkAtoms__moz_scrollbar_thumb_proportional: *mut nsIAtom;
             #[link_name = "\x01?_moz_overlay_scrollbars@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms__moz_overlay_scrollbars: *mut nsIAtom;
+            #[link_name = "\x01?_moz_windows_accent_color_applies@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms__moz_windows_accent_color_applies: *mut nsIAtom;
             #[link_name = "\x01?_moz_windows_default_theme@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms__moz_windows_default_theme: *mut nsIAtom;
             #[link_name = "\x01?_moz_mac_graphite_theme@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -19700,6 +19712,8 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scrollbar_thumb_proportional as *mut _) } };
 ("overlay-scrollbars") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_overlay_scrollbars as *mut _) } };
+("windows-accent-color-applies") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_windows_accent_color_applies as *mut _) } };
 ("windows-default-theme") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_windows_default_theme as *mut _) } };
 ("mac-graphite-theme") =>
@@ -19750,6 +19764,8 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_scrollbar_thumb_proportional as *mut _) } };
 ("-moz-overlay-scrollbars") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_overlay_scrollbars as *mut _) } };
+("-moz-windows-accent-color-applies") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_windows_accent_color_applies as *mut _) } };
 ("-moz-windows-default-theme") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_windows_default_theme as *mut _) } };
 ("-moz-mac-graphite-theme") =>
