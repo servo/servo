@@ -836,7 +836,7 @@ fn clip_for_border_radius(style: &ServoComputedValues,
     let mut adjusted_clip = ClippingRegion::max();
     if !border_radii.is_square() {
         adjusted_clip.intersect_with_rounded_rect(clip, &border_radii);
-    };
+    }
 
     adjusted_clip
 }
