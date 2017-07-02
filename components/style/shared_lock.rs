@@ -228,6 +228,18 @@ pub trait ToCssWithGuard {
     }
 }
 
+/// Parameters needed for deep clones.
+#[cfg(feature = "gecko")]
+pub struct DeepCloneParams {
+    /// The new sheet we're cloning rules into.
+    pub reference_sheet: *const ::gecko_bindings::structs::ServoStyleSheet,
+}
+
+/// Parameters needed for deep clones.
+#[cfg(feature = "servo")]
+pub struct DeepCloneParams;
+
+
 /// A trait to do a deep clone of a given CSS type. Gets a lock and a read
 /// guard, in order to be able to read and clone nested structures.
 pub trait DeepCloneWithLock : Sized {
@@ -235,7 +247,8 @@ pub trait DeepCloneWithLock : Sized {
     fn deep_clone_with_lock(
         &self,
         lock: &SharedRwLock,
-        guard: &SharedRwLockReadGuard
+        guard: &SharedRwLockReadGuard,
+        params: &DeepCloneParams,
     ) -> Self;
 }
 

@@ -8,14 +8,13 @@
 
 #![allow(non_snake_case, missing_docs)]
 
+use gecko_bindings::bindings::{RawServoImportRule, RawServoSupportsRule};
 use gecko_bindings::bindings::{RawServoKeyframe, RawServoKeyframesRule};
-use gecko_bindings::bindings::{RawServoMediaList, RawServoMediaRule};
 use gecko_bindings::bindings::{RawServoNamespaceRule, RawServoPageRule};
-use gecko_bindings::bindings::{RawServoRuleNode, RawServoRuleNodeStrong, RawServoDocumentRule};
-use gecko_bindings::bindings::{RawServoStyleSheet, RawServoImportRule, RawServoSupportsRule};
+use gecko_bindings::bindings::{RawServoRuleNode, RawServoRuleNodeStrong, RawServoDocumentRule, RawServoMediaRule};
 use gecko_bindings::bindings::{ServoComputedValues, ServoCssRules};
-use gecko_bindings::structs::{RawServoDeclarationBlock, RawServoStyleRule};
-use gecko_bindings::structs::RawServoAnimationValue;
+use gecko_bindings::structs::{RawServoAnimationValue, RawServoDeclarationBlock, RawServoStyleRule, RawServoMediaList};
+use gecko_bindings::structs::RawServoStyleSheetContents;
 use gecko_bindings::sugar::ownership::{HasArcFFI, HasFFI};
 use media_queries::MediaList;
 use properties::{ComputedValues, PropertyDeclarationBlock};
@@ -23,7 +22,7 @@ use properties::animated_properties::AnimationValue;
 use rule_tree::StrongRuleNode;
 use shared_lock::Locked;
 use std::{mem, ptr};
-use stylesheets::{CssRules, Stylesheet, StyleRule, ImportRule, KeyframesRule, MediaRule};
+use stylesheets::{CssRules, StylesheetContents, StyleRule, ImportRule, KeyframesRule, MediaRule};
 use stylesheets::{NamespaceRule, PageRule, SupportsRule, DocumentRule};
 use stylesheets::keyframes_rule::Keyframe;
 
@@ -49,8 +48,8 @@ macro_rules! impl_arc_ffi {
 impl_arc_ffi!(Locked<CssRules> => ServoCssRules
               [Servo_CssRules_AddRef, Servo_CssRules_Release]);
 
-impl_arc_ffi!(Stylesheet => RawServoStyleSheet
-              [Servo_StyleSheet_AddRef, Servo_StyleSheet_Release]);
+impl_arc_ffi!(StylesheetContents => RawServoStyleSheetContents
+              [Servo_StyleSheetContents_AddRef, Servo_StyleSheetContents_Release]);
 
 impl_arc_ffi!(ComputedValues => ServoComputedValues
               [Servo_ComputedValues_AddRef, Servo_ComputedValues_Release]);

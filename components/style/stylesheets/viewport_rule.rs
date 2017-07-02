@@ -26,8 +26,7 @@ use std::iter::Enumerate;
 use std::str::Chars;
 use style_traits::{PinchZoomFactor, ToCss, ParseError, StyleParseError};
 use style_traits::viewport::{Orientation, UserZoom, ViewportConstraints, Zoom};
-use stylearc::Arc;
-use stylesheets::{Stylesheet, Origin};
+use stylesheets::{StylesheetInDocument, Origin};
 use values::computed::{Context, ToComputedValue};
 use values::specified::{NoCalcLength, LengthOrPercentageOrAuto, ViewportPercentageLength};
 
@@ -563,11 +562,14 @@ impl Cascade {
         }
     }
 
-    pub fn from_stylesheets<'a, I>(stylesheets: I,
-                                   guard: &SharedRwLockReadGuard,
-                                   device: &Device)
-                                   -> Self
-        where I: Iterator<Item = &'a Arc<Stylesheet>>,
+    pub fn from_stylesheets<'a, I, S>(
+        stylesheets: I,
+        guard: &SharedRwLockReadGuard,
+        device: &Device
+    ) -> Self
+    where
+        I: Iterator<Item = &'a S>,
+        S: StylesheetInDocument + 'static,
     {
         let mut cascade = Self::new();
         for stylesheet in stylesheets {

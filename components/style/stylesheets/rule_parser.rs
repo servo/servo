@@ -11,7 +11,6 @@ use cssparser::{CompactCowStr, SourceLocation};
 use error_reporting::ContextualParseError;
 use font_face::parse_font_face_block;
 use media_queries::{parse_media_query_list, MediaList};
-use parking_lot::RwLock;
 use parser::{Parse, ParserContext, log_css_error};
 use properties::parse_property_declaration_list;
 use selector_parser::{SelectorImpl, SelectorParser};
@@ -19,17 +18,15 @@ use selectors::SelectorList;
 use selectors::parser::SelectorParseError;
 use shared_lock::{Locked, SharedRwLock};
 use std::borrow::Cow;
-use std::sync::atomic::AtomicBool;
 use str::starts_with_ignore_ascii_case;
 use style_traits::{StyleParseError, ParseError};
 use stylearc::Arc;
 use stylesheets::{CssRule, CssRules, CssRuleType, Origin, StylesheetLoader};
-use stylesheets::{DocumentRule, ImportRule, KeyframesRule, MediaRule, NamespaceRule, PageRule};
+use stylesheets::{DocumentRule, KeyframesRule, MediaRule, NamespaceRule, PageRule};
 use stylesheets::{StyleRule, SupportsRule, ViewportRule};
 use stylesheets::document_rule::DocumentCondition;
 use stylesheets::keyframes_rule::parse_keyframe_list;
-use stylesheets::loader::NoOpLoader;
-use stylesheets::stylesheet::{Namespaces, Stylesheet};
+use stylesheets::stylesheet::Namespaces;
 use stylesheets::supports_rule::SupportsCondition;
 use stylesheets::viewport_rule;
 use values::CustomIdent;
@@ -165,35 +162,18 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
                 let media = parse_media_query_list(&self.context, input);
                 let media = Arc::new(self.shared_lock.wrap(media));
 
-                let noop_loader = NoOpLoader;
-                let loader = if !specified_url.is_invalid() {
-                    self.loader.expect("Expected a stylesheet loader for @import")
-                } else {
-                    &noop_loader
-                };
+                let loader =
+                    self.loader.expect("Expected a stylesheet loader for @import");
 
-                let mut specified_url = Some(specified_url);
-                let arc = loader.request_stylesheet(media, &mut |media| {
-                    ImportRule {
-                        url: specified_url.take().unwrap(),
-                        stylesheet: Arc::new(Stylesheet {
-                            rules: CssRules::new(Vec::new(), self.shared_lock),
-                            media: media,
-                            shared_lock: self.shared_lock.clone(),
-                            origin: self.context.stylesheet_origin,
-                            url_data: RwLock::new(self.context.url_data.clone()),
-                            namespaces: RwLock::new(Namespaces::default()),
-                            dirty_on_viewport_size_change: AtomicBool::new(false),
-                            disabled: AtomicBool::new(false),
-                            quirks_mode: self.context.quirks_mode,
-                        }),
-                        source_location: location,
-                    }
-                }, &mut |import_rule| {
-                    Arc::new(self.shared_lock.wrap(import_rule))
-                });
+                let import_rule = loader.request_stylesheet(
+                    specified_url,
+                    location,
+                    &self.context,
+                    &self.shared_lock,
+                    media,
+                );
 
-                return Ok(AtRuleType::WithoutBlock(CssRule::Import(arc)))
+                return Ok(AtRuleType::WithoutBlock(CssRule::Import(import_rule)))
             },
             "namespace" => {
                 if self.state > State::Namespaces {

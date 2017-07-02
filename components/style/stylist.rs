@@ -15,7 +15,7 @@ use font_metrics::FontMetricsProvider;
 #[cfg(feature = "gecko")]
 use gecko_bindings::structs::{nsIAtom, StyleRuleInclusion};
 use invalidation::element::invalidation_map::InvalidationMap;
-use invalidation::media_queries::EffectiveMediaQueryResults;
+use invalidation::media_queries::{EffectiveMediaQueryResults, ToMediaListKey};
 use matching::CascadeVisitedMode;
 use media_queries::Device;
 use properties::{self, CascadeFlags, ComputedValues};
@@ -43,7 +43,7 @@ use stylearc::Arc;
 #[cfg(feature = "gecko")]
 use stylesheets::{CounterStyleRule, FontFaceRule};
 use stylesheets::{CssRule, StyleRule};
-use stylesheets::{Stylesheet, Origin, UserAgentStylesheets};
+use stylesheets::{StylesheetInDocument, Origin, UserAgentStylesheets};
 use stylesheets::keyframes_rule::KeyframesAnimation;
 use stylesheets::viewport_rule::{self, MaybeNew, ViewportRule};
 use thread_state;
@@ -342,14 +342,18 @@ impl Stylist {
     /// This method resets all the style data each time the stylesheets change
     /// (which is indicated by the `stylesheets_changed` parameter), or the
     /// device is dirty, which means we need to re-evaluate media queries.
-    pub fn rebuild<'a, 'b, I>(&mut self,
-                              doc_stylesheets: I,
-                              guards: &StylesheetGuards,
-                              ua_stylesheets: Option<&UserAgentStylesheets>,
-                              stylesheets_changed: bool,
-                              author_style_disabled: bool,
-                              extra_data: &mut ExtraStyleData<'a>) -> bool
-        where I: Iterator<Item = &'b Arc<Stylesheet>> + Clone,
+    pub fn rebuild<'a, 'b, I, S>(
+        &mut self,
+        doc_stylesheets: I,
+        guards: &StylesheetGuards,
+        ua_stylesheets: Option<&UserAgentStylesheets>,
+        stylesheets_changed: bool,
+        author_style_disabled: bool,
+        extra_data: &mut ExtraStyleData<'a>
+    ) -> bool
+    where
+        I: Iterator<Item = &'b S> + Clone,
+        S: StylesheetInDocument + ToMediaListKey + 'static,
     {
         debug_assert!(!self.is_cleared || self.is_device_dirty);
 
@@ -398,7 +402,7 @@ impl Stylist {
 
         if let Some(ua_stylesheets) = ua_stylesheets {
             for stylesheet in &ua_stylesheets.user_or_user_agent_stylesheets {
-                self.add_stylesheet(&stylesheet, guards.ua_or_user, extra_data);
+                self.add_stylesheet(stylesheet, guards.ua_or_user, extra_data);
             }
 
             if self.quirks_mode != QuirksMode::NoQuirks {
@@ -409,10 +413,10 @@ impl Stylist {
 
         // Only use author stylesheets if author styles are enabled.
         let sheets_to_add = doc_stylesheets.filter(|s| {
-            !author_style_disabled || s.origin != Origin::Author
+            !author_style_disabled || s.origin(guards.author) != Origin::Author
         });
 
-        for ref stylesheet in sheets_to_add {
+        for stylesheet in sheets_to_add {
             self.add_stylesheet(stylesheet, guards.author, extra_data);
         }
 
@@ -429,14 +433,18 @@ impl Stylist {
 
     /// clear the stylist and then rebuild it.  Chances are, you want to use
     /// either clear() or rebuild(), with the latter done lazily, instead.
-    pub fn update<'a, 'b, I>(&mut self,
-                             doc_stylesheets: I,
-                             guards: &StylesheetGuards,
-                             ua_stylesheets: Option<&UserAgentStylesheets>,
-                             stylesheets_changed: bool,
-                             author_style_disabled: bool,
-                             extra_data: &mut ExtraStyleData<'a>) -> bool
-        where I: Iterator<Item = &'b Arc<Stylesheet>> + Clone,
+    pub fn update<'a, 'b, I, S>(
+        &mut self,
+        doc_stylesheets: I,
+        guards: &StylesheetGuards,
+        ua_stylesheets: Option<&UserAgentStylesheets>,
+        stylesheets_changed: bool,
+        author_style_disabled: bool,
+        extra_data: &mut ExtraStyleData<'a>
+    ) -> bool
+    where
+        I: Iterator<Item = &'b S> + Clone,
+        S: StylesheetInDocument + ToMediaListKey + 'static,
     {
         debug_assert!(!self.is_cleared || self.is_device_dirty);
 
@@ -450,16 +458,23 @@ impl Stylist {
                      author_style_disabled, extra_data)
     }
 
-    fn add_stylesheet<'a>(&mut self,
-                          stylesheet: &Stylesheet,
-                          guard: &SharedRwLockReadGuard,
-                          _extra_data: &mut ExtraStyleData<'a>) {
-        if stylesheet.disabled() || !stylesheet.is_effective_for_device(&self.device, guard) {
+    fn add_stylesheet<'a, S>(
+        &mut self,
+        stylesheet: &S,
+        guard: &SharedRwLockReadGuard,
+        _extra_data: &mut ExtraStyleData<'a>
+    )
+    where
+        S: StylesheetInDocument + ToMediaListKey + 'static,
+    {
+        if !stylesheet.enabled() ||
+           !stylesheet.is_effective_for_device(&self.device, guard) {
             return;
         }
 
         self.effective_media_query_results.saw_effective(stylesheet);
 
+        let origin = stylesheet.origin(guard);
         for rule in stylesheet.effective_rules(&self.device, guard) {
             match *rule {
                 CssRule::Style(ref locked) => {
@@ -472,9 +487,9 @@ impl Stylist {
                             self.pseudos_map
                                 .entry(pseudo.canonical())
                                 .or_insert_with(PerPseudoElementSelectorMap::new)
-                                .borrow_for_origin(&stylesheet.origin)
+                                .borrow_for_origin(&origin)
                         } else {
-                            self.element_map.borrow_for_origin(&stylesheet.origin)
+                            self.element_map.borrow_for_origin(&origin)
                         };
 
                         map.insert(
@@ -529,7 +544,7 @@ impl Stylist {
                 }
                 #[cfg(feature = "gecko")]
                 CssRule::FontFace(ref rule) => {
-                    _extra_data.add_font_face(&rule, stylesheet.origin);
+                    _extra_data.add_font_face(&rule, origin);
                 }
                 #[cfg(feature = "gecko")]
                 CssRule::CounterStyle(ref rule) => {
@@ -909,9 +924,13 @@ impl Stylist {
     pub fn set_device(&mut self,
                       mut device: Device,
                       guard: &SharedRwLockReadGuard,
-                      stylesheets: &[Arc<Stylesheet>]) {
+                      stylesheets: &[Arc<::stylesheets::Stylesheet>]) {
         let cascaded_rule = ViewportRule {
-            declarations: viewport_rule::Cascade::from_stylesheets(stylesheets.iter(), guard, &device).finish(),
+            declarations: viewport_rule::Cascade::from_stylesheets(
+                stylesheets.iter().map(|s| &**s),
+                guard,
+                &device
+            ).finish(),
         };
 
         self.viewport_constraints =
@@ -923,7 +942,7 @@ impl Stylist {
 
         self.device = device;
         let features_changed = self.media_features_change_changed_style(
-            stylesheets.iter(),
+            stylesheets.iter().map(|s| &**s),
             guard
         );
         self.is_device_dirty |= features_changed;
@@ -931,12 +950,14 @@ impl Stylist {
 
     /// Returns whether, given a media feature change, any previously-applicable
     /// style has become non-applicable, or vice-versa.
-    pub fn media_features_change_changed_style<'a, I>(
+    pub fn media_features_change_changed_style<'a, I, S>(
         &self,
         stylesheets: I,
         guard: &SharedRwLockReadGuard,
     ) -> bool
-        where I: Iterator<Item = &'a Arc<Stylesheet>>
+    where
+        I: Iterator<Item = &'a S>,
+        S: StylesheetInDocument + ToMediaListKey + 'static,
     {
         use invalidation::media_queries::PotentiallyEffectiveMediaRules;
 
@@ -944,11 +965,10 @@ impl Stylist {
 
         for stylesheet in stylesheets {
             let effective_now =
-                stylesheet.media.read_with(guard)
-                    .evaluate(&self.device, self.quirks_mode);
+                stylesheet.is_effective_for_device(&self.device, guard);
 
             let effective_then =
-                self.effective_media_query_results.was_effective(&**stylesheet);
+                self.effective_media_query_results.was_effective(stylesheet);
 
             if effective_now != effective_then {
                 debug!(" > Stylesheet changed -> {}, {}",
@@ -982,9 +1002,9 @@ impl Stylist {
                     }
                     CssRule::Import(ref lock) => {
                         let import_rule = lock.read_with(guard);
-                        let mq = import_rule.stylesheet.media.read_with(guard);
                         let effective_now =
-                            mq.evaluate(&self.device, self.quirks_mode);
+                            import_rule.stylesheet
+                                .is_effective_for_device(&self.device, guard);
                         let effective_then =
                             self.effective_media_query_results.was_effective(import_rule);
                         if effective_now != effective_then {

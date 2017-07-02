@@ -8,36 +8,46 @@ use dom::TElement;
 use invalidation::stylesheets::StylesheetInvalidationSet;
 use shared_lock::SharedRwLockReadGuard;
 use std::slice;
-use stylearc::Arc;
-use stylesheets::Stylesheet;
+use stylesheets::StylesheetInDocument;
 use stylist::Stylist;
 
 /// Entry for a StylesheetSet. We don't bother creating a constructor, because
 /// there's no sensible defaults for the member variables.
-pub struct StylesheetSetEntry {
-    unique_id: u64,
-    sheet: Arc<Stylesheet>,
+pub struct StylesheetSetEntry<S>
+where
+    S: StylesheetInDocument + PartialEq + 'static,
+{
+    sheet: S,
 }
 
 /// A iterator over the stylesheets of a list of entries in the StylesheetSet.
 #[derive(Clone)]
-pub struct StylesheetIterator<'a>(slice::Iter<'a, StylesheetSetEntry>);
+pub struct StylesheetIterator<'a, S>(slice::Iter<'a, StylesheetSetEntry<S>>)
+where
+    S: StylesheetInDocument + PartialEq + 'static;
 
-impl<'a> Iterator for StylesheetIterator<'a> {
-    type Item = &'a Arc<Stylesheet>;
+impl<'a, S> Iterator for StylesheetIterator<'a, S>
+where
+    S: StylesheetInDocument + PartialEq + 'static,
+{
+    type Item = &'a S;
+
     fn next(&mut self) -> Option<Self::Item> {
         self.0.next().map(|entry| &entry.sheet)
     }
 }
 
 /// The set of stylesheets effective for a given document.
-pub struct StylesheetSet {
+pub struct StylesheetSet<S>
+where
+    S: StylesheetInDocument + PartialEq + 'static,
+{
     /// The actual list of all the stylesheets that apply to the given document,
     /// each stylesheet associated with a unique ID.
     ///
     /// This is only a list of top-level stylesheets, and as such it doesn't
     /// include recursive `@import` rules.
-    entries: Vec<StylesheetSetEntry>,
+    entries: Vec<StylesheetSetEntry<S>>,
 
     /// Whether the entries list above has changed since the last restyle.
     dirty: bool,
@@ -49,7 +59,10 @@ pub struct StylesheetSet {
     invalidations: StylesheetInvalidationSet,
 }
 
-impl StylesheetSet {
+impl<S> StylesheetSet<S>
+where
+    S: StylesheetInDocument + PartialEq + 'static,
+{
     /// Create a new empty StylesheetSet.
     pub fn new() -> Self {
         StylesheetSet {
@@ -66,98 +79,72 @@ impl StylesheetSet {
         self.author_style_disabled
     }
 
-    fn remove_stylesheet_if_present(&mut self, unique_id: u64) {
-        self.entries.retain(|x| x.unique_id != unique_id);
+    fn remove_stylesheet_if_present(&mut self, sheet: &S) {
+        self.entries.retain(|entry| entry.sheet != *sheet);
     }
 
     /// Appends a new stylesheet to the current set.
     pub fn append_stylesheet(
         &mut self,
         stylist: &Stylist,
-        sheet: &Arc<Stylesheet>,
-        unique_id: u64,
-        guard: &SharedRwLockReadGuard)
-    {
+        sheet: S,
+        guard: &SharedRwLockReadGuard
+    ) {
         debug!("StylesheetSet::append_stylesheet");
-        self.remove_stylesheet_if_present(unique_id);
-        self.entries.push(StylesheetSetEntry {
-            unique_id: unique_id,
-            sheet: sheet.clone(),
-        });
-        self.dirty = true;
+        self.remove_stylesheet_if_present(&sheet);
         self.invalidations.collect_invalidations_for(
             stylist,
-            sheet,
-            guard)
+            &sheet,
+            guard
+        );
+        self.dirty = true;
+        self.entries.push(StylesheetSetEntry { sheet });
     }
 
     /// Prepend a new stylesheet to the current set.
     pub fn prepend_stylesheet(
         &mut self,
         stylist: &Stylist,
-        sheet: &Arc<Stylesheet>,
-        unique_id: u64,
-        guard: &SharedRwLockReadGuard)
-    {
+        sheet: S,
+        guard: &SharedRwLockReadGuard
+    ) {
         debug!("StylesheetSet::prepend_stylesheet");
-        self.remove_stylesheet_if_present(unique_id);
-        self.entries.insert(0, StylesheetSetEntry {
-            unique_id: unique_id,
-            sheet: sheet.clone(),
-        });
-        self.dirty = true;
+        self.remove_stylesheet_if_present(&sheet);
         self.invalidations.collect_invalidations_for(
             stylist,
-            sheet,
-            guard)
+            &sheet,
+            guard
+        );
+        self.entries.insert(0, StylesheetSetEntry { sheet });
+        self.dirty = true;
     }
 
     /// Insert a given stylesheet before another stylesheet in the document.
     pub fn insert_stylesheet_before(
         &mut self,
         stylist: &Stylist,
-        sheet: &Arc<Stylesheet>,
-        unique_id: u64,
-        before_unique_id: u64,
+        sheet: S,
+        before_sheet: S,
         guard: &SharedRwLockReadGuard)
     {
         debug!("StylesheetSet::insert_stylesheet_before");
-        self.remove_stylesheet_if_present(unique_id);
-        let index = self.entries.iter().position(|x| {
-            x.unique_id == before_unique_id
-        }).expect("`before_unique_id` stylesheet not found");
-        self.entries.insert(index, StylesheetSetEntry {
-            unique_id: unique_id,
-            sheet: sheet.clone(),
-        });
-        self.dirty = true;
+        self.remove_stylesheet_if_present(&sheet);
+        let index = self.entries.iter().position(|entry| {
+            entry.sheet == before_sheet
+        }).expect("`before_sheet` stylesheet not found");
         self.invalidations.collect_invalidations_for(
             stylist,
-            sheet,
-            guard)
-    }
-
-    /// Update the sheet that matches the unique_id.
-    pub fn update_stylesheet(
-        &mut self,
-        sheet: &Arc<Stylesheet>,
-        unique_id: u64)
-    {
-        // Since this function doesn't set self.dirty, or call
-        // self.invalidations.collect_invalidations_for, it should
-        // only be called in the case where sheet is a clone of
-        // the sheet it is updating.
-        debug!("StylesheetSet::update_stylesheet");
-        if let Some(entry) = self.entries.iter_mut().find(
-            |e| e.unique_id == unique_id) {
-            entry.sheet = sheet.clone();
-        }
+            &sheet,
+            guard
+        );
+        self.entries.insert(index, StylesheetSetEntry { sheet });
+        self.dirty = true;
     }
 
     /// Remove a given stylesheet from the set.
-    pub fn remove_stylesheet(&mut self, unique_id: u64) {
+    pub fn remove_stylesheet(&mut self, sheet: S) {
         debug!("StylesheetSet::remove_stylesheet");
-        self.remove_stylesheet_if_present(unique_id);
+        self.remove_stylesheet_if_present(&sheet);
         self.dirty = true;
         // FIXME(emilio): We can do better!
         self.invalidations.invalidate_fully();
@@ -181,10 +168,12 @@ impl StylesheetSet {
 
     /// Flush the current set, unmarking it as dirty, and returns an iterator
     /// over the new stylesheet list.
-    pub fn flush<E>(&mut self,
-                    document_element: Option<E>)
-                    -> StylesheetIterator
-        where E: TElement,
+    pub fn flush<E>(
+        &mut self,
+        document_element: Option<E>
+    ) -> StylesheetIterator<S>
+    where
+        E: TElement,
     {
         debug!("StylesheetSet::flush");
         debug_assert!(self.dirty);
@@ -196,7 +185,7 @@ impl StylesheetSet {
     }
 
     /// Returns an iterator over the current list of stylesheets.
-    pub fn iter(&self) -> StylesheetIterator {
+    pub fn iter(&self) -> StylesheetIterator<S> {
         StylesheetIterator(self.entries.iter())
     }
 

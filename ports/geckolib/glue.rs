@@ -18,7 +18,7 @@ use style::dom::{ShowSubtreeData, TElement, TNode};
 use style::element_state::ElementState;
 use style::error_reporting::RustLogReporter;
 use style::font_metrics::{FontMetricsProvider, get_metrics_provider_for_product};
-use style::gecko::data::{PerDocumentStyleData, PerDocumentStyleDataImpl};
+use style::gecko::data::{GeckoStyleSheet, PerDocumentStyleData, PerDocumentStyleDataImpl};
 use style::gecko::global_style_data::{GLOBAL_STYLE_DATA, GlobalStyleData, STYLE_THREAD_POOL};
 use style::gecko::restyle_damage::GeckoRestyleDamage;
 use style::gecko::selector_parser::PseudoElement;
@@ -32,13 +32,13 @@ use style::gecko_bindings::bindings::{RawServoDocumentRule, RawServoDocumentRule
 use style::gecko_bindings::bindings::{RawServoImportRule, RawServoImportRuleBorrowed};
 use style::gecko_bindings::bindings::{RawServoKeyframe, RawServoKeyframeBorrowed, RawServoKeyframeStrong};
 use style::gecko_bindings::bindings::{RawServoKeyframesRule, RawServoKeyframesRuleBorrowed};
-use style::gecko_bindings::bindings::{RawServoMediaList, RawServoMediaListBorrowed, RawServoMediaListStrong};
+use style::gecko_bindings::bindings::{RawServoMediaListBorrowed, RawServoMediaListStrong};
 use style::gecko_bindings::bindings::{RawServoMediaRule, RawServoMediaRuleBorrowed};
 use style::gecko_bindings::bindings::{RawServoNamespaceRule, RawServoNamespaceRuleBorrowed};
 use style::gecko_bindings::bindings::{RawServoPageRule, RawServoPageRuleBorrowed};
 use style::gecko_bindings::bindings::{RawServoStyleSetBorrowed, RawServoStyleSetOwned};
-use style::gecko_bindings::bindings::{RawServoStyleSheetBorrowed, ServoComputedValuesBorrowed};
-use style::gecko_bindings::bindings::{RawServoStyleSheetStrong, ServoComputedValuesStrong};
+use style::gecko_bindings::bindings::{RawServoStyleSheetContentsBorrowed, ServoComputedValuesBorrowed};
+use style::gecko_bindings::bindings::{RawServoStyleSheetContentsStrong, ServoComputedValuesStrong};
 use style::gecko_bindings::bindings::{RawServoSupportsRule, RawServoSupportsRuleBorrowed};
 use style::gecko_bindings::bindings::{ServoCssRulesBorrowed, ServoCssRulesStrong};
 use style::gecko_bindings::bindings::{nsACString, nsAString, nsCSSPropertyIDSetBorrowedMut};
@@ -59,14 +59,12 @@ use style::gecko_bindings::bindings::RawServoAnimationValueBorrowed;
 use style::gecko_bindings::bindings::RawServoAnimationValueMapBorrowedMut;
 use style::gecko_bindings::bindings::RawServoAnimationValueStrong;
 use style::gecko_bindings::bindings::RawServoStyleRuleBorrowed;
-use style::gecko_bindings::bindings::RawServoStyleSheet;
 use style::gecko_bindings::bindings::ServoComputedValuesBorrowedOrNull;
 use style::gecko_bindings::bindings::nsTArrayBorrowed_uintptr_t;
 use style::gecko_bindings::bindings::nsTimingFunctionBorrowed;
 use style::gecko_bindings::bindings::nsTimingFunctionBorrowedMut;
 use style::gecko_bindings::structs;
-use style::gecko_bindings::structs::{CSSPseudoElementType, CompositeOperation};
-use style::gecko_bindings::structs::{Loader, LoaderReusableStyleSheets};
+use style::gecko_bindings::structs::{CSSPseudoElementType, CompositeOperation, Loader};
 use style::gecko_bindings::structs::{RawServoStyleRule, ServoStyleSheet};
 use style::gecko_bindings::structs::{SheetParsingMode, nsIAtom, nsCSSPropertyID};
 use style::gecko_bindings::structs::{nsCSSFontFaceRule, nsCSSCounterStyleRule};
@@ -105,7 +103,8 @@ use style::style_adjuster::StyleAdjuster;
 use style::stylearc::Arc;
 use style::stylesheets::{CssRule, CssRules, CssRuleType, CssRulesHelpers, DocumentRule};
 use style::stylesheets::{ImportRule, KeyframesRule, MallocSizeOfWithGuard, MediaRule};
-use style::stylesheets::{NamespaceRule, Origin, PageRule, Stylesheet, StyleRule, SupportsRule};
+use style::stylesheets::{NamespaceRule, Origin, PageRule, StyleRule, SupportsRule};
+use style::stylesheets::StylesheetContents;
 use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
 use style::stylesheets::keyframes_rule::{Keyframe, KeyframeSelector, KeyframesStepValue};
 use style::stylesheets::supports_rule::parse_condition_or_declaration;
@@ -739,7 +738,7 @@ pub extern "C" fn Servo_Element_ClearData(element: RawGeckoElementBorrowed) {
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_StyleSheet_Empty(mode: SheetParsingMode) -> RawServoStyleSheetStrong {
+pub extern "C" fn Servo_StyleSheet_Empty(mode: SheetParsingMode) -> RawServoStyleSheetContentsStrong {
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let origin = match mode {
         SheetParsingMode::eAuthorSheetFeatures => Origin::Author,
@@ -747,24 +746,31 @@ pub extern "C" fn Servo_StyleSheet_Empty(mode: SheetParsingMode) -> RawServoStyl
         SheetParsingMode::eAgentSheetFeatures => Origin::UserAgent,
         SheetParsingMode::eSafeAgentSheetFeatures => Origin::UserAgent,
     };
-    let shared_lock = global_style_data.shared_lock.clone();
-    Arc::new(Stylesheet::from_str(
-        "", unsafe { dummy_url_data() }.clone(), origin,
-        Arc::new(shared_lock.wrap(MediaList::empty())),
-        shared_lock, None, &RustLogReporter, QuirksMode::NoQuirks, 0u64)
+    let shared_lock = &global_style_data.shared_lock;
+    Arc::new(
+        StylesheetContents::from_str(
+            "",
+            unsafe { dummy_url_data() }.clone(),
+            origin,
+            shared_lock,
+            /* loader = */ None,
+            &RustLogReporter,
+            QuirksMode::NoQuirks,
+            0
+        )
     ).into_strong()
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_StyleSheet_FromUTF8Bytes(loader: *mut Loader,
-                                                 stylesheet: *mut ServoStyleSheet,
-                                                 data: *const nsACString,
-                                                 mode: SheetParsingMode,
-                                                 media_list: *const RawServoMediaList,
-                                                 extra_data: *mut URLExtraData,
-                                                 line_number_offset: u32,
-                                                 quirks_mode: nsCompatibility)
-                                                 -> RawServoStyleSheetStrong {
+pub extern "C" fn Servo_StyleSheet_FromUTF8Bytes(
+    loader: *mut Loader,
+    stylesheet: *mut ServoStyleSheet,
+    data: *const nsACString,
+    mode: SheetParsingMode,
+    extra_data: *mut URLExtraData,
+    line_number_offset: u32,
+    quirks_mode: nsCompatibility
+) -> RawServoStyleSheetContentsStrong {
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let input = unsafe { data.as_ref().unwrap().as_str_unchecked() };
 
@@ -788,63 +794,28 @@ pub extern "C" fn Servo_StyleSheet_FromUTF8Bytes(loader: *mut Loader,
         Some(ref s) => Some(s),
     };
 
-    let shared_lock = global_style_data.shared_lock.clone();
-    let media = if media_list.is_null() {
-        Arc::new(shared_lock.wrap(MediaList::empty()))
-    } else {
-        Locked::<MediaList>::as_arc(unsafe { &&*media_list }).clone()
-    };
 
-    Arc::new(Stylesheet::from_str(
-        input, url_data.clone(), origin, media,
-        shared_lock, loader, &RustLogReporter,
+    Arc::new(StylesheetContents::from_str(
+        input, url_data.clone(), origin,
+        &global_style_data.shared_lock, loader, &RustLogReporter,
         quirks_mode.into(), line_number_offset as u64)
     ).into_strong()
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_StyleSheet_ClearAndUpdate(stylesheet: RawServoStyleSheetBorrowed,
-                                                  loader: *mut Loader,
-                                                  gecko_stylesheet: *mut ServoStyleSheet,
-                                                  data: *const nsACString,
-                                                  extra_data: *mut URLExtraData,
-                                                  line_number_offset: u32,
-                                                  reusable_sheets: *mut LoaderReusableStyleSheets)
-{
-    let input = unsafe { data.as_ref().unwrap().as_str_unchecked() };
-    let url_data = unsafe { RefPtr::from_ptr_ref(&extra_data) };
-
-    let loader = if loader.is_null() {
-        None
-    } else {
-        Some(StylesheetLoader::new(loader, gecko_stylesheet, reusable_sheets))
-    };
-
-    // FIXME(emilio): loader.as_ref() doesn't typecheck for some reason?
-    let loader: Option<&StyleStylesheetLoader> = match loader {
-        None => None,
-        Some(ref s) => Some(s),
-    };
-
-    let sheet = Stylesheet::as_arc(&stylesheet);
-    Stylesheet::update_from_str(&sheet, input, url_data.clone(), loader,
-                                &RustLogReporter, line_number_offset as u64);
-}
-
-#[no_mangle]
-pub extern "C" fn Servo_StyleSet_AppendStyleSheet(raw_data: RawServoStyleSetBorrowed,
-                                                  raw_sheet: RawServoStyleSheetBorrowed,
-                                                  unique_id: u64) {
+pub extern "C" fn Servo_StyleSet_AppendStyleSheet(
+    raw_data: RawServoStyleSetBorrowed,
+    sheet: *const ServoStyleSheet,
+) {
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
     let mut data = &mut *data;
-    let sheet = HasArcFFI::as_arc(&raw_sheet);
     let guard = global_style_data.shared_lock.read();
     data.stylesheets.append_stylesheet(
         &data.stylist,
-        sheet,
-        unique_id,
-        &guard);
+        unsafe { GeckoStyleSheet::new(sheet) },
+        &guard
+    );
     data.clear_stylist();
 }
 
@@ -875,65 +846,55 @@ pub extern "C" fn Servo_StyleSet_MediumFeaturesChanged(
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_StyleSet_PrependStyleSheet(raw_data: RawServoStyleSetBorrowed,
-                                                   raw_sheet: RawServoStyleSheetBorrowed,
-                                                   unique_id: u64) {
+pub extern "C" fn Servo_StyleSet_PrependStyleSheet(
+    raw_data: RawServoStyleSetBorrowed,
+    sheet: *const ServoStyleSheet,
+) {
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
     let mut data = &mut *data;
-    let sheet = HasArcFFI::as_arc(&raw_sheet);
     let guard = global_style_data.shared_lock.read();
     data.stylesheets.prepend_stylesheet(
         &data.stylist,
-        sheet,
-        unique_id,
-        &guard);
+        unsafe { GeckoStyleSheet::new(sheet) },
+        &guard,
+    );
     data.clear_stylist();
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_StyleSet_InsertStyleSheetBefore(raw_data: RawServoStyleSetBorrowed,
-                                                        raw_sheet: RawServoStyleSheetBorrowed,
-                                                        unique_id: u64,
-                                                        before_unique_id: u64) {
+pub extern "C" fn Servo_StyleSet_InsertStyleSheetBefore(
+    raw_data: RawServoStyleSetBorrowed,
+    sheet: *const ServoStyleSheet,
+    before_sheet: *const ServoStyleSheet
+) {
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
     let mut data = &mut *data;
-    let sheet = HasArcFFI::as_arc(&raw_sheet);
     let guard = global_style_data.shared_lock.read();
     data.stylesheets.insert_stylesheet_before(
         &data.stylist,
-        sheet,
-        unique_id,
-        before_unique_id,
+        unsafe { GeckoStyleSheet::new(sheet) },
+        unsafe { GeckoStyleSheet::new(before_sheet) },
         &guard);
     data.clear_stylist();
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_StyleSet_UpdateStyleSheet(raw_data: RawServoStyleSetBorrowed,
-                                                  raw_sheet: RawServoStyleSheetBorrowed,
-                                                  unique_id: u64) {
+pub extern "C" fn Servo_StyleSet_RemoveStyleSheet(
+    raw_data: RawServoStyleSetBorrowed,
+    sheet: *const ServoStyleSheet
+) {
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
-    let sheet = HasArcFFI::as_arc(&raw_sheet);
-    data.stylesheets.update_stylesheet(
-        sheet,
-        unique_id);
-}
-
-#[no_mangle]
-pub extern "C" fn Servo_StyleSet_RemoveStyleSheet(raw_data: RawServoStyleSetBorrowed,
-                                                  unique_id: u64) {
-    let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
-    data.stylesheets.remove_stylesheet(unique_id);
+    data.stylesheets.remove_stylesheet(unsafe { GeckoStyleSheet::new(sheet) });
     data.clear_stylist();
 }
 
 #[no_mangle]
 pub extern "C" fn Servo_StyleSet_FlushStyleSheets(
     raw_data: RawServoStyleSetBorrowed,
-    doc_element: RawGeckoElementBorrowedOrNull)
-{
+    doc_element: RawGeckoElementBorrowedOrNull,
+) {
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
@@ -944,8 +905,8 @@ pub extern "C" fn Servo_StyleSet_FlushStyleSheets(
 #[no_mangle]
 pub extern "C" fn Servo_StyleSet_NoteStyleSheetsChanged(
     raw_data: RawServoStyleSetBorrowed,
-    author_style_disabled: bool)
-{
+    author_style_disabled: bool,
+) {
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
     data.stylesheets.force_dirty();
     data.stylesheets.set_author_style_disabled(author_style_disabled);
@@ -953,30 +914,50 @@ pub extern "C" fn Servo_StyleSet_NoteStyleSheetsChanged(
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_StyleSheet_HasRules(raw_sheet: RawServoStyleSheetBorrowed) -> bool {
+pub extern "C" fn Servo_StyleSheet_HasRules(
+    raw_contents: RawServoStyleSheetContentsBorrowed
+) -> bool {
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
-    !Stylesheet::as_arc(&raw_sheet).rules.read_with(&guard).0.is_empty()
+    !StylesheetContents::as_arc(&raw_contents)
+        .rules.read_with(&guard).0.is_empty()
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_StyleSheet_GetRules(sheet: RawServoStyleSheetBorrowed) -> ServoCssRulesStrong {
-    Stylesheet::as_arc(&sheet).rules.clone().into_strong()
+pub extern "C" fn Servo_StyleSheet_GetRules(
+    sheet: RawServoStyleSheetContentsBorrowed
+) -> ServoCssRulesStrong {
+    StylesheetContents::as_arc(&sheet).rules.clone().into_strong()
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_StyleSheet_Clone(raw_sheet: RawServoStyleSheetBorrowed) -> RawServoStyleSheetStrong {
-    let sheet: &Arc<Stylesheet> = HasArcFFI::as_arc(&raw_sheet);
-    Arc::new(sheet.as_ref().clone()).into_strong()
+pub extern "C" fn Servo_StyleSheet_Clone(
+    raw_sheet: RawServoStyleSheetContentsBorrowed,
+    reference_sheet: *const ServoStyleSheet,
+) -> RawServoStyleSheetContentsStrong {
+    use style::shared_lock::{DeepCloneParams, DeepCloneWithLock};
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
+    let contents = StylesheetContents::as_arc(&raw_sheet);
+    let params = DeepCloneParams { reference_sheet };
+
+    Arc::new(contents.deep_clone_with_lock(
+        &global_style_data.shared_lock,
+        &guard,
+        &params,
+    )).into_strong()
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_StyleSheet_SizeOfIncludingThis(malloc_size_of: MallocSizeOf,
-                                                       sheet: RawServoStyleSheetBorrowed) -> usize {
+pub extern "C" fn Servo_StyleSheet_SizeOfIncludingThis(
+    malloc_size_of: MallocSizeOf,
+    sheet: RawServoStyleSheetContentsBorrowed
+) -> usize {
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
     let malloc_size_of = malloc_size_of.unwrap();
-    Stylesheet::as_arc(&sheet).malloc_size_of_children(&guard, malloc_size_of)
+    StylesheetContents::as_arc(&sheet)
+        .malloc_size_of_children(&guard, malloc_size_of)
 }
 
 fn read_locked_arc<T, R, F>(raw: &<Locked<T> as HasFFI>::FFIType, func: F) -> R
@@ -1008,15 +989,16 @@ pub extern "C" fn Servo_CssRules_ListTypes(rules: ServoCssRulesBorrowed,
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_CssRules_InsertRule(rules: ServoCssRulesBorrowed,
-                                            sheet: RawServoStyleSheetBorrowed,
-                                            rule: *const nsACString,
-                                            index: u32,
-                                            nested: bool,
-                                            loader: *mut Loader,
-                                            gecko_stylesheet: *mut ServoStyleSheet,
-                                            rule_type: *mut u16) -> nsresult {
-    let sheet = Stylesheet::as_arc(&sheet);
+pub extern "C" fn Servo_CssRules_InsertRule(
+    rules: ServoCssRulesBorrowed,
+    contents: RawServoStyleSheetContentsBorrowed,
+    rule: *const nsACString,
+    index: u32,
+    nested: bool,
+    loader: *mut Loader,
+    gecko_stylesheet: *mut ServoStyleSheet,
+    rule_type: *mut u16,
+) -> nsresult {
     let loader = if loader.is_null() {
         None
     } else {
@@ -1026,12 +1008,17 @@ pub extern "C" fn Servo_CssRules_InsertRule(rules: ServoCssRulesBorrowed,
     let rule = unsafe { rule.as_ref().unwrap().as_str_unchecked() };
 
     let global_style_data = &*GLOBAL_STYLE_DATA;
-    match Locked::<CssRules>::as_arc(&rules).insert_rule(&global_style_data.shared_lock,
-                                                         rule,
-                                                         sheet,
-                                                         index as usize,
-                                                         nested,
-                                                         loader) {
+    let contents = StylesheetContents::as_arc(&contents);
+    let result = Locked::<CssRules>::as_arc(&rules).insert_rule(
+        &global_style_data.shared_lock,
+        rule,
+        contents,
+        index as usize,
+        nested,
+        loader
+    );
+
+    match result {
         Ok(new_rule) => {
             *unsafe { rule_type.as_mut().unwrap() } = new_rule.rule_type() as u16;
             nsresult::NS_OK
@@ -1041,7 +1028,10 @@ pub extern "C" fn Servo_CssRules_InsertRule(rules: ServoCssRulesBorrowed,
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_CssRules_DeleteRule(rules: ServoCssRulesBorrowed, index: u32) -> nsresult {
+pub extern "C" fn Servo_CssRules_DeleteRule(
+    rules: ServoCssRulesBorrowed,
+    index: u32
+) -> nsresult {
     write_locked_arc(rules, |rules: &mut CssRules| {
         match rules.remove_rule(index as usize) {
             Ok(_) => nsresult::NS_OK,
@@ -1085,7 +1075,13 @@ macro_rules! impl_basic_rule_funcs {
             let global_style_data = &*GLOBAL_STYLE_DATA;
             let guard = global_style_data.shared_lock.read();
             let rules = Locked::<CssRules>::as_arc(&rules).read_with(&guard);
-            match rules.0[index as usize] {
+            let index = index as usize;
+
+            if index >= rules.0.len() {
+                return Strong::null();
+            }
+
+            match rules.0[index] {
                 CssRule::$name(ref rule) => {
                     let location = rule.read_with(&guard).source_location;
                     *unsafe { line.as_mut().unwrap() } = location.line as u32;
@@ -1093,8 +1089,7 @@ macro_rules! impl_basic_rule_funcs {
                     rule.clone().into_strong()
                 },
                 _ => {
-                    unreachable!(concat!(stringify!($getter), "should only be called ",
-                                         "on a ", stringify!($name), " rule"));
+                    Strong::null()
                 }
             }
         }
@@ -1244,9 +1239,11 @@ pub extern "C" fn Servo_StyleRule_GetSelectorCount(rule: RawServoStyleRuleBorrow
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_StyleRule_GetSpecificityAtIndex(rule: RawServoStyleRuleBorrowed,
-                                                        index: u32,
-                                                        specificity: *mut u64) {
+pub extern "C" fn Servo_StyleRule_GetSpecificityAtIndex(
+    rule: RawServoStyleRuleBorrowed,
+    index: u32,
+    specificity: *mut u64
+) {
     read_locked_arc(rule, |rule: &StyleRule| {
         let mut specificity =  unsafe { specificity.as_mut().unwrap() };
         let index = index as usize;
@@ -1266,14 +1263,19 @@ pub extern "C" fn Servo_ImportRule_GetHref(rule: RawServoImportRuleBorrowed, res
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_ImportRule_GetSheet(rule: RawServoImportRuleBorrowed) -> *const RawServoStyleSheet {
+pub extern "C" fn Servo_ImportRule_GetSheet(
+    rule: RawServoImportRuleBorrowed
+) -> *const ServoStyleSheet {
     read_locked_arc(rule, |rule: &ImportRule| {
-        rule.stylesheet.as_borrowed_opt().unwrap() as *const _
+        rule.stylesheet.0.raw() as *const ServoStyleSheet
     })
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_Keyframe_GetKeyText(keyframe: RawServoKeyframeBorrowed, result: *mut nsAString) {
+pub extern "C" fn Servo_Keyframe_GetKeyText(
+    keyframe: RawServoKeyframeBorrowed,
+    result: *mut nsAString
+) {
     read_locked_arc(keyframe, |keyframe: &Keyframe| {
         keyframe.selector.to_css(unsafe { result.as_mut().unwrap() }).unwrap()
     })
@@ -1344,18 +1346,22 @@ pub extern "C" fn Servo_KeyframesRule_FindRule(rule: RawServoKeyframesRuleBorrow
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_KeyframesRule_AppendRule(rule: RawServoKeyframesRuleBorrowed,
-                                                 sheet: RawServoStyleSheetBorrowed,
-                                                 css: *const nsACString) -> bool {
+pub extern "C" fn Servo_KeyframesRule_AppendRule(
+    rule: RawServoKeyframesRuleBorrowed,
+    contents: RawServoStyleSheetContentsBorrowed,
+    css: *const nsACString
+) -> bool {
     let css = unsafe { css.as_ref().unwrap().as_str_unchecked() };
-    let sheet = Stylesheet::as_arc(&sheet);
-    if let Ok(keyframe) = Keyframe::parse(css, sheet) {
-        write_locked_arc(rule, |rule: &mut KeyframesRule| {
-            rule.keyframes.push(keyframe);
-        });
-        true
-    } else {
-        false
+    let contents = StylesheetContents::as_arc(&contents);
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    match Keyframe::parse(css, &contents, &global_style_data.shared_lock) {
+        Ok(keyframe) => {
+            write_locked_arc(rule, |rule: &mut KeyframesRule| {
+                rule.keyframes.push(keyframe);
+            });
+            true
+        }
+        Err(..) => false,
     }
 }
 
@@ -1607,10 +1613,10 @@ fn get_pseudo_style(
 
 #[no_mangle]
 pub extern "C" fn Servo_ComputedValues_Inherit(
-  raw_data: RawServoStyleSetBorrowed,
-  parent_style: ServoComputedValuesBorrowedOrNull,
-  target: structs::InheritTarget)
-     -> ServoComputedValuesStrong {
+    raw_data: RawServoStyleSetBorrowed,
+    parent_style: ServoComputedValuesBorrowedOrNull,
+    target: structs::InheritTarget
+) -> ServoComputedValuesStrong {
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
     let maybe_arc = ComputedValues::arc_from_borrowed(&parent_style);
 
@@ -3149,11 +3155,11 @@ pub extern "C" fn Servo_StyleSet_GetCounterStyleRule(raw_data: RawServoStyleSetB
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_StyleSet_ResolveForDeclarations(raw_data: RawServoStyleSetBorrowed,
-                                                        parent_style_or_null: ServoComputedValuesBorrowedOrNull,
-                                                        declarations: RawServoDeclarationBlockBorrowed)
-                                                        -> ServoComputedValuesStrong
-{
+pub extern "C" fn Servo_StyleSet_ResolveForDeclarations(
+    raw_data: RawServoStyleSetBorrowed,
+    parent_style_or_null: ServoComputedValuesBorrowedOrNull,
+    declarations: RawServoDeclarationBlockBorrowed
+) -> ServoComputedValuesStrong {
     let doc_data = PerDocumentStyleData::from_ffi(raw_data).borrow();
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();

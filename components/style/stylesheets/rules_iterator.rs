@@ -10,6 +10,7 @@ use shared_lock::SharedRwLockReadGuard;
 use smallvec::SmallVec;
 use std::slice;
 use stylesheets::{CssRule, CssRules, DocumentRule, ImportRule, MediaRule, SupportsRule};
+use stylesheets::StylesheetInDocument;
 
 /// An iterator over a list of rules.
 pub struct RulesIterator<'a, 'b, C>
@@ -96,7 +97,9 @@ impl<'a, 'b, C> Iterator for RulesIterator<'a, 'b, C>
                                               import_rule) {
                             continue;
                         }
-                        import_rule.stylesheet.rules.read_with(self.guard).0.iter()
+                        import_rule
+                            .stylesheet.contents(self.guard).rules
+                            .read_with(self.guard).0.iter()
                     }
                     CssRule::Document(ref doc_rule) => {
                         let doc_rule = doc_rule.read_with(self.guard);
@@ -182,11 +185,11 @@ impl NestedRuleIterationCondition for EffectiveRules {
     fn process_import(
         guard: &SharedRwLockReadGuard,
         device: &Device,
-        quirks_mode: QuirksMode,
+        _quirks_mode: QuirksMode,
         rule: &ImportRule)
         -> bool
     {
-        rule.stylesheet.media.read_with(guard).evaluate(device, quirks_mode)
+        rule.stylesheet.is_effective_for_device(device, guard)
     }
 
     fn process_media(

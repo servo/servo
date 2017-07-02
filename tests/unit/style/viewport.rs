@@ -12,7 +12,7 @@ use style::media_queries::{Device, MediaList, MediaType};
 use style::parser::{Parse, ParserContext};
 use style::shared_lock::SharedRwLock;
 use style::stylearc::Arc;
-use style::stylesheets::{CssRuleType, Stylesheet, Origin};
+use style::stylesheets::{CssRuleType, Stylesheet, StylesheetInDocument, Origin};
 use style::stylesheets::viewport_rule::*;
 use style::values::specified::LengthOrPercentageOrAuto::{self, Auto};
 use style::values::specified::NoCalcLength::{self, ViewportPercentage};
@@ -269,7 +269,11 @@ fn multiple_stylesheets_cascading() {
                     Author, error_reporter, shared_lock.clone())
     ];
 
-    let declarations = Cascade::from_stylesheets(stylesheets.iter(), &shared_lock.read(), &device).finish();
+    let declarations = Cascade::from_stylesheets(
+        stylesheets.iter().map(|s| &**s),
+        &shared_lock.read(),
+        &device,
+    ).finish();
     assert_decl_len!(declarations == 3);
     assert_decl_eq!(&declarations[0], UserAgent, Zoom: Zoom::Number(1.));
     assert_decl_eq!(&declarations[1], User, MinHeight: viewport_length!(200., px));
@@ -283,7 +287,11 @@ fn multiple_stylesheets_cascading() {
         stylesheet!("@viewport { min-width: 300px !important; min-height: 300px !important; zoom: 3 !important; }",
                     Author, error_reporter, shared_lock.clone())
     ];
-    let declarations = Cascade::from_stylesheets(stylesheets.iter(), &shared_lock.read(), &device).finish();
+    let declarations = Cascade::from_stylesheets(
+        stylesheets.iter().map(|s| &**s),
+        &shared_lock.read(),
+        &device,
+    ).finish();
     assert_decl_len!(declarations == 3);
     assert_decl_eq!(&declarations[0], UserAgent, MinWidth: viewport_length!(100., px), !important);
     assert_decl_eq!(&declarations[1], User, MinHeight: viewport_length!(200., px), !important);

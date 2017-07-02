@@ -7,7 +7,7 @@
 mod counter_style_rule;
 mod document_rule;
 mod font_face_rule;
-mod import_rule;
+pub mod import_rule;
 pub mod keyframes_rule;
 mod loader;
 mod media_rule;
@@ -25,7 +25,7 @@ pub mod viewport_rule;
 use cssparser::{parse_one_rule, Parser, ParserInput};
 use error_reporting::NullReporter;
 use parser::ParserContext;
-use shared_lock::{DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
+use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt;
 use style_traits::PARSING_MODE_DEFAULT;
 use stylearc::Arc;
@@ -43,7 +43,7 @@ pub use self::page_rule::PageRule;
 pub use self::rule_parser::{State, TopLevelRuleParser};
 pub use self::rule_list::{CssRules, CssRulesHelpers};
 pub use self::rules_iterator::{AllRules, EffectiveRules, NestedRuleIterationCondition, RulesIterator};
-pub use self::stylesheet::{Namespaces, Stylesheet, UserAgentStylesheets};
+pub use self::stylesheet::{Namespaces, Stylesheet, StylesheetContents, StylesheetInDocument, UserAgentStylesheets};
 pub use self::style_rule::StyleRule;
 pub use self::supports_rule::SupportsRule;
 pub use self::viewport_rule::ViewportRule;
@@ -221,32 +221,33 @@ impl CssRule {
     /// Input state is None for a nested rule
     pub fn parse(
         css: &str,
-        parent_stylesheet: &Stylesheet,
+        parent_stylesheet_contents: &StylesheetContents,
+        shared_lock: &SharedRwLock,
         state: Option<State>,
         loader: Option<&StylesheetLoader>
     ) -> Result<(Self, State), SingleRuleParseError> {
-        let url_data = parent_stylesheet.url_data.read();
+        let url_data = parent_stylesheet_contents.url_data.read();
         let error_reporter = NullReporter;
         let context = ParserContext::new(
-            parent_stylesheet.origin,
+            parent_stylesheet_contents.origin,
             &url_data,
             &error_reporter,
             None,
             PARSING_MODE_DEFAULT,
-            parent_stylesheet.quirks_mode
+            parent_stylesheet_contents.quirks_mode,
         );
 
         let mut input = ParserInput::new(css);
         let mut input = Parser::new(&mut input);
 
-        let mut guard = parent_stylesheet.namespaces.write();
+        let mut guard = parent_stylesheet_contents.namespaces.write();
 
         // nested rules are in the body state
         let state = state.unwrap_or(State::Body);
         let mut rule_parser = TopLevelRuleParser {
-            stylesheet_origin: parent_stylesheet.origin,
+            stylesheet_origin: parent_stylesheet_contents.origin,
             context: context,
-            shared_lock: &parent_stylesheet.shared_lock,
+            shared_lock: &shared_lock,
             loader: loader,
             state: state,
             namespaces: Some(&mut *guard),
@@ -270,6 +271,7 @@ impl DeepCloneWithLock for CssRule {
         &self,
         lock: &SharedRwLock,
         guard: &SharedRwLockReadGuard,
+        params: &DeepCloneParams,
     ) -> CssRule {
         match *self {
             CssRule::Namespace(ref arc) => {
@@ -277,18 +279,19 @@ impl DeepCloneWithLock for CssRule {
                 CssRule::Namespace(Arc::new(lock.wrap(rule.clone())))
             },
             CssRule::Import(ref arc) => {
-                let rule = arc.read_with(guard);
-                CssRule::Import(Arc::new(lock.wrap(rule.clone())))
+                let rule = arc.read_with(guard)
+                    .deep_clone_with_lock(lock, guard, params);
+                CssRule::Import(Arc::new(lock.wrap(rule)))
             },
             CssRule::Style(ref arc) => {
                 let rule = arc.read_with(guard);
                 CssRule::Style(Arc::new(
-                    lock.wrap(rule.deep_clone_with_lock(lock, guard))))
+                    lock.wrap(rule.deep_clone_with_lock(lock, guard, params))))
             },
             CssRule::Media(ref arc) => {
                 let rule = arc.read_with(guard);
                 CssRule::Media(Arc::new(
-                    lock.wrap(rule.deep_clone_with_lock(lock, guard))))
+                    lock.wrap(rule.deep_clone_with_lock(lock, guard, params))))
             },
             CssRule::FontFace(ref arc) => {
                 let rule = arc.read_with(guard);
@@ -307,22 +310,22 @@ impl DeepCloneWithLock for CssRule {
             CssRule::Keyframes(ref arc) => {
                 let rule = arc.read_with(guard);
                 CssRule::Keyframes(Arc::new(
-                    lock.wrap(rule.deep_clone_with_lock(lock, guard))))
+                    lock.wrap(rule.deep_clone_with_lock(lock, guard, params))))
             },
             CssRule::Supports(ref arc) => {
                 let rule = arc.read_with(guard);
                 CssRule::Supports(Arc::new(
-                    lock.wrap(rule.deep_clone_with_lock(lock, guard))))
+                    lock.wrap(rule.deep_clone_with_lock(lock, guard, params))))
             },
             CssRule::Page(ref arc) => {
                 let rule = arc.read_with(guard);
                 CssRule::Page(Arc::new(
-                    lock.wrap(rule.deep_clone_with_lock(lock, guard))))
+                    lock.wrap(rule.deep_clone_with_lock(lock, guard, params))))
             },
             CssRule::Document(ref arc) => {
                 let rule = arc.read_with(guard);
                 CssRule::Document(Arc::new(
-                    lock.wrap(rule.deep_clone_with_lock(lock, guard))))
+                    lock.wrap(rule.deep_clone_with_lock(lock, guard, params))))
             },
         }
     }
