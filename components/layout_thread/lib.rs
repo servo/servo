@@ -101,6 +101,7 @@ use std::marker::PhantomData;
 use std::mem as std_mem;
 use std::ops::{Deref, DerefMut};
 use std::process;
+use std::slice;
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{Receiver, Sender, channel};
@@ -117,7 +118,7 @@ use style::selector_parser::SnapshotMap;
 use style::servo::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, REPOSITION, STORE_OVERFLOW};
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, StylesheetGuards};
 use style::stylearc::Arc as StyleArc;
-use style::stylesheets::{Origin, Stylesheet, UserAgentStylesheets};
+use style::stylesheets::{Origin, Stylesheet, StylesheetInDocument, UserAgentStylesheets};
 use style::stylist::{ExtraStyleData, Stylist};
 use style::thread_state;
 use style::timer::Timer;
@@ -414,6 +415,17 @@ fn add_font_face_rules(stylesheet: &Stylesheet,
                                               (*font_cache_sender).clone());
             }
         })
+    }
+}
+
+#[derive(Clone)]
+struct StylesheetIterator<'a>(slice::Iter<'a, StyleArc<Stylesheet>>);
+
+impl<'a> Iterator for StylesheetIterator<'a> {
+    type Item = &'a Stylesheet;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.next().map(|s| &**s)
     }
 }
 
@@ -1146,7 +1158,7 @@ impl LayoutThread {
             marker: PhantomData,
         };
         let needs_dirtying = self.stylist.update(
-            data.document_stylesheets.iter(),
+            StylesheetIterator(data.document_stylesheets.iter()),
             &guards,
             Some(ua_stylesheets),
             data.stylesheets_changed,

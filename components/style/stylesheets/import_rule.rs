@@ -42,7 +42,7 @@ impl DeepCloneWithLock for ImportSheet {
 /// A sheet that is held from an import rule.
 #[cfg(feature = "servo")]
 #[derive(Debug)]
-pub struct ImportSheet(pub Arc<::stylesheets::Stylesheet>);
+pub struct ImportSheet(pub ::stylearc::Arc<::stylesheets::Stylesheet>);
 
 impl StylesheetInDocument for ImportSheet {
     /// Get the media associated with this stylesheet.
@@ -67,7 +67,9 @@ impl DeepCloneWithLock for ImportSheet {
         _guard: &SharedRwLockReadGuard,
         _params: &DeepCloneParams,
     ) -> Self {
-        Self((&*self.0).clone())
+        use stylearc::Arc;
+
+        ImportSheet(Arc::new((&*self.0).clone()))
     }
 }
 

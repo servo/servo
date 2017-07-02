@@ -41,7 +41,8 @@ use std::marker::PhantomData;
 use style_traits::viewport::ViewportConstraints;
 use stylearc::Arc;
 #[cfg(feature = "gecko")]
-use stylesheets::{CounterStyleRule, FontFaceRule, CssRule, StyleRule};
+use stylesheets::{CounterStyleRule, FontFaceRule};
+use stylesheets::{CssRule, StyleRule};
 use stylesheets::{StylesheetInDocument, Origin, UserAgentStylesheets};
 use stylesheets::keyframes_rule::KeyframesAnimation;
 use stylesheets::viewport_rule::{self, MaybeNew, ViewportRule};
@@ -923,9 +924,13 @@ impl Stylist {
     pub fn set_device(&mut self,
                       mut device: Device,
                       guard: &SharedRwLockReadGuard,
-                      stylesheets: &[Arc<Stylesheet>]) {
+                      stylesheets: &[Arc<::stylesheets::Stylesheet>]) {
         let cascaded_rule = ViewportRule {
-            declarations: viewport_rule::Cascade::from_stylesheets(stylesheets.iter(), guard, &device).finish(),
+            declarations: viewport_rule::Cascade::from_stylesheets(
+                stylesheets.iter().map(|s| &**s),
+                guard,
+                &device
+            ).finish(),
         };
 
         self.viewport_constraints =
@@ -937,7 +942,7 @@ impl Stylist {
 
         self.device = device;
         let features_changed = self.media_features_change_changed_style(
-            stylesheets.iter(),
+            stylesheets.iter().map(|s| &**s),
             guard
         );
         self.is_device_dirty |= features_changed;

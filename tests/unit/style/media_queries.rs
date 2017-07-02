@@ -13,7 +13,7 @@ use style::media_queries::*;
 use style::servo::media_queries::*;
 use style::shared_lock::SharedRwLock;
 use style::stylearc::Arc;
-use style::stylesheets::{AllRules, Stylesheet, Origin, CssRule};
+use style::stylesheets::{AllRules, Stylesheet, StylesheetInDocument, Origin, CssRule};
 use style::values::specified;
 use style_traits::ToCss;
 

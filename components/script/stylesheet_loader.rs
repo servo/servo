@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use cssparser::SourceLocation;
 use document_loader::LoadType;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::Trusted;
@@ -22,14 +23,19 @@ use ipc_channel::router::ROUTER;
 use net_traits::{FetchResponseListener, FetchMetadata, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy};
 use net_traits::request::{CorsSettings, CredentialsMode, Destination, RequestInit, RequestMode, Type as RequestType};
 use network_listener::{NetworkListener, PreInvoke};
+use parking_lot::RwLock;
 use servo_url::ServoUrl;
 use std::mem;
 use std::sync::Mutex;
+use std::sync::atomic::AtomicBool;
 use style::media_queries::MediaList;
-use style::shared_lock::Locked as StyleLocked;
+use style::parser::ParserContext;
+use style::shared_lock::{Locked, SharedRwLock};
 use style::stylearc::Arc;
-use style::stylesheets::{ImportRule, Stylesheet, Origin};
+use style::stylesheets::{CssRules, ImportRule, Namespaces, Stylesheet, StylesheetContents, Origin};
 use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
+use style::stylesheets::import_rule::ImportSheet;
+use style::values::specified::url::SpecifiedUrl;
 
 pub trait StylesheetOwner {
     /// Returns whether this element was inserted by the parser (i.e., it should
@@ -273,21 +279,38 @@ impl<'a> StyleStylesheetLoader for StylesheetLoader<'a> {
     fn request_stylesheet(
         &self,
         url: SpecifiedUrl,
-        location: SourceLocation,
+        source_location: SourceLocation,
         context: &ParserContext,
         lock: &SharedRwLock,
         media: Arc<Locked<MediaList>>,
     ) -> Arc<Locked<ImportRule>> {
-        if !url.is_in
+        let sheet = Arc::new(Stylesheet {
+            contents: StylesheetContents {
+                rules: CssRules::new(Vec::new(), lock),
+                origin: context.stylesheet_origin,
+                url_data: RwLock::new(context.url_data.clone()),
+                dirty_on_viewport_size_change: AtomicBool::new(false),
+                quirks_mode: context.quirks_mode,
+                namespaces: RwLock::new(Namespaces::default()),
+            },
+            media: media,
+            shared_lock: lock.clone(),
+            disabled: AtomicBool::new(false),
+        });
 
-        let import = make_import(media);
-        let url = import.url.url().expect("Invalid urls shouldn't enter the loader").clone();
+        let stylesheet = ImportSheet(sheet.clone());
+        let import = ImportRule { url, source_location, stylesheet };
+
+        let url = match import.url.url().cloned() {
+            Some(url) => url,
+            None => return Arc::new(lock.wrap(import)),
+        };
 
         // TODO (mrnayak) : Whether we should use the original loader's CORS
         // setting? Fix this when spec has more details.
-        let source = StylesheetContextSource::Import(import.stylesheet.clone());
+        let source = StylesheetContextSource::Import(sheet.clone());
         self.load(source, url, None, "".to_owned());
 
-        make_arc(import)
+        Arc::new(lock.wrap(import))
     }
 }
