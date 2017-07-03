@@ -313,7 +313,13 @@
         } else {
             let mut template_rows = GridTemplateComponent::parse(context, input)?;
             if let GenericGridTemplateComponent::TrackList(ref mut list) = template_rows {
-                list.line_names[0] = first_line_names;      // won't panic
+                // Fist line names are parsed already and it shouldn't be parsed again.
+                // If line names are not empty, that means given property value is not acceptable
+                if list.line_names[0].is_empty() {
+                    list.line_names[0] = first_line_names;      // won't panic
+                } else {
+                    return Err(StyleParseError::UnspecifiedError.into());
+                }
             }
 
             input.expect_delim('/')?;
