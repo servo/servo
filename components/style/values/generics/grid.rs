@@ -607,10 +607,6 @@ impl Parse for LineNameList {
                     let mut names_list = vec![];
                     names_list.push(parse_line_names(input)?);      // there should be at least one
                     while let Ok(names) = input.try(parse_line_names) {
-                        if names_list.last().unwrap().is_empty() && names.is_empty() {
-                            continue        // should be idempotent
-                        }
-
                         names_list.push(names);
                     }
 
@@ -624,31 +620,18 @@ impl Parse for LineNameList {
                         line_names.extend(names_list.iter().cloned().cycle()
                                   .take(num.value() as usize * names_list.len())),
                     RepeatCount::AutoFill if fill_idx.is_none() => {
-                        let mut push_name = true;
                         // `repeat(autof-fill, ..)` should have just one line name.
                         if names_list.len() > 1 {
                             return Err(StyleParseError::UnspecifiedError.into());
                         }
                         let names = names_list.pop().expect("expected one name list for auto-fill");
-                        if let Some(prev_names) = line_names.last() {
-                            push_name = !(prev_names.is_empty() && names.is_empty());
-                        }
 
-                        if push_name {
-                            line_names.push(names);
-                        }
-
+                        line_names.push(names);
                         fill_idx = Some(line_names.len() as u32 - 1);
                     },
                     _ => return Err(StyleParseError::UnspecifiedError.into()),
                 }
             } else if let Ok(names) = input.try(parse_line_names) {
-                if let Some(prev_names) = line_names.last() {
-                    if prev_names.is_empty() && names.is_empty() {
-                        continue
-                    }
-                }
-
                 line_names.push(names);
             } else {
                 break
