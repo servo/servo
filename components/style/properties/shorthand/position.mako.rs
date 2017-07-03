@@ -316,6 +316,7 @@
                 list.line_names[0] = first_line_names;      // won't panic
             }
 
+            input.expect_delim('/')?;
             Ok((template_rows, GridTemplateComponent::parse(context, input)?, Either::Second(None_)))
         }
     }
