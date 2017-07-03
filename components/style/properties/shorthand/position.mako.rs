@@ -367,14 +367,9 @@
                                       dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *template_areas {
             Either::Second(_none) => {
-                if template_rows == &GenericGridTemplateComponent::None &&
-                   template_columns == &GenericGridTemplateComponent::None {
-                    dest.write_str("none")
-                } else {
-                    template_rows.to_css(dest)?;
-                    dest.write_str(" / ")?;
-                    template_columns.to_css(dest)
-                }
+                template_rows.to_css(dest)?;
+                dest.write_str(" / ")?;
+                template_columns.to_css(dest)
             },
             Either::First(ref areas) => {
                 let track_list = match *template_rows {
