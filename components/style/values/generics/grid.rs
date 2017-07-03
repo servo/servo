@@ -252,6 +252,13 @@ impl<L> Default for TrackSize<L> {
     }
 }
 
+impl<L: PartialEq> TrackSize<L> {
+    /// Returns true if current TrackSize is same as default.
+    pub fn is_default(&self) -> bool {
+        *self == TrackSize::default()
+    }
+}
+
 impl<L: ToCss> ToCss for TrackSize<L> {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
