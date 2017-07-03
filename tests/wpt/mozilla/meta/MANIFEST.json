@@ -6473,6 +6473,234 @@
      {}
     ]
    ],
+   "mozilla/css-paint-api/background-image-alpha.html": [
+    [
+     "/_mozilla/mozilla/css-paint-api/background-image-alpha.html",
+     [
+      [
+       "/_mozilla/mozilla/css-paint-api/background-image-alpha-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/background-image-multiple.html": [
+    [
+     "/_mozilla/mozilla/css-paint-api/background-image-multiple.html",
+     [
+      [
+       "/_mozilla/mozilla/css-paint-api/background-image-multiple-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/background-image-tiled.html": [
+    [
+     "/_mozilla/mozilla/css-paint-api/background-image-tiled.html",
+     [
+      [
+       "/_mozilla/mozilla/css-paint-api/background-image-tiled-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/invalid-image-constructor-error.html": [
+    [
+     "/_mozilla/mozilla/css-paint-api/invalid-image-constructor-error.html",
+     [
+      [
+       "/_mozilla/mozilla/css-paint-api/invalid-image-constructor-error-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/invalid-image-paint-error.html": [
+    [
+     "/_mozilla/mozilla/css-paint-api/invalid-image-paint-error.html",
+     [
+      [
+       "/_mozilla/mozilla/css-paint-api/invalid-image-paint-error-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/invalid-image-pending-script.html": [
+    [
+     "/_mozilla/mozilla/css-paint-api/invalid-image-pending-script.html",
+     [
+      [
+       "/_mozilla/mozilla/css-paint-api/invalid-image-pending-script-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/overdraw.html": [
+    [
+     "/_mozilla/mozilla/css-paint-api/overdraw.html",
+     [
+      [
+       "/_mozilla/mozilla/css-paint-api/overdraw-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/paint-arguments.html": [
+    [
+     "/_mozilla/mozilla/css-paint-api/paint-arguments.html",
+     [
+      [
+       "/_mozilla/mozilla/css-paint-api/paint-arguments-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/paint-function-arguments.html": [
+    [
+     "/_mozilla/mozilla/css-paint-api/paint-function-arguments.html",
+     [
+      [
+       "/_mozilla/mozilla/css-paint-api/paint-function-arguments-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/paint2d-composite.html": [
+    [
+     "/_mozilla/mozilla/css-paint-api/paint2d-composite.html",
+     [
+      [
+       "/_mozilla/mozilla/css-paint-api/paint2d-composite-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/paint2d-filter.html": [
+    [
+     "/_mozilla/mozilla/css-paint-api/paint2d-filter.html",
+     [
+      [
+       "/_mozilla/mozilla/css-paint-api/paint2d-filter-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/paint2d-gradient.html": [
+    [
+     "/_mozilla/mozilla/css-paint-api/paint2d-gradient.html",
+     [
+      [
+       "/_mozilla/mozilla/css-paint-api/paint2d-gradient-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/paint2d-image.html": [
+    [
+     "/_mozilla/mozilla/css-paint-api/paint2d-image.html",
+     [
+      [
+       "/_mozilla/mozilla/css-paint-api/paint2d-image-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/paint2d-paths.html": [
+    [
+     "/_mozilla/mozilla/css-paint-api/paint2d-paths.html",
+     [
+      [
+       "/_mozilla/mozilla/css-paint-api/paint2d-paths-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/paint2d-rects.html": [
+    [
+     "/_mozilla/mozilla/css-paint-api/paint2d-rects.html",
+     [
+      [
+       "/_mozilla/mozilla/css-paint-api/paint2d-rects-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/paint2d-shadows.html": [
+    [
+     "/_mozilla/mozilla/css-paint-api/paint2d-shadows.html",
+     [
+      [
+       "/_mozilla/mozilla/css-paint-api/paint2d-shadows-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/paint2d-transform.html": [
+    [
+     "/_mozilla/mozilla/css-paint-api/paint2d-transform.html",
+     [
+      [
+       "/_mozilla/mozilla/css-paint-api/paint2d-transform-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/valid-image-after-load.html": [
+    [
+     "/_mozilla/mozilla/css-paint-api/valid-image-after-load.html",
+     [
+      [
+       "/_mozilla/mozilla/css-paint-api/valid-image-after-load-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/valid-image-before-load.html": [
+    [
+     "/_mozilla/mozilla/css-paint-api/valid-image-before-load.html",
+     [
+      [
+       "/_mozilla/mozilla/css-paint-api/valid-image-before-load-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "mozilla/details_ui_closed.html": [
     [
      "/_mozilla/mozilla/details_ui_closed.html",
@@ -9639,6 +9867,111 @@
     ]
    ],
    "mozilla/cross-origin-objects/cross-origin-postMessage-child2.html": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/OWNERS": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/background-image-alpha-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/background-image-multiple-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/background-image-tiled-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/css-paint-tests.js": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/invalid-image-constructor-error-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/invalid-image-paint-error-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/invalid-image-pending-script-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/overdraw-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/paint-arguments-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/paint-function-arguments-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/paint2d-composite-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/paint2d-filter-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/paint2d-gradient-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/paint2d-image-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/paint2d-paths-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/paint2d-rects-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/paint2d-shadows-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/paint2d-transform-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/valid-image-after-load-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/valid-image-before-load-ref.html": [
     [
      {}
     ]
@@ -25680,6 +26013,166 @@
   "mozilla/cross-origin-objects/cross-origin-postMessage.html": [
    "0163758c92997c6723c9d21be49ef7f51d8b3daf",
    "testharness"
+  ],
+  "mozilla/css-paint-api/OWNERS": [
+   "0c1517f7ba747014c7c091b61d48f11421ed91c2",
+   "support"
+  ],
+  "mozilla/css-paint-api/background-image-alpha-ref.html": [
+   "45ef6e998e5f266741f5403df650cd9557dbe005",
+   "support"
+  ],
+  "mozilla/css-paint-api/background-image-alpha.html": [
+   "ec35a42013e36c05a26266f0f78a16283acc843d",
+   "reftest"
+  ],
+  "mozilla/css-paint-api/background-image-multiple-ref.html": [
+   "9ff536499d72240f67eb6911b768c624371ea678",
+   "support"
+  ],
+  "mozilla/css-paint-api/background-image-multiple.html": [
+   "f8c286926ccf981713eb34259e3f5389bf3c37f6",
+   "reftest"
+  ],
+  "mozilla/css-paint-api/background-image-tiled-ref.html": [
+   "a879be73470aae683bd7596132225770bc8be27b",
+   "support"
+  ],
+  "mozilla/css-paint-api/background-image-tiled.html": [
+   "4c7b8e525a909cbc38a2ad0b6a44a803595b6772",
+   "reftest"
+  ],
+  "mozilla/css-paint-api/css-paint-tests.js": [
+   "0e88a610e5ad9ff1deb04adec35b73caadbff201",
+   "support"
+  ],
+  "mozilla/css-paint-api/invalid-image-constructor-error-ref.html": [
+   "b0c34ee1480fe1108fe8dc53f2bbb2f3ffa1c408",
+   "support"
+  ],
+  "mozilla/css-paint-api/invalid-image-constructor-error.html": [
+   "694efcb525fed448cc757cff38ec034dad9cdb3c",
+   "reftest"
+  ],
+  "mozilla/css-paint-api/invalid-image-paint-error-ref.html": [
+   "b0c34ee1480fe1108fe8dc53f2bbb2f3ffa1c408",
+   "support"
+  ],
+  "mozilla/css-paint-api/invalid-image-paint-error.html": [
+   "3b0e6a034f3edbde6d30ad9483a50fbea0ab48bd",
+   "reftest"
+  ],
+  "mozilla/css-paint-api/invalid-image-pending-script-ref.html": [
+   "b0c34ee1480fe1108fe8dc53f2bbb2f3ffa1c408",
+   "support"
+  ],
+  "mozilla/css-paint-api/invalid-image-pending-script.html": [
+   "54a69d6d408e77bf2e91ee09564d62c8d16d1eb3",
+   "reftest"
+  ],
+  "mozilla/css-paint-api/overdraw-ref.html": [
+   "b0c34ee1480fe1108fe8dc53f2bbb2f3ffa1c408",
+   "support"
+  ],
+  "mozilla/css-paint-api/overdraw.html": [
+   "a2d730dbd6faefbd8bbd07d33f6942f6573b842e",
+   "reftest"
+  ],
+  "mozilla/css-paint-api/paint-arguments-ref.html": [
+   "cbe0372259011ca94f0fd8d233413439ba9cf117",
+   "support"
+  ],
+  "mozilla/css-paint-api/paint-arguments.html": [
+   "2807e0bc8b2e8aa9e5edf69f9de3e8d4ee853ef9",
+   "reftest"
+  ],
+  "mozilla/css-paint-api/paint-function-arguments-ref.html": [
+   "a3aebfce59d0f62ab229248b7903b0dc731835d5",
+   "support"
+  ],
+  "mozilla/css-paint-api/paint-function-arguments.html": [
+   "f3c461e7e5797d3b65058109ffc58b6c95e1a340",
+   "reftest"
+  ],
+  "mozilla/css-paint-api/paint2d-composite-ref.html": [
+   "60c069de8135b934df166560db5c592d5becbc92",
+   "support"
+  ],
+  "mozilla/css-paint-api/paint2d-composite.html": [
+   "f9d0cceb6360cbdf3478673740ecfbe67a4a11d2",
+   "reftest"
+  ],
+  "mozilla/css-paint-api/paint2d-filter-ref.html": [
+   "6f1be576ae7ead2a724357b16ea88c92b3b19a0d",
+   "support"
+  ],
+  "mozilla/css-paint-api/paint2d-filter.html": [
+   "c266200a6a990b5b23e6f9d5859f8f5c4c271be8",
+   "reftest"
+  ],
+  "mozilla/css-paint-api/paint2d-gradient-ref.html": [
+   "3b2abb3632893c0f5a2714fc325467f0076001a8",
+   "support"
+  ],
+  "mozilla/css-paint-api/paint2d-gradient.html": [
+   "6cf101de7a3aa627cb372f00eeb36e969ff25734",
+   "reftest"
+  ],
+  "mozilla/css-paint-api/paint2d-image-ref.html": [
+   "c71e0b960177b13614d2c11392c94ea155927ebe",
+   "support"
+  ],
+  "mozilla/css-paint-api/paint2d-image.html": [
+   "769d066054b6cabb77ed3f958d52bfdb17e99b8d",
+   "reftest"
+  ],
+  "mozilla/css-paint-api/paint2d-paths-ref.html": [
+   "cf154ab8a37bdbce2175193dfc456f4771bfeca8",
+   "support"
+  ],
+  "mozilla/css-paint-api/paint2d-paths.html": [
+   "8f98b1d34bb3719b5e337f279adbe63fc6c122fd",
+   "reftest"
+  ],
+  "mozilla/css-paint-api/paint2d-rects-ref.html": [
+   "2a469427fbdbee6b096a63b95846cdeda92c0255",
+   "support"
+  ],
+  "mozilla/css-paint-api/paint2d-rects.html": [
+   "e2e82b82b28af9e509a9eabf48f728dbe06b0d18",
+   "reftest"
+  ],
+  "mozilla/css-paint-api/paint2d-shadows-ref.html": [
+   "f882c26b0dfb58fe1ab3177060f421dad0148456",
+   "support"
+  ],
+  "mozilla/css-paint-api/paint2d-shadows.html": [
+   "7ca525ddfa56a8571857a8656e6bed38c440705a",
+   "reftest"
+  ],
+  "mozilla/css-paint-api/paint2d-transform-ref.html": [
+   "5eff507eeee563399205645668c7ed3df79213c9",
+   "support"
+  ],
+  "mozilla/css-paint-api/paint2d-transform.html": [
+   "e4b544068821f6f8882f05836a07a19891fc85b8",
+   "reftest"
+  ],
+  "mozilla/css-paint-api/valid-image-after-load-ref.html": [
+   "b0c34ee1480fe1108fe8dc53f2bbb2f3ffa1c408",
+   "support"
+  ],
+  "mozilla/css-paint-api/valid-image-after-load.html": [
+   "abe12a4f25b5b8a52b8e9f623ac5efa80c23dc36",
+   "reftest"
+  ],
+  "mozilla/css-paint-api/valid-image-before-load-ref.html": [
+   "b0c34ee1480fe1108fe8dc53f2bbb2f3ffa1c408",
+   "support"
+  ],
+  "mozilla/css-paint-api/valid-image-before-load.html": [
+   "fb574b4658f7c2000ec58f058ebb0fff1d88351e",
+   "reftest"
   ],
   "mozilla/details_ui_closed.html": [
    "2acbe3afbec267bad4dd986803e636740a707507",
