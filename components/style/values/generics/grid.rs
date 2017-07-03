@@ -618,7 +618,10 @@ impl Parse for LineNameList {
                                   .take(num.value() as usize * names_list.len())),
                     RepeatCount::AutoFill if fill_idx.is_none() => {
                         let mut push_name = true;
-                        let _ = names_list.split_off(1);
+                        // `repeat(autof-fill, ..)` should have just one line name.
+                        if names_list.len() > 1 {
+                            return Err(StyleParseError::UnspecifiedError.into());
+                        }
                         let names = names_list.pop().expect("expected one name list for auto-fill");
                         if let Some(prev_names) = line_names.last() {
                             push_name = !(prev_names.is_empty() && names.is_empty());
