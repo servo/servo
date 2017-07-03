@@ -1576,23 +1576,30 @@ pub trait MatchMethods : TElement {
         }
 
         if pseudo.map_or(false, |p| p.is_before_or_after()) {
-            if (old_style_is_display_none ||
-                old_values.ineffective_content_property()) &&
-               (new_style_is_display_none ||
-                new_values.ineffective_content_property()) {
-                // The pseudo-element will remain undisplayed, so just avoid
-                // triggering any change.
-                return StyleDifference::new(RestyleDamage::empty(), StyleChange::Unchanged)
+            let old_style_generates_no_pseudo =
+                old_style_is_display_none ||
+                old_values.ineffective_content_property();
+
+            let new_style_generates_no_pseudo =
+                new_style_is_display_none ||
+                new_values.ineffective_content_property();
+
+            if old_style_generates_no_pseudo != new_style_generates_no_pseudo {
+                return StyleDifference::new(RestyleDamage::reconstruct(), StyleChange::Changed)
             }
-            // FIXME(bz): This will keep reframing replaced elements.  Do we
-            // need this at all?  Seems like if we add/remove ::before or
-            // ::after styles we would get reframed over in match_pseudos and if
-            // that part didn't change and we had no frame for the
-            // ::before/::after then we don't care.  Need to double-check that
-            // we handle the "content" and "display" properties changing
-            // correctly, though.
-            // https://bugzilla.mozilla.org/show_bug.cgi?id=1376352
-            return StyleDifference::new(RestyleDamage::reconstruct(), StyleChange::Changed)
+
+            // The pseudo-element will remain undisplayed, so just avoid
+            // triggering any change.
+            //
+            // NOTE(emilio): We will only arrive here for pseudo-elements that
+            // aren't generated (see the is_existing_before_or_after check in
+            // accumulate_damage).
+            //
+            // However, it may be the case that the style of this element would
+            // make us think we need a pseudo, but we don't, like for pseudos in
+            // replaced elements, that's why we need the old != new instead of
+            // just check whether the new style would generate a pseudo.
+            return StyleDifference::new(RestyleDamage::empty(), StyleChange::Unchanged)
         }
 
         if pseudo.map_or(false, |p| p.is_first_letter()) {
