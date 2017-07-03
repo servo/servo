@@ -241,7 +241,6 @@
                     disable_when_testing="True"
                     products="gecko">
     use parser::Parse;
-    use properties::longhands::grid_template_rows;
     use properties::longhands::grid_template_areas::TemplateAreas;
     use values::{Either, None_};
     use values::generics::grid::{TrackSize, TrackList, TrackListType, concat_serialize_idents};
@@ -297,7 +296,7 @@
             };
 
             let template_cols = if input.try(|i| i.expect_delim('/')).is_ok() {
-                let value = GridTemplateComponent::parse(context, input)?;
+                let value = GridTemplateComponent::parse_without_none(context, input)?;
                 if let GenericGridTemplateComponent::TrackList(ref list) = value {
                     if list.list_type != TrackListType::Explicit {
                         return Err(StyleParseError::UnspecifiedError.into())
@@ -312,12 +311,12 @@
             Ok((GenericGridTemplateComponent::TrackList(template_rows),
                 template_cols, Either::First(template_areas)))
         } else {
-            let mut template_rows = grid_template_rows::parse(context, input)?;
+            let mut template_rows = GridTemplateComponent::parse(context, input)?;
             if let GenericGridTemplateComponent::TrackList(ref mut list) = template_rows {
                 list.line_names[0] = first_line_names;      // won't panic
             }
 
-            Ok((template_rows, grid_template_rows::parse(context, input)?, Either::Second(None_)))
+            Ok((template_rows, GridTemplateComponent::parse(context, input)?, Either::Second(None_)))
         }
     }
 
@@ -401,8 +400,8 @@
                     spec="https://drafts.csswg.org/css-grid/#propdef-grid"
                     disable_when_testing="True"
                     products="gecko">
+    use parser::Parse;
     use properties::longhands::{grid_auto_columns, grid_auto_rows, grid_auto_flow};
-    use properties::longhands::{grid_template_columns, grid_template_rows};
     use properties::longhands::grid_auto_flow::computed_value::{AutoFlow, T as SpecifiedAutoFlow};
     use values::{Either, None_};
     use values::generics::grid::GridTemplateComponent;
@@ -447,7 +446,7 @@
             temp_rows = rows;
             temp_cols = cols;
             temp_areas = areas;
-        } else if let Ok(rows) = input.try(|i| grid_template_rows::parse(context, i)) {
+        } else if let Ok(rows) = input.try(|i| GridTemplateComponent::parse(context, i)) {
             temp_rows = rows;
             input.expect_delim('/')?;
             flow = parse_auto_flow(input, false)?;
@@ -456,7 +455,7 @@
             flow = parse_auto_flow(input, true)?;
             auto_rows = input.try(|i| grid_auto_rows::parse(context, i)).unwrap_or_default();
             input.expect_delim('/')?;
-            temp_cols = grid_template_columns::parse(context, input)?;
+            temp_cols = GridTemplateComponent::parse(context, input)?;
         }
 
         Ok(expanded! {

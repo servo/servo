@@ -366,6 +366,14 @@ impl Parse for GridTemplateComponent<TrackSizeOrRepeat> {   // FIXME: Derive Par
             return Ok(GridTemplateComponent::None)
         }
 
+        Self::parse_without_none(context, input)
+    }
+}
+
+impl GridTemplateComponent<TrackSizeOrRepeat> {
+    /// Parses a `GridTemplateComponent<TrackSizeOrRepeat>` except `none` keyword.
+    pub fn parse_without_none<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                                      -> Result<Self, ParseError<'i>> {
         if let Ok(t) = input.try(|i| TrackList::parse(context, i)) {
             return Ok(GridTemplateComponent::TrackList(t))
         }
