@@ -437,7 +437,7 @@
 
             auto_flow.map(|flow| {
                 SpecifiedAutoFlow {
-                    autoflow: flow,
+                    autoflow: Some(flow),
                     dense: dense,
                 }
             }).ok_or(StyleParseError::UnspecifiedError.into())
@@ -450,10 +450,10 @@
         } else if let Ok(rows) = input.try(|i| GridTemplateComponent::parse(context, i)) {
             temp_rows = rows;
             input.expect_delim('/')?;
-            flow = parse_auto_flow(input, false)?;
+            flow = parse_auto_flow(input, true)?;
             auto_cols = grid_auto_columns::parse(context, input).unwrap_or_default();
         } else {
-            flow = parse_auto_flow(input, true)?;
+            flow = parse_auto_flow(input, false)?;
             auto_rows = input.try(|i| grid_auto_rows::parse(context, i)).unwrap_or_default();
             input.expect_delim('/')?;
             temp_cols = GridTemplateComponent::parse(context, input)?;
@@ -474,28 +474,39 @@
 
     impl<'a> ToCss for LonghandsToSerialize<'a> {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            if let Either::First(_) = *self.grid_template_areas {
-                super::grid_template::serialize_grid_template(self.grid_template_rows,
-                                                              self.grid_template_columns,
-                                                              self.grid_template_areas, dest)
-            } else if self.grid_auto_flow.autoflow == AutoFlow::Row {
+            if self.grid_auto_flow.autoflow.is_none() {
+                return super::grid_template::serialize_grid_template(self.grid_template_rows,
+                                                                     self.grid_template_columns,
+                                                                     self.grid_template_areas, dest);
+            }
+
+            // This unwrap is safe because we checked the None part in previous if condition.
+            if self.grid_auto_flow.autoflow.unwrap() == AutoFlow::Row {
                 self.grid_template_rows.to_css(dest)?;
                 dest.write_str(" / auto-flow")?;
                 if self.grid_auto_flow.dense {
                     dest.write_str(" dense")?;
                 }
 
-                self.grid_auto_columns.to_css(dest)
+                if !self.grid_auto_columns.is_default() {
+                    dest.write_str(" ")?;
+                    self.grid_auto_columns.to_css(dest)?;
+                }
             } else {
-                dest.write_str("auto-flow ")?;
+                dest.write_str("auto-flow")?;
                 if self.grid_auto_flow.dense {
-                    dest.write_str("dense ")?;
+                    dest.write_str(" dense")?;
                 }
 
-                self.grid_auto_rows.to_css(dest)?;
+                if !self.grid_auto_rows.is_default() {
+                    dest.write_str(" ")?;
+                    self.grid_auto_rows.to_css(dest)?;
+                }
+
                 dest.write_str(" / ")?;
-                self.grid_template_columns.to_css(dest)
+                self.grid_template_columns.to_css(dest)?;
             }
+            Ok(())
         }
     }
 </%helpers:shorthand>
