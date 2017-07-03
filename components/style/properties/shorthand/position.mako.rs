@@ -243,7 +243,7 @@
     use parser::Parse;
     use properties::longhands::grid_template_areas::TemplateAreas;
     use values::{Either, None_};
-    use values::generics::grid::{TrackSize, TrackList, TrackListType, concat_serialize_idents};
+    use values::generics::grid::{LineNameList, TrackSize, TrackList, TrackListType, concat_serialize_idents};
     use values::specified::{GridTemplateComponent, GenericGridTemplateComponent};
     use values::specified::grid::parse_line_names;
 
@@ -252,9 +252,31 @@
                                        -> Result<(GridTemplateComponent,
                                                   GridTemplateComponent,
                                                   Either<TemplateAreas, None_>), ParseError<'i>> {
-        if input.try(|i| i.expect_ident_matching("none")).is_ok() {
-            return Ok((GenericGridTemplateComponent::None, GenericGridTemplateComponent::None, Either::Second(None_)))
+
+        // Other shorthand sub properties also parse `none` and `subgrid` keywords and this
+        // shorthand should know after these keywords there is nothing to parse. Otherwise it
+        // gets confused and rejects the sub properties that contains `none` or `subgrid`.
+        <% keywords = {
+            "none": "GenericGridTemplateComponent::None",
+            "subgrid": "GenericGridTemplateComponent::Subgrid(LineNameList::default())"
         }
+        %>
+        % for keyword, rust_type in keywords.items():
+            if let Ok(x) = input.try(|i| {
+                if i.try(|i| i.expect_ident_matching("${keyword}")).is_ok() {
+                    if i.is_exhausted() {
+                        return Ok((${rust_type},
+                                   ${rust_type},
+                                   Either::Second(None_)))
+                    } else {
+                        return Err(());
+                    }
+                }
+                Err(())
+            }) {
+                return Ok(x);
+            }
+        % endfor
 
         let first_line_names = input.try(parse_line_names).unwrap_or(vec![]);
         if let Ok(s) = input.try(Parser::expect_string) {
