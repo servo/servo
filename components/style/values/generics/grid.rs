@@ -575,6 +575,7 @@ impl<T: ToCss> ToCss for TrackList<T> {
 /// The `<line-name-list>` for subgrids.
 ///
 /// `subgrid [ <line-names> | repeat(<positive-integer> | auto-fill, <line-names>+) ]+`
+/// Old spec: https://www.w3.org/TR/2015/WD-css-grid-1-20150917/#typedef-line-name-list
 #[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct LineNameList {
