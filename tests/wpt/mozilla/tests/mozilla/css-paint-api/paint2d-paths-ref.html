@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<body>
+<canvas id ="output" width="300" height="400"></canvas>
+<script>
+var canvas = document.getElementById('output');
+var ctx = canvas.getContext('2d');
+
+ctx.beginPath();
+ctx.lineWidth = '10';
+ctx.strokeStyle = 'green';
+ctx.moveTo(15, 15);
+ctx.lineTo(135, 15);
+ctx.lineTo(70, 170);
+ctx.closePath();
+ctx.stroke();
+
+var path1 = new Path2D();
+path1.moveTo(250, 25);
+path1.bezierCurveTo(110, 150, 110, 300, 200, 200);
+ctx.strokeStyle = 'purple';
+ctx.setLineDash([ 10, 5 ]);
+ctx.stroke(path1);
+
+ctx.fillStyle = 'red';
+ctx.beginPath()
+ctx.arc(75, 325, 50, 0, Math.PI * 2, true);
+ctx.arc(75, 325, 20, 0, Math.PI * 2, true);
+ctx.fill('evenodd');
+</script>
+</body>
+</html>
