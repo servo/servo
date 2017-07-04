@@ -1807,6 +1807,9 @@ pub mod style_structs {
 % endfor
 
 
+#[cfg(feature = "gecko")]
+pub use gecko_properties::ComputedValues;
+
 /// A legacy alias for a servo-version of ComputedValues. Should go away soon.
 #[cfg(feature = "servo")]
 pub type ServoComputedValues = ComputedValues;
@@ -1817,7 +1820,8 @@ pub type ServoComputedValues = ComputedValues;
 /// every kind of style struct.
 ///
 /// When needed, the structs may be copied in order to get mutated.
-#[derive(Clone)]
+#[cfg(feature = "servo")]
+#[cfg_attr(feature = "servo", derive(Clone))]
 pub struct ComputedValues {
     % for style_struct in data.active_style_structs():
         ${style_struct.ident}: Arc<style_structs::${style_struct.name}>,
@@ -1842,6 +1846,7 @@ pub struct ComputedValues {
     visited_style: Option<Arc<ComputedValues>>,
 }
 
+#[cfg(feature = "servo")]
 impl ComputedValues {
     /// Construct a `ComputedValues` instance.
     pub fn new(
@@ -1869,6 +1874,9 @@ impl ComputedValues {
         }
     }
 
+    /// Get the initial computed values.
+    pub fn initial_values() -> &'static Self { &*INITIAL_SERVO_VALUES }
+
     % for style_struct in data.active_style_structs():
         /// Clone the ${style_struct.name} struct.
         #[inline]
@@ -1894,30 +1902,6 @@ impl ComputedValues {
             Arc::make_mut(&mut self.${style_struct.ident})
         }
     % endfor
-
-    /// Get the initial computed values.
-    #[cfg(feature = "servo")]
-    pub fn initial_values() -> &'static Self { &*INITIAL_SERVO_VALUES }
-
-    /// Get the default computed values for a given document.
-    ///
-    /// This takes into account zoom, etc.
-    #[cfg(feature = "gecko")]
-    pub fn default_values(
-        pres_context: bindings::RawGeckoPresContextBorrowed
-    ) -> Arc<Self> {
-        Arc::new(ComputedValues {
-            custom_properties: None,
-            writing_mode: WritingMode::empty(), // FIXME(bz): This seems dubious
-            font_computation_data: FontComputationData::default_values(),
-            flags: ComputedValueFlags::initial(),
-            rules: None,
-            visited_style: None,
-            % for style_struct in data.style_structs:
-                ${style_struct.ident}: style_structs::${style_struct.name}::default(pres_context),
-            % endfor
-        })
-    }
 
     /// Gets a reference to the rule node. Panic if no rule node exists.
     pub fn rules(&self) -> &StrongRuleNode {
@@ -1955,73 +1939,19 @@ impl ComputedValues {
         self.custom_properties.clone()
     }
 
-    /// Get a declaration block representing the computed value for a given
-    /// property.
-    ///
-    /// Currently only implemented for animated properties.
-    pub fn to_declaration_block(
-        &self,
-        property: PropertyDeclarationId
-    ) -> PropertyDeclarationBlock {
-        use values::computed::ToComputedValue;
-
-        match property {
-            % for prop in data.longhands:
-                % if prop.animatable:
-                    PropertyDeclarationId::Longhand(LonghandId::${prop.camel_case}) => {
-                         PropertyDeclarationBlock::with_one(
-                            PropertyDeclaration::${prop.camel_case}(
-                                % if prop.boxed:
-                                    Box::new(
-                                % endif
-                                longhands::${prop.ident}::SpecifiedValue::from_computed_value(
-                                  &self.get_${prop.style_struct.ident.strip("_")}().clone_${prop.ident}())
-                                % if prop.boxed:
-                                    )
-                                % endif
-                            ),
-                            Importance::Normal
-                        )
-                    },
-                % endif
-            % endfor
-            PropertyDeclarationId::Custom(_name) => unimplemented!(),
-            _ => unimplemented!()
-        }
-    }
-
     /// Whether this style has a -moz-binding value. This is always false for
     /// Servo for obvious reasons.
-    #[inline]
-    #[cfg(feature = "servo")]
     pub fn has_moz_binding(&self) -> bool { false }
-
-    /// Whether this style has a -moz-binding value.
-    #[inline]
-    #[cfg(feature = "gecko")]
-    pub fn has_moz_binding(&self) -> bool {
-        !self.get_box().gecko().mBinding.mPtr.mRawPtr.is_null()
-    }
 
     /// Returns whether this style's display value is equal to contents.
     ///
     /// Since this isn't supported in Servo, this is always false for Servo.
-    #[inline]
-    #[cfg(feature = "servo")]
     pub fn is_display_contents(&self) -> bool { false }
 
-    /// Returns whether this style's display value is equal to contents.
     #[inline]
-    #[cfg(feature = "gecko")]
-    pub fn is_display_contents(&self) -> bool {
-        self.get_box().clone_display() == longhands::display::computed_value::T::contents
-    }
-
     /// Returns whether the "content" property for the given style is completely
     /// ineffective, and would yield an empty `::before` or `::after`
     /// pseudo-element.
-    #[inline]
-    #[cfg(feature = "servo")]
     pub fn ineffective_content_property(&self) -> bool {
         use properties::longhands::content::computed_value::T;
         match self.get_counters().content {
@@ -2030,23 +1960,8 @@ impl ComputedValues {
         }
     }
 
-    /// Returns true if the value of the `content` property would make a
-    /// pseudo-element not rendered.
-    #[inline]
-    #[cfg(feature = "gecko")]
-    pub fn ineffective_content_property(&self) -> bool {
-        self.get_counters().ineffective_content_property()
-    }
-
-    #[inline]
-    #[cfg(feature = "gecko")]
     /// Whether the current style is multicolumn.
-    /// FIXME(bholley): Implement this properly.
-    pub fn is_multicol(&self) -> bool { false }
-
     #[inline]
-    #[cfg(feature = "servo")]
-    /// Whether the current style is multicolumn.
     pub fn is_multicol(&self) -> bool {
         let style = self.get_column();
         match style.column_width {
@@ -2057,10 +1972,7 @@ impl ComputedValues {
             }
         }
     }
-}
 
-#[cfg(feature = "servo")]
-impl ComputedValues {
     /// Resolves the currentColor keyword.
     ///
     /// Any color value from computed values (except for the 'color' property
