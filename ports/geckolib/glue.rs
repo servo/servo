@@ -7,6 +7,7 @@ use cssparser::{Parser, ParserInput};
 use cssparser::ToCss as ParserToCss;
 use env_logger::LogBuilder;
 use selectors::Element;
+use selectors::matching::{MatchingContext, MatchingMode, matches_selector};
 use std::env;
 use std::fmt::Write;
 use std::ptr;
@@ -1252,6 +1253,47 @@ pub extern "C" fn Servo_StyleRule_GetSpecificityAtIndex(
             return;
         }
         *specificity = rule.selectors.0[index].selector.specificity() as u64;
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_StyleRule_SelectorMatchesElement(rule: RawServoStyleRuleBorrowed,
+                                                         element: RawGeckoElementBorrowed,
+                                                         index: u32,
+                                                         pseudo_type: CSSPseudoElementType) -> bool {
+    read_locked_arc(rule, |rule: &StyleRule| {
+        let index = index as usize;
+        if index >= rule.selectors.0.len() {
+            return false;
+        }
+
+        let selector_and_hashes = &rule.selectors.0[index];
+        let mut matching_mode = MatchingMode::Normal;
+
+        match PseudoElement::from_pseudo_type(pseudo_type) {
+            Some(pseudo) => {
+                // We need to make sure that the requested pseudo element type
+                // matches the selector pseudo element type before proceeding.
+                match selector_and_hashes.selector.pseudo_element() {
+                    Some(selector_pseudo) if *selector_pseudo == pseudo => {
+                        matching_mode = MatchingMode::ForStatelessPseudoElement
+                    },
+                    _ => return false,
+                };
+            },
+            None => {
+                // Do not attempt to match if a pseudo element is requested and
+                // this is not a pseudo element selector, or vice versa.
+                if selector_and_hashes.selector.has_pseudo_element() {
+                    return false;
+                }
+            },
+        };
+
+        let element = GeckoElement(element);
+        let mut ctx = MatchingContext::new(matching_mode, None, element.owner_document_quirks_mode());
+        matches_selector(&selector_and_hashes.selector, 0, &selector_and_hashes.hashes,
+                         &element, &mut ctx, &mut |_, _| {})
     })
 }
 

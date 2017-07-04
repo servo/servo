@@ -694,6 +694,11 @@ impl<'le> GeckoElement<'le> {
         let node = self.as_node();
         unsafe { Gecko_GetDocumentLWTheme(node.owner_doc()) }
     }
+
+    /// Owner document quirks mode getter.
+    pub fn owner_document_quirks_mode(&self) -> QuirksMode {
+        self.as_node().owner_doc().mCompatMode.into()
+    }
 }
 
 /// Converts flags from the layout used by rust-selectors to the layout used
