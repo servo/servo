@@ -60,7 +60,7 @@ class Keyword(object):
                  extra_gecko_values=None, extra_servo_values=None,
                  aliases=None,
                  extra_gecko_aliases=None, extra_servo_aliases=None,
-                 gecko_strip_moz_prefix=True,
+                 gecko_strip_moz_prefix=None,
                  gecko_inexhaustive=None):
         self.name = name
         self.values = values.split()
@@ -75,7 +75,8 @@ class Keyword(object):
         self.extra_gecko_aliases = parse_aliases(extra_gecko_aliases or "")
         self.extra_servo_aliases = parse_aliases(extra_servo_aliases or "")
         self.consts_map = {} if custom_consts is None else custom_consts
-        self.gecko_strip_moz_prefix = gecko_strip_moz_prefix
+        self.gecko_strip_moz_prefix = True \
+            if gecko_strip_moz_prefix is None else gecko_strip_moz_prefix
         self.gecko_inexhaustive = gecko_inexhaustive or (gecko_enum_prefix is None)
 
     def gecko_values(self):
