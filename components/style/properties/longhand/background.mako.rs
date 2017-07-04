@@ -24,11 +24,15 @@ ${helpers.predefined_type("background-image", "ImageLayer",
     ignored_when_colors_disabled="True")}
 
 % for (axis, direction, initial) in [("x", "Horizontal", "left"), ("y", "Vertical", "top")]:
-    ${helpers.predefined_type("background-position-" + axis, "position::" + direction + "Position",
-                              initial_value="computed::LengthOrPercentage::zero()",
-                              initial_specified_value="SpecifiedValue::initial_specified_value()",
-                              spec="https://drafts.csswg.org/css-backgrounds-4/#propdef-background-position-" + axis,
-                              animation_value_type="ComputedValue", vector=True, delegate_animate=True)}
+    ${helpers.predefined_type(
+        "background-position-" + axis,
+        "position::" + direction + "Position",
+        initial_value="computed::LengthOrPercentage::zero()",
+        initial_specified_value="SpecifiedValue::initial_specified_value()",
+        spec="https://drafts.csswg.org/css-backgrounds-4/#propdef-background-position-" + axis,
+        animation_value_type="ComputedValue",
+        vector=True,
+    )}
 % endfor
 
 <%helpers:vector_longhand name="background-repeat" animation_value_type="discrete"

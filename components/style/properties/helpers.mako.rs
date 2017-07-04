@@ -76,9 +76,8 @@
     We assume that the default/initial value is an empty vector for these.
     `initial_value` need not be defined for these.
 </%doc>
-<%def name="vector_longhand(name, allow_empty=False,
-            delegate_animate=False, separator='Comma', **kwargs)">
-    <%call expr="longhand(name, vector=True, **kwargs)">
+<%def name="vector_longhand(name, animation_value_type=None, allow_empty=False, separator='Comma', **kwargs)">
+    <%call expr="longhand(name, animation_value_type=animation_value_type, vector=True, **kwargs)">
         #[allow(unused_imports)]
         use smallvec::SmallVec;
         use std::fmt;
@@ -128,7 +127,7 @@
                 % endif
             );
 
-            % if delegate_animate:
+            % if animation_value_type == "ComputedValue":
                 use properties::animated_properties::Animatable;
                 impl Animatable for T {
                     fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64)

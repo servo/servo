@@ -679,8 +679,7 @@ ${helpers.predefined_type(
     products="gecko",
     spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/scroll-snap-destination)",
     animation_value_type="ComputedValue",
-    allow_empty="NotInitial",
-    delegate_animate=True,
+    allow_empty="NotInitial"
 )}
 
 <%helpers:longhand name="transform" extra_prefixes="webkit"

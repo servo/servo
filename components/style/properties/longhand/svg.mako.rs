@@ -89,12 +89,17 @@ ${helpers.single_keyword("mask-mode",
 </%helpers:vector_longhand>
 
 % for (axis, direction) in [("x", "Horizontal"), ("y", "Vertical")]:
-    ${helpers.predefined_type("mask-position-" + axis, "position::" + direction + "Position",
-                              products="gecko", extra_prefixes="webkit",
-                              initial_value="computed::LengthOrPercentage::zero()",
-                              initial_specified_value="specified::PositionComponent::Center",
-                              spec="https://drafts.fxtf.org/css-masking/#propdef-mask-position",
-                              animation_value_type="ComputedValue", vector=True, delegate_animate=True)}
+    ${helpers.predefined_type(
+        "mask-position-" + axis,
+        "position::" + direction + "Position",
+        products="gecko",
+        extra_prefixes="webkit",
+        initial_value="computed::LengthOrPercentage::zero()",
+        initial_specified_value="specified::PositionComponent::Center",
+        spec="https://drafts.fxtf.org/css-masking/#propdef-mask-position",
+        animation_value_type="ComputedValue",
+        vector=True,
+    )}
 % endfor
 
 ${helpers.single_keyword("mask-clip",
