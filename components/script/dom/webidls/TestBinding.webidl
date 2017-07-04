@@ -527,6 +527,8 @@ interface TestBinding {
 
   void panic();
 
+  void setZoomFactor(float zoomFactor);
+
   GlobalScope entryGlobal();
   GlobalScope incumbentGlobal();
 };

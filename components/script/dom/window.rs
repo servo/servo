@@ -1188,6 +1188,23 @@ impl Window {
         self.layout_chan.send(Msg::AdvanceClockMs(delta, tick)).unwrap();
     }
 
+    /// Allow setting a page's zoom from a test through the `TestBinding`
+    /// interface. Zooming in or out triggers the onresize event on the
+    /// window object.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// window.onresize = function() {};
+    /// (new TestBinding()).setZoomFactor(1.1);
+    /// ```
+    ///
+    pub fn set_page_zoom_for_testing(&self, magnification: f32) {
+        let global_scope = self.upcast::<GlobalScope>();
+        let message = ConstellationMsg::SetPageZoomForTesting(magnification);
+        global_scope.constellation_chan().send(message).unwrap();
+    }
+
     /// Reflows the page unconditionally if possible and not suppressed. This
     /// method will wait for the layout thread to complete (but see the `TODO`
     /// below). If there is no window size yet, the page is presumed invisible

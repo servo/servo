@@ -6593,6 +6593,18 @@
      {}
     ]
    ],
+   "mozilla/set_zoom_factor_from_test.html": [
+    [
+     "/_mozilla/mozilla/set_zoom_factor_from_test.html",
+     [
+      [
+       "/_mozilla/mozilla/set_zoom_factor_from_test_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "mozilla/simple_scroll_to_fragment.html": [
     [
      "/_mozilla/mozilla/simple_scroll_to_fragment.html",
@@ -11169,6 +11181,11 @@
     ]
    ],
    "mozilla/service-workers/sw.js": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/set_zoom_factor_from_test_ref.html": [
     [
      {}
     ]
@@ -31696,6 +31713,14 @@
   "mozilla/servo-max-session-history.html": [
    "14e8b67eea2c1b6302cf5166218ed5b073624ee8",
    "testharness"
+  ],
+  "mozilla/set_zoom_factor_from_test.html": [
+   "e5b6b4f4859788b851b38d829b934e7c3feefaec",
+   "reftest"
+  ],
+  "mozilla/set_zoom_factor_from_test_ref.html": [
+   "fede9be668d385a085224af0483c908b040939db",
+   "support"
   ],
   "mozilla/sigsegv.html": [
    "24b45126c26470bfe2db19b7edfe02979d9d5ca1",

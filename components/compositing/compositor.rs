@@ -609,6 +609,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.window.set_fullscreen_state(state);
             }
 
+            (Msg::SetPageZoomForTesting(magnification), ShutdownState::NotShuttingDown) => {
+                self.on_zoom_window_event(magnification);
+            }
+
             // When we are shutting_down, we need to avoid performing operations
             // such as Paint that may crash because we have begun tearing down
             // the rest of our resources.
@@ -707,7 +711,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn send_window_size(&self, size_type: WindowSizeType) {
-        let dppx = self.page_zoom * self.hidpi_factor();
+        let dppx = self.device_pixels_per_page_px();
 
         let window_rect = {
             let offset = webrender_traits::DeviceUintPoint::new(self.window_rect.origin.x, self.window_rect.origin.y);

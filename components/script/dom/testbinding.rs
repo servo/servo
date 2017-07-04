@@ -782,6 +782,10 @@ impl TestBindingMethods for TestBinding {
     fn IncumbentGlobal(&self) -> Root<GlobalScope> {
         GlobalScope::incumbent().unwrap()
     }
+
+    fn SetZoomFactor(&self, magnification: Finite<f32>) {
+        self.global().as_window().set_page_zoom_for_testing(*magnification);
+    }
 }
 
 impl TestBinding {

@@ -1200,6 +1200,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             FromScriptMsg::SetFullscreenState(state) => {
                 self.compositor_proxy.send(ToCompositorMsg::SetFullscreenState(state));
             }
+            FromScriptMsg::SetPageZoomForTesting(magnification) => {
+                self.compositor_proxy.send(ToCompositorMsg::SetPageZoomForTesting(magnification));
+            }
         }
     }
 
