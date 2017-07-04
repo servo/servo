@@ -1408,16 +1408,44 @@ impl Drop for StrongRuleNode {
         let free_list = &root.next_free;
         let mut old_head = free_list.load(Ordering::Relaxed);
 
-        // If the free list is null, that means the last GC has already occurred.
-        // We require that any callers freeing at this point are on the main
-        // thread, and we drop the rule node synchronously.
+        // If the free list is null, that means that the rule tree has been
+        // formally torn down, and the last standard GC has already occurred.
+        // We require that any callers using the rule tree at this point are
+        // on the main thread only, which lets us trigger a synchronous GC
+        // here to avoid leaking anything. We use the GC machinery, rather
+        // than just dropping directly, so that we benefit from the iterative
+        // destruction and don't trigger unbounded recursion during drop. See
+        // [1] and the associated crashtest.
+        //
+        // [1] https://bugzilla.mozilla.org/show_bug.cgi?id=439184
         if old_head.is_null() {
             debug_assert!(!thread_state::get().is_worker() &&
                           (thread_state::get().is_layout() ||
                            thread_state::get().is_script()));
-            unsafe { node.remove_from_child_list(); }
-            log_drop(self.ptr());
-            let _ = unsafe { Box::from_raw(self.ptr()) };
+            // Add the node as the sole entry in the free list.
+            debug_assert!(node.next_free.load(Ordering::Relaxed).is_null());
+            node.next_free.store(FREE_LIST_SENTINEL, Ordering::Relaxed);
+            free_list.store(node as *const _ as *mut _, Ordering::Relaxed);
+
+            // Invoke the GC.
+            //
+            // Note that we need hold a strong reference to the root so that it
+            // doesn't go away during the GC (which would happen if we're freeing
+            // the last external reference into the rule tree). This is nicely
+            // enforced by having the gc() method live on StrongRuleNode rather than
+            // RuleNode.
+            let strong_root: StrongRuleNode = node.root.as_ref().unwrap().upgrade();
+            unsafe { strong_root.gc(); }
+
+            // Leave the free list null, like we found it, such that additional
+            // drops for straggling rule nodes will take this same codepath.
+            debug_assert_eq!(root.next_free.load(Ordering::Relaxed),
+                             FREE_LIST_SENTINEL);
+            root.next_free.store(ptr::null_mut(), Ordering::Relaxed);
+
+            // Return. If strong_root is the last strong reference to the root,
+            // this re-enter StrongRuleNode::drop, and take the root-dropping
+            // path earlier in this function.
             return;
         }
 
