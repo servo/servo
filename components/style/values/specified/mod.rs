@@ -48,6 +48,7 @@ pub use self::position::{Position, PositionComponent};
 pub use self::text::{InitialLetter, LetterSpacing, LineHeight, WordSpacing};
 pub use self::transform::{TimingFunction, TransformOrigin};
 pub use super::generics::grid::GridLine;
+pub use super::generics::grid::GridTemplateComponent as GenericGridTemplateComponent;
 
 #[cfg(feature = "gecko")]
 pub mod align;
@@ -686,8 +687,8 @@ pub type TrackSize = GenericTrackSize<LengthOrPercentage>;
 /// (could also be `<auto-track-list>` or `<explicit-track-list>`)
 pub type TrackList = GenericTrackList<TrackSizeOrRepeat>;
 
-/// `<track-list> | none`
-pub type TrackListOrNone = Either<TrackList, None_>;
+/// `<grid-template-rows> | <grid-template-columns>`
+pub type GridTemplateComponent = GenericGridTemplateComponent<TrackSizeOrRepeat>;
 
 no_viewport_percentage!(SVGPaint);
 

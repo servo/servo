@@ -1097,26 +1097,20 @@ fn static_assert() {
         <% self_grid = "self.gecko.mGridTemplate%s" % kind.title() %>
         use gecko::values::GeckoStyleCoordConvertible;
         use gecko_bindings::structs::{nsTArray, nsStyleGridLine_kMaxLine};
-        use nsstring::{nsCString, nsStringRepr};
+        use nsstring::nsStringRepr;
         use std::usize;
+        use values::CustomIdent;
         use values::generics::grid::TrackListType::Auto;
-        use values::generics::grid::{RepeatCount, TrackSize};
+        use values::generics::grid::{GridTemplateComponent, RepeatCount, TrackSize};
 
         #[inline]
-        fn set_bitfield(bitfield: &mut u8, pos: u8, val: bool) {
-            let mask = 1 << (pos - 1);
-            *bitfield &= !mask;
-            *bitfield |= (val as u8) << (pos - 1);
-        }
-
-        #[inline]
-        fn set_line_names(servo_names: &[String], gecko_names: &mut nsTArray<nsStringRepr>) {
+        fn set_line_names(servo_names: &[CustomIdent], gecko_names: &mut nsTArray<nsStringRepr>) {
             unsafe {
                 bindings::Gecko_ResizeTArrayForStrings(gecko_names, servo_names.len() as u32);
             }
 
             for (servo_name, gecko_name) in servo_names.iter().zip(gecko_names.iter_mut()) {
-                gecko_name.assign_utf8(&nsCString::from(&*servo_name));
+                gecko_name.assign(servo_name.0.as_slice());
             }
         }
 
@@ -1141,12 +1135,13 @@ fn static_assert() {
 
         // Set defaults
         ${self_grid}.mRepeatAutoIndex = -1;
-        set_bitfield(&mut ${self_grid}._bitfield_1, 1, false);   // mIsAutoFill
-        set_bitfield(&mut ${self_grid}._bitfield_1, 2, false);   // mIsSubgrid
-        // FIXME: mIsSubgrid is false only for <none>, but we don't support subgrid name lists at the moment.
+        ${self_grid}.set_mIsAutoFill(false);
+        ${self_grid}.set_mIsSubgrid(false);
+
+        let max_lines = nsStyleGridLine_kMaxLine as usize - 1;      // for accounting the final <line-names>
 
         match v {
-            Either::First(track) => {
+            GridTemplateComponent::TrackList(track) => {
                 let mut auto_idx = usize::MAX;
                 let mut auto_track_size = None;
                 if let Auto(idx) = track.list_type {
@@ -1154,7 +1149,7 @@ fn static_assert() {
                     let auto_repeat = track.auto_repeat.as_ref().expect("expected <auto-track-repeat> value");
 
                     if auto_repeat.count == RepeatCount::AutoFill {
-                        set_bitfield(&mut ${self_grid}._bitfield_1, 1, true);
+                        ${self_grid}.set_mIsAutoFill(true);
                     }
 
                     ${self_grid}.mRepeatAutoIndex = idx as i16;
@@ -1177,7 +1172,6 @@ fn static_assert() {
                     num_values += 1;
                 }
 
-                let max_lines = nsStyleGridLine_kMaxLine as usize - 1;      // for accounting the final <line-names>
                 num_values = cmp::min(num_values, max_lines);
                 unsafe {
                     bindings::Gecko_SetStyleGridTemplateArrayLengths(&mut ${self_grid}, num_values as u32);
@@ -1204,13 +1198,34 @@ fn static_assert() {
                 let final_names = line_names.next().unwrap();
                 set_line_names(&final_names, ${self_grid}.mLineNameLists.last_mut().unwrap());
             },
-            Either::Second(_none) => {
+            GridTemplateComponent::None => {
                 unsafe {
                     bindings::Gecko_SetStyleGridTemplateArrayLengths(&mut ${self_grid}, 0);
                     bindings::Gecko_ResizeTArrayForStrings(
                         &mut ${self_grid}.mRepeatAutoLineNameListBefore, 0);
                     bindings::Gecko_ResizeTArrayForStrings(
                         &mut ${self_grid}.mRepeatAutoLineNameListAfter, 0);
+                }
+            },
+            GridTemplateComponent::Subgrid(list) => {
+                ${self_grid}.set_mIsSubgrid(true);
+                let num_values = cmp::min(list.names.len(), max_lines + 1);
+                unsafe {
+                    bindings::Gecko_SetStyleGridTemplateArrayLengths(&mut ${self_grid}, 0);
+                    bindings::Gecko_SetGridTemplateLineNamesLength(&mut ${self_grid}, num_values as u32);
+                    bindings::Gecko_ResizeTArrayForStrings(
+                        &mut ${self_grid}.mRepeatAutoLineNameListBefore, 0);
+                    bindings::Gecko_ResizeTArrayForStrings(
+                        &mut ${self_grid}.mRepeatAutoLineNameListAfter, 0);
+                }
+
+                if let Some(idx) = list.fill_idx {
+                    ${self_grid}.set_mIsAutoFill(true);
+                    ${self_grid}.mRepeatAutoIndex = idx as i16;
+                }
+
+                for (servo_names, gecko_names) in list.names.iter().zip(${self_grid}.mLineNameLists.iter_mut()) {
+                    set_line_names(servo_names, gecko_names);
                 }
             },
         }
