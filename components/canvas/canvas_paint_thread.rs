@@ -544,6 +544,8 @@ impl<'a> CanvasPaintThread<'a> {
 
     fn recreate(&mut self, size: Size2D<i32>) {
         self.drawtarget = CanvasPaintThread::create(size);
+        self.state = CanvasPaintState::new(self.state.draw_options.antialias == AntialiasMode::Default);
+        self.saved_states.clear();
         // Webrender doesn't let images change size, so we clear the webrender image key.
         if let Some(image_key) = self.image_key.take() {
             self.webrender_api.delete_image(image_key);
