@@ -502,10 +502,7 @@ impl Gradient {
                     (&GenericGradientItem::ColorStop(ref a), &GenericGradientItem::ColorStop(ref b)) => {
                         match (&a.position, &b.position) {
                             (&Some(LengthOrPercentage::Percentage(a)), &Some(LengthOrPercentage::Percentage(b))) => {
-                                let ordering = a.0.partial_cmp(&b.0).unwrap_or(Ordering::Equal);
-                                if ordering != Ordering::Equal {
-                                    return ordering;
-                                }
+                                return a.0.partial_cmp(&b.0).unwrap_or(Ordering::Equal);
                             },
                             _ => {},
                         }
