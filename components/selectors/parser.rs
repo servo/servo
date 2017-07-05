@@ -1572,7 +1572,6 @@ pub mod tests {
     use builder::HAS_PSEUDO_BIT;
     use cssparser::{Parser as CssParser, ToCss, serialize_identifier, ParserInput};
     use parser;
-    use std::borrow::Cow;
     use std::collections::HashMap;
     use std::fmt;
     use super::*;

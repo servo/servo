@@ -962,13 +962,29 @@ impl InlineFlow {
                 Some(ref runs) => runs[run_count - run_idx - 1], // reverse order for RTL runs
                 None => (line.range, bidi::Level::ltr())
             };
+
+            struct MaybeReverse<I> {
+                iter: I,
+                reverse: bool,
+            }
+
+            impl<I: DoubleEndedIterator> Iterator for MaybeReverse<I> {
+                type Item = I::Item;
+
+                fn next(&mut self) -> Option<I::Item> {
+                    if self.reverse {
+                        self.iter.next_back()
+                    } else {
+                        self.iter.next()
+                    }
+                }
+            }
+
             // If the bidi embedding direction is opposite the layout direction, lay out this
             // run in reverse order.
-            let reverse = level.is_ltr() != is_ltr;
-            let fragment_indices = if reverse {
-                (range.end().get() - 1..range.begin().get() - 1).step_by(-1)
-            } else {
-                (range.begin().get()..range.end().get()).step_by(1)
+            let fragment_indices = MaybeReverse {
+                iter: range.begin().get()..range.end().get(),
+                reverse: level.is_ltr() != is_ltr,
             };
 
             for fragment_index in fragment_indices {
