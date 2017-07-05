@@ -8,7 +8,6 @@
 #![feature(conservative_impl_trait)]
 #![feature(nonzero)]
 #![feature(raw)]
-#![feature(step_by)]
 
 extern crate app_units;
 extern crate atomic_refcell;
