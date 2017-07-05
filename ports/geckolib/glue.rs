@@ -545,7 +545,7 @@ pub extern "C" fn Servo_AnimationCompose(raw_value_map: RawServoAnimationValueMa
     };
     if let Ok(value) = from_value.interpolate(to_value, position) {
         value_map.insert(property, value);
-    } else if progress < 0.5 {
+    } else if position < 0.5 {
         value_map.insert(property, from_value.clone());
     } else {
         value_map.insert(property, to_value.clone());
