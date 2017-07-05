@@ -20,6 +20,7 @@ use values::computed::{Angle, CalcLengthOrPercentage, Gradient, Image};
 use values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use values::generics::grid::TrackSize;
 use values::generics::image::{CompatMode, Image as GenericImage, GradientItem};
+use values::generics::rect::Rect;
 use values::specified::length::Percentage;
 
 impl From<CalcLengthOrPercentage> for nsStyleCoord_CalcValue {
@@ -633,5 +634,30 @@ impl TrackSize<LengthOrPercentage> {
                 max.to_gecko_style_coord(gecko_max);
             },
         }
+    }
+}
+
+impl<T> Rect<T> where T: GeckoStyleCoordConvertible {
+    /// Convert this generic Rect to given Gecko fields.
+    pub fn to_gecko_rect(&self, sides: &mut ::gecko_bindings::structs::nsStyleSides) {
+        self.0.to_gecko_style_coord(&mut sides.data_at_mut(0));
+        self.1.to_gecko_style_coord(&mut sides.data_at_mut(1));
+        self.2.to_gecko_style_coord(&mut sides.data_at_mut(2));
+        self.3.to_gecko_style_coord(&mut sides.data_at_mut(3));
+    }
+
+    /// Convert from given Gecko data to generic Rect.
+    pub fn from_gecko_rect(sides: &::gecko_bindings::structs::nsStyleSides)
+                           -> Option<::values::generics::rect::Rect<T>> {
+        use values::generics::rect::Rect;
+
+        Some(
+            Rect::new(
+                T::from_gecko_style_coord(&sides.data_at(0)).expect("coord[0] cound not convert"),
+                T::from_gecko_style_coord(&sides.data_at(1)).expect("coord[1] cound not convert"),
+                T::from_gecko_style_coord(&sides.data_at(2)).expect("coord[2] cound not convert"),
+                T::from_gecko_style_coord(&sides.data_at(3)).expect("coord[3] cound not convert")
+            )
+        )
     }
 }
