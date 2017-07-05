@@ -2862,6 +2862,25 @@ fn static_assert() {
         }
     }
 
+    pub fn clone_will_change(&self) -> longhands::will_change::computed_value::T {
+        use properties::longhands::will_change::computed_value::T;
+        use gecko_bindings::structs::nsIAtom;
+        use gecko_string_cache::Atom;
+        use values::CustomIdent;
+
+        if self.gecko.mWillChange.mBuffer.len() == 0 {
+            T::Auto
+        } else {
+            T::AnimateableFeatures(
+                self.gecko.mWillChange.mBuffer.iter().map(|gecko_atom| {
+                    CustomIdent(
+                        unsafe { Atom::from_addrefed(*gecko_atom as *mut nsIAtom) }
+                    )
+                }).collect()
+            )
+        }
+    }
+
     <% impl_shape_source("shape_outside", "mShapeOutside") %>
 
     pub fn set_contain(&mut self, v: longhands::contain::computed_value::T) {
@@ -3077,6 +3096,30 @@ fn static_assert() {
               mYRepeat: repeat_y,
         }
     </%self:simple_image_array_property>
+
+    pub fn clone_${shorthand}_repeat(&self) -> longhands::${shorthand}_repeat::computed_value::T {
+        use properties::longhands::${shorthand}_repeat::single_value::computed_value::T;
+        use properties::longhands::${shorthand}_repeat::single_value::computed_value::RepeatKeyword;
+        use gecko_bindings::structs::StyleImageLayerRepeat;
+
+        fn to_servo(repeat: StyleImageLayerRepeat) -> RepeatKeyword {
+            match repeat {
+                StyleImageLayerRepeat::Repeat => RepeatKeyword::Repeat,
+                StyleImageLayerRepeat::Space => RepeatKeyword::Space,
+                StyleImageLayerRepeat::Round => RepeatKeyword::Round,
+                StyleImageLayerRepeat::NoRepeat => RepeatKeyword::NoRepeat,
+                x => panic!("Found unexpected value in style struct for ${shorthand}_repeat property: {:?}", x),
+            }
+        }
+
+        longhands::${shorthand}_repeat::computed_value::T (
+            self.gecko.${image_layers_field}.mLayers.iter()
+                .take(self.gecko.${image_layers_field}.mRepeatCount as usize)
+                .map(|ref layer| {
+                    T(to_servo(layer.mRepeat.mXRepeat), to_servo(layer.mRepeat.mYRepeat))
+                }).collect()
+        )
+    }
 
     <% impl_simple_image_array_property("clip", shorthand, image_layers_field, "mClip", struct_name) %>
     <% impl_simple_image_array_property("origin", shorthand, image_layers_field, "mOrigin", struct_name) %>
@@ -3916,6 +3959,33 @@ fn static_assert() {
                       .assign(&*other.gecko.mTextEmphasisStyleString)
         }
         self.gecko.mTextEmphasisStyle = other.gecko.mTextEmphasisStyle;
+    }
+
+    pub fn clone_text_emphasis_style(&self) -> longhands::text_emphasis_style::computed_value::T {
+        use properties::longhands::text_emphasis_style::computed_value::{T, KeywordValue};
+        use properties::longhands::text_emphasis_style::ShapeKeyword;
+
+        if self.gecko.mTextEmphasisStyle == structs::NS_STYLE_TEXT_EMPHASIS_STYLE_NONE as u8 {
+            return T::None;
+        } else if self.gecko.mTextEmphasisStyle == structs::NS_STYLE_TEXT_EMPHASIS_STYLE_STRING as u8 {
+            return T::String(self.gecko.mTextEmphasisStyleString.to_string());
+        }
+
+        let fill = self.gecko.mTextEmphasisStyle & structs::NS_STYLE_TEXT_EMPHASIS_STYLE_OPEN as u8 == 0;
+        let shape =
+            match self.gecko.mTextEmphasisStyle as u32 & !structs::NS_STYLE_TEXT_EMPHASIS_STYLE_OPEN {
+                structs::NS_STYLE_TEXT_EMPHASIS_STYLE_DOT => ShapeKeyword::Dot,
+                structs::NS_STYLE_TEXT_EMPHASIS_STYLE_CIRCLE => ShapeKeyword::Circle,
+                structs::NS_STYLE_TEXT_EMPHASIS_STYLE_DOUBLE_CIRCLE => ShapeKeyword::DoubleCircle,
+                structs::NS_STYLE_TEXT_EMPHASIS_STYLE_TRIANGLE => ShapeKeyword::Triangle,
+                structs::NS_STYLE_TEXT_EMPHASIS_STYLE_SESAME => ShapeKeyword::Sesame,
+                x => panic!("Unexpected value in style struct for text-emphasis-style property: {:?}", x)
+            };
+
+        T::Keyword(KeywordValue {
+            fill: fill,
+            shape: shape
+        })
     }
 
     <%call expr="impl_app_units('_webkit_text_stroke_width', 'mWebkitTextStrokeWidth', need_clone=True)"></%call>

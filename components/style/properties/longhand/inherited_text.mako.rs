@@ -417,8 +417,8 @@ ${helpers.predefined_type(
     spec="https://drafts.csswg.org/css-text-decor-3/#text-shadow-property",
 )}
 
-<%helpers:longhand name="text-emphasis-style" products="gecko" need_clone="True" boxed="True"
-                   animation_value_type="none"
+<%helpers:longhand name="text-emphasis-style" products="gecko" boxed="True"
+                   animation_value_type="discrete"
                    spec="https://drafts.csswg.org/css-text-decor/#propdef-text-emphasis-style">
     use computed_values::writing_mode::T as writing_mode;
     use std::fmt;

@@ -70,7 +70,7 @@ ${helpers.single_keyword("mask-mode",
                          animation_value_type="discrete",
                          spec="https://drafts.fxtf.org/css-masking/#propdef-mask-mode")}
 
-<%helpers:vector_longhand name="mask-repeat" products="gecko" animation_value_type="none" extra_prefixes="webkit"
+<%helpers:vector_longhand name="mask-repeat" products="gecko" animation_value_type="discrete" extra_prefixes="webkit"
                           spec="https://drafts.fxtf.org/css-masking/#propdef-mask-repeat">
     pub use properties::longhands::background_repeat::single_value::parse;
     pub use properties::longhands::background_repeat::single_value::SpecifiedValue;

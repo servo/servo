@@ -1874,7 +1874,7 @@ ${helpers.single_keyword("-moz-orient",
                           gecko_inexhaustive="True",
                           animation_value_type="discrete")}
 
-<%helpers:longhand name="will-change" products="gecko" animation_value_type="none"
+<%helpers:longhand name="will-change" products="gecko" animation_value_type="discrete"
                    spec="https://drafts.csswg.org/css-will-change/#will-change">
     use std::fmt;
     use style_traits::ToCss;
