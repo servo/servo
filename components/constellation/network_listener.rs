@@ -103,6 +103,7 @@ impl NetworkListener {
 
                         self.res_init = Some(ResponseInit {
                             url: metadata.final_url.clone(),
+                            location_url: metadata.location_url.clone(),
                             headers: headers.clone().into_inner(),
                             referrer: metadata.referrer.clone(),
                         });
