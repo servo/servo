@@ -94,7 +94,6 @@ ${helpers.predefined_type(
     None,
     "parse_non_negative",
     vector=True,
-    delegate_animate=True,
     products="gecko",
     animation_value_type="ComputedValue",
     separator="CommaWithSpace",

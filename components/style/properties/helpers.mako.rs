@@ -69,208 +69,200 @@
 // FIXME (Manishearth): Add computed_value_as_specified argument
 // and handle the empty case correctly
 <%doc>
-    To be used in cases where we have a grammar like
-    "<thing> [ , <thing> ]*". `gecko_only` should be set
-    to True for cases where Servo takes a single value
-    and Stylo supports vector values.
+    To be used in cases where we have a grammar like "<thing> [ , <thing> ]*".
 
     Setting allow_empty to False allows for cases where the vector
     is empty. The grammar for these is usually "none | <thing> [ , <thing> ]*".
     We assume that the default/initial value is an empty vector for these.
     `initial_value` need not be defined for these.
 </%doc>
-<%def name="vector_longhand(name, gecko_only=False, allow_empty=False,
-            delegate_animate=False, separator='Comma', **kwargs)">
-    <%call expr="longhand(name, vector=True, **kwargs)">
-        % if not gecko_only:
+<%def name="vector_longhand(name, animation_value_type=None, allow_empty=False, separator='Comma', **kwargs)">
+    <%call expr="longhand(name, animation_value_type=animation_value_type, vector=True, **kwargs)">
+        #[allow(unused_imports)]
+        use smallvec::SmallVec;
+        use std::fmt;
+        #[allow(unused_imports)]
+        use style_traits::HasViewportPercentage;
+        use style_traits::{Separator, ToCss};
+
+        pub mod single_value {
             #[allow(unused_imports)]
-            use smallvec::SmallVec;
-            use std::fmt;
+            use cssparser::{Parser, BasicParseError};
             #[allow(unused_imports)]
-            use style_traits::HasViewportPercentage;
-            use style_traits::{Separator, ToCss};
-
-            pub mod single_value {
-                #[allow(unused_imports)]
-                use cssparser::{Parser, BasicParseError};
-                #[allow(unused_imports)]
-                use parser::{Parse, ParserContext};
-                #[allow(unused_imports)]
-                use properties::ShorthandId;
-                #[allow(unused_imports)]
-                use selectors::parser::SelectorParseError;
-                #[allow(unused_imports)]
-                use style_traits::{ParseError, StyleParseError};
-                #[allow(unused_imports)]
-                use values::computed::{Context, ToComputedValue};
-                #[allow(unused_imports)]
-                use values::{computed, specified};
-                #[allow(unused_imports)]
-                use values::{Auto, Either, None_, Normal};
-                ${caller.body()}
-            }
-
-            /// The definition of the computed value for ${name}.
-            pub mod computed_value {
-                pub use super::single_value::computed_value as single_value;
-                pub use self::single_value::T as SingleComputedValue;
-                % if allow_empty and allow_empty != "NotInitial":
-                use std::vec::IntoIter;
-                % else:
-                use smallvec::{IntoIter, SmallVec};
-                % endif
-                use values::computed::ComputedVecIter;
-
-                /// The computed value, effectively a list of single values.
-                #[derive(Debug, Clone, PartialEq)]
-                #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-                pub struct T(
-                    % if allow_empty and allow_empty != "NotInitial":
-                    pub Vec<single_value::T>,
-                    % else:
-                    pub SmallVec<[single_value::T; 1]>,
-                    % endif
-                );
-
-                % if delegate_animate:
-                    use properties::animated_properties::Animatable;
-                    impl Animatable for T {
-                        fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64)
-                            -> Result<Self, ()> {
-                            self.0.add_weighted(&other.0, self_portion, other_portion).map(T)
-                        }
-
-                        fn add(&self, other: &Self) -> Result<Self, ()> {
-                            self.0.add(&other.0).map(T)
-                        }
-
-                        #[inline]
-                        fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
-                            self.0.compute_distance(&other.0)
-                        }
-
-                        #[inline]
-                        fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
-                            self.0.compute_squared_distance(&other.0)
-                        }
-                    }
-                % endif
-
-                pub type Iter<'a, 'cx, 'cx_a> = ComputedVecIter<'a, 'cx, 'cx_a, super::single_value::SpecifiedValue>;
-
-                impl IntoIterator for T {
-                    type Item = single_value::T;
-                    % if allow_empty and allow_empty != "NotInitial":
-                    type IntoIter = IntoIter<single_value::T>;
-                    % else:
-                    type IntoIter = IntoIter<[single_value::T; 1]>;
-                    % endif
-                    fn into_iter(self) -> Self::IntoIter {
-                        self.0.into_iter()
-                    }
-                }
-            }
-
-            impl ToCss for computed_value::T {
-                fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-                    where W: fmt::Write,
-                {
-                    let mut iter = self.0.iter();
-                    if let Some(val) = iter.next() {
-                        val.to_css(dest)?;
-                    } else {
-                        % if allow_empty:
-                            dest.write_str("none")?;
-                        % else:
-                            warn!("Found empty value for property ${name}");
-                        % endif
-                    }
-                    for i in iter {
-                        dest.write_str(::style_traits::${separator}::separator())?;
-                        i.to_css(dest)?;
-                    }
-                    Ok(())
-                }
-            }
-
-            /// The specified value of ${name}.
-            #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
-            #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-            pub struct SpecifiedValue(pub Vec<single_value::SpecifiedValue>);
-
-            impl ToCss for SpecifiedValue {
-                fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-                    where W: fmt::Write,
-                {
-                    let mut iter = self.0.iter();
-                    if let Some(val) = iter.next() {
-                        val.to_css(dest)?;
-                    } else {
-                        % if allow_empty:
-                            dest.write_str("none")?;
-                        % else:
-                            warn!("Found empty value for property ${name}");
-                        % endif
-                    }
-                    for i in iter {
-                        dest.write_str(::style_traits::${separator}::separator())?;
-                        i.to_css(dest)?;
-                    }
-                    Ok(())
-                }
-            }
-
-            pub fn get_initial_value() -> computed_value::T {
-                % if allow_empty and allow_empty != "NotInitial":
-                    computed_value::T(vec![])
-                % else:
-                    let mut v = SmallVec::new();
-                    v.push(single_value::get_initial_value());
-                    computed_value::T(v)
-                % endif
-            }
-
-            pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                                 -> Result<SpecifiedValue, ParseError<'i>> {
-                use style_traits::Separator;
-
-                % if allow_empty:
-                    if input.try(|input| input.expect_ident_matching("none")).is_ok() {
-                        return Ok(SpecifiedValue(Vec::new()))
-                    }
-                % endif
-
-                ::style_traits::${separator}::parse(input, |parser| {
-                    single_value::parse(context, parser)
-                }).map(SpecifiedValue)
-            }
-
-            pub use self::single_value::SpecifiedValue as SingleSpecifiedValue;
-
-            impl SpecifiedValue {
-                pub fn compute_iter<'a, 'cx, 'cx_a>(&'a self, context: &'cx Context<'cx_a>)
-                    -> computed_value::Iter<'a, 'cx, 'cx_a> {
-                    computed_value::Iter::new(context, &self.0)
-                }
-            }
-
-            impl ToComputedValue for SpecifiedValue {
-                type ComputedValue = computed_value::T;
-
-                #[inline]
-                fn to_computed_value(&self, context: &Context) -> computed_value::T {
-                    computed_value::T(self.compute_iter(context).collect())
-                }
-                #[inline]
-                fn from_computed_value(computed: &computed_value::T) -> Self {
-                    SpecifiedValue(computed.0.iter()
-                                       .map(ToComputedValue::from_computed_value)
-                                       .collect())
-                }
-            }
-        % else:
+            use parser::{Parse, ParserContext};
+            #[allow(unused_imports)]
+            use properties::ShorthandId;
+            #[allow(unused_imports)]
+            use selectors::parser::SelectorParseError;
+            #[allow(unused_imports)]
+            use style_traits::{ParseError, StyleParseError};
+            #[allow(unused_imports)]
+            use values::computed::{Context, ToComputedValue};
+            #[allow(unused_imports)]
+            use values::{computed, specified};
+            #[allow(unused_imports)]
+            use values::{Auto, Either, None_, Normal};
             ${caller.body()}
-        % endif
+        }
+
+        /// The definition of the computed value for ${name}.
+        pub mod computed_value {
+            pub use super::single_value::computed_value as single_value;
+            pub use self::single_value::T as SingleComputedValue;
+            % if allow_empty and allow_empty != "NotInitial":
+            use std::vec::IntoIter;
+            % else:
+            use smallvec::{IntoIter, SmallVec};
+            % endif
+            use values::computed::ComputedVecIter;
+
+            /// The computed value, effectively a list of single values.
+            #[derive(Debug, Clone, PartialEq)]
+            #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+            pub struct T(
+                % if allow_empty and allow_empty != "NotInitial":
+                pub Vec<single_value::T>,
+                % else:
+                pub SmallVec<[single_value::T; 1]>,
+                % endif
+            );
+
+            % if animation_value_type == "ComputedValue":
+                use properties::animated_properties::Animatable;
+                impl Animatable for T {
+                    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64)
+                        -> Result<Self, ()> {
+                        self.0.add_weighted(&other.0, self_portion, other_portion).map(T)
+                    }
+
+                    fn add(&self, other: &Self) -> Result<Self, ()> {
+                        self.0.add(&other.0).map(T)
+                    }
+
+                    #[inline]
+                    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
+                        self.0.compute_distance(&other.0)
+                    }
+
+                    #[inline]
+                    fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
+                        self.0.compute_squared_distance(&other.0)
+                    }
+                }
+            % endif
+
+            pub type Iter<'a, 'cx, 'cx_a> = ComputedVecIter<'a, 'cx, 'cx_a, super::single_value::SpecifiedValue>;
+
+            impl IntoIterator for T {
+                type Item = single_value::T;
+                % if allow_empty and allow_empty != "NotInitial":
+                type IntoIter = IntoIter<single_value::T>;
+                % else:
+                type IntoIter = IntoIter<[single_value::T; 1]>;
+                % endif
+                fn into_iter(self) -> Self::IntoIter {
+                    self.0.into_iter()
+                }
+            }
+        }
+
+        impl ToCss for computed_value::T {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+                where W: fmt::Write,
+            {
+                let mut iter = self.0.iter();
+                if let Some(val) = iter.next() {
+                    val.to_css(dest)?;
+                } else {
+                    % if allow_empty:
+                        dest.write_str("none")?;
+                    % else:
+                        warn!("Found empty value for property ${name}");
+                    % endif
+                }
+                for i in iter {
+                    dest.write_str(::style_traits::${separator}::separator())?;
+                    i.to_css(dest)?;
+                }
+                Ok(())
+            }
+        }
+
+        /// The specified value of ${name}.
+        #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        pub struct SpecifiedValue(pub Vec<single_value::SpecifiedValue>);
+
+        impl ToCss for SpecifiedValue {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+                where W: fmt::Write,
+            {
+                let mut iter = self.0.iter();
+                if let Some(val) = iter.next() {
+                    val.to_css(dest)?;
+                } else {
+                    % if allow_empty:
+                        dest.write_str("none")?;
+                    % else:
+                        warn!("Found empty value for property ${name}");
+                    % endif
+                }
+                for i in iter {
+                    dest.write_str(::style_traits::${separator}::separator())?;
+                    i.to_css(dest)?;
+                }
+                Ok(())
+            }
+        }
+
+        pub fn get_initial_value() -> computed_value::T {
+            % if allow_empty and allow_empty != "NotInitial":
+                computed_value::T(vec![])
+            % else:
+                let mut v = SmallVec::new();
+                v.push(single_value::get_initial_value());
+                computed_value::T(v)
+            % endif
+        }
+
+        pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                                -> Result<SpecifiedValue, ParseError<'i>> {
+            use style_traits::Separator;
+
+            % if allow_empty:
+                if input.try(|input| input.expect_ident_matching("none")).is_ok() {
+                    return Ok(SpecifiedValue(Vec::new()))
+                }
+            % endif
+
+            ::style_traits::${separator}::parse(input, |parser| {
+                single_value::parse(context, parser)
+            }).map(SpecifiedValue)
+        }
+
+        pub use self::single_value::SpecifiedValue as SingleSpecifiedValue;
+
+        impl SpecifiedValue {
+            pub fn compute_iter<'a, 'cx, 'cx_a>(&'a self, context: &'cx Context<'cx_a>)
+                -> computed_value::Iter<'a, 'cx, 'cx_a> {
+                computed_value::Iter::new(context, &self.0)
+            }
+        }
+
+        impl ToComputedValue for SpecifiedValue {
+            type ComputedValue = computed_value::T;
+
+            #[inline]
+            fn to_computed_value(&self, context: &Context) -> computed_value::T {
+                computed_value::T(self.compute_iter(context).collect())
+            }
+            #[inline]
+            fn from_computed_value(computed: &computed_value::T) -> Self {
+                SpecifiedValue(computed.0.iter()
+                                    .map(ToComputedValue::from_computed_value)
+                                    .collect())
+            }
+        }
     </%call>
 </%def>
 <%def name="longhand(*args, **kwargs)">

@@ -16,7 +16,6 @@ use euclid::{Point2D, Size2D};
 #[cfg(feature = "gecko")] use gecko_string_cache::Atom;
 use properties::{CSSWideKeyword, PropertyDeclaration};
 use properties::longhands;
-use properties::longhands::background_size::computed_value::T as BackgroundSizeList;
 use properties::longhands::font_weight::computed_value::T as FontWeight;
 use properties::longhands::font_stretch::computed_value::T as FontStretch;
 use properties::longhands::transform::computed_value::ComputedMatrix;
@@ -1080,23 +1079,6 @@ impl Animatable for VerticalAlign {
             },
             _ => Err(()),
         }
-    }
-}
-
-impl Animatable for BackgroundSizeList {
-    #[inline]
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
-        self.0.add_weighted(&other.0, self_portion, other_portion).map(BackgroundSizeList)
-    }
-
-    #[inline]
-    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
-        self.0.compute_distance(&other.0)
-    }
-
-    #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
-        self.0.compute_squared_distance(&other.0)
     }
 }
 
