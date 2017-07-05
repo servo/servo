@@ -201,6 +201,14 @@ def set_osmesa_env(bin_path, env):
     return env
 
 
+def has_rustc_alt_build(platform_or_triple):
+    platforms_with_rustc_alt_builds = ["unknown-linux-gnu", "apple-darwin", "pc-windows-msvc"]
+    for platform in platforms_with_rustc_alt_builds:
+        if platform in platform_or_triple:
+            return True
+    return False
+
+
 class BuildNotFound(Exception):
     def __init__(self, message):
         self.message = message
@@ -261,9 +269,8 @@ class CommandBase(object):
         self.config["tools"].setdefault("rustc-with-gold", get_env_bool("SERVO_RUSTC_WITH_GOLD", True))
 
         # https://github.com/rust-lang/rust/pull/39754
-        platforms_with_rustc_alt_builds = ["unknown-linux-gnu", "apple-darwin", "pc-windows-msvc"]
         llvm_assertions_default = ("SERVO_RUSTC_LLVM_ASSERTIONS" in os.environ
-                                   or host_platform() not in platforms_with_rustc_alt_builds)
+                                   or not has_rustc_alt_build(host_platform()))
 
         self.config.setdefault("build", {})
         self.config["build"].setdefault("android", False)
