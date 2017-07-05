@@ -22,6 +22,7 @@ use values::computed::{MaxLength, MozLength};
 use values::computed::basic_shape::ShapeRadius as ComputedShapeRadius;
 use values::generics::CounterStyleOrNone;
 use values::generics::basic_shape::ShapeRadius;
+use values::generics::gecko::ScrollSnapPoint;
 use values::generics::grid::{TrackBreadth, TrackKeyword};
 use values::specified::Percentage;
 
@@ -365,6 +366,30 @@ impl GeckoStyleCoordConvertible for MaxLength {
     fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
         LengthOrPercentageOrNone::from_gecko_style_coord(coord).map(MaxLength::LengthOrPercentageOrNone)
             .or_else(|| ExtremumLength::from_gecko_style_coord(coord).map(MaxLength::ExtremumLength))
+    }
+}
+
+impl GeckoStyleCoordConvertible for ScrollSnapPoint<LengthOrPercentage> {
+    fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
+        match self.repeated() {
+            None => coord.set_value(CoordDataValue::None),
+            Some(l) => l.to_gecko_style_coord(coord),
+        };
+    }
+
+    fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
+        use gecko_bindings::structs::root::nsStyleUnit;
+        use values::generics::gecko::ScrollSnapPoint;
+
+        Some(
+            match coord.unit() {
+                nsStyleUnit::eStyleUnit_None => ScrollSnapPoint::None,
+                nsStyleUnit::eStyleUnit_Coord | nsStyleUnit::eStyleUnit_Percent  =>
+                    ScrollSnapPoint::Repeat(LengthOrPercentage::from_gecko_style_coord(coord)
+                                            .expect("coord could not convert to LengthOrPercentage")),
+                x => panic!("Unexpected unit {:?}", x)
+            }
+        )
     }
 }
 

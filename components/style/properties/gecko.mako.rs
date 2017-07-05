@@ -1250,6 +1250,30 @@ fn static_assert() {
         self.gecko.mGridAuto${kind.title()}Max.copy_from(&other.gecko.mGridAuto${kind.title()}Max);
     }
 
+    pub fn clone_grid_auto_${kind}(&self) -> longhands::grid_auto_${kind}::computed_value::T {
+        use gecko_bindings::structs::root::nsStyleUnit::eStyleUnit_None;
+        use values::computed::length::LengthOrPercentage;
+        use values::generics::grid::{TrackSize, TrackBreadth};
+
+        let ref min_gecko = self.gecko.mGridAuto${kind.title()}Min;
+        let ref max_gecko = self.gecko.mGridAuto${kind.title()}Max;
+        if min_gecko.unit() == eStyleUnit_None {
+            debug_assert!(max_gecko.unit() != eStyleUnit_None);
+            return TrackSize::FitContent(LengthOrPercentage::from_gecko_style_coord(max_gecko)
+                                         .expect("mGridAuto${kind.title()}Max contains style coord"));
+        }
+
+        let min = TrackBreadth::from_gecko_style_coord(min_gecko)
+                                .expect("mGridAuto${kind.title()}Min contains style coord");
+        let max = TrackBreadth::from_gecko_style_coord(max_gecko)
+                                .expect("mGridAuto${kind.title()}Max contains style coord");
+        if min == max {
+            TrackSize::Breadth(max)
+        } else {
+            TrackSize::MinMax(min, max)
+        }
+    }
+
     pub fn set_grid_template_${kind}(&mut self, v: longhands::grid_template_${kind}::computed_value::T) {
         <% self_grid = "self.gecko.mGridTemplate%s" % kind.title() %>
         use gecko::values::GeckoStyleCoordConvertible;
@@ -2223,16 +2247,8 @@ fn static_assert() {
     }
     % endfor
 
-    % for axis in ["x", "y"]:
-        pub fn set_scroll_snap_points_${axis}(&mut self, v: longhands::scroll_snap_points_${axis}::computed_value::T) {
-            match v.repeated() {
-                None => self.gecko.mScrollSnapPoints${axis.upper()}.set_value(CoordDataValue::None),
-                Some(l) => l.to_gecko_style_coord(&mut self.gecko.mScrollSnapPoints${axis.upper()}),
-            };
-        }
-
-        ${impl_coord_copy('scroll_snap_points_' + axis, 'mScrollSnapPoints' + axis.upper())}
-    % endfor
+    ${impl_style_coord("scroll_snap_points_x", "mScrollSnapPointsX", True)}
+    ${impl_style_coord("scroll_snap_points_y", "mScrollSnapPointsY", True)}
 
     pub fn set_scroll_snap_coordinate<I>(&mut self, v: I)
         where I: IntoIterator<Item = longhands::scroll_snap_coordinate::computed_value::single_value::T>,
