@@ -828,6 +828,10 @@ macro_rules! repeated_vec_impl {
         $(impl<T: RepeatableListAnimatable> Animatable for $ty {
             fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64)
                 -> Result<Self, ()> {
+                // If the length of either list is zero, the least common multiple is undefined.
+                if cmp::min(self.len(), other.len()) < 1 {
+                    return Err(());
+                }
                 use num_integer::lcm;
                 let len = lcm(self.len(), other.len());
                 self.iter().cycle().zip(other.iter().cycle()).take(len).map(|(me, you)| {
@@ -842,6 +846,10 @@ macro_rules! repeated_vec_impl {
 
             #[inline]
             fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
+                // If the length of either list is zero, the least common multiple is undefined.
+                if cmp::min(self.len(), other.len()) < 1 {
+                    return Err(());
+                }
                 use num_integer::lcm;
                 let len = lcm(self.len(), other.len());
                 self.iter().cycle().zip(other.iter().cycle()).take(len).map(|(me, you)| {
