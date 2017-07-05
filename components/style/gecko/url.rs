@@ -7,6 +7,7 @@
 use gecko_bindings::structs::{ServoBundledURI, URLExtraData};
 use gecko_bindings::structs::mozilla::css::URLValueData;
 use gecko_bindings::structs::root::mozilla::css::ImageValue;
+use gecko_bindings::structs::root::nsStyleImageRequest;
 use gecko_bindings::sugar::refptr::RefPtr;
 use parser::ParserContext;
 use std::fmt;
@@ -60,6 +61,19 @@ impl SpecifiedUrl {
             extra_data: url.mExtraData.to_safe(),
             image_value: None,
         })
+    }
+
+    /// Convert from nsStyleImageRequest to SpecifiedUrl.
+    pub unsafe fn from_image_request(image_request: &nsStyleImageRequest) -> Result<SpecifiedUrl, ()> {
+        if image_request.mImageValue.mRawPtr.is_null() {
+            return Err(());
+        }
+
+        let image_value = image_request.mImageValue.mRawPtr.as_ref().unwrap();
+        let ref url_value_data = image_value._base;
+        let mut result = try!(Self::from_url_value_data(url_value_data));
+        result.build_image_value();
+        Ok(result)
     }
 
     /// Returns true if this URL looks like a fragment.

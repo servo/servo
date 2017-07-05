@@ -3413,6 +3413,24 @@ fn static_assert() {
         unsafe { Gecko_CopyListStyleImageFrom(&mut self.gecko, &other.gecko); }
     }
 
+    pub fn clone_list_style_image(&self) -> longhands::list_style_image::computed_value::T {
+        use values::specified::url::SpecifiedUrl;
+        use values::{Either, None_};
+
+        longhands::list_style_image::computed_value::T(
+            match self.gecko.mListStyleImage.mRawPtr.is_null() {
+                true => Either::Second(None_),
+                false => {
+                    unsafe {
+                        let ref gecko_image_request = *self.gecko.mListStyleImage.mRawPtr;
+                        Either::First(SpecifiedUrl::from_image_request(gecko_image_request)
+                                      .expect("mListStyleImage could not convert to SpecifiedUrl"))
+                    }
+                }
+            }
+        )
+    }
+
     pub fn set_list_style_type(&mut self, v: longhands::list_style_type::computed_value::T, device: &Device) {
         use gecko_bindings::bindings::Gecko_SetCounterStyleToString;
         use nsstring::{nsACString, nsCString};
