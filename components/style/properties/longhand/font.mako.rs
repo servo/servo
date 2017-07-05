@@ -16,7 +16,7 @@
 </%def>
 
 #[cfg(feature = "gecko")]
-macro_rules! impl_gecko_keyword_from_trait {
+macro_rules! impl_gecko_keyword_conversions {
     ($name: ident, $utype: ty) => {
         impl From<$utype> for $name {
             fn from(bits: $utype) -> $name {
@@ -78,7 +78,7 @@ macro_rules! impl_gecko_keyword_from_trait {
     }
 </%def>
 
-<%helpers:longhand name="font-family" animation_value_type="none" need_index="True"  boxed="${product == 'gecko'}"
+<%helpers:longhand name="font-family" animation_value_type="discrete" need_index="True"  boxed="${product == 'gecko'}"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-family">
     use properties::longhands::system_font::SystemFont;
     use self::computed_value::{FontFamily, FamilyName};
@@ -1623,7 +1623,7 @@ macro_rules! exclusive_value {
     }
 
     #[cfg(feature = "gecko")]
-    impl_gecko_keyword_from_trait!(VariantEastAsian, u16);
+    impl_gecko_keyword_conversions!(VariantEastAsian, u16);
 </%helpers:longhand>
 
 <%helpers:longhand name="font-variant-ligatures" products="gecko" animation_value_type="discrete"
@@ -1782,7 +1782,7 @@ macro_rules! exclusive_value {
     }
 
     #[cfg(feature = "gecko")]
-    impl_gecko_keyword_from_trait!(VariantLigatures, u16);
+    impl_gecko_keyword_conversions!(VariantLigatures, u16);
 </%helpers:longhand>
 
 <%helpers:longhand name="font-variant-numeric" products="gecko" animation_value_type="discrete"
@@ -1930,7 +1930,7 @@ macro_rules! exclusive_value {
     }
 
     #[cfg(feature = "gecko")]
-    impl_gecko_keyword_from_trait!(VariantNumeric, u8);
+    impl_gecko_keyword_conversions!(VariantNumeric, u8);
 </%helpers:longhand>
 
 ${helpers.single_keyword_system("font-variant-position",
@@ -1941,7 +1941,7 @@ ${helpers.single_keyword_system("font-variant-position",
                                 spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-position",
                                 animation_value_type="discrete")}
 
-<%helpers:longhand name="font-feature-settings" products="gecko" animation_value_type="none"
+<%helpers:longhand name="font-feature-settings" products="gecko" animation_value_type="discrete"
                    extra_prefixes="moz" boxed="True"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-feature-settings">
     use properties::longhands::system_font::SystemFont;

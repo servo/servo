@@ -19,7 +19,7 @@ ${helpers.predefined_type("background-image", "ImageLayer",
     initial_specified_value="Either::First(None_)",
     spec="https://drafts.csswg.org/css-backgrounds/#the-background-image",
     vector="True",
-    animation_value_type="none",
+    animation_value_type="discrete",
     has_uncacheable_values="True" if product == "gecko" else "False",
     ignored_when_colors_disabled="True")}
 
@@ -31,7 +31,7 @@ ${helpers.predefined_type("background-image", "ImageLayer",
                               animation_value_type="ComputedValue", vector=True, delegate_animate=True)}
 % endfor
 
-<%helpers:vector_longhand name="background-repeat" animation_value_type="none"
+<%helpers:vector_longhand name="background-repeat" animation_value_type="discrete"
                           spec="https://drafts.csswg.org/css-backgrounds/#the-background-repeat">
     use std::fmt;
     use style_traits::ToCss;

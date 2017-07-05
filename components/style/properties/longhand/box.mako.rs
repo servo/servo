@@ -656,7 +656,7 @@ ${helpers.predefined_type("animation-delay",
         "scroll-snap-points-" + axis,
         "ScrollSnapPoint",
         "computed::ScrollSnapPoint::none()",
-        animation_value_type="none",
+        animation_value_type="discrete",
         products="gecko",
         disable_when_testing=True,
         spec="Nonstandard (https://www.w3.org/TR/2015/WD-css-snappoints-1-20150326/#scroll-snap-points)",
@@ -1874,7 +1874,7 @@ ${helpers.single_keyword("-moz-orient",
                           gecko_inexhaustive="True",
                           animation_value_type="discrete")}
 
-<%helpers:longhand name="will-change" products="gecko" animation_value_type="none"
+<%helpers:longhand name="will-change" products="gecko" animation_value_type="discrete"
                    spec="https://drafts.csswg.org/css-will-change/#will-change">
     use std::fmt;
     use style_traits::ToCss;

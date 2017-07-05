@@ -414,7 +414,12 @@ impl AnimatedProperty {
                             let value: longhands::${prop.ident}::computed_value::T =
                                 ToAnimatedValue::from_animated_value(value);
                         % endif
-                        style.mutate_${prop.style_struct.ident.strip("_")}().set_${prop.ident}(value);
+                        <% method = "style.mutate_" + prop.style_struct.ident.strip("_") + "().set_" + prop.ident %>
+                        % if prop.has_uncacheable_values is "True":
+                            ${method}(value, &mut false);
+                        % else:
+                            ${method}(value);
+                        % endif
                     }
                 % endif
             % endfor

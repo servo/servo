@@ -8,6 +8,7 @@ type nsAString_internal = nsAString;
 use gecko_bindings::structs::mozilla::css::GridTemplateAreasValue;
 use gecko_bindings::structs::mozilla::css::ImageValue;
 use gecko_bindings::structs::mozilla::css::URLValue;
+use gecko_bindings::structs::mozilla::css::URLValueData;
 use gecko_bindings::structs::mozilla::MallocSizeOf;
 use gecko_bindings::structs::mozilla::Side;
 use gecko_bindings::structs::nsIContent;
@@ -56,6 +57,7 @@ use gecko_bindings::structs::StyleBasicShape;
 use gecko_bindings::structs::StyleBasicShapeType;
 use gecko_bindings::structs::StyleShapeSource;
 use gecko_bindings::structs::StyleTransition;
+use gecko_bindings::structs::nsBorderColors;
 use gecko_bindings::structs::nsCSSCounterStyleRule;
 use gecko_bindings::structs::nsCSSFontFaceRule;
 use gecko_bindings::structs::nsCSSKeyword;
@@ -854,6 +856,10 @@ extern "C" {
                                      aSrc: *const nsStyleBorder, aSide: Side);
 }
 extern "C" {
+    pub fn Gecko_GetMozBorderColors(aBorder: *const nsStyleBorder,
+                                    aSide: Side) -> *const nsBorderColors;
+}
+extern "C" {
     pub fn Gecko_FontFamilyList_Clear(aList: *mut FontFamilyList);
 }
 extern "C" {
@@ -954,6 +960,17 @@ extern "C" {
     pub fn Gecko_CreateGradient(shape: u8, size: u8, repeating: bool,
                                 legacy_syntax: bool, moz_legacy_syntax: bool,
                                 stops: u32) -> *mut nsStyleGradient;
+}
+extern "C" {
+    pub fn Gecko_GetURLValue(image: *const nsStyleImage)
+     -> *const URLValueData;
+}
+extern "C" {
+    pub fn Gecko_GetImageElement(image: *const nsStyleImage) -> *mut nsIAtom;
+}
+extern "C" {
+    pub fn Gecko_GetGradientImageValue(image: *const nsStyleImage)
+     -> *const nsStyleGradient;
 }
 extern "C" {
     pub fn Gecko_SetListStyleImageNone(style_struct: *mut nsStyleList);
@@ -2143,16 +2160,6 @@ extern "C" {
 extern "C" {
     pub fn Servo_StyleRule_GetSelectorCount(rule: RawServoStyleRuleBorrowed,
                                             count: *mut u32);
-}
-extern "C" {
-    pub fn Servo_StyleRule_SelectorMatchesElement(arg1:
-                                                      RawServoStyleRuleBorrowed,
-                                                  arg2:
-                                                      RawGeckoElementBorrowed,
-                                                  index: u32,
-                                                  pseudo_type:
-                                                      CSSPseudoElementType)
-     -> bool;
 }
 extern "C" {
     pub fn Servo_ImportRule_GetHref(rule: RawServoImportRuleBorrowed,

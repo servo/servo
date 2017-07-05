@@ -60,7 +60,7 @@ ${helpers.gecko_keyword_conversion(Keyword('border-style',
 /// -moz-border-*-colors: color, string, enum, none, inherit/initial
 /// These non-spec properties are just for Gecko (Stylo) internal use.
 % for side in PHYSICAL_SIDES:
-    <%helpers:longhand name="-moz-border-${side}-colors" animation_value_type="none"
+    <%helpers:longhand name="-moz-border-${side}-colors" animation_value_type="discrete"
                        spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-border-*-colors)"
                        products="gecko"
                        ignored_when_colors_disabled="True">
@@ -200,7 +200,7 @@ ${helpers.predefined_type("border-image-source", "ImageLayer",
     initial_specified_value="Either::First(None_)",
     spec="https://drafts.csswg.org/css-backgrounds/#the-background-image",
     vector=False,
-    animation_value_type="none",
+    animation_value_type="discrete",
     has_uncacheable_values=False,
     boxed="True")}
 
@@ -209,7 +209,7 @@ ${helpers.predefined_type("border-image-outset", "LengthOrNumberRect",
     initial_value="computed::LengthOrNumber::zero().into()",
     initial_specified_value="specified::LengthOrNumber::zero().into()",
     spec="https://drafts.csswg.org/css-backgrounds/#border-image-outset",
-    animation_value_type="none",
+    animation_value_type="discrete",
     boxed=True)}
 
 <%helpers:longhand name="border-image-repeat" animation_value_type="discrete"
@@ -273,12 +273,66 @@ ${helpers.predefined_type("border-image-width", "BorderImageWidth",
     initial_value="computed::BorderImageSideWidth::one().into()",
     initial_specified_value="specified::BorderImageSideWidth::one().into()",
     spec="https://drafts.csswg.org/css-backgrounds/#border-image-width",
-    animation_value_type="none",
+    animation_value_type="discrete",
     boxed=True)}
 
 ${helpers.predefined_type("border-image-slice", "BorderImageSlice",
     initial_value="computed::NumberOrPercentage::Percentage(computed::Percentage(1.)).into()",
     initial_specified_value="specified::NumberOrPercentage::Percentage(specified::Percentage(1.)).into()",
     spec="https://drafts.csswg.org/css-backgrounds/#border-image-slice",
-    animation_value_type="none",
+    animation_value_type="discrete",
     boxed=True)}
+
+#[cfg(feature = "gecko")]
+impl ::values::computed::BorderImageWidth {
+    pub fn to_gecko_rect(&self, sides: &mut ::gecko_bindings::structs::nsStyleSides) {
+        use gecko_bindings::sugar::ns_style_coord::{CoordDataMut, CoordDataValue};
+        use gecko::values::GeckoStyleCoordConvertible;
+        use values::generics::border::BorderImageSideWidth;
+
+        % for i in range(0, 4):
+        match self.${i} {
+            BorderImageSideWidth::Auto => {
+                sides.data_at_mut(${i}).set_value(CoordDataValue::Auto)
+            },
+            BorderImageSideWidth::Length(l) => {
+                l.to_gecko_style_coord(&mut sides.data_at_mut(${i}))
+            },
+            BorderImageSideWidth::Number(n) => {
+                sides.data_at_mut(${i}).set_value(CoordDataValue::Factor(n))
+            },
+        }
+        % endfor
+    }
+
+    pub fn from_gecko_rect(sides: &::gecko_bindings::structs::nsStyleSides)
+                           -> Option<::values::computed::BorderImageWidth> {
+        use gecko_bindings::structs::nsStyleUnit::{eStyleUnit_Factor, eStyleUnit_Auto};
+        use gecko_bindings::sugar::ns_style_coord::CoordData;
+        use gecko::values::GeckoStyleCoordConvertible;
+        use values::computed::{LengthOrPercentage, Number};
+        use values::generics::border::BorderImageSideWidth;
+
+        Some(
+            ::values::computed::BorderImageWidth::new(
+                % for i in range(0, 4):
+                match sides.data_at(${i}).unit() {
+                    eStyleUnit_Auto => {
+                        BorderImageSideWidth::Auto
+                    },
+                    eStyleUnit_Factor => {
+                        BorderImageSideWidth::Number(
+                            Number::from_gecko_style_coord(&sides.data_at(${i}))
+                                .expect("sides[${i}] could not convert to Number"))
+                    },
+                    _ => {
+                        BorderImageSideWidth::Length(
+                            LengthOrPercentage::from_gecko_style_coord(&sides.data_at(${i}))
+                                .expect("sides[${i}] could not convert to LengthOrPercentager"))
+                    },
+                },
+                % endfor
+            )
+        )
+    }
+}
