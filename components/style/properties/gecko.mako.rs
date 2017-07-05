@@ -1020,6 +1020,30 @@ fn static_assert() {
                                                 structs::Side::eSide${to_camel_case(side.ident)});
         }
     }
+
+    #[allow(non_snake_case)]
+    pub fn clone__moz_border_${side.ident}_colors(&self)
+                                                  -> longhands::_moz_border_${side.ident}_colors::computed_value::T {
+        use self::longhands::_moz_border_${side.ident}_colors::computed_value::T;
+
+        let mut gecko_colors =
+            unsafe { bindings::Gecko_GetMozBorderColors(&self.gecko,
+                                                        structs::Side::eSide${to_camel_case(side.ident)}) };
+
+        if gecko_colors.is_null() {
+            return T(None);
+        }
+
+        let mut colors = Vec::new();
+        loop {
+            unsafe {
+                colors.push(convert_nscolor_to_rgba((*gecko_colors).mColor));
+                if (*gecko_colors).mNext.is_null() { break; }
+                gecko_colors = (*gecko_colors).mNext;
+            }
+        }
+        T(Some(colors))
+    }
     % endfor
 
     % for corner in CORNERS:
