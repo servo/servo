@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use canvas_traits::CanvasData;
-use canvas_traits::CanvasImageData;
 use dom::bindings::callback::CallbackContainer;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::PaintWorkletGlobalScopeBinding;
@@ -28,8 +27,7 @@ use dom::workletglobalscope::WorkletTask;
 use dom_struct::dom_struct;
 use euclid::ScaleFactor;
 use euclid::TypedSize2D;
-use ipc_channel::ipc::IpcSender;
-use ipc_channel::ipc::IpcSharedMemory;
+use ipc_channel::ipc;
 use js::jsapi::Call;
 use js::jsapi::Construct1;
 use js::jsapi::HandleValue;
@@ -45,10 +43,10 @@ use js::jsval::ObjectValue;
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use msg::constellation_msg::PipelineId;
-use net_traits::image::base::Image;
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache::ImageCache;
 use script_layout_interface::message::Msg;
+use script_traits::DrawAPaintImageResult;
 use script_traits::Painter;
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
@@ -59,6 +57,8 @@ use std::ptr::null_mut;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::Mutex;
+use std::sync::mpsc;
+use std::sync::mpsc::Sender;
 use style_traits::CSSPixel;
 use style_traits::DevicePixel;
 
@@ -67,7 +67,7 @@ use style_traits::DevicePixel;
 pub struct PaintWorkletGlobalScope {
     /// The worklet global for this object
     worklet_global: WorkletGlobalScope,
-    /// The image cache (used for generating invalid images).
+    /// The image cache
     #[ignore_heap_size_of = "Arc"]
     image_cache: Arc<ImageCache>,
     /// https://drafts.css-houdini.org/css-paint-api/#paint-definitions
@@ -94,11 +94,16 @@ impl PaintWorkletGlobalScope {
         unsafe { PaintWorkletGlobalScopeBinding::Wrap(runtime.cx(), global) }
     }
 
+    pub fn image_cache(&self) -> Arc<ImageCache> {
+        self.image_cache.clone()
+    }
+
     pub fn perform_a_worklet_task(&self, task: PaintWorkletTask) {
         match task {
-            PaintWorkletTask::DrawAPaintImage(name, size, device_pixel_ratio, properties, sender) => {
+            PaintWorkletTask::DrawAPaintImage(name, size_in_px, device_pixel_ratio, properties, sender) => {
                 let properties = StylePropertyMapReadOnly::from_iter(self.upcast(), properties);
-                self.draw_a_paint_image(name, size, device_pixel_ratio, &*properties, sender);
+                let result = self.draw_a_paint_image(name, size_in_px, device_pixel_ratio, &*properties);
+                let _ = sender.send(result);
             }
         }
     }
@@ -108,11 +113,11 @@ impl PaintWorkletGlobalScope {
                           name: Atom,
                           size_in_px: TypedSize2D<f32, CSSPixel>,
                           device_pixel_ratio: ScaleFactor<f32, CSSPixel, DevicePixel>,
-                          properties: &StylePropertyMapReadOnly,
-                          sender: IpcSender<CanvasData>)
+                          properties: &StylePropertyMapReadOnly)
+                          -> DrawAPaintImageResult
     {
         // TODO: document paint definitions.
-        self.invoke_a_paint_callback(name, size_in_px, device_pixel_ratio, properties, sender);
+        self.invoke_a_paint_callback(name, size_in_px, device_pixel_ratio, properties)
     }
 
     /// https://drafts.css-houdini.org/css-paint-api/#invoke-a-paint-callback
@@ -121,8 +126,8 @@ impl PaintWorkletGlobalScope {
                                name: Atom,
                                size_in_px: TypedSize2D<f32, CSSPixel>,
                                device_pixel_ratio: ScaleFactor<f32, CSSPixel, DevicePixel>,
-                               properties: &StylePropertyMapReadOnly,
-                               sender: IpcSender<CanvasData>)
+                               properties: &StylePropertyMapReadOnly)
+                               -> DrawAPaintImageResult
     {
         let size_in_dpx = size_in_px * device_pixel_ratio;
         let size_in_dpx = TypedSize2D::new(size_in_dpx.width.abs() as u32, size_in_dpx.height.abs() as u32);
@@ -140,13 +145,13 @@ impl PaintWorkletGlobalScope {
             None => {
                 // Step 2.2.
                 warn!("Drawing un-registered paint definition {}.", name);
-                return self.send_invalid_image(size_in_dpx, sender);
+                return self.invalid_image(size_in_dpx, vec![]);
             }
             Some(definition) => {
                 // Step 5.1
                 if !definition.constructor_valid_flag.get() {
                     debug!("Drawing invalid paint definition {}.", name);
-                    return self.send_invalid_image(size_in_dpx, sender);
+                    return self.invalid_image(size_in_dpx, vec![]);
                 }
                 class_constructor.set(definition.class_constructor.get());
                 paint_function.set(definition.paint_function.get());
@@ -174,7 +179,7 @@ impl PaintWorkletGlobalScope {
                     self.paint_definitions.borrow_mut().get_mut(&name)
                         .expect("Vanishing paint definition.")
                         .constructor_valid_flag.set(false);
-                    return self.send_invalid_image(size_in_dpx, sender);
+                    return self.invalid_image(size_in_dpx, vec![]);
                 }
                 // Step 5.4
                 entry.insert(Box::new(Heap::default())).set(paint_instance.get());
@@ -202,39 +207,42 @@ impl PaintWorkletGlobalScope {
 
         rooted!(in(cx) let mut result = UndefinedValue());
         unsafe { Call(cx, paint_instance.handle(), paint_function.handle(), &args, result.handle_mut()); }
+        let missing_image_urls = rendering_context.take_missing_image_urls();
 
         // Step 13.
         if unsafe { JS_IsExceptionPending(cx) } {
             debug!("Paint function threw an exception {}.", name);
             unsafe { JS_ClearPendingException(cx); }
-            return self.send_invalid_image(size_in_dpx, sender);
+            return self.invalid_image(size_in_dpx, missing_image_urls);
         }
 
+        let (sender, receiver) = ipc::channel().expect("IPC channel creation.");
         rendering_context.send_data(sender);
+        let image_key = match receiver.recv() {
+            Ok(CanvasData::Image(data)) => Some(data.image_key),
+            _ => None,
+        };
+
+        DrawAPaintImageResult {
+            width: size_in_dpx.width,
+            height: size_in_dpx.height,
+            format: PixelFormat::BGRA8,
+            image_key: image_key,
+            missing_image_urls: missing_image_urls,
+        }
     }
 
-    fn send_invalid_image(&self,
-                          size: TypedSize2D<u32, DevicePixel>,
-                          sender: IpcSender<CanvasData>)
-    {
-        debug!("Sending an invalid image.");
-        let width = size.width as u32;
-        let height = size.height as u32;
-        let len = (width as usize) * (height as usize) * 4;
-        let pixel = [0x00, 0x00, 0x00, 0x00];
-        let bytes: Vec<u8> = pixel.iter().cloned().cycle().take(len).collect();
-        let mut image = Image {
-            width: width,
-            height: height,
+    // https://drafts.csswg.org/css-images-4/#invalid-image
+    fn invalid_image(&self, size: TypedSize2D<u32, DevicePixel>, missing_image_urls: Vec<ServoUrl>)
+                     -> DrawAPaintImageResult {
+        debug!("Returning an invalid image.");
+        DrawAPaintImageResult {
+            width: size.width as u32,
+            height: size.height as u32,
             format: PixelFormat::BGRA8,
-            bytes: IpcSharedMemory::from_bytes(&*bytes),
-            id: None,
-        };
-        self.image_cache.set_webrender_image_key(&mut image);
-        let image_key = image.id.expect("Image cache should set image key.");
-        let image_data = CanvasImageData { image_key: image_key };
-        let canvas_data = CanvasData::Image(image_data);
-        let _ = sender.send(canvas_data);
+            image_key: None,
+            missing_image_urls: missing_image_urls,
+        }
     }
 
     fn painter(&self, name: Atom) -> Arc<Painter> {
@@ -244,13 +252,15 @@ impl PaintWorkletGlobalScope {
             fn draw_a_paint_image(&self,
                                   size: TypedSize2D<f32, CSSPixel>,
                                   device_pixel_ratio: ScaleFactor<f32, CSSPixel, DevicePixel>,
-                                  properties: Vec<(Atom, String)>,
-                                  sender: IpcSender<CanvasData>)
+                                  properties: Vec<(Atom, String)>)
+                                  -> DrawAPaintImageResult
             {
                 let name = self.0.clone();
+                let (sender, receiver) = mpsc::channel();
                 let task = PaintWorkletTask::DrawAPaintImage(name, size, device_pixel_ratio, properties, sender);
                 self.1.lock().expect("Locking a painter.")
                     .schedule_a_worklet_task(WorkletTask::Paint(task));
+                receiver.recv().expect("Worklet thread died?")
             }
         }
         Arc::new(WorkletPainter(name, Mutex::new(self.worklet_global.executor())))
@@ -346,7 +356,7 @@ pub enum PaintWorkletTask {
                     TypedSize2D<f32, CSSPixel>,
                     ScaleFactor<f32, CSSPixel, DevicePixel>,
                     Vec<(Atom, String)>,
-                    IpcSender<CanvasData>)
+                    Sender<DrawAPaintImageResult>)
 }
 
 /// A paint definition

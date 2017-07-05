@@ -11,7 +11,7 @@ use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasLin
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasRenderingContext2DMethods;
 use dom::bindings::codegen::Bindings::PaintRenderingContext2DBinding;
 use dom::bindings::codegen::Bindings::PaintRenderingContext2DBinding::PaintRenderingContext2DMethods;
-use dom::bindings::codegen::UnionTypes::HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D;
+use dom::bindings::codegen::UnionTypes::HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2DOrCSSStyleValue;
 use dom::bindings::codegen::UnionTypes::StringOrCanvasGradientOrCanvasPattern;
 use dom::bindings::error::ErrorResult;
 use dom::bindings::error::Fallible;
@@ -24,11 +24,13 @@ use dom::canvasgradient::CanvasGradient;
 use dom::canvaspattern::CanvasPattern;
 use dom::canvasrenderingcontext2d::CanvasRenderingContext2D;
 use dom::paintworkletglobalscope::PaintWorkletGlobalScope;
+use dom::workletglobalscope::WorkletGlobalScope;
 use dom_struct::dom_struct;
 use euclid::ScaleFactor;
 use euclid::Size2D;
 use euclid::TypedSize2D;
 use ipc_channel::ipc::IpcSender;
+use servo_url::ServoUrl;
 use std::cell::Cell;
 use style_traits::CSSPixel;
 use style_traits::DevicePixel;
@@ -42,8 +44,10 @@ pub struct PaintRenderingContext2D {
 impl PaintRenderingContext2D {
     fn new_inherited(global: &PaintWorkletGlobalScope) -> PaintRenderingContext2D {
         let size = Size2D::zero();
+        let image_cache = global.image_cache();
+        let base_url = global.upcast::<WorkletGlobalScope>().base_url();
         PaintRenderingContext2D {
-            context: CanvasRenderingContext2D::new_inherited(global.upcast(), None, size),
+            context: CanvasRenderingContext2D::new_inherited(global.upcast(), None, image_cache, base_url, size),
             device_pixel_ratio: Cell::new(ScaleFactor::new(1.0)),
         }
     }
@@ -57,6 +61,10 @@ impl PaintRenderingContext2D {
     pub fn send_data(&self, sender: IpcSender<CanvasData>) {
         let msg = CanvasMsg::FromLayout(FromLayoutMsg::SendData(sender));
         let _ = self.context.ipc_renderer().send(msg);
+    }
+
+    pub fn take_missing_image_urls(&self) -> Vec<ServoUrl> {
+        self.context.take_missing_image_urls()
     }
 
     pub fn set_bitmap_dimensions(&self,
@@ -187,7 +195,7 @@ impl PaintRenderingContext2DMethods for PaintRenderingContext2D {
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
     fn DrawImage(&self,
-                 image: HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D,
+                 image: HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2DOrCSSStyleValue,
                  dx: f64,
                  dy: f64)
                  -> ErrorResult {
@@ -196,7 +204,7 @@ impl PaintRenderingContext2DMethods for PaintRenderingContext2D {
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
     fn DrawImage_(&self,
-                  image: HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D,
+                  image: HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2DOrCSSStyleValue,
                   dx: f64,
                   dy: f64,
                   dw: f64,
@@ -207,7 +215,7 @@ impl PaintRenderingContext2DMethods for PaintRenderingContext2D {
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
     fn DrawImage__(&self,
-                   image: HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D,
+                   image: HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2DOrCSSStyleValue,
                    sx: f64,
                    sy: f64,
                    sw: f64,
@@ -309,7 +317,7 @@ impl PaintRenderingContext2DMethods for PaintRenderingContext2D {
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createpattern
     fn CreatePattern(&self,
-                     image: HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D,
+                     image: HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2DOrCSSStyleValue,
                      repetition: DOMString)
                      -> Fallible<Root<CanvasPattern>> {
         self.context.CreatePattern(image, repetition)

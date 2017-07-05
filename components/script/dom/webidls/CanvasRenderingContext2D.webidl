@@ -8,8 +8,11 @@ enum CanvasFillRule { "nonzero", "evenodd" };
 typedef (HTMLImageElement or
          /* HTMLVideoElement or */
          HTMLCanvasElement or
-         CanvasRenderingContext2D /* or
-         ImageBitmap */) CanvasImageSource;
+         CanvasRenderingContext2D or
+         /* ImageBitmap or */
+         // This should probably be a CSSImageValue
+         // https://github.com/w3c/css-houdini-drafts/issues/416
+         CSSStyleValue) CanvasImageSource;
 
 //[Constructor(optional unsigned long width, unsigned long height)]
 interface CanvasRenderingContext2D {
