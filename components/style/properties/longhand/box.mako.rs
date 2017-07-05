@@ -959,248 +959,176 @@ ${helpers.predefined_type(
     }
 
     // Allow unitless zero angle for rotate() and skew() to align with gecko
-    fn parse_internal<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>, prefixed: bool)
-        -> Result<SpecifiedValue,ParseError<'i>> {
+    fn parse_internal<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        prefixed: bool,
+    ) -> Result<SpecifiedValue,ParseError<'i>> {
+        use style_traits::{Separator, Space};
+
         if input.try(|input| input.expect_ident_matching("none")).is_ok() {
             return Ok(SpecifiedValue(Vec::new()))
         }
 
-        let mut result = Vec::new();
-        loop {
-            let name = match input.try(|i| i.expect_function()) {
-                Ok(name) => name,
-                Err(_) => break,
-            };
-            let valid_fn = match_ignore_ascii_case! {
-                &name,
-                "matrix" => {
-                    input.parse_nested_block(|input| {
-                        // Standard matrix parsing.
+        Ok(SpecifiedValue(Space::parse(input, |input| {
+            let function = input.expect_function()?;
+            input.parse_nested_block(|input| {
+                let result = match_ignore_ascii_case! { &function,
+                    "matrix" => {
+                        let a = specified::parse_number(context, input)?;
+                        input.expect_comma()?;
+                        let b = specified::parse_number(context, input)?;
+                        input.expect_comma()?;
+                        let c = specified::parse_number(context, input)?;
+                        input.expect_comma()?;
+                        let d = specified::parse_number(context, input)?;
+                        input.expect_comma()?;
                         if !prefixed {
-                            let values = input.parse_comma_separated(|input| {
-                                specified::parse_number(context, input)
-                            })?;
-                            if values.len() != 6 {
-                                return Err(StyleParseError::UnspecifiedError.into())
-                            }
-
-                            result.push(SpecifiedOperation::Matrix {
-                                a: values[0],
-                                b: values[1],
-                                c: values[2],
-                                d: values[3],
-                                e: values[4],
-                                f: values[5],
-                            });
-                            return Ok(true);
-                        }
-
-                        // Non-standard prefixed matrix parsing.
-                        //
-                        // -moz-transform accepts LengthOrPercentageOrNumber in the
-                        //  nondiagonal homogeneous components. transform accepts only number.
-                        let mut values = Vec::with_capacity(4);
-                        let mut lengths = Vec::with_capacity(2);
-
-                        // Consume first number
-                        values.push(specified::parse_number(context, input)?);
-
-                        // Parse other 5 number/LengthOrPercentageOrNumber
-                        for i in 0..5 {
+                            // Standard matrix parsing.
+                            let e = specified::parse_number(context, input)?;
                             input.expect_comma()?;
-                            if i < 3 {
-                                values.push(specified::parse_number(context, input)?);
-                            } else {
-                                // -moz-transform accepts LengthOrPercentageOrNumber in the nondiagonal
-                                // homogeneous components. transform accepts only number.
-                                lengths.push(LoPoNumber::parse(context, input)?)
-                            }
+                            let f = specified::parse_number(context, input)?;
+                            Ok(SpecifiedOperation::Matrix { a, b, c, d, e, f })
+                        } else {
+                            // Non-standard prefixed matrix parsing for -moz-transform.
+                            let e = LoPoNumber::parse(context, input)?;
+                            input.expect_comma()?;
+                            let f = LoPoNumber::parse(context, input)?;
+                            Ok(SpecifiedOperation::PrefixedMatrix { a, b, c, d, e, f })
                         }
-
-                        result.push(SpecifiedOperation::PrefixedMatrix {
-                            a: values[0],
-                            b: values[1],
-                            c: values[2],
-                            d: values[3],
-                            e: lengths[0].clone(),
-                            f: lengths[1].clone(),
-                        });
-                        Ok(true)
-                    })?
-                },
-                "matrix3d" => {
-                    input.parse_nested_block(|input| {
-                        // Standard matrix3d parsing.
+                    },
+                    "matrix3d" => {
+                        let m11 = specified::parse_number(context, input)?;
+                        input.expect_comma()?;
+                        let m12 = specified::parse_number(context, input)?;
+                        input.expect_comma()?;
+                        let m13 = specified::parse_number(context, input)?;
+                        input.expect_comma()?;
+                        let m14 = specified::parse_number(context, input)?;
+                        input.expect_comma()?;
+                        let m21 = specified::parse_number(context, input)?;
+                        input.expect_comma()?;
+                        let m22 = specified::parse_number(context, input)?;
+                        input.expect_comma()?;
+                        let m23 = specified::parse_number(context, input)?;
+                        input.expect_comma()?;
+                        let m24 = specified::parse_number(context, input)?;
+                        input.expect_comma()?;
+                        let m31 = specified::parse_number(context, input)?;
+                        input.expect_comma()?;
+                        let m32 = specified::parse_number(context, input)?;
+                        input.expect_comma()?;
+                        let m33 = specified::parse_number(context, input)?;
+                        input.expect_comma()?;
+                        let m34 = specified::parse_number(context, input)?;
+                        input.expect_comma()?;
                         if !prefixed {
-                            let values = input.parse_comma_separated(|i| specified::parse_number(context, i))?;
-                            if values.len() != 16 {
-                                return Err(StyleParseError::UnspecifiedError.into())
-                            }
-
-                            result.push(SpecifiedOperation::Matrix3D {
-                                m11: values[ 0], m12: values[ 1], m13: values[ 2], m14: values[ 3],
-                                m21: values[ 4], m22: values[ 5], m23: values[ 6], m24: values[ 7],
-                                m31: values[ 8], m32: values[ 9], m33: values[10], m34: values[11],
-                                m41: values[12], m42: values[13], m43: values[14], m44: values[15]
-                            });
-                            return Ok(true);
-                        }
-
-                        // Non-standard prefixed matrix3d parsing.
-                        //
-                        // -moz-transform accepts LengthOrPercentageOrNumber in the
-                        //  nondiagonal homogeneous components. transform accepts only number.
-                        let mut values = Vec::with_capacity(13);
-                        let mut lops = Vec::with_capacity(2);
-                        let mut length_or_number = None;
-
-                        // Parse first number
-                        values.push(specified::parse_number(context, input)?);
-
-                        // Parse other 15 number/LengthOrPercentageOrNumber
-                        for i in 0..15 {
+                            // Standard matrix3d parsing.
+                            let m41 = specified::parse_number(context, input)?;
                             input.expect_comma()?;
-                            // -moz-transform accepts LengthOrPercentageOrNumber in the nondiagonal
-                            // homogeneous components. transform accepts only number.
-                            if i < 11 || i > 13 {
-                                values.push(specified::parse_number(context, input)?);
-                            } else if i == 13 {
-                                // m43
-                                length_or_number = Some(LengthOrNumber::parse(context, input)?);
-                            } else {
-                                // m41 and m42
-                                lops.push(LoPoNumber::parse(context, input)?);
-                            }
+                            let m42 = specified::parse_number(context, input)?;
+                            input.expect_comma()?;
+                            let m43 = specified::parse_number(context, input)?;
+                            input.expect_comma()?;
+                            let m44 = specified::parse_number(context, input)?;
+                            Ok(SpecifiedOperation::Matrix3D {
+                                m11, m12, m13, m14,
+                                m21, m22, m23, m24,
+                                m31, m32, m33, m34,
+                                m41, m42, m43, m44,
+                            })
+                        } else {
+                            // Non-standard prefixed matrix parsing for -moz-transform.
+                            let m41 = LoPoNumber::parse(context, input)?;
+                            input.expect_comma()?;
+                            let m42 = LoPoNumber::parse(context, input)?;
+                            input.expect_comma()?;
+                            let m43 = LengthOrNumber::parse(context, input)?;
+                            input.expect_comma()?;
+                            let m44 = specified::parse_number(context, input)?;
+                            Ok(SpecifiedOperation::PrefixedMatrix3D {
+                                m11, m12, m13, m14,
+                                m21, m22, m23, m24,
+                                m31, m32, m33, m34,
+                                m41, m42, m43, m44,
+                            })
                         }
-
-                        result.push(SpecifiedOperation::PrefixedMatrix3D {
-                            m11: values[ 0], m12: values[ 1], m13: values[ 2], m14: values[ 3],
-                            m21: values[ 4], m22: values[ 5], m23: values[ 6], m24: values[ 7],
-                            m31: values[ 8], m32: values[ 9], m33: values[10], m34: values[11],
-                            m41: lops[0].clone(), m42: lops[1].clone(), m43: length_or_number.unwrap(),
-                            m44: values[12]
-                        });
-                        Ok(true)
-                    })?
-                },
-                "translate" => {
-                    input.parse_nested_block(|input| {
+                    },
+                    "translate" => {
                         let sx = specified::LengthOrPercentage::parse(context, input)?;
                         if input.try(|input| input.expect_comma()).is_ok() {
                             let sy = specified::LengthOrPercentage::parse(context, input)?;
-                            result.push(SpecifiedOperation::Translate(sx, Some(sy)));
+                            Ok(SpecifiedOperation::Translate(sx, Some(sy)))
                         } else {
-                            result.push(SpecifiedOperation::Translate(sx, None));
+                            Ok(SpecifiedOperation::Translate(sx, None))
                         }
-                        Ok(true)
-                    })?
-                },
-                "translatex" => {
-                    input.parse_nested_block(|input| {
+                    },
+                    "translatex" => {
                         let tx = specified::LengthOrPercentage::parse(context, input)?;
-                        result.push(SpecifiedOperation::TranslateX(tx));
-                        Ok(true)
-                    })?
-                },
-                "translatey" => {
-                    input.parse_nested_block(|input| {
+                        Ok(SpecifiedOperation::TranslateX(tx))
+                    },
+                    "translatey" => {
                         let ty = specified::LengthOrPercentage::parse(context, input)?;
-                        result.push(SpecifiedOperation::TranslateY(ty));
-                        Ok(true)
-                    })?
-                },
-                "translatez" => {
-                    input.parse_nested_block(|input| {
+                        Ok(SpecifiedOperation::TranslateY(ty))
+                    },
+                    "translatez" => {
                         let tz = specified::Length::parse(context, input)?;
-                        result.push(SpecifiedOperation::TranslateZ(tz));
-                        Ok(true)
-                    })?
-                },
-                "translate3d" => {
-                    input.parse_nested_block(|input| {
+                        Ok(SpecifiedOperation::TranslateZ(tz))
+                    },
+                    "translate3d" => {
                         let tx = specified::LengthOrPercentage::parse(context, input)?;
                         input.expect_comma()?;
                         let ty = specified::LengthOrPercentage::parse(context, input)?;
                         input.expect_comma()?;
                         let tz = specified::Length::parse(context, input)?;
-                        result.push(SpecifiedOperation::Translate3D(tx, ty, tz));
-                        Ok(true)
-                    })?
-                },
-                "scale" => {
-                    input.parse_nested_block(|input| {
+                        Ok(SpecifiedOperation::Translate3D(tx, ty, tz))
+                    },
+                    "scale" => {
                         let sx = specified::parse_number(context, input)?;
                         if input.try(|input| input.expect_comma()).is_ok() {
                             let sy = specified::parse_number(context, input)?;
-                            result.push(SpecifiedOperation::Scale(sx, Some(sy)));
+                            Ok(SpecifiedOperation::Scale(sx, Some(sy)))
                         } else {
-                            result.push(SpecifiedOperation::Scale(sx, None));
+                            Ok(SpecifiedOperation::Scale(sx, None))
                         }
-                        Ok(true)
-                    })?
-                },
-                "scalex" => {
-                    input.parse_nested_block(|input| {
+                    },
+                    "scalex" => {
                         let sx = specified::parse_number(context, input)?;
-                        result.push(SpecifiedOperation::ScaleX(sx));
-                        Ok(true)
-                    })?
-                },
-                "scaley" => {
-                    input.parse_nested_block(|input| {
+                        Ok(SpecifiedOperation::ScaleX(sx))
+                    },
+                    "scaley" => {
                         let sy = specified::parse_number(context, input)?;
-                        result.push(SpecifiedOperation::ScaleY(sy));
-                        Ok(true)
-                    })?
-                },
-                "scalez" => {
-                    input.parse_nested_block(|input| {
+                        Ok(SpecifiedOperation::ScaleY(sy))
+                    },
+                    "scalez" => {
                         let sz = specified::parse_number(context, input)?;
-                        result.push(SpecifiedOperation::ScaleZ(sz));
-                        Ok(true)
-                    })?
-                },
-                "scale3d" => {
-                    input.parse_nested_block(|input| {
+                        Ok(SpecifiedOperation::ScaleZ(sz))
+                    },
+                    "scale3d" => {
                         let sx = specified::parse_number(context, input)?;
                         input.expect_comma()?;
                         let sy = specified::parse_number(context, input)?;
                         input.expect_comma()?;
                         let sz = specified::parse_number(context, input)?;
-                        result.push(SpecifiedOperation::Scale3D(sx, sy, sz));
-                        Ok(true)
-                    })?
-                },
-                "rotate" => {
-                    input.parse_nested_block(|input| {
+                        Ok(SpecifiedOperation::Scale3D(sx, sy, sz))
+                    },
+                    "rotate" => {
                         let theta = specified::Angle::parse_with_unitless(context, input)?;
-                        result.push(SpecifiedOperation::Rotate(theta));
-                        Ok(true)
-                    })?
-                },
-                "rotatex" => {
-                    input.parse_nested_block(|input| {
+                        Ok(SpecifiedOperation::Rotate(theta))
+                    },
+                    "rotatex" => {
                         let theta = specified::Angle::parse_with_unitless(context, input)?;
-                        result.push(SpecifiedOperation::RotateX(theta));
-                        Ok(true)
-                    })?
-                },
-                "rotatey" => {
-                    input.parse_nested_block(|input| {
+                        Ok(SpecifiedOperation::RotateX(theta))
+                    },
+                    "rotatey" => {
                         let theta = specified::Angle::parse_with_unitless(context, input)?;
-                        result.push(SpecifiedOperation::RotateY(theta));
-                        Ok(true)
-                    })?
-                },
-                "rotatez" => {
-                    input.parse_nested_block(|input| {
+                        Ok(SpecifiedOperation::RotateY(theta))
+                    },
+                    "rotatez" => {
                         let theta = specified::Angle::parse_with_unitless(context, input)?;
-                        result.push(SpecifiedOperation::RotateZ(theta));
-                        Ok(true)
-                    })?
-                },
-                "rotate3d" => {
-                    input.parse_nested_block(|input| {
+                        Ok(SpecifiedOperation::RotateZ(theta))
+                    },
+                    "rotate3d" => {
                         let ax = specified::parse_number(context, input)?;
                         input.expect_comma()?;
                         let ay = specified::parse_number(context, input)?;
@@ -1208,56 +1136,36 @@ ${helpers.predefined_type(
                         let az = specified::parse_number(context, input)?;
                         input.expect_comma()?;
                         let theta = specified::Angle::parse_with_unitless(context, input)?;
-                        // TODO(gw): Check the axis can be normalized!!
-                        result.push(SpecifiedOperation::Rotate3D(ax, ay, az, theta));
-                        Ok(true)
-                    })?
-                },
-                "skew" => {
-                    input.parse_nested_block(|input| {
-                        let theta_x = specified::Angle::parse_with_unitless(context, input)?;
+                        // TODO(gw): Check that the axis can be normalized.
+                        Ok(SpecifiedOperation::Rotate3D(ax, ay, az, theta))
+                    },
+                    "skew" => {
+                        let ax = specified::Angle::parse_with_unitless(context, input)?;
                         if input.try(|input| input.expect_comma()).is_ok() {
-                            let theta_y = specified::Angle::parse_with_unitless(context, input)?;
-                            result.push(SpecifiedOperation::Skew(theta_x, Some(theta_y)));
+                            let ay = specified::Angle::parse_with_unitless(context, input)?;
+                            Ok(SpecifiedOperation::Skew(ax, Some(ay)))
                         } else {
-                            result.push(SpecifiedOperation::Skew(theta_x, None));
+                            Ok(SpecifiedOperation::Skew(ax, None))
                         }
-                        Ok(true)
-                    })?
-                },
-                "skewx" => {
-                    input.parse_nested_block(|input| {
-                        let theta_x = specified::Angle::parse_with_unitless(context, input)?;
-                        result.push(SpecifiedOperation::SkewX(theta_x));
-                        Ok(true)
-                    })?
-                },
-                "skewy" => {
-                    input.parse_nested_block(|input| {
-                        let theta_y = specified::Angle::parse_with_unitless(context, input)?;
-                        result.push(SpecifiedOperation::SkewY(theta_y));
-                        Ok(true)
-                    })?
-                },
-                "perspective" => {
-                    input.parse_nested_block(|input| {
+                    },
+                    "skewx" => {
+                        let theta = specified::Angle::parse_with_unitless(context, input)?;
+                        Ok(SpecifiedOperation::SkewX(theta))
+                    },
+                    "skewy" => {
+                        let theta = specified::Angle::parse_with_unitless(context, input)?;
+                        Ok(SpecifiedOperation::SkewY(theta))
+                    },
+                    "perspective" => {
                         let d = specified::Length::parse_non_negative(context, input)?;
-                        result.push(SpecifiedOperation::Perspective(d));
-                        Ok(true)
-                    })?
-                },
-                _ => false
-            };
-            if !valid_fn {
-                return Err(StyleParseError::UnexpectedFunction(name).into());
-            }
-        }
-
-        if !result.is_empty() {
-            Ok(SpecifiedValue(result))
-        } else {
-            Err(StyleParseError::UnspecifiedError.into())
-        }
+                        Ok(SpecifiedOperation::Perspective(d))
+                    },
+                    _ => Err(()),
+                };
+                result
+                    .map_err(|()| StyleParseError::UnexpectedFunction(function).into())
+            })
+        })?))
     }
 
     /// Parses `transform` property.
