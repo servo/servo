@@ -486,7 +486,7 @@ pub fn default_opts() -> Opts {
         time_profiling: None,
         time_profiler_trace_path: None,
         mem_profiler_period: None,
-        nonincremental_layout: false,
+        nonincremental_layout: true,
         userscripts: None,
         user_stylesheets: Vec::new(),
         output_file: None,
