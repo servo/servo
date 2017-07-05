@@ -14,10 +14,11 @@ use gecko_bindings::bindings::{Gecko_CreateGradient, Gecko_SetGradientImageValue
 use gecko_bindings::bindings::{Gecko_InitializeImageCropRect, Gecko_SetImageElement};
 use gecko_bindings::structs::{nsCSSUnit, nsStyleCoord_CalcValue, nsStyleImage};
 use gecko_bindings::structs::{nsresult, SheetType};
-use gecko_bindings::sugar::ns_style_coord::{CoordDataValue, CoordDataMut};
+use gecko_bindings::sugar::ns_style_coord::{CoordDataValue, CoordData, CoordDataMut};
 use stylesheets::{Origin, RulesMutateError};
 use values::computed::{Angle, CalcLengthOrPercentage, Gradient, Image};
 use values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
+use values::generics::grid::TrackSize;
 use values::generics::image::{CompatMode, Image as GenericImage, GradientItem};
 use values::specified::length::Percentage;
 
@@ -581,6 +582,56 @@ impl From<Origin> for SheetType {
             Origin::UserAgent => SheetType::Agent,
             Origin::Author => SheetType::Doc,
             Origin::User => SheetType::User,
+        }
+    }
+}
+
+impl TrackSize<LengthOrPercentage> {
+    /// Return TrackSize from given two nsStyleCoord
+    pub fn from_gecko_style_coords<T: CoordData>(gecko_min: &T, gecko_max: &T) -> Self {
+        use gecko_bindings::structs::root::nsStyleUnit;
+        use values::computed::length::LengthOrPercentage;
+        use values::generics::grid::{TrackBreadth, TrackSize};
+
+        if gecko_min.unit() == nsStyleUnit::eStyleUnit_None {
+            debug_assert!(gecko_max.unit() == nsStyleUnit::eStyleUnit_Coord ||
+                          gecko_max.unit() == nsStyleUnit::eStyleUnit_Percent);
+            return TrackSize::FitContent(LengthOrPercentage::from_gecko_style_coord(gecko_max)
+                                         .expect("gecko_max could not convert to LengthOrPercentage"));
+        }
+
+        let min = TrackBreadth::from_gecko_style_coord(gecko_min)
+            .expect("gecko_min could not convert to TrackBreadth");
+        let max = TrackBreadth::from_gecko_style_coord(gecko_max)
+            .expect("gecko_max could not convert to TrackBreadth");
+        if min == max {
+            TrackSize::Breadth(max)
+        } else {
+            TrackSize::MinMax(min, max)
+        }
+    }
+
+    /// Save TrackSize to given gecko fields.
+    pub fn to_gecko_style_coords<T: CoordDataMut>(&self, gecko_min: &mut T, gecko_max: &mut T) {
+        use values::generics::grid::TrackSize;
+
+        match *self {
+            TrackSize::FitContent(ref lop) => {
+                // Gecko sets min value to None and max value to the actual value in fit-content
+                // https://dxr.mozilla.org/mozilla-central/rev/0eef1d5/layout/style/nsRuleNode.cpp#8221
+                gecko_min.set_value(CoordDataValue::None);
+                lop.to_gecko_style_coord(gecko_max);
+            },
+            TrackSize::Breadth(ref breadth) => {
+                // Set the value to both fields if there's one breadth value
+                // https://dxr.mozilla.org/mozilla-central/rev/0eef1d5/layout/style/nsRuleNode.cpp#8230
+                breadth.to_gecko_style_coord(gecko_min);
+                breadth.to_gecko_style_coord(gecko_max);
+            },
+            TrackSize::MinMax(ref min, ref max) => {
+                min.to_gecko_style_coord(gecko_min);
+                max.to_gecko_style_coord(gecko_max);
+            },
         }
     }
 }

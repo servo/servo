@@ -260,7 +260,7 @@ ${helpers.predefined_type("object-position",
         ${helpers.predefined_type("grid-%s-%s" % (kind, range),
                                   "GridLine",
                                   "Default::default()",
-                                  animation_value_type="none",
+                                  animation_value_type="discrete",
                                   spec="https://drafts.csswg.org/css-grid/#propdef-grid-%s-%s" % (kind, range),
                                   products="gecko",
                                   boxed=True)}
