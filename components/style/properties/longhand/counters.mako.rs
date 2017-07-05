@@ -233,7 +233,7 @@
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="counter-increment" animation_value_type="none"
+<%helpers:longhand name="counter-increment" animation_value_type="discrete"
                    spec="https://drafts.csswg.org/css-lists/#propdef-counter-increment">
     use std::fmt;
     use style_traits::ToCss;
@@ -350,7 +350,7 @@
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="counter-reset" animation_value_type="none"
+<%helpers:longhand name="counter-reset" animation_value_type="discrete"
                    spec="https://drafts.csswg.org/css-lists-3/#propdef-counter-reset">
     pub use super::counter_increment::{SpecifiedValue, computed_value, get_initial_value};
     use super::counter_increment::parse_common;
