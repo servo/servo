@@ -23,7 +23,7 @@
 #![deny(missing_docs)]
 
 use arrayvec::ArrayVec;
-use context::TraversalStatistics;
+use context::{StyleContext, ThreadLocalStyleContext, TraversalStatistics};
 use dom::{OpaqueNode, SendNode, TElement, TNode};
 use rayon;
 use scoped_tls::ScopedTLS;
@@ -84,7 +84,7 @@ pub fn traverse_dom<E, D>(traversal: &D,
     let traversal_data = PerLevelTraversalData {
         current_dom_depth: depth,
     };
-    let tls = ScopedTLS::<D::ThreadLocalContext>::new(pool);
+    let tls = ScopedTLS::<ThreadLocalStyleContext<E>>::new(pool);
     let root = root.as_node().opaque();
 
     pool.install(|| {
@@ -124,11 +124,11 @@ pub fn traverse_dom<E, D>(traversal: &D,
 #[inline(never)]
 fn create_thread_local_context<'scope, E, D>(
     traversal: &'scope D,
-    slot: &mut Option<D::ThreadLocalContext>)
+    slot: &mut Option<ThreadLocalStyleContext<E>>)
     where E: TElement + 'scope,
           D: DomTraversal<E>
 {
-    *slot = Some(traversal.create_thread_local_context())
+    *slot = Some(ThreadLocalStyleContext::new(traversal.shared_context()));
 }
 
 /// A parallel top-down DOM traversal.
@@ -152,7 +152,7 @@ fn top_down_dom<'a, 'scope, E, D>(nodes: &'a [SendNode<E::ConcreteNode>],
                                   scope: &'a rayon::Scope<'scope>,
                                   pool: &'scope rayon::ThreadPool,
                                   traversal: &'scope D,
-                                  tls: &'scope ScopedTLS<'scope, D::ThreadLocalContext>)
+                                  tls: &'scope ScopedTLS<'scope, ThreadLocalStyleContext<E>>)
     where E: TElement + 'scope,
           D: DomTraversal<E>,
 {
@@ -167,7 +167,11 @@ fn top_down_dom<'a, 'scope, E, D>(nodes: &'a [SendNode<E::ConcreteNode>],
         // Scope the borrow of the TLS so that the borrow is dropped before
         // a potential recursive call when we pass TailCall.
         let mut tlc = tls.ensure(
-            |slot: &mut Option<D::ThreadLocalContext>| create_thread_local_context(traversal, slot));
+            |slot: &mut Option<ThreadLocalStyleContext<E>>| create_thread_local_context(traversal, slot));
+        let mut context = StyleContext {
+            shared: traversal.shared_context(),
+            thread_local: &mut *tlc,
+        };
 
         for n in nodes {
             // If the last node we processed produced children, spawn them off
@@ -199,15 +203,15 @@ fn top_down_dom<'a, 'scope, E, D>(nodes: &'a [SendNode<E::ConcreteNode>],
 
             let node = **n;
             let mut children_to_process = 0isize;
-            traversal.process_preorder(&traversal_data, &mut *tlc, node);
+            traversal.process_preorder(&traversal_data, &mut context, node);
             if let Some(el) = node.as_element() {
-                traversal.traverse_children(&mut *tlc, el, |_tlc, kid| {
+                traversal.traverse_children(&mut context, el, |_context, kid| {
                     children_to_process += 1;
                     discovered_child_nodes.push(unsafe { SendNode::new(kid) })
                 });
             }
 
-            traversal.handle_postorder_traversal(&mut *tlc, root, node,
+            traversal.handle_postorder_traversal(&mut context, root, node,
                                                  children_to_process);
         }
     }
@@ -256,7 +260,7 @@ fn traverse_nodes<'a, 'scope, E, D>(nodes: &[SendNode<E::ConcreteNode>],
                                     scope: &'a rayon::Scope<'scope>,
                                     pool: &'scope rayon::ThreadPool,
                                     traversal: &'scope D,
-                                    tls: &'scope ScopedTLS<'scope, D::ThreadLocalContext>)
+                                    tls: &'scope ScopedTLS<'scope, ThreadLocalStyleContext<E>>)
     where E: TElement + 'scope,
           D: DomTraversal<E>,
 {

@@ -6,8 +6,8 @@
 
 #![deny(missing_docs)]
 
+use context::{StyleContext, ThreadLocalStyleContext};
 use dom::{TElement, TNode};
-use std::borrow::BorrowMut;
 use std::collections::VecDeque;
 use time;
 use traversal::{DomTraversal, PerLevelTraversalData, PreTraverseToken};
@@ -28,7 +28,12 @@ pub fn traverse_dom<E, D>(traversal: &D,
     debug_assert!(token.should_traverse());
 
     let mut discovered = VecDeque::<WorkItem<E::ConcreteNode>>::with_capacity(16);
-    let mut tlc = traversal.create_thread_local_context();
+    let mut tlc = ThreadLocalStyleContext::new(traversal.shared_context());
+    let mut context = StyleContext {
+        shared: traversal.shared_context(),
+        thread_local: &mut tlc,
+    };
+
     let root_depth = root.depth();
 
     if token.traverse_unstyled_children_only() {
@@ -47,25 +52,24 @@ pub fn traverse_dom<E, D>(traversal: &D,
     while let Some(WorkItem(node, depth)) = discovered.pop_front() {
         let mut children_to_process = 0isize;
         let traversal_data = PerLevelTraversalData { current_dom_depth: depth };
-        traversal.process_preorder(&traversal_data, &mut tlc, node);
+        traversal.process_preorder(&traversal_data, &mut context, node);
 
         if let Some(el) = node.as_element() {
-            traversal.traverse_children(&mut tlc, el, |_tlc, kid| {
+            traversal.traverse_children(&mut context, el, |_context, kid| {
                 children_to_process += 1;
                 discovered.push_back(WorkItem(kid, depth + 1))
             });
         }
 
-        traversal.handle_postorder_traversal(&mut tlc, root.as_node().opaque(),
+        traversal.handle_postorder_traversal(&mut context, root.as_node().opaque(),
                                              node, children_to_process);
     }
 
     // Dump statistics to stdout if requested.
     if dump_stats {
-        let tlsc = tlc.borrow_mut();
-        tlsc.statistics.finish(traversal, start_time.unwrap());
-        if tlsc.statistics.is_large_traversal() {
-            println!("{}", tlsc.statistics);
+        context.thread_local.statistics.finish(traversal, start_time.unwrap());
+        if context.thread_local.statistics.is_large_traversal() {
+            println!("{}", context.thread_local.statistics);
         }
     }
 }

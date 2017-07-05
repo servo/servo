@@ -5,7 +5,7 @@
 //! Gecko-specific bits for the styling DOM traversal.
 
 use atomic_refcell::AtomicRefCell;
-use context::{SharedStyleContext, StyleContext, ThreadLocalStyleContext};
+use context::{SharedStyleContext, StyleContext};
 use data::ElementData;
 use dom::{NodeInfo, TNode};
 use gecko::wrapper::{GeckoElement, GeckoNode};
@@ -29,25 +29,19 @@ impl<'a> RecalcStyleOnly<'a> {
 }
 
 impl<'recalc, 'le> DomTraversal<GeckoElement<'le>> for RecalcStyleOnly<'recalc> {
-    type ThreadLocalContext = ThreadLocalStyleContext<GeckoElement<'le>>;
-
     fn process_preorder(&self,
                         traversal_data: &PerLevelTraversalData,
-                        thread_local: &mut Self::ThreadLocalContext,
+                        context: &mut StyleContext<GeckoElement<'le>>,
                         node: GeckoNode<'le>)
     {
         if node.is_element() {
             let el = node.as_element().unwrap();
             let mut data = unsafe { el.ensure_data() }.borrow_mut();
-            let mut context = StyleContext {
-                shared: &self.shared,
-                thread_local: thread_local,
-            };
-            recalc_style_at(self, traversal_data, &mut context, el, &mut data);
+            recalc_style_at(self, traversal_data, context, el, &mut data);
         }
     }
 
-    fn process_postorder(&self, _: &mut Self::ThreadLocalContext, _: GeckoNode<'le>) {
+    fn process_postorder(&self, _: &mut StyleContext<GeckoElement<'le>>, _: GeckoNode<'le>) {
         unreachable!();
     }
 
@@ -64,10 +58,6 @@ impl<'recalc, 'le> DomTraversal<GeckoElement<'le>> for RecalcStyleOnly<'recalc> 
 
     fn shared_context(&self) -> &SharedStyleContext {
         &self.shared
-    }
-
-    fn create_thread_local_context(&self) -> Self::ThreadLocalContext {
-        ThreadLocalStyleContext::new(&self.shared)
     }
 
     fn is_parallel(&self) -> bool {

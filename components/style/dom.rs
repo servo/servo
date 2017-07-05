@@ -296,7 +296,7 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
     ///
     /// XXXManishearth It would be better to make this a type parameter on
     /// ThreadLocalStyleContext and StyleContext
-    type FontMetricsProvider: FontMetricsProvider;
+    type FontMetricsProvider: FontMetricsProvider + Send;
 
     /// Get this element as a node.
     fn as_node(&self) -> Self::ConcreteNode;
