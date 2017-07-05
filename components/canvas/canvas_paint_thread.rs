@@ -58,7 +58,12 @@ pub struct CanvasPaintThread<'a> {
     state: CanvasPaintState<'a>,
     saved_states: Vec<CanvasPaintState<'a>>,
     webrender_api: webrender_traits::RenderApi,
+    // The current webrender image key.
     image_key: Option<webrender_traits::ImageKey>,
+    // An old webrender image key that can be deleted when the next epoch ends.
+    old_image_key: Option<webrender_traits::ImageKey>,
+    // An old webrender image key that can be deleted when the current epoch ends.
+    very_old_image_key: Option<webrender_traits::ImageKey>,
 }
 
 #[derive(Clone)]
@@ -111,6 +116,8 @@ impl<'a> CanvasPaintThread<'a> {
             saved_states: vec![],
             webrender_api: webrender_api,
             image_key: None,
+            old_image_key: None,
+            very_old_image_key: None,
         }
     }
 
@@ -546,7 +553,10 @@ impl<'a> CanvasPaintThread<'a> {
         self.drawtarget = CanvasPaintThread::create(size);
         // Webrender doesn't let images change size, so we clear the webrender image key.
         if let Some(image_key) = self.image_key.take() {
-            self.webrender_api.delete_image(image_key);
+            // If this executes, then we are in a new epoch since we last recreated the canvas,
+            // so `old_image_key` must be `None`.
+            debug_assert!(self.old_image_key.is_none());
+            self.old_image_key = Some(image_key);
         }
     }
 
@@ -584,6 +594,10 @@ impl<'a> CanvasPaintThread<'a> {
                                                  data,
                                                  None);
                 }
+            }
+
+            if let Some(image_key) = mem::replace(&mut self.very_old_image_key, self.old_image_key.take()) {
+                self.webrender_api.delete_image(image_key);
             }
 
             let data = CanvasImageData {
@@ -743,7 +757,10 @@ impl<'a> CanvasPaintThread<'a> {
 
 impl<'a> Drop for CanvasPaintThread<'a> {
     fn drop(&mut self) {
-        if let Some(image_key) = self.image_key {
+        if let Some(image_key) = self.old_image_key.take() {
+            self.webrender_api.delete_image(image_key);
+        }
+        if let Some(image_key) = self.old_image_key.take() {
             self.webrender_api.delete_image(image_key);
         }
     }
