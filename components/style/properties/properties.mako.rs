@@ -37,8 +37,7 @@ use properties::animated_properties::AnimatableLonghand;
 use selectors::parser::SelectorParseError;
 #[cfg(feature = "servo")] use servo_config::prefs::PREFS;
 use shared_lock::StylesheetGuards;
-use style_traits::{PARSING_MODE_DEFAULT, HasViewportPercentage, ToCss, ParseError};
-use style_traits::{PropertyDeclarationParseError, StyleParseError};
+use style_traits::{PARSING_MODE_DEFAULT, HasViewportPercentage, ToCss, ParseError, PropertyDeclarationParseError};
 use stylesheets::{CssRuleType, MallocSizeOf, MallocSizeOfFn, Origin, UrlExtraData};
 #[cfg(feature = "servo")] use values::Either;
 use values::generics::text::LineHeight;
@@ -1015,7 +1014,7 @@ impl PropertyId {
         match static_id(&property_name) {
             Some(&StaticId::Longhand(id)) => Ok(PropertyId::Longhand(id)),
             Some(&StaticId::Shorthand(id)) => Ok(PropertyId::Shorthand(id)),
-            None => Err(StyleParseError::UnknownProperty(property_name).into()),
+            None => Err(SelectorParseError::UnexpectedIdent(property_name).into()),
         }
     }
 
@@ -1420,7 +1419,7 @@ impl PropertyDeclaration {
                     Ok(keyword) => DeclaredValueOwned::CSSWideKeyword(keyword),
                     Err(_) => match ::custom_properties::SpecifiedValue::parse(context, input) {
                         Ok(value) => DeclaredValueOwned::Value(value),
-                        Err(_) => return Err(PropertyDeclarationParseError::InvalidValue(name.to_string())),
+                        Err(_) => return Err(PropertyDeclarationParseError::InvalidValue),
                     }
                 };
                 declarations.push(PropertyDeclaration::Custom(name, value));
@@ -1448,7 +1447,7 @@ impl PropertyDeclaration {
                                 declarations.push(value);
                                 Ok(())
                             },
-                            Err(_) => Err(PropertyDeclarationParseError::InvalidValue("${property.ident}".into())),
+                            Err(_) => Err(PropertyDeclarationParseError::InvalidValue),
                         }
                     % else:
                         Err(PropertyDeclarationParseError::UnknownProperty)
@@ -1488,7 +1487,7 @@ impl PropertyDeclaration {
                         },
                         Err(_) => {
                             shorthands::${shorthand.ident}::parse_into(declarations, context, input)
-                                .map_err(|_| PropertyDeclarationParseError::InvalidValue("${shorthand.ident}".into()))
+                                .map_err(|_| PropertyDeclarationParseError::InvalidValue)
                         }
                     }
                 }

@@ -23,7 +23,7 @@ use data::ElementData;
 use dom::{self, DescendantsBit, LayoutIterator, NodeInfo, TElement, TNode, UnsafeNode};
 use dom::{OpaqueNode, PresentationalHintsSynthesizer};
 use element_state::{ElementState, DocumentState, NS_DOCUMENT_STATE_WINDOW_INACTIVE};
-use error_reporting::ParseErrorReporter;
+use error_reporting::create_error_reporter;
 use font_metrics::{FontMetrics, FontMetricsProvider, FontMetricsQueryResult};
 use gecko::data::PerDocumentStyleData;
 use gecko::global_style_data::GLOBAL_STYLE_DATA;
@@ -478,9 +478,8 @@ impl<'le> GeckoElement<'le> {
     /// Parse the style attribute of an element.
     pub fn parse_style_attribute(value: &str,
                                  url_data: &UrlExtraData,
-                                 quirks_mode: QuirksMode,
-                                 reporter: &ParseErrorReporter) -> PropertyDeclarationBlock {
-        parse_style_attribute(value, url_data, reporter, quirks_mode)
+                                 quirks_mode: QuirksMode) -> PropertyDeclarationBlock {
+        parse_style_attribute(value, url_data, &create_error_reporter(), quirks_mode)
     }
 
     fn flags(&self) -> u32 {

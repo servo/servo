@@ -111,19 +111,16 @@ pub struct AnimationValueIterator<'a, 'cx, 'cx_a:'cx> {
     iter: Iter<'a, (PropertyDeclaration, Importance)>,
     context: &'cx mut Context<'cx_a>,
     default_values: &'a Arc<ComputedValues>,
-    reporter: &'a ParseErrorReporter,
 }
 
 impl<'a, 'cx, 'cx_a:'cx> AnimationValueIterator<'a, 'cx, 'cx_a> {
     fn new(declarations: &'a PropertyDeclarationBlock,
            context: &'cx mut Context<'cx_a>,
-           default_values: &'a Arc<ComputedValues>,
-           reporter: &'a ParseErrorReporter) -> AnimationValueIterator<'a, 'cx, 'cx_a> {
+           default_values: &'a Arc<ComputedValues>) -> AnimationValueIterator<'a, 'cx, 'cx_a> {
         AnimationValueIterator {
             iter: declarations.declarations().iter(),
             context: context,
             default_values: default_values,
-            reporter: reporter
         }
     }
 }
@@ -141,8 +138,7 @@ impl<'a, 'cx, 'cx_a:'cx> Iterator for AnimationValueIterator<'a, 'cx, 'cx_a> {
                     if importance == Importance::Normal {
                         let property = AnimatableLonghand::from_declaration(decl);
                         let animation = AnimationValue::from_declaration(decl, &mut self.context,
-                                                                         self.default_values,
-                                                                         self.reporter);
+                                                                         self.default_values);
                         debug_assert!(property.is_none() == animation.is_none(),
                                       "The failure condition of AnimatableLonghand::from_declaration \
                                        and AnimationValue::from_declaration should be the same");
@@ -208,10 +204,9 @@ impl PropertyDeclarationBlock {
     /// Return an iterator of (AnimatableLonghand, AnimationValue).
     pub fn to_animation_value_iter<'a, 'cx, 'cx_a:'cx>(&'a self,
                                                        context: &'cx mut Context<'cx_a>,
-                                                       default_values: &'a Arc<ComputedValues>,
-                                                       reporter: &'a ParseErrorReporter)
+                                                       default_values: &'a Arc<ComputedValues>)
                                                        -> AnimationValueIterator<'a, 'cx, 'cx_a> {
-        AnimationValueIterator::new(self, context, default_values, reporter)
+        AnimationValueIterator::new(self, context, default_values)
     }
 
     /// Returns whether this block contains any declaration with `!important`.
@@ -913,17 +908,10 @@ pub fn parse_one_declaration_into(declarations: &mut SourcePropertyDeclaration,
                                      parsing_mode,
                                      quirks_mode);
     let mut input = ParserInput::new(input);
-    let mut parser = Parser::new(&mut input);
-    let start = parser.position();
-    parser.parse_entirely(|parser| {
+    Parser::new(&mut input).parse_entirely(|parser| {
         PropertyDeclaration::parse_into(declarations, id, &context, parser)
             .map_err(|e| e.into())
-    }).map_err(|err| {
-        let end = parser.position();
-        let error = ContextualParseError::UnsupportedPropertyDeclaration(
-            parser.slice(start..end), err);
-        log_css_error(&mut parser, start, error, &context);
-    })
+    }).map_err(|_| ())
 }
 
 /// A struct to parse property declarations.

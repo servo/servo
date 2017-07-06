@@ -8,7 +8,6 @@
 
 use app_units::Au;
 use cssparser::{Parser, RGBA};
-use error_reporting::ParseErrorReporter;
 use euclid::{Point2D, Size2D};
 #[cfg(feature = "gecko")] use gecko_bindings::bindings::RawServoAnimationValueMap;
 #[cfg(feature = "gecko")] use gecko_bindings::structs::RawGeckoGfxMatrix4x4;
@@ -523,8 +522,8 @@ impl AnimationValue {
 
     /// Construct an AnimationValue from a property declaration
     pub fn from_declaration(decl: &PropertyDeclaration, context: &mut Context,
-                            initial: &ComputedValues,
-                            reporter: &ParseErrorReporter) -> Option<Self> {
+                            initial: &ComputedValues) -> Option<Self> {
+        use error_reporting::create_error_reporter;
         use properties::LonghandId;
         use properties::DeclaredValue;
 
@@ -588,6 +587,7 @@ impl AnimationValue {
             },
             PropertyDeclaration::WithVariables(id, ref variables) => {
                 let custom_props = context.style().custom_properties();
+                let reporter = create_error_reporter();
                 match id {
                     % for prop in data.longhands:
                     % if prop.animatable:
@@ -610,13 +610,9 @@ impl AnimationValue {
                                     },
                                     DeclaredValue::WithVariables(_) => unreachable!(),
                                 };
-                                result = AnimationValue::from_declaration(
-                                    &declaration,
-                                    context,
-                                    initial,
-                                    reporter);
+                                result = AnimationValue::from_declaration(&declaration, context, initial);
                             },
-                            reporter,
+                            &reporter,
                             quirks_mode);
                         result
                     },
