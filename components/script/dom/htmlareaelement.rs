@@ -24,6 +24,7 @@ use html5ever::{LocalName, Prefix};
 use net_traits::ReferrerPolicy;
 use std::default::Default;
 use std::f32;
+use std::str;
 use style::attr::AttrValue;
 
 #[derive(PartialEq)]
@@ -68,7 +69,6 @@ impl Area {
         //This vector will hold all parsed coordinates
         let mut number_list = Vec::new();
         let mut array = Vec::new();
-        let ar_ref = &mut array;
 
         // Step 5: walk till end of string
         while index < size {
@@ -89,24 +89,24 @@ impl Area {
 
                 match val {
                     b',' | b';' | b' ' | b'\t' | b'\n' | 0x0C | b'\r' => break,
-                    _ => (*ar_ref).push(val),
+                    _ => array.push(val),
                 }
 
                 index += 1;
             }
 
             // The input does not consist any valid charecters
-            if (*ar_ref).is_empty() {
+            if array.is_empty() {
                 break;
             }
 
             // Convert String to float
-            match String::from_utf8((*ar_ref).clone()).unwrap().parse::<f32>() {
-                Ok(v) => number_list.push(v),
-                Err(_) => number_list.push(0.0),
+            match str::from_utf8(&array).ok().and_then(|s| s.parse::<f32>().ok()) {
+                Some(v) => number_list.push(v),
+                None => number_list.push(0.0),
             };
 
-            (*ar_ref).clear();
+            array.clear();
 
             // For rectangle and circle, stop parsing once we have three
             // and four coordinates respectively
