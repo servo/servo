@@ -50,7 +50,7 @@ servo_url = {path = "../url"}
 style = {path = "../style", features = ["servo"]}
 style_traits = {path = "../style_traits", features = ["servo"]}
 webrender = {git = "https://github.com/servo/webrender"}
-webrender_traits = {git = "https://github.com/servo/webrender", features = ["ipc"]}
+webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 webdriver_server = {path = "../webdriver_server", optional = true}
 webvr = {path = "../webvr"}
 webvr_traits = {path = "../webvr_traits"}

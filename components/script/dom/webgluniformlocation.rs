@@ -8,7 +8,7 @@ use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::window::Window;
 use dom_struct::dom_struct;
-use webrender_traits::WebGLProgramId;
+use webrender_api::WebGLProgramId;
 
 #[dom_struct]
 pub struct WebGLUniformLocation {

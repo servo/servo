@@ -63,7 +63,7 @@ use table_colgroup::TableColGroupFlow;
 use table_row::TableRowFlow;
 use table_rowgroup::TableRowGroupFlow;
 use table_wrapper::TableWrapperFlow;
-use webrender_traits::ClipId;
+use webrender_api::ClipId;
 
 /// Virtual methods that make up a float context.
 ///

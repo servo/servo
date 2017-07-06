@@ -14,8 +14,8 @@ use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
 use std::cell::Cell;
 use std::collections::HashSet;
-use webrender_traits;
-use webrender_traits::{WebGLBufferId, WebGLCommand, WebGLError, WebGLResult, WebGLVertexArrayId};
+use webrender_api;
+use webrender_api::{WebGLBufferId, WebGLCommand, WebGLError, WebGLResult, WebGLVertexArrayId};
 
 #[dom_struct]
 pub struct WebGLBuffer {
@@ -50,7 +50,7 @@ impl WebGLBuffer {
 
     pub fn maybe_new(window: &Window, renderer: IpcSender<CanvasMsg>)
                      -> Option<Root<WebGLBuffer>> {
-        let (sender, receiver) = webrender_traits::channel::msg_channel().unwrap();
+        let (sender, receiver) = webrender_api::channel::msg_channel().unwrap();
         renderer.send(CanvasMsg::WebGL(WebGLCommand::CreateBuffer(sender))).unwrap();
 
         let result = receiver.recv().unwrap();

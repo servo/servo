@@ -26,7 +26,7 @@ use std::thread;
 use std::u32;
 use style::font_face::{EffectiveSources, Source};
 use style::properties::longhands::font_family::computed_value::{FontFamily, FamilyName};
-use webrender_traits;
+use webrender_api;
 
 /// A list of font templates that make up a given font family.
 struct FontTemplates {
@@ -36,7 +36,7 @@ struct FontTemplates {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct FontTemplateInfo {
     pub font_template: Arc<FontTemplateData>,
-    pub font_key: Option<webrender_traits::FontKey>,
+    pub font_key: Option<webrender_api::FontKey>,
 }
 
 impl FontTemplates {
@@ -127,8 +127,8 @@ struct FontCache {
     web_families: HashMap<LowercaseString, FontTemplates>,
     font_context: FontContextHandle,
     core_resource_thread: CoreResourceThread,
-    webrender_api: Option<webrender_traits::RenderApi>,
-    webrender_fonts: HashMap<Atom, webrender_traits::FontKey>,
+    webrender_api: Option<webrender_api::RenderApi>,
+    webrender_fonts: HashMap<Atom, webrender_api::FontKey>,
 }
 
 fn populate_generic_fonts() -> HashMap<FontFamily, LowercaseString> {
@@ -400,7 +400,7 @@ pub struct FontCacheThread {
 
 impl FontCacheThread {
     pub fn new(core_resource_thread: CoreResourceThread,
-               webrender_api: Option<webrender_traits::RenderApi>) -> FontCacheThread {
+               webrender_api: Option<webrender_api::RenderApi>) -> FontCacheThread {
         let (chan, port) = ipc::channel().unwrap();
 
         let channel_to_self = chan.clone();

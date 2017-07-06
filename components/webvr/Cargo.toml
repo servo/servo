@@ -16,4 +16,4 @@ msg = {path = "../msg"}
 script_traits = {path = "../script_traits"}
 servo_config = {path = "../config"}
 webvr_traits = {path = "../webvr_traits" }
-webrender_traits = {git = "https://github.com/servo/webrender", features = ["ipc"]}
+webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}

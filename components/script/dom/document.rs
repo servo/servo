@@ -144,7 +144,7 @@ use time;
 use timers::OneshotTimerCallback;
 use url::Host;
 use url::percent_encoding::percent_decode;
-use webrender_traits::ClipId;
+use webrender_api::ClipId;
 
 /// The number of times we are allowed to see spurious `requestAnimationFrame()` calls before
 /// falling back to fake ones.

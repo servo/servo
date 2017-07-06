@@ -37,7 +37,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::mpsc::Sender;
 use style_traits::CSSPixel;
-use webrender_traits;
+use webrender_api;
 use webvr_traits::WebVRMsg;
 
 /// A `Pipeline` is the constellation's view of a `Document`. Each pipeline has an
@@ -164,7 +164,7 @@ pub struct InitialPipelineState {
     pub prev_visibility: Option<bool>,
 
     /// Webrender api.
-    pub webrender_api_sender: webrender_traits::RenderApiSender,
+    pub webrender_api_sender: webrender_api::RenderApiSender,
 
     /// Whether this pipeline is considered private.
     pub is_private: bool,
@@ -465,7 +465,7 @@ pub struct UnprivilegedPipelineContent {
     layout_content_process_shutdown_port: IpcReceiver<()>,
     script_content_process_shutdown_chan: IpcSender<()>,
     script_content_process_shutdown_port: IpcReceiver<()>,
-    webrender_api_sender: webrender_traits::RenderApiSender,
+    webrender_api_sender: webrender_api::RenderApiSender,
     webvr_thread: Option<IpcSender<WebVRMsg>>,
 }
 

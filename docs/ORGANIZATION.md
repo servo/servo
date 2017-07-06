@@ -112,4 +112,4 @@
 * <https://github.com/servo/rust-selectors/>: a CSS selector matching library
 * <https://github.com/cyderize/rust-websocket/>: a WebSocket protocol implementation
 * <https://github.com/servo/rust-url/>: an implementation of the URL specification
-* <https://github.com/servo/webrender/> and <https://github.com/servo/webrender_traits/>: a GPU renderer
+* <https://github.com/servo/webrender/>: a GPU renderer

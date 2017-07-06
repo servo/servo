@@ -103,7 +103,7 @@ extern crate unicode_segmentation;
 extern crate url;
 extern crate utf8;
 extern crate uuid;
-extern crate webrender_traits;
+extern crate webrender_api;
 extern crate webvr_traits;
 extern crate xml5ever;
 
