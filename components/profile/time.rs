@@ -5,6 +5,9 @@
 //! Timing functions.
 
 use heartbeats;
+use influent::client::{Client, Credentials};
+use influent::create_client;
+use influent::measurement::{Measurement, Value};
 use ipc_channel::ipc::{self, IpcReceiver};
 use profile_traits::energy::{energy_interval_ms, read_energy_uj};
 use profile_traits::time::{ProfilerCategory, ProfilerChan, ProfilerMsg, TimerMetadata};
@@ -183,7 +186,8 @@ impl Profiler {
                 }).expect("Thread spawning failed");
                 // decide if we need to spawn the timer thread
                 match option {
-                    &OutputOptions::FileName(_) => { /* no timer thread needed */ },
+                    &OutputOptions::FileName(_) |
+                    &OutputOptions::DB(_, _, _, _) => { /* no timer thread needed */ },
                     &OutputOptions::Stdout(period) => {
                         // Spawn a timer thread
                         let chan = chan.clone();
@@ -391,7 +395,54 @@ impl Profiler {
                 }
                 writeln!(&mut lock, "").unwrap();
             },
-            None => { /* Do nothing if not output option has been set */ },
+            Some(OutputOptions::DB(ref hostname, ref dbname, ref user, ref password)) => {
+                // Unfortunately, influent does not like hostnames ending with "/"
+                let mut hostname = hostname.to_string();
+                if hostname.ends_with("/") {
+                    hostname.pop();
+                }
+
+                let empty = String::from("");
+                let username = user.as_ref().unwrap_or(&empty);
+                let password = password.as_ref().unwrap_or(&empty);
+                let database = dbname.as_ref().unwrap_or(&empty);
+                let credentials = Credentials {
+                    username: username,
+                    password: password,
+                    database: database,
+                };
+
+                let hosts = vec![hostname.as_str()];
+                let client = create_client(credentials, hosts);
+
+                for (&(ref category, ref meta), ref mut data) in &mut self.buckets {
+                    data.sort_by(|a, b| {
+                        if a < b {
+                            Ordering::Less
+                        } else {
+                            Ordering::Greater
+                        }
+                    });
+                    let data_len = data.len();
+                    if data_len > 0 {
+                        let (mean, median, min, max) = Self::get_statistics(data);
+                        let category = category.format(&self.output);
+                        let mut measurement = Measurement::new(&category);
+                        measurement.add_field("mean", Value::Float(mean));
+                        measurement.add_field("median", Value::Float(median));
+                        measurement.add_field("min", Value::Float(min));
+                        measurement.add_field("max", Value::Float(max));
+                        if let Some(ref meta) = *meta {
+                            measurement.add_tag("host", meta.url.as_str());
+                        };
+                        if client.write_one(measurement, None).is_err() {
+                            warn!("Could not write measurement to profiler db");
+                        }
+                    }
+                }
+
+            },
+            None => { /* Do nothing if no output option has been set */ },
         };
     }
 }

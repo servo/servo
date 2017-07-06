@@ -39,8 +39,13 @@ pub struct Opts {
     /// platform default setting.
     pub device_pixels_per_px: Option<f32>,
 
-    /// `None` to disable the time profiler or `Some` with an interval in seconds to enable it and
-    /// cause it to produce output on that interval (`-p`).
+    /// `None` to disable the time profiler or `Some` to enable it with:
+    ///  - an interval in seconds to cause it to produce output on that interval.
+    ///    (`i.e. -p 5`).
+    ///  - a file path to write profiling info to a TSV file upon Servo's termination.
+    ///    (`i.e. -p out.tsv`).
+    ///  - an InfluxDB hostname to store profiling info upon Servo's termination.
+    ///    (`i.e. -p http://localhost:8086`)
     pub time_profiling: Option<OutputOptions>,
 
     /// When the profiler is enabled, this is an optional path to dump a self-contained HTML file
@@ -419,8 +424,10 @@ fn print_debug_usage(app: &str) -> ! {
 
 #[derive(Clone, Deserialize, Serialize)]
 pub enum OutputOptions {
+    /// Database connection config (hostname, name, user, pass)
+    DB(ServoUrl, Option<String>, Option<String>, Option<String>),
     FileName(String),
-    Stdout(f64)
+    Stdout(f64),
 }
 
 fn args_fail(msg: &str) -> ! {
@@ -598,6 +605,9 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
                     "config directory following xdg spec on linux platform", "");
     opts.optflag("v", "version", "Display servo version information");
     opts.optflag("", "unminify-js", "Unminify Javascript");
+    opts.optopt("", "profiler-db-user", "Profiler database user", "");
+    opts.optopt("", "profiler-db-pass", "Profiler database password", "");
+    opts.optopt("", "profiler-db-name", "Profiler database name", "");
 
     let opt_match = match opts.parse(args) {
         Ok(m) => m,
@@ -666,7 +676,14 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         match opt_match.opt_str("p") {
             Some(argument) => match argument.parse::<f64>() {
                 Ok(interval) => Some(OutputOptions::Stdout(interval)) ,
-                Err(_) => Some(OutputOptions::FileName(argument)),
+                Err(_) => {
+                    match ServoUrl::parse(&argument) {
+                        Ok(url) => Some(OutputOptions::DB(url, opt_match.opt_str("profiler-db-name"),
+                                                          opt_match.opt_str("profiler-db-user"),
+                                                          opt_match.opt_str("profiler-db-pass"))),
+                        Err(_) => Some(OutputOptions::FileName(argument)),
+                    }
+                }
             },
             None => Some(OutputOptions::Stdout(5.0 as f64)),
         }
