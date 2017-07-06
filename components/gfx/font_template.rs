@@ -46,7 +46,7 @@ impl FontTemplateDescriptor {
             // A value higher than all weights.
             return 1000
         }
-        ((self.weight as i16) - (other.weight as i16)).abs() as u32
+        ((self.weight.0 as i16) - (other.weight.0 as i16)).abs() as u32
     }
 }
 

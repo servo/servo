@@ -422,9 +422,7 @@ ${helpers.single_keyword_system("font-variant-caps",
         Bold,
         Bolder,
         Lighter,
-        % for weight in range(100, 901, 100):
-            Weight${weight},
-        % endfor
+        Weight(computed_value::T),
         System(SystemFont),
     }
 
@@ -435,16 +433,14 @@ ${helpers.single_keyword_system("font-variant-caps",
                 SpecifiedValue::Bold => dest.write_str("bold"),
                 SpecifiedValue::Bolder => dest.write_str("bolder"),
                 SpecifiedValue::Lighter => dest.write_str("lighter"),
-                % for weight in range(100, 901, 100):
-                    SpecifiedValue::Weight${weight} => dest.write_str("${weight}"),
-                % endfor
+                SpecifiedValue::Weight(weight) => weight.to_css(dest),
                 SpecifiedValue::System(_) => Ok(())
             }
         }
     }
 
     /// normal | bold | bolder | lighter | 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900
-    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
+    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                          -> Result<SpecifiedValue, ParseError<'i>> {
         let result = input.try(|input| {
             let ident = input.expect_ident().map_err(|_| ())?;
@@ -456,25 +452,13 @@ ${helpers.single_keyword_system("font-variant-caps",
                 _ => Err(())
             }
         });
-        result.or_else(|_| {
-            SpecifiedValue::from_int(input.expect_integer()?)
-                .map_err(|()| StyleParseError::UnspecifiedError.into())
-        })
+        result.or_else(|_| computed_value::T::parse(context, input).map(SpecifiedValue::Weight))
     }
 
     impl SpecifiedValue {
-        pub fn from_int(kw: i32) -> Result<Self, ()> {
-            match kw {
-                % for weight in range(100, 901, 100):
-                    ${weight} => Ok(SpecifiedValue::Weight${weight}),
-                % endfor
-                _ => Err(())
-            }
-        }
-
         pub fn from_gecko_keyword(kw: u32) -> Self {
-            Self::from_int(kw as i32).expect("Found unexpected value in style
-                                              struct for font-weight property")
+            computed_value::T::from_int(kw as i32).map(SpecifiedValue::Weight)
+                .expect("Found unexpected value in style struct for font-weight property")
         }
     }
 
@@ -491,64 +475,79 @@ ${helpers.single_keyword_system("font-variant-caps",
         }
     }
 
-    /// Used in @font-face, where relative keywords are not allowed.
-    impl Parse for computed_value::T {
-        fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-            match parse(context, input)? {
-                % for weight in range(100, 901, 100):
-                    SpecifiedValue::Weight${weight} => Ok(computed_value::T::Weight${weight}),
-                % endfor
-                SpecifiedValue::Normal => Ok(computed_value::T::Weight400),
-                SpecifiedValue::Bold => Ok(computed_value::T::Weight700),
-                SpecifiedValue::Bolder |
-                SpecifiedValue::Lighter => Err(StyleParseError::UnspecifiedError.into()),
-                SpecifiedValue::System(..) => unreachable!(),
-            }
-        }
-    }
-
     pub mod computed_value {
-        #[derive(PartialEq, Eq, Copy, Clone, Hash, Debug)]
+        /// As of CSS Fonts Module Level 3, only the following values are
+        /// valid: 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900
+        #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, ToCss)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
-        #[repr(u16)]
-        pub enum T {
-            % for weight in range(100, 901, 100):
-                Weight${weight} = ${weight},
-            % endfor
-        }
+        pub struct T(pub u16);
+
         impl T {
-            #[inline]
-            pub fn is_bold(self) -> bool {
-                match self {
-                    T::Weight900 | T::Weight800 |
-                    T::Weight700 | T::Weight600 => true,
-                    _ => false
+            /// Value for normal
+            pub fn normal() -> Self {
+                T(400)
+            }
+
+            /// Value for bold
+            pub fn bold() -> Self {
+                T(700)
+            }
+
+            /// Convert from an integer to Weight
+            pub fn from_int(n: i32) -> Result<Self, ()> {
+                if n >= 100 && n <= 900 && n % 100 == 0 {
+                    Ok(T(n as u16))
+                } else {
+                    Err(())
                 }
             }
 
-            /// Obtain a Servo computed value from a Gecko computed font-weight
+            /// Convert from an Gecko weight
             pub fn from_gecko_weight(weight: u16) -> Self {
-                match weight {
-                    % for weight in range(100, 901, 100):
-                        ${weight} => T::Weight${weight},
-                    % endfor
-                    _ => panic!("from_gecko_weight: called with invalid weight")
+                Self::from_int(weight as i32)
+                    .expect("from_gecko_weight: called with invalid weight")
+            }
+
+            /// Weither this weight is bold
+            pub fn is_bold(&self) -> bool {
+                self.0 > 500
+            }
+
+            /// Return the bolder weight
+            pub fn bolder(self) -> Self {
+                if self.0 < 400 {
+                    T(400)
+                } else if self.0 < 600 {
+                    T(700)
+                } else {
+                    T(900)
+                }
+            }
+
+            /// Returns the lighter weight
+            pub fn lighter(self) -> Self {
+                if self.0 < 600 {
+                    T(100)
+                } else if self.0 < 800 {
+                    T(400)
+                } else {
+                    T(700)
                 }
             }
         }
     }
-    impl ToCss for computed_value::T {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match *self {
-                % for weight in range(100, 901, 100):
-                    computed_value::T::Weight${weight} => dest.write_str("${weight}"),
-                % endfor
+
+    impl Parse for computed_value::T {
+        fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>)
+            -> Result<Self, ParseError<'i>> {
+                Self::from_int(input.expect_integer()?)
+                    .map_err(|_| StyleParseError::UnspecifiedError.into())
             }
-        }
     }
+
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
-        computed_value::T::Weight400  // normal
+        computed_value::T::normal()
     }
 
     #[inline]
@@ -562,33 +561,13 @@ ${helpers.single_keyword_system("font-variant-caps",
         #[inline]
         fn to_computed_value(&self, context: &Context) -> computed_value::T {
             match *self {
-                % for weight in range(100, 901, 100):
-                    SpecifiedValue::Weight${weight} => computed_value::T::Weight${weight},
-                % endfor
-                SpecifiedValue::Normal => computed_value::T::Weight400,
-                SpecifiedValue::Bold => computed_value::T::Weight700,
-                SpecifiedValue::Bolder => match context.inherited_style().get_font().clone_font_weight() {
-                    computed_value::T::Weight100 => computed_value::T::Weight400,
-                    computed_value::T::Weight200 => computed_value::T::Weight400,
-                    computed_value::T::Weight300 => computed_value::T::Weight400,
-                    computed_value::T::Weight400 => computed_value::T::Weight700,
-                    computed_value::T::Weight500 => computed_value::T::Weight700,
-                    computed_value::T::Weight600 => computed_value::T::Weight900,
-                    computed_value::T::Weight700 => computed_value::T::Weight900,
-                    computed_value::T::Weight800 => computed_value::T::Weight900,
-                    computed_value::T::Weight900 => computed_value::T::Weight900,
-                },
-                SpecifiedValue::Lighter => match context.inherited_style().get_font().clone_font_weight() {
-                    computed_value::T::Weight100 => computed_value::T::Weight100,
-                    computed_value::T::Weight200 => computed_value::T::Weight100,
-                    computed_value::T::Weight300 => computed_value::T::Weight100,
-                    computed_value::T::Weight400 => computed_value::T::Weight100,
-                    computed_value::T::Weight500 => computed_value::T::Weight100,
-                    computed_value::T::Weight600 => computed_value::T::Weight400,
-                    computed_value::T::Weight700 => computed_value::T::Weight400,
-                    computed_value::T::Weight800 => computed_value::T::Weight700,
-                    computed_value::T::Weight900 => computed_value::T::Weight700,
-                },
+                SpecifiedValue::Weight(weight) => weight,
+                SpecifiedValue::Normal => computed_value::T::normal(),
+                SpecifiedValue::Bold => computed_value::T::bold(),
+                SpecifiedValue::Bolder =>
+                    context.inherited_style().get_font().clone_font_weight().bolder(),
+                SpecifiedValue::Lighter =>
+                    context.inherited_style().get_font().clone_font_weight().lighter(),
                 SpecifiedValue::System(_) => {
                     <%self:nongecko_unreachable>
                         context.cached_system_font.as_ref().unwrap().font_weight.clone()
@@ -599,11 +578,7 @@ ${helpers.single_keyword_system("font-variant-caps",
 
         #[inline]
         fn from_computed_value(computed: &computed_value::T) -> Self {
-            match *computed {
-                % for weight in range(100, 901, 100):
-                    computed_value::T::Weight${weight} => SpecifiedValue::Weight${weight},
-                % endfor
-            }
+            SpecifiedValue::Weight(*computed)
         }
     }
 </%helpers:longhand>

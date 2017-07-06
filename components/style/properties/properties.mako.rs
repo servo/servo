@@ -1673,7 +1673,7 @@ pub mod style_structs {
                     // Corresponds to the fields in
                     // `gfx::font_template::FontTemplateDescriptor`.
                     let mut hasher: FnvHasher = Default::default();
-                    hasher.write_u16(self.font_weight as u16);
+                    hasher.write_u16(self.font_weight.0);
                     self.font_stretch.hash(&mut hasher);
                     self.font_family.hash(&mut hasher);
                     self.hash = hasher.finish()

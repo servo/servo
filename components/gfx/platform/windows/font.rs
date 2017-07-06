@@ -155,18 +155,8 @@ impl FontInfo {
             },
         };
 
-        let weight = match min(9, max(1, weight_val / 100)) {
-            1 => font_weight::T::Weight100,
-            2 => font_weight::T::Weight200,
-            3 => font_weight::T::Weight300,
-            4 => font_weight::T::Weight400,
-            5 => font_weight::T::Weight500,
-            6 => font_weight::T::Weight600,
-            7 => font_weight::T::Weight700,
-            8 => font_weight::T::Weight800,
-            9 => font_weight::T::Weight900,
-            _ => return Err(()),
-        };
+        let weight = font_weight::T::
+            from_int(min(9, max(1, weight_val as i32 / 100)) * 100).unwrap();
 
         let stretch = match min(9, max(1, width_val)) {
             1 => font_stretch::T::ultra_condensed,
@@ -198,21 +188,21 @@ impl FontInfo {
 
     fn new_from_font(font: &Font) -> Result<FontInfo, ()> {
         let style = font.style();
-        let weight = match font.weight() {
-            FontWeight::Thin => font_weight::T::Weight100,
-            FontWeight::ExtraLight => font_weight::T::Weight200,
-            FontWeight::Light => font_weight::T::Weight300,
+        let weight = font_weight::T(match font.weight() {
+            FontWeight::Thin => 100,
+            FontWeight::ExtraLight => 200,
+            FontWeight::Light => 300,
             // slightly grayer gray
-            FontWeight::SemiLight => font_weight::T::Weight300,
-            FontWeight::Regular => font_weight::T::Weight400,
-            FontWeight::Medium => font_weight::T::Weight500,
-            FontWeight::SemiBold => font_weight::T::Weight600,
-            FontWeight::Bold => font_weight::T::Weight700,
-            FontWeight::ExtraBold => font_weight::T::Weight800,
-            FontWeight::Black => font_weight::T::Weight900,
+            FontWeight::SemiLight => 300,
+            FontWeight::Regular => 400,
+            FontWeight::Medium => 500,
+            FontWeight::SemiBold => 600,
+            FontWeight::Bold => 700,
+            FontWeight::ExtraBold => 800,
+            FontWeight::Black => 900,
             // slightly blacker black
-            FontWeight::ExtraBlack => font_weight::T::Weight900,
-        };
+            FontWeight::ExtraBlack => 900,
+        });
         let stretch = match font.stretch() {
             FontStretch::Undefined => font_stretch::T::normal,
             FontStretch::UltraCondensed => font_stretch::T::ultra_condensed,
