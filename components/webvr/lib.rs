@@ -10,7 +10,7 @@ extern crate log;
 extern crate msg;
 extern crate script_traits;
 extern crate servo_config;
-extern crate webrender_traits;
+extern crate webrender_api;
 extern crate webvr_traits;
 
 mod webvr_thread;

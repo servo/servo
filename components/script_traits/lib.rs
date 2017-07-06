@@ -33,7 +33,7 @@ extern crate servo_atoms;
 extern crate servo_url;
 extern crate style_traits;
 extern crate time;
-extern crate webrender_traits;
+extern crate webrender_api;
 extern crate webvr_traits;
 
 mod script_msg;
@@ -69,7 +69,7 @@ use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender, RecvTimeoutError};
 use style_traits::CSSPixel;
 use webdriver_msg::{LoadStatus, WebDriverScriptCommand};
-use webrender_traits::ClipId;
+use webrender_api::ClipId;
 use webvr_traits::{WebVREvent, WebVRMsg};
 
 pub use script_msg::{LayoutMsg, ScriptMsg, EventResult, LogEntry};

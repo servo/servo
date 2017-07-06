@@ -15,7 +15,7 @@ use dom::webglobject::WebGLObject;
 use dom_struct::dom_struct;
 use std::cell::Cell;
 use std::collections::HashMap;
-use webrender_traits::WebGLVertexArrayId;
+use webrender_api::WebGLVertexArrayId;
 
 #[dom_struct]
 pub struct WebGLVertexArrayObjectOES {

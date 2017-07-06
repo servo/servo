@@ -23,7 +23,7 @@ extern crate servo_config;
 extern crate servo_url;
 extern crate url;
 extern crate uuid;
-extern crate webrender_traits;
+extern crate webrender_api;
 
 use cookie_rs::Cookie;
 use filemanager_thread::FileManagerThreadMsg;

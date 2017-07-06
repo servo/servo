@@ -24,7 +24,7 @@ use text::glyph::{ByteIndex, GlyphData, GlyphId, GlyphStore};
 use text::shaping::ShaperMethods;
 use time;
 use unicode_script::Script;
-use webrender_traits;
+use webrender_api;
 
 macro_rules! ot_tag {
     ($t1:expr, $t2:expr, $t3:expr, $t4:expr) => (
@@ -112,7 +112,7 @@ pub struct Font {
     shaper: Option<Shaper>,
     shape_cache: RefCell<HashMap<ShapeCacheEntry, Arc<GlyphStore>>>,
     glyph_advance_cache: RefCell<HashMap<u32, FractionalPixel>>,
-    pub font_key: webrender_traits::FontKey,
+    pub font_key: webrender_api::FontKey,
 }
 
 impl Font {
@@ -121,7 +121,7 @@ impl Font {
                descriptor: FontTemplateDescriptor,
                requested_pt_size: Au,
                actual_pt_size: Au,
-               font_key: webrender_traits::FontKey) -> Font {
+               font_key: webrender_api::FontKey) -> Font {
         let metrics = handle.metrics();
         Font {
             handle: handle,

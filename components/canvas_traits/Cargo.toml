@@ -16,4 +16,4 @@ heapsize = "0.4"
 heapsize_derive = "0.1"
 ipc-channel = "0.8"
 serde = "1.0"
-webrender_traits = {git = "https://github.com/servo/webrender", features = ["ipc"]}
+webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}

@@ -46,7 +46,7 @@ extern crate style;
 extern crate style_traits;
 extern crate unicode_bidi;
 extern crate unicode_script;
-extern crate webrender_traits;
+extern crate webrender_api;
 
 #[macro_use]
 pub mod layout_debug;

@@ -43,7 +43,7 @@ use std::mem;
 use std::rc::Rc;
 use std::sync::mpsc;
 use std::thread;
-use webrender_traits::VRCompositorCommand;
+use webrender_api::VRCompositorCommand;
 use webvr_traits::{WebVRDisplayData, WebVRDisplayEvent, WebVRFrameData, WebVRLayer, WebVRMsg};
 
 #[dom_struct]

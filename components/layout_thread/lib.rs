@@ -38,7 +38,7 @@ extern crate servo_config;
 extern crate servo_geometry;
 extern crate servo_url;
 extern crate style;
-extern crate webrender_traits;
+extern crate webrender_api;
 
 use app_units::Au;
 use euclid::{Point2D, Rect, Size2D, ScaleFactor};
@@ -229,7 +229,7 @@ pub struct LayoutThread {
     registered_painters: Arc<RwLock<FnvHashMap<Atom, RegisteredPainter>>>,
 
     /// Webrender interface.
-    webrender_api: webrender_traits::RenderApi,
+    webrender_api: webrender_api::RenderApi,
 
     /// The timer object to control the timing of the animations. This should
     /// only be a test-mode timer during testing for animations.
@@ -260,7 +260,7 @@ impl LayoutThreadFactory for LayoutThread {
               time_profiler_chan: time::ProfilerChan,
               mem_profiler_chan: mem::ProfilerChan,
               content_process_shutdown_chan: Option<IpcSender<()>>,
-              webrender_api_sender: webrender_traits::RenderApiSender,
+              webrender_api_sender: webrender_api::RenderApiSender,
               layout_threads: usize) {
         thread::Builder::new().name(format!("LayoutThread {:?}", id)).spawn(move || {
             thread_state::initialize(thread_state::LAYOUT);
@@ -443,7 +443,7 @@ impl LayoutThread {
            font_cache_thread: FontCacheThread,
            time_profiler_chan: time::ProfilerChan,
            mem_profiler_chan: mem::ProfilerChan,
-           webrender_api_sender: webrender_traits::RenderApiSender,
+           webrender_api_sender: webrender_api::RenderApiSender,
            layout_threads: usize)
            -> LayoutThread {
         let device = Device::new(
@@ -1011,10 +1011,10 @@ impl LayoutThread {
             epoch.next();
             self.epoch.set(epoch);
 
-            let viewport_size = webrender_traits::LayoutSize::from_untyped(&viewport_size);
+            let viewport_size = webrender_api::LayoutSize::from_untyped(&viewport_size);
             self.webrender_api.set_display_list(
                 Some(get_root_flow_background_color(layout_root)),
-                webrender_traits::Epoch(epoch.0),
+                webrender_api::Epoch(epoch.0),
                 viewport_size,
                 builder.finalize(),
                 true);
@@ -1657,8 +1657,8 @@ impl LayoutThread {
 // clearing the frame buffer to white. This ensures that setting a background
 // color on an iframe element, while the iframe content itself has a default
 // transparent background color is handled correctly.
-fn get_root_flow_background_color(flow: &mut Flow) -> webrender_traits::ColorF {
-    let transparent = webrender_traits::ColorF { r: 0.0, g: 0.0, b: 0.0, a: 0.0 };
+fn get_root_flow_background_color(flow: &mut Flow) -> webrender_api::ColorF {
+    let transparent = webrender_api::ColorF { r: 0.0, g: 0.0, b: 0.0, a: 0.0 };
     if !flow.is_block_like() {
         return transparent;
     }

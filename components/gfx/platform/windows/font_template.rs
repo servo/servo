@@ -5,7 +5,7 @@
 use platform::windows::font_list::{descriptor_from_atom, font_from_atom};
 use servo_atoms::Atom;
 use std::io;
-use webrender_traits::NativeFontHandle;
+use webrender_api::NativeFontHandle;
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct FontTemplateData {

@@ -27,7 +27,7 @@ use servo_url::ServoUrl;
 use style_traits::CSSPixel;
 use style_traits::cursor::Cursor;
 use style_traits::viewport::ViewportConstraints;
-use webrender_traits::ClipId;
+use webrender_api::ClipId;
 
 /// Messages from the layout to the constellation.
 #[derive(Deserialize, Serialize)]

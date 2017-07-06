@@ -20,4 +20,4 @@ log = "0.3.5"
 num-traits = "0.1.32"
 offscreen_gl_context = { version = "0.11", features = ["serde"] }
 servo_config = {path = "../config"}
-webrender_traits = {git = "https://github.com/servo/webrender", features = ["ipc"]}
+webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}

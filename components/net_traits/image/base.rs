@@ -5,7 +5,7 @@
 use ipc_channel::ipc::IpcSharedMemory;
 use piston_image::{self, DynamicImage, ImageFormat};
 use std::fmt;
-use webrender_traits;
+use webrender_api;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, HeapSizeOf)]
 pub enum PixelFormat {
@@ -26,8 +26,8 @@ pub struct Image {
     pub format: PixelFormat,
     #[ignore_heap_size_of = "Defined in ipc-channel"]
     pub bytes: IpcSharedMemory,
-    #[ignore_heap_size_of = "Defined in webrender_traits"]
-    pub id: Option<webrender_traits::ImageKey>,
+    #[ignore_heap_size_of = "Defined in webrender_api"]
+    pub id: Option<webrender_api::ImageKey>,
 }
 
 impl fmt::Debug for Image {

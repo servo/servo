@@ -11,8 +11,8 @@ use std::{thread, time};
 use std::collections::{HashMap, HashSet};
 use std::sync::mpsc;
 use std::sync::mpsc::{Receiver, Sender};
-use webrender_traits;
-use webrender_traits::DeviceIntSize;
+use webrender_api;
+use webrender_api::DeviceIntSize;
 use webvr_traits::{WebVRMsg, WebVRResult};
 use webvr_traits::webvr::*;
 
@@ -305,7 +305,7 @@ impl WebVRThread {
 
 pub struct WebVRCompositor(*mut VRDisplay);
 pub struct WebVRCompositorHandler {
-    compositors: HashMap<webrender_traits::VRCompositorId, WebVRCompositor>,
+    compositors: HashMap<webrender_api::VRCompositorId, WebVRCompositor>,
     webvr_thread_receiver: Receiver<Option<WebVRCompositor>>,
     webvr_thread_sender: Option<IpcSender<WebVRMsg>>
 }
@@ -328,14 +328,14 @@ impl WebVRCompositorHandler {
     }
 }
 
-impl webrender_traits::VRCompositorHandler for WebVRCompositorHandler {
+impl webrender_api::VRCompositorHandler for WebVRCompositorHandler {
     #[allow(unsafe_code)]
-    fn handle(&mut self, cmd: webrender_traits::VRCompositorCommand, texture: Option<(u32, DeviceIntSize)>) {
+    fn handle(&mut self, cmd: webrender_api::VRCompositorCommand, texture: Option<(u32, DeviceIntSize)>) {
         match cmd {
-            webrender_traits::VRCompositorCommand::Create(compositor_id) => {
+            webrender_api::VRCompositorCommand::Create(compositor_id) => {
                 self.create_compositor(compositor_id);
             }
-            webrender_traits::VRCompositorCommand::SyncPoses(compositor_id, near, far, sender) => {
+            webrender_api::VRCompositorCommand::SyncPoses(compositor_id, near, far, sender) => {
                 if let Some(compositor) = self.compositors.get(&compositor_id) {
                     let pose = unsafe {
                         (*compositor.0).sync_poses();
@@ -346,7 +346,7 @@ impl webrender_traits::VRCompositorHandler for WebVRCompositorHandler {
                     let _ = sender.send(Err(()));
                 }
             }
-            webrender_traits::VRCompositorCommand::SubmitFrame(compositor_id, left_bounds, right_bounds) => {
+            webrender_api::VRCompositorCommand::SubmitFrame(compositor_id, left_bounds, right_bounds) => {
                 if let Some(compositor) = self.compositors.get(&compositor_id) {
                     if let Some((texture_id, size)) = texture {
                         let layer = VRLayer {
@@ -361,7 +361,7 @@ impl webrender_traits::VRCompositorHandler for WebVRCompositorHandler {
                     }
                 }
             }
-            webrender_traits::VRCompositorCommand::Release(compositor_id) => {
+            webrender_api::VRCompositorCommand::Release(compositor_id) => {
                 self.compositors.remove(&compositor_id);
             }
         }
@@ -370,7 +370,7 @@ impl webrender_traits::VRCompositorHandler for WebVRCompositorHandler {
 
 impl WebVRCompositorHandler {
     #[allow(unsafe_code)]
-    fn create_compositor(&mut self, display_id: webrender_traits::VRCompositorId) {
+    fn create_compositor(&mut self, display_id: webrender_api::VRCompositorId) {
         let sender = match self.webvr_thread_sender {
             Some(ref s) => s,
             None => return,
