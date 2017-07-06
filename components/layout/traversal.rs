@@ -6,7 +6,7 @@
 
 use atomic_refcell::AtomicRefCell;
 use construct::FlowConstructor;
-use context::{LayoutContext, ScopedThreadLocalLayoutContext};
+use context::LayoutContext;
 use display_list_builder::DisplayListBuildState;
 use flow::{self, PreorderFlowTraversal};
 use flow::{CAN_BE_FRAGMENTED, Flow, ImmutableFlowUtils, PostorderFlowTraversal};
@@ -55,10 +55,8 @@ impl<'a, E> DomTraversal<E> for RecalcStyleAndConstructFlows<'a>
           E::ConcreteNode: LayoutNode,
           E::FontMetricsProvider: Send,
 {
-    type ThreadLocalContext = ScopedThreadLocalLayoutContext<E>;
-
     fn process_preorder(&self, traversal_data: &PerLevelTraversalData,
-                        thread_local: &mut Self::ThreadLocalContext, node: E::ConcreteNode) {
+                        context: &mut StyleContext<E>, node: E::ConcreteNode) {
         // FIXME(pcwalton): Stop allocating here. Ideally this should just be
         // done by the HTML parser.
         node.initialize_data();
@@ -66,16 +64,12 @@ impl<'a, E> DomTraversal<E> for RecalcStyleAndConstructFlows<'a>
         if !node.is_text_node() {
             let el = node.as_element().unwrap();
             let mut data = el.mutate_data().unwrap();
-            let mut context = StyleContext {
-                shared: &self.context.shared_context(),
-                thread_local: &mut thread_local.style_context,
-            };
-            recalc_style_at(self, traversal_data, &mut context, el, &mut data);
+            recalc_style_at(self, traversal_data, context, el, &mut data);
         }
     }
 
-    fn process_postorder(&self, thread_local: &mut Self::ThreadLocalContext, node: E::ConcreteNode) {
-        construct_flows_at(&self.context, thread_local, node);
+    fn process_postorder(&self, _style_context: &mut StyleContext<E>, node: E::ConcreteNode) {
+        construct_flows_at(&self.context, node);
     }
 
     fn text_node_needs_traversal(node: E::ConcreteNode) -> bool {
@@ -100,10 +94,6 @@ impl<'a, E> DomTraversal<E> for RecalcStyleAndConstructFlows<'a>
         &self.context.style_context
     }
 
-    fn create_thread_local_context(&self) -> Self::ThreadLocalContext {
-        ScopedThreadLocalLayoutContext::new(&self.context)
-    }
-
     fn is_parallel(&self) -> bool {
         self.driver.is_parallel()
     }
@@ -118,9 +108,7 @@ pub trait PostorderNodeMutTraversal<ConcreteThreadSafeLayoutNode: ThreadSafeLayo
 /// The flow construction traversal, which builds flows for styled nodes.
 #[inline]
 #[allow(unsafe_code)]
-fn construct_flows_at<N>(context: &LayoutContext,
-                             _thread_local: &mut ScopedThreadLocalLayoutContext<N::ConcreteElement>,
-                             node: N)
+fn construct_flows_at<N>(context: &LayoutContext, node: N)
     where N: LayoutNode,
 {
     debug!("construct_flows_at: {:?}", node);
