@@ -25,7 +25,7 @@ unstable = []
 [dependencies]
 bitflags = "0.7"
 matches = "0.1"
-cssparser = "0.17.0"
+cssparser = "0.16.1"
 log = "0.3"
 fnv = "1.0"
 phf = "0.7.18"

@@ -7,7 +7,7 @@
 use {Namespace, Prefix};
 use counter_style::{parse_counter_style_body, parse_counter_style_name};
 use cssparser::{AtRuleParser, AtRuleType, Parser, QualifiedRuleParser, RuleListParser};
-use cssparser::{CompactCowStr, SourceLocation, BasicParseError};
+use cssparser::{CompactCowStr, SourceLocation};
 use error_reporting::ContextualParseError;
 use font_face::parse_font_face_block;
 use media_queries::{parse_media_query_list, MediaList};
@@ -184,13 +184,7 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
                 self.state = State::Namespaces;
 
                 let prefix_result = input.try(|input| input.expect_ident());
-                let maybe_namespace = match input.expect_url_or_string() {
-                    Ok(url_or_string) => url_or_string,
-                    Err(BasicParseError::UnexpectedToken(t)) =>
-                        return Err(StyleParseError::UnexpectedTokenWithinNamespace(t).into()),
-                    Err(e) => return Err(e.into()),
-                };
-                let url = Namespace::from(Cow::from(maybe_namespace));
+                let url = Namespace::from(Cow::from(input.expect_url_or_string()?));
 
                 let id = register_namespace(&url)
                     .map_err(|()| StyleParseError::UnspecifiedError)?;
@@ -515,7 +509,7 @@ fn get_location_with_offset(
     offset: u64
 ) -> SourceLocation {
     SourceLocation {
-        line: location.line + offset as u32,
+        line: location.line + offset as u32 - 1,
         column: location.column,
     }
 }
