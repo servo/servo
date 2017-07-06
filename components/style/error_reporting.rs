@@ -79,8 +79,8 @@ impl<'a> ContextualParseError<'a> {
                 Token::ParenthesisBlock => format!("parenthesis ("),
                 Token::SquareBracketBlock => format!("square bracket ["),
                 Token::CurlyBracketBlock => format!("curly bracket {{"),
-                Token::BadUrl => format!("bad url parse error"),
-                Token::BadString => format!("bad string parse error"),
+                Token::BadUrl(ref _u) => format!("bad url parse error"),
+                Token::BadString(ref _s) => format!("bad string parse error"),
                 Token::CloseParenthesis => format!("unmatched close parenthesis"),
                 Token::CloseSquareBracket => format!("unmatched close square bracket"),
                 Token::CloseCurlyBracket => format!("unmatched close curly bracket"),
@@ -91,11 +91,11 @@ impl<'a> ContextualParseError<'a> {
             match *err {
                 CssParseError::Basic(BasicParseError::UnexpectedToken(ref t)) =>
                     format!("found unexpected {}", token_to_str(t)),
-                CssParseError::Basic(BasicParseError::ExpectedToken(ref t)) =>
-                    format!("expected {}", token_to_str(t)),
                 CssParseError::Basic(BasicParseError::EndOfInput) =>
                     format!("unexpected end of input"),
-                CssParseError::Basic(BasicParseError::AtRuleInvalid) =>
+                CssParseError::Basic(BasicParseError::AtRuleInvalid(ref i)) =>
+                    format!("@ rule invalid: {}", i),
+                CssParseError::Basic(BasicParseError::AtRuleBodyInvalid) =>
                     format!("@ rule invalid"),
                 CssParseError::Basic(BasicParseError::QualifiedRuleInvalid) =>
                     format!("qualified rule invalid"),
