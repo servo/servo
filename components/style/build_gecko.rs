@@ -133,7 +133,8 @@ mod bindings {
     }
 
     fn update_last_modified(file: &Path) {
-        let modified = get_modified_time(file).unwrap();
+        let modified = get_modified_time(file)
+            .expect("Couldn't get file modification time");
         let mut last_modified = LAST_MODIFIED.lock().unwrap();
         *last_modified = cmp::max(modified, *last_modified);
     }
