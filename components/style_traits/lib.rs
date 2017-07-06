@@ -22,7 +22,7 @@ extern crate euclid;
 extern crate selectors;
 #[cfg(feature = "servo")] #[macro_use] extern crate serde;
 
-use cssparser::CompactCowStr;
+use cssparser::{CompactCowStr, Token};
 use selectors::parser::SelectorParseError;
 
 /// Opaque type stored in type-unsafe work queues for parallel layout.
@@ -81,9 +81,9 @@ pub type ParseError<'i> = cssparser::ParseError<'i, SelectorParseError<'i, Style
 /// Errors that can be encountered while parsing CSS values.
 pub enum StyleParseError<'i> {
     /// A bad URL token in a DVB.
-    BadUrlInDeclarationValueBlock,
+    BadUrlInDeclarationValueBlock(CompactCowStr<'i>),
     /// A bad string token in a DVB.
-    BadStringInDeclarationValueBlock,
+    BadStringInDeclarationValueBlock(CompactCowStr<'i>),
     /// Unexpected closing parenthesis in a DVB.
     UnbalancedCloseParenthesisInDeclarationValueBlock,
     /// Unexpected closing bracket in a DVB.
@@ -110,17 +110,21 @@ pub enum StyleParseError<'i> {
     UnsupportedAtRule(CompactCowStr<'i>),
     /// A placeholder for many sources of errors that require more specific variants.
     UnspecifiedError,
+    /// An unexpected token was found within a namespace rule.
+    UnexpectedTokenWithinNamespace(Token<'i>),
+    /// An unknown CSS property was encountered.
+    UnknownProperty(CompactCowStr<'i>),
 }
 
 /// The result of parsing a property declaration.
-#[derive(Eq, PartialEq, Copy, Clone, Debug)]
+#[derive(Eq, PartialEq, Clone, Debug)]
 pub enum PropertyDeclarationParseError {
     /// The property declaration was for an unknown property.
     UnknownProperty,
     /// The property declaration was for a disabled experimental property.
     ExperimentalProperty,
     /// The property declaration contained an invalid value.
-    InvalidValue,
+    InvalidValue(String),
     /// The declaration contained an animation property, and we were parsing
     /// this as a keyframe block (so that property should be ignored).
     ///
