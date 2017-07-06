@@ -372,6 +372,7 @@ pub mod htmlulistelement;
 pub mod htmlunknownelement;
 pub mod htmlvideoelement;
 pub mod imagedata;
+pub mod inputevent;
 pub mod keyboardevent;
 pub mod location;
 pub mod mediaerror;
