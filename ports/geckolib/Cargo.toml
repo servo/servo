@@ -16,7 +16,7 @@ gecko_debug = ["style/gecko_debug"]
 
 [dependencies]
 atomic_refcell = "0.1"
-cssparser = "0.16.1"
+cssparser = "0.17.0"
 env_logger = {version = "0.4", default-features = false} # disable `regex` to reduce code size
 libc = "0.2"
 log = {version = "0.3.5", features = ["release_max_level_info"]}

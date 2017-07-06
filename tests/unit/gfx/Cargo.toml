@@ -10,7 +10,7 @@ path = "lib.rs"
 doctest = false
 
 [dependencies]
-cssparser = "0.16.1"
+cssparser = "0.17.0"
 gfx = {path = "../../../components/gfx"}
 ipc-channel = "0.8"
 style = {path = "../../../components/style"}

@@ -59,7 +59,7 @@ pub enum SelectorParseError<'i, T> {
     PseudoElementExpectedIdent,
     UnsupportedPseudoClass,
     UnexpectedIdent(CompactCowStr<'i>),
-    ExpectedNamespace,
+    ExpectedNamespace(CompactCowStr<'i>),
     Custom(T),
 }
 
@@ -1105,9 +1105,10 @@ fn parse_qualified_name<'i, 't, P, E, Impl>
             let position = input.position();
             match input.next_including_whitespace() {
                 Ok(Token::Delim('|')) => {
-                    let prefix = from_cow_str(value.into());
+                    let prefix = from_cow_str(value.clone().into());
                     let result = parser.namespace_for_prefix(&prefix);
-                    let url = result.ok_or(ParseError::Custom(SelectorParseError::ExpectedNamespace))?;
+                    let url = result.ok_or(ParseError::Custom(
+                        SelectorParseError::ExpectedNamespace(value.into())))?;
                     explicit_namespace(input, QNamePrefix::ExplicitNamespace(prefix, url))
                 },
                 _ => {
