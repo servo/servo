@@ -1415,38 +1415,21 @@ impl Animatable for MaxLength {
 impl Animatable for FontWeight {
     #[inline]
     fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
-        let a = (*self as u32) as f64;
-        let b = (*other as u32) as f64;
+        let a = self.0 as f64;
+        let b = other.0 as f64;
         const NORMAL: f64 = 400.;
         let weight = (a - NORMAL) * self_portion + (b - NORMAL) * other_portion + NORMAL;
-        Ok(if weight < 150. {
-            FontWeight::Weight100
-        } else if weight < 250. {
-            FontWeight::Weight200
-        } else if weight < 350. {
-            FontWeight::Weight300
-        } else if weight < 450. {
-            FontWeight::Weight400
-        } else if weight < 550. {
-            FontWeight::Weight500
-        } else if weight < 650. {
-            FontWeight::Weight600
-        } else if weight < 750. {
-            FontWeight::Weight700
-        } else if weight < 850. {
-            FontWeight::Weight800
-        } else {
-            FontWeight::Weight900
-        })
+        let weight = (weight.min(100.).max(900.) / 100.).round() * 100.;
+        Ok(FontWeight(weight as u16))
     }
 
     #[inline]
-    fn get_zero_value(&self) -> Result<Self, ()> { Ok(FontWeight::Weight400) }
+    fn get_zero_value(&self) -> Result<Self, ()> { Ok(FontWeight::normal()) }
 
     #[inline]
     fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
-        let a = (*self as u32) as f64;
-        let b = (*other as u32) as f64;
+        let a = self.0 as f64;
+        let b = other.0 as f64;
         a.compute_distance(&b)
     }
 }

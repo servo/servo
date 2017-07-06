@@ -128,7 +128,7 @@ impl FontHandleMethods for FontHandle {
         unsafe { (*self.face).style_flags & FT_STYLE_FLAG_ITALIC as c_long != 0 }
     }
     fn boldness(&self) -> font_weight::T {
-        let default_weight = font_weight::T::Weight400;
+        let default_weight = font_weight::T::normal();
         if unsafe { (*self.face).style_flags & FT_STYLE_FLAG_BOLD as c_long == 0 } {
             default_weight
         } else {
@@ -136,18 +136,13 @@ impl FontHandleMethods for FontHandle {
                 let os2 = FT_Get_Sfnt_Table(self.face, FT_Sfnt_Tag::FT_SFNT_OS2) as *mut TT_OS2;
                 let valid = !os2.is_null() && (*os2).version != 0xffff;
                 if valid {
-                    let weight =(*os2).usWeightClass;
-                    match weight {
-                        1 | 100...199 => font_weight::T::Weight100,
-                        2 | 200...299 => font_weight::T::Weight200,
-                        3 | 300...399 => font_weight::T::Weight300,
-                        4 | 400...499 => font_weight::T::Weight400,
-                        5 | 500...599 => font_weight::T::Weight500,
-                        6 | 600...699 => font_weight::T::Weight600,
-                        7 | 700...799 => font_weight::T::Weight700,
-                        8 | 800...899 => font_weight::T::Weight800,
-                        9 | 900...999 => font_weight::T::Weight900,
-                        _ => default_weight
+                    let weight =(*os2).usWeightClass as i32;
+                    if weight < 10 {
+                        font_weight::T::from_int(weight * 100).unwrap()
+                    } else if weight >= 100 && weight < 1000 {
+                        font_weight::T::from_int(weight / 100 * 100).unwrap()
+                    } else {
+                        default_weight
                     }
                 } else {
                     default_weight

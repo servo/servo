@@ -184,7 +184,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
             let mut font_style = self.style.mutate_font();
             // Sadly we don't have a nice name for the computed value
             // of "font-weight: normal".
-            font_style.set_font_weight(font_weight::Weight400);
+            font_style.set_font_weight(font_weight::normal());
             font_style.set_font_style(font_style::normal);
         }
     }

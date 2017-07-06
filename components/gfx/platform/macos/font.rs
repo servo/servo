@@ -217,17 +217,7 @@ impl FontHandleMethods for FontHandle {
         } else {
             4.0 + normalized * 5.0  // [4.0, 9.0]
         }; // [1.0, 9.0], centered on 4.0
-        match normalized.round() as u32 {
-            1 => font_weight::T::Weight100,
-            2 => font_weight::T::Weight200,
-            3 => font_weight::T::Weight300,
-            4 => font_weight::T::Weight400,
-            5 => font_weight::T::Weight500,
-            6 => font_weight::T::Weight600,
-            7 => font_weight::T::Weight700,
-            8 => font_weight::T::Weight800,
-            _ => font_weight::T::Weight900,
-        }
+        font_weight::T::from_int(normalized.round() as i32 * 100).unwrap()
     }
 
     fn stretchiness(&self) -> font_stretch::T {
