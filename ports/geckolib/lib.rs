@@ -13,6 +13,7 @@ extern crate selectors;
 #[macro_use] extern crate style;
 extern crate style_traits;
 
+mod error_reporter;
 #[allow(non_snake_case)]
 pub mod glue;
 mod stylesheet_loader;

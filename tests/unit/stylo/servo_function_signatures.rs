@@ -10,6 +10,9 @@ use style::gecko_properties::*;
 
 include!(concat!(env!("OUT_DIR"), "/check_bindings.rs"));
 
+#[path = "../../../ports/geckolib/error_reporter.rs"]
+mod error_reporter;
+
 #[path = "../../../ports/geckolib/stylesheet_loader.rs"]
 mod stylesheet_loader;
 

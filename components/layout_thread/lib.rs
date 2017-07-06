@@ -219,9 +219,6 @@ pub struct LayoutThread {
     /// All the other elements of this struct are read-only.
     rw_data: Arc<Mutex<LayoutThreadData>>,
 
-    /// The CSS error reporter for all CSS loaded in this layout thread
-    error_reporter: CSSErrorReporter,
-
     webrender_image_cache: Arc<RwLock<FnvHashMap<(ServoUrl, UsePlaceholder),
                                                  WebRenderImageInfo>>>,
     /// The executor for paint worklets.
@@ -532,10 +529,6 @@ impl LayoutThread {
                     text_index_response: TextIndexResponse(None),
                     nodes_from_point_response: vec![],
                 })),
-            error_reporter: CSSErrorReporter {
-                pipelineid: id,
-                script_chan: Arc::new(Mutex::new(script_chan)),
-            },
             webrender_image_cache:
                 Arc::new(RwLock::new(FnvHashMap::default())),
             timer:
@@ -580,7 +573,6 @@ impl LayoutThread {
                 guards: guards,
                 running_animations: self.running_animations.clone(),
                 expired_animations: self.expired_animations.clone(),
-                error_reporter: &self.error_reporter,
                 local_context_creation_data: Mutex::new(thread_local_style_context_creation_data),
                 timer: self.timer.clone(),
                 quirks_mode: self.quirks_mode.unwrap(),

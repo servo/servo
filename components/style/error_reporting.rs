@@ -139,7 +139,7 @@ impl<'a> ContextualParseError<'a> {
 }
 
 /// A generic trait for an error reporter.
-pub trait ParseErrorReporter : Sync {
+pub trait ParseErrorReporter {
     /// Called when the style engine detects an error.
     ///
     /// Returns the current input being parsed, the source position it was
@@ -187,9 +187,4 @@ impl ParseErrorReporter for NullReporter {
             _: u64) {
         // do nothing
     }
-}
-
-/// Create an instance of the default error reporter.
-pub fn create_error_reporter() -> RustLogReporter {
-    RustLogReporter
 }
