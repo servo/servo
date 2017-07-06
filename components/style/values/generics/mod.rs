@@ -323,13 +323,25 @@ impl<ColorType> SVGPaintKind<ColorType> {
     }
 }
 
+/// Parse SVGPaint's fallback.
+/// fallback is keyword(none) or Color.
+/// https://svgwg.org/svg2-draft/painting.html#SpecifyingPaint
+fn parse_fallback<'i, 't, ColorType: Parse>(context: &ParserContext,
+                                            input: &mut Parser<'i, 't>)
+                                            -> Option<ColorType> {
+    if input.try(|i| i.expect_ident_matching("none")).is_ok() {
+        None
+    } else {
+        input.try(|i| ColorType::parse(context, i)).ok()
+    }
+}
+
 impl<ColorType: Parse> Parse for SVGPaint<ColorType> {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         if let Ok(url) = input.try(|i| SpecifiedUrl::parse(context, i)) {
-            let fallback = input.try(|i| ColorType::parse(context, i));
             Ok(SVGPaint {
                 kind: SVGPaintKind::PaintServer(url),
-                fallback: fallback.ok(),
+                fallback: parse_fallback(context, input),
             })
         } else if let Ok(kind) = input.try(SVGPaintKind::parse_ident) {
             if let SVGPaintKind::None = kind {
@@ -338,10 +350,9 @@ impl<ColorType: Parse> Parse for SVGPaint<ColorType> {
                     fallback: None,
                 })
             } else {
-                let fallback = input.try(|i| ColorType::parse(context, i));
                 Ok(SVGPaint {
                     kind: kind,
-                    fallback: fallback.ok(),
+                    fallback: parse_fallback(context, input),
                 })
             }
         } else if let Ok(color) = input.try(|i| ColorType::parse(context, i)) {

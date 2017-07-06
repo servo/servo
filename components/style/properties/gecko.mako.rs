@@ -475,6 +475,7 @@ def set_gecko_property(ffi_name, expr):
     #[allow(non_snake_case)]
     pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
         use values::generics::{SVGPaint, SVGPaintKind};
+        use values::specified::url::SpecifiedUrl;
         use self::structs::nsStyleSVGPaintType;
         use self::structs::nsStyleSVGFallbackType;
         let ref paint = ${get_gecko_property(gecko_ffi_name)};
@@ -488,8 +489,13 @@ def set_gecko_property(ffi_name, expr):
             nsStyleSVGPaintType::eStyleSVGPaintType_ContextFill => SVGPaintKind::ContextFill,
             nsStyleSVGPaintType::eStyleSVGPaintType_ContextStroke => SVGPaintKind::ContextStroke,
             nsStyleSVGPaintType::eStyleSVGPaintType_Server => {
-                // FIXME (bug 1353966) this should animate
-                SVGPaintKind::None
+                unsafe {
+                    SVGPaintKind::PaintServer(
+                        SpecifiedUrl::from_url_value_data(
+                            &(**paint.mPaint.mPaintServer.as_ref())._base
+                        ).unwrap()
+                    )
+                }
             }
             nsStyleSVGPaintType::eStyleSVGPaintType_Color => {
                 unsafe { SVGPaintKind::Color(convert_nscolor_to_rgba(*paint.mPaint.mColor.as_ref())) }
