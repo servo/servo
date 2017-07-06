@@ -8,6 +8,9 @@
 
 use cssparser::{Parser, SourcePosition, BasicParseError, Token};
 use cssparser::ParseError as CssParseError;
+#[cfg(feature = "gecko")] use gecko::error_reporter::ErrorReporter;
+#[cfg(feature = "gecko")] use gecko_bindings::structs::Loader;
+#[cfg(feature = "gecko")] use gecko_bindings::structs::ServoStyleSheet;
 use log;
 use style_traits::ParseError;
 use stylesheets::UrlExtraData;
@@ -190,6 +193,15 @@ impl ParseErrorReporter for NullReporter {
 }
 
 /// Create an instance of the default error reporter.
+#[cfg(feature = "servo")]
 pub fn create_error_reporter() -> RustLogReporter {
     RustLogReporter
+}
+
+ /// Create an instance of the default error reporter for Stylo.
+ #[cfg(feature = "gecko")]
+pub fn create_error_reporter(sheet: *mut ServoStyleSheet,
+                             loader: *mut Loader)
+                             -> ErrorReporter {
+    ErrorReporter::new(loader, sheet)
 }

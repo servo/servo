@@ -111,16 +111,19 @@ pub struct AnimationValueIterator<'a, 'cx, 'cx_a:'cx> {
     iter: Iter<'a, (PropertyDeclaration, Importance)>,
     context: &'cx mut Context<'cx_a>,
     default_values: &'a Arc<ComputedValues>,
+    reporter: &'a ParseErrorReporter,
 }
 
 impl<'a, 'cx, 'cx_a:'cx> AnimationValueIterator<'a, 'cx, 'cx_a> {
     fn new(declarations: &'a PropertyDeclarationBlock,
            context: &'cx mut Context<'cx_a>,
-           default_values: &'a Arc<ComputedValues>) -> AnimationValueIterator<'a, 'cx, 'cx_a> {
+           default_values: &'a Arc<ComputedValues>,
+           reporter: &'a ParseErrorReporter) -> AnimationValueIterator<'a, 'cx, 'cx_a> {
         AnimationValueIterator {
             iter: declarations.declarations().iter(),
             context: context,
             default_values: default_values,
+            reporter: reporter
         }
     }
 }
@@ -138,7 +141,8 @@ impl<'a, 'cx, 'cx_a:'cx> Iterator for AnimationValueIterator<'a, 'cx, 'cx_a> {
                     if importance == Importance::Normal {
                         let property = AnimatableLonghand::from_declaration(decl);
                         let animation = AnimationValue::from_declaration(decl, &mut self.context,
-                                                                         self.default_values);
+                                                                         self.default_values,
+                                                                         self.reporter);
                         debug_assert!(property.is_none() == animation.is_none(),
                                       "The failure condition of AnimatableLonghand::from_declaration \
                                        and AnimationValue::from_declaration should be the same");
@@ -204,9 +208,10 @@ impl PropertyDeclarationBlock {
     /// Return an iterator of (AnimatableLonghand, AnimationValue).
     pub fn to_animation_value_iter<'a, 'cx, 'cx_a:'cx>(&'a self,
                                                        context: &'cx mut Context<'cx_a>,
-                                                       default_values: &'a Arc<ComputedValues>)
+                                                       default_values: &'a Arc<ComputedValues>,
+                                                       reporter: &'a ParseErrorReporter)
                                                        -> AnimationValueIterator<'a, 'cx, 'cx_a> {
-        AnimationValueIterator::new(self, context, default_values)
+        AnimationValueIterator::new(self, context, default_values, reporter)
     }
 
     /// Returns whether this block contains any declaration with `!important`.
