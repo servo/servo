@@ -13,6 +13,7 @@ use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSContext, JSObject};
 use js::typedarray::{Float32Array, CreateWith};
+use std::ptr;
 use webvr_traits::WebVRStageParameters;
 
 #[dom_struct]
@@ -37,15 +38,17 @@ impl VRStageParameters {
     #[allow(unsafe_code)]
     pub fn new(parameters: WebVRStageParameters, global: &GlobalScope) -> Root<VRStageParameters> {
         let cx = global.get_cx();
+        rooted!(in (cx) let mut array = ptr::null_mut());
+        unsafe {
+            let _ = Float32Array::create(cx, CreateWith::Slice(&parameters.sitting_to_standing_transform),
+                                                               array.handle_mut());
+        }
+
         let stage_parameters  = reflect_dom_object(box VRStageParameters::new_inherited(parameters),
                                                    global,
                                                    VRStageParametersBinding::Wrap);
-        unsafe {
-           let source = &stage_parameters.parameters.borrow().sitting_to_standing_transform;
-           let _ = Float32Array::create(cx,
-                                        CreateWith::Slice(source),
-                                        stage_parameters.transform.handle_mut());
-        }
+
+        stage_parameters.transform.set(array.get());
 
         stage_parameters
     }

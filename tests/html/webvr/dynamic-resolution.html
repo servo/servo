@@ -175,10 +175,10 @@ found in the LICENSE file.
         onResize();
       }
 
-      if (navigator.vr) {
+      if (navigator.getVRDisplays) {
         frameData = new VRFrameData();
 
-        navigator.vr.getDisplays().then(function (displays) {
+        navigator.getVRDisplays().then(function (displays) {
           if (displays.length > 0) {
             vrDisplay = displays[0];
             VRSamplesUtil.addButton("Reset Pose", "R", null, function () { vrDisplay.resetPose(); });
@@ -186,9 +186,9 @@ found in the LICENSE file.
             if (vrDisplay.capabilities.canPresent)
               vrPresentButton = VRSamplesUtil.addButton("Enter VR", "E", "media/icons/cardboard64.png", onVRRequestPresent);
 
-            vrDisplay.addEventListener('presentchange', onVRPresentChange, false);
-            //vrDisplay.addEventListener('activate', onVRRequestPresent, false);
-            //vrDisplay.addEventListener('deactivate', onVRExitPresent, false);
+            window.addEventListener('vrdisplaypresentchange', onVRPresentChange, false);
+            window.addEventListener('vrdisplayactivate', onVRRequestPresent, false);
+            window.addEventListener('vrdisplaydeactivate', onVRExitPresent, false);
 
             initWebGL(vrDisplay.capabilities.hasExternalDisplay);
           } else {

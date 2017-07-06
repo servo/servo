@@ -119,7 +119,7 @@ interface VRDisplay : EventTarget {
   /**
    * Get the layers currently being presented.
    */
-  //sequence<VRLayer> getLayers();
+  sequence<VRLayer> getLayers();
 
   /**
    * The VRLayer provided to the VRDisplay will be captured and presented

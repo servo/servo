@@ -20,6 +20,7 @@ use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSContext, JSObject};
 use js::typedarray::{Float64Array, CreateWith};
 use std::cell::Cell;
+use std::ptr;
 use webvr_traits::{WebVRGamepadData, WebVRGamepadHand, WebVRGamepadState};
 
 #[dom_struct]
@@ -86,9 +87,13 @@ impl Gamepad {
                                                                     data.display_id),
                                          global,
                                          GamepadBinding::Wrap);
+
+        let cx = global.get_cx();
+        rooted!(in (cx) let mut array = ptr::null_mut());
         unsafe {
-           let _ = Float64Array::create(global.get_cx(), CreateWith::Slice(&state.axes), gamepad.axes.handle_mut());
+            let _ = Float64Array::create(cx, CreateWith::Slice(&state.axes), array.handle_mut());
         }
+        gamepad.axes.set(array.get());
 
         gamepad
     }
