@@ -1405,9 +1405,14 @@ fn static_assert() {
                         &mut ${self_grid}.mRepeatAutoLineNameListAfter, 0);
                 }
             },
-            GridTemplateComponent::Subgrid(list) => {
+            GridTemplateComponent::Subgrid(mut list) => {
                 ${self_grid}.set_mIsSubgrid(true);
-                let num_values = cmp::min(list.names.len(), max_lines + 1);
+                let names_length = match list.fill_idx {
+                    Some(_) => list.names.len() - 1,
+                    None => list.names.len(),
+                };
+                let num_values = cmp::min(names_length, max_lines + 1);
+
                 unsafe {
                     bindings::Gecko_SetStyleGridTemplateArrayLengths(&mut ${self_grid}, 0);
                     bindings::Gecko_SetGridTemplateLineNamesLength(&mut ${self_grid}, num_values as u32);
@@ -1420,6 +1425,8 @@ fn static_assert() {
                 if let Some(idx) = list.fill_idx {
                     ${self_grid}.set_mIsAutoFill(true);
                     ${self_grid}.mRepeatAutoIndex = idx as i16;
+                    set_line_names(&list.names.swap_remove(idx as usize),
+                                   &mut ${self_grid}.mRepeatAutoLineNameListBefore);
                 }
 
                 for (servo_names, gecko_names) in list.names.iter().zip(${self_grid}.mLineNameLists.iter_mut()) {
