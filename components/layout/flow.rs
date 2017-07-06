@@ -1527,7 +1527,7 @@ impl ContainingBlockLink {
 
 /// A wrapper for the pointer address of a flow. These pointer addresses may only be compared for
 /// equality with other such pointer addresses, never dereferenced.
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct OpaqueFlow(pub usize);
 
 impl OpaqueFlow {
