@@ -755,6 +755,15 @@ impl ScriptThread {
         })
     }
 
+    pub fn invoke_backup_element_queue() {
+        SCRIPT_THREAD_ROOT.with(|root| {
+            if let Some(script_thread) = root.get() {
+                let script_thread = unsafe { &*script_thread };
+                script_thread.custom_element_reaction_stack.invoke_backup_element_queue();
+            }
+        })
+    }
+
     /// Creates a new script thread.
     pub fn new(state: InitialScriptState,
                port: Receiver<MainThreadScriptMsg>,
