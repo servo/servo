@@ -167,7 +167,7 @@ impl Area {
         }
     }
 
-    pub fn hit_test(&self, p: Point2D<f32>) -> bool {
+    pub fn hit_test(&self, p: &Point2D<f32>) -> bool {
         match *self {
             Area::Circle { left, top, radius } => {
                 (p.x - left) * (p.x - left) +
