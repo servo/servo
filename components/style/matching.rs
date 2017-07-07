@@ -553,9 +553,12 @@ trait PrivateMatchMethods: TElement {
                                        None);
 
             // Handle root font-size changes.
-            if self.is_root() && !self.is_native_anonymous() {
-                // The new root font-size has already been updated on the Device
-                // in properties::apply_declarations.
+            //
+            // TODO(emilio): This should arguably be outside of the path for
+            // getComputedStyle/getDefaultComputedStyle, but it's unclear how to
+            // do it without duplicating a bunch of code.
+            if self.is_root() && !self.is_native_anonymous() &&
+                !context.shared.traversal_flags.for_default_styles() {
                 let device = context.shared.stylist.device();
                 let new_font_size = new_values.get_font().clone_font_size();
 
