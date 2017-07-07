@@ -41,19 +41,10 @@ pub fn replace_host_table(table: HashMap<String, IpAddr>) {
 }
 
 pub fn parse_hostsfile(hostsfile_content: &str) -> HashMap<String, IpAddr> {
-    let mut host_table = HashMap::new();
-
-    for line in HostsFile::read_buffered(hostsfile_content.as_bytes()).lines() {
-        if let Ok(ref line) = line {
-            for host in line.hosts() {
-                if let Some(ip) = line.ip() {
-                    host_table.insert(host.to_owned(), ip);
-                }
-            }
-        }
-    }
-
-    host_table
+    HostsFile::read_buffered(hostsfile_content.as_bytes())
+        .pairs()
+        .filter_map(Result::ok)
+        .collect()
 }
 
 pub fn replace_host(host: &str) -> Cow<str> {
