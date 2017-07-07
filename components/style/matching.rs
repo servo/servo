@@ -1560,10 +1560,11 @@ pub trait MatchMethods : TElement {
             return RestyleDamage::compute_style_difference(source, new_values)
         }
 
-        let new_style_is_display_none =
-            new_values.get_box().clone_display() == display::T::none;
-        let old_style_is_display_none =
-            old_values.get_box().clone_display() == display::T::none;
+        let new_display = new_values.get_box().clone_display();
+        let old_display = old_values.get_box().clone_display();
+
+        let new_style_is_display_none = new_display == display::T::none;
+        let old_style_is_display_none = old_display == display::T::none;
 
         // If there's no style source, that likely means that Gecko couldn't
         // find a style context.
@@ -1610,11 +1611,20 @@ pub trait MatchMethods : TElement {
                                         StyleChange::Unchanged)
         }
 
-        // Something else. Be conservative for now.
-        warn!("Reframing due to lack of old style source: {:?}, pseudo: {:?}",
-               self, pseudo);
-        // Something else. Be conservative for now.
-        StyleDifference::new(RestyleDamage::reconstruct(), StyleChange::Changed)
+        // If we are changing display property we need to accumulate
+        // reconstruction damage for the change.
+        // FIXME: Bug 1378972: This is a workaround for bug 1374175, we should
+        // generate more accurate restyle damage in fallback cases.
+        let needs_reconstruction = new_display != old_display;
+        let damage = if needs_reconstruction {
+            RestyleDamage::reconstruct()
+        } else {
+            RestyleDamage::empty()
+        };
+        // We don't really know if there was a change in any style (since we
+        // didn't actually call compute_style_difference) but we return
+        // StyleChange::Changed conservatively.
+        StyleDifference::new(damage, StyleChange::Changed)
     }
 
     /// Performs the cascade for the element's eager pseudos.
