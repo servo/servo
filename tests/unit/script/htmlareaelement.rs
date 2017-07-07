@@ -100,23 +100,23 @@ fn polygon_eight_points_invalid_input() {
 #[test]
 fn test_hit_test_circle() {
    let circ1 = Area::Circle { left: 20.0, top: 10.0, radius: 5.0 };
-   assert!(!circ1.hit_test(Point2D::new(10.0, 20.0)));
+   assert!(!circ1.hit_test(&Point2D::new(10.0, 20.0)));
    let circ2 = Area::Circle { left: 10.0, top: 10.0, radius: 5.0 };
-   assert!(circ2.hit_test(Point2D::new(10.0, 12.0)));
+   assert!(circ2.hit_test(&Point2D::new(10.0, 12.0)));
 }
 
 #[test]
 fn test_hit_test_rectangle() {
    let rect1 = Area::Rectangle { top_left: (1.0, 7.0), bottom_right: (15.0, 10.0) };
-   assert!(!rect1.hit_test(Point2D::new(10.0, 5.0)));
+   assert!(!rect1.hit_test(&Point2D::new(10.0, 5.0)));
    let rect2 = Area::Rectangle { top_left: (8.0, 10.0), bottom_right: (20.0, 12.0) };
-   assert!(rect2.hit_test(Point2D::new(10.0, 12.0)));
+   assert!(rect2.hit_test(&Point2D::new(10.0, 12.0)));
 }
 
 #[test]
 fn test_hit_test_polygon() {
    let poly1 = Area::Polygon { points: vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0] };
-   assert!(!poly1.hit_test(Point2D::new(10.0, 5.0)));
+   assert!(!poly1.hit_test(&Point2D::new(10.0, 5.0)));
    let poly2 = Area::Polygon { points: vec![7.0, 7.5, 8.2, 9.0, 11.0, 12.0] };
-   assert!(!poly2.hit_test(Point2D::new(10.0, 5.0)));
+   assert!(!poly2.hit_test(&Point2D::new(10.0, 5.0)));
 }

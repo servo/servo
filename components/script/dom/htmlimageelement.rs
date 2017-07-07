@@ -954,39 +954,37 @@ impl VirtualMethods for HTMLImageElement {
     }
 
     fn handle_event(&self, event: &Event) {
-       if event.type_() == atom!("click") {
-           let area_elements = self.areas();
-           let elements = if let Some(x) = area_elements {
-               x
-           } else {
+        if event.type_() != atom!("click") {
+            return
+        }
+
+       let area_elements = self.areas();
+       let elements = match area_elements {
+           Some(x) => x,
+           None => return,
+       };
+
+       // Fetch click coordinates
+       let mouse_event = match event.downcast::<MouseEvent>() {
+           Some(x) => x,
+           None => return,
+       };
+
+       let point = Point2D::new(mouse_event.ClientX().to_f32().unwrap(),
+                                mouse_event.ClientY().to_f32().unwrap());
+       let bcr = self.upcast::<Element>().GetBoundingClientRect();
+       let bcr_p = Point2D::new(bcr.X() as f32, bcr.Y() as f32);
+
+       // Walk HTMLAreaElements
+       for element in elements {
+           let shape = element.get_shape_from_coords();
+           let shp = match shape {
+               Some(x) => x.absolute_coords(bcr_p),
+               None => return,
+           };
+           if shp.hit_test(&point) {
+               element.activation_behavior(event, self.upcast());
                return
-           };
-
-           // Fetch click coordinates
-           let mouse_event = if let Some(x) = event.downcast::<MouseEvent>() {
-               x
-           } else {
-               return;
-           };
-
-           let point = Point2D::new(mouse_event.ClientX().to_f32().unwrap(),
-                                    mouse_event.ClientY().to_f32().unwrap());
-
-           // Walk HTMLAreaElements
-           for element in elements {
-               let shape = element.get_shape_from_coords();
-               let p = Point2D::new(self.upcast::<Element>().GetBoundingClientRect().X() as f32,
-                                    self.upcast::<Element>().GetBoundingClientRect().Y() as f32);
-
-               let shp = if let Some(x) = shape {
-                   x.absolute_coords(p)
-               } else {
-                   return
-               };
-               if shp.hit_test(point) {
-                   element.activation_behavior(event, self.upcast());
-                   return
-               }
            }
        }
     }
