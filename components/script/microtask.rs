@@ -15,6 +15,7 @@ use dom::htmlimageelement::ImageElementMicrotask;
 use dom::htmlmediaelement::MediaElementMicrotask;
 use dom::mutationobserver::MutationObserver;
 use msg::constellation_msg::PipelineId;
+use script_thread::ScriptThread;
 use std::cell::Cell;
 use std::mem;
 use std::rc::Rc;
@@ -33,6 +34,7 @@ pub enum Microtask {
     Promise(EnqueuedPromiseCallback),
     MediaElement(MediaElementMicrotask),
     ImageElement(ImageElementMicrotask),
+    CustomElementReaction,
     NotifyMutationObservers,
 }
 
@@ -86,6 +88,9 @@ impl MicrotaskQueue {
                     },
                     Microtask::ImageElement(ref task) => {
                         task.handler();
+                    },
+                    Microtask::CustomElementReaction => {
+                        ScriptThread::invoke_backup_element_queue();
                     },
                     Microtask::NotifyMutationObservers => {
                         MutationObserver::notify_mutation_observers();

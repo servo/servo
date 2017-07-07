@@ -29,6 +29,8 @@ use js::conversions::ToJSValConvertible;
 use js::jsapi::{Construct1, IsCallable, IsConstructor, HandleValueArray, HandleObject, MutableHandleValue};
 use js::jsapi::{Heap, JS_GetProperty, JSAutoCompartment, JSContext};
 use js::jsval::{JSVal, NullValue, ObjectValue, UndefinedValue};
+use microtask::Microtask;
+use script_thread::ScriptThread;
 use std::cell::Cell;
 use std::collections::{HashMap, VecDeque};
 use std::ops::Deref;
@@ -532,13 +534,7 @@ impl CustomElementReactionStack {
         self.processing_backup_element_queue.set(BackupElementQueueFlag::Processing);
 
         // Step 4
-        // TODO: Invoke Microtask
-
-        // Step 4.1
-        self.backup_queue.invoke_reactions();
-
-        // Step 4.2
-        self.processing_backup_element_queue.set(BackupElementQueueFlag::NotProcessing);
+        ScriptThread::enqueue_microtask(Microtask::CustomElementReaction);
     }
 
     /// https://html.spec.whatwg.org/multipage/#enqueue-a-custom-element-callback-reaction
@@ -630,6 +626,7 @@ impl ElementQueue {
         while let Some(element) = self.next_element() {
             element.invoke_reactions()
         }
+        self.queue.borrow_mut().clear();
     }
 
     fn next_element(&self) -> Option<Root<Element>> {
