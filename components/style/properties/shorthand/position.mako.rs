@@ -460,7 +460,7 @@
 
             auto_flow.map(|flow| {
                 SpecifiedAutoFlow {
-                    autoflow: Some(flow),
+                    autoflow: flow,
                     dense: dense,
                 }
             }).ok_or(StyleParseError::UnspecifiedError.into())
@@ -473,10 +473,10 @@
         } else if let Ok(rows) = input.try(|i| GridTemplateComponent::parse(context, i)) {
             temp_rows = rows;
             input.expect_delim('/')?;
-            flow = parse_auto_flow(input, true)?;
+            flow = parse_auto_flow(input, false)?;
             auto_cols = grid_auto_columns::parse(context, input).unwrap_or_default();
         } else {
-            flow = parse_auto_flow(input, false)?;
+            flow = parse_auto_flow(input, true)?;
             auto_rows = input.try(|i| grid_auto_rows::parse(context, i)).unwrap_or_default();
             input.expect_delim('/')?;
             temp_cols = GridTemplateComponent::parse(context, input)?;
@@ -495,16 +495,30 @@
         })
     }
 
+    /// Returns true if every sub property value of `grid` shorthand is initial.
+    impl<'a> LonghandsToSerialize<'a> {
+        fn is_initial(&self) -> bool {
+            *self.grid_template_rows == GridTemplateComponent::None &&
+            *self.grid_template_columns == GridTemplateComponent::None &&
+            *self.grid_template_areas == Either::Second(None_) &&
+            *self.grid_auto_rows == TrackSize::default() &&
+            *self.grid_auto_columns == TrackSize::default() &&
+            *self.grid_auto_flow == grid_auto_flow::get_initial_value()
+        }
+    }
+
     impl<'a> ToCss for LonghandsToSerialize<'a> {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            if self.grid_auto_flow.autoflow.is_none() {
+            if *self.grid_template_areas != Either::Second(None_) ||
+               (*self.grid_template_rows != GridTemplateComponent::None &&
+                   *self.grid_template_columns != GridTemplateComponent::None) ||
+               self.is_initial() {
                 return super::grid_template::serialize_grid_template(self.grid_template_rows,
                                                                      self.grid_template_columns,
                                                                      self.grid_template_areas, dest);
             }
 
-            // This unwrap is safe because we checked the None part in previous if condition.
-            if self.grid_auto_flow.autoflow.unwrap() == AutoFlow::Row {
+            if self.grid_auto_flow.autoflow == AutoFlow::Column {
                 self.grid_template_rows.to_css(dest)?;
                 dest.write_str(" / auto-flow")?;
                 if self.grid_auto_flow.dense {

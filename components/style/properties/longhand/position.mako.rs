@@ -307,9 +307,7 @@ ${helpers.predefined_type("object-position",
         #[derive(PartialEq, Clone, Eq, Copy, Debug)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T {
-            // This needs to be an Option because we need an indicator to determine whether this property is
-            // parsed or not in `grid` shorthand. Otherwise we can't properly serialize it.
-            pub autoflow: Option<AutoFlow>,
+            pub autoflow: AutoFlow,
             pub dense: bool,
         }
     }
@@ -319,7 +317,7 @@ ${helpers.predefined_type("object-position",
 
     impl ToCss for computed_value::T {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            dest.write_str(match self.autoflow.unwrap_or(computed_value::AutoFlow::Row) {
+            dest.write_str(match self.autoflow {
                 computed_value::AutoFlow::Column => "column",
                 computed_value::AutoFlow::Row => "row"
             })?;
@@ -332,9 +330,8 @@ ${helpers.predefined_type("object-position",
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
         computed_value::T {
-            // None should resolve to `computed_value::AutoFlow::Row` in layout.
-            autoflow: None,
-            dense: false
+            autoflow: computed_value::AutoFlow::Row,
+            dense: false,
         }
     }
 
@@ -370,7 +367,7 @@ ${helpers.predefined_type("object-position",
 
         if value.is_some() || dense {
             Ok(computed_value::T {
-                autoflow: value,
+                autoflow: value.unwrap_or(AutoFlow::Row),
                 dense: dense,
             })
         } else {
@@ -385,12 +382,12 @@ ${helpers.predefined_type("object-position",
             use self::computed_value::AutoFlow;
 
             SpecifiedValue {
-                autoflow: Some(
+                autoflow:
                     if bits & structs::NS_STYLE_GRID_AUTO_FLOW_ROW as u8 != 0 {
                         AutoFlow::Row
                     } else {
                         AutoFlow::Column
-                    }),
+                    },
                 dense:
                     bits & structs::NS_STYLE_GRID_AUTO_FLOW_DENSE as u8 != 0,
             }
@@ -403,7 +400,7 @@ ${helpers.predefined_type("object-position",
             use gecko_bindings::structs;
             use self::computed_value::AutoFlow;
 
-            let mut result: u8 = match v.autoflow.unwrap_or(AutoFlow::Row) {
+            let mut result: u8 = match v.autoflow {
                 AutoFlow::Row => structs::NS_STYLE_GRID_AUTO_FLOW_ROW as u8,
                 AutoFlow::Column => structs::NS_STYLE_GRID_AUTO_FLOW_COLUMN as u8,
             };
