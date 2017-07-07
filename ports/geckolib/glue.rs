@@ -1589,25 +1589,24 @@ fn get_pseudo_style(
         PseudoElementCascadeType::Eager => {
             match *pseudo {
                 PseudoElement::FirstLetter => {
-                    // inherited_styles can be None when doing lazy resolution
-                    // (e.g. for computed style) or when probing.  In that case
-                    // we just inherit from our element, which is what Gecko
-                    // does in that situation.  What should actually happen in
-                    // the computed style case is a bit unclear.
-                    let inherited_styles =
-                        inherited_styles.unwrap_or(styles.primary());
-                    let guards = StylesheetGuards::same(guard);
-                    let metrics = get_metrics_provider_for_product();
-                    let inputs = match styles.pseudos.get(&pseudo) {
-                        Some(styles) => CascadeInputs::new_from_style(styles),
-                        None => return None,
-                    };
-                    doc_data.stylist
-                        .compute_pseudo_element_style_with_inputs(
-                            &inputs,
-                            &guards,
-                            inherited_styles,
-                            &metrics)
+                    styles.pseudos.get(&pseudo).and_then(|pseudo_styles| {
+                        // inherited_styles can be None when doing lazy resolution
+                        // (e.g. for computed style) or when probing.  In that case
+                        // we just inherit from our element, which is what Gecko
+                        // does in that situation.  What should actually happen in
+                        // the computed style case is a bit unclear.
+                        let inherited_styles =
+                            inherited_styles.unwrap_or(styles.primary());
+                        let guards = StylesheetGuards::same(guard);
+                        let metrics = get_metrics_provider_for_product();
+                        let inputs = CascadeInputs::new_from_style(pseudo_styles);
+                        doc_data.stylist
+                            .compute_pseudo_element_style_with_inputs(
+                                &inputs,
+                                &guards,
+                                inherited_styles,
+                                &metrics)
+                    })
                 },
                 _ => {
                     debug_assert!(inherited_styles.is_none() ||
