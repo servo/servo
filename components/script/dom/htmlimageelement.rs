@@ -961,13 +961,13 @@ impl VirtualMethods for HTMLImageElement {
        let area_elements = self.areas();
        let elements = match area_elements {
            Some(x) => x,
-           None    => return,
+           None => return,
        };
 
        // Fetch click coordinates
        let mouse_event = match event.downcast::<MouseEvent>() {
            Some(x) => x,
-           None    => return,
+           None => return,
        };
 
        let point = Point2D::new(mouse_event.ClientX().to_f32().unwrap(),
@@ -980,7 +980,7 @@ impl VirtualMethods for HTMLImageElement {
            let shape = element.get_shape_from_coords();
            let shp = match shape {
                Some(x) => x.absolute_coords(bcr_p),
-               None    => return,
+               None => return,
            };
            if shp.hit_test(&point) {
                element.activation_behavior(event, self.upcast());
