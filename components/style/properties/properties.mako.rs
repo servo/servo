@@ -2901,11 +2901,6 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
                                                  error_reporter);
             % endif
             }
-
-            if context.is_root_element {
-                let s = context.style.get_font().clone_font_size();
-                context.device.set_root_font_size(s);
-            }
         % endif
     % endfor
 
@@ -2937,7 +2932,6 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
 
     style.build()
 }
-
 
 /// See StyleAdjuster::adjust_for_border_width.
 pub fn adjust_border_width(style: &mut StyleBuilder) {
