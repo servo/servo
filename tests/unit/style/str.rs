@@ -35,6 +35,12 @@ pub fn test_str_join_many() {
 }
 
 #[test]
+pub fn test_starts_with_ignore_ascii_case_basic() {
+    assert!(starts_with_ignore_ascii_case("-webkit-", "-webkit-"));
+    assert!(starts_with_ignore_ascii_case("-webkit-foo", "-webkit-"));
+}
+
+#[test]
 pub fn test_starts_with_ignore_ascii_case_char_boundary() {
     assert!(!starts_with_ignore_ascii_case("aaaaa💩", "-webkit-"));
 }
