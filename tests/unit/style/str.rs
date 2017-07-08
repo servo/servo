@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use style::str::{split_html_space_chars, str_join};
+use style::str::{split_html_space_chars, str_join, starts_with_ignore_ascii_case};
 
 #[test]
 pub fn split_html_space_chars_whitespace() {
@@ -32,4 +32,15 @@ pub fn test_str_join_many() {
     let actual = str_join(&slice, "-");
     let expected = "-alpha--beta-gamma-";
     assert_eq!(actual, expected);
+}
+
+#[test]
+pub fn test_starts_with_ignore_ascii_case_basic() {
+    assert!(starts_with_ignore_ascii_case("-webkit-", "-webkit-"));
+    assert!(starts_with_ignore_ascii_case("-webkit-foo", "-webkit-"));
+}
+
+#[test]
+pub fn test_starts_with_ignore_ascii_case_char_boundary() {
+    assert!(!starts_with_ignore_ascii_case("aaaaa💩", "-webkit-"));
 }
