@@ -341,7 +341,6 @@ trait PrivateMatchMethods: TElement {
         if self.is_native_anonymous() || cascade_target == CascadeTarget::EagerPseudo {
             cascade_flags.insert(PROHIBIT_DISPLAY_CONTENTS);
         } else if self.is_root() {
-            debug_assert!(self.owner_doc_matches_for_testing(shared_context.stylist.device()));
             cascade_flags.insert(IS_ROOT_ELEMENT);
         }
 
@@ -554,18 +553,26 @@ trait PrivateMatchMethods: TElement {
                                        None);
 
             // Handle root font-size changes.
-            if self.is_root() && !self.is_native_anonymous() {
-                // The new root font-size has already been updated on the Device
-                // in properties::apply_declarations.
+            //
+            // TODO(emilio): This should arguably be outside of the path for
+            // getComputedStyle/getDefaultComputedStyle, but it's unclear how to
+            // do it without duplicating a bunch of code.
+            if self.is_root() && !self.is_native_anonymous() &&
+                !context.shared.traversal_flags.for_default_styles() {
                 let device = context.shared.stylist.device();
                 let new_font_size = new_values.get_font().clone_font_size();
 
                 // If the root font-size changed since last time, and something
                 // in the document did use rem units, ensure we recascade the
                 // entire tree.
-                if old_values.map_or(false, |v| v.get_font().clone_font_size() != new_font_size) &&
-                   device.used_root_font_size() {
-                    child_cascade_requirement = ChildCascadeRequirement::MustCascadeDescendants;
+                if old_values.map_or(true, |v| v.get_font().clone_font_size() != new_font_size) {
+                    // FIXME(emilio): This can fire when called from a document
+                    // from the bfcache (bug 1376897).
+                    debug_assert!(self.owner_doc_matches_for_testing(device));
+                    device.set_root_font_size(new_font_size);
+                    if device.used_root_font_size() {
+                        child_cascade_requirement = ChildCascadeRequirement::MustCascadeDescendants;
+                    }
                 }
             }
         }
