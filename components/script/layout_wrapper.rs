@@ -45,7 +45,7 @@ use gfx_traits::ByteIndex;
 use html5ever::{LocalName, Namespace};
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use range::Range;
-use script_layout_interface::{HTMLCanvasData, LayoutNodeType, SVGSVGData, TrustedNodeAddress};
+use script_layout_interface::{HTMLCanvasData, LayoutNodeType, SVGImageData, TrustedNodeAddress};
 use script_layout_interface::{OpaqueStyleAndLayoutData, StyleData};
 use script_layout_interface::wrapper_traits::{DangerousThreadSafeLayoutNode, GetLayoutData, LayoutNode};
 use script_layout_interface::wrapper_traits::{PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
@@ -971,7 +971,7 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
         this.canvas_data()
     }
 
-    fn svg_data(&self) -> Option<SVGSVGData> {
+    fn svg_data(&self) -> Option<SVGImageData> {
         let this = unsafe { self.get_jsmanaged() };
         this.svg_data()
     }
