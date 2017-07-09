@@ -125,8 +125,8 @@ where
         stylist: &Stylist,
         sheet: S,
         before_sheet: S,
-        guard: &SharedRwLockReadGuard)
-    {
+        guard: &SharedRwLockReadGuard
+    ) {
         debug!("StylesheetSet::insert_stylesheet_before");
         self.remove_stylesheet_if_present(&sheet);
         let index = self.entries.iter().position(|entry| {
@@ -142,12 +142,20 @@ where
     }
 
     /// Remove a given stylesheet from the set.
-    pub fn remove_stylesheet(&mut self, sheet: S) {
+    pub fn remove_stylesheet(
+        &mut self,
+        stylist: &Stylist,
+        sheet: S,
+        guard: &SharedRwLockReadGuard,
+    ) {
         debug!("StylesheetSet::remove_stylesheet");
         self.remove_stylesheet_if_present(&sheet);
         self.dirty = true;
-        // FIXME(emilio): We can do better!
-        self.invalidations.invalidate_fully();
+        self.invalidations.collect_invalidations_for(
+            stylist,
+            &sheet,
+            guard
+        );
     }
 
     /// Notes that the author style has been disabled for this document.

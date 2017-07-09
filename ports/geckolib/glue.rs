@@ -877,7 +877,8 @@ pub extern "C" fn Servo_StyleSet_InsertStyleSheetBefore(
         &data.stylist,
         unsafe { GeckoStyleSheet::new(sheet) },
         unsafe { GeckoStyleSheet::new(before_sheet) },
-        &guard);
+        &guard,
+    );
     data.clear_stylist();
 }
 
@@ -886,8 +887,15 @@ pub extern "C" fn Servo_StyleSet_RemoveStyleSheet(
     raw_data: RawServoStyleSetBorrowed,
     sheet: *const ServoStyleSheet
 ) {
+    let global_style_data = &*GLOBAL_STYLE_DATA;
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
-    data.stylesheets.remove_stylesheet(unsafe { GeckoStyleSheet::new(sheet) });
+    let mut data = &mut *data;
+    let guard = global_style_data.shared_lock.read();
+    data.stylesheets.remove_stylesheet(
+        &data.stylist,
+        unsafe { GeckoStyleSheet::new(sheet) },
+        &guard,
+    );
     data.clear_stylist();
 }
 
