@@ -440,4 +440,10 @@ partial interface CSSStyleDeclaration {
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString animationFillMode;
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString animation-delay;
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString animationDelay;
+
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString cx;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString cy;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString r;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString fill;
+  
 };
