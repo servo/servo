@@ -421,6 +421,7 @@ pub mod storageevent;
 pub mod stylesheet;
 pub mod stylesheetlist;
 pub mod svgelement;
+pub mod svggeometryelement;
 pub mod svggraphicselement;
 pub mod svgsvgelement;
 pub mod testbinding;
