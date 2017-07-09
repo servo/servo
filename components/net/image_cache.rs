@@ -396,6 +396,10 @@ impl ImageCacheStore {
         };
         self.complete_load(msg.key, image);
     }
+
+    fn webrender_api(&self) -> &webrender_api::RenderApi {
+        &self.webrender_api
+    }
 }
 
 pub struct ImageCacheImpl {
@@ -569,5 +573,20 @@ impl ImageCache for ImageCacheImpl {
     /// Ensure an image has a webrender key.
     fn set_webrender_image_key(&self, image: &mut Image) {
         set_webrender_image_key(&self.store.lock().unwrap().webrender_api, image);
+    }
+
+    fn create_geometry_key(&self) -> webrender_api::GeometryKey {
+        let store = self.store.lock().unwrap();
+        store.webrender_api().generate_geometry_key()
+    }
+
+    fn update_geometry(&self,
+                       geometry_key: webrender_api::GeometryKey,
+                       data: webrender_api::Geometry) {
+        self.store.lock().unwrap().webrender_api().update_geometry(geometry_key, data);
+    }
+
+    fn delete_geometry(&self, key: webrender_api::GeometryKey) {
+        self.store.lock().unwrap().webrender_api().delete_geometry(key);
     }
 }
