@@ -420,6 +420,7 @@ pub mod storage;
 pub mod storageevent;
 pub mod stylesheet;
 pub mod stylesheetlist;
+pub mod svgcircleelement;
 pub mod svgelement;
 pub mod svggeometryelement;
 pub mod svggraphicselement;

@@ -8,6 +8,7 @@ use dom::bindings::inheritance::ElementTypeId;
 use dom::bindings::inheritance::HTMLElementTypeId;
 use dom::bindings::inheritance::NodeTypeId;
 use dom::bindings::inheritance::SVGElementTypeId;
+use dom::bindings::inheritance::SVGGeometryElementTypeId;
 use dom::bindings::inheritance::SVGGraphicsElementTypeId;
 use dom::bindings::str::DOMString;
 use dom::document::Document;
@@ -50,6 +51,7 @@ use dom::htmltemplateelement::HTMLTemplateElement;
 use dom::htmltextareaelement::HTMLTextAreaElement;
 use dom::htmltitleelement::HTMLTitleElement;
 use dom::node::{ChildrenMutation, CloneChildrenFlag, Node, UnbindContext};
+use dom::svgcircleelement::SVGCircleElement;
 use dom::svgsvgelement::SVGSVGElement;
 use html5ever::LocalName;
 use style::attr::AttrValue;
@@ -250,6 +252,14 @@ pub fn vtable_for(node: &Node) -> &VirtualMethods {
                     SVGGraphicsElementTypeId::SVGSVGElement
                 ))) => {
             node.downcast::<SVGSVGElement>().unwrap() as &VirtualMethods
+        }
+        NodeTypeId::Element(
+            ElementTypeId::SVGElement(
+                SVGElementTypeId::SVGGraphicsElement(
+                    SVGGraphicsElementTypeId::SVGGeometryElement(
+                        SVGGeometryElementTypeId::SVGCircleElement
+                    )))) => {
+            node.downcast::<SVGCircleElement>().unwrap() as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::Element) => {
             node.downcast::<Element>().unwrap() as &VirtualMethods

@@ -21,7 +21,7 @@ use dom::bindings::conversions::{self, DerivedFrom};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::{Castable, CharacterDataTypeId, ElementTypeId};
 use dom::bindings::inheritance::{EventTargetTypeId, HTMLElementTypeId, NodeTypeId};
-use dom::bindings::inheritance::{SVGElementTypeId, SVGGraphicsElementTypeId};
+use dom::bindings::inheritance::{SVGElementTypeId, SVGGraphicsElementTypeId, SVGGeometryElementTypeId};
 use dom::bindings::js::{JS, LayoutJS, MutNullableJS};
 use dom::bindings::js::Root;
 use dom::bindings::js::RootedReference;
@@ -2705,6 +2705,11 @@ impl Into<LayoutElementType> for ElementTypeId {
                 LayoutElementType::HTMLTextAreaElement,
             ElementTypeId::SVGElement(SVGElementTypeId::SVGGraphicsElement(SVGGraphicsElementTypeId::SVGSVGElement)) =>
                 LayoutElementType::SVGSVGElement,
+            ElementTypeId::SVGElement(
+                SVGElementTypeId::SVGGraphicsElement(
+                    SVGGraphicsElementTypeId::SVGGeometryElement(
+                        SVGGeometryElementTypeId::SVGCircleElement
+                    ))) => LayoutElementType::SVGCircleElement,
             _ => LayoutElementType::Element,
         }
     }
