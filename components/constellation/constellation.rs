@@ -2870,13 +2870,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // with low-resource scenarios.
         debug!("Sending frame tree for browsing context {}.", browsing_context_id);
         if let Some(frame_tree) = self.browsing_context_to_sendable(browsing_context_id) {
-            let (chan, port) = ipc::channel().expect("Failed to create IPC channel!");
-            self.compositor_proxy.send(ToCompositorMsg::SetFrameTree(frame_tree,
-                                                                     chan));
-            if port.recv().is_err() {
-                warn!("Compositor has discarded SetFrameTree");
-                return; // Our message has been discarded, probably shutting down.
-            }
+            self.compositor_proxy.send(ToCompositorMsg::SetFrameTree(frame_tree));
         }
     }
 

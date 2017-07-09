@@ -91,7 +91,7 @@ pub enum Msg {
     /// Alerts the compositor that the given pipeline has changed whether it is running animations.
     ChangeRunningAnimationsState(PipelineId, AnimationState),
     /// Replaces the current frame tree, typically called during main frame navigation.
-    SetFrameTree(SendableFrameTree, IpcSender<()>),
+    SetFrameTree(SendableFrameTree),
     /// The load of a page has begun
     LoadStart,
     /// The load of a page has completed
