@@ -105,7 +105,7 @@ impl RestyleData {
 /// not require duplicate allocations. We leverage the copy-on-write semantics of
 /// Arc::make_mut(), which is free (i.e. does not require atomic RMU operations)
 /// in servo_arc.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct EagerPseudoStyles(Option<Arc<EagerPseudoArray>>);
 
 #[derive(Debug, Default)]
@@ -234,22 +234,12 @@ impl EagerPseudoStyles {
 
 /// The styles associated with a node, including the styles for any
 /// pseudo-elements.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct ElementStyles {
     /// The element's style.
     pub primary: Option<Arc<ComputedValues>>,
     /// A list of the styles for the element's eagerly-cascaded pseudo-elements.
     pub pseudos: EagerPseudoStyles,
-}
-
-impl Default for ElementStyles {
-    /// Construct an empty `ElementStyles`.
-    fn default() -> Self {
-        ElementStyles {
-            primary: None,
-            pseudos: EagerPseudoStyles(None),
-        }
-    }
 }
 
 impl ElementStyles {
