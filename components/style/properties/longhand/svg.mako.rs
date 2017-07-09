@@ -158,3 +158,27 @@ ${helpers.predefined_type("mask-image", "ImageLayer",
     animation_value_type="discrete",
     flags="CREATES_STACKING_CONTEXT",
     has_uncacheable_values="True" if product == "gecko" else "False")}
+
+${helpers.predefined_type(
+    "cx", "LengthOrPercentage",
+    "computed::LengthOrPercentage::Length(Au(0))",
+    "parse_numbers_are_pixels_non_negative",
+    products="servo",
+    animation_value_type="ComputedValue",
+    spec="https://svgwg.org/svg2-draft/geometry.html#CxProperty")}
+
+${helpers.predefined_type(
+    "cy", "LengthOrPercentage",
+    "computed::LengthOrPercentage::Length(Au(0))",
+    "parse_numbers_are_pixels_non_negative",
+    products="servo",
+    animation_value_type="ComputedValue",
+    spec="https://svgwg.org/svg2-draft/geometry.html#CyProperty")}
+
+${helpers.predefined_type(
+    "r", "LengthOrPercentage",
+    "computed::LengthOrPercentage::Length(Au(0))",
+    "parse_numbers_are_pixels_non_negative",
+    products="servo",
+    animation_value_type="ComputedValue",
+    spec="https://svgwg.org/svg2-draft/geometry.html#R")}
