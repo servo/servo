@@ -123,6 +123,7 @@ pub mod selector_map;
 pub mod selector_parser;
 pub mod shared_lock;
 pub mod sharing;
+pub mod style_resolver;
 pub mod stylist;
 #[cfg(feature = "servo")] #[allow(unsafe_code)] pub mod servo;
 pub mod sequential;
