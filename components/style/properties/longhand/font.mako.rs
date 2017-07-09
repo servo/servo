@@ -289,6 +289,7 @@ macro_rules! impl_gecko_keyword_conversions {
     }
 
     #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SpecifiedValue {
         Values(Vec<FontFamily>),
         System(SystemFont),
