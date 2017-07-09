@@ -21,14 +21,16 @@ use stylearc::Arc;
 use stylist::RuleInclusion;
 
 /// A struct that takes care of resolving the style of a given element.
-pub struct StyleResolverForElement<'a, 'b, E>
+pub struct StyleResolverForElement<'a, 'ctx, 'le, E>
 where
-    'b: 'a,
-    E: TElement + MatchMethods + 'static,
+    'ctx: 'a,
+    'le: 'ctx,
+    E: TElement + MatchMethods + 'le,
 {
     element: E,
-    context: &'a mut StyleContext<'b, E>,
+    context: &'a mut StyleContext<'ctx, E>,
     rule_inclusion: RuleInclusion,
+    _marker: ::std::marker::PhantomData<&'le E>,
 }
 
 struct MatchingResults {
@@ -47,18 +49,24 @@ pub struct PrimaryStyle {
     pub relevant_link_found: bool,
 }
 
-impl<'a, 'b, E> StyleResolverForElement<'a, 'b, E>
+impl<'a, 'ctx, 'le, E> StyleResolverForElement<'a, 'ctx, 'le, E>
 where
-    'b: 'a,
-    E: TElement + MatchMethods + 'static,
+    'ctx: 'a,
+    'le: 'ctx,
+    E: TElement + MatchMethods + 'le,
 {
     /// Trivially construct a new StyleResolverForElement.
     pub fn new(
         element: E,
-        context: &'a mut StyleContext<'b, E>,
+        context: &'a mut StyleContext<'ctx, E>,
         rule_inclusion: RuleInclusion,
     ) -> Self {
-        Self { element, context, rule_inclusion, }
+        Self {
+            element,
+            context,
+            rule_inclusion,
+            _marker: ::std::marker::PhantomData,
+        }
     }
 
     /// Resolve just the style of a given element.

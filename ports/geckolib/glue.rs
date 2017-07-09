@@ -114,7 +114,7 @@ use style::thread_state;
 use style::timer::Timer;
 use style::traversal::{ANIMATION_ONLY, DomTraversal, FOR_CSS_RULE_CHANGES, FOR_RECONSTRUCT};
 use style::traversal::{FOR_DEFAULT_STYLES, TraversalDriver, TraversalFlags, UNSTYLED_CHILDREN_ONLY};
-use style::traversal::{resolve_style, resolve_default_style};
+use style::traversal::resolve_style;
 use style::values::{CustomIdent, KeyframesName};
 use style::values::computed::Context;
 use style_traits::{PARSING_MODE_DEFAULT, ToCss};
@@ -2775,7 +2775,6 @@ pub extern "C" fn Servo_ResolveStyleLazily(element: RawGeckoElementBorrowed,
     };
 
     // We don't have the style ready. Go ahead and compute it as necessary.
-    let mut result = None;
     let shared = create_shared_context(&global_style_data,
                                        &guard,
                                        &data,
@@ -2786,22 +2785,9 @@ pub extern "C" fn Servo_ResolveStyleLazily(element: RawGeckoElementBorrowed,
         shared: &shared,
         thread_local: &mut tlc,
     };
-    let ensure = |el: GeckoElement| { unsafe { el.ensure_data(); } };
 
-    match rule_inclusion {
-        RuleInclusion::All => {
-            let clear = |el: GeckoElement| el.clear_data();
-            resolve_style(&mut context, element, &ensure, &clear,
-                          |styles| result = Some(finish(styles)));
-        }
-        RuleInclusion::DefaultOnly => {
-            let set_data = |el: GeckoElement, data| { unsafe { el.set_data(data) } };
-            resolve_default_style(&mut context, element, &ensure, &set_data,
-                                  |styles| result = Some(finish(styles)));
-        }
-    }
-
-    result.unwrap().into_strong()
+    let styles = resolve_style(&mut context, element, rule_inclusion);
+    finish(&styles).into_strong()
 }
 
 #[cfg(feature = "gecko_debug")]
