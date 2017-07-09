@@ -99,7 +99,7 @@ use style::attr::{AttrIdentifier, AttrValue, LengthOrPercentageOrAuto};
 use style::context::QuirksMode;
 use style::element_state::*;
 use style::media_queries::MediaList;
-use style::properties::PropertyDeclarationBlock;
+use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use style::selector_parser::{PseudoElement, Snapshot};
 use style::shared_lock::{SharedRwLock as StyleSharedRwLock, Locked as StyleLocked};
 use style::stylesheet_set::StylesheetSet;
@@ -109,7 +109,10 @@ use style::stylesheets::keyframes_rule::Keyframe;
 use style::values::specified::Length;
 use time::Duration;
 use uuid::Uuid;
+use webrender_api::GeometryKey;
 use webrender_api::ImageKey;
+use webrender_api::{WebGLBufferId, WebGLError, WebGLFramebufferId, WebGLProgramId};
+use webrender_api::{WebGLRenderbufferId, WebGLShaderId, WebGLTextureId, WebGLVertexArrayId};
 use webvr_traits::WebVRGamepadHand;
 
 /// A trait to allow tracing (only) DOM objects.
@@ -343,6 +346,7 @@ unsafe_no_jsmanaged_fields!(Metadata);
 unsafe_no_jsmanaged_fields!(NetworkError);
 unsafe_no_jsmanaged_fields!(Atom, Prefix, LocalName, Namespace, QualName);
 unsafe_no_jsmanaged_fields!(TrustedPromise);
+unsafe_no_jsmanaged_fields!(PropertyDeclaration);
 unsafe_no_jsmanaged_fields!(PropertyDeclarationBlock);
 // These three are interdependent, if you plan to put jsmanaged data
 // in one of these make sure it is propagated properly to containing structs
@@ -395,6 +399,7 @@ unsafe_no_jsmanaged_fields!(OpaqueStyleAndLayoutData);
 unsafe_no_jsmanaged_fields!(PathBuf);
 unsafe_no_jsmanaged_fields!(CSSErrorReporter);
 unsafe_no_jsmanaged_fields!(DrawAPaintImageResult);
+unsafe_no_jsmanaged_fields!(GeometryKey);
 unsafe_no_jsmanaged_fields!(ImageKey);
 unsafe_no_jsmanaged_fields!(WebGLBufferId);
 unsafe_no_jsmanaged_fields!(WebGLChan);

@@ -46,7 +46,7 @@ use script::layout_exports::{LayoutCharacterDataHelpers, LayoutDocumentHelpers};
 use script::layout_exports::{LayoutElementHelpers, LayoutNodeHelpers, RawLayoutElementHelpers};
 use script::layout_exports::LayoutJS;
 use script::layout_exports::PendingRestyle;
-use script_layout_interface::{HTMLCanvasData, LayoutNodeType, SVGSVGData, TrustedNodeAddress};
+use script_layout_interface::{HTMLCanvasData, LayoutNodeType, SVGImageData, TrustedNodeAddress};
 use script_layout_interface::{OpaqueStyleAndLayoutData, StyleData};
 use script_layout_interface::wrapper_traits::{DangerousThreadSafeLayoutNode, GetLayoutData, LayoutNode};
 use script_layout_interface::wrapper_traits::{PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
@@ -966,7 +966,7 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
         this.canvas_data()
     }
 
-    fn svg_data(&self) -> Option<SVGSVGData> {
+    fn svg_data(&self) -> Option<SVGImageData> {
         let this = unsafe { self.get_jsmanaged() };
         this.svg_data()
     }

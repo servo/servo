@@ -31,7 +31,7 @@ use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache::{ImageOrMetadataAvailable, UsePlaceholder};
 use range::*;
 use script_layout_interface::{HTMLCanvasData, HTMLCanvasDataSource};
-use script_layout_interface::SVGSVGData;
+use script_layout_interface::SVGImageData;
 use script_layout_interface::wrapper_traits::{PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use serde::ser::{Serialize, SerializeStruct, Serializer};
 use servo_url::ServoUrl;
@@ -360,13 +360,15 @@ impl CanvasFragmentInfo {
 pub struct SvgFragmentInfo {
     pub dom_width: Au,
     pub dom_height: Au,
+    pub geometry_key: webrender_api::GeometryKey,
 }
 
 impl SvgFragmentInfo {
-    pub fn new(data: SVGSVGData) -> SvgFragmentInfo {
+    pub fn new(data: SVGImageData) -> SvgFragmentInfo {
         SvgFragmentInfo {
             dom_width: Au::from_px(data.width as i32),
             dom_height: Au::from_px(data.height as i32),
+            geometry_key: data.geometry_key,
         }
     }
 }
