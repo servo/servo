@@ -150,8 +150,8 @@ impl RuleTree {
     }
 
     /// Get the root rule node.
-    pub fn root(&self) -> StrongRuleNode {
-        self.root.clone()
+    pub fn root(&self) -> &StrongRuleNode {
+        &self.root
     }
 
     fn dump<W: Write>(&self, guards: &StylesheetGuards, writer: &mut W) {
@@ -171,11 +171,13 @@ impl RuleTree {
     /// !important rules are detected and inserted into the appropriate position
     /// in the rule tree. This allows selector matching to ignore importance,
     /// while still maintaining the appropriate cascade order in the rule tree.
-    pub fn insert_ordered_rules_with_important<'a, I>(&self,
-                                                      iter: I,
-                                                      guards: &StylesheetGuards)
-                                                      -> StrongRuleNode
-        where I: Iterator<Item=(StyleSource, CascadeLevel)>,
+    pub fn insert_ordered_rules_with_important<'a, I>(
+        &self,
+        iter: I,
+        guards: &StylesheetGuards
+    ) -> StrongRuleNode
+    where
+        I: Iterator<Item=(StyleSource, CascadeLevel)>,
     {
         use self::CascadeLevel::*;
         let mut current = self.root.clone();
@@ -257,11 +259,11 @@ impl RuleTree {
 
     /// Given a list of applicable declarations, insert the rules and return the
     /// corresponding rule node.
-    pub fn compute_rule_node(&self,
-                             applicable_declarations: &mut ApplicableDeclarationList,
-                             guards: &StylesheetGuards)
-                             -> StrongRuleNode
-    {
+    pub fn compute_rule_node(
+        &self,
+        applicable_declarations: &mut ApplicableDeclarationList,
+        guards: &StylesheetGuards
+    ) -> StrongRuleNode {
         let rules = applicable_declarations.drain().map(|d| d.order_and_level());
         let rule_node = self.insert_ordered_rules_with_important(rules, guards);
         rule_node
