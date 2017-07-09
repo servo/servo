@@ -15,7 +15,7 @@ use data::ElementData;
 use element_state::ElementState;
 use font_metrics::FontMetricsProvider;
 use media_queries::Device;
-use properties::{ComputedValues, PropertyDeclarationBlock};
+use properties::{AnimationRules, ComputedValues, PropertyDeclarationBlock};
 #[cfg(feature = "gecko")] use properties::animated_properties::AnimationValue;
 #[cfg(feature = "gecko")] use properties::animated_properties::TransitionProperty;
 use rule_tree::CascadeLevel;
@@ -377,6 +377,18 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
                                      _cascade_level: CascadeLevel)
                                      -> Option<Arc<Locked<PropertyDeclarationBlock>>> {
         None
+    }
+
+    /// Get the combined animation and transition rules.
+    fn get_animation_rules(&self) -> AnimationRules {
+        if !self.may_have_animations() {
+            return AnimationRules(None, None)
+        }
+
+        AnimationRules(
+            self.get_animation_rule(),
+            self.get_transition_rule(),
+        )
     }
 
     /// Get this element's animation rule.

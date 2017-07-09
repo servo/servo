@@ -237,7 +237,7 @@ impl CascadeVisitedMode {
 
     /// Returns whether there might be visited values that should be inserted
     /// within the regular computed values based on the cascade mode.
-    fn visited_values_for_insertion(&self) -> bool {
+    pub fn visited_values_for_insertion(&self) -> bool {
         *self == CascadeVisitedMode::Unvisited
     }
 
@@ -258,7 +258,7 @@ impl CascadeVisitedMode {
 
     /// Returns whether the cascade should filter to only visited dependent
     /// properties based on the cascade mode.
-    fn visited_dependent_only(&self) -> bool {
+    pub fn visited_dependent_only(&self) -> bool {
         *self == CascadeVisitedMode::Visited
     }
 }
@@ -446,7 +446,7 @@ trait PrivateMatchMethods: TElement {
                 debug_assert!(pseudo.is_before_or_after());
                 let parent = self.parent_element().unwrap();
                 if !parent.may_have_animations() ||
-                   primary_inputs.rules().get_animation_rules().is_empty() {
+                   self.get_animation_rules().is_empty() {
                     let parent_data = parent.borrow_data().unwrap();
                     let pseudo_style =
                         parent_data.styles.pseudos.get(&pseudo).unwrap();
@@ -994,12 +994,12 @@ impl MatchingResults {
 pub trait MatchMethods : TElement {
     /// Performs selector matching and property cascading on an element and its
     /// eager pseudos.
-    fn match_and_cascade(&self,
-                         context: &mut StyleContext<Self>,
-                         data: &mut ElementData,
-                         sharing: StyleSharingBehavior)
-                         -> ChildCascadeRequirement
-    {
+    fn match_and_cascade(
+        &self,
+        context: &mut StyleContext<Self>,
+        data: &mut ElementData,
+        sharing: StyleSharingBehavior
+    ) -> ChildCascadeRequirement {
         debug!("Match and cascade for {:?}", self);
 
         // Perform selector matching for the primary style.
@@ -1021,16 +1021,24 @@ pub trait MatchMethods : TElement {
         // if our parent has visited styles.
         let parent_and_styles = self.get_inherited_style_and_parent();
         if relevant_link_found || parent_and_styles.has_visited_style() {
-            self.cascade_primary(context, data, important_rules_changed,
-                                 &parent_and_styles,
-                                 CascadeVisitedMode::Visited);
+            self.cascade_primary(
+                context,
+                data,
+                important_rules_changed,
+                &parent_and_styles,
+                CascadeVisitedMode::Visited
+            );
         }
 
         // Cascade properties and compute primary values.
         let child_cascade_requirement =
-            self.cascade_primary(context, data, important_rules_changed,
-                                 &parent_and_styles,
-                                 CascadeVisitedMode::Unvisited);
+            self.cascade_primary(
+                context,
+                data,
+                important_rules_changed,
+                &parent_and_styles,
+                CascadeVisitedMode::Unvisited
+            );
 
         // Match and cascade eager pseudo-elements.
         if !data.styles.is_display_none() {
@@ -1109,12 +1117,12 @@ pub trait MatchMethods : TElement {
     ///
     /// Returns `MatchingResults` with the new rules and other associated data
     /// from the matching process.
-    fn match_primary(&self,
-                     context: &mut StyleContext<Self>,
-                     data: &mut ElementData,
-                     visited_handling: VisitedHandlingMode)
-                     -> MatchingResults
-    {
+    fn match_primary(
+        &self,
+        context: &mut StyleContext<Self>,
+        data: &mut ElementData,
+        visited_handling: VisitedHandlingMode
+    ) -> MatchingResults {
         debug!("Match primary for {:?}, visited: {:?}", self, visited_handling);
 
         let mut primary_inputs = context.thread_local.current_element_info
@@ -1145,7 +1153,7 @@ pub trait MatchMethods : TElement {
                     parent_data.styles.pseudos.get(&pseudo).unwrap();
                 let mut rules = pseudo_style.rules().clone();
                 if parent.may_have_animations() {
-                    let animation_rules = data.get_animation_rules();
+                    let animation_rules = self.get_animation_rules();
 
                     // Handle animations here.
                     if let Some(animation_rule) = animation_rules.0 {
@@ -1208,12 +1216,8 @@ pub trait MatchMethods : TElement {
                                              context.shared.quirks_mode);
 
         {
-            let smil_override = data.get_smil_override();
-            let animation_rules = if self.may_have_animations() {
-                data.get_animation_rules()
-            } else {
-                AnimationRules(None, None)
-            };
+            let smil_override = self.get_smil_override();
+            let animation_rules = self.get_animation_rules();
 
             // Compute the primary rule node.
             stylist.push_applicable_declarations(self,
