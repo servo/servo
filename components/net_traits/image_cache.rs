@@ -121,4 +121,10 @@ pub trait ImageCache: Sync + Send {
 
     /// Ensure an image has a webrender key.
     fn set_webrender_image_key(&self, image: &mut Image);
+
+    fn create_geometry_key(&self) -> webrender_api::GeometryKey;
+
+    fn update_geometry(&self, key: webrender_api::GeometryKey, data: webrender_api::Geometry);
+
+    fn delete_geometry(&self, key: webrender_api::GeometryKey);
 }
