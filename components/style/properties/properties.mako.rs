@@ -293,6 +293,7 @@ static ${name}: LonghandIdSet = LonghandIdSet {
 
 /// A set of longhand properties
 #[derive(Clone, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct LonghandIdSet {
     storage: [u32; (${len(data.longhands)} - 1 + 32) / 32]
 }
@@ -786,11 +787,14 @@ pub enum DeclaredValue<'a, T: 'a> {
 /// extra discriminant word) and synthesize dependent DeclaredValues for
 /// PropertyDeclaration instances as needed.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum DeclaredValueOwned<T> {
     /// A known specified value from the stylesheet.
     Value(T),
     /// An unparsed value that contains `var()` functions.
-    WithVariables(Arc<UnparsedValue>),
+    WithVariables(
+        #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
+        Arc<UnparsedValue>),
     /// An CSS-wide keyword.
     CSSWideKeyword(CSSWideKeyword),
 }
@@ -807,7 +811,12 @@ impl<T> DeclaredValueOwned<T> {
 }
 
 /// An unparsed property value that contains `var()` functions.
+<<<<<<< 433b0ba3bfba657b9544a09ab338f21591bf5333
 #[derive(Debug, Eq, PartialEq)]
+=======
+#[derive(PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+>>>>>>> style: Derive HeapSizeOf for PropertyDeclarationBlock
 pub struct UnparsedValue {
     /// The css serialization for this value.
     css: String,
@@ -1269,7 +1278,12 @@ impl PropertyParserContext {
 }
 
 /// Servo's representation for a property declaration.
+<<<<<<< 433b0ba3bfba657b9544a09ab338f21591bf5333
 #[derive(Clone, PartialEq)]
+=======
+#[derive(PartialEq, Clone)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+>>>>>>> style: Derive HeapSizeOf for PropertyDeclarationBlock
 pub enum PropertyDeclaration {
     % for property in data.longhands:
         /// ${property.name}
@@ -1282,7 +1296,9 @@ pub enum PropertyDeclaration {
     /// A css-wide keyword.
     CSSWideKeyword(LonghandId, CSSWideKeyword),
     /// An unparsed value that contains `var()` functions.
-    WithVariables(LonghandId, Arc<UnparsedValue>),
+    WithVariables(LonghandId,
+                  #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
+                  Arc<UnparsedValue>),
     /// A custom property declaration, with the property name and the declared
     /// value.
     Custom(::custom_properties::Name, DeclaredValueOwned<Box<::custom_properties::SpecifiedValue>>),
