@@ -70,6 +70,7 @@ use dom::node::{document_from_node, window_from_node};
 use dom::nodelist::NodeList;
 use dom::promise::Promise;
 use dom::servoparser::ServoParser;
+use dom::svgelement::{SVGElement, LayoutSVGElementHelpers};
 use dom::text::Text;
 use dom::validation::Validatable;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
@@ -422,6 +423,15 @@ impl LayoutElementHelpers for LayoutJS<Element> {
 
         let document = self.upcast::<Node>().owner_doc_for_layout();
         let shared_lock = document.style_shared_lock();
+
+        if let Some(element) = self.downcast::<SVGElement>() {
+            let declarations = ApplicableDeclarationBlock::from_declarations(
+                Arc::new(shared_lock.wrap(element.presentation_attributes())),
+                CascadeLevel::PresHints
+            );
+            hints.push(declarations);
+            return
+        }
 
         let bgcolor = if let Some(this) = self.downcast::<HTMLBodyElement>() {
             this.get_background_color()
