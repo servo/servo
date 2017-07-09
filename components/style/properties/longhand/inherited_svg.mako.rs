@@ -34,7 +34,6 @@ ${helpers.single_keyword("color-interpolation-filters", "linearrgb auto srgb",
 ${helpers.predefined_type(
     "fill", "SVGPaint",
     "::values::computed::SVGPaint::black()",
-    products="gecko",
     animation_value_type="IntermediateSVGPaint",
     boxed=True,
     spec="https://www.w3.org/TR/SVG2/painting.html#SpecifyingFillPaint")}
