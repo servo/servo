@@ -24,7 +24,7 @@ use properties::longhands::display::computed_value as display;
 use rule_tree::{CascadeLevel, StrongRuleNode};
 use selector_parser::{PseudoElement, RestyleDamage, SelectorImpl};
 use selectors::matching::{ElementSelectorFlags, MatchingContext, MatchingMode, StyleRelations};
-use selectors::matching::{VisitedHandlingMode, AFFECTED_BY_PSEUDO_ELEMENTS};
+use selectors::matching::VisitedHandlingMode;
 use sharing::StyleSharingBehavior;
 use stylearc::Arc;
 use stylist::RuleInclusion;
@@ -1003,7 +1003,7 @@ pub trait MatchMethods : TElement {
         debug!("Match and cascade for {:?}", self);
 
         // Perform selector matching for the primary style.
-        let mut primary_results =
+        let primary_results =
             self.match_primary(context, data, VisitedHandlingMode::AllLinksUnvisited);
         let important_rules_changed =
             primary_results.important_rules_overriding_animation_changed;
@@ -1049,11 +1049,6 @@ pub trait MatchMethods : TElement {
             }
 
             self.cascade_pseudos(context, data, CascadeVisitedMode::Unvisited);
-        }
-
-        // If we have any pseudo elements, indicate so in the primary StyleRelations.
-        if !data.styles.pseudos.is_empty() {
-            primary_results.relations |= AFFECTED_BY_PSEUDO_ELEMENTS;
         }
 
         // If the style is shareable, add it to the LRU cache.

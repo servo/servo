@@ -15,8 +15,6 @@ bitflags! {
         /// Whether this element is affected by presentational hints. This is
         /// computed externally (that is, in Servo).
         const AFFECTED_BY_PRESENTATIONAL_HINTS = 1 << 0,
-        /// Whether this element has pseudo-element styles. Computed externally.
-        const AFFECTED_BY_PSEUDO_ELEMENTS = 1 << 1,
     }
 }
 
