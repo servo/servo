@@ -69,6 +69,7 @@ impl Importance {
 
 /// Overridden declarations are skipped.
 #[derive(Clone)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct PropertyDeclarationBlock {
     /// The group of declarations, along with their importance.
     ///
