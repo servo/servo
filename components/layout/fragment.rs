@@ -31,7 +31,7 @@ use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache::{ImageOrMetadataAvailable, UsePlaceholder};
 use range::*;
 use script_layout_interface::HTMLCanvasData;
-use script_layout_interface::SVGSVGData;
+use script_layout_interface::SVGImageData;
 use script_layout_interface::wrapper_traits::{PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use serde::ser::{Serialize, SerializeStruct, Serializer};
 use servo_url::ServoUrl;
@@ -53,6 +53,7 @@ use style::values::{self, Either, Auto};
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use text;
 use text::TextRunScanner;
+use webrender_api::GeometryKey;
 use wrapper::ThreadSafeLayoutNodeHelpers;
 
 // From gfxFontConstants.h in Firefox.
@@ -343,13 +344,15 @@ impl CanvasFragmentInfo {
 pub struct SvgFragmentInfo {
     pub dom_width: Au,
     pub dom_height: Au,
+    pub geometry_key: GeometryKey,
 }
 
 impl SvgFragmentInfo {
-    pub fn new(data: SVGSVGData) -> SvgFragmentInfo {
+    pub fn new(data: SVGImageData) -> SvgFragmentInfo {
         SvgFragmentInfo {
             dom_width: Au::from_px(data.width as i32),
             dom_height: Au::from_px(data.height as i32),
+            geometry_key: data.geometry_key,
         }
     }
 }

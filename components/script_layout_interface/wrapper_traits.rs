@@ -7,7 +7,7 @@
 use HTMLCanvasData;
 use LayoutNodeType;
 use OpaqueStyleAndLayoutData;
-use SVGSVGData;
+use SVGImageData;
 use atomic_refcell::AtomicRef;
 use gfx_traits::{ByteIndex, FragmentType, combine_id_with_fragment_type};
 use html5ever::{Namespace, LocalName};
@@ -271,7 +271,7 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Debug + GetLayoutData + NodeInfo 
 
     fn canvas_data(&self) -> Option<HTMLCanvasData>;
 
-    fn svg_data(&self) -> Option<SVGSVGData>;
+    fn svg_data(&self) -> Option<SVGImageData>;
 
     /// If this node is an iframe element, returns its browsing context ID. If this node is
     /// not an iframe element, fails.

@@ -49,6 +49,7 @@ use script_traits::UntrustedNodeAddress;
 use servo_url::ServoUrl;
 use std::sync::atomic::AtomicIsize;
 use style::data::ElementData;
+use webrender_api::GeometryKey;
 
 #[repr(C)]
 pub struct StyleData {
@@ -119,6 +120,7 @@ pub enum LayoutElementType {
     HTMLTableSectionElement,
     HTMLTextAreaElement,
     SVGSVGElement,
+    SVGCircleElement
 }
 
 pub struct HTMLCanvasData {
@@ -127,9 +129,10 @@ pub struct HTMLCanvasData {
     pub height: u32,
 }
 
-pub struct SVGSVGData {
+pub struct SVGImageData {
     pub width: u32,
     pub height: u32,
+    pub geometry_key: GeometryKey
 }
 
 /// The address of a node known to be valid. These are sent from script to layout.
