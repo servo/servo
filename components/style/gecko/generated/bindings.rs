@@ -2665,15 +2665,16 @@ extern "C" {
      -> ServoComputedValuesStrong;
 }
 extern "C" {
+    pub fn Servo_ComputedValues_GetStyleRuleList(values:
+                                                     ServoComputedValuesBorrowed,
+                                                 rules:
+                                                     RawGeckoServoStyleRuleListBorrowedMut);
+}
+extern "C" {
     pub fn Servo_Initialize(dummy_url_data: *mut RawGeckoURLExtraData);
 }
 extern "C" {
     pub fn Servo_Shutdown();
-}
-extern "C" {
-    pub fn Servo_Element_GetStyleRuleList(element: RawGeckoElementBorrowed,
-                                          rules:
-                                              RawGeckoServoStyleRuleListBorrowedMut);
 }
 extern "C" {
     pub fn Servo_NoteExplicitHints(element: RawGeckoElementBorrowed,
