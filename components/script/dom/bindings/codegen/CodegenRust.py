@@ -3152,7 +3152,7 @@ class CGCallGenerator(CGThing):
     """
     def __init__(self, errorResult, arguments, argsPre, returnType,
                  extendedAttributes, descriptor, nativeMethodName,
-                 static, object="this"):
+                 static, object="this", hasCEReactions=False):
         CGThing.__init__(self)
 
         assert errorResult is None or isinstance(errorResult, str)
@@ -3185,6 +3185,9 @@ class CGCallGenerator(CGThing):
             call = CGWrapper(call, pre="%s." % object)
         call = CGList([call, CGWrapper(args, pre="(", post=")")])
 
+        if hasCEReactions:
+            self.cgRoot.append(CGGeneric("push_new_element_queue();\n"))
+
         self.cgRoot.append(CGList([
             CGGeneric("let result: "),
             result,
@@ -3192,6 +3195,9 @@ class CGCallGenerator(CGThing):
             call,
             CGGeneric(";"),
         ]))
+
+        if hasCEReactions:
+            self.cgRoot.append(CGGeneric("pop_current_element_queue();\n"))
 
         if isFallible:
             if static:
@@ -3267,11 +3273,12 @@ class CGPerSignatureCall(CGThing):
                                                           idlNode.maplikeOrSetlikeOrIterable,
                                                           idlNode.identifier.name))
         else:
+            hasCEReactions = idlNode.getExtendedAttribute("CEReactions")
             cgThings.append(CGCallGenerator(
                 errorResult,
                 self.getArguments(), self.argsPre, returnType,
                 self.extendedAttributes, descriptor, nativeMethodName,
-                static))
+                static, hasCEReactions=hasCEReactions))
 
         self.cgRoot = CGList(cgThings, "\n")
 
@@ -5642,6 +5649,8 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'dom::bindings::interface::define_guarded_properties',
         'dom::bindings::interface::html_constructor',
         'dom::bindings::interface::is_exposed_in',
+        'dom::bindings::interface::pop_current_element_queue',
+        'dom::bindings::interface::push_new_element_queue',
         'dom::bindings::iterable::Iterable',
         'dom::bindings::iterable::IteratorType',
         'dom::bindings::js::JS',

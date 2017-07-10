@@ -103,6 +103,7 @@ use js::jsapi::{TrueHandleValue, Value};
 use js::jsval::{JSVal, PrivateValue};
 use js::rust::{define_methods, define_properties, get_object_class};
 use libc;
+use script_thread::ScriptThread;
 use std::ptr;
 
 /// The class of a non-callback interface object.
@@ -298,6 +299,14 @@ pub unsafe fn html_constructor<T>(window: &Window, call_args: &CallArgs) -> Fall
 
     // TODO: Steps 9-13
     // Custom element upgrades are not implemented yet, so these steps are unnecessary.
+}
+
+pub fn push_new_element_queue() {
+    ScriptThread::push_new_element_queue();
+}
+
+pub fn pop_current_element_queue() {
+    ScriptThread::pop_current_element_queue();
 }
 
 /// Create and define the interface object of a callback interface.
