@@ -1705,6 +1705,24 @@ pub extern "C" fn Servo_ComputedValues_SpecifiesAnimationsOrTransitions(values: 
     b.specifies_animations() || b.specifies_transitions()
 }
 
+#[no_mangle]
+pub extern "C" fn Servo_ComputedValues_GetStyleRuleList(values: ServoComputedValuesBorrowed,
+                                                        rules: RawGeckoServoStyleRuleListBorrowedMut) {
+    let values = ComputedValues::as_arc(&values);
+    if let Some(ref rule_node) = values.rules {
+        let mut result = vec![];
+        for node in rule_node.self_and_ancestors() {
+            if let &StyleSource::Style(ref rule) = node.style_source() {
+                result.push(Locked::<StyleRule>::arc_as_borrowed(&rule));
+            }
+        }
+        unsafe { rules.set_len(result.len() as u32) };
+        for (&src, dest) in result.into_iter().zip(rules.iter_mut()) {
+            *dest = src;
+        }
+    }
+}
+
 /// See the comment in `Device` to see why it's ok to pass an owned reference to
 /// the pres context (hint: the context outlives the StyleSet, that holds the
 /// device alive).
@@ -2624,30 +2642,6 @@ unsafe fn maybe_restyle<'a>(data: &'a mut AtomicRefMut<ElementData>,
 
     // Ensure and return the RestyleData.
     Some(&mut data.restyle)
-}
-
-#[no_mangle]
-pub extern "C" fn Servo_Element_GetStyleRuleList(element: RawGeckoElementBorrowed,
-                                                 rules: RawGeckoServoStyleRuleListBorrowedMut) {
-    let element = GeckoElement(element);
-    let data = match element.borrow_data() {
-        Some(element_data) => element_data,
-        None => return,
-    };
-    let computed = match data.styles.get_primary() {
-        Some(values) => values,
-        None => return,
-    };
-    let mut result = vec![];
-    for rule_node in computed.rules().self_and_ancestors() {
-        if let &StyleSource::Style(ref rule) = rule_node.style_source() {
-            result.push(Locked::<StyleRule>::arc_as_borrowed(&rule));
-        }
-    }
-    unsafe { rules.set_len(result.len() as u32) };
-    for (&src, dest) in result.into_iter().zip(rules.iter_mut()) {
-        *dest = src;
-    }
 }
 
 #[no_mangle]
