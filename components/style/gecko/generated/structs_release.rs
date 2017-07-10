@@ -1424,7 +1424,7 @@ pub mod root {
         pub mod css {
             #[allow(unused_imports)]
             use self::super::super::super::root;
-            #[repr(u32)]
+            #[repr(u8)]
             /**
  * Enum defining the mode in which a sheet is to be parsed.  This is
  * usually, but not always, the same as the cascade level at which the
@@ -2302,7 +2302,6 @@ pub mod root {
             impl Clone for FontVariation {
                 fn clone(&self) -> Self { *self }
             }
-            pub type Matrix4x4 = [u32; 16usize];
             #[repr(C)]
             #[derive(Debug, Copy, Clone)]
             pub struct ScaleFactor {
@@ -2311,6 +2310,7 @@ pub mod root {
             #[derive(Debug, Copy, Clone)]
             pub struct ScaleFactors2D {
             }
+            pub type Matrix4x4 = [u32; 16usize];
             #[repr(C)]
             #[derive(Debug, Copy, Clone)]
             pub struct SourceSurface {
@@ -2370,7 +2370,6 @@ pub mod root {
                 ePending = 2,
                 eUserAction = 3,
                 eRestore = 4,
-                eSentinel = 5,
             }
             extern "C" {
                 #[link_name =
@@ -2381,6 +2380,13 @@ pub mod root {
             pub const FrameMetrics_START_SCROLL_ID:
                       root::mozilla::layers::FrameMetrics_ViewID =
                 2;
+            pub const FrameMetrics_sScrollOffsetUpdateTypeCount: usize = 5;
+            extern "C" {
+                #[link_name =
+                      "_ZN7mozilla6layers12FrameMetrics30sHighestScrollOffsetUpdateTypeE"]
+                pub static FrameMetrics_sHighestScrollOffsetUpdateType:
+                           root::mozilla::layers::FrameMetrics_ScrollOffsetUpdateType;
+            }
             #[test]
             fn bindgen_test_layout_FrameMetrics() {
                 assert_eq!(::std::mem::size_of::<FrameMetrics>() , 184usize ,
@@ -3211,7 +3217,6 @@ pub mod root {
                 eNone = 0,
                 eRefLayer = 1,
                 eScrollLayer = 2,
-                eSentinel = 3,
             }
             #[repr(C)]
             #[derive(Debug, Copy)]
@@ -3247,6 +3252,13 @@ pub mod root {
             }
             impl Clone for FocusTarget_FocusTargetData {
                 fn clone(&self) -> Self { *self }
+            }
+            pub const FocusTarget_sFocusTargetTypeCount: usize = 3;
+            extern "C" {
+                #[link_name =
+                      "_ZN7mozilla6layers11FocusTarget23sHighestFocusTargetTypeE"]
+                pub static FocusTarget_sHighestFocusTargetType:
+                           root::mozilla::layers::FocusTarget_FocusTargetType;
             }
             #[test]
             fn bindgen_test_layout_FocusTarget() {
@@ -6978,10 +6990,11 @@ pub mod root {
             Content = 1,
             ContentAndNotify = 2,
             Style = 3,
-            InterruptibleLayout = 4,
-            Layout = 5,
-            Display = 6,
-            Count = 7,
+            EnsurePresShellInitAndFrames = 4,
+            InterruptibleLayout = 5,
+            Layout = 6,
+            Display = 7,
+            Count = 8,
         }
         #[repr(C)]
         #[derive(Debug, Copy)]
@@ -7460,9 +7473,9 @@ pub mod root {
             pub mParsingMode: root::mozilla::css::SheetParsingMode,
             pub mType: root::mozilla::StyleBackendType,
             pub mDisabled: bool,
+            pub mDirty: bool,
             pub mDocumentAssociationMode: root::mozilla::StyleSheet_DocumentAssociationMode,
             pub mInner: *mut root::mozilla::StyleSheetInfo,
-            pub mDirty: bool,
             pub mStyleSets: root::nsTArray<root::mozilla::StyleSetHandle>,
         }
         pub type StyleSheet_HasThreadSafeRefCnt = root::mozilla::FalseType;
@@ -7501,7 +7514,7 @@ pub mod root {
             RuleRemoved = 4,
             RuleChanged = 5,
         }
-        #[repr(u32)]
+        #[repr(u8)]
         #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
         pub enum StyleSheet_DocumentAssociationMode {
             OwnedByDocument = 0,
@@ -7549,7 +7562,7 @@ pub mod root {
         }
         #[test]
         fn bindgen_test_layout_StyleSheet() {
-            assert_eq!(::std::mem::size_of::<StyleSheet>() , 152usize , concat
+            assert_eq!(::std::mem::size_of::<StyleSheet>() , 136usize , concat
                        ! ( "Size of: " , stringify ! ( StyleSheet ) ));
             assert_eq! (::std::mem::align_of::<StyleSheet>() , 8usize , concat
                         ! ( "Alignment of " , stringify ! ( StyleSheet ) ));
@@ -7652,7 +7665,7 @@ pub mod root {
         }
         #[test]
         fn bindgen_test_layout_ServoStyleSheet() {
-            assert_eq!(::std::mem::size_of::<ServoStyleSheet>() , 160usize ,
+            assert_eq!(::std::mem::size_of::<ServoStyleSheet>() , 144usize ,
                        concat ! (
                        "Size of: " , stringify ! ( ServoStyleSheet ) ));
             assert_eq! (::std::mem::align_of::<ServoStyleSheet>() , 8usize ,
@@ -7660,7 +7673,7 @@ pub mod root {
                         "Alignment of " , stringify ! ( ServoStyleSheet ) ));
             assert_eq! (unsafe {
                         & ( * ( 0 as * const ServoStyleSheet ) ) . mRuleList
-                        as * const _ as usize } , 152usize , concat ! (
+                        as * const _ as usize } , 136usize , concat ! (
                         "Alignment of field: " , stringify ! ( ServoStyleSheet
                         ) , "::" , stringify ! ( mRuleList ) ));
         }
@@ -7732,12 +7745,13 @@ pub mod root {
             pub mComplete: bool,
             pub mFirstChild: root::RefPtr<root::mozilla::StyleSheet>,
             pub mSheets: [u64; 10usize],
+            pub mSourceMapURL: ::nsstring::nsStringRepr,
         }
         pub use self::super::super::root::mozilla::net::ReferrerPolicy as
                 StyleSheetInfo_ReferrerPolicy;
         #[test]
         fn bindgen_test_layout_StyleSheetInfo() {
-            assert_eq!(::std::mem::size_of::<StyleSheetInfo>() , 192usize ,
+            assert_eq!(::std::mem::size_of::<StyleSheetInfo>() , 208usize ,
                        concat ! ( "Size of: " , stringify ! ( StyleSheetInfo )
                        ));
             assert_eq! (::std::mem::align_of::<StyleSheetInfo>() , 8usize ,
@@ -7795,6 +7809,12 @@ pub mod root {
                         const _ as usize } , 112usize , concat ! (
                         "Alignment of field: " , stringify ! ( StyleSheetInfo
                         ) , "::" , stringify ! ( mSheets ) ));
+            assert_eq! (unsafe {
+                        & ( * ( 0 as * const StyleSheetInfo ) ) .
+                        mSourceMapURL as * const _ as usize } , 192usize ,
+                        concat ! (
+                        "Alignment of field: " , stringify ! ( StyleSheetInfo
+                        ) , "::" , stringify ! ( mSourceMapURL ) ));
         }
         #[repr(i32)]
         #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -8611,12 +8631,12 @@ pub mod root {
                 pub mBlobSerial: [u64; 2usize],
                 pub mOriginAttributes: root::mozilla::OriginAttributes,
                 pub mControlledDocument: *mut ::std::os::raw::c_void,
-                pub mHash: u32,
+                pub mHash: root::PLDHashNumber,
                 pub mIsChrome: bool,
             }
             #[test]
             fn bindgen_test_layout_ImageCacheKey() {
-                assert_eq!(::std::mem::size_of::<ImageCacheKey>() , 80usize ,
+                assert_eq!(::std::mem::size_of::<ImageCacheKey>() , 88usize ,
                            concat ! (
                            "Size of: " , stringify ! ( ImageCacheKey ) ));
                 assert_eq! (::std::mem::align_of::<ImageCacheKey>() , 8usize ,
@@ -8656,7 +8676,7 @@ pub mod root {
                             ImageCacheKey ) , "::" , stringify ! ( mHash ) ));
                 assert_eq! (unsafe {
                             & ( * ( 0 as * const ImageCacheKey ) ) . mIsChrome
-                            as * const _ as usize } , 76usize , concat ! (
+                            as * const _ as usize } , 80usize , concat ! (
                             "Alignment of field: " , stringify ! (
                             ImageCacheKey ) , "::" , stringify ! ( mIsChrome )
                             ));
@@ -10318,7 +10338,7 @@ pub mod root {
         #[test]
         fn bindgen_test_layout_ServoStyleSheetInner() {
             assert_eq!(::std::mem::size_of::<ServoStyleSheetInner>() ,
-                       208usize , concat ! (
+                       224usize , concat ! (
                        "Size of: " , stringify ! ( ServoStyleSheetInner ) ));
             assert_eq! (::std::mem::align_of::<ServoStyleSheetInner>() ,
                         8usize , concat ! (
@@ -10326,14 +10346,14 @@ pub mod root {
                         ));
             assert_eq! (unsafe {
                         & ( * ( 0 as * const ServoStyleSheetInner ) ) .
-                        mContents as * const _ as usize } , 192usize , concat
+                        mContents as * const _ as usize } , 208usize , concat
                         ! (
                         "Alignment of field: " , stringify ! (
                         ServoStyleSheetInner ) , "::" , stringify ! (
                         mContents ) ));
             assert_eq! (unsafe {
                         & ( * ( 0 as * const ServoStyleSheetInner ) ) .
-                        mURLData as * const _ as usize } , 200usize , concat !
+                        mURLData as * const _ as usize } , 216usize , concat !
                         (
                         "Alignment of field: " , stringify ! (
                         ServoStyleSheetInner ) , "::" , stringify ! ( mURLData
@@ -11494,7 +11514,6 @@ pub mod root {
         NS_ERROR_PLUGIN_BLOCKLISTED = 2152465386,
         NS_ERROR_PLUGIN_TIME_RANGE_NOT_SUPPORTED = 2152465387,
         NS_ERROR_PLUGIN_CLICKTOPLAY = 2152465388,
-        NS_PLUGIN_INIT_PENDING = 4981741,
         NS_TABLELAYOUT_CELL_NOT_FOUND = 5046272,
         NS_POSITION_BEFORE_TABLE = 5046275,
         NS_STATE_PROPERTY_NOT_THERE = 5046277,
@@ -14374,7 +14393,7 @@ pub mod root {
     pub struct nsAutoPtr_Proxy {
     }
     pub type nsAutoPtr_Proxy_member_function = u8;
-    pub type PLDHashNumber = u32;
+    pub type PLDHashNumber = usize;
     #[repr(C)]
     #[derive(Debug)]
     pub struct PLDHashTable {
@@ -14484,8 +14503,8 @@ pub mod root {
     pub const PLDHashTable_kMinCapacity: u32 = 8;
     pub const PLDHashTable_kMaxInitialLength: u32 = 33554432;
     pub const PLDHashTable_kDefaultInitialLength: u32 = 4;
-    pub const PLDHashTable_kHashBits: u32 = 32;
-    pub const PLDHashTable_kGoldenRatio: u32 = 2654435769;
+    pub const PLDHashTable_kHashBits: u32 = 64;
+    pub const PLDHashTable_kGoldenRatio: u64 = 2135587859;
     pub const PLDHashTable_kCollisionFlag: root::PLDHashNumber = 1;
     #[test]
     fn bindgen_test_layout_PLDHashTable() {
@@ -14576,9 +14595,9 @@ pub mod root {
     }
     #[test]
     fn bindgen_test_layout_PLDHashEntryHdr() {
-        assert_eq!(::std::mem::size_of::<PLDHashEntryHdr>() , 4usize , concat
+        assert_eq!(::std::mem::size_of::<PLDHashEntryHdr>() , 8usize , concat
                    ! ( "Size of: " , stringify ! ( PLDHashEntryHdr ) ));
-        assert_eq! (::std::mem::align_of::<PLDHashEntryHdr>() , 4usize ,
+        assert_eq! (::std::mem::align_of::<PLDHashEntryHdr>() , 8usize ,
                     concat ! (
                     "Alignment of " , stringify ! ( PLDHashEntryHdr ) ));
         assert_eq! (unsafe {
@@ -15504,13 +15523,6 @@ pub mod root {
     pub enum nsStyleAutoArray_WithSingleInitialElement {
         WITH_SINGLE_INITIAL_ELEMENT = 0,
     }
-    /**
- * Currently needs to be 'double' for Cairo compatibility. Could
- * become 'float', perhaps, in some configurations.
- */
-    pub type gfxFloat = f64;
-    pub type gfxSize = [u64; 2usize];
-    pub type nsIntRect = root::mozilla::gfx::IntRect;
     pub const nsStyleUnit_eStyleUnit_MAX: root::nsStyleUnit =
         nsStyleUnit::eStyleUnit_Calc;
     #[repr(u8)]
@@ -15982,6 +15994,8 @@ pub mod root {
         nsEventStatus_eConsumeDoDefault = 2,
         nsEventStatus_eSentinel = 3,
     }
+    pub type gfxSize = [u64; 2usize];
+    pub type nsIntRect = root::mozilla::gfx::IntRect;
     #[repr(C)]
     #[derive(Debug, Copy)]
     pub struct pixman_region32_data {
@@ -26859,7 +26873,7 @@ pub mod root {
    * smooth msd, or normal scrolling.
    *
    * SMOOTH scrolls have a symmetrical acceleration and deceleration curve
-   * modeled with a set of splines that guarantee that the destination will be 
+   * modeled with a set of splines that guarantee that the destination will be
    * reached over a fixed time interval.  SMOOTH will only be smooth if smooth
    * scrolling is actually enabled.  This behavior is utilized by keyboard and
    * mouse wheel scrolling events.
@@ -27242,6 +27256,11 @@ pub mod root {
                     nsLanguageAtomService ) , "::" , stringify ! (
                     mLocaleLanguage ) ));
     }
+    /**
+ * Currently needs to be 'double' for Cairo compatibility. Could
+ * become 'float', perhaps, in some configurations.
+ */
+    pub type gfxFloat = f64;
     #[repr(C)]
     #[derive(Debug, Copy)]
     pub struct nsINamed {
@@ -32281,7 +32300,7 @@ pub mod root {
     pub type imgRequest_HasThreadSafeRefCnt = root::mozilla::TrueType;
     #[test]
     fn bindgen_test_layout_imgRequest() {
-        assert_eq!(::std::mem::size_of::<imgRequest>() , 376usize , concat ! (
+        assert_eq!(::std::mem::size_of::<imgRequest>() , 384usize , concat ! (
                    "Size of: " , stringify ! ( imgRequest ) ));
         assert_eq! (::std::mem::align_of::<imgRequest>() , 8usize , concat ! (
                     "Alignment of " , stringify ! ( imgRequest ) ));
@@ -37750,7 +37769,7 @@ pub mod root {
                    root::nsCharTraits ) ));
     }
     #[test]
-    fn __bindgen_test_layout__bindgen_ty_id_211187_instantiation_98() {
+    fn __bindgen_test_layout__bindgen_ty_id_210969_instantiation_98() {
         assert_eq!(::std::mem::size_of::<u8>() , 1usize , concat ! (
                    "Size of template specialization: " , stringify ! ( u8 )
                    ));
@@ -37759,7 +37778,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout__bindgen_ty_id_211223_instantiation_99() {
+    fn __bindgen_test_layout__bindgen_ty_id_211005_instantiation_99() {
         assert_eq!(::std::mem::size_of::<u8>() , 1usize , concat ! (
                    "Size of template specialization: " , stringify ! ( u8 )
                    ));
