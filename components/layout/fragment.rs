@@ -361,6 +361,7 @@ pub struct SvgFragmentInfo {
     pub dom_width: Au,
     pub dom_height: Au,
     pub geometry_key: webrender_api::GeometryKey,
+    pub items: Vec<SVGItem>,
 }
 
 impl SvgFragmentInfo {
@@ -369,10 +370,10 @@ impl SvgFragmentInfo {
             dom_width: Au::from_px(data.width as i32),
             dom_height: Au::from_px(data.height as i32),
             geometry_key: data.geometry_key,
+            items: vec![],
         }
     }
 }
-
 
 /// A fragment that represents a replaced content image and its accompanying borders, shadows, etc.
 #[derive(Clone)]

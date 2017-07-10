@@ -159,15 +159,6 @@ details[open]::-servo-details-summary {
   display: block;
 }
 
-/*
- * Until servo supports svg properly, make sure to at least prevent svg
- * children from being layed out and rendered like usual html.
- * https://github.com/servo/servo/issues/10646
- */
-svg > * {
-  display: none;
-}
-
 /* style for text node. */
 *|*::-servo-text {
     margin: 0;
