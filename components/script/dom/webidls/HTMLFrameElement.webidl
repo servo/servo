@@ -5,15 +5,23 @@
 // https://html.spec.whatwg.org/multipage/#htmlframeelement
 [HTMLConstructor]
 interface HTMLFrameElement : HTMLElement {
-  //         attribute DOMString name;
-  //         attribute DOMString scrolling;
-  //         attribute DOMString src;
-  //         attribute DOMString frameBorder;
-  //         attribute DOMString longDesc;
-  //         attribute boolean noResize;
-  //readonly attribute Document? contentDocument;
-  //readonly attribute WindowProxy? contentWindow;
+  // [CEReactions]
+  //          attribute DOMString name;
+  // [CEReactions]
+  //          attribute DOMString scrolling;
+  // [CEReactions]
+  //          attribute DOMString src;
+  // [CEReactions]
+  //          attribute DOMString frameBorder;
+  // [CEReactions]
+  //          attribute DOMString longDesc;
+  // [CEReactions]
+  //          attribute boolean noResize;
+  // readonly attribute Document? contentDocument;
+  // readonly attribute WindowProxy? contentWindow;
 
-  //[TreatNullAs=EmptyString] attribute DOMString marginHeight;
-  //[TreatNullAs=EmptyString] attribute DOMString marginWidth;
+  // [CEReactions, TreatNullAs=EmptyString]
+  // attribute DOMString marginHeight;
+  // [CEReactions, TreatNullAs=EmptyString]
+  // attribute DOMString marginWidth;
 };

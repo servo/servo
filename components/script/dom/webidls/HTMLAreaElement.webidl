@@ -5,12 +5,19 @@
 // https://html.spec.whatwg.org/multipage/#htmlareaelement
 [HTMLConstructor]
 interface HTMLAreaElement : HTMLElement {
+  // [CEReactions]
   //         attribute DOMString alt;
+  // [CEReactions]
   //         attribute DOMString coords;
+  // [CEReactions]
   //         attribute DOMString shape;
+  // [CEReactions]
   //         attribute DOMString target;
+  // [CEReactions]
   //         attribute DOMString download;
+  // [CEReactions]
   //         attribute USVString ping;
+  // [CEReactions]
   //         attribute DOMString rel;
   readonly attribute DOMTokenList relList;
   // hreflang and type are not reflected
@@ -19,5 +26,6 @@ interface HTMLAreaElement : HTMLElement {
 
 // https://html.spec.whatwg.org/multipage/#HTMLAreaElement-partial
 partial interface HTMLAreaElement {
-  //         attribute boolean noHref;
+  // [CEReactions]
+  //          attribute boolean noHref;
 };

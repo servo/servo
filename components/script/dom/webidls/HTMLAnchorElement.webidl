@@ -13,15 +13,21 @@
 // https://html.spec.whatwg.org/multipage/#htmlanchorelement
 [HTMLConstructor]
 interface HTMLAnchorElement : HTMLElement {
+  [CEReactions]
   attribute DOMString target;
+  // [CEReactions]
   //       attribute DOMString download;
+  // [CEReactions]
   //       attribute USVString ping;
+  [CEReactions]
            attribute DOMString rel;
   readonly attribute DOMTokenList relList;
+  // [CEReactions]
   //       attribute DOMString hreflang;
+  // [CEReactions]
   //       attribute DOMString type;
 
-  [Pure]
+  [CEReactions, Pure]
            attribute DOMString text;
 
   // also has obsolete members
@@ -30,9 +36,14 @@ HTMLAnchorElement implements HTMLHyperlinkElementUtils;
 
 // https://html.spec.whatwg.org/multipage/#HTMLAnchorElement-partial
 partial interface HTMLAnchorElement {
+  [CEReactions]
   attribute DOMString coords;
-  //         attribute DOMString charset;
+  // [CEReactions]
+  //          attribute DOMString charset;
+  [CEReactions]
   attribute DOMString name;
+  [CEReactions]
   attribute DOMString rev;
+  [CEReactions]
   attribute DOMString shape;
 };

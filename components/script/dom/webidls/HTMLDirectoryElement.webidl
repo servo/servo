@@ -5,5 +5,6 @@
 // https://html.spec.whatwg.org/multipage/#htmldirectoryelement
 [HTMLConstructor]
 interface HTMLDirectoryElement : HTMLElement {
+  // [CEReactions]
   //         attribute boolean compact;
 };

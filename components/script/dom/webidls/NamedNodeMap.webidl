@@ -14,12 +14,12 @@ interface NamedNodeMap {
   getter Attr? getNamedItem(DOMString qualifiedName);
   [Pure]
   Attr? getNamedItemNS(DOMString? namespace, DOMString localName);
-  [Throws]
+  [CEReactions, Throws]
   Attr? setNamedItem(Attr attr);
-  [Throws]
+  [CEReactions, Throws]
   Attr? setNamedItemNS(Attr attr);
-  [Throws]
+  [CEReactions, Throws]
   Attr removeNamedItem(DOMString qualifiedName);
-  [Throws]
+  [CEReactions, Throws]
   Attr removeNamedItemNS(DOMString? namespace, DOMString localName);
 };

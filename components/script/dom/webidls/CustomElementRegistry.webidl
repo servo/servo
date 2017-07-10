@@ -5,7 +5,7 @@
 // https://html.spec.whatwg.org/multipage/#customelementregistry
 [Pref="dom.customelements.enabled"]
 interface CustomElementRegistry {
-  [Throws/*, CEReactions */]
+  [Throws, CEReactions]
   void define(DOMString name, Function constructor_, optional ElementDefinitionOptions options);
 
   any get(DOMString name);

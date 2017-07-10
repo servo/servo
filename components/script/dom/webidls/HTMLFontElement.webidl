@@ -5,7 +5,10 @@
 // https://html.spec.whatwg.org/multipage/#htmlfontelement
 [HTMLConstructor]
 interface HTMLFontElement : HTMLElement {
-  [TreatNullAs=EmptyString] attribute DOMString color;
+  [CEReactions, TreatNullAs=EmptyString]
+  attribute DOMString color;
+  [CEReactions]
   attribute DOMString face;
+  [CEReactions]
   attribute DOMString size;
 };

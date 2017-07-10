@@ -5,18 +5,29 @@
 // https://html.spec.whatwg.org/multipage/#htmlhyperlinkelementutils
 [NoInterfaceObject]
 interface HTMLHyperlinkElementUtils {
-//  stringifier attribute USVString href;
-             attribute USVString href;
-    readonly attribute USVString origin;
-             attribute USVString protocol;
-             attribute USVString username;
-             attribute USVString password;
-             attribute USVString host;
-             attribute USVString hostname;
-             attribute USVString port;
-             attribute USVString pathname;
-             attribute USVString search;
-             attribute USVString hash;
+  // [CEReactions]
+  // stringifier attribute USVString href;
+  [CEReactions]
+           attribute USVString href;
+  readonly attribute USVString origin;
+  [CEReactions]
+           attribute USVString protocol;
+  [CEReactions]
+           attribute USVString username;
+  [CEReactions]
+           attribute USVString password;
+  [CEReactions]
+           attribute USVString host;
+  [CEReactions]
+           attribute USVString hostname;
+  [CEReactions]
+           attribute USVString port;
+  [CEReactions]
+           attribute USVString pathname;
+  [CEReactions]
+           attribute USVString search;
+  [CEReactions]
+           attribute USVString hash;
 
   // Adding a separate stringifier method until
   // https://github.com/servo/servo/issues/7590 adds attribute stringifier

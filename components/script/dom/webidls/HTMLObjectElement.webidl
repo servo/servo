@@ -5,13 +5,20 @@
 // https://html.spec.whatwg.org/multipage/#htmlobjectelement
 [HTMLConstructor]
 interface HTMLObjectElement : HTMLElement {
+  // [CEReactions]
   //         attribute DOMString data;
+  [CEReactions]
            attribute DOMString type;
+  // [CEReactions]
   //         attribute boolean typeMustMatch;
+  // [CEReactions]
   //         attribute DOMString name;
+  // [CEReactions]
   //         attribute DOMString useMap;
   readonly attribute HTMLFormElement? form;
+  // [CEReactions]
   //         attribute DOMString width;
+  // [CEReactions]
   //         attribute DOMString height;
   //readonly attribute Document? contentDocument;
   //readonly attribute WindowProxy? contentWindow;

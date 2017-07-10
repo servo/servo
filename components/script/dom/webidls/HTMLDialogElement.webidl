@@ -5,9 +5,13 @@
 // https://html.spec.whatwg.org/multipage/#htmldialogelement
 [HTMLConstructor]
 interface HTMLDialogElement : HTMLElement {
+  [CEReactions]
   attribute boolean open;
   attribute DOMString returnValue;
-  //void show(optional (MouseEvent or Element) anchor);
-  //void showModal(optional (MouseEvent or Element) anchor);
+  // [CEReactions]
+  // void show();
+  // [CEReactions]
+  // void showModal();
+  [CEReactions]
   void close(optional DOMString returnValue);
 };
