@@ -98,7 +98,7 @@ use style::properties::parse_one_declaration_into;
 use style::rule_tree::StyleSource;
 use style::selector_parser::PseudoElementCascadeType;
 use style::sequential;
-use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, StylesheetGuards, ToCssWithGuard, Locked};
+use style::shared_lock::{SharedRwLockReadGuard, StylesheetGuards, ToCssWithGuard, Locked};
 use style::string_cache::Atom;
 use style::style_adjuster::StyleAdjuster;
 use style::stylearc::Arc;
@@ -2978,18 +2978,12 @@ pub extern "C" fn Servo_AssertTreeIsClean(root: RawGeckoElementBorrowed) {
 }
 
 fn append_computed_property_value(keyframe: *mut structs::Keyframe,
-                                  style: &ComputedValues,
-                                  property: &AnimatableLonghand,
-                                  shared_lock: &SharedRwLock) {
-    let block = style.to_declaration_block(property.clone().into());
+                                  property: &AnimatableLonghand) {
     unsafe {
         let index = (*keyframe).mPropertyValues.len();
         (*keyframe).mPropertyValues.set_len((index + 1) as u32);
         (*keyframe).mPropertyValues[index].mProperty = property.into();
-        // FIXME. Bug 1360398: Do not set computed values once we handles
-        // missing keyframes with additive composition.
-        (*keyframe).mPropertyValues[index].mServoDeclarationBlock.set_arc_leaky(
-            Arc::new(shared_lock.wrap(block)));
+        (*keyframe).mPropertyValues[index].mServoDeclarationBlock.mRawPtr = ptr::null_mut();
     }
 }
 
@@ -3000,11 +2994,9 @@ enum Offset {
 
 fn fill_in_missing_keyframe_values(all_properties:  &[AnimatableLonghand],
                                    timing_function: nsTimingFunctionBorrowed,
-                                   style: &ComputedValues,
                                    properties_set_at_offset: &LonghandIdSet,
                                    offset: Offset,
-                                   keyframes: RawGeckoKeyframeListBorrowedMut,
-                                   shared_lock: &SharedRwLock) {
+                                   keyframes: RawGeckoKeyframeListBorrowedMut) {
     let needs_filling = all_properties.iter().any(|ref property| {
         !properties_set_at_offset.has_animatable_longhand_bit(property)
     });
@@ -3026,10 +3018,7 @@ fn fill_in_missing_keyframe_values(all_properties:  &[AnimatableLonghand],
     // Append properties that have not been set at this offset.
     for ref property in all_properties.iter() {
         if !properties_set_at_offset.has_animatable_longhand_bit(property) {
-            append_computed_property_value(keyframe,
-                                           style,
-                                           property,
-                                           shared_lock);
+            append_computed_property_value(keyframe, property);
         }
     }
 }
@@ -3038,7 +3027,6 @@ fn fill_in_missing_keyframe_values(all_properties:  &[AnimatableLonghand],
 pub extern "C" fn Servo_StyleSet_GetKeyframesForName(raw_data: RawServoStyleSetBorrowed,
                                                      name: *const nsACString,
                                                      inherited_timing_function: nsTimingFunctionBorrowed,
-                                                     style: ServoComputedValuesBorrowed,
                                                      keyframes: RawGeckoKeyframeListBorrowedMut) -> bool {
     debug_assert!(keyframes.len() == 0,
                   "keyframes should be initially empty");
@@ -3051,7 +3039,6 @@ pub extern "C" fn Servo_StyleSet_GetKeyframesForName(raw_data: RawServoStyleSetB
         None => return false,
     };
 
-    let style = ComputedValues::as_arc(&style);
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
 
@@ -3094,10 +3081,7 @@ pub extern "C" fn Servo_StyleSet_GetKeyframesForName(raw_data: RawServoStyleSetB
                 // animation should be set to the underlying computed value for
                 // that keyframe.
                 for property in animation.properties_changed.iter() {
-                    append_computed_property_value(keyframe,
-                                                   style,
-                                                   property,
-                                                   &global_style_data.shared_lock);
+                    append_computed_property_value(keyframe, property);
                 }
                 if current_offset == 0.0 {
                     has_complete_initial_keyframe = true;
@@ -3150,20 +3134,16 @@ pub extern "C" fn Servo_StyleSet_GetKeyframesForName(raw_data: RawServoStyleSetB
     if !has_complete_initial_keyframe {
         fill_in_missing_keyframe_values(&animation.properties_changed,
                                         inherited_timing_function,
-                                        style,
                                         &properties_set_at_start,
                                         Offset::Zero,
-                                        keyframes,
-                                        &global_style_data.shared_lock);
+                                        keyframes);
     }
     if !has_complete_final_keyframe {
         fill_in_missing_keyframe_values(&animation.properties_changed,
                                         inherited_timing_function,
-                                        style,
                                         &properties_set_at_end,
                                         Offset::One,
-                                        keyframes,
-                                        &global_style_data.shared_lock);
+                                        keyframes);
     }
     true
 }
