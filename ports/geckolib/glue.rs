@@ -654,19 +654,35 @@ pub extern "C" fn Servo_AnimationValue_Uncompute(value: RawServoAnimationValueBo
 #[no_mangle]
 pub extern "C" fn Servo_StyleSet_GetBaseComputedValuesForElement(raw_data: RawServoStyleSetBorrowed,
                                                                  element: RawGeckoElementBorrowed,
+                                                                 computed_values: ServoComputedValuesBorrowed,
                                                                  snapshots: *const ServoElementSnapshotTable,
                                                                  pseudo_type: CSSPseudoElementType)
                                                                  -> ServoComputedValuesStrong
 {
-    use style::matching::MatchMethods;
+    use style::style_resolver::StyleResolverForElement;
+
     debug_assert!(!snapshots.is_null());
+    let computed_values = ComputedValues::as_arc(&computed_values);
+
+    let rules = match computed_values.rules {
+        None => return computed_values.clone().into_strong(),
+        Some(ref rules) => rules,
+    };
 
     let doc_data = PerDocumentStyleData::from_ffi(raw_data).borrow();
-    let global_style_data = &*GLOBAL_STYLE_DATA;
-    let guard = global_style_data.shared_lock.read();
+    let without_animations =
+        doc_data.stylist.rule_tree().remove_animation_rules(rules);
+
+    if without_animations == *rules {
+        return computed_values.clone().into_strong();
+    }
 
     let element = GeckoElement(element);
-    let element_data = element.borrow_data().unwrap();
+
+    let element_data = match element.borrow_data() {
+        Some(data) => data,
+        None => return computed_values.clone().into_strong(),
+    };
     let styles = &element_data.styles;
 
     if let Some(pseudo) = PseudoElement::from_pseudo_type(pseudo_type) {
@@ -678,6 +694,8 @@ pub extern "C" fn Servo_StyleSet_GetBaseComputedValuesForElement(raw_data: RawSe
             .clone().into_strong();
     }
 
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
     let shared = create_shared_context(&global_style_data,
                                        &guard,
                                        &doc_data,
@@ -689,10 +707,17 @@ pub extern "C" fn Servo_StyleSet_GetBaseComputedValuesForElement(raw_data: RawSe
         thread_local: &mut tlc,
     };
 
-    element.get_base_style(
-        &mut context,
-        styles.primary(),
-    ).into_strong()
+    // This currently ignores visited styles, which seems acceptable, as
+    // existing browsers don't appear to animate visited styles.
+    let inputs =
+        CascadeInputs {
+            rules: Some(without_animations),
+            visited_rules: None,
+        };
+
+    StyleResolverForElement::new(element, &mut context, RuleInclusion::All)
+        .cascade_style_and_visited_with_default_parents(inputs)
+        .into_strong()
 }
 
 #[no_mangle]

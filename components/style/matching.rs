@@ -840,37 +840,6 @@ pub trait MatchMethods : TElement {
         // StyleChange::Changed conservatively.
         StyleDifference::new(damage, StyleChange::Changed)
     }
-
-    /// Returns computed values without animation and transition rules.
-    fn get_base_style(
-        &self,
-        context: &mut StyleContext<Self>,
-        style: &Arc<ComputedValues>,
-    ) -> Arc<ComputedValues> {
-        use style_resolver::StyleResolverForElement;
-
-        let rule_node = style.rules.as_ref().unwrap();
-        let without_animation_rules =
-            context.shared.stylist.rule_tree().remove_animation_rules(rule_node);
-        if without_animation_rules == *rule_node {
-            // Note that unwrapping here is fine, because the style is only
-            // incomplete during the styling process.
-            return style.clone();
-        }
-
-        // This currently ignores visited styles, which seems acceptable,
-        // as existing browsers don't appear to animate visited styles.
-        let inputs =
-            CascadeInputs {
-                rules: Some(without_animation_rules),
-                visited_rules: None,
-            };
-
-        let style =
-            StyleResolverForElement::new(*self, context, RuleInclusion::All)
-                .cascade_style_and_visited_with_default_parents(inputs);
-        style
-    }
 }
 
 impl<E: TElement> MatchMethods for E {}
