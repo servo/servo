@@ -98,7 +98,7 @@ use style::properties::parse_one_declaration_into;
 use style::rule_tree::StyleSource;
 use style::selector_parser::PseudoElementCascadeType;
 use style::sequential;
-use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, StylesheetGuards, ToCssWithGuard, Locked};
+use style::shared_lock::{SharedRwLockReadGuard, StylesheetGuards, ToCssWithGuard, Locked};
 use style::string_cache::Atom;
 use style::style_adjuster::StyleAdjuster;
 use style::stylearc::Arc;
@@ -2863,12 +2863,47 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeLis
 
         let mut seen = LonghandIdSet::new();
 
-        // mServoDeclarationBlock is null in the case where we have an invalid css property.
-        let iter = keyframe.mPropertyValues.iter()
-                                           .filter(|&property| !property.mServoDeclarationBlock.mRawPtr.is_null());
+        let iter = keyframe.mPropertyValues.iter();
         let mut property_index = 0;
         for property in iter {
             if simulate_compute_values_failure(property) {
+                continue;
+            }
+
+            let mut maybe_append_animation_value = |property: AnimatableLonghand,
+                                                    value: Option<AnimationValue>| {
+                if seen.has_animatable_longhand_bit(&property) {
+                    return;
+                }
+                seen.set_animatable_longhand_bit(&property);
+
+                // This is safe since we immediately write to the uninitialized values.
+                unsafe { animation_values.set_len((property_index + 1) as u32) };
+                animation_values[property_index].mProperty = (&property).into();
+                // We only make sure we have enough space for this variable,
+                // but didn't construct a default value for StyleAnimationValue,
+                // so we should zero it to avoid getting undefined behaviors.
+                animation_values[property_index].mValue.mGecko = unsafe { mem::zeroed() };
+                match value {
+                    Some(v) => {
+                        animation_values[property_index].mValue.mServo.set_arc_leaky(Arc::new(v));
+                    },
+                    None => {
+                        animation_values[property_index].mValue.mServo.mRawPtr = ptr::null_mut();
+                    },
+                }
+                property_index += 1;
+            };
+
+            if property.mServoDeclarationBlock.mRawPtr.is_null() {
+                let animatable_longhand =
+                    AnimatableLonghand::from_nscsspropertyid(property.mProperty);
+                // |keyframes.mPropertyValues| should only contain animatable
+                // properties, but we check the result from_nscsspropertyid
+                // just in case.
+                if let Some(property) = animatable_longhand {
+                    maybe_append_animation_value(property, None);
+                }
                 continue;
             }
 
@@ -2877,18 +2912,7 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeLis
             let guard = declarations.read_with(&guard);
 
             for anim in guard.to_animation_value_iter(&mut context, &default_values) {
-                if !seen.has_animatable_longhand_bit(&anim.0) {
-                    // This is safe since we immediately write to the uninitialized values.
-                    unsafe { animation_values.set_len((property_index + 1) as u32) };
-                    seen.set_animatable_longhand_bit(&anim.0);
-                    animation_values[property_index].mProperty = (&anim.0).into();
-                    // We only make sure we have enough space for this variable,
-                    // but didn't construct a default value for StyleAnimationValue,
-                    // so we should zero it to avoid getting undefined behaviors.
-                    animation_values[property_index].mValue.mGecko = unsafe { mem::zeroed() };
-                    animation_values[property_index].mValue.mServo.set_arc_leaky(Arc::new(anim.1));
-                    property_index += 1;
-                }
+                maybe_append_animation_value(anim.0, Some(anim.1));
             }
         }
     }
@@ -2978,18 +3002,12 @@ pub extern "C" fn Servo_AssertTreeIsClean(root: RawGeckoElementBorrowed) {
 }
 
 fn append_computed_property_value(keyframe: *mut structs::Keyframe,
-                                  style: &ComputedValues,
-                                  property: &AnimatableLonghand,
-                                  shared_lock: &SharedRwLock) {
-    let block = style.to_declaration_block(property.clone().into());
+                                  property: &AnimatableLonghand) {
     unsafe {
         let index = (*keyframe).mPropertyValues.len();
         (*keyframe).mPropertyValues.set_len((index + 1) as u32);
         (*keyframe).mPropertyValues[index].mProperty = property.into();
-        // FIXME. Bug 1360398: Do not set computed values once we handles
-        // missing keyframes with additive composition.
-        (*keyframe).mPropertyValues[index].mServoDeclarationBlock.set_arc_leaky(
-            Arc::new(shared_lock.wrap(block)));
+        (*keyframe).mPropertyValues[index].mServoDeclarationBlock.mRawPtr = ptr::null_mut();
     }
 }
 
@@ -3000,11 +3018,9 @@ enum Offset {
 
 fn fill_in_missing_keyframe_values(all_properties:  &[AnimatableLonghand],
                                    timing_function: nsTimingFunctionBorrowed,
-                                   style: &ComputedValues,
                                    properties_set_at_offset: &LonghandIdSet,
                                    offset: Offset,
-                                   keyframes: RawGeckoKeyframeListBorrowedMut,
-                                   shared_lock: &SharedRwLock) {
+                                   keyframes: RawGeckoKeyframeListBorrowedMut) {
     let needs_filling = all_properties.iter().any(|ref property| {
         !properties_set_at_offset.has_animatable_longhand_bit(property)
     });
@@ -3026,10 +3042,7 @@ fn fill_in_missing_keyframe_values(all_properties:  &[AnimatableLonghand],
     // Append properties that have not been set at this offset.
     for ref property in all_properties.iter() {
         if !properties_set_at_offset.has_animatable_longhand_bit(property) {
-            append_computed_property_value(keyframe,
-                                           style,
-                                           property,
-                                           shared_lock);
+            append_computed_property_value(keyframe, property);
         }
     }
 }
@@ -3038,7 +3051,6 @@ fn fill_in_missing_keyframe_values(all_properties:  &[AnimatableLonghand],
 pub extern "C" fn Servo_StyleSet_GetKeyframesForName(raw_data: RawServoStyleSetBorrowed,
                                                      name: *const nsACString,
                                                      inherited_timing_function: nsTimingFunctionBorrowed,
-                                                     style: ServoComputedValuesBorrowed,
                                                      keyframes: RawGeckoKeyframeListBorrowedMut) -> bool {
     debug_assert!(keyframes.len() == 0,
                   "keyframes should be initially empty");
@@ -3051,7 +3063,6 @@ pub extern "C" fn Servo_StyleSet_GetKeyframesForName(raw_data: RawServoStyleSetB
         None => return false,
     };
 
-    let style = ComputedValues::as_arc(&style);
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
 
@@ -3094,10 +3105,7 @@ pub extern "C" fn Servo_StyleSet_GetKeyframesForName(raw_data: RawServoStyleSetB
                 // animation should be set to the underlying computed value for
                 // that keyframe.
                 for property in animation.properties_changed.iter() {
-                    append_computed_property_value(keyframe,
-                                                   style,
-                                                   property,
-                                                   &global_style_data.shared_lock);
+                    append_computed_property_value(keyframe, property);
                 }
                 if current_offset == 0.0 {
                     has_complete_initial_keyframe = true;
@@ -3150,20 +3158,16 @@ pub extern "C" fn Servo_StyleSet_GetKeyframesForName(raw_data: RawServoStyleSetB
     if !has_complete_initial_keyframe {
         fill_in_missing_keyframe_values(&animation.properties_changed,
                                         inherited_timing_function,
-                                        style,
                                         &properties_set_at_start,
                                         Offset::Zero,
-                                        keyframes,
-                                        &global_style_data.shared_lock);
+                                        keyframes);
     }
     if !has_complete_final_keyframe {
         fill_in_missing_keyframe_values(&animation.properties_changed,
                                         inherited_timing_function,
-                                        style,
                                         &properties_set_at_end,
                                         Offset::One,
-                                        keyframes,
-                                        &global_style_data.shared_lock);
+                                        keyframes);
     }
     true
 }

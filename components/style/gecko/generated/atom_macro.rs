@@ -184,6 +184,8 @@ cfg_if! {
             pub static nsGkAtoms_aria_checked: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms13aria_controlsE"]
             pub static nsGkAtoms_aria_controls: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms12aria_currentE"]
+            pub static nsGkAtoms_aria_current: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms16aria_describedbyE"]
             pub static nsGkAtoms_aria_describedby: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms13aria_disabledE"]
@@ -5309,6 +5311,8 @@ cfg_if! {
             pub static nsGkAtoms_aria_checked: *mut nsIAtom;
             #[link_name = "?aria_controls@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_aria_controls: *mut nsIAtom;
+            #[link_name = "?aria_current@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_aria_current: *mut nsIAtom;
             #[link_name = "?aria_describedby@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_aria_describedby: *mut nsIAtom;
             #[link_name = "?aria_disabled@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -10434,6 +10438,8 @@ cfg_if! {
             pub static nsGkAtoms_aria_checked: *mut nsIAtom;
             #[link_name = "\x01?aria_controls@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_aria_controls: *mut nsIAtom;
+            #[link_name = "\x01?aria_current@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_aria_current: *mut nsIAtom;
             #[link_name = "\x01?aria_describedby@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_aria_describedby: *mut nsIAtom;
             #[link_name = "\x01?aria_disabled@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -15562,6 +15568,8 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_checked as *mut _) } };
 ("aria-controls") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_controls as *mut _) } };
+("aria-current") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_current as *mut _) } };
 ("aria-describedby") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_describedby as *mut _) } };
 ("aria-disabled") =>

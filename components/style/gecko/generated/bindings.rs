@@ -1934,8 +1934,6 @@ extern "C" {
                                               property: *const nsACString,
                                               timing_function:
                                                   nsTimingFunctionBorrowed,
-                                              computed_values:
-                                                  ServoComputedValuesBorrowed,
                                               keyframe_list:
                                                   RawGeckoKeyframeListBorrowedMut)
      -> bool;
@@ -2160,6 +2158,16 @@ extern "C" {
 extern "C" {
     pub fn Servo_StyleRule_GetSelectorCount(rule: RawServoStyleRuleBorrowed,
                                             count: *mut u32);
+}
+extern "C" {
+    pub fn Servo_StyleRule_SelectorMatchesElement(arg1:
+                                                      RawServoStyleRuleBorrowed,
+                                                  arg2:
+                                                      RawGeckoElementBorrowed,
+                                                  index: u32,
+                                                  pseudo_type:
+                                                      CSSPseudoElementType)
+     -> bool;
 }
 extern "C" {
     pub fn Servo_ImportRule_GetHref(rule: RawServoImportRuleBorrowed,
