@@ -900,7 +900,7 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_SetImageOrientation(aVisibility: *mut nsStyleVisibility,
-                                     aRadians: f64, aFlip: bool);
+                                     aOrientation: u8, aFlip: bool);
 }
 extern "C" {
     pub fn Gecko_SetImageOrientationAsFromImage(aVisibility:
