@@ -1290,6 +1290,9 @@ impl WindowMethods for Window {
                     self.event_queue.borrow_mut().push(WindowEvent::Quit);
                 }
             }
+            (CMD_OR_CONTROL, None, Key::F12) => {
+                self.event_queue.borrow_mut().push(WindowEvent::ToggleProfiler);
+            }
 
             _ => {
                 self.platform_handle_key(key, mods);
