@@ -5,36 +5,53 @@
 // https://html.spec.whatwg.org/multipage/#htmltableelement
 [HTMLConstructor]
 interface HTMLTableElement : HTMLElement {
+  [CEReactions]
            attribute HTMLTableCaptionElement? caption;
   HTMLTableCaptionElement createCaption();
+  [CEReactions]
   void deleteCaption();
-  [SetterThrows]
+
+  [CEReactions, SetterThrows]
            attribute HTMLTableSectionElement? tHead;
   HTMLTableSectionElement createTHead();
+  [CEReactions]
   void deleteTHead();
-  [SetterThrows]
+
+  [CEReactions, SetterThrows]
            attribute HTMLTableSectionElement? tFoot;
   HTMLTableSectionElement createTFoot();
+  [CEReactions]
   void deleteTFoot();
+
   readonly attribute HTMLCollection tBodies;
   HTMLTableSectionElement createTBody();
+
   readonly attribute HTMLCollection rows;
   [Throws] HTMLTableRowElement insertRow(optional long index = -1);
-  [Throws] void deleteRow(long index);
+  [CEReactions, Throws] void deleteRow(long index);
 
   // also has obsolete members
 };
 
 // https://html.spec.whatwg.org/multipage/#HTMLTableElement-partial
 partial interface HTMLTableElement {
-  //         attribute DOMString align;
-  //         attribute DOMString border;
-  //         attribute DOMString frame;
-  //         attribute DOMString rules;
-  //         attribute DOMString summary;
+  // [CEReactions]
+  //          attribute DOMString align;
+  // [CEReactions]
+  //          attribute DOMString border;
+  // [CEReactions]
+  //          attribute DOMString frame;
+  // [CEReactions]
+  //          attribute DOMString rules;
+  // [CEReactions]
+  //          attribute DOMString summary;
+  [CEReactions]
   attribute DOMString width;
 
-  [TreatNullAs=EmptyString] attribute DOMString bgColor;
-  //[TreatNullAs=EmptyString] attribute DOMString cellPadding;
-  //[TreatNullAs=EmptyString] attribute DOMString cellSpacing;
+  [CEReactions, TreatNullAs=EmptyString]
+           attribute DOMString bgColor;
+  // [CEReactions, TreatNullAs=EmptyString]
+  //          attribute DOMString cellPadding;
+  // [CEReactions, TreatNullAs=EmptyString]
+  //          attribute DOMString cellSpacing;
 };

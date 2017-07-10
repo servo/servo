@@ -7,13 +7,18 @@
                          optional boolean defaultSelected = false,
                          optional boolean selected = false)*/]
 interface HTMLOptionElement : HTMLElement {
-             attribute boolean disabled;
-             readonly attribute HTMLFormElement? form;
-             attribute DOMString label;
-             attribute boolean defaultSelected;
-             attribute boolean selected;
-             attribute DOMString value;
+  [CEReactions]
+           attribute boolean disabled;
+  readonly attribute HTMLFormElement? form;
+  [CEReactions]
+           attribute DOMString label;
+  [CEReactions]
+           attribute boolean defaultSelected;
+           attribute boolean selected;
+  [CEReactions]
+           attribute DOMString value;
 
-             attribute DOMString text;
-  //readonly attribute long index;
+  [CEReactions]
+           attribute DOMString text;
+  // readonly attribute long index;
 };

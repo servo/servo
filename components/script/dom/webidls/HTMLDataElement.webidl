@@ -5,5 +5,6 @@
 // https://html.spec.whatwg.org/multipage/#htmldataelement
 [HTMLConstructor]
 interface HTMLDataElement : HTMLElement {
+    [CEReactions]
            attribute DOMString value;
 };

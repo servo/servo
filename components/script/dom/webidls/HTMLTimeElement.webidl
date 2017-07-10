@@ -5,5 +5,6 @@
 // https://html.spec.whatwg.org/multipage/#htmltimeelement
 [HTMLConstructor]
 interface HTMLTimeElement : HTMLElement {
+  [CEReactions]
   attribute DOMString dateTime;
 };

@@ -5,6 +5,8 @@
 // https://html.spec.whatwg.org/multipage/#htmlsourceelement
 [HTMLConstructor]
 interface HTMLSourceElement : HTMLElement {
+  // [CEReactions]
   //         attribute DOMString src;
+  // [CEReactions]
   //         attribute DOMString type;
 };

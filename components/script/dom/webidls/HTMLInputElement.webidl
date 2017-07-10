@@ -5,50 +5,77 @@
 // https://html.spec.whatwg.org/multipage/#htmlinputelement
 [HTMLConstructor]
 interface HTMLInputElement : HTMLElement {
+  [CEReactions]
            attribute DOMString accept;
+  [CEReactions]
            attribute DOMString alt;
+  // [CEReactions]
   //         attribute DOMString autocomplete;
+  // [CEReactions]
   //         attribute boolean autofocus;
+  [CEReactions]
            attribute boolean defaultChecked;
            attribute boolean checked;
+  [CEReactions]
            attribute DOMString dirName;
+  [CEReactions]
            attribute boolean disabled;
   readonly attribute HTMLFormElement? form;
   readonly attribute FileList? files;
-             attribute DOMString formAction;
-             attribute DOMString formEnctype;
-             attribute DOMString formMethod;
-             attribute boolean formNoValidate;
-             attribute DOMString formTarget;
-  //         attribute unsigned long height;
-             attribute boolean indeterminate;
-  //         attribute DOMString inputMode;
-  //readonly attribute HTMLElement? list;
+  [CEReactions]
+           attribute DOMString formAction;
+  [CEReactions]
+           attribute DOMString formEnctype;
+  [CEReactions]
+           attribute DOMString formMethod;
+  [CEReactions]
+           attribute boolean formNoValidate;
+  [CEReactions]
+           attribute DOMString formTarget;
+  // [CEReactions]
+  //          attribute unsigned long height;
+           attribute boolean indeterminate;
+  // [CEReactions]
+  //          attribute DOMString inputMode;
+  // readonly attribute HTMLElement? list;
+  [CEReactions]
            attribute DOMString max;
-          [SetterThrows]
-          attribute long maxLength;
+  [CEReactions, SetterThrows]
+           attribute long maxLength;
+  [CEReactions]
            attribute DOMString min;
-          [SetterThrows]
-          attribute long minLength;
+  [CEReactions, SetterThrows]
+           attribute long minLength;
+  [CEReactions]
            attribute boolean multiple;
+  [CEReactions]
            attribute DOMString name;
+  [CEReactions]
            attribute DOMString pattern;
+  [CEReactions]
            attribute DOMString placeholder;
+  [CEReactions]
            attribute boolean readOnly;
+  [CEReactions]
            attribute boolean required;
-             [SetterThrows]
-             attribute unsigned long size;
+  [CEReactions, SetterThrows]
+           attribute unsigned long size;
+  [CEReactions]
            attribute DOMString src;
+  [CEReactions]
            attribute DOMString step;
+  [CEReactions]
            attribute DOMString type;
+  [CEReactions]
            attribute DOMString defaultValue;
-[TreatNullAs=EmptyString, SetterThrows]
+  [CEReactions, TreatNullAs=EmptyString, SetterThrows]
            attribute DOMString value;
-  //         attribute Date? valueAsDate;
-  //         attribute unrestricted double valueAsNumber;
-  //         attribute double valueLow;
-  //         attribute double valueHigh;
-  //         attribute unsigned long width;
+  //          attribute Date? valueAsDate;
+  //          attribute unrestricted double valueAsNumber;
+  //          attribute double valueLow;
+  //          attribute double valueHigh;
+  // [CEReactions]
+  //          attribute unsigned long width;
 
   //void stepUp(optional long n = 1);
   //void stepDown(optional long n = 1);
