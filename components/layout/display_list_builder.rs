@@ -14,12 +14,13 @@ use app_units::{AU_PER_PX, Au};
 use block::{BlockFlow, BlockStackingContextType};
 use canvas_traits::{CanvasData, CanvasMsg, FromLayoutMsg};
 use context::LayoutContext;
+use core::f32::consts::PI;
 use euclid::{Transform3D, Point2D, Vector2D, Rect, SideOffsets2D, Size2D, TypedSize2D};
 use flex::FlexFlow;
 use flow::{BaseFlow, Flow, IS_ABSOLUTELY_POSITIONED};
 use flow_ref::FlowRef;
 use fragment::{CoordinateSystem, Fragment, ImageFragmentInfo, ScannedTextFragmentInfo};
-use fragment::{SpecificFragmentInfo, TruncatedFragmentInfo};
+use fragment::{SpecificFragmentInfo, SVGData, SVGItem, TruncatedFragmentInfo};
 use gfx::display_list;
 use gfx::display_list::{BLUR_INFLATION_FACTOR, BaseDisplayItem, BorderDetails, BorderDisplayItem};
 use gfx::display_list::{BorderRadii, BoxShadowClipMode, BoxShadowDisplayItem, ClippingRegion};
@@ -28,7 +29,7 @@ use gfx::display_list::{GradientDisplayItem, IframeDisplayItem, ImageBorder, Ima
 use gfx::display_list::{LineDisplayItem, NormalBorder, OpaqueNode, RadialGradientDisplayItem};
 use gfx::display_list::{ScrollRoot, ScrollRootType, SolidColorDisplayItem, StackingContext};
 use gfx::display_list::{StackingContextType, TextDisplayItem, TextOrientation, WebGLDisplayItem};
-use gfx::display_list::WebRenderImageInfo;
+use gfx::display_list::{SvgDisplayItem, WebRenderImageInfo};
 use gfx_traits::{combine_id_with_fragment_type, FragmentType, StackingContextId};
 use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFlow, LAST_FRAGMENT_OF_ELEMENT};
 use ipc_channel::ipc;
@@ -59,7 +60,9 @@ use style::values::{Either, RGBA};
 use style::values::computed::{Gradient, GradientItem, LengthOrPercentage};
 use style::values::computed::{LengthOrPercentageOrAuto, NumberOrPercentage, Position};
 use style::values::computed::effects::SimpleShadow;
+// use style::values::computed::SVGPaint;
 use style::values::computed::image::{EndingShape, LineDirection};
+use style::values::generics::SVGPaintKind;
 use style::values::generics::background::BackgroundSize;
 use style::values::generics::effects::Filter;
 use style::values::generics::image::{Circle, Ellipse, EndingShape as GenericEndingShape};
@@ -71,9 +74,10 @@ use style::values::specified::position::{X, Y};
 use style_traits::CSSPixel;
 use style_traits::cursor::Cursor;
 use table_cell::CollapsedBordersForCell;
-use webrender_api::{ClipId, ColorF, ComplexClipRegion, GradientStop, LocalClip, RepeatMode};
+use webrender_api::{ClipId, ColorF, ColorU, ComplexClipRegion, GradientStop, LocalClip, RepeatMode};
 use webrender_api::{ScrollPolicy, TransformStyle};
 use webrender_helpers::{ToBorderRadius, ToMixBlendMode, ToRectF, ToTransformStyle};
+use webrender_api::{Command, Geometry, GeometryItem, Shape};
 
 trait ResolvePercentage {
     fn resolve(&self, length: u32) -> u32;
@@ -106,6 +110,54 @@ fn establishes_containing_block_for_absolute(positioning: position::T) -> bool {
         position::T::absolute | position::T::relative | position::T::fixed => true,
         _ => false,
     }
+}
+
+fn to_geometry(items: &[SVGItem], width: Au, height: Au) -> Geometry {
+    let mut geometry = Vec::new();
+    for item in items {
+        match item.data {
+            SVGData::Circle => {
+                let fill_style = match item.style.get_inheritedsvg().fill.kind {
+                    SVGPaintKind::Color(color) =>
+                        ColorU {
+                            r: color.red,
+                            g: color.green,
+                            b: color.blue,
+                            a: color.alpha,
+                        },
+                    _ =>
+                        ColorU {
+                            r: 0,
+                            g: 0,
+                            b: 0,
+                            a: 255,
+                        }
+
+                };
+                let cx = item.style.get_svg().cx.to_used_value(width).to_f32_px();
+                let cy = item.style.get_svg().cy.to_used_value(height).to_f32_px();
+                let diagonal = Au::from_f32_px(((width.0 * width.0 + height.0 * height.0) as f32).sqrt());
+                let radius = item.style.get_svg().r.to_used_value(diagonal).to_f32_px();
+                let center = Point2D::new(cx, cy);
+                // Mathematically, a ‘circle’ element is mapped to an equivalent
+                // ‘path’ element that consists of four elliptical arc segments,
+                // each covering a quarter of the circle. The path begins at the
+                // "3 o'clock" point on the radius and proceeds in a clock-wise
+                // direction (before any transformations).
+                let mut path = Vec::with_capacity(4);
+                path.push(Command::Arc(center, radius, PI / 2.0, PI));
+                path.push(Command::Arc(center, radius, PI, PI * 1.5));
+                path.push(Command::Arc(center, radius, PI * 1.5, PI * 2.0));
+                path.push(Command::Arc(center, radius, 0.0, PI / 2.0));
+                geometry.push(GeometryItem::Shape(Shape {
+                    path: path,
+                    fill: fill_style
+                }));
+            }
+            _ => {}
+        }
+    }
+    geometry
 }
 
 trait RgbColor {
@@ -1859,7 +1911,6 @@ impl FragmentDisplayListBuilding for Fragment {
                 //
                 // NB: According to CSS-BACKGROUNDS, text shadows render in *reverse* order (front
                 // to back).
-
                 for text_shadow in self.style.get_inheritedtext().text_shadow.0.iter().rev() {
                     self.build_display_list_for_text_fragment(state,
                                                               &*text_fragment,
@@ -1895,8 +1946,7 @@ impl FragmentDisplayListBuilding for Fragment {
             SpecificFragmentInfo::InlineBlock(_) |
             SpecificFragmentInfo::InlineAbsoluteHypothetical(_) |
             SpecificFragmentInfo::InlineAbsolute(_) |
-            SpecificFragmentInfo::TruncatedFragment(_) |
-            SpecificFragmentInfo::Svg(_) => {
+            SpecificFragmentInfo::TruncatedFragment(_) => {
                 if opts::get().show_debug_fragment_borders {
                     self.build_debug_borders_around_fragment(state,
                                                              stacking_relative_border_box,
@@ -1941,6 +1991,26 @@ impl FragmentDisplayListBuilding for Fragment {
                         image_rendering: self.style.get_inheritedbox().image_rendering.clone(),
                     }));
                 }
+            }
+            SpecificFragmentInfo::Svg(ref mut info) => {
+                let base = state.create_base_display_item(
+                    &stacking_relative_content_box,
+                    LocalClip::from(clip.to_rectf()),
+                    self.node,
+                    self.style.get_cursor(Cursor::Default),
+                    DisplayListSection::Content);
+                let geometry = to_geometry(&info.items,
+                                           stacking_relative_content_box.size.width,
+                                           stacking_relative_content_box.size.height);
+                state
+                    .layout_context
+                    .image_cache
+                    .update_geometry(info.geometry_key, geometry);
+
+                state.add_display_item(DisplayItem::Svg(box SvgDisplayItem {
+                    base: base,
+                    key: info.geometry_key,
+                }));
             }
             SpecificFragmentInfo::Canvas(ref canvas_fragment_info) => {
                 let computed_width = canvas_fragment_info.dom_width.to_px();
