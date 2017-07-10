@@ -10,5 +10,6 @@ interface HTMLTableDataCellElement : HTMLTableCellElement {
 
 // https://html.spec.whatwg.org/multipage/#HTMLTableDataCellElement-partial
 partial interface HTMLTableDataCellElement {
+  // [CEReactions]
   //         attribute DOMString abbr;
 };

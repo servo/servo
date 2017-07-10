@@ -5,14 +5,21 @@
 // https://html.spec.whatwg.org/multipage/#htmlscriptelement
 [HTMLConstructor]
 interface HTMLScriptElement : HTMLElement {
+  [CEReactions]
            attribute DOMString src;
+  [CEReactions]
            attribute DOMString type;
+  [CEReactions]
            attribute DOMString charset;
+  [CEReactions]
            attribute boolean async;
+  [CEReactions]
            attribute boolean defer;
+  [CEReactions]
            attribute DOMString? crossOrigin;
-           [Pure]
+  [CEReactions, Pure]
            attribute DOMString text;
+  [CEReactions]
            attribute DOMString integrity;
 
   // also has obsolete members
@@ -20,6 +27,8 @@ interface HTMLScriptElement : HTMLElement {
 
 // https://html.spec.whatwg.org/multipage/#HTMLScriptElement-partial
 partial interface HTMLScriptElement {
+  [CEReactions]
            attribute DOMString event;
+  [CEReactions]
            attribute DOMString htmlFor;
 };

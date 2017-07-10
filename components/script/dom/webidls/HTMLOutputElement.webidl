@@ -7,18 +7,21 @@
 interface HTMLOutputElement : HTMLElement {
   // [SameObject, PutForwards=value] readonly attribute DOMTokenList htmlFor;
   readonly attribute HTMLFormElement? form;
-  //         attribute DOMString name;
+  // [CEReactions]
+  //          attribute DOMString name;
 
-  //readonly attribute DOMString type;
-  //         attribute DOMString defaultValue;
-  //         attribute DOMString value;
+  // readonly attribute DOMString type;
+  // [CEReactions]
+  //          attribute DOMString defaultValue;
+  // [CEReactions]
+  //          attribute DOMString value;
 
-  //readonly attribute boolean willValidate;
+  // readonly attribute boolean willValidate;
   readonly attribute ValidityState validity;
-  //readonly attribute DOMString validationMessage;
-  //boolean checkValidity();
-  //boolean reportValidity();
-  //void setCustomValidity(DOMString error);
+  // readonly attribute DOMString validationMessage;
+  // boolean checkValidity();
+  // boolean reportValidity();
+  // void setCustomValidity(DOMString error);
 
   readonly attribute NodeList labels;
 };

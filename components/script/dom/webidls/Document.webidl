@@ -45,9 +45,9 @@ interface Document : Node {
   [NewObject, Throws]
   ProcessingInstruction createProcessingInstruction(DOMString target, DOMString data);
 
-  [NewObject, Throws]
+  [CEReactions, NewObject, Throws]
   Node importNode(Node node, optional boolean deep = false);
-  [Throws]
+  [CEReactions, Throws]
   Node adoptNode(Node node);
 
   [NewObject, Throws]

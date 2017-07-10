@@ -51,12 +51,14 @@ interface Node : EventTarget {
   [Pure]
   readonly attribute Node? nextSibling;
 
-  [Pure]
+  [CEReactions, Pure]
            attribute DOMString? nodeValue;
-  [Pure]
+  [CEReactions, Pure]
            attribute DOMString? textContent;
+  [CEReactions]
   void normalize();
 
+  [CEReactions]
   Node cloneNode(optional boolean deep = false);
   [Pure]
   boolean isEqualNode(Node? node);
@@ -81,12 +83,12 @@ interface Node : EventTarget {
   [Pure]
   boolean isDefaultNamespace(DOMString? namespace);
 
-  [Throws]
+  [CEReactions, Throws]
   Node insertBefore(Node node, Node? child);
-  [Throws]
+  [CEReactions, Throws]
   Node appendChild(Node node);
-  [Throws]
+  [CEReactions, Throws]
   Node replaceChild(Node node, Node child);
-  [Throws]
+  [CEReactions, Throws]
   Node removeChild(Node child);
 };

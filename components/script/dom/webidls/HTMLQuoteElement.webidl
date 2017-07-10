@@ -5,5 +5,6 @@
 // https://html.spec.whatwg.org/multipage/#htmlquoteelement
 [HTMLConstructor]
 interface HTMLQuoteElement : HTMLElement {
-  //         attribute DOMString cite;
+  // [CEReactions]
+  //          attribute DOMString cite;
 };

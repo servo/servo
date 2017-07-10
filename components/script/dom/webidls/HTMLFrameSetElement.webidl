@@ -5,7 +5,9 @@
 // https://html.spec.whatwg.org/multipage/#htmlframesetelement
 [HTMLConstructor]
 interface HTMLFrameSetElement : HTMLElement {
+  // [CEReactions]
   //         attribute DOMString cols;
+  // [CEReactions]
   //         attribute DOMString rows;
 };
 

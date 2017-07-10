@@ -13,15 +13,21 @@
 // https://html.spec.whatwg.org/multipage/#htmlanchorelement
 [HTMLConstructor]
 interface HTMLAnchorElement : HTMLElement {
+  [CEReactions]
   attribute DOMString target;
+  // [CEReactions]
   //       attribute DOMString download;
+  // [CEReactions]
   //       attribute USVString ping;
+  [CEReactions]
            attribute DOMString rel;
   readonly attribute DOMTokenList relList;
+  // [CEReactions]
   //       attribute DOMString hreflang;
+  // [CEReactions]
   //       attribute DOMString type;
 
-  [Pure]
+  [CEReactions, Pure]
            attribute DOMString text;
 
   // also has obsolete members

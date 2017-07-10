@@ -5,6 +5,8 @@
 // https://html.spec.whatwg.org/multipage/#htmlbaseelement
 [HTMLConstructor]
 interface HTMLBaseElement : HTMLElement {
-           attribute DOMString href;
-//           attribute DOMString target;
+    [CEReactions]
+    attribute DOMString href;
+    // [CEReactions]
+    // attribute DOMString target;
 };

@@ -10,5 +10,6 @@ interface HTMLParagraphElement : HTMLElement {
 
 // https://html.spec.whatwg.org/multipage/#HTMLParagraphElement-partial
 partial interface HTMLParagraphElement {
+  // [CEReactions]
   //         attribute DOMString align;
 };

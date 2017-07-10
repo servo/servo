@@ -5,6 +5,6 @@
 // https://html.spec.whatwg.org/multipage/#htmltitleelement
 [HTMLConstructor]
 interface HTMLTitleElement : HTMLElement {
-    [Pure]
-           attribute DOMString text;
+    [CEReactions, Pure]
+    attribute DOMString text;
 };

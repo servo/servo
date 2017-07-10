@@ -12,5 +12,6 @@ interface HTMLLegendElement : HTMLElement {
 
 // https://html.spec.whatwg.org/multipage/#HTMLLegendElement-partial
 partial interface HTMLLegendElement {
+  // [CEReactions]
   //         attribute DOMString align;
 };

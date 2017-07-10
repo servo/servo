@@ -5,6 +5,7 @@
 // https://html.spec.whatwg.org/multipage/#elementcontenteditable
 [NoInterfaceObject, Exposed=Window]
 interface ElementContentEditable {
+  // [CEReactions]
   // attribute DOMString contentEditable;
   // readonly attribute boolean isContentEditable;
 };
