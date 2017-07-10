@@ -57,6 +57,7 @@ use style::properties::longhands::list_style_image;
 use style::selector_parser::{PseudoElement, RestyleDamage};
 use style::servo::restyle_damage::{BUBBLE_ISIZES, RECONSTRUCT_FLOW};
 use style::values::Either;
+use fragment::{SVGData, SVGItem};
 use table::TableFlow;
 use table_caption::TableCaptionFlow;
 use table_cell::TableCellFlow;
@@ -83,6 +84,13 @@ pub enum ConstructionResult {
     /// This node contributed some object or objects that will be needed to construct a proper flow
     /// later up the tree, but these objects have not yet found their home.
     ConstructionItem(ConstructionItem),
+
+    /// This node contributed an SVG item and all its children. So the general
+    /// idea is, SVG items do not need layout except percentage size resolving
+    /// so we can flatten them during construction. This results a O(n^2) copy,
+    /// but since SVG is mostly flat this may be doable.
+    // FIXME(stshine): figure out if this is sufficient & efficient.
+    SVGItem(Vec<SVGItem>)
 }
 
 impl ConstructionResult {
@@ -96,6 +104,7 @@ impl ConstructionResult {
         match *self {
             ConstructionResult::None => 0,
             ConstructionResult::ConstructionItem(_) => 0,
+            ConstructionResult::SVGItem(_) => 0,
             ConstructionResult::Flow(ref flow_ref, _) => flow::base(&**flow_ref).debug_id(),
         }
     }
@@ -377,10 +386,6 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                 let data = node.canvas_data().unwrap();
                 SpecificFragmentInfo::Canvas(box CanvasFragmentInfo::new(data))
             }
-            Some(LayoutNodeType::Element(LayoutElementType::SVGSVGElement)) => {
-                let data = node.svg_data().unwrap();
-                SpecificFragmentInfo::Svg(box SvgFragmentInfo::new(data))
-            }
             _ => {
                 // This includes pseudo-elements.
                 SpecificFragmentInfo::Generic
@@ -567,6 +572,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                 // TODO: Implement anonymous table objects for missing parents
                 // CSS 2.1 § 17.2.1, step 3-2
             }
+            ConstructionResult::SVGItem(_) => {}
         }
     }
 
@@ -777,6 +783,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
             }
             match kid.get_construction_result() {
                 ConstructionResult::None => {}
+                ConstructionResult::SVGItem(_) => {}
                 ConstructionResult::Flow(flow, kid_abs_descendants) => {
                     if !flow::base(&*flow).flags.contains(IS_ABSOLUTELY_POSITIONED) {
                         opt_inline_block_splits.push_back(InlineBlockSplit::new(
@@ -1031,7 +1038,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                         table_wrapper_flow.add_new_child(kid_flow);
                     }
                 }
-                ConstructionResult::None | ConstructionResult::ConstructionItem(_) => {}
+                ConstructionResult::None | ConstructionResult::ConstructionItem(_) | ConstructionResult::SVGItem(_) => {}
             }
         }
     }
@@ -1363,6 +1370,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
 
             match *node.construction_result_mut(&mut *data) {
                 ConstructionResult::None => true,
+                ConstructionResult::SVGItem(_) => false,
                 ConstructionResult::Flow(ref mut flow, _) => {
                     // The node's flow is of the same type and has the same set of children and can
                     // therefore be repaired by simply propagating damage and style to the flow.
@@ -1463,6 +1471,48 @@ impl<'a, ConcreteThreadSafeLayoutNode> PostorderNodeMutTraversal<ConcreteThreadS
         if node.style(self.style_context()).get_inheritedbox()._servo_under_display_none.0 {
             self.set_flow_construction_result(node, ConstructionResult::None);
             return;
+        }
+
+        match node.type_id() {
+            Some(LayoutNodeType::Element(LayoutElementType::SVGCircleElement)) => {
+                let item = SVGItem {
+                    data: SVGData::Circle,
+                    style: node.style(self.style_context())
+                };
+                self.set_flow_construction_result(node, ConstructionResult::SVGItem(vec![item]));
+                return
+            }
+
+            Some(LayoutNodeType::Element(LayoutElementType::SVGSVGElement)) => {
+                // FIXME(stshine): Handle <svg> inside svg.
+                if node.svg_data().is_none() {
+                    return
+                }
+                let data = node.svg_data().unwrap();
+                let mut info = SvgFragmentInfo::new(data);
+                for kid in node.children() {
+                    match kid.get_construction_result() {
+                        ConstructionResult::SVGItem(item) => {
+                            info.items.append(&mut item.clone());
+                        }
+                        _ => {}
+                    }
+                }
+                let specific_fragment_info = SpecificFragmentInfo::Svg(box info);
+                let fragment = Fragment::new(node, specific_fragment_info, self.layout_context);
+                let mut fragments = IntermediateInlineFragments::new();
+                fragments.fragments.push_back(fragment);
+                let construction_item = ConstructionItem::InlineFragments(
+                    InlineFragmentsConstructionResult {
+                        splits: LinkedList::new(),
+                        fragments: fragments
+                    });
+                self.set_flow_construction_result(
+                    node, ConstructionResult::ConstructionItem(construction_item)
+                );
+                return
+            }
+            _ => {}
         }
 
         // Get the `display` property for this node, and determine whether this node is floated.
