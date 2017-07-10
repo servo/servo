@@ -297,6 +297,11 @@ impl CascadeInputs {
         self.visited_rules.take()
     }
 
+    /// Whether there are any visited values.
+    pub fn has_visited_values(&self) -> bool {
+        self.visited_values.is_some()
+    }
+
     /// Gets a reference to the visited computed values. Panic if the element
     /// does not have visited computed values.
     pub fn visited_values(&self) -> &Arc<ComputedValues> {

@@ -1908,6 +1908,11 @@ impl ComputedValues {
         self.rules.as_ref().unwrap()
     }
 
+    /// Whether there is a visited style.
+    pub fn has_visited_style(&self) -> bool {
+        self.visited_style.is_some()
+    }
+
     /// Gets a reference to the visited style, if any.
     pub fn get_visited_style(&self) -> Option<<&Arc<ComputedValues>> {
         self.visited_style.as_ref()

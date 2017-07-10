@@ -577,6 +577,12 @@ trait PrivateMatchMethods: TElement {
             }
         }
 
+        // If there were visited values to insert, ensure they do in fact exist
+        // inside the new values.
+        debug_assert!(!cascade_visited.visited_values_for_insertion() ||
+                      context.cascade_inputs().primary().has_visited_values() ==
+                      new_values.has_visited_style());
+
         // Set the new computed values.
         let primary_inputs = context.cascade_inputs_mut().primary_mut();
         cascade_visited.set_primary_values(&mut data.styles,
@@ -661,8 +667,9 @@ trait PrivateMatchMethods: TElement {
             return None;
         }
 
-        // This currently ignores visited styles, which seems acceptable,
-        // as existing browsers don't appear to transition visited styles.
+        // This currently passes through visited styles, if they exist.
+        // When fixing bug 868975, compute after change for visited styles as
+        // well, along with updating the rest of the animation processing.
         Some(self.cascade_with_rules(context.shared,
                                      &context.thread_local.font_metrics_provider,
                                      &without_transition_rules,
@@ -670,7 +677,7 @@ trait PrivateMatchMethods: TElement {
                                      CascadeTarget::Normal,
                                      CascadeVisitedMode::Unvisited,
                                      /* parent_info = */ None,
-                                     None))
+                                     primary_style.get_visited_style().cloned()))
     }
 
     #[cfg(feature = "gecko")]
@@ -715,6 +722,9 @@ trait PrivateMatchMethods: TElement {
                           important_rules_changed: bool) {
         use context::{CASCADE_RESULTS, CSS_ANIMATIONS, CSS_TRANSITIONS, EFFECT_PROPERTIES};
         use context::UpdateAnimationsTasks;
+
+        // Bug 868975: These steps should examine and update the visited styles
+        // in addition to the unvisited styles.
 
         let mut tasks = UpdateAnimationsTasks::empty();
         if self.needs_animations_update(context, old_values.as_ref(), new_values) {
