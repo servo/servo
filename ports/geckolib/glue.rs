@@ -113,7 +113,7 @@ use style::stylist::RuleInclusion;
 use style::thread_state;
 use style::timer::Timer;
 use style::traversal::{ANIMATION_ONLY, DomTraversal, FOR_CSS_RULE_CHANGES, FOR_RECONSTRUCT};
-use style::traversal::{FOR_DEFAULT_STYLES, TraversalDriver, TraversalFlags, UNSTYLED_CHILDREN_ONLY};
+use style::traversal::{TraversalDriver, TraversalFlags, UNSTYLED_CHILDREN_ONLY};
 use style::traversal::resolve_style;
 use style::values::{CustomIdent, KeyframesName};
 use style::values::computed::Context;
@@ -2797,16 +2797,11 @@ pub extern "C" fn Servo_ResolveStyleLazily(element: RawGeckoElementBorrowed,
         }
     }
 
-    let traversal_flags = match rule_inclusion {
-        RuleInclusion::All => TraversalFlags::empty(),
-        RuleInclusion::DefaultOnly => FOR_DEFAULT_STYLES,
-    };
-
     // We don't have the style ready. Go ahead and compute it as necessary.
     let shared = create_shared_context(&global_style_data,
                                        &guard,
                                        &data,
-                                       traversal_flags,
+                                       TraversalFlags::empty(),
                                        unsafe { &*snapshots });
     let mut tlc = ThreadLocalStyleContext::new(&shared);
     let mut context = StyleContext {

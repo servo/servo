@@ -42,8 +42,6 @@ bitflags! {
         /// Traverse and update all elements with CSS animations since
         /// @keyframes rules may have changed
         const FOR_CSS_RULE_CHANGES = 0x08,
-        /// Only include user agent style sheets when selector matching.
-        const FOR_DEFAULT_STYLES = 0x10,
     }
 }
 
@@ -66,12 +64,6 @@ impl TraversalFlags {
     /// Returns true if the traversal is triggered by CSS rule changes.
     pub fn for_css_rule_changes(&self) -> bool {
         self.contains(FOR_CSS_RULE_CHANGES)
-    }
-
-    /// Returns true if the traversal is to compute the default computed styles
-    /// for an element.
-    pub fn for_default_styles(&self) -> bool {
-        self.contains(FOR_DEFAULT_STYLES)
     }
 }
 
