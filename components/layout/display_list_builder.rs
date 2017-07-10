@@ -16,7 +16,7 @@ use canvas_traits::{CanvasData, CanvasMsg, FromLayoutMsg};
 use context::LayoutContext;
 use euclid::{Transform3D, Point2D, Vector2D, Rect, SideOffsets2D, Size2D, TypedSize2D};
 use flex::FlexFlow;
-use flow::{BaseFlow, Flow, IS_ABSOLUTELY_POSITIONED};
+use flow::{BaseFlow, Flow, IS_ABSOLUTELY_POSITIONED, OpaqueFlow};
 use flow_ref::FlowRef;
 use fragment::{CoordinateSystem, Fragment, ImageFragmentInfo, ScannedTextFragmentInfo};
 use fragment::{SpecificFragmentInfo, TruncatedFragmentInfo};
@@ -43,7 +43,7 @@ use servo_config::opts;
 use servo_geometry::max_rect;
 use servo_url::ServoUrl;
 use std::{cmp, f32};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::default::Default;
 use std::mem;
 use std::sync::Arc;
@@ -2694,6 +2694,7 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
         self.base.scroll_root_id = Some(state.current_scroll_root_id);
         self.base.clip = state.clip_stack.last().cloned().unwrap_or_else(max_rect);
 
+        let mut processed_blocks = HashSet::new();
         for mut fragment in self.fragments.fragments.iter_mut() {
             let previous_containing_block_scroll_root_id = state.containing_block_scroll_root_id;
             if establishes_containing_block_for_absolute(fragment.style.get_box().position) {
@@ -2702,35 +2703,45 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
 
             match fragment.specific {
                 SpecificFragmentInfo::InlineBlock(ref mut block_flow) => {
-                    let block_flow = FlowRef::deref_mut(&mut block_flow.flow_ref);
-                    block_flow.collect_stacking_contexts(state);
+                    let flow_ref = FlowRef::deref_mut(&mut block_flow.flow_ref);
+                    flow_ref.collect_stacking_contexts(state);
+                    processed_blocks.insert(OpaqueFlow::from_flow(flow_ref));
                 }
                 SpecificFragmentInfo::InlineAbsoluteHypothetical(ref mut block_flow) => {
-                    let block_flow = FlowRef::deref_mut(&mut block_flow.flow_ref);
-                    block_flow.collect_stacking_contexts(state);
+                    let flow_ref = FlowRef::deref_mut(&mut block_flow.flow_ref);
+                    flow_ref.collect_stacking_contexts(state);
+                    processed_blocks.insert(OpaqueFlow::from_flow(flow_ref));
                 }
                 SpecificFragmentInfo::InlineAbsolute(ref mut block_flow) => {
-                    let block_flow = FlowRef::deref_mut(&mut block_flow.flow_ref);
-                    block_flow.collect_stacking_contexts(state);
+                    let flow_ref = FlowRef::deref_mut(&mut block_flow.flow_ref);
+                    flow_ref.collect_stacking_contexts(state);
+                    processed_blocks.insert(OpaqueFlow::from_flow(flow_ref));
                 }
                 _ if fragment.establishes_stacking_context() => {
                     fragment.stacking_context_id = fragment.stacking_context_id();
 
                     let current_stacking_context_id = state.current_stacking_context_id;
-                    let stacking_context = fragment.create_stacking_context(fragment.stacking_context_id,
-                                                                            &self.base,
-                                                                            ScrollPolicy::Scrollable,
-                                                                            StackingContextCreationMode::Normal,
-                                                                            state.current_scroll_root_id);
+                    let stacking_context =
+                        fragment.create_stacking_context(fragment.stacking_context_id,
+                                                         &self.base,
+                                                         ScrollPolicy::Scrollable,
+                                                         StackingContextCreationMode::Normal,
+                                                         state.current_scroll_root_id);
 
                     state.add_stacking_context(current_stacking_context_id,
                                                stacking_context);
                 }
                 _ => fragment.stacking_context_id = state.current_stacking_context_id,
             }
+
             state.containing_block_scroll_root_id = previous_containing_block_scroll_root_id;
         }
 
+        for kid in self.base.children.iter_mut() {
+            if !processed_blocks.contains(&OpaqueFlow::from_flow(kid)) {
+                kid.collect_stacking_contexts(state);
+            }
+        }
     }
 
     fn build_display_list_for_inline_fragment_at_index(&mut self,
