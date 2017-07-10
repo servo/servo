@@ -38444,7 +38444,7 @@ pub mod root {
                    root::nsCharTraits ) ));
     }
     #[test]
-    fn __bindgen_test_layout__bindgen_ty_id_214707_instantiation_100() {
+    fn __bindgen_test_layout__bindgen_ty_id_214705_instantiation_100() {
         assert_eq!(::std::mem::size_of::<u8>() , 1usize , concat ! (
                    "Size of template specialization: " , stringify ! ( u8 )
                    ));
@@ -38453,7 +38453,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout__bindgen_ty_id_214743_instantiation_101() {
+    fn __bindgen_test_layout__bindgen_ty_id_214741_instantiation_101() {
         assert_eq!(::std::mem::size_of::<u8>() , 1usize , concat ! (
                    "Size of template specialization: " , stringify ! ( u8 )
                    ));
