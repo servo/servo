@@ -2692,21 +2692,14 @@ pub extern "C" fn Servo_TakeChangeHint(element: RawGeckoElementBorrowed) -> nsCh
 
 #[no_mangle]
 pub extern "C" fn Servo_ResolveStyle(element: RawGeckoElementBorrowed,
-                                     raw_data: RawServoStyleSetBorrowed,
-                                     allow_stale: bool)
+                                     raw_data: RawServoStyleSetBorrowed)
                                      -> ServoComputedValuesStrong
 {
     let element = GeckoElement(element);
     debug!("Servo_ResolveStyle: {:?}", element);
     let data = unsafe { element.ensure_data() }.borrow();
 
-    let valid_styles = if allow_stale {
-        data.has_styles()
-    } else {
-        element.has_current_styles(&*data)
-    };
-
-    if !valid_styles {
+    if !element.has_current_styles(&*data) {
         debug_assert!(false, "Resolving style on element without current styles with lazy \
                               computation forbidden.");
         let per_doc_data = PerDocumentStyleData::from_ffi(raw_data).borrow();
