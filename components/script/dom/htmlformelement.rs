@@ -7,6 +7,7 @@ use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
+use dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementBinding::HTMLElementMethods;
 use dom::bindings::codegen::Bindings::HTMLFormControlsCollectionBinding::HTMLFormControlsCollectionMethods;
 use dom::bindings::codegen::Bindings::HTMLFormElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFormElementBinding::HTMLFormElementMethods;
@@ -454,13 +455,18 @@ impl HTMLFormElement {
     /// Interactively validate the constraints of form elements
     /// https://html.spec.whatwg.org/multipage/#interactively-validate-the-constraints
     fn interactive_validation(&self) -> Result<(), ()> {
-        // Step 1-3
-        let _unhandled_invalid_controls = match self.static_validation() {
+        // Step 1-2
+        let unhandled_invalid_controls = match self.static_validation() {
             Ok(()) => return Ok(()),
             Err(err) => err
         };
-        // TODO: Report the problems with the constraints of at least one of
-        //       the elements given in unhandled invalid controls to the user
+        // Step 3
+        // TODO: Replace println! by something more visible to the user when a better reporting method
+        // becomes available.
+        let ref first_invalid_element = unhandled_invalid_controls[0].as_html_element();
+        println!("Validation error in element {}",
+                 first_invalid_element.upcast::<Element>().get_string_attribute(&local_name!("name")));
+        first_invalid_element.Focus();
         // Step 4
         Err(())
     }
@@ -755,6 +761,16 @@ impl FormSubmittableElement {
             FormSubmittableElement::TextAreaElement(Root::from_ref(&input))
         } else {
             unreachable!()
+        }
+    }
+
+    fn as_html_element(&self) -> &HTMLElement {
+        match *self {
+            FormSubmittableElement::ButtonElement(ref button) => button.upcast(),
+            FormSubmittableElement::InputElement(ref input) => input.upcast(),
+            FormSubmittableElement::ObjectElement(ref object) => object.upcast(),
+            FormSubmittableElement::SelectElement(ref select) => select.upcast(),
+            FormSubmittableElement::TextAreaElement(ref textarea) => textarea.upcast()
         }
     }
 }

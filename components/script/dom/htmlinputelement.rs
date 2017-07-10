@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use caseless::compatibility_caseless_match_str;
+use core::borrow::Borrow;
 use dom::activation::{Activatable, ActivationSource, synthetic_click_activation};
 use dom::attr::Attr;
 use dom::bindings::cell::DOMRefCell;
@@ -43,11 +44,13 @@ use mime_guess;
 use net_traits::{CoreResourceMsg, IpcSend};
 use net_traits::blob_url_store::get_blob_origin;
 use net_traits::filemanager_thread::{FileManagerThreadMsg, FilterPattern};
+use regex::Regex;
 use script_layout_interface::rpc::TextIndexResponse;
 use script_traits::ScriptMsg as ConstellationMsg;
 use servo_atoms::Atom;
 use std::borrow::ToOwned;
 use std::cell::Cell;
+use std::error::{Error as StdError};
 use std::ops::Range;
 use style::attr::AttrValue;
 use style::element_state::*;
@@ -1188,7 +1191,63 @@ impl Validatable for HTMLInputElement {
         true
     }
     fn validate(&self, _validate_flags: ValidationFlags) -> bool {
-        // call stub methods defined in validityState.rs file here according to the flags set in validate_flags
+        use dom::validitystate::*;
+
+        let value = self.Value();
+        let value_str: &str = value.borrow();
+        // https://html.spec.whatwg.org/multipage/#suffering-from-being-missing
+        if _validate_flags.contains(VALUE_MISSING) {
+            if value_str.is_empty() {
+                return false;
+            }
+        }
+        // https://html.spec.whatwg.org/multipage/#suffering-from-a-type-mismatch
+        if _validate_flags.contains(TYPE_MISMATCH) {
+            let validation_patterns = match self.Type().borrow() {
+                "url" => vec!(".", "/"),
+                "email" => vec!("@"),
+                _ => vec!(),
+            };
+
+            if validation_patterns.iter().all(|&p| !value_str.contains(p)) {
+                return false;
+            }
+        }
+        // https://html.spec.whatwg.org/multipage/#suffering-from-a-pattern-mismatch
+        if _validate_flags.contains(PATTERN_MISMATCH) {
+            let pattern = self.Pattern();
+            let pattern_str: &str = pattern.borrow();
+            if pattern_str.len() > 0 {
+                let pattern_regex = format!("^{}$", pattern_str);
+                match Regex::new(pattern_regex.as_str()) {
+                    Ok(regex) => {
+                        if !regex.is_match(value_str) {
+                            return false;
+                        }
+                    },
+                    Err(error) => {
+                        // TODO When possible, report this error to the developer console, as suggested in
+                        // https://html.spec.whatwg.org/multipage/#attr-input-pattern
+                        println!("Invalid pattern for element {}: {}",
+                                 self.Name(), error.description());
+                    }
+                };
+            }
+        }
+        // https://html.spec.whatwg.org/multipage/#suffering-from-being-too-long
+        if _validate_flags.contains(TOO_LONG) {
+            let maxlength = self.maxlength.get();
+            if maxlength != DEFAULT_MAX_LENGTH && value_str.len() > (maxlength as usize) {
+                return false;
+            }
+        }
+        // https://html.spec.whatwg.org/multipage/#suffering-from-being-too-short
+        if _validate_flags.contains(TOO_SHORT) {
+            let minlength = self.minlength.get();
+            if minlength != DEFAULT_MIN_LENGTH && value_str.len() < (minlength as usize) {
+                return false;
+            }
+        }
         true
     }
 }
