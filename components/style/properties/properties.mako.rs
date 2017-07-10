@@ -811,12 +811,8 @@ impl<T> DeclaredValueOwned<T> {
 }
 
 /// An unparsed property value that contains `var()` functions.
-<<<<<<< 433b0ba3bfba657b9544a09ab338f21591bf5333
 #[derive(Debug, Eq, PartialEq)]
-=======
-#[derive(PartialEq, Eq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
->>>>>>> style: Derive HeapSizeOf for PropertyDeclarationBlock
 pub struct UnparsedValue {
     /// The css serialization for this value.
     css: String,
@@ -1278,12 +1274,8 @@ impl PropertyParserContext {
 }
 
 /// Servo's representation for a property declaration.
-<<<<<<< 433b0ba3bfba657b9544a09ab338f21591bf5333
 #[derive(Clone, PartialEq)]
-=======
-#[derive(PartialEq, Clone)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
->>>>>>> style: Derive HeapSizeOf for PropertyDeclarationBlock
 pub enum PropertyDeclaration {
     % for property in data.longhands:
         /// ${property.name}

@@ -19,3 +19,5 @@ opt-level = 3
 # crate, add that here. Use the form:
 #
 #     <crate> = { path = "/path/to/local/checkout" }
+"webrender" = { path = '../webrender/webrender/' }
+"webrender_api" = { path = '../webrender/webrender_api/' }

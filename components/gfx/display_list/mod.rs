@@ -600,6 +600,7 @@ pub enum DisplayItem {
     SolidColor(Box<SolidColorDisplayItem>),
     Text(Box<TextDisplayItem>),
     Image(Box<ImageDisplayItem>),
+    Svg(Box<SvgDisplayItem>),
     Border(Box<BorderDisplayItem>),
     Gradient(Box<GradientDisplayItem>),
     RadialGradient(Box<RadialGradientDisplayItem>),
@@ -904,6 +905,13 @@ pub enum TextOrientation {
     Upright,
     SidewaysLeft,
     SidewaysRight,
+}
+
+/// Paints an svg.
+#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
+pub struct SvgDisplayItem {
+    pub base: BaseDisplayItem,
+    pub key: webrender_api::GeometryKey,
 }
 
 /// Paints an image.
@@ -1242,6 +1250,7 @@ impl DisplayItem {
             DisplayItem::SolidColor(ref solid_color) => &solid_color.base,
             DisplayItem::Text(ref text) => &text.base,
             DisplayItem::Image(ref image_item) => &image_item.base,
+            DisplayItem::Svg(ref svg_item) => &svg_item.base,
             DisplayItem::Border(ref border) => &border.base,
             DisplayItem::Gradient(ref gradient) => &gradient.base,
             DisplayItem::RadialGradient(ref gradient) => &gradient.base,
@@ -1367,6 +1376,7 @@ impl fmt::Debug for DisplayItem {
                                 text.range.begin().0 as usize..(text.range.begin().0 + text.range.length().0) as usize])
                 }
                 DisplayItem::Image(_) => "Image".to_owned(),
+                DisplayItem::Svg(_) => "SVG".to_owned(),
                 DisplayItem::Border(_) => "Border".to_owned(),
                 DisplayItem::Gradient(_) => "Gradient".to_owned(),
                 DisplayItem::RadialGradient(_) => "RadialGradient".to_owned(),

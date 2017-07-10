@@ -304,6 +304,11 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                     }
                 }
             }
+            DisplayItem::Svg(ref item) => {
+                builder.push_geometry(item.base.bounds.to_rectf(),
+                                      Some(item.base.local_clip),
+                                      item.key);
+            }
             DisplayItem::Border(ref item) => {
                 let rect = item.base.bounds.to_rectf();
                 let widths = item.border_widths.to_border_widths();
