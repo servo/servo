@@ -53,24 +53,25 @@ impl ElementSelectorFlags {
     }
 }
 
-/// Holds per-element data alongside a pointer to MatchingContext.
+/// Holds per-selector data alongside a pointer to MatchingContext.
 pub struct LocalMatchingContext<'a, 'b: 'a, Impl: SelectorImpl> {
     /// Shared `MatchingContext`.
     pub shared: &'a mut MatchingContext<'b>,
     /// A reference to the base selector we're matching against.
     pub selector: &'a Selector<Impl>,
-    /// The offset of the current compound selector being matched, kept up to date by
-    /// the callees when the iterator is advanced. This, in conjunction with the selector
-    /// reference above, allows callees to synthesize an iterator for the current compound
-    /// selector on-demand. This is necessary because the primary iterator may already have
-    /// been advanced partway through the current compound selector, and the callee may need
-    /// the whole thing.
+    /// The offset of the current compound selector being matched, kept up to
+    /// date by the callees when the iterator is advanced. This, in conjunction
+    /// with the selector reference above, allows callees to synthesize an
+    /// iterator for the current compound selector on-demand. This is necessary
+    /// because the primary iterator may already have been advanced partway
+    /// through the current compound selector, and the callee may need the whole
+    /// thing.
     offset: usize,
+    /// The level of nesting for the selector being matched.
+    pub nesting_level: usize,
     /// Holds a bool flag to see whether :active and :hover quirk should try to
-    /// match or not. This flag can only be true in these two cases:
-    /// - LocalMatchingContext is currently within a functional pseudo class
-    /// like `:-moz-any` or `:not`.
-    /// - PseudoElements are encountered when matching mode is ForStatelessPseudoElement.
+    /// match or not. This flag can only be true in the case PseudoElements are
+    /// encountered when matching mode is ForStatelessPseudoElement.
     pub hover_active_quirk_disabled: bool,
 }
 
@@ -84,6 +85,7 @@ impl<'a, 'b, Impl> LocalMatchingContext<'a, 'b, Impl>
             shared: shared,
             selector: selector,
             offset: 0,
+            nesting_level: 0,
             // We flip this off once third sequence is reached.
             hover_active_quirk_disabled: selector.has_pseudo_element(),
         }
@@ -107,8 +109,16 @@ impl<'a, 'b, Impl> LocalMatchingContext<'a, 'b, Impl>
     /// Returns true if current compound selector matches :active and :hover quirk.
     /// https://quirks.spec.whatwg.org/#the-active-and-hover-quirk
     pub fn active_hover_quirk_matches(&mut self) -> bool {
-        if self.shared.quirks_mode() != QuirksMode::Quirks ||
-           self.hover_active_quirk_disabled {
+        if self.shared.quirks_mode() != QuirksMode::Quirks {
+            return false;
+        }
+
+        // Don't allow it in recursive selectors such as :not and :-moz-any.
+        if self.nesting_level != 0 {
+            return false;
+        }
+
+        if self.hover_active_quirk_disabled {
             return false;
         }
 
@@ -453,7 +463,8 @@ pub fn matches_complex_selector<E, F>(mut iter: SelectorIter<E::Impl>,
           F: FnMut(&E, ElementSelectorFlags),
 {
     if cfg!(debug_assertions) {
-        if context.shared.matching_mode == MatchingMode::ForStatelessPseudoElement {
+        if context.nesting_level == 0 &&
+            context.shared.matching_mode == MatchingMode::ForStatelessPseudoElement {
             assert!(iter.clone().any(|c| {
                 matches!(*c, Component::PseudoElement(..))
             }));
@@ -462,7 +473,8 @@ pub fn matches_complex_selector<E, F>(mut iter: SelectorIter<E::Impl>,
 
     // If this is the special pseudo-element mode, consume the ::pseudo-element
     // before proceeding, since the caller has already handled that part.
-    if context.shared.matching_mode == MatchingMode::ForStatelessPseudoElement {
+    if context.nesting_level == 0 &&
+        context.shared.matching_mode == MatchingMode::ForStatelessPseudoElement {
         // Consume the pseudo.
         let pseudo = iter.next().unwrap();
         debug_assert!(matches!(*pseudo, Component::PseudoElement(..)),
@@ -733,13 +745,12 @@ fn matches_simple_selector<E, F>(
             matches_generic_nth_child(element, 0, 1, true, true, flags_setter)
         }
         Component::Negation(ref negated) => {
-            let old_value = context.hover_active_quirk_disabled;
-            context.hover_active_quirk_disabled = true;
+            context.nesting_level += 1;
             let result = !negated.iter().all(|ss| {
                 matches_simple_selector(ss, element, context,
                                         relevant_link, flags_setter)
             });
-            context.hover_active_quirk_disabled = old_value;
+            context.nesting_level -= 1;
             result
         }
     }
