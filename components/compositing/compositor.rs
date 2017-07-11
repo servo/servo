@@ -742,10 +742,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.composite();
             }
 
-            WindowEvent::InitializeCompositing => {
-                self.initialize_compositing();
-            }
-
             WindowEvent::Resize(size) => {
                 self.on_resize_window_event(size);
             }
@@ -1564,9 +1560,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         } else if opts::get().is_running_problem_test {
             println!("composition_request is already {:?}", self.composition_request);
         }
-    }
-
-    fn initialize_compositing(&mut self) {
     }
 
     fn get_root_pipeline_id(&self) -> Option<PipelineId> {

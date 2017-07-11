@@ -486,8 +486,7 @@ full_cef_class_impl! {
             this.downcast().send_window_event(WindowEvent::PinchZoom((new_zoom_level / old_zoom_level) as f32))
         }}
 
-        fn initialize_compositing(&this,) -> () {{
-            this.downcast().send_window_event(WindowEvent::InitializeCompositing);
+        fn initialize_compositing(&_this,) -> () {{
         }}
 
         fn composite(&this,) -> () {{
