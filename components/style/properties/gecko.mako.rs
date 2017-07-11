@@ -3846,9 +3846,9 @@ fn static_assert() {
                     bindings::Gecko_SetImageOrientationAsFromImage(&mut self.gecko);
                 }
             },
-            T::AngleWithFlipped(ref orientation, flipped) => {
+            T::AngleWithFlipped(ref angle, flipped) => {
                 unsafe {
-                    bindings::Gecko_SetImageOrientation(&mut self.gecko, *orientation as u8, flipped);
+                    bindings::Gecko_SetImageOrientation(&mut self.gecko, angle.radians() as f64, flipped);
                 }
             }
         }
