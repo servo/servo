@@ -68,8 +68,9 @@ ${helpers.single_keyword("image-rendering",
 
     no_viewport_percentage!(SpecifiedValue);
 
-    use std::f64::consts::PI;
-    const TWO_PI: f64 = 2.0 * PI;
+    use std::f32::consts::PI;
+    use values::CSSFloat;
+    const TWO_PI: CSSFloat = 2.0 * PI;
 
     #[derive(Clone, PartialEq, Copy, Debug)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -98,77 +99,31 @@ ${helpers.single_keyword("image-rendering",
     }
 
     pub mod computed_value {
-        use std::fmt;
-        use style_traits::ToCss;
-        use values::specified::Angle;
-
-        #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub enum Orientation {
-            Angle0 = 0,
-            Angle90,
-            Angle180,
-            Angle270,
-        }
-
-        impl Orientation {
-            pub fn angle(&self) -> Angle {
-                match *self {
-                    Orientation::Angle0 => Angle::from_degrees(0.0, false),
-                    Orientation::Angle90 => Angle::from_degrees(90.0, false),
-                    Orientation::Angle180 => Angle::from_degrees(180.0, false),
-                    Orientation::Angle270 => Angle::from_degrees(270.0, false),
-                }
-            }
-        }
-
-        impl ToCss for Orientation {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                // Should agree with Angle::to_css.
-                match *self {
-                    Orientation::Angle0 => dest.write_str("0deg"),
-                    Orientation::Angle90 => dest.write_str("90deg"),
-                    Orientation::Angle180 => dest.write_str("180deg"),
-                    Orientation::Angle270 => dest.write_str("270deg"),
-                }
-            }
-        }
+        use values::computed::Angle;
 
         #[derive(Clone, PartialEq, Copy, Debug)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub enum T {
             FromImage,
-            AngleWithFlipped(Orientation, bool),
+            AngleWithFlipped(Angle, bool),
         }
     }
 
-    use self::computed_value::Orientation;
-
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
-        computed_value::T::AngleWithFlipped(Orientation::Angle0, false)
+        computed_value::T::AngleWithFlipped(computed::Angle::zero(), false)
     }
 
     // According to CSS Content Module Level 3:
     // The computed value of the property is calculated by rounding the specified angle
     // to the nearest quarter-turn, rounding away from 0, then moduloing the value by 1 turn.
-    // This mirrors the Gecko implementation in
-    // nsStyleImageOrientation::CreateAsAngleAndFlip.
     #[inline]
-    fn orientation_of_angle(angle: &computed::Angle) -> Orientation {
-        // Note that `angle` can be negative.
-        let mut rounded_angle = angle.radians64() % TWO_PI;
-        if rounded_angle < 0.0 {
-            // This computation introduces rounding error. Gecko previously
-            // didn't handle the negative case correctly; by branching we can
-            // match Gecko's behavior when it was correct.
-            rounded_angle = rounded_angle + TWO_PI;
-        }
-        if      rounded_angle < 0.25 * PI { Orientation::Angle0   }
-        else if rounded_angle < 0.75 * PI { Orientation::Angle90  }
-        else if rounded_angle < 1.25 * PI { Orientation::Angle180 }
-        else if rounded_angle < 1.75 * PI { Orientation::Angle270 }
-        else                              { Orientation::Angle0   }
+    fn normalize_angle(angle: &computed::Angle) -> computed::Angle {
+        let radians = angle.radians();
+        let rounded_quarter_turns = (4.0 * radians / TWO_PI).round();
+        let normalized_quarter_turns = (rounded_quarter_turns % 4.0 + 4.0) % 4.0;
+        let normalized_radians = normalized_quarter_turns/4.0 * TWO_PI;
+        computed::Angle::from_radians(normalized_radians)
     }
 
     impl ToComputedValue for SpecifiedValue {
@@ -178,11 +133,11 @@ ${helpers.single_keyword("image-rendering",
         fn to_computed_value(&self, context: &Context) -> computed_value::T {
             if let Some(ref angle) = self.angle {
                 let angle = angle.to_computed_value(context);
-                let orientation = orientation_of_angle(&angle);
-                computed_value::T::AngleWithFlipped(orientation, self.flipped)
+                let normalized_angle = normalize_angle(&angle);
+                computed_value::T::AngleWithFlipped(normalized_angle, self.flipped)
             } else {
                 if self.flipped {
-                    computed_value::T::AngleWithFlipped(Orientation::Angle0, true)
+                    computed_value::T::AngleWithFlipped(computed::Angle::zero(), true)
                 } else {
                     computed_value::T::FromImage
                 }
@@ -193,9 +148,9 @@ ${helpers.single_keyword("image-rendering",
         fn from_computed_value(computed: &computed_value::T) -> Self {
             match *computed {
                 computed_value::T::FromImage => SpecifiedValue { angle: None, flipped: false },
-                computed_value::T::AngleWithFlipped(ref orientation, flipped) => {
+                computed_value::T::AngleWithFlipped(ref angle, flipped) => {
                     SpecifiedValue {
-                        angle: Some(orientation.angle()),
+                        angle: Some(Angle::from_computed_value(angle)),
                         flipped: flipped,
                     }
                 }
