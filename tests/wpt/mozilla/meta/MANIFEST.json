@@ -13929,6 +13929,12 @@
      {}
     ]
    ],
+   "mozilla/postmessage_closed.html": [
+    [
+     "/_mozilla/mozilla/postmessage_closed.html",
+     {}
+    ]
+   ],
    "mozilla/preferences.html": [
     [
      "/_mozilla/mozilla/preferences.html",
@@ -26768,6 +26774,10 @@
   ],
   "mozilla/parentnodes.html": [
    "47c91f505cb8120a7f4b310b260f13408f06b8fc",
+   "testharness"
+  ],
+  "mozilla/postmessage_closed.html": [
+   "70fc1b9dad5f611285f8f4ed04454800283e223c",
    "testharness"
   ],
   "mozilla/preferences.html": [
