@@ -828,7 +828,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
             WindowEvent::ToggleWebRenderProfiler => {
                 let profiler_enabled = self.webrender.get_profiler_enabled();
-                self.set_webrender_profiler_enabled(!profiler_enabled);
+                self.webrender.set_profiler_enabled(!profiler_enabled);
+                self.webrender_api.generate_frame(None);
             }
         }
     }
@@ -1630,11 +1631,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
 
         self.shutdown_state != ShutdownState::FinishedShuttingDown
-    }
-
-    pub fn set_webrender_profiler_enabled(&mut self, enabled: bool) {
-        self.webrender.set_profiler_enabled(enabled);
-        self.webrender_api.generate_frame(None);
     }
 
     /// Repaints and recomposites synchronously. You must be careful when calling this, as if a
