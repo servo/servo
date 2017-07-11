@@ -138,42 +138,6 @@ fn end_element<S: Serializer>(node: &Element, serializer: &mut S) -> io::Result<
     serializer.end_elem(name)
 }
 
-// This is the same as TreeIterator from traverse_preorder, but knows how to go into HTMLTemplateElement's contents.
-struct SerializationIterator {
-    iter_stack: Vec<TreeIterator>,
-    open_element_stack: Vec<(Root<Element>, u32)>,
-}
-
-impl SerializationIterator {
-    fn new(node: &Node, skip_first: bool) -> SerializationIterator {
-        let mut ret = SerializationIterator {
-            iter_stack: vec![node.traverse_preorder()],
-            open_element_stack: vec![],
-        };
-        if skip_first { ret.next_node(); }
-        ret
-    }
-
-    fn next_node(&mut self) -> Option<Root<Node>> {
-        if self.iter_stack.len() == 0 { return None; }
-
-        if let Some(n) = self.iter_stack.last_mut().unwrap().next() {
-            // https://github.com/w3c/DOM-Parsing/issues/1
-            if let Some(tpl) = n.downcast::<HTMLTemplateElement>() {
-                // We need to visit the contents of the template from left to right.
-                // Since we always work from the top of the stack down, push the iterators in reverse order.
-                for c in tpl.Content().upcast::<Node>().rev_children() {
-                    self.iter_stack.push(c.traverse_preorder());
-                }
-            }
-            return Some(n);
-        } else {
-            self.iter_stack.pop();
-        }
-
-        None
-    }
-}
 
 enum SerializationCommand {
     OpenElement(Root<Element>),
@@ -181,35 +145,57 @@ enum SerializationCommand {
     SerializeNonelement(Root<Node>),
 }
 
+struct SerializationIterator {
+    stack: Vec<SerializationCommand>,
+}
+
+
+impl SerializationIterator {
+    fn new(node: &Node, skip_first: bool) -> SerializationIterator {
+        let mut ret = SerializationIterator {
+            stack: vec![],
+        };
+        let starting_nodes = if skip_first {
+            if let Some(t) = node.downcast::<HTMLTemplateElement>() {
+                t.Content().upcast::<Node>().children().collect::<Vec<_>>()
+            }
+            else {
+                node.children().collect::<Vec<_>>()
+            }
+        } else {
+            vec![Root::from_ref(node)]
+        };
+        for c in starting_nodes.into_iter().rev() {
+            match c.downcast::<Element>() {
+                Some(e) => ret.stack.push(SerializationCommand::OpenElement(Root::from_ref(e))),
+                None => ret.stack.push(SerializationCommand::SerializeNonelement(c.clone())),
+            }
+        }
+        ret
+    }
+}
+
 impl Iterator for SerializationIterator {
     type Item = SerializationCommand;
 
     fn next(&mut self) -> Option<SerializationCommand> {
-        // If we have visited all the children of the node on the top of the stack, we close it.
-        if self.open_element_stack.len() > 0 && self.open_element_stack.last().unwrap().1 == 0 {
-            let removing = self.open_element_stack.pop().unwrap();
-            return Some(SerializationCommand::CloseElement(removing.0));
+        let res = self.stack.pop();
+
+        if let Some(SerializationCommand::OpenElement(ref e)) = res {
+            self.stack.push(SerializationCommand::CloseElement(e.clone()));
+            let iter = match e.downcast::<HTMLTemplateElement>() {
+                Some(t) => t.Content().upcast::<Node>().rev_children(),
+                None => e.upcast::<Node>().rev_children(),
+            };
+            for c in iter {
+                match c.downcast::<Element>() {
+                    Some(e) => self.stack.push(SerializationCommand::OpenElement(Root::from_ref(e))),
+                    None => self.stack.push(SerializationCommand::SerializeNonelement(c.clone())),
+                }
+            }
         }
 
-        match self.next_node() {
-            Some(n) => {
-                if let NodeTypeId::Element(..) = n.type_id() {
-                    let children_count = if let Some(tpl) = n.downcast::<HTMLTemplateElement>() {
-                        tpl.Content().upcast::<Node>().children_count()
-                    } else {
-                        n.children_count()
-                    };
-                    self.open_element_stack.push((Root::downcast::<Element>(n.clone()).unwrap(), children_count));
-                    return Some(SerializationCommand::OpenElement(Root::downcast::<Element>(n).unwrap()));
-                }
-                // We're visiting a child of the top of the stack, so count it off.
-                if let Some(top) = self.open_element_stack.last_mut() {
-                    top.1 -= 1;
-                }
-                return Some(SerializationCommand::SerializeNonelement(n));
-            }
-            None => { return None;}
-        }
+        res
     }
 }
 
