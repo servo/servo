@@ -305,7 +305,6 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                       item.text_run.font_key,
                                       item.text_color,
                                       item.text_run.actual_pt_size,
-                                      item.blur_radius.to_f32_px(),
                                       None);
                 }
             }
@@ -468,6 +467,16 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                         item.spread_radius.to_f32_px(),
                                         item.border_radius.to_f32_px(),
                                         item.clip_mode.to_clip_mode());
+            }
+            DisplayItem::PushTextShadow(ref item) => {
+                builder.push_text_shadow(webrender_traits::TextShadow {
+                    blur_radius: item.blur_radius.to_f32_px(),
+                    offset: item.offset.to_vectorf(),
+                    color: item.color,
+                });
+            }
+            DisplayItem::PopTextShadow(ref item) => {
+                builder.pop_text_shadow();
             }
             DisplayItem::Iframe(ref item) => {
                 let rect = item.base.bounds.to_rectf();
