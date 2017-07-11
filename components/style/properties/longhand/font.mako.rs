@@ -399,8 +399,6 @@ ${helpers.single_keyword_system("font-variant-caps",
 
 <%helpers:longhand name="font-weight" need_clone="True" animation_value_type="ComputedValue"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-weight">
-    use std::fmt;
-    use style_traits::ToCss;
     use properties::longhands::system_font::SystemFont;
 
     no_viewport_percentage!(SpecifiedValue);
@@ -990,8 +988,6 @@ ${helpers.single_keyword_system("font-variant-caps",
 <%helpers:longhand products="gecko" name="font-size-adjust" animation_value_type="ComputedValue"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-size-adjust">
     use properties::longhands::system_font::SystemFont;
-    use std::fmt;
-    use style_traits::ToCss;
 
     no_viewport_percentage!(SpecifiedValue);
 
