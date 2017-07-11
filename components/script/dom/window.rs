@@ -2000,7 +2000,8 @@ impl Runnable for PostMessageHandler {
 impl Window {
     pub fn post_message(&self, origin: Option<ImmutableOrigin>, data: StructuredCloneData) {
         let runnable = PostMessageHandler::new(self, origin, data);
-        let msg = CommonScriptMsg::RunnableMsg(ScriptThreadEventCategory::DomEvent, box runnable);
+        let runnable = self.get_runnable_wrapper().wrap_runnable(box runnable);
+        let msg = CommonScriptMsg::RunnableMsg(ScriptThreadEventCategory::DomEvent, runnable);
         // TODO(#12718): Use the "posted message task source".
         let _ = self.script_chan.send(msg);
     }

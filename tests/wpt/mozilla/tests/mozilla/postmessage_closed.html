@@ -1,0 +1,14 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Window.postMessage does not panic when a window is closed before the message is received</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe></iframe>
+<script>
+  async_test(function(t) {
+    var i = document.querySelector('iframe');
+    i.contentWindow.postMessage('hi', '*');
+    i.remove();
+    t.step_timeout(function() { t.done() }, 0);
+  });
+</script>
