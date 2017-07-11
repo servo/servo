@@ -13,7 +13,7 @@ use style_traits::{ToCss, ParseError};
 
 /// A generic value for the `initial-letter` property.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, ToComputedValue)]
+#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, ToComputedValue, ToCss)]
 pub enum InitialLetter<Number, Integer> {
     /// `normal`
     Normal,
@@ -26,29 +26,6 @@ impl<N, I> InitialLetter<N, I> {
     #[inline]
     pub fn normal() -> Self {
         InitialLetter::Normal
-    }
-}
-
-impl<N, I> ToCss for InitialLetter<N, I>
-where
-    N: ToCss,
-    I: ToCss,
-{
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-    where
-        W: fmt::Write,
-    {
-        match *self {
-            InitialLetter::Normal => dest.write_str("normal"),
-            InitialLetter::Specified(ref size, ref sink) => {
-                size.to_css(dest)?;
-                if let Some(ref sink) = *sink {
-                    dest.write_str(" ")?;
-                    sink.to_css(dest)?;
-                }
-                Ok(())
-            },
-        }
     }
 }
 

@@ -405,8 +405,8 @@ ${helpers.single_keyword_system("font-variant-caps",
 
     no_viewport_percentage!(SpecifiedValue);
 
-    #[derive(Debug, Clone, PartialEq, Eq, Copy)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    #[derive(Clone, Copy, Debug, Eq, PartialEq, ToCss)]
     pub enum SpecifiedValue {
         Normal,
         Bold,
@@ -414,19 +414,6 @@ ${helpers.single_keyword_system("font-variant-caps",
         Lighter,
         Weight(computed_value::T),
         System(SystemFont),
-    }
-
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match *self {
-                SpecifiedValue::Normal => dest.write_str("normal"),
-                SpecifiedValue::Bold => dest.write_str("bold"),
-                SpecifiedValue::Bolder => dest.write_str("bolder"),
-                SpecifiedValue::Lighter => dest.write_str("lighter"),
-                SpecifiedValue::Weight(weight) => weight.to_css(dest),
-                SpecifiedValue::System(sys) => sys.to_css(dest),
-            }
-        }
     }
 
     /// normal | bold | bolder | lighter | 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900
@@ -1008,24 +995,12 @@ ${helpers.single_keyword_system("font-variant-caps",
 
     no_viewport_percentage!(SpecifiedValue);
 
-    #[derive(Copy, Clone, Debug, PartialEq)]
+    #[derive(Clone, Copy, Debug, PartialEq, ToCss)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SpecifiedValue {
         None,
         Number(specified::Number),
         System(SystemFont),
-    }
-
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-            where W: fmt::Write,
-        {
-            match *self {
-                SpecifiedValue::None => dest.write_str("none"),
-                SpecifiedValue::Number(number) => number.to_css(dest),
-                SpecifiedValue::System(sys) => sys.to_css(dest),
-            }
-        }
     }
 
     impl ToComputedValue for SpecifiedValue {
