@@ -76,6 +76,8 @@ pub enum WindowEvent {
     KeyEvent(Option<char>, Key, KeyState, KeyModifiers),
     /// Sent when Ctr+R/Apple+R is called to reload the current page.
     Reload,
+    /// Toggles the Web renderer profiler on and off
+    ToggleWebRenderProfiler,
 }
 
 impl Debug for WindowEvent {
@@ -98,6 +100,7 @@ impl Debug for WindowEvent {
             WindowEvent::Navigation(..) => write!(f, "Navigation"),
             WindowEvent::Quit => write!(f, "Quit"),
             WindowEvent::Reload => write!(f, "Reload"),
+            WindowEvent::ToggleWebRenderProfiler => write!(f, "ToggleWebRenderProfiler"),
         }
     }
 }

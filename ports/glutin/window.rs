@@ -1290,6 +1290,9 @@ impl WindowMethods for Window {
                     self.event_queue.borrow_mut().push(WindowEvent::Quit);
                 }
             }
+            (CONTROL, None, Key::F12) => {
+                self.event_queue.borrow_mut().push(WindowEvent::ToggleWebRenderProfiler);
+            }
 
             _ => {
                 self.platform_handle_key(key, mods);
