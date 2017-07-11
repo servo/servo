@@ -46,8 +46,8 @@ ${helpers.predefined_type("background-image", "ImageLayer",
                              "round" => Round,
                              "no-repeat" => NoRepeat);
 
-    #[derive(Debug, Clone, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    #[derive(Clone, Debug, PartialEq, ToCss)]
     pub enum SpecifiedValue {
         RepeatX,
         RepeatY,
@@ -77,22 +77,6 @@ ${helpers.predefined_type("background-image", "ImageLayer",
                     }
                     Ok(())
                 },
-            }
-        }
-    }
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match *self {
-                SpecifiedValue::RepeatX => dest.write_str("repeat-x"),
-                SpecifiedValue::RepeatY => dest.write_str("repeat-y"),
-                SpecifiedValue::Other(horizontal, vertical) => {
-                    horizontal.to_css(dest)?;
-                    if let Some(vertical) = vertical {
-                        dest.write_str(" ")?;
-                        vertical.to_css(dest)?;
-                    }
-                    Ok(())
-                }
             }
         }
     }
