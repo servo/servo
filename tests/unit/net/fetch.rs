@@ -34,10 +34,10 @@ use net_traits::NetworkError;
 use net_traits::ReferrerPolicy;
 use net_traits::request::{Origin, RedirectMode, Referrer, Request, RequestMode, Type};
 use net_traits::response::{CacheState, Response, ResponseBody, ResponseType};
-use servo_config::resource_files::resources_dir_path;
 use servo_url::{ImmutableOrigin, ServoUrl};
+use std::env;
 use std::fs::File;
-use std::io::Read;
+use std::io::{self, Read};
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{Sender, channel};
@@ -517,7 +517,7 @@ fn test_fetch_with_hsts() {
         response.send(MESSAGE).unwrap();
     };
 
-    let path = resources_dir_path().expect("Cannot find resource dir");
+    let path = std::env::current_exe().unwrap().push("tests").push("resources");
     let mut cert_path = path.clone();
     cert_path.push("self_signed_certificate_for_testing.crt");
 
