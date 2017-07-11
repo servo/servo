@@ -493,8 +493,6 @@
     %>
     <%call expr="longhand(name, keyword=Keyword(name, values, **keyword_kwargs), **kwargs)">
         use properties::longhands::system_font::SystemFont;
-        use std::fmt;
-        use style_traits::ToCss;
         no_viewport_percentage!(SpecifiedValue);
 
         pub mod computed_value {
@@ -517,19 +515,10 @@
             ${gecko_keyword_conversion(keyword, keyword.values_for(product), type="T", cast_to="i32")}
         }
 
-        #[derive(Debug, Clone, PartialEq, Eq, Copy)]
+        #[derive(Debug, Clone, PartialEq, Eq, Copy, ToCss)]
         pub enum SpecifiedValue {
             Keyword(computed_value::T),
             System(SystemFont),
-        }
-
-        impl ToCss for SpecifiedValue {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                match *self {
-                    SpecifiedValue::Keyword(k) => k.to_css(dest),
-                    SpecifiedValue::System(_) => Ok(())
-                }
-            }
         }
 
         pub fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<SpecifiedValue, ParseError<'i>> {
