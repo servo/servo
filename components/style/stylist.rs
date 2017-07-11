@@ -26,7 +26,7 @@ use selector_parser::{SelectorImpl, PseudoElement};
 use selectors::attr::NamespaceConstraint;
 use selectors::bloom::BloomFilter;
 use selectors::matching::{ElementSelectorFlags, matches_selector, MatchingContext, MatchingMode};
-use selectors::matching::{VisitedHandlingMode, AFFECTED_BY_PRESENTATIONAL_HINTS};
+use selectors::matching::VisitedHandlingMode;
 use selectors::parser::{AncestorHashes, Combinator, Component, Selector, SelectorAndHashes};
 use selectors::parser::{SelectorIter, SelectorMethods};
 use selectors::sink::Push;
@@ -1145,7 +1145,6 @@ impl Stylist {
                                               self.quirks_mode,
                                               flags_setter,
                                               CascadeLevel::UANormal);
-        debug!("UA normal: {:?}", context.relations);
 
         if pseudo_element.is_none() && !only_default_rules {
             // Step 2: Presentational hints.
@@ -1160,12 +1159,7 @@ impl Stylist {
                         assert_eq!(declaration.level(), CascadeLevel::PresHints);
                     }
                 }
-                // Note the existence of presentational attributes so that the
-                // style sharing cache can avoid re-querying them if they don't
-                // exist.
-                context.relations |= AFFECTED_BY_PRESENTATIONAL_HINTS;
             }
-            debug!("preshints: {:?}", context.relations);
         }
 
         // NB: the following condition, although it may look somewhat
@@ -1185,7 +1179,6 @@ impl Stylist {
                                             self.quirks_mode,
                                             flags_setter,
                                             CascadeLevel::UserNormal);
-            debug!("user normal: {:?}", context.relations);
         } else {
             debug!("skipping user rules");
         }
@@ -1194,7 +1187,6 @@ impl Stylist {
         let cut_off_inheritance =
             element.get_declarations_from_xbl_bindings(pseudo_element,
                                                        applicable_declarations);
-        debug!("XBL: {:?}", context.relations);
 
         if rule_hash_target.matches_user_and_author_rules() && !only_default_rules {
             // Gecko skips author normal rules if cutting off inheritance.
@@ -1208,7 +1200,6 @@ impl Stylist {
                                               self.quirks_mode,
                                                   flags_setter,
                                                   CascadeLevel::AuthorNormal);
-                debug!("author normal: {:?}", context.relations);
             } else {
                 debug!("skipping author normal rules due to cut off inheritance");
             }
@@ -1224,7 +1215,6 @@ impl Stylist {
                     ApplicableDeclarationBlock::from_declarations(sa.clone(),
                                                                   CascadeLevel::StyleAttributeNormal));
             }
-            debug!("style attr: {:?}", context.relations);
 
             // Step 5: SMIL override.
             // Declarations from SVG SMIL animation elements.
@@ -1234,7 +1224,6 @@ impl Stylist {
                     ApplicableDeclarationBlock::from_declarations(so.clone(),
                                                                   CascadeLevel::SMILOverride));
             }
-            debug!("SMIL: {:?}", context.relations);
 
             // Step 6: Animations.
             // The animations sheet (CSS animations, script-generated animations,
@@ -1245,7 +1234,6 @@ impl Stylist {
                     ApplicableDeclarationBlock::from_declarations(anim.clone(),
                                                                   CascadeLevel::Animations));
             }
-            debug!("animation: {:?}", context.relations);
         } else {
             debug!("skipping style attr and SMIL & animation rules");
         }
@@ -1264,12 +1252,9 @@ impl Stylist {
                     ApplicableDeclarationBlock::from_declarations(anim.clone(),
                                                                   CascadeLevel::Transitions));
             }
-            debug!("transition: {:?}", context.relations);
         } else {
             debug!("skipping transition rules");
         }
-
-        debug!("push_applicable_declarations: shareable: {:?}", context.relations);
     }
 
     /// Given an id, returns whether there might be any rules for that id in any

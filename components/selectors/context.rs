@@ -5,19 +5,6 @@
 use attr::CaseSensitivity;
 use bloom::BloomFilter;
 
-bitflags! {
-    /// Set of flags that determine the different kind of elements affected by
-    /// the selector matching process.
-    ///
-    /// This is used to implement efficient sharing.
-    #[derive(Default)]
-    pub flags StyleRelations: usize {
-        /// Whether this element is affected by presentational hints. This is
-        /// computed externally (that is, in Servo).
-        const AFFECTED_BY_PRESENTATIONAL_HINTS = 1 << 0,
-    }
-}
-
 /// What kind of selector matching mode we should use.
 ///
 /// There are two modes of selector matching. The difference is only noticeable
@@ -87,9 +74,6 @@ impl QuirksMode {
 /// transient data that applies to only a single selector.
 #[derive(Clone)]
 pub struct MatchingContext<'a> {
-    /// Output that records certains relations between elements noticed during
-    /// matching (and also extended after matching).
-    pub relations: StyleRelations,
     /// Input with the matching mode we should use when matching selectors.
     pub matching_mode: MatchingMode,
     /// Input with the bloom filter used to fast-reject selectors.
@@ -114,7 +98,6 @@ impl<'a> MatchingContext<'a> {
                -> Self
     {
         Self {
-            relations: StyleRelations::empty(),
             matching_mode: matching_mode,
             bloom_filter: bloom_filter,
             visited_handling: VisitedHandlingMode::AllLinksUnvisited,
@@ -132,7 +115,6 @@ impl<'a> MatchingContext<'a> {
                            -> Self
     {
         Self {
-            relations: StyleRelations::empty(),
             matching_mode: matching_mode,
             bloom_filter: bloom_filter,
             visited_handling: visited_handling,
