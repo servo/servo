@@ -614,7 +614,9 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         Err(f) => args_fail(&f.to_string()),
     };
 
-    set_resources_path(opt_match.opt_str("resources-path"));
+    if let Some(resources_path) = opt_match.opt_str("resources-path") {
+        set_resources_path(resources_path);
+    }
 
     if opt_match.opt_present("h") || opt_match.opt_present("help") {
         print_usage(app_name, &opts);
