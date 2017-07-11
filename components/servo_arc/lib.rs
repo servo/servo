@@ -22,8 +22,9 @@
 // duplicate those here.
 #![allow(missing_docs)]
 
-#[cfg(feature = "servo")] extern crate serde;
 extern crate nodrop;
+#[cfg(feature = "servo")] extern crate serde;
+extern crate stable_deref_trait;
 
 #[cfg(feature = "servo")]
 use heapsize::HeapSizeOf;
