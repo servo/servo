@@ -26,7 +26,6 @@
     no_viewport_percentage!(SpecifiedValue);
 
     pub mod computed_value {
-        use cssparser;
         use std::fmt;
         use style_traits::ToCss;
         #[cfg(feature = "gecko")]
@@ -40,14 +39,16 @@
         #[cfg(feature = "gecko")]
         use values::specified::Attr;
 
-        #[derive(Debug, PartialEq, Eq, Clone)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        #[derive(Clone, Debug, Eq, PartialEq, ToCss)]
         pub enum ContentItem {
             /// Literal string content.
             String(String),
             /// `counter(name, style)`.
+            #[css(comma, function)]
             Counter(String, CounterStyleType),
             /// `counters(name, separator, style)`.
+            #[css(comma, function)]
             Counters(String, String, CounterStyleType),
             /// `open-quote`.
             OpenQuote,
@@ -64,41 +65,6 @@
                 /// `url(url)`
                 Url(SpecifiedUrl),
             % endif
-        }
-
-        impl ToCss for ContentItem {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                match *self {
-                    ContentItem::String(ref s) => s.to_css(dest),
-                    ContentItem::Counter(ref s, ref counter_style) => {
-                        dest.write_str("counter(")?;
-                        cssparser::serialize_identifier(&**s, dest)?;
-                        dest.write_str(", ")?;
-                        counter_style.to_css(dest)?;
-                        dest.write_str(")")
-                    }
-                    ContentItem::Counters(ref s, ref separator, ref counter_style) => {
-                        dest.write_str("counters(")?;
-                        cssparser::serialize_identifier(&**s, dest)?;
-                        dest.write_str(", ")?;
-                        separator.to_css(dest)?;
-                        dest.write_str(", ")?;
-                        counter_style.to_css(dest)?;
-                        dest.write_str(")")
-                    }
-                    ContentItem::OpenQuote => dest.write_str("open-quote"),
-                    ContentItem::CloseQuote => dest.write_str("close-quote"),
-                    ContentItem::NoOpenQuote => dest.write_str("no-open-quote"),
-                    ContentItem::NoCloseQuote => dest.write_str("no-close-quote"),
-
-                    % if product == "gecko":
-                        ContentItem::Attr(ref attr) => {
-                            attr.to_css(dest)
-                        }
-                        ContentItem::Url(ref url) => url.to_css(dest),
-                    % endif
-                }
-            }
         }
 
         #[derive(Debug, PartialEq, Eq, Clone)]

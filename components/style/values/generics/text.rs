@@ -8,8 +8,7 @@ use app_units::Au;
 use cssparser::Parser;
 use parser::ParserContext;
 use properties::animated_properties::Animatable;
-use std::fmt;
-use style_traits::{ToCss, ParseError};
+use style_traits::ParseError;
 
 /// A generic value for the `initial-letter` property.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
