@@ -9966,6 +9966,11 @@
      {}
     ]
    ],
+   "mozilla/css-paint-api/resources/html5.png": [
+    [
+     {}
+    ]
+   ],
    "mozilla/css-paint-api/valid-image-after-load-ref.html": [
     [
      {}
@@ -26163,6 +26168,10 @@
   "mozilla/css-paint-api/paint2d-transform.html": [
    "e4b544068821f6f8882f05836a07a19891fc85b8",
    "reftest"
+  ],
+  "mozilla/css-paint-api/resources/html5.png": [
+   "83ef56b6e4d0dcb0d2dcecfb3fc78035051e8627",
+   "support"
   ],
   "mozilla/css-paint-api/valid-image-after-load-ref.html": [
    "b0c34ee1480fe1108fe8dc53f2bbb2f3ffa1c408",
