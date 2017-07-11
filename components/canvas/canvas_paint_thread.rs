@@ -761,7 +761,7 @@ impl<'a> Drop for CanvasPaintThread<'a> {
         if let Some(image_key) = self.old_image_key.take() {
             self.webrender_api.delete_image(image_key);
         }
-        if let Some(image_key) = self.old_image_key.take() {
+        if let Some(image_key) = self.very_old_image_key.take() {
             self.webrender_api.delete_image(image_key);
         }
     }
