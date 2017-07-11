@@ -84,7 +84,7 @@ fn test_parse_stylesheet() {
                     url: NsAtom::from("http://www.w3.org/1999/xhtml"),
                     source_location: SourceLocation {
                         line: 1,
-                        column: 19,
+                        column: 18,
                     },
                 }))),
                 CssRule::Style(Arc::new(stylesheet.shared_lock.wrap(StyleRule {
@@ -114,7 +114,7 @@ fn test_parse_stylesheet() {
                     ]))),
                     source_location: SourceLocation {
                         line: 3,
-                        column: 9,
+                        column: 8,
                     },
                 }))),
                 CssRule::Style(Arc::new(stylesheet.shared_lock.wrap(StyleRule {
@@ -141,7 +141,7 @@ fn test_parse_stylesheet() {
                     ]))),
                     source_location: SourceLocation {
                         line: 11,
-                        column: 9,
+                        column: 8,
                     },
                 }))),
                 CssRule::Style(Arc::new(stylesheet.shared_lock.wrap(StyleRule {
@@ -203,7 +203,7 @@ fn test_parse_stylesheet() {
                     ]))),
                     source_location: SourceLocation {
                         line: 15,
-                        column: 9,
+                        column: 8,
                     },
                 }))),
                 CssRule::Keyframes(Arc::new(stylesheet.shared_lock.wrap(KeyframesRule {
@@ -235,7 +235,7 @@ fn test_parse_stylesheet() {
                     vendor_prefix: None,
                     source_location: SourceLocation {
                         line: 16,
-                        column: 19,
+                        column: 18,
                     },
                 })))
 
@@ -314,15 +314,16 @@ fn test_report_error_stylesheet() {
     let mut errors = errors.lock().unwrap();
 
     let error = errors.pop().unwrap();
-    assert_eq!("Unsupported property declaration: 'invalid: true;', found unexpected identifier true", error.message);
-    assert_eq!(10, error.line);
-    assert_eq!(9, error.column);
+    assert_eq!("Unsupported property declaration: 'invalid: true;', \
+                Custom(UnknownProperty(\"invalid\"))", error.message);
+    assert_eq!(9, error.line);
+    assert_eq!(8, error.column);
 
     let error = errors.pop().unwrap();
     assert_eq!("Unsupported property declaration: 'display: invalid;', \
-                Custom(PropertyDeclaration(InvalidValue))", error.message);
-    assert_eq!(9, error.line);
-    assert_eq!(9, error.column);
+                Custom(PropertyDeclaration(InvalidValue(\"display\")))", error.message);
+    assert_eq!(8, error.line);
+    assert_eq!(8, error.column);
 
     // testing for the url
     assert_eq!(url, error.url);

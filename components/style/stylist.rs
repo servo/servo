@@ -10,7 +10,6 @@ use bit_vec::BitVec;
 use context::{CascadeInputs, QuirksMode};
 use dom::TElement;
 use element_state::ElementState;
-use error_reporting::create_error_reporter;
 use font_metrics::FontMetricsProvider;
 #[cfg(feature = "gecko")]
 use gecko_bindings::structs::{nsIAtom, StyleRuleInclusion};
@@ -639,7 +638,6 @@ impl Stylist {
                                 parent.map(|p| &**p),
                                 None,
                                 None,
-                                &create_error_reporter(),
                                 font_metrics,
                                 cascade_flags,
                                 self.quirks_mode);
@@ -748,7 +746,6 @@ impl Stylist {
                                     Some(inherited_style),
                                     None,
                                     None,
-                                    &create_error_reporter(),
                                     font_metrics,
                                     CascadeFlags::empty(),
                                     self.quirks_mode);
@@ -780,7 +777,6 @@ impl Stylist {
                                 Some(parent_style),
                                 visited_values,
                                 None,
-                                &create_error_reporter(),
                                 font_metrics,
                                 CascadeFlags::empty(),
                                 self.quirks_mode);
@@ -1367,7 +1363,6 @@ impl Stylist {
                                      Some(parent_style),
                                      None,
                                      None,
-                                     &create_error_reporter(),
                                      &metrics,
                                      CascadeFlags::empty(),
                                      self.quirks_mode))

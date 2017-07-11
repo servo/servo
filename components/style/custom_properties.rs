@@ -280,10 +280,10 @@ fn parse_declaration_value_block<'i, 't>
                 }
                 token.serialization_type()
             }
-            Token::BadUrl =>
-                return Err(StyleParseError::BadUrlInDeclarationValueBlock.into()),
-            Token::BadString =>
-                return Err(StyleParseError::BadStringInDeclarationValueBlock.into()),
+            Token::BadUrl(u) =>
+                return Err(StyleParseError::BadUrlInDeclarationValueBlock(u).into()),
+            Token::BadString(s) =>
+                return Err(StyleParseError::BadStringInDeclarationValueBlock(s).into()),
             Token::CloseParenthesis =>
                 return Err(StyleParseError::UnbalancedCloseParenthesisInDeclarationValueBlock.into()),
             Token::CloseSquareBracket =>

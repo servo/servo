@@ -76,8 +76,8 @@ impl<'a> ContextualParseError<'a> {
                 Token::ParenthesisBlock => format!("parenthesis ("),
                 Token::SquareBracketBlock => format!("square bracket ["),
                 Token::CurlyBracketBlock => format!("curly bracket {{"),
-                Token::BadUrl => format!("bad url parse error"),
-                Token::BadString => format!("bad string parse error"),
+                Token::BadUrl(ref _u) => format!("bad url parse error"),
+                Token::BadString(ref _s) => format!("bad string parse error"),
                 Token::CloseParenthesis => format!("unmatched close parenthesis"),
                 Token::CloseSquareBracket => format!("unmatched close square bracket"),
                 Token::CloseCurlyBracket => format!("unmatched close curly bracket"),
@@ -88,11 +88,11 @@ impl<'a> ContextualParseError<'a> {
             match *err {
                 CssParseError::Basic(BasicParseError::UnexpectedToken(ref t)) =>
                     format!("found unexpected {}", token_to_str(t)),
-                CssParseError::Basic(BasicParseError::ExpectedToken(ref t)) =>
-                    format!("expected {}", token_to_str(t)),
                 CssParseError::Basic(BasicParseError::EndOfInput) =>
                     format!("unexpected end of input"),
-                CssParseError::Basic(BasicParseError::AtRuleInvalid) =>
+                CssParseError::Basic(BasicParseError::AtRuleInvalid(ref i)) =>
+                    format!("@ rule invalid: {}", i),
+                CssParseError::Basic(BasicParseError::AtRuleBodyInvalid) =>
                     format!("@ rule invalid"),
                 CssParseError::Basic(BasicParseError::QualifiedRuleInvalid) =>
                     format!("qualified rule invalid"),
@@ -139,7 +139,7 @@ impl<'a> ContextualParseError<'a> {
 }
 
 /// A generic trait for an error reporter.
-pub trait ParseErrorReporter : Sync {
+pub trait ParseErrorReporter {
     /// Called when the style engine detects an error.
     ///
     /// Returns the current input being parsed, the source position it was
@@ -187,9 +187,4 @@ impl ParseErrorReporter for NullReporter {
             _: u64) {
         // do nothing
     }
-}
-
-/// Create an instance of the default error reporter.
-pub fn create_error_reporter() -> RustLogReporter {
-    RustLogReporter
 }

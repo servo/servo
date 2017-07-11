@@ -21,10 +21,10 @@ use app_units::Au;
 #[cfg(feature = "servo")] use cssparser::RGBA;
 use cssparser::{Parser, TokenSerializationType, serialize_identifier};
 use cssparser::{ParserInput, CompactCowStr};
-use error_reporting::ParseErrorReporter;
 #[cfg(feature = "servo")] use euclid::SideOffsets2D;
 use computed_values;
 use context::QuirksMode;
+use error_reporting::NullReporter;
 use font_metrics::FontMetricsProvider;
 #[cfg(feature = "gecko")] use gecko_bindings::bindings;
 #[cfg(feature = "gecko")] use gecko_bindings::structs::{self, nsCSSPropertyID};
@@ -37,7 +37,8 @@ use properties::animated_properties::AnimatableLonghand;
 use selectors::parser::SelectorParseError;
 #[cfg(feature = "servo")] use servo_config::prefs::PREFS;
 use shared_lock::StylesheetGuards;
-use style_traits::{PARSING_MODE_DEFAULT, HasViewportPercentage, ToCss, ParseError, PropertyDeclarationParseError};
+use style_traits::{PARSING_MODE_DEFAULT, HasViewportPercentage, ToCss, ParseError};
+use style_traits::{PropertyDeclarationParseError, StyleParseError};
 use stylesheets::{CssRuleType, MallocSizeOf, MallocSizeOfFn, Origin, UrlExtraData};
 #[cfg(feature = "servo")] use values::Either;
 use values::generics::text::LineHeight;
@@ -377,7 +378,6 @@ impl PropertyDeclarationIdSet {
             % endif
             custom_properties: &Option<Arc<::custom_properties::CustomPropertiesMap>>,
             f: &mut F,
-            error_reporter: &ParseErrorReporter,
             quirks_mode: QuirksMode)
             % if property.boxed:
                 where F: FnMut(&DeclaredValue<Box<longhands::${property.ident}::SpecifiedValue>>)
@@ -392,7 +392,6 @@ impl PropertyDeclarationIdSet {
                                                             with_variables.from_shorthand,
                                                             custom_properties,
                                                             f,
-                                                            error_reporter,
                                                             quirks_mode);
             } else {
                 f(value);
@@ -408,7 +407,6 @@ impl PropertyDeclarationIdSet {
                 from_shorthand: Option<ShorthandId>,
                 custom_properties: &Option<Arc<::custom_properties::CustomPropertiesMap>>,
                 f: &mut F,
-                error_reporter: &ParseErrorReporter,
                 quirks_mode: QuirksMode)
                 % if property.boxed:
                     where F: FnMut(&DeclaredValue<Box<longhands::${property.ident}::SpecifiedValue>>)
@@ -421,12 +419,10 @@ impl PropertyDeclarationIdSet {
                 .ok()
                 .and_then(|css| {
                     // As of this writing, only the base URL is used for property values:
-                    //
-                    // FIXME(pcwalton): Cloning the error reporter is slow! But so are custom
-                    // properties, so whatever...
+                    let reporter = NullReporter;
                     let context = ParserContext::new(Origin::Author,
                                                      url_data,
-                                                     error_reporter,
+                                                     &reporter,
                                                      None,
                                                      PARSING_MODE_DEFAULT,
                                                      quirks_mode);
@@ -1014,7 +1010,7 @@ impl PropertyId {
         match static_id(&property_name) {
             Some(&StaticId::Longhand(id)) => Ok(PropertyId::Longhand(id)),
             Some(&StaticId::Shorthand(id)) => Ok(PropertyId::Shorthand(id)),
-            None => Err(SelectorParseError::UnexpectedIdent(property_name).into()),
+            None => Err(StyleParseError::UnknownProperty(property_name).into()),
         }
     }
 
@@ -1419,7 +1415,7 @@ impl PropertyDeclaration {
                     Ok(keyword) => DeclaredValueOwned::CSSWideKeyword(keyword),
                     Err(_) => match ::custom_properties::SpecifiedValue::parse(context, input) {
                         Ok(value) => DeclaredValueOwned::Value(value),
-                        Err(_) => return Err(PropertyDeclarationParseError::InvalidValue),
+                        Err(_) => return Err(PropertyDeclarationParseError::InvalidValue(name.to_string())),
                     }
                 };
                 declarations.push(PropertyDeclaration::Custom(name, value));
@@ -1447,7 +1443,7 @@ impl PropertyDeclaration {
                                 declarations.push(value);
                                 Ok(())
                             },
-                            Err(_) => Err(PropertyDeclarationParseError::InvalidValue),
+                            Err(_) => Err(PropertyDeclarationParseError::InvalidValue("${property.ident}".into())),
                         }
                     % else:
                         Err(PropertyDeclarationParseError::UnknownProperty)
@@ -1487,7 +1483,7 @@ impl PropertyDeclaration {
                         },
                         Err(_) => {
                             shorthands::${shorthand.ident}::parse_into(declarations, context, input)
-                                .map_err(|_| PropertyDeclarationParseError::InvalidValue)
+                                .map_err(|_| PropertyDeclarationParseError::InvalidValue("${shorthand.ident}".into()))
                         }
                     }
                 }
@@ -2514,8 +2510,7 @@ pub type CascadePropertyFn =
                      default_style: &ComputedValues,
                      context: &mut computed::Context,
                      cacheable: &mut bool,
-                     cascade_info: &mut Option<<&mut CascadeInfo>,
-                     error_reporter: &ParseErrorReporter);
+                     cascade_info: &mut Option<<&mut CascadeInfo>);
 
 /// A per-longhand array of functions to perform the CSS cascade on each of
 /// them, effectively doing virtual dispatch.
@@ -2577,7 +2572,6 @@ pub fn cascade(device: &Device,
                layout_parent_style: Option<<&ComputedValues>,
                visited_style: Option<Arc<ComputedValues>>,
                cascade_info: Option<<&mut CascadeInfo>,
-               error_reporter: &ParseErrorReporter,
                font_metrics_provider: &FontMetricsProvider,
                flags: CascadeFlags,
                quirks_mode: QuirksMode)
@@ -2625,7 +2619,6 @@ pub fn cascade(device: &Device,
                        layout_parent_style,
                        visited_style,
                        cascade_info,
-                       error_reporter,
                        font_metrics_provider,
                        flags,
                        quirks_mode)
@@ -2641,7 +2634,6 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
                                     layout_parent_style: &ComputedValues,
                                     visited_style: Option<Arc<ComputedValues>>,
                                     mut cascade_info: Option<<&mut CascadeInfo>,
-                                    error_reporter: &ParseErrorReporter,
                                     font_metrics_provider: &FontMetricsProvider,
                                     flags: CascadeFlags,
                                     quirks_mode: QuirksMode)
@@ -2795,8 +2787,7 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
                                              default_style,
                                              &mut context,
                                              &mut cacheable,
-                                             &mut cascade_info,
-                                             error_reporter);
+                                             &mut cascade_info);
         }
         % if category_to_cascade_now == "early":
             let writing_mode = get_writing_mode(context.style.get_inheritedbox());
@@ -2869,8 +2860,7 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
                                                      default_style,
                                                      &mut context,
                                                      &mut cacheable,
-                                                     &mut cascade_info,
-                                                     error_reporter);
+                                                     &mut cascade_info);
                     % if product == "gecko":
                         context.style.mutate_font().fixup_none_generic(context.device);
                     % endif
@@ -2884,8 +2874,7 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
                                                  default_style,
                                                  &mut context,
                                                  &mut cacheable,
-                                                 &mut cascade_info,
-                                                 error_reporter);
+                                                 &mut cascade_info);
             % if product == "gecko":
             // Font size must be explicitly inherited to handle lang changes and
             // scriptlevel changes.
@@ -2902,8 +2891,7 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
                                                  default_style,
                                                  &mut context,
                                                  &mut cacheable,
-                                                 &mut cascade_info,
-                                                 error_reporter);
+                                                 &mut cascade_info);
             % endif
             }
         % endif

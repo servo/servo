@@ -314,8 +314,7 @@
                                 default_style: &ComputedValues,
                                 context: &mut computed::Context,
                                 cacheable: &mut bool,
-                                cascade_info: &mut Option<<&mut CascadeInfo>,
-                                error_reporter: &ParseErrorReporter) {
+                                cascade_info: &mut Option<<&mut CascadeInfo>) {
             let declared_value = match *declaration {
                 PropertyDeclaration::${property.camel_case}(ref value) => {
                     DeclaredValue::Value(value)
@@ -424,15 +423,14 @@
                                 }
                             }
                         }
-                    }, error_reporter, quirks_mode);
+                    }, quirks_mode);
                 }
 
                 % if property.custom_cascade:
                     cascade_property_custom(declaration,
                                             inherited_style,
                                             context,
-                                            cacheable,
-                                            error_reporter);
+                                            cacheable);
                 % endif
             % else:
                 // Do not allow stylesheets to set derived properties.
