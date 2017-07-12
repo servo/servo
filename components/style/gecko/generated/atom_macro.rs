@@ -240,6 +240,8 @@ cfg_if! {
             pub static nsGkAtoms_arrow: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms7articleE"]
             pub static nsGkAtoms_article: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms2asE"]
+            pub static nsGkAtoms_as: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms9ascendingE"]
             pub static nsGkAtoms_ascending: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms5asideE"]
@@ -5367,6 +5369,8 @@ cfg_if! {
             pub static nsGkAtoms_arrow: *mut nsIAtom;
             #[link_name = "?article@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_article: *mut nsIAtom;
+            #[link_name = "?as@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_as: *mut nsIAtom;
             #[link_name = "?ascending@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_ascending: *mut nsIAtom;
             #[link_name = "?aside@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -10494,6 +10498,8 @@ cfg_if! {
             pub static nsGkAtoms_arrow: *mut nsIAtom;
             #[link_name = "\x01?article@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_article: *mut nsIAtom;
+            #[link_name = "\x01?as@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_as: *mut nsIAtom;
             #[link_name = "\x01?ascending@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_ascending: *mut nsIAtom;
             #[link_name = "\x01?aside@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -15624,6 +15630,8 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_arrow as *mut _) } };
 ("article") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_article as *mut _) } };
+("as") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_as as *mut _) } };
 ("ascending") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ascending as *mut _) } };
 ("aside") =>
