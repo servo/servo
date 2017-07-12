@@ -367,11 +367,11 @@ impl SelectorImpl {
 
 
     #[inline]
-    /// Executes a function for each pseudo-element.
-    pub fn each_pseudo_element<F>(fun: F)
+    /// Executes a function for each simple (not functional) pseudo-element.
+    pub fn each_simple_pseudo_element<F>(fun: F)
         where F: FnMut(PseudoElement),
     {
-        PseudoElement::each(fun)
+        PseudoElement::each_simple(fun)
     }
 
     #[inline]

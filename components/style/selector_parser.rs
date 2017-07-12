@@ -121,7 +121,7 @@ impl SelectorImpl {
     pub fn each_precomputed_pseudo_element<F>(mut fun: F)
         where F: FnMut(PseudoElement),
     {
-        Self::each_pseudo_element(|pseudo| {
+        Self::each_simple_pseudo_element(|pseudo| {
             if pseudo.is_precomputed() {
                 fun(pseudo)
             }

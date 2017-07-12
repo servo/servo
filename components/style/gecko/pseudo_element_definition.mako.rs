@@ -24,8 +24,9 @@ pub const EAGER_PSEUDOS: [PseudoElement; EAGER_PSEUDO_COUNT] = [
 ];
 
 impl PseudoElement {
-    /// Executes a closure with each pseudo-element as an argument.
-    pub fn each<F>(mut fun: F)
+    /// Executes a closure with each simple (not functional)
+    /// pseudo-element as an argument.
+    pub fn each_simple<F>(mut fun: F)
         where F: FnMut(Self),
     {
         % for pseudo in PSEUDOS:
