@@ -12,7 +12,7 @@ use std::fmt;
 use visitor::SelectorVisitor;
 
 size_of_test!(size_of_selector, Selector<Impl>, 8);
-size_of_test!(size_of_pseudo_element, gecko_like_types::PseudoElement, 1);
+size_of_test!(size_of_pseudo_element, gecko_like_types::PseudoElement, 24);
 
 size_of_test!(size_of_component, Component<Impl>, 32);
 size_of_test!(size_of_pseudo_class, PseudoClass, 24);

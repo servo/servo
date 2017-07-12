@@ -17,6 +17,7 @@ pub enum PseudoClass {
 pub enum PseudoElement {
     A,
     B,
+    Tree(Box<[String]>),
 }
 
 #[derive(Eq, PartialEq, Clone, Debug, Default)]
