@@ -213,7 +213,7 @@ pub enum TrackSize<L> {
     /// and a flexible `<track-breadth>`
     ///
     /// https://drafts.csswg.org/css-grid/#valdef-grid-template-columns-minmax
-    MinMax(TrackBreadth<L>, TrackBreadth<L>),
+    Minmax(TrackBreadth<L>, TrackBreadth<L>),
     /// A `fit-content` function.
     ///
     /// https://drafts.csswg.org/css-grid/#valdef-grid-template-columns-fit-content
@@ -231,7 +231,7 @@ impl<L> TrackSize<L> {
             // minmax(<fixed-breadth>, <track-breadth>) or minmax(<inflexible-breadth>, <fixed-breadth>),
             // and since both variants are a subset of minmax(<inflexible-breadth>, <track-breadth>), we only
             // need to make sure that they're fixed. So, we don't have to modify the parsing function.
-            TrackSize::MinMax(ref breadth_1, ref breadth_2) => {
+            TrackSize::Minmax(ref breadth_1, ref breadth_2) => {
                 if breadth_1.is_fixed() {
                     return true     // the second value is always a <track-breadth>
                 }
@@ -263,7 +263,7 @@ impl<L: ToCss> ToCss for TrackSize<L> {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
             TrackSize::Breadth(ref b) => b.to_css(dest),
-            TrackSize::MinMax(ref infexible, ref flexible) => {
+            TrackSize::Minmax(ref infexible, ref flexible) => {
                 dest.write_str("minmax(")?;
                 infexible.to_css(dest)?;
                 dest.write_str(", ")?;
@@ -289,11 +289,11 @@ impl<L: ToComputedValue> ToComputedValue for TrackSize<L> {
                 // <flex> outside `minmax()` expands to `mimmax(auto, <flex>)`
                 // https://drafts.csswg.org/css-grid/#valdef-grid-template-columns-flex
                 TrackBreadth::Flex(f) =>
-                    TrackSize::MinMax(TrackBreadth::Keyword(TrackKeyword::Auto), TrackBreadth::Flex(f)),
+                    TrackSize::Minmax(TrackBreadth::Keyword(TrackKeyword::Auto), TrackBreadth::Flex(f)),
                 _ => TrackSize::Breadth(b.to_computed_value(context)),
             },
-            TrackSize::MinMax(ref b_1, ref b_2) =>
-                TrackSize::MinMax(b_1.to_computed_value(context), b_2.to_computed_value(context)),
+            TrackSize::Minmax(ref b_1, ref b_2) =>
+                TrackSize::Minmax(b_1.to_computed_value(context), b_2.to_computed_value(context)),
             TrackSize::FitContent(ref lop) => TrackSize::FitContent(lop.to_computed_value(context)),
         }
     }
@@ -303,8 +303,8 @@ impl<L: ToComputedValue> ToComputedValue for TrackSize<L> {
         match *computed {
             TrackSize::Breadth(ref b) =>
                 TrackSize::Breadth(ToComputedValue::from_computed_value(b)),
-            TrackSize::MinMax(ref b_1, ref b_2) =>
-                TrackSize::MinMax(ToComputedValue::from_computed_value(b_1),
+            TrackSize::Minmax(ref b_1, ref b_2) =>
+                TrackSize::Minmax(ToComputedValue::from_computed_value(b_1),
                                   ToComputedValue::from_computed_value(b_2)),
             TrackSize::FitContent(ref lop) =>
                 TrackSize::FitContent(ToComputedValue::from_computed_value(lop)),

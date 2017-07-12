@@ -815,7 +815,7 @@ impl TrackSize<LengthOrPercentage> {
         if min == max {
             TrackSize::Breadth(max)
         } else {
-            TrackSize::MinMax(min, max)
+            TrackSize::Minmax(min, max)
         }
     }
 
@@ -836,7 +836,7 @@ impl TrackSize<LengthOrPercentage> {
                 breadth.to_gecko_style_coord(gecko_min);
                 breadth.to_gecko_style_coord(gecko_max);
             },
-            TrackSize::MinMax(ref min, ref max) => {
+            TrackSize::Minmax(ref min, ref max) => {
                 min.to_gecko_style_coord(gecko_min);
                 max.to_gecko_style_coord(gecko_max);
             },
