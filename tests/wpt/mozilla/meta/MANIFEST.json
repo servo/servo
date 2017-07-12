@@ -6509,6 +6509,138 @@
      {}
     ]
    ],
+   "mozilla/css-paint-api/geometry-background-image-001.html": [
+    [
+     "/_mozilla/mozilla/css-paint-api/geometry-background-image-001.html",
+     [
+      [
+       "/_mozilla/mozilla/css-paint-api/geometry-background-image-001-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/geometry-background-image-002.html": [
+    [
+     "/_mozilla/mozilla/css-paint-api/geometry-background-image-002.html",
+     [
+      [
+       "/_mozilla/mozilla/css-paint-api/geometry-background-image-002-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/geometry-background-image-003.html": [
+    [
+     "/_mozilla/mozilla/css-paint-api/geometry-background-image-003.html",
+     [
+      [
+       "/_mozilla/mozilla/css-paint-api/geometry-background-image-003-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/geometry-background-image-tiled-001.html": [
+    [
+     "/_mozilla/mozilla/css-paint-api/geometry-background-image-tiled-001.html",
+     [
+      [
+       "/_mozilla/mozilla/css-paint-api/geometry-background-image-tiled-001-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/geometry-background-image-tiled-002.html": [
+    [
+     "/_mozilla/mozilla/css-paint-api/geometry-background-image-tiled-002.html",
+     [
+      [
+       "/_mozilla/mozilla/css-paint-api/geometry-background-image-tiled-002-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/geometry-background-image-tiled-003.html": [
+    [
+     "/_mozilla/mozilla/css-paint-api/geometry-background-image-tiled-003.html",
+     [
+      [
+       "/_mozilla/mozilla/css-paint-api/geometry-background-image-tiled-003-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/geometry-border-image-001.html": [
+    [
+     "/_mozilla/mozilla/css-paint-api/geometry-border-image-001.html",
+     [
+      [
+       "/_mozilla/mozilla/css-paint-api/geometry-border-image-001-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/geometry-border-image-002.html": [
+    [
+     "/_mozilla/mozilla/css-paint-api/geometry-border-image-002.html",
+     [
+      [
+       "/_mozilla/mozilla/css-paint-api/geometry-border-image-002-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/geometry-border-image-003.html": [
+    [
+     "/_mozilla/mozilla/css-paint-api/geometry-border-image-003.html",
+     [
+      [
+       "/_mozilla/mozilla/css-paint-api/geometry-border-image-003-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/geometry-border-image-004.html": [
+    [
+     "/_mozilla/mozilla/css-paint-api/geometry-border-image-004.html",
+     [
+      [
+       "/_mozilla/mozilla/css-paint-api/geometry-border-image-004-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/geometry-border-image-005.html": [
+    [
+     "/_mozilla/mozilla/css-paint-api/geometry-border-image-005.html",
+     [
+      [
+       "/_mozilla/mozilla/css-paint-api/geometry-border-image-005-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "mozilla/css-paint-api/invalid-image-constructor-error.html": [
     [
      "/_mozilla/mozilla/css-paint-api/invalid-image-constructor-error.html",
@@ -6671,6 +6803,270 @@
      [
       [
        "/_mozilla/mozilla/css-paint-api/paint2d-transform-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/paint2d-zoom.html": [
+    [
+     "/_mozilla/mozilla/css-paint-api/paint2d-zoom.html",
+     [
+      [
+       "/_mozilla/mozilla/css-paint-api/paint2d-zoom-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/parse-input-arguments-001.html": [
+    [
+     "/_mozilla/mozilla/css-paint-api/parse-input-arguments-001.html",
+     [
+      [
+       "/_mozilla/mozilla/css-paint-api/parse-input-arguments-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/parse-input-arguments-002.html": [
+    [
+     "/_mozilla/mozilla/css-paint-api/parse-input-arguments-002.html",
+     [
+      [
+       "/_mozilla/mozilla/css-paint-api/parse-input-arguments-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/parse-input-arguments-003.html": [
+    [
+     "/_mozilla/mozilla/css-paint-api/parse-input-arguments-003.html",
+     [
+      [
+       "/_mozilla/mozilla/css-paint-api/parse-input-arguments-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/parse-input-arguments-004.html": [
+    [
+     "/_mozilla/mozilla/css-paint-api/parse-input-arguments-004.html",
+     [
+      [
+       "/_mozilla/mozilla/css-paint-api/parse-input-arguments-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/parse-input-arguments-005.html": [
+    [
+     "/_mozilla/mozilla/css-paint-api/parse-input-arguments-005.html",
+     [
+      [
+       "/_mozilla/mozilla/css-paint-api/parse-input-arguments-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/parse-input-arguments-006.html": [
+    [
+     "/_mozilla/mozilla/css-paint-api/parse-input-arguments-006.html",
+     [
+      [
+       "/_mozilla/mozilla/css-paint-api/parse-input-arguments-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/parse-input-arguments-007.html": [
+    [
+     "/_mozilla/mozilla/css-paint-api/parse-input-arguments-007.html",
+     [
+      [
+       "/_mozilla/mozilla/css-paint-api/parse-input-arguments-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/parse-input-arguments-008.html": [
+    [
+     "/_mozilla/mozilla/css-paint-api/parse-input-arguments-008.html",
+     [
+      [
+       "/_mozilla/mozilla/css-paint-api/parse-input-arguments-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/parse-input-arguments-009.html": [
+    [
+     "/_mozilla/mozilla/css-paint-api/parse-input-arguments-009.html",
+     [
+      [
+       "/_mozilla/mozilla/css-paint-api/parse-input-arguments-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/parse-input-arguments-010.html": [
+    [
+     "/_mozilla/mozilla/css-paint-api/parse-input-arguments-010.html",
+     [
+      [
+       "/_mozilla/mozilla/css-paint-api/parse-input-arguments-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/parse-input-arguments-011.html": [
+    [
+     "/_mozilla/mozilla/css-paint-api/parse-input-arguments-011.html",
+     [
+      [
+       "/_mozilla/mozilla/css-paint-api/parse-input-arguments-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/parse-input-arguments-012.html": [
+    [
+     "/_mozilla/mozilla/css-paint-api/parse-input-arguments-012.html",
+     [
+      [
+       "/_mozilla/mozilla/css-paint-api/parse-input-arguments-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/parse-input-arguments-013.html": [
+    [
+     "/_mozilla/mozilla/css-paint-api/parse-input-arguments-013.html",
+     [
+      [
+       "/_mozilla/mozilla/css-paint-api/parse-input-arguments-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/parse-input-arguments-014.html": [
+    [
+     "/_mozilla/mozilla/css-paint-api/parse-input-arguments-014.html",
+     [
+      [
+       "/_mozilla/mozilla/css-paint-api/parse-input-arguments-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/parse-input-arguments-015.html": [
+    [
+     "/_mozilla/mozilla/css-paint-api/parse-input-arguments-015.html",
+     [
+      [
+       "/_mozilla/mozilla/css-paint-api/parse-input-arguments-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/parse-input-arguments-016.html": [
+    [
+     "/_mozilla/mozilla/css-paint-api/parse-input-arguments-016.html",
+     [
+      [
+       "/_mozilla/mozilla/css-paint-api/parse-input-arguments-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/parse-input-arguments-017.html": [
+    [
+     "/_mozilla/mozilla/css-paint-api/parse-input-arguments-017.html",
+     [
+      [
+       "/_mozilla/mozilla/css-paint-api/parse-input-arguments-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/registered-properties-in-custom-paint.html": [
+    [
+     "/_mozilla/mozilla/css-paint-api/registered-properties-in-custom-paint.html",
+     [
+      [
+       "/_mozilla/mozilla/css-paint-api/parse-input-arguments-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/style-background-image.html": [
+    [
+     "/_mozilla/mozilla/css-paint-api/style-background-image.html",
+     [
+      [
+       "/_mozilla/mozilla/css-paint-api/style-background-image-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/style-before-pseudo.html": [
+    [
+     "/_mozilla/mozilla/css-paint-api/style-before-pseudo.html",
+     [
+      [
+       "/_mozilla/mozilla/css-paint-api/style-before-pseudo-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/style-first-letter-pseudo.html": [
+    [
+     "/_mozilla/mozilla/css-paint-api/style-first-letter-pseudo.html",
+     [
+      [
+       "/_mozilla/mozilla/css-paint-api/style-first-letter-pseudo-ref.html",
        "=="
       ]
      ],
@@ -9896,6 +10292,61 @@
      {}
     ]
    ],
+   "mozilla/css-paint-api/geometry-background-image-001-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/geometry-background-image-002-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/geometry-background-image-003-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/geometry-background-image-tiled-001-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/geometry-background-image-tiled-002-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/geometry-background-image-tiled-003-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/geometry-border-image-001-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/geometry-border-image-002-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/geometry-border-image-003-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/geometry-border-image-004-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/geometry-border-image-005-ref.html": [
+    [
+     {}
+    ]
+   ],
    "mozilla/css-paint-api/invalid-image-constructor-error-ref.html": [
     [
      {}
@@ -9966,7 +10417,32 @@
      {}
     ]
    ],
+   "mozilla/css-paint-api/paint2d-zoom-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/parse-input-arguments-ref.html": [
+    [
+     {}
+    ]
+   ],
    "mozilla/css-paint-api/resources/html5.png": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/style-background-image-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/style-before-pseudo-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/css-paint-api/style-first-letter-pseudo-ref.html": [
     [
      {}
     ]
@@ -26057,6 +26533,94 @@
    "0e88a610e5ad9ff1deb04adec35b73caadbff201",
    "support"
   ],
+  "mozilla/css-paint-api/geometry-background-image-001-ref.html": [
+   "bca138ca3ce5b6dee10f935fd2ff9756d18b12ef",
+   "support"
+  ],
+  "mozilla/css-paint-api/geometry-background-image-001.html": [
+   "042380a14db00ace100393719f74e8864d16c6cd",
+   "reftest"
+  ],
+  "mozilla/css-paint-api/geometry-background-image-002-ref.html": [
+   "4d33168e6298c1ed7d44ff431791615cdaf9038f",
+   "support"
+  ],
+  "mozilla/css-paint-api/geometry-background-image-002.html": [
+   "fd962b9a8f7645615a0dbb3dc247e0d408060c9c",
+   "reftest"
+  ],
+  "mozilla/css-paint-api/geometry-background-image-003-ref.html": [
+   "e5b4098a1f1b9aab0a27c7bdae0532db4dc26a92",
+   "support"
+  ],
+  "mozilla/css-paint-api/geometry-background-image-003.html": [
+   "bb1f458f7672995804e0e1565aa5a78d5d3527c2",
+   "reftest"
+  ],
+  "mozilla/css-paint-api/geometry-background-image-tiled-001-ref.html": [
+   "df994fa58244f5e8d4b4aac7f0ad335fe8570dcc",
+   "support"
+  ],
+  "mozilla/css-paint-api/geometry-background-image-tiled-001.html": [
+   "bfe687843bcc155746ded14983f0cd1fc956ff66",
+   "reftest"
+  ],
+  "mozilla/css-paint-api/geometry-background-image-tiled-002-ref.html": [
+   "c5363f4f7843ff8025ae5457524c0c9f4aac144c",
+   "support"
+  ],
+  "mozilla/css-paint-api/geometry-background-image-tiled-002.html": [
+   "6b33b4456f3e91f0867aaacd68a842b10fbbbd08",
+   "reftest"
+  ],
+  "mozilla/css-paint-api/geometry-background-image-tiled-003-ref.html": [
+   "d4f9428be3b8f9003eb9373b3eb87ebed0c55c15",
+   "support"
+  ],
+  "mozilla/css-paint-api/geometry-background-image-tiled-003.html": [
+   "728cb8ad6268a57d8729588648d9d68ffc685073",
+   "reftest"
+  ],
+  "mozilla/css-paint-api/geometry-border-image-001-ref.html": [
+   "81026e756ea8e3be653e176c09f1762507915cb8",
+   "support"
+  ],
+  "mozilla/css-paint-api/geometry-border-image-001.html": [
+   "3e45991eaddb310c517cb804ff2511150b12fbda",
+   "reftest"
+  ],
+  "mozilla/css-paint-api/geometry-border-image-002-ref.html": [
+   "076c1f3e3b5cfd3a434e94f33872f5f598a7225b",
+   "support"
+  ],
+  "mozilla/css-paint-api/geometry-border-image-002.html": [
+   "37ebb2c728fe88bbd8745050b573e2ca0c3f865c",
+   "reftest"
+  ],
+  "mozilla/css-paint-api/geometry-border-image-003-ref.html": [
+   "141bf94dcd935420b95ee4da52139bf51318196d",
+   "support"
+  ],
+  "mozilla/css-paint-api/geometry-border-image-003.html": [
+   "d29cfb4fb9895ef72dc281c55be2cf356a7259a5",
+   "reftest"
+  ],
+  "mozilla/css-paint-api/geometry-border-image-004-ref.html": [
+   "d730b44bd1020305b70da095a15f9a4f7e9f262a",
+   "support"
+  ],
+  "mozilla/css-paint-api/geometry-border-image-004.html": [
+   "09219c8985bb2f66682a6df393ecfcf283978ac3",
+   "reftest"
+  ],
+  "mozilla/css-paint-api/geometry-border-image-005-ref.html": [
+   "b401ed261976a4acd2408a84fda9d63d27d1c3a4",
+   "support"
+  ],
+  "mozilla/css-paint-api/geometry-border-image-005.html": [
+   "83efcbdc5e2cd1850ea4c490b6c7e7327f329923",
+   "reftest"
+  ],
   "mozilla/css-paint-api/invalid-image-constructor-error-ref.html": [
    "b0c34ee1480fe1108fe8dc53f2bbb2f3ffa1c408",
    "support"
@@ -26169,16 +26733,124 @@
    "e4b544068821f6f8882f05836a07a19891fc85b8",
    "reftest"
   ],
+  "mozilla/css-paint-api/paint2d-zoom-ref.html": [
+   "37354f2479a070eadd2a571ff6207953cad3597d",
+   "support"
+  ],
+  "mozilla/css-paint-api/paint2d-zoom.html": [
+   "00c20556fef8169662a4e230e10c0952ab4bfa42",
+   "reftest"
+  ],
+  "mozilla/css-paint-api/parse-input-arguments-001.html": [
+   "5afe3f03b880000bb94803cb2a6eee8d423f5d68",
+   "reftest"
+  ],
+  "mozilla/css-paint-api/parse-input-arguments-002.html": [
+   "ba0f7dd2398ab0e786792b83eec77e3dda297ece",
+   "reftest"
+  ],
+  "mozilla/css-paint-api/parse-input-arguments-003.html": [
+   "9170929ec7d55285884701d8b18abe53ce1114e3",
+   "reftest"
+  ],
+  "mozilla/css-paint-api/parse-input-arguments-004.html": [
+   "5feae438f32bb77d58431b7958f31afde4c73ba9",
+   "reftest"
+  ],
+  "mozilla/css-paint-api/parse-input-arguments-005.html": [
+   "106cf8d73dad4355d5184b1306d2ba8b92ef55ec",
+   "reftest"
+  ],
+  "mozilla/css-paint-api/parse-input-arguments-006.html": [
+   "018090e38d8354d9ebfceecdfee315e6f069aaaa",
+   "reftest"
+  ],
+  "mozilla/css-paint-api/parse-input-arguments-007.html": [
+   "58f132ed442b4e6385436e60ba809f3ce36444c2",
+   "reftest"
+  ],
+  "mozilla/css-paint-api/parse-input-arguments-008.html": [
+   "68c0f9c8b91ec1fc42a1599d7af2cff1bf8ecf33",
+   "reftest"
+  ],
+  "mozilla/css-paint-api/parse-input-arguments-009.html": [
+   "c8c5ad5eb83db204ff0ba1c3747626ba252297f5",
+   "reftest"
+  ],
+  "mozilla/css-paint-api/parse-input-arguments-010.html": [
+   "9c4e808e6b52cdfc595227c2a1b17a1bd458073a",
+   "reftest"
+  ],
+  "mozilla/css-paint-api/parse-input-arguments-011.html": [
+   "32d14db912ad9a267b5f879a3b3574eec7e0a591",
+   "reftest"
+  ],
+  "mozilla/css-paint-api/parse-input-arguments-012.html": [
+   "ed8c9c408d7dee8e4315305e736a58766fe06575",
+   "reftest"
+  ],
+  "mozilla/css-paint-api/parse-input-arguments-013.html": [
+   "06ca97c7addc23faeeb929a927c9065101a90410",
+   "reftest"
+  ],
+  "mozilla/css-paint-api/parse-input-arguments-014.html": [
+   "0d899ca87aad315a5d59a506dc2ea306d0a32504",
+   "reftest"
+  ],
+  "mozilla/css-paint-api/parse-input-arguments-015.html": [
+   "2e4b898ff93047ef399450a762a152d05a63fd21",
+   "reftest"
+  ],
+  "mozilla/css-paint-api/parse-input-arguments-016.html": [
+   "fa390361d9f0237401c3fcee13ed44bd386d3a8f",
+   "reftest"
+  ],
+  "mozilla/css-paint-api/parse-input-arguments-017.html": [
+   "4e540c471f67e6e3554fcb436833ba80fe868cc8",
+   "reftest"
+  ],
+  "mozilla/css-paint-api/parse-input-arguments-ref.html": [
+   "6133bd65ef569456f58f1e501d81e088256bdc0a",
+   "support"
+  ],
+  "mozilla/css-paint-api/registered-properties-in-custom-paint.html": [
+   "c33bf95ab3196bb958c3ddbb08b73792a5cacae7",
+   "reftest"
+  ],
   "mozilla/css-paint-api/resources/html5.png": [
    "83ef56b6e4d0dcb0d2dcecfb3fc78035051e8627",
    "support"
+  ],
+  "mozilla/css-paint-api/style-background-image-ref.html": [
+   "0985e20363c8aac715c534ad59f1209889244fb0",
+   "support"
+  ],
+  "mozilla/css-paint-api/style-background-image.html": [
+   "02a66fa36821edd082de0d0752f304960837fd07",
+   "reftest"
+  ],
+  "mozilla/css-paint-api/style-before-pseudo-ref.html": [
+   "6dcbe78ab89343178e18e3e92744b25759ec8241",
+   "support"
+  ],
+  "mozilla/css-paint-api/style-before-pseudo.html": [
+   "e6b43224b40bca0703faccd7eb2688ca7cbea255",
+   "reftest"
+  ],
+  "mozilla/css-paint-api/style-first-letter-pseudo-ref.html": [
+   "c6a94e5bafa098b8f4023312db97abebe992abc3",
+   "support"
+  ],
+  "mozilla/css-paint-api/style-first-letter-pseudo.html": [
+   "7f9ccf3429a327c4fdbde077d0fb4c61438d198d",
+   "reftest"
   ],
   "mozilla/css-paint-api/valid-image-after-load-ref.html": [
    "b0c34ee1480fe1108fe8dc53f2bbb2f3ffa1c408",
    "support"
   ],
   "mozilla/css-paint-api/valid-image-after-load.html": [
-   "abe12a4f25b5b8a52b8e9f623ac5efa80c23dc36",
+   "4f20acb987ed51fc374d873db74522ed4bd1dc1c",
    "reftest"
   ],
   "mozilla/css-paint-api/valid-image-before-load-ref.html": [
@@ -26186,7 +26858,7 @@
    "support"
   ],
   "mozilla/css-paint-api/valid-image-before-load.html": [
-   "fb574b4658f7c2000ec58f058ebb0fff1d88351e",
+   "67d8cdd3e3a1656ba315fcbf6dae7236680bac16",
    "reftest"
   ],
   "mozilla/details_ui_closed.html": [

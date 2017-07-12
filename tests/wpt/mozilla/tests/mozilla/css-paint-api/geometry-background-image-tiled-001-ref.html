@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<style>
+html, body { margin: 0; padding: 0; }
+</style>
+<body>
+<canvas id ="canvas" width="100" height="50"></canvas>
+<script>
+var canvas = document.getElementById('canvas');
+var context = canvas.getContext("2d");
+context.strokeStyle = 'green';
+context.lineWidth = 4;
+context.strokeRect(0, 0, 50, 50);
+context.strokeRect(50, 0, 50, 50);
+</script>
+</body>
+</html>
