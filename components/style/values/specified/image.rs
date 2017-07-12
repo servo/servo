@@ -125,22 +125,17 @@ pub type ColorStop = GenericColorStop<RGBAColor, LengthOrPercentage>;
 
 /// Specified values for `moz-image-rect`
 /// -moz-image-rect(<uri>, top, right, bottom, left);
-pub type ImageRect = GenericImageRect<NumberOrPercentage>;
+pub type MozImageRect = GenericMozImageRect<NumberOrPercentage>;
 
 impl Parse for Image {
+    #[cfg_attr(not(feature = "gecko"), allow(unused_mut))]
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Image, ParseError<'i>> {
-        #[cfg(feature = "gecko")]
-        {
-          if let Ok(mut url) = input.try(|input| SpecifiedUrl::parse(context, input)) {
-              url.build_image_value();
-              return Ok(GenericImage::Url(url));
-          }
-        }
-        #[cfg(feature = "servo")]
-        {
-          if let Ok(url) = input.try(|input| SpecifiedUrl::parse(context, input)) {
-              return Ok(GenericImage::Url(url));
-          }
+        if let Ok(mut url) = input.try(|input| SpecifiedUrl::parse(context, input)) {
+            #[cfg(feature = "gecko")]
+            {
+                url.build_image_value();
+            }
+            return Ok(GenericImage::Url(url));
         }
         if let Ok(gradient) = input.try(|i| Gradient::parse(context, i)) {
             return Ok(GenericImage::Gradient(gradient));
@@ -151,20 +146,13 @@ impl Parse for Image {
                 return Ok(GenericImage::PaintWorklet(paint_worklet));
             }
         }
-        #[cfg(feature = "gecko")]
-        {
-            if let Ok(mut image_rect) = input.try(|input| ImageRect::parse(context, input)) {
+        if let Ok(mut image_rect) = input.try(|input| ImageRect::parse(context, input)) {
+            #[cfg(feature = "gecko")]
+            {
                 image_rect.url.build_image_value();
-                return Ok(GenericImage::Rect(image_rect));
             }
+            return Ok(GenericImage::Rect(image_rect));
         }
-        #[cfg(feature = "servo")]
-        {
-            if let Ok(image_rect) = input.try(|input| ImageRect::parse(context, input)) {
-                return Ok(GenericImage::Rect(image_rect));
-            }
-        }
-
         Ok(GenericImage::Element(Image::parse_element(input)?))
     }
 }
