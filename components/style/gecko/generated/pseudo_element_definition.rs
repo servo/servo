@@ -140,29 +140,29 @@ pub enum PseudoElement {
         /// :-moz-ruby-text-container
         RubyTextContainer,
         /// :-moz-tree-column
-        Moztreecolumn,
+        MozTreeColumn(Box<[String]>),
         /// :-moz-tree-row
-        Moztreerow,
+        MozTreeRow(Box<[String]>),
         /// :-moz-tree-separator
-        Moztreeseparator,
+        MozTreeSeparator(Box<[String]>),
         /// :-moz-tree-cell
-        Moztreecell,
+        MozTreeCell(Box<[String]>),
         /// :-moz-tree-indentation
-        Moztreeindentation,
+        MozTreeIndentation(Box<[String]>),
         /// :-moz-tree-line
-        Moztreeline,
+        MozTreeLine(Box<[String]>),
         /// :-moz-tree-twisty
-        Moztreetwisty,
+        MozTreeTwisty(Box<[String]>),
         /// :-moz-tree-image
-        Moztreeimage,
+        MozTreeImage(Box<[String]>),
         /// :-moz-tree-cell-text
-        Moztreecelltext,
+        MozTreeCellText(Box<[String]>),
         /// :-moz-tree-checkbox
-        Moztreecheckbox,
+        MozTreeCheckbox(Box<[String]>),
         /// :-moz-tree-progressmeter
-        Moztreeprogressmeter,
+        MozTreeProgressmeter(Box<[String]>),
         /// :-moz-tree-drop-feedback
-        Moztreedropfeedback,
+        MozTreeDropFeedback(Box<[String]>),
         /// :-moz-svg-marker-anon-child
         MozSVGMarkerAnonChild,
         /// :-moz-svg-outer-svg-anon-child
@@ -186,9 +186,15 @@ pub const EAGER_PSEUDOS: [PseudoElement; EAGER_PSEUDO_COUNT] = [
     PseudoElement::FirstLetter,
 ];
 
+
+
+
+
+
 impl PseudoElement {
-    /// Executes a closure with each pseudo-element as an argument.
-    pub fn each<F>(mut fun: F)
+    /// Executes a closure with each simple (not functional)
+    /// pseudo-element as an argument.
+    pub fn each_simple<F>(mut fun: F)
         where F: FnMut(Self),
     {
             fun(PseudoElement::After);
@@ -258,18 +264,6 @@ impl PseudoElement {
             fun(PseudoElement::RubyBaseContainer);
             fun(PseudoElement::RubyText);
             fun(PseudoElement::RubyTextContainer);
-            fun(PseudoElement::Moztreecolumn);
-            fun(PseudoElement::Moztreerow);
-            fun(PseudoElement::Moztreeseparator);
-            fun(PseudoElement::Moztreecell);
-            fun(PseudoElement::Moztreeindentation);
-            fun(PseudoElement::Moztreeline);
-            fun(PseudoElement::Moztreetwisty);
-            fun(PseudoElement::Moztreeimage);
-            fun(PseudoElement::Moztreecelltext);
-            fun(PseudoElement::Moztreecheckbox);
-            fun(PseudoElement::Moztreeprogressmeter);
-            fun(PseudoElement::Moztreedropfeedback);
             fun(PseudoElement::MozSVGMarkerAnonChild);
             fun(PseudoElement::MozSVGOuterSVGAnonChild);
             fun(PseudoElement::MozSVGForeignContent);
@@ -347,18 +341,18 @@ impl PseudoElement {
                 PseudoElement::RubyBaseContainer => atom!(":-moz-ruby-base-container"),
                 PseudoElement::RubyText => atom!(":-moz-ruby-text"),
                 PseudoElement::RubyTextContainer => atom!(":-moz-ruby-text-container"),
-                PseudoElement::Moztreecolumn => atom!(":-moz-tree-column"),
-                PseudoElement::Moztreerow => atom!(":-moz-tree-row"),
-                PseudoElement::Moztreeseparator => atom!(":-moz-tree-separator"),
-                PseudoElement::Moztreecell => atom!(":-moz-tree-cell"),
-                PseudoElement::Moztreeindentation => atom!(":-moz-tree-indentation"),
-                PseudoElement::Moztreeline => atom!(":-moz-tree-line"),
-                PseudoElement::Moztreetwisty => atom!(":-moz-tree-twisty"),
-                PseudoElement::Moztreeimage => atom!(":-moz-tree-image"),
-                PseudoElement::Moztreecelltext => atom!(":-moz-tree-cell-text"),
-                PseudoElement::Moztreecheckbox => atom!(":-moz-tree-checkbox"),
-                PseudoElement::Moztreeprogressmeter => atom!(":-moz-tree-progressmeter"),
-                PseudoElement::Moztreedropfeedback => atom!(":-moz-tree-drop-feedback"),
+                PseudoElement::MozTreeColumn(..) => atom!(":-moz-tree-column"),
+                PseudoElement::MozTreeRow(..) => atom!(":-moz-tree-row"),
+                PseudoElement::MozTreeSeparator(..) => atom!(":-moz-tree-separator"),
+                PseudoElement::MozTreeCell(..) => atom!(":-moz-tree-cell"),
+                PseudoElement::MozTreeIndentation(..) => atom!(":-moz-tree-indentation"),
+                PseudoElement::MozTreeLine(..) => atom!(":-moz-tree-line"),
+                PseudoElement::MozTreeTwisty(..) => atom!(":-moz-tree-twisty"),
+                PseudoElement::MozTreeImage(..) => atom!(":-moz-tree-image"),
+                PseudoElement::MozTreeCellText(..) => atom!(":-moz-tree-cell-text"),
+                PseudoElement::MozTreeCheckbox(..) => atom!(":-moz-tree-checkbox"),
+                PseudoElement::MozTreeProgressmeter(..) => atom!(":-moz-tree-progressmeter"),
+                PseudoElement::MozTreeDropFeedback(..) => atom!(":-moz-tree-drop-feedback"),
                 PseudoElement::MozSVGMarkerAnonChild => atom!(":-moz-svg-marker-anon-child"),
                 PseudoElement::MozSVGOuterSVGAnonChild => atom!(":-moz-svg-outer-svg-anon-child"),
                 PseudoElement::MozSVGForeignContent => atom!(":-moz-svg-foreign-content"),
@@ -370,89 +364,65 @@ impl PseudoElement {
     #[inline]
     fn is_anon_box(&self) -> bool {
         match *self {
-                PseudoElement::After => false,
-                PseudoElement::Before => false,
-                PseudoElement::Backdrop => false,
-                PseudoElement::Cue => false,
-                PseudoElement::FirstLetter => false,
-                PseudoElement::FirstLine => false,
-                PseudoElement::MozSelection => false,
-                PseudoElement::MozFocusInner => false,
-                PseudoElement::MozFocusOuter => false,
-                PseudoElement::MozListBullet => false,
-                PseudoElement::MozListNumber => false,
-                PseudoElement::MozMathAnonymous => false,
-                PseudoElement::MozNumberWrapper => false,
-                PseudoElement::MozNumberText => false,
-                PseudoElement::MozNumberSpinBox => false,
-                PseudoElement::MozNumberSpinUp => false,
-                PseudoElement::MozNumberSpinDown => false,
-                PseudoElement::MozProgressBar => false,
-                PseudoElement::MozRangeTrack => false,
-                PseudoElement::MozRangeProgress => false,
-                PseudoElement::MozRangeThumb => false,
-                PseudoElement::MozMeterBar => false,
-                PseudoElement::MozPlaceholder => false,
-                PseudoElement::Placeholder => false,
-                PseudoElement::MozColorSwatch => false,
-                PseudoElement::MozText => true,
-                PseudoElement::OofPlaceholder => true,
-                PseudoElement::FirstLetterContinuation => true,
-                PseudoElement::MozBlockInsideInlineWrapper => true,
-                PseudoElement::MozMathMLAnonymousBlock => true,
-                PseudoElement::MozXULAnonymousBlock => true,
-                PseudoElement::HorizontalFramesetBorder => true,
-                PseudoElement::VerticalFramesetBorder => true,
-                PseudoElement::MozLineFrame => true,
-                PseudoElement::ButtonContent => true,
-                PseudoElement::CellContent => true,
-                PseudoElement::DropDownList => true,
-                PseudoElement::FieldsetContent => true,
-                PseudoElement::FramesetBlank => true,
-                PseudoElement::MozDisplayComboboxControlFrame => true,
-                PseudoElement::HtmlCanvasContent => true,
-                PseudoElement::InlineTable => true,
-                PseudoElement::Table => true,
-                PseudoElement::TableCell => true,
-                PseudoElement::TableColGroup => true,
-                PseudoElement::TableCol => true,
-                PseudoElement::TableWrapper => true,
-                PseudoElement::TableRowGroup => true,
-                PseudoElement::TableRow => true,
-                PseudoElement::Canvas => true,
-                PseudoElement::PageBreak => true,
-                PseudoElement::Page => true,
-                PseudoElement::PageContent => true,
-                PseudoElement::PageSequence => true,
-                PseudoElement::ScrolledContent => true,
-                PseudoElement::ScrolledCanvas => true,
-                PseudoElement::ScrolledPageSequence => true,
-                PseudoElement::ColumnContent => true,
-                PseudoElement::Viewport => true,
-                PseudoElement::ViewportScroll => true,
-                PseudoElement::AnonymousFlexItem => true,
-                PseudoElement::AnonymousGridItem => true,
-                PseudoElement::Ruby => true,
-                PseudoElement::RubyBase => true,
-                PseudoElement::RubyBaseContainer => true,
-                PseudoElement::RubyText => true,
-                PseudoElement::RubyTextContainer => true,
-                PseudoElement::Moztreecolumn => true,
-                PseudoElement::Moztreerow => true,
-                PseudoElement::Moztreeseparator => true,
-                PseudoElement::Moztreecell => true,
-                PseudoElement::Moztreeindentation => true,
-                PseudoElement::Moztreeline => true,
-                PseudoElement::Moztreetwisty => true,
-                PseudoElement::Moztreeimage => true,
-                PseudoElement::Moztreecelltext => true,
-                PseudoElement::Moztreecheckbox => true,
-                PseudoElement::Moztreeprogressmeter => true,
-                PseudoElement::Moztreedropfeedback => true,
-                PseudoElement::MozSVGMarkerAnonChild => true,
-                PseudoElement::MozSVGOuterSVGAnonChild => true,
-                PseudoElement::MozSVGForeignContent => true,
-                PseudoElement::MozSVGText => true,
+                    PseudoElement::MozText => true,
+                    PseudoElement::OofPlaceholder => true,
+                    PseudoElement::FirstLetterContinuation => true,
+                    PseudoElement::MozBlockInsideInlineWrapper => true,
+                    PseudoElement::MozMathMLAnonymousBlock => true,
+                    PseudoElement::MozXULAnonymousBlock => true,
+                    PseudoElement::HorizontalFramesetBorder => true,
+                    PseudoElement::VerticalFramesetBorder => true,
+                    PseudoElement::MozLineFrame => true,
+                    PseudoElement::ButtonContent => true,
+                    PseudoElement::CellContent => true,
+                    PseudoElement::DropDownList => true,
+                    PseudoElement::FieldsetContent => true,
+                    PseudoElement::FramesetBlank => true,
+                    PseudoElement::MozDisplayComboboxControlFrame => true,
+                    PseudoElement::HtmlCanvasContent => true,
+                    PseudoElement::InlineTable => true,
+                    PseudoElement::Table => true,
+                    PseudoElement::TableCell => true,
+                    PseudoElement::TableColGroup => true,
+                    PseudoElement::TableCol => true,
+                    PseudoElement::TableWrapper => true,
+                    PseudoElement::TableRowGroup => true,
+                    PseudoElement::TableRow => true,
+                    PseudoElement::Canvas => true,
+                    PseudoElement::PageBreak => true,
+                    PseudoElement::Page => true,
+                    PseudoElement::PageContent => true,
+                    PseudoElement::PageSequence => true,
+                    PseudoElement::ScrolledContent => true,
+                    PseudoElement::ScrolledCanvas => true,
+                    PseudoElement::ScrolledPageSequence => true,
+                    PseudoElement::ColumnContent => true,
+                    PseudoElement::Viewport => true,
+                    PseudoElement::ViewportScroll => true,
+                    PseudoElement::AnonymousFlexItem => true,
+                    PseudoElement::AnonymousGridItem => true,
+                    PseudoElement::Ruby => true,
+                    PseudoElement::RubyBase => true,
+                    PseudoElement::RubyBaseContainer => true,
+                    PseudoElement::RubyText => true,
+                    PseudoElement::RubyTextContainer => true,
+                    PseudoElement::MozTreeColumn(..) => true,
+                    PseudoElement::MozTreeRow(..) => true,
+                    PseudoElement::MozTreeSeparator(..) => true,
+                    PseudoElement::MozTreeCell(..) => true,
+                    PseudoElement::MozTreeIndentation(..) => true,
+                    PseudoElement::MozTreeLine(..) => true,
+                    PseudoElement::MozTreeTwisty(..) => true,
+                    PseudoElement::MozTreeImage(..) => true,
+                    PseudoElement::MozTreeCellText(..) => true,
+                    PseudoElement::MozTreeCheckbox(..) => true,
+                    PseudoElement::MozTreeProgressmeter(..) => true,
+                    PseudoElement::MozTreeDropFeedback(..) => true,
+                    PseudoElement::MozSVGMarkerAnonChild => true,
+                    PseudoElement::MozSVGOuterSVGAnonChild => true,
+                    PseudoElement::MozSVGForeignContent => true,
+                    PseudoElement::MozSVGText => true,
+            _ => false,
         }
     }
 
@@ -467,255 +437,172 @@ impl PseudoElement {
     /// anonymous box.
     pub fn flags(&self) -> u32 {
         match *self {
-                PseudoElement::After => {
-                        structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_after
-                }
-                PseudoElement::Before => {
-                        structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_before
-                }
-                PseudoElement::Backdrop => {
-                        structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_backdrop
-                }
-                PseudoElement::Cue => {
-                        structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_cue
-                }
-                PseudoElement::FirstLetter => {
-                        structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_firstLetter
-                }
-                PseudoElement::FirstLine => {
-                        structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_firstLine
-                }
-                PseudoElement::MozSelection => {
-                        structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozSelection
-                }
-                PseudoElement::MozFocusInner => {
-                        structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozFocusInner
-                }
-                PseudoElement::MozFocusOuter => {
-                        structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozFocusOuter
-                }
-                PseudoElement::MozListBullet => {
-                        structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozListBullet
-                }
-                PseudoElement::MozListNumber => {
-                        structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozListNumber
-                }
-                PseudoElement::MozMathAnonymous => {
-                        structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozMathAnonymous
-                }
-                PseudoElement::MozNumberWrapper => {
-                        structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozNumberWrapper
-                }
-                PseudoElement::MozNumberText => {
-                        structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozNumberText
-                }
-                PseudoElement::MozNumberSpinBox => {
-                        structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozNumberSpinBox
-                }
-                PseudoElement::MozNumberSpinUp => {
-                        structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozNumberSpinUp
-                }
-                PseudoElement::MozNumberSpinDown => {
-                        structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozNumberSpinDown
-                }
-                PseudoElement::MozProgressBar => {
-                        structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozProgressBar
-                }
-                PseudoElement::MozRangeTrack => {
-                        structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozRangeTrack
-                }
-                PseudoElement::MozRangeProgress => {
-                        structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozRangeProgress
-                }
-                PseudoElement::MozRangeThumb => {
-                        structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozRangeThumb
-                }
-                PseudoElement::MozMeterBar => {
-                        structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozMeterBar
-                }
-                PseudoElement::MozPlaceholder => {
-                        structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozPlaceholder
-                }
-                PseudoElement::Placeholder => {
-                        structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_placeholder
-                }
-                PseudoElement::MozColorSwatch => {
-                        structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozColorSwatch
-                }
-                PseudoElement::MozText => {
-                        0
-                }
-                PseudoElement::OofPlaceholder => {
-                        0
-                }
-                PseudoElement::FirstLetterContinuation => {
-                        0
-                }
-                PseudoElement::MozBlockInsideInlineWrapper => {
-                        0
-                }
-                PseudoElement::MozMathMLAnonymousBlock => {
-                        0
-                }
-                PseudoElement::MozXULAnonymousBlock => {
-                        0
-                }
-                PseudoElement::HorizontalFramesetBorder => {
-                        0
-                }
-                PseudoElement::VerticalFramesetBorder => {
-                        0
-                }
-                PseudoElement::MozLineFrame => {
-                        0
-                }
-                PseudoElement::ButtonContent => {
-                        0
-                }
-                PseudoElement::CellContent => {
-                        0
-                }
-                PseudoElement::DropDownList => {
-                        0
-                }
-                PseudoElement::FieldsetContent => {
-                        0
-                }
-                PseudoElement::FramesetBlank => {
-                        0
-                }
-                PseudoElement::MozDisplayComboboxControlFrame => {
-                        0
-                }
-                PseudoElement::HtmlCanvasContent => {
-                        0
-                }
-                PseudoElement::InlineTable => {
-                        0
-                }
-                PseudoElement::Table => {
-                        0
-                }
-                PseudoElement::TableCell => {
-                        0
-                }
-                PseudoElement::TableColGroup => {
-                        0
-                }
-                PseudoElement::TableCol => {
-                        0
-                }
-                PseudoElement::TableWrapper => {
-                        0
-                }
-                PseudoElement::TableRowGroup => {
-                        0
-                }
-                PseudoElement::TableRow => {
-                        0
-                }
-                PseudoElement::Canvas => {
-                        0
-                }
-                PseudoElement::PageBreak => {
-                        0
-                }
-                PseudoElement::Page => {
-                        0
-                }
-                PseudoElement::PageContent => {
-                        0
-                }
-                PseudoElement::PageSequence => {
-                        0
-                }
-                PseudoElement::ScrolledContent => {
-                        0
-                }
-                PseudoElement::ScrolledCanvas => {
-                        0
-                }
-                PseudoElement::ScrolledPageSequence => {
-                        0
-                }
-                PseudoElement::ColumnContent => {
-                        0
-                }
-                PseudoElement::Viewport => {
-                        0
-                }
-                PseudoElement::ViewportScroll => {
-                        0
-                }
-                PseudoElement::AnonymousFlexItem => {
-                        0
-                }
-                PseudoElement::AnonymousGridItem => {
-                        0
-                }
-                PseudoElement::Ruby => {
-                        0
-                }
-                PseudoElement::RubyBase => {
-                        0
-                }
-                PseudoElement::RubyBaseContainer => {
-                        0
-                }
-                PseudoElement::RubyText => {
-                        0
-                }
-                PseudoElement::RubyTextContainer => {
-                        0
-                }
-                PseudoElement::Moztreecolumn => {
-                        0
-                }
-                PseudoElement::Moztreerow => {
-                        0
-                }
-                PseudoElement::Moztreeseparator => {
-                        0
-                }
-                PseudoElement::Moztreecell => {
-                        0
-                }
-                PseudoElement::Moztreeindentation => {
-                        0
-                }
-                PseudoElement::Moztreeline => {
-                        0
-                }
-                PseudoElement::Moztreetwisty => {
-                        0
-                }
-                PseudoElement::Moztreeimage => {
-                        0
-                }
-                PseudoElement::Moztreecelltext => {
-                        0
-                }
-                PseudoElement::Moztreecheckbox => {
-                        0
-                }
-                PseudoElement::Moztreeprogressmeter => {
-                        0
-                }
-                PseudoElement::Moztreedropfeedback => {
-                        0
-                }
-                PseudoElement::MozSVGMarkerAnonChild => {
-                        0
-                }
-                PseudoElement::MozSVGOuterSVGAnonChild => {
-                        0
-                }
-                PseudoElement::MozSVGForeignContent => {
-                        0
-                }
-                PseudoElement::MozSVGText => {
-                        0
-                }
+                PseudoElement::After =>
+                    structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_after,
+                PseudoElement::Before =>
+                    structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_before,
+                PseudoElement::Backdrop =>
+                    structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_backdrop,
+                PseudoElement::Cue =>
+                    structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_cue,
+                PseudoElement::FirstLetter =>
+                    structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_firstLetter,
+                PseudoElement::FirstLine =>
+                    structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_firstLine,
+                PseudoElement::MozSelection =>
+                    structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozSelection,
+                PseudoElement::MozFocusInner =>
+                    structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozFocusInner,
+                PseudoElement::MozFocusOuter =>
+                    structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozFocusOuter,
+                PseudoElement::MozListBullet =>
+                    structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozListBullet,
+                PseudoElement::MozListNumber =>
+                    structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozListNumber,
+                PseudoElement::MozMathAnonymous =>
+                    structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozMathAnonymous,
+                PseudoElement::MozNumberWrapper =>
+                    structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozNumberWrapper,
+                PseudoElement::MozNumberText =>
+                    structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozNumberText,
+                PseudoElement::MozNumberSpinBox =>
+                    structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozNumberSpinBox,
+                PseudoElement::MozNumberSpinUp =>
+                    structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozNumberSpinUp,
+                PseudoElement::MozNumberSpinDown =>
+                    structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozNumberSpinDown,
+                PseudoElement::MozProgressBar =>
+                    structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozProgressBar,
+                PseudoElement::MozRangeTrack =>
+                    structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozRangeTrack,
+                PseudoElement::MozRangeProgress =>
+                    structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozRangeProgress,
+                PseudoElement::MozRangeThumb =>
+                    structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozRangeThumb,
+                PseudoElement::MozMeterBar =>
+                    structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozMeterBar,
+                PseudoElement::MozPlaceholder =>
+                    structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozPlaceholder,
+                PseudoElement::Placeholder =>
+                    structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_placeholder,
+                PseudoElement::MozColorSwatch =>
+                    structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozColorSwatch,
+                PseudoElement::MozText =>
+                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                PseudoElement::OofPlaceholder =>
+                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                PseudoElement::FirstLetterContinuation =>
+                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                PseudoElement::MozBlockInsideInlineWrapper =>
+                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                PseudoElement::MozMathMLAnonymousBlock =>
+                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                PseudoElement::MozXULAnonymousBlock =>
+                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                PseudoElement::HorizontalFramesetBorder =>
+                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                PseudoElement::VerticalFramesetBorder =>
+                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                PseudoElement::MozLineFrame =>
+                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                PseudoElement::ButtonContent =>
+                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                PseudoElement::CellContent =>
+                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                PseudoElement::DropDownList =>
+                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                PseudoElement::FieldsetContent =>
+                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                PseudoElement::FramesetBlank =>
+                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                PseudoElement::MozDisplayComboboxControlFrame =>
+                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                PseudoElement::HtmlCanvasContent =>
+                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                PseudoElement::InlineTable =>
+                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                PseudoElement::Table =>
+                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                PseudoElement::TableCell =>
+                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                PseudoElement::TableColGroup =>
+                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                PseudoElement::TableCol =>
+                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                PseudoElement::TableWrapper =>
+                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                PseudoElement::TableRowGroup =>
+                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                PseudoElement::TableRow =>
+                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                PseudoElement::Canvas =>
+                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                PseudoElement::PageBreak =>
+                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                PseudoElement::Page =>
+                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                PseudoElement::PageContent =>
+                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                PseudoElement::PageSequence =>
+                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                PseudoElement::ScrolledContent =>
+                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                PseudoElement::ScrolledCanvas =>
+                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                PseudoElement::ScrolledPageSequence =>
+                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                PseudoElement::ColumnContent =>
+                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                PseudoElement::Viewport =>
+                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                PseudoElement::ViewportScroll =>
+                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                PseudoElement::AnonymousFlexItem =>
+                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                PseudoElement::AnonymousGridItem =>
+                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                PseudoElement::Ruby =>
+                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                PseudoElement::RubyBase =>
+                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                PseudoElement::RubyBaseContainer =>
+                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                PseudoElement::RubyText =>
+                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                PseudoElement::RubyTextContainer =>
+                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                PseudoElement::MozTreeColumn(..) =>
+                    0,
+                PseudoElement::MozTreeRow(..) =>
+                    0,
+                PseudoElement::MozTreeSeparator(..) =>
+                    0,
+                PseudoElement::MozTreeCell(..) =>
+                    0,
+                PseudoElement::MozTreeIndentation(..) =>
+                    0,
+                PseudoElement::MozTreeLine(..) =>
+                    0,
+                PseudoElement::MozTreeTwisty(..) =>
+                    0,
+                PseudoElement::MozTreeImage(..) =>
+                    0,
+                PseudoElement::MozTreeCellText(..) =>
+                    0,
+                PseudoElement::MozTreeCheckbox(..) =>
+                    0,
+                PseudoElement::MozTreeProgressmeter(..) =>
+                    0,
+                PseudoElement::MozTreeDropFeedback(..) =>
+                    0,
+                PseudoElement::MozSVGMarkerAnonChild =>
+                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                PseudoElement::MozSVGOuterSVGAnonChild =>
+                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                PseudoElement::MozSVGForeignContent =>
+                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                PseudoElement::MozSVGText =>
+                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
         }
     }
 
@@ -931,42 +818,18 @@ impl PseudoElement {
                 if atom == &atom!(":-moz-ruby-text-container") {
                     return Some(PseudoElement::RubyTextContainer);
                 }
-                if atom == &atom!(":-moz-tree-column") {
-                    return Some(PseudoElement::Moztreecolumn);
-                }
-                if atom == &atom!(":-moz-tree-row") {
-                    return Some(PseudoElement::Moztreerow);
-                }
-                if atom == &atom!(":-moz-tree-separator") {
-                    return Some(PseudoElement::Moztreeseparator);
-                }
-                if atom == &atom!(":-moz-tree-cell") {
-                    return Some(PseudoElement::Moztreecell);
-                }
-                if atom == &atom!(":-moz-tree-indentation") {
-                    return Some(PseudoElement::Moztreeindentation);
-                }
-                if atom == &atom!(":-moz-tree-line") {
-                    return Some(PseudoElement::Moztreeline);
-                }
-                if atom == &atom!(":-moz-tree-twisty") {
-                    return Some(PseudoElement::Moztreetwisty);
-                }
-                if atom == &atom!(":-moz-tree-image") {
-                    return Some(PseudoElement::Moztreeimage);
-                }
-                if atom == &atom!(":-moz-tree-cell-text") {
-                    return Some(PseudoElement::Moztreecelltext);
-                }
-                if atom == &atom!(":-moz-tree-checkbox") {
-                    return Some(PseudoElement::Moztreecheckbox);
-                }
-                if atom == &atom!(":-moz-tree-progressmeter") {
-                    return Some(PseudoElement::Moztreeprogressmeter);
-                }
-                if atom == &atom!(":-moz-tree-drop-feedback") {
-                    return Some(PseudoElement::Moztreedropfeedback);
-                }
+                // We cannot generate PseudoElement::MozTreeColumn(..) from just an atom.
+                // We cannot generate PseudoElement::MozTreeRow(..) from just an atom.
+                // We cannot generate PseudoElement::MozTreeSeparator(..) from just an atom.
+                // We cannot generate PseudoElement::MozTreeCell(..) from just an atom.
+                // We cannot generate PseudoElement::MozTreeIndentation(..) from just an atom.
+                // We cannot generate PseudoElement::MozTreeLine(..) from just an atom.
+                // We cannot generate PseudoElement::MozTreeTwisty(..) from just an atom.
+                // We cannot generate PseudoElement::MozTreeImage(..) from just an atom.
+                // We cannot generate PseudoElement::MozTreeCellText(..) from just an atom.
+                // We cannot generate PseudoElement::MozTreeCheckbox(..) from just an atom.
+                // We cannot generate PseudoElement::MozTreeProgressmeter(..) from just an atom.
+                // We cannot generate PseudoElement::MozTreeDropFeedback(..) from just an atom.
                 if atom == &atom!(":-moz-svg-marker-anon-child") {
                     return Some(PseudoElement::MozSVGMarkerAnonChild);
                 }
@@ -993,512 +856,530 @@ impl PseudoElement {
     pub fn from_slice(s: &str, in_ua_stylesheet: bool) -> Option<Self> {
         use std::ascii::AsciiExt;
 
+        // We don't need to support tree pseudos because functional
+        // pseudo-elements needs arguments, and thus should be created
+        // via other methods.
             if in_ua_stylesheet || PseudoElement::After.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("after") {
-                    return Some(PseudoElement::After)
+                    return Some(PseudoElement::After);
                 }
             }
             if in_ua_stylesheet || PseudoElement::Before.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("before") {
-                    return Some(PseudoElement::Before)
+                    return Some(PseudoElement::Before);
                 }
             }
             if in_ua_stylesheet || PseudoElement::Backdrop.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("backdrop") {
-                    return Some(PseudoElement::Backdrop)
+                    return Some(PseudoElement::Backdrop);
                 }
             }
             if in_ua_stylesheet || PseudoElement::Cue.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("cue") {
-                    return Some(PseudoElement::Cue)
+                    return Some(PseudoElement::Cue);
                 }
             }
             if in_ua_stylesheet || PseudoElement::FirstLetter.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("first-letter") {
-                    return Some(PseudoElement::FirstLetter)
+                    return Some(PseudoElement::FirstLetter);
                 }
             }
             if in_ua_stylesheet || PseudoElement::FirstLine.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("first-line") {
-                    return Some(PseudoElement::FirstLine)
+                    return Some(PseudoElement::FirstLine);
                 }
             }
             if in_ua_stylesheet || PseudoElement::MozSelection.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-selection") {
-                    return Some(PseudoElement::MozSelection)
+                    return Some(PseudoElement::MozSelection);
                 }
             }
             if in_ua_stylesheet || PseudoElement::MozFocusInner.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-focus-inner") {
-                    return Some(PseudoElement::MozFocusInner)
+                    return Some(PseudoElement::MozFocusInner);
                 }
             }
             if in_ua_stylesheet || PseudoElement::MozFocusOuter.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-focus-outer") {
-                    return Some(PseudoElement::MozFocusOuter)
+                    return Some(PseudoElement::MozFocusOuter);
                 }
             }
             if in_ua_stylesheet || PseudoElement::MozListBullet.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-list-bullet") {
-                    return Some(PseudoElement::MozListBullet)
+                    return Some(PseudoElement::MozListBullet);
                 }
             }
             if in_ua_stylesheet || PseudoElement::MozListNumber.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-list-number") {
-                    return Some(PseudoElement::MozListNumber)
+                    return Some(PseudoElement::MozListNumber);
                 }
             }
             if in_ua_stylesheet || PseudoElement::MozMathAnonymous.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-math-anonymous") {
-                    return Some(PseudoElement::MozMathAnonymous)
+                    return Some(PseudoElement::MozMathAnonymous);
                 }
             }
             if in_ua_stylesheet || PseudoElement::MozNumberWrapper.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-number-wrapper") {
-                    return Some(PseudoElement::MozNumberWrapper)
+                    return Some(PseudoElement::MozNumberWrapper);
                 }
             }
             if in_ua_stylesheet || PseudoElement::MozNumberText.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-number-text") {
-                    return Some(PseudoElement::MozNumberText)
+                    return Some(PseudoElement::MozNumberText);
                 }
             }
             if in_ua_stylesheet || PseudoElement::MozNumberSpinBox.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-number-spin-box") {
-                    return Some(PseudoElement::MozNumberSpinBox)
+                    return Some(PseudoElement::MozNumberSpinBox);
                 }
             }
             if in_ua_stylesheet || PseudoElement::MozNumberSpinUp.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-number-spin-up") {
-                    return Some(PseudoElement::MozNumberSpinUp)
+                    return Some(PseudoElement::MozNumberSpinUp);
                 }
             }
             if in_ua_stylesheet || PseudoElement::MozNumberSpinDown.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-number-spin-down") {
-                    return Some(PseudoElement::MozNumberSpinDown)
+                    return Some(PseudoElement::MozNumberSpinDown);
                 }
             }
             if in_ua_stylesheet || PseudoElement::MozProgressBar.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-progress-bar") {
-                    return Some(PseudoElement::MozProgressBar)
+                    return Some(PseudoElement::MozProgressBar);
                 }
             }
             if in_ua_stylesheet || PseudoElement::MozRangeTrack.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-range-track") {
-                    return Some(PseudoElement::MozRangeTrack)
+                    return Some(PseudoElement::MozRangeTrack);
                 }
             }
             if in_ua_stylesheet || PseudoElement::MozRangeProgress.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-range-progress") {
-                    return Some(PseudoElement::MozRangeProgress)
+                    return Some(PseudoElement::MozRangeProgress);
                 }
             }
             if in_ua_stylesheet || PseudoElement::MozRangeThumb.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-range-thumb") {
-                    return Some(PseudoElement::MozRangeThumb)
+                    return Some(PseudoElement::MozRangeThumb);
                 }
             }
             if in_ua_stylesheet || PseudoElement::MozMeterBar.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-meter-bar") {
-                    return Some(PseudoElement::MozMeterBar)
+                    return Some(PseudoElement::MozMeterBar);
                 }
             }
             if in_ua_stylesheet || PseudoElement::MozPlaceholder.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-placeholder") {
-                    return Some(PseudoElement::MozPlaceholder)
+                    return Some(PseudoElement::MozPlaceholder);
                 }
             }
             if in_ua_stylesheet || PseudoElement::Placeholder.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("placeholder") {
-                    return Some(PseudoElement::Placeholder)
+                    return Some(PseudoElement::Placeholder);
                 }
             }
             if in_ua_stylesheet || PseudoElement::MozColorSwatch.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-color-swatch") {
-                    return Some(PseudoElement::MozColorSwatch)
+                    return Some(PseudoElement::MozColorSwatch);
                 }
             }
             if in_ua_stylesheet || PseudoElement::MozText.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-text") {
-                    return Some(PseudoElement::MozText)
+                    return Some(PseudoElement::MozText);
                 }
             }
             if in_ua_stylesheet || PseudoElement::OofPlaceholder.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-oof-placeholder") {
-                    return Some(PseudoElement::OofPlaceholder)
+                    return Some(PseudoElement::OofPlaceholder);
                 }
             }
             if in_ua_stylesheet || PseudoElement::FirstLetterContinuation.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-first-letter-continuation") {
-                    return Some(PseudoElement::FirstLetterContinuation)
+                    return Some(PseudoElement::FirstLetterContinuation);
                 }
             }
             if in_ua_stylesheet || PseudoElement::MozBlockInsideInlineWrapper.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-block-inside-inline-wrapper") {
-                    return Some(PseudoElement::MozBlockInsideInlineWrapper)
+                    return Some(PseudoElement::MozBlockInsideInlineWrapper);
                 }
             }
             if in_ua_stylesheet || PseudoElement::MozMathMLAnonymousBlock.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-mathml-anonymous-block") {
-                    return Some(PseudoElement::MozMathMLAnonymousBlock)
+                    return Some(PseudoElement::MozMathMLAnonymousBlock);
                 }
             }
             if in_ua_stylesheet || PseudoElement::MozXULAnonymousBlock.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-xul-anonymous-block") {
-                    return Some(PseudoElement::MozXULAnonymousBlock)
+                    return Some(PseudoElement::MozXULAnonymousBlock);
                 }
             }
             if in_ua_stylesheet || PseudoElement::HorizontalFramesetBorder.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-hframeset-border") {
-                    return Some(PseudoElement::HorizontalFramesetBorder)
+                    return Some(PseudoElement::HorizontalFramesetBorder);
                 }
             }
             if in_ua_stylesheet || PseudoElement::VerticalFramesetBorder.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-vframeset-border") {
-                    return Some(PseudoElement::VerticalFramesetBorder)
+                    return Some(PseudoElement::VerticalFramesetBorder);
                 }
             }
             if in_ua_stylesheet || PseudoElement::MozLineFrame.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-line-frame") {
-                    return Some(PseudoElement::MozLineFrame)
+                    return Some(PseudoElement::MozLineFrame);
                 }
             }
             if in_ua_stylesheet || PseudoElement::ButtonContent.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-button-content") {
-                    return Some(PseudoElement::ButtonContent)
+                    return Some(PseudoElement::ButtonContent);
                 }
             }
             if in_ua_stylesheet || PseudoElement::CellContent.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-cell-content") {
-                    return Some(PseudoElement::CellContent)
+                    return Some(PseudoElement::CellContent);
                 }
             }
             if in_ua_stylesheet || PseudoElement::DropDownList.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-dropdown-list") {
-                    return Some(PseudoElement::DropDownList)
+                    return Some(PseudoElement::DropDownList);
                 }
             }
             if in_ua_stylesheet || PseudoElement::FieldsetContent.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-fieldset-content") {
-                    return Some(PseudoElement::FieldsetContent)
+                    return Some(PseudoElement::FieldsetContent);
                 }
             }
             if in_ua_stylesheet || PseudoElement::FramesetBlank.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-frameset-blank") {
-                    return Some(PseudoElement::FramesetBlank)
+                    return Some(PseudoElement::FramesetBlank);
                 }
             }
             if in_ua_stylesheet || PseudoElement::MozDisplayComboboxControlFrame.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-display-comboboxcontrol-frame") {
-                    return Some(PseudoElement::MozDisplayComboboxControlFrame)
+                    return Some(PseudoElement::MozDisplayComboboxControlFrame);
                 }
             }
             if in_ua_stylesheet || PseudoElement::HtmlCanvasContent.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-html-canvas-content") {
-                    return Some(PseudoElement::HtmlCanvasContent)
+                    return Some(PseudoElement::HtmlCanvasContent);
                 }
             }
             if in_ua_stylesheet || PseudoElement::InlineTable.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-inline-table") {
-                    return Some(PseudoElement::InlineTable)
+                    return Some(PseudoElement::InlineTable);
                 }
             }
             if in_ua_stylesheet || PseudoElement::Table.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-table") {
-                    return Some(PseudoElement::Table)
+                    return Some(PseudoElement::Table);
                 }
             }
             if in_ua_stylesheet || PseudoElement::TableCell.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-table-cell") {
-                    return Some(PseudoElement::TableCell)
+                    return Some(PseudoElement::TableCell);
                 }
             }
             if in_ua_stylesheet || PseudoElement::TableColGroup.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-table-column-group") {
-                    return Some(PseudoElement::TableColGroup)
+                    return Some(PseudoElement::TableColGroup);
                 }
             }
             if in_ua_stylesheet || PseudoElement::TableCol.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-table-column") {
-                    return Some(PseudoElement::TableCol)
+                    return Some(PseudoElement::TableCol);
                 }
             }
             if in_ua_stylesheet || PseudoElement::TableWrapper.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-table-wrapper") {
-                    return Some(PseudoElement::TableWrapper)
+                    return Some(PseudoElement::TableWrapper);
                 }
             }
             if in_ua_stylesheet || PseudoElement::TableRowGroup.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-table-row-group") {
-                    return Some(PseudoElement::TableRowGroup)
+                    return Some(PseudoElement::TableRowGroup);
                 }
             }
             if in_ua_stylesheet || PseudoElement::TableRow.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-table-row") {
-                    return Some(PseudoElement::TableRow)
+                    return Some(PseudoElement::TableRow);
                 }
             }
             if in_ua_stylesheet || PseudoElement::Canvas.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-canvas") {
-                    return Some(PseudoElement::Canvas)
+                    return Some(PseudoElement::Canvas);
                 }
             }
             if in_ua_stylesheet || PseudoElement::PageBreak.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-pagebreak") {
-                    return Some(PseudoElement::PageBreak)
+                    return Some(PseudoElement::PageBreak);
                 }
             }
             if in_ua_stylesheet || PseudoElement::Page.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-page") {
-                    return Some(PseudoElement::Page)
+                    return Some(PseudoElement::Page);
                 }
             }
             if in_ua_stylesheet || PseudoElement::PageContent.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-pagecontent") {
-                    return Some(PseudoElement::PageContent)
+                    return Some(PseudoElement::PageContent);
                 }
             }
             if in_ua_stylesheet || PseudoElement::PageSequence.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-page-sequence") {
-                    return Some(PseudoElement::PageSequence)
+                    return Some(PseudoElement::PageSequence);
                 }
             }
             if in_ua_stylesheet || PseudoElement::ScrolledContent.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-scrolled-content") {
-                    return Some(PseudoElement::ScrolledContent)
+                    return Some(PseudoElement::ScrolledContent);
                 }
             }
             if in_ua_stylesheet || PseudoElement::ScrolledCanvas.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-scrolled-canvas") {
-                    return Some(PseudoElement::ScrolledCanvas)
+                    return Some(PseudoElement::ScrolledCanvas);
                 }
             }
             if in_ua_stylesheet || PseudoElement::ScrolledPageSequence.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-scrolled-page-sequence") {
-                    return Some(PseudoElement::ScrolledPageSequence)
+                    return Some(PseudoElement::ScrolledPageSequence);
                 }
             }
             if in_ua_stylesheet || PseudoElement::ColumnContent.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-column-content") {
-                    return Some(PseudoElement::ColumnContent)
+                    return Some(PseudoElement::ColumnContent);
                 }
             }
             if in_ua_stylesheet || PseudoElement::Viewport.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-viewport") {
-                    return Some(PseudoElement::Viewport)
+                    return Some(PseudoElement::Viewport);
                 }
             }
             if in_ua_stylesheet || PseudoElement::ViewportScroll.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-viewport-scroll") {
-                    return Some(PseudoElement::ViewportScroll)
+                    return Some(PseudoElement::ViewportScroll);
                 }
             }
             if in_ua_stylesheet || PseudoElement::AnonymousFlexItem.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-anonymous-flex-item") {
-                    return Some(PseudoElement::AnonymousFlexItem)
+                    return Some(PseudoElement::AnonymousFlexItem);
                 }
             }
             if in_ua_stylesheet || PseudoElement::AnonymousGridItem.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-anonymous-grid-item") {
-                    return Some(PseudoElement::AnonymousGridItem)
+                    return Some(PseudoElement::AnonymousGridItem);
                 }
             }
             if in_ua_stylesheet || PseudoElement::Ruby.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-ruby") {
-                    return Some(PseudoElement::Ruby)
+                    return Some(PseudoElement::Ruby);
                 }
             }
             if in_ua_stylesheet || PseudoElement::RubyBase.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-ruby-base") {
-                    return Some(PseudoElement::RubyBase)
+                    return Some(PseudoElement::RubyBase);
                 }
             }
             if in_ua_stylesheet || PseudoElement::RubyBaseContainer.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-ruby-base-container") {
-                    return Some(PseudoElement::RubyBaseContainer)
+                    return Some(PseudoElement::RubyBaseContainer);
                 }
             }
             if in_ua_stylesheet || PseudoElement::RubyText.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-ruby-text") {
-                    return Some(PseudoElement::RubyText)
+                    return Some(PseudoElement::RubyText);
                 }
             }
             if in_ua_stylesheet || PseudoElement::RubyTextContainer.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-ruby-text-container") {
-                    return Some(PseudoElement::RubyTextContainer)
-                }
-            }
-            if in_ua_stylesheet || PseudoElement::Moztreecolumn.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-tree-column") {
-                    return Some(PseudoElement::Moztreecolumn)
-                }
-            }
-            if in_ua_stylesheet || PseudoElement::Moztreerow.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-tree-row") {
-                    return Some(PseudoElement::Moztreerow)
-                }
-            }
-            if in_ua_stylesheet || PseudoElement::Moztreeseparator.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-tree-separator") {
-                    return Some(PseudoElement::Moztreeseparator)
-                }
-            }
-            if in_ua_stylesheet || PseudoElement::Moztreecell.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-tree-cell") {
-                    return Some(PseudoElement::Moztreecell)
-                }
-            }
-            if in_ua_stylesheet || PseudoElement::Moztreeindentation.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-tree-indentation") {
-                    return Some(PseudoElement::Moztreeindentation)
-                }
-            }
-            if in_ua_stylesheet || PseudoElement::Moztreeline.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-tree-line") {
-                    return Some(PseudoElement::Moztreeline)
-                }
-            }
-            if in_ua_stylesheet || PseudoElement::Moztreetwisty.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-tree-twisty") {
-                    return Some(PseudoElement::Moztreetwisty)
-                }
-            }
-            if in_ua_stylesheet || PseudoElement::Moztreeimage.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-tree-image") {
-                    return Some(PseudoElement::Moztreeimage)
-                }
-            }
-            if in_ua_stylesheet || PseudoElement::Moztreecelltext.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-tree-cell-text") {
-                    return Some(PseudoElement::Moztreecelltext)
-                }
-            }
-            if in_ua_stylesheet || PseudoElement::Moztreecheckbox.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-tree-checkbox") {
-                    return Some(PseudoElement::Moztreecheckbox)
-                }
-            }
-            if in_ua_stylesheet || PseudoElement::Moztreeprogressmeter.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-tree-progressmeter") {
-                    return Some(PseudoElement::Moztreeprogressmeter)
-                }
-            }
-            if in_ua_stylesheet || PseudoElement::Moztreedropfeedback.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("-moz-tree-drop-feedback") {
-                    return Some(PseudoElement::Moztreedropfeedback)
+                    return Some(PseudoElement::RubyTextContainer);
                 }
             }
             if in_ua_stylesheet || PseudoElement::MozSVGMarkerAnonChild.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-svg-marker-anon-child") {
-                    return Some(PseudoElement::MozSVGMarkerAnonChild)
+                    return Some(PseudoElement::MozSVGMarkerAnonChild);
                 }
             }
             if in_ua_stylesheet || PseudoElement::MozSVGOuterSVGAnonChild.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-svg-outer-svg-anon-child") {
-                    return Some(PseudoElement::MozSVGOuterSVGAnonChild)
+                    return Some(PseudoElement::MozSVGOuterSVGAnonChild);
                 }
             }
             if in_ua_stylesheet || PseudoElement::MozSVGForeignContent.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-svg-foreign-content") {
-                    return Some(PseudoElement::MozSVGForeignContent)
+                    return Some(PseudoElement::MozSVGForeignContent);
                 }
             }
             if in_ua_stylesheet || PseudoElement::MozSVGText.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-svg-text") {
-                    return Some(PseudoElement::MozSVGText)
+                    return Some(PseudoElement::MozSVGText);
                 }
             }
 
         None
     }
 
-    /// Returns the pseudo-element's definition as a string, with only one colon
-    /// before it.
-    pub fn as_str(&self) -> &'static str {
+    /// Constructs a tree pseudo-element from the given name and arguments.
+    /// "name" must start with "-moz-tree-".
+    ///
+    /// Returns `None` if the pseudo-element is not recognized.
+    #[inline]
+    pub fn tree_pseudo_element(name: &str, args: Box<[String]>) -> Option<Self> {
+        use std::ascii::AsciiExt;
+        debug_assert!(name.starts_with("-moz-tree-"));
+        let tree_part = &name[10..];
+            if tree_part.eq_ignore_ascii_case("column") {
+                return Some(PseudoElement::MozTreeColumn(args));
+            }
+            if tree_part.eq_ignore_ascii_case("row") {
+                return Some(PseudoElement::MozTreeRow(args));
+            }
+            if tree_part.eq_ignore_ascii_case("separator") {
+                return Some(PseudoElement::MozTreeSeparator(args));
+            }
+            if tree_part.eq_ignore_ascii_case("cell") {
+                return Some(PseudoElement::MozTreeCell(args));
+            }
+            if tree_part.eq_ignore_ascii_case("indentation") {
+                return Some(PseudoElement::MozTreeIndentation(args));
+            }
+            if tree_part.eq_ignore_ascii_case("line") {
+                return Some(PseudoElement::MozTreeLine(args));
+            }
+            if tree_part.eq_ignore_ascii_case("twisty") {
+                return Some(PseudoElement::MozTreeTwisty(args));
+            }
+            if tree_part.eq_ignore_ascii_case("image") {
+                return Some(PseudoElement::MozTreeImage(args));
+            }
+            if tree_part.eq_ignore_ascii_case("cell-text") {
+                return Some(PseudoElement::MozTreeCellText(args));
+            }
+            if tree_part.eq_ignore_ascii_case("checkbox") {
+                return Some(PseudoElement::MozTreeCheckbox(args));
+            }
+            if tree_part.eq_ignore_ascii_case("progressmeter") {
+                return Some(PseudoElement::MozTreeProgressmeter(args));
+            }
+            if tree_part.eq_ignore_ascii_case("drop-feedback") {
+                return Some(PseudoElement::MozTreeDropFeedback(args));
+            }
+        None
+    }
+}
+
+impl ToCss for PseudoElement {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        dest.write_char(':')?;
         match *self {
-            PseudoElement::After => ":after",
-            PseudoElement::Before => ":before",
-            PseudoElement::Backdrop => ":backdrop",
-            PseudoElement::Cue => ":cue",
-            PseudoElement::FirstLetter => ":first-letter",
-            PseudoElement::FirstLine => ":first-line",
-            PseudoElement::MozSelection => ":-moz-selection",
-            PseudoElement::MozFocusInner => ":-moz-focus-inner",
-            PseudoElement::MozFocusOuter => ":-moz-focus-outer",
-            PseudoElement::MozListBullet => ":-moz-list-bullet",
-            PseudoElement::MozListNumber => ":-moz-list-number",
-            PseudoElement::MozMathAnonymous => ":-moz-math-anonymous",
-            PseudoElement::MozNumberWrapper => ":-moz-number-wrapper",
-            PseudoElement::MozNumberText => ":-moz-number-text",
-            PseudoElement::MozNumberSpinBox => ":-moz-number-spin-box",
-            PseudoElement::MozNumberSpinUp => ":-moz-number-spin-up",
-            PseudoElement::MozNumberSpinDown => ":-moz-number-spin-down",
-            PseudoElement::MozProgressBar => ":-moz-progress-bar",
-            PseudoElement::MozRangeTrack => ":-moz-range-track",
-            PseudoElement::MozRangeProgress => ":-moz-range-progress",
-            PseudoElement::MozRangeThumb => ":-moz-range-thumb",
-            PseudoElement::MozMeterBar => ":-moz-meter-bar",
-            PseudoElement::MozPlaceholder => ":-moz-placeholder",
-            PseudoElement::Placeholder => ":placeholder",
-            PseudoElement::MozColorSwatch => ":-moz-color-swatch",
-            PseudoElement::MozText => ":-moz-text",
-            PseudoElement::OofPlaceholder => ":-moz-oof-placeholder",
-            PseudoElement::FirstLetterContinuation => ":-moz-first-letter-continuation",
-            PseudoElement::MozBlockInsideInlineWrapper => ":-moz-block-inside-inline-wrapper",
-            PseudoElement::MozMathMLAnonymousBlock => ":-moz-mathml-anonymous-block",
-            PseudoElement::MozXULAnonymousBlock => ":-moz-xul-anonymous-block",
-            PseudoElement::HorizontalFramesetBorder => ":-moz-hframeset-border",
-            PseudoElement::VerticalFramesetBorder => ":-moz-vframeset-border",
-            PseudoElement::MozLineFrame => ":-moz-line-frame",
-            PseudoElement::ButtonContent => ":-moz-button-content",
-            PseudoElement::CellContent => ":-moz-cell-content",
-            PseudoElement::DropDownList => ":-moz-dropdown-list",
-            PseudoElement::FieldsetContent => ":-moz-fieldset-content",
-            PseudoElement::FramesetBlank => ":-moz-frameset-blank",
-            PseudoElement::MozDisplayComboboxControlFrame => ":-moz-display-comboboxcontrol-frame",
-            PseudoElement::HtmlCanvasContent => ":-moz-html-canvas-content",
-            PseudoElement::InlineTable => ":-moz-inline-table",
-            PseudoElement::Table => ":-moz-table",
-            PseudoElement::TableCell => ":-moz-table-cell",
-            PseudoElement::TableColGroup => ":-moz-table-column-group",
-            PseudoElement::TableCol => ":-moz-table-column",
-            PseudoElement::TableWrapper => ":-moz-table-wrapper",
-            PseudoElement::TableRowGroup => ":-moz-table-row-group",
-            PseudoElement::TableRow => ":-moz-table-row",
-            PseudoElement::Canvas => ":-moz-canvas",
-            PseudoElement::PageBreak => ":-moz-pagebreak",
-            PseudoElement::Page => ":-moz-page",
-            PseudoElement::PageContent => ":-moz-pagecontent",
-            PseudoElement::PageSequence => ":-moz-page-sequence",
-            PseudoElement::ScrolledContent => ":-moz-scrolled-content",
-            PseudoElement::ScrolledCanvas => ":-moz-scrolled-canvas",
-            PseudoElement::ScrolledPageSequence => ":-moz-scrolled-page-sequence",
-            PseudoElement::ColumnContent => ":-moz-column-content",
-            PseudoElement::Viewport => ":-moz-viewport",
-            PseudoElement::ViewportScroll => ":-moz-viewport-scroll",
-            PseudoElement::AnonymousFlexItem => ":-moz-anonymous-flex-item",
-            PseudoElement::AnonymousGridItem => ":-moz-anonymous-grid-item",
-            PseudoElement::Ruby => ":-moz-ruby",
-            PseudoElement::RubyBase => ":-moz-ruby-base",
-            PseudoElement::RubyBaseContainer => ":-moz-ruby-base-container",
-            PseudoElement::RubyText => ":-moz-ruby-text",
-            PseudoElement::RubyTextContainer => ":-moz-ruby-text-container",
-            PseudoElement::Moztreecolumn => ":-moz-tree-column",
-            PseudoElement::Moztreerow => ":-moz-tree-row",
-            PseudoElement::Moztreeseparator => ":-moz-tree-separator",
-            PseudoElement::Moztreecell => ":-moz-tree-cell",
-            PseudoElement::Moztreeindentation => ":-moz-tree-indentation",
-            PseudoElement::Moztreeline => ":-moz-tree-line",
-            PseudoElement::Moztreetwisty => ":-moz-tree-twisty",
-            PseudoElement::Moztreeimage => ":-moz-tree-image",
-            PseudoElement::Moztreecelltext => ":-moz-tree-cell-text",
-            PseudoElement::Moztreecheckbox => ":-moz-tree-checkbox",
-            PseudoElement::Moztreeprogressmeter => ":-moz-tree-progressmeter",
-            PseudoElement::Moztreedropfeedback => ":-moz-tree-drop-feedback",
-            PseudoElement::MozSVGMarkerAnonChild => ":-moz-svg-marker-anon-child",
-            PseudoElement::MozSVGOuterSVGAnonChild => ":-moz-svg-outer-svg-anon-child",
-            PseudoElement::MozSVGForeignContent => ":-moz-svg-foreign-content",
-            PseudoElement::MozSVGText => ":-moz-svg-text",
+                PseudoElement::After => dest.write_str(":after")?,
+                PseudoElement::Before => dest.write_str(":before")?,
+                PseudoElement::Backdrop => dest.write_str(":backdrop")?,
+                PseudoElement::Cue => dest.write_str(":cue")?,
+                PseudoElement::FirstLetter => dest.write_str(":first-letter")?,
+                PseudoElement::FirstLine => dest.write_str(":first-line")?,
+                PseudoElement::MozSelection => dest.write_str(":-moz-selection")?,
+                PseudoElement::MozFocusInner => dest.write_str(":-moz-focus-inner")?,
+                PseudoElement::MozFocusOuter => dest.write_str(":-moz-focus-outer")?,
+                PseudoElement::MozListBullet => dest.write_str(":-moz-list-bullet")?,
+                PseudoElement::MozListNumber => dest.write_str(":-moz-list-number")?,
+                PseudoElement::MozMathAnonymous => dest.write_str(":-moz-math-anonymous")?,
+                PseudoElement::MozNumberWrapper => dest.write_str(":-moz-number-wrapper")?,
+                PseudoElement::MozNumberText => dest.write_str(":-moz-number-text")?,
+                PseudoElement::MozNumberSpinBox => dest.write_str(":-moz-number-spin-box")?,
+                PseudoElement::MozNumberSpinUp => dest.write_str(":-moz-number-spin-up")?,
+                PseudoElement::MozNumberSpinDown => dest.write_str(":-moz-number-spin-down")?,
+                PseudoElement::MozProgressBar => dest.write_str(":-moz-progress-bar")?,
+                PseudoElement::MozRangeTrack => dest.write_str(":-moz-range-track")?,
+                PseudoElement::MozRangeProgress => dest.write_str(":-moz-range-progress")?,
+                PseudoElement::MozRangeThumb => dest.write_str(":-moz-range-thumb")?,
+                PseudoElement::MozMeterBar => dest.write_str(":-moz-meter-bar")?,
+                PseudoElement::MozPlaceholder => dest.write_str(":-moz-placeholder")?,
+                PseudoElement::Placeholder => dest.write_str(":placeholder")?,
+                PseudoElement::MozColorSwatch => dest.write_str(":-moz-color-swatch")?,
+                PseudoElement::MozText => dest.write_str(":-moz-text")?,
+                PseudoElement::OofPlaceholder => dest.write_str(":-moz-oof-placeholder")?,
+                PseudoElement::FirstLetterContinuation => dest.write_str(":-moz-first-letter-continuation")?,
+                PseudoElement::MozBlockInsideInlineWrapper => dest.write_str(":-moz-block-inside-inline-wrapper")?,
+                PseudoElement::MozMathMLAnonymousBlock => dest.write_str(":-moz-mathml-anonymous-block")?,
+                PseudoElement::MozXULAnonymousBlock => dest.write_str(":-moz-xul-anonymous-block")?,
+                PseudoElement::HorizontalFramesetBorder => dest.write_str(":-moz-hframeset-border")?,
+                PseudoElement::VerticalFramesetBorder => dest.write_str(":-moz-vframeset-border")?,
+                PseudoElement::MozLineFrame => dest.write_str(":-moz-line-frame")?,
+                PseudoElement::ButtonContent => dest.write_str(":-moz-button-content")?,
+                PseudoElement::CellContent => dest.write_str(":-moz-cell-content")?,
+                PseudoElement::DropDownList => dest.write_str(":-moz-dropdown-list")?,
+                PseudoElement::FieldsetContent => dest.write_str(":-moz-fieldset-content")?,
+                PseudoElement::FramesetBlank => dest.write_str(":-moz-frameset-blank")?,
+                PseudoElement::MozDisplayComboboxControlFrame => dest.write_str(":-moz-display-comboboxcontrol-frame")?,
+                PseudoElement::HtmlCanvasContent => dest.write_str(":-moz-html-canvas-content")?,
+                PseudoElement::InlineTable => dest.write_str(":-moz-inline-table")?,
+                PseudoElement::Table => dest.write_str(":-moz-table")?,
+                PseudoElement::TableCell => dest.write_str(":-moz-table-cell")?,
+                PseudoElement::TableColGroup => dest.write_str(":-moz-table-column-group")?,
+                PseudoElement::TableCol => dest.write_str(":-moz-table-column")?,
+                PseudoElement::TableWrapper => dest.write_str(":-moz-table-wrapper")?,
+                PseudoElement::TableRowGroup => dest.write_str(":-moz-table-row-group")?,
+                PseudoElement::TableRow => dest.write_str(":-moz-table-row")?,
+                PseudoElement::Canvas => dest.write_str(":-moz-canvas")?,
+                PseudoElement::PageBreak => dest.write_str(":-moz-pagebreak")?,
+                PseudoElement::Page => dest.write_str(":-moz-page")?,
+                PseudoElement::PageContent => dest.write_str(":-moz-pagecontent")?,
+                PseudoElement::PageSequence => dest.write_str(":-moz-page-sequence")?,
+                PseudoElement::ScrolledContent => dest.write_str(":-moz-scrolled-content")?,
+                PseudoElement::ScrolledCanvas => dest.write_str(":-moz-scrolled-canvas")?,
+                PseudoElement::ScrolledPageSequence => dest.write_str(":-moz-scrolled-page-sequence")?,
+                PseudoElement::ColumnContent => dest.write_str(":-moz-column-content")?,
+                PseudoElement::Viewport => dest.write_str(":-moz-viewport")?,
+                PseudoElement::ViewportScroll => dest.write_str(":-moz-viewport-scroll")?,
+                PseudoElement::AnonymousFlexItem => dest.write_str(":-moz-anonymous-flex-item")?,
+                PseudoElement::AnonymousGridItem => dest.write_str(":-moz-anonymous-grid-item")?,
+                PseudoElement::Ruby => dest.write_str(":-moz-ruby")?,
+                PseudoElement::RubyBase => dest.write_str(":-moz-ruby-base")?,
+                PseudoElement::RubyBaseContainer => dest.write_str(":-moz-ruby-base-container")?,
+                PseudoElement::RubyText => dest.write_str(":-moz-ruby-text")?,
+                PseudoElement::RubyTextContainer => dest.write_str(":-moz-ruby-text-container")?,
+                PseudoElement::MozTreeColumn(..) => dest.write_str(":-moz-tree-column")?,
+                PseudoElement::MozTreeRow(..) => dest.write_str(":-moz-tree-row")?,
+                PseudoElement::MozTreeSeparator(..) => dest.write_str(":-moz-tree-separator")?,
+                PseudoElement::MozTreeCell(..) => dest.write_str(":-moz-tree-cell")?,
+                PseudoElement::MozTreeIndentation(..) => dest.write_str(":-moz-tree-indentation")?,
+                PseudoElement::MozTreeLine(..) => dest.write_str(":-moz-tree-line")?,
+                PseudoElement::MozTreeTwisty(..) => dest.write_str(":-moz-tree-twisty")?,
+                PseudoElement::MozTreeImage(..) => dest.write_str(":-moz-tree-image")?,
+                PseudoElement::MozTreeCellText(..) => dest.write_str(":-moz-tree-cell-text")?,
+                PseudoElement::MozTreeCheckbox(..) => dest.write_str(":-moz-tree-checkbox")?,
+                PseudoElement::MozTreeProgressmeter(..) => dest.write_str(":-moz-tree-progressmeter")?,
+                PseudoElement::MozTreeDropFeedback(..) => dest.write_str(":-moz-tree-drop-feedback")?,
+                PseudoElement::MozSVGMarkerAnonChild => dest.write_str(":-moz-svg-marker-anon-child")?,
+                PseudoElement::MozSVGOuterSVGAnonChild => dest.write_str(":-moz-svg-outer-svg-anon-child")?,
+                PseudoElement::MozSVGForeignContent => dest.write_str(":-moz-svg-foreign-content")?,
+                PseudoElement::MozSVGText => dest.write_str(":-moz-svg-text")?,
+        }
+        match *self {
+            PseudoElement::MozTreeColumn(ref args) |
+            PseudoElement::MozTreeRow(ref args) |
+            PseudoElement::MozTreeSeparator(ref args) |
+            PseudoElement::MozTreeCell(ref args) |
+            PseudoElement::MozTreeIndentation(ref args) |
+            PseudoElement::MozTreeLine(ref args) |
+            PseudoElement::MozTreeTwisty(ref args) |
+            PseudoElement::MozTreeImage(ref args) |
+            PseudoElement::MozTreeCellText(ref args) |
+            PseudoElement::MozTreeCheckbox(ref args) |
+            PseudoElement::MozTreeProgressmeter(ref args) |
+            PseudoElement::MozTreeDropFeedback(ref args) => {
+                dest.write_char('(')?;
+                let mut iter = args.iter();
+                if let Some(first) = iter.next() {
+                    serialize_identifier(first, dest)?;
+                    for item in iter {
+                        dest.write_str(", ")?;
+                        serialize_identifier(item, dest)?;
+                    }
+                }
+                dest.write_char(')')
+            }
+            _ => Ok(()),
         }
     }
 }
