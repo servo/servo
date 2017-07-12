@@ -1871,6 +1871,20 @@ impl FragmentDisplayListBuilding for Fragment {
         let stacking_relative_content_box =
             self.stacking_relative_content_box(stacking_relative_border_box);
 
+        // Adjust the clipping region as necessary to account for `border-radius`.
+        let build_local_clip = |style: &ServoComputedValues| {
+            let radii = build_border_radius_for_inner_rect(&stacking_relative_border_box, &style);
+            if !radii.is_square() {
+                LocalClip::RoundedRect(
+                    stacking_relative_border_box.to_rectf(),
+                    ComplexClipRegion::new(stacking_relative_content_box.to_rectf(),
+                                           radii.to_border_radius(),
+                 ))
+            } else {
+                LocalClip::Rect(stacking_relative_border_box.to_rectf())
+            }
+        };
+
         match self.specific {
             SpecificFragmentInfo::TruncatedFragment(box TruncatedFragmentInfo {
                 text_info: Some(ref text_fragment),
@@ -1916,7 +1930,7 @@ impl FragmentDisplayListBuilding for Fragment {
                 if !stacking_relative_content_box.is_empty() {
                     let base = state.create_base_display_item(
                         &stacking_relative_content_box,
-                        LocalClip::from(clip.to_rectf()),
+                        build_local_clip(&self.style),
                         self.node,
                         self.style.get_cursor(Cursor::Default),
                         DisplayListSection::Content);
@@ -1927,7 +1941,8 @@ impl FragmentDisplayListBuilding for Fragment {
 
                     let size = Size2D::new(item.bounds().size.width.to_f32_px(),
                                            item.bounds().size.height.to_f32_px());
-                    state.iframe_sizes.push((fragment_info.browsing_context_id, TypedSize2D::from_untyped(&size)));
+                    state.iframe_sizes.push((fragment_info.browsing_context_id,
+                                             TypedSize2D::from_untyped(&size)));
 
                     state.add_display_item(item);
                 }
@@ -1937,7 +1952,7 @@ impl FragmentDisplayListBuilding for Fragment {
                 if let Some(ref image) = image_fragment.image {
                     let base = state.create_base_display_item(
                         &stacking_relative_content_box,
-                        LocalClip::from(clip.to_rectf()),
+                        build_local_clip(&self.style),
                         self.node,
                         self.style.get_cursor(Cursor::Default),
                         DisplayListSection::Content);
@@ -1968,7 +1983,7 @@ impl FragmentDisplayListBuilding for Fragment {
 
                 let base = state.create_base_display_item(
                     &stacking_relative_content_box,
-                    LocalClip::from(clip.to_rectf()),
+                    build_local_clip(&self.style),
                     self.node,
                     self.style.get_cursor(Cursor::Default),
                     DisplayListSection::Content);

@@ -464,7 +464,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
             DisplayItem::Iframe(ref item) => {
                 let rect = item.base.bounds.to_rectf();
                 let pipeline_id = item.iframe.to_webrender();
-                builder.push_iframe(rect, pipeline_id);
+                builder.push_iframe(rect, Some(item.base.local_clip), pipeline_id);
             }
             DisplayItem::PushStackingContext(ref item) => {
                 let stacking_context = &item.stacking_context;
