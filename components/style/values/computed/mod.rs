@@ -17,6 +17,7 @@ use std::f32::consts::PI;
 use std::fmt;
 use style_traits::ToCss;
 use super::{CSSFloat, CSSInteger, RGBA};
+#[cfg(feature = "gecko")] use super::animated::ToAnimatedValue;
 use super::generics::grid::{TrackBreadth as GenericTrackBreadth, TrackSize as GenericTrackSize};
 use super::generics::grid::GridTemplateComponent as GenericGridTemplateComponent;
 use super::generics::grid::TrackList as GenericTrackList;
@@ -493,6 +494,24 @@ impl SVGPaint {
 
 /// <length> | <percentage> | <number>
 pub type LengthOrPercentageOrNumber = Either<Number, LengthOrPercentage>;
+
+#[cfg(feature = "gecko")]
+impl ToAnimatedValue for LengthOrPercentageOrNumber {
+    type AnimatedValue = LengthOrPercentage;
+
+    #[inline]
+    fn to_animated_value(self) -> Self::AnimatedValue {
+        match self {
+            Either::First(number) => LengthOrPercentage::Length(Au::from_f32_px(number)),
+            Either::Second(lop)   => lop,
+        }
+    }
+
+    #[inline]
+    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+        Either::Second(animated)
+    }
+}
 
 #[derive(Clone, PartialEq, Eq, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
