@@ -131,6 +131,12 @@ pub trait Parser<'i> {
     type Impl: SelectorImpl;
     type Error: 'i;
 
+    /// Whether the name is a pseudo-element that can be specified with
+    /// the single colon syntax in addition to the double-colon syntax.
+    fn is_pseudo_element_allows_single_colon(name: &CompactCowStr<'i>) -> bool {
+        is_css2_pseudo_element(name)
+    }
+
     /// This function can return an "Err" pseudo-element in order to support CSS2.1
     /// pseudo-elements.
     fn parse_non_ts_pseudo_class(&self, name: CompactCowStr<'i>)
@@ -1481,7 +1487,7 @@ where Impl: SelectorImpl, F: FnOnce(i32, i32) -> Component<Impl> {
 /// Returns whether the name corresponds to a CSS2 pseudo-element that
 /// can be specified with the single colon syntax (in addition to the
 /// double-colon syntax, which can be used for all pseudo-elements).
-fn is_css2_pseudo_element<'i>(name: &CompactCowStr<'i>) -> bool {
+pub fn is_css2_pseudo_element<'i>(name: &CompactCowStr<'i>) -> bool {
     // ** Do not add to this list! **
     return name.eq_ignore_ascii_case("before") ||
            name.eq_ignore_ascii_case("after") ||
@@ -1530,7 +1536,8 @@ fn parse_one_simple_selector<'i, 't, P, E, Impl>(parser: &P,
                 Token::Function(name) => (name, true),
                 t => return Err(ParseError::Basic(BasicParseError::UnexpectedToken(t))),
             };
-            let is_pseudo_element = !is_single_colon || is_css2_pseudo_element(&name);
+            let is_pseudo_element = !is_single_colon ||
+                P::is_pseudo_element_allows_single_colon(&name);
             if is_pseudo_element {
                 let pseudo_element = if is_functional {
                     input.parse_nested_block(|input| {
