@@ -10,8 +10,9 @@ use data::{ElementData, ElementStyles};
 use dom::{NodeInfo, OpaqueNode, TElement, TNode};
 use invalidation::element::restyle_hints::{RECASCADE_SELF, RECASCADE_DESCENDANTS, RestyleHint};
 use matching::{ChildCascadeRequirement, MatchMethods};
-use sharing::{StyleSharingBehavior, StyleSharingTarget};
+use sharing::StyleSharingTarget;
 use smallvec::SmallVec;
+use style_resolver::StyleResolverForElement;
 use stylist::RuleInclusion;
 
 /// A per-traversal-level chunk of data. This is sent down by the traversal, and
@@ -765,7 +766,8 @@ where
         data.restyle.set_restyled();
     }
 
-    match kind {
+    let mut important_rules_changed = false;
+    let new_styles = match kind {
         MatchAndCascade => {
             debug_assert!(!context.shared.traversal_flags.for_animation_only(),
                           "MatchAndCascade shouldn't be processed during \
@@ -790,35 +792,62 @@ where
 
             context.thread_local.statistics.elements_matched += 1;
 
+            important_rules_changed = true;
+
             // Perform the matching and cascading.
-            element.match_and_cascade(
-                context,
-                data,
-                StyleSharingBehavior::Allow
-            )
+            let new_styles =
+                StyleResolverForElement::new(element, context, RuleInclusion::All)
+                    .resolve_style_with_default_parents();
+
+            // If we previously tried to match this element against the cache,
+            // the revalidation match results will already be cached. Otherwise
+            // we'll have None, and compute them later on-demand.
+            //
+            // If we do have the results, grab them here to satisfy the borrow
+            // checker.
+            let validation_data =
+                context.thread_local
+                    .current_element_info
+                    .as_mut().unwrap()
+                    .validation_data
+                    .take();
+
+            let dom_depth = context.thread_local.bloom_filter.matching_depth();
+            context.thread_local
+                   .style_sharing_candidate_cache
+                   .insert_if_possible(
+                       &element,
+                       new_styles.primary(),
+                       validation_data,
+                       dom_depth
+                    );
+
+            new_styles
         }
         CascadeWithReplacements(flags) => {
             // Skipping full matching, load cascade inputs from previous values.
-            *context.cascade_inputs_mut() =
+            let mut cascade_inputs =
                 ElementCascadeInputs::new_from_element_data(data);
-            let important_rules_changed = element.replace_rules(flags, context);
-            element.cascade_primary_and_pseudos(
-                context,
-                data,
-                important_rules_changed
-            )
+            important_rules_changed =
+                element.replace_rules(flags, context, &mut cascade_inputs);
+            StyleResolverForElement::new(element, context, RuleInclusion::All)
+                .cascade_styles_with_default_parents(cascade_inputs)
         }
         CascadeOnly => {
             // Skipping full matching, load cascade inputs from previous values.
-            *context.cascade_inputs_mut() =
+            let cascade_inputs =
                 ElementCascadeInputs::new_from_element_data(data);
-            element.cascade_primary_and_pseudos(
-                context,
-                data,
-                /* important_rules_changed = */ false
-            )
+            StyleResolverForElement::new(element, context, RuleInclusion::All)
+                .cascade_styles_with_default_parents(cascade_inputs)
         }
-    }
+    };
+
+    element.finish_restyle(
+        context,
+        data,
+        new_styles,
+        important_rules_changed
+    )
 }
 
 fn preprocess_children<E, D>(

@@ -15,7 +15,6 @@ use font_metrics::FontMetricsProvider;
 use gecko_bindings::structs::{nsIAtom, StyleRuleInclusion};
 use invalidation::element::invalidation_map::InvalidationMap;
 use invalidation::media_queries::{EffectiveMediaQueryResults, ToMediaListKey};
-use matching::CascadeVisitedMode;
 use media_queries::Device;
 use properties::{self, CascadeFlags, ComputedValues};
 use properties::{AnimationRules, PropertyDeclarationBlock};
@@ -719,24 +718,30 @@ impl Stylist {
     {
         // We may have only visited rules in cases when we are actually
         // resolving, not probing, pseudo-element style.
-        if !inputs.has_rules() && !inputs.has_visited_rules() {
+        if inputs.rules.is_none() && inputs.visited_rules.is_none() {
             return None
         }
 
         // We need to compute visited values if we have visited rules or if our
         // parent has visited values.
-        let visited_values = if inputs.has_visited_rules() || parent_style.get_visited_style().is_some() {
+        let visited_values = if inputs.visited_rules.is_some() || parent_style.get_visited_style().is_some() {
             // Slightly annoying: we know that inputs has either rules or
             // visited rules, but we can't do inputs.rules() up front because
             // maybe it just has visited rules, so can't unwrap_or.
-            let rule_node = match inputs.get_visited_rules() {
+            let rule_node = match inputs.visited_rules.as_ref() {
                 Some(rules) => rules,
-                None => inputs.rules()
+                None => inputs.rules.as_ref().unwrap(),
             };
             // We want to use the visited bits (if any) from our parent style as
             // our parent.
-            let mode = CascadeVisitedMode::Visited;
-            let inherited_style = mode.values(parent_style);
+            let inherited_style =
+                parent_style.get_visited_style().unwrap_or(&*parent_style);
+
+            // FIXME(emilio): The lack of layout_parent_style here could be
+            // worrying, but we're probably dropping the display fixup for
+            // pseudos other than before and after, so it's probably ok.
+            //
+            // (Though the flags don't indicate so!)
             let computed =
                 properties::cascade(&self.device,
                                     rule_node,
@@ -756,7 +761,7 @@ impl Stylist {
 
         // We may not have non-visited rules, if we only had visited ones.  In
         // that case we want to use the root rulenode for our non-visited rules.
-        let rules = inputs.get_rules().unwrap_or(self.rule_tree.root());
+        let rules = inputs.rules.as_ref().unwrap_or(self.rule_tree.root());
 
         // Read the comment on `precomputed_values_for_pseudo` to see why it's
         // difficult to assert that display: contents nodes never arrive here
@@ -849,10 +854,10 @@ impl Stylist {
             let rule_node =
                 self.rule_tree.compute_rule_node(&mut declarations, guards);
             debug_assert!(rule_node != *self.rule_tree.root());
-            inputs.set_rules(VisitedHandlingMode::AllLinksUnvisited, rule_node);
+            inputs.rules = Some(rule_node);
         }
 
-        if is_probe && !inputs.has_rules() {
+        if is_probe && inputs.rules.is_none() {
             // When probing, don't compute visited styles if we have no
             // unvisited styles.
             return inputs;
@@ -880,8 +885,7 @@ impl Stylist {
                         declarations.into_iter().map(|a| a.order_and_level()),
                         guards);
                 if rule_node != *self.rule_tree.root() {
-                    inputs.set_rules(VisitedHandlingMode::RelevantLinkVisited,
-                                     rule_node);
+                    inputs.visited_rules = Some(rule_node);
                 }
             }
         }

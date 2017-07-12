@@ -664,32 +664,35 @@ pub extern "C" fn Servo_StyleSet_GetBaseComputedValuesForElement(raw_data: RawSe
     let doc_data = PerDocumentStyleData::from_ffi(raw_data).borrow();
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
-    let shared_context = create_shared_context(&global_style_data,
-                                               &guard,
-                                               &doc_data,
-                                               TraversalFlags::empty(),
-                                               unsafe { &*snapshots });
+
     let element = GeckoElement(element);
     let element_data = element.borrow_data().unwrap();
     let styles = &element_data.styles;
 
-    let pseudo = PseudoElement::from_pseudo_type(pseudo_type);
-    let pseudos = &styles.pseudos;
-    let pseudo_style = match pseudo {
-        Some(ref p) => {
-            let style = pseudos.get(p);
-            debug_assert!(style.is_some());
-            style
-        }
-        None => None,
+    if let Some(pseudo) = PseudoElement::from_pseudo_type(pseudo_type) {
+        // This style already doesn't have animations.
+        return styles
+            .pseudos
+            .get(&pseudo)
+            .expect("GetBaseComputedValuesForElement for an unexisting pseudo?")
+            .clone().into_strong();
+    }
+
+    let shared = create_shared_context(&global_style_data,
+                                       &guard,
+                                       &doc_data,
+                                       TraversalFlags::empty(),
+                                       unsafe { &*snapshots });
+    let mut tlc = ThreadLocalStyleContext::new(&shared);
+    let mut context = StyleContext {
+        shared: &shared,
+        thread_local: &mut tlc,
     };
 
-    let provider = get_metrics_provider_for_product();
-    element.get_base_style(&shared_context,
-                           &provider,
-                           styles.primary(),
-                           pseudo_style)
-           .into_strong()
+    element.get_base_style(
+        &mut context,
+        styles.primary(),
+    ).into_strong()
 }
 
 #[no_mangle]

@@ -2576,11 +2576,11 @@ pub fn cascade(device: &Device,
                flags: CascadeFlags,
                quirks_mode: QuirksMode)
                -> ComputedValues {
-    debug_assert_eq!(parent_style.is_some(), layout_parent_style.is_some());
+    debug_assert!(layout_parent_style.is_none() || parent_style.is_some());
     let (inherited_style, layout_parent_style) = match parent_style {
         Some(parent_style) => {
             (parent_style,
-             layout_parent_style.unwrap())
+             layout_parent_style.unwrap_or(parent_style))
         },
         None => {
             (device.default_computed_values(),
