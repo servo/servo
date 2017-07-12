@@ -1521,32 +1521,44 @@ impl PropertyDeclaration {
                 Ok(())
             }
             PropertyId::Longhand(id) => {
-                if let Ok(keyword) = input.try(|i| CSSWideKeyword::parse(context, i)) {
-                    declarations.push(PropertyDeclaration::CSSWideKeyword(id, keyword));
-                    Ok(())
-                } else {
-                    match id {
-                        % for property in data.longhands:
-                            LonghandId::${property.camel_case} => {
-                                % if not property.derived_from:
-                                    match longhands::${property.ident}::parse_declared(context, input) {
-                                        Ok(value) => {
-                                            declarations.push(value);
-                                            Ok(())
-                                        },
-                                        Err(_) => {
-                                            Err(PropertyDeclarationParseError::InvalidValue(
-                                                "${property.ident}".into()
-                                            ))
-                                        }
-                                    }
-                                % else:
-                                    Err(PropertyDeclarationParseError::UnknownProperty)
-                                % endif
-                            }
-                        % endfor
-                    }
-                }
+                input.try(|i| CSSWideKeyword::parse(context, i)).map(|keyword| {
+                    PropertyDeclaration::CSSWideKeyword(id, keyword)
+                }).or_else(|_| {
+                    input.look_for_var_functions();
+                    let start = input.position();
+                    input.parse_entirely(|input| {
+                        match id {
+                            % for property in data.longhands:
+                                LonghandId::${property.camel_case} => {
+                                    % if not property.derived_from:
+                                        longhands::${property.ident}::parse_declared(context, input)
+                                    % else:
+                                        Err(PropertyDeclarationParseError::UnknownProperty)
+                                    % endif
+                                }
+                            % endfor
+                        }
+                    }).or_else(|_| {
+                        while let Ok(_) = input.next() {}  // Look for var() after the error.
+                        if input.seen_var_functions() {
+                            input.reset(start);
+                            let (first_token_type, css) =
+                                ::custom_properties::parse_non_custom_with_var(input).map_err(|_| {
+                                    PropertyDeclarationParseError::InvalidValue(id.name().into())
+                                })?;
+                            Ok(PropertyDeclaration::WithVariables(id, Arc::new(UnparsedValue {
+                                css: css.into_owned(),
+                                first_token_type: first_token_type,
+                                url_data: context.url_data.clone(),
+                                from_shorthand: None,
+                            })))
+                        } else {
+                            Err(PropertyDeclarationParseError::InvalidValue(id.name().into()))
+                        }
+                    })
+                }).map(|declaration| {
+                    declarations.push(declaration)
+                })
             }
             PropertyId::Shorthand(id) => {
                 if let Ok(keyword) = input.try(|i| CSSWideKeyword::parse(context, i)) {

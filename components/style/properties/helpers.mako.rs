@@ -452,26 +452,7 @@
             }
             pub fn parse_declared<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                                           -> Result<PropertyDeclaration, ParseError<'i>> {
-                input.look_for_var_functions();
-                let start = input.position();
-                let specified = parse_specified(context, input);
-                if specified.is_err() {
-                    while let Ok(_) = input.next() {}  // Look for var() after the error.
-                }
-                let var = input.seen_var_functions();
-                if specified.is_err() && var {
-                    input.reset(start);
-                    let (first_token_type, css) =
-                        ::custom_properties::parse_non_custom_with_var(input)?;
-                    return Ok(PropertyDeclaration::WithVariables(LonghandId::${property.camel_case},
-                                                                 Arc::new(UnparsedValue {
-                        css: css.into_owned(),
-                        first_token_type: first_token_type,
-                        url_data: context.url_data.clone(),
-                        from_shorthand: None,
-                    })))
-                }
-                specified.map(|s| PropertyDeclaration::${property.camel_case}(s))
+                parse_specified(context, input).map(PropertyDeclaration::${property.camel_case})
             }
         % endif
     }
