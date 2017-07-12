@@ -7,7 +7,11 @@
 pub enum PseudoElement {
     % for pseudo in PSEUDOS:
         /// ${pseudo.value}
+        % if pseudo.is_tree_pseudo_element():
+        ${pseudo.capitalized()}(Box<[String]>),
+        % else:
         ${pseudo.capitalized()},
+        % endif
     % endfor
 }
 
@@ -23,8 +27,11 @@ pub const EAGER_PSEUDOS: [PseudoElement; EAGER_PSEUDO_COUNT] = [
     % endfor
 ];
 
-<%def name="pseudo_element_variant(pseudo)">
-    PseudoElement::${pseudo.capitalized()}
+<% TREE_PSEUDOS = [pseudo for pseudo in PSEUDOS if pseudo.is_tree_pseudo_element()] %>
+<% SIMPLE_PSEUDOS = [pseudo for pseudo in PSEUDOS if not pseudo.is_tree_pseudo_element()] %>
+
+<%def name="pseudo_element_variant(pseudo, tree_arg='..')">\
+PseudoElement::${pseudo.capitalized()}${"({})".format(tree_arg) if pseudo.is_tree_pseudo_element() else ""}\
 </%def>
 
 impl PseudoElement {
@@ -33,7 +40,7 @@ impl PseudoElement {
     pub fn each_simple<F>(mut fun: F)
         where F: FnMut(Self),
     {
-        % for pseudo in PSEUDOS:
+        % for pseudo in SIMPLE_PSEUDOS:
             fun(${pseudo_element_variant(pseudo)});
         % endfor
     }
@@ -74,7 +81,9 @@ impl PseudoElement {
         match *self {
             % for pseudo in PSEUDOS:
                 ${pseudo_element_variant(pseudo)} =>
-                % if pseudo.is_anon_box():
+                % if pseudo.is_tree_pseudo_element():
+                    0,
+                % elif pseudo.is_anon_box():
                     structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
                 % else:
                     structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_${pseudo.original_ident},
@@ -102,7 +111,9 @@ impl PseudoElement {
     #[inline]
     pub fn from_anon_box_atom(atom: &Atom) -> Option<Self> {
         % for pseudo in PSEUDOS:
-            % if pseudo.is_anon_box():
+            % if pseudo.is_tree_pseudo_element():
+                // We cannot generate ${pseudo_element_variant(pseudo)} from just an atom.
+            % elif pseudo.is_anon_box():
                 if atom == &atom!("${pseudo.value}") {
                     return Some(${pseudo_element_variant(pseudo)});
                 }
@@ -122,7 +133,10 @@ impl PseudoElement {
     pub fn from_slice(s: &str, in_ua_stylesheet: bool) -> Option<Self> {
         use std::ascii::AsciiExt;
 
-        % for pseudo in PSEUDOS:
+        // We don't need to support tree pseudos because functional
+        // pseudo-elements needs arguments, and thus should be created
+        // via other methods.
+        % for pseudo in SIMPLE_PSEUDOS:
             if in_ua_stylesheet || ${pseudo_element_variant(pseudo)}.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("${pseudo.value[1:]}") {
                     return Some(${pseudo_element_variant(pseudo)});
@@ -133,13 +147,47 @@ impl PseudoElement {
         None
     }
 
-    /// Returns the pseudo-element's definition as a string, with only one colon
-    /// before it.
-    pub fn as_str(&self) -> &'static str {
-        match *self {
-        % for pseudo in PSEUDOS:
-            PseudoElement::${pseudo.capitalized()} => "${pseudo.value}",
+    /// Constructs a tree pseudo-element from the given name and arguments.
+    /// "name" must start with "-moz-tree-".
+    ///
+    /// Returns `None` if the pseudo-element is not recognized.
+    #[inline]
+    pub fn tree_pseudo_element(name: &str, args: Box<[String]>) -> Option<Self> {
+        use std::ascii::AsciiExt;
+        debug_assert!(name.starts_with("-moz-tree-"));
+        let tree_part = &name[10..];
+        % for pseudo in TREE_PSEUDOS:
+            if tree_part.eq_ignore_ascii_case("${pseudo.value[11:]}") {
+                return Some(${pseudo_element_variant(pseudo, "args")});
+            }
         % endfor
+        None
+    }
+}
+
+impl ToCss for PseudoElement {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        dest.write_char(':')?;
+        match *self {
+            % for pseudo in PSEUDOS:
+                ${pseudo_element_variant(pseudo)} => dest.write_str("${pseudo.value}")?,
+            % endfor
+        }
+        match *self {
+            ${" |\n            ".join("PseudoElement::{}(ref args)".format(pseudo.capitalized())
+                                      for pseudo in TREE_PSEUDOS)} => {
+                dest.write_char('(')?;
+                let mut iter = args.iter();
+                if let Some(first) = iter.next() {
+                    serialize_identifier(first, dest)?;
+                    for item in iter {
+                        dest.write_str(", ")?;
+                        serialize_identifier(item, dest)?;
+                    }
+                }
+                dest.write_char(')')
+            }
+            _ => Ok(()),
         }
     }
 }
