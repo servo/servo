@@ -268,6 +268,18 @@ static ${name}: NonCustomPropertyIdSet = NonCustomPropertyIdSet {
 };
 </%def>
 
+<%def name="static_longhand_id_set(name, is_member)">
+static ${name}: LonghandIdSet = LonghandIdSet {
+    <%
+        storage = [0] * ((len(data.longhands) - 1 + 32) / 32)
+        for i, property in enumerate(data.longhands):
+            if is_member(property):
+                storage[i / 32] |= 1 << (i % 32)
+    %>
+    storage: [${", ".join("0x%x" % word for word in storage)}]
+};
+</%def>
+
 /// A set of longhand properties
 #[derive(Clone, PartialEq)]
 pub struct LonghandIdSet {
@@ -371,108 +383,6 @@ impl PropertyDeclarationIdSet {
     }
 }
 
-% for property in data.longhands:
-    % if not property.derived_from:
-        /// Perform CSS variable substitution if needed, and execute `f` with
-        /// the resulting declared value.
-        #[allow(non_snake_case)]
-        fn substitute_variables_${property.ident}<F>(
-            % if property.boxed:
-                value: &DeclaredValue<Box<longhands::${property.ident}::SpecifiedValue>>,
-            % else:
-                value: &DeclaredValue<longhands::${property.ident}::SpecifiedValue>,
-            % endif
-            custom_properties: &Option<Arc<::custom_properties::CustomPropertiesMap>>,
-            f: &mut F,
-            quirks_mode: QuirksMode)
-            % if property.boxed:
-                where F: FnMut(&DeclaredValue<Box<longhands::${property.ident}::SpecifiedValue>>)
-            % else:
-                where F: FnMut(&DeclaredValue<longhands::${property.ident}::SpecifiedValue>)
-            % endif
-        {
-            if let DeclaredValue::WithVariables(ref with_variables) = *value {
-                substitute_variables_${property.ident}_slow(&with_variables.css,
-                                                            with_variables.first_token_type,
-                                                            &with_variables.url_data,
-                                                            with_variables.from_shorthand,
-                                                            custom_properties,
-                                                            f,
-                                                            quirks_mode);
-            } else {
-                f(value);
-            }
-        }
-
-        #[allow(non_snake_case)]
-        #[inline(never)]
-        fn substitute_variables_${property.ident}_slow<F>(
-                css: &String,
-                first_token_type: TokenSerializationType,
-                url_data: &UrlExtraData,
-                from_shorthand: Option<ShorthandId>,
-                custom_properties: &Option<Arc<::custom_properties::CustomPropertiesMap>>,
-                f: &mut F,
-                quirks_mode: QuirksMode)
-                % if property.boxed:
-                    where F: FnMut(&DeclaredValue<Box<longhands::${property.ident}::SpecifiedValue>>)
-                % else:
-                    where F: FnMut(&DeclaredValue<longhands::${property.ident}::SpecifiedValue>)
-                % endif
-        {
-            f(&
-                ::custom_properties::substitute(css, first_token_type, custom_properties)
-                .ok()
-                .and_then(|css| {
-                    // As of this writing, only the base URL is used for property values:
-                    let reporter = NullReporter;
-                    let context = ParserContext::new(Origin::Author,
-                                                     url_data,
-                                                     &reporter,
-                                                     None,
-                                                     PARSING_MODE_DEFAULT,
-                                                     quirks_mode);
-                    let mut input = ParserInput::new(&css);
-                    Parser::new(&mut input).parse_entirely(|input| {
-                        match from_shorthand {
-                            None => {
-                                longhands::${property.ident}
-                                         ::parse_specified(&context, input).map(DeclaredValueOwned::Value)
-                            }
-                            Some(ShorthandId::All) => {
-                                // No need to parse the 'all' shorthand as anything other than a CSS-wide
-                                // keyword, after variable substitution.
-                                Err(SelectorParseError::UnexpectedIdent("all".into()).into())
-                            }
-                            % for shorthand in data.shorthands_except_all():
-                                % if property in shorthand.sub_properties:
-                                    Some(ShorthandId::${shorthand.camel_case}) => {
-                                        shorthands::${shorthand.ident}::parse_value(&context, input)
-                                        .map(|result| {
-                                            DeclaredValueOwned::Value(result.${property.ident})
-                                        })
-                                    }
-                                % endif
-                            % endfor
-                            _ => unreachable!()
-                        }
-                    }).ok()
-                })
-                .unwrap_or(
-                    // Invalid at computed-value time.
-                    DeclaredValueOwned::CSSWideKeyword(
-                        % if property.style_struct.inherited:
-                            CSSWideKeyword::Inherit
-                        % else:
-                            CSSWideKeyword::Initial
-                        % endif
-                    )
-                ).borrow()
-            );
-        }
-    % endif
-% endfor
-
 /// An enum to represent a CSS Wide keyword.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, ToCss)]
@@ -550,6 +460,11 @@ impl LonghandId {
                 LonghandId::${property.camel_case} => "${property.name}",
             % endfor
         }
+    }
+
+    fn inherited(&self) -> bool {
+        ${static_longhand_id_set("INHERITED", lambda p: p.style_struct.inherited)}
+        INHERITED.contains(*self)
     }
 
     fn shorthands(&self) -> &'static [ShorthandId] {
@@ -885,6 +800,64 @@ pub struct UnparsedValue {
     url_data: UrlExtraData,
     /// The shorthand this came from.
     from_shorthand: Option<ShorthandId>,
+}
+
+impl UnparsedValue {
+    fn substitute_variables(&self, longhand_id: LonghandId,
+                            custom_properties: &Option<Arc<::custom_properties::CustomPropertiesMap>>,
+                            quirks_mode: QuirksMode)
+                            -> PropertyDeclaration {
+        ::custom_properties::substitute(&self.css, self.first_token_type, custom_properties)
+        .ok()
+        .and_then(|css| {
+            // As of this writing, only the base URL is used for property values:
+            let reporter = NullReporter;
+            let context = ParserContext::new(Origin::Author,
+                                             &self.url_data,
+                                             &reporter,
+                                             None,
+                                             PARSING_MODE_DEFAULT,
+                                             quirks_mode);
+            let mut input = ParserInput::new(&css);
+            Parser::new(&mut input).parse_entirely(|input| {
+                match self.from_shorthand {
+                    None => longhand_id.parse_value(&context, input),
+                    Some(ShorthandId::All) => {
+                        // No need to parse the 'all' shorthand as anything other than a CSS-wide
+                        // keyword, after variable substitution.
+                        Err(SelectorParseError::UnexpectedIdent("all".into()).into())
+                    }
+                    % for shorthand in data.shorthands_except_all():
+                        Some(ShorthandId::${shorthand.camel_case}) => {
+                            shorthands::${shorthand.ident}::parse_value(&context, input)
+                            .map(|longhands| {
+                                match longhand_id {
+                                    % for property in shorthand.sub_properties:
+                                        LonghandId::${property.camel_case} => {
+                                            PropertyDeclaration::${property.camel_case}(
+                                                longhands.${property.ident}
+                                            )
+                                        }
+                                    % endfor
+                                    _ => unreachable!()
+                                }
+                            })
+                        }
+                    % endfor
+                }
+            })
+            .ok()
+        })
+        .unwrap_or_else(|| {
+            // Invalid at computed-value time.
+            let keyword = if longhand_id.inherited() {
+                CSSWideKeyword::Inherit
+            } else {
+                CSSWideKeyword::Initial
+            };
+            PropertyDeclaration::CSSWideKeyword(longhand_id, keyword)
+        })
+    }
 }
 
 impl<'a, T: HasViewportPercentage> HasViewportPercentage for DeclaredValue<'a, T> {
@@ -2814,7 +2787,17 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
             let mut font_family = None;
         % endif
         for (declaration, cascade_level) in iter_declarations() {
-            let mut declaration = declaration;
+            let mut declaration = match *declaration {
+                PropertyDeclaration::WithVariables(id, ref unparsed) => {
+                    Cow::Owned(unparsed.substitute_variables(
+                        id,
+                        &context.style.custom_properties,
+                        context.quirks_mode
+                    ))
+                }
+                ref d => Cow::Borrowed(d)
+            };
+
             let longhand_id = match declaration.id() {
                 PropertyDeclarationId::Longhand(id) => id,
                 PropertyDeclarationId::Custom(..) => continue,
@@ -2838,15 +2821,17 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
                          CascadeLevel::UserNormal |
                          CascadeLevel::UserImportant |
                          CascadeLevel::UAImportant) {
+                let non_transparent_background;
                 if let PropertyDeclaration::BackgroundColor(ref color) = *declaration {
                     // Treat background-color a bit differently.  If the specified
                     // color is anything other than a fully transparent color, convert
                     // it into the Device's default background color.
-                    if color.is_non_transparent() {
-                        declaration = default_background_color_decl.as_ref().unwrap();
-                    }
+                    non_transparent_background = color.is_non_transparent();
                 } else {
                     continue
+                }
+                if non_transparent_background {
+                    declaration = Cow::Borrowed(default_background_color_decl.as_ref().unwrap());
                 }
             }
 
@@ -2868,17 +2853,17 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
 
             % if category_to_cascade_now == "early":
                 if LonghandId::FontSize == longhand_id {
-                    font_size = Some(declaration);
+                    font_size = Some(declaration.clone());
                     continue;
                 }
                 if LonghandId::FontFamily == longhand_id {
-                    font_family = Some(declaration);
+                    font_family = Some(declaration.clone());
                     continue;
                 }
             % endif
 
             let discriminant = longhand_id as usize;
-            (CASCADE_PROPERTY[discriminant])(declaration,
+            (CASCADE_PROPERTY[discriminant])(&*declaration,
                                              inherited_style,
                                              default_style,
                                              &mut context,
@@ -2902,8 +2887,8 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
                 if seen.contains(LonghandId::XLang) || font_family.is_some() {
                     // if just the language changed, the inherited generic is all we need
                     let mut generic = inherited_style.get_font().gecko().mGenericID;
-                    if let Some(declaration) = font_family {
-                        if let PropertyDeclaration::FontFamily(ref fam) = *declaration {
+                    if let Some(ref declaration) = font_family {
+                        if let PropertyDeclaration::FontFamily(ref fam) = **declaration {
                             if let Some(id) = fam.single_generic() {
                                 generic = id;
                                 // In case of a specified font family with a single generic, we will
@@ -2948,7 +2933,7 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
             // during the early iteration and cascade them in order
             // after it.
             if !_skip_font_family {
-                if let Some(declaration) = font_family {
+                if let Some(ref declaration) = font_family {
 
                     let discriminant = LonghandId::FontFamily as usize;
                     (CASCADE_PROPERTY[discriminant])(declaration,
@@ -2963,7 +2948,7 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
                 }
             }
 
-            if let Some(declaration) = font_size {
+            if let Some(ref declaration) = font_size {
                 let discriminant = LonghandId::FontSize as usize;
                 (CASCADE_PROPERTY[discriminant])(declaration,
                                                  inherited_style,

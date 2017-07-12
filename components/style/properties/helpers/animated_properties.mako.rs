@@ -524,7 +524,6 @@ impl AnimationValue {
     pub fn from_declaration(decl: &PropertyDeclaration, context: &mut Context,
                             initial: &ComputedValues) -> Option<Self> {
         use properties::LonghandId;
-        use properties::DeclaredValue;
 
         match *decl {
             % for prop in data.longhands:
@@ -584,40 +583,10 @@ impl AnimationValue {
                     % endfor
                 }
             },
-            PropertyDeclaration::WithVariables(id, ref variables) => {
+            PropertyDeclaration::WithVariables(id, ref unparsed) => {
                 let custom_props = context.style().custom_properties();
-                match id {
-                    % for prop in data.longhands:
-                    % if prop.animatable:
-                    LonghandId::${prop.camel_case} => {
-                        let mut result = None;
-                        let quirks_mode = context.quirks_mode;
-                        ::properties::substitute_variables_${prop.ident}_slow(
-                            &variables.css,
-                            variables.first_token_type,
-                            &variables.url_data,
-                            variables.from_shorthand,
-                            &custom_props,
-                            &mut |v| {
-                                let declaration = match *v {
-                                    DeclaredValue::Value(value) => {
-                                        PropertyDeclaration::${prop.camel_case}(value.clone())
-                                    },
-                                    DeclaredValue::CSSWideKeyword(keyword) => {
-                                        PropertyDeclaration::CSSWideKeyword(id, keyword)
-                                    },
-                                    DeclaredValue::WithVariables(_) => unreachable!(),
-                                };
-                                result = AnimationValue::from_declaration(&declaration, context, initial);
-                            },
-                            quirks_mode);
-                        result
-                    },
-                    % else:
-                    LonghandId::${prop.camel_case} => None,
-                    % endif
-                    % endfor
-                }
+                let substituted = unparsed.substitute_variables(id, &custom_props, context.quirks_mode);
+                AnimationValue::from_declaration(&substituted, context, initial)
             },
             _ => None // non animatable properties will get included because of shorthands. ignore.
         }
