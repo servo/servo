@@ -177,6 +177,14 @@ unsafe impl<T: JSTraceable + ?Sized> JSTraceable for Box<T> {
     }
 }
 
+unsafe impl<T: JSTraceable> JSTraceable for [T] {
+    unsafe fn trace(&self, trc: *mut JSTracer) {
+        for e in self.iter() {
+            e.trace(trc);
+        }
+    }
+}
+
 unsafe impl<T: JSTraceable + Copy> JSTraceable for Cell<T> {
     unsafe fn trace(&self, trc: *mut JSTracer) {
         self.get().trace(trc)
