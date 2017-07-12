@@ -68,7 +68,7 @@ ${helpers.predefined_type(
     "Either::First(1.0)",
     "parse_non_negative",
     products="gecko",
-    animation_value_type="ComputedValue",
+    animation_value_type="AnimatedLengthOrPercentageOrNumber",
     spec="https://www.w3.org/TR/SVG2/painting.html#StrokeWidth")}
 
 ${helpers.single_keyword("stroke-linecap", "butt round square",
@@ -104,7 +104,7 @@ ${helpers.predefined_type(
     "stroke-dashoffset", "LengthOrPercentageOrNumber",
     "Either::First(0.0)",
     products="gecko",
-    animation_value_type="ComputedValue",
+    animation_value_type="AnimatedLengthOrPercentageOrNumber",
     spec="https://www.w3.org/TR/SVG2/painting.html#StrokeDashing")}
 
 // Section 14 - Clipping, Masking and Compositing
