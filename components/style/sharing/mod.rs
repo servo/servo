@@ -75,7 +75,7 @@ use dom::{TElement, SendElement};
 use matching::{ChildCascadeRequirement, MatchMethods};
 use properties::ComputedValues;
 use selector_parser::RestyleDamage;
-use selectors::matching::{ElementSelectorFlags, VisitedHandlingMode, StyleRelations};
+use selectors::matching::{ElementSelectorFlags, VisitedHandlingMode};
 use smallvec::SmallVec;
 use std::mem;
 use std::ops::Deref;
@@ -494,11 +494,8 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
     pub fn insert_if_possible(&mut self,
                               element: &E,
                               style: &ComputedValues,
-                              relations: StyleRelations,
-                              mut validation_data: ValidationData,
+                              validation_data: ValidationData,
                               dom_depth: usize) {
-        use selectors::matching::AFFECTED_BY_PRESENTATIONAL_HINTS;
-
         let parent = match element.traversal_parent() {
             Some(element) => element,
             None => {
@@ -523,13 +520,6 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
         if box_style.specifies_animations() {
             debug!("Failing to insert to the cache: animations");
             return;
-        }
-
-        // Take advantage of the information we've learned during
-        // selector-matching.
-        if !relations.intersects(AFFECTED_BY_PRESENTATIONAL_HINTS) {
-            debug_assert!(validation_data.pres_hints.as_ref().map_or(true, |v| v.is_empty()));
-            validation_data.pres_hints = Some(SmallVec::new());
         }
 
         debug!("Inserting into cache: {:?} with parent {:?}", element, parent);

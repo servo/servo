@@ -7,7 +7,6 @@
 #[cfg(feature = "servo")] use animation::Animation;
 use animation::PropertyAnimation;
 use app_units::Au;
-use arrayvec::ArrayVec;
 use bloom::StyleBloom;
 use cache::LRUCache;
 use data::{EagerPseudoStyles, ElementData};
@@ -19,8 +18,8 @@ use font_metrics::FontMetricsProvider;
 #[cfg(feature = "servo")] use parking_lot::RwLock;
 use properties::ComputedValues;
 use rule_tree::StrongRuleNode;
-use selector_parser::{EAGER_PSEUDO_COUNT, PseudoElement, SnapshotMap};
-use selectors::matching::{ElementSelectorFlags, VisitedHandlingMode};
+use selector_parser::{EAGER_PSEUDO_COUNT, SnapshotMap};
+use selectors::matching::ElementSelectorFlags;
 use shared_lock::StylesheetGuards;
 use sharing::{ValidationData, StyleSharingCandidateCache};
 use std::fmt;
@@ -162,36 +161,17 @@ impl<'a> SharedStyleContext<'a> {
 /// within the `CurrentElementInfo`. At the end of the cascade, they are folded
 /// down into the main `ComputedValues` to reduce memory usage per element while
 /// still remaining accessible.
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct CascadeInputs {
     /// The rule node representing the ordered list of rules matched for this
     /// node.
-    rules: Option<StrongRuleNode>,
+    pub rules: Option<StrongRuleNode>,
 
     /// The rule node representing the ordered list of rules matched for this
     /// node if visited, only computed if there's a relevant link for this
     /// element. A element's "relevant link" is the element being matched if it
     /// is a link or the nearest ancestor link.
-    visited_rules: Option<StrongRuleNode>,
-
-    /// The element's computed values if visited, only computed if there's a
-    /// relevant link for this element. A element's "relevant link" is the
-    /// element being matched if it is a link or the nearest ancestor link.
-    ///
-    /// We also store a reference to this inside the regular ComputedValues to
-    /// avoid refactoring all APIs to become aware of multiple ComputedValues
-    /// objects.
-    visited_values: Option<Arc<ComputedValues>>,
-}
-
-impl Default for CascadeInputs {
-    fn default() -> Self {
-        CascadeInputs {
-            rules: None,
-            visited_rules: None,
-            visited_values: None,
-        }
-    }
+    pub visited_rules: Option<StrongRuleNode>,
 }
 
 impl CascadeInputs {
@@ -200,124 +180,7 @@ impl CascadeInputs {
         CascadeInputs {
             rules: style.rules.clone(),
             visited_rules: style.get_visited_style().and_then(|v| v.rules.clone()),
-            // Values will be re-cascaded if necessary, so this can be None.
-            visited_values: None,
         }
-    }
-
-    /// Whether there are any rules.  Rules will be present after unvisited
-    /// matching or pulled from a previous cascade if no matching is expected.
-    pub fn has_rules(&self) -> bool {
-        self.rules.is_some()
-    }
-
-    /// Gets a mutable reference to the rule node, if any.
-    pub fn get_rules_mut(&mut self) -> Option<&mut StrongRuleNode> {
-        self.rules.as_mut()
-    }
-
-    /// Gets a reference to the rule node, if any.
-    pub fn get_rules(&self) -> Option<&StrongRuleNode> {
-        self.rules.as_ref()
-    }
-
-    /// Gets a reference to the rule node. Panic if the element does not have
-    /// rule node.
-    pub fn rules(&self) -> &StrongRuleNode {
-        self.rules.as_ref().unwrap()
-    }
-
-    /// Sets the rule node depending on visited mode.
-    /// Returns whether the rules changed.
-    pub fn set_rules(&mut self,
-                     visited_handling: VisitedHandlingMode,
-                     rules: StrongRuleNode)
-                     -> bool {
-        match visited_handling {
-            VisitedHandlingMode::AllLinksVisitedAndUnvisited => {
-                unreachable!("We should never try to selector match with \
-                             AllLinksVisitedAndUnvisited");
-            },
-            VisitedHandlingMode::AllLinksUnvisited => self.set_unvisited_rules(rules),
-            VisitedHandlingMode::RelevantLinkVisited => self.set_visited_rules(rules),
-        }
-    }
-
-    /// Sets the unvisited rule node, and returns whether it changed.
-    fn set_unvisited_rules(&mut self, rules: StrongRuleNode) -> bool {
-        if let Some(ref old_rules) = self.rules {
-            if *old_rules == rules {
-                return false
-            }
-        }
-        self.rules = Some(rules);
-        true
-    }
-
-    /// Whether there are any visited rules.  Visited rules will be present
-    /// after visited matching or pulled from a previous cascade (assuming there
-    /// was a relevant link at the time) if no matching is expected.
-    pub fn has_visited_rules(&self) -> bool {
-        self.visited_rules.is_some()
-    }
-
-    /// Gets a reference to the visited rule node, if any.
-    pub fn get_visited_rules(&self) -> Option<&StrongRuleNode> {
-        self.visited_rules.as_ref()
-    }
-
-    /// Gets a mutable reference to the visited rule node, if any.
-    pub fn get_visited_rules_mut(&mut self) -> Option<&mut StrongRuleNode> {
-        self.visited_rules.as_mut()
-    }
-
-    /// Gets a reference to the visited rule node. Panic if the element does not
-    /// have visited rule node.
-    pub fn visited_rules(&self) -> &StrongRuleNode {
-        self.visited_rules.as_ref().unwrap()
-    }
-
-    /// Sets the visited rule node, and returns whether it changed.
-    fn set_visited_rules(&mut self, rules: StrongRuleNode) -> bool {
-        if let Some(ref old_rules) = self.visited_rules {
-            if *old_rules == rules {
-                return false
-            }
-        }
-        self.visited_rules = Some(rules);
-        true
-    }
-
-    /// Takes the visited rule node.
-    pub fn take_visited_rules(&mut self) -> Option<StrongRuleNode> {
-        self.visited_rules.take()
-    }
-
-    /// Whether there are any visited values.
-    pub fn has_visited_values(&self) -> bool {
-        self.visited_values.is_some()
-    }
-
-    /// Gets a reference to the visited computed values. Panic if the element
-    /// does not have visited computed values.
-    pub fn visited_values(&self) -> &Arc<ComputedValues> {
-        self.visited_values.as_ref().unwrap()
-    }
-
-    /// Sets the visited computed values.
-    pub fn set_visited_values(&mut self, values: Arc<ComputedValues>) {
-        self.visited_values = Some(values);
-    }
-
-    /// Take the visited computed values.
-    pub fn take_visited_values(&mut self) -> Option<Arc<ComputedValues>> {
-        self.visited_values.take()
-    }
-
-    /// Clone the visited computed values Arc.  Used to store a reference to the
-    /// visited values inside the regular values.
-    pub fn clone_visited_values(&self) -> Option<Arc<ComputedValues>> {
-        self.visited_values.clone()
     }
 }
 
@@ -363,160 +226,9 @@ impl EagerPseudoCascadeInputs {
         }))
     }
 
-    /// Returns whether there are any pseudo inputs.
-    pub fn is_empty(&self) -> bool {
-        self.0.is_none()
-    }
-
-    /// Returns a reference to the inputs for a given eager pseudo, if they exist.
-    pub fn get(&self, pseudo: &PseudoElement) -> Option<&CascadeInputs> {
-        debug_assert!(pseudo.is_eager());
-        self.0.as_ref().and_then(|p| p[pseudo.eager_index()].as_ref())
-    }
-
-    /// Returns a mutable reference to the inputs for a given eager pseudo, if they exist.
-    pub fn get_mut(&mut self, pseudo: &PseudoElement) -> Option<&mut CascadeInputs> {
-        debug_assert!(pseudo.is_eager());
-        self.0.as_mut().and_then(|p| p[pseudo.eager_index()].as_mut())
-    }
-
-    /// Returns true if the EagerPseudoCascadeInputs has a inputs for |pseudo|.
-    pub fn has(&self, pseudo: &PseudoElement) -> bool {
-        self.get(pseudo).is_some()
-    }
-
-    /// Inserts a pseudo-element. The pseudo-element must not already exist.
-    pub fn insert(&mut self, pseudo: &PseudoElement, inputs: CascadeInputs) {
-        debug_assert!(!self.has(pseudo));
-        if self.0.is_none() {
-            self.0 = Some(Default::default());
-        }
-        self.0.as_mut().unwrap()[pseudo.eager_index()] = Some(inputs);
-    }
-
-    /// Removes a pseudo-element inputs if they exist, and returns it.
-    pub fn take(&mut self, pseudo: &PseudoElement) -> Option<CascadeInputs> {
-        let result = match self.0.as_mut() {
-            None => return None,
-            Some(arr) => arr[pseudo.eager_index()].take(),
-        };
-        let empty = self.0.as_ref().unwrap().iter().all(|x| x.is_none());
-        if empty {
-            self.0 = None;
-        }
-        result
-    }
-
-    /// Returns a list of the pseudo-elements.
-    pub fn keys(&self) -> ArrayVec<[PseudoElement; EAGER_PSEUDO_COUNT]> {
-        let mut v = ArrayVec::new();
-        if let Some(ref arr) = self.0 {
-            for i in 0..EAGER_PSEUDO_COUNT {
-                if arr[i].is_some() {
-                    v.push(PseudoElement::from_eager_index(i));
-                }
-            }
-        }
-        v
-    }
-
-    /// Adds the unvisited rule node for a given pseudo-element, which may or
-    /// may not exist.
-    ///
-    /// Returns true if the pseudo-element is new.
-    fn add_unvisited_rules(&mut self,
-                           pseudo: &PseudoElement,
-                           rules: StrongRuleNode)
-                           -> bool {
-        if let Some(mut inputs) = self.get_mut(pseudo) {
-            inputs.set_unvisited_rules(rules);
-            return false
-        }
-        let mut inputs = CascadeInputs::default();
-        inputs.set_unvisited_rules(rules);
-        self.insert(pseudo, inputs);
-        true
-    }
-
-    /// Remove the unvisited rule node for a given pseudo-element, which may or
-    /// may not exist. Since removing the rule node implies we don't need any
-    /// other data for the pseudo, take the entire pseudo if found.
-    ///
-    /// Returns true if the pseudo-element was removed.
-    fn remove_unvisited_rules(&mut self, pseudo: &PseudoElement) -> bool {
-        self.take(pseudo).is_some()
-    }
-
-    /// Adds the visited rule node for a given pseudo-element.  It is assumed to
-    /// already exist because unvisited inputs should have been added first.
-    ///
-    /// Returns true if the pseudo-element is new.  (Always false, but returns a
-    /// bool for parity with `add_unvisited_rules`.)
-    fn add_visited_rules(&mut self,
-                         pseudo: &PseudoElement,
-                         rules: StrongRuleNode)
-                         -> bool {
-        debug_assert!(self.has(pseudo));
-        let mut inputs = self.get_mut(pseudo).unwrap();
-        inputs.set_visited_rules(rules);
-        false
-    }
-
-    /// Remove the visited rule node for a given pseudo-element, which may or
-    /// may not exist.
-    ///
-    /// Returns true if the psuedo-element was removed. (Always false, but
-    /// returns a bool for parity with `remove_unvisited_rules`.)
-    fn remove_visited_rules(&mut self, pseudo: &PseudoElement) -> bool {
-        if let Some(mut inputs) = self.get_mut(pseudo) {
-            inputs.take_visited_rules();
-        }
-        false
-    }
-
-    /// Adds a rule node for a given pseudo-element, which may or may not exist.
-    /// The type of rule node depends on the visited mode.
-    ///
-    /// Returns true if the pseudo-element is new.
-    pub fn add_rules(&mut self,
-                     pseudo: &PseudoElement,
-                     visited_handling: VisitedHandlingMode,
-                     rules: StrongRuleNode)
-                     -> bool {
-        match visited_handling {
-            VisitedHandlingMode::AllLinksVisitedAndUnvisited => {
-                unreachable!("We should never try to selector match with \
-                             AllLinksVisitedAndUnvisited");
-            },
-            VisitedHandlingMode::AllLinksUnvisited => {
-                self.add_unvisited_rules(&pseudo, rules)
-            },
-            VisitedHandlingMode::RelevantLinkVisited => {
-                self.add_visited_rules(&pseudo, rules)
-            },
-        }
-    }
-
-    /// Removes a rule node for a given pseudo-element, which may or may not
-    /// exist. The type of rule node depends on the visited mode.
-    ///
-    /// Returns true if the psuedo-element was removed.
-    pub fn remove_rules(&mut self,
-                        pseudo: &PseudoElement,
-                        visited_handling: VisitedHandlingMode)
-                        -> bool {
-        match visited_handling {
-            VisitedHandlingMode::AllLinksVisitedAndUnvisited => {
-                unreachable!("We should never try to selector match with \
-                             AllLinksVisitedAndUnvisited");
-            },
-            VisitedHandlingMode::AllLinksUnvisited => {
-                self.remove_unvisited_rules(&pseudo)
-            },
-            VisitedHandlingMode::RelevantLinkVisited => {
-                self.remove_visited_rules(&pseudo)
-            },
-        }
+    /// Returns the list of rules, if they exist.
+    pub fn into_array(self) -> Option<[Option<CascadeInputs>; EAGER_PSEUDO_COUNT]> {
+        self.0
     }
 }
 
@@ -530,55 +242,19 @@ impl EagerPseudoCascadeInputs {
 #[derive(Clone, Debug)]
 pub struct ElementCascadeInputs {
     /// The element's cascade inputs.
-    pub primary: Option<CascadeInputs>,
+    pub primary: CascadeInputs,
     /// A list of the inputs for the element's eagerly-cascaded pseudo-elements.
     pub pseudos: EagerPseudoCascadeInputs,
-}
-
-impl Default for ElementCascadeInputs {
-    /// Construct an empty `ElementCascadeInputs`.
-    fn default() -> Self {
-        ElementCascadeInputs {
-            primary: None,
-            pseudos: EagerPseudoCascadeInputs(None),
-        }
-    }
 }
 
 impl ElementCascadeInputs {
     /// Construct inputs from previous cascade results, if any.
     pub fn new_from_element_data(data: &ElementData) -> Self {
-        if !data.has_styles() {
-            return ElementCascadeInputs::default()
-        }
+        debug_assert!(data.has_styles());
         ElementCascadeInputs {
-            primary: Some(CascadeInputs::new_from_style(data.styles.primary())),
+            primary: CascadeInputs::new_from_style(data.styles.primary()),
             pseudos: EagerPseudoCascadeInputs::new_from_style(&data.styles.pseudos),
         }
-    }
-
-    /// Returns whether we have primary inputs.
-    pub fn has_primary(&self) -> bool {
-        self.primary.is_some()
-    }
-
-    /// Gets the primary inputs. Panic if unavailable.
-    pub fn primary(&self) -> &CascadeInputs {
-        self.primary.as_ref().unwrap()
-    }
-
-    /// Gets the mutable primary inputs. Panic if unavailable.
-    pub fn primary_mut(&mut self) -> &mut CascadeInputs {
-        self.primary.as_mut().unwrap()
-    }
-
-    /// Ensure primary inputs exist and create them if they do not.
-    /// Returns a mutable reference to the primary inputs.
-    pub fn ensure_primary(&mut self) -> &mut CascadeInputs {
-        if self.primary.is_none() {
-            self.primary = Some(CascadeInputs::default());
-        }
-        self.primary.as_mut().unwrap()
     }
 }
 
@@ -598,11 +274,6 @@ pub struct CurrentElementInfo {
     /// A Vec of possibly expired animations. Used only by Servo.
     #[allow(dead_code)]
     pub possibly_expired_animations: Vec<PropertyAnimation>,
-    /// Temporary storage for various intermediate inputs that are eventually
-    /// used by by the cascade. At the end of the cascade, they are folded down
-    /// into the main `ComputedValues` to reduce memory usage per element while
-    /// still remaining accessible.
-    pub cascade_inputs: ElementCascadeInputs,
 }
 
 /// Statistics gathered during the traversal. We gather statistics on each
@@ -906,7 +577,6 @@ impl<E: TElement> ThreadLocalStyleContext<E> {
             is_initial_style: !data.has_styles(),
             validation_data: ValidationData::default(),
             possibly_expired_animations: Vec::new(),
-            cascade_inputs: ElementCascadeInputs::default(),
         });
     }
 
@@ -949,24 +619,6 @@ pub struct StyleContext<'a, E: TElement + 'a> {
     pub shared: &'a SharedStyleContext<'a>,
     /// The thread-local style context (mutable) reference.
     pub thread_local: &'a mut ThreadLocalStyleContext<E>,
-}
-
-impl<'a, E: TElement + 'a> StyleContext<'a, E> {
-    /// Returns a reference to the cascade inputs.  Panics if there is no
-    /// `CurrentElementInfo`.
-    pub fn cascade_inputs(&self) -> &ElementCascadeInputs {
-        &self.thread_local.current_element_info
-             .as_ref().unwrap()
-             .cascade_inputs
-    }
-
-    /// Returns a mutable reference to the cascade inputs.  Panics if there is
-    /// no `CurrentElementInfo`.
-    pub fn cascade_inputs_mut(&mut self) -> &mut ElementCascadeInputs {
-        &mut self.thread_local.current_element_info
-                 .as_mut().unwrap()
-                 .cascade_inputs
-    }
 }
 
 /// Why we're doing reflow.

@@ -714,8 +714,6 @@ fn matches_simple_selector<E, F>(
             matches_last_child(element, flags_setter)
         }
         Component::Root => {
-            // We never share styles with an element with no parent, so no point
-            // in creating a new StyleRelation.
             element.is_root()
         }
         Component::Empty => {

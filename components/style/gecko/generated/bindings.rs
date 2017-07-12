@@ -2752,6 +2752,8 @@ extern "C" {
                                                               RawServoStyleSetBorrowed,
                                                           element:
                                                               RawGeckoElementBorrowed,
+                                                          existing_style:
+                                                              ServoComputedValuesBorrowed,
                                                           snapshots:
                                                               *const ServoElementSnapshotTable,
                                                           pseudo_type:
