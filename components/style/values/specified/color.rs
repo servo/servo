@@ -299,7 +299,7 @@ impl ToComputedValue for Color {
 
 /// Specified color value, but resolved to just RGBA for computed value
 /// with value from color property at the same context.
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, Debug, PartialEq, ToCss)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct RGBAColor(pub Color);
 
@@ -308,12 +308,6 @@ no_viewport_percentage!(RGBAColor);
 impl Parse for RGBAColor {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         Color::parse(context, input).map(RGBAColor)
-    }
-}
-
-impl ToCss for RGBAColor {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        self.0.to_css(dest)
     }
 }
 

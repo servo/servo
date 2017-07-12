@@ -370,7 +370,7 @@ impl nsStyleImage {
     pub unsafe fn into_image(self: &nsStyleImage) -> Option<Image> {
         use gecko_bindings::bindings::Gecko_GetImageElement;
         use gecko_bindings::structs::nsStyleImageType;
-        use values::computed::{NumberOrPercentage, ImageRect};
+        use values::computed::{NumberOrPercentage, MozImageRect};
 
         match self.mType {
             nsStyleImageType::eStyleImageType_Null => {
@@ -387,7 +387,7 @@ impl nsStyleImage {
                            NumberOrPercentage::from_gecko_style_coord(&rect.data_at(2)),
                            NumberOrPercentage::from_gecko_style_coord(&rect.data_at(3))) {
                         (Some(top), Some(right), Some(bottom), Some(left)) =>
-                            Some(GenericImage::Rect(ImageRect { url, top, right, bottom, left } )),
+                            Some(GenericImage::Rect(MozImageRect { url, top, right, bottom, left } )),
                         _ => {
                             debug_assert!(false, "mCropRect could not convert to NumberOrPercentage");
                             None
@@ -815,7 +815,7 @@ impl TrackSize<LengthOrPercentage> {
         if min == max {
             TrackSize::Breadth(max)
         } else {
-            TrackSize::MinMax(min, max)
+            TrackSize::Minmax(min, max)
         }
     }
 
@@ -836,7 +836,7 @@ impl TrackSize<LengthOrPercentage> {
                 breadth.to_gecko_style_coord(gecko_min);
                 breadth.to_gecko_style_coord(gecko_max);
             },
-            TrackSize::MinMax(ref min, ref max) => {
+            TrackSize::Minmax(ref min, ref max) => {
                 min.to_gecko_style_coord(gecko_min);
                 max.to_gecko_style_coord(gecko_max);
             },

@@ -17,6 +17,47 @@ pub fn derive(input: syn::DeriveInput) -> quote::Tokens {
     let style = synstructure::BindStyle::Ref.into();
     let match_body = synstructure::each_variant(&input, &style, |bindings, variant| {
         let mut identifier = to_css_identifier(variant.ident.as_ref());
+        let mut css_attrs = variant.attrs.iter().filter(|attr| attr.name() == "css");
+        let (is_function, use_comma) = css_attrs.next().map_or((false, false), |attr| {
+            match attr.value {
+                syn::MetaItem::List(ref ident, ref items) if ident.as_ref() == "css" => {
+                    let mut nested = items.iter();
+                    let mut is_function = false;
+                    let mut use_comma = false;
+                    for attr in nested.by_ref() {
+                        match *attr {
+                            syn::NestedMetaItem::MetaItem(syn::MetaItem::Word(ref ident)) => {
+                                match ident.as_ref() {
+                                    "function" => {
+                                        if is_function {
+                                            panic!("repeated `#[css(function)]` attribute");
+                                        }
+                                        is_function = true;
+                                    },
+                                    "comma" => {
+                                        if use_comma {
+                                            panic!("repeated `#[css(comma)]` attribute");
+                                        }
+                                        use_comma = true;
+                                    },
+                                    _ => panic!("only `#[css(function | comma)]` is supported for now"),
+                                }
+                            },
+                            _ => panic!("only `#[css(<ident...>)]` is supported for now"),
+                        }
+                    }
+                    if nested.next().is_some() {
+                        panic!("only `#[css()]` or `#[css(<ident>)]` is supported for now")
+                    }
+                    (is_function, use_comma)
+                },
+                _ => panic!("only `#[css(...)]` is supported for now"),
+            }
+        });
+        if css_attrs.next().is_some() {
+            panic!("only a single `#[css(...)]` attribute is supported for now");
+        }
+        let separator = if use_comma { ", " } else { " " };
         let mut expr = if !bindings.is_empty() {
             let mut expr = quote! {};
             for binding in bindings {
@@ -29,7 +70,7 @@ pub fn derive(input: syn::DeriveInput) -> quote::Tokens {
                 };
             }
             quote! {{
-                let mut writer = ::style_traits::values::SequenceWriter::new(&mut *dest, " ");
+                let mut writer = ::style_traits::values::SequenceWriter::new(&mut *dest, #separator);
                 #expr
                 Ok(())
             }}
@@ -38,33 +79,6 @@ pub fn derive(input: syn::DeriveInput) -> quote::Tokens {
                 ::std::fmt::Write::write_str(dest, #identifier)
             }
         };
-        let mut css_attrs = variant.attrs.iter().filter(|attr| attr.name() == "css");
-        let is_function = css_attrs.next().map_or(false, |attr| {
-            match attr.value {
-                syn::MetaItem::List(ref ident, ref items) if ident.as_ref() == "css" => {
-                    let mut nested = items.iter();
-                    let is_function = nested.next().map_or(false, |attr| {
-                        match *attr {
-                            syn::NestedMetaItem::MetaItem(syn::MetaItem::Word(ref ident)) => {
-                                if ident.as_ref() != "function" {
-                                    panic!("only `#[css(function)]` is supported for now")
-                                }
-                                true
-                            },
-                            _ => panic!("only `#[css(<ident>)]` is supported for now"),
-                        }
-                    });
-                    if nested.next().is_some() {
-                        panic!("only `#[css()]` or `#[css(<ident>)]` is supported for now")
-                    }
-                    is_function
-                },
-                _ => panic!("only `#[css(...)]` is supported for now"),
-            }
-        });
-        if css_attrs.next().is_some() {
-            panic!("only a single `#[css(...)]` attribute is supported for now");
-        }
         if is_function {
             identifier.push_str("(");
             expr = quote! {

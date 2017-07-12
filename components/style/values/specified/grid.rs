@@ -68,7 +68,7 @@ impl Parse for TrackSize<LengthOrPercentage> {
                     };
 
                 input.expect_comma()?;
-                Ok(TrackSize::MinMax(inflexible_breadth, TrackBreadth::parse(context, input)?))
+                Ok(TrackSize::Minmax(inflexible_breadth, TrackBreadth::parse(context, input)?))
             });
         }
 

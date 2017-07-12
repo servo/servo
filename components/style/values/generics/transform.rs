@@ -9,6 +9,20 @@ use std::fmt;
 use style_traits::{HasViewportPercentage, ToCss};
 use values::CSSFloat;
 
+/// A generic 2D transformation matrix.
+#[allow(missing_docs)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, ToComputedValue, ToCss)]
+#[css(comma, function)]
+pub struct Matrix<T, U = T> {
+    pub a: T,
+    pub b: T,
+    pub c: T,
+    pub d: T,
+    pub e: U,
+    pub f: U,
+}
+
 /// A generic transform origin.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, ToComputedValue, ToCss)]
@@ -37,10 +51,6 @@ pub enum TimingFunction<Integer, Number> {
     Frames(Integer),
 }
 
-impl<I, N> HasViewportPercentage for TimingFunction<I, N> {
-    fn has_viewport_percentage(&self) -> bool { false }
-}
-
 define_css_keyword_enum! { TimingKeyword:
     "linear" => Linear,
     "ease" => Ease,
@@ -65,6 +75,10 @@ impl<H, V, D> TransformOrigin<H, V, D> {
             depth: depth,
         }
     }
+}
+
+impl<I, N> HasViewportPercentage for TimingFunction<I, N> {
+    fn has_viewport_percentage(&self) -> bool { false }
 }
 
 impl<Integer, Number> TimingFunction<Integer, Number> {

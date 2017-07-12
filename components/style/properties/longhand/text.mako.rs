@@ -27,8 +27,8 @@
         String(Box<str>),
     }
 
-    #[derive(PartialEq, Eq, Clone, Debug)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    #[derive(Clone, Debug, Eq, PartialEq, ToCss)]
     pub struct SpecifiedValue {
         pub first: Side,
         pub second: Option<Side>
@@ -128,17 +128,6 @@
                 }
                 other => Err(BasicParseError::UnexpectedToken(other).into()),
             }
-        }
-    }
-
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            self.first.to_css(dest)?;
-            if let Some(ref second) = self.second {
-                dest.write_str(" ")?;
-                second.to_css(dest)?;
-            }
-            Ok(())
         }
     }
 </%helpers:longhand>

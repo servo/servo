@@ -75,7 +75,7 @@ add_impls_for_keyword_enum!(FontDisplay);
 /// A font-weight value for a @font-face rule.
 /// The font-weight CSS property specifies the weight or boldness of the font.
 #[cfg(feature = "gecko")]
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Eq, PartialEq, ToCss)]
 pub enum FontWeight {
     /// Numeric font weights for fonts that provide more than just normal and bold.
     Weight(font_weight::T),
@@ -83,17 +83,6 @@ pub enum FontWeight {
     Normal,
     /// Bold font weight. Same as 700.
     Bold,
-}
-
-#[cfg(feature = "gecko")]
-impl ToCss for FontWeight {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            FontWeight::Normal => dest.write_str("normal"),
-            FontWeight::Bold => dest.write_str("bold"),
-            FontWeight::Weight(ref weight) => weight.to_css(dest),
-        }
-    }
 }
 
 #[cfg(feature = "gecko")]

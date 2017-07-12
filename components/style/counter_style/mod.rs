@@ -380,7 +380,7 @@ impl Symbol {
 }
 
 /// https://drafts.csswg.org/css-counter-styles/#counter-style-negative
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, ToCss)]
 pub struct Negative(pub Symbol, pub Option<Symbol>);
 
 impl Parse for Negative {
@@ -389,17 +389,6 @@ impl Parse for Negative {
             Symbol::parse(context, input)?,
             input.try(|input| Symbol::parse(context, input)).ok(),
         ))
-    }
-}
-
-impl ToCss for Negative {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        self.0.to_css(dest)?;
-        if let Some(ref symbol) = self.1 {
-            dest.write_char(' ')?;
-            symbol.to_css(dest)?
-        }
-        Ok(())
     }
 }
 

@@ -688,6 +688,7 @@ ${helpers.predefined_type(
     use app_units::Au;
     use values::computed::{LengthOrPercentageOrNumber as ComputedLoPoNumber, LengthOrNumber as ComputedLoN};
     use values::computed::{LengthOrPercentage as ComputedLoP, Length as ComputedLength};
+    use values::generics::transform::Matrix;
     use values::specified::{Angle, Integer, Length, LengthOrPercentage, Percentage};
     use values::specified::{LengthOrNumber, LengthOrPercentageOrNumber as LoPoNumber, Number};
     use style_traits::ToCss;
@@ -791,10 +792,10 @@ ${helpers.predefined_type(
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SpecifiedOperation {
         /// Represents a 2D 2x3 matrix.
-        Matrix { a: Number, b: Number, c: Number, d: Number, e: Number, f: Number },
+        Matrix(Matrix<Number>),
         /// Represents a 3D 4x4 matrix with percentage and length values.
         /// For `moz-transform`.
-        PrefixedMatrix { a: Number, b: Number, c: Number, d: Number, e: LoPoNumber, f: LoPoNumber },
+        PrefixedMatrix(Matrix<Number, LoPoNumber>),
         /// Represents a 3D 4x4 matrix.
         Matrix3D {
             m11: Number, m12: Number, m13: Number, m14: Number,
@@ -872,15 +873,10 @@ ${helpers.predefined_type(
 
     impl ToCss for SpecifiedOperation {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            use self::SpecifiedOperation::*;
             match *self {
-                Matrix { a, b, c, d, e, f} => write!(
-                    dest, "matrix({}, {}, {}, {}, {}, {})",
-                    Css(a), Css(b), Css(c), Css(d), Css(e), Css(f)),
-                PrefixedMatrix { a, b, c, d, ref e, ref f} => write!(
-                    dest, "matrix({}, {}, {}, {}, {}, {})",
-                    Css(a), Css(b), Css(c), Css(d), Css(e), Css(f)),
-                Matrix3D {
+                SpecifiedOperation::Matrix(ref m) => m.to_css(dest),
+                SpecifiedOperation::PrefixedMatrix(ref m) => m.to_css(dest),
+                SpecifiedOperation::Matrix3D {
                     m11, m12, m13, m14,
                     m21, m22, m23, m24,
                     m31, m32, m33, m34,
@@ -890,7 +886,7 @@ ${helpers.predefined_type(
                         Css(m21), Css(m22), Css(m23), Css(m24),
                         Css(m31), Css(m32), Css(m33), Css(m34),
                         Css(m41), Css(m42), Css(m43), Css(m44)),
-                PrefixedMatrix3D {
+                SpecifiedOperation::PrefixedMatrix3D {
                     m11, m12, m13, m14,
                     m21, m22, m23, m24,
                     m31, m32, m33, m34,
@@ -900,31 +896,35 @@ ${helpers.predefined_type(
                         Css(m21), Css(m22), Css(m23), Css(m24),
                         Css(m31), Css(m32), Css(m33), Css(m34),
                         Css(m41), Css(m42), Css(m43), Css(m44)),
-                Skew(ax, None) => write!(dest, "skew({})", Css(ax)),
-                Skew(ax, Some(ay)) => write!(dest, "skew({}, {})", Css(ax), Css(ay)),
-                SkewX(angle) => write!(dest, "skewX({})", Css(angle)),
-                SkewY(angle) => write!(dest, "skewY({})", Css(angle)),
-                Translate(ref tx, None) => write!(dest, "translate({})", Css(tx)),
-                Translate(ref tx, Some(ref ty)) => write!(dest, "translate({}, {})", Css(tx), Css(ty)),
-                TranslateX(ref tx) => write!(dest, "translateX({})", Css(tx)),
-                TranslateY(ref ty) => write!(dest, "translateY({})", Css(ty)),
-                TranslateZ(ref tz) => write!(dest, "translateZ({})", Css(tz)),
-                Translate3D(ref tx, ref ty, ref tz) => write!(
+                SpecifiedOperation::Skew(ax, None) => write!(dest, "skew({})", Css(ax)),
+                SpecifiedOperation::Skew(ax, Some(ay)) => write!(dest, "skew({}, {})", Css(ax), Css(ay)),
+                SpecifiedOperation::SkewX(angle) => write!(dest, "skewX({})", Css(angle)),
+                SpecifiedOperation::SkewY(angle) => write!(dest, "skewY({})", Css(angle)),
+                SpecifiedOperation::Translate(ref tx, None) => write!(dest, "translate({})", Css(tx)),
+                SpecifiedOperation::Translate(ref tx, Some(ref ty)) => {
+                    write!(dest, "translate({}, {})", Css(tx), Css(ty))
+                },
+                SpecifiedOperation::TranslateX(ref tx) => write!(dest, "translateX({})", Css(tx)),
+                SpecifiedOperation::TranslateY(ref ty) => write!(dest, "translateY({})", Css(ty)),
+                SpecifiedOperation::TranslateZ(ref tz) => write!(dest, "translateZ({})", Css(tz)),
+                SpecifiedOperation::Translate3D(ref tx, ref ty, ref tz) => write!(
                     dest, "translate3d({}, {}, {})", Css(tx), Css(ty), Css(tz)),
-                Scale(factor, None) => write!(dest, "scale({})", Css(factor)),
-                Scale(sx, Some(sy)) => write!(dest, "scale({}, {})", Css(sx), Css(sy)),
-                ScaleX(sx) => write!(dest, "scaleX({})", Css(sx)),
-                ScaleY(sy) => write!(dest, "scaleY({})", Css(sy)),
-                ScaleZ(sz) => write!(dest, "scaleZ({})", Css(sz)),
-                Scale3D(sx, sy, sz) => write!(dest, "scale3d({}, {}, {})", Css(sx), Css(sy), Css(sz)),
-                Rotate(theta) => write!(dest, "rotate({})", Css(theta)),
-                RotateX(theta) => write!(dest, "rotateX({})", Css(theta)),
-                RotateY(theta) => write!(dest, "rotateY({})", Css(theta)),
-                RotateZ(theta) => write!(dest, "rotateZ({})", Css(theta)),
-                Rotate3D(x, y, z, theta) => write!(
+                SpecifiedOperation::Scale(factor, None) => write!(dest, "scale({})", Css(factor)),
+                SpecifiedOperation::Scale(sx, Some(sy)) => write!(dest, "scale({}, {})", Css(sx), Css(sy)),
+                SpecifiedOperation::ScaleX(sx) => write!(dest, "scaleX({})", Css(sx)),
+                SpecifiedOperation::ScaleY(sy) => write!(dest, "scaleY({})", Css(sy)),
+                SpecifiedOperation::ScaleZ(sz) => write!(dest, "scaleZ({})", Css(sz)),
+                SpecifiedOperation::Scale3D(sx, sy, sz) => {
+                    write!(dest, "scale3d({}, {}, {})", Css(sx), Css(sy), Css(sz))
+                },
+                SpecifiedOperation::Rotate(theta) => write!(dest, "rotate({})", Css(theta)),
+                SpecifiedOperation::RotateX(theta) => write!(dest, "rotateX({})", Css(theta)),
+                SpecifiedOperation::RotateY(theta) => write!(dest, "rotateY({})", Css(theta)),
+                SpecifiedOperation::RotateZ(theta) => write!(dest, "rotateZ({})", Css(theta)),
+                SpecifiedOperation::Rotate3D(x, y, z, theta) => write!(
                     dest, "rotate3d({}, {}, {}, {})",
                     Css(x), Css(y), Css(z), Css(theta)),
-                Perspective(ref length) => write!(dest, "perspective({})", Css(length)),
+                SpecifiedOperation::Perspective(ref length) => write!(dest, "perspective({})", Css(length)),
                 _ => unreachable!(),
             }
         }
@@ -959,248 +959,176 @@ ${helpers.predefined_type(
     }
 
     // Allow unitless zero angle for rotate() and skew() to align with gecko
-    fn parse_internal<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>, prefixed: bool)
-        -> Result<SpecifiedValue,ParseError<'i>> {
+    fn parse_internal<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        prefixed: bool,
+    ) -> Result<SpecifiedValue,ParseError<'i>> {
+        use style_traits::{Separator, Space};
+
         if input.try(|input| input.expect_ident_matching("none")).is_ok() {
             return Ok(SpecifiedValue(Vec::new()))
         }
 
-        let mut result = Vec::new();
-        loop {
-            let name = match input.try(|i| i.expect_function()) {
-                Ok(name) => name,
-                Err(_) => break,
-            };
-            let valid_fn = match_ignore_ascii_case! {
-                &name,
-                "matrix" => {
-                    input.parse_nested_block(|input| {
-                        // Standard matrix parsing.
+        Ok(SpecifiedValue(Space::parse(input, |input| {
+            let function = input.expect_function()?;
+            input.parse_nested_block(|input| {
+                let result = match_ignore_ascii_case! { &function,
+                    "matrix" => {
+                        let a = specified::parse_number(context, input)?;
+                        input.expect_comma()?;
+                        let b = specified::parse_number(context, input)?;
+                        input.expect_comma()?;
+                        let c = specified::parse_number(context, input)?;
+                        input.expect_comma()?;
+                        let d = specified::parse_number(context, input)?;
+                        input.expect_comma()?;
                         if !prefixed {
-                            let values = input.parse_comma_separated(|input| {
-                                specified::parse_number(context, input)
-                            })?;
-                            if values.len() != 6 {
-                                return Err(StyleParseError::UnspecifiedError.into())
-                            }
-
-                            result.push(SpecifiedOperation::Matrix {
-                                a: values[0],
-                                b: values[1],
-                                c: values[2],
-                                d: values[3],
-                                e: values[4],
-                                f: values[5],
-                            });
-                            return Ok(true);
-                        }
-
-                        // Non-standard prefixed matrix parsing.
-                        //
-                        // -moz-transform accepts LengthOrPercentageOrNumber in the
-                        //  nondiagonal homogeneous components. transform accepts only number.
-                        let mut values = Vec::with_capacity(4);
-                        let mut lengths = Vec::with_capacity(2);
-
-                        // Consume first number
-                        values.push(specified::parse_number(context, input)?);
-
-                        // Parse other 5 number/LengthOrPercentageOrNumber
-                        for i in 0..5 {
+                            // Standard matrix parsing.
+                            let e = specified::parse_number(context, input)?;
                             input.expect_comma()?;
-                            if i < 3 {
-                                values.push(specified::parse_number(context, input)?);
-                            } else {
-                                // -moz-transform accepts LengthOrPercentageOrNumber in the nondiagonal
-                                // homogeneous components. transform accepts only number.
-                                lengths.push(LoPoNumber::parse(context, input)?)
-                            }
+                            let f = specified::parse_number(context, input)?;
+                            Ok(SpecifiedOperation::Matrix(Matrix { a, b, c, d, e, f }))
+                        } else {
+                            // Non-standard prefixed matrix parsing for -moz-transform.
+                            let e = LoPoNumber::parse(context, input)?;
+                            input.expect_comma()?;
+                            let f = LoPoNumber::parse(context, input)?;
+                            Ok(SpecifiedOperation::PrefixedMatrix(Matrix { a, b, c, d, e, f }))
                         }
-
-                        result.push(SpecifiedOperation::PrefixedMatrix {
-                            a: values[0],
-                            b: values[1],
-                            c: values[2],
-                            d: values[3],
-                            e: lengths[0].clone(),
-                            f: lengths[1].clone(),
-                        });
-                        Ok(true)
-                    })?
-                },
-                "matrix3d" => {
-                    input.parse_nested_block(|input| {
-                        // Standard matrix3d parsing.
+                    },
+                    "matrix3d" => {
+                        let m11 = specified::parse_number(context, input)?;
+                        input.expect_comma()?;
+                        let m12 = specified::parse_number(context, input)?;
+                        input.expect_comma()?;
+                        let m13 = specified::parse_number(context, input)?;
+                        input.expect_comma()?;
+                        let m14 = specified::parse_number(context, input)?;
+                        input.expect_comma()?;
+                        let m21 = specified::parse_number(context, input)?;
+                        input.expect_comma()?;
+                        let m22 = specified::parse_number(context, input)?;
+                        input.expect_comma()?;
+                        let m23 = specified::parse_number(context, input)?;
+                        input.expect_comma()?;
+                        let m24 = specified::parse_number(context, input)?;
+                        input.expect_comma()?;
+                        let m31 = specified::parse_number(context, input)?;
+                        input.expect_comma()?;
+                        let m32 = specified::parse_number(context, input)?;
+                        input.expect_comma()?;
+                        let m33 = specified::parse_number(context, input)?;
+                        input.expect_comma()?;
+                        let m34 = specified::parse_number(context, input)?;
+                        input.expect_comma()?;
                         if !prefixed {
-                            let values = input.parse_comma_separated(|i| specified::parse_number(context, i))?;
-                            if values.len() != 16 {
-                                return Err(StyleParseError::UnspecifiedError.into())
-                            }
-
-                            result.push(SpecifiedOperation::Matrix3D {
-                                m11: values[ 0], m12: values[ 1], m13: values[ 2], m14: values[ 3],
-                                m21: values[ 4], m22: values[ 5], m23: values[ 6], m24: values[ 7],
-                                m31: values[ 8], m32: values[ 9], m33: values[10], m34: values[11],
-                                m41: values[12], m42: values[13], m43: values[14], m44: values[15]
-                            });
-                            return Ok(true);
-                        }
-
-                        // Non-standard prefixed matrix3d parsing.
-                        //
-                        // -moz-transform accepts LengthOrPercentageOrNumber in the
-                        //  nondiagonal homogeneous components. transform accepts only number.
-                        let mut values = Vec::with_capacity(13);
-                        let mut lops = Vec::with_capacity(2);
-                        let mut length_or_number = None;
-
-                        // Parse first number
-                        values.push(specified::parse_number(context, input)?);
-
-                        // Parse other 15 number/LengthOrPercentageOrNumber
-                        for i in 0..15 {
+                            // Standard matrix3d parsing.
+                            let m41 = specified::parse_number(context, input)?;
                             input.expect_comma()?;
-                            // -moz-transform accepts LengthOrPercentageOrNumber in the nondiagonal
-                            // homogeneous components. transform accepts only number.
-                            if i < 11 || i > 13 {
-                                values.push(specified::parse_number(context, input)?);
-                            } else if i == 13 {
-                                // m43
-                                length_or_number = Some(LengthOrNumber::parse(context, input)?);
-                            } else {
-                                // m41 and m42
-                                lops.push(LoPoNumber::parse(context, input)?);
-                            }
+                            let m42 = specified::parse_number(context, input)?;
+                            input.expect_comma()?;
+                            let m43 = specified::parse_number(context, input)?;
+                            input.expect_comma()?;
+                            let m44 = specified::parse_number(context, input)?;
+                            Ok(SpecifiedOperation::Matrix3D {
+                                m11, m12, m13, m14,
+                                m21, m22, m23, m24,
+                                m31, m32, m33, m34,
+                                m41, m42, m43, m44,
+                            })
+                        } else {
+                            // Non-standard prefixed matrix parsing for -moz-transform.
+                            let m41 = LoPoNumber::parse(context, input)?;
+                            input.expect_comma()?;
+                            let m42 = LoPoNumber::parse(context, input)?;
+                            input.expect_comma()?;
+                            let m43 = LengthOrNumber::parse(context, input)?;
+                            input.expect_comma()?;
+                            let m44 = specified::parse_number(context, input)?;
+                            Ok(SpecifiedOperation::PrefixedMatrix3D {
+                                m11, m12, m13, m14,
+                                m21, m22, m23, m24,
+                                m31, m32, m33, m34,
+                                m41, m42, m43, m44,
+                            })
                         }
-
-                        result.push(SpecifiedOperation::PrefixedMatrix3D {
-                            m11: values[ 0], m12: values[ 1], m13: values[ 2], m14: values[ 3],
-                            m21: values[ 4], m22: values[ 5], m23: values[ 6], m24: values[ 7],
-                            m31: values[ 8], m32: values[ 9], m33: values[10], m34: values[11],
-                            m41: lops[0].clone(), m42: lops[1].clone(), m43: length_or_number.unwrap(),
-                            m44: values[12]
-                        });
-                        Ok(true)
-                    })?
-                },
-                "translate" => {
-                    input.parse_nested_block(|input| {
+                    },
+                    "translate" => {
                         let sx = specified::LengthOrPercentage::parse(context, input)?;
                         if input.try(|input| input.expect_comma()).is_ok() {
                             let sy = specified::LengthOrPercentage::parse(context, input)?;
-                            result.push(SpecifiedOperation::Translate(sx, Some(sy)));
+                            Ok(SpecifiedOperation::Translate(sx, Some(sy)))
                         } else {
-                            result.push(SpecifiedOperation::Translate(sx, None));
+                            Ok(SpecifiedOperation::Translate(sx, None))
                         }
-                        Ok(true)
-                    })?
-                },
-                "translatex" => {
-                    input.parse_nested_block(|input| {
+                    },
+                    "translatex" => {
                         let tx = specified::LengthOrPercentage::parse(context, input)?;
-                        result.push(SpecifiedOperation::TranslateX(tx));
-                        Ok(true)
-                    })?
-                },
-                "translatey" => {
-                    input.parse_nested_block(|input| {
+                        Ok(SpecifiedOperation::TranslateX(tx))
+                    },
+                    "translatey" => {
                         let ty = specified::LengthOrPercentage::parse(context, input)?;
-                        result.push(SpecifiedOperation::TranslateY(ty));
-                        Ok(true)
-                    })?
-                },
-                "translatez" => {
-                    input.parse_nested_block(|input| {
+                        Ok(SpecifiedOperation::TranslateY(ty))
+                    },
+                    "translatez" => {
                         let tz = specified::Length::parse(context, input)?;
-                        result.push(SpecifiedOperation::TranslateZ(tz));
-                        Ok(true)
-                    })?
-                },
-                "translate3d" => {
-                    input.parse_nested_block(|input| {
+                        Ok(SpecifiedOperation::TranslateZ(tz))
+                    },
+                    "translate3d" => {
                         let tx = specified::LengthOrPercentage::parse(context, input)?;
                         input.expect_comma()?;
                         let ty = specified::LengthOrPercentage::parse(context, input)?;
                         input.expect_comma()?;
                         let tz = specified::Length::parse(context, input)?;
-                        result.push(SpecifiedOperation::Translate3D(tx, ty, tz));
-                        Ok(true)
-                    })?
-                },
-                "scale" => {
-                    input.parse_nested_block(|input| {
+                        Ok(SpecifiedOperation::Translate3D(tx, ty, tz))
+                    },
+                    "scale" => {
                         let sx = specified::parse_number(context, input)?;
                         if input.try(|input| input.expect_comma()).is_ok() {
                             let sy = specified::parse_number(context, input)?;
-                            result.push(SpecifiedOperation::Scale(sx, Some(sy)));
+                            Ok(SpecifiedOperation::Scale(sx, Some(sy)))
                         } else {
-                            result.push(SpecifiedOperation::Scale(sx, None));
+                            Ok(SpecifiedOperation::Scale(sx, None))
                         }
-                        Ok(true)
-                    })?
-                },
-                "scalex" => {
-                    input.parse_nested_block(|input| {
+                    },
+                    "scalex" => {
                         let sx = specified::parse_number(context, input)?;
-                        result.push(SpecifiedOperation::ScaleX(sx));
-                        Ok(true)
-                    })?
-                },
-                "scaley" => {
-                    input.parse_nested_block(|input| {
+                        Ok(SpecifiedOperation::ScaleX(sx))
+                    },
+                    "scaley" => {
                         let sy = specified::parse_number(context, input)?;
-                        result.push(SpecifiedOperation::ScaleY(sy));
-                        Ok(true)
-                    })?
-                },
-                "scalez" => {
-                    input.parse_nested_block(|input| {
+                        Ok(SpecifiedOperation::ScaleY(sy))
+                    },
+                    "scalez" => {
                         let sz = specified::parse_number(context, input)?;
-                        result.push(SpecifiedOperation::ScaleZ(sz));
-                        Ok(true)
-                    })?
-                },
-                "scale3d" => {
-                    input.parse_nested_block(|input| {
+                        Ok(SpecifiedOperation::ScaleZ(sz))
+                    },
+                    "scale3d" => {
                         let sx = specified::parse_number(context, input)?;
                         input.expect_comma()?;
                         let sy = specified::parse_number(context, input)?;
                         input.expect_comma()?;
                         let sz = specified::parse_number(context, input)?;
-                        result.push(SpecifiedOperation::Scale3D(sx, sy, sz));
-                        Ok(true)
-                    })?
-                },
-                "rotate" => {
-                    input.parse_nested_block(|input| {
+                        Ok(SpecifiedOperation::Scale3D(sx, sy, sz))
+                    },
+                    "rotate" => {
                         let theta = specified::Angle::parse_with_unitless(context, input)?;
-                        result.push(SpecifiedOperation::Rotate(theta));
-                        Ok(true)
-                    })?
-                },
-                "rotatex" => {
-                    input.parse_nested_block(|input| {
+                        Ok(SpecifiedOperation::Rotate(theta))
+                    },
+                    "rotatex" => {
                         let theta = specified::Angle::parse_with_unitless(context, input)?;
-                        result.push(SpecifiedOperation::RotateX(theta));
-                        Ok(true)
-                    })?
-                },
-                "rotatey" => {
-                    input.parse_nested_block(|input| {
+                        Ok(SpecifiedOperation::RotateX(theta))
+                    },
+                    "rotatey" => {
                         let theta = specified::Angle::parse_with_unitless(context, input)?;
-                        result.push(SpecifiedOperation::RotateY(theta));
-                        Ok(true)
-                    })?
-                },
-                "rotatez" => {
-                    input.parse_nested_block(|input| {
+                        Ok(SpecifiedOperation::RotateY(theta))
+                    },
+                    "rotatez" => {
                         let theta = specified::Angle::parse_with_unitless(context, input)?;
-                        result.push(SpecifiedOperation::RotateZ(theta));
-                        Ok(true)
-                    })?
-                },
-                "rotate3d" => {
-                    input.parse_nested_block(|input| {
+                        Ok(SpecifiedOperation::RotateZ(theta))
+                    },
+                    "rotate3d" => {
                         let ax = specified::parse_number(context, input)?;
                         input.expect_comma()?;
                         let ay = specified::parse_number(context, input)?;
@@ -1208,56 +1136,36 @@ ${helpers.predefined_type(
                         let az = specified::parse_number(context, input)?;
                         input.expect_comma()?;
                         let theta = specified::Angle::parse_with_unitless(context, input)?;
-                        // TODO(gw): Check the axis can be normalized!!
-                        result.push(SpecifiedOperation::Rotate3D(ax, ay, az, theta));
-                        Ok(true)
-                    })?
-                },
-                "skew" => {
-                    input.parse_nested_block(|input| {
-                        let theta_x = specified::Angle::parse_with_unitless(context, input)?;
+                        // TODO(gw): Check that the axis can be normalized.
+                        Ok(SpecifiedOperation::Rotate3D(ax, ay, az, theta))
+                    },
+                    "skew" => {
+                        let ax = specified::Angle::parse_with_unitless(context, input)?;
                         if input.try(|input| input.expect_comma()).is_ok() {
-                            let theta_y = specified::Angle::parse_with_unitless(context, input)?;
-                            result.push(SpecifiedOperation::Skew(theta_x, Some(theta_y)));
+                            let ay = specified::Angle::parse_with_unitless(context, input)?;
+                            Ok(SpecifiedOperation::Skew(ax, Some(ay)))
                         } else {
-                            result.push(SpecifiedOperation::Skew(theta_x, None));
+                            Ok(SpecifiedOperation::Skew(ax, None))
                         }
-                        Ok(true)
-                    })?
-                },
-                "skewx" => {
-                    input.parse_nested_block(|input| {
-                        let theta_x = specified::Angle::parse_with_unitless(context, input)?;
-                        result.push(SpecifiedOperation::SkewX(theta_x));
-                        Ok(true)
-                    })?
-                },
-                "skewy" => {
-                    input.parse_nested_block(|input| {
-                        let theta_y = specified::Angle::parse_with_unitless(context, input)?;
-                        result.push(SpecifiedOperation::SkewY(theta_y));
-                        Ok(true)
-                    })?
-                },
-                "perspective" => {
-                    input.parse_nested_block(|input| {
+                    },
+                    "skewx" => {
+                        let theta = specified::Angle::parse_with_unitless(context, input)?;
+                        Ok(SpecifiedOperation::SkewX(theta))
+                    },
+                    "skewy" => {
+                        let theta = specified::Angle::parse_with_unitless(context, input)?;
+                        Ok(SpecifiedOperation::SkewY(theta))
+                    },
+                    "perspective" => {
                         let d = specified::Length::parse_non_negative(context, input)?;
-                        result.push(SpecifiedOperation::Perspective(d));
-                        Ok(true)
-                    })?
-                },
-                _ => false
-            };
-            if !valid_fn {
-                return Err(StyleParseError::UnexpectedFunction(name).into());
-            }
-        }
-
-        if !result.is_empty() {
-            Ok(SpecifiedValue(result))
-        } else {
-            Err(StyleParseError::UnspecifiedError.into())
-        }
+                        Ok(SpecifiedOperation::Perspective(d))
+                    },
+                    _ => Err(()),
+                };
+                result
+                    .map_err(|()| StyleParseError::UnexpectedFunction(function).into())
+            })
+        })?))
     }
 
     /// Parses `transform` property.
@@ -1280,8 +1188,6 @@ ${helpers.predefined_type(
 
         #[inline]
         fn to_computed_value(&self, context: &Context) -> computed_value::T {
-            use self::SpecifiedOperation::*;
-
             if self.0.is_empty() {
                 return computed_value::T(None)
             }
@@ -1289,7 +1195,7 @@ ${helpers.predefined_type(
             let mut result = vec!();
             for operation in &self.0 {
                 match *operation {
-                    Matrix { a, b, c, d, e, f } => {
+                    SpecifiedOperation::Matrix(Matrix { a, b, c, d, e, f }) => {
                         let mut comp = computed_value::ComputedMatrix::identity();
                         comp.m11 = a.to_computed_value(context);
                         comp.m12 = b.to_computed_value(context);
@@ -1299,7 +1205,7 @@ ${helpers.predefined_type(
                         comp.m42 = f.to_computed_value(context);
                         result.push(computed_value::ComputedOperation::Matrix(comp));
                     }
-                    PrefixedMatrix { a, b, c, d, ref e, ref f } => {
+                    SpecifiedOperation::PrefixedMatrix(Matrix { a, b, c, d, ref e, ref f }) => {
                         let mut comp = computed_value::ComputedMatrixWithPercents::identity();
                         comp.m11 = a.to_computed_value(context);
                         comp.m12 = b.to_computed_value(context);
@@ -1309,7 +1215,7 @@ ${helpers.predefined_type(
                         comp.m42 = lopon_to_lop(&f.to_computed_value(context));
                         result.push(computed_value::ComputedOperation::MatrixWithPercents(comp));
                     }
-                    Matrix3D {
+                    SpecifiedOperation::Matrix3D {
                         m11, m12, m13, m14,
                         m21, m22, m23, m24,
                         m31, m32, m33, m34,
@@ -1334,7 +1240,7 @@ ${helpers.predefined_type(
                             };
                         result.push(computed_value::ComputedOperation::Matrix(comp));
                     }
-                    PrefixedMatrix3D {
+                    SpecifiedOperation::PrefixedMatrix3D {
                         m11, m12, m13, m14,
                         m21, m22, m23, m24,
                         m31, m32, m33, m34,
@@ -1359,14 +1265,14 @@ ${helpers.predefined_type(
                             };
                         result.push(computed_value::ComputedOperation::MatrixWithPercents(comp));
                     }
-                    Translate(ref tx, None) => {
+                    SpecifiedOperation::Translate(ref tx, None) => {
                         let tx = tx.to_computed_value(context);
                         result.push(computed_value::ComputedOperation::Translate(
                             tx,
                             computed::length::LengthOrPercentage::zero(),
                             computed::length::Length::new(0)));
                     }
-                    Translate(ref tx, Some(ref ty)) => {
+                    SpecifiedOperation::Translate(ref tx, Some(ref ty)) => {
                         let tx = tx.to_computed_value(context);
                         let ty = ty.to_computed_value(context);
                         result.push(computed_value::ComputedOperation::Translate(
@@ -1374,77 +1280,77 @@ ${helpers.predefined_type(
                             ty,
                             computed::length::Length::new(0)));
                     }
-                    TranslateX(ref tx) => {
+                    SpecifiedOperation::TranslateX(ref tx) => {
                         let tx = tx.to_computed_value(context);
                         result.push(computed_value::ComputedOperation::Translate(
                             tx,
                             computed::length::LengthOrPercentage::zero(),
                             computed::length::Length::new(0)));
                     }
-                    TranslateY(ref ty) => {
+                    SpecifiedOperation::TranslateY(ref ty) => {
                         let ty = ty.to_computed_value(context);
                         result.push(computed_value::ComputedOperation::Translate(
                             computed::length::LengthOrPercentage::zero(),
                             ty,
                             computed::length::Length::new(0)));
                     }
-                    TranslateZ(ref tz) => {
+                    SpecifiedOperation::TranslateZ(ref tz) => {
                         let tz = tz.to_computed_value(context);
                         result.push(computed_value::ComputedOperation::Translate(
                             computed::length::LengthOrPercentage::zero(),
                             computed::length::LengthOrPercentage::zero(),
                             tz));
                     }
-                    Translate3D(ref tx, ref ty, ref tz) => {
+                    SpecifiedOperation::Translate3D(ref tx, ref ty, ref tz) => {
                         let tx = tx.to_computed_value(context);
                         let ty = ty.to_computed_value(context);
                         let tz = tz.to_computed_value(context);
                         result.push(computed_value::ComputedOperation::Translate(tx, ty, tz));
                     }
-                    Scale(factor, None) => {
+                    SpecifiedOperation::Scale(factor, None) => {
                         let factor = factor.to_computed_value(context);
                         result.push(computed_value::ComputedOperation::Scale(factor, factor, 1.0));
                     }
-                    Scale(sx, Some(sy)) => {
+                    SpecifiedOperation::Scale(sx, Some(sy)) => {
                         let sx = sx.to_computed_value(context);
                         let sy = sy.to_computed_value(context);
                         result.push(computed_value::ComputedOperation::Scale(sx, sy, 1.0));
                     }
-                    ScaleX(sx) => {
+                    SpecifiedOperation::ScaleX(sx) => {
                         let sx = sx.to_computed_value(context);
                         result.push(computed_value::ComputedOperation::Scale(sx, 1.0, 1.0));
                     }
-                    ScaleY(sy) => {
+                    SpecifiedOperation::ScaleY(sy) => {
                         let sy = sy.to_computed_value(context);
                         result.push(computed_value::ComputedOperation::Scale(1.0, sy, 1.0));
                     }
-                    ScaleZ(sz) => {
+                    SpecifiedOperation::ScaleZ(sz) => {
                         let sz = sz.to_computed_value(context);
                         result.push(computed_value::ComputedOperation::Scale(1.0, 1.0, sz));
                     }
-                    Scale3D(sx, sy, sz) => {
+                    SpecifiedOperation::Scale3D(sx, sy, sz) => {
                         let sx = sx.to_computed_value(context);
                         let sy = sy.to_computed_value(context);
                         let sz = sz.to_computed_value(context);
                         result.push(computed_value::ComputedOperation::Scale(sx, sy, sz));
                     }
-                    Rotate(theta) => {
+                    SpecifiedOperation::Rotate(theta) => {
                         let theta = theta.to_computed_value(context);
                         result.push(computed_value::ComputedOperation::Rotate(0.0, 0.0, 1.0, theta));
                     }
-                    RotateX(theta) => {
+                    SpecifiedOperation::RotateX(theta) => {
                         let theta = theta.to_computed_value(context);
                         result.push(computed_value::ComputedOperation::Rotate(1.0, 0.0, 0.0, theta));
                     }
-                    RotateY(theta) => {
+                    SpecifiedOperation::RotateY(theta) => {
                         let theta = theta.to_computed_value(context);
                         result.push(computed_value::ComputedOperation::Rotate(0.0, 1.0, 0.0, theta));
                     }
-                    RotateZ(theta) => {
+                    SpecifiedOperation::RotateZ(theta) => {
                         let theta = theta.to_computed_value(context);
                         result.push(computed_value::ComputedOperation::Rotate(0.0, 0.0, 1.0, theta));
                     }
-                    Rotate3D(ax, ay, az, theta) => {
+                    SpecifiedOperation::Rotate3D(ax, ay, az, theta) => {
                         let ax = ax.to_computed_value(context);
                         let ay = ay.to_computed_value(context);
                         let az = az.to_computed_value(context);
@@ -1452,34 +1358,34 @@ ${helpers.predefined_type(
                         let len = (ax * ax + ay * ay + az * az).sqrt();
                         result.push(computed_value::ComputedOperation::Rotate(ax / len, ay / len, az / len, theta));
                     }
-                    Skew(theta_x, None) => {
+                    SpecifiedOperation::Skew(theta_x, None) => {
                         let theta_x = theta_x.to_computed_value(context);
                         result.push(computed_value::ComputedOperation::Skew(theta_x, computed::Angle::zero()));
                     }
-                    Skew(theta_x, Some(theta_y)) => {
+                    SpecifiedOperation::Skew(theta_x, Some(theta_y)) => {
                         let theta_x = theta_x.to_computed_value(context);
                         let theta_y = theta_y.to_computed_value(context);
                         result.push(computed_value::ComputedOperation::Skew(theta_x, theta_y));
                     }
-                    SkewX(theta_x) => {
+                    SpecifiedOperation::SkewX(theta_x) => {
                         let theta_x = theta_x.to_computed_value(context);
                         result.push(computed_value::ComputedOperation::Skew(theta_x, computed::Angle::zero()));
                     }
-                    SkewY(theta_y) => {
+                    SpecifiedOperation::SkewY(theta_y) => {
                         let theta_y = theta_y.to_computed_value(context);
                         result.push(computed_value::ComputedOperation::Skew(computed::Angle::zero(), theta_y));
                     }
-                    Perspective(ref d) => {
+                    SpecifiedOperation::Perspective(ref d) => {
                         result.push(computed_value::ComputedOperation::Perspective(d.to_computed_value(context)));
                     }
-                    InterpolateMatrix { ref from_list, ref to_list, progress } => {
+                    SpecifiedOperation::InterpolateMatrix { ref from_list, ref to_list, progress } => {
                         result.push(computed_value::ComputedOperation::InterpolateMatrix {
                             from_list: from_list.to_computed_value(context),
                             to_list: to_list.to_computed_value(context),
                             progress: progress
                         });
                     }
-                    AccumulateMatrix { ref from_list, ref to_list, count } => {
+                    SpecifiedOperation::AccumulateMatrix { ref from_list, ref to_list, count } => {
                         result.push(computed_value::ComputedOperation::AccumulateMatrix {
                             from_list: from_list.to_computed_value(context),
                             to_list: to_list.to_computed_value(context),
