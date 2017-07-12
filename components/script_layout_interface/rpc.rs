@@ -6,7 +6,7 @@ use app_units::Au;
 use euclid::{Point2D, Rect};
 use script_traits::UntrustedNodeAddress;
 use style::properties::longhands::{margin_top, margin_right, margin_bottom, margin_left, overflow_x};
-use webrender_traits::ClipId;
+use webrender_api::ClipId;
 
 /// Synchronous messages that script can send to layout.
 ///

@@ -16,7 +16,7 @@ use servo_url::ServoUrl;
 use std::fmt::{Debug, Error, Formatter};
 use std::rc::Rc;
 use style_traits::cursor::Cursor;
-use webrender_traits::ScrollLocation;
+use webrender_api::ScrollLocation;
 
 #[derive(Clone)]
 pub enum MouseWindowEvent {

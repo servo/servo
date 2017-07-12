@@ -8,7 +8,7 @@ use dom::webgltexture::WebGLTexture;
 use std::{self, fmt};
 use super::WebGLValidator;
 use super::types::{TexImageTarget, TexDataType, TexFormat};
-use webrender_traits::WebGLError::*;
+use webrender_api::WebGLError::*;
 
 /// The errors that the texImage* family of functions can generate.
 #[derive(Debug)]

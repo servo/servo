@@ -13,14 +13,14 @@ extern crate heapsize;
 #[macro_use] extern crate heapsize_derive;
 extern crate ipc_channel;
 #[macro_use] extern crate serde;
-extern crate webrender_traits;
+extern crate webrender_api;
 
 use cssparser::RGBA;
 use euclid::{Transform2D, Point2D, Vector2D, Rect, Size2D};
 use ipc_channel::ipc::IpcSender;
 use std::default::Default;
 use std::str::FromStr;
-use webrender_traits::{WebGLCommand, WebGLContextId, VRCompositorCommand};
+use webrender_api::{WebGLCommand, WebGLContextId, VRCompositorCommand};
 
 #[derive(Clone, Deserialize, Serialize)]
 pub enum FillRule {
@@ -52,7 +52,7 @@ pub enum CanvasData {
 
 #[derive(Clone, Deserialize, Serialize)]
 pub struct CanvasImageData {
-    pub image_key: webrender_traits::ImageKey,
+    pub image_key: webrender_api::ImageKey,
 }
 
 #[derive(Clone, Deserialize, Serialize)]

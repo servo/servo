@@ -16,8 +16,8 @@ use dom::window::Window;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
 use std::cell::Cell;
-use webrender_traits;
-use webrender_traits::{WebGLCommand, WebGLFramebufferBindingRequest, WebGLFramebufferId, WebGLResult, WebGLError};
+use webrender_api;
+use webrender_api::{WebGLCommand, WebGLFramebufferBindingRequest, WebGLFramebufferId, WebGLResult, WebGLError};
 
 #[must_root]
 #[derive(JSTraceable, Clone, HeapSizeOf)]
@@ -67,7 +67,7 @@ impl WebGLFramebuffer {
 
     pub fn maybe_new(window: &Window, renderer: IpcSender<CanvasMsg>)
                      -> Option<Root<WebGLFramebuffer>> {
-        let (sender, receiver) = webrender_traits::channel::msg_channel().unwrap();
+        let (sender, receiver) = webrender_api::channel::msg_channel().unwrap();
         renderer.send(CanvasMsg::WebGL(WebGLCommand::CreateFramebuffer(sender))).unwrap();
 
         let result = receiver.recv().unwrap();

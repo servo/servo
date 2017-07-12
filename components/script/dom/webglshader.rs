@@ -16,8 +16,8 @@ use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
 use std::cell::Cell;
 use std::sync::{ONCE_INIT, Once};
-use webrender_traits;
-use webrender_traits::{WebGLCommand, WebGLParameter, WebGLResult, WebGLShaderId};
+use webrender_api;
+use webrender_api::{WebGLCommand, WebGLParameter, WebGLResult, WebGLShaderId};
 
 #[derive(Clone, Copy, PartialEq, Debug, JSTraceable, HeapSizeOf)]
 pub enum ShaderCompilationStatus {
@@ -71,7 +71,7 @@ impl WebGLShader {
                      renderer: IpcSender<CanvasMsg>,
                      shader_type: u32)
                      -> Option<Root<WebGLShader>> {
-        let (sender, receiver) = webrender_traits::channel::msg_channel().unwrap();
+        let (sender, receiver) = webrender_api::channel::msg_channel().unwrap();
         renderer.send(CanvasMsg::WebGL(WebGLCommand::CreateShader(shader_type, sender))).unwrap();
 
         let result = receiver.recv().unwrap();
@@ -170,7 +170,7 @@ impl WebGLShader {
 
     /// glGetParameter
     pub fn parameter(&self, param_id: u32) -> WebGLResult<WebGLParameter> {
-        let (sender, receiver) = webrender_traits::channel::msg_channel().unwrap();
+        let (sender, receiver) = webrender_api::channel::msg_channel().unwrap();
         self.renderer.send(CanvasMsg::WebGL(WebGLCommand::GetShaderParameter(self.id, param_id, sender))).unwrap();
         receiver.recv().unwrap()
     }

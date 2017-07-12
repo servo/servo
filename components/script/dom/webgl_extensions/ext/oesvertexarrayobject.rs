@@ -15,7 +15,7 @@ use js::jsapi::JSContext;
 use js::jsval::{JSVal, NullValue};
 use std::iter;
 use super::{WebGLExtension, WebGLExtensions};
-use webrender_traits::{self, WebGLCommand, WebGLError};
+use webrender_api::{self, WebGLCommand, WebGLError};
 
 #[dom_struct]
 pub struct OESVertexArrayObject {
@@ -48,7 +48,7 @@ impl OESVertexArrayObject {
 impl OESVertexArrayObjectMethods for OESVertexArrayObject {
     // https://www.khronos.org/registry/webgl/extensions/OES_vertex_array_object/
     fn CreateVertexArrayOES(&self) -> Option<Root<WebGLVertexArrayObjectOES>> {
-        let (sender, receiver) = webrender_traits::channel::msg_channel().unwrap();
+        let (sender, receiver) = webrender_api::channel::msg_channel().unwrap();
         self.ctx.send_renderer_message(CanvasMsg::WebGL(WebGLCommand::CreateVertexArray(sender)));
 
         let result = receiver.recv().unwrap();

@@ -7,7 +7,7 @@
 
 use std::cell::Cell;
 use std::fmt;
-use webrender_traits;
+use webrender_api;
 
 #[derive(PartialEq, Eq, Copy, Clone, Debug, Deserialize, Serialize)]
 pub enum KeyState {
@@ -239,14 +239,14 @@ impl PipelineId {
         })
     }
 
-    pub fn to_webrender(&self) -> webrender_traits::PipelineId {
+    pub fn to_webrender(&self) -> webrender_api::PipelineId {
         let PipelineNamespaceId(namespace_id) = self.namespace_id;
         let PipelineIndex(index) = self.index;
-        webrender_traits::PipelineId(namespace_id, index)
+        webrender_api::PipelineId(namespace_id, index)
     }
 
-    pub fn root_scroll_node(&self) -> webrender_traits::ClipId {
-        webrender_traits::ClipId::root_scroll_node(self.to_webrender())
+    pub fn root_scroll_node(&self) -> webrender_api::ClipId {
+        webrender_api::ClipId::root_scroll_node(self.to_webrender())
     }
 }
 

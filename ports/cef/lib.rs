@@ -24,7 +24,7 @@ extern crate style_traits;
 
 extern crate net_traits;
 extern crate msg;
-extern crate webrender_traits;
+extern crate webrender_api;
 
 extern crate libc;
 

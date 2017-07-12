@@ -17,7 +17,7 @@ use std::borrow::ToOwned;
 use std::mem;
 use std::sync::Arc;
 use std::thread;
-use webrender_traits;
+use webrender_api;
 
 impl<'a> CanvasPaintThread<'a> {
     /// It reads image data from the canvas
@@ -57,8 +57,8 @@ pub struct CanvasPaintThread<'a> {
     path_builder: PathBuilder,
     state: CanvasPaintState<'a>,
     saved_states: Vec<CanvasPaintState<'a>>,
-    webrender_api: webrender_traits::RenderApi,
-    image_key: Option<webrender_traits::ImageKey>,
+    webrender_api: webrender_api::RenderApi,
+    image_key: Option<webrender_api::ImageKey>,
 }
 
 #[derive(Clone)]
@@ -99,7 +99,7 @@ impl<'a> CanvasPaintState<'a> {
 
 impl<'a> CanvasPaintThread<'a> {
     fn new(size: Size2D<i32>,
-           webrender_api_sender: webrender_traits::RenderApiSender,
+           webrender_api_sender: webrender_api::RenderApiSender,
            antialias: bool) -> CanvasPaintThread<'a> {
         let draw_target = CanvasPaintThread::create(size);
         let path_builder = draw_target.create_path_builder();
@@ -117,7 +117,7 @@ impl<'a> CanvasPaintThread<'a> {
     /// Creates a new `CanvasPaintThread` and returns an `IpcSender` to
     /// communicate with it.
     pub fn start(size: Size2D<i32>,
-                 webrender_api_sender: webrender_traits::RenderApiSender,
+                 webrender_api_sender: webrender_api::RenderApiSender,
                  antialias: bool)
                  -> IpcSender<CanvasMsg> {
         let (sender, receiver) = ipc::channel::<CanvasMsg>().unwrap();
@@ -562,15 +562,15 @@ impl<'a> CanvasPaintThread<'a> {
         self.drawtarget.snapshot().get_data_surface().with_data(|element| {
             let size = self.drawtarget.get_size();
 
-            let descriptor = webrender_traits::ImageDescriptor {
+            let descriptor = webrender_api::ImageDescriptor {
                 width: size.width as u32,
                 height: size.height as u32,
                 stride: None,
-                format: webrender_traits::ImageFormat::BGRA8,
+                format: webrender_api::ImageFormat::BGRA8,
                 offset: 0,
                 is_opaque: false,
             };
-            let data = webrender_traits::ImageData::Raw(Arc::new(element.into()));
+            let data = webrender_api::ImageData::Raw(Arc::new(element.into()));
 
             match self.image_key {
                 Some(image_key) => {

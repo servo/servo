@@ -10,13 +10,14 @@
 use app_units::Au;
 use euclid::{Point2D, Vector2D, Rect, SideOffsets2D, Size2D};
 use gfx::display_list::{BorderDetails, BorderRadii, BoxShadowClipMode, ClippingRegion};
-use gfx::display_list::{DisplayItem, DisplayList, DisplayListTraversal, StackingContextType};
+use gfx::display_list::{DisplayItem, DisplayList, DisplayListTraversal, ScrollRootType};
+use gfx::display_list::StackingContextType;
 use msg::constellation_msg::PipelineId;
 use style::computed_values::{image_rendering, mix_blend_mode, transform_style};
 use style::values::computed::{BorderStyle, Filter};
 use style::values::generics::effects::Filter as GenericFilter;
-use webrender_traits::{self, DisplayListBuilder, ExtendMode};
-use webrender_traits::{LayoutTransform, ClipId, ClipRegionToken};
+use webrender_api::{self, ComplexClipRegion, DisplayListBuilder, ExtendMode};
+use webrender_api::{LayoutTransform, ClipId};
 
 pub trait WebRenderDisplayListConverter {
     fn convert_to_webrender(&self, pipeline_id: PipelineId) -> DisplayListBuilder;
@@ -29,33 +30,33 @@ trait WebRenderDisplayItemConverter {
 }
 
 trait ToBorderStyle {
-    fn to_border_style(&self) -> webrender_traits::BorderStyle;
+    fn to_border_style(&self) -> webrender_api::BorderStyle;
 }
 
 impl ToBorderStyle for BorderStyle {
-    fn to_border_style(&self) -> webrender_traits::BorderStyle {
+    fn to_border_style(&self) -> webrender_api::BorderStyle {
         match *self {
-            BorderStyle::none => webrender_traits::BorderStyle::None,
-            BorderStyle::solid => webrender_traits::BorderStyle::Solid,
-            BorderStyle::double => webrender_traits::BorderStyle::Double,
-            BorderStyle::dotted => webrender_traits::BorderStyle::Dotted,
-            BorderStyle::dashed => webrender_traits::BorderStyle::Dashed,
-            BorderStyle::hidden => webrender_traits::BorderStyle::Hidden,
-            BorderStyle::groove => webrender_traits::BorderStyle::Groove,
-            BorderStyle::ridge => webrender_traits::BorderStyle::Ridge,
-            BorderStyle::inset => webrender_traits::BorderStyle::Inset,
-            BorderStyle::outset => webrender_traits::BorderStyle::Outset,
+            BorderStyle::none => webrender_api::BorderStyle::None,
+            BorderStyle::solid => webrender_api::BorderStyle::Solid,
+            BorderStyle::double => webrender_api::BorderStyle::Double,
+            BorderStyle::dotted => webrender_api::BorderStyle::Dotted,
+            BorderStyle::dashed => webrender_api::BorderStyle::Dashed,
+            BorderStyle::hidden => webrender_api::BorderStyle::Hidden,
+            BorderStyle::groove => webrender_api::BorderStyle::Groove,
+            BorderStyle::ridge => webrender_api::BorderStyle::Ridge,
+            BorderStyle::inset => webrender_api::BorderStyle::Inset,
+            BorderStyle::outset => webrender_api::BorderStyle::Outset,
         }
     }
 }
 
 trait ToBorderWidths {
-    fn to_border_widths(&self) -> webrender_traits::BorderWidths;
+    fn to_border_widths(&self) -> webrender_api::BorderWidths;
 }
 
 impl ToBorderWidths for SideOffsets2D<Au> {
-    fn to_border_widths(&self) -> webrender_traits::BorderWidths {
-        webrender_traits::BorderWidths {
+    fn to_border_widths(&self) -> webrender_api::BorderWidths {
+        webrender_api::BorderWidths {
             left: self.left.to_f32_px(),
             top: self.top.to_f32_px(),
             right: self.right.to_f32_px(),
@@ -65,89 +66,72 @@ impl ToBorderWidths for SideOffsets2D<Au> {
 }
 
 trait ToBoxShadowClipMode {
-    fn to_clip_mode(&self) -> webrender_traits::BoxShadowClipMode;
+    fn to_clip_mode(&self) -> webrender_api::BoxShadowClipMode;
 }
 
 impl ToBoxShadowClipMode for BoxShadowClipMode {
-    fn to_clip_mode(&self) -> webrender_traits::BoxShadowClipMode {
+    fn to_clip_mode(&self) -> webrender_api::BoxShadowClipMode {
         match *self {
-            BoxShadowClipMode::None => webrender_traits::BoxShadowClipMode::None,
-            BoxShadowClipMode::Inset => webrender_traits::BoxShadowClipMode::Inset,
-            BoxShadowClipMode::Outset => webrender_traits::BoxShadowClipMode::Outset,
+            BoxShadowClipMode::None => webrender_api::BoxShadowClipMode::None,
+            BoxShadowClipMode::Inset => webrender_api::BoxShadowClipMode::Inset,
+            BoxShadowClipMode::Outset => webrender_api::BoxShadowClipMode::Outset,
         }
     }
 }
 
 trait ToSizeF {
-    fn to_sizef(&self) -> webrender_traits::LayoutSize;
+    fn to_sizef(&self) -> webrender_api::LayoutSize;
 }
 
 trait ToPointF {
-    fn to_pointf(&self) -> webrender_traits::LayoutPoint;
+    fn to_pointf(&self) -> webrender_api::LayoutPoint;
 }
 
 trait ToVectorF {
-    fn to_vectorf(&self) -> webrender_traits::LayoutVector2D;
+    fn to_vectorf(&self) -> webrender_api::LayoutVector2D;
 }
 
 impl ToPointF for Point2D<Au> {
-    fn to_pointf(&self) -> webrender_traits::LayoutPoint {
-        webrender_traits::LayoutPoint::new(self.x.to_f32_px(), self.y.to_f32_px())
+    fn to_pointf(&self) -> webrender_api::LayoutPoint {
+        webrender_api::LayoutPoint::new(self.x.to_f32_px(), self.y.to_f32_px())
     }
 }
 
 impl ToVectorF for Vector2D<Au> {
-    fn to_vectorf(&self) -> webrender_traits::LayoutVector2D {
-        webrender_traits::LayoutVector2D::new(self.x.to_f32_px(), self.y.to_f32_px())
+    fn to_vectorf(&self) -> webrender_api::LayoutVector2D {
+        webrender_api::LayoutVector2D::new(self.x.to_f32_px(), self.y.to_f32_px())
     }
 }
 
 impl ToSizeF for Size2D<Au> {
-    fn to_sizef(&self) -> webrender_traits::LayoutSize {
-        webrender_traits::LayoutSize::new(self.width.to_f32_px(), self.height.to_f32_px())
+    fn to_sizef(&self) -> webrender_api::LayoutSize {
+        webrender_api::LayoutSize::new(self.width.to_f32_px(), self.height.to_f32_px())
     }
 }
 
-trait ToRectF {
-    fn to_rectf(&self) -> webrender_traits::LayoutRect;
+pub trait ToRectF {
+    fn to_rectf(&self) -> webrender_api::LayoutRect;
 }
 
 impl ToRectF for Rect<Au> {
-    fn to_rectf(&self) -> webrender_traits::LayoutRect {
+    fn to_rectf(&self) -> webrender_api::LayoutRect {
         let x = self.origin.x.to_f32_px();
         let y = self.origin.y.to_f32_px();
         let w = self.size.width.to_f32_px();
         let h = self.size.height.to_f32_px();
-        let point = webrender_traits::LayoutPoint::new(x, y);
-        let size = webrender_traits::LayoutSize::new(w, h);
-        webrender_traits::LayoutRect::new(point, size)
+        let point = webrender_api::LayoutPoint::new(x, y);
+        let size = webrender_api::LayoutSize::new(w, h);
+        webrender_api::LayoutRect::new(point, size)
     }
 }
 
-trait ToClipRegion {
-    fn push_clip_region(&self, builder: &mut DisplayListBuilder) -> ClipRegionToken;
-}
-
-impl ToClipRegion for ClippingRegion {
-    fn push_clip_region(&self, builder: &mut DisplayListBuilder) -> ClipRegionToken {
-        builder.push_clip_region(&self.main.to_rectf(),
-                                self.complex.iter().map(|complex_clipping_region| {
-                                    webrender_traits::ComplexClipRegion::new(
-                                        complex_clipping_region.rect.to_rectf(),
-                                        complex_clipping_region.radii.to_border_radius(),
-                                     )
-                                }),
-                                None)
-    }
-}
-
-trait ToBorderRadius {
-    fn to_border_radius(&self) -> webrender_traits::BorderRadius;
+pub trait ToBorderRadius {
+    fn to_border_radius(&self) -> webrender_api::BorderRadius;
 }
 
 impl ToBorderRadius for BorderRadii<Au> {
-    fn to_border_radius(&self) -> webrender_traits::BorderRadius {
-        webrender_traits::BorderRadius {
+    fn to_border_radius(&self) -> webrender_api::BorderRadius {
+        webrender_api::BorderRadius {
             top_left: self.top_left.to_sizef(),
             top_right: self.top_right.to_sizef(),
             bottom_left: self.bottom_left.to_sizef(),
@@ -157,64 +141,64 @@ impl ToBorderRadius for BorderRadii<Au> {
 }
 
 pub trait ToMixBlendMode {
-    fn to_mix_blend_mode(&self) -> webrender_traits::MixBlendMode;
+    fn to_mix_blend_mode(&self) -> webrender_api::MixBlendMode;
 }
 
 impl ToMixBlendMode for mix_blend_mode::T {
-    fn to_mix_blend_mode(&self) -> webrender_traits::MixBlendMode {
+    fn to_mix_blend_mode(&self) -> webrender_api::MixBlendMode {
         match *self {
-            mix_blend_mode::T::normal => webrender_traits::MixBlendMode::Normal,
-            mix_blend_mode::T::multiply => webrender_traits::MixBlendMode::Multiply,
-            mix_blend_mode::T::screen => webrender_traits::MixBlendMode::Screen,
-            mix_blend_mode::T::overlay => webrender_traits::MixBlendMode::Overlay,
-            mix_blend_mode::T::darken => webrender_traits::MixBlendMode::Darken,
-            mix_blend_mode::T::lighten => webrender_traits::MixBlendMode::Lighten,
-            mix_blend_mode::T::color_dodge => webrender_traits::MixBlendMode::ColorDodge,
-            mix_blend_mode::T::color_burn => webrender_traits::MixBlendMode::ColorBurn,
-            mix_blend_mode::T::hard_light => webrender_traits::MixBlendMode::HardLight,
-            mix_blend_mode::T::soft_light => webrender_traits::MixBlendMode::SoftLight,
-            mix_blend_mode::T::difference => webrender_traits::MixBlendMode::Difference,
-            mix_blend_mode::T::exclusion => webrender_traits::MixBlendMode::Exclusion,
-            mix_blend_mode::T::hue => webrender_traits::MixBlendMode::Hue,
-            mix_blend_mode::T::saturation => webrender_traits::MixBlendMode::Saturation,
-            mix_blend_mode::T::color => webrender_traits::MixBlendMode::Color,
-            mix_blend_mode::T::luminosity => webrender_traits::MixBlendMode::Luminosity,
+            mix_blend_mode::T::normal => webrender_api::MixBlendMode::Normal,
+            mix_blend_mode::T::multiply => webrender_api::MixBlendMode::Multiply,
+            mix_blend_mode::T::screen => webrender_api::MixBlendMode::Screen,
+            mix_blend_mode::T::overlay => webrender_api::MixBlendMode::Overlay,
+            mix_blend_mode::T::darken => webrender_api::MixBlendMode::Darken,
+            mix_blend_mode::T::lighten => webrender_api::MixBlendMode::Lighten,
+            mix_blend_mode::T::color_dodge => webrender_api::MixBlendMode::ColorDodge,
+            mix_blend_mode::T::color_burn => webrender_api::MixBlendMode::ColorBurn,
+            mix_blend_mode::T::hard_light => webrender_api::MixBlendMode::HardLight,
+            mix_blend_mode::T::soft_light => webrender_api::MixBlendMode::SoftLight,
+            mix_blend_mode::T::difference => webrender_api::MixBlendMode::Difference,
+            mix_blend_mode::T::exclusion => webrender_api::MixBlendMode::Exclusion,
+            mix_blend_mode::T::hue => webrender_api::MixBlendMode::Hue,
+            mix_blend_mode::T::saturation => webrender_api::MixBlendMode::Saturation,
+            mix_blend_mode::T::color => webrender_api::MixBlendMode::Color,
+            mix_blend_mode::T::luminosity => webrender_api::MixBlendMode::Luminosity,
         }
     }
 }
 
 trait ToImageRendering {
-    fn to_image_rendering(&self) -> webrender_traits::ImageRendering;
+    fn to_image_rendering(&self) -> webrender_api::ImageRendering;
 }
 
 impl ToImageRendering for image_rendering::T {
-    fn to_image_rendering(&self) -> webrender_traits::ImageRendering {
+    fn to_image_rendering(&self) -> webrender_api::ImageRendering {
         match *self {
-            image_rendering::T::crisp_edges => webrender_traits::ImageRendering::CrispEdges,
-            image_rendering::T::auto => webrender_traits::ImageRendering::Auto,
-            image_rendering::T::pixelated => webrender_traits::ImageRendering::Pixelated,
+            image_rendering::T::crisp_edges => webrender_api::ImageRendering::CrispEdges,
+            image_rendering::T::auto => webrender_api::ImageRendering::Auto,
+            image_rendering::T::pixelated => webrender_api::ImageRendering::Pixelated,
         }
     }
 }
 
 trait ToFilterOps {
-    fn to_filter_ops(&self) -> Vec<webrender_traits::FilterOp>;
+    fn to_filter_ops(&self) -> Vec<webrender_api::FilterOp>;
 }
 
 impl ToFilterOps for Vec<Filter> {
-    fn to_filter_ops(&self) -> Vec<webrender_traits::FilterOp> {
+    fn to_filter_ops(&self) -> Vec<webrender_api::FilterOp> {
         let mut result = Vec::with_capacity(self.len());
         for filter in self.iter() {
             match *filter {
-                GenericFilter::Blur(radius) => result.push(webrender_traits::FilterOp::Blur(radius)),
-                GenericFilter::Brightness(amount) => result.push(webrender_traits::FilterOp::Brightness(amount)),
-                GenericFilter::Contrast(amount) => result.push(webrender_traits::FilterOp::Contrast(amount)),
-                GenericFilter::Grayscale(amount) => result.push(webrender_traits::FilterOp::Grayscale(amount)),
-                GenericFilter::HueRotate(angle) => result.push(webrender_traits::FilterOp::HueRotate(angle.radians())),
-                GenericFilter::Invert(amount) => result.push(webrender_traits::FilterOp::Invert(amount)),
-                GenericFilter::Opacity(amount) => result.push(webrender_traits::FilterOp::Opacity(amount.into())),
-                GenericFilter::Saturate(amount) => result.push(webrender_traits::FilterOp::Saturate(amount)),
-                GenericFilter::Sepia(amount) => result.push(webrender_traits::FilterOp::Sepia(amount)),
+                GenericFilter::Blur(radius) => result.push(webrender_api::FilterOp::Blur(radius)),
+                GenericFilter::Brightness(amount) => result.push(webrender_api::FilterOp::Brightness(amount)),
+                GenericFilter::Contrast(amount) => result.push(webrender_api::FilterOp::Contrast(amount)),
+                GenericFilter::Grayscale(amount) => result.push(webrender_api::FilterOp::Grayscale(amount)),
+                GenericFilter::HueRotate(angle) => result.push(webrender_api::FilterOp::HueRotate(angle.radians())),
+                GenericFilter::Invert(amount) => result.push(webrender_api::FilterOp::Invert(amount)),
+                GenericFilter::Opacity(amount) => result.push(webrender_api::FilterOp::Opacity(amount.into())),
+                GenericFilter::Saturate(amount) => result.push(webrender_api::FilterOp::Saturate(amount)),
+                GenericFilter::Sepia(amount) => result.push(webrender_api::FilterOp::Sepia(amount)),
                 GenericFilter::DropShadow(ref shadow) => match *shadow {},
             }
         }
@@ -223,14 +207,14 @@ impl ToFilterOps for Vec<Filter> {
 }
 
 pub trait ToTransformStyle {
-    fn to_transform_style(&self) -> webrender_traits::TransformStyle;
+    fn to_transform_style(&self) -> webrender_api::TransformStyle;
 }
 
 impl ToTransformStyle for transform_style::T {
-    fn to_transform_style(&self) -> webrender_traits::TransformStyle {
+    fn to_transform_style(&self) -> webrender_api::TransformStyle {
         match *self {
-            transform_style::T::auto | transform_style::T::flat => webrender_traits::TransformStyle::Flat,
-            transform_style::T::preserve_3d => webrender_traits::TransformStyle::Preserve3D,
+            transform_style::T::auto | transform_style::T::flat => webrender_api::TransformStyle::Flat,
+            transform_style::T::preserve_3d => webrender_api::TransformStyle::Preserve3D,
         }
     }
 }
@@ -267,8 +251,9 @@ impl WebRenderDisplayItemConverter for DisplayItem {
             DisplayItem::SolidColor(ref item) => {
                 let color = item.color;
                 if color.a > 0.0 {
-                    let clip = item.base.clip.push_clip_region(builder);
-                    builder.push_rect(item.base.bounds.to_rectf(), clip, color);
+                    builder.push_rect(item.base.bounds.to_rectf(),
+                                      Some(item.base.local_clip),
+                                      color);
                 }
             }
             DisplayItem::Text(ref item) => {
@@ -286,8 +271,8 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                             let glyph_offset = glyph.offset().unwrap_or(Point2D::zero());
                             let x = (origin.x + glyph_offset.x).to_f32_px();
                             let y = (origin.y + glyph_offset.y).to_f32_px();
-                            let point = webrender_traits::LayoutPoint::new(x, y);
-                            let glyph = webrender_traits::GlyphInstance {
+                            let point = webrender_api::LayoutPoint::new(x, y);
+                            let glyph = webrender_api::GlyphInstance {
                                 index: glyph.id(),
                                 point: point,
                             };
@@ -298,9 +283,8 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                 }
 
                 if glyphs.len() > 0 {
-                    let clip = item.base.clip.push_clip_region(builder);
                     builder.push_text(item.base.bounds.to_rectf(),
-                                      clip,
+                                      Some(item.base.local_clip),
                                       &glyphs,
                                       item.text_run.font_key,
                                       item.text_color,
@@ -313,9 +297,8 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                 if let Some(id) = item.webrender_image.key {
                     if item.stretch_size.width > Au(0) &&
                        item.stretch_size.height > Au(0) {
-                        let clip = item.base.clip.push_clip_region(builder);
                         builder.push_image(item.base.bounds.to_rectf(),
-                                           clip,
+                                           Some(item.base.local_clip),
                                            item.stretch_size.to_sizef(),
                                            item.tile_spacing.to_sizef(),
                                            item.image_rendering.to_image_rendering(),
@@ -324,34 +307,34 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                 }
             }
             DisplayItem::WebGL(ref item) => {
-                let clip = item.base.clip.push_clip_region(builder);
-                builder.push_webgl_canvas(item.base.bounds.to_rectf(), clip, item.context_id);
+                builder.push_webgl_canvas(item.base.bounds.to_rectf(),
+                                          Some(item.base.local_clip),
+                                          item.context_id);
             }
             DisplayItem::Border(ref item) => {
                 let rect = item.base.bounds.to_rectf();
                 let widths = item.border_widths.to_border_widths();
-                let clip = item.base.clip.push_clip_region(builder);
 
                 let details = match item.details {
                     BorderDetails::Normal(ref border) => {
-                        let left = webrender_traits::BorderSide {
+                        let left = webrender_api::BorderSide {
                             color: border.color.left,
                             style: border.style.left.to_border_style(),
                         };
-                        let top = webrender_traits::BorderSide {
+                        let top = webrender_api::BorderSide {
                             color: border.color.top,
                             style: border.style.top.to_border_style(),
                         };
-                        let right = webrender_traits::BorderSide {
+                        let right = webrender_api::BorderSide {
                             color: border.color.right,
                             style: border.style.right.to_border_style(),
                         };
-                        let bottom = webrender_traits::BorderSide {
+                        let bottom = webrender_api::BorderSide {
                             color: border.color.bottom,
                             style: border.style.bottom.to_border_style(),
                         };
                         let radius = border.radius.to_border_radius();
-                        webrender_traits::BorderDetails::Normal(webrender_traits::NormalBorder {
+                        webrender_api::BorderDetails::Normal(webrender_api::NormalBorder {
                             left: left,
                             top: top,
                             right: right,
@@ -363,9 +346,9 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                         match image.image.key {
                             None => return,
                             Some(key) => {
-                                webrender_traits::BorderDetails::Image(webrender_traits::ImageBorder {
+                                webrender_api::BorderDetails::Image(webrender_api::ImageBorder {
                                     image_key: key,
-                                    patch: webrender_traits::NinePatchDescriptor {
+                                    patch: webrender_api::NinePatchDescriptor {
                                         width: image.image.width,
                                         height: image.image.height,
                                         slice: image.slice,
@@ -384,7 +367,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                         } else {
                             ExtendMode::Clamp
                         };
-                        webrender_traits::BorderDetails::Gradient(webrender_traits::GradientBorder {
+                        webrender_api::BorderDetails::Gradient(webrender_api::GradientBorder {
                             gradient: builder.create_gradient(
                                           gradient.gradient.start_point.to_pointf(),
                                           gradient.gradient.end_point.to_pointf(),
@@ -399,7 +382,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                         } else {
                             ExtendMode::Clamp
                         };
-                       webrender_traits::BorderDetails::RadialGradient(webrender_traits::RadialGradientBorder {
+                       webrender_api::BorderDetails::RadialGradient(webrender_api::RadialGradientBorder {
                            gradient: builder.create_radial_gradient(
                                gradient.gradient.center.to_pointf(),
                                gradient.gradient.radius.to_sizef(),
@@ -410,13 +393,12 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                     }
                 };
 
-                builder.push_border(rect, clip, widths, details);
+                builder.push_border(rect, Some(item.base.local_clip), widths, details);
             }
             DisplayItem::Gradient(ref item) => {
                 let rect = item.base.bounds.to_rectf();
                 let start_point = item.gradient.start_point.to_pointf();
                 let end_point = item.gradient.end_point.to_pointf();
-                let clip = item.base.clip.push_clip_region(builder);
                 let extend_mode = if item.gradient.repeating {
                     ExtendMode::Repeat
                 } else {
@@ -427,16 +409,15 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                                        item.gradient.stops.clone(),
                                                        extend_mode);
                 builder.push_gradient(rect,
-                                      clip,
+                                      Some(item.base.local_clip),
                                       gradient,
                                       rect.size,
-                                      webrender_traits::LayoutSize::zero());
+                                      webrender_api::LayoutSize::zero());
             }
             DisplayItem::RadialGradient(ref item) => {
                 let rect = item.base.bounds.to_rectf();
                 let center = item.gradient.center.to_pointf();
                 let radius = item.gradient.radius.to_sizef();
-                let clip = item.base.clip.push_clip_region(builder);
                 let extend_mode = if item.gradient.repeating {
                     ExtendMode::Repeat
                 } else {
@@ -447,10 +428,10 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                                               item.gradient.stops.clone(),
                                                               extend_mode);
                 builder.push_radial_gradient(rect,
-                                             clip,
+                                             Some(item.base.local_clip),
                                              gradient,
                                              rect.size,
-                                             webrender_traits::LayoutSize::zero());
+                                             webrender_api::LayoutSize::zero());
             }
             DisplayItem::Line(..) => {
                 println!("TODO DisplayItem::Line");
@@ -458,9 +439,8 @@ impl WebRenderDisplayItemConverter for DisplayItem {
             DisplayItem::BoxShadow(ref item) => {
                 let rect = item.base.bounds.to_rectf();
                 let box_bounds = item.box_bounds.to_rectf();
-                let clip = item.base.clip.push_clip_region(builder);
                 builder.push_box_shadow(rect,
-                                        clip,
+                                        Some(item.base.local_clip),
                                         box_bounds,
                                         item.offset.to_vectorf(),
                                         item.color,
@@ -472,8 +452,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
             DisplayItem::Iframe(ref item) => {
                 let rect = item.base.bounds.to_rectf();
                 let pipeline_id = item.iframe.to_webrender();
-                let clip = item.base.clip.push_clip_region(builder);
-                builder.push_iframe(rect, clip, pipeline_id);
+                builder.push_iframe(rect, pipeline_id);
             }
             DisplayItem::PushStackingContext(ref item) => {
                 let stacking_context = &item.stacking_context;
@@ -499,13 +478,40 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                 builder.push_clip_id(item.scroll_root.parent_id);
 
                 let our_id = item.scroll_root.id;
-                let clip = item.scroll_root.clip.push_clip_region(builder);
-                let content_rect = item.scroll_root.content_rect.to_rectf();
-                let webrender_id = builder.define_clip(content_rect, clip, Some(our_id));
+                let webrender_id = match item.scroll_root.root_type {
+                   ScrollRootType::Clip => {
+                        builder.define_clip(Some(our_id),
+                                            item.scroll_root.clip.main.to_rectf(),
+                                            item.scroll_root.clip.get_complex_clips(),
+                                            None)
+                    }
+                    ScrollRootType::ScrollFrame => {
+                        builder.define_scroll_frame(Some(our_id),
+                                                    item.scroll_root.content_rect.to_rectf(),
+                                                    item.scroll_root.clip.main.to_rectf(),
+                                                    item.scroll_root.clip.get_complex_clips(),
+                                                    None)
+                    }
+                };
                 debug_assert!(our_id == webrender_id);
 
                 builder.pop_clip_id();
             }
         }
+    }
+}
+
+trait ToWebRenderClip {
+    fn get_complex_clips(&self) -> Vec<ComplexClipRegion>;
+}
+
+impl ToWebRenderClip for ClippingRegion {
+    fn get_complex_clips(&self) -> Vec<ComplexClipRegion> {
+        self.complex.iter().map(|complex_clipping_region| {
+            ComplexClipRegion::new(
+                complex_clipping_region.rect.to_rectf(),
+                complex_clipping_region.radii.to_border_radius(),
+             )
+        }).collect()
     }
 }

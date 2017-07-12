@@ -16,8 +16,8 @@ use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
 use std::cell::Cell;
 use std::cmp;
-use webrender_traits;
-use webrender_traits::{WebGLCommand, WebGLError, WebGLResult, WebGLTextureId};
+use webrender_api;
+use webrender_api::{WebGLCommand, WebGLError, WebGLResult, WebGLTextureId};
 
 pub enum TexParameterValue {
     Float(f32),
@@ -69,7 +69,7 @@ impl WebGLTexture {
 
     pub fn maybe_new(window: &Window, renderer: IpcSender<CanvasMsg>)
                      -> Option<Root<WebGLTexture>> {
-        let (sender, receiver) = webrender_traits::channel::msg_channel().unwrap();
+        let (sender, receiver) = webrender_api::channel::msg_channel().unwrap();
         renderer.send(CanvasMsg::WebGL(WebGLCommand::CreateTexture(sender))).unwrap();
 
         let result = receiver.recv().unwrap();

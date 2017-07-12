@@ -26,7 +26,7 @@ use style::properties::{CascadeFlags, ServoComputedValues};
 use style::selector_parser::{PseudoElement, PseudoElementCascadeType, SelectorImpl};
 use style::stylearc::Arc;
 use style::stylist::RuleInclusion;
-use webrender_traits::ClipId;
+use webrender_api::ClipId;
 
 #[derive(Copy, PartialEq, Clone, Debug)]
 pub enum PseudoElementType<T> {

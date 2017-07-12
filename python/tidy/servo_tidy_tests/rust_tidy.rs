@@ -17,7 +17,7 @@ pub mod display_list;
 mod test::{
 };
 
-extern crate webrender_traits;
+extern crate webrender_api;
 extern crate style_traits;
 
 #[foo = "bar,baz"]
