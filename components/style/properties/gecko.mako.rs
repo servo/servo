@@ -598,7 +598,7 @@ def set_gecko_property(ffi_name, expr):
     // set on mContextFlags, and the length field is set to the initial value.
 
     pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
-        use values::generics::svg::SVGLength;
+        use values::generics::svg::{SVGLength, SvgLengthOrPercentageOrNumber};
         use gecko_bindings::structs::nsStyleSVG_${ident.upper()}_CONTEXT as CONTEXT_VALUE;
         let length = match v {
             SVGLength::Length(length) => {
@@ -614,9 +614,13 @@ def set_gecko_property(ffi_name, expr):
             }
         };
         match length {
-            Either::First(number) =>
-                self.gecko.${gecko_ffi_name}.set_value(CoordDataValue::Factor(From::from(number))),
-            Either::Second(lop) => self.gecko.${gecko_ffi_name}.set(lop),
+            SvgLengthOrPercentageOrNumber::LengthOrPercentage(lop) => {
+                // TODO: Stylo treat calc value, but gecko side doesn't support yet.
+                // https://bugzilla.mozilla.org/show_bug.cgi?id=1386967
+                self.gecko.${gecko_ffi_name}.set(lop);
+            },
+            SvgLengthOrPercentageOrNumber::Number(num) =>
+                self.gecko.${gecko_ffi_name}.set_value(CoordDataValue::Factor(num.into())),
         }
     }
 
@@ -633,21 +637,31 @@ def set_gecko_property(ffi_name, expr):
     }
 
     pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
-        use values::generics::svg::SVGLength;
+        use values::generics::svg::{SVGLength, SvgLengthOrPercentageOrNumber};
         use values::computed::LengthOrPercentage;
         use gecko_bindings::structs::nsStyleSVG_${ident.upper()}_CONTEXT as CONTEXT_VALUE;
         if (self.gecko.mContextFlags & CONTEXT_VALUE) != 0 {
             return SVGLength::ContextValue;
         }
         let length = match self.gecko.${gecko_ffi_name}.as_value() {
-            CoordDataValue::Factor(number) => Either::First(From::from(number)),
-            CoordDataValue::Coord(coord) => Either::Second(From::from(LengthOrPercentage::Length(Au(coord)))),
-            CoordDataValue::Percent(p) => Either::Second(From::from(LengthOrPercentage::Percentage(Percentage(p)))),
-            CoordDataValue::Calc(calc) => Either::Second(From::from(LengthOrPercentage::Calc(calc.into()))),
+            CoordDataValue::Factor(number) =>
+                SvgLengthOrPercentageOrNumber::Number(number),
+            CoordDataValue::Coord(coord) =>
+                SvgLengthOrPercentageOrNumber::LengthOrPercentage(
+                    LengthOrPercentage::Length(Au(coord))),
+            CoordDataValue::Percent(p) =>
+                SvgLengthOrPercentageOrNumber::LengthOrPercentage(
+                    LengthOrPercentage::Percentage(Percentage(p))),
+            CoordDataValue::Calc(calc) => {
+                // TODO: Stylo treat calc value, but gecko side doesn't support yet.
+                // https://bugzilla.mozilla.org/show_bug.cgi?id=1386967
+                SvgLengthOrPercentageOrNumber::LengthOrPercentage(
+                    LengthOrPercentage::Calc(calc.into()))
+            },
             _ => unreachable!("Unexpected coordinate {:?} in ${ident}",
                               self.gecko.${gecko_ffi_name}.as_value()),
         };
-        SVGLength::Length(length)
+        SVGLength::Length(length.into())
     }
 </%def>
 
@@ -5161,7 +5175,7 @@ clip-path
 
     pub fn set_stroke_dasharray(&mut self, v: longhands::stroke_dasharray::computed_value::T) {
         use gecko_bindings::structs::nsStyleSVG_STROKE_DASHARRAY_CONTEXT as CONTEXT_VALUE;
-        use values::generics::svg::SVGStrokeDashArray;
+        use values::generics::svg::{SVGStrokeDashArray, SvgLengthOrPercentageOrNumber};
 
         match v {
             SVGStrokeDashArray::Values(v) => {
@@ -5172,8 +5186,12 @@ clip-path
                 }
                 for (mut gecko, servo) in self.gecko.mStrokeDasharray.iter_mut().zip(v) {
                     match servo {
-                        Either::First(number) => gecko.set_value(CoordDataValue::Factor(number.into())),
-                        Either::Second(lop) => gecko.set(lop),
+                        SvgLengthOrPercentageOrNumber::LengthOrPercentage(lop) => {
+                            gecko.set(lop)
+                        },
+                        SvgLengthOrPercentageOrNumber::Number(num) => {
+                            gecko.set_value(CoordDataValue::Factor(num.into()))
+                        },
                     }
                 }
             }
@@ -5203,7 +5221,7 @@ clip-path
     pub fn clone_stroke_dasharray(&self) -> longhands::stroke_dasharray::computed_value::T {
         use gecko_bindings::structs::nsStyleSVG_STROKE_DASHARRAY_CONTEXT as CONTEXT_VALUE;
         use values::computed::LengthOrPercentage;
-        use values::generics::svg::SVGStrokeDashArray;
+        use values::generics::svg::{SVGStrokeDashArray, SvgLengthOrPercentageOrNumber};
 
         if self.gecko.mContextFlags & CONTEXT_VALUE != 0 {
             debug_assert_eq!(self.gecko.mStrokeDasharray.len(), 0);
@@ -5212,13 +5230,17 @@ clip-path
         let mut vec = vec![];
         for gecko in self.gecko.mStrokeDasharray.iter() {
             match gecko.as_value() {
-                CoordDataValue::Factor(number) => vec.push(Either::First(number.into())),
+                CoordDataValue::Factor(number) =>
+                    vec.push(SvgLengthOrPercentageOrNumber::Number(number.into())),
                 CoordDataValue::Coord(coord) =>
-                    vec.push(Either::Second(LengthOrPercentage::Length(Au(coord)).into())),
+                    vec.push(SvgLengthOrPercentageOrNumber::LengthOrPercentage(
+                        LengthOrPercentage::Length(Au(coord)).into())),
                 CoordDataValue::Percent(p) =>
-                    vec.push(Either::Second(LengthOrPercentage::Percentage(Percentage(p)).into())),
+                    vec.push(SvgLengthOrPercentageOrNumber::LengthOrPercentage(
+                        LengthOrPercentage::Percentage(Percentage(p)).into())),
                 CoordDataValue::Calc(calc) =>
-                    vec.push(Either::Second(LengthOrPercentage::Calc(calc.into()).into())),
+                    vec.push(SvgLengthOrPercentageOrNumber::LengthOrPercentage(
+                        LengthOrPercentage::Calc(calc.into()).into())),
                 _ => unreachable!(),
             }
         }

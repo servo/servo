@@ -95,6 +95,34 @@ impl<ColorType: Parse, UrlPaintServer: Parse> Parse for SVGPaint<ColorType, UrlP
     }
 }
 
+/// A value of <length> | <percentage> | <number> for svg which allow unitless length.
+/// https://www.w3.org/TR/SVG11/painting.html#StrokeProperties
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Copy, Debug, PartialEq, ToCss, HasViewportPercentage)]
+#[derive(ToComputedValue, ToAnimatedValue, ComputeSquaredDistance)]
+pub enum SvgLengthOrPercentageOrNumber<LOP, NUM> {
+    /// <length> | <percentage>
+    LengthOrPercentage(LOP),
+    /// <number>
+    Number(NUM),
+}
+
+/// Parsing the SvgLengthOrPercentageOrNumber. At first, we need to parse number
+/// since prevent converting to the length.
+impl <LOP: Parse, NUM: Parse> Parse for SvgLengthOrPercentageOrNumber<LOP, NUM> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                     -> Result<Self, ParseError<'i>> {
+        if let Ok(num) = input.try(|i| NUM::parse(context, i)) {
+            return Ok(SvgLengthOrPercentageOrNumber::Number(num));
+        }
+
+        if let Ok(lop) = input.try(|i| LOP::parse(context, i)) {
+            return Ok(SvgLengthOrPercentageOrNumber::LengthOrPercentage(lop));
+        }
+        Err(StyleParseError::UnspecifiedError.into())
+    }
+}
+
 /// An SVG length value supports `context-value` in addition to length.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, ComputeSquaredDistance, Copy, Debug, PartialEq)]

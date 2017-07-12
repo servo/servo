@@ -42,18 +42,20 @@ use values::animated::effects::BoxShadowList as AnimatedBoxShadowList;
 use values::animated::effects::Filter as AnimatedFilter;
 use values::animated::effects::FilterList as AnimatedFilterList;
 use values::animated::effects::TextShadowList as AnimatedTextShadowList;
-use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
-use values::computed::{BorderCornerRadius, ClipRect};
-use values::computed::{CalcLengthOrPercentage, Color, Context, ComputedValueAsSpecified, ComputedUrl};
-use values::computed::{LengthOrPercentage, MaxLength, MozLength, Percentage, ToComputedValue};
-use values::computed::{NonNegativeAu, NonNegativeNumber, PositiveIntegerOrAuto};
+use values::computed::{Angle, BorderCornerRadius, CalcLengthOrPercentage};
+use values::computed::{ClipRect, Color, Context, ComputedUrl, ComputedValueAsSpecified};
+use values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
+use values::computed::{LengthOrPercentageOrNone, MaxLength, MozLength, NonNegativeAu};
+use values::computed::{NonNegativeNumber, Number, NumberOrPercentage, Percentage};
+use values::computed::{PositiveIntegerOrAuto, ToComputedValue};
 use values::computed::length::{NonNegativeLengthOrAuto, NonNegativeLengthOrNormal};
 use values::computed::length::NonNegativeLengthOrPercentage;
 use values::distance::{ComputeSquaredDistance, SquaredDistance};
 use values::generics::{GreaterThanOrEqualToOne, NonNegative};
 use values::generics::effects::Filter;
 use values::generics::position as generic_position;
-use values::generics::svg::{SVGLength, SVGOpacity, SVGPaint, SVGPaintKind, SVGStrokeDashArray};
+use values::generics::svg::{SVGLength,  SvgLengthOrPercentageOrNumber, SVGPaint};
+use values::generics::svg::{SVGPaintKind, SVGStrokeDashArray, SVGOpacity};
 
 /// A trait used to implement various procedures used during animation.
 pub trait Animatable: Sized {
@@ -780,6 +782,7 @@ impl ToAnimatedZero for AnimationValue {
 impl RepeatableListAnimatable for LengthOrPercentage {}
 impl RepeatableListAnimatable for Either<f32, LengthOrPercentage> {}
 impl RepeatableListAnimatable for Either<NonNegativeNumber, NonNegativeLengthOrPercentage> {}
+impl RepeatableListAnimatable for SvgLengthOrPercentageOrNumber<NonNegativeLengthOrPercentage, NonNegativeNumber> {}
 
 macro_rules! repeated_vec_impl {
     ($($ty:ty),*) => {
@@ -1056,7 +1059,12 @@ impl Animatable for LengthOrPercentage {
 impl ToAnimatedZero for LengthOrPercentage {
     #[inline]
     fn to_animated_zero(&self) -> Result<Self, ()> {
-        Ok(LengthOrPercentage::zero())
+        match self {
+            &LengthOrPercentage::Length(_) | &LengthOrPercentage::Calc(_) =>
+                Ok(LengthOrPercentage::zero()),
+            &LengthOrPercentage::Percentage(_) =>
+                Ok(LengthOrPercentage::Percentage(Percentage::zero())),
+        }
     }
 }
 
@@ -2776,6 +2784,109 @@ impl ToAnimatedZero for IntermediateSVGPaintKind {
     }
 }
 
+impl Into<NumberOrPercentage> for NonNegativeLengthOrPercentage {
+    fn into(self) -> NumberOrPercentage {
+        self.0.into()
+    }
+}
+
+impl Into<NumberOrPercentage> for NonNegativeNumber {
+    fn into(self) -> NumberOrPercentage {
+        self.0.into()
+    }
+}
+
+impl Into<NumberOrPercentage> for LengthOrPercentage {
+    fn into(self) -> NumberOrPercentage {
+        match self {
+            LengthOrPercentage::Length(len) => NumberOrPercentage::Number(len.to_f32_px()),
+            LengthOrPercentage::Percentage(p) => NumberOrPercentage::Percentage(p),
+            LengthOrPercentage::Calc(_) => {
+                // TODO: We need to treat calc value.
+                // https://bugzilla.mozilla.org/show_bug.cgi?id=1386967
+                NumberOrPercentage::Number(0.0)
+            },
+        }
+    }
+}
+
+impl Into<NumberOrPercentage> for Number {
+    fn into(self) -> NumberOrPercentage {
+        NumberOrPercentage::Number(self)
+    }
+}
+
+fn convert_to_number_or_percentage<LOP, NUM>(from: SvgLengthOrPercentageOrNumber<LOP, NUM>)
+                                                 -> NumberOrPercentage
+    where LOP: Into<NumberOrPercentage>, NUM: Into<NumberOrPercentage>
+{
+    match from {
+        SvgLengthOrPercentageOrNumber::LengthOrPercentage(lop) => {
+            lop.into()
+        }
+        SvgLengthOrPercentageOrNumber::Number(num) => {
+            num.into()
+        }
+    }
+}
+
+fn convert_from_number_or_percentage<LOP, NUM>(from: NumberOrPercentage)
+                                               -> SvgLengthOrPercentageOrNumber<LOP, NUM>
+    where LOP: From<LengthOrPercentage>, NUM: From<Number>
+{
+    match from {
+        NumberOrPercentage::Number(num) =>
+            SvgLengthOrPercentageOrNumber::Number(num.into()),
+        NumberOrPercentage::Percentage(p) =>
+            SvgLengthOrPercentageOrNumber::LengthOrPercentage(
+                (LengthOrPercentage::Percentage(p)).into())
+    }
+}
+
+impl <LOP, NUM> Animatable for SvgLengthOrPercentageOrNumber<LOP, NUM>
+    where LOP: Animatable + Into<NumberOrPercentage> + From<LengthOrPercentage>,
+          NUM: Animatable + Into<NumberOrPercentage> + From<Number>,
+          SvgLengthOrPercentageOrNumber<LOP, NUM>: Copy
+{
+    #[inline]
+    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
+        let from_value = convert_to_number_or_percentage(*self);
+        let to_value = convert_to_number_or_percentage(*other);
+
+        match (from_value, to_value) {
+            (NumberOrPercentage::Number(from),
+             NumberOrPercentage::Number(to)) => {
+                from.add_weighted(&to, self_portion, other_portion)
+                    .map(|num| NumberOrPercentage::Number(num))
+                    .map(|nop| convert_from_number_or_percentage(nop))
+            },
+            (NumberOrPercentage::Percentage(from),
+             NumberOrPercentage::Percentage(to)) => {
+                from.add_weighted(&to, self_portion, other_portion)
+                    .map(|p| NumberOrPercentage::Percentage(p))
+                    .map(|nop| convert_from_number_or_percentage(nop))
+            },
+            _ => Err(()),
+        }
+    }
+}
+
+impl <LOP, NUM> ToAnimatedZero for SvgLengthOrPercentageOrNumber<LOP, NUM>
+    where LOP: ToAnimatedZero, NUM: ToAnimatedZero
+{
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        match self {
+            &SvgLengthOrPercentageOrNumber::LengthOrPercentage(ref lop) =>
+                lop.to_animated_zero()
+                    .map(SvgLengthOrPercentageOrNumber::LengthOrPercentage),
+            &SvgLengthOrPercentageOrNumber::Number(ref num) =>
+                num.to_animated_zero()
+                    .map(SvgLengthOrPercentageOrNumber::Number),
+        }
+    }
+}
+
 impl<LengthType> Animatable for SVGLength<LengthType>
         where LengthType: Animatable + Clone
 {
@@ -2802,6 +2913,7 @@ impl<LengthType> ToAnimatedZero for SVGLength<LengthType> where LengthType : ToA
     }
 }
 
+/// https://www.w3.org/TR/SVG11/painting.html#StrokeProperties
 impl<LengthType> Animatable for SVGStrokeDashArray<LengthType>
     where LengthType : RepeatableListAnimatable + Clone
 {
@@ -2816,6 +2928,16 @@ impl<LengthType> Animatable for SVGStrokeDashArray<LengthType>
                 Ok(if self_portion > other_portion { self.clone() } else { other.clone() })
             }
         }
+    }
+
+    #[inline]
+    fn add(&self, _other: &Self) -> Result<Self, ()> {
+        Err(())
+    }
+
+    #[inline]
+    fn accumulate(&self, _other: &Self, _count: u64) -> Result<Self, ()> {
+        Err(())
     }
 }
 
