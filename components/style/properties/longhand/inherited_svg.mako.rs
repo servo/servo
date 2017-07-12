@@ -95,7 +95,7 @@ ${helpers.predefined_type(
     "parse_non_negative",
     vector=True,
     products="gecko",
-    animation_value_type="ComputedValue",
+    animation_value_type="AnimatedStrokeDashArrayList",
     separator="CommaWithSpace",
     spec="https://www.w3.org/TR/SVG2/painting.html#StrokeDashing",
 )}

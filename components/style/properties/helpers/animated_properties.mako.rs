@@ -34,6 +34,7 @@ use super::ComputedValues;
 use values::Auto;
 use values::{CSSFloat, CustomIdent, Either};
 use values::animated::ToAnimatedValue;
+#[cfg(feature = "gecko")] use values::animated::AnimatedStrokeDashArrayList;
 use values::animated::effects::BoxShadowList as AnimatedBoxShadowList;
 use values::animated::effects::Filter as AnimatedFilter;
 use values::animated::effects::FilterList as AnimatedFilterList;

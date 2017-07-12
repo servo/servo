@@ -9,7 +9,11 @@
 //! module's raison d'être is to ultimately contain all these types.
 
 use app_units::Au;
+#[cfg(feature = "gecko")] use num_integer::lcm;
+#[cfg(feature = "gecko")] use properties::animated_properties::Animatable;
+#[cfg(feature = "gecko")] use properties::longhands::stroke_dasharray::computed_value::T as ComputedStrokeDashArrayList;
 use values::computed::Angle as ComputedAngle;
+#[cfg(feature = "gecko")] use values::computed::LengthOrPercentage;
 use values::specified::url::SpecifiedUrl;
 
 pub mod effects;
@@ -88,3 +92,64 @@ where
     }
 }
 
+/// An animated value for stroke-dasharray
+///
+/// https://www.w3.org/TR/SVG/animate.html#Animatable
+#[cfg(feature = "gecko")]
+#[derive(Clone, Debug, PartialEq)]
+pub struct AnimatedStrokeDashArrayList(Vec<LengthOrPercentage>);
+
+#[cfg(feature = "gecko")]
+impl ToAnimatedValue for ComputedStrokeDashArrayList {
+    type AnimatedValue = AnimatedStrokeDashArrayList;
+
+    #[inline]
+    fn to_animated_value(self) -> Self::AnimatedValue {
+        AnimatedStrokeDashArrayList(self.0.to_animated_value())
+    }
+
+    #[inline]
+    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+        ComputedStrokeDashArrayList(ToAnimatedValue::from_animated_value(animated.0))
+    }
+}
+
+/// https://www.w3.org/TR/SVG/painting.html#StrokeDasharrayProperty
+#[cfg(feature = "gecko")]
+impl Animatable for AnimatedStrokeDashArrayList {
+    #[inline]
+    fn add_weighted(
+        &self,
+        other: &Self,
+        self_portion: f64,
+        other_portion: f64,
+    ) -> Result<Self, ()> {
+        if self.0.is_empty() || other.0.is_empty() {
+            return Err(());
+        }
+        let loop_end = lcm(self.0.len(), other.0.len());
+        let mut strokes = Vec::with_capacity(loop_end);
+        for i in 0..loop_end {
+            let from_item = self.0.get(i % self.0.len());
+            let to_item = other.0.get(i % other.0.len());
+
+            strokes.push(match (from_item, to_item) {
+                (Some(from), Some(to)) => {
+                    from.add_weighted(to, self_portion, other_portion)?
+                },
+                _ => unreachable!(),
+            });
+        }
+        Ok(AnimatedStrokeDashArrayList(strokes))
+    }
+
+    #[allow(unused_variables)]
+    fn add(&self, other: &Self) -> Result<Self, ()> {
+        Err(())
+    }
+
+    #[allow(unused_variables)]
+    fn accumulate(&self, other: &Self, count: u64) -> Result<Self, ()> {
+        Err(())
+    }
+}
