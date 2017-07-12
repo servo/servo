@@ -252,10 +252,6 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
         self.compositor.pinch_zoom_level()
     }
 
-    pub fn request_title_for_main_frame(&self) {
-        self.compositor.title_for_main_frame()
-    }
-
     pub fn setup_logging(&self) {
         let constellation_chan = self.constellation_chan.clone();
         log::set_logger(|max_log_level| {

@@ -747,9 +747,6 @@ pub enum ConstellationMsg {
     /// Request that the constellation send the current focused top-level browsing context id,
     /// over a provided channel.
     GetFocusTopLevelBrowsingContext(IpcSender<Option<TopLevelBrowsingContextId>>),
-    /// Requests that the constellation inform the compositor of the title of the pipeline
-    /// immediately.
-    GetPipelineTitle(PipelineId),
     /// Request to load the initial page.
     InitLoadUrl(ServoUrl),
     /// Query the constellation to see if the current compositor output is stable

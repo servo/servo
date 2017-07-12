@@ -41,14 +41,6 @@ impl ServoBrowser {
         }
     }
 
-    pub fn request_title_for_main_frame(&self) {
-        match *self {
-            ServoBrowser::OnScreen(ref browser) => browser.request_title_for_main_frame(),
-            ServoBrowser::OffScreen(ref browser) => browser.request_title_for_main_frame(),
-            ServoBrowser::Invalid => {}
-        }
-    }
-
     pub fn pinch_zoom_level(&self) -> f32 {
         match *self {
             ServoBrowser::OnScreen(ref browser) => browser.pinch_zoom_level(),
@@ -163,7 +155,6 @@ impl ServoCefBrowser {
 pub trait ServoCefBrowserExtensions {
     fn init(&self, window_info: &cef_window_info_t);
     fn send_window_event(&self, event: WindowEvent);
-    fn request_title_for_main_frame(&self);
     fn pinch_zoom_level(&self) -> f32;
 }
 
@@ -198,10 +189,6 @@ impl ServoCefBrowserExtensions for CefBrowser {
             // we just queue up that event instead of immediately processing it.
             browser.message_queue.borrow_mut().push(event);
         }
-    }
-
-    fn request_title_for_main_frame(&self) {
-        self.downcast().servo_browser.borrow().request_title_for_main_frame()
     }
 
     fn pinch_zoom_level(&self) -> f32 {
