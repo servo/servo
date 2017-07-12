@@ -1173,7 +1173,7 @@ fn static_assert() {
         BorderImageSlice {
             offsets:
                 NumberOrPercentageRect::from_gecko_rect(&self.gecko.mBorderImageSlice)
-                    .expect("mBorderImageSlice[${side.index}] could not convert to NumberOrPercentageRect"),
+                    .expect("mBorderImageSlice[${side}] could not convert to NumberOrPercentageRect"),
             fill: self.gecko.mBorderImageFill as u32 == NS_STYLE_BORDER_IMAGE_SLICE_FILL
         }
     }
@@ -1517,7 +1517,7 @@ fn static_assert() {
 
         // NB: This is needed to correctly handling the initial value of
         // outline-width when outline-style changes, see the
-        // update_border_${side} comment for more details.
+        // update_border_${side.ident} comment for more details.
         self.gecko.mActualOutlineWidth = self.gecko.mOutlineWidth;
     }
 
