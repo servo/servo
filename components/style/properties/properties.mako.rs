@@ -262,6 +262,49 @@ pub mod animated_properties {
     <%include file="/helpers/animated_properties.mako.rs" />
 }
 
+/// A longhand or shorthand porperty
+#[derive(Copy, Clone, Debug)]
+pub struct NonCustomPropertyId(usize);
+
+impl From<LonghandId> for NonCustomPropertyId {
+    fn from(id: LonghandId) -> Self {
+        NonCustomPropertyId(id as usize)
+    }
+}
+
+impl From<ShorthandId> for NonCustomPropertyId {
+    fn from(id: ShorthandId) -> Self {
+        NonCustomPropertyId((id as usize) + ${len(data.longhands)})
+    }
+}
+
+/// A set of longhand properties
+#[derive(Clone, PartialEq)]
+pub struct NonCustomPropertyIdSet {
+    storage: [u32; (${len(data.longhands) + len(data.shorthands)} - 1 + 32) / 32]
+}
+
+impl NonCustomPropertyIdSet {
+    /// Return whether the given property is in the set
+    #[inline]
+    pub fn contains(&self, id: NonCustomPropertyId) -> bool {
+        let bit = id.0;
+        (self.storage[bit / 32] & (1 << (bit % 32))) != 0
+    }
+}
+
+<%def name="static_non_custom_property_id_set(name, is_member)">
+static ${name}: NonCustomPropertyIdSet = NonCustomPropertyIdSet {
+    <%
+        storage = [0] * ((len(data.longhands) + len(data.shorthands) - 1 + 32) / 32)
+        for i, property in enumerate(data.longhands + data.shorthands):
+            if is_member(property):
+                storage[i / 32] |= 1 << (i % 32)
+    %>
+    storage: [${", ".join("0x%x" % word for word in storage)}]
+};
+</%def>
+
 /// A set of longhand properties
 #[derive(Clone, PartialEq)]
 pub struct LonghandIdSet {
@@ -1092,6 +1135,104 @@ impl PropertyId {
             }
         }
     }
+
+    fn check_allowed_in(&self, rule_type: CssRuleType, stylesheet_origin: Origin)
+                        -> Result<(), PropertyDeclarationParseError> {
+        let id: NonCustomPropertyId;
+        match *self {
+            // Custom properties are allowed everywhere
+            PropertyId::Custom(_) => return Ok(()),
+
+            PropertyId::Shorthand(shorthand_id) => id = shorthand_id.into(),
+            PropertyId::Longhand(longhand_id) => id = longhand_id.into(),
+        }
+
+        <% id_set = static_non_custom_property_id_set %>
+
+        ${id_set("DISALLOWED_IN_KEYFRAME_BLOCK", lambda p: not p.allowed_in_keyframe_block)}
+        ${id_set("DISALLOWED_IN_PAGE_RULE", lambda p: not p.allowed_in_page_rule)}
+        match rule_type {
+            CssRuleType::Keyframe if DISALLOWED_IN_KEYFRAME_BLOCK.contains(id) => {
+                return Err(PropertyDeclarationParseError::AnimationPropertyInKeyframeBlock)
+            }
+            CssRuleType::Page if DISALLOWED_IN_PAGE_RULE.contains(id) => {
+                return Err(PropertyDeclarationParseError::NotAllowedInPageRule)
+            }
+            _ => {}
+        }
+
+
+        // For properties that are experimental but not internal, the pref will
+        // control its availability in all sheets.   For properties that are
+        // both experimental and internal, the pref only controls its
+        // availability in non-UA sheets (and in UA sheets it is always available).
+        ${id_set("INTERNAL", lambda p: p.internal)}
+
+        % if product == "servo":
+            ${id_set("EXPERIMENTAL", lambda p: p.experimental)}
+        % endif
+        % if product == "gecko":
+            use gecko_bindings::structs::root::mozilla;
+            static EXPERIMENTAL: NonCustomPropertyIdSet = NonCustomPropertyIdSet {
+                <%
+                    grouped = []
+                    properties = data.longhands + data.shorthands
+                    while properties:
+                        grouped.append(properties[:32])
+                        properties = properties[32:]
+                %>
+                storage: [
+                    % for group in grouped:
+                        (0
+                        % for i, property in enumerate(group):
+                            | ((mozilla::SERVO_PREF_ENABLED_${property.gecko_pref_ident} as u32) << ${i})
+                        % endfor
+                        ),
+                    % endfor
+                ]
+            };
+        % endif
+
+        let passes_pref_check = || {
+            % if product == "servo":
+                static PREF_NAME: [Option< &str>; ${len(data.longhands) + len(data.shorthands)}] = [
+                    % for property in data.longhands + data.shorthands:
+                        % if property.experimental:
+                            Some("${property.experimental}"),
+                        % else:
+                            None,
+                        % endif
+                    % endfor
+                ];
+                match PREF_NAME[id.0] {
+                    None => true,
+                    Some(pref) => PREFS.get(pref).as_boolean().unwrap_or(false)
+                }
+            % endif
+            % if product == "gecko":
+                let id = self.to_nscsspropertyid().unwrap();
+                unsafe { bindings::Gecko_PropertyId_IsPrefEnabled(id) }
+            % endif
+        };
+
+        if INTERNAL.contains(id) {
+            if stylesheet_origin != Origin::UserAgent {
+                if EXPERIMENTAL.contains(id) {
+                    if !passes_pref_check() {
+                        return Err(PropertyDeclarationParseError::ExperimentalProperty);
+                    }
+                } else {
+                    return Err(PropertyDeclarationParseError::UnknownProperty);
+                }
+            }
+        } else {
+            if EXPERIMENTAL.contains(id) && !passes_pref_check() {
+                return Err(PropertyDeclarationParseError::ExperimentalProperty);
+            }
+        }
+
+        Ok(())
+    }
 }
 
 /// Servo's representation for a property declaration.
@@ -1174,49 +1315,6 @@ impl ToCss for PropertyDeclaration {
         }
     }
 }
-
-<%def name="property_exposure_check(property)">
-    // For properties that are experimental but not internal, the pref will
-    // control its availability in all sheets.   For properties that are
-    // both experimental and internal, the pref only controls its
-    // availability in non-UA sheets (and in UA sheets it is always available).
-    let is_experimental =
-        % if property.experimental and product == "servo":
-            true;
-        % elif product == "gecko":
-            structs::root::mozilla::SERVO_PREF_ENABLED_${property.gecko_pref_ident};
-        % else:
-            false;
-        % endif
-
-    let passes_pref_check =
-        % if property.experimental and product == "servo":
-            PREFS.get("${property.experimental}").as_boolean().unwrap_or(false);
-        % elif product == "gecko":
-            {
-                let id = structs::${helpers.to_nscsspropertyid(property.ident)};
-                unsafe { bindings::Gecko_PropertyId_IsPrefEnabled(id) }
-            };
-        % else:
-            true;
-        % endif
-
-    % if property.internal:
-        if context.stylesheet_origin != Origin::UserAgent {
-            if is_experimental {
-                if !passes_pref_check {
-                    return Err(PropertyDeclarationParseError::ExperimentalProperty);
-                }
-            } else {
-                return Err(PropertyDeclarationParseError::UnknownProperty);
-            }
-        }
-    % else:
-        if is_experimental && !passes_pref_check {
-            return Err(PropertyDeclarationParseError::ExperimentalProperty);
-        }
-    % endif
-</%def>
 
 impl MallocSizeOf for PropertyDeclaration {
     fn malloc_size_of_children(&self, _malloc_size_of: MallocSizeOfFn) -> usize {
@@ -1409,6 +1507,7 @@ impl PropertyDeclaration {
                       rule_type == CssRuleType::Page ||
                       rule_type == CssRuleType::Style,
                       "Declarations are only expected inside a keyframe, page, or style rule.");
+        id.check_allowed_in(rule_type, context.stylesheet_origin)?;
         match id {
             PropertyId::Custom(name) => {
                 let value = match input.try(|i| CSSWideKeyword::parse(context, i)) {
@@ -1421,73 +1520,51 @@ impl PropertyDeclaration {
                 declarations.push(PropertyDeclaration::Custom(name, value));
                 Ok(())
             }
-            PropertyId::Longhand(id) => match id {
-            % for property in data.longhands:
-                LonghandId::${property.camel_case} => {
-                    % if not property.derived_from:
-                        % if not property.allowed_in_keyframe_block:
-                            if rule_type == CssRuleType::Keyframe {
-                                return Err(PropertyDeclarationParseError::AnimationPropertyInKeyframeBlock)
+            PropertyId::Longhand(id) => {
+                match id {
+                % for property in data.longhands:
+                    LonghandId::${property.camel_case} => {
+                        % if not property.derived_from:
+                            match longhands::${property.ident}::parse_declared(context, input) {
+                                Ok(value) => {
+                                    declarations.push(value);
+                                    Ok(())
+                                },
+                                Err(_) => Err(PropertyDeclarationParseError::InvalidValue("${property.ident}".into())),
                             }
+                        % else:
+                            Err(PropertyDeclarationParseError::UnknownProperty)
                         % endif
-                        % if not property.allowed_in_page_rule:
-                            if rule_type == CssRuleType::Page {
-                                return Err(PropertyDeclarationParseError::NotAllowedInPageRule)
-                            }
-                        % endif
-
-                        ${property_exposure_check(property)}
-
-                        match longhands::${property.ident}::parse_declared(context, input) {
-                            Ok(value) => {
-                                declarations.push(value);
+                    }
+                % endfor
+                }
+            }
+            PropertyId::Shorthand(id) => {
+                match id {
+                % for shorthand in data.shorthands:
+                    ShorthandId::${shorthand.camel_case} => {
+                        match input.try(|i| CSSWideKeyword::parse(context, i)) {
+                            Ok(keyword) => {
+                                % if shorthand.name == "all":
+                                    declarations.all_shorthand = AllShorthand::CSSWideKeyword(keyword);
+                                % else:
+                                    % for sub_property in shorthand.sub_properties:
+                                        declarations.push(PropertyDeclaration::CSSWideKeyword(
+                                            LonghandId::${sub_property.camel_case},
+                                            keyword,
+                                        ));
+                                    % endfor
+                                % endif
                                 Ok(())
                             },
-                            Err(_) => Err(PropertyDeclarationParseError::InvalidValue("${property.ident}".into())),
-                        }
-                    % else:
-                        Err(PropertyDeclarationParseError::UnknownProperty)
-                    % endif
-                }
-            % endfor
-            },
-            PropertyId::Shorthand(id) => match id {
-            % for shorthand in data.shorthands:
-                ShorthandId::${shorthand.camel_case} => {
-                    % if not shorthand.allowed_in_keyframe_block:
-                        if rule_type == CssRuleType::Keyframe {
-                            return Err(PropertyDeclarationParseError::AnimationPropertyInKeyframeBlock)
-                        }
-                    % endif
-                    % if not shorthand.allowed_in_page_rule:
-                        if rule_type == CssRuleType::Page {
-                            return Err(PropertyDeclarationParseError::NotAllowedInPageRule)
-                        }
-                    % endif
-
-                    ${property_exposure_check(shorthand)}
-
-                    match input.try(|i| CSSWideKeyword::parse(context, i)) {
-                        Ok(keyword) => {
-                            % if shorthand.name == "all":
-                                declarations.all_shorthand = AllShorthand::CSSWideKeyword(keyword);
-                            % else:
-                                % for sub_property in shorthand.sub_properties:
-                                    declarations.push(PropertyDeclaration::CSSWideKeyword(
-                                        LonghandId::${sub_property.camel_case},
-                                        keyword,
-                                    ));
-                                % endfor
-                            % endif
-                            Ok(())
-                        },
-                        Err(_) => {
-                            shorthands::${shorthand.ident}::parse_into(declarations, context, input)
-                                .map_err(|_| PropertyDeclarationParseError::InvalidValue("${shorthand.ident}".into()))
+                            Err(_) => {
+                                shorthands::${shorthand.ident}::parse_into(declarations, context, input)
+                                    .map_err(|_| PropertyDeclarationParseError::InvalidValue("${shorthand.ident}".into()))
+                            }
                         }
                     }
+                % endfor
                 }
-            % endfor
             }
         }
     }
