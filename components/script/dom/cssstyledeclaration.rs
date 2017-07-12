@@ -104,6 +104,8 @@ impl CSSStyleOwner {
                     f(&mut *pdb.write_with(&mut guard), &mut changed)
                 };
                 if changed {
+                    // If this is changed, see also
+                    // CSSStyleRule::SetSelectorText, which does the same thing.
                     rule.global().as_window().Document().invalidate_stylesheets();
                 }
                 result

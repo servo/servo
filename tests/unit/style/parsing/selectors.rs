@@ -23,5 +23,5 @@ fn test_selectors() {
     assert_roundtrip!(parse_selector, "div");
     assert_roundtrip!(parse_selector, "svg|circle");
     assert_roundtrip!(parse_selector, "p:before", "p::before");
-    assert_roundtrip!(parse_selector, "[border = \"0\"]:-servo-nonzero-border ~ ::-servo-details-summary");
+    assert_roundtrip!(parse_selector, "[border=\"0\"]:-servo-nonzero-border ~ ::-servo-details-summary");
 }
