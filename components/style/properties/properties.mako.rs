@@ -1521,22 +1521,31 @@ impl PropertyDeclaration {
                 Ok(())
             }
             PropertyId::Longhand(id) => {
-                match id {
-                % for property in data.longhands:
-                    LonghandId::${property.camel_case} => {
-                        % if not property.derived_from:
-                            match longhands::${property.ident}::parse_declared(context, input) {
-                                Ok(value) => {
-                                    declarations.push(value);
-                                    Ok(())
-                                },
-                                Err(_) => Err(PropertyDeclarationParseError::InvalidValue("${property.ident}".into())),
+                if let Ok(keyword) = input.try(|i| CSSWideKeyword::parse(context, i)) {
+                    declarations.push(PropertyDeclaration::CSSWideKeyword(id, keyword))
+                    Ok(())
+                } else {
+                    match id {
+                        % for property in data.longhands:
+                            LonghandId::${property.camel_case} => {
+                                % if not property.derived_from:
+                                    match longhands::${property.ident}::parse_declared(context, input) {
+                                        Ok(value) => {
+                                            declarations.push(value);
+                                            Ok(())
+                                        },
+                                        Err(_) => {
+                                            Err(PropertyDeclarationParseError::InvalidValue(
+                                                "${property.ident}".into()
+                                            ))
+                                        }
+                                    }
+                                % else:
+                                    Err(PropertyDeclarationParseError::UnknownProperty)
+                                % endif
                             }
-                        % else:
-                            Err(PropertyDeclarationParseError::UnknownProperty)
-                        % endif
+                        % endfor
                     }
-                % endfor
                 }
             }
             PropertyId::Shorthand(id) => {
