@@ -1420,6 +1420,8 @@ impl Flow for InlineFlow {
     }
 
     /// Calculate and set the block-size of this flow. See CSS 2.1 § 10.6.1.
+    /// Note that we do not need to do in-order traversal becase the children
+    /// are always block formatting context.
     fn assign_block_size(&mut self, layout_context: &LayoutContext) {
         let _scope = layout_debug_scope!("inline::assign_block_size {:x}",
                                          self.base.debug_id());
@@ -1482,19 +1484,6 @@ impl Flow for InlineFlow {
             // the next iteration of the loop. We're no longer on the first
             // line, so set indentation to zero.
             indentation = Au(0)
-        }
-
-        // Assign block sizes for any inline-block descendants.
-        let thread_id = self.base.thread_id;
-        for kid in self.base.child_iter_mut() {
-            if flow::base(kid).flags.contains(IS_ABSOLUTELY_POSITIONED) ||
-                    flow::base(kid).flags.is_float() {
-                continue
-            }
-            let content_box = flow::base(kid).position;
-            kid.assign_block_size_for_inorder_child_if_necessary(layout_context,
-                                                                 thread_id,
-                                                                 content_box);
         }
 
         if self.contains_positioned_fragments() {
