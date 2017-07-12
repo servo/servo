@@ -154,14 +154,15 @@ impl ToCss for PaintWorklet {
 /// Values for `moz-image-rect`.
 ///
 /// `-moz-image-rect(<uri>, top, right, bottom, left);`
-#[derive(Clone, Debug, PartialEq, ToComputedValue)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[css(comma, function)]
+#[derive(Clone, Debug, PartialEq, ToComputedValue, ToCss)]
 pub struct MozImageRect<NumberOrPercentage> {
     pub url: SpecifiedUrl,
     pub top: NumberOrPercentage,
-    pub bottom: NumberOrPercentage,
     pub right: NumberOrPercentage,
+    pub bottom: NumberOrPercentage,
     pub left: NumberOrPercentage,
 }
 
@@ -327,23 +328,5 @@ impl<C, L> fmt::Debug for ColorStop<C, L>
             write!(f, " {:?}", pos)?;
         }
         Ok(())
-    }
-}
-
-impl<C> ToCss for MozImageRect<C>
-    where C: ToCss,
-{
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        dest.write_str("-moz-image-rect(")?;
-        self.url.to_css(dest)?;
-        dest.write_str(", ")?;
-        self.top.to_css(dest)?;
-        dest.write_str(", ")?;
-        self.right.to_css(dest)?;
-        dest.write_str(", ")?;
-        self.bottom.to_css(dest)?;
-        dest.write_str(", ")?;
-        self.left.to_css(dest)?;
-        dest.write_str(")")
     }
 }
