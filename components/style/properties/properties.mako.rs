@@ -624,6 +624,20 @@ impl LonghandId {
         }
     }
 
+    fn parse_value<'i, 't>(&self, context: &ParserContext, input: &mut Parser<'i, 't>)
+                           -> Result<PropertyDeclaration, ParseError<'i>> {
+        match *self {
+            % for property in data.longhands:
+                LonghandId::${property.camel_case} => {
+                    % if not property.derived_from:
+                        longhands::${property.ident}::parse_declared(context, input)
+                    % else:
+                        Err(PropertyDeclarationParseError::UnknownProperty.into())
+                    % endif
+                }
+            % endfor
+        }
+    }
 
     /// If this is a logical property, return the corresponding physical one in the given writing mode.
     /// Otherwise, return unchanged.
@@ -841,6 +855,18 @@ impl ShorthandId {
                         ${flag} |
                     % endfor
                     PropertyFlags::empty(),
+            % endfor
+        }
+    }
+
+    fn parse_into<'i, 't>(&self, declarations: &mut SourcePropertyDeclaration,
+                          context: &ParserContext, input: &mut Parser<'i, 't>)
+                          -> Result<(), ParseError<'i>> {
+        match *self {
+            % for shorthand in data.shorthands:
+                ShorthandId::${shorthand.camel_case} => {
+                    shorthands::${shorthand.ident}::parse_into(declarations, context, input)
+                }
             % endfor
         }
     }
@@ -1526,19 +1552,8 @@ impl PropertyDeclaration {
                 }).or_else(|_| {
                     input.look_for_var_functions();
                     let start = input.position();
-                    input.parse_entirely(|input| {
-                        match id {
-                            % for property in data.longhands:
-                                LonghandId::${property.camel_case} => {
-                                    % if not property.derived_from:
-                                        longhands::${property.ident}::parse_declared(context, input)
-                                    % else:
-                                        Err(PropertyDeclarationParseError::UnknownProperty)
-                                    % endif
-                                }
-                            % endfor
-                        }
-                    }).or_else(|_| {
+                    input.parse_entirely(|input| id.parse_value(context, input))
+                    .or_else(|_| {
                         while let Ok(_) = input.next() {}  // Look for var() after the error.
                         if input.seen_var_functions() {
                             input.reset(start);
@@ -1573,15 +1588,8 @@ impl PropertyDeclaration {
                 } else {
                     input.look_for_var_functions();
                     let start = input.position();
-                    input.parse_entirely(|input| {
-                        match id {
-                            % for shorthand in data.shorthands:
-                                ShorthandId::${shorthand.camel_case} => {
-                                    shorthands::${shorthand.ident}::parse_into(declarations, context, input)
-                                }
-                            % endfor
-                        }
-                    }).or_else(|_| {
+                    input.parse_entirely(|input| id.parse_into(declarations, context, input))
+                    .or_else(|_| {
                         while let Ok(_) = input.next() {}  // Look for var() after the error.
                         if input.seen_var_functions() {
                             input.reset(start);
