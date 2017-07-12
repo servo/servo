@@ -1490,13 +1490,12 @@ fn parse_one_simple_selector<'i, 't, P, E, Impl>(parser: &P,
             Ok(Some(SimpleSelectorParseResult::SimpleSelector(id)))
         }
         Ok(Token::Delim('.')) => {
-            match input.next_including_whitespace() {
-                Ok(Token::Ident(class)) => {
+            match input.next_including_whitespace()? {
+                Token::Ident(class) => {
                     let class = Component::Class(from_cow_str(class.into()));
                     Ok(Some(SimpleSelectorParseResult::SimpleSelector(class)))
                 }
-                Ok(t) => Err(ParseError::Basic(BasicParseError::UnexpectedToken(t))),
-                Err(e) => Err(ParseError::Basic(e)),
+                t => Err(ParseError::Basic(BasicParseError::UnexpectedToken(t))),
             }
         }
         Ok(Token::SquareBracketBlock) => {
@@ -1504,8 +1503,8 @@ fn parse_one_simple_selector<'i, 't, P, E, Impl>(parser: &P,
             Ok(Some(SimpleSelectorParseResult::SimpleSelector(attr)))
         }
         Ok(Token::Colon) => {
-            match input.next_including_whitespace() {
-                Ok(Token::Ident(name)) => {
+            match input.next_including_whitespace()? {
+                Token::Ident(name) => {
                     // Supported CSS 2.1 pseudo-elements only.
                     // ** Do not add to this list! **
                     if name.eq_ignore_ascii_case("before") ||
@@ -1519,24 +1518,22 @@ fn parse_one_simple_selector<'i, 't, P, E, Impl>(parser: &P,
                         Ok(Some(SimpleSelectorParseResult::SimpleSelector(pseudo_class)))
                     }
                 }
-                Ok(Token::Function(name)) => {
+                Token::Function(name) => {
                     let pseudo = input.parse_nested_block(|input| {
                         parse_functional_pseudo_class(parser, input, name, inside_negation)
                     })?;
                     Ok(Some(SimpleSelectorParseResult::SimpleSelector(pseudo)))
                 }
-                Ok(Token::Colon) => {
-                    match input.next_including_whitespace() {
-                        Ok(Token::Ident(name)) => {
+                Token::Colon => {
+                    match input.next_including_whitespace()? {
+                        Token::Ident(name) => {
                             let pseudo = P::parse_pseudo_element(parser, name)?;
                             Ok(Some(SimpleSelectorParseResult::PseudoElement(pseudo)))
                         }
-                        Ok(t) => Err(ParseError::Basic(BasicParseError::UnexpectedToken(t))),
-                        Err(e) => Err(ParseError::Basic(e)),
+                        t => Err(ParseError::Basic(BasicParseError::UnexpectedToken(t))),
                     }
                 }
-                Ok(t) => Err(ParseError::Basic(BasicParseError::UnexpectedToken(t))),
-                Err(e) => Err(ParseError::Basic(e)),
+                t => Err(ParseError::Basic(BasicParseError::UnexpectedToken(t))),
             }
         }
         _ => {
