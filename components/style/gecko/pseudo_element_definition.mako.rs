@@ -23,6 +23,10 @@ pub const EAGER_PSEUDOS: [PseudoElement; EAGER_PSEUDO_COUNT] = [
     % endfor
 ];
 
+<%def name="pseudo_element_variant(pseudo)">
+    PseudoElement::${pseudo.capitalized()}
+</%def>
+
 impl PseudoElement {
     /// Executes a closure with each simple (not functional)
     /// pseudo-element as an argument.
@@ -30,7 +34,7 @@ impl PseudoElement {
         where F: FnMut(Self),
     {
         % for pseudo in PSEUDOS:
-            fun(PseudoElement::${pseudo.capitalized()});
+            fun(${pseudo_element_variant(pseudo)});
         % endfor
     }
 
@@ -39,7 +43,7 @@ impl PseudoElement {
     pub fn atom(&self) -> Atom {
         match *self {
             % for pseudo in PSEUDOS:
-                PseudoElement::${pseudo.capitalized()} => atom!("${pseudo.value}"),
+                ${pseudo_element_variant(pseudo)} => atom!("${pseudo.value}"),
             % endfor
         }
     }
@@ -49,8 +53,11 @@ impl PseudoElement {
     fn is_anon_box(&self) -> bool {
         match *self {
             % for pseudo in PSEUDOS:
-                PseudoElement::${pseudo.capitalized()} => ${str(pseudo.is_anon_box()).lower()},
+                % if pseudo.is_anon_box():
+                    ${pseudo_element_variant(pseudo)} => true,
+                % endif
             % endfor
+            _ => false,
         }
     }
 
@@ -66,7 +73,7 @@ impl PseudoElement {
     pub fn flags(&self) -> u32 {
         match *self {
             % for pseudo in PSEUDOS:
-                PseudoElement::${pseudo.capitalized()} =>
+                ${pseudo_element_variant(pseudo)} =>
                 % if pseudo.is_anon_box():
                     structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
                 % else:
@@ -83,7 +90,7 @@ impl PseudoElement {
             % for pseudo in PSEUDOS:
                 % if not pseudo.is_anon_box():
                     CSSPseudoElementType::${pseudo.original_ident} => {
-                        Some(PseudoElement::${pseudo.capitalized()})
+                        Some(${pseudo_element_variant(pseudo)})
                     },
                 % endif
             % endfor
@@ -97,7 +104,7 @@ impl PseudoElement {
         % for pseudo in PSEUDOS:
             % if pseudo.is_anon_box():
                 if atom == &atom!("${pseudo.value}") {
-                    return Some(PseudoElement::${pseudo.capitalized()});
+                    return Some(${pseudo_element_variant(pseudo)});
                 }
             % endif
         % endfor
@@ -116,9 +123,9 @@ impl PseudoElement {
         use std::ascii::AsciiExt;
 
         % for pseudo in PSEUDOS:
-            if in_ua_stylesheet || PseudoElement::${pseudo.capitalized()}.exposed_in_non_ua_sheets() {
+            if in_ua_stylesheet || ${pseudo_element_variant(pseudo)}.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("${pseudo.value[1:]}") {
-                    return Some(PseudoElement::${pseudo.capitalized()})
+                    return Some(${pseudo_element_variant(pseudo)});
                 }
             }
         % endfor
