@@ -760,13 +760,12 @@
     pub mod ${shorthand.ident} {
         use cssparser::Parser;
         use parser::ParserContext;
-        use properties::{PropertyDeclaration, SourcePropertyDeclaration, MaybeBoxed};
-        use properties::{ShorthandId, LonghandId, UnparsedValue, longhands};
+        use properties::{PropertyDeclaration, SourcePropertyDeclaration, MaybeBoxed, longhands};
         #[allow(unused_imports)]
         use selectors::parser::SelectorParseError;
         #[allow(unused_imports)]
         use std::fmt;
-        use stylearc::Arc;
+        #[allow(unused_imports)]
         use style_traits::{ParseError, StyleParseError};
         #[allow(unused_imports)]
         use style_traits::ToCss;
@@ -845,41 +844,15 @@
         /// Parse the given shorthand and fill the result into the
         /// `declarations` vector.
         pub fn parse_into<'i, 't>(declarations: &mut SourcePropertyDeclaration,
-                     context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<(), ParseError<'i>> {
-            input.look_for_var_functions();
-            let start = input.position();
-            let value = input.parse_entirely(|input| parse_value(context, input));
-            if value.is_err() {
-                while let Ok(_) = input.next() {}  // Look for var() after the error.
-            }
-            let var = input.seen_var_functions();
-            if let Ok(value) = value {
+                                  context: &ParserContext, input: &mut Parser<'i, 't>)
+                                  -> Result<(), ParseError<'i>> {
+            parse_value(context, input).map(|longhands| {
                 % for sub_property in shorthand.sub_properties:
                     declarations.push(PropertyDeclaration::${sub_property.camel_case}(
-                        value.${sub_property.ident}
+                        longhands.${sub_property.ident}
                     ));
                 % endfor
-                Ok(())
-            } else if var {
-                input.reset(start);
-                let (first_token_type, css) =
-                    ::custom_properties::parse_non_custom_with_var(input)?;
-                let unparsed = Arc::new(UnparsedValue {
-                    css: css.into_owned(),
-                    first_token_type: first_token_type,
-                    url_data: context.url_data.clone(),
-                    from_shorthand: Some(ShorthandId::${shorthand.camel_case}),
-                });
-                % for sub_property in shorthand.sub_properties:
-                    declarations.push(PropertyDeclaration::WithVariables(
-                        LonghandId::${sub_property.camel_case},
-                        unparsed.clone()
-                    ));
-                % endfor
-                Ok(())
-            } else {
-                Err(StyleParseError::UnspecifiedError.into())
-            }
+            })
         }
 
         ${caller.body()}

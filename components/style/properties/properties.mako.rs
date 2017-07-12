@@ -1522,7 +1522,7 @@ impl PropertyDeclaration {
             }
             PropertyId::Longhand(id) => {
                 if let Ok(keyword) = input.try(|i| CSSWideKeyword::parse(context, i)) {
-                    declarations.push(PropertyDeclaration::CSSWideKeyword(id, keyword))
+                    declarations.push(PropertyDeclaration::CSSWideKeyword(id, keyword));
                     Ok(())
                 } else {
                     match id {
@@ -1559,16 +1559,40 @@ impl PropertyDeclaration {
                     }
                     Ok(())
                 } else {
-                    match id {
-                        % for shorthand in data.shorthands:
-                            ShorthandId::${shorthand.camel_case} => {
-                                shorthands::${shorthand.ident}::parse_into(declarations, context, input)
-                                    .map_err(|_| PropertyDeclarationParseError::InvalidValue(
-                                        "${shorthand.ident}".into()
-                                    ))
+                    input.look_for_var_functions();
+                    let start = input.position();
+                    input.parse_entirely(|input| {
+                        match id {
+                            % for shorthand in data.shorthands:
+                                ShorthandId::${shorthand.camel_case} => {
+                                    shorthands::${shorthand.ident}::parse_into(declarations, context, input)
+                                }
+                            % endfor
+                        }
+                    }).or_else(|_| {
+                        while let Ok(_) = input.next() {}  // Look for var() after the error.
+                        if input.seen_var_functions() {
+                            input.reset(start);
+                            let (first_token_type, css) =
+                                ::custom_properties::parse_non_custom_with_var(input).map_err(|_| {
+                                    PropertyDeclarationParseError::InvalidValue(id.name().into())
+                                })?;
+                            let unparsed = Arc::new(UnparsedValue {
+                                css: css.into_owned(),
+                                first_token_type: first_token_type,
+                                url_data: context.url_data.clone(),
+                                from_shorthand: Some(id),
+                            });
+                            for &longhand in id.longhands() {
+                                declarations.push(
+                                    PropertyDeclaration::WithVariables(longhand, unparsed.clone())
+                                )
                             }
-                        % endfor
-                    }
+                            Ok(())
+                        } else {
+                            Err(PropertyDeclarationParseError::InvalidValue(id.name().into()))
+                        }
+                    })
                 }
             }
         }
