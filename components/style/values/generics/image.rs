@@ -18,13 +18,13 @@ use values::specified::url::SpecifiedUrl;
 /// [image]: https://drafts.csswg.org/css-images/#image-values
 #[derive(Clone, PartialEq, ToComputedValue)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub enum Image<Gradient, ImageRect> {
+pub enum Image<Gradient, MozImageRect> {
     /// A `<url()>` image.
     Url(SpecifiedUrl),
     /// A `<gradient>` image.
     Gradient(Gradient),
     /// A `-moz-image-rect` image
-    Rect(ImageRect),
+    Rect(MozImageRect),
     /// A `-moz-element(# <element-id>)`
     Element(Atom),
     /// A paint worklet image.
@@ -157,7 +157,7 @@ impl ToCss for PaintWorklet {
 #[derive(Clone, Debug, PartialEq, ToComputedValue)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
-pub struct ImageRect<NumberOrPercentage> {
+pub struct MozImageRect<NumberOrPercentage> {
     pub url: SpecifiedUrl,
     pub top: NumberOrPercentage,
     pub bottom: NumberOrPercentage,
@@ -330,7 +330,7 @@ impl<C, L> fmt::Debug for ColorStop<C, L>
     }
 }
 
-impl<C> ToCss for ImageRect<C>
+impl<C> ToCss for MozImageRect<C>
     where C: ToCss,
 {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
