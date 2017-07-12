@@ -826,7 +826,7 @@ macro_rules! repeated_vec_impl {
             fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64)
                 -> Result<Self, ()> {
                 // If the length of either list is zero, the least common multiple is undefined.
-                if cmp::min(self.len(), other.len()) < 1 {
+                if self.is_empty() || other.is_empty() {
                     return Err(());
                 }
                 use num_integer::lcm;
