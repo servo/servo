@@ -28,7 +28,7 @@ use style_traits::{ParseError, StyleParseError};
 
 /// A pseudo-element, both public and private.
 ///
-/// NB: If you add to this list, be sure to update `each_pseudo_element` too.
+/// NB: If you add to this list, be sure to update `each_simple_pseudo_element` too.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
@@ -485,7 +485,7 @@ impl SelectorImpl {
 
     /// Executes `fun` for each pseudo-element.
     #[inline]
-    pub fn each_pseudo_element<F>(mut fun: F)
+    pub fn each_simple_pseudo_element<F>(mut fun: F)
         where F: FnMut(PseudoElement),
     {
         fun(PseudoElement::Before);

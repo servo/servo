@@ -103,6 +103,9 @@ class Atom:
     def is_anon_box(self):
         return self.type() == "nsICSSAnonBoxPseudo"
 
+    def is_tree_pseudo_element(self):
+        return self.value.startswith(":-moz-tree-")
+
 
 def collect_atoms(objdir):
     atoms = []

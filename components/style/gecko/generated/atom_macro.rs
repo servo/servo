@@ -5114,30 +5114,30 @@ cfg_if! {
             pub static nsCSSAnonBoxes_rubyText: *mut nsICSSAnonBoxPseudo;
             #[link_name = "_ZN14nsCSSAnonBoxes17rubyTextContainerE"]
             pub static nsCSSAnonBoxes_rubyTextContainer: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes13moztreecolumnE"]
-            pub static nsCSSAnonBoxes_moztreecolumn: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes10moztreerowE"]
-            pub static nsCSSAnonBoxes_moztreerow: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes16moztreeseparatorE"]
-            pub static nsCSSAnonBoxes_moztreeseparator: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes11moztreecellE"]
-            pub static nsCSSAnonBoxes_moztreecell: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes18moztreeindentationE"]
-            pub static nsCSSAnonBoxes_moztreeindentation: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes11moztreelineE"]
-            pub static nsCSSAnonBoxes_moztreeline: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes13moztreetwistyE"]
-            pub static nsCSSAnonBoxes_moztreetwisty: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes12moztreeimageE"]
-            pub static nsCSSAnonBoxes_moztreeimage: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes15moztreecelltextE"]
-            pub static nsCSSAnonBoxes_moztreecelltext: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes15moztreecheckboxE"]
-            pub static nsCSSAnonBoxes_moztreecheckbox: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes20moztreeprogressmeterE"]
-            pub static nsCSSAnonBoxes_moztreeprogressmeter: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes19moztreedropfeedbackE"]
-            pub static nsCSSAnonBoxes_moztreedropfeedback: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "_ZN14nsCSSAnonBoxes13mozTreeColumnE"]
+            pub static nsCSSAnonBoxes_mozTreeColumn: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "_ZN14nsCSSAnonBoxes10mozTreeRowE"]
+            pub static nsCSSAnonBoxes_mozTreeRow: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "_ZN14nsCSSAnonBoxes16mozTreeSeparatorE"]
+            pub static nsCSSAnonBoxes_mozTreeSeparator: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "_ZN14nsCSSAnonBoxes11mozTreeCellE"]
+            pub static nsCSSAnonBoxes_mozTreeCell: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "_ZN14nsCSSAnonBoxes18mozTreeIndentationE"]
+            pub static nsCSSAnonBoxes_mozTreeIndentation: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "_ZN14nsCSSAnonBoxes11mozTreeLineE"]
+            pub static nsCSSAnonBoxes_mozTreeLine: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "_ZN14nsCSSAnonBoxes13mozTreeTwistyE"]
+            pub static nsCSSAnonBoxes_mozTreeTwisty: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "_ZN14nsCSSAnonBoxes12mozTreeImageE"]
+            pub static nsCSSAnonBoxes_mozTreeImage: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "_ZN14nsCSSAnonBoxes15mozTreeCellTextE"]
+            pub static nsCSSAnonBoxes_mozTreeCellText: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "_ZN14nsCSSAnonBoxes15mozTreeCheckboxE"]
+            pub static nsCSSAnonBoxes_mozTreeCheckbox: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "_ZN14nsCSSAnonBoxes20mozTreeProgressmeterE"]
+            pub static nsCSSAnonBoxes_mozTreeProgressmeter: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "_ZN14nsCSSAnonBoxes19mozTreeDropFeedbackE"]
+            pub static nsCSSAnonBoxes_mozTreeDropFeedback: *mut nsICSSAnonBoxPseudo;
             #[link_name = "_ZN14nsCSSAnonBoxes21mozSVGMarkerAnonChildE"]
             pub static nsCSSAnonBoxes_mozSVGMarkerAnonChild: *mut nsICSSAnonBoxPseudo;
             #[link_name = "_ZN14nsCSSAnonBoxes23mozSVGOuterSVGAnonChildE"]
@@ -10243,30 +10243,30 @@ cfg_if! {
             pub static nsCSSAnonBoxes_rubyText: *mut nsICSSAnonBoxPseudo;
             #[link_name = "?rubyTextContainer@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
             pub static nsCSSAnonBoxes_rubyTextContainer: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?moztreecolumn@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_moztreecolumn: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?moztreerow@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_moztreerow: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?moztreeseparator@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_moztreeseparator: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?moztreecell@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_moztreecell: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?moztreeindentation@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_moztreeindentation: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?moztreeline@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_moztreeline: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?moztreetwisty@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_moztreetwisty: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?moztreeimage@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_moztreeimage: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?moztreecelltext@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_moztreecelltext: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?moztreecheckbox@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_moztreecheckbox: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?moztreeprogressmeter@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_moztreeprogressmeter: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?moztreedropfeedback@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_moztreedropfeedback: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "?mozTreeColumn@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
+            pub static nsCSSAnonBoxes_mozTreeColumn: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "?mozTreeRow@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
+            pub static nsCSSAnonBoxes_mozTreeRow: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "?mozTreeSeparator@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
+            pub static nsCSSAnonBoxes_mozTreeSeparator: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "?mozTreeCell@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
+            pub static nsCSSAnonBoxes_mozTreeCell: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "?mozTreeIndentation@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
+            pub static nsCSSAnonBoxes_mozTreeIndentation: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "?mozTreeLine@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
+            pub static nsCSSAnonBoxes_mozTreeLine: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "?mozTreeTwisty@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
+            pub static nsCSSAnonBoxes_mozTreeTwisty: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "?mozTreeImage@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
+            pub static nsCSSAnonBoxes_mozTreeImage: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "?mozTreeCellText@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
+            pub static nsCSSAnonBoxes_mozTreeCellText: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "?mozTreeCheckbox@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
+            pub static nsCSSAnonBoxes_mozTreeCheckbox: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "?mozTreeProgressmeter@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
+            pub static nsCSSAnonBoxes_mozTreeProgressmeter: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "?mozTreeDropFeedback@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
+            pub static nsCSSAnonBoxes_mozTreeDropFeedback: *mut nsICSSAnonBoxPseudo;
             #[link_name = "?mozSVGMarkerAnonChild@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
             pub static nsCSSAnonBoxes_mozSVGMarkerAnonChild: *mut nsICSSAnonBoxPseudo;
             #[link_name = "?mozSVGOuterSVGAnonChild@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
@@ -15372,30 +15372,30 @@ cfg_if! {
             pub static nsCSSAnonBoxes_rubyText: *mut nsICSSAnonBoxPseudo;
             #[link_name = "\x01?rubyTextContainer@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
             pub static nsCSSAnonBoxes_rubyTextContainer: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?moztreecolumn@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_moztreecolumn: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?moztreerow@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_moztreerow: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?moztreeseparator@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_moztreeseparator: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?moztreecell@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_moztreecell: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?moztreeindentation@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_moztreeindentation: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?moztreeline@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_moztreeline: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?moztreetwisty@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_moztreetwisty: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?moztreeimage@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_moztreeimage: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?moztreecelltext@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_moztreecelltext: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?moztreecheckbox@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_moztreecheckbox: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?moztreeprogressmeter@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_moztreeprogressmeter: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?moztreedropfeedback@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_moztreedropfeedback: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "\x01?mozTreeColumn@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
+            pub static nsCSSAnonBoxes_mozTreeColumn: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "\x01?mozTreeRow@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
+            pub static nsCSSAnonBoxes_mozTreeRow: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "\x01?mozTreeSeparator@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
+            pub static nsCSSAnonBoxes_mozTreeSeparator: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "\x01?mozTreeCell@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
+            pub static nsCSSAnonBoxes_mozTreeCell: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "\x01?mozTreeIndentation@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
+            pub static nsCSSAnonBoxes_mozTreeIndentation: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "\x01?mozTreeLine@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
+            pub static nsCSSAnonBoxes_mozTreeLine: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "\x01?mozTreeTwisty@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
+            pub static nsCSSAnonBoxes_mozTreeTwisty: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "\x01?mozTreeImage@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
+            pub static nsCSSAnonBoxes_mozTreeImage: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "\x01?mozTreeCellText@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
+            pub static nsCSSAnonBoxes_mozTreeCellText: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "\x01?mozTreeCheckbox@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
+            pub static nsCSSAnonBoxes_mozTreeCheckbox: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "\x01?mozTreeProgressmeter@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
+            pub static nsCSSAnonBoxes_mozTreeProgressmeter: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "\x01?mozTreeDropFeedback@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
+            pub static nsCSSAnonBoxes_mozTreeDropFeedback: *mut nsICSSAnonBoxPseudo;
             #[link_name = "\x01?mozSVGMarkerAnonChild@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
             pub static nsCSSAnonBoxes_mozSVGMarkerAnonChild: *mut nsICSSAnonBoxPseudo;
             #[link_name = "\x01?mozSVGOuterSVGAnonChild@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
@@ -20505,29 +20505,29 @@ macro_rules! atom {
 (":-moz-ruby-text-container") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_rubyTextContainer as *mut _) } };
 (":-moz-tree-column") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_moztreecolumn as *mut _) } };
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozTreeColumn as *mut _) } };
 (":-moz-tree-row") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_moztreerow as *mut _) } };
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozTreeRow as *mut _) } };
 (":-moz-tree-separator") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_moztreeseparator as *mut _) } };
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozTreeSeparator as *mut _) } };
 (":-moz-tree-cell") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_moztreecell as *mut _) } };
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozTreeCell as *mut _) } };
 (":-moz-tree-indentation") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_moztreeindentation as *mut _) } };
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozTreeIndentation as *mut _) } };
 (":-moz-tree-line") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_moztreeline as *mut _) } };
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozTreeLine as *mut _) } };
 (":-moz-tree-twisty") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_moztreetwisty as *mut _) } };
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozTreeTwisty as *mut _) } };
 (":-moz-tree-image") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_moztreeimage as *mut _) } };
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozTreeImage as *mut _) } };
 (":-moz-tree-cell-text") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_moztreecelltext as *mut _) } };
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozTreeCellText as *mut _) } };
 (":-moz-tree-checkbox") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_moztreecheckbox as *mut _) } };
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozTreeCheckbox as *mut _) } };
 (":-moz-tree-progressmeter") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_moztreeprogressmeter as *mut _) } };
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozTreeProgressmeter as *mut _) } };
 (":-moz-tree-drop-feedback") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_moztreedropfeedback as *mut _) } };
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozTreeDropFeedback as *mut _) } };
 (":-moz-svg-marker-anon-child") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozSVGMarkerAnonChild as *mut _) } };
 (":-moz-svg-outer-svg-anon-child") =>

@@ -4,7 +4,7 @@
 
 //! Gecko-specific bits for selector-parsing.
 
-use cssparser::{Parser, ToCss, CompactCowStr};
+use cssparser::{BasicParseError, Parser, ToCss, Token, CompactCowStr};
 use element_state::ElementState;
 use gecko_bindings::structs::CSSPseudoClassType;
 use selector_parser::{SelectorParser, PseudoElementCascadeType};
@@ -267,6 +267,11 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
     type Impl = SelectorImpl;
     type Error = StyleParseError<'i>;
 
+    fn is_pseudo_element_allows_single_colon(name: &CompactCowStr<'i>) -> bool {
+        ::selectors::parser::is_css2_pseudo_element(name) ||
+            name.starts_with("-moz-tree-") // tree pseudo-elements
+    }
+
     fn parse_non_ts_pseudo_class(&self, name: CompactCowStr<'i>)
                                  -> Result<NonTSPseudoClass, ParseError<'i>> {
         macro_rules! pseudo_class_parse {
@@ -338,6 +343,30 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
             .ok_or(SelectorParseError::UnexpectedIdent(name.clone()).into())
     }
 
+    fn parse_functional_pseudo_element<'t>(&self, name: CompactCowStr<'i>,
+                                           parser: &mut Parser<'i, 't>)
+                                           -> Result<PseudoElement, ParseError<'i>> {
+        if name.starts_with("-moz-tree-") {
+            // Tree pseudo-elements can have zero or more arguments,
+            // separated by either comma or space.
+            let mut args = Vec::new();
+            loop {
+                match parser.next() {
+                    Ok(Token::Ident(ident)) => args.push(ident.into_owned()),
+                    Ok(Token::Comma) => {},
+                    Ok(t) => return Err(BasicParseError::UnexpectedToken(t).into()),
+                    Err(BasicParseError::EndOfInput) => break,
+                    _ => unreachable!("Parser::next() shouldn't return any other error"),
+                }
+            }
+            let args = args.into_boxed_slice();
+            if let Some(pseudo) = PseudoElement::tree_pseudo_element(&name, args) {
+                return Ok(pseudo);
+            }
+        }
+        Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
+    }
+
     fn default_namespace(&self) -> Option<Namespace> {
         self.namespaces.default.clone().as_ref().map(|&(ref ns, _)| ns.clone())
     }
@@ -367,11 +396,11 @@ impl SelectorImpl {
 
 
     #[inline]
-    /// Executes a function for each pseudo-element.
-    pub fn each_pseudo_element<F>(fun: F)
+    /// Executes a function for each simple (not functional) pseudo-element.
+    pub fn each_simple_pseudo_element<F>(fun: F)
         where F: FnMut(PseudoElement),
     {
-        PseudoElement::each(fun)
+        PseudoElement::each_simple(fun)
     }
 
     #[inline]

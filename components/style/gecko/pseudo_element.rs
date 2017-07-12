@@ -8,7 +8,7 @@
 //! `pseudo_element_definition.mako.rs`. If you touch that file, you probably
 //! need to update the checked-in files for Servo.
 
-use cssparser::ToCss;
+use cssparser::{ToCss, serialize_identifier};
 use gecko_bindings::structs::{self, CSSPseudoElementType};
 use selector_parser::{NonTSPseudoClass, PseudoElementCascadeType, SelectorImpl};
 use std::fmt;
@@ -91,10 +91,6 @@ impl PseudoElement {
 
     /// Whether this pseudo-element is web-exposed.
     pub fn exposed_in_non_ua_sheets(&self) -> bool {
-        if self.is_anon_box() {
-            return false;
-        }
-
         (self.flags() & structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY) == 0
     }
 
@@ -116,12 +112,5 @@ impl PseudoElement {
             PseudoElement::MozPlaceholder => PseudoElement::Placeholder,
             _ => self.clone(),
         }
-    }
-}
-
-impl ToCss for PseudoElement {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        dest.write_char(':')?;
-        dest.write_str(self.as_str())
     }
 }
