@@ -606,6 +606,13 @@ impl From<LengthOrPercentage> for NonNegativeLengthOrPercentage {
     }
 }
 
+impl From<NonNegativeLengthOrPercentage> for LengthOrPercentage {
+    #[inline]
+    fn from(lop: NonNegativeLengthOrPercentage) -> LengthOrPercentage {
+        lop.0
+    }
+}
+
 impl NonNegativeLengthOrPercentage {
     /// Get zero value.
     #[inline]
