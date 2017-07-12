@@ -66,6 +66,7 @@
 
 use Atom;
 use applicable_declarations::ApplicableDeclarationBlock;
+use atomic_refcell::{AtomicRefCell, AtomicRefMut};
 use bit_vec::BitVec;
 use bloom::StyleBloom;
 use cache::{LRUCache, LRUCacheMutIterator};
@@ -73,11 +74,14 @@ use context::{SelectorFlagsMap, SharedStyleContext, StyleContext};
 use data::ElementStyles;
 use dom::{TElement, SendElement};
 use matching::MatchMethods;
+use owning_ref::OwningHandle;
 use properties::ComputedValues;
 use selectors::matching::{ElementSelectorFlags, VisitedHandlingMode};
 use smallvec::SmallVec;
+use std::marker::PhantomData;
 use std::mem;
 use std::ops::Deref;
+use stylearc::Arc;
 use stylist::Stylist;
 
 mod checks;
@@ -92,7 +96,8 @@ mod checks;
 /// improvements (e.g. 3x fewer styles having to be resolved than at size 8) and
 /// slight performance improvements.  Sizes larger than 32 haven't really been
 /// tested.
-pub const STYLE_SHARING_CANDIDATE_CACHE_SIZE: usize = 31;
+pub const SHARING_CACHE_SIZE: usize = 31;
+const SHARING_CACHE_BACKING_STORE_SIZE: usize = SHARING_CACHE_SIZE + 1;
 
 /// Controls whether the style sharing cache is used.
 #[derive(Clone, Copy, PartialEq)]
@@ -210,12 +215,19 @@ impl ValidationData {
 /// Note that this information is stored in TLS and cleared after the traversal,
 /// and once here, the style information of the element is immutable, so it's
 /// safe to access.
+///
+/// Important: If you change the members/layout here, You need to do the same for
+/// FakeCandidate below.
 #[derive(Debug)]
 pub struct StyleSharingCandidate<E: TElement> {
-    /// The element. We use SendElement here so that the cache may live in
-    /// ScopedTLS.
-    element: SendElement<E>,
+    /// The element.
+    element: E,
     validation_data: ValidationData,
+}
+
+struct FakeCandidate {
+    _element: usize,
+    _validation_data: ValidationData,
 }
 
 impl<E: TElement> Deref for StyleSharingCandidate<E> {
@@ -230,12 +242,12 @@ impl<E: TElement> Deref for StyleSharingCandidate<E> {
 impl<E: TElement> StyleSharingCandidate<E> {
     /// Get the classlist of this candidate.
     fn class_list(&mut self) -> &[Atom] {
-        self.validation_data.class_list(*self.element)
+        self.validation_data.class_list(self.element)
     }
 
     /// Get the pres hints of this candidate.
     fn pres_hints(&mut self) -> &[ApplicableDeclarationBlock] {
-        self.validation_data.pres_hints(*self.element)
+        self.validation_data.pres_hints(self.element)
     }
 
     /// Compute the bit vector of revalidation selector match results
@@ -246,7 +258,7 @@ impl<E: TElement> StyleSharingCandidate<E> {
         bloom: &StyleBloom<E>,
     ) -> &BitVec {
         self.validation_data.revalidation_match_results(
-            *self.element,
+            self.element,
             stylist,
             bloom,
             /* bloom_known_valid = */ false,
@@ -399,35 +411,81 @@ pub enum StyleSharingResult {
     StyleWasShared(usize, ElementStyles),
 }
 
+/// Style sharing caches are are large allocations, so we store them in thread-local
+/// storage such that they can be reused across style traversals. Ideally, we'd just
+/// stack-allocate these buffers with uninitialized memory, but right now rustc can't
+/// avoid memmoving the entire cache during setup, which gets very expensive. See
+/// issues like [1] and [2].
+///
+/// Given that the cache stores entries of type TElement, we transmute to usize
+/// before storing in TLS. This is safe as long as we make sure to empty the cache
+/// before we let it go.
+///
+/// [1] https://github.com/rust-lang/rust/issues/42763
+/// [2] https://github.com/rust-lang/rust/issues/13707
+type SharingCacheBase<Candidate> = LRUCache<[Candidate; SHARING_CACHE_BACKING_STORE_SIZE]>;
+type SharingCache<E> = SharingCacheBase<StyleSharingCandidate<E>>;
+type TypelessSharingCache = SharingCacheBase<FakeCandidate>;
+type StoredSharingCache = Arc<AtomicRefCell<TypelessSharingCache>>;
+
+thread_local!(static SHARING_CACHE_KEY: StoredSharingCache =
+              Arc::new(AtomicRefCell::new(LRUCache::new())));
+
 /// An LRU cache of the last few nodes seen, so that we can aggressively try to
 /// reuse their styles.
 ///
 /// Note that this cache is flushed every time we steal work from the queue, so
 /// storing nodes here temporarily is safe.
 pub struct StyleSharingCandidateCache<E: TElement> {
-    cache: LRUCache<[StyleSharingCandidate<E>; STYLE_SHARING_CANDIDATE_CACHE_SIZE + 1]>,
+    /// The LRU cache, with the type cast away to allow persisting the allocation.
+    cache_typeless: OwningHandle<StoredSharingCache, AtomicRefMut<'static, TypelessSharingCache>>,
+    /// Bind this structure to the lifetime of E, since that's what we effectively store.
+    marker: PhantomData<SendElement<E>>,
     /// The DOM depth we're currently at.  This is used as an optimization to
     /// clear the cache when we change depths, since we know at that point
     /// nothing in the cache will match.
     dom_depth: usize,
 }
 
+impl<E: TElement> Drop for StyleSharingCandidateCache<E> {
+    fn drop(&mut self) {
+        self.clear();
+    }
+}
+
 impl<E: TElement> StyleSharingCandidateCache<E> {
+    fn cache(&self) -> &SharingCache<E> {
+        let base: &TypelessSharingCache = &*self.cache_typeless;
+        unsafe { mem::transmute(base) }
+    }
+
+    fn cache_mut(&mut self) -> &mut SharingCache<E> {
+        let base: &mut TypelessSharingCache = &mut *self.cache_typeless;
+        unsafe { mem::transmute(base) }
+    }
+
     /// Create a new style sharing candidate cache.
     pub fn new() -> Self {
+        assert_eq!(mem::size_of::<SharingCache<E>>(), mem::size_of::<TypelessSharingCache>());
+        assert_eq!(mem::align_of::<SharingCache<E>>(), mem::align_of::<TypelessSharingCache>());
+        let cache_arc = SHARING_CACHE_KEY.with(|c| c.clone());
+        let cache = OwningHandle::new_with_fn(cache_arc, |x| unsafe { x.as_ref() }.unwrap().borrow_mut());
+        debug_assert_eq!(cache.num_entries(), 0);
+
         StyleSharingCandidateCache {
-            cache: LRUCache::new(),
+            cache_typeless: cache,
+            marker: PhantomData,
             dom_depth: 0,
         }
     }
 
     /// Returns the number of entries in the cache.
     pub fn num_entries(&self) -> usize {
-        self.cache.num_entries()
+        self.cache().num_entries()
     }
 
     fn iter_mut(&mut self) -> LRUCacheMutIterator<StyleSharingCandidate<E>> {
-        self.cache.iter_mut()
+        self.cache_mut().iter_mut()
     }
 
     /// Tries to insert an element in the style sharing cache.
@@ -472,20 +530,20 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
             self.clear();
             self.dom_depth = dom_depth;
         }
-        self.cache.insert(StyleSharingCandidate {
-            element: unsafe { SendElement::new(*element) },
+        self.cache_mut().insert(StyleSharingCandidate {
+            element: *element,
             validation_data: validation_data,
         });
     }
 
     /// Touch a given index in the style sharing candidate cache.
     pub fn touch(&mut self, index: usize) {
-        self.cache.touch(index);
+        self.cache_mut().touch(index);
     }
 
     /// Clear the style sharing candidate cache.
     pub fn clear(&mut self) {
-        self.cache.evict_all()
+        self.cache_mut().evict_all()
     }
 
     /// Attempts to share a style with another node.
@@ -534,7 +592,7 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
         }
 
         debug!("{:?} Cannot share style: {} cache entries", target.element,
-               self.cache.num_entries());
+               self.cache().num_entries());
 
         StyleSharingResult::CannotShare
     }
