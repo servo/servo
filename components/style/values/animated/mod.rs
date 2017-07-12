@@ -9,7 +9,10 @@
 //! module's raison d'être is to ultimately contain all these types.
 
 use app_units::Au;
+#[cfg(feature = "gecko")] use properties::animated_properties::Animatable;
+#[cfg(feature = "gecko")] use properties::longhands::stroke_dasharray::computed_value::T as ComputedStrokeDashArrayList;
 use values::computed::Angle as ComputedAngle;
+#[cfg(feature = "gecko")] use values::computed::LengthOrPercentage;
 use values::specified::url::SpecifiedUrl;
 
 pub mod effects;
@@ -88,3 +91,46 @@ where
     }
 }
 
+/// An animated value for stroke-dasharray
+///
+/// https://www.w3.org/TR/SVG/animate.html#Animatable
+#[cfg(feature = "gecko")]
+#[derive(Clone, Debug, PartialEq)]
+pub struct AnimatedStrokeDashArrayList(Vec<LengthOrPercentage>);
+
+#[cfg(feature = "gecko")]
+impl ToAnimatedValue for ComputedStrokeDashArrayList {
+    type AnimatedValue = AnimatedStrokeDashArrayList;
+
+    #[inline]
+    fn to_animated_value(self) -> Self::AnimatedValue {
+        AnimatedStrokeDashArrayList(self.0.to_animated_value())
+    }
+
+    #[inline]
+    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+        ComputedStrokeDashArrayList(ToAnimatedValue::from_animated_value(animated.0))
+    }
+}
+
+/// https://www.w3.org/TR/SVG/painting.html#StrokeDasharrayProperty
+#[cfg(feature = "gecko")]
+impl Animatable for AnimatedStrokeDashArrayList {
+    #[inline]
+    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64)
+                    -> Result<Self, ()> {
+        Ok(AnimatedStrokeDashArrayList(
+            try!(self.0.add_weighted(&other.0, self_portion, other_portion))
+                ))
+    }
+
+    #[allow(unused_variables)]
+    fn add(&self, other: &Self) -> Result<Self, ()> {
+        Err(())
+    }
+
+    #[allow(unused_variables)]
+    fn accumulate(&self, other: &Self, count: u64) -> Result<Self, ()> {
+        Err(())
+    }
+}
