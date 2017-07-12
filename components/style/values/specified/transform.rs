@@ -131,6 +131,17 @@ impl<S> OriginComponent<S> {
     }
 }
 
+#[cfg(feature = "gecko")]
+#[inline]
+fn allow_frames_timing() -> bool {
+    use gecko_bindings::bindings;
+    unsafe { bindings::Gecko_IsFramesTimingEnabled() }
+}
+
+#[cfg(feature = "servo")]
+#[inline]
+fn allow_frames_timing() -> bool { true }
+
 impl Parse for TimingFunction {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         if let Ok(keyword) = input.try(TimingKeyword::parse) {
@@ -172,8 +183,12 @@ impl Parse for TimingFunction {
                     Ok(GenericTimingFunction::Steps(steps, position))
                 },
                 "frames" => {
-                    let frames = Integer::parse_with_minimum(context, i, 2)?;
-                    Ok(GenericTimingFunction::Frames(frames))
+                    if allow_frames_timing() {
+                        let frames = Integer::parse_with_minimum(context, i, 2)?;
+                        Ok(GenericTimingFunction::Frames(frames))
+                    } else {
+                        Err(())
+                    }
                 },
                 _ => Err(()),
             }).map_err(|()| StyleParseError::UnexpectedFunction(function).into())
