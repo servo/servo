@@ -221,9 +221,8 @@ impl ValidationData {
 /// FakeCandidate below.
 #[derive(Debug)]
 pub struct StyleSharingCandidate<E: TElement> {
-    /// The element. We use SendElement here so that the cache may live in
-    /// ScopedTLS.
-    element: SendElement<E>,
+    /// The element.
+    element: E,
     validation_data: ValidationData,
 }
 
@@ -244,12 +243,12 @@ impl<E: TElement> Deref for StyleSharingCandidate<E> {
 impl<E: TElement> StyleSharingCandidate<E> {
     /// Get the classlist of this candidate.
     fn class_list(&mut self) -> &[Atom] {
-        self.validation_data.class_list(*self.element)
+        self.validation_data.class_list(self.element)
     }
 
     /// Get the pres hints of this candidate.
     fn pres_hints(&mut self) -> &[ApplicableDeclarationBlock] {
-        self.validation_data.pres_hints(*self.element)
+        self.validation_data.pres_hints(self.element)
     }
 
     /// Compute the bit vector of revalidation selector match results
@@ -260,7 +259,7 @@ impl<E: TElement> StyleSharingCandidate<E> {
         bloom: &StyleBloom<E>,
     ) -> &BitVec {
         self.validation_data.revalidation_match_results(
-            *self.element,
+            self.element,
             stylist,
             bloom,
             /* bloom_known_valid = */ false,
@@ -590,7 +589,7 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
             self.dom_depth = dom_depth;
         }
         self.cache_mut().insert(StyleSharingCandidate {
-            element: unsafe { SendElement::new(*element) },
+            element: *element,
             validation_data: validation_data,
         });
     }
