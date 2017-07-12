@@ -91,10 +91,6 @@ impl PseudoElement {
 
     /// Whether this pseudo-element is web-exposed.
     pub fn exposed_in_non_ua_sheets(&self) -> bool {
-        if self.is_anon_box() {
-            return false;
-        }
-
         (self.flags() & structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY) == 0
     }
 

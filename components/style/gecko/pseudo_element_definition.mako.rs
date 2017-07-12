@@ -65,13 +65,12 @@ impl PseudoElement {
     pub fn flags(&self) -> u32 {
         match *self {
             % for pseudo in PSEUDOS:
-                PseudoElement::${pseudo.capitalized()} => {
-                    % if pseudo.is_anon_box():
-                        0
-                    % else:
-                        structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_${pseudo.original_ident}
-                    % endif
-                }
+                PseudoElement::${pseudo.capitalized()} =>
+                % if pseudo.is_anon_box():
+                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                % else:
+                    structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_${pseudo.original_ident},
+                % endif
             % endfor
         }
     }
