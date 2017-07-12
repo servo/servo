@@ -1540,30 +1540,26 @@ impl PropertyDeclaration {
                 }
             }
             PropertyId::Shorthand(id) => {
-                match id {
-                % for shorthand in data.shorthands:
-                    ShorthandId::${shorthand.camel_case} => {
-                        match input.try(|i| CSSWideKeyword::parse(context, i)) {
-                            Ok(keyword) => {
-                                % if shorthand.name == "all":
-                                    declarations.all_shorthand = AllShorthand::CSSWideKeyword(keyword);
-                                % else:
-                                    % for sub_property in shorthand.sub_properties:
-                                        declarations.push(PropertyDeclaration::CSSWideKeyword(
-                                            LonghandId::${sub_property.camel_case},
-                                            keyword,
-                                        ));
-                                    % endfor
-                                % endif
-                                Ok(())
-                            },
-                            Err(_) => {
-                                shorthands::${shorthand.ident}::parse_into(declarations, context, input)
-                                    .map_err(|_| PropertyDeclarationParseError::InvalidValue("${shorthand.ident}".into()))
-                            }
+                if let Ok(keyword) = input.try(|i| CSSWideKeyword::parse(context, i)) {
+                    if id == ShorthandId::All {
+                        declarations.all_shorthand = AllShorthand::CSSWideKeyword(keyword)
+                    } else {
+                        for &longhand in id.longhands() {
+                            declarations.push(PropertyDeclaration::CSSWideKeyword(longhand, keyword))
                         }
                     }
-                % endfor
+                    Ok(())
+                } else {
+                    match id {
+                        % for shorthand in data.shorthands:
+                            ShorthandId::${shorthand.camel_case} => {
+                                shorthands::${shorthand.ident}::parse_into(declarations, context, input)
+                                    .map_err(|_| PropertyDeclarationParseError::InvalidValue(
+                                        "${shorthand.ident}".into()
+                                    ))
+                            }
+                        % endfor
+                    }
                 }
             }
         }
