@@ -44,7 +44,8 @@ pub use super::specified::url::SpecifiedUrl;
 pub use self::length::{CalcLengthOrPercentage, Length, LengthOrNone, LengthOrNumber, LengthOrPercentage};
 pub use self::length::{LengthOrPercentageOrAuto, LengthOrPercentageOrNone, MaxLength, MozLength, Percentage};
 pub use self::position::Position;
-pub use self::svg::{SVGLength, SVGOpacity, SVGPaint, SVGPaintKind, SVGStrokeDashArray};
+pub use self::svg::{SVGLength, SVGLengthOrPercentageOrNumber, SVGOpacity};
+pub use self::svg::{SVGPaint, SVGPaintKind, SVGStrokeDashArray};
 pub use self::text::{InitialLetter, LetterSpacing, LineHeight, WordSpacing};
 pub use self::transform::{TimingFunction, TransformOrigin};
 

@@ -42,7 +42,8 @@ use values::animated::effects::TextShadowList as AnimatedTextShadowList;
 use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 use values::computed::{BorderCornerRadius, ClipRect};
 use values::computed::{CalcLengthOrPercentage, Color, Context, ComputedValueAsSpecified};
-use values::computed::{LengthOrPercentage, MaxLength, MozLength, Percentage, ToComputedValue};
+use values::computed::{LengthOrPercentage, MaxLength, MozLength, NumberOrPercentage};
+use values::computed::{Percentage, SVGLengthOrPercentageOrNumber, ToComputedValue};
 use values::generics::border::BorderCornerRadius as GenericBorderCornerRadius;
 use values::generics::effects::Filter;
 use values::generics::position as generic_position;
@@ -777,6 +778,7 @@ impl ToAnimatedZero for AnimationValue {
 
 impl RepeatableListAnimatable for LengthOrPercentage {}
 impl RepeatableListAnimatable for Either<f32, LengthOrPercentage> {}
+impl RepeatableListAnimatable for SVGLengthOrPercentageOrNumber {}
 
 macro_rules! repeated_vec_impl {
     ($($ty:ty),*) => {
@@ -3038,6 +3040,122 @@ impl ToAnimatedZero for IntermediateSVGPaintKind {
     }
 }
 
+impl SVGLengthOrPercentageOrNumber {
+    fn get_converted_number_or_percentage(&self) -> NumberOrPercentage {
+        match *self {
+            SVGLengthOrPercentageOrNumber::Length(length) =>
+                NumberOrPercentage::Number(length.to_f32_px()),
+            SVGLengthOrPercentageOrNumber::NumberOrPercentage(nop) =>
+                nop,
+        }
+    }
+}
+
+impl Animatable for SVGLengthOrPercentageOrNumber {
+    #[inline]
+    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
+        // Convert to number in order to interpolate the value between number and length.
+        let from_value = self.get_converted_number_or_percentage();
+        let to_value = other.get_converted_number_or_percentage();
+
+        match (from_value, to_value) {
+            (NumberOrPercentage::Number(from),
+             NumberOrPercentage::Number(to)) => {
+                Ok(SVGLengthOrPercentageOrNumber::NumberOrPercentage(
+                    NumberOrPercentage::Number(
+                        from.add_weighted(&to, self_portion, other_portion)?)))
+            },
+            (NumberOrPercentage::Percentage(from),
+             NumberOrPercentage::Percentage(to)) => {
+                Ok(SVGLengthOrPercentageOrNumber::NumberOrPercentage(
+                    NumberOrPercentage::Percentage(
+                        from.add_weighted(&to, self_portion, other_portion)?)))
+            },
+            _ => Err(()),
+        }
+    }
+
+    #[inline]
+    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
+        let from_value = self.get_converted_number_or_percentage();
+        let to_value = other.get_converted_number_or_percentage();
+
+        match (from_value, to_value) {
+            (NumberOrPercentage::Number(from),
+             NumberOrPercentage::Number(to)) => {
+                Ok(from.compute_distance(&to)?)
+            },
+            (NumberOrPercentage::Percentage(from),
+             NumberOrPercentage::Percentage(to)) => {
+                Ok(from.compute_distance(&to)?)
+            },
+            _ => Err(()),
+        }
+    }
+
+    #[inline]
+    fn add(&self, other: &Self) -> Result<Self, ()> {
+        let from_value = self.get_converted_number_or_percentage();
+        let to_value = other.get_converted_number_or_percentage();
+
+        match (from_value, to_value) {
+            (NumberOrPercentage::Number(from),
+             NumberOrPercentage::Number(to)) => {
+                Ok(SVGLengthOrPercentageOrNumber::NumberOrPercentage(
+                    NumberOrPercentage::Number(from.add(&to)?)))
+            },
+            (NumberOrPercentage::Percentage(from),
+             NumberOrPercentage::Percentage(to)) => {
+                Ok(SVGLengthOrPercentageOrNumber::NumberOrPercentage(
+                    NumberOrPercentage::Percentage(from.add(&to)?)))
+            },
+            _ => Err(()),
+        }
+    }
+
+    #[inline]
+    fn accumulate(&self, other: &Self, count: u64) -> Result<Self, ()> {
+        let from_value = self.get_converted_number_or_percentage();
+        let to_value = other.get_converted_number_or_percentage();
+
+        match (from_value, to_value) {
+            (NumberOrPercentage::Number(from),
+             NumberOrPercentage::Number(to)) => {
+                Ok(SVGLengthOrPercentageOrNumber::NumberOrPercentage(NumberOrPercentage::Number(
+                    from.accumulate(&to, count)?)))
+            },
+            (NumberOrPercentage::Percentage(from),
+             NumberOrPercentage::Percentage(to)) => {
+                Ok(SVGLengthOrPercentageOrNumber::NumberOrPercentage(NumberOrPercentage::Percentage(
+                    from.accumulate(&to, count)?)))
+            },
+            _ => Err(()),
+        }
+    }
+}
+
+impl ToAnimatedZero for SVGLengthOrPercentageOrNumber {
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        match self {
+            &SVGLengthOrPercentageOrNumber::Length(_) =>
+                Ok(SVGLengthOrPercentageOrNumber::Length(Au(0))),
+            &SVGLengthOrPercentageOrNumber::NumberOrPercentage(ref nop) => {
+                match nop{
+                    &NumberOrPercentage::Number(_) => {
+                        Ok(SVGLengthOrPercentageOrNumber::NumberOrPercentage(
+                            NumberOrPercentage::Number(0.0)))
+                    },
+                    &NumberOrPercentage::Percentage(_) => {
+                        Ok(SVGLengthOrPercentageOrNumber::NumberOrPercentage(
+                            NumberOrPercentage::Percentage(Percentage::zero())))
+                    },
+                }
+            },
+        }
+    }
+}
+
 impl<LengthType> Animatable for SVGLength<LengthType>
         where LengthType: Animatable + Clone
 {
@@ -3074,6 +3192,7 @@ impl<LengthType> ToAnimatedZero for SVGLength<LengthType> where LengthType : ToA
     }
 }
 
+// https://www.w3.org/TR/SVG/painting.html#StrokeDasharrayProperty (non-additive)
 impl<LengthType> Animatable for SVGStrokeDashArray<LengthType>
     where LengthType : RepeatableListAnimatable + Clone
 {
@@ -3081,7 +3200,7 @@ impl<LengthType> Animatable for SVGStrokeDashArray<LengthType>
     fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
         match (self, other) {
             (&SVGStrokeDashArray::Values(ref this), &SVGStrokeDashArray::Values(ref other))=> {
-                this.add_weighted(other, self_portion, other_portion)
+                this.add_weighted(&other, self_portion, other_portion)
                     .map(SVGStrokeDashArray::Values)
             }
             _ => {
@@ -3094,10 +3213,20 @@ impl<LengthType> Animatable for SVGStrokeDashArray<LengthType>
     fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
         match (self, other) {
             (&SVGStrokeDashArray::Values(ref this), &SVGStrokeDashArray::Values(ref other)) => {
-                this.compute_distance(other)
+                this.compute_distance(&other)
             }
             _ => Err(())
         }
+    }
+
+    #[inline]
+    fn add(&self, _other: &Self) -> Result<Self, ()> {
+        Err(())
+    }
+
+    #[inline]
+    fn accumulate(&self, _other: &Self, _count: u64) -> Result<Self, ()> {
+        Err(())
     }
 }
 

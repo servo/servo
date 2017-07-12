@@ -8,7 +8,7 @@ use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use style_traits::{CommaWithSpace, ParseError, Separator, StyleParseError};
 use values::generics::svg as generic;
-use values::specified::{LengthOrPercentageOrNumber, Opacity};
+use values::specified::{LengthOrPercentage, Opacity, Number};
 use values::specified::color::RGBAColor;
 
 /// Specified SVG Paint value
@@ -42,13 +42,58 @@ fn parse_context_value<'i, 't, T>(input: &mut Parser<'i, 't>, value: T)
     Err(StyleParseError::UnspecifiedError.into())
 }
 
+/// <length> | <number> | <percentage>
+/// This valule is for SVG values which allow the unitless length.
+#[allow(missing_docs)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Debug, PartialEq, ToCss, HasViewportPercentage)]
+pub enum SVGLengthOrPercentageOrNumber {
+    LengthOrPercentage(LengthOrPercentage),
+    Number(Number),
+}
+
+#[allow(missing_docs)]
+impl SVGLengthOrPercentageOrNumber {
+    pub fn parse_non_negative<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                                      -> Result<Self, ParseError<'i>> {
+        // Parse the number type first of all since LengthOrPercentage will parse number as NoCalcLength.
+        if let Ok(num) = input.try(|i| Number::parse_non_negative(context, i)) {
+            return Ok(SVGLengthOrPercentageOrNumber::Number(num))
+        }
+
+        if let Ok(length) = input.try(|i| LengthOrPercentage::parse_non_negative(context, i)) {
+            match length {
+                LengthOrPercentage::Calc(_) => {
+                    // TODO: We need to support calc() (see bug 1386967)
+                    return Err(StyleParseError::UnspecifiedError.into());
+                },
+                LengthOrPercentage::Length(l) => {
+                    return Ok(SVGLengthOrPercentageOrNumber::LengthOrPercentage(LengthOrPercentage::Length(l)));
+                },
+                LengthOrPercentage::Percentage(p) => {
+                    return Ok(SVGLengthOrPercentageOrNumber::LengthOrPercentage(LengthOrPercentage::Percentage(p)));
+                },
+            }
+        }
+
+        Err(StyleParseError::UnspecifiedError.into())
+    }
+}
+
+impl Parse for SVGLengthOrPercentageOrNumber {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                     -> Result<Self, ParseError<'i>> {
+        Self::parse_non_negative(context, input)
+    }
+}
+
 /// <length> | <percentage> | <number> | context-value
-pub type SVGLength = generic::SVGLength<LengthOrPercentageOrNumber>;
+pub type SVGLength = generic::SVGLength<SVGLengthOrPercentageOrNumber>;
 
 impl Parse for SVGLength {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                      -> Result<Self, ParseError<'i>> {
-        input.try(|i| LengthOrPercentageOrNumber::parse(context, i))
+        input.try(|i| SVGLengthOrPercentageOrNumber::parse(context, i))
              .map(Into::into)
              .or_else(|_| parse_context_value(input, generic::SVGLength::ContextValue))
     }
@@ -58,26 +103,33 @@ impl SVGLength {
     /// parse a non-negative SVG length
     pub fn parse_non_negative<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                                       -> Result<Self, ParseError<'i>> {
-        input.try(|i| LengthOrPercentageOrNumber::parse_non_negative(context, i))
+        input.try(|i| SVGLengthOrPercentageOrNumber::parse_non_negative(context, i))
              .map(Into::into)
              .or_else(|_| parse_context_value(input, generic::SVGLength::ContextValue))
     }
 }
 
-impl From<LengthOrPercentageOrNumber> for SVGLength {
-    fn from(length: LengthOrPercentageOrNumber) -> Self {
-        generic::SVGLength::Length(length)
+impl From<SVGLengthOrPercentageOrNumber> for SVGLength {
+    fn from(length: SVGLengthOrPercentageOrNumber) -> Self {
+        match length {
+            SVGLengthOrPercentageOrNumber::LengthOrPercentage(l) =>
+                generic::SVGLength::Length(
+                    SVGLengthOrPercentageOrNumber::LengthOrPercentage(l)),
+            SVGLengthOrPercentageOrNumber::Number(n) =>
+                generic::SVGLength::Length(
+                    SVGLengthOrPercentageOrNumber::Number(n)),
+        }
     }
 }
 
 /// [ <length> | <percentage> | <number> ]# | context-value
-pub type SVGStrokeDashArray = generic::SVGStrokeDashArray<LengthOrPercentageOrNumber>;
+pub type SVGStrokeDashArray = generic::SVGStrokeDashArray<SVGLengthOrPercentageOrNumber>;
 
 impl Parse for SVGStrokeDashArray {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                      -> Result<Self, ParseError<'i>> {
         if let Ok(values) = input.try(|i| CommaWithSpace::parse(i, |i| {
-            LengthOrPercentageOrNumber::parse_non_negative(context, i)
+            SVGLengthOrPercentageOrNumber::parse_non_negative(context, i)
         })) {
             Ok(generic::SVGStrokeDashArray::Values(values))
         } else if let Ok(_) = input.try(|i| i.expect_ident_matching("none")) {
