@@ -14,5 +14,6 @@ servo = ["serde", "heapsize"]
 
 [dependencies]
 heapsize = {version = "0.4.0", optional = true}
-serde = {version = "1.0", optional = true}
 nodrop = {version = "0.1.8"}
+serde = {version = "1.0", optional = true}
+stable_deref_trait = "1.0.0"
