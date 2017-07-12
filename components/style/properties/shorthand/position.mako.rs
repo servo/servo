@@ -495,11 +495,9 @@
         })
     }
 
-    /// Returns true if every sub property value of `grid` shorthand is initial.
     impl<'a> LonghandsToSerialize<'a> {
-        fn is_initial(&self) -> bool {
-            *self.grid_template_rows == GridTemplateComponent::None &&
-            *self.grid_template_columns == GridTemplateComponent::None &&
+        /// Returns true if other sub properties except template-{rows,columns} are initial.
+        fn is_grid_template(&self) -> bool {
             *self.grid_template_areas == Either::Second(None_) &&
             *self.grid_auto_rows == TrackSize::default() &&
             *self.grid_auto_columns == TrackSize::default() &&
@@ -512,7 +510,7 @@
             if *self.grid_template_areas != Either::Second(None_) ||
                (*self.grid_template_rows != GridTemplateComponent::None &&
                    *self.grid_template_columns != GridTemplateComponent::None) ||
-               self.is_initial() {
+               self.is_grid_template() {
                 return super::grid_template::serialize_grid_template(self.grid_template_rows,
                                                                      self.grid_template_columns,
                                                                      self.grid_template_areas, dest);
