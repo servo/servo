@@ -4546,15 +4546,19 @@ clip-path
         where I: IntoIterator<Item = longhands::stroke_dasharray::computed_value::single_value::T>,
               I::IntoIter: ExactSizeIterator
     {
+        use values::computed::NumberOrPercentage;
+
         let v = v.into_iter();
         unsafe {
             bindings::Gecko_nsStyleSVG_SetDashArrayLength(&mut self.gecko, v.len() as u32);
         }
 
         for (mut gecko, servo) in self.gecko.mStrokeDasharray.iter_mut().zip(v) {
-            match servo {
-                Either::First(number) => gecko.set_value(CoordDataValue::Factor(number)),
-                Either::Second(lop) => gecko.set(lop),
+            match servo.0 {
+                NumberOrPercentage::Number(number) =>
+                    gecko.set_value(CoordDataValue::Factor(number)),
+                NumberOrPercentage::Percentage(percentage) =>
+                    gecko.set_value(CoordDataValue::Percent(percentage.0)),
             }
         }
     }
@@ -4566,18 +4570,21 @@ clip-path
     }
 
     pub fn clone_stroke_dasharray(&self) -> longhands::stroke_dasharray::computed_value::T {
-        use values::computed::LengthOrPercentage;
+        use values::computed::{SVGStrokeLength, NumberOrPercentage};
 
         let mut vec = vec![];
         for gecko in self.gecko.mStrokeDasharray.iter() {
             match gecko.as_value() {
-                CoordDataValue::Factor(number) => vec.push(Either::First(number)),
+                CoordDataValue::Factor(number) =>
+                    vec.push(SVGStrokeLength(NumberOrPercentage::Number(number))),
                 CoordDataValue::Coord(coord) =>
-                    vec.push(Either::Second(LengthOrPercentage::Length(Au(coord)))),
-                CoordDataValue::Percent(p) =>
-                    vec.push(Either::Second(LengthOrPercentage::Percentage(Percentage(p)))),
-                CoordDataValue::Calc(calc) =>
-                    vec.push(Either::Second(LengthOrPercentage::Calc(calc.into()))),
+                    vec.push(SVGStrokeLength(NumberOrPercentage::Number(Au(coord).to_f32_px()))),
+                CoordDataValue::Percent(percent) =>
+                    vec.push(SVGStrokeLength(NumberOrPercentage::Percentage(Percentage(percent)))),
+                CoordDataValue::Calc(_) => {
+                    // TODO: We need to support calc()
+                    vec.push(SVGStrokeLength(NumberOrPercentage::Number(0.0)))
+                },
                 _ => unreachable!(),
             }
         }
@@ -4585,41 +4592,59 @@ clip-path
     }
 
     pub fn set_stroke_dashoffset(&mut self, v: longhands::stroke_dashoffset::computed_value::T) {
-        match v {
-            Either::First(number) => self.gecko.mStrokeDashoffset.set_value(CoordDataValue::Factor(number)),
-            Either::Second(lop) => self.gecko.mStrokeDashoffset.set(lop),
+        use values::computed::NumberOrPercentage;
+        match v.0 {
+            NumberOrPercentage::Number(number) =>
+                self.gecko.mStrokeDashoffset.set_value(CoordDataValue::Factor(number)),
+            NumberOrPercentage::Percentage(percentage) =>
+                self.gecko.mStrokeDashoffset.set_value(CoordDataValue::Percent(percentage.0)),
         }
     }
 
     ${impl_coord_copy('stroke_dashoffset', 'mStrokeDashoffset')}
 
     pub fn clone_stroke_dashoffset(&self) -> longhands::stroke_dashoffset::computed_value::T {
-        use values::computed::LengthOrPercentage;
+        use values::computed::{SVGStrokeLength, NumberOrPercentage};
         match self.gecko.mStrokeDashoffset.as_value() {
-            CoordDataValue::Factor(number) => Either::First(number),
-            CoordDataValue::Coord(coord) => Either::Second(LengthOrPercentage::Length(Au(coord))),
-            CoordDataValue::Percent(p) => Either::Second(LengthOrPercentage::Percentage(Percentage(p))),
-            CoordDataValue::Calc(calc) => Either::Second(LengthOrPercentage::Calc(calc.into())),
+            CoordDataValue::Factor(number) =>
+                SVGStrokeLength(NumberOrPercentage::Number(number)),
+            CoordDataValue::Coord(coord) =>
+                SVGStrokeLength(NumberOrPercentage::Number(Au(coord).to_f32_px())),
+            CoordDataValue::Percent(percent) =>
+                SVGStrokeLength(NumberOrPercentage::Percentage(Percentage(percent))),
+            CoordDataValue::Calc(_) => {
+                // TODO: We need to support calc()
+                longhands::stroke_width::get_initial_value()
+            },
             _ => unreachable!(),
         }
     }
 
     pub fn set_stroke_width(&mut self, v: longhands::stroke_width::computed_value::T) {
-        match v {
-            Either::First(number) => self.gecko.mStrokeWidth.set_value(CoordDataValue::Factor(number)),
-            Either::Second(lop) => self.gecko.mStrokeWidth.set(lop),
+        use values::computed::NumberOrPercentage;
+        match v.0 {
+            NumberOrPercentage::Number(number) =>
+                self.gecko.mStrokeWidth.set_value(CoordDataValue::Factor(number)),
+            NumberOrPercentage::Percentage(percentage) =>
+                self.gecko.mStrokeWidth.set_value(CoordDataValue::Percent(percentage.0)),
         }
     }
 
     ${impl_coord_copy('stroke_width', 'mStrokeWidth')}
 
     pub fn clone_stroke_width(&self) -> longhands::stroke_width::computed_value::T {
-        use values::computed::LengthOrPercentage;
+        use values::computed::{SVGStrokeLength, NumberOrPercentage};
         match self.gecko.mStrokeWidth.as_value() {
-            CoordDataValue::Factor(number) => Either::First(number),
-            CoordDataValue::Coord(coord) => Either::Second(LengthOrPercentage::Length(Au(coord))),
-            CoordDataValue::Percent(p) => Either::Second(LengthOrPercentage::Percentage(Percentage(p))),
-            CoordDataValue::Calc(calc) => Either::Second(LengthOrPercentage::Calc(calc.into())),
+            CoordDataValue::Factor(number) =>
+                SVGStrokeLength(NumberOrPercentage::Number(number)),
+            CoordDataValue::Coord(coord) =>
+                SVGStrokeLength(NumberOrPercentage::Number(Au(coord).to_f32_px())),
+            CoordDataValue::Percent(percent) =>
+                SVGStrokeLength(NumberOrPercentage::Percentage(Percentage(percent))),
+            CoordDataValue::Calc(_) => {
+                // TODO: We need to support calc()
+                longhands::stroke_width::get_initial_value()
+            },
             _ => unreachable!(),
         }
     }

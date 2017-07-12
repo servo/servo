@@ -587,3 +587,49 @@ impl ClipRectOrAuto {
 
 /// <color> | auto
 pub type ColorOrAuto = Either<Color, Auto>;
+
+/// <length> | <number> | <percentage> for SVG stroke-*
+#[allow(missing_docs)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Debug, PartialEq, ToCss)]
+pub struct SVGStrokeLength(pub NumberOrPercentage);
+
+impl ToComputedValue for specified::SVGStrokeLength {
+    type ComputedValue = SVGStrokeLength;
+
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> SVGStrokeLength {
+        match *self {
+            specified::SVGStrokeLength::LengthOrPercentage(ref lop) =>
+            {
+                match lop.to_computed_value(context) {
+                    LengthOrPercentage::Length(length) => {
+                        SVGStrokeLength(NumberOrPercentage::Number(length.to_f32_px()))
+                    },
+                    LengthOrPercentage::Percentage(percentage) => {
+                        SVGStrokeLength(NumberOrPercentage::Percentage(percentage))
+                    },
+                    LengthOrPercentage::Calc(_) => {
+                        // TODO: We need to support calc()
+                        panic!("Unexpected value.");
+                    },
+                }
+            },
+            specified::SVGStrokeLength::Number(number) =>
+                SVGStrokeLength(NumberOrPercentage::Number(number.get())),
+        }
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &SVGStrokeLength) -> Self {
+        match computed.0 {
+            NumberOrPercentage::Percentage(percentage) =>
+                specified::SVGStrokeLength::LengthOrPercentage(
+                    specified::LengthOrPercentage::Percentage(Percentage(percentage.0))),
+            NumberOrPercentage::Number(number) =>
+                specified::SVGStrokeLength::LengthOrPercentage(
+                    specified::LengthOrPercentage::Length(specified::length::NoCalcLength::from_px(number))),
+        }
+    }
+}
+

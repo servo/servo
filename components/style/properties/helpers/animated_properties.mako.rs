@@ -43,6 +43,7 @@ use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone
 use values::computed::{BorderCornerRadius, ClipRect};
 use values::computed::{CalcLengthOrPercentage, Color, Context, ComputedValueAsSpecified};
 use values::computed::{LengthOrPercentage, MaxLength, MozLength, Percentage, ToComputedValue};
+use values::computed::{SVGStrokeLength, NumberOrPercentage};
 use values::generics::{SVGPaint, SVGPaintKind};
 use values::generics::border::BorderCornerRadius as GenericBorderCornerRadius;
 use values::generics::effects::Filter;
@@ -777,6 +778,7 @@ impl ToAnimatedZero for AnimationValue {
 
 impl RepeatableListAnimatable for LengthOrPercentage {}
 impl RepeatableListAnimatable for Either<f32, LengthOrPercentage> {}
+impl RepeatableListAnimatable for SVGStrokeLength {}
 
 macro_rules! repeated_vec_impl {
     ($($ty:ty),*) => {
@@ -1358,6 +1360,88 @@ impl Animatable for MozLength {
                 this.compute_distance(other)
             },
             _ => Err(()),
+        }
+    }
+}
+
+impl Animatable for SVGStrokeLength {
+    #[inline]
+    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
+        match (self.0, other.0) {
+            (NumberOrPercentage::Number(from),
+             NumberOrPercentage::Number(to)) => {
+                Ok(SVGStrokeLength(NumberOrPercentage::Number(
+                    try!(from.add_weighted(&to, self_portion, other_portion)))))
+            },
+            (NumberOrPercentage::Percentage(from),
+             NumberOrPercentage::Percentage(to)) => {
+                Ok(SVGStrokeLength(NumberOrPercentage::Percentage(
+                    try!(from.add_weighted(&to, self_portion, other_portion)))))
+            },
+            _ => Err(()),
+        }
+    }
+
+    #[inline]
+    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
+        match (self.0, other.0) {
+            (NumberOrPercentage::Number(from),
+             NumberOrPercentage::Number(to)) => {
+                Ok(try!(from.compute_distance(&to)))
+            },
+            (NumberOrPercentage::Percentage(from),
+             NumberOrPercentage::Percentage(to)) => {
+                Ok(try!(from.compute_distance(&to)))
+            },
+            _ => Err(()),
+       }
+    }
+
+    #[inline]
+    fn add(&self, other: &Self) -> Result<Self, ()> {
+        match (self.0, other.0) {
+            (NumberOrPercentage::Number(from),
+             NumberOrPercentage::Number(to)) => {
+                Ok(SVGStrokeLength(NumberOrPercentage::Number(
+                    try!(from.add(&to)))))
+            },
+            (NumberOrPercentage::Percentage(from),
+             NumberOrPercentage::Percentage(to)) => {
+                Ok(SVGStrokeLength(NumberOrPercentage::Percentage(
+                    try!(from.add(&to)))))
+            },
+            _ => Err(()),
+        }
+    }
+
+    #[inline]
+    fn accumulate(&self, other: &Self, count: u64) -> Result<Self, ()> {
+        match (self.0, other.0) {
+            (NumberOrPercentage::Number(from),
+             NumberOrPercentage::Number(to)) => {
+                Ok(SVGStrokeLength(NumberOrPercentage::Number(
+                    try!(from.accumulate(&to, count)))))
+            },
+            (NumberOrPercentage::Percentage(from),
+             NumberOrPercentage::Percentage(to)) => {
+                Ok(SVGStrokeLength(NumberOrPercentage::Percentage(
+                    try!(from.accumulate(&to, count)))))
+            },
+            _ => Err(()),
+        }
+    }
+}
+
+impl ToAnimatedZero for SVGStrokeLength {
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        match self.0 {
+            NumberOrPercentage::Number(_) => {
+                Ok(SVGStrokeLength(NumberOrPercentage::Number(0.0)))
+            },
+            NumberOrPercentage::Percentage(_) => {
+                Ok(SVGStrokeLength(NumberOrPercentage::Percentage(Percentage::zero())))
+            },
         }
     }
 }

@@ -728,6 +728,51 @@ impl LengthOrPercentageOrNumber {
     }
 }
 
+/// <length> | <number> | <percentage> for SVG stroke-*
+#[allow(missing_docs)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Debug, PartialEq, ToCss)]
+pub enum SVGStrokeLength {
+    LengthOrPercentage(LengthOrPercentage),
+    Number(Number),
+}
+
+no_viewport_percentage!(SVGStrokeLength);
+
+impl SVGStrokeLength {
+    /// parse a <length-percentage> | <number> enforcing that the contents aren't negative
+    pub fn parse_non_negative<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                                      -> Result<Self, ParseError<'i>> {
+        if let Ok(num) = input.try(|i| Number::parse_non_negative(context, i)) {
+            return Ok(SVGStrokeLength::Number(num))
+        }
+
+        if let Ok(length) = input.try(|i| LengthOrPercentage::parse_non_negative(context, i)) {
+            match length {
+                LengthOrPercentage::Calc(_) => {
+                    // TODO: We need to support calc()
+                    return Err(StyleParseError::UnspecifiedError.into());
+                },
+                LengthOrPercentage::Length(l) => {
+                    return Ok(SVGStrokeLength::LengthOrPercentage(LengthOrPercentage::Length(l)));
+                },
+                LengthOrPercentage::Percentage(p) => {
+                    return Ok(SVGStrokeLength::LengthOrPercentage(LengthOrPercentage::Percentage(p)));
+                },
+            }
+        }
+
+        Err(StyleParseError::UnspecifiedError.into())
+    }
+}
+
+impl Parse for SVGStrokeLength {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                     -> Result<Self, ParseError<'i>> {
+        Self::parse_non_negative(context, input)
+    }
+}
+
 #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 /// rect(<top>, <left>, <bottom>, <right>) used by clip and image-region
