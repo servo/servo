@@ -433,7 +433,6 @@ impl WindowMethods for Window {
         };
         let frame = browser.get_main_frame();
         let frame = frame.downcast();
-        let mut title_visitor = frame.title_visitor.borrow_mut();
         let str = match string {
             Some(s) => s.encode_utf16().collect(),
             None => vec![]
@@ -444,9 +443,7 @@ impl WindowMethods for Window {
             browser.get_host().get_client().get_display_handler().on_title_change((*browser).clone(), str.as_slice());
         }
 
-        if let Some(ref mut visitor) = *title_visitor {
-            visitor.visit(&str);
-        }
+        *frame.title.borrow_mut() = str;
     }
 
     fn history_changed(&self, history: Vec<LoadData>, current: usize) {
