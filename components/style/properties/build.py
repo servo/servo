@@ -4,6 +4,7 @@
 
 import json
 import os.path
+import re
 import sys
 
 BASE = os.path.dirname(__file__.replace('\\', '/'))
@@ -15,6 +16,8 @@ from mako.lookup import TemplateLookup
 from mako.template import Template
 
 import data
+
+RE_PYTHON_ADDR = re.compile(r'<.+? object at 0x[0-9a-fA-F]+>')
 
 
 def main():
@@ -68,7 +71,12 @@ def render(filename, **context):
 def write(directory, filename, content):
     if not os.path.exists(directory):
         os.makedirs(directory)
-    open(os.path.join(directory, filename), "wb").write(content)
+    full_path = os.path.join(directory, filename)
+    open(full_path, "wb").write(content)
+
+    python_addr = RE_PYTHON_ADDR.search(content)
+    if python_addr:
+        abort("Found \"{}\" in {} ({})".format(python_addr.group(0), filename, full_path))
 
 
 def write_html(properties):
