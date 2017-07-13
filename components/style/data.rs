@@ -70,11 +70,16 @@ impl RestyleData {
     /// Returns whether this element or any ancestor is going to be
     /// reconstructed.
     pub fn reconstructed_self_or_ancestor(&self) -> bool {
-        self.reconstructed_ancestor() ||
+        self.reconstructed_ancestor() || self.reconstructed_self()
+    }
+
+    /// Returns whether this element is going to be reconstructed.
+    pub fn reconstructed_self(&self) -> bool {
         self.damage.contains(RestyleDamage::reconstruct())
     }
 
-    /// Returns whether any ancestor of this element was restyled.
+    /// Returns whether any ancestor of this element is going to be
+    /// reconstructed.
     fn reconstructed_ancestor(&self) -> bool {
         self.flags.contains(ANCESTOR_WAS_RECONSTRUCTED)
     }
