@@ -44,9 +44,6 @@ pub enum WindowEvent {
     /// Sent when part of the window is marked dirty and needs to be redrawn. Before sending this
     /// message, the window must make the same GL context as in `PrepareRenderingEvent` current.
     Refresh,
-    /// Sent to initialize the GL context. The windowing system must have a valid, current GL
-    /// context when this message is sent.
-    InitializeCompositing,
     /// Sent when the window is resized.
     Resize(TypedSize2D<u32, DevicePixel>),
     /// Touchpad Pressure
@@ -85,7 +82,6 @@ impl Debug for WindowEvent {
         match *self {
             WindowEvent::Idle => write!(f, "Idle"),
             WindowEvent::Refresh => write!(f, "Refresh"),
-            WindowEvent::InitializeCompositing => write!(f, "InitializeCompositing"),
             WindowEvent::Resize(..) => write!(f, "Resize"),
             WindowEvent::TouchpadPressure(..) => write!(f, "TouchpadPressure"),
             WindowEvent::KeyEvent(..) => write!(f, "Key"),

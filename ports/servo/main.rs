@@ -165,8 +165,6 @@ fn main() {
 
     register_glutin_resize_handler(&window, &mut browser);
 
-    browser.browser.handle_events(vec![WindowEvent::InitializeCompositing]);
-
     // Feed events from the window to the browser until the browser
     // says to stop.
     loop {
