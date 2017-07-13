@@ -2087,26 +2087,33 @@ impl FragmentDisplayListBuilding for Fragment {
                               metrics.ascent).to_physical(self.style.writing_mode,
                                                           container_size).to_vector();
 
-        // Base item for all text/shadows
-        let base = state.create_base_display_item(&stacking_relative_content_box,
-                                                  LocalClip::from(clip.to_rectf()),
-                                                  self.node,
-                                                  self.style().get_cursor(cursor),
-                                                  DisplayListSection::Content);
-
         // NB: According to CSS-BACKGROUNDS, text shadows render in *reverse* order (front
         // to back).
 
         // Shadows
         for shadow in text_shadows.iter().rev() {
+            let offset = Vector2D::new(shadow.horizontal, shadow.vertical);
+            let base = state.create_base_display_item(
+                &stacking_relative_content_box.translate(&offset),
+                LocalClip::from(clip.to_rectf()),
+                self.node,
+                self.style().get_cursor(cursor),
+                DisplayListSection::Content);
+
             state.add_display_item(DisplayItem::PushTextShadow(box PushTextShadowDisplayItem {
-                base: base.clone(),
+                base,
                 blur_radius: shadow.blur,
-                offset: Vector2D::new(shadow.horizontal, shadow.vertical),
+                offset,
                 color: self.style().resolve_color(shadow.color).to_gfx_color(),
             }));
         }
 
+        // Base item for all text/pop-shadows
+        let base = state.create_base_display_item(&stacking_relative_content_box,
+                                                  LocalClip::from(clip.to_rectf()),
+                                                  self.node,
+                                                  self.style().get_cursor(cursor),
+                                                  DisplayListSection::Content);
 
         // Create display items for text decorations.
         let mut text_decorations = self.style()
