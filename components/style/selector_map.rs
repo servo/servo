@@ -214,7 +214,7 @@ impl SelectorMap<Rule> {
         for rule in rules {
             if matches_selector(&rule.selector,
                                 0,
-                                &rule.hashes,
+                                Some(&rule.hashes),
                                 element,
                                 context,
                                 flags_setter) {

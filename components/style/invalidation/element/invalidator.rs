@@ -766,14 +766,14 @@ impl<'a, 'b: 'a, E> InvalidationCollector<'a, 'b, E>
         let matched_then =
             matches_selector(&dependency.selector,
                              dependency.selector_offset,
-                             &dependency.hashes,
+                             None,
                              &self.wrapper,
                              &mut then_context,
                              &mut |_, _| {});
         let matches_now =
             matches_selector(&dependency.selector,
                              dependency.selector_offset,
-                             &dependency.hashes,
+                             None,
                              &self.element,
                              &mut now_context,
                              &mut |_, _| {});
@@ -806,7 +806,7 @@ impl<'a, 'b: 'a, E> InvalidationCollector<'a, 'b, E>
             let matched_then =
                 matches_selector(&dependency.selector,
                                  dependency.selector_offset,
-                                 &dependency.hashes,
+                                 None,
                                  &self.wrapper,
                                  &mut then_context,
                                  &mut |_, _| {});
@@ -815,7 +815,7 @@ impl<'a, 'b: 'a, E> InvalidationCollector<'a, 'b, E>
             let matches_now =
                 matches_selector(&dependency.selector,
                                  dependency.selector_offset,
-                                 &dependency.hashes,
+                                 None,
                                  &self.element,
                                  &mut now_context,
                                  &mut |_, _| {});

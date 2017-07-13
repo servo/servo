@@ -10,8 +10,8 @@ use element_state::ElementState;
 use selector_map::{MaybeCaseInsensitiveHashMap, SelectorMap, SelectorMapInserter};
 use selector_parser::SelectorImpl;
 use selectors::attr::NamespaceConstraint;
-use selectors::parser::{AncestorHashes, Combinator, Component};
-use selectors::parser::{Selector, SelectorAndHashes, SelectorIter, SelectorMethods};
+use selectors::parser::{Combinator, Component};
+use selectors::parser::{Selector, SelectorIter, SelectorMethods};
 use selectors::visitor::SelectorVisitor;
 use smallvec::SmallVec;
 use std::ops;
@@ -60,13 +60,6 @@ pub struct Dependency {
     /// The dependency selector.
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
     pub selector: Selector<SelectorImpl>,
-    /// The ancestor hashes associated with the above selector at the given
-    /// offset.
-    ///
-    /// TODO(emilio): We should match very few of these now, consider removing
-    /// this and matching without the bloom filter for better memory usage?
-    #[cfg_attr(feature = "servo", ignore_heap_size_of = "No heap data")]
-    pub hashes: AncestorHashes,
     /// The offset into the selector that we should match on.
     pub selector_offset: usize,
 }
@@ -159,12 +152,13 @@ where
 pub struct InvalidationMap {
     /// The list of dependencies, stored in a flat array, in order to avoid
     /// duplicating them in the maps.
+    ///
+    /// TODO(emilio): Dependencies are two words now, is it worth to do this
+    /// now?
     pub dependencies: Vec<Dependency>,
 
     /// A map from a given class name to all the selectors with that class
     /// selector.
-    ///
-    ///
     pub class_to_selector: MaybeCaseInsensitiveHashMap<Atom, SelectorMap<DependencyId>>,
 
     /// A map from a given id to all the selectors with that ID in the
@@ -220,10 +214,10 @@ impl InvalidationMap {
     /// Adds a selector to this `InvalidationMap`.
     pub fn note_selector(
         &mut self,
-        selector_and_hashes: &SelectorAndHashes<SelectorImpl>,
+        selector: &Selector<SelectorImpl>,
         quirks_mode: QuirksMode)
     {
-        self.collect_invalidations_for(selector_and_hashes, quirks_mode)
+        self.collect_invalidations_for(selector, quirks_mode)
     }
 
     /// Clears this map, leaving it empty.
@@ -239,13 +233,12 @@ impl InvalidationMap {
 
     fn collect_invalidations_for(
         &mut self,
-        selector_and_hashes: &SelectorAndHashes<SelectorImpl>,
+        selector: &Selector<SelectorImpl>,
         quirks_mode: QuirksMode)
     {
-        debug!("InvalidationMap::collect_invalidations_for({:?})",
-               selector_and_hashes.selector);
+        debug!("InvalidationMap::collect_invalidations_for({:?})", selector);
 
-        let mut iter = selector_and_hashes.selector.iter();
+        let mut iter = selector.iter();
         let mut combinator;
         let mut index = 0;
 
@@ -285,16 +278,8 @@ impl InvalidationMap {
                 compound_visitor.other_attributes ||
                 !compound_visitor.state.is_empty() {
                 dependency = Some(Dependency {
-                    selector: selector_and_hashes.selector.clone(),
+                    selector: selector.clone(),
                     selector_offset: sequence_start,
-                    // Reuse the bloom hashes if this is the base selector.
-                    // Otherwise, rebuild them.
-                    hashes: if sequence_start == 0 {
-                        selector_and_hashes.hashes.clone()
-                    } else {
-                        let seq_iter = selector_and_hashes.selector.iter_from(sequence_start);
-                        AncestorHashes::from_iter(seq_iter)
-                    }
                 });
             }
 
