@@ -14,7 +14,7 @@ use pdqsort::sort_by;
 use rule_tree::CascadeLevel;
 use selector_parser::SelectorImpl;
 use selectors::matching::{matches_selector, MatchingContext, ElementSelectorFlags};
-use selectors::parser::{Component, Combinator, SelectorAndHashes, SelectorIter};
+use selectors::parser::{Component, Combinator, SelectorIter};
 use selectors::parser::LocalName as LocalNameSelector;
 use smallvec::VecLike;
 use std::collections::HashMap;
@@ -26,12 +26,6 @@ use stylist::Rule;
 pub trait SelectorMapEntry : Sized + Clone {
     /// Gets the selector we should use to index in the selector map.
     fn selector(&self) -> SelectorIter<SelectorImpl>;
-}
-
-impl SelectorMapEntry for SelectorAndHashes<SelectorImpl> {
-    fn selector(&self) -> SelectorIter<SelectorImpl> {
-        self.selector.iter()
-    }
 }
 
 /// Map element data to selector-providing objects for which the last simple
