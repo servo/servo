@@ -55,6 +55,10 @@ pub type GradientKind = GenericGradientKind<
 pub enum LineDirection {
     /// An angle.
     Angle(Angle),
+    /// A horizontal direction.
+    Horizontal(X),
+    /// A vertical direction.
+    Vertical(Y),
     /// A corner.
     Corner(X, Y),
     /// A Position and an Angle for legacy `-moz-` prefixed gradient.
@@ -78,9 +82,11 @@ impl GenericLineDirection for LineDirection {
     fn points_downwards(&self) -> bool {
         match *self {
             LineDirection::Angle(angle) => angle.radians() == PI,
+            LineDirection::Vertical(Y::Bottom) => true,
             LineDirection::Corner(..) => false,
             #[cfg(feature = "gecko")]
             LineDirection::MozPosition(_, _) => false,
+            _ => false,
         }
     }
 
@@ -89,6 +95,18 @@ impl GenericLineDirection for LineDirection {
     {
         match *self {
             LineDirection::Angle(ref angle) => angle.to_css(dest),
+            LineDirection::Horizontal(x) => {
+                if compat_mode == CompatMode::Modern {
+                    dest.write_str("to ")?;
+                }
+                x.to_css(dest)
+            },
+            LineDirection::Vertical(y) => {
+                if compat_mode == CompatMode::Modern {
+                    dest.write_str("to ")?;
+                }
+                y.to_css(dest)
+            },
             LineDirection::Corner(x, y) => {
                 if compat_mode == CompatMode::Modern {
                     dest.write_str("to ")?;
@@ -116,38 +134,19 @@ impl GenericLineDirection for LineDirection {
     }
 }
 
-impl SpecifiedLineDirection {
-    /// Takes a modern linear gradient angle and convert it to Gecko's old coordinate for
-    /// webkit-prefixed version
-    fn to_gecko_coordinate(modern_angle: f32, _compat_mode: CompatMode) -> f32 {
-        #[cfg(feature = "gecko")]
-        {
-            return match _compat_mode {
-                CompatMode::WebKit => -modern_angle + 270.,
-                _ => modern_angle,
-            }
-        }
-        #[cfg(feature = "servo")]
-        modern_angle
-    }
+impl ToComputedValue for SpecifiedLineDirection {
+    type ComputedValue = LineDirection;
 
-    /// Manually derived to_computed_value
-    fn to_computed_value(&self, context: &Context, compat_mode: CompatMode) -> LineDirection {
+    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
         match *self {
             SpecifiedLineDirection::Angle(ref angle) => {
                 LineDirection::Angle(angle.to_computed_value(context))
             },
-            SpecifiedLineDirection::Horizontal(X::Left) => {
-                LineDirection::Angle(Angle::Degree(SpecifiedLineDirection::to_gecko_coordinate(270., compat_mode)))
+            SpecifiedLineDirection::Horizontal(x) => {
+                LineDirection::Horizontal(x)
             },
-            SpecifiedLineDirection::Horizontal(X::Right) => {
-                LineDirection::Angle(Angle::Degree(SpecifiedLineDirection::to_gecko_coordinate(90., compat_mode)))
-            },
-            SpecifiedLineDirection::Vertical(Y::Top) => {
-                LineDirection::Angle(Angle::Degree(SpecifiedLineDirection::to_gecko_coordinate(0., compat_mode)))
-            },
-            SpecifiedLineDirection::Vertical(Y::Bottom) => {
-                LineDirection::Angle(Angle::Degree(SpecifiedLineDirection::to_gecko_coordinate(180., compat_mode)))
+            SpecifiedLineDirection::Vertical(y) => {
+                LineDirection::Vertical(y)
             },
             SpecifiedLineDirection::Corner(x, y) => {
                 LineDirection::Corner(x, y)
@@ -160,10 +159,16 @@ impl SpecifiedLineDirection {
         }
     }
 
-    fn from_computed_value(computed: &LineDirection) -> Self {
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
         match *computed {
             LineDirection::Angle(ref angle) => {
                 SpecifiedLineDirection::Angle(ToComputedValue::from_computed_value(angle))
+            },
+            LineDirection::Horizontal(x) => {
+                SpecifiedLineDirection::Horizontal(x)
+            },
+            LineDirection::Vertical(y) => {
+                SpecifiedLineDirection::Vertical(y)
             },
             LineDirection::Corner(x, y) => {
                 SpecifiedLineDirection::Corner(x, y)
@@ -182,7 +187,7 @@ impl ToComputedValue for SpecifiedGradient {
 
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
         Self::ComputedValue {
-            kind: self.kind.to_computed_value(context, self.compat_mode),
+            kind: self.kind.to_computed_value(context),
             items: self.items.to_computed_value(context),
             repeating: self.repeating,
             compat_mode: self.compat_mode
@@ -199,12 +204,13 @@ impl ToComputedValue for SpecifiedGradient {
     }
 }
 
-impl SpecifiedGradientKind {
-    /// Manually derived to_computed_value
-    pub fn to_computed_value(&self, context: &Context, compat_mode: CompatMode) -> GradientKind {
+impl ToComputedValue for SpecifiedGradientKind {
+    type ComputedValue = GradientKind;
+
+    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
         match self {
             &GenericGradientKind::Linear(ref line_direction) => {
-                GenericGradientKind::Linear(line_direction.to_computed_value(context, compat_mode))
+                GenericGradientKind::Linear(line_direction.to_computed_value(context))
             },
             &GenericGradientKind::Radial(ref ending_shape, ref position, ref angle) => {
                 GenericGradientKind::Radial(ending_shape.to_computed_value(context),
@@ -214,8 +220,7 @@ impl SpecifiedGradientKind {
         }
     }
 
-    /// Manually derived from_computed_value
-    pub fn from_computed_value(computed: &GradientKind) -> SpecifiedGradientKind {
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
         match *computed {
             GenericGradientKind::Linear(line_direction) => {
                 GenericGradientKind::Linear(SpecifiedLineDirection::from_computed_value(&line_direction))
