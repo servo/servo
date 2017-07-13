@@ -56,7 +56,7 @@ use style::properties::longhands::border_image_repeat::computed_value::RepeatKey
 use style::properties::style_structs;
 use style::servo::restyle_damage::REPAINT;
 use style::values::{Either, RGBA};
-use style::values::computed::{Gradient, GradientItem, LengthOrPercentage};
+use style::values::computed::{Angle, Gradient, GradientItem, LengthOrPercentage};
 use style::values::computed::{LengthOrPercentageOrAuto, NumberOrPercentage, Position};
 use style::values::computed::effects::SimpleShadow;
 use style::values::computed::image::{EndingShape, LineDirection};
@@ -1214,6 +1214,18 @@ impl FragmentDisplayListBuilding for Fragment {
                                -> display_list::Gradient {
         let angle = match *direction {
             LineDirection::Angle(angle) => angle.radians(),
+            LineDirection::Horizontal(x) => {
+                match x {
+                    X::Left => Angle::Degree(270.).radians(),
+                    X::Right => Angle::Degree(90.).radians(),
+                }
+            },
+            LineDirection::Vertical(y) => {
+                match y {
+                    Y::Top => Angle::Degree(0.).radians(),
+                    Y::Bottom => Angle::Degree(180.).radians(),
+                }
+            },
             LineDirection::Corner(horizontal, vertical) => {
                 // This the angle for one of the diagonals of the box. Our angle
                 // will either be this one, this one + PI, or one of the other
