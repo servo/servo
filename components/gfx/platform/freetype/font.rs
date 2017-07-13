@@ -10,7 +10,7 @@ use freetype::freetype::{FT_F26Dot6, FT_Face, FT_FaceRec};
 use freetype::freetype::{FT_Get_Char_Index, FT_Get_Postscript_Name};
 use freetype::freetype::{FT_Get_Kerning, FT_Get_Sfnt_Table, FT_Load_Sfnt_Table};
 use freetype::freetype::{FT_GlyphSlot, FT_Library, FT_Long, FT_ULong};
-use freetype::freetype::{FT_Kerning_Mode, FT_STYLE_FLAG_BOLD, FT_STYLE_FLAG_ITALIC};
+use freetype::freetype::{FT_Int32, FT_Kerning_Mode, FT_STYLE_FLAG_BOLD, FT_STYLE_FLAG_ITALIC};
 use freetype::freetype::{FT_Load_Glyph, FT_Set_Char_Size};
 use freetype::freetype::{FT_SizeRec, FT_Size_Metrics, FT_UInt, FT_Vector};
 use freetype::freetype::FT_Sfnt_Tag;
@@ -23,11 +23,18 @@ use std::sync::Arc;
 use style::computed_values::{font_stretch, font_weight};
 use super::c_str_to_string;
 use text::glyph::GlyphId;
-use text::util::{fixed_to_float, float_to_fixed};
+use text::util::fixed_to_float;
 
-fn float_to_fixed_ft(f: f64) -> i32 {
-    float_to_fixed(6, f)
-}
+// This constant is not present in the freetype
+// bindings due to bindgen not handling the way
+// the macro is defined.
+const FT_LOAD_TARGET_LIGHT: FT_Int32 = 1 << 16;
+
+// Default to slight hinting, which is what most
+// Linux distros use by default, and is a better
+// default than no hinting.
+// TODO(gw): Make this configurable.
+const GLYPH_LOAD_FLAGS: FT_Int32 = FT_LOAD_TARGET_LIGHT;
 
 fn fixed_to_float_ft(f: i32) -> f64 {
     fixed_to_float(6, f)
@@ -187,7 +194,9 @@ impl FontHandleMethods for FontHandle {
     fn glyph_h_advance(&self, glyph: GlyphId) -> Option<FractionalPixel> {
         assert!(!self.face.is_null());
         unsafe {
-            let res =  FT_Load_Glyph(self.face, glyph as FT_UInt, 0);
+            let res =  FT_Load_Glyph(self.face,
+                                     glyph as FT_UInt,
+                                     GLYPH_LOAD_FLAGS);
             if res.succeeded() {
                 let void_glyph = (*self.face).glyph;
                 let slot: FT_GlyphSlot = mem::transmute(void_glyph);
@@ -280,10 +289,10 @@ impl FontHandleMethods for FontHandle {
 
 impl<'a> FontHandle {
     fn set_char_size(face: FT_Face, pt_size: Au) -> Result<(), ()>{
-        let char_width = float_to_fixed_ft((0.5f64 + pt_size.to_f64_px()).floor()) as FT_F26Dot6;
+        let char_size = pt_size.to_f64_px() * 64.0 + 0.5;
 
         unsafe {
-            let result = FT_Set_Char_Size(face, char_width, 0, 0, 0);
+            let result = FT_Set_Char_Size(face, char_size as FT_F26Dot6, 0, 0, 0);
             if result.succeeded() { Ok(()) } else { Err(()) }
         }
     }
