@@ -261,6 +261,8 @@ impl<L: PartialEq> TrackSize<L> {
     }
 }
 
+impl<L: ToCss> TrackListValue for TrackSize<L> {}
+
 impl<L: ToComputedValue> ToComputedValue for TrackSize<L> {
     type ComputedValue = TrackSize<L::ComputedValue>;
 
@@ -297,11 +299,18 @@ impl<L: ToComputedValue> ToComputedValue for TrackSize<L> {
 /// Helper function for serializing identifiers with a prefix and suffix, used
 /// for serializing <line-names> (in grid).
 pub fn concat_serialize_idents<W>(prefix: &str, suffix: &str,
-                                  slice: &[CustomIdent], sep: &str, dest: &mut W) -> fmt::Result
+                                  slice: &[CustomIdent], sep: &str,
+                                  context: &mut SerializeContext, dest: &mut W) -> fmt::Result
     where W: fmt::Write
 {
     if let Some((ref first, rest)) = slice.split_first() {
-        dest.write_str(prefix)?;
+        if *context != SerializeContext::LineNames {
+            dest.write_str(prefix)?;
+            if *context != SerializeContext::Auto {
+                *context = SerializeContext::LineNames;
+            }
+        }
+
         first.to_css(dest)?;
         for thing in rest {
             dest.write_str(sep)?;
@@ -369,11 +378,28 @@ pub struct TrackRepeat<L> {
 
 impl<L: ToCss> ToCss for TrackRepeat<L> {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        // If repeat count is an integer instead of a keyword, it should'n serialized
-        // with `repeat` function. It should serialized with `N` repeated form.
+        self.to_css_with_context(dest, &mut SerializeContext::Value)
+    }
+}
+
+impl<L: ToCss> TrackListValue for TrackRepeat<L> {
+    fn is_repeat_with_number(&self) -> bool {
+        match self.count {
+            RepeatCount::Number(_) => true,
+            _ => false,
+        }
+    }
+
+    fn to_css_with_context<W>(&self, dest: &mut W, context: &mut SerializeContext) -> fmt::Result
+        where W: fmt::Write
+    {
+        // If repeat count is an integer instead of a keyword, it shouldn't be serialized
+        // with `repeat` function. It should be serialized with `N` repeated form.
         let repeat_count = match self.count {
             RepeatCount::Number(integer) => integer.value(),
             _ => {
+                // We need to set this to auto to prevent merging consecutive line names
+                *context = SerializeContext::Auto;
                 dest.write_str("repeat(")?;
                 self.count.to_css(dest)?;
                 dest.write_str(", ")?;
@@ -382,31 +408,51 @@ impl<L: ToCss> ToCss for TrackRepeat<L> {
         };
 
         for i in 0..repeat_count {
-            if i != 0 {
-                dest.write_str(" ")?;
-            }
-
             let mut line_names_iter = self.line_names.iter();
-            for (i, (ref size, ref names)) in self.track_sizes.iter()
+            for (j, (ref size, ref names)) in self.track_sizes.iter()
                                                   .zip(&mut line_names_iter).enumerate() {
-                if i > 0 {
-                    dest.write_str(" ")?;
+                if names.len() > 0 {
+                    // Space is tricky part of this serialization because we shouldn't make something
+                    // like this: `[a ]`. To prevent that we need to check context and loop.
+                    if i != 0 || (j != 0 || *context == SerializeContext::LineNames) {
+                        dest.write_str(" ")?;
+                    }
+                    concat_serialize_idents("[", "] ", names, " ", context, dest)?;
+                } else if *context == SerializeContext::LineNames {
+                    dest.write_str("] ")?;
+                } else {
+                    // Also we need to check the loop in here to prevent unwanted space.
+                    if i != 0 || j != 0 {
+                        dest.write_str(" ")?;
+                    }
                 }
 
-                concat_serialize_idents("[", "] ", names, " ", dest)?;
                 size.to_css(dest)?;
+                // After printing the value, we should set context to Value but not if it's Auto.
+                if *context != SerializeContext::Auto {
+                    *context = SerializeContext::Value;
+                }
             }
 
             if let Some(line_names_last) = line_names_iter.next() {
-                concat_serialize_idents(" [", "]", line_names_last, " ", dest)?;
+                // If we are printing `repeat` function, we need the last `]`. If not, it will be
+                // handled in the next iteration or after this method.
+                if *context != SerializeContext::Auto {
+                    concat_serialize_idents(" [", "", line_names_last, " ", context, dest)?;
+                } else {
+                    concat_serialize_idents(" [", "]", line_names_last, " ", context, dest)?;
+                }
             }
         }
 
-        match self.count {
-            RepeatCount::AutoFill | RepeatCount::AutoFit => {
-                dest.write_str(")")?;
-            },
-            _ => {},
+        // We need to print this function closure only if we are printing `repeat` function.
+        if *context == SerializeContext::Auto {
+            dest.write_str(")")?;
+        }
+
+        // We need to set the context to Value if this is `repeat(auto...)`.
+        if !self.is_repeat_with_number() {
+            *context = SerializeContext::Value;
         }
         Ok(())
     }
@@ -489,6 +535,58 @@ pub enum TrackListType {
     Explicit,
 }
 
+/// This enum keeps track of the previously serialized value of TrackList.
+///
+/// This is needed because serialization of TrackRepeat is different than normal property values.
+/// `repeat(<number>, <value>)` should become <number> times space separated <value> in the
+/// serialized form per gecko and blink. But also `repeat(auto-{fill-fit}, <value>) should preserve
+/// its form. Also during this transformation, consecutive line names should merge. Otherwise it becomes
+/// invalid. For example: `[a] repeat(2, [b c] 20px)` should become `[a b c] 20px [b c] 20px`. Or,
+/// `repeat(2, [b c] 20px [d]) [e]` should become `[b c] 20px [d b c] 20px [d e]`.
+/// The merge applies to previous, next and inside function line names.
+/// Likewise, `repeat(2, [a] 20px [b])` should become `[a] 20px [b a] 20px [b]`.
+///
+/// `[a] repeat(2, [b c] 20px) [d e]`   => [a b c] 20px [b c] 20px [d e]
+///      |____TrackRepeat____|
+///  |__________TrackList__________|
+/// This example shows current situation of the TrackList. We need to be able to determine whether previous
+/// serialized thing is `<line-names>` in the both TrackRepeat and TrackList serialization. To be able
+/// to do that, we need to pass this context into serialization methods.
+#[derive(Clone, Copy, PartialEq, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub enum SerializeContext {
+    /// That means the last serialized thing was `<line-names>`.
+    LineNames,
+    /// That means the last serialized thing was value like `<track-size>`.
+    Value,
+    /// That means currently `repeat(auto-{fill-fit}, ...)` is being serialized and we
+    /// should preserve its form.
+    Auto,
+}
+
+/// The value of TrackList.
+/// This is needed because serialization of TrackRepeat is different and we should
+/// pass the `SerializeContext` into `to_css` method. But we can't simply create methods
+/// for these because TrackList is generic.
+pub trait TrackListValue: ToCss {
+    /// Returns true if the value is repeat that contains number.
+    fn is_repeat_with_number(&self) -> bool {
+        false
+    }
+
+    /// Serialises this track list value with SerializeContext.
+    fn to_css_with_context<W>(&self, dest: &mut W, context: &mut SerializeContext) -> fmt::Result
+        where W: fmt::Write
+    {
+        // Set the context to Value if it's not Auto and call `to_css`.
+        if *context != SerializeContext::Auto {
+            *context = SerializeContext::Value;
+        }
+        self.to_css(dest)
+    }
+}
+
+
 /// A grid `<track-list>` type.
 ///
 /// https://drafts.csswg.org/css-grid/#typedef-track-list
@@ -518,7 +616,7 @@ pub struct TrackList<T> {
     pub auto_repeat: Option<TrackRepeat<computed::LengthOrPercentage>>,
 }
 
-impl<T: ToCss> ToCss for TrackList<T> {
+impl<T: ToCss + TrackListValue> ToCss for TrackList<T> {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         let auto_idx = match self.list_type {
             TrackListType::Auto(i) => i as usize,
@@ -527,32 +625,63 @@ impl<T: ToCss> ToCss for TrackList<T> {
 
         let mut values_iter = self.values.iter().peekable();
         let mut line_names_iter = self.line_names.iter().peekable();
+        // Context to look previosly serialized value.
+        let mut context = SerializeContext::Value;
 
         for idx in 0.. {
             let names = line_names_iter.next().unwrap();    // This should exist!
-            concat_serialize_idents("[", "]", names, " ", dest)?;
+            concat_serialize_idents("[", "", names, " ", &mut context, dest)?;
 
             match self.auto_repeat {
                 Some(ref repeat) if idx == auto_idx => {
-                    if !names.is_empty() {
+                    // We need to close the previous <line-names> if the next is
+                    // not repeat with number.
+                    if !repeat.is_repeat_with_number() &&
+                        context == SerializeContext::LineNames {
+                        dest.write_str("]")?;
+                    }
+
+                    // We need to add a space if we serialized before. But we need to
+                    // be careful because we might add an unwanted space.
+                    if (!names.is_empty() || context == SerializeContext::LineNames) &&
+                       (context != SerializeContext::LineNames ||
+                        !repeat.is_repeat_with_number()) {
                         dest.write_str(" ")?;
                     }
 
-                    repeat.to_css(dest)?;
+                    repeat.to_css_with_context(dest, &mut context)?;
                 },
                 _ => match values_iter.next() {
                     Some(value) => {
-                        if !names.is_empty() {
+                        // We need to close the previous <line-names> if the next is
+                        // not repeat with number.
+                        if !value.is_repeat_with_number() &&
+                            context == SerializeContext::LineNames {
+                            dest.write_str("]")?;
+                        }
+
+                        // We need to add a space if we serialized before. But we need to
+                        // be careful because we might add an unwanted space.
+                        if (!names.is_empty() || context == SerializeContext::LineNames) &&
+                           (context != SerializeContext::LineNames ||
+                            !value.is_repeat_with_number()) {
                             dest.write_str(" ")?;
                         }
 
-                        value.to_css(dest)?;
+                        value.to_css_with_context(dest, &mut context)?;
                     },
-                    None => break,
+                    None => {
+                        // We need to close the last <line-names>.
+                        if context == SerializeContext::LineNames {
+                            dest.write_str("]")?;
+                        }
+                        break
+                    },
                 },
             }
 
-            if values_iter.peek().is_some() || line_names_iter.peek().map_or(false, |v| !v.is_empty()) {
+            if (values_iter.peek().is_some() && context != SerializeContext::LineNames) ||
+                line_names_iter.peek().map_or(false, |v| !v.is_empty()) {
                 dest.write_str(" ")?;
             }
         }

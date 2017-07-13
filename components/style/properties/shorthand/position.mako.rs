@@ -243,7 +243,8 @@
     use parser::Parse;
     use properties::longhands::grid_template_areas::TemplateAreas;
     use values::{Either, None_};
-    use values::generics::grid::{LineNameList, TrackSize, TrackList, TrackListType, concat_serialize_idents};
+    use values::generics::grid::{LineNameList, SerializeContext, TrackSize, TrackList, TrackListType};
+    use values::generics::grid::concat_serialize_idents;
     use values::specified::{GridTemplateComponent, GenericGridTemplateComponent};
     use values::specified::grid::parse_line_names;
 
@@ -386,7 +387,8 @@
                     }
 
                     if !names.is_empty() {
-                        concat_serialize_idents("[", "] ", names, " ", dest)?;
+                        concat_serialize_idents("[", "] ", names, " ",
+                                                &mut SerializeContext::Value, dest)?;
                     }
 
                     string.to_css(dest)?;
@@ -395,7 +397,8 @@
                 }
 
                 if let Some(names) = names_iter.next() {
-                    concat_serialize_idents(" [", "]", names, " ", dest)?;
+                    concat_serialize_idents(" [", "]", names, " ",
+                                            &mut SerializeContext::Value, dest)?;
                 }
 
                 if let GenericGridTemplateComponent::TrackList(ref list) = *template_columns {
