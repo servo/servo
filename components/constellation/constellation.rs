@@ -1572,22 +1572,21 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         };
 
         // Create the new pipeline, attached to the parent and push to pending changes
-        self.add_pending_change(SessionHistoryChange {
-            top_level_browsing_context_id: load_info.info.top_level_browsing_context_id,
-            browsing_context_id: load_info.info.browsing_context_id,
-            new_pipeline_id: load_info.info.new_pipeline_id,
-            load_data: load_data.clone(),
-            replace_instant: replace_instant,
-        });
-
         self.new_pipeline(load_info.info.new_pipeline_id,
                           load_info.info.browsing_context_id,
                           load_info.info.top_level_browsing_context_id,
                           Some((load_info.info.parent_pipeline_id, load_info.info.frame_type)),
                           window_size,
-                          load_data,
+                          load_data.clone(),
                           load_info.sandbox,
                           is_private);
+        self.add_pending_change(SessionHistoryChange {
+            top_level_browsing_context_id: load_info.info.top_level_browsing_context_id,
+            browsing_context_id: load_info.info.browsing_context_id,
+            new_pipeline_id: load_info.info.new_pipeline_id,
+            load_data: load_data,
+            replace_instant: replace_instant,
+        });
     }
 
     fn handle_script_new_iframe(&mut self,
@@ -1788,21 +1787,21 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 let new_pipeline_id = PipelineId::new();
                 let sandbox = IFrameSandboxState::IFrameUnsandboxed;
                 let replace_instant = if replace { Some(timestamp) } else { None };
-                self.add_pending_change(SessionHistoryChange {
-                    top_level_browsing_context_id: top_level_id,
-                    browsing_context_id: browsing_context_id,
-                    new_pipeline_id: new_pipeline_id,
-                    load_data: load_data.clone(),
-                    replace_instant: replace_instant,
-                });
                 self.new_pipeline(new_pipeline_id,
                                   browsing_context_id,
                                   top_level_id,
                                   None,
                                   window_size,
-                                  load_data,
+                                  load_data.clone(),
                                   sandbox,
                                   false);
+                self.add_pending_change(SessionHistoryChange {
+                    top_level_browsing_context_id: top_level_id,
+                    browsing_context_id: browsing_context_id,
+                    new_pipeline_id: new_pipeline_id,
+                    load_data: load_data,
+                    replace_instant: replace_instant,
+                });
                 Some(new_pipeline_id)
             }
         }
