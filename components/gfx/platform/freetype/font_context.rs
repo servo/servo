@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use alloc::allocator::{Alloc, Layout};
-use alloc::heap::Heap;
 use freetype::freetype::FT_Add_Default_Modules;
 use freetype::freetype::FT_Done_Library;
 use freetype::freetype::FT_Library;
@@ -11,6 +9,7 @@ use freetype::freetype::FT_Memory;
 use freetype::freetype::FT_MemoryRec_;
 use freetype::freetype::FT_New_Library;
 use heapsize::{HeapSizeOf, heap_size_of};
+use std::heap::{Heap, Alloc, Layout};
 use std::os::raw::{c_long, c_void};
 use std::ptr;
 use std::rc::Rc;
