@@ -7,7 +7,7 @@
 use {Atom, LocalName, Namespace};
 use context::QuirksMode;
 use element_state::ElementState;
-use selector_map::{MaybeCaseInsensitiveHashMap, SelectorMap, SelectorMapEntry};
+use selector_map::{MaybeCaseInsensitiveHashMap, SelectorMap, SelectorMapInserter};
 use selector_parser::SelectorImpl;
 use selectors::attr::NamespaceConstraint;
 use selectors::parser::{AncestorHashes, Combinator, Component};
@@ -105,7 +105,11 @@ impl Dependency {
     }
 }
 
-impl SelectorMapEntry for Dependency {
+impl SelectorMapInserter for Dependency {
+    type Entry = Self;
+
+    fn entry(self) -> Self { self }
+
     fn selector(&self) -> SelectorIter<SelectorImpl> {
         self.selector.iter_from(self.selector_offset)
     }
@@ -116,13 +120,17 @@ impl SelectorMapEntry for Dependency {
 #[derive(Clone)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct StateDependency {
-    /// The other dependency fields.
+    /// The index to the actual dependency.
     pub dep: Dependency,
     /// The state this dependency is affected by.
     pub state: ElementState,
 }
 
-impl SelectorMapEntry for StateDependency {
+impl SelectorMapInserter for StateDependency {
+    type Entry = Self;
+
+    fn entry(self) -> Self { self }
+
     fn selector(&self) -> SelectorIter<SelectorImpl> {
         self.dep.selector()
     }
@@ -141,6 +149,7 @@ pub struct InvalidationMap {
     /// A map from a given class name to all the selectors with that class
     /// selector.
     pub class_to_selector: MaybeCaseInsensitiveHashMap<Atom, SelectorMap<Dependency>>,
+
     /// A map from a given id to all the selectors with that ID in the
     /// stylesheets currently applying to the document.
     pub id_to_selector: MaybeCaseInsensitiveHashMap<Atom, SelectorMap<Dependency>>,

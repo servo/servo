@@ -22,13 +22,25 @@ use std::collections::hash_map;
 use std::hash::Hash;
 use stylist::Rule;
 
-/// A trait to abstract over a given selector map entry.
-pub trait SelectorMapEntry : Sized + Clone {
+/// A trait to insert a type into the selector map.
+pub trait SelectorMapInserter {
+    /// The type of the entry that is going to be inserted in the map.
+    type Entry: Sized + Clone;
+
+    /// Get the entry itself to be inserted.
+    fn entry(self) -> Self::Entry;
+
     /// Gets the selector we should use to index in the selector map.
     fn selector(&self) -> SelectorIter<SelectorImpl>;
 }
 
-impl SelectorMapEntry for SelectorAndHashes<SelectorImpl> {
+impl SelectorMapInserter for SelectorAndHashes<SelectorImpl> {
+    type Entry = Self;
+
+    fn entry(self) -> Self {
+        self
+    }
+
     fn selector(&self) -> SelectorIter<SelectorImpl> {
         self.selector.iter()
     }
@@ -213,22 +225,36 @@ impl SelectorMap<Rule> {
     }
 }
 
-impl<T: SelectorMapEntry> SelectorMap<T> {
+impl<T> SelectorMap<T> {
     /// Inserts into the correct hash, trying id, class, and localname.
-    pub fn insert(&mut self, entry: T, quirks_mode: QuirksMode) {
+    pub fn insert<I>(
+        &mut self,
+        inserter: I,
+        quirks_mode: QuirksMode
+    )
+    where
+        I: SelectorMapInserter<Entry = T>,
+        T: Clone,
+    {
         self.count += 1;
 
-        if let Some(id_name) = get_id_name(entry.selector()) {
-            self.id_hash.entry(id_name, quirks_mode).or_insert_with(Vec::new).push(entry);
+        if let Some(id_name) = get_id_name(inserter.selector()) {
+            self.id_hash
+                .entry(id_name, quirks_mode)
+                .or_insert_with(Vec::new)
+                .push(inserter.entry());
             return;
         }
 
-        if let Some(class_name) = get_class_name(entry.selector()) {
-            self.class_hash.entry(class_name, quirks_mode).or_insert_with(Vec::new).push(entry);
+        if let Some(class_name) = get_class_name(inserter.selector()) {
+            self.class_hash
+                .entry(class_name, quirks_mode)
+                .or_insert_with(Vec::new)
+                .push(inserter.entry());
             return;
         }
 
-        if let Some(LocalNameSelector { name, lower_name }) = get_local_name(entry.selector()) {
+        if let Some(LocalNameSelector { name, lower_name }) = get_local_name(inserter.selector()) {
             // If the local name in the selector isn't lowercase, insert it into
             // the rule hash twice. This means that, during lookup, we can always
             // find the rules based on the local name of the element, regardless
@@ -240,15 +266,15 @@ impl<T: SelectorMapEntry> SelectorMap<T> {
             // lowercase localname and a non-lowercase selector, the rulehash
             // lookup may produce superfluous selectors, but the subsequent
             // selector matching work will filter them out.
+            let entry = inserter.entry();
             if name != lower_name {
                 find_push(&mut self.local_name_hash, lower_name, entry.clone());
             }
             find_push(&mut self.local_name_hash, name, entry);
-
             return;
         }
 
-        self.other.push(entry);
+        self.other.push(inserter.entry());
     }
 
     /// Looks up entries by id, class, local name, and other (in order).

@@ -21,7 +21,7 @@ use properties::{AnimationRules, PropertyDeclarationBlock};
 #[cfg(feature = "servo")]
 use properties::INHERIT_ALL;
 use rule_tree::{CascadeLevel, RuleTree, StyleSource};
-use selector_map::{SelectorMap, SelectorMapEntry};
+use selector_map::{SelectorMap, SelectorMapInserter};
 use selector_parser::{SelectorImpl, PseudoElement};
 use selectors::attr::NamespaceConstraint;
 use selectors::bloom::BloomFilter;
@@ -1422,7 +1422,7 @@ impl<'a> SelectorVisitor for MappedIdVisitor<'a> {
     }
 }
 
-/// SelectorMapEntry implementation for use in our revalidation selector map.
+/// SelectorMapInserter implementation for use in our revalidation selector map.
 #[derive(Clone, Debug)]
 struct RevalidationSelectorAndHashes {
     selector: Selector<SelectorImpl>,
@@ -1457,7 +1457,11 @@ impl RevalidationSelectorAndHashes {
     }
 }
 
-impl SelectorMapEntry for RevalidationSelectorAndHashes {
+impl SelectorMapInserter for RevalidationSelectorAndHashes {
+    type Entry = Self;
+
+    fn entry(self) -> Self { self }
+
     fn selector(&self) -> SelectorIter<SelectorImpl> {
         self.selector.iter_from(self.selector_offset)
     }
@@ -1601,7 +1605,11 @@ pub struct Rule {
     pub style_rule: Arc<Locked<StyleRule>>,
 }
 
-impl SelectorMapEntry for Rule {
+impl SelectorMapInserter for Rule {
+    type Entry = Self;
+
+    fn entry(self) -> Self { self }
+
     fn selector(&self) -> SelectorIter<SelectorImpl> {
         self.selector.iter()
     }
