@@ -5,8 +5,8 @@
 use cssparser::SourceLocation;
 use euclid::TypedSize2D;
 use html5ever::LocalName;
+use selectors::parser::{AncestorHashes, Selector};
 use selectors::parser::LocalName as LocalNameSelector;
-use selectors::parser::Selector;
 use servo_atoms::Atom;
 use style::context::QuirksMode;
 use style::media_queries::{Device, MediaType};
@@ -45,7 +45,7 @@ fn get_mock_rules(css_selectors: &[&str]) -> (Vec<Vec<Rule>>, SharedRwLock) {
         let guard = shared_lock.read();
         let rule = locked.read_with(&guard);
         rule.selectors.0.iter().map(|s| {
-            Rule::new(s.selector.clone(), s.hashes.clone(), locked.clone(), i as u32)
+            Rule::new(s.clone(), AncestorHashes::new(s), locked.clone(), i as u32)
         }).collect()
     }).collect(), shared_lock)
 }
@@ -68,7 +68,7 @@ fn parse_selectors(selectors: &[&str]) -> Vec<Selector<SelectorImpl>> {
              .map(|x| SelectorParser::parse_author_origin_no_namespace(x).unwrap().0
                                                                          .into_iter()
                                                                          .nth(0)
-                                                                         .unwrap().selector)
+                                                                         .unwrap())
              .collect()
 }
 
