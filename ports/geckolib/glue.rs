@@ -2770,20 +2770,18 @@ pub extern "C" fn Servo_TakeChangeHint(element: RawGeckoElementBorrowed,
 
 #[no_mangle]
 pub extern "C" fn Servo_ResolveStyle(element: RawGeckoElementBorrowed,
-                                     raw_data: RawServoStyleSetBorrowed)
+                                     _raw_data: RawServoStyleSetBorrowed)
                                      -> ServoComputedValuesStrong
 {
     let element = GeckoElement(element);
     debug!("Servo_ResolveStyle: {:?}", element);
-    let data = unsafe { element.ensure_data() }.borrow();
+    let data =
+        element.borrow_data().expect("Resolving style on unstyled element");
 
-    if !element.has_current_styles(&*data) {
-        debug_assert!(false, "Resolving style on element without current styles with lazy \
-                              computation forbidden.");
-        let per_doc_data = PerDocumentStyleData::from_ffi(raw_data).borrow();
-        return per_doc_data.default_computed_values().clone().into_strong();
-    }
-
+    // TODO(emilio): Downgrade to debug assertions when close to release.
+    assert!(data.has_styles(), "Resolving style on unstyled element");
+    assert!(element.has_current_styles(&*data),
+            "Resolving style on element without current styles");
     data.styles.primary().clone().into_strong()
 }
 
