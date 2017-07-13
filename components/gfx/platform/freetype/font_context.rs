@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use alloc::heap;
 use freetype::freetype::FT_Add_Default_Modules;
 use freetype::freetype::FT_Done_Library;
 use freetype::freetype::FT_Library;
@@ -10,6 +9,7 @@ use freetype::freetype::FT_Memory;
 use freetype::freetype::FT_MemoryRec_;
 use freetype::freetype::FT_New_Library;
 use heapsize::{HeapSizeOf, heap_size_of};
+use std::heap::{Heap, Alloc, Layout};
 use std::os::raw::{c_long, c_void};
 use std::ptr;
 use std::rc::Rc;
@@ -26,7 +26,8 @@ const FT_ALIGNMENT: usize = 1;
 
 extern fn ft_alloc(mem: FT_Memory, req_size: c_long) -> *mut c_void {
     unsafe {
-        let ptr = heap::allocate(req_size as usize, FT_ALIGNMENT) as *mut c_void;
+        let layout = Layout::from_size_align(req_size as usize, FT_ALIGNMENT).unwrap();
+        let ptr = Heap.alloc(layout).unwrap() as *mut c_void;
         let actual_size = heap_size_of(ptr as *const _);
 
         let user = (*mem).user as *mut User;
@@ -43,7 +44,8 @@ extern fn ft_free(mem: FT_Memory, ptr: *mut c_void) {
         let user = (*mem).user as *mut User;
         (*user).size -= actual_size;
 
-        heap::deallocate(ptr as *mut u8, actual_size, FT_ALIGNMENT);
+        let layout = Layout::from_size_align(actual_size, FT_ALIGNMENT).unwrap();
+        Heap.dealloc(ptr as *mut u8, layout);
     }
 }
 
@@ -51,8 +53,10 @@ extern fn ft_realloc(mem: FT_Memory, _cur_size: c_long, new_req_size: c_long,
                      old_ptr: *mut c_void) -> *mut c_void {
     unsafe {
         let old_actual_size = heap_size_of(old_ptr as *const _);
-        let new_ptr = heap::reallocate(old_ptr as *mut u8, old_actual_size,
-                                       new_req_size as usize, FT_ALIGNMENT) as *mut c_void;
+        let old_layout = Layout::from_size_align(old_actual_size, FT_ALIGNMENT).unwrap();
+        let new_layout = Layout::from_size_align(new_req_size as usize, FT_ALIGNMENT).unwrap();
+        let result = Heap.realloc(old_ptr as *mut u8, old_layout, new_layout);
+        let new_ptr = result.unwrap() as *mut c_void;
         let new_actual_size = heap_size_of(new_ptr as *const _);
 
         let user = (*mem).user as *mut User;
