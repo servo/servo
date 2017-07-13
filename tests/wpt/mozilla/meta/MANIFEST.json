@@ -4199,6 +4199,18 @@
      {}
     ]
    ],
+   "css/overflow_hidden_clip.html": [
+    [
+     "/_mozilla/css/overflow_hidden_clip.html",
+     [
+      [
+       "/_mozilla/css/overflow_hidden_clip_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "css/overflow_position_abs_inline_block.html": [
     [
      "/_mozilla/css/overflow_position_abs_inline_block.html",
@@ -9263,6 +9275,11 @@
     ]
    ],
    "css/overflow_clipping_ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/overflow_hidden_clip_ref.html": [
     [
      {}
     ]
@@ -24827,6 +24844,14 @@
   ],
   "css/overflow_clipping_ref.html": [
    "f645ece68f6c7afe273daee4d1ec172c7d245632",
+   "support"
+  ],
+  "css/overflow_hidden_clip.html": [
+   "bd829a86a3afba8d50bd95877b01d8f291428319",
+   "reftest"
+  ],
+  "css/overflow_hidden_clip_ref.html": [
+   "1fb1cb37455ec869689beee8937e409e57422c73",
    "support"
   ],
   "css/overflow_position_abs_inline_block.html": [

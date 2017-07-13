@@ -633,6 +633,18 @@ fn build_border_radius_for_inner_rect(outer_rect: &Rect<Au>,
     radii
 }
 
+fn build_inner_border_box_for_border_rect(border_box: &Rect<Au>,
+                                          style: &ServoComputedValues)
+                                          -> Rect<Au> {
+    let border_widths = style.logical_border_width().to_physical(style.writing_mode);
+    let mut inner_border_box = *border_box;
+    inner_border_box.origin.x += border_widths.left;
+    inner_border_box.origin.y += border_widths.top;
+    inner_border_box.size.width -= border_widths.right + border_widths.left;
+    inner_border_box.size.height -= border_widths.bottom + border_widths.top;
+    inner_border_box
+}
+
 fn convert_gradient_stops(gradient_items: &[GradientItem],
                           total_length: Au) -> Vec<GradientStop> {
     // Determine the position of each stop per CSS-IMAGES § 3.4.
@@ -2524,10 +2536,11 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
             root_type = ScrollRootType::Clip;
         }
 
-        let mut clip = ClippingRegion::from_rect(&content_box);
+        let clip_rect = build_inner_border_box_for_border_rect(&border_box, &self.fragment.style);
+        let mut clip = ClippingRegion::from_rect(&clip_rect);
         let radii = build_border_radius_for_inner_rect(&border_box, &self.fragment.style);
         if !radii.is_square() {
-            clip.intersect_with_rounded_rect(&content_box, &radii)
+            clip.intersect_with_rounded_rect(&clip_rect, &radii)
         }
 
         let parent_id = self.scroll_root_id(state.layout_context.id);
