@@ -831,18 +831,25 @@ fn convert_ellipse_size_keyword(keyword: ShapeExtent,
     }
 }
 
+fn clip_for_border_radius(style: &ServoComputedValues,
+                          clip: &Rect<Au>) -> ClippingRegion {
+    let border_radii = build_border_radius(clip, style.get_border());
+    let mut adjusted_clip = ClippingRegion::max();
+    if !border_radii.is_square() {
+        adjusted_clip.intersect_with_rounded_rect(clip, &border_radii);
+    }
+
+    adjusted_clip
+}
+
 impl FragmentDisplayListBuilding for Fragment {
     fn build_display_list_for_background_if_applicable(&self,
                                                        state: &mut DisplayListBuildState,
                                                        style: &ServoComputedValues,
                                                        display_list_section: DisplayListSection,
                                                        absolute_bounds: &Rect<Au>) {
-        // Adjust the clipping region as necessary to account for `border-radius`.
-        let border_radii = build_border_radius(absolute_bounds, style.get_border());
-        let mut clip = ClippingRegion::max();
-        if !border_radii.is_square() {
-            clip.intersect_with_rounded_rect(absolute_bounds, &border_radii);
-        };
+        let clip = clip_for_border_radius(style, absolute_bounds);
+
         let background = style.get_background();
 
         // FIXME: This causes a lot of background colors to be displayed when they are clearly not
@@ -1855,6 +1862,8 @@ impl FragmentDisplayListBuilding for Fragment {
         let stacking_relative_content_box =
             self.stacking_relative_content_box(stacking_relative_border_box);
 
+        let clipping_region = clip_for_border_radius(&self.style, &stacking_relative_content_box);
+
         match self.specific {
             SpecificFragmentInfo::TruncatedFragment(box TruncatedFragmentInfo {
                 text_info: Some(ref text_fragment),
@@ -1913,7 +1922,7 @@ impl FragmentDisplayListBuilding for Fragment {
                 if !stacking_relative_content_box.is_empty() {
                     let base = state.create_base_display_item(
                         &stacking_relative_content_box,
-                        &ClippingRegion::from_rect(clip),
+                        &clipping_region,
                         self.node,
                         self.style.get_cursor(Cursor::Default),
                         DisplayListSection::Content);
@@ -1934,7 +1943,7 @@ impl FragmentDisplayListBuilding for Fragment {
                 if let Some(ref image) = image_fragment.image {
                     let base = state.create_base_display_item(
                         &stacking_relative_content_box,
-                        &ClippingRegion::from_rect(clip),
+                        &clipping_region,
                         self.node,
                         self.style.get_cursor(Cursor::Default),
                         DisplayListSection::Content);
@@ -1965,7 +1974,7 @@ impl FragmentDisplayListBuilding for Fragment {
 
                 let base = state.create_base_display_item(
                     &stacking_relative_content_box,
-                    &ClippingRegion::from_rect(clip),
+                    &clipping_region,
                     self.node,
                     self.style.get_cursor(Cursor::Default),
                     DisplayListSection::Content);
