@@ -10,8 +10,8 @@ use element_state::ElementState;
 use selector_map::{MaybeCaseInsensitiveHashMap, SelectorMap, SelectorMapEntry};
 use selector_parser::SelectorImpl;
 use selectors::attr::NamespaceConstraint;
-use selectors::parser::{AncestorHashes, Combinator, Component};
-use selectors::parser::{Selector, SelectorAndHashes, SelectorIter, SelectorMethods};
+use selectors::parser::{Combinator, Component};
+use selectors::parser::{Selector, SelectorIter, SelectorMethods};
 use selectors::visitor::SelectorVisitor;
 use smallvec::SmallVec;
 
@@ -59,10 +59,6 @@ pub struct Dependency {
     /// The dependency selector.
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
     pub selector: Selector<SelectorImpl>,
-    /// The ancestor hashes associated with the above selector at the given
-    /// offset.
-    #[cfg_attr(feature = "servo", ignore_heap_size_of = "No heap data")]
-    pub hashes: AncestorHashes,
     /// The offset into the selector that we should match on.
     pub selector_offset: usize,
 }
@@ -109,10 +105,6 @@ impl SelectorMapEntry for Dependency {
     fn selector(&self) -> SelectorIter<SelectorImpl> {
         self.selector.iter_from(self.selector_offset)
     }
-
-    fn hashes(&self) -> &AncestorHashes {
-        &self.hashes
-    }
 }
 
 /// The same, but for state selectors, which can track more exactly what state
@@ -128,11 +120,7 @@ pub struct StateDependency {
 
 impl SelectorMapEntry for StateDependency {
     fn selector(&self) -> SelectorIter<SelectorImpl> {
-        self.dep.selector.iter_from(self.dep.selector_offset)
-    }
-
-    fn hashes(&self) -> &AncestorHashes {
-        &self.dep.hashes
+        self.dep.selector()
     }
 }
 
@@ -196,10 +184,10 @@ impl InvalidationMap {
     /// Adds a selector to this `InvalidationMap`.
     pub fn note_selector(
         &mut self,
-        selector_and_hashes: &SelectorAndHashes<SelectorImpl>,
+        selector: &Selector<SelectorImpl>,
         quirks_mode: QuirksMode)
     {
-        self.collect_invalidations_for(selector_and_hashes, quirks_mode)
+        self.collect_invalidations_for(selector, quirks_mode)
     }
 
     /// Clears this map, leaving it empty.
@@ -214,13 +202,12 @@ impl InvalidationMap {
 
     fn collect_invalidations_for(
         &mut self,
-        selector_and_hashes: &SelectorAndHashes<SelectorImpl>,
+        selector: &Selector<SelectorImpl>,
         quirks_mode: QuirksMode)
     {
-        debug!("InvalidationMap::collect_invalidations_for({:?})",
-               selector_and_hashes.selector);
+        debug!("InvalidationMap::collect_invalidations_for({:?})", selector);
 
-        let mut iter = selector_and_hashes.selector.iter();
+        let mut iter = selector.iter();
         let mut combinator;
         let mut index = 0;
 
@@ -249,22 +236,6 @@ impl InvalidationMap {
                 index += 1; // Account for the simple selector.
             }
 
-            // Reuse the bloom hashes if this is the base selector. Otherwise,
-            // rebuild them.
-            let mut hashes = None;
-
-            let mut get_hashes = || -> AncestorHashes {
-                if hashes.is_none() {
-                    hashes = Some(if sequence_start == 0 {
-                        selector_and_hashes.hashes.clone()
-                    } else {
-                        let seq_iter = selector_and_hashes.selector.iter_from(sequence_start);
-                        AncestorHashes::from_iter(seq_iter)
-                    });
-                }
-                hashes.clone().unwrap()
-            };
-
             self.has_id_attribute_selectors |= compound_visitor.has_id_attribute_selectors;
             self.has_class_attribute_selectors |= compound_visitor.has_class_attribute_selectors;
 
@@ -273,9 +244,8 @@ impl InvalidationMap {
                     .entry(class, quirks_mode)
                     .or_insert_with(SelectorMap::new)
                     .insert(Dependency {
-                        selector: selector_and_hashes.selector.clone(),
+                        selector: selector.clone(),
                         selector_offset: sequence_start,
-                        hashes: get_hashes(),
                     }, quirks_mode);
             }
 
@@ -284,9 +254,8 @@ impl InvalidationMap {
                     .entry(id, quirks_mode)
                     .or_insert_with(SelectorMap::new)
                     .insert(Dependency {
-                        selector: selector_and_hashes.selector.clone(),
+                        selector: selector.clone(),
                         selector_offset: sequence_start,
-                        hashes: get_hashes(),
                     }, quirks_mode);
             }
 
@@ -294,9 +263,8 @@ impl InvalidationMap {
                 self.state_affecting_selectors
                     .insert(StateDependency {
                         dep: Dependency {
-                            selector: selector_and_hashes.selector.clone(),
+                            selector: selector.clone(),
                             selector_offset: sequence_start,
-                            hashes: get_hashes(),
                         },
                         state: compound_visitor.state,
                     }, quirks_mode);
@@ -305,9 +273,8 @@ impl InvalidationMap {
             if compound_visitor.other_attributes {
                 self.other_attribute_affecting_selectors
                     .insert(Dependency {
-                        selector: selector_and_hashes.selector.clone(),
+                        selector: selector.clone(),
                         selector_offset: sequence_start,
-                        hashes: get_hashes(),
                     }, quirks_mode);
             }
 

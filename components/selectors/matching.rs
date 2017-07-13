@@ -164,10 +164,10 @@ pub fn matches_selector_list<E>(selector_list: &SelectorList<E::Impl>,
                                 -> bool
     where E: Element
 {
-    selector_list.0.iter().any(|selector_and_hashes| {
-        matches_selector(&selector_and_hashes.selector,
+    selector_list.0.iter().any(|selector| {
+        matches_selector(selector,
                          0,
-                         &selector_and_hashes.hashes,
+                         None,
                          element,
                          context,
                          &mut |_, _| {})
@@ -371,7 +371,7 @@ enum SelectorMatchingResult {
 #[inline(always)]
 pub fn matches_selector<E, F>(selector: &Selector<E::Impl>,
                               offset: usize,
-                              hashes: &AncestorHashes,
+                              hashes: Option<&AncestorHashes>,
                               element: &E,
                               context: &mut MatchingContext,
                               flags_setter: &mut F)
@@ -380,9 +380,11 @@ pub fn matches_selector<E, F>(selector: &Selector<E::Impl>,
           F: FnMut(&E, ElementSelectorFlags),
 {
     // Use the bloom filter to fast-reject.
-    if let Some(filter) = context.bloom_filter {
-        if !may_match::<E>(hashes, filter) {
-            return false;
+    if let Some(hashes) = hashes {
+        if let Some(filter) = context.bloom_filter {
+            if !may_match::<E>(hashes, filter) {
+                return false;
+            }
         }
     }
 

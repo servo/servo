@@ -282,8 +282,8 @@ impl StylesheetInvalidationSet {
         match *rule {
             Style(ref lock) => {
                 let style_rule = lock.read_with(guard);
-                for selector_and_hashes in &style_rule.selectors.0 {
-                    self.collect_scopes(&selector_and_hashes.selector);
+                for selector in &style_rule.selectors.0 {
+                    self.collect_scopes(selector);
                     if self.fully_invalid {
                         return;
                     }

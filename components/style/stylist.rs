@@ -27,7 +27,7 @@ use selectors::attr::NamespaceConstraint;
 use selectors::bloom::BloomFilter;
 use selectors::matching::{ElementSelectorFlags, matches_selector, MatchingContext, MatchingMode};
 use selectors::matching::VisitedHandlingMode;
-use selectors::parser::{AncestorHashes, Combinator, Component, Selector, SelectorAndHashes};
+use selectors::parser::{AncestorHashes, Combinator, Component, Selector};
 use selectors::parser::{SelectorIter, SelectorMethods};
 use selectors::sink::Push;
 use selectors::visitor::SelectorVisitor;
@@ -478,10 +478,10 @@ impl Stylist {
                 CssRule::Style(ref locked) => {
                     let style_rule = locked.read_with(&guard);
                     self.num_declarations += style_rule.block.read_with(&guard).len();
-                    for selector_and_hashes in &style_rule.selectors.0 {
+                    for selector in &style_rule.selectors.0 {
                         self.num_selectors += 1;
 
-                        let map = if let Some(pseudo) = selector_and_hashes.selector.pseudo_element() {
+                        let map = if let Some(pseudo) = selector.pseudo_element() {
                             self.pseudos_map
                                 .entry(pseudo.canonical())
                                 .or_insert_with(PerPseudoElementSelectorMap::new)
@@ -490,25 +490,26 @@ impl Stylist {
                             self.element_map.borrow_for_origin(&origin)
                         };
 
+                        let hashes = AncestorHashes::new(&selector);
                         map.insert(
-                            Rule::new(selector_and_hashes.selector.clone(),
-                                      selector_and_hashes.hashes.clone(),
+                            Rule::new(selector.clone(),
+                                      hashes.clone(),
                                       locked.clone(),
                                       self.rules_source_order),
                             self.quirks_mode);
 
-                        self.invalidation_map.note_selector(selector_and_hashes, self.quirks_mode);
-                        if needs_revalidation(&selector_and_hashes.selector) {
+                        self.invalidation_map.note_selector(selector, self.quirks_mode);
+                        if needs_revalidation(&selector) {
                             self.selectors_for_cache_revalidation.insert(
-                                RevalidationSelectorAndHashes::new(&selector_and_hashes),
+                                RevalidationSelectorAndHashes::new(&selector, &hashes),
                                 self.quirks_mode);
                         }
-                        selector_and_hashes.selector.visit(&mut AttributeAndStateDependencyVisitor {
+                        selector.visit(&mut AttributeAndStateDependencyVisitor {
                             attribute_dependencies: &mut self.attribute_dependencies,
                             style_attribute_dependency: &mut self.style_attribute_dependency,
                             state_dependencies: &mut self.state_dependencies,
                         });
-                        selector_and_hashes.selector.visit(&mut MappedIdVisitor {
+                        selector.visit(&mut MappedIdVisitor {
                             mapped_ids: &mut self.mapped_ids,
                         });
                     }
@@ -1302,7 +1303,7 @@ impl Stylist {
             *element, self.quirks_mode, &mut |selector_and_hashes| {
                 results.push(matches_selector(&selector_and_hashes.selector,
                                               selector_and_hashes.selector_offset,
-                                              &selector_and_hashes.hashes,
+                                              Some(&selector_and_hashes.hashes),
                                               element,
                                               &mut matching_context,
                                               flags_setter));
@@ -1431,12 +1432,12 @@ struct RevalidationSelectorAndHashes {
 }
 
 impl RevalidationSelectorAndHashes {
-    fn new(selector_and_hashes: &SelectorAndHashes<SelectorImpl>) -> Self {
+    fn new(selector: &Selector<SelectorImpl>, hashes: &AncestorHashes) -> Self {
         // We basically want to check whether the first combinator is a
         // pseudo-element combinator.  If it is, we want to use the offset one
         // past it.  Otherwise, our offset is 0.
         let mut index = 0;
-        let mut iter = selector_and_hashes.selector.iter();
+        let mut iter = selector.iter();
 
         // First skip over the first ComplexSelector.  We can't check what sort
         // of combinator we have until we do that.
@@ -1450,9 +1451,9 @@ impl RevalidationSelectorAndHashes {
         };
 
         RevalidationSelectorAndHashes {
-            selector: selector_and_hashes.selector.clone(),
+            selector: selector.clone(),
             selector_offset: offset,
-            hashes: selector_and_hashes.hashes.clone(),
+            hashes: hashes.clone(),
         }
     }
 }
@@ -1460,10 +1461,6 @@ impl RevalidationSelectorAndHashes {
 impl SelectorMapEntry for RevalidationSelectorAndHashes {
     fn selector(&self) -> SelectorIter<SelectorImpl> {
         self.selector.iter_from(self.selector_offset)
-    }
-
-    fn hashes(&self) -> &AncestorHashes {
-        &self.hashes
     }
 }
 
@@ -1608,10 +1605,6 @@ pub struct Rule {
 impl SelectorMapEntry for Rule {
     fn selector(&self) -> SelectorIter<SelectorImpl> {
         self.selector.iter()
-    }
-
-    fn hashes(&self) -> &AncestorHashes {
-        &self.hashes
     }
 }
 

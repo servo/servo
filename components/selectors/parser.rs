@@ -177,27 +177,7 @@ pub trait Parser<'i> {
 }
 
 #[derive(PartialEq, Eq, Clone, Debug)]
-pub struct SelectorAndHashes<Impl: SelectorImpl> {
-    pub selector: Selector<Impl>,
-    pub hashes: AncestorHashes,
-}
-
-impl<Impl: SelectorImpl> SelectorAndHashes<Impl> {
-    pub fn new(selector: Selector<Impl>) -> Self {
-        let hashes = AncestorHashes::new(&selector);
-        Self::new_with_hashes(selector, hashes)
-    }
-
-    pub fn new_with_hashes(selector: Selector<Impl>, hashes: AncestorHashes) -> Self {
-        SelectorAndHashes {
-            selector: selector,
-            hashes: hashes,
-        }
-    }
-}
-
-#[derive(PartialEq, Eq, Clone, Debug)]
-pub struct SelectorList<Impl: SelectorImpl>(pub Vec<SelectorAndHashes<Impl>>);
+pub struct SelectorList<Impl: SelectorImpl>(pub Vec<Selector<Impl>>);
 
 impl<Impl: SelectorImpl> SelectorList<Impl> {
     /// Parse a comma-separated list of Selectors.
@@ -207,13 +187,13 @@ impl<Impl: SelectorImpl> SelectorList<Impl> {
     pub fn parse<'i, 't, P, E>(parser: &P, input: &mut CssParser<'i, 't>)
                                -> Result<Self, ParseError<'i, SelectorParseError<'i, E>>>
     where P: Parser<'i, Impl=Impl, Error=E> {
-        input.parse_comma_separated(|input| parse_selector(parser, input).map(SelectorAndHashes::new))
+        input.parse_comma_separated(|input| parse_selector(parser, input))
              .map(SelectorList)
     }
 
     /// Creates a SelectorList from a Vec of selectors. Used in tests.
     pub fn from_vec(v: Vec<Selector<Impl>>) -> Self {
-        SelectorList(v.into_iter().map(SelectorAndHashes::new).collect())
+        SelectorList(v)
     }
 }
 
@@ -761,10 +741,10 @@ impl<Impl: SelectorImpl> ToCss for SelectorList<Impl> {
         let mut iter = self.0.iter();
         let first = iter.next()
             .expect("Empty SelectorList, should contain at least one selector");
-        first.selector.to_css(dest)?;
-        for selector_and_hashes in iter {
+        first.to_css(dest)?;
+        for selector in iter {
             dest.write_str(", ")?;
-            selector_and_hashes.selector.to_css(dest)?;
+            selector.to_css(dest)?;
         }
         Ok(())
     }
@@ -1761,7 +1741,7 @@ pub mod tests {
         let result = SelectorList::parse(parser, &mut CssParser::new(&mut parser_input));
         if let Ok(ref selectors) = result {
             assert_eq!(selectors.0.len(), 1);
-            assert_eq!(selectors.0[0].selector.to_css_string(), input);
+            assert_eq!(selectors.0[0].to_css_string(), input);
         }
         result
     }
@@ -2066,7 +2046,7 @@ pub mod tests {
 
     #[test]
     fn test_pseudo_iter() {
-        let selector = &parse("q::before").unwrap().0[0].selector;
+        let selector = &parse("q::before").unwrap().0[0];
         assert!(!selector.is_universal());
         let mut iter = selector.iter();
         assert_eq!(iter.next(), Some(&Component::PseudoElement(PseudoElement::Before)));
@@ -2080,13 +2060,13 @@ pub mod tests {
 
     #[test]
     fn test_universal() {
-        let selector = &parse("*|*::before").unwrap().0[0].selector;
+        let selector = &parse("*|*::before").unwrap().0[0];
         assert!(selector.is_universal());
     }
 
     #[test]
     fn test_empty_pseudo_iter() {
-        let selector = &parse("::before").unwrap().0[0].selector;
+        let selector = &parse("::before").unwrap().0[0];
         assert!(selector.is_universal());
         let mut iter = selector.iter();
         assert_eq!(iter.next(), Some(&Component::PseudoElement(PseudoElement::Before)));
@@ -2112,11 +2092,11 @@ pub mod tests {
     #[test]
     fn visitor() {
         let mut test_visitor = TestVisitor { seen: vec![], };
-        parse(":not(:hover) ~ label").unwrap().0[0].selector.visit(&mut test_visitor);
+        parse(":not(:hover) ~ label").unwrap().0[0].visit(&mut test_visitor);
         assert!(test_visitor.seen.contains(&":hover".into()));
 
         let mut test_visitor = TestVisitor { seen: vec![], };
-        parse("::before:hover").unwrap().0[0].selector.visit(&mut test_visitor);
+        parse("::before:hover").unwrap().0[0].visit(&mut test_visitor);
         assert!(test_visitor.seen.contains(&":hover".into()));
     }
 }

@@ -1263,7 +1263,7 @@ pub extern "C" fn Servo_StyleRule_GetSelectorTextAtIndex(rule: RawServoStyleRule
         if index >= rule.selectors.0.len() {
             return;
         }
-        rule.selectors.0[index].selector.to_css(unsafe { result.as_mut().unwrap() }).unwrap();
+        rule.selectors.0[index].to_css(unsafe { result.as_mut().unwrap() }).unwrap();
     })
 }
 
@@ -1287,7 +1287,7 @@ pub extern "C" fn Servo_StyleRule_GetSpecificityAtIndex(
             *specificity = 0;
             return;
         }
-        *specificity = rule.selectors.0[index].selector.specificity() as u64;
+        *specificity = rule.selectors.0[index].specificity() as u64;
     })
 }
 
@@ -1302,14 +1302,14 @@ pub extern "C" fn Servo_StyleRule_SelectorMatchesElement(rule: RawServoStyleRule
             return false;
         }
 
-        let selector_and_hashes = &rule.selectors.0[index];
+        let selector = &rule.selectors.0[index];
         let mut matching_mode = MatchingMode::Normal;
 
         match PseudoElement::from_pseudo_type(pseudo_type) {
             Some(pseudo) => {
                 // We need to make sure that the requested pseudo element type
                 // matches the selector pseudo element type before proceeding.
-                match selector_and_hashes.selector.pseudo_element() {
+                match selector.pseudo_element() {
                     Some(selector_pseudo) if *selector_pseudo == pseudo => {
                         matching_mode = MatchingMode::ForStatelessPseudoElement
                     },
@@ -1319,7 +1319,7 @@ pub extern "C" fn Servo_StyleRule_SelectorMatchesElement(rule: RawServoStyleRule
             None => {
                 // Do not attempt to match if a pseudo element is requested and
                 // this is not a pseudo element selector, or vice versa.
-                if selector_and_hashes.selector.has_pseudo_element() {
+                if selector.has_pseudo_element() {
                     return false;
                 }
             },
@@ -1327,8 +1327,7 @@ pub extern "C" fn Servo_StyleRule_SelectorMatchesElement(rule: RawServoStyleRule
 
         let element = GeckoElement(element);
         let mut ctx = MatchingContext::new(matching_mode, None, element.owner_document_quirks_mode());
-        matches_selector(&selector_and_hashes.selector, 0, &selector_and_hashes.hashes,
-                         &element, &mut ctx, &mut |_, _| {})
+        matches_selector(selector, 0, None, &element, &mut ctx, &mut |_, _| {})
     })
 }
 
