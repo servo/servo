@@ -777,7 +777,7 @@ where
             // This is only relevant for animations as of right now.
             important_rules_changed = true;
 
-            let target = StyleSharingTarget::new(element);
+            let mut target = StyleSharingTarget::new(element);
             match target.share_style_if_possible(context) {
                 StyleWasShared(index, styles) => {
                     context.thread_local.statistics.styles_shared += 1;
@@ -791,29 +791,13 @@ where
                         StyleResolverForElement::new(element, context, RuleInclusion::All)
                             .resolve_style_with_default_parents();
 
-                    // If we previously tried to match this element against the
-                    // cache, the revalidation match results will already be
-                    // cached. Otherwise we'll have None, and compute them later
-                    // on-demand.
-                    //
-                    // If we do have the results, grab them here to satisfy the
-                    // borrow checker.
-                    let validation_data =
-                        context.thread_local
-                            .current_element_info
-                            .as_mut().unwrap()
-                            .validation_data
-                            .take();
-
-                    let dom_depth =
-                        context.thread_local.bloom_filter.matching_depth();
                     context.thread_local
                         .style_sharing_candidate_cache
                         .insert_if_possible(
                             &element,
                             new_styles.primary(),
-                            validation_data,
-                            dom_depth
+                            target.take_validation_data(),
+                            context.thread_local.bloom_filter.matching_depth(),
                         );
 
                     new_styles

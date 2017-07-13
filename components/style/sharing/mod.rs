@@ -328,7 +328,7 @@ impl<E: TElement> StyleSharingTarget<E> {
 
     /// Attempts to share a style with another node.
     pub fn share_style_if_possible(
-        mut self,
+        &mut self,
         context: &mut StyleContext<E>,
     ) -> StyleSharingResult {
         let cache = &mut context.thread_local.style_sharing_candidate_cache;
@@ -344,17 +344,17 @@ impl<E: TElement> StyleSharingTarget<E> {
         debug_assert_eq!(bloom_filter.current_parent(),
                          self.element.traversal_parent());
 
-        let result =
-            cache.share_style_if_possible(
-                shared_context,
-                selector_flags_map,
-                bloom_filter,
-                &mut self
-            );
+        cache.share_style_if_possible(
+            shared_context,
+            selector_flags_map,
+            bloom_filter,
+            self
+        )
+    }
 
-        context.thread_local.current_element_info.as_mut().unwrap().validation_data =
-            self.validation_data.take();
-        result
+    /// Gets the validation data used to match against this target, if any.
+    pub fn take_validation_data(&mut self) -> ValidationData {
+        self.validation_data.take()
     }
 }
 
