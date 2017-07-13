@@ -2821,15 +2821,16 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
                          CascadeLevel::UserNormal |
                          CascadeLevel::UserImportant |
                          CascadeLevel::UAImportant) {
-                let non_transparent_background;
-                if let PropertyDeclaration::BackgroundColor(ref color) = *declaration {
-                    // Treat background-color a bit differently.  If the specified
-                    // color is anything other than a fully transparent color, convert
-                    // it into the Device's default background color.
-                    non_transparent_background = color.is_non_transparent();
-                } else {
-                    continue
-                }
+                let non_transparent_background = match *declaration {
+                    PropertyDeclaration::BackgroundColor(ref color) => {
+                        // Treat background-color a bit differently.  If the specified
+                        // color is anything other than a fully transparent color, convert
+                        // it into the Device's default background color.
+                        color.is_non_transparent()
+                    }
+                    _ => continue
+                };
+                // FIXME: moving this out of `match` is a work around for borrows being lexical.
                 if non_transparent_background {
                     declaration = Cow::Borrowed(default_background_color_decl.as_ref().unwrap());
                 }
