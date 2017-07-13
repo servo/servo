@@ -21,7 +21,7 @@ env_logger = {version = "0.4", default-features = false} # disable `regex` to re
 libc = "0.2"
 log = {version = "0.3.5", features = ["release_max_level_info"]}
 nsstring_vendor = {path = "../../components/style/gecko_bindings/nsstring_vendor"}
-parking_lot = "0.4"
+parking_lot = "0.3"
 selectors = {path = "../../components/selectors"}
 style = {path = "../../components/style", features = ["gecko"]}
 style_traits = {path = "../../components/style_traits"}

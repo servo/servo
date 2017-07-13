@@ -22,16 +22,14 @@
 // duplicate those here.
 #![allow(missing_docs)]
 
-extern crate nodrop;
 #[cfg(feature = "servo")] extern crate serde;
-extern crate stable_deref_trait;
+extern crate nodrop;
 
 #[cfg(feature = "servo")]
 use heapsize::HeapSizeOf;
 use nodrop::NoDrop;
 #[cfg(feature = "servo")]
 use serde::{Deserialize, Serialize};
-use stable_deref_trait::{CloneStableDeref, StableDeref};
 use std::{isize, usize};
 use std::borrow;
 use std::cmp::Ordering;
@@ -433,9 +431,6 @@ impl<T: ?Sized> AsRef<T> for Arc<T> {
         &**self
     }
 }
-
-unsafe impl<T: ?Sized> StableDeref for Arc<T> {}
-unsafe impl<T: ?Sized> CloneStableDeref for Arc<T> {}
 
 // This is what the HeapSize crate does for regular arc, but is questionably
 // sound. See https://github.com/servo/heapsize/issues/37

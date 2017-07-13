@@ -7,18 +7,9 @@
 
 #![deny(missing_docs)]
 
-use atomic_refcell::{AtomicRefMut, AtomicRefCell};
 use dom::{SendElement, TElement};
-use owning_ref::OwningHandle;
 use selectors::bloom::BloomFilter;
 use smallvec::SmallVec;
-use stylearc::Arc;
-
-/// Bloom filters are large allocations, so we store them in thread-local storage
-/// such that they can be reused across style traversals. StyleBloom is responsible
-/// for ensuring that the bloom filter is zeroed when it is dropped.
-thread_local!(static BLOOM_KEY: Arc<AtomicRefCell<BloomFilter>> =
-              Arc::new(AtomicRefCell::new(BloomFilter::new())));
 
 /// A struct that allows us to fast-reject deep descendant selectors avoiding
 /// selector-matching.
@@ -52,11 +43,8 @@ thread_local!(static BLOOM_KEY: Arc<AtomicRefCell<BloomFilter>> =
 ///    immutable during a restyle.
 ///
 pub struct StyleBloom<E: TElement> {
-    /// A handle to the bloom filter from the thread upon which this StyleBloom
-    /// was created. We use AtomicRefCell so that this is all |Send|, which allows
-    /// StyleBloom to live in ThreadLocalStyleContext, which is dropped from the
-    /// parent thread.
-    filter: OwningHandle<Arc<AtomicRefCell<BloomFilter>>, AtomicRefMut<'static, BloomFilter>>,
+    /// The bloom filter per se.
+    filter: Box<BloomFilter>,
 
     /// The stack of elements that this bloom filter contains, along with the
     /// number of hashes pushed for each element.
@@ -113,23 +101,11 @@ fn each_relevant_element_hash<E, F>(element: E, mut f: F)
     });
 }
 
-impl<E: TElement> Drop for StyleBloom<E> {
-    fn drop(&mut self) {
-        // Leave the reusable bloom filter in a zeroed state.
-        self.clear();
-    }
-}
-
 impl<E: TElement> StyleBloom<E> {
-    /// Create an empty `StyleBloom`. Because StyleBloom acquires the thread-
-    /// local filter buffer, creating multiple live StyleBloom instances at
-    /// the same time on the same thread will panic.
+    /// Create an empty `StyleBloom`.
     pub fn new() -> Self {
-        let bloom_arc = BLOOM_KEY.with(|b| b.clone());
-        let filter = OwningHandle::new_with_fn(bloom_arc, |x| unsafe { x.as_ref() }.unwrap().borrow_mut());
-        debug_assert!(filter.is_zeroed(), "Forgot to zero the bloom filter last time");
         StyleBloom {
-            filter: filter,
+            filter: Box::new(BloomFilter::new()),
             elements: Default::default(),
             pushed_hashes: Default::default(),
         }

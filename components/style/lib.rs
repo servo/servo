@@ -67,7 +67,6 @@ pub extern crate nsstring_vendor as nsstring;
 extern crate num_integer;
 extern crate num_traits;
 extern crate ordered_float;
-extern crate owning_ref;
 extern crate parking_lot;
 extern crate pdqsort;
 #[cfg(feature = "gecko")] extern crate precomputed_hash;
