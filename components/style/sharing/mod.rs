@@ -595,16 +595,6 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
                 }
                 Err(miss) => {
                     debug!("Cache miss: {:?}", miss);
-
-                    // Cache miss, let's see what kind of failure to decide
-                    // whether we keep trying or not.
-                    match miss {
-                        // Too expensive failure, give up, we don't want another
-                        // one of these.
-                        CacheMiss::PresHints |
-                        CacheMiss::Revalidation => break,
-                        _ => {}
-                    }
                 }
             }
         }
