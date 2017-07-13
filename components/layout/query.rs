@@ -36,7 +36,7 @@ use style::properties::longhands::{display, position};
 use style::selector_parser::PseudoElement;
 use style_traits::ToCss;
 use style_traits::cursor::Cursor;
-use webrender_traits::ClipId;
+use webrender_api::ClipId;
 use wrapper::LayoutNodeLayoutData;
 
 /// Mutable data belonging to the LayoutThread.

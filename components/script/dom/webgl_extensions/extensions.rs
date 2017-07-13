@@ -19,7 +19,7 @@ use std::cell::Ref;
 use std::collections::{HashMap, HashSet};
 use super::{ext, WebGLExtension};
 use super::wrapper::{WebGLExtensionWrapper, TypedWebGLExtensionWrapper};
-use webrender_traits::WebGLError;
+use webrender_api::WebGLError;
 
 // Data types that are implemented for texImage2D and texSubImage2D in WebGLRenderingContext
 // but must trigger a InvalidValue error until the related WebGL Extensions are enabled.

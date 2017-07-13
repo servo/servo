@@ -38,7 +38,7 @@ extern crate servo_rand;
 extern crate servo_remutex;
 extern crate servo_url;
 extern crate style_traits;
-extern crate webrender_traits;
+extern crate webrender_api;
 extern crate webvr_traits;
 
 mod browsingcontext;

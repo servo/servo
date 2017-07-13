@@ -124,7 +124,7 @@ use timers::{IsInterval, TimerCallback};
 use tinyfiledialogs::{self, MessageBoxIcon};
 use url::Position;
 use webdriver_handlers::jsval_to_webdriver;
-use webrender_traits::ClipId;
+use webrender_api::ClipId;
 use webvr_traits::WebVRMsg;
 
 /// Current state of the window object

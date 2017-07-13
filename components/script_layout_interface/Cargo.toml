@@ -31,4 +31,4 @@ selectors = { path = "../selectors" }
 servo_atoms = {path = "../atoms"}
 servo_url = {path = "../url"}
 style = {path = "../style"}
-webrender_traits = {git = "https://github.com/servo/webrender", features = ["ipc"]}
+webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}

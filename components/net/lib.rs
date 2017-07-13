@@ -38,7 +38,7 @@ extern crate tinyfiledialogs;
 extern crate unicase;
 extern crate url;
 extern crate uuid;
-extern crate webrender_traits;
+extern crate webrender_api;
 extern crate websocket;
 
 mod blob_loader;

@@ -64,5 +64,5 @@ licenses_dep_toml = [
     'name = "servo-freetype-sys"',
     'name = "simd"',
     'name = "webrender"',
-    'name = "webrender_traits"',
+    'name = "webrender_api"',
 ]

@@ -41,7 +41,7 @@ use std::rc::Rc;
 use style_traits::cursor::Cursor;
 #[cfg(target_os = "windows")]
 use user32;
-use webrender_traits::ScrollLocation;
+use webrender_api::ScrollLocation;
 #[cfg(target_os = "windows")]
 use winapi;
 

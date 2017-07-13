@@ -14,7 +14,7 @@ use std::borrow::ToOwned;
 use std::sync::Arc;
 use std::sync::mpsc::channel;
 use std::thread;
-use webrender_traits;
+use webrender_api;
 
 enum GLContextWrapper {
     Native(GLContext<NativeGLContext>),
@@ -88,7 +88,7 @@ impl GLContextWrapper {
         }
     }
 
-    pub fn apply_command(&self, cmd: webrender_traits::WebGLCommand) {
+    pub fn apply_command(&self, cmd: webrender_api::WebGLCommand) {
         match *self {
             GLContextWrapper::Native(ref ctx) => {
                 cmd.apply(ctx);
@@ -101,8 +101,8 @@ impl GLContextWrapper {
 }
 
 enum WebGLPaintTaskData {
-    WebRender(webrender_traits::RenderApi, webrender_traits::WebGLContextId),
-    Readback(GLContextWrapper, webrender_traits::RenderApi, Option<webrender_traits::ImageKey>),
+    WebRender(webrender_api::RenderApi, webrender_api::WebGLContextId),
+    Readback(GLContextWrapper, webrender_api::RenderApi, Option<webrender_api::ImageKey>),
 }
 
 pub struct WebGLPaintThread {
@@ -112,7 +112,7 @@ pub struct WebGLPaintThread {
 
 fn create_readback_painter(size: Size2D<i32>,
                            attrs: GLContextAttributes,
-                           webrender_api: webrender_traits::RenderApi,
+                           webrender_api: webrender_api::RenderApi,
                            gl_type: gl::GlType)
     -> Result<(WebGLPaintThread, GLLimits), String> {
     let context = GLContextWrapper::new(size, attrs, gl_type)?;
@@ -128,11 +128,11 @@ fn create_readback_painter(size: Size2D<i32>,
 impl WebGLPaintThread {
     fn new(size: Size2D<i32>,
            attrs: GLContextAttributes,
-           webrender_api_sender: webrender_traits::RenderApiSender,
+           webrender_api_sender: webrender_api::RenderApiSender,
            gl_type: gl::GlType)
         -> Result<(WebGLPaintThread, GLLimits), String> {
         let wr_api = webrender_api_sender.create_api();
-        let device_size = webrender_traits::DeviceIntSize::from_untyped(&size);
+        let device_size = webrender_api::DeviceIntSize::from_untyped(&size);
         match wr_api.request_webgl_context(&device_size, attrs) {
             Ok((id, limits)) => {
                 let painter = WebGLPaintThread {
@@ -148,7 +148,7 @@ impl WebGLPaintThread {
         }
     }
 
-    fn handle_webgl_message(&self, message: webrender_traits::WebGLCommand) {
+    fn handle_webgl_message(&self, message: webrender_api::WebGLCommand) {
         debug!("WebGL message: {:?}", message);
         match self.data {
             WebGLPaintTaskData::WebRender(ref api, id) => {
@@ -160,7 +160,7 @@ impl WebGLPaintThread {
         }
     }
 
-    fn handle_webvr_message(&self, message: webrender_traits::VRCompositorCommand) {
+    fn handle_webvr_message(&self, message: webrender_api::VRCompositorCommand) {
         match self.data {
             WebGLPaintTaskData::WebRender(ref api, id) => {
                 api.send_vr_compositor_command(id, message);
@@ -176,7 +176,7 @@ impl WebGLPaintThread {
     /// communicate with it.
     pub fn start(size: Size2D<i32>,
                  attrs: GLContextAttributes,
-                 webrender_api_sender: webrender_traits::RenderApiSender)
+                 webrender_api_sender: webrender_api::RenderApiSender)
                  -> Result<(IpcSender<CanvasMsg>, GLLimits), String> {
         let (sender, receiver) = ipc::channel::<CanvasMsg>().unwrap();
         let (result_chan, result_port) = channel();
@@ -250,15 +250,15 @@ impl WebGLPaintThread {
                 // rgba -> bgra
                 byte_swap(&mut pixels);
 
-                let descriptor = webrender_traits::ImageDescriptor {
+                let descriptor = webrender_api::ImageDescriptor {
                     width: width as u32,
                     height: height as u32,
                     stride: None,
-                    format: webrender_traits::ImageFormat::BGRA8,
+                    format: webrender_api::ImageFormat::BGRA8,
                     offset: 0,
                     is_opaque: false,
                 };
-                let data = webrender_traits::ImageData::Raw(Arc::new(pixels));
+                let data = webrender_api::ImageData::Raw(Arc::new(pixels));
 
                 match *image_key {
                     Some(image_key) => {
@@ -305,7 +305,7 @@ impl WebGLPaintThread {
                 }
             }
             WebGLPaintTaskData::WebRender(ref api, id) => {
-                let device_size = webrender_traits::DeviceIntSize::from_untyped(&size);
+                let device_size = webrender_api::DeviceIntSize::from_untyped(&size);
                 api.resize_webgl_context(id, &device_size);
             }
         }
