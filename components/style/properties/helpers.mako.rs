@@ -827,7 +827,7 @@
         pub fn parse_into<'i, 't>(declarations: &mut SourcePropertyDeclaration,
                                   context: &ParserContext, input: &mut Parser<'i, 't>)
                                   -> Result<(), ParseError<'i>> {
-            parse_value(context, input).map(|longhands| {
+            input.parse_entirely(|input| parse_value(context, input)).map(|longhands| {
                 % for sub_property in shorthand.sub_properties:
                     declarations.push(PropertyDeclaration::${sub_property.camel_case}(
                         longhands.${sub_property.ident}

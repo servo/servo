@@ -1553,8 +1553,9 @@ impl PropertyDeclaration {
                 } else {
                     input.look_for_var_functions();
                     let start = input.position();
-                    input.parse_entirely(|input| id.parse_into(declarations, context, input))
-                    .or_else(|_| {
+                    // Not using parse_entirely here: each ${shorthand.ident}::parse_into function
+                    // needs to do so *before* pushing to `declarations`.
+                    id.parse_into(declarations, context, input).or_else(|_| {
                         while let Ok(_) = input.next() {}  // Look for var() after the error.
                         if input.seen_var_functions() {
                             input.reset(start);
