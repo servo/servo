@@ -23,7 +23,7 @@ lazy_static = "0.2"
 log = "0.3.5"
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
-parking_lot = {version = "0.4", features = ["nightly"]}
+parking_lot = {version = "0.3.3", features = ["nightly"]}
 profile_traits = {path = "../profile_traits"}
 rayon = "0.8"
 script = {path = "../script"}
