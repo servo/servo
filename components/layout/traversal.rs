@@ -12,6 +12,7 @@ use flow::{CAN_BE_FRAGMENTED, Flow, ImmutableFlowUtils, PostorderFlowTraversal};
 use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
 use servo_config::opts;
 use style::context::{SharedStyleContext, StyleContext};
+use style::data::ElementData;
 use style::dom::{NodeInfo, TElement, TNode};
 use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT};
@@ -53,8 +54,11 @@ impl<'a, E> DomTraversal<E> for RecalcStyleAndConstructFlows<'a>
           E::ConcreteNode: LayoutNode,
           E::FontMetricsProvider: Send,
 {
-    fn process_preorder(&self, traversal_data: &PerLevelTraversalData,
-                        context: &mut StyleContext<E>, node: E::ConcreteNode) {
+    fn process_preorder<F>(&self, traversal_data: &PerLevelTraversalData,
+                           context: &mut StyleContext<E>, node: E::ConcreteNode,
+                           note_child: F)
+        where F: FnMut(E::ConcreteNode)
+    {
         // FIXME(pcwalton): Stop allocating here. Ideally this should just be
         // done by the HTML parser.
         unsafe { node.initialize_data() };
@@ -62,7 +66,7 @@ impl<'a, E> DomTraversal<E> for RecalcStyleAndConstructFlows<'a>
         if !node.is_text_node() {
             let el = node.as_element().unwrap();
             let mut data = el.mutate_data().unwrap();
-            recalc_style_at(self, traversal_data, context, el, &mut data);
+            recalc_style_at(self, traversal_data, context, el, &mut data, note_child);
         }
     }
 
@@ -70,13 +74,13 @@ impl<'a, E> DomTraversal<E> for RecalcStyleAndConstructFlows<'a>
         construct_flows_at(&self.context, node);
     }
 
-    fn text_node_needs_traversal(node: E::ConcreteNode) -> bool {
+    fn text_node_needs_traversal(node: E::ConcreteNode, parent_data: &ElementData)  -> bool {
         // Text nodes never need styling. However, there are two cases they may need
         // flow construction:
         // (1) They child doesn't yet have layout data (preorder traversal initializes it).
         // (2) The parent element has restyle damage (so the text flow also needs fixup).
         node.get_raw_data().is_none() ||
-        node.parent_node().unwrap().to_threadsafe().restyle_damage() != RestyleDamage::empty()
+        parent_data.restyle.damage != RestyleDamage::empty()
     }
 
     fn shared_context(&self) -> &SharedStyleContext {

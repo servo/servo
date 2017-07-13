@@ -202,13 +202,11 @@ fn top_down_dom<'a, 'scope, E, D>(nodes: &'a [SendNode<E::ConcreteNode>],
 
             let node = **n;
             let mut children_to_process = 0isize;
-            traversal.process_preorder(&traversal_data, &mut context, node);
-            if let Some(el) = node.as_element() {
-                traversal.traverse_children(&mut context, el, |_context, kid| {
-                    children_to_process += 1;
-                    discovered_child_nodes.push(unsafe { SendNode::new(kid) })
-                });
-            }
+            traversal.process_preorder(&traversal_data, &mut context, node, |n| {
+                children_to_process += 1;
+                let send_n = unsafe { SendNode::new(n) };
+                discovered_child_nodes.push(send_n);
+            });
 
             traversal.handle_postorder_traversal(&mut context, root, node,
                                                  children_to_process);
