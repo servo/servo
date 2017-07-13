@@ -646,20 +646,20 @@ impl<'a, 'b: 'a, E> InvalidationCollector<'a, 'b, E>
         let removed_id = self.removed_id;
         if let Some(ref id) = removed_id {
             if let Some(deps) = map.id_to_selector.get(id, quirks_mode) {
-                self.collect_dependencies_in_map(deps)
+                self.collect_dependencies_in_map(map, deps)
             }
         }
 
         let added_id = self.added_id;
         if let Some(ref id) = added_id {
             if let Some(deps) = map.id_to_selector.get(id, quirks_mode) {
-                self.collect_dependencies_in_map(deps)
+                self.collect_dependencies_in_map(map, deps)
             }
         }
 
         for class in self.classes_added.iter().chain(self.classes_removed.iter()) {
             if let Some(deps) = map.class_to_selector.get(class, quirks_mode) {
-                self.collect_dependencies_in_map(deps)
+                self.collect_dependencies_in_map(map, deps)
             }
         }
 
@@ -670,6 +670,7 @@ impl<'a, 'b: 'a, E> InvalidationCollector<'a, 'b, E>
 
         if should_examine_attribute_selector_map {
             self.collect_dependencies_in_map(
+                map,
                 &map.other_attribute_affecting_selectors
             )
         }
@@ -677,6 +678,7 @@ impl<'a, 'b: 'a, E> InvalidationCollector<'a, 'b, E>
         let state_changes = self.state_changes;
         if !state_changes.is_empty() {
             self.collect_state_dependencies(
+                map,
                 &map.state_affecting_selectors,
                 state_changes,
             )
@@ -685,16 +687,17 @@ impl<'a, 'b: 'a, E> InvalidationCollector<'a, 'b, E>
 
     fn collect_dependencies_in_map(
         &mut self,
-        map: &SelectorMap<Dependency>,
+        invalidation_map: &InvalidationMap,
+        map: &SelectorMap<DependencyId>,
     ) {
         map.lookup_with_additional(
             self.lookup_element,
             self.shared_context.quirks_mode,
             self.removed_id,
             self.classes_removed,
-            &mut |dependency| {
+            &mut |dependency_id| {
                 self.scan_dependency(
-                    dependency,
+                    &invalidation_map[*dependency_id],
                     /* is_visited_dependent = */ false
                 );
                 true
@@ -704,6 +707,7 @@ impl<'a, 'b: 'a, E> InvalidationCollector<'a, 'b, E>
 
     fn collect_state_dependencies(
         &mut self,
+        invalidation_map: &InvalidationMap,
         map: &SelectorMap<StateDependency>,
         state_changes: ElementState,
     ) {
@@ -717,7 +721,7 @@ impl<'a, 'b: 'a, E> InvalidationCollector<'a, 'b, E>
                     return true;
                 }
                 self.scan_dependency(
-                    &dependency.dep,
+                    &invalidation_map[dependency.dependency_id],
                     dependency.state.intersects(IN_VISITED_OR_UNVISITED_STATE)
                 );
                 true
