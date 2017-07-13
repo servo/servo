@@ -14,7 +14,7 @@ use pdqsort::sort_by;
 use rule_tree::CascadeLevel;
 use selector_parser::SelectorImpl;
 use selectors::matching::{matches_selector, MatchingContext, ElementSelectorFlags};
-use selectors::parser::{AncestorHashes, Component, Combinator, SelectorAndHashes, SelectorIter};
+use selectors::parser::{Component, Combinator, SelectorAndHashes, SelectorIter};
 use selectors::parser::LocalName as LocalNameSelector;
 use smallvec::VecLike;
 use std::collections::HashMap;
@@ -26,18 +26,11 @@ use stylist::Rule;
 pub trait SelectorMapEntry : Sized + Clone {
     /// Gets the selector we should use to index in the selector map.
     fn selector(&self) -> SelectorIter<SelectorImpl>;
-
-    /// Gets the ancestor hashes associated with the selector.
-    fn hashes(&self) -> &AncestorHashes;
 }
 
 impl SelectorMapEntry for SelectorAndHashes<SelectorImpl> {
     fn selector(&self) -> SelectorIter<SelectorImpl> {
         self.selector.iter()
-    }
-
-    fn hashes(&self) -> &AncestorHashes {
-        &self.hashes
     }
 }
 
@@ -65,7 +58,7 @@ impl SelectorMapEntry for SelectorAndHashes<SelectorImpl> {
 /// TODO: Tune the initial capacity of the HashMap
 #[derive(Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub struct SelectorMap<T: SelectorMapEntry> {
+pub struct SelectorMap<T> {
     /// A hash from an ID to rules which contain that ID selector.
     pub id_hash: MaybeCaseInsensitiveHashMap<Atom, Vec<T>>,
     /// A hash from a class name to rules which contain that class selector.
@@ -83,7 +76,7 @@ fn sort_by_key<T, F: Fn(&T) -> K, K: Ord>(v: &mut [T], f: F) {
     sort_by(v, |a, b| f(a).cmp(&f(b)))
 }
 
-impl<T: SelectorMapEntry> SelectorMap<T> {
+impl<T> SelectorMap<T> {
     /// Trivially constructs an empty `SelectorMap`.
     pub fn new() -> Self {
         SelectorMap {

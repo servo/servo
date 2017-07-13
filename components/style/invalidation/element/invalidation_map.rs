@@ -109,10 +109,6 @@ impl SelectorMapEntry for Dependency {
     fn selector(&self) -> SelectorIter<SelectorImpl> {
         self.selector.iter_from(self.selector_offset)
     }
-
-    fn hashes(&self) -> &AncestorHashes {
-        &self.hashes
-    }
 }
 
 /// The same, but for state selectors, which can track more exactly what state
@@ -128,11 +124,7 @@ pub struct StateDependency {
 
 impl SelectorMapEntry for StateDependency {
     fn selector(&self) -> SelectorIter<SelectorImpl> {
-        self.dep.selector.iter_from(self.dep.selector_offset)
-    }
-
-    fn hashes(&self) -> &AncestorHashes {
-        &self.dep.hashes
+        self.dep.selector()
     }
 }
 

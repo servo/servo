@@ -1461,10 +1461,6 @@ impl SelectorMapEntry for RevalidationSelectorAndHashes {
     fn selector(&self) -> SelectorIter<SelectorImpl> {
         self.selector.iter_from(self.selector_offset)
     }
-
-    fn hashes(&self) -> &AncestorHashes {
-        &self.hashes
-    }
 }
 
 /// Visitor to determine whether a selector requires cache revalidation.
@@ -1608,10 +1604,6 @@ pub struct Rule {
 impl SelectorMapEntry for Rule {
     fn selector(&self) -> SelectorIter<SelectorImpl> {
         self.selector.iter()
-    }
-
-    fn hashes(&self) -> &AncestorHashes {
-        &self.hashes
     }
 }
 
