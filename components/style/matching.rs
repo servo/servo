@@ -329,8 +329,8 @@ trait PrivateMatchMethods: TElement {
                 // We need to cascade the children in order to ensure the
                 // correct propagation of text-decoration-line, which is a reset
                 // property.
-                if old_values.flags.contains(HAS_TEXT_DECORATION_LINE) !=
-                    new_values.flags.contains(HAS_TEXT_DECORATION_LINE) {
+                if old_values.flags.contains(HAS_TEXT_DECORATION_LINES) !=
+                    new_values.flags.contains(HAS_TEXT_DECORATION_LINES) {
                     return ChildCascadeRequirement::MustCascadeChildren;
                 }
                 ChildCascadeRequirement::CanSkipCascade
