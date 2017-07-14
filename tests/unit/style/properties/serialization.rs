@@ -358,16 +358,16 @@ mod shorthand_serialization {
         fn border_radius_should_serialize_correctly() {
             let mut properties = Vec::new();
             properties.push(PropertyDeclaration::BorderTopLeftRadius(Box::new(BorderCornerRadius::new(
-                Percentage(0.01).into(), Percentage(0.05).into()
+                Percentage::new(0.01).into(), Percentage::new(0.05).into()
             ))));
             properties.push(PropertyDeclaration::BorderTopRightRadius(Box::new(BorderCornerRadius::new(
-                Percentage(0.02).into(), Percentage(0.06).into()
+                Percentage::new(0.02).into(), Percentage::new(0.06).into()
             ))));
             properties.push(PropertyDeclaration::BorderBottomRightRadius(Box::new(BorderCornerRadius::new(
-                Percentage(0.03).into(), Percentage(0.07).into()
+                Percentage::new(0.03).into(), Percentage::new(0.07).into()
             ))));
             properties.push(PropertyDeclaration::BorderBottomLeftRadius(Box::new(BorderCornerRadius::new(
-                Percentage(0.04).into(), Percentage(0.08).into()
+                Percentage::new(0.04).into(), Percentage::new(0.08).into()
             ))));
 
             let serialization = shorthand_properties_to_string(properties);
@@ -563,7 +563,7 @@ mod shorthand_serialization {
         let grow = Number::new(2f32);
         let shrink = Number::new(3f32);
         let basis =
-            FlexBasis::Length(Percentage(0.5f32).into());
+            FlexBasis::Length(Percentage::new(0.5f32).into());
 
         properties.push(PropertyDeclaration::FlexGrow(grow));
         properties.push(PropertyDeclaration::FlexShrink(shrink));

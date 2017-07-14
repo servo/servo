@@ -9,12 +9,13 @@ use euclid::Point2D;
 use parser::{Parse, ParserContext};
 use selectors::parser::SelectorParseError;
 use style_traits::{ParseError, StyleParseError};
-use values::computed::{LengthOrPercentage as ComputedLengthOrPercentage, Context, ToComputedValue};
+use values::computed::{Context, LengthOrPercentage as ComputedLengthOrPercentage};
+use values::computed::{Percentage as ComputedPercentage, ToComputedValue};
 use values::computed::transform::TimingFunction as ComputedTimingFunction;
 use values::generics::transform::{StepPosition, TimingFunction as GenericTimingFunction};
 use values::generics::transform::{TimingKeyword, TransformOrigin as GenericTransformOrigin};
 use values::specified::{Integer, Number};
-use values::specified::length::{Length, LengthOrPercentage, Percentage};
+use values::specified::length::{Length, LengthOrPercentage};
 use values::specified::position::{Side, X, Y};
 
 /// The specified value of a CSS `<transform-origin>`
@@ -107,13 +108,13 @@ impl<S> ToComputedValue for OriginComponent<S>
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
         match *self {
             OriginComponent::Center => {
-                ComputedLengthOrPercentage::Percentage(Percentage(0.5))
+                ComputedLengthOrPercentage::Percentage(ComputedPercentage(0.5))
             },
             OriginComponent::Length(ref length) => {
                 length.to_computed_value(context)
             },
             OriginComponent::Side(ref keyword) => {
-                let p = Percentage(if keyword.is_start() { 0. } else { 1. });
+                let p = ComputedPercentage(if keyword.is_start() { 0. } else { 1. });
                 ComputedLengthOrPercentage::Percentage(p)
             },
         }
@@ -127,7 +128,7 @@ impl<S> ToComputedValue for OriginComponent<S>
 impl<S> OriginComponent<S> {
     /// `0%`
     pub fn zero() -> Self {
-        OriginComponent::Length(LengthOrPercentage::Percentage(Percentage(0.)))
+        OriginComponent::Length(LengthOrPercentage::Percentage(ComputedPercentage::zero()))
     }
 }
 

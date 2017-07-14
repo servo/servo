@@ -736,7 +736,7 @@ ${helpers.predefined_type(
     use values::computed::{LengthOrPercentageOrNumber as ComputedLoPoNumber, LengthOrNumber as ComputedLoN};
     use values::computed::{LengthOrPercentage as ComputedLoP, Length as ComputedLength};
     use values::generics::transform::Matrix;
-    use values::specified::{Angle, Integer, Length, LengthOrPercentage, Percentage};
+    use values::specified::{Angle, Integer, Length, LengthOrPercentage};
     use values::specified::{LengthOrNumber, LengthOrPercentageOrNumber as LoPoNumber, Number};
     use style_traits::ToCss;
     use style_traits::values::Css;
@@ -747,7 +747,7 @@ ${helpers.predefined_type(
         use app_units::Au;
         use values::CSSFloat;
         use values::computed;
-        use values::computed::{Length, LengthOrPercentage, Percentage};
+        use values::computed::{Length, LengthOrPercentage};
 
         #[derive(Clone, Copy, Debug, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -817,7 +817,7 @@ ${helpers.predefined_type(
             //                       progress: ... } ]
             InterpolateMatrix { from_list: T,
                                 to_list: T,
-                                progress: Percentage },
+                                progress: computed::Percentage },
             // For accumulate operation of mismatched transform lists.
             AccumulateMatrix { from_list: T,
                                to_list: T,
@@ -904,7 +904,7 @@ ${helpers.predefined_type(
         /// A intermediate type for interpolation of mismatched transform lists.
         InterpolateMatrix { from_list: SpecifiedValue,
                             to_list: SpecifiedValue,
-                            progress: Percentage },
+                            progress: computed::Percentage },
         /// A intermediate type for accumulation of mismatched transform lists.
         AccumulateMatrix { from_list: SpecifiedValue,
                            to_list: SpecifiedValue,

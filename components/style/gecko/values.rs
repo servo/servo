@@ -18,13 +18,12 @@ use std::cmp::max;
 use values::{Auto, Either, ExtremumLength, None_, Normal};
 use values::computed::{Angle, LengthOrPercentage, LengthOrPercentageOrAuto};
 use values::computed::{LengthOrPercentageOrNone, Number, NumberOrPercentage};
-use values::computed::{MaxLength, MozLength};
+use values::computed::{MaxLength, MozLength, Percentage};
 use values::computed::basic_shape::ShapeRadius as ComputedShapeRadius;
 use values::generics::CounterStyleOrNone;
 use values::generics::basic_shape::ShapeRadius;
 use values::generics::gecko::ScrollSnapPoint;
 use values::generics::grid::{TrackBreadth, TrackKeyword};
-use values::specified::Percentage;
 
 /// A trait that defines an interface to convert from and to `nsStyleCoord`s.
 pub trait GeckoStyleCoordConvertible : Sized {

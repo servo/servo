@@ -14,8 +14,7 @@ use std::marker::PhantomData;
 use std::mem;
 use std::ops::{Index, IndexMut};
 use std::slice;
-use values::computed::{Angle, LengthOrPercentage};
-use values::specified::length::Percentage;
+use values::computed::{Angle, LengthOrPercentage, Percentage};
 use values::specified::url::SpecifiedUrl;
 
 impl nsCSSValue {

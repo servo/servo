@@ -66,7 +66,7 @@ use std::cmp;
 use values::{Auto, CustomIdent, Either, KeyframesName};
 use values::computed::ToComputedValue;
 use values::computed::effects::{BoxShadow, Filter, SimpleShadow};
-use values::specified::length::Percentage;
+use values::computed::length::Percentage;
 use computed_values::border_style;
 
 pub mod style_structs {

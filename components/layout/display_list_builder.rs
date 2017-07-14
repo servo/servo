@@ -56,7 +56,7 @@ use style::properties::longhands::border_image_repeat::computed_value::RepeatKey
 use style::properties::style_structs;
 use style::servo::restyle_damage::REPAINT;
 use style::values::{Either, RGBA};
-use style::values::computed::{Angle, Gradient, GradientItem, LengthOrPercentage};
+use style::values::computed::{Angle, Gradient, GradientItem, LengthOrPercentage, Percentage};
 use style::values::computed::{LengthOrPercentageOrAuto, NumberOrPercentage, Position};
 use style::values::computed::effects::SimpleShadow;
 use style::values::computed::image::{EndingShape, LineDirection};
@@ -66,7 +66,6 @@ use style::values::generics::image::{Circle, Ellipse, EndingShape as GenericEndi
 use style::values::generics::image::{GradientItem as GenericGradientItem, GradientKind};
 use style::values::generics::image::{Image, ShapeExtent};
 use style::values::generics::image::PaintWorklet;
-use style::values::specified::length::Percentage;
 use style::values::specified::position::{X, Y};
 use style_traits::CSSPixel;
 use style_traits::cursor::Cursor;

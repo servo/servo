@@ -12,6 +12,7 @@ use parser::{Parse, ParserContext};
 use std::borrow::Cow;
 use std::fmt;
 use style_traits::{ToCss, ParseError, StyleParseError};
+use values::computed::Percentage;
 use values::generics::basic_shape::{Circle as GenericCircle};
 use values::generics::basic_shape::{ClippingShape as GenericClippingShape, Ellipse as GenericEllipse};
 use values::generics::basic_shape::{FillRule, BasicShape as GenericBasicShape};
@@ -19,7 +20,7 @@ use values::generics::basic_shape::{FloatAreaShape as GenericFloatAreaShape, Ins
 use values::generics::basic_shape::{GeometryBox, ShapeBox, ShapeSource};
 use values::generics::basic_shape::{Polygon as GenericPolygon, ShapeRadius as GenericShapeRadius};
 use values::generics::rect::Rect;
-use values::specified::{LengthOrPercentage, Percentage};
+use values::specified::LengthOrPercentage;
 use values::specified::border::BorderRadius;
 use values::specified::position::{HorizontalPosition, Position, PositionComponent, Side, VerticalPosition};
 use values::specified::url::SpecifiedUrl;

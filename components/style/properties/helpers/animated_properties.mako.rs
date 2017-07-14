@@ -41,12 +41,11 @@ use values::animated::effects::TextShadowList as AnimatedTextShadowList;
 use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 use values::computed::{BorderCornerRadius, ClipRect};
 use values::computed::{CalcLengthOrPercentage, Color, Context, ComputedValueAsSpecified};
-use values::computed::{LengthOrPercentage, MaxLength, MozLength, ToComputedValue};
+use values::computed::{LengthOrPercentage, MaxLength, MozLength, Percentage, ToComputedValue};
 use values::generics::{SVGPaint, SVGPaintKind};
 use values::generics::border::BorderCornerRadius as GenericBorderCornerRadius;
 use values::generics::effects::Filter;
 use values::generics::position as generic_position;
-use values::specified::length::Percentage;
 
 
 /// A longhand property whose animation type is not "none".
@@ -1686,7 +1685,6 @@ fn add_weighted_transform_lists(from_list: &[TransformOperation],
             }
         }
     } else {
-        use values::specified::Percentage;
         let from_transform_list = TransformList(Some(from_list.to_vec()));
         let to_transform_list = TransformList(Some(to_list.to_vec()));
         result.push(

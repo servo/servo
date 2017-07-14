@@ -113,7 +113,7 @@ use style::shared_lock::{SharedRwLock, Locked};
 use style::stylearc::Arc;
 use style::thread_state;
 use style::values::{CSSFloat, Either};
-use style::values::specified;
+use style::values::{specified, computed};
 use stylesheet_loader::StylesheetOwner;
 
 // TODO: Update focus state when the top-level browsing context gains or loses system focus,
@@ -576,7 +576,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
             LengthOrPercentageOrAuto::Auto => {}
             LengthOrPercentageOrAuto::Percentage(percentage) => {
                 let width_value =
-                    specified::LengthOrPercentageOrAuto::Percentage(specified::Percentage(percentage));
+                    specified::LengthOrPercentageOrAuto::Percentage(computed::Percentage(percentage));
                 hints.push(from_declaration(
                     shared_lock,
                     PropertyDeclaration::Width(width_value)));
@@ -605,7 +605,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
             LengthOrPercentageOrAuto::Auto => {}
             LengthOrPercentageOrAuto::Percentage(percentage) => {
                 let height_value =
-                    specified::LengthOrPercentageOrAuto::Percentage(specified::Percentage(percentage));
+                    specified::LengthOrPercentageOrAuto::Percentage(computed::Percentage(percentage));
                 hints.push(from_declaration(
                     shared_lock,
                     PropertyDeclaration::Height(height_value)));

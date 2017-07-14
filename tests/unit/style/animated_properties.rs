@@ -8,7 +8,7 @@ use style::properties::animated_properties::{Animatable, IntermediateRGBA};
 use style::properties::longhands::transform::computed_value::ComputedOperation as TransformOperation;
 use style::properties::longhands::transform::computed_value::T as TransformList;
 use style::values::animated::ToAnimatedValue;
-use style::values::specified::length::Percentage;
+use style::values::computed::length::Percentage;
 
 fn interpolate_rgba(from: RGBA, to: RGBA, progress: f64) -> RGBA {
     let from = from.to_animated_value();

@@ -278,7 +278,7 @@ ${helpers.predefined_type("border-image-width", "BorderImageWidth",
 
 ${helpers.predefined_type("border-image-slice", "BorderImageSlice",
     initial_value="computed::NumberOrPercentage::Percentage(computed::Percentage(1.)).into()",
-    initial_specified_value="specified::NumberOrPercentage::Percentage(specified::Percentage(1.)).into()",
+    initial_specified_value="specified::NumberOrPercentage::Percentage(specified::Percentage::new(1.)).into()",
     spec="https://drafts.csswg.org/css-backgrounds/#border-image-slice",
     animation_value_type="discrete",
     boxed=True)}
