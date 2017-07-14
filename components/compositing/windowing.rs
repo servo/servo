@@ -8,7 +8,7 @@ use compositor_thread::EventLoopWaker;
 use euclid::{Point2D, Size2D};
 use euclid::{TypedPoint2D, TypedRect, ScaleFactor, TypedSize2D};
 use gleam::gl;
-use msg::constellation_msg::{Key, KeyModifiers, KeyState};
+use msg::constellation_msg::{Key, KeyModifiers, KeyState, TraversalDirection};
 use net_traits::net_error_list::NetError;
 use script_traits::{DevicePixel, LoadData, MouseButton, TouchEventType, TouchId, TouchpadPressurePhase};
 use servo_geometry::DeviceIndependentPixel;
@@ -23,12 +23,6 @@ pub enum MouseWindowEvent {
     Click(MouseButton, TypedPoint2D<f32, DevicePixel>),
     MouseDown(MouseButton, TypedPoint2D<f32, DevicePixel>),
     MouseUp(MouseButton, TypedPoint2D<f32, DevicePixel>),
-}
-
-#[derive(Clone)]
-pub enum WindowNavigateMsg {
-    Forward,
-    Back,
 }
 
 /// Events that the windowing system sends to Servo.
@@ -66,7 +60,7 @@ pub enum WindowEvent {
     /// Sent when the user resets zoom to default.
     ResetZoom,
     /// Sent when the user uses chrome navigation (i.e. backspace or shift-backspace).
-    Navigation(WindowNavigateMsg),
+    Navigation(TraversalDirection),
     /// Sent when the user quits the application
     Quit,
     /// Sent when a key input state changes
