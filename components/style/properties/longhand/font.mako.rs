@@ -768,23 +768,31 @@ ${helpers.single_keyword_system("font-variant-caps",
             }, 1.)
         }
 
-        /// If this value is specified as a ratio of the parent font (em units or percent)
-        /// return the ratio
+        /// If this value is specified as a ratio of the parent font (em units
+        /// or percent) return the ratio
         pub fn as_font_ratio(&self) -> Option<f32> {
-            if let SpecifiedValue::Length(ref lop) = *self {
-                if let LengthOrPercentage::Percentage(pc) = *lop {
-                    return Some(pc.0)
-                } else if let LengthOrPercentage::Length(ref nocalc) = *lop {
-                    if let NoCalcLength::FontRelative(FontRelativeLength::Em(em)) = *nocalc {
-                        return Some(em)
+            match *self {
+                SpecifiedValue::Length(ref lop) => {
+                    match *lop {
+                        LengthOrPercentage::Percentage(pc) => {
+                            Some(pc.0)
+                        }
+                        LengthOrPercentage::Length(ref nocalc) => {
+                            match *nocalc {
+                                NoCalcLength::FontRelative(FontRelativeLength::Em(em)) => {
+                                    Some(em)
+                                }
+                                _ => None,
+                            }
+                        }
+                        // FIXME(emilio): This looks super fishy!
+                        LengthOrPercentage::Calc(..) => None,
                     }
                 }
-            } else if let SpecifiedValue::Larger = *self {
-                return Some(LARGER_FONT_SIZE_RATIO)
-            } else if let SpecifiedValue::Smaller = *self {
-                return Some(1. / LARGER_FONT_SIZE_RATIO)
+                SpecifiedValue::Larger => Some(LARGER_FONT_SIZE_RATIO),
+                SpecifiedValue::Smaller => Some(1. / LARGER_FONT_SIZE_RATIO),
+                _ => None,
             }
-            None
         }
 
         /// Compute it against a given base font size
@@ -902,8 +910,7 @@ ${helpers.single_keyword_system("font-variant-caps",
                                       specified_value: &SpecifiedValue,
                                       mut computed: Au,
                                       parent: &Font) {
-        if let SpecifiedValue::Keyword(kw, fraction)
-                            = *specified_value {
+        if let SpecifiedValue::Keyword(kw, fraction) = *specified_value {
             context.mutate_style().font_size_keyword = Some((kw, fraction));
         } else if let Some(ratio) = specified_value.as_font_ratio() {
             // In case a font-size-relative value was applied to a keyword
