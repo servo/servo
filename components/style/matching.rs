@@ -301,7 +301,6 @@ trait PrivateMatchMethods: TElement {
                              new_values: &Arc<ComputedValues>,
                              pseudo: Option<&PseudoElement>)
                              -> ChildCascadeRequirement {
-        use properties::computed_value_flags::*;
         // Don't accumulate damage if we're in a restyle for reconstruction.
         if shared_context.traversal_flags.for_reconstruct() {
             return ChildCascadeRequirement::MustCascadeChildren;
@@ -327,10 +326,8 @@ trait PrivateMatchMethods: TElement {
         match difference.change {
             StyleChange::Unchanged => {
                 // We need to cascade the children in order to ensure the
-                // correct propagation of text-decoration-line, which is a reset
-                // property.
-                if old_values.flags.contains(HAS_TEXT_DECORATION_LINE) !=
-                    new_values.flags.contains(HAS_TEXT_DECORATION_LINE) {
+                // correct propagation of computed value flags.
+                if old_values.flags != new_values.flags {
                     return ChildCascadeRequirement::MustCascadeChildren;
                 }
                 ChildCascadeRequirement::CanSkipCascade

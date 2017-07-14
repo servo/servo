@@ -135,6 +135,7 @@
 ${helpers.single_keyword("unicode-bidi",
                          "normal embed isolate bidi-override isolate-override plaintext",
                          animation_value_type="discrete",
+                         need_clone="True",
                          spec="https://drafts.csswg.org/css-writing-modes/#propdef-unicode-bidi")}
 
 <%helpers:longhand name="text-decoration-line"

@@ -4,42 +4,29 @@
 
 //! Misc information about a given computed style.
 
-use properties::{ComputedValues, StyleBuilder};
-
 bitflags! {
     /// Misc information about a given computed style.
+    ///
+    /// All flags are currently inherited for text, pseudo elements, and
+    /// anonymous boxes, see StyleBuilder::for_inheritance and its callsites.
+    /// If we ever want to add some flags that shouldn't inherit for them,
+    /// we might want to add a function to handle this.
     pub flags ComputedValueFlags: u8 {
-        /// Whether the style or any of the ancestors has a text-decoration
+        /// Whether the style or any of the ancestors has a text-decoration-line
         /// property that should get propagated to descendants.
         ///
-        /// text-decoration is a reset property, but gets propagated in the
+        /// text-decoration-line is a reset property, but gets propagated in the
         /// frame/box tree.
-        const HAS_TEXT_DECORATION_LINE = 1 << 0,
-    }
-}
+        const HAS_TEXT_DECORATION_LINES = 1 << 0,
 
-impl ComputedValueFlags {
-    /// Get the computed value flags for the initial style.
-    pub fn initial() -> Self {
-        Self::empty()
-    }
-
-    /// Compute the flags for this style, given the parent style.
-    pub fn compute(
-        this_style: &StyleBuilder,
-        parent_style: &ComputedValues,
-    ) -> Self {
-        let mut ret = Self::empty();
-
-        // FIXME(emilio): This feels like it wants to look at the
-        // layout_parent_style, but the way it works in Gecko means it's not
-        // needed (we'd recascade a bit more when it changes, but that's fine),
-        // and this way it simplifies the code for text styles and similar.
-        if parent_style.flags.contains(HAS_TEXT_DECORATION_LINE) ||
-           !this_style.get_text().clone_text_decoration_line().is_empty() {
-            ret.insert(HAS_TEXT_DECORATION_LINE);
-        }
-
-        ret
+        /// Whether line break inside should be suppressed.
+        ///
+        /// If this flag is set, the line should not be broken inside,
+        /// which means inlines act as if nowrap is set, <br> element is
+        /// suppressed, and blocks are inlinized.
+        ///
+        /// This bit is propagated to all children of line participants.
+        /// It is currently used by ruby to make its content unbreakable.
+        const SHOULD_SUPPRESS_LINEBREAK = 1 << 1,
     }
 }

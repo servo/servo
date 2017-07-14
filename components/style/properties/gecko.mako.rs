@@ -125,7 +125,7 @@ impl ComputedValues {
             custom_properties: None,
             writing_mode: WritingMode::empty(), // FIXME(bz): This seems dubious
             font_computation_data: FontComputationData::default_values(),
-            flags: ComputedValueFlags::initial(),
+            flags: ComputedValueFlags::empty(),
             rules: None,
             visited_style: None,
             % for style_struct in data.style_structs:

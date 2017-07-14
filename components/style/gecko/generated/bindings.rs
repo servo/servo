@@ -2663,7 +2663,6 @@ extern "C" {
     pub fn Servo_ComputedValues_GetForAnonymousBox(parent_style_or_null:
                                                        ServoComputedValuesBorrowedOrNull,
                                                    pseudo_tag: *mut nsIAtom,
-                                                   skip_display_fixup: bool,
                                                    set:
                                                        RawServoStyleSetBorrowed)
      -> ServoComputedValuesStrong;
@@ -2679,6 +2678,11 @@ extern "C" {
     pub fn Servo_ComputedValues_GetVisitedStyle(values:
                                                     ServoComputedValuesBorrowed)
      -> ServoComputedValuesStrong;
+}
+extern "C" {
+    pub fn Servo_ComputedValues_GetStyleBits(values:
+                                                 ServoComputedValuesBorrowed)
+     -> u64;
 }
 extern "C" {
     pub fn Servo_ComputedValues_GetStyleRuleList(values:

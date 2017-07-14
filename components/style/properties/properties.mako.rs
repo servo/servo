@@ -2384,8 +2384,6 @@ impl<'a, T: 'a> Deref for StyleStructRef<'a, T> {
 /// actually cloning them, until we either build the style, or mutate the
 /// inherited value.
 pub struct StyleBuilder<'a> {
-    /// The style we're inheriting from.
-    inherited_style: &'a ComputedValues,
     /// The rule node representing the ordered list of rules matched for this
     /// node.
     rules: Option<StrongRuleNode>,
@@ -2396,6 +2394,8 @@ pub struct StyleBuilder<'a> {
     pub writing_mode: WritingMode,
     /// The keyword behind the current font-size property, if any.
     pub font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>,
+    /// Flags for the computed value.
+    pub flags: ComputedValueFlags,
     /// The element's style if visited, only computed if there's a relevant link
     /// for this element.  A element's "relevant link" is the element being
     /// matched if it is a link or the nearest ancestor link.
@@ -2414,14 +2414,15 @@ impl<'a> StyleBuilder<'a> {
         custom_properties: Option<Arc<::custom_properties::CustomPropertiesMap>>,
         writing_mode: WritingMode,
         font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>,
+        flags: ComputedValueFlags,
         visited_style: Option<Arc<ComputedValues>>,
     ) -> Self {
         StyleBuilder {
-            inherited_style,
             rules,
             custom_properties,
             writing_mode,
             font_size_keyword,
+            flags,
             visited_style,
             % for style_struct in data.active_style_structs():
             % if style_struct.inherited:
@@ -2452,6 +2453,7 @@ impl<'a> StyleBuilder<'a> {
             parent.custom_properties(),
             parent.writing_mode,
             parent.font_computation_data.font_size_keyword,
+            parent.flags,
             parent.clone_visited_style()
         )
     }
@@ -2484,6 +2486,12 @@ impl<'a> StyleBuilder<'a> {
                                                          -> Option<<&mut style_structs::${style_struct.name}> {
             self.${style_struct.ident}.get_if_mutated()
         }
+
+        /// Reset the current `${style_struct.name}` style to its default value.
+        pub fn reset_${style_struct.name_lower}(&mut self, default: &'a ComputedValues) {
+            self.${style_struct.ident} =
+                StyleStructRef::Borrowed(default.${style_struct.name_lower}_arc());
+        }
     % endfor
 
     /// Returns whether this computed style represents a floated object.
@@ -2515,11 +2523,10 @@ impl<'a> StyleBuilder<'a> {
 
     /// Turns this `StyleBuilder` into a proper `ComputedValues` instance.
     pub fn build(self) -> ComputedValues {
-        let flags = ComputedValueFlags::compute(&self, &self.inherited_style);
         ComputedValues::new(self.custom_properties,
                             self.writing_mode,
                             self.font_size_keyword,
-                            flags,
+                            self.flags,
                             self.rules,
                             self.visited_style,
                             % for style_struct in data.active_style_structs():
@@ -2564,7 +2571,7 @@ mod lazy_static_module {
             % endfor
             custom_properties: None,
             writing_mode: WritingMode::empty(),
-            flags: ComputedValueFlags::initial(),
+            flags: ComputedValueFlags::empty(),
             font_computation_data: FontComputationData::default_values(),
             rules: None,
             visited_style: None,
@@ -2596,8 +2603,8 @@ bitflags! {
         /// present, non-inherited styles are reset to their initial values.
         const INHERIT_ALL = 0x01,
 
-        /// Whether to skip any root element and flex/grid item display style
-        /// fixup.
+        /// Whether to skip any display style fixup for root element, flex/grid
+        /// item, and ruby descendants.
         const SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP = 0x02,
 
         /// Whether to only cascade properties that are visited dependent.
@@ -2747,6 +2754,7 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
             custom_properties,
             WritingMode::empty(),
             inherited_style.font_computation_data.font_size_keyword,
+            ComputedValueFlags::empty(),
             visited_style,
         ),
         font_metrics_provider: font_metrics_provider,
@@ -2983,7 +2991,8 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
 
     {
         StyleAdjuster::new(&mut style)
-            .adjust(context.layout_parent_style, flags);
+            .adjust(context.layout_parent_style,
+                    context.device.default_computed_values(), flags);
     }
 
     % if product == "gecko":

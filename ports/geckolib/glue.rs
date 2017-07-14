@@ -90,7 +90,7 @@ use style::invalidation::element::restyle_hints::{self, RestyleHint};
 use style::media_queries::{MediaList, parse_media_query_list};
 use style::parallel;
 use style::parser::ParserContext;
-use style::properties::{CascadeFlags, ComputedValues, Importance, SourcePropertyDeclaration};
+use style::properties::{ComputedValues, Importance, SourcePropertyDeclaration};
 use style::properties::{LonghandIdSet, PropertyDeclaration, PropertyDeclarationBlock, PropertyId, StyleBuilder};
 use style::properties::SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP;
 use style::properties::animated_properties::{Animatable, AnimatableLonghand, AnimationValue};
@@ -1502,7 +1502,6 @@ pub extern "C" fn Servo_DocumentRule_GetConditionText(rule: RawServoDocumentRule
 #[no_mangle]
 pub extern "C" fn Servo_ComputedValues_GetForAnonymousBox(parent_style_or_null: ServoComputedValuesBorrowedOrNull,
                                                           pseudo_tag: *mut nsIAtom,
-                                                          skip_display_fixup: bool,
                                                           raw_data: RawServoStyleSetBorrowed)
      -> ServoComputedValuesStrong {
     let global_style_data = &*GLOBAL_STYLE_DATA;
@@ -1515,10 +1514,7 @@ pub extern "C" fn Servo_ComputedValues_GetForAnonymousBox(parent_style_or_null: 
 
 
     let maybe_parent = ComputedValues::arc_from_borrowed(&parent_style_or_null);
-    let mut cascade_flags = CascadeFlags::empty();
-    if skip_display_fixup {
-        cascade_flags.insert(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP);
-    }
+    let cascade_flags = SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP;
     let metrics = get_metrics_provider_for_product();
     data.stylist.precomputed_values_for_pseudo(&guards, &pseudo, maybe_parent,
                                                cascade_flags, &metrics)
@@ -1721,6 +1717,20 @@ pub extern "C" fn Servo_ComputedValues_GetVisitedStyle(values: ServoComputedValu
         Some(v) => v.clone().into_strong(),
         None => Strong::null(),
     }
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_ComputedValues_GetStyleBits(values: ServoComputedValuesBorrowed) -> u64 {
+    use style::properties::computed_value_flags::*;
+    let flags = ComputedValues::as_arc(&values).flags;
+    let mut result = 0;
+    if flags.contains(HAS_TEXT_DECORATION_LINES) {
+        result |= structs::NS_STYLE_HAS_TEXT_DECORATION_LINES as u64;
+    }
+    if flags.contains(SHOULD_SUPPRESS_LINEBREAK) {
+        result |= structs::NS_STYLE_SUPPRESS_LINEBREAK as u64;
+    }
+    result
 }
 
 #[no_mangle]

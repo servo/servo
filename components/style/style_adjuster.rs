@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-//! A struct to encapsulate all the style fixups a computed style needs in order
-//! for it to adhere to the CSS spec.
+//! A struct to encapsulate all the style fixups and flags propagations
+//! a computed style needs in order for it to adhere to the CSS spec.
 
 use app_units::Au;
 use properties::{self, CascadeFlags, ComputedValues};
@@ -12,6 +12,8 @@ use properties::longhands::display::computed_value::T as display;
 use properties::longhands::float::computed_value::T as float;
 use properties::longhands::overflow_x::computed_value::T as overflow;
 use properties::longhands::position::computed_value::T as position;
+#[cfg(feature = "gecko")]
+use properties::longhands::unicode_bidi::computed_value::T as unicode_bidi;
 
 
 /// An unsized struct that implements all the adjustment methods.
@@ -312,6 +314,92 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
        self.style.mutate_inheritedtext().set_text_align(text_align::start);
     }
 
+    /// Set the HAS_TEXT_DECORATION_LINES flag based on parent style.
+    fn adjust_for_text_decoration_lines(&mut self, layout_parent_style: &ComputedValues) {
+        use properties::computed_value_flags::HAS_TEXT_DECORATION_LINES;
+        if layout_parent_style.flags.contains(HAS_TEXT_DECORATION_LINES) ||
+           !self.style.get_text().clone_text_decoration_line().is_empty() {
+            self.style.flags.insert(HAS_TEXT_DECORATION_LINES);
+        }
+    }
+
+    #[cfg(feature = "gecko")]
+    fn should_suppress_linebreak(&self, layout_parent_style: &ComputedValues) -> bool {
+        use properties::computed_value_flags::SHOULD_SUPPRESS_LINEBREAK;
+        // Line break suppression should only be propagated to in-flow children.
+        if self.style.floated() || self.style.out_of_flow_positioned() {
+            return false;
+        }
+        let parent_display = layout_parent_style.get_box().clone_display();
+        if layout_parent_style.flags.contains(SHOULD_SUPPRESS_LINEBREAK) {
+            // Line break suppression is propagated to any children of
+            // line participants.
+            if parent_display.is_line_participant() {
+                return true;
+            }
+        }
+        match self.style.get_box().clone_display() {
+            // Ruby base and text are always non-breakable.
+            display::ruby_base | display::ruby_text => true,
+            // Ruby base container and text container are breakable.
+            // Note that, when certain HTML tags, e.g. form controls, have ruby
+            // level container display type, they could also escape from the
+            // line break suppression flag while they shouldn't. However, it is
+            // generally fine since they themselves are non-breakable.
+            display::ruby_base_container | display::ruby_text_container => false,
+            // Anything else is non-breakable if and only if its layout parent
+            // has a ruby display type, because any of the ruby boxes can be
+            // anonymous.
+            _ => parent_display.is_ruby_type(),
+        }
+    }
+
+    /// Do ruby-related style adjustments, which include:
+    /// * propagate the line break suppression flag,
+    /// * inlinify block descendants,
+    /// * suppress border and padding for ruby level containers,
+    /// * correct unicode-bidi.
+    #[cfg(feature = "gecko")]
+    fn adjust_for_ruby(&mut self,
+                       layout_parent_style: &ComputedValues,
+                       default_computed_values: &'b ComputedValues,
+                       flags: CascadeFlags) {
+        use properties::SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP;
+        use properties::computed_value_flags::SHOULD_SUPPRESS_LINEBREAK;
+        let self_display = self.style.get_box().clone_display();
+        // Check whether line break should be suppressed for this element.
+        if self.should_suppress_linebreak(layout_parent_style) {
+            self.style.flags.insert(SHOULD_SUPPRESS_LINEBREAK);
+            // Inlinify the display type if allowed.
+            if !flags.contains(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP) {
+                let inline_display = self_display.inlinify();
+                if self_display != inline_display {
+                    self.style.mutate_box().set_display(inline_display);
+                }
+            }
+        }
+        // Suppress border and padding for ruby level containers.
+        // This is actually not part of the spec. It is currently unspecified
+        // how border and padding should be handled for ruby level container,
+        // and suppressing them here make it easier for layout to handle.
+        if self_display.is_ruby_level_container() {
+            self.style.reset_border(default_computed_values);
+            self.style.reset_padding(default_computed_values);
+        }
+        // Force bidi isolation on all internal ruby boxes and ruby container
+        // per spec https://drafts.csswg.org/css-ruby-1/#bidi
+        if self_display.is_ruby_type() {
+            let new_value = match self.style.get_text().clone_unicode_bidi() {
+                unicode_bidi::normal | unicode_bidi::embed => Some(unicode_bidi::isolate),
+                unicode_bidi::bidi_override => Some(unicode_bidi::isolate_override),
+                _ => None,
+            };
+            if let Some(new_value) = new_value {
+                self.style.mutate_text().set_unicode_bidi(new_value);
+            }
+        }
+    }
+
     /// Adjusts the style to account for various fixups that don't fit naturally
     /// into the cascade.
     ///
@@ -319,6 +407,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     /// `nsStyleContext::ApplyStyleFixups`.
     pub fn adjust(&mut self,
                   layout_parent_style: &ComputedValues,
+                  _default_computed_values: &'b ComputedValues,
                   flags: CascadeFlags) {
         #[cfg(feature = "gecko")]
         {
@@ -341,5 +430,11 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         self.adjust_for_border_width();
         self.adjust_for_outline();
         self.adjust_for_writing_mode(layout_parent_style);
+        self.adjust_for_text_decoration_lines(layout_parent_style);
+        #[cfg(feature = "gecko")]
+        {
+            self.adjust_for_ruby(layout_parent_style,
+                                 _default_computed_values, flags);
+        }
     }
 }

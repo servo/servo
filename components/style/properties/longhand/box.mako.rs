@@ -53,6 +53,34 @@
                 )
             }
 
+            /// Returns whether an element with this display type is a line
+            /// participant, which means it may lay its children on the same
+            /// line as itself.
+            pub fn is_line_participant(&self) -> bool {
+                matches!(*self,
+                         T::inline
+                         % if product == "gecko":
+                         | T::contents
+                         | T::ruby
+                         | T::ruby_base_container
+                         % endif
+                )
+            }
+
+            /// Returns whether this "display" value is one of the types for
+            /// ruby.
+            #[cfg(feature = "gecko")]
+            pub fn is_ruby_type(&self) -> bool {
+                matches!(*self, T::ruby | T::ruby_base | T::ruby_text |
+                         T::ruby_base_container | T::ruby_text_container)
+            }
+
+            /// Returns whether this "display" value is a ruby level container.
+            #[cfg(feature = "gecko")]
+            pub fn is_ruby_level_container(&self) -> bool {
+                matches!(*self, T::ruby_base_container | T::ruby_text_container)
+            }
+
             /// Convert this display into an equivalent block display.
             ///
             /// Also used for style adjustments.
@@ -81,6 +109,25 @@
 
                     // Everything else becomes block.
                     _ => T::block,
+                }
+
+            }
+
+            /// Convert this display into an inline-outside display.
+            ///
+            /// Ideally it should implement spec: https://drafts.csswg.org/css-display/#inlinify
+            /// but the spec isn't stable enough, so we copy what Gecko does for now.
+            #[cfg(feature = "gecko")]
+            pub fn inlinify(&self) -> Self {
+                match *self {
+                    T::block | T::flow_root => T::inline_block,
+                    T::table => T::inline_table,
+                    T::flex => T::inline_flex,
+                    T::grid => T::inline_grid,
+                    T::_moz_box => T::_moz_inline_box,
+                    T::_moz_stack => T::_moz_inline_stack,
+                    T::_webkit_box => T::_webkit_inline_box,
+                    other => other,
                 }
             }
         }
