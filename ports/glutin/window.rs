@@ -6,7 +6,7 @@
 
 use NestedEventLoopListener;
 use compositing::compositor_thread::EventLoopWaker;
-use compositing::windowing::{AnimationState, MouseWindowEvent, WindowNavigateMsg};
+use compositing::windowing::{AnimationState, MouseWindowEvent};
 use compositing::windowing::{WindowEvent, WindowMethods};
 use euclid::{Point2D, Size2D, TypedPoint2D, TypedVector2D, TypedRect, ScaleFactor, TypedSize2D};
 #[cfg(target_os = "windows")]
@@ -20,7 +20,7 @@ use glutin::TouchPhase;
 #[cfg(target_os = "macos")]
 use glutin::os::macos::{ActivationPolicy, WindowBuilderExt};
 use msg::constellation_msg::{self, Key};
-use msg::constellation_msg::{ALT, CONTROL, KeyState, NONE, SHIFT, SUPER};
+use msg::constellation_msg::{ALT, CONTROL, KeyState, NONE, SHIFT, SUPER, TraversalDirection};
 use net_traits::net_error_list::NetError;
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 use osmesa_sys;
@@ -930,10 +930,10 @@ impl Window {
     fn platform_handle_key(&self, key: Key, mods: constellation_msg::KeyModifiers) {
         match (mods, key) {
             (CMD_OR_CONTROL, Key::LeftBracket) => {
-                self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Back));
+                self.event_queue.borrow_mut().push(WindowEvent::Navigation(TraversalDirection::Back(1)));
             }
             (CMD_OR_CONTROL, Key::RightBracket) => {
-                self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Forward));
+                self.event_queue.borrow_mut().push(WindowEvent::Navigation(TraversalDirection::Forward(1)));
             }
             _ => {}
         }
@@ -1220,10 +1220,10 @@ impl WindowMethods for Window {
             }
 
             (NONE, None, Key::NavigateForward) => {
-                self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Forward));
+                self.event_queue.borrow_mut().push(WindowEvent::Navigation(TraversalDirection::Forward(1)));
             }
             (NONE, None, Key::NavigateBackward) => {
-                self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Back));
+                self.event_queue.borrow_mut().push(WindowEvent::Navigation(TraversalDirection::Back(1)));
             }
 
             (NONE, None, Key::Escape) => {
@@ -1233,10 +1233,10 @@ impl WindowMethods for Window {
             }
 
             (CMD_OR_ALT, None, Key::Right) => {
-                self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Forward));
+                self.event_queue.borrow_mut().push(WindowEvent::Navigation(TraversalDirection::Forward(1)));
             }
             (CMD_OR_ALT, None, Key::Left) => {
-                self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Back));
+                self.event_queue.borrow_mut().push(WindowEvent::Navigation(TraversalDirection::Back(1)));
             }
 
             (NONE, None, Key::PageDown) => {

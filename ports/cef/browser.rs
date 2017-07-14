@@ -8,13 +8,14 @@ use frame::{ServoCefFrame, ServoCefFrameExtensions};
 use interfaces::{CefBrowser, CefBrowserHost, CefClient, CefFrame, CefRequestContext};
 use interfaces::{cef_browser_t, cef_browser_host_t, cef_client_t, cef_frame_t};
 use interfaces::{cef_request_context_t};
+use msg::constellation_msg::TraversalDirection;
 use servo::Browser;
 use servo::servo_url::ServoUrl;
 use types::{cef_browser_settings_t, cef_string_t, cef_window_info_t, cef_window_handle_t};
 use window;
 use wrappers::CefWrap;
 
-use compositing::windowing::{WindowNavigateMsg, WindowEvent};
+use compositing::windowing::WindowEvent;
 use glutin_app;
 use libc::c_int;
 use std::cell::{Cell, RefCell};
@@ -69,11 +70,11 @@ cef_class_impl! {
         }}
 
         fn go_back(&this,) -> () {{
-            this.send_window_event(WindowEvent::Navigation(WindowNavigateMsg::Back));
+            this.send_window_event(WindowEvent::Navigation(TraversalDirection::Back(1)));
         }}
 
         fn go_forward(&this,) -> () {{
-            this.send_window_event(WindowEvent::Navigation(WindowNavigateMsg::Forward));
+            this.send_window_event(WindowEvent::Navigation(TraversalDirection::Forward(1)));
         }}
 
         // Returns the main (top-level) frame for the browser window.

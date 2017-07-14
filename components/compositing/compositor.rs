@@ -35,7 +35,7 @@ use time::{precise_time_ns, precise_time_s};
 use touch::{TouchHandler, TouchAction};
 use webrender;
 use webrender_api::{self, ClipId, LayoutPoint, LayoutVector2D, ScrollEventPhase, ScrollLocation, ScrollClamping};
-use windowing::{self, MouseWindowEvent, WindowEvent, WindowMethods, WindowNavigateMsg};
+use windowing::{self, MouseWindowEvent, WindowEvent, WindowMethods};
 
 #[derive(Debug, PartialEq)]
 enum UnableToComposite {
@@ -1294,11 +1294,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         });
     }
 
-    fn on_navigation_window_event(&self, direction: WindowNavigateMsg) {
-        let direction = match direction {
-            windowing::WindowNavigateMsg::Forward => TraversalDirection::Forward(1),
-            windowing::WindowNavigateMsg::Back => TraversalDirection::Back(1),
-        };
+    fn on_navigation_window_event(&self, direction: TraversalDirection) {
         let top_level_browsing_context_id = match self.root_pipeline {
             Some(ref pipeline) => pipeline.top_level_browsing_context_id,
             None => return warn!("Sending navigation to constellation with no root pipeline."),
