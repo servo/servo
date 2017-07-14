@@ -70,11 +70,10 @@ use bit_vec::BitVec;
 use bloom::StyleBloom;
 use cache::{LRUCache, LRUCacheMutIterator};
 use context::{SelectorFlagsMap, SharedStyleContext, StyleContext};
-use data::{ElementData, ElementStyles};
+use data::ElementStyles;
 use dom::{TElement, SendElement};
-use matching::{ChildCascadeRequirement, MatchMethods};
+use matching::MatchMethods;
 use properties::ComputedValues;
-use selector_parser::RestyleDamage;
 use selectors::matching::{ElementSelectorFlags, VisitedHandlingMode};
 use smallvec::SmallVec;
 use std::mem;
@@ -329,11 +328,9 @@ impl<E: TElement> StyleSharingTarget<E> {
 
     /// Attempts to share a style with another node.
     pub fn share_style_if_possible(
-        mut self,
+        &mut self,
         context: &mut StyleContext<E>,
-        data: &mut ElementData)
-        -> StyleSharingResult
-    {
+    ) -> StyleSharingResult {
         let cache = &mut context.thread_local.style_sharing_candidate_cache;
         let shared_context = &context.shared;
         let selector_flags_map = &mut context.thread_local.selector_flags;
@@ -347,70 +344,17 @@ impl<E: TElement> StyleSharingTarget<E> {
         debug_assert_eq!(bloom_filter.current_parent(),
                          self.element.traversal_parent());
 
-        let result = cache
-            .share_style_if_possible(shared_context,
-                                     selector_flags_map,
-                                     bloom_filter,
-                                     &mut self,
-                                     data);
-
-
-        context.thread_local.current_element_info.as_mut().unwrap().validation_data =
-            self.validation_data.take();
-        result
+        cache.share_style_if_possible(
+            shared_context,
+            selector_flags_map,
+            bloom_filter,
+            self
+        )
     }
 
-    fn accumulate_damage_when_sharing(&self,
-                                      shared_context: &SharedStyleContext,
-                                      shared_styles: &ElementStyles,
-                                      data: &mut ElementData) -> ChildCascadeRequirement {
-        // Accumulate restyle damage for the case when our sharing
-        // target managed to share style.  This can come from several
-        // sources:
-        //
-        // 1) We matched a different set of eager pseudos (which
-        //    should cause a reconstruct).
-        // 2) We have restyle damage from the eager pseudo computed
-        //    styles.
-        // 3) We have restyle damage from our own computed styles.
-        if data.has_styles() {
-            // We used to have pseudos (because we had styles).
-            // Check for damage from the set of pseudos changing or
-            // pseudos being restyled.
-            let (styles, mut restyle_data) = data.styles_and_restyle_mut();
-            let old_pseudos = &styles.pseudos;
-            let new_pseudos = &shared_styles.pseudos;
-
-            if !old_pseudos.has_same_pseudos_as(new_pseudos) {
-                restyle_data.damage |= RestyleDamage::reconstruct();
-            } else {
-                // It's a bit unfortunate that we have to keep
-                // mapping PseudoElements back to indices
-                // here....
-                for pseudo in old_pseudos.keys() {
-                    let old_values =
-                        old_pseudos.get(&pseudo).map(|v| &**v);
-                    let new_values =
-                        new_pseudos.get(&pseudo).unwrap();
-                    self.element.accumulate_damage(
-                        &shared_context,
-                        restyle_data,
-                        old_values,
-                        new_values,
-                        Some(&pseudo)
-                    );
-                }
-            }
-        }
-
-        let old_values = data.styles.primary.take();
-        self.element.accumulate_damage(
-            &shared_context,
-            &mut data.restyle,
-            old_values.as_ref().map(|v| &**v),
-            shared_styles.primary(),
-            None
-        )
+    /// Gets the validation data used to match against this target, if any.
+    pub fn take_validation_data(&mut self) -> ValidationData {
+        self.validation_data.take()
     }
 }
 
@@ -451,10 +395,8 @@ pub enum StyleSharingResult {
     /// We didn't find anybody to share the style with.
     CannotShare,
     /// The node's style can be shared. The integer specifies the index in the
-    /// LRU cache that was hit and the damage that was done. The
-    /// `ChildCascadeRequirement` indicates whether style changes due to using
-    /// the shared style mean we need to recascade to children.
-    StyleWasShared(usize, ChildCascadeRequirement),
+    /// LRU cache that was hit and the damage that was done.
+    StyleWasShared(usize, ElementStyles),
 }
 
 /// An LRU cache of the last few nodes seen, so that we can aggressively try to
@@ -553,7 +495,6 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
         selector_flags_map: &mut SelectorFlagsMap<E>,
         bloom_filter: &StyleBloom<E>,
         target: &mut StyleSharingTarget<E>,
-        data: &mut ElementData
     ) -> StyleSharingResult {
         if shared_context.options.disable_style_sharing_cache {
             debug!("{:?} Cannot share style: style sharing cache disabled",
@@ -584,14 +525,7 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
 
             match sharing_result {
                 Ok(shared_styles) => {
-                    // Yay, cache hit. Share the style.
-                    let child_cascade_requirement =
-                        target.accumulate_damage_when_sharing(shared_context,
-                                                              &shared_styles,
-                                                              data);
-                    data.styles = shared_styles;
-
-                    return StyleSharingResult::StyleWasShared(i, child_cascade_requirement)
+                    return StyleSharingResult::StyleWasShared(i, shared_styles)
                 }
                 Err(miss) => {
                     debug!("Cache miss: {:?}", miss);
@@ -605,12 +539,13 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
         StyleSharingResult::CannotShare
     }
 
-    fn test_candidate(target: &mut StyleSharingTarget<E>,
-                      candidate: &mut StyleSharingCandidate<E>,
-                      shared: &SharedStyleContext,
-                      bloom: &StyleBloom<E>,
-                      selector_flags_map: &mut SelectorFlagsMap<E>)
-                      -> Result<ElementStyles, CacheMiss> {
+    fn test_candidate(
+        target: &mut StyleSharingTarget<E>,
+        candidate: &mut StyleSharingCandidate<E>,
+        shared: &SharedStyleContext,
+        bloom: &StyleBloom<E>,
+        selector_flags_map: &mut SelectorFlagsMap<E>
+    ) -> Result<ElementStyles, CacheMiss> {
         macro_rules! miss {
             ($miss: ident) => {
                 return Err(CacheMiss::$miss);

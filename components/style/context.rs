@@ -21,7 +21,7 @@ use rule_tree::StrongRuleNode;
 use selector_parser::{EAGER_PSEUDO_COUNT, SnapshotMap};
 use selectors::matching::ElementSelectorFlags;
 use shared_lock::StylesheetGuards;
-use sharing::{ValidationData, StyleSharingCandidateCache};
+use sharing::StyleSharingCandidateCache;
 use std::fmt;
 use std::ops::Add;
 #[cfg(feature = "servo")] use std::sync::Mutex;
@@ -269,8 +269,6 @@ pub struct CurrentElementInfo {
     element: OpaqueNode,
     /// Whether the element is being styled for the first time.
     is_initial_style: bool,
-    /// Lazy cache of the different data used for style sharing.
-    pub validation_data: ValidationData,
     /// A Vec of possibly expired animations. Used only by Servo.
     #[allow(dead_code)]
     pub possibly_expired_animations: Vec<PropertyAnimation>,
@@ -575,7 +573,6 @@ impl<E: TElement> ThreadLocalStyleContext<E> {
         self.current_element_info = Some(CurrentElementInfo {
             element: element.as_node().opaque(),
             is_initial_style: !data.has_styles(),
-            validation_data: ValidationData::default(),
             possibly_expired_animations: Vec::new(),
         });
     }

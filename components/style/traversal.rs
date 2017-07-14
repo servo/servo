@@ -771,50 +771,38 @@ where
 
             context.thread_local.bloom_filter.assert_complete(element);
 
-            // Now that our bloom filter is set up, try the style sharing
-            // cache. If we get a match we can skip the rest of the work.
-            let target = StyleSharingTarget::new(element);
-            let sharing_result = target.share_style_if_possible(context, data);
-
-            if let StyleWasShared(index, had_damage) = sharing_result {
-                context.thread_local.statistics.styles_shared += 1;
-                context.thread_local.style_sharing_candidate_cache.touch(index);
-                return had_damage;
-            }
-
-            context.thread_local.statistics.elements_matched += 1;
-
+            // This is only relevant for animations as of right now.
             important_rules_changed = true;
 
-            // Perform the matching and cascading.
-            let new_styles =
-                StyleResolverForElement::new(element, context, RuleInclusion::All)
-                    .resolve_style_with_default_parents();
+            let mut target = StyleSharingTarget::new(element);
 
-            // If we previously tried to match this element against the cache,
-            // the revalidation match results will already be cached. Otherwise
-            // we'll have None, and compute them later on-demand.
-            //
-            // If we do have the results, grab them here to satisfy the borrow
-            // checker.
-            let validation_data =
-                context.thread_local
-                    .current_element_info
-                    .as_mut().unwrap()
-                    .validation_data
-                    .take();
+            // Now that our bloom filter is set up, try the style sharing
+            // cache.
+            match target.share_style_if_possible(context) {
+                StyleWasShared(index, styles) => {
+                    context.thread_local.statistics.styles_shared += 1;
+                    context.thread_local.style_sharing_candidate_cache.touch(index);
+                    styles
+                }
+                CannotShare => {
+                    context.thread_local.statistics.elements_matched += 1;
+                    // Perform the matching and cascading.
+                    let new_styles =
+                        StyleResolverForElement::new(element, context, RuleInclusion::All)
+                            .resolve_style_with_default_parents();
 
-            let dom_depth = context.thread_local.bloom_filter.matching_depth();
-            context.thread_local
-                   .style_sharing_candidate_cache
-                   .insert_if_possible(
-                       &element,
-                       new_styles.primary(),
-                       validation_data,
-                       dom_depth
-                    );
+                    context.thread_local
+                        .style_sharing_candidate_cache
+                        .insert_if_possible(
+                            &element,
+                            new_styles.primary(),
+                            target.take_validation_data(),
+                            context.thread_local.bloom_filter.matching_depth(),
+                        );
 
-            new_styles
+                    new_styles
+                }
+            }
         }
         CascadeWithReplacements(flags) => {
             // Skipping full matching, load cascade inputs from previous values.
