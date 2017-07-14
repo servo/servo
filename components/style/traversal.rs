@@ -771,13 +771,13 @@ where
 
             context.thread_local.bloom_filter.assert_complete(element);
 
-            // Now that our bloom filter is set up, try the style sharing
-            // cache. If we get a match we can skip the rest of the work.
-
             // This is only relevant for animations as of right now.
             important_rules_changed = true;
 
             let mut target = StyleSharingTarget::new(element);
+
+            // Now that our bloom filter is set up, try the style sharing
+            // cache.
             match target.share_style_if_possible(context) {
                 StyleWasShared(index, styles) => {
                     context.thread_local.statistics.styles_shared += 1;
