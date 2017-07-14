@@ -23,7 +23,7 @@ use selectors::matching::ElementSelectorFlags;
 use shared_lock::StylesheetGuards;
 use sharing::StyleSharingCandidateCache;
 use std::fmt;
-use std::ops::Add;
+use std::ops;
 #[cfg(feature = "servo")] use std::sync::Mutex;
 #[cfg(feature = "servo")] use std::sync::mpsc::Sender;
 use stylearc::Arc;
@@ -306,7 +306,7 @@ pub struct TraversalStatistics {
 }
 
 /// Implementation of Add to aggregate statistics across different threads.
-impl<'a> Add for &'a TraversalStatistics {
+impl<'a> ops::Add for &'a TraversalStatistics {
     type Output = TraversalStatistics;
     fn add(self, other: Self) -> TraversalStatistics {
         debug_assert!(self.traversal_time_ms == 0.0 && other.traversal_time_ms == 0.0,
@@ -505,6 +505,43 @@ impl<E: TElement> SelectorFlagsMap<E> {
     }
 }
 
+/// A list of SequentialTasks that get executed on Drop.
+pub struct SequentialTaskList<E>(Vec<SequentialTask<E>>)
+where
+    E: TElement;
+
+impl<E> ops::Deref for SequentialTaskList<E>
+where
+    E: TElement,
+{
+    type Target = Vec<SequentialTask<E>>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<E> ops::DerefMut for SequentialTaskList<E>
+where
+    E: TElement,
+{
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl<E> Drop for SequentialTaskList<E>
+where
+    E: TElement,
+{
+    fn drop(&mut self) {
+        debug_assert!(thread_state::get() == thread_state::LAYOUT);
+        for task in self.0.drain(..) {
+            task.execute()
+        }
+    }
+}
+
 /// A thread-local style context.
 ///
 /// This context contains data that needs to be used during restyling, but is
@@ -520,9 +557,13 @@ pub struct ThreadLocalStyleContext<E: TElement> {
     #[cfg(feature = "servo")]
     pub new_animations_sender: Sender<Animation>,
     /// A set of tasks to be run (on the parent thread) in sequential mode after
-    /// the rest of the styling is complete. This is useful for infrequently-needed
-    /// non-threadsafe operations.
-    pub tasks: Vec<SequentialTask<E>>,
+    /// the rest of the styling is complete. This is useful for
+    /// infrequently-needed non-threadsafe operations.
+    ///
+    /// It's important that goes after the style sharing cache and the bloom
+    /// filter, to ensure they're dropped before we execute the tasks, which
+    /// could create another ThreadLocalStyleContext for style computation.
+    pub tasks: SequentialTaskList<E>,
     /// ElementSelectorFlags that need to be applied after the traversal is
     /// complete. This map is used in cases where the matching algorithm needs
     /// to set flags on elements it doesn't have exclusive access to (i.e. other
@@ -545,7 +586,7 @@ impl<E: TElement> ThreadLocalStyleContext<E> {
             style_sharing_candidate_cache: StyleSharingCandidateCache::new(),
             bloom_filter: StyleBloom::new(),
             new_animations_sender: shared.local_context_creation_data.lock().unwrap().new_animations_sender.clone(),
-            tasks: Vec::new(),
+            tasks: SequentialTaskList(Vec::new()),
             selector_flags: SelectorFlagsMap::new(),
             statistics: TraversalStatistics::default(),
             current_element_info: None,
@@ -559,7 +600,7 @@ impl<E: TElement> ThreadLocalStyleContext<E> {
         ThreadLocalStyleContext {
             style_sharing_candidate_cache: StyleSharingCandidateCache::new(),
             bloom_filter: StyleBloom::new(),
-            tasks: Vec::new(),
+            tasks: SequentialTaskList(Vec::new()),
             selector_flags: SelectorFlagsMap::new(),
             statistics: TraversalStatistics::default(),
             current_element_info: None,
@@ -601,11 +642,6 @@ impl<E: TElement> Drop for ThreadLocalStyleContext<E> {
 
         // Apply any slow selector flags that need to be set on parents.
         self.selector_flags.apply_flags();
-
-        // Execute any enqueued sequential tasks.
-        for task in self.tasks.drain(..) {
-            task.execute();
-        }
     }
 }
 
