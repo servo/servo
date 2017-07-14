@@ -18,5 +18,15 @@ bitflags! {
         /// text-decoration-line is a reset property, but gets propagated in the
         /// frame/box tree.
         const HAS_TEXT_DECORATION_LINES = 1 << 0,
+
+        /// Whether line break inside should be suppressed.
+        ///
+        /// If this flag is set, the line should not be broken inside,
+        /// which means inlines act as if nowrap is set, <br> element is
+        /// suppressed, and blocks are inlinized.
+        ///
+        /// This bit is propagated to all children of line participants.
+        /// It is currently used by ruby to make its content unbreakable.
+        const SHOULD_SUPPRESS_LINEBREAK = 1 << 1,
     }
 }

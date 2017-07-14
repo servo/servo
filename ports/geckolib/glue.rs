@@ -1727,6 +1727,9 @@ pub extern "C" fn Servo_ComputedValues_GetStyleBits(values: ServoComputedValuesB
     if flags.contains(HAS_TEXT_DECORATION_LINES) {
         result |= structs::NS_STYLE_HAS_TEXT_DECORATION_LINES as u64;
     }
+    if flags.contains(SHOULD_SUPPRESS_LINEBREAK) {
+        result |= structs::NS_STYLE_SUPPRESS_LINEBREAK as u64;
+    }
     result
 }
 

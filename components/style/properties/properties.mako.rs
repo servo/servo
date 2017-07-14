@@ -2486,6 +2486,12 @@ impl<'a> StyleBuilder<'a> {
                                                          -> Option<<&mut style_structs::${style_struct.name}> {
             self.${style_struct.ident}.get_if_mutated()
         }
+
+        /// Reset the current `${style_struct.name}` style to its default value.
+        pub fn reset_${style_struct.name_lower}(&mut self, default: &'a ComputedValues) {
+            self.${style_struct.ident} =
+                StyleStructRef::Borrowed(default.${style_struct.name_lower}_arc());
+        }
     % endfor
 
     /// Returns whether this computed style represents a floated object.
@@ -2597,8 +2603,8 @@ bitflags! {
         /// present, non-inherited styles are reset to their initial values.
         const INHERIT_ALL = 0x01,
 
-        /// Whether to skip any root element and flex/grid item display style
-        /// fixup.
+        /// Whether to skip any display style fixup for root element, flex/grid
+        /// item, and ruby descendants.
         const SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP = 0x02,
 
         /// Whether to only cascade properties that are visited dependent.
@@ -2985,7 +2991,8 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
 
     {
         StyleAdjuster::new(&mut style)
-            .adjust(context.layout_parent_style, flags);
+            .adjust(context.layout_parent_style,
+                    context.device.default_computed_values(), flags);
     }
 
     % if product == "gecko":
