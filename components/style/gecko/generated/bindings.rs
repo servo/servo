@@ -2685,6 +2685,13 @@ extern "C" {
      -> u64;
 }
 extern "C" {
+    pub fn Servo_ComputedValues_EqualCustomProperties(first:
+                                                          ServoComputedValuesBorrowed,
+                                                      second:
+                                                          ServoComputedValuesBorrowed)
+     -> bool;
+}
+extern "C" {
     pub fn Servo_ComputedValues_GetStyleRuleList(values:
                                                      ServoComputedValuesBorrowed,
                                                  rules:
