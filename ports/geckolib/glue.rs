@@ -1720,6 +1720,17 @@ pub extern "C" fn Servo_ComputedValues_GetVisitedStyle(values: ServoComputedValu
 }
 
 #[no_mangle]
+pub extern "C" fn Servo_ComputedValues_GetStyleBits(values: ServoComputedValuesBorrowed) -> u64 {
+    use style::properties::computed_value_flags::*;
+    let flags = ComputedValues::as_arc(&values).flags;
+    let mut result = 0;
+    if flags.contains(HAS_TEXT_DECORATION_LINES) {
+        result |= structs::NS_STYLE_HAS_TEXT_DECORATION_LINES as u64;
+    }
+    result
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_ComputedValues_SpecifiesAnimationsOrTransitions(values: ServoComputedValuesBorrowed)
                                                                         -> bool {
     let values = ComputedValues::as_arc(&values);
