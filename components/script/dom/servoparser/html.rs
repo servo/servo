@@ -149,29 +149,34 @@ struct SerializationIterator {
     stack: Vec<SerializationCommand>,
 }
 
+fn rev_children_iter(n: &Node) -> impl Iterator<Item=Root<Node>>{
+    match n.downcast::<HTMLTemplateElement>() {
+        Some(t) => t.Content().upcast::<Node>().rev_children(),
+        None => n.rev_children(),
+    }
+}
 
 impl SerializationIterator {
     fn new(node: &Node, skip_first: bool) -> SerializationIterator {
         let mut ret = SerializationIterator {
             stack: vec![],
         };
-        let starting_nodes = if skip_first {
-            if let Some(t) = node.downcast::<HTMLTemplateElement>() {
-                t.Content().upcast::<Node>().children().collect::<Vec<_>>()
-            }
-            else {
-                node.children().collect::<Vec<_>>()
-            }
-        } else {
-            vec![Root::from_ref(node)]
-        };
-        for c in starting_nodes.into_iter().rev() {
-            match c.downcast::<Element>() {
-                Some(e) => ret.stack.push(SerializationCommand::OpenElement(Root::from_ref(e))),
-                None => ret.stack.push(SerializationCommand::SerializeNonelement(c.clone())),
+        if skip_first {
+            for c in rev_children_iter(node) {
+                ret.push_node(&*c);
             }
         }
+        else {
+            ret.push_node(node);
+        }
         ret
+    }
+
+    fn push_node(&mut self, n: &Node) {
+        match n.downcast::<Element>() {
+            Some(e) => self.stack.push(SerializationCommand::OpenElement(Root::from_ref(e))),
+            None => self.stack.push(SerializationCommand::SerializeNonelement(Root::from_ref(n))),
+        }
     }
 }
 
@@ -183,15 +188,8 @@ impl Iterator for SerializationIterator {
 
         if let Some(SerializationCommand::OpenElement(ref e)) = res {
             self.stack.push(SerializationCommand::CloseElement(e.clone()));
-            let iter = match e.downcast::<HTMLTemplateElement>() {
-                Some(t) => t.Content().upcast::<Node>().rev_children(),
-                None => e.upcast::<Node>().rev_children(),
-            };
-            for c in iter {
-                match c.downcast::<Element>() {
-                    Some(e) => self.stack.push(SerializationCommand::OpenElement(Root::from_ref(e))),
-                    None => self.stack.push(SerializationCommand::SerializeNonelement(c.clone())),
-                }
+            for c in rev_children_iter(&*e.upcast::<Node>()) {
+                self.push_node(&c);
             }
         }
 
