@@ -55,7 +55,7 @@ class CSSPseudoElementsAtomSource:
 
 
 class CSSAnonBoxesAtomSource:
-    PATTERN = re.compile('^(?:CSS_ANON_BOX|CSS_NON_INHERITING_ANON_BOX)\((.+),\s*"(.*)"(\,|\))')
+    PATTERN = re.compile('^(?:CSS_ANON_BOX|CSS_NON_INHERITING_ANON_BOX)\((.+),\s*"(.*)"\)')
     FILE = "include/nsCSSAnonBoxList.h"
     CLASS = "nsCSSAnonBoxes"
     TYPE = "nsICSSAnonBoxPseudo"
