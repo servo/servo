@@ -4519,7 +4519,7 @@ clip-path
                 Cursor::Pointer => structs::NS_STYLE_CURSOR_POINTER,
                 Cursor::ContextMenu => structs::NS_STYLE_CURSOR_CONTEXT_MENU,
                 Cursor::Help => structs::NS_STYLE_CURSOR_HELP,
-                Cursor::Progress => structs::NS_STYLE_CURSOR_DEFAULT, // Gecko doesn't support "progress" yet
+                Cursor::Progress => structs::NS_STYLE_CURSOR_SPINNING,
                 Cursor::Wait => structs::NS_STYLE_CURSOR_WAIT,
                 Cursor::Cell => structs::NS_STYLE_CURSOR_CELL,
                 Cursor::Crosshair => structs::NS_STYLE_CURSOR_CROSSHAIR,
