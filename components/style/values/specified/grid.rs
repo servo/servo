@@ -7,13 +7,13 @@
 
 use cssparser::{Parser, Token, BasicParseError};
 use parser::{Parse, ParserContext};
-use std::{mem, usize};
+use std::{fmt, mem, usize};
 use std::ascii::AsciiExt;
 use style_traits::{HasViewportPercentage, ParseError, StyleParseError};
 use values::{CSSFloat, CustomIdent, Either};
 use values::computed::{self, Context, ToComputedValue};
 use values::generics::grid::{GridTemplateComponent, RepeatCount, TrackBreadth, TrackKeyword, TrackRepeat};
-use values::generics::grid::{LineNameList, TrackSize, TrackList, TrackListType};
+use values::generics::grid::{LineNameList, SerializeContext, TrackSize, TrackList, TrackListType, TrackListValue};
 use values::specified::LengthOrPercentage;
 
 /// Parse a single flexible length.
@@ -188,6 +188,24 @@ impl HasViewportPercentage for TrackRepeat<LengthOrPercentage> {
 /// This is required only for the specified form of `<track-list>`, and will become
 /// `TrackSize<LengthOrPercentage>` in its computed form.
 pub type TrackSizeOrRepeat = Either<TrackSize<LengthOrPercentage>, TrackRepeat<LengthOrPercentage>>;
+
+impl TrackListValue for TrackSizeOrRepeat {
+    fn is_repeat_with_number(&self) -> bool {
+        match *self {
+            Either::First(_) => false,
+            Either::Second(ref repeat) => repeat.is_repeat_with_number()
+        }
+    }
+
+    fn to_css_with_context<W>(&self, dest: &mut W, serialized: &mut SerializeContext) -> fmt::Result
+        where W: fmt::Write
+    {
+        match *self {
+            Either::First(ref track_size) => track_size.to_css_with_context(dest, serialized),
+            Either::Second(ref track_repeat) => track_repeat.to_css_with_context(dest, serialized),
+        }
+    }
+}
 
 impl Parse for TrackList<TrackSizeOrRepeat> {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
