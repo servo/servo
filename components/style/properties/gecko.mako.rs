@@ -192,6 +192,11 @@ impl ComputedValues {
         self.visited_style.clone()
     }
 
+    /// Gets a reference to the custom properties map (if one exists).
+    pub fn get_custom_properties(&self) -> Option<<&::custom_properties::CustomPropertiesMap> {
+        self.custom_properties.as_ref().map(|x| &**x)
+    }
+
     pub fn custom_properties(&self) -> Option<Arc<CustomPropertiesMap>> {
         self.custom_properties.clone()
     }

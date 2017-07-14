@@ -1742,6 +1742,16 @@ pub extern "C" fn Servo_ComputedValues_SpecifiesAnimationsOrTransitions(values: 
 }
 
 #[no_mangle]
+pub extern "C" fn Servo_ComputedValues_EqualCustomProperties(
+    first: ServoComputedValuesBorrowed,
+    second: ServoComputedValuesBorrowed
+) -> bool {
+    let first = ComputedValues::as_arc(&first);
+    let second = ComputedValues::as_arc(&second);
+    first.get_custom_properties() == second.get_custom_properties()
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_ComputedValues_GetStyleRuleList(values: ServoComputedValuesBorrowed,
                                                         rules: RawGeckoServoStyleRuleListBorrowedMut) {
     let values = ComputedValues::as_arc(&values);
