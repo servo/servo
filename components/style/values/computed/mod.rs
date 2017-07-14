@@ -549,10 +549,10 @@ pub type TrackSize = GenericTrackSize<LengthOrPercentage>;
 
 /// The computed value of a grid `<track-list>`
 /// (could also be `<auto-track-list>` or `<explicit-track-list>`)
-pub type TrackList = GenericTrackList<TrackSize>;
+pub type TrackList = GenericTrackList<LengthOrPercentage>;
 
 /// `<grid-template-rows> | <grid-template-columns>`
-pub type GridTemplateComponent = GenericGridTemplateComponent<TrackSize>;
+pub type GridTemplateComponent = GenericGridTemplateComponent<LengthOrPercentage>;
 
 impl ClipRectOrAuto {
     /// Return an auto (default for clip-rect and image-region) value

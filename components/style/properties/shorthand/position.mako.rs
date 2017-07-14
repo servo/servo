@@ -289,7 +289,7 @@
                 line_names.push(names);
                 strings.push(string);
                 let size = input.try(|i| TrackSize::parse(context, i)).unwrap_or_default();
-                values.push(Either::First(size));
+                values.push(size);
                 names = input.try(parse_line_names).unwrap_or(vec![]);
                 if let Ok(v) = input.try(parse_line_names) {
                     names.extend(v);
