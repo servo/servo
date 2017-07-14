@@ -8,6 +8,11 @@ use properties::{ComputedValues, StyleBuilder};
 
 bitflags! {
     /// Misc information about a given computed style.
+    ///
+    /// All flags are currently inherited for text, pseudo elements, and
+    /// anonymous boxes, see StyleBuilder::for_inheritance and its callsites.
+    /// If we ever want to add some flags that shouldn't inherit for them,
+    /// we might want to add a function to handle this.
     pub flags ComputedValueFlags: u8 {
         /// Whether the style or any of the ancestors has a text-decoration-line
         /// property that should get propagated to descendants.

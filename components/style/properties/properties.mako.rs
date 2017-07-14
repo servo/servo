@@ -2414,6 +2414,7 @@ impl<'a> StyleBuilder<'a> {
         custom_properties: Option<Arc<::custom_properties::CustomPropertiesMap>>,
         writing_mode: WritingMode,
         font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>,
+        flags: ComputedValueFlags,
         visited_style: Option<Arc<ComputedValues>>,
     ) -> Self {
         StyleBuilder {
@@ -2422,6 +2423,7 @@ impl<'a> StyleBuilder<'a> {
             custom_properties,
             writing_mode,
             font_size_keyword,
+            flags,
             visited_style,
             % for style_struct in data.active_style_structs():
             % if style_struct.inherited:
@@ -2452,6 +2454,7 @@ impl<'a> StyleBuilder<'a> {
             parent.custom_properties(),
             parent.writing_mode,
             parent.font_computation_data.font_size_keyword,
+            parent.flags,
             parent.clone_visited_style()
         )
     }
@@ -2747,6 +2750,7 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
             custom_properties,
             WritingMode::empty(),
             inherited_style.font_computation_data.font_size_keyword,
+            ComputedValueFlags::empty(),
             visited_style,
         ),
         font_metrics_provider: font_metrics_provider,
