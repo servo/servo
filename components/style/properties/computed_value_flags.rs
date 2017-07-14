@@ -4,8 +4,6 @@
 
 //! Misc information about a given computed style.
 
-use properties::{ComputedValues, StyleBuilder};
-
 bitflags! {
     /// Misc information about a given computed style.
     ///
@@ -20,31 +18,5 @@ bitflags! {
         /// text-decoration-line is a reset property, but gets propagated in the
         /// frame/box tree.
         const HAS_TEXT_DECORATION_LINES = 1 << 0,
-    }
-}
-
-impl ComputedValueFlags {
-    /// Get the computed value flags for the initial style.
-    pub fn initial() -> Self {
-        Self::empty()
-    }
-
-    /// Compute the flags for this style, given the parent style.
-    pub fn compute(
-        this_style: &StyleBuilder,
-        parent_style: &ComputedValues,
-    ) -> Self {
-        let mut ret = Self::empty();
-
-        // FIXME(emilio): This feels like it wants to look at the
-        // layout_parent_style, but the way it works in Gecko means it's not
-        // needed (we'd recascade a bit more when it changes, but that's fine),
-        // and this way it simplifies the code for text styles and similar.
-        if parent_style.flags.contains(HAS_TEXT_DECORATION_LINES) ||
-           !this_style.get_text().clone_text_decoration_line().is_empty() {
-            ret.insert(HAS_TEXT_DECORATION_LINES);
-        }
-
-        ret
     }
 }

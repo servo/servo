@@ -2384,8 +2384,6 @@ impl<'a, T: 'a> Deref for StyleStructRef<'a, T> {
 /// actually cloning them, until we either build the style, or mutate the
 /// inherited value.
 pub struct StyleBuilder<'a> {
-    /// The style we're inheriting from.
-    inherited_style: &'a ComputedValues,
     /// The rule node representing the ordered list of rules matched for this
     /// node.
     rules: Option<StrongRuleNode>,
@@ -2396,6 +2394,8 @@ pub struct StyleBuilder<'a> {
     pub writing_mode: WritingMode,
     /// The keyword behind the current font-size property, if any.
     pub font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>,
+    /// Flags for the computed value.
+    pub flags: ComputedValueFlags,
     /// The element's style if visited, only computed if there's a relevant link
     /// for this element.  A element's "relevant link" is the element being
     /// matched if it is a link or the nearest ancestor link.
@@ -2418,7 +2418,6 @@ impl<'a> StyleBuilder<'a> {
         visited_style: Option<Arc<ComputedValues>>,
     ) -> Self {
         StyleBuilder {
-            inherited_style,
             rules,
             custom_properties,
             writing_mode,
@@ -2518,11 +2517,10 @@ impl<'a> StyleBuilder<'a> {
 
     /// Turns this `StyleBuilder` into a proper `ComputedValues` instance.
     pub fn build(self) -> ComputedValues {
-        let flags = ComputedValueFlags::compute(&self, &self.inherited_style);
         ComputedValues::new(self.custom_properties,
                             self.writing_mode,
                             self.font_size_keyword,
-                            flags,
+                            self.flags,
                             self.rules,
                             self.visited_style,
                             % for style_struct in data.active_style_structs():
@@ -2567,7 +2565,7 @@ mod lazy_static_module {
             % endfor
             custom_properties: None,
             writing_mode: WritingMode::empty(),
-            flags: ComputedValueFlags::initial(),
+            flags: ComputedValueFlags::empty(),
             font_computation_data: FontComputationData::default_values(),
             rules: None,
             visited_style: None,

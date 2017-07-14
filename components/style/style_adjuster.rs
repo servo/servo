@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-//! A struct to encapsulate all the style fixups a computed style needs in order
-//! for it to adhere to the CSS spec.
+//! A struct to encapsulate all the style fixups and flags propagations
+//! a computed style needs in order for it to adhere to the CSS spec.
 
 use app_units::Au;
 use properties::{self, CascadeFlags, ComputedValues};
@@ -312,6 +312,15 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
        self.style.mutate_inheritedtext().set_text_align(text_align::start);
     }
 
+    /// Set the HAS_TEXT_DECORATION_LINES flag based on parent style.
+    fn adjust_for_text_decoration_lines(&mut self, layout_parent_style: &ComputedValues) {
+        use properties::computed_value_flags::HAS_TEXT_DECORATION_LINES;
+        if layout_parent_style.flags.contains(HAS_TEXT_DECORATION_LINES) ||
+           !self.style.get_text().clone_text_decoration_line().is_empty() {
+            self.style.flags.insert(HAS_TEXT_DECORATION_LINES);
+        }
+    }
+
     /// Adjusts the style to account for various fixups that don't fit naturally
     /// into the cascade.
     ///
@@ -341,5 +350,6 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         self.adjust_for_border_width();
         self.adjust_for_outline();
         self.adjust_for_writing_mode(layout_parent_style);
+        self.adjust_for_text_decoration_lines(layout_parent_style);
     }
 }
