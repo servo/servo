@@ -482,11 +482,6 @@ pub trait MatchMethods : TElement {
             }
         }
 
-        // Don't accumulate damage if we're in a restyle for reconstruction.
-        if context.shared.traversal_flags.for_reconstruct() {
-            return ChildCascadeRequirement::MustCascadeChildren;
-        }
-
         let new_primary_style = data.styles.primary.as_ref().unwrap();
 
         let mut cascade_requirement = ChildCascadeRequirement::CanSkipCascade;
@@ -504,6 +499,11 @@ pub trait MatchMethods : TElement {
                     cascade_requirement = ChildCascadeRequirement::MustCascadeDescendants;
                 }
             }
+        }
+
+        // Don't accumulate damage if we're in a restyle for reconstruction.
+        if context.shared.traversal_flags.for_reconstruct() {
+            return ChildCascadeRequirement::MustCascadeChildren;
         }
 
         // Also, don't do anything if there was no style.
