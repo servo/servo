@@ -666,6 +666,9 @@ where
         } else {
             element.has_dirty_descendants()
         };
+    if context.shared.traversal_flags.for_animation_only() {
+        unsafe { element.unset_animation_only_dirty_descendants(); }
+    }
 
     // Preprocess children, propagating restyle hints and handling sibling
     // relationships.
@@ -693,10 +696,6 @@ where
     // any change hints.
     if context.shared.traversal_flags.for_reconstruct() {
         data.clear_restyle_state();
-    }
-
-    if context.shared.traversal_flags.for_animation_only() {
-        unsafe { element.unset_animation_only_dirty_descendants(); }
     }
 
     // There are two cases when we want to clear the dity descendants bit here
