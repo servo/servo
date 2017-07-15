@@ -4,7 +4,6 @@
 
 //! Traversing the DOM tree; the bloom filter.
 
-use atomic_refcell::AtomicRefCell;
 use context::{ElementCascadeInputs, StyleContext, SharedStyleContext};
 use data::{ElementData, ElementStyles};
 use dom::{NodeInfo, OpaqueNode, TElement, TNode};
@@ -489,20 +488,6 @@ pub trait DomTraversal<E: TElement> : Sync {
         }
     }
 
-    /// Ensures the existence of the ElementData, and returns it. This can't
-    /// live on TNode because of the trait-based separation between Servo's
-    /// script and layout crates.
-    ///
-    /// This is only safe to call in top-down traversal before processing the
-    /// children of |element|.
-    unsafe fn ensure_element_data(element: &E) -> &AtomicRefCell<ElementData>;
-
-    /// Clears the ElementData attached to this element, if any.
-    ///
-    /// This is only safe to call in top-down traversal before processing the
-    /// children of |element|.
-    unsafe fn clear_element_data(element: &E);
-
     /// Return the shared style context common to all worker threads.
     fn shared_context(&self) -> &SharedStyleContext;
 
@@ -647,7 +632,7 @@ where
         if data.styles.is_display_none() {
             debug!("{:?} style is display:none - clearing data from descendants.",
                    element);
-            clear_descendant_data(element, &|e| unsafe { D::clear_element_data(&e) });
+            clear_descendant_data(element)
         }
     }
 
@@ -855,8 +840,7 @@ where
             continue;
         }
 
-        let mut child_data =
-            unsafe { D::ensure_element_data(&child).borrow_mut() };
+        let mut child_data = unsafe { child.ensure_data() };
 
         trace!(" > {:?} -> {:?} + {:?}, pseudo: {:?}",
                child,
@@ -880,13 +864,9 @@ where
 }
 
 /// Clear style data for all the subtree under `el`.
-pub fn clear_descendant_data<E, F>(
-    el: E,
-    clear_data: &F
-)
+pub fn clear_descendant_data<E>(el: E)
 where
     E: TElement,
-    F: Fn(E),
 {
     for kid in el.as_node().traversal_children() {
         if let Some(kid) = kid.as_element() {
@@ -896,8 +876,8 @@ where
             // By consequence, any element without data has no descendants with
             // data.
             if kid.get_data().is_some() {
-                clear_data(kid);
-                clear_descendant_data(kid, clear_data);
+                unsafe { kid.clear_data() };
+                clear_descendant_data(kid);
             }
         }
     }

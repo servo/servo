@@ -26,7 +26,6 @@
 
 extern crate angle;
 extern crate app_units;
-extern crate atomic_refcell;
 extern crate audio_video_metadata;
 extern crate base64;
 #[macro_use]
@@ -46,7 +45,6 @@ extern crate domobject_derive;
 extern crate encoding;
 extern crate euclid;
 extern crate fnv;
-extern crate gfx_traits;
 extern crate gleam;
 extern crate half;
 #[macro_use] extern crate heapsize;
@@ -78,7 +76,6 @@ extern crate parking_lot;
 extern crate phf;
 #[macro_use]
 extern crate profile_traits;
-extern crate range;
 extern crate ref_filter_map;
 extern crate ref_slice;
 extern crate regex;
@@ -115,7 +112,6 @@ pub mod document_loader;
 mod dom;
 pub mod fetch;
 mod layout_image;
-pub mod layout_wrapper;
 mod mem;
 mod microtask;
 mod network_listener;
@@ -131,6 +127,24 @@ pub mod textinput;
 mod timers;
 mod unpremultiplytable;
 mod webdriver_handlers;
+
+/// A module with everything layout can use from script.
+///
+/// Try to keep this small!
+///
+/// TODO(emilio): A few of the FooHelpers can go away, presumably...
+pub mod layout_exports {
+    pub use dom::bindings::inheritance::{CharacterDataTypeId, ElementTypeId};
+    pub use dom::bindings::inheritance::{HTMLElementTypeId, NodeTypeId};
+    pub use dom::bindings::js::LayoutJS;
+    pub use dom::characterdata::LayoutCharacterDataHelpers;
+    pub use dom::document::{Document, LayoutDocumentHelpers, PendingRestyle};
+    pub use dom::element::{Element, LayoutElementHelpers, RawLayoutElementHelpers};
+    pub use dom::node::{CAN_BE_FRAGMENTED, DIRTY_ON_VIEWPORT_SIZE_CHANGE, HAS_DIRTY_DESCENDANTS, IS_IN_DOC};
+    pub use dom::node::{HANDLED_SNAPSHOT, HAS_SNAPSHOT};
+    pub use dom::node::{LayoutNodeHelpers, Node};
+    pub use dom::text::Text;
+}
 
 use dom::bindings::codegen::RegisterBindings;
 use dom::bindings::proxyhandler;

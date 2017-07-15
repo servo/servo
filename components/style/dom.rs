@@ -550,6 +550,17 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
     /// traversal. Returns the number of children left to process.
     fn did_process_child(&self) -> isize;
 
+    /// Gets a reference to the ElementData container, or creates one.
+    ///
+    /// Unsafe because it can race to allocate and leak if not used with
+    /// exclusive access to the element.
+    unsafe fn ensure_data(&self) -> AtomicRefMut<ElementData>;
+
+    /// Clears the element data reference, if any.
+    ///
+    /// Unsafe following the same reasoning as ensure_data.
+    unsafe fn clear_data(&self);
+
     /// Gets a reference to the ElementData container.
     fn get_data(&self) -> Option<&AtomicRefCell<ElementData>>;
 

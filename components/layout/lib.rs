@@ -14,7 +14,6 @@ extern crate atomic_refcell;
 #[macro_use]
 extern crate bitflags;
 extern crate canvas_traits;
-extern crate core;
 extern crate euclid;
 extern crate fnv;
 extern crate gfx;
@@ -55,7 +54,7 @@ pub mod animation;
 mod block;
 pub mod construct;
 pub mod context;
-mod data;
+pub mod data;
 pub mod display_list_builder;
 mod flex;
 mod floats;

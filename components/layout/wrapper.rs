@@ -31,20 +31,12 @@
 #![allow(unsafe_code)]
 
 use atomic_refcell::{AtomicRef, AtomicRefMut};
-use core::nonzero::NonZero;
 use data::{LayoutData, LayoutDataFlags, StyleAndLayoutData};
-use script_layout_interface::{OpaqueStyleAndLayoutData, StyleData};
-use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
+use script_layout_interface::wrapper_traits::{ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use script_layout_interface::wrapper_traits::GetLayoutData;
 use style::computed_values::content::{self, ContentItem};
 use style::dom::{NodeInfo, TNode};
 use style::selector_parser::RestyleDamage;
-
-pub unsafe fn drop_style_and_layout_data(data: OpaqueStyleAndLayoutData) {
-    let ptr: *mut StyleData = data.ptr.get();
-    let non_opaque: *mut StyleAndLayoutData = ptr as *mut _;
-    let _ = Box::from_raw(non_opaque);
-}
 
 pub trait LayoutNodeLayoutData {
     /// Similar to borrow_data*, but returns the full PersistentLayoutData rather
@@ -78,30 +70,6 @@ impl<T: GetLayoutData> GetRawData for T {
             let container = opaque.ptr.get() as *mut StyleAndLayoutData;
             unsafe { &*container }
         })
-    }
-}
-
-pub trait LayoutNodeHelpers {
-    fn initialize_data(&self);
-    fn clear_data(&self);
-}
-
-impl<T: LayoutNode> LayoutNodeHelpers for T {
-    fn initialize_data(&self) {
-        if self.get_raw_data().is_none() {
-            let ptr: *mut StyleAndLayoutData =
-                Box::into_raw(Box::new(StyleAndLayoutData::new()));
-            let opaque = OpaqueStyleAndLayoutData {
-                ptr: unsafe { NonZero::new(ptr as *mut StyleData) }
-            };
-            unsafe { self.init_style_and_layout_data(opaque) };
-        };
-    }
-
-    fn clear_data(&self) {
-        if self.get_raw_data().is_some() {
-            unsafe { drop_style_and_layout_data(self.take_style_and_layout_data()) };
-        }
     }
 }
 

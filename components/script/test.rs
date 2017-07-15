@@ -24,7 +24,6 @@ pub mod size_of {
     use dom::htmlspanelement::HTMLSpanElement;
     use dom::node::Node;
     use dom::text::Text;
-    use layout_wrapper::{ServoLayoutElement, ServoLayoutNode, ServoThreadSafeLayoutNode};
     use std::mem::size_of;
 
     pub fn CharacterData() -> usize {
@@ -53,18 +52,6 @@ pub mod size_of {
 
     pub fn Node() -> usize {
         size_of::<Node>()
-    }
-
-    pub fn SendElement() -> usize {
-        size_of::<::style::dom::SendElement<ServoLayoutElement>>()
-    }
-
-    pub fn SendNode() -> usize {
-        size_of::<::style::dom::SendNode<ServoLayoutNode>>()
-    }
-
-    pub fn ServoThreadSafeLayoutNode() -> usize {
-        size_of::<ServoThreadSafeLayoutNode>()
     }
 
     pub fn Text() -> usize {
