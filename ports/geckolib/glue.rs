@@ -257,7 +257,7 @@ pub extern "C" fn Servo_TraverseSubtree(root: RawGeckoElementBorrowed,
     debug_assert!(!snapshots.is_null());
 
     let element = GeckoElement(root);
-    debug!("Servo_TraverseSubtree: {:?}", element);
+    debug!("Servo_TraverseSubtree: {:?} {:?}", element, restyle_behavior);
 
     let traversal_flags = match (root_behavior, restyle_behavior) {
         (Root::Normal, Restyle::Normal) |
@@ -2730,11 +2730,16 @@ pub extern "C" fn Servo_NoteExplicitHints(element: RawGeckoElementBorrowed,
 
 #[no_mangle]
 pub extern "C" fn Servo_TakeChangeHint(element: RawGeckoElementBorrowed,
-                                       restyle_behavior: structs::TraversalRestyleBehavior) -> nsChangeHint
+                                       restyle_behavior: structs::TraversalRestyleBehavior,
+                                       was_restyled: *mut bool) -> nsChangeHint
 {
+    let mut was_restyled =  unsafe { was_restyled.as_mut().unwrap() };
     let element = GeckoElement(element);
+
     let damage = match element.mutate_data() {
         Some(mut data) => {
+            *was_restyled = data.restyle.is_restyle();
+
             let damage = data.restyle.damage;
             if restyle_behavior == structs::TraversalRestyleBehavior::ForThrottledAnimationFlush {
                 debug_assert!(data.restyle.is_restyle() || damage.is_empty(),
@@ -2754,6 +2759,7 @@ pub extern "C" fn Servo_TakeChangeHint(element: RawGeckoElementBorrowed,
         }
         None => {
             warn!("Trying to get change hint from unstyled element");
+            *was_restyled = false;
             GeckoRestyleDamage::empty()
         }
     };
