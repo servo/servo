@@ -105,6 +105,7 @@ impl HTMLIFrameElement {
         let element = self.upcast::<Element>();
         element.get_attribute(&ns!(), &local_name!("src")).and_then(|src| {
             let url = src.value();
+            let url = url.as_string();
             if url.is_empty() {
                 None
             } else {

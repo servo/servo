@@ -15,6 +15,7 @@ use gecko_bindings::structs::ServoElementSnapshotFlags as Flags;
 use gecko_bindings::structs::ServoElementSnapshotTable;
 use invalidation::element::element_wrapper::ElementSnapshot;
 use selectors::attr::{AttrSelectorOperation, AttrSelectorOperator, CaseSensitivity, NamespaceConstraint};
+use shared_lock::SharedRwLockReadGuard;
 use string_cache::{Atom, Namespace};
 
 /// A snapshot of a Gecko element.
@@ -85,7 +86,8 @@ impl GeckoElementSnapshot {
     pub fn attr_matches(&self,
                         ns: &NamespaceConstraint<&Namespace>,
                         local_name: &Atom,
-                        operation: &AttrSelectorOperation<&Atom>)
+                        operation: &AttrSelectorOperation<&Atom>,
+                        _: &SharedRwLockReadGuard)
                         -> bool {
         unsafe {
             match *operation {

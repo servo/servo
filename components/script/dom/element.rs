@@ -114,6 +114,7 @@ use style::stylearc::Arc;
 use style::thread_state;
 use style::values::{CSSFloat, Either};
 use style::values::specified;
+use style_traits::ToCss;
 use stylesheet_loader::StylesheetOwner;
 
 // TODO: Update focus state when the top-level browsing context gains or loses system focus,
@@ -312,8 +313,6 @@ impl Element {
 pub trait RawLayoutElementHelpers {
     unsafe fn get_attr_for_layout<'a>(&'a self, namespace: &Namespace, name: &LocalName)
                                       -> Option<&'a AttrValue>;
-    unsafe fn get_attr_val_for_layout<'a>(&'a self, namespace: &Namespace, name: &LocalName)
-                                      -> Option<&'a str>;
     unsafe fn get_attr_vals_for_layout<'a>(&'a self, name: &LocalName) -> Vec<&'a AttrValue>;
 }
 
@@ -337,14 +336,6 @@ impl RawLayoutElementHelpers for Element {
                                       -> Option<&'a AttrValue> {
         get_attr_for_layout(self, namespace, name).map(|attr| {
             attr.value_forever()
-        })
-    }
-
-    #[inline]
-    unsafe fn get_attr_val_for_layout<'a>(&'a self, namespace: &Namespace, name: &LocalName)
-                                          -> Option<&'a str> {
-        get_attr_for_layout(self, namespace, name).map(|attr| {
-            attr.value_ref_forever()
         })
     }
 
@@ -381,7 +372,7 @@ pub trait LayoutElementHelpers {
     fn style_attribute(&self) -> *const Option<Arc<Locked<PropertyDeclarationBlock>>>;
     fn local_name(&self) -> &LocalName;
     fn namespace(&self) -> &Namespace;
-    fn get_lang_for_layout(&self) -> String;
+    fn get_lang_for_layout(&self) -> Atom;
     fn get_checked_state_for_layout(&self) -> bool;
     fn get_indeterminate_state_for_layout(&self) -> bool;
     fn get_state_for_layout(&self) -> ElementState;
@@ -525,15 +516,31 @@ impl LayoutElementHelpers for LayoutJS<Element> {
 
 
         let size = if let Some(this) = self.downcast::<HTMLInputElement>() {
-            // FIXME(pcwalton): More use of atoms, please!
-            match (*self.unsafe_get()).get_attr_val_for_layout(&ns!(), &local_name!("type")) {
+            match (*self.unsafe_get()).get_attr_for_layout(&ns!(), &local_name!("type")).map(|a| a.as_atom()) {
                 // Not text entry widget
-                Some("hidden") | Some("date") | Some("month") | Some("week") |
-                Some("time") | Some("datetime-local") | Some("number") | Some("range") |
-                Some("color") | Some("checkbox") | Some("radio") | Some("file") |
-                Some("submit") | Some("image") | Some("reset") | Some("button") => {
+                Some(&atom!("hidden")) |
+                Some(&atom!("date")) |
+                Some(&atom!("month")) |
+                Some(&atom!("week")) |
+                Some(&atom!("time")) |
+                Some(&atom!("datetime-local")) |
+                Some(&atom!("number")) |
+                Some(&atom!("checkbox")) |
+                Some(&atom!("radio")) |
+                Some(&atom!("file")) |
+                Some(&atom!("submit")) |
+                Some(&atom!("image")) |
+                Some(&atom!("reset")) |
+                Some(&atom!("button")) => {
                     None
                 },
+                // FIXME(emilio): make "color" "range" a static atom.
+                Some(other) if *other == Atom::from("color") => {
+                    None
+                }
+                Some(other) if *other == Atom::from("range") => {
+                    None
+                }
                 // Others
                 _ => {
                     match this.size_for_layout() {
@@ -744,18 +751,18 @@ impl LayoutElementHelpers for LayoutJS<Element> {
     }
 
     #[allow(unsafe_code)]
-    fn get_lang_for_layout(&self) -> String {
+    fn get_lang_for_layout(&self) -> Atom {
         unsafe {
             let mut current_node = Some(self.upcast::<Node>());
             while let Some(node) = current_node {
                 current_node = node.parent_node_ref();
                 match node.downcast::<Element>().map(|el| el.unsafe_get()) {
                     Some(elem) => {
-                        if let Some(attr) = (*elem).get_attr_val_for_layout(&ns!(xml), &local_name!("lang")) {
-                            return attr.to_owned();
+                        if let Some(attr) = (*elem).get_attr_for_layout(&ns!(xml), &local_name!("lang")) {
+                            return attr.as_atom().clone();
                         }
-                        if let Some(attr) = (*elem).get_attr_val_for_layout(&ns!(), &local_name!("lang")) {
-                            return attr.to_owned();
+                        if let Some(attr) = (*elem).get_attr_for_layout(&ns!(), &local_name!("lang")) {
+                            return attr.as_atom().clone();
                         }
                     }
                     None => continue
@@ -763,7 +770,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
             }
             // TODO: Check meta tags for a pragma-set default language
             // TODO: Check HTTP Content-Language header
-            String::new()
+            atom!("")
         }
     }
 
@@ -885,11 +892,19 @@ impl Element {
             });
 
             if let Some(attr) = attr {
-                return (**attr.value()).into();
+                return self.serialize_attr(&attr).into();
             }
         }
 
         ns!()
+    }
+
+    pub fn serialize_attr(&self, attr: &Attr) -> String {
+        attr.value().serialize(&mut |block| {
+            let doc = document_from_node(self);
+            let guard = doc.style_shared_lock().read();
+            block.read_with(&guard).to_css_string()
+        })
     }
 
     pub fn style_attribute(&self) -> &DOMRefCell<Option<Arc<Locked<PropertyDeclarationBlock>>>> {
@@ -966,7 +981,7 @@ impl Element {
                     // Step 2.
                     for attr in element.attrs.borrow().iter() {
                         if attr.prefix() == Some(&namespace_prefix!("xmlns")) &&
-                           **attr.value() == *namespace {
+                            self.serialize_attr(attr) == *namespace {
                             return Some(attr.LocalName());
                         }
                     }
@@ -1036,7 +1051,7 @@ impl Element {
     pub fn push_attribute(&self, attr: &Attr) {
         let name = attr.local_name().clone();
         let namespace = attr.namespace().clone();
-        let old_value = DOMString::from(&**attr.value());
+        let old_value = DOMString::from(self.serialize_attr(attr));
         let mutation = Mutation::Attribute { name, namespace, old_value };
         MutationObserver::queue_a_mutation_record(&self.node, mutation);
 
@@ -1170,7 +1185,7 @@ impl Element {
 
             let name = attr.local_name().clone();
             let namespace = attr.namespace().clone();
-            let old_value = DOMString::from(&**attr.value());
+            let old_value = DOMString::from(self.serialize_attr(&attr));
             let mutation = Mutation::Attribute { name, namespace, old_value, };
             MutationObserver::queue_a_mutation_record(&self.node, mutation);
 
@@ -2216,36 +2231,16 @@ impl VirtualMethods for Element {
                 // Modifying the `style` attribute might change style.
                 *self.style_attribute.borrow_mut() = match mutation {
                     AttributeMutation::Set(..) => {
-                        // This is the fast path we use from
-                        // CSSStyleDeclaration.
-                        //
-                        // Juggle a bit to keep the borrow checker happy
-                        // while avoiding the extra clone.
-                        let is_declaration = match *attr.value() {
-                            AttrValue::Declaration(..) => true,
-                            _ => false,
-                        };
-
-                        let block = if is_declaration {
-                            let mut value = AttrValue::String(String::new());
-                            attr.swap_value(&mut value);
-                            let (serialization, block) = match value {
-                                AttrValue::Declaration(s, b) => (s, b),
-                                _ => unreachable!(),
-                            };
-                            let mut value = AttrValue::String(serialization);
-                            attr.swap_value(&mut value);
-                            block
+                        if let AttrValue::Declaration(ref block) = *attr.value() {
+                            Some(block.clone())
                         } else {
                             let win = window_from_node(self);
-                            Arc::new(doc.style_shared_lock().wrap(parse_style_attribute(
-                                &attr.value(),
+                            Some(Arc::new(doc.style_shared_lock().wrap(parse_style_attribute(
+                                attr.value().as_string(),
                                 &doc.base_url(),
                                 win.css_error_reporter(),
-                                doc.quirks_mode())))
-                        };
-
-                        Some(block)
+                                doc.quirks_mode()))))
+                        }
                     }
                     AttributeMutation::Removed => {
                         None
@@ -2423,15 +2418,21 @@ impl<'a> ::selectors::Element for Root<Element> {
                     local_name: &LocalName,
                     operation: &AttrSelectorOperation<&String>)
                     -> bool {
+        let mut serialize = |block: &Locked<PropertyDeclarationBlock>| {
+            let doc = document_from_node(&**self);
+            // This is porbably slow, but it only happens for silly selectors like [style*=color]
+            let guard = doc.style_shared_lock().read();
+            block.read_with(&guard).to_css_string()
+        };
         match *ns {
             NamespaceConstraint::Specific(ref ns) => {
                 self.get_attribute(ns, local_name)
-                    .map_or(false, |attr| attr.value().eval_selector(operation))
+                    .map_or(false, |attr| attr.value().eval_selector(operation, &mut serialize))
             }
             NamespaceConstraint::Any => {
                 self.attrs.borrow().iter().any(|attr| {
                     attr.local_name() == local_name &&
-                    attr.value().eval_selector(operation)
+                    attr.value().eval_selector(operation, &mut serialize)
                 })
             }
         }
@@ -2487,7 +2488,12 @@ impl<'a> ::selectors::Element for Root<Element> {
 
             NonTSPseudoClass::ServoCaseSensitiveTypeAttr(ref expected_value) => {
                 self.get_attribute(&ns!(), &local_name!("type"))
-                    .map_or(false, |attr| attr.value().eq(expected_value))
+                    .map_or(false, |attr| {
+                        match *attr.value() {
+                            AttrValue::Atom(ref atom) => atom == expected_value,
+                            _ => false,
+                        }
+                    })
             }
 
             // FIXME(heycam): This is wrong, since extended_filtering accepts

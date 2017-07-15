@@ -48,20 +48,7 @@ pub enum AttrValue {
     Dimension(String, LengthOrPercentageOrAuto),
     Url(String, Option<ServoUrl>),
 
-    /// Note that this variant is only used transitively as a fast path to set
-    /// the property declaration block relevant to the style of an element when
-    /// set from the inline declaration of that element (that is,
-    /// `element.style`).
-    ///
-    /// This can, as of this writing, only correspond to the value of the
-    /// `style` element, and is set from its relevant CSSInlineStyleDeclaration,
-    /// and then converted to a string in Element::attribute_mutated.
-    ///
-    /// Note that we don't necessarily need to do that (we could just clone the
-    /// declaration block), but that avoids keeping a refcounted
-    /// declarationblock for longer than needed.
-    Declaration(String,
-                #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
+    Declaration(#[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
                 Arc<Locked<PropertyDeclarationBlock>>)
 }
 
@@ -283,6 +270,18 @@ impl AttrValue {
         }
     }
 
+    /// Assumes the `AttrValue` is a `String` and returns its value
+    ///
+    /// ## Panics
+    ///
+    /// Panics if the `AttrValue` is not a `String`
+    pub fn as_string(&self) -> &str {
+        match *self {
+            AttrValue::String(ref s) => &s,
+            _ => panic!("String not found"),
+        }
+    }
+
     /// Assumes the `AttrValue` is a `Length` and returns its value
     ///
     /// ## Panics
@@ -351,18 +350,20 @@ impl AttrValue {
         }
     }
 
-    pub fn eval_selector(&self, selector: &AttrSelectorOperation<&String>) -> bool {
+    pub fn eval_selector<F>(&self, selector: &AttrSelectorOperation<&String>,
+                            serialize_declaration_block: &mut F)
+                            -> bool
+                            where F: FnMut(&Locked<PropertyDeclarationBlock>) -> String {
         // FIXME(SimonSapin) this can be more efficient by matching on `(self, selector)` variants
         // and doing Atom comparisons instead of string comparisons where possible,
         // with SelectorImpl::AttrValue changed to Atom.
-        selector.eval_str(self)
+        let serialization = self.serialize(serialize_declaration_block);
+        selector.eval_str(&serialization)
     }
-}
 
-impl ::std::ops::Deref for AttrValue {
-    type Target = str;
-
-    fn deref(&self) -> &str {
+    /// Serializes this attribute value into its string form.
+    pub fn serialize<F>(&self, serialize_declaration_block: &mut F) -> String
+    where F: FnMut(&Locked<PropertyDeclarationBlock>) -> String {
         match *self {
             AttrValue::String(ref value) |
                 AttrValue::TokenList(ref value, _) |
@@ -372,18 +373,9 @@ impl ::std::ops::Deref for AttrValue {
                 AttrValue::Color(ref value, _) |
                 AttrValue::Int(ref value, _) |
                 AttrValue::Url(ref value, _) |
-                AttrValue::Declaration(ref value, _) |
-                AttrValue::Dimension(ref value, _) => &value,
-            AttrValue::Atom(ref value) => &value,
-        }
-    }
-}
-
-impl PartialEq<Atom> for AttrValue {
-    fn eq(&self, other: &Atom) -> bool {
-        match *self {
-            AttrValue::Atom(ref value) => value == other,
-            _ => other == &**self,
+                AttrValue::Dimension(ref value, _) => value.clone(),
+            AttrValue::Atom(ref value) => String::from(&**value),
+            AttrValue::Declaration(ref block) => serialize_declaration_block(block),
         }
     }
 }

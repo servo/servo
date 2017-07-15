@@ -6,9 +6,10 @@
 //! against a past state of the element.
 
 use {Atom, CaseSensitivityExt, LocalName, Namespace};
+use context::SharedStyleContext;
 use dom::TElement;
 use element_state::ElementState;
-use selector_parser::{NonTSPseudoClass, PseudoElement, SelectorImpl, Snapshot, SnapshotMap, AttrValue};
+use selector_parser::{NonTSPseudoClass, PseudoElement, SelectorImpl, Snapshot, AttrValue};
 use selectors::Element;
 use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
 use selectors::matching::{ElementSelectorFlags, LocalMatchingContext, MatchingContext};
@@ -68,18 +69,18 @@ pub struct ElementWrapper<'a, E>
 {
     element: E,
     cached_snapshot: Cell<Option<&'a Snapshot>>,
-    snapshot_map: &'a SnapshotMap,
+    shared_context: &'a SharedStyleContext<'a>,
 }
 
 impl<'a, E> ElementWrapper<'a, E>
     where E: TElement,
 {
     /// Trivially constructs an `ElementWrapper`.
-    pub fn new(el: E, snapshot_map: &'a SnapshotMap) -> Self {
+    pub fn new(el: E, shared_context: &'a SharedStyleContext) -> Self {
         ElementWrapper {
             element: el,
             cached_snapshot: Cell::new(None),
-            snapshot_map: snapshot_map,
+            shared_context: shared_context,
         }
     }
 
@@ -93,7 +94,7 @@ impl<'a, E> ElementWrapper<'a, E>
             return Some(s);
         }
 
-        let snapshot = self.snapshot_map.get(&self.element);
+        let snapshot = self.shared_context.snapshot_map.get(&self.element);
         debug_assert!(snapshot.is_some(), "has_snapshot lied!");
 
         self.cached_snapshot.set(snapshot);
@@ -260,27 +261,27 @@ impl<'a, E> Element for ElementWrapper<'a, E>
 
     fn parent_element(&self) -> Option<Self> {
         self.element.parent_element()
-            .map(|e| ElementWrapper::new(e, self.snapshot_map))
+            .map(|e| ElementWrapper::new(e, self.shared_context))
     }
 
     fn first_child_element(&self) -> Option<Self> {
         self.element.first_child_element()
-            .map(|e| ElementWrapper::new(e, self.snapshot_map))
+            .map(|e| ElementWrapper::new(e, self.shared_context))
     }
 
     fn last_child_element(&self) -> Option<Self> {
         self.element.last_child_element()
-            .map(|e| ElementWrapper::new(e, self.snapshot_map))
+            .map(|e| ElementWrapper::new(e, self.shared_context))
     }
 
     fn prev_sibling_element(&self) -> Option<Self> {
         self.element.prev_sibling_element()
-            .map(|e| ElementWrapper::new(e, self.snapshot_map))
+            .map(|e| ElementWrapper::new(e, self.shared_context))
     }
 
     fn next_sibling_element(&self) -> Option<Self> {
         self.element.next_sibling_element()
-            .map(|e| ElementWrapper::new(e, self.snapshot_map))
+            .map(|e| ElementWrapper::new(e, self.shared_context))
     }
 
     fn is_html_element_in_html_document(&self) -> bool {
@@ -302,7 +303,7 @@ impl<'a, E> Element for ElementWrapper<'a, E>
                     -> bool {
         match self.snapshot() {
             Some(snapshot) if snapshot.has_attrs() => {
-                snapshot.attr_matches(ns, local_name, operation)
+                snapshot.attr_matches(ns, local_name, operation, self.shared_context.guards.author)
             }
             _ => self.element.attr_matches(ns, local_name, operation)
         }
@@ -336,6 +337,6 @@ impl<'a, E> Element for ElementWrapper<'a, E>
 
     fn pseudo_element_originating_element(&self) -> Option<Self> {
         self.element.closest_non_native_anonymous_ancestor()
-            .map(|e| ElementWrapper::new(e, self.snapshot_map))
+            .map(|e| ElementWrapper::new(e, self.shared_context))
     }
 }

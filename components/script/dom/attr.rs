@@ -11,7 +11,7 @@ use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::element::{AttributeMutation, Element};
 use dom::mutationobserver::{Mutation, MutationObserver};
-use dom::node::Node;
+use dom::node::{Node, document_from_node};
 use dom::virtualmethods::vtable_for;
 use dom::window::Window;
 use dom_struct::dom_struct;
@@ -21,6 +21,7 @@ use std::borrow::ToOwned;
 use std::cell::Ref;
 use std::mem;
 use style::attr::{AttrIdentifier, AttrValue};
+use style_traits::ToCss;
 
 // https://dom.spec.whatwg.org/#interface-attr
 #[dom_struct]
@@ -29,7 +30,7 @@ pub struct Attr {
     identifier: AttrIdentifier,
     value: DOMRefCell<AttrValue>,
 
-    /// the element that owns this attribute.
+    /// The element that owns this attribute.
     owner: MutNullableJS<Element>,
 }
 
@@ -41,6 +42,9 @@ impl Attr {
                      prefix: Option<Prefix>,
                      owner: Option<&Element>)
                      -> Attr {
+        if let (&AttrValue::Declaration(..), None) = (&value, owner) {
+            panic!("AttrValue::Declaration without an owner element is not allowed.")
+        }
         Attr {
             reflector_: Reflector::new(),
             identifier: AttrIdentifier {
@@ -98,7 +102,12 @@ impl AttrMethods for Attr {
     // https://dom.spec.whatwg.org/#dom-attr-value
     fn Value(&self) -> DOMString {
         // FIXME(ajeffrey): convert directly from AttrValue to DOMString
-        DOMString::from(&**self.value())
+        DOMString::from(self.value().serialize(&mut |block| {
+            let owner = self.owner.get().expect("get AttrValue::Declaration without an owner element");
+            let doc = document_from_node(&*owner);
+            let guard = doc.style_shared_lock().read();
+            block.read_with(&guard).to_css_string()
+        }))
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-value
@@ -174,11 +183,11 @@ impl Attr {
     pub fn set_value(&self, mut value: AttrValue, owner: &Element) {
         let name = self.local_name().clone();
         let namespace = self.namespace().clone();
-        let old_value = DOMString::from(&**self.value());
+        let old_value = self.Value();
         let mutation = Mutation::Attribute { name, namespace, old_value };
         MutationObserver::queue_a_mutation_record(owner.upcast::<Node>(), mutation);
 
-        assert!(Some(owner) == self.owner().r());
+        assert_eq!(Some(owner), self.owner().r());
         owner.will_mutate_attr(self);
         self.swap_value(&mut value);
         if self.identifier.namespace == ns!() {
@@ -189,6 +198,9 @@ impl Attr {
 
     /// Used to swap the attribute's value without triggering mutation events
     pub fn swap_value(&self, value: &mut AttrValue) {
+        if let (&AttrValue::Declaration(..), None) = (&*value, self.owner.get()) {
+            panic!("AttrValue::Declaration without an owner element is not allowed.")
+        }
         mem::swap(&mut *self.value.borrow_mut(), value);
     }
 
@@ -235,7 +247,6 @@ impl Attr {
 #[allow(unsafe_code)]
 pub trait AttrHelpersForLayout {
     unsafe fn value_forever(&self) -> &'static AttrValue;
-    unsafe fn value_ref_forever(&self) -> &'static str;
     unsafe fn value_atom_forever(&self) -> Option<Atom>;
     unsafe fn value_tokens_forever(&self) -> Option<&'static [Atom]>;
     unsafe fn local_name_atom_forever(&self) -> LocalName;
@@ -248,11 +259,6 @@ impl AttrHelpersForLayout for LayoutJS<Attr> {
     unsafe fn value_forever(&self) -> &'static AttrValue {
         // This transmute is used to cheat the lifetime restriction.
         mem::transmute::<&AttrValue, &AttrValue>((*self.unsafe_get()).value.borrow_for_layout())
-    }
-
-    #[inline]
-    unsafe fn value_ref_forever(&self) -> &'static str {
-        &**self.value_forever()
     }
 
     #[inline]

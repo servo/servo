@@ -67,7 +67,7 @@ impl HTMLAnchorElement {
         let attribute = self.upcast::<Element>().get_attribute(&ns!(), &local_name!("href"));
         *self.url.borrow_mut() = attribute.and_then(|attribute| {
             let document = document_from_node(self);
-            document.base_url().join(&attribute.value()).ok()
+            document.base_url().join(attribute.value().as_string()).ok()
         });
     }
 
@@ -276,7 +276,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
                     // Step 3.
                     None => String::new(),
                     // Step 4.
-                    Some(attribute) => (**attribute.value()).to_owned(),
+                    Some(attribute) => attribute.value().as_string().to_owned(),
                 }
             },
             // Step 5.

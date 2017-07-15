@@ -217,7 +217,8 @@ impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
         unsafe fn get_raw_attr_value(input: LayoutJS<HTMLInputElement>, default: &str) -> String {
             let elem = input.upcast::<Element>();
             let value = (*elem.unsafe_get())
-                .get_attr_val_for_layout(&ns!(), &local_name!("value"))
+                .get_attr_for_layout(&ns!(), &local_name!("value"))
+                .map(|v| v.as_string())
                 .unwrap_or(default);
             String::from(value)
         }
@@ -992,7 +993,7 @@ impl VirtualMethods for HTMLInputElement {
                 self.update_placeholder_shown_state();
             },
             &local_name!("value") if !self.value_changed.get() => {
-                let value = mutation.new_value(attr).map(|value| (**value).to_owned());
+                let value = mutation.new_value(attr).map(|value| value.as_string().to_owned());
                 self.textinput.borrow_mut().set_content(
                     value.map_or(DOMString::new(), DOMString::from));
                 self.update_placeholder_shown_state();
@@ -1031,7 +1032,7 @@ impl VirtualMethods for HTMLInputElement {
                     placeholder.clear();
                     if let AttributeMutation::Set(_) = mutation {
                         placeholder.extend(
-                            attr.value().chars().filter(|&c| c != '\n' && c != '\r'));
+                            attr.value().as_string().chars().filter(|&c| c != '\n' && c != '\r'));
                     }
                 }
                 self.update_placeholder_shown_state();

@@ -349,13 +349,13 @@ impl HTMLScriptElement {
         let event_attribute = element.get_attribute(&ns!(), &local_name!("event"));
         match (for_attribute.r(), event_attribute.r()) {
             (Some(for_attribute), Some(event_attribute)) => {
-                let for_value = for_attribute.value().to_ascii_lowercase();
+                let for_value = for_attribute.value().as_string().to_ascii_lowercase();
                 let for_value = for_value.trim_matches(HTML_SPACE_CHARACTERS);
                 if for_value != "window" {
                     return;
                 }
 
-                let event_value = event_attribute.value().to_ascii_lowercase();
+                let event_value = event_attribute.value().as_string().to_ascii_lowercase();
                 let event_value = event_value.trim_matches(HTML_SPACE_CHARACTERS);
                 if event_value != "onload" && event_value != "onload()" {
                     return;
@@ -366,7 +366,7 @@ impl HTMLScriptElement {
 
         // Step 13.
         let encoding = element.get_attribute(&ns!(), &local_name!("charset"))
-                              .and_then(|charset| encoding_from_whatwg_label(&charset.value()))
+                              .and_then(|charset| encoding_from_whatwg_label(charset.value().as_string()))
                               .unwrap_or_else(|| doc.encoding());
 
         // Step 14.
@@ -380,7 +380,7 @@ impl HTMLScriptElement {
         let im_attribute = element.get_attribute(&ns!(), &local_name!("integrity"));
         let integrity_val = im_attribute.r().map(|a| a.value());
         let integrity_metadata = match integrity_val {
-            Some(ref value) => &***value,
+            Some(ref value) => value.as_string(),
             None => "",
         };
 
@@ -394,6 +394,7 @@ impl HTMLScriptElement {
 
             // Step 20.1.
             let src = src.value();
+            let src = src.as_string();
 
             // Step 20.2.
             if src.is_empty() {
@@ -407,7 +408,7 @@ impl HTMLScriptElement {
             let url = match base_url.join(&src) {
                 Ok(url) => url,
                 Err(_) => {
-                    warn!("error parsing URL for script {}", &**src);
+                    warn!("error parsing URL for script {}", src);
                     self.queue_error_event();
                     return;
                 },
@@ -593,26 +594,28 @@ impl HTMLScriptElement {
         let element = self.upcast::<Element>();
         let type_attr = element.get_attribute(&ns!(), &local_name!("type"));
         let is_js = match type_attr.as_ref().map(|s| s.value()) {
-            Some(ref s) if s.is_empty() => {
+            Some(ref s) if s.as_string().is_empty() => {
                 // type attr exists, but empty means js
                 debug!("script type empty, inferring js");
                 true
             },
             Some(s) => {
-                debug!("script type={}", &**s);
+                let s = s.as_string();
+                debug!("script type={}", s);
                 SCRIPT_JS_MIMES.contains(&s.to_ascii_lowercase().trim_matches(HTML_SPACE_CHARACTERS))
             },
             None => {
                 debug!("no script type");
                 let language_attr = element.get_attribute(&ns!(), &local_name!("language"));
                 let is_js = match language_attr.as_ref().map(|s| s.value()) {
-                    Some(ref s) if s.is_empty() => {
+                    Some(ref s) if s.as_string().is_empty() => {
                         debug!("script language empty, inferring js");
                         true
                     },
                     Some(s) => {
-                        debug!("script language={}", &**s);
-                        let mut language = format!("text/{}", &**s);
+                        let s = s.as_string();
+                        debug!("script language={}", s);
+                        let mut language = format!("text/{}", s);
                         language.make_ascii_lowercase();
                         SCRIPT_JS_MIMES.contains(&&*language)
                     },
