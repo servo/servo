@@ -299,7 +299,8 @@ impl ParseErrorReporter for ErrorReporter {
 
         let name = error.to_gecko_message();
         let param = error.error_param().into_str();
-        let source = input.current_line();
+        // The CSS source text is unused and will be removed in bug 1381188.
+        let source = "";
         unsafe {
             Gecko_ReportUnexpectedCSSError(self.0,
                                            name.as_ptr() as *const _,
