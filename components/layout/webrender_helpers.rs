@@ -306,6 +306,11 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                     }
                 }
             }
+            DisplayItem::Svg(ref item) => {
+                builder.push_geometry(item.base.bounds.to_rectf(),
+                                      Some(item.base.local_clip),
+                                      item.key);
+            }
             DisplayItem::WebGL(ref item) => {
                 builder.push_webgl_canvas(item.base.bounds.to_rectf(),
                                           Some(item.base.local_clip),

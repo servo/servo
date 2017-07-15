@@ -77,6 +77,7 @@ use dom::htmltrackelement::HTMLTrackElement;
 use dom::htmlulistelement::HTMLUListElement;
 use dom::htmlunknownelement::HTMLUnknownElement;
 use dom::htmlvideoelement::HTMLVideoElement;
+use dom::svgcircleelement::SVGCircleElement;
 use dom::svgsvgelement::SVGSVGElement;
 use html5ever::{LocalName, Prefix, QualName};
 use js::jsapi::JSAutoCompartment;
@@ -105,6 +106,7 @@ fn create_svg_element(name: QualName,
 
     match name.local {
         local_name!("svg")        => make!(SVGSVGElement),
+        local_name!("circle")     => make!(SVGCircleElement),
         _                   => Element::new(name.local, name.ns, prefix, document),
     }
 }

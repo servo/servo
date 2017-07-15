@@ -483,6 +483,7 @@
         }
 
         #[derive(Debug, Clone, PartialEq, Eq, Copy, ToCss)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub enum SpecifiedValue {
             Keyword(computed_value::T),
             System(SystemFont),

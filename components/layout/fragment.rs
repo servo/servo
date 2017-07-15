@@ -31,7 +31,7 @@ use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache::{ImageOrMetadataAvailable, UsePlaceholder};
 use range::*;
 use script_layout_interface::HTMLCanvasData;
-use script_layout_interface::SVGSVGData;
+use script_layout_interface::SVGImageData;
 use script_layout_interface::wrapper_traits::{PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use serde::ser::{Serialize, SerializeStruct, Serializer};
 use servo_url::ServoUrl;
@@ -53,6 +53,7 @@ use style::values::{self, Either, Auto};
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use text;
 use text::TextRunScanner;
+use webrender_api::GeometryKey;
 use wrapper::ThreadSafeLayoutNodeHelpers;
 
 // From gfxFontConstants.h in Firefox.
@@ -343,17 +344,20 @@ impl CanvasFragmentInfo {
 pub struct SvgFragmentInfo {
     pub dom_width: Au,
     pub dom_height: Au,
+    pub geometry_key: GeometryKey,
+    pub items: Vec<SVGItem>,
 }
 
 impl SvgFragmentInfo {
-    pub fn new(data: SVGSVGData) -> SvgFragmentInfo {
+    pub fn new(data: SVGImageData) -> SvgFragmentInfo {
         SvgFragmentInfo {
             dom_width: Au::from_px(data.width as i32),
             dom_height: Au::from_px(data.height as i32),
+            geometry_key: data.geometry_key,
+            items: vec![],
         }
     }
 }
-
 
 /// A fragment that represents a replaced content image and its accompanying borders, shadows, etc.
 #[derive(Clone)]
@@ -3208,4 +3212,17 @@ fn create_perspective_matrix(d: Au) -> Transform3D<f32> {
     } else {
         Transform3D::create_perspective(d)
     }
+}
+
+#[derive(Debug, Clone)]
+pub enum SVGData {
+    SVG,
+    Circle
+}
+
+/// Represent an SVG element in layout.
+#[derive(Debug, Clone)]
+pub struct SVGItem {
+    pub data: SVGData,
+    pub style: StyleArc<ServoComputedValues>
 }

@@ -240,6 +240,7 @@
     use values::CustomIdent;
 
     #[derive(Debug, Clone, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue(pub Vec<(CustomIdent, specified::Integer)>);
 
     pub mod computed_value {

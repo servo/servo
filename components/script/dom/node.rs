@@ -21,7 +21,7 @@ use dom::bindings::conversions::{self, DerivedFrom};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::{Castable, CharacterDataTypeId, ElementTypeId};
 use dom::bindings::inheritance::{EventTargetTypeId, HTMLElementTypeId, NodeTypeId};
-use dom::bindings::inheritance::{SVGElementTypeId, SVGGraphicsElementTypeId};
+use dom::bindings::inheritance::{SVGElementTypeId, SVGGraphicsElementTypeId, SVGGeometryElementTypeId};
 use dom::bindings::js::{JS, LayoutJS, MutNullableJS};
 use dom::bindings::js::Root;
 use dom::bindings::js::RootedReference;
@@ -63,7 +63,7 @@ use js::jsapi::{JSContext, JSObject, JSRuntime};
 use libc::{self, c_void, uintptr_t};
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use ref_slice::ref_slice;
-use script_layout_interface::{HTMLCanvasData, OpaqueStyleAndLayoutData, SVGSVGData};
+use script_layout_interface::{HTMLCanvasData, OpaqueStyleAndLayoutData, SVGImageData};
 use script_layout_interface::{LayoutElementType, LayoutNodeType, TrustedNodeAddress};
 use script_layout_interface::message::Msg;
 use script_traits::DocumentActivity;
@@ -994,7 +994,7 @@ pub trait LayoutNodeHelpers {
     fn selection(&self) -> Option<Range<usize>>;
     fn image_url(&self) -> Option<ServoUrl>;
     fn canvas_data(&self) -> Option<HTMLCanvasData>;
-    fn svg_data(&self) -> Option<SVGSVGData>;
+    fn svg_data(&self) -> Option<SVGImageData>;
     fn iframe_browsing_context_id(&self) -> BrowsingContextId;
     fn iframe_pipeline_id(&self) -> PipelineId;
     fn opaque(&self) -> OpaqueNode;
@@ -1141,9 +1141,9 @@ impl LayoutNodeHelpers for LayoutJS<Node> {
             .map(|canvas| canvas.data())
     }
 
-    fn svg_data(&self) -> Option<SVGSVGData> {
+    fn svg_data(&self) -> Option<SVGImageData> {
         self.downcast::<SVGSVGElement>()
-            .map(|svg| svg.data())
+            .and_then(|svg| svg.data())
     }
 
     fn iframe_browsing_context_id(&self) -> BrowsingContextId {
@@ -2715,6 +2715,11 @@ impl Into<LayoutElementType> for ElementTypeId {
                 LayoutElementType::HTMLTextAreaElement,
             ElementTypeId::SVGElement(SVGElementTypeId::SVGGraphicsElement(SVGGraphicsElementTypeId::SVGSVGElement)) =>
                 LayoutElementType::SVGSVGElement,
+            ElementTypeId::SVGElement(
+                SVGElementTypeId::SVGGraphicsElement(
+                    SVGGraphicsElementTypeId::SVGGeometryElement(
+                        SVGGeometryElementTypeId::SVGCircleElement
+                    ))) => LayoutElementType::SVGCircleElement,
             _ => LayoutElementType::Element,
         }
     }

@@ -209,7 +209,8 @@ fn compute_damage(old: &ServoComputedValues, new: &ServoComputedValues) -> Servo
         get_inheritedbox.direction, get_inheritedbox.writing_mode,
         get_text.text_decoration_line, get_text.unicode_bidi,
         get_inheritedtable.empty_cells, get_inheritedtable.caption_side,
-        get_column.column_width, get_column.column_count
+        get_column.column_width, get_column.column_count,
+        get_inheritedsvg.fill, get_svg.cx, get_svg.cy, get_svg.r
     ]) || (new.get_box().display == display::T::inline &&
            add_if_not_equal!(old, new, damage,
                              [REPAINT, REPOSITION, STORE_OVERFLOW, BUBBLE_ISIZES,
