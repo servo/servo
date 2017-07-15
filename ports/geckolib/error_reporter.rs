@@ -233,7 +233,8 @@ impl<'a> ErrorHelpers<'a> for ContextualParseError<'a> {
                 ErrorString::Ident(namespace),
 
             (_, CssParseError::Custom(SelectorParseError::Custom(
-                StyleParseError::UnknownProperty(property)))) =>
+                StyleParseError::PropertyDeclaration(
+                    PropertyDeclarationParseError::UnknownProperty(property))))) =>
                 ErrorString::Ident(property),
 
             (_, CssParseError::Custom(SelectorParseError::Custom(

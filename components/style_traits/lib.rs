@@ -91,7 +91,7 @@ pub enum StyleParseError<'i> {
     /// Unexpected closing curly bracket in a DVB.
     UnbalancedCloseCurlyBracketInDeclarationValueBlock,
     /// A property declaration parsing error.
-    PropertyDeclaration(PropertyDeclarationParseError),
+    PropertyDeclaration(PropertyDeclarationParseError<'i>),
     /// A property declaration value had input remaining after successfully parsing.
     PropertyDeclarationValueNotExhausted,
     /// An unexpected dimension token was encountered.
@@ -112,15 +112,15 @@ pub enum StyleParseError<'i> {
     UnspecifiedError,
     /// An unexpected token was found within a namespace rule.
     UnexpectedTokenWithinNamespace(Token<'i>),
-    /// An unknown CSS property was encountered.
-    UnknownProperty(CompactCowStr<'i>),
 }
 
 /// The result of parsing a property declaration.
 #[derive(Eq, PartialEq, Clone, Debug)]
-pub enum PropertyDeclarationParseError {
+pub enum PropertyDeclarationParseError<'i> {
     /// The property declaration was for an unknown property.
-    UnknownProperty,
+    UnknownProperty(CompactCowStr<'i>),
+    /// An unknown vendor-specific identifier was encountered.
+    UnknownVendorProperty,
     /// The property declaration was for a disabled experimental property.
     ExperimentalProperty,
     /// The property declaration contained an invalid value.
@@ -140,8 +140,8 @@ impl<'a> From<StyleParseError<'a>> for ParseError<'a> {
     }
 }
 
-impl<'a> From<PropertyDeclarationParseError> for ParseError<'a> {
-    fn from(this: PropertyDeclarationParseError) -> Self {
+impl<'a> From<PropertyDeclarationParseError<'a>> for ParseError<'a> {
+    fn from(this: PropertyDeclarationParseError<'a>) -> Self {
         cssparser::ParseError::Custom(SelectorParseError::Custom(StyleParseError::PropertyDeclaration(this)))
     }
 }
