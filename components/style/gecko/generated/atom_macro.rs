@@ -4900,8 +4900,6 @@ cfg_if! {
             pub static nsGkAtoms_refx: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms4refyE"]
             pub static nsGkAtoms_refy: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms7isindexE"]
-            pub static nsGkAtoms_isindex: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms7fefuncaE"]
             pub static nsGkAtoms_fefunca: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms7fefuncbE"]
@@ -10029,8 +10027,6 @@ cfg_if! {
             pub static nsGkAtoms_refx: *mut nsIAtom;
             #[link_name = "?refy@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_refy: *mut nsIAtom;
-            #[link_name = "?isindex@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_isindex: *mut nsIAtom;
             #[link_name = "?fefunca@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_fefunca: *mut nsIAtom;
             #[link_name = "?fefuncb@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -15158,8 +15154,6 @@ cfg_if! {
             pub static nsGkAtoms_refx: *mut nsIAtom;
             #[link_name = "\x01?refy@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_refy: *mut nsIAtom;
-            #[link_name = "\x01?isindex@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_isindex: *mut nsIAtom;
             #[link_name = "\x01?fefunca@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_fefunca: *mut nsIAtom;
             #[link_name = "\x01?fefuncb@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -20290,8 +20284,6 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_refx as *mut _) } };
 ("refy") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_refy as *mut _) } };
-("isindex") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_isindex as *mut _) } };
 ("fefunca") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_fefunca as *mut _) } };
 ("fefuncb") =>

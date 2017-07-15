@@ -257,16 +257,16 @@ pub extern "C" fn Servo_TraverseSubtree(root: RawGeckoElementBorrowed,
     debug_assert!(!snapshots.is_null());
 
     let element = GeckoElement(root);
-    debug!("Servo_TraverseSubtree: {:?}", element);
+    debug!("Servo_TraverseSubtree: {:?} {:?}", element, restyle_behavior);
 
     let traversal_flags = match (root_behavior, restyle_behavior) {
         (Root::Normal, Restyle::Normal) |
         (Root::Normal, Restyle::ForNewlyBoundElement) |
-        (Root::Normal, Restyle::ForAnimationOnly)
+        (Root::Normal, Restyle::ForThrottledAnimationFlush)
             => TraversalFlags::empty(),
         (Root::UnstyledChildrenOnly, Restyle::Normal) |
         (Root::UnstyledChildrenOnly, Restyle::ForNewlyBoundElement) |
-        (Root::UnstyledChildrenOnly, Restyle::ForAnimationOnly)
+        (Root::UnstyledChildrenOnly, Restyle::ForThrottledAnimationFlush)
             => UNSTYLED_CHILDREN_ONLY,
         (Root::Normal, Restyle::ForCSSRuleChanges) => FOR_CSS_RULE_CHANGES,
         (Root::Normal, Restyle::ForReconstruct) => FOR_RECONSTRUCT,
@@ -282,8 +282,9 @@ pub extern "C" fn Servo_TraverseSubtree(root: RawGeckoElementBorrowed,
                          unsafe { &*snapshots });
     }
 
-    if restyle_behavior == Restyle::ForAnimationOnly {
-        return needs_animation_only_restyle;
+    if restyle_behavior == Restyle::ForThrottledAnimationFlush {
+        return element.has_animation_only_dirty_descendants() ||
+               element.borrow_data().unwrap().restyle.is_restyle();
     }
 
     traverse_subtree(element,
@@ -2728,17 +2729,37 @@ pub extern "C" fn Servo_NoteExplicitHints(element: RawGeckoElementBorrowed,
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_TakeChangeHint(element: RawGeckoElementBorrowed) -> nsChangeHint
+pub extern "C" fn Servo_TakeChangeHint(element: RawGeckoElementBorrowed,
+                                       restyle_behavior: structs::TraversalRestyleBehavior,
+                                       was_restyled: *mut bool) -> nsChangeHint
 {
+    let mut was_restyled =  unsafe { was_restyled.as_mut().unwrap() };
     let element = GeckoElement(element);
+
     let damage = match element.mutate_data() {
         Some(mut data) => {
+            *was_restyled = data.restyle.is_restyle();
+
             let damage = data.restyle.damage;
-            data.clear_restyle_state();
+            if restyle_behavior == structs::TraversalRestyleBehavior::ForThrottledAnimationFlush {
+                debug_assert!(data.restyle.is_restyle() || damage.is_empty(),
+                              "Restyle damage should be empty if the element was not restyled");
+                // In the case where we call this function for post traversal for
+                // flusing throttled animations (i.e. without normal restyle
+                // traversal), we need to preserve restyle hints for normal restyle
+                // traversal. Restyle hints for animations have been already
+                // removed during animation-only traversal.
+                debug_assert!(!data.restyle.hint.has_animation_hint(),
+                              "Animation restyle hints should have been already removed");
+                data.clear_restyle_flags_and_damage();
+            } else {
+                data.clear_restyle_state();
+            }
             damage
         }
         None => {
             warn!("Trying to get change hint from unstyled element");
+            *was_restyled = false;
             GeckoRestyleDamage::empty()
         }
     };
