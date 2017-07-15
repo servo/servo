@@ -37,8 +37,3 @@ sizeof_checker!(size_div, HTMLDivElement, 392);
 sizeof_checker!(size_span, HTMLSpanElement, 392);
 sizeof_checker!(size_text, Text, 216);
 sizeof_checker!(size_characterdata, CharacterData, 216);
-sizeof_checker!(size_servothreadsafelayoutnode, ServoThreadSafeLayoutNode, 16);
-
-// We use these types in the parallel traversal. They should stay pointer-sized.
-sizeof_checker!(size_sendelement, SendElement, 8);
-sizeof_checker!(size_sendnode, SendNode, 8);

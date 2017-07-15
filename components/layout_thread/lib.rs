@@ -7,13 +7,18 @@
 
 #![feature(box_syntax)]
 #![feature(mpsc_select)]
+#![feature(nonzero)]
 
 extern crate app_units;
+extern crate atomic_refcell;
+extern crate core;
 extern crate euclid;
 extern crate fnv;
 extern crate gfx;
 extern crate gfx_traits;
 extern crate heapsize;
+#[macro_use]
+extern crate html5ever;
 extern crate ipc_channel;
 #[macro_use]
 extern crate layout;
@@ -27,6 +32,7 @@ extern crate net_traits;
 extern crate parking_lot;
 #[macro_use]
 extern crate profile_traits;
+extern crate range;
 extern crate rayon;
 extern crate script;
 extern crate script_layout_interface;
@@ -40,7 +46,11 @@ extern crate servo_url;
 extern crate style;
 extern crate webrender_api;
 
+mod dom_wrapper;
+
 use app_units::Au;
+use dom_wrapper::{ServoLayoutElement, ServoLayoutDocument, ServoLayoutNode};
+use dom_wrapper::drop_style_and_layout_data;
 use euclid::{Point2D, Rect, Size2D, ScaleFactor};
 use fnv::FnvHashMap;
 use gfx::display_list::{OpaqueNode, WebRenderImageInfo};
@@ -71,7 +81,6 @@ use layout::sequential;
 use layout::traversal::{ComputeAbsolutePositions, RecalcStyleAndConstructFlows};
 use layout::webrender_helpers::WebRenderDisplayListConverter;
 use layout::wrapper::LayoutNodeLayoutData;
-use layout::wrapper::drop_style_and_layout_data;
 use layout_traits::LayoutThreadFactory;
 use msg::constellation_msg::PipelineId;
 use msg::constellation_msg::TopLevelBrowsingContextId;
@@ -80,7 +89,6 @@ use parking_lot::RwLock;
 use profile_traits::mem::{self, Report, ReportKind, ReportsChan};
 use profile_traits::time::{self, TimerMetadata, profile};
 use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
-use script::layout_wrapper::{ServoLayoutElement, ServoLayoutDocument, ServoLayoutNode};
 use script_layout_interface::message::{Msg, NewLayoutThreadInfo, Reflow, ReflowQueryType};
 use script_layout_interface::message::{ScriptReflow, ReflowComplete};
 use script_layout_interface::rpc::{LayoutRPC, MarginStyleResponse, NodeOverflowResponse, OffsetParentResponse};

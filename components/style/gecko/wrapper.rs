@@ -17,7 +17,7 @@
 use CaseSensitivityExt;
 use app_units::Au;
 use applicable_declarations::ApplicableDeclarationBlock;
-use atomic_refcell::AtomicRefCell;
+use atomic_refcell::{AtomicRefCell, AtomicRefMut};
 use context::{QuirksMode, SharedStyleContext, UpdateAnimationsTasks};
 use data::ElementData;
 use dom::{self, DescendantsBit, LayoutIterator, NodeInfo, TElement, TNode, UnsafeNode};
@@ -581,42 +581,6 @@ impl<'le> GeckoElement<'le> {
         self.namespace_id() == (structs::root::kNameSpaceID_XUL as i32)
     }
 
-    /// Clear the element data for a given element.
-    pub fn clear_data(&self) {
-        let ptr = self.0.mServoData.get();
-        unsafe {
-            self.unset_flags(ELEMENT_HAS_SNAPSHOT as u32 |
-                             ELEMENT_HANDLED_SNAPSHOT as u32);
-        }
-        if !ptr.is_null() {
-            debug!("Dropping ElementData for {:?}", self);
-            let data = unsafe { Box::from_raw(self.0.mServoData.get()) };
-            self.0.mServoData.set(ptr::null_mut());
-
-            // Perform a mutable borrow of the data in debug builds. This
-            // serves as an assertion that there are no outstanding borrows
-            // when we destroy the data.
-            debug_assert!({ let _ = data.borrow_mut(); true });
-        }
-    }
-
-    /// Ensures the element has data, returning the existing data or allocating
-    /// it.
-    ///
-    /// Only safe to call with exclusive access to the element, given otherwise
-    /// it could race to allocate and leak.
-    pub unsafe fn ensure_data(&self) -> &AtomicRefCell<ElementData> {
-        match self.get_data() {
-            Some(x) => x,
-            None => {
-                debug!("Creating ElementData for {:?}", self);
-                let ptr = Box::into_raw(Box::new(AtomicRefCell::new(ElementData::default())));
-                self.0.mServoData.set(ptr);
-                unsafe { &* ptr }
-            },
-        }
-    }
-
     /// Sets the specified element data, return any existing data.
     ///
     /// Like `ensure_data`, only safe to call with exclusive access to the
@@ -1065,6 +1029,33 @@ impl<'le> TElement for GeckoElement<'le> {
 
     fn get_data(&self) -> Option<&AtomicRefCell<ElementData>> {
         unsafe { self.0.mServoData.get().as_ref() }
+    }
+
+    unsafe fn ensure_data(&self) -> AtomicRefMut<ElementData> {
+        if self.get_data().is_none() {
+            debug!("Creating ElementData for {:?}", self);
+            let ptr = Box::into_raw(Box::new(AtomicRefCell::new(ElementData::default())));
+            self.0.mServoData.set(ptr);
+        }
+        self.mutate_data().unwrap()
+    }
+
+    unsafe fn clear_data(&self) {
+        let ptr = self.0.mServoData.get();
+        unsafe {
+            self.unset_flags(ELEMENT_HAS_SNAPSHOT as u32 |
+                             ELEMENT_HANDLED_SNAPSHOT as u32);
+        }
+        if !ptr.is_null() {
+            debug!("Dropping ElementData for {:?}", self);
+            let data = unsafe { Box::from_raw(self.0.mServoData.get()) };
+            self.0.mServoData.set(ptr::null_mut());
+
+            // Perform a mutable borrow of the data in debug builds. This
+            // serves as an assertion that there are no outstanding borrows
+            // when we destroy the data.
+            debug_assert!({ let _ = data.borrow_mut(); true });
+        }
     }
 
     fn skip_root_and_item_based_display_fixup(&self) -> bool {

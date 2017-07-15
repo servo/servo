@@ -30,21 +30,22 @@
 
 #![allow(unsafe_code)]
 
-use atomic_refcell::{AtomicRef, AtomicRefCell};
-use dom::bindings::inheritance::{CharacterDataTypeId, ElementTypeId};
-use dom::bindings::inheritance::{HTMLElementTypeId, NodeTypeId};
-use dom::bindings::js::LayoutJS;
-use dom::characterdata::LayoutCharacterDataHelpers;
-use dom::document::{Document, LayoutDocumentHelpers, PendingRestyle};
-use dom::element::{Element, LayoutElementHelpers, RawLayoutElementHelpers};
-use dom::node::{CAN_BE_FRAGMENTED, DIRTY_ON_VIEWPORT_SIZE_CHANGE, HAS_DIRTY_DESCENDANTS, IS_IN_DOC};
-use dom::node::{HANDLED_SNAPSHOT, HAS_SNAPSHOT};
-use dom::node::{LayoutNodeHelpers, Node};
-use dom::text::Text;
+use atomic_refcell::{AtomicRef, AtomicRefMut, AtomicRefCell};
+use core::nonzero::NonZero;
 use gfx_traits::ByteIndex;
 use html5ever::{LocalName, Namespace};
+use layout::data::StyleAndLayoutData;
+use layout::wrapper::GetRawData;
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use range::Range;
+use script::layout_exports::{CAN_BE_FRAGMENTED, DIRTY_ON_VIEWPORT_SIZE_CHANGE, HAS_DIRTY_DESCENDANTS, IS_IN_DOC};
+use script::layout_exports::{CharacterDataTypeId, ElementTypeId, HTMLElementTypeId, NodeTypeId};
+use script::layout_exports::{Document, Element, Node, Text};
+use script::layout_exports::{HANDLED_SNAPSHOT, HAS_SNAPSHOT};
+use script::layout_exports::{LayoutCharacterDataHelpers, LayoutDocumentHelpers};
+use script::layout_exports::{LayoutElementHelpers, LayoutNodeHelpers, RawLayoutElementHelpers};
+use script::layout_exports::LayoutJS;
+use script::layout_exports::PendingRestyle;
 use script_layout_interface::{HTMLCanvasData, LayoutNodeType, SVGSVGData, TrustedNodeAddress};
 use script_layout_interface::{OpaqueStyleAndLayoutData, StyleData};
 use script_layout_interface::wrapper_traits::{DangerousThreadSafeLayoutNode, GetLayoutData, LayoutNode};
@@ -78,6 +79,12 @@ use style::selector_parser::{PseudoElement, SelectorImpl, extended_filtering};
 use style::shared_lock::{SharedRwLock as StyleSharedRwLock, Locked as StyleLocked};
 use style::str::is_whitespace;
 use style::stylearc::Arc;
+
+pub unsafe fn drop_style_and_layout_data(data: OpaqueStyleAndLayoutData) {
+    let ptr: *mut StyleData = data.ptr.get();
+    let non_opaque: *mut StyleAndLayoutData = ptr as *mut _;
+    let _ = Box::from_raw(non_opaque);
+}
 
 #[derive(Copy, Clone)]
 pub struct ServoLayoutNode<'a> {
@@ -242,6 +249,17 @@ impl<'ln> LayoutNode for ServoLayoutNode<'ln> {
 
     fn type_id(&self) -> LayoutNodeType {
         self.script_type_id().into()
+    }
+
+    unsafe fn initialize_data(&self) {
+        if self.get_raw_data().is_none() {
+            let ptr: *mut StyleAndLayoutData =
+                Box::into_raw(Box::new(StyleAndLayoutData::new()));
+            let opaque = OpaqueStyleAndLayoutData {
+                ptr: NonZero::new(ptr as *mut StyleData),
+            };
+            self.init_style_and_layout_data(opaque);
+        };
     }
 
     unsafe fn init_style_and_layout_data(&self, data: OpaqueStyleAndLayoutData) {
@@ -475,6 +493,17 @@ impl<'le> TElement for ServoLayoutElement<'le> {
         let old_value = data.parallel.children_to_process.fetch_sub(1, Ordering::Relaxed);
         debug_assert!(old_value >= 1);
         old_value - 1
+    }
+
+    unsafe fn clear_data(&self) {
+        if self.get_raw_data().is_some() {
+            drop_style_and_layout_data(self.as_node().take_style_and_layout_data());
+        }
+    }
+
+    unsafe fn ensure_data(&self) -> AtomicRefMut<ElementData> {
+        self.as_node().initialize_data();
+        self.mutate_data().unwrap()
     }
 
     fn get_data(&self) -> Option<&AtomicRefCell<ElementData>> {

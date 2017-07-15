@@ -762,7 +762,7 @@ pub extern "C" fn Servo_StyleWorkerThreadCount() -> u32 {
 
 #[no_mangle]
 pub extern "C" fn Servo_Element_ClearData(element: RawGeckoElementBorrowed) {
-    GeckoElement(element).clear_data();
+    unsafe { GeckoElement(element).clear_data() };
 }
 
 #[no_mangle]
@@ -1531,7 +1531,7 @@ pub extern "C" fn Servo_ResolvePseudoStyle(element: RawGeckoElementBorrowed,
      -> ServoComputedValuesStrong
 {
     let element = GeckoElement(element);
-    let data = unsafe { element.ensure_data() }.borrow_mut();
+    let data = unsafe { element.ensure_data() };
     let doc_data = PerDocumentStyleData::from_ffi(raw_data).borrow();
 
     debug!("Servo_ResolvePseudoStyle: {:?} {:?}, is_probe: {}",
@@ -1582,7 +1582,7 @@ pub extern "C" fn Servo_SetExplicitStyle(element: RawGeckoElementBorrowed,
     // We only support this API for initial styling. There's no reason it couldn't
     // work for other things, we just haven't had a reason to do so.
     debug_assert!(element.get_data().is_none());
-    let mut data = unsafe { element.ensure_data() }.borrow_mut();
+    let mut data = unsafe { element.ensure_data() };
     data.styles.primary = Some(style.clone());
 }
 
