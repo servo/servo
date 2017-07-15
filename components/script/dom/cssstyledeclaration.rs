@@ -296,7 +296,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertyvalue
     fn GetPropertyValue(&self, property: DOMString) -> DOMString {
-        let id = if let Ok(id) = PropertyId::parse(property.into()) {
+        let id = if let Ok(id) = PropertyId::parse(&property) {
             id
         } else {
             // Unkwown property
@@ -307,7 +307,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertypriority
     fn GetPropertyPriority(&self, property: DOMString) -> DOMString {
-        let id = if let Ok(id) = PropertyId::parse(property.into()) {
+        let id = if let Ok(id) = PropertyId::parse(&property) {
             id
         } else {
             // Unkwown property
@@ -331,7 +331,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
                    priority: DOMString)
                    -> ErrorResult {
         // Step 3
-        let id = if let Ok(id) = PropertyId::parse(property.into()) {
+        let id = if let Ok(id) = PropertyId::parse(&property) {
             id
         } else {
             // Unknown property
@@ -348,7 +348,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         }
 
         // Step 2 & 3
-        let id = match PropertyId::parse(property.into()) {
+        let id = match PropertyId::parse(&property) {
             Ok(id) => id,
             Err(..) => return Ok(()), // Unkwown property
         };
@@ -380,7 +380,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
             return Err(Error::NoModificationAllowed);
         }
 
-        let id = if let Ok(id) = PropertyId::parse(property.into()) {
+        let id = if let Ok(id) = PropertyId::parse(&property) {
             id
         } else {
             // Unkwown property, cannot be there to remove.
