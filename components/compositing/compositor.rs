@@ -818,6 +818,13 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.webrender.set_profiler_enabled(!profiler_enabled);
                 self.webrender_api.generate_frame(self.webrender_document, None);
             }
+
+            WindowEvent::NewBrowser(url, response_chan) => {
+                let msg = ConstellationMsg::NewBrowser(url, response_chan);
+                if let Err(e) = self.constellation_chan.send(msg) {
+                    warn!("Sending NewBrowser message to constellation failed ({}).", e);
+                }
+            }
         }
     }
 
