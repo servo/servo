@@ -825,6 +825,13 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                     warn!("Sending NewBrowser message to constellation failed ({}).", e);
                 }
             }
+
+            WindowEvent::SelectBrowser(ctx) => {
+                let msg = ConstellationMsg::SelectBrowser(ctx);
+                if let Err(e) = self.constellation_chan.send(msg) {
+                    warn!("Sending SelectBrowser message to constellation failed ({}).", e);
+                }
+            }
         }
     }
 
