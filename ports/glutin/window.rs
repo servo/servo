@@ -182,6 +182,8 @@ pub struct Window {
     mouse_down_point: Cell<Point2D<i32>>,
     event_queue: RefCell<Vec<WindowEvent>>,
 
+    browser_id: Cell<Option<BrowserId>>,
+
     mouse_pos: Cell<Point2D<i32>>,
     key_modifiers: Cell<KeyModifiers>,
     current_url: RefCell<Option<ServoUrl>>,
@@ -217,6 +219,10 @@ fn window_creation_scale_factor() -> ScaleFactor<f32, DeviceIndependentPixel, De
 
 
 impl Window {
+    pub fn set_browser_id(&self, browser_id: BrowserId) {
+        self.browser_id.set(Some(browser_id));
+    }
+
     pub fn new(is_foreground: bool,
                window_size: TypedSize2D<u32, DeviceIndependentPixel>,
                parent: Option<glutin::WindowID>) -> Rc<Window> {
@@ -308,6 +314,8 @@ impl Window {
             event_queue: RefCell::new(vec!()),
             mouse_down_button: Cell::new(None),
             mouse_down_point: Cell::new(Point2D::new(0, 0)),
+
+            browser_id: Cell::new(None),
 
             mouse_pos: Cell::new(Point2D::new(0, 0)),
             key_modifiers: Cell::new(KeyModifiers::empty()),
@@ -929,20 +937,22 @@ impl Window {
     }
 
     #[cfg(not(target_os = "win"))]
-    fn platform_handle_key(&self, key: Key, mods: constellation_msg::KeyModifiers) {
+    fn platform_handle_key(&self, key: Key, mods: constellation_msg::KeyModifiers, browser_id: BrowserId) {
         match (mods, key) {
             (CMD_OR_CONTROL, Key::LeftBracket) => {
-                self.event_queue.borrow_mut().push(WindowEvent::Navigation(TraversalDirection::Back(1)));
+                let event = WindowEvent::Navigation(browser_id, TraversalDirection::Back(1));
+                self.event_queue.borrow_mut().push(event);
             }
             (CMD_OR_CONTROL, Key::RightBracket) => {
-                self.event_queue.borrow_mut().push(WindowEvent::Navigation(TraversalDirection::Forward(1)));
+                let event = WindowEvent::Navigation(browser_id, TraversalDirection::Forward(1));
+                self.event_queue.borrow_mut().push(event);
             }
             _ => {}
         }
     }
 
     #[cfg(target_os = "win")]
-    fn platform_handle_key(&self, key: Key, mods: constellation_msg::KeyModifiers) {
+    fn platform_handle_key(&self, key: Key, mods: constellation_msg::KeyModifiers, browser_id: BrowserId) {
     }
 }
 
@@ -1203,6 +1213,10 @@ impl WindowMethods for Window {
 
     /// Helper function to handle keyboard events.
     fn handle_key(&self, _: Option<BrowserId>, ch: Option<char>, key: Key, mods: constellation_msg::KeyModifiers) {
+        let browser_id = match self.browser_id.get() {
+            Some(id) => id,
+            None => { unreachable!("Can't get keys without a browser"); }
+        };
         match (mods, ch, key) {
             (_, Some('+'), _) => {
                 if mods & !SHIFT == CMD_OR_CONTROL {
@@ -1222,10 +1236,12 @@ impl WindowMethods for Window {
             }
 
             (NONE, None, Key::NavigateForward) => {
-                self.event_queue.borrow_mut().push(WindowEvent::Navigation(TraversalDirection::Forward(1)));
+                let event = WindowEvent::Navigation(browser_id, TraversalDirection::Forward(1));
+                self.event_queue.borrow_mut().push(event);
             }
             (NONE, None, Key::NavigateBackward) => {
-                self.event_queue.borrow_mut().push(WindowEvent::Navigation(TraversalDirection::Back(1)));
+                let event = WindowEvent::Navigation(browser_id, TraversalDirection::Back(1));
+                self.event_queue.borrow_mut().push(event);
             }
 
             (NONE, None, Key::Escape) => {
@@ -1235,10 +1251,12 @@ impl WindowMethods for Window {
             }
 
             (CMD_OR_ALT, None, Key::Right) => {
-                self.event_queue.borrow_mut().push(WindowEvent::Navigation(TraversalDirection::Forward(1)));
+                let event = WindowEvent::Navigation(browser_id, TraversalDirection::Forward(1));
+                self.event_queue.borrow_mut().push(event);
             }
             (CMD_OR_ALT, None, Key::Left) => {
-                self.event_queue.borrow_mut().push(WindowEvent::Navigation(TraversalDirection::Back(1)));
+                let event = WindowEvent::Navigation(browser_id, TraversalDirection::Back(1));
+                self.event_queue.borrow_mut().push(event);
             }
 
             (NONE, None, Key::PageDown) => {
@@ -1284,7 +1302,7 @@ impl WindowMethods for Window {
             }
             (CMD_OR_CONTROL, Some('r'), _) => {
                 if let Some(true) = PREFS.get("shell.builtin-key-shortcuts.enabled").as_boolean() {
-                    self.event_queue.borrow_mut().push(WindowEvent::Reload);
+                    self.event_queue.borrow_mut().push(WindowEvent::Reload(browser_id));
                 }
             }
             (CMD_OR_CONTROL, Some('q'), _) => {
@@ -1297,7 +1315,7 @@ impl WindowMethods for Window {
             }
 
             _ => {
-                self.platform_handle_key(key, mods);
+                self.platform_handle_key(key, mods, browser_id);
             }
         }
     }
