@@ -2709,8 +2709,9 @@ extern "C" {
                                    change_hint: nsChangeHint);
 }
 extern "C" {
-    pub fn Servo_TakeChangeHint(element: RawGeckoElementBorrowed)
-     -> nsChangeHint;
+    pub fn Servo_TakeChangeHint(element: RawGeckoElementBorrowed,
+                                restyle_behavior: TraversalRestyleBehavior,
+                                was_restyled: *mut bool) -> nsChangeHint;
 }
 extern "C" {
     pub fn Servo_ResolveStyle(element: RawGeckoElementBorrowed,
