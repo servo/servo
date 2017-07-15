@@ -29,7 +29,6 @@ use rayon;
 use scoped_tls::ScopedTLS;
 use smallvec::SmallVec;
 use std::borrow::Borrow;
-use std::mem;
 use time;
 use traversal::{DomTraversal, PerLevelTraversalData, PreTraverseToken};
 
@@ -187,10 +186,9 @@ fn top_down_dom<'a, 'scope, E, D>(nodes: &'a [SendNode<E::ConcreteNode>],
             //
             // Which are not at all uncommon.
             if !discovered_child_nodes.is_empty() {
-                let children = mem::replace(&mut discovered_child_nodes, Default::default());
                 let mut traversal_data_copy = traversal_data.clone();
                 traversal_data_copy.current_dom_depth += 1;
-                traverse_nodes(&*children,
+                traverse_nodes(&*discovered_child_nodes,
                                DispatchMode::NotTailCall,
                                recursion_depth,
                                root,
@@ -199,17 +197,16 @@ fn top_down_dom<'a, 'scope, E, D>(nodes: &'a [SendNode<E::ConcreteNode>],
                                pool,
                                traversal,
                                tls);
+                discovered_child_nodes.clear();
             }
 
             let node = **n;
             let mut children_to_process = 0isize;
-            traversal.process_preorder(&traversal_data, &mut context, node);
-            if let Some(el) = node.as_element() {
-                traversal.traverse_children(&mut context, el, |_context, kid| {
-                    children_to_process += 1;
-                    discovered_child_nodes.push(unsafe { SendNode::new(kid) })
-                });
-            }
+            traversal.process_preorder(&traversal_data, &mut context, node, |n| {
+                children_to_process += 1;
+                let send_n = unsafe { SendNode::new(n) };
+                discovered_child_nodes.push(send_n);
+            });
 
             traversal.handle_postorder_traversal(&mut context, root, node,
                                                  children_to_process);

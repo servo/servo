@@ -52,14 +52,10 @@ pub fn traverse_dom<E, D>(traversal: &D,
     while let Some(WorkItem(node, depth)) = discovered.pop_front() {
         let mut children_to_process = 0isize;
         let traversal_data = PerLevelTraversalData { current_dom_depth: depth };
-        traversal.process_preorder(&traversal_data, &mut context, node);
-
-        if let Some(el) = node.as_element() {
-            traversal.traverse_children(&mut context, el, |_context, kid| {
-                children_to_process += 1;
-                discovered.push_back(WorkItem(kid, depth + 1))
-            });
-        }
+        traversal.process_preorder(&traversal_data, &mut context, node, |n| {
+            children_to_process += 1;
+            discovered.push_back(WorkItem(n, depth + 1));
+        });
 
         traversal.handle_postorder_traversal(&mut context, root.as_node().opaque(),
                                              node, children_to_process);

@@ -5,7 +5,7 @@
 //! Gecko-specific bits for the styling DOM traversal.
 
 use context::{SharedStyleContext, StyleContext};
-use dom::{NodeInfo, TNode, TElement};
+use dom::{TNode, TElement};
 use gecko::wrapper::{GeckoElement, GeckoNode};
 use traversal::{DomTraversal, PerLevelTraversalData, TraversalDriver, recalc_style_at};
 
@@ -27,15 +27,16 @@ impl<'a> RecalcStyleOnly<'a> {
 }
 
 impl<'recalc, 'le> DomTraversal<GeckoElement<'le>> for RecalcStyleOnly<'recalc> {
-    fn process_preorder(&self,
-                        traversal_data: &PerLevelTraversalData,
-                        context: &mut StyleContext<GeckoElement<'le>>,
-                        node: GeckoNode<'le>)
+    fn process_preorder<F>(&self,
+                           traversal_data: &PerLevelTraversalData,
+                           context: &mut StyleContext<GeckoElement<'le>>,
+                           node: GeckoNode<'le>,
+                           note_child: F)
+        where F: FnMut(GeckoNode<'le>),
     {
-        if node.is_element() {
-            let el = node.as_element().unwrap();
+        if let Some(el) = node.as_element() {
             let mut data = unsafe { el.ensure_data() };
-            recalc_style_at(self, traversal_data, context, el, &mut data);
+            recalc_style_at(self, traversal_data, context, el, &mut data, note_child);
         }
     }
 
