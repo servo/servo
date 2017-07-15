@@ -283,7 +283,8 @@ pub extern "C" fn Servo_TraverseSubtree(root: RawGeckoElementBorrowed,
     }
 
     if restyle_behavior == Restyle::ForThrottledAnimationFlush {
-        return needs_animation_only_restyle;
+        return element.has_animation_only_dirty_descendants() ||
+               element.borrow_data().unwrap().restyle.is_restyle();
     }
 
     traverse_subtree(element,
