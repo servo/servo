@@ -2729,13 +2729,27 @@ pub extern "C" fn Servo_NoteExplicitHints(element: RawGeckoElementBorrowed,
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_TakeChangeHint(element: RawGeckoElementBorrowed) -> nsChangeHint
+pub extern "C" fn Servo_TakeChangeHint(element: RawGeckoElementBorrowed,
+                                       restyle_behavior: structs::TraversalRestyleBehavior) -> nsChangeHint
 {
     let element = GeckoElement(element);
     let damage = match element.mutate_data() {
         Some(mut data) => {
             let damage = data.restyle.damage;
-            data.clear_restyle_state();
+            if restyle_behavior == structs::TraversalRestyleBehavior::ForThrottledAnimationFlush {
+                debug_assert!(data.restyle.is_restyle() || damage.is_empty(),
+                              "Restyle damage should be empty if the element was not restyled");
+                // In the case where we call this function for post traversal for
+                // flusing throttled animations (i.e. without normal restyle
+                // traversal), we need to preserve restyle hints for normal restyle
+                // traversal. Restyle hints for animations have been already
+                // removed during animation-only traversal.
+                debug_assert!(!data.restyle.hint.has_animation_hint(),
+                              "Animation restyle hints should have been already removed");
+                data.clear_restyle_flags_and_damage();
+            } else {
+                data.clear_restyle_state();
+            }
             damage
         }
         None => {

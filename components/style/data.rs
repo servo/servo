@@ -61,6 +61,12 @@ impl RestyleData {
         *self = Self::new();
     }
 
+    /// Clear restyle flags and damage.
+    fn clear_flags_and_damage(&mut self) {
+        self.damage = RestyleDamage::empty();
+        self.flags = RestyleFlags::empty();
+    }
+
     /// Returns whether this element or any ancestor is going to be
     /// reconstructed.
     pub fn reconstructed_self_or_ancestor(&self) -> bool {
@@ -330,5 +336,10 @@ impl ElementData {
     /// Drops any restyle state from the element.
     pub fn clear_restyle_state(&mut self) {
         self.restyle.clear();
+    }
+
+    /// Drops restyle flags and damage from the element.
+    pub fn clear_restyle_flags_and_damage(&mut self) {
+        self.restyle.clear_flags_and_damage();
     }
 }
