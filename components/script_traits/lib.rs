@@ -765,6 +765,8 @@ pub enum ConstellationMsg {
     WebVREvents(Vec<PipelineId>, Vec<WebVREvent>),
     /// Create a new top level browsing context.
     NewBrowser(ServoUrl, IpcSender<TopLevelBrowsingContextId>),
+    /// Make browser visible.
+    SelectBrowser(TopLevelBrowsingContextId),
 }
 
 /// Resources required by workerglobalscopes
