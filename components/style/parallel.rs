@@ -29,7 +29,6 @@ use rayon;
 use scoped_tls::ScopedTLS;
 use smallvec::SmallVec;
 use std::borrow::Borrow;
-use std::mem;
 use time;
 use traversal::{DomTraversal, PerLevelTraversalData, PreTraverseToken};
 
@@ -187,10 +186,9 @@ fn top_down_dom<'a, 'scope, E, D>(nodes: &'a [SendNode<E::ConcreteNode>],
             //
             // Which are not at all uncommon.
             if !discovered_child_nodes.is_empty() {
-                let children = mem::replace(&mut discovered_child_nodes, Default::default());
                 let mut traversal_data_copy = traversal_data.clone();
                 traversal_data_copy.current_dom_depth += 1;
-                traverse_nodes(&*children,
+                traverse_nodes(&*discovered_child_nodes,
                                DispatchMode::NotTailCall,
                                recursion_depth,
                                root,
@@ -199,6 +197,7 @@ fn top_down_dom<'a, 'scope, E, D>(nodes: &'a [SendNode<E::ConcreteNode>],
                                pool,
                                traversal,
                                tls);
+                discovered_child_nodes.clear();
             }
 
             let node = **n;
