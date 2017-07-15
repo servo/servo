@@ -20,7 +20,7 @@ use stylearc::{Arc, UniqueArc};
 use app_units::Au;
 #[cfg(feature = "servo")] use cssparser::RGBA;
 use cssparser::{Parser, TokenSerializationType, serialize_identifier};
-use cssparser::{ParserInput, CompactCowStr};
+use cssparser::ParserInput;
 #[cfg(feature = "servo")] use euclid::SideOffsets2D;
 use computed_values;
 use context::QuirksMode;
@@ -510,7 +510,7 @@ impl LonghandId {
                     % if not property.derived_from:
                         longhands::${property.ident}::parse_declared(context, input)
                     % else:
-                        Err(PropertyDeclarationParseError::UnknownProperty.into())
+                        Err(PropertyDeclarationParseError::UnknownProperty("${property.ident}".into()).into())
                     % endif
                 }
             % endfor
@@ -992,8 +992,8 @@ impl PropertyId {
     /// Returns a given property from the string `s`.
     ///
     /// Returns Err(()) for unknown non-custom properties
-    pub fn parse<'i>(property_name: CompactCowStr<'i>) -> Result<Self, ParseError<'i>> {
-        if let Ok(name) = ::custom_properties::parse_name(&property_name) {
+    pub fn parse(property_name: &str) -> Result<Self, ()> {
+        if let Ok(name) = ::custom_properties::parse_name(property_name) {
             return Ok(PropertyId::Custom(::custom_properties::Name::from(name)))
         }
 
@@ -1014,10 +1014,10 @@ impl PropertyId {
                 % endfor
             }
         }
-        match static_id(&property_name) {
+        match static_id(property_name) {
             Some(&StaticId::Longhand(id)) => Ok(PropertyId::Longhand(id)),
             Some(&StaticId::Shorthand(id)) => Ok(PropertyId::Shorthand(id)),
-            None => Err(StyleParseError::UnknownProperty(property_name).into()),
+            None => Err(()),
         }
     }
 
@@ -1101,7 +1101,7 @@ impl PropertyId {
     }
 
     fn check_allowed_in(&self, rule_type: CssRuleType, stylesheet_origin: Origin)
-                        -> Result<(), PropertyDeclarationParseError> {
+                        -> Result<(), PropertyDeclarationParseError<'static>> {
         let id: NonCustomPropertyId;
         match *self {
             // Custom properties are allowed everywhere
@@ -1186,7 +1186,7 @@ impl PropertyId {
                         return Err(PropertyDeclarationParseError::ExperimentalProperty);
                     }
                 } else {
-                    return Err(PropertyDeclarationParseError::UnknownProperty);
+                    return Err(PropertyDeclarationParseError::UnknownProperty(self.name().into()));
                 }
             }
         } else {
@@ -1462,9 +1462,9 @@ impl PropertyDeclaration {
     /// This will not actually parse Importance values, and will always set things
     /// to Importance::Normal. Parsing Importance values is the job of PropertyDeclarationParser,
     /// we only set them here so that we don't have to reallocate
-    pub fn parse_into(declarations: &mut SourcePropertyDeclaration,
-                      id: PropertyId, context: &ParserContext, input: &mut Parser)
-                      -> Result<(), PropertyDeclarationParseError> {
+    pub fn parse_into<'i, 't>(declarations: &mut SourcePropertyDeclaration,
+                              id: PropertyId, context: &ParserContext, input: &mut Parser<'i, 't>)
+                              -> Result<(), PropertyDeclarationParseError<'i>> {
         assert!(declarations.is_empty());
         let rule_type = context.rule_type();
         debug_assert!(rule_type == CssRuleType::Keyframe ||

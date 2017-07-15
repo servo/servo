@@ -8,7 +8,7 @@
 
 use context::QuirksMode;
 use cssparser::{DeclarationListParser, parse_important, ParserInput, CompactCowStr};
-use cssparser::{Parser, AtRuleParser, DeclarationParser, Delimiter};
+use cssparser::{Parser, AtRuleParser, DeclarationParser, Delimiter, ParseError as CssParseError};
 use error_reporting::{ParseErrorReporter, ContextualParseError};
 use parser::{ParserContext, log_css_error};
 use properties::animated_properties::AnimationValue;
@@ -935,13 +935,28 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for PropertyDeclarationParser<'a, 'b> {
     type Error = SelectorParseError<'i, StyleParseError<'i>>;
 }
 
+/// Based on NonMozillaVendorIdentifier from Gecko's CSS parser.
+fn is_non_mozilla_vendor_identifier(name: &str) -> bool {
+    (name.starts_with("-") && !name.starts_with("-moz-")) ||
+        name.starts_with("_")
+}
+
 impl<'a, 'b, 'i> DeclarationParser<'i> for PropertyDeclarationParser<'a, 'b> {
     type Declaration = Importance;
     type Error = SelectorParseError<'i, StyleParseError<'i>>;
 
     fn parse_value<'t>(&mut self, name: CompactCowStr<'i>, input: &mut Parser<'i, 't>)
                        -> Result<Importance, ParseError<'i>> {
-        let id = PropertyId::parse(name)?;
+        let id = match PropertyId::parse(&name) {
+            Ok(id) => id,
+            Err(()) => {
+                return Err(if is_non_mozilla_vendor_identifier(&name) {
+                    PropertyDeclarationParseError::UnknownVendorProperty
+                } else {
+                    PropertyDeclarationParseError::UnknownProperty(name)
+                }.into());
+            }
+        };
         input.parse_until_before(Delimiter::Bang, |input| {
             PropertyDeclaration::parse_into(self.declarations, id, self.context, input)
                 .map_err(|e| e.into())
@@ -976,6 +991,15 @@ pub fn parse_property_declaration_list(context: &ParserContext,
             }
             Err(err) => {
                 iter.parser.declarations.clear();
+
+                // If the unrecognized property looks like a vendor-specific property,
+                // silently ignore it instead of polluting the error output.
+                if let CssParseError::Custom(SelectorParseError::Custom(
+                    StyleParseError::PropertyDeclaration(
+                        PropertyDeclarationParseError::UnknownVendorProperty))) = err.error {
+                    continue;
+                }
+
                 let pos = err.span.start;
                 let error = ContextualParseError::UnsupportedPropertyDeclaration(
                     iter.input.slice(err.span), err.error);
