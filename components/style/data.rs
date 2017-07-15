@@ -228,14 +228,6 @@ pub enum RestyleKind {
 }
 
 impl ElementData {
-    /// Borrows both styles and restyle mutably at the same time.
-    pub fn styles_and_restyle_mut(
-        &mut self
-    ) -> (&mut ElementStyles, &mut RestyleData) {
-        (&mut self.styles,
-         &mut self.restyle)
-    }
-
     /// Invalidates style for this element, its descendants, and later siblings,
     /// based on the snapshot of the element that we took when attributes or
     /// state changed.
