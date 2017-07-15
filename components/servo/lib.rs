@@ -92,7 +92,6 @@ use script_traits::{ConstellationMsg, SWManagerSenders, ScriptMsg};
 use servo_config::opts;
 use servo_config::prefs::PREFS;
 use servo_config::resource_files::resources_dir_path;
-use servo_url::ServoUrl;
 use std::borrow::Cow;
 use std::cmp::max;
 use std::path::PathBuf;
@@ -104,6 +103,7 @@ use webvr::{WebVRThread, WebVRCompositorHandler};
 pub use gleam::gl;
 pub use servo_config as config;
 pub use servo_url as url;
+pub use msg::constellation_msg::TopLevelBrowsingContextId as BrowserId;
 
 /// The in-process interface to Servo.
 ///
@@ -202,7 +202,6 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
         // as the navigation context.
         let (constellation_chan, sw_senders) = create_constellation(opts.user_agent.clone(),
                                                                     opts.config_dir.clone(),
-                                                                    target_url,
                                                                     compositor_proxy.clone_compositor_proxy(),
                                                                     time_profiler_chan.clone(),
                                                                     mem_profiler_chan.clone(),
@@ -280,7 +279,6 @@ fn create_compositor_channel(event_loop_waker: Box<compositor_thread::EventLoopW
 
 fn create_constellation(user_agent: Cow<'static, str>,
                         config_dir: Option<PathBuf>,
-                        url: ServoUrl,
                         compositor_proxy: CompositorProxy,
                         time_profiler_chan: time::ProfilerChan,
                         mem_profiler_chan: mem::ProfilerChan,
@@ -331,8 +329,6 @@ fn create_constellation(user_agent: Cow<'static, str>,
         webrender.set_vr_compositor_handler(handler);
         constellation_chan.send(ConstellationMsg::SetWebVRThread(webvr_thread)).unwrap();
     }
-
-    constellation_chan.send(ConstellationMsg::InitLoadUrl(url)).unwrap();
 
     // channels to communicate with Service Worker Manager
     let sw_senders = SWManagerSenders {

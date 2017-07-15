@@ -71,6 +71,8 @@ pub enum WindowEvent {
     /// Toggles the Web renderer profiler on and off
     ToggleWebRenderProfiler,
     Reload(TopLevelBrowsingContextId),
+    /// Create a new top level browsing context
+    NewBrowser(ServoUrl, IpcSender<TopLevelBrowsingContextId>),
 }
 
 impl Debug for WindowEvent {
@@ -93,6 +95,7 @@ impl Debug for WindowEvent {
             WindowEvent::Quit => write!(f, "Quit"),
             WindowEvent::ToggleWebRenderProfiler => write!(f, "ToggleWebRenderProfiler"),
             WindowEvent::Reload(..) => write!(f, "Reload"),
+            WindowEvent::NewBrowser(..) => write!(f, "NewBrowser"),
         }
     }
 }
