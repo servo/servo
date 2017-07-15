@@ -611,7 +611,7 @@ where
 
     // Compute style for this element if necessary.
     if compute_self {
-        match compute_style(traversal, traversal_data, context, element, data) {
+        match compute_style(traversal_data, context, element, data) {
             ChildCascadeRequirement::MustCascadeChildren => {
                 hint |= RECASCADE_SELF;
             }
@@ -680,7 +680,7 @@ where
         let reconstructed_ancestor =
             data.restyle.reconstructed_self_or_ancestor();
 
-        preprocess_children::<E, D>(
+        preprocess_children::<E>(
             context,
             element,
             propagated_hint,
@@ -720,8 +720,7 @@ where
     }
 }
 
-fn compute_style<E, D>(
-    _traversal: &D,
+fn compute_style<E>(
     traversal_data: &PerLevelTraversalData,
     context: &mut StyleContext<E>,
     element: E,
@@ -729,7 +728,6 @@ fn compute_style<E, D>(
 ) -> ChildCascadeRequirement
 where
     E: TElement,
-    D: DomTraversal<E>,
 {
     use data::RestyleKind::*;
     use sharing::StyleSharingResult::*;
@@ -815,7 +813,7 @@ where
     )
 }
 
-fn preprocess_children<E, D>(
+fn preprocess_children<E>(
     context: &mut StyleContext<E>,
     element: E,
     propagated_hint: RestyleHint,
@@ -823,7 +821,6 @@ fn preprocess_children<E, D>(
 )
 where
     E: TElement,
-    D: DomTraversal<E>,
 {
     trace!("preprocess_children: {:?}", element);
 
