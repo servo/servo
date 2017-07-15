@@ -164,11 +164,19 @@ ${helpers.single_keyword("image-rendering",
             // match Gecko's behavior when it was correct.
             rounded_angle = rounded_angle + TWO_PI;
         }
-        if      rounded_angle < 0.25 * PI { Orientation::Angle0   }
-        else if rounded_angle < 0.75 * PI { Orientation::Angle90  }
-        else if rounded_angle < 1.25 * PI { Orientation::Angle180 }
-        else if rounded_angle < 1.75 * PI { Orientation::Angle270 }
-        else                              { Orientation::Angle0   }
+        if rounded_angle < 0.25 * PI {
+            return Orientation::Angle0
+        }
+        if rounded_angle < 0.75 * PI {
+            return Orientation::Angle90
+        }
+        if rounded_angle < 1.25 * PI {
+            return Orientation::Angle180
+        }
+        if rounded_angle < 1.75 * PI {
+            return Orientation::Angle270
+        }
+        Orientation::Angle0
     }
 
     impl ToComputedValue for SpecifiedValue {
