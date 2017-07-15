@@ -174,6 +174,9 @@ pub struct Constellation<Message, LTF, STF> {
     /// constellation to send messages to the compositor thread.
     compositor_proxy: CompositorProxy,
 
+    /// The last frame tree sent to WebRender.
+    active_browser_id: Option<TopLevelBrowsingContextId>,
+
     /// Channels for the constellation to send messages to the public
     /// resource-related threads.  There are two groups of resource
     /// threads: one for public browsing, and one for private
@@ -527,6 +530,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 network_listener_sender: network_listener_sender,
                 network_listener_receiver: network_listener_receiver,
                 compositor_proxy: state.compositor_proxy,
+                active_browser_id: None,
                 debugger_chan: state.debugger_chan,
                 devtools_chan: state.devtools_chan,
                 bluetooth_thread: state.bluetooth_thread,
@@ -962,6 +966,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             FromCompositorMsg::NewBrowser(url, response_chan) => {
                 debug!("constellation got init load URL message");
                 self.handle_new_top_level_browsing_context(url, response_chan);
+            }
+            // Send frame tree to WebRender. Make it visible.
+            FromCompositorMsg::SelectBrowser(top_level_browsing_context_id) => {
+                self.send_frame_tree(top_level_browsing_context_id);
             }
             // Handle a forward or back request
             FromCompositorMsg::TraverseHistory(top_level_browsing_context_id, direction) => {
@@ -2295,7 +2303,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         self.notify_history_changed(top_level_id);
 
         // Set paint permissions correctly for the compositor layers.
-        self.send_frame_tree(top_level_id);
+        if let Some(id) = self.active_browser_id {
+            if id == top_level_id {
+                self.send_frame_tree(top_level_id);
+            }
+        }
 
         // Update the owning iframe to point to the new pipeline id.
         // This makes things like contentDocument work correctly.
@@ -2454,7 +2466,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
 
         // Build frame tree
-        self.send_frame_tree(change.top_level_browsing_context_id);
+        if let Some(id) = self.active_browser_id {
+            if id == change.top_level_browsing_context_id {
+                self.send_frame_tree(change.top_level_browsing_context_id );
+            }
+        }
     }
 
     fn handle_activate_document_msg(&mut self, pipeline_id: PipelineId) {
@@ -2891,6 +2907,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     fn send_frame_tree(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId) {
         // This might be a mozbrowser iframe, so we need to climb the parent hierarchy,
         // even though it's a top-level browsing context.
+        self.active_browser_id = Some(top_level_browsing_context_id);
         let mut browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
         let mut pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
             Some(browsing_context) => browsing_context.pipeline_id,
