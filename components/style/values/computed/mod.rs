@@ -13,7 +13,8 @@ use media_queries::Device;
 use properties;
 use properties::{ComputedValues, StyleBuilder};
 use std::f32;
-use std::f32::consts::PI;
+use std::f64;
+use std::f64::consts::PI;
 use std::fmt;
 use style_traits::ToCss;
 use super::{CSSFloat, CSSInteger, RGBA};
@@ -313,17 +314,27 @@ impl Angle {
     /// Return the amount of radians this angle represents.
     #[inline]
     pub fn radians(&self) -> CSSFloat {
-        const RAD_PER_DEG: CSSFloat = PI / 180.0;
-        const RAD_PER_GRAD: CSSFloat = PI / 200.0;
-        const RAD_PER_TURN: CSSFloat = PI * 2.0;
+        self.radians64().min(f32::MAX as f64).max(f32::MIN as f64) as f32
+    }
+
+    /// Return the amount of radians this angle represents as a 64-bit float.
+    /// Gecko stores angles as singles, but does this computation using doubles.
+    /// See nsCSSValue::GetAngleValueInRadians.
+    /// This is significant enough to mess up rounding to the nearest
+    /// quarter-turn for 225 degrees, for example.
+    #[inline]
+    pub fn radians64(&self) -> f64 {
+        const RAD_PER_DEG: f64 = PI / 180.0;
+        const RAD_PER_GRAD: f64 = PI / 200.0;
+        const RAD_PER_TURN: f64 = PI * 2.0;
 
         let radians = match *self {
-            Angle::Degree(val) => val * RAD_PER_DEG,
-            Angle::Gradian(val) => val * RAD_PER_GRAD,
-            Angle::Turn(val) => val * RAD_PER_TURN,
-            Angle::Radian(val) => val,
+            Angle::Degree(val) => val as f64 * RAD_PER_DEG,
+            Angle::Gradian(val) => val as f64 * RAD_PER_GRAD,
+            Angle::Turn(val) => val as f64 * RAD_PER_TURN,
+            Angle::Radian(val) => val as f64,
         };
-        radians.min(f32::MAX).max(f32::MIN)
+        radians.min(f64::MAX).max(f64::MIN)
     }
 
     /// Returns an angle that represents a rotation of zero radians.
