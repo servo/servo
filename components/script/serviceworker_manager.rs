@@ -176,7 +176,7 @@ impl ServiceWorkerManager {
                     }
                 }
             } else {
-                let  _ = mediator.response_chan.send(None);
+                let _ = mediator.response_chan.send(None);
             }
         } else {
             let _ = mediator.response_chan.send(None);

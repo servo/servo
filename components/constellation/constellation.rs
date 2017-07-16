@@ -2037,7 +2037,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             let visibility_msg = ConstellationControlMsg::NotifyVisibilityChange(parent_pipeline_id,
                                                                                  browsing_context_id,
                                                                                  visibility);
-            let  result = match self.pipelines.get(&parent_pipeline_id) {
+            let result = match self.pipelines.get(&parent_pipeline_id) {
                 None => return warn!("Parent pipeline {:?} closed", parent_pipeline_id),
                 Some(parent_pipeline) => parent_pipeline.event_loop.send(visibility_msg),
             };
