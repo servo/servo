@@ -960,7 +960,7 @@ impl Document {
             let line = click_pos - last_pos;
             let dist = (line.dot(line) as f64).sqrt();
 
-            if  now.duration_since(last_time) < DBL_CLICK_TIMEOUT &&
+            if now.duration_since(last_time) < DBL_CLICK_TIMEOUT &&
                 dist < DBL_CLICK_DIST_THRESHOLD as f64 {
                 // A double click has occurred if this click is within a certain time and dist. of previous click.
                 let click_count = 2;
