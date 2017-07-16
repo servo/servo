@@ -72,4 +72,10 @@ impl test {
       } else { // Should not trigger
           "false"
       } // Should not trigger
+
+    if  true { // Double space after keyword
+        42
+    } else {
+        let xif = 42 in {  xif  } // Should not trigger
+    }
 }

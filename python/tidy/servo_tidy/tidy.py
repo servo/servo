@@ -516,6 +516,9 @@ def check_rust(file_name, lines):
         # flag this line if it matches one of the following regular expressions
         # tuple format: (pattern, format_message, filter_function(match, line))
         no_filter = lambda match, line: True
+        extra_space_after = lambda key: (r"(?<![A-Za-z0-9]){key}  ".format(key=key),
+                                         "extra space after {key}".format(key=key),
+                                         lambda match, line: not is_attribute)
         regex_rules = [
             (r",[^\s]", "missing space after ,",
                 lambda match, line: '$' not in line and not is_attribute),
@@ -526,6 +529,11 @@ def check_rust(file_name, lines):
                     re.search(r"[^']'[A-Za-z0-9_]+ \($", line[:match.end()]) or
                     match.group(1) in ['const', 'fn', 'for', 'if', 'in',
                                        'let', 'match', 'mut', 'return'])),
+            extra_space_after("if"),
+            extra_space_after("let"),
+            extra_space_after("mut"),
+            extra_space_after("extern"),
+            extra_space_after("as"),
             (r"[A-Za-z0-9\"]=", "missing space before =",
                 lambda match, line: is_attribute),
             (r"=[A-Za-z0-9\"]", "missing space after =",
