@@ -449,7 +449,7 @@ where
     let mut ancestor = element.traversal_parent();
     while let Some(current) = ancestor {
         if rule_inclusion == RuleInclusion::All {
-            if let Some(data) = element.borrow_data() {
+            if let Some(data) = current.borrow_data() {
                 if let Some(ancestor_style) = data.styles.get_primary() {
                     style = Some(ancestor_style.clone());
                     break;
