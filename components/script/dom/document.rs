@@ -3659,6 +3659,13 @@ impl DocumentMethods for Document {
         // Step 10.
         // TODO: prompt to unload.
 
+        let window = window_from_node(self);
+        let current_time = time::get_time();
+        let now = (current_time.sec * 1000 + current_time.nsec as i64 / 1000000) as u64;
+        let now_precise = time::precise_time_ns() as f64;
+        window.set_navigation_start(now);
+        window.set_navigation_start_precise(now_precise);
+
         // Step 11.
         // TODO: unload.
 

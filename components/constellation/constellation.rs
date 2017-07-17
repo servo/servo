@@ -127,6 +127,7 @@ use std::thread;
 use style_traits::CSSPixel;
 use style_traits::cursor::Cursor;
 use style_traits::viewport::ViewportConstraints;
+use time::{get_time, precise_time_ns};
 use timer_scheduler::TimerScheduler;
 use webrender_api;
 use webvr_traits::{WebVREvent, WebVRMsg};
@@ -1519,7 +1520,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
     }
 
-    fn handle_navigate_request(&self,
+    fn handle_navigate_request(&mut self,
                               req_init: RequestInit,
                               id: PipelineId) {
         let listener = NetworkListener::new(
@@ -1529,6 +1530,20 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                            self.network_listener_sender.clone());
 
         listener.initiate_fetch();
+
+        let result = match self.pipelines.get(&id) {
+            Some(pipeline) => {
+                let current_time = get_time();
+                let now = (current_time.sec * 1000 + current_time.nsec as i64 / 1000000) as u64;
+                let now_precise = precise_time_ns() as f64;
+                let msg = ConstellationControlMsg::NavigationStart(id, now, now_precise);
+                pipeline.event_loop.send(msg)
+            },
+            None => return warn!("Pipeline {:?} got navigate request after closure", id),
+        };
+        if let Err(e) = result {
+            self.handle_send_error(id, e);
+        }
     }
 
     // The script thread associated with pipeline_id has loaded a URL in an iframe via script. This

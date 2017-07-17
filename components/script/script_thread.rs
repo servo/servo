@@ -158,6 +158,10 @@ struct InProgressLoad {
     url: ServoUrl,
     /// The origin for the document
     origin: MutableOrigin,
+    /// Timestamp reporting the time when the browser started this load.
+    navigation_start: u64,
+    /// High res timestamp reporting the time when the browser started this load.
+    navigation_start_precise: f64,
 }
 
 impl InProgressLoad {
@@ -181,6 +185,8 @@ impl InProgressLoad {
             is_visible: true,
             url: url,
             origin: origin,
+            navigation_start: 0,
+            navigation_start_precise: 0.,
         }
     }
 }
@@ -1134,6 +1140,9 @@ impl ScriptThread {
                     _ => unreachable!(),
                 };
             },
+            ConstellationControlMsg::NavigationStart(id, time, precise_time) => {
+                self.handle_navigation_start(id, time, precise_time);
+            },
             ConstellationControlMsg::Navigate(parent_pipeline_id, browsing_context_id, load_data, replace) =>
                 self.handle_navigate(parent_pipeline_id, Some(browsing_context_id), load_data, replace),
             ConstellationControlMsg::SendEvent(id, event) =>
@@ -1809,12 +1818,23 @@ impl ScriptThread {
     fn handle_iframe_load_event(&self,
                                 parent_id: PipelineId,
                                 browsing_context_id: BrowsingContextId,
-                                child_id: PipelineId)
-    {
+                                child_id: PipelineId) {
         let iframe = self.documents.borrow().find_iframe(parent_id, browsing_context_id);
         match iframe {
             Some(iframe) => iframe.iframe_load_event_steps(child_id),
             None => warn!("Message sent to closed pipeline {}.", parent_id),
+        }
+    }
+
+    fn handle_navigation_start(&self,
+                               pipeline_id: PipelineId,
+                               navigation_start: u64,
+                               navigation_start_precise: f64) {
+        debug!("Navigation start {:?} {:?} {:?}", pipeline_id, navigation_start, navigation_start_precise);
+        let mut loads = self.incomplete_loads.borrow_mut();
+        if let Some(ref mut load) = loads.iter_mut().find(|load| load.pipeline_id == pipeline_id) {
+            load.navigation_start = navigation_start;
+            load.navigation_start_precise = navigation_start_precise;
         }
     }
 
@@ -1958,6 +1978,8 @@ impl ScriptThread {
                                  incomplete.parent_info,
                                  incomplete.window_size,
                                  origin,
+                                 incomplete.navigation_start,
+                                 incomplete.navigation_start_precise,
                                  self.webvr_thread.clone());
 
         // Initialize the browsing context for the window.

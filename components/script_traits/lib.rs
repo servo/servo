@@ -233,6 +233,9 @@ pub enum ConstellationControlMsg {
     /// Sends the final response to script thread for fetching after all redirections
     /// have been resolved
     NavigationResponse(PipelineId, FetchResponseMsg),
+    /// Sends the timestamp and the high res timestamp of the moment when navigation starts
+    /// for a specific pipeline.
+    NavigationStart(PipelineId, u64, f64),
     /// Gives a channel and ID to a layout thread, as well as the ID of that layout's parent
     AttachLayout(NewLayoutInfo),
     /// Window resized.  Sends a DOM event eventually, but first we combine events.
@@ -306,6 +309,7 @@ impl fmt::Debug for ConstellationControlMsg {
         use self::ConstellationControlMsg::*;
         let variant = match *self {
             NavigationResponse(..) => "NavigationResponse",
+            NavigationStart(..) => "NavigationStart",
             AttachLayout(..) => "AttachLayout",
             Resize(..) => "Resize",
             ResizeInactive(..) => "ResizeInactive",

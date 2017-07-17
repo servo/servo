@@ -118,7 +118,6 @@ use task_source::file_reading::FileReadingTaskSource;
 use task_source::history_traversal::HistoryTraversalTaskSource;
 use task_source::networking::NetworkingTaskSource;
 use task_source::user_interaction::UserInteractionTaskSource;
-use time;
 use timers::{IsInterval, TimerCallback};
 #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
 use tinyfiledialogs::{self, MessageBoxIcon};
@@ -184,8 +183,8 @@ pub struct Window {
     history: MutNullableJS<History>,
     custom_element_registry: MutNullableJS<CustomElementRegistry>,
     performance: MutNullableJS<Performance>,
-    navigation_start: u64,
-    navigation_start_precise: f64,
+    navigation_start: DOMRefCell<u64>,
+    navigation_start_precise: DOMRefCell<f64>,
     screen: MutNullableJS<Screen>,
     session_storage: MutNullableJS<Storage>,
     local_storage: MutNullableJS<Storage>,
@@ -702,8 +701,8 @@ impl WindowMethods for Window {
     // NavigationTiming/Overview.html#sec-window.performance-attribute
     fn Performance(&self) -> Root<Performance> {
         self.performance.or_init(|| {
-            Performance::new(self, self.navigation_start,
-                             self.navigation_start_precise)
+            Performance::new(self, *self.navigation_start.borrow(),
+                             *self.navigation_start_precise.borrow())
         })
     }
 
@@ -1772,6 +1771,14 @@ impl Window {
     pub fn unminified_js_dir(&self) -> Option<String> {
         self.unminified_js_dir.borrow().clone()
     }
+
+    pub fn set_navigation_start(&self, navigation_start: u64) {
+        *self.navigation_start.borrow_mut() = navigation_start;
+    }
+
+    pub fn set_navigation_start_precise(&self, navigation_start_precise: f64) {
+        *self.navigation_start_precise.borrow_mut() = navigation_start_precise;
+    }
 }
 
 impl Window {
@@ -1799,6 +1806,8 @@ impl Window {
                parent_info: Option<(PipelineId, FrameType)>,
                window_size: Option<WindowSizeData>,
                origin: MutableOrigin,
+               navigation_start: u64,
+               navigation_start_precise: f64,
                webvr_thread: Option<IpcSender<WebVRMsg>>)
                -> Root<Window> {
         let layout_rpc: Box<LayoutRPC + Send> = {
@@ -1810,7 +1819,6 @@ impl Window {
             pipelineid: id,
             script_chan: Arc::new(Mutex::new(control_chan)),
         };
-        let current_time = time::get_time();
         let win = box Window {
             globalscope:
                 GlobalScope::new_inherited(
@@ -1837,8 +1845,8 @@ impl Window {
             window_proxy: Default::default(),
             document: Default::default(),
             performance: Default::default(),
-            navigation_start: (current_time.sec * 1000 + current_time.nsec as i64 / 1000000) as u64,
-            navigation_start_precise: time::precise_time_ns() as f64,
+            navigation_start: DOMRefCell::new(navigation_start),
+            navigation_start_precise: DOMRefCell::new(navigation_start_precise),
             screen: Default::default(),
             session_storage: Default::default(),
             local_storage: Default::default(),
