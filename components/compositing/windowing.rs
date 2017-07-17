@@ -8,6 +8,7 @@ use compositor_thread::EventLoopWaker;
 use euclid::{Point2D, Size2D};
 use euclid::{TypedPoint2D, TypedRect, ScaleFactor, TypedSize2D};
 use gleam::gl;
+use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, TraversalDirection};
 use net_traits::net_error_list::NetError;
 use script_traits::{DevicePixel, LoadData, MouseButton, TouchEventType, TouchId, TouchpadPressurePhase};
@@ -131,7 +132,7 @@ pub trait WindowMethods {
     /// Called when the browser encounters an error while loading a URL
     fn load_error(&self, code: NetError, url: String);
     /// Wether or not to follow a link
-    fn allow_navigation(&self, url: ServoUrl) -> bool;
+    fn allow_navigation(&self, url: ServoUrl, IpcSender<bool>);
     /// Called when the <head> tag has finished parsing
     fn head_parsed(&self);
     /// Called when the history state has changed.

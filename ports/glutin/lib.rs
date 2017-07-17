@@ -17,6 +17,7 @@ extern crate msg;
 extern crate net_traits;
 #[cfg(any(target_os = "linux", target_os = "macos"))] extern crate osmesa_sys;
 extern crate script_traits;
+extern crate servo;
 extern crate servo_config;
 extern crate servo_geometry;
 extern crate servo_url;
