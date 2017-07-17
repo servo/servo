@@ -1886,7 +1886,7 @@ pub type ServoComputedValues = ComputedValues;
 ///
 /// When needed, the structs may be copied in order to get mutated.
 #[cfg(feature = "servo")]
-#[cfg_attr(feature = "servo", derive(Clone))]
+#[cfg_attr(feature = "servo", derive(Clone, Debug))]
 pub struct ComputedValues {
     % for style_struct in data.active_style_structs():
         ${style_struct.ident}: Arc<style_structs::${style_struct.name}>,
@@ -2237,14 +2237,6 @@ impl ComputedValues {
     }
 }
 
-// We manually implement Debug for ComputedValues so that we can avoid the
-// verbose stringification of every property and instead focus on a few values.
-impl fmt::Debug for ComputedValues {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "ComputedValues {{ rules: {:?}, .. }}", self.rules)
-    }
-}
-
 /// Return a WritingMode bitflags from the relevant CSS properties.
 pub fn get_writing_mode(inheritedbox_style: &style_structs::InheritedBox) -> WritingMode {
     use logical_geometry;
@@ -2296,10 +2288,24 @@ pub fn get_writing_mode(inheritedbox_style: &style_structs::InheritedBox) -> Wri
     flags
 }
 
+% if product == "gecko":
+    pub use ::stylearc::RawOffsetArc as BuilderArc;
+    /// Clone an arc, returning a regular arc
+    fn clone_arc<T: 'static>(x: &BuilderArc<T>) -> Arc<T> {
+        Arc::from_raw_offset(x.clone())
+    }
+% else:
+    pub use ::stylearc::Arc as BuilderArc;
+    /// Clone an arc, returning a regular arc
+    fn clone_arc<T: 'static>(x: &BuilderArc<T>) -> Arc<T> {
+        x.clone()
+    }
+% endif
+
 /// A reference to a style struct of the parent, or our own style struct.
 pub enum StyleStructRef<'a, T: 'static> {
     /// A borrowed struct from the parent, for example, for inheriting style.
-    Borrowed(&'a Arc<T>),
+    Borrowed(&'a BuilderArc<T>),
     /// An owned struct, that we've already mutated.
     Owned(UniqueArc<T>),
     /// Temporarily vacated, will panic if accessed
@@ -2360,7 +2366,7 @@ impl<'a, T: 'a> StyleStructRef<'a, T>
     pub fn build(self) -> Arc<T> {
         match self {
             StyleStructRef::Owned(v) => v.shareable(),
-            StyleStructRef::Borrowed(v) => v.clone(),
+            StyleStructRef::Borrowed(v) => clone_arc(v),
             StyleStructRef::Vacated => panic!("Accessed vacated style struct")
         }
     }

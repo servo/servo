@@ -771,11 +771,30 @@ impl<T: 'static> RawOffsetArc<T> {
         // Forward the result.
         result
     }
+
+    /// If uniquely owned, provide a mutable reference
+    /// Else create a copy, and mutate that
+    pub fn make_mut(&mut self) -> &mut T where T: Clone {
+        unsafe {
+            // extract the RawOffsetArc as an owned variable
+            let this = ptr::read(self);
+            // treat it as a real Arc
+            let mut arc = Arc::from_raw_offset(this);
+            // obtain the mutable reference. Cast away the lifetime
+            // This may mutate `arc`
+            let ret = Arc::make_mut(&mut arc) as *mut _;
+            // Store the possibly-mutated arc back inside, after converting
+            // it to a RawOffsetArc again
+            ptr::write(self, Arc::into_raw_offset(arc));
+            &mut *ret
+        }
+    }
 }
 
 impl<T: 'static> Arc<T> {
     /// Converts an Arc into a RawOffsetArc. This consumes the Arc, so the refcount
     /// is not modified.
+    #[inline]
     pub fn into_raw_offset(a: Self) -> RawOffsetArc<T> {
         RawOffsetArc {
             ptr: NonZeroPtrMut::new(Arc::into_raw(a) as *mut T),
@@ -784,6 +803,7 @@ impl<T: 'static> Arc<T> {
 
     /// Converts a RawOffsetArc into an Arc. This consumes the RawOffsetArc, so the refcount
     /// is not modified.
+    #[inline]
     pub fn from_raw_offset(a: RawOffsetArc<T>) -> Self {
         let ptr = a.ptr.ptr();
         mem::forget(a);

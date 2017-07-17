@@ -12,7 +12,9 @@ pub type ServoNodeData = AtomicRefCell<ElementData>;
 pub type ServoWritingMode = ::logical_geometry::WritingMode;
 pub type ServoFontComputationData = ::properties::FontComputationData;
 pub type ServoCustomPropertiesMap = Option<::stylearc::Arc<::custom_properties::CustomPropertiesMap>>;
+pub type ServoRuleNode = Option<::rule_tree::StrongRuleNode>;
 pub type ServoVisitedStyle = Option<::stylearc::Arc<ServoComputedValues2>>;
+pub type ServoComputedValueFlags = ::properties::computed_value_flags::ComputedValueFlags;
 pub type ServoRawOffsetArc<T> = ::stylearc::RawOffsetArc<T>;
 
 #[allow(non_snake_case, non_camel_case_types, non_upper_case_globals)]
@@ -7455,6 +7457,429 @@ pub mod root {
             FirstLetterContinuation = 1,
             PlaceholderFrame = 2,
         }
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct GeckoFont {
+            pub gecko: root::nsStyleFont,
+        }
+        #[test]
+        fn bindgen_test_layout_GeckoFont() {
+            assert_eq!(::std::mem::size_of::<GeckoFont>() , 120usize , concat
+                       ! ( "Size of: " , stringify ! ( GeckoFont ) ));
+            assert_eq! (::std::mem::align_of::<GeckoFont>() , 8usize , concat
+                        ! ( "Alignment of " , stringify ! ( GeckoFont ) ));
+            assert_eq! (unsafe {
+                        & ( * ( 0 as * const GeckoFont ) ) . gecko as * const
+                        _ as usize } , 0usize , concat ! (
+                        "Alignment of field: " , stringify ! ( GeckoFont ) ,
+                        "::" , stringify ! ( gecko ) ));
+        }
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct GeckoColor {
+            pub gecko: root::nsStyleColor,
+        }
+        #[test]
+        fn bindgen_test_layout_GeckoColor() {
+            assert_eq!(::std::mem::size_of::<GeckoColor>() , 4usize , concat !
+                       ( "Size of: " , stringify ! ( GeckoColor ) ));
+            assert_eq! (::std::mem::align_of::<GeckoColor>() , 4usize , concat
+                        ! ( "Alignment of " , stringify ! ( GeckoColor ) ));
+            assert_eq! (unsafe {
+                        & ( * ( 0 as * const GeckoColor ) ) . gecko as * const
+                        _ as usize } , 0usize , concat ! (
+                        "Alignment of field: " , stringify ! ( GeckoColor ) ,
+                        "::" , stringify ! ( gecko ) ));
+        }
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct GeckoList {
+            pub gecko: root::nsStyleList,
+        }
+        #[test]
+        fn bindgen_test_layout_GeckoList() {
+            assert_eq!(::std::mem::size_of::<GeckoList>() , 48usize , concat !
+                       ( "Size of: " , stringify ! ( GeckoList ) ));
+            assert_eq! (::std::mem::align_of::<GeckoList>() , 8usize , concat
+                        ! ( "Alignment of " , stringify ! ( GeckoList ) ));
+            assert_eq! (unsafe {
+                        & ( * ( 0 as * const GeckoList ) ) . gecko as * const
+                        _ as usize } , 0usize , concat ! (
+                        "Alignment of field: " , stringify ! ( GeckoList ) ,
+                        "::" , stringify ! ( gecko ) ));
+        }
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct GeckoText {
+            pub gecko: root::nsStyleText,
+        }
+        #[test]
+        fn bindgen_test_layout_GeckoText() {
+            assert_eq!(::std::mem::size_of::<GeckoText>() , 160usize , concat
+                       ! ( "Size of: " , stringify ! ( GeckoText ) ));
+            assert_eq! (::std::mem::align_of::<GeckoText>() , 8usize , concat
+                        ! ( "Alignment of " , stringify ! ( GeckoText ) ));
+            assert_eq! (unsafe {
+                        & ( * ( 0 as * const GeckoText ) ) . gecko as * const
+                        _ as usize } , 0usize , concat ! (
+                        "Alignment of field: " , stringify ! ( GeckoText ) ,
+                        "::" , stringify ! ( gecko ) ));
+        }
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct GeckoVisibility {
+            pub gecko: root::nsStyleVisibility,
+        }
+        #[test]
+        fn bindgen_test_layout_GeckoVisibility() {
+            assert_eq!(::std::mem::size_of::<GeckoVisibility>() , 7usize ,
+                       concat ! (
+                       "Size of: " , stringify ! ( GeckoVisibility ) ));
+            assert_eq! (::std::mem::align_of::<GeckoVisibility>() , 1usize ,
+                        concat ! (
+                        "Alignment of " , stringify ! ( GeckoVisibility ) ));
+            assert_eq! (unsafe {
+                        & ( * ( 0 as * const GeckoVisibility ) ) . gecko as *
+                        const _ as usize } , 0usize , concat ! (
+                        "Alignment of field: " , stringify ! ( GeckoVisibility
+                        ) , "::" , stringify ! ( gecko ) ));
+        }
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct GeckoUserInterface {
+            pub gecko: root::nsStyleUserInterface,
+        }
+        #[test]
+        fn bindgen_test_layout_GeckoUserInterface() {
+            assert_eq!(::std::mem::size_of::<GeckoUserInterface>() , 24usize ,
+                       concat ! (
+                       "Size of: " , stringify ! ( GeckoUserInterface ) ));
+            assert_eq! (::std::mem::align_of::<GeckoUserInterface>() , 8usize
+                        , concat ! (
+                        "Alignment of " , stringify ! ( GeckoUserInterface )
+                        ));
+            assert_eq! (unsafe {
+                        & ( * ( 0 as * const GeckoUserInterface ) ) . gecko as
+                        * const _ as usize } , 0usize , concat ! (
+                        "Alignment of field: " , stringify ! (
+                        GeckoUserInterface ) , "::" , stringify ! ( gecko )
+                        ));
+        }
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct GeckoTableBorder {
+            pub gecko: root::nsStyleTableBorder,
+        }
+        #[test]
+        fn bindgen_test_layout_GeckoTableBorder() {
+            assert_eq!(::std::mem::size_of::<GeckoTableBorder>() , 12usize ,
+                       concat ! (
+                       "Size of: " , stringify ! ( GeckoTableBorder ) ));
+            assert_eq! (::std::mem::align_of::<GeckoTableBorder>() , 4usize ,
+                        concat ! (
+                        "Alignment of " , stringify ! ( GeckoTableBorder ) ));
+            assert_eq! (unsafe {
+                        & ( * ( 0 as * const GeckoTableBorder ) ) . gecko as *
+                        const _ as usize } , 0usize , concat ! (
+                        "Alignment of field: " , stringify ! (
+                        GeckoTableBorder ) , "::" , stringify ! ( gecko ) ));
+        }
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct GeckoSVG {
+            pub gecko: root::nsStyleSVG,
+        }
+        #[test]
+        fn bindgen_test_layout_GeckoSVG() {
+            assert_eq!(::std::mem::size_of::<GeckoSVG>() , 128usize , concat !
+                       ( "Size of: " , stringify ! ( GeckoSVG ) ));
+            assert_eq! (::std::mem::align_of::<GeckoSVG>() , 8usize , concat !
+                        ( "Alignment of " , stringify ! ( GeckoSVG ) ));
+            assert_eq! (unsafe {
+                        & ( * ( 0 as * const GeckoSVG ) ) . gecko as * const _
+                        as usize } , 0usize , concat ! (
+                        "Alignment of field: " , stringify ! ( GeckoSVG ) ,
+                        "::" , stringify ! ( gecko ) ));
+        }
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct GeckoBackground {
+            pub gecko: root::nsStyleBackground,
+        }
+        #[test]
+        fn bindgen_test_layout_GeckoBackground() {
+            assert_eq!(::std::mem::size_of::<GeckoBackground>() , 160usize ,
+                       concat ! (
+                       "Size of: " , stringify ! ( GeckoBackground ) ));
+            assert_eq! (::std::mem::align_of::<GeckoBackground>() , 8usize ,
+                        concat ! (
+                        "Alignment of " , stringify ! ( GeckoBackground ) ));
+            assert_eq! (unsafe {
+                        & ( * ( 0 as * const GeckoBackground ) ) . gecko as *
+                        const _ as usize } , 0usize , concat ! (
+                        "Alignment of field: " , stringify ! ( GeckoBackground
+                        ) , "::" , stringify ! ( gecko ) ));
+        }
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct GeckoPosition {
+            pub gecko: root::nsStylePosition,
+        }
+        #[test]
+        fn bindgen_test_layout_GeckoPosition() {
+            assert_eq!(::std::mem::size_of::<GeckoPosition>() , 520usize ,
+                       concat ! ( "Size of: " , stringify ! ( GeckoPosition )
+                       ));
+            assert_eq! (::std::mem::align_of::<GeckoPosition>() , 8usize ,
+                        concat ! (
+                        "Alignment of " , stringify ! ( GeckoPosition ) ));
+            assert_eq! (unsafe {
+                        & ( * ( 0 as * const GeckoPosition ) ) . gecko as *
+                        const _ as usize } , 0usize , concat ! (
+                        "Alignment of field: " , stringify ! ( GeckoPosition )
+                        , "::" , stringify ! ( gecko ) ));
+        }
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct GeckoTextReset {
+            pub gecko: root::nsStyleTextReset,
+        }
+        #[test]
+        fn bindgen_test_layout_GeckoTextReset() {
+            assert_eq!(::std::mem::size_of::<GeckoTextReset>() , 80usize ,
+                       concat ! ( "Size of: " , stringify ! ( GeckoTextReset )
+                       ));
+            assert_eq! (::std::mem::align_of::<GeckoTextReset>() , 8usize ,
+                        concat ! (
+                        "Alignment of " , stringify ! ( GeckoTextReset ) ));
+            assert_eq! (unsafe {
+                        & ( * ( 0 as * const GeckoTextReset ) ) . gecko as *
+                        const _ as usize } , 0usize , concat ! (
+                        "Alignment of field: " , stringify ! ( GeckoTextReset
+                        ) , "::" , stringify ! ( gecko ) ));
+        }
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct GeckoDisplay {
+            pub gecko: root::nsStyleDisplay,
+        }
+        #[test]
+        fn bindgen_test_layout_GeckoDisplay() {
+            assert_eq!(::std::mem::size_of::<GeckoDisplay>() , 416usize ,
+                       concat ! ( "Size of: " , stringify ! ( GeckoDisplay )
+                       ));
+            assert_eq! (::std::mem::align_of::<GeckoDisplay>() , 8usize ,
+                        concat ! (
+                        "Alignment of " , stringify ! ( GeckoDisplay ) ));
+            assert_eq! (unsafe {
+                        & ( * ( 0 as * const GeckoDisplay ) ) . gecko as *
+                        const _ as usize } , 0usize , concat ! (
+                        "Alignment of field: " , stringify ! ( GeckoDisplay )
+                        , "::" , stringify ! ( gecko ) ));
+        }
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct GeckoContent {
+            pub gecko: root::nsStyleContent,
+        }
+        #[test]
+        fn bindgen_test_layout_GeckoContent() {
+            assert_eq!(::std::mem::size_of::<GeckoContent>() , 24usize ,
+                       concat ! ( "Size of: " , stringify ! ( GeckoContent )
+                       ));
+            assert_eq! (::std::mem::align_of::<GeckoContent>() , 8usize ,
+                        concat ! (
+                        "Alignment of " , stringify ! ( GeckoContent ) ));
+            assert_eq! (unsafe {
+                        & ( * ( 0 as * const GeckoContent ) ) . gecko as *
+                        const _ as usize } , 0usize , concat ! (
+                        "Alignment of field: " , stringify ! ( GeckoContent )
+                        , "::" , stringify ! ( gecko ) ));
+        }
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct GeckoUIReset {
+            pub gecko: root::nsStyleUIReset,
+        }
+        #[test]
+        fn bindgen_test_layout_GeckoUIReset() {
+            assert_eq!(::std::mem::size_of::<GeckoUIReset>() , 56usize ,
+                       concat ! ( "Size of: " , stringify ! ( GeckoUIReset )
+                       ));
+            assert_eq! (::std::mem::align_of::<GeckoUIReset>() , 8usize ,
+                        concat ! (
+                        "Alignment of " , stringify ! ( GeckoUIReset ) ));
+            assert_eq! (unsafe {
+                        & ( * ( 0 as * const GeckoUIReset ) ) . gecko as *
+                        const _ as usize } , 0usize , concat ! (
+                        "Alignment of field: " , stringify ! ( GeckoUIReset )
+                        , "::" , stringify ! ( gecko ) ));
+        }
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct GeckoTable {
+            pub gecko: root::nsStyleTable,
+        }
+        #[test]
+        fn bindgen_test_layout_GeckoTable() {
+            assert_eq!(::std::mem::size_of::<GeckoTable>() , 8usize , concat !
+                       ( "Size of: " , stringify ! ( GeckoTable ) ));
+            assert_eq! (::std::mem::align_of::<GeckoTable>() , 4usize , concat
+                        ! ( "Alignment of " , stringify ! ( GeckoTable ) ));
+            assert_eq! (unsafe {
+                        & ( * ( 0 as * const GeckoTable ) ) . gecko as * const
+                        _ as usize } , 0usize , concat ! (
+                        "Alignment of field: " , stringify ! ( GeckoTable ) ,
+                        "::" , stringify ! ( gecko ) ));
+        }
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct GeckoMargin {
+            pub gecko: root::nsStyleMargin,
+        }
+        #[test]
+        fn bindgen_test_layout_GeckoMargin() {
+            assert_eq!(::std::mem::size_of::<GeckoMargin>() , 40usize , concat
+                       ! ( "Size of: " , stringify ! ( GeckoMargin ) ));
+            assert_eq! (::std::mem::align_of::<GeckoMargin>() , 8usize ,
+                        concat ! (
+                        "Alignment of " , stringify ! ( GeckoMargin ) ));
+            assert_eq! (unsafe {
+                        & ( * ( 0 as * const GeckoMargin ) ) . gecko as *
+                        const _ as usize } , 0usize , concat ! (
+                        "Alignment of field: " , stringify ! ( GeckoMargin ) ,
+                        "::" , stringify ! ( gecko ) ));
+        }
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct GeckoPadding {
+            pub gecko: root::nsStylePadding,
+        }
+        #[test]
+        fn bindgen_test_layout_GeckoPadding() {
+            assert_eq!(::std::mem::size_of::<GeckoPadding>() , 40usize ,
+                       concat ! ( "Size of: " , stringify ! ( GeckoPadding )
+                       ));
+            assert_eq! (::std::mem::align_of::<GeckoPadding>() , 8usize ,
+                        concat ! (
+                        "Alignment of " , stringify ! ( GeckoPadding ) ));
+            assert_eq! (unsafe {
+                        & ( * ( 0 as * const GeckoPadding ) ) . gecko as *
+                        const _ as usize } , 0usize , concat ! (
+                        "Alignment of field: " , stringify ! ( GeckoPadding )
+                        , "::" , stringify ! ( gecko ) ));
+        }
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct GeckoBorder {
+            pub gecko: root::nsStyleBorder,
+        }
+        #[test]
+        fn bindgen_test_layout_GeckoBorder() {
+            assert_eq!(::std::mem::size_of::<GeckoBorder>() , 312usize ,
+                       concat ! ( "Size of: " , stringify ! ( GeckoBorder )
+                       ));
+            assert_eq! (::std::mem::align_of::<GeckoBorder>() , 8usize ,
+                        concat ! (
+                        "Alignment of " , stringify ! ( GeckoBorder ) ));
+            assert_eq! (unsafe {
+                        & ( * ( 0 as * const GeckoBorder ) ) . gecko as *
+                        const _ as usize } , 0usize , concat ! (
+                        "Alignment of field: " , stringify ! ( GeckoBorder ) ,
+                        "::" , stringify ! ( gecko ) ));
+        }
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct GeckoOutline {
+            pub gecko: root::nsStyleOutline,
+        }
+        #[test]
+        fn bindgen_test_layout_GeckoOutline() {
+            assert_eq!(::std::mem::size_of::<GeckoOutline>() , 104usize ,
+                       concat ! ( "Size of: " , stringify ! ( GeckoOutline )
+                       ));
+            assert_eq! (::std::mem::align_of::<GeckoOutline>() , 8usize ,
+                        concat ! (
+                        "Alignment of " , stringify ! ( GeckoOutline ) ));
+            assert_eq! (unsafe {
+                        & ( * ( 0 as * const GeckoOutline ) ) . gecko as *
+                        const _ as usize } , 0usize , concat ! (
+                        "Alignment of field: " , stringify ! ( GeckoOutline )
+                        , "::" , stringify ! ( gecko ) ));
+        }
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct GeckoXUL {
+            pub gecko: root::nsStyleXUL,
+        }
+        #[test]
+        fn bindgen_test_layout_GeckoXUL() {
+            assert_eq!(::std::mem::size_of::<GeckoXUL>() , 16usize , concat !
+                       ( "Size of: " , stringify ! ( GeckoXUL ) ));
+            assert_eq! (::std::mem::align_of::<GeckoXUL>() , 4usize , concat !
+                        ( "Alignment of " , stringify ! ( GeckoXUL ) ));
+            assert_eq! (unsafe {
+                        & ( * ( 0 as * const GeckoXUL ) ) . gecko as * const _
+                        as usize } , 0usize , concat ! (
+                        "Alignment of field: " , stringify ! ( GeckoXUL ) ,
+                        "::" , stringify ! ( gecko ) ));
+        }
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct GeckoSVGReset {
+            pub gecko: root::nsStyleSVGReset,
+        }
+        #[test]
+        fn bindgen_test_layout_GeckoSVGReset() {
+            assert_eq!(::std::mem::size_of::<GeckoSVGReset>() , 192usize ,
+                       concat ! ( "Size of: " , stringify ! ( GeckoSVGReset )
+                       ));
+            assert_eq! (::std::mem::align_of::<GeckoSVGReset>() , 8usize ,
+                        concat ! (
+                        "Alignment of " , stringify ! ( GeckoSVGReset ) ));
+            assert_eq! (unsafe {
+                        & ( * ( 0 as * const GeckoSVGReset ) ) . gecko as *
+                        const _ as usize } , 0usize , concat ! (
+                        "Alignment of field: " , stringify ! ( GeckoSVGReset )
+                        , "::" , stringify ! ( gecko ) ));
+        }
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct GeckoColumn {
+            pub gecko: root::nsStyleColumn,
+        }
+        #[test]
+        fn bindgen_test_layout_GeckoColumn() {
+            assert_eq!(::std::mem::size_of::<GeckoColumn>() , 64usize , concat
+                       ! ( "Size of: " , stringify ! ( GeckoColumn ) ));
+            assert_eq! (::std::mem::align_of::<GeckoColumn>() , 8usize ,
+                        concat ! (
+                        "Alignment of " , stringify ! ( GeckoColumn ) ));
+            assert_eq! (unsafe {
+                        & ( * ( 0 as * const GeckoColumn ) ) . gecko as *
+                        const _ as usize } , 0usize , concat ! (
+                        "Alignment of field: " , stringify ! ( GeckoColumn ) ,
+                        "::" , stringify ! ( gecko ) ));
+        }
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct GeckoEffects {
+            pub gecko: root::nsStyleEffects,
+        }
+        #[test]
+        fn bindgen_test_layout_GeckoEffects() {
+            assert_eq!(::std::mem::size_of::<GeckoEffects>() , 40usize ,
+                       concat ! ( "Size of: " , stringify ! ( GeckoEffects )
+                       ));
+            assert_eq! (::std::mem::align_of::<GeckoEffects>() , 8usize ,
+                        concat ! (
+                        "Alignment of " , stringify ! ( GeckoEffects ) ));
+            assert_eq! (unsafe {
+                        & ( * ( 0 as * const GeckoEffects ) ) . gecko as *
+                        const _ as usize } , 0usize , concat ! (
+                        "Alignment of field: " , stringify ! ( GeckoEffects )
+                        , "::" , stringify ! ( gecko ) ));
+        }
         /**
  * We want C++ to be abe to read the style struct fields of ComputedValues
  * so we define this type on the C++ side and use the bindgenned version
@@ -7468,39 +7893,46 @@ pub mod root {
         #[repr(C)]
         #[derive(Debug)]
         pub struct ServoComputedValues2 {
-            pub Font: ::gecko_bindings::structs::ServoRawOffsetArc<root::nsStyleFont>,
-            pub Color: ::gecko_bindings::structs::ServoRawOffsetArc<root::nsStyleColor>,
-            pub List: ::gecko_bindings::structs::ServoRawOffsetArc<root::nsStyleList>,
-            pub Text: ::gecko_bindings::structs::ServoRawOffsetArc<root::nsStyleText>,
-            pub Visibility: ::gecko_bindings::structs::ServoRawOffsetArc<root::nsStyleVisibility>,
-            pub UserInterface: ::gecko_bindings::structs::ServoRawOffsetArc<root::nsStyleUserInterface>,
-            pub TableBorder: ::gecko_bindings::structs::ServoRawOffsetArc<root::nsStyleTableBorder>,
-            pub SVG: ::gecko_bindings::structs::ServoRawOffsetArc<root::nsStyleSVG>,
-            pub Variables: ::gecko_bindings::structs::ServoRawOffsetArc<root::nsStyleVariables>,
-            pub Background: ::gecko_bindings::structs::ServoRawOffsetArc<root::nsStyleBackground>,
-            pub Position: ::gecko_bindings::structs::ServoRawOffsetArc<root::nsStylePosition>,
-            pub TextReset: ::gecko_bindings::structs::ServoRawOffsetArc<root::nsStyleTextReset>,
-            pub Display: ::gecko_bindings::structs::ServoRawOffsetArc<root::nsStyleDisplay>,
-            pub Content: ::gecko_bindings::structs::ServoRawOffsetArc<root::nsStyleContent>,
-            pub UIReset: ::gecko_bindings::structs::ServoRawOffsetArc<root::nsStyleUIReset>,
-            pub Table: ::gecko_bindings::structs::ServoRawOffsetArc<root::nsStyleTable>,
-            pub Margin: ::gecko_bindings::structs::ServoRawOffsetArc<root::nsStyleMargin>,
-            pub Padding: ::gecko_bindings::structs::ServoRawOffsetArc<root::nsStylePadding>,
-            pub Border: ::gecko_bindings::structs::ServoRawOffsetArc<root::nsStyleBorder>,
-            pub Outline: ::gecko_bindings::structs::ServoRawOffsetArc<root::nsStyleOutline>,
-            pub XUL: ::gecko_bindings::structs::ServoRawOffsetArc<root::nsStyleXUL>,
-            pub SVGReset: ::gecko_bindings::structs::ServoRawOffsetArc<root::nsStyleSVGReset>,
-            pub Column: ::gecko_bindings::structs::ServoRawOffsetArc<root::nsStyleColumn>,
-            pub Effects: ::gecko_bindings::structs::ServoRawOffsetArc<root::nsStyleEffects>,
+            pub Font: ::gecko_bindings::structs::ServoRawOffsetArc<root::mozilla::GeckoFont>,
+            pub Color: ::gecko_bindings::structs::ServoRawOffsetArc<root::mozilla::GeckoColor>,
+            pub List: ::gecko_bindings::structs::ServoRawOffsetArc<root::mozilla::GeckoList>,
+            pub Text: ::gecko_bindings::structs::ServoRawOffsetArc<root::mozilla::GeckoText>,
+            pub Visibility: ::gecko_bindings::structs::ServoRawOffsetArc<root::mozilla::GeckoVisibility>,
+            pub UserInterface: ::gecko_bindings::structs::ServoRawOffsetArc<root::mozilla::GeckoUserInterface>,
+            pub TableBorder: ::gecko_bindings::structs::ServoRawOffsetArc<root::mozilla::GeckoTableBorder>,
+            pub SVG: ::gecko_bindings::structs::ServoRawOffsetArc<root::mozilla::GeckoSVG>,
+            pub Background: ::gecko_bindings::structs::ServoRawOffsetArc<root::mozilla::GeckoBackground>,
+            pub Position: ::gecko_bindings::structs::ServoRawOffsetArc<root::mozilla::GeckoPosition>,
+            pub TextReset: ::gecko_bindings::structs::ServoRawOffsetArc<root::mozilla::GeckoTextReset>,
+            pub Display: ::gecko_bindings::structs::ServoRawOffsetArc<root::mozilla::GeckoDisplay>,
+            pub Content: ::gecko_bindings::structs::ServoRawOffsetArc<root::mozilla::GeckoContent>,
+            pub UIReset: ::gecko_bindings::structs::ServoRawOffsetArc<root::mozilla::GeckoUIReset>,
+            pub Table: ::gecko_bindings::structs::ServoRawOffsetArc<root::mozilla::GeckoTable>,
+            pub Margin: ::gecko_bindings::structs::ServoRawOffsetArc<root::mozilla::GeckoMargin>,
+            pub Padding: ::gecko_bindings::structs::ServoRawOffsetArc<root::mozilla::GeckoPadding>,
+            pub Border: ::gecko_bindings::structs::ServoRawOffsetArc<root::mozilla::GeckoBorder>,
+            pub Outline: ::gecko_bindings::structs::ServoRawOffsetArc<root::mozilla::GeckoOutline>,
+            pub XUL: ::gecko_bindings::structs::ServoRawOffsetArc<root::mozilla::GeckoXUL>,
+            pub SVGReset: ::gecko_bindings::structs::ServoRawOffsetArc<root::mozilla::GeckoSVGReset>,
+            pub Column: ::gecko_bindings::structs::ServoRawOffsetArc<root::mozilla::GeckoColumn>,
+            pub Effects: ::gecko_bindings::structs::ServoRawOffsetArc<root::mozilla::GeckoEffects>,
             pub custom_properties: ::gecko_bindings::structs::ServoCustomPropertiesMap,
             pub writing_mode: ::gecko_bindings::structs::ServoWritingMode,
             pub font_computation_data: ::gecko_bindings::structs::ServoFontComputationData,
+            /// The rule node representing the ordered list of rules matched for this
+  /// node.  Can be None for default values and text nodes.  This is
+  /// essentially an optimization to avoid referencing the root rule node.
+            pub rules: ::gecko_bindings::structs::ServoRuleNode,
+            /// The element's computed values if visited, only computed if there's a
+  /// relevant link for this element. A element's "relevant link" is the
+  /// element being matched if it is a link or the nearest ancestor link.
             pub visited_style: ::gecko_bindings::structs::ServoVisitedStyle,
+            pub flags: ::gecko_bindings::structs::ServoComputedValueFlags,
         }
         #[test]
         fn bindgen_test_layout_ServoComputedValues2() {
             assert_eq!(::std::mem::size_of::<ServoComputedValues2>() ,
-                       224usize , concat ! (
+                       232usize , concat ! (
                        "Size of: " , stringify ! ( ServoComputedValues2 ) ));
             assert_eq! (::std::mem::align_of::<ServoComputedValues2>() ,
                         8usize , concat ! (
@@ -7559,120 +7991,112 @@ pub mod root {
                         ));
             assert_eq! (unsafe {
                         & ( * ( 0 as * const ServoComputedValues2 ) ) .
-                        Variables as * const _ as usize } , 64usize , concat !
-                        (
-                        "Alignment of field: " , stringify ! (
-                        ServoComputedValues2 ) , "::" , stringify ! (
-                        Variables ) ));
-            assert_eq! (unsafe {
-                        & ( * ( 0 as * const ServoComputedValues2 ) ) .
-                        Background as * const _ as usize } , 72usize , concat
+                        Background as * const _ as usize } , 64usize , concat
                         ! (
                         "Alignment of field: " , stringify ! (
                         ServoComputedValues2 ) , "::" , stringify ! (
                         Background ) ));
             assert_eq! (unsafe {
                         & ( * ( 0 as * const ServoComputedValues2 ) ) .
-                        Position as * const _ as usize } , 80usize , concat !
+                        Position as * const _ as usize } , 72usize , concat !
                         (
                         "Alignment of field: " , stringify ! (
                         ServoComputedValues2 ) , "::" , stringify ! ( Position
                         ) ));
             assert_eq! (unsafe {
                         & ( * ( 0 as * const ServoComputedValues2 ) ) .
-                        TextReset as * const _ as usize } , 88usize , concat !
+                        TextReset as * const _ as usize } , 80usize , concat !
                         (
                         "Alignment of field: " , stringify ! (
                         ServoComputedValues2 ) , "::" , stringify ! (
                         TextReset ) ));
             assert_eq! (unsafe {
                         & ( * ( 0 as * const ServoComputedValues2 ) ) .
-                        Display as * const _ as usize } , 96usize , concat ! (
+                        Display as * const _ as usize } , 88usize , concat ! (
                         "Alignment of field: " , stringify ! (
                         ServoComputedValues2 ) , "::" , stringify ! ( Display
                         ) ));
             assert_eq! (unsafe {
                         & ( * ( 0 as * const ServoComputedValues2 ) ) .
-                        Content as * const _ as usize } , 104usize , concat !
-                        (
+                        Content as * const _ as usize } , 96usize , concat ! (
                         "Alignment of field: " , stringify ! (
                         ServoComputedValues2 ) , "::" , stringify ! ( Content
                         ) ));
             assert_eq! (unsafe {
                         & ( * ( 0 as * const ServoComputedValues2 ) ) .
-                        UIReset as * const _ as usize } , 112usize , concat !
+                        UIReset as * const _ as usize } , 104usize , concat !
                         (
                         "Alignment of field: " , stringify ! (
                         ServoComputedValues2 ) , "::" , stringify ! ( UIReset
                         ) ));
             assert_eq! (unsafe {
                         & ( * ( 0 as * const ServoComputedValues2 ) ) . Table
-                        as * const _ as usize } , 120usize , concat ! (
+                        as * const _ as usize } , 112usize , concat ! (
                         "Alignment of field: " , stringify ! (
                         ServoComputedValues2 ) , "::" , stringify ! ( Table )
                         ));
             assert_eq! (unsafe {
                         & ( * ( 0 as * const ServoComputedValues2 ) ) . Margin
-                        as * const _ as usize } , 128usize , concat ! (
+                        as * const _ as usize } , 120usize , concat ! (
                         "Alignment of field: " , stringify ! (
                         ServoComputedValues2 ) , "::" , stringify ! ( Margin )
                         ));
             assert_eq! (unsafe {
                         & ( * ( 0 as * const ServoComputedValues2 ) ) .
-                        Padding as * const _ as usize } , 136usize , concat !
+                        Padding as * const _ as usize } , 128usize , concat !
                         (
                         "Alignment of field: " , stringify ! (
                         ServoComputedValues2 ) , "::" , stringify ! ( Padding
                         ) ));
             assert_eq! (unsafe {
                         & ( * ( 0 as * const ServoComputedValues2 ) ) . Border
-                        as * const _ as usize } , 144usize , concat ! (
+                        as * const _ as usize } , 136usize , concat ! (
                         "Alignment of field: " , stringify ! (
                         ServoComputedValues2 ) , "::" , stringify ! ( Border )
                         ));
             assert_eq! (unsafe {
                         & ( * ( 0 as * const ServoComputedValues2 ) ) .
-                        Outline as * const _ as usize } , 152usize , concat !
+                        Outline as * const _ as usize } , 144usize , concat !
                         (
                         "Alignment of field: " , stringify ! (
                         ServoComputedValues2 ) , "::" , stringify ! ( Outline
                         ) ));
             assert_eq! (unsafe {
                         & ( * ( 0 as * const ServoComputedValues2 ) ) . XUL as
-                        * const _ as usize } , 160usize , concat ! (
+                        * const _ as usize } , 152usize , concat ! (
                         "Alignment of field: " , stringify ! (
                         ServoComputedValues2 ) , "::" , stringify ! ( XUL )
                         ));
             assert_eq! (unsafe {
                         & ( * ( 0 as * const ServoComputedValues2 ) ) .
-                        SVGReset as * const _ as usize } , 168usize , concat !
+                        SVGReset as * const _ as usize } , 160usize , concat !
                         (
                         "Alignment of field: " , stringify ! (
                         ServoComputedValues2 ) , "::" , stringify ! ( SVGReset
                         ) ));
             assert_eq! (unsafe {
                         & ( * ( 0 as * const ServoComputedValues2 ) ) . Column
-                        as * const _ as usize } , 176usize , concat ! (
+                        as * const _ as usize } , 168usize , concat ! (
                         "Alignment of field: " , stringify ! (
                         ServoComputedValues2 ) , "::" , stringify ! ( Column )
                         ));
             assert_eq! (unsafe {
                         & ( * ( 0 as * const ServoComputedValues2 ) ) .
-                        Effects as * const _ as usize } , 184usize , concat !
+                        Effects as * const _ as usize } , 176usize , concat !
                         (
                         "Alignment of field: " , stringify ! (
                         ServoComputedValues2 ) , "::" , stringify ! ( Effects
                         ) ));
             assert_eq! (unsafe {
                         & ( * ( 0 as * const ServoComputedValues2 ) ) .
-                        custom_properties as * const _ as usize } , 192usize ,
+                        custom_properties as * const _ as usize } , 184usize ,
                         concat ! (
                         "Alignment of field: " , stringify ! (
                         ServoComputedValues2 ) , "::" , stringify ! (
                         custom_properties ) ));
             assert_eq! (unsafe {
                         & ( * ( 0 as * const ServoComputedValues2 ) ) .
-                        writing_mode as * const _ as usize } , 200usize ,
+                        writing_mode as * const _ as usize } , 192usize ,
                         concat ! (
                         "Alignment of field: " , stringify ! (
                         ServoComputedValues2 ) , "::" , stringify ! (
@@ -7680,10 +8104,16 @@ pub mod root {
             assert_eq! (unsafe {
                         & ( * ( 0 as * const ServoComputedValues2 ) ) .
                         font_computation_data as * const _ as usize } ,
-                        204usize , concat ! (
+                        196usize , concat ! (
                         "Alignment of field: " , stringify ! (
                         ServoComputedValues2 ) , "::" , stringify ! (
                         font_computation_data ) ));
+            assert_eq! (unsafe {
+                        & ( * ( 0 as * const ServoComputedValues2 ) ) . rules
+                        as * const _ as usize } , 208usize , concat ! (
+                        "Alignment of field: " , stringify ! (
+                        ServoComputedValues2 ) , "::" , stringify ! ( rules )
+                        ));
             assert_eq! (unsafe {
                         & ( * ( 0 as * const ServoComputedValues2 ) ) .
                         visited_style as * const _ as usize } , 216usize ,
@@ -7691,6 +8121,12 @@ pub mod root {
                         "Alignment of field: " , stringify ! (
                         ServoComputedValues2 ) , "::" , stringify ! (
                         visited_style ) ));
+            assert_eq! (unsafe {
+                        & ( * ( 0 as * const ServoComputedValues2 ) ) . flags
+                        as * const _ as usize } , 224usize , concat ! (
+                        "Alignment of field: " , stringify ! (
+                        ServoComputedValues2 ) , "::" , stringify ! ( flags )
+                        ));
         }
         #[repr(u8)]
         /**
@@ -38413,7 +38849,7 @@ pub mod root {
                    root::nsCharTraits ) ));
     }
     #[test]
-    fn __bindgen_test_layout__bindgen_ty_id_187141_instantiation_33() {
+    fn __bindgen_test_layout__bindgen_ty_id_187475_instantiation_33() {
         assert_eq!(::std::mem::size_of::<u8>() , 1usize , concat ! (
                    "Size of template specialization: " , stringify ! ( u8 )
                    ));
@@ -38422,7 +38858,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout__bindgen_ty_id_187177_instantiation_34() {
+    fn __bindgen_test_layout__bindgen_ty_id_187511_instantiation_34() {
         assert_eq!(::std::mem::size_of::<u8>() , 1usize , concat ! (
                    "Size of template specialization: " , stringify ! ( u8 )
                    ));
