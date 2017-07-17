@@ -1928,6 +1928,12 @@ impl ScriptThread {
         ROUTER.route_ipc_receiver_to_mpsc_sender(ipc_timer_event_port,
                                                  self.timer_event_chan.clone());
 
+        let origin = if final_url.as_str() == "about:blank" {
+            incomplete.origin.clone()
+        } else {
+            MutableOrigin::new(final_url.origin())
+        };
+
         // Create the window and document objects.
         let window = Window::new(self.js_runtime.clone(),
                                  MainThreadScriptChan(sender.clone()),
@@ -1951,7 +1957,7 @@ impl ScriptThread {
                                  incomplete.pipeline_id,
                                  incomplete.parent_info,
                                  incomplete.window_size,
-                                 incomplete.origin.clone(),
+                                 origin,
                                  self.webvr_thread.clone());
 
         // Initialize the browsing context for the window.
@@ -2283,13 +2289,13 @@ impl ScriptThread {
             destination: Destination::Document,
             credentials_mode: CredentialsMode::Include,
             use_url_credentials: true,
-            origin: load_data.url.clone(),
             pipeline_id: Some(id),
             referrer_url: load_data.referrer_url,
             referrer_policy: load_data.referrer_policy,
             headers: load_data.headers,
             body: load_data.data,
             redirect_mode: RedirectMode::Manual,
+            origin: incomplete.origin.immutable().clone(),
             .. RequestInit::default()
         };
 

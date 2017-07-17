@@ -574,17 +574,14 @@ impl WorkletThread {
         // TODO: Fetch a module graph, not just a single script.
         // TODO: Fetch the script asynchronously?
         // TODO: Caching.
-        // TODO: Avoid re-parsing the origin as a URL.
         let resource_fetcher = self.global_init.resource_threads.sender();
-        let origin_url = ServoUrl::parse(&*origin.unicode_serialization())
-            .unwrap_or_else(|_| ServoUrl::parse("about:blank").unwrap());
         let request = RequestInit {
             url: script_url,
             type_: RequestType::Script,
             destination: Destination::Script,
             mode: RequestMode::CorsMode,
-            origin: origin_url,
             credentials_mode: credentials.into(),
+            origin,
             .. RequestInit::default()
         };
         let script = load_whole_resource(request, &resource_fetcher).ok()

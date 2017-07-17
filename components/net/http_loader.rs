@@ -1371,7 +1371,7 @@ fn cors_check(request: &Request, response: &Response) -> Result<(), ()> {
     };
 
     match request.origin {
-        Origin::Origin(ref o) if o.ascii_serialization() == origin => {},
+        Origin::Origin(ref o) if o.ascii_serialization() == origin.trim() => {},
         _ => return Err(())
     }
 

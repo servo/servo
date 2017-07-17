@@ -70,7 +70,7 @@ pub fn fetch_image_for_layout(url: ServoUrl,
 
     let request = FetchRequestInit {
         url: url,
-        origin: document.url().clone(),
+        origin: document.origin().immutable().clone(),
         type_: RequestType::Image,
         pipeline_id: Some(document.global().pipeline_id()),
         .. FetchRequestInit::default()

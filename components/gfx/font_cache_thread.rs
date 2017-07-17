@@ -216,7 +216,8 @@ impl FontCache {
                     url: url.clone(),
                     type_: RequestType::Font,
                     destination: Destination::Font,
-                    origin: url.clone(),
+                    // TODO: Add a proper origin - Can't import GlobalScope from gfx
+                    // We can leave origin to be set by default
                     .. RequestInit::default()
                 };
 

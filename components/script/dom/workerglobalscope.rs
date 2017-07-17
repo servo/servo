@@ -211,7 +211,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
                 destination: Destination::Script,
                 credentials_mode: CredentialsMode::Include,
                 use_url_credentials: true,
-                origin: self.worker_url.clone(),
+                origin: global_scope.origin().immutable().clone(),
                 pipeline_id: Some(self.upcast::<GlobalScope>().pipeline_id()),
                 referrer_url: None,
                 referrer_policy: None,

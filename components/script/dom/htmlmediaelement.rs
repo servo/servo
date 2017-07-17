@@ -550,7 +550,7 @@ impl HTMLMediaElement {
                 destination: Destination::Media,
                 credentials_mode: CredentialsMode::Include,
                 use_url_credentials: true,
-                origin: document.url(),
+                origin: document.origin().immutable().clone(),
                 pipeline_id: Some(self.global().pipeline_id()),
                 referrer_url: Some(document.url()),
                 referrer_policy: document.get_referrer_policy(),
