@@ -5,7 +5,6 @@
 //! Specified types for CSS values that are related to transformations.
 
 use cssparser::Parser;
-use euclid::Point2D;
 use parser::{Parse, ParserContext};
 use selectors::parser::SelectorParseError;
 use style_traits::{ParseError, StyleParseError};
@@ -160,20 +159,19 @@ impl Parse for TimingFunction {
         input.parse_nested_block(move |i| {
             (match_ignore_ascii_case! { &function,
                 "cubic-bezier" => {
-                    let p1x = Number::parse(context, i)?;
+                    let x1 = Number::parse(context, i)?;
                     i.expect_comma()?;
-                    let p1y = Number::parse(context, i)?;
+                    let y1 = Number::parse(context, i)?;
                     i.expect_comma()?;
-                    let p2x = Number::parse(context, i)?;
+                    let x2 = Number::parse(context, i)?;
                     i.expect_comma()?;
-                    let p2y = Number::parse(context, i)?;
+                    let y2 = Number::parse(context, i)?;
 
-                    if p1x.get() < 0.0 || p1x.get() > 1.0 || p2x.get() < 0.0 || p2x.get() > 1.0 {
+                    if x1.get() < 0.0 || x1.get() > 1.0 || x2.get() < 0.0 || x2.get() > 1.0 {
                         return Err(StyleParseError::UnspecifiedError.into());
                     }
 
-                    let (p1, p2) = (Point2D::new(p1x, p1y), Point2D::new(p2x, p2y));
-                    Ok(GenericTimingFunction::CubicBezier(p1, p2))
+                    Ok(GenericTimingFunction::CubicBezier { x1, y1, x2, y2 })
                 },
                 "steps" => {
                     let steps = Integer::parse_positive(context, i)?;
@@ -206,17 +204,13 @@ impl ToComputedValue for TimingFunction {
             GenericTimingFunction::Keyword(keyword) => {
                 GenericTimingFunction::Keyword(keyword)
             },
-            GenericTimingFunction::CubicBezier(p1, p2) => {
-                GenericTimingFunction::CubicBezier(
-                    Point2D::new(
-                        p1.x.to_computed_value(context),
-                        p1.y.to_computed_value(context),
-                    ),
-                    Point2D::new(
-                        p2.x.to_computed_value(context),
-                        p2.y.to_computed_value(context),
-                    ),
-                )
+            GenericTimingFunction::CubicBezier { x1, y1, x2, y2 } => {
+                GenericTimingFunction::CubicBezier {
+                    x1: x1.to_computed_value(context),
+                    y1: y1.to_computed_value(context),
+                    x2: x2.to_computed_value(context),
+                    y2: y2.to_computed_value(context),
+                }
             },
             GenericTimingFunction::Steps(steps, position) => {
                 GenericTimingFunction::Steps(
@@ -238,17 +232,13 @@ impl ToComputedValue for TimingFunction {
             GenericTimingFunction::Keyword(keyword) => {
                 GenericTimingFunction::Keyword(keyword)
             },
-            GenericTimingFunction::CubicBezier(p1, p2) => {
-                GenericTimingFunction::CubicBezier(
-                    Point2D::new(
-                        Number::from_computed_value(&p1.x),
-                        Number::from_computed_value(&p1.y),
-                    ),
-                    Point2D::new(
-                        Number::from_computed_value(&p2.x),
-                        Number::from_computed_value(&p2.y),
-                    ),
-                )
+            GenericTimingFunction::CubicBezier { ref x1, ref y1, ref x2, ref y2 } => {
+                GenericTimingFunction::CubicBezier {
+                    x1: Number::from_computed_value(x1),
+                    y1: Number::from_computed_value(y1),
+                    x2: Number::from_computed_value(x2),
+                    y2: Number::from_computed_value(y2),
+                }
             },
             GenericTimingFunction::Steps(steps, position) => {
                 GenericTimingFunction::Steps(

@@ -8,7 +8,7 @@
 
 #![deny(missing_docs)]
 
-use euclid::Point2D;
+use values::CSSFloat;
 
 const NEWTON_METHOD_ITERATIONS: u8 = 8;
 
@@ -31,12 +31,12 @@ impl Bezier {
     /// The start and end points are always (0, 0) and (1, 1) so that a transition or animation
     /// starts at 0% and ends at 100%.
     #[inline]
-    pub fn new(p1: Point2D<f64>, p2: Point2D<f64>) -> Bezier {
-        let cx = 3.0 * p1.x;
-        let bx = 3.0 * (p2.x - p1.x) - cx;
+    pub fn new(x1: CSSFloat, y1: CSSFloat, x2: CSSFloat, y2: CSSFloat) -> Bezier {
+        let cx = 3. * x1 as f64;
+        let bx = 3. * (x2 as f64 - x1 as f64) - cx;
 
-        let cy = 3.0 * p1.y;
-        let by = 3.0 * (p2.y - p1.y) - cy;
+        let cy = 3. * y1 as f64;
+        let by = 3. * (y2 as f64 - y1 as f64) - cy;
 
         Bezier {
             ax: 1.0 - cx - bx,
