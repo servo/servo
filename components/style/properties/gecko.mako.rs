@@ -131,7 +131,7 @@ impl ComputedValuesInner {
             writing_mode: writing_mode,
             font_computation_data: FontComputationData::new(font_size_keyword),
             rules: rules,
-            visited_style: visited_style,
+            visited_style: visited_style.map(|x| Arc::into_raw_offset(x)),
             flags: flags,
             % for style_struct in data.style_structs:
             ${style_struct.gecko_name}: Arc::into_raw_offset(${style_struct.ident}),
@@ -250,7 +250,7 @@ impl ComputedValuesInner {
     /// Clone the visited style.  Used for inheriting parent styles in
     /// StyleBuilder::for_inheritance.
     pub fn clone_visited_style(&self) -> Option<Arc<ComputedValues>> {
-        self.visited_style.clone()
+        self.visited_style.as_ref().map(|x| x.clone_arc())
     }
 
     /// Gets a reference to the custom properties map (if one exists).

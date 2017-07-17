@@ -1733,15 +1733,6 @@ pub extern "C" fn Servo_ComputedValues_Inherit(
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_ComputedValues_GetVisitedStyle(values: ServoComputedValuesBorrowed)
-                                                       -> ServoStyleContextStrong {
-    match values.clone_visited_style() {
-        Some(v) => v.into_strong(),
-        None => Strong::null(),
-    }
-}
-
-#[no_mangle]
 pub extern "C" fn Servo_StyleContext_NewContext(values: ServoComputedValuesBorrowed,
                                                 parent: ServoStyleContextBorrowedOrNull,
                                                 pres_context: bindings::RawGeckoPresContextBorrowed,

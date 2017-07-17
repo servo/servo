@@ -2688,11 +2688,6 @@ extern "C" {
      -> ServoStyleContextStrong;
 }
 extern "C" {
-    pub fn Servo_ComputedValues_GetVisitedStyle(values:
-                                                    ServoComputedValuesBorrowed)
-     -> ServoStyleContextStrong;
-}
-extern "C" {
     pub fn Servo_ComputedValues_GetStyleBits(values:
                                                  ServoComputedValuesBorrowed)
      -> u64;

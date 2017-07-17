@@ -13,7 +13,7 @@ pub type ServoWritingMode = ::logical_geometry::WritingMode;
 pub type ServoFontComputationData = ::properties::FontComputationData;
 pub type ServoCustomPropertiesMap = Option<::stylearc::Arc<::custom_properties::CustomPropertiesMap>>;
 pub type ServoRuleNode = Option<::rule_tree::StrongRuleNode>;
-pub type ServoVisitedStyle = Option<::stylearc::Arc<::properties::ComputedValues>>;
+pub type ServoVisitedStyle = Option<::stylearc::RawOffsetArc<::properties::ComputedValues>>;
 pub type ServoComputedValueFlags = ::properties::computed_value_flags::ComputedValueFlags;
 pub type ServoRawOffsetArc<T> = ::stylearc::RawOffsetArc<T>;
 pub type ServoStyleContextStrong = ::gecko_bindings::sugar::ownership::Strong<ServoStyleContext>;
@@ -7455,6 +7455,36 @@ pub mod root {
         }
         #[repr(C)]
         #[derive(Debug)]
+        pub struct ServoStyleContext {
+            pub _base: root::nsStyleContext,
+            pub mPresContext: *mut root::nsPresContext,
+            pub mSource: root::ServoComputedValues,
+        }
+        #[test]
+        fn bindgen_test_layout_ServoStyleContext() {
+            assert_eq!(::std::mem::size_of::<ServoStyleContext>() , 280usize ,
+                       concat ! (
+                       "Size of: " , stringify ! ( ServoStyleContext ) ));
+            assert_eq! (::std::mem::align_of::<ServoStyleContext>() , 8usize ,
+                        concat ! (
+                        "Alignment of " , stringify ! ( ServoStyleContext )
+                        ));
+            assert_eq! (unsafe {
+                        & ( * ( 0 as * const ServoStyleContext ) ) .
+                        mPresContext as * const _ as usize } , 40usize ,
+                        concat ! (
+                        "Alignment of field: " , stringify ! (
+                        ServoStyleContext ) , "::" , stringify ! (
+                        mPresContext ) ));
+            assert_eq! (unsafe {
+                        & ( * ( 0 as * const ServoStyleContext ) ) . mSource
+                        as * const _ as usize } , 48usize , concat ! (
+                        "Alignment of field: " , stringify ! (
+                        ServoStyleContext ) , "::" , stringify ! ( mSource )
+                        ));
+        }
+        #[repr(C)]
+        #[derive(Debug)]
         pub struct GeckoFont {
             pub gecko: root::nsStyleFont,
         }
@@ -10578,36 +10608,6 @@ pub mod root {
                      ((mOtherAttributeChanged as u8 as u8) << 7usize) &
                          (128u64 as u8))
             }
-        }
-        #[repr(C)]
-        #[derive(Debug)]
-        pub struct ServoStyleContext {
-            pub _base: root::nsStyleContext,
-            pub mPresContext: *mut root::nsPresContext,
-            pub mSource: root::ServoComputedValues,
-        }
-        #[test]
-        fn bindgen_test_layout_ServoStyleContext() {
-            assert_eq!(::std::mem::size_of::<ServoStyleContext>() , 280usize ,
-                       concat ! (
-                       "Size of: " , stringify ! ( ServoStyleContext ) ));
-            assert_eq! (::std::mem::align_of::<ServoStyleContext>() , 8usize ,
-                        concat ! (
-                        "Alignment of " , stringify ! ( ServoStyleContext )
-                        ));
-            assert_eq! (unsafe {
-                        & ( * ( 0 as * const ServoStyleContext ) ) .
-                        mPresContext as * const _ as usize } , 40usize ,
-                        concat ! (
-                        "Alignment of field: " , stringify ! (
-                        ServoStyleContext ) , "::" , stringify ! (
-                        mPresContext ) ));
-            assert_eq! (unsafe {
-                        & ( * ( 0 as * const ServoStyleContext ) ) . mSource
-                        as * const _ as usize } , 48usize , concat ! (
-                        "Alignment of field: " , stringify ! (
-                        ServoStyleContext ) , "::" , stringify ! ( mSource )
-                        ));
         }
         #[repr(C)]
         #[derive(Debug)]
@@ -39462,7 +39462,7 @@ pub mod root {
                    root::nsCharTraits ) ));
     }
     #[test]
-    fn __bindgen_test_layout__bindgen_ty_id_192842_instantiation_33() {
+    fn __bindgen_test_layout__bindgen_ty_id_192840_instantiation_33() {
         assert_eq!(::std::mem::size_of::<u8>() , 1usize , concat ! (
                    "Size of template specialization: " , stringify ! ( u8 )
                    ));
@@ -39471,7 +39471,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout__bindgen_ty_id_192878_instantiation_34() {
+    fn __bindgen_test_layout__bindgen_ty_id_192876_instantiation_34() {
         assert_eq!(::std::mem::size_of::<u8>() , 1usize , concat ! (
                    "Size of template specialization: " , stringify ! ( u8 )
                    ));
