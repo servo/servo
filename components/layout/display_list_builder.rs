@@ -1873,7 +1873,7 @@ impl FragmentDisplayListBuilding for Fragment {
 
         // Adjust the clipping region as necessary to account for `border-radius`.
         let build_local_clip = |style: &ServoComputedValues| {
-            let radii = build_border_radius_for_inner_rect(&stacking_relative_border_box, &style);
+            let radii = build_border_radius_for_inner_rect(&stacking_relative_border_box, style);
             if !radii.is_square() {
                 LocalClip::RoundedRect(
                     stacking_relative_border_box.to_rectf(),
@@ -2080,7 +2080,6 @@ impl FragmentDisplayListBuilding for Fragment {
                                             stacking_relative_content_box: &Rect<Au>,
                                             text_shadows: &[SimpleShadow],
                                             clip: &Rect<Au>) {
-
         // NB: The order for painting text components (CSS Text Decoration Module Level 3) is:
         // shadows, underline, overline, text, text-emphasis, and then line-through.
 
@@ -2124,7 +2123,7 @@ impl FragmentDisplayListBuilding for Fragment {
         // to back).
 
         // Shadows
-        for shadow in text_shadows.iter().rev() {
+        for shadow in text_shadows.iter() {
             state.add_display_item(DisplayItem::PushTextShadow(box PushTextShadowDisplayItem {
                 base: base.clone(),
                 blur_radius: shadow.blur,
