@@ -10584,11 +10584,11 @@ pub mod root {
         pub struct ServoStyleContext {
             pub _base: root::nsStyleContext,
             pub mPresContext: *mut root::nsPresContext,
-            pub mSource: root::RefPtr<root::ServoComputedValues>,
+            pub mSource: root::ServoComputedValues,
         }
         #[test]
         fn bindgen_test_layout_ServoStyleContext() {
-            assert_eq!(::std::mem::size_of::<ServoStyleContext>() , 56usize ,
+            assert_eq!(::std::mem::size_of::<ServoStyleContext>() , 280usize ,
                        concat ! (
                        "Size of: " , stringify ! ( ServoStyleContext ) ));
             assert_eq! (::std::mem::align_of::<ServoStyleContext>() , 8usize ,
@@ -20626,10 +20626,6 @@ pub mod root {
  * so we define this type on the C++ side and use the bindgenned version
  * on the Rust side.
  *
- * C++ just sees pointers and opaque types here, so bindgen will attempt to generate a Copy
- * impl. This will fail because the bindgenned version contains owned types. Opt out.
- *
- * <div rustbindgen nocopy></div>
  */
     #[repr(C)]
     #[derive(Debug)]
@@ -20828,6 +20824,31 @@ pub mod root {
                     const _ as usize } , 224usize , concat ! (
                     "Alignment of field: " , stringify ! ( ServoComputedValues
                     ) , "::" , stringify ! ( flags ) ));
+    }
+    #[repr(C)]
+    #[derive(Debug, Copy)]
+    pub struct ServoComputedValuesForgotten {
+        pub mPtr: *const root::ServoComputedValues,
+    }
+    #[test]
+    fn bindgen_test_layout_ServoComputedValuesForgotten() {
+        assert_eq!(::std::mem::size_of::<ServoComputedValuesForgotten>() ,
+                   8usize , concat ! (
+                   "Size of: " , stringify ! ( ServoComputedValuesForgotten )
+                   ));
+        assert_eq! (::std::mem::align_of::<ServoComputedValuesForgotten>() ,
+                    8usize , concat ! (
+                    "Alignment of " , stringify ! (
+                    ServoComputedValuesForgotten ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const ServoComputedValuesForgotten ) ) .
+                    mPtr as * const _ as usize } , 0usize , concat ! (
+                    "Alignment of field: " , stringify ! (
+                    ServoComputedValuesForgotten ) , "::" , stringify ! ( mPtr
+                    ) ));
+    }
+    impl Clone for ServoComputedValuesForgotten {
+        fn clone(&self) -> Self { *self }
     }
     #[repr(u32)]
     #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -37764,13 +37785,15 @@ pub mod root {
     pub type RawGeckoGfxMatrix4x4 = [root::mozilla::gfx::Float; 16usize];
     pub type RawGeckoStyleChildrenIterator =
         root::mozilla::dom::StyleChildrenIterator;
-    pub type ServoComputedValuesBorrowed = *const root::ServoComputedValues;
     pub type RawServoDeclarationBlockBorrowed =
         *const root::RawServoDeclarationBlock;
     pub type ServoStyleContextBorrowed =
         *const root::mozilla::ServoStyleContext;
     pub type ServoStyleContextBorrowedOrNull =
         *const root::mozilla::ServoStyleContext;
+    pub type ServoComputedValuesBorrowed = *const root::ServoComputedValues;
+    pub type ServoComputedValuesBorrowedOrNull =
+        *const root::ServoComputedValues;
     pub type RawServoAnimationValueMapBorrowedMut =
         *mut root::RawServoAnimationValueMap;
     pub type RawGeckoNodeBorrowed = *const root::RawGeckoNode;
@@ -39439,7 +39462,7 @@ pub mod root {
                    root::nsCharTraits ) ));
     }
     #[test]
-    fn __bindgen_test_layout__bindgen_ty_id_193431_instantiation_33() {
+    fn __bindgen_test_layout__bindgen_ty_id_193418_instantiation_33() {
         assert_eq!(::std::mem::size_of::<u8>() , 1usize , concat ! (
                    "Size of template specialization: " , stringify ! ( u8 )
                    ));
@@ -39448,7 +39471,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout__bindgen_ty_id_193467_instantiation_34() {
+    fn __bindgen_test_layout__bindgen_ty_id_193454_instantiation_34() {
         assert_eq!(::std::mem::size_of::<u8>() , 1usize , concat ! (
                    "Size of template specialization: " , stringify ! ( u8 )
                    ));

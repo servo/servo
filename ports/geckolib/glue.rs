@@ -1735,7 +1735,7 @@ pub extern "C" fn Servo_ComputedValues_Inherit(
 #[no_mangle]
 pub extern "C" fn Servo_ComputedValues_GetVisitedStyle(values: ServoComputedValuesBorrowed)
                                                        -> ServoStyleContextStrong {
-    match ComputedValuesInner::as_arc(&values).clone_visited_style() {
+    match values.clone_visited_style() {
         Some(v) => v.into_strong(),
         None => Strong::null(),
     }
@@ -1748,10 +1748,9 @@ pub extern "C" fn Servo_StyleContext_NewContext(values: ServoComputedValuesBorro
                                                 pseudo_type: CSSPseudoElementType,
                                                 pseudo_tag: *mut nsIAtom)
                                                        -> ServoStyleContextStrong {
-    let arc = ComputedValuesInner::as_arc(&values);
     unsafe {
-        ComputedValuesInner::to_outer_from_arc(arc.clone_arc(), pres_context, parent,
-                                               pseudo_type, pseudo_tag).into_strong()
+        (*values).clone().to_outer_helper(pres_context, parent,
+                                        pseudo_type, pseudo_tag).into_strong()
     }
 }
 
@@ -3386,7 +3385,7 @@ pub extern "C" fn Servo_GetCustomPropertyValue(computed_values: ServoComputedVal
 
 #[no_mangle]
 pub extern "C" fn Servo_GetCustomPropertiesCount(computed_values: ServoComputedValuesBorrowed) -> u32 {
-    match ComputedValuesInner::as_arc(&computed_values).custom_properties() {
+    match computed_values.custom_properties() {
         Some(p) => p.len() as u32,
         None => 0,
     }
@@ -3396,7 +3395,7 @@ pub extern "C" fn Servo_GetCustomPropertiesCount(computed_values: ServoComputedV
 pub extern "C" fn Servo_GetCustomPropertyNameAt(computed_values: ServoComputedValuesBorrowed,
                                                 index: u32,
                                                 name: *mut nsAString) -> bool {
-    let custom_properties = match ComputedValuesInner::as_arc(&computed_values).custom_properties() {
+    let custom_properties = match computed_values.custom_properties() {
         Some(p) => p,
         None => return false,
     };

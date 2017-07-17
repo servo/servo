@@ -7,6 +7,8 @@ type nsACString_internal = nsACString;
 type nsAString_internal = nsAString;
 pub type ServoStyleContextBorrowed<'a> = &'a ServoStyleContext;
 pub type ServoStyleContextBorrowedOrNull<'a> = Option<&'a ::properties::ComputedValues>;
+pub type ServoComputedValuesBorrowed<'a> = &'a ServoComputedValues;
+pub type ServoComputedValuesBorrowedOrNull<'a> = Option<&'a ServoComputedValues>;
 use gecko_bindings::structs::mozilla::css::GridTemplateAreasValue;
 use gecko_bindings::structs::mozilla::css::ErrorReporter;
 use gecko_bindings::structs::mozilla::css::ImageValue;
@@ -319,9 +321,6 @@ pub struct ServoCssRules(ServoCssRulesVoid);
 pub type RawServoStyleSheetContentsStrong = ::gecko_bindings::sugar::ownership::Strong<RawServoStyleSheetContents>;
 pub type RawServoStyleSheetContentsBorrowed<'a> = &'a RawServoStyleSheetContents;
 pub type RawServoStyleSheetContentsBorrowedOrNull<'a> = Option<&'a RawServoStyleSheetContents>;
-pub type ServoComputedValuesStrong = ::gecko_bindings::sugar::ownership::Strong<ServoComputedValues>;
-pub type ServoComputedValuesBorrowed<'a> = &'a ServoComputedValues;
-pub type ServoComputedValuesBorrowedOrNull<'a> = Option<&'a ServoComputedValues>;
 pub type RawServoDeclarationBlockStrong = ::gecko_bindings::sugar::ownership::Strong<RawServoDeclarationBlock>;
 pub type RawServoDeclarationBlockBorrowed<'a> = &'a RawServoDeclarationBlock;
 pub type RawServoDeclarationBlockBorrowedOrNull<'a> = Option<&'a RawServoDeclarationBlock>;
@@ -401,12 +400,6 @@ extern "C" {
 extern "C" {
     pub fn Servo_StyleSheetContents_Release(ptr:
                                                 RawServoStyleSheetContentsBorrowed);
-}
-extern "C" {
-    pub fn Servo_ComputedValues_AddRef(ptr: ServoComputedValuesBorrowed);
-}
-extern "C" {
-    pub fn Servo_ComputedValues_Release(ptr: ServoComputedValuesBorrowed);
 }
 extern "C" {
     pub fn Servo_DeclarationBlock_AddRef(ptr:
@@ -537,7 +530,7 @@ extern "C" {
                                             ServoStyleContextBorrowedOrNull,
                                         pres_context:
                                             RawGeckoPresContextBorrowed,
-                                        values: ServoComputedValuesStrong,
+                                        values: ServoComputedValuesBorrowed,
                                         pseudo_type: CSSPseudoElementType,
                                         pseudo_tag: *mut nsIAtom);
 }

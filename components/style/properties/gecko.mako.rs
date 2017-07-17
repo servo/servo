@@ -160,18 +160,20 @@ impl ComputedValuesInner {
             (ptr::null_mut(), structs::CSSPseudoElementType::NotPseudo)
         };
 
-        unsafe { Self::to_outer_from_arc(Arc::new(self), device.pres_context(), parent, ty, tag) }
+        unsafe { self.to_outer_helper(device.pres_context(), parent, ty, tag) }
     }
 
-    pub unsafe fn to_outer_from_arc(s: Arc<Self>, pres_context: bindings::RawGeckoPresContextBorrowed,
+    pub unsafe fn to_outer_helper(self, pres_context: bindings::RawGeckoPresContextBorrowed,
                                     parent: ParentStyleContextInfo,
                                     pseudo_ty: structs::CSSPseudoElementType,
                                     pseudo_tag: *mut structs::nsIAtom) -> Arc<ComputedValues> {
-        use gecko_bindings::sugar::ownership::FFIArcHelpers;
         let arc = unsafe {
             let arc: Arc<ComputedValues> = Arc::new(uninitialized());
             bindings::Gecko_ServoStyleContext_Init(&arc.0 as *const _ as *mut _, parent, pres_context,
-                                                   s.into_strong(), pseudo_ty, pseudo_tag);
+                                                   &self, pseudo_ty, pseudo_tag);
+            // We're simulating a move by having C++ do a memcpy and then forgetting
+            // it on this end.
+            forget(self);
             arc
         };
         arc
@@ -181,13 +183,13 @@ impl ComputedValuesInner {
 impl ops::Deref for ComputedValues {
     type Target = ComputedValuesInner;
     fn deref(&self) -> &ComputedValuesInner {
-        unsafe { &*self.0.mSource.mRawPtr }
+        &self.0.mSource
     }
 }
 
 impl ops::DerefMut for ComputedValues {
     fn deref_mut(&mut self) -> &mut ComputedValuesInner {
-        unsafe { &mut *self.0.mSource.mRawPtr }
+        &mut self.0.mSource
     }
 }
 
