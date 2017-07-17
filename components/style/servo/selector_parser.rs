@@ -150,6 +150,13 @@ impl PseudoElement {
         self.is_precomputed()
     }
 
+    /// Whether this pseudo-element skips flex/grid container
+    /// display-based fixup.
+    #[inline]
+    pub fn skip_item_based_display_fixup(&self) -> bool {
+        !self.is_before_or_after()
+    }
+
     /// Whether this pseudo-element is precomputed.
     #[inline]
     pub fn is_precomputed(&self) -> bool {
