@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://drafts.css-houdini.org/css-paint-api/#paintworkletglobalscope
-[Global=(Worklet,PaintWorklet), Exposed=PaintWorklet]
+[Global=(Worklet,PaintWorklet), Pref="dom.worklet.enabled", Exposed=PaintWorklet]
 interface PaintWorkletGlobalScope : WorkletGlobalScope {
     [Throws] void registerPaint(DOMString name, VoidFunction paintCtor);
 };

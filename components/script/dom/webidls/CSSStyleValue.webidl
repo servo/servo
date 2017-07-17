@@ -4,7 +4,7 @@
 
 // https://drafts.css-houdini.org/css-typed-om-1/#cssstylevalue
 // NOTE: should this be exposed to Window?
-[Exposed=(Worklet)]
+[Pref="dom.worklet.enabled", Exposed=(Worklet)]
 interface CSSStyleValue {
     stringifier;
     // static CSSStyleValue? parse(DOMString property, DOMString cssText);
