@@ -3659,6 +3659,8 @@ impl DocumentMethods for Document {
         // Step 10.
         // TODO: prompt to unload.
 
+        window_from_node(self).set_navigation_start();
+
         // Step 11.
         // TODO: unload.
 
