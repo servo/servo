@@ -59,9 +59,8 @@ use properties::{longhands, FontComputationData, Importance, LonghandId};
 use properties::{PropertyDeclaration, PropertyDeclarationBlock, PropertyDeclarationId};
 use rule_tree::StrongRuleNode;
 use std::mem::{forget, transmute, zeroed};
-use std::ptr;
+use std::{cmp, ops, ptr};
 use stylearc::{Arc, RawOffsetArc};
-use std::cmp;
 use values::{Auto, CustomIdent, Either, KeyframesName};
 use values::computed::ToComputedValue;
 use values::computed::effects::{BoxShadow, Filter, SimpleShadow};
@@ -75,11 +74,16 @@ pub mod style_structs {
 }
 
 
-pub use ::gecko_bindings::structs::mozilla::ServoComputedValues2 as ComputedValues;
+pub use ::gecko_bindings::structs::mozilla::ServoComputedValues2 as ComputedValuesInner;
 
-impl Clone for ComputedValues {
+#[derive(Clone, Debug)]
+pub struct ComputedValues {
+    pub inner: ComputedValuesInner
+}
+
+impl Clone for ComputedValuesInner {
     fn clone(&self) -> Self {
-        ComputedValues {
+        ComputedValuesInner {
             % for style_struct in data.style_structs:
                 ${style_struct.gecko_name}: self.${style_struct.gecko_name}.clone(),
             % endfor
@@ -105,32 +109,51 @@ impl ComputedValues {
                % endfor
     ) -> Self {
         ComputedValues {
-            custom_properties,
-            writing_mode,
-            font_computation_data: FontComputationData::new(font_size_keyword),
-            flags,
-            rules,
-            visited_style: visited_style,
-            % for style_struct in data.style_structs:
-            ${style_struct.gecko_name}: Arc::into_raw_offset(${style_struct.ident}),
-            % endfor
+            inner: ComputedValuesInner {
+                custom_properties: custom_properties,
+                writing_mode: writing_mode,
+                font_computation_data: FontComputationData::new(font_size_keyword),
+                rules: rules,
+                visited_style: visited_style,
+                flags: flags,
+                % for style_struct in data.style_structs:
+                ${style_struct.gecko_name}: Arc::into_raw_offset(${style_struct.ident}),
+                % endfor
+            }
         }
     }
 
     pub fn default_values(pres_context: RawGeckoPresContextBorrowed) -> Arc<Self> {
         Arc::new(ComputedValues {
-            custom_properties: None,
-            writing_mode: WritingMode::empty(), // FIXME(bz): This seems dubious
-            font_computation_data: FontComputationData::default_values(),
-            flags: ComputedValueFlags::empty(),
-            rules: None,
-            visited_style: None,
-            % for style_struct in data.style_structs:
-                ${style_struct.gecko_name}: Arc::into_raw_offset(style_structs::${style_struct.name}::default(pres_context)),
-            % endfor
+            inner: ComputedValuesInner {
+                custom_properties: None,
+                writing_mode: WritingMode::empty(), // FIXME(bz): This seems dubious
+                font_computation_data: FontComputationData::default_values(),
+                rules: None,
+                visited_style: None,
+                flags: ComputedValueFlags::empty(),
+                % for style_struct in data.style_structs:
+                    ${style_struct.gecko_name}: Arc::into_raw_offset(style_structs::${style_struct.name}::default(pres_context)),
+                % endfor
+            }
         })
     }
+}
 
+impl ops::Deref for ComputedValues {
+    type Target = ComputedValuesInner;
+    fn deref(&self) -> &ComputedValuesInner {
+        &self.inner
+    }
+}
+
+impl ops::DerefMut for ComputedValues {
+    fn deref_mut(&mut self) -> &mut ComputedValuesInner {
+        &mut self.inner
+    }
+}
+
+impl ComputedValuesInner {
     #[inline]
     pub fn is_display_contents(&self) -> bool {
         self.get_box().clone_display() == longhands::display::computed_value::T::contents

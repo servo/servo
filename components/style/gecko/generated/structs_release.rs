@@ -13,7 +13,7 @@ pub type ServoWritingMode = ::logical_geometry::WritingMode;
 pub type ServoFontComputationData = ::properties::FontComputationData;
 pub type ServoCustomPropertiesMap = Option<::stylearc::Arc<::custom_properties::CustomPropertiesMap>>;
 pub type ServoRuleNode = Option<::rule_tree::StrongRuleNode>;
-pub type ServoVisitedStyle = Option<::stylearc::Arc<ServoComputedValues2>>;
+pub type ServoVisitedStyle = Option<::stylearc::Arc<::properties::ComputedValues>>;
 pub type ServoComputedValueFlags = ::properties::computed_value_flags::ComputedValueFlags;
 pub type ServoRawOffsetArc<T> = ::stylearc::RawOffsetArc<T>;
 
