@@ -27,7 +27,7 @@ from mach.decorators import (
 )
 
 import servo.bootstrap as bootstrap
-from servo.command_base import CommandBase, BIN_SUFFIX, cd
+from servo.command_base import CommandBase, BIN_SUFFIX, cd, has_rustc_alt_build
 from servo.util import delete, download_bytes, download_file, extract, host_triple
 
 
@@ -67,6 +67,9 @@ class MachCommands(CommandBase):
                      action='store_true',
                      help='Use stable rustc version')
     def bootstrap_rustc(self, force=False, target=[], stable=False):
+        # Set default value for llvm-assertions when target platform is specified
+        if "SERVO_RUSTC_LLVM_ASSERTIONS" not in os.environ and target:
+            self.config["build"]["llvm-assertions"] = not has_rustc_alt_build(target)
         self.set_use_stable_rust(stable)
         version = self.rust_version()
         rust_path = self.rust_path()
