@@ -4861,7 +4861,7 @@ static mut EMPTY_VARIABLES_STRUCT: Option<nsStyleVariables> = None;
 
 #[no_mangle]
 #[allow(non_snake_case)]
-pub unsafe extern "C" fn Servo_GetStyleVariables(_cv: ServoComputedValuesBorrowedOrNull)
+pub unsafe extern "C" fn Servo_GetEmptyVariables()
                                                  -> *const nsStyleVariables {
     EMPTY_VARIABLES_STRUCT.as_ref().unwrap()
 }
