@@ -121,7 +121,7 @@ where
 
         if should_compute_visited_style {
             visited_style = Some(self.cascade_style(
-                visited_rules.as_ref(),
+                visited_rules.as_ref().or(Some(&primary_results.rule_node)),
                 /* style_if_visited = */ None,
                 parent_style,
                 layout_parent_style,
@@ -223,7 +223,7 @@ where
         if parent_style.map_or(false, |s| s.get_visited_style().is_some()) ||
             inputs.visited_rules.is_some() {
             style_if_visited = Some(self.cascade_style(
-                inputs.visited_rules.as_ref(),
+                inputs.visited_rules.as_ref().or(inputs.rules.as_ref()),
                 /* style_if_visited = */ None,
                 parent_style,
                 layout_parent_style,
