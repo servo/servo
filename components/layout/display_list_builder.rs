@@ -2124,7 +2124,7 @@ impl FragmentDisplayListBuilding for Fragment {
         // to back).
 
         // Shadows
-        for shadow in text_shadows.iter().rev() {
+        for shadow in text_shadows.iter() {
             state.add_display_item(DisplayItem::PushTextShadow(box PushTextShadowDisplayItem {
                 base: base.clone(),
                 blur_radius: shadow.blur,
