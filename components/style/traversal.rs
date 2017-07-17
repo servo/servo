@@ -484,7 +484,7 @@ where
         let primary_style =
             StyleResolverForElement::new(*ancestor, context, rule_inclusion)
                 .resolve_primary_style(
-                    style.as_ref().map(|s| &***s),
+                    style.as_ref().map(|s| &**s),
                     layout_parent_style.as_ref().map(|s| &***s)
                 );
 
@@ -501,7 +501,7 @@ where
     context.thread_local.bloom_filter.assert_complete(element);
     StyleResolverForElement::new(element, context, rule_inclusion)
         .resolve_style(
-            style.as_ref().map(|s| &***s),
+            style.as_ref().map(|s| &**s),
             layout_parent_style.as_ref().map(|s| &***s)
         )
 }

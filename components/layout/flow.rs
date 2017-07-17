@@ -1119,7 +1119,7 @@ impl BaseFlow {
     ///
     /// These flags are initially set during flow construction.  They only need to be updated here
     /// if they are based on properties that can change without triggering `RECONSTRUCT_FLOW`.
-    pub fn update_flags_if_needed(&mut self, style: &ServoComputedValues) {
+    pub fn update_flags_if_needed(&mut self, style: &ComputedValues) {
         // For absolutely-positioned flows, changes to top/bottom/left/right can cause these flags
         // to get out of date:
         if self.restyle_damage.contains(REFLOW_OUT_OF_FLOW) {

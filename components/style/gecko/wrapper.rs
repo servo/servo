@@ -64,7 +64,7 @@ use gecko_bindings::structs::EffectCompositor_CascadeLevel as CascadeLevel;
 use gecko_bindings::structs::NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE;
 use gecko_bindings::structs::NODE_IS_NATIVE_ANONYMOUS;
 use gecko_bindings::structs::nsIDocument_DocumentTheme as DocumentTheme;
-use gecko_bindings::sugar::ownership::{FFIArcHelpers, HasArcFFI, HasSimpleFFI};
+use gecko_bindings::sugar::ownership::{HasArcFFI, HasSimpleFFI};
 use logical_geometry::WritingMode;
 use media_queries::Device;
 use properties::{ComputedValues, parse_style_attribute};
@@ -1101,10 +1101,9 @@ impl<'le> TElement for GeckoElement<'le> {
         let computed_data = self.borrow_data();
         let computed_values =
             computed_data.as_ref().map(|d| d.styles.primary());
-        let computed_values_opt =
-            computed_values.map(|v| v.as_borrowed());
         let before_change_values =
-            before_change_style.as_ref().map(|v| v.as_borrowed());
+            before_change_style.as_ref().map(|x| &**x);
+        let computed_values_opt = computed_values.as_ref().map(|x| &***x);
         unsafe {
             Gecko_UpdateAnimations(self.0,
                                    before_change_values,

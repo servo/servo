@@ -1871,9 +1871,14 @@ pub mod style_structs {
 
 
 #[cfg(feature = "gecko")]
-pub use gecko_properties::ComputedValues;
-#[cfg(feature = "gecko")]
-pub use gecko_properties::ComputedValuesInner;
+pub use gecko_properties::{ComputedValues, ComputedValuesInner, ParentStyleContextInfo, PseudoInfo};
+
+#[cfg(feature = "servo")]
+/// Servo doesn't have style contexts so this is extraneous info
+pub type PseudoInfo = ();
+#[cfg(feature = "servo")]
+/// Servo doesn't have style contexts so this is extraneous info
+pub type ParentStyleContextInfo = ();
 
 
 #[cfg(feature = "servo")]
@@ -1970,7 +1975,8 @@ impl ops::DerefMut for ComputedValues {
 #[cfg(feature = "servo")]
 impl ComputedValuesInner {
     /// Convert to an Arc<ComputedValues>
-    pub fn to_outer(self) -> Arc<ComputedValues> {
+    pub fn to_outer(self, _: &Device, _: ParentStyleContextInfo,
+                    _: Option<PseudoInfo>) -> Arc<ComputedValues> {
         Arc::new(ComputedValues {inner: self})
     }
 
@@ -2011,13 +2017,13 @@ impl ComputedValuesInner {
     }
 
     /// Gets a reference to the visited style, if any.
-    pub fn get_visited_style(&self) -> Option< & ComputedValuesInner> {
-        self.visited_style.as_ref().map(|x| &***x)
+    pub fn get_visited_style(&self) -> Option< & ComputedValues> {
+        self.visited_style.as_ref().map(|x| &**x)
     }
 
     /// Gets a reference to the visited style. Panic if no visited style exists.
-    pub fn visited_style(&self) -> &ComputedValuesInner {
-        self.get_visited_style().as_ref().map(|x| &**x).unwrap()
+    pub fn visited_style(&self) -> &ComputedValues {
+        self.get_visited_style().unwrap()
     }
 
     /// Clone the visited style.  Used for inheriting parent styles in

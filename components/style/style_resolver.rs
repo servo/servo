@@ -47,7 +47,7 @@ pub struct PrimaryStyle {
 fn with_default_parent_styles<E, F, R>(element: E, f: F) -> R
 where
     E: TElement,
-    F: FnOnce(Option<&ComputedValuesInner>, Option<&ComputedValuesInner>) -> R,
+    F: FnOnce(Option<&ComputedValues>, Option<&ComputedValuesInner>) -> R,
 {
     let parent_el = element.inheritance_parent();
     let parent_data = parent_el.as_ref().and_then(|e| e.borrow_data());
@@ -72,7 +72,7 @@ where
         layout_parent_style = Some(layout_parent_data.styles.primary());
     }
 
-    f(parent_style.map(|s| &***s), layout_parent_style.map(|s| &***s))
+    f(parent_style.map(|x| &**x), layout_parent_style.map(|s| &***s))
 }
 
 impl<'a, 'ctx, 'le, E> StyleResolverForElement<'a, 'ctx, 'le, E>
@@ -98,7 +98,7 @@ where
     /// Resolve just the style of a given element.
     pub fn resolve_primary_style(
         &mut self,
-        parent_style: Option<&ComputedValuesInner>,
+        parent_style: Option<&ComputedValues>,
         layout_parent_style: Option<&ComputedValuesInner>,
     ) -> PrimaryStyle {
         let primary_results =
@@ -119,6 +119,7 @@ where
             relevant_link_found ||
             parent_style.and_then(|s| s.get_visited_style()).is_some();
 
+        let pseudo = self.element.implemented_pseudo_element();
         if should_compute_visited_style {
             visited_style = Some(self.cascade_style(
                 visited_rules.as_ref().or(Some(&primary_results.rule_node)),
@@ -126,17 +127,16 @@ where
                 parent_style,
                 layout_parent_style,
                 CascadeVisitedMode::Visited,
-                /* pseudo = */ None,
+                /* pseudo = */ pseudo.as_ref(),
             ));
         }
-
         let style = self.cascade_style(
             Some(&primary_results.rule_node),
             visited_style,
             parent_style,
             layout_parent_style,
             CascadeVisitedMode::Unvisited,
-            /* pseudo = */ None,
+            /* pseudo = */ pseudo.as_ref(),
         );
 
         PrimaryStyle { style, }
@@ -146,7 +146,7 @@ where
     /// Resolve the style of a given element, and all its eager pseudo-elements.
     pub fn resolve_style(
         &mut self,
-        parent_style: Option<&ComputedValuesInner>,
+        parent_style: Option<&ComputedValues>,
         layout_parent_style: Option<&ComputedValuesInner>,
     ) -> ElementStyles {
         use properties::longhands::display::computed_value::T as display;
@@ -215,7 +215,7 @@ where
     fn cascade_style_and_visited(
         &mut self,
         inputs: CascadeInputs,
-        parent_style: Option<&ComputedValuesInner>,
+        parent_style: Option<&ComputedValues>,
         layout_parent_style: Option<&ComputedValuesInner>,
         pseudo: Option<&PseudoElement>,
     ) -> Arc<ComputedValues> {
@@ -462,7 +462,7 @@ where
         &mut self,
         rules: Option<&StrongRuleNode>,
         style_if_visited: Option<Arc<ComputedValues>>,
-        mut parent_style: Option<&ComputedValuesInner>,
+        mut parent_style: Option<&ComputedValues>,
         layout_parent_style: Option<&ComputedValuesInner>,
         cascade_visited: CascadeVisitedMode,
         pseudo: Option<&PseudoElement>,
@@ -485,12 +485,17 @@ where
             cascade_flags.insert(IS_ROOT_ELEMENT);
         }
 
+        #[cfg(feature = "gecko")]
+        let parent_style_context = parent_style;
+        #[cfg(feature = "servo")]
+        let parent_style_context = ();
+
         let values =
             cascade(
                 self.context.shared.stylist.device(),
                 rules.unwrap_or(self.context.shared.stylist.rule_tree().root()),
                 &self.context.shared.guards,
-                parent_style,
+                parent_style.map(|x| &**x),
                 layout_parent_style,
                 style_if_visited,
                 Some(&mut cascade_info),
@@ -500,6 +505,18 @@ where
             );
 
         cascade_info.finish(&self.element.as_node());
-        values.to_outer()
+
+        // In case of NAC like ::placeholder we style it via
+        // cascade_primary without a PseudoElement, but
+        // the element itself is a pseudo, so try to use that
+        // when `pseudo` is unset
+        let pseudo_info = if let Some(pseudo) = pseudo {
+            Some(pseudo.pseudo_info())
+        } else {
+            self.element.implemented_pseudo_element().map(|x| x.pseudo_info())
+        };
+        values.to_outer(self.context.shared.stylist.device(),
+                        parent_style_context,
+                       pseudo_info)
     }
 }
