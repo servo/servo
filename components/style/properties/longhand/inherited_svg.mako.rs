@@ -82,6 +82,7 @@ ${helpers.single_keyword("stroke-linejoin", "miter round bevel",
 ${helpers.predefined_type("stroke-miterlimit", "Number", "4.0",
                           "parse_at_least_one", products="gecko",
                           animation_value_type="ComputedValue",
+                          restriction="Restriction::GreaterThanOrEqualToOne",
                           spec="https://www.w3.org/TR/SVG11/painting.html#StrokeMiterlimitProperty")}
 
 ${helpers.predefined_type("stroke-opacity", "Opacity", "1.0",

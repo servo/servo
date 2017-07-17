@@ -33,7 +33,7 @@ use super::ComputedValues;
 #[cfg(any(feature = "gecko", feature = "testing"))]
 use values::Auto;
 use values::{CSSFloat, CustomIdent, Either};
-use values::animated::ToAnimatedValue;
+use values::animated::{Restriction, ToAnimatedValue};
 use values::animated::effects::BoxShadowList as AnimatedBoxShadowList;
 use values::animated::effects::Filter as AnimatedFilter;
 use values::animated::effects::FilterList as AnimatedFilterList;
@@ -504,10 +504,12 @@ impl AnimationValue {
                             Box::new(
                             % endif
                                 longhands::${prop.ident}::SpecifiedValue::from_computed_value(
-                                % if prop.is_animatable_with_computed_value:
+                                % if prop.is_animatable_with_computed_value and \
+                                     not prop.has_restriction:
                                     from
                                 % else:
-                                    &ToAnimatedValue::from_animated_value(from.clone())
+                                    &ToAnimatedValue::from_animated_value_with_restriction(
+                                        from.clone(), ${prop.restriction})
                                 % endif
                                 ))
                             % if prop.boxed:

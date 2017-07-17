@@ -152,7 +152,7 @@ class Longhand(object):
                  allowed_in_keyframe_block=True, cast_type='u8',
                  has_uncacheable_values=False, logical=False, alias=None, extra_prefixes=None, boxed=False,
                  flags=None, allowed_in_page_rule=False, allow_quirks=False, ignored_when_colors_disabled=False,
-                 gecko_pref_ident=None, vector=False):
+                 gecko_pref_ident=None, vector=False, restriction=None):
         self.name = name
         if not spec:
             raise TypeError("Spec should be specified for %s" % name)
@@ -194,6 +194,8 @@ class Longhand(object):
         if animation_value_type is None:
             raise TypeError("animation_value_type should be specified for (" + name + ")")
         self.animation_value_type = animation_value_type
+        self.has_restriction = restriction is not None
+        self.restriction = restriction if self.has_restriction else "Restriction::None"
 
         self.animatable = animation_value_type != "none"
         self.transitionable = animation_value_type != "none" \
