@@ -133,7 +133,6 @@ use style::stylist::{ExtraStyleData, Stylist};
 use style::thread_state;
 use style::timer::Timer;
 use style::traversal::{DomTraversal, TraversalDriver, TraversalFlags};
-use style::values::CompactCowStr;
 
 /// Information needed by the layout thread.
 pub struct LayoutThread {
@@ -714,7 +713,7 @@ impl LayoutThread {
             Msg::RegisterPaint(name, mut properties, painter) => {
                 debug!("Registering the painter");
                 let properties = properties.drain(..)
-                    .filter_map(|name| PropertyId::parse(CompactCowStr::from(&*name)).ok().map(|id| (name.clone(), id)))
+                    .filter_map(|name| PropertyId::parse(&*name).ok().map(|id| (name.clone(), id)))
                     .filter(|&(_, ref id)| id.as_shorthand().is_err())
                     .collect();
                 let registered_painter = RegisteredPainter {

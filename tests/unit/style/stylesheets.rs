@@ -316,7 +316,7 @@ fn test_report_error_stylesheet() {
 
     let error = errors.pop().unwrap();
     assert_eq!("Unsupported property declaration: 'invalid: true;', \
-                Custom(UnknownProperty(\"invalid\"))", error.message);
+                Custom(PropertyDeclaration(UnknownProperty(\"invalid\")))", error.message);
     assert_eq!(9, error.line);
     assert_eq!(8, error.column);
 
@@ -328,4 +328,31 @@ fn test_report_error_stylesheet() {
 
     // testing for the url
     assert_eq!(url, error.url);
+}
+
+#[test]
+fn test_no_report_unrecognized_vendor_properties() {
+    let css = r"
+    div {
+        -o-background-color: red;
+        _background-color: red;
+        -moz-background-color: red;
+    }
+    ";
+    let url = ServoUrl::parse("about::test").unwrap();
+    let error_reporter = CSSInvalidErrorReporterTest::new();
+
+    let errors = error_reporter.errors.clone();
+
+    let lock = SharedRwLock::new();
+    let media = Arc::new(lock.wrap(MediaList::empty()));
+    Stylesheet::from_str(css, url, Origin::UserAgent, media, lock,
+                         None, &error_reporter, QuirksMode::NoQuirks, 0u64);
+
+    let mut errors = errors.lock().unwrap();
+    let error = errors.pop().unwrap();
+    assert_eq!("Unsupported property declaration: '-moz-background-color: red;', \
+                Custom(PropertyDeclaration(UnknownProperty(\"-moz-background-color\")))",
+               error.message);
+    assert!(errors.is_empty());
 }

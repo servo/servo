@@ -17,6 +17,7 @@ use selectors::parser::SelectorParseError;
 use shared_lock::{DeepCloneParams, DeepCloneWithLock, SharedRwLock, SharedRwLockReadGuard, Locked, ToCssWithGuard};
 use std::fmt;
 use style_traits::{PARSING_MODE_DEFAULT, ToCss, ParseError, StyleParseError};
+use style_traits::PropertyDeclarationParseError;
 use stylearc::Arc;
 use stylesheets::{CssRuleType, StylesheetContents};
 use stylesheets::rule_parser::VendorPrefix;
@@ -532,7 +533,8 @@ impl<'a, 'b, 'i> DeclarationParser<'i> for KeyframeDeclarationParser<'a, 'b> {
 
     fn parse_value<'t>(&mut self, name: CompactCowStr<'i>, input: &mut Parser<'i, 't>)
                        -> Result<(), ParseError<'i>> {
-        let id = PropertyId::parse(name.into())?;
+        let id = PropertyId::parse(&name)
+            .map_err(|()| PropertyDeclarationParseError::UnknownProperty(name))?;
         match PropertyDeclaration::parse_into(self.declarations, id, self.context, input) {
             Ok(()) => {
                 // In case there is still unparsed text in the declaration, we should roll back.
