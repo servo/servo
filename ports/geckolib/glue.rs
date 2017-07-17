@@ -2781,8 +2781,8 @@ pub extern "C" fn Servo_ResolveStyle(element: RawGeckoElementBorrowed,
 
     // TODO(emilio): Downgrade to debug assertions when close to release.
     assert!(data.has_styles(), "Resolving style on unstyled element");
-    assert!(element.has_current_styles(&*data),
-            "Resolving style on element without current styles");
+    debug_assert!(element.has_current_styles(&*data),
+                  "Resolving style on element without current styles");
     data.styles.primary().clone().into_strong()
 }
 
