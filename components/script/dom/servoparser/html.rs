@@ -14,7 +14,7 @@ use dom::documenttype::DocumentType;
 use dom::element::Element;
 use dom::htmlscriptelement::HTMLScriptElement;
 use dom::htmltemplateelement::HTMLTemplateElement;
-use dom::node::Node;
+use dom::node::{Node, TreeIterator};
 use dom::processinginstruction::ProcessingInstruction;
 use dom::servoparser::Sink;
 use html5ever::QualName;
@@ -115,79 +115,137 @@ unsafe impl JSTraceable for HtmlTokenizer<TreeBuilder<JS<Node>, Sink>> {
     }
 }
 
+fn start_element<S: Serializer>(node: &Element, serializer: &mut S) -> io::Result<()> {
+    let name = QualName::new(None, node.namespace().clone(),
+                             node.local_name().clone());
+    let attrs = node.attrs().iter().map(|attr| {
+        let qname = QualName::new(None, attr.namespace().clone(),
+                                  attr.local_name().clone());
+        let value = attr.value().clone();
+        (qname, value)
+    }).collect::<Vec<_>>();
+    let attr_refs = attrs.iter().map(|&(ref qname, ref value)| {
+        let ar: AttrRef = (&qname, &**value);
+        ar
+    });
+    serializer.start_elem(name, attr_refs)?;
+    Ok(())
+}
+
+fn end_element<S: Serializer>(node: &Element, serializer: &mut S) -> io::Result<()> {
+    let name = QualName::new(None, node.namespace().clone(),
+                             node.local_name().clone());
+    serializer.end_elem(name)
+}
+
+
+enum SerializationCommand {
+    OpenElement(Root<Element>),
+    CloseElement(Root<Element>),
+    SerializeNonelement(Root<Node>),
+}
+
+struct SerializationIterator {
+    stack: Vec<SerializationCommand>,
+}
+
+fn rev_children_iter(n: &Node) -> impl Iterator<Item=Root<Node>>{
+    match n.downcast::<HTMLTemplateElement>() {
+        Some(t) => t.Content().upcast::<Node>().rev_children(),
+        None => n.rev_children(),
+    }
+}
+
+impl SerializationIterator {
+    fn new(node: &Node, skip_first: bool) -> SerializationIterator {
+        let mut ret = SerializationIterator {
+            stack: vec![],
+        };
+        if skip_first {
+            for c in rev_children_iter(node) {
+                ret.push_node(&*c);
+            }
+        } else {
+            ret.push_node(node);
+        }
+        ret
+    }
+
+    fn push_node(&mut self, n: &Node) {
+        match n.downcast::<Element>() {
+            Some(e) => self.stack.push(SerializationCommand::OpenElement(Root::from_ref(e))),
+            None => self.stack.push(SerializationCommand::SerializeNonelement(Root::from_ref(n))),
+        }
+    }
+}
+
+impl Iterator for SerializationIterator {
+    type Item = SerializationCommand;
+
+    fn next(&mut self) -> Option<SerializationCommand> {
+        let res = self.stack.pop();
+
+        if let Some(SerializationCommand::OpenElement(ref e)) = res {
+            self.stack.push(SerializationCommand::CloseElement(e.clone()));
+            for c in rev_children_iter(&*e.upcast::<Node>()) {
+                self.push_node(&c);
+            }
+        }
+
+        res
+    }
+}
+
 impl<'a> Serialize for &'a Node {
     fn serialize<S: Serializer>(&self, serializer: &mut S,
                                 traversal_scope: TraversalScope) -> io::Result<()> {
         let node = *self;
-        match (traversal_scope, node.type_id()) {
-            (_, NodeTypeId::Element(..)) => {
-                let elem = node.downcast::<Element>().unwrap();
-                let name = QualName::new(None, elem.namespace().clone(),
-                                         elem.local_name().clone());
-                if traversal_scope == IncludeNode {
-                    let attrs = elem.attrs().iter().map(|attr| {
-                        let qname = QualName::new(None, attr.namespace().clone(),
-                                                  attr.local_name().clone());
-                        let value = attr.value().clone();
-                        (qname, value)
-                    }).collect::<Vec<_>>();
-                    let attr_refs = attrs.iter().map(|&(ref qname, ref value)| {
-                        let ar: AttrRef = (&qname, &**value);
-                        ar
-                    });
-                    serializer.start_elem(name.clone(), attr_refs)?;
+
+
+        let iter = SerializationIterator::new(node, traversal_scope == ChildrenOnly);
+
+        for cmd in iter {
+            match cmd {
+                SerializationCommand::OpenElement(n) => {
+                    start_element(&n, serializer)?;
                 }
 
-                let children = if let Some(tpl) = node.downcast::<HTMLTemplateElement>() {
-                    // https://github.com/w3c/DOM-Parsing/issues/1
-                    tpl.Content().upcast::<Node>().children()
-                } else {
-                    node.children()
-                };
-
-                for handle in children {
-                    (&*handle).serialize(serializer, IncludeNode)?;
+                SerializationCommand::CloseElement(n) => {
+                    end_element(&&n, serializer)?;
                 }
 
-                if traversal_scope == IncludeNode {
-                    serializer.end_elem(name.clone())?;
+                SerializationCommand::SerializeNonelement(n) => {
+                    match n.type_id() {
+                        NodeTypeId::DocumentType => {
+                            let doctype = n.downcast::<DocumentType>().unwrap();
+                            serializer.write_doctype(&doctype.name())?;
+                        },
+
+                        NodeTypeId::CharacterData(CharacterDataTypeId::Text) => {
+                            let cdata = n.downcast::<CharacterData>().unwrap();
+                            serializer.write_text(&cdata.data())?;
+                        },
+
+                        NodeTypeId::CharacterData(CharacterDataTypeId::Comment) => {
+                            let cdata = n.downcast::<CharacterData>().unwrap();
+                            serializer.write_comment(&cdata.data())?;
+                        },
+
+                        NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) => {
+                            let pi = n.downcast::<ProcessingInstruction>().unwrap();
+                            let data = pi.upcast::<CharacterData>().data();
+                            serializer.write_processing_instruction(&pi.target(), &data)?;
+                        },
+
+                        NodeTypeId::DocumentFragment => {}
+
+                        NodeTypeId::Document(_) => panic!("Can't serialize Document node itself"),
+                        NodeTypeId::Element(_) => panic!("Element shouldn't appear here"),
+                    }
                 }
-                Ok(())
-            },
-
-            (ChildrenOnly, NodeTypeId::Document(_)) => {
-                for handle in node.children() {
-                    (&*handle).serialize(serializer, IncludeNode)?;
-                }
-                Ok(())
-            },
-
-            (ChildrenOnly, _) => Ok(()),
-
-            (IncludeNode, NodeTypeId::DocumentType) => {
-                let doctype = node.downcast::<DocumentType>().unwrap();
-                serializer.write_doctype(&doctype.name())
-            },
-
-            (IncludeNode, NodeTypeId::CharacterData(CharacterDataTypeId::Text)) => {
-                let cdata = node.downcast::<CharacterData>().unwrap();
-                serializer.write_text(&cdata.data())
-            },
-
-            (IncludeNode, NodeTypeId::CharacterData(CharacterDataTypeId::Comment)) => {
-                let cdata = node.downcast::<CharacterData>().unwrap();
-                serializer.write_comment(&cdata.data())
-            },
-
-            (IncludeNode, NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction)) => {
-                let pi = node.downcast::<ProcessingInstruction>().unwrap();
-                let data = pi.upcast::<CharacterData>().data();
-                serializer.write_processing_instruction(&pi.target(), &data)
-            },
-
-            (IncludeNode, NodeTypeId::DocumentFragment) => Ok(()),
-
-            (IncludeNode, NodeTypeId::Document(_)) => panic!("Can't serialize Document node itself"),
+            }
         }
+
+        Ok(())
     }
 }
