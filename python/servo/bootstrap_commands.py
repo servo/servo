@@ -135,11 +135,8 @@ class MachCommands(CommandBase):
                            % (version, target_triple))
                 tgz_file = install_dir + ('rust-std-%s-%s.tar.gz' % (version, target_triple))
             else:
-                tarball = "%s/rust-std-nightly-%s.tar.gz" % (version, target_triple)
-                base_url = "https://s3.amazonaws.com/rust-lang-ci/rustc-builds"
-                if not self.config["build"]["llvm-assertions"]:
-                    base_url += "-alt"
-                std_url = base_url + "/" + tarball
+                std_url = ("https://s3.amazonaws.com/rust-lang-ci/rustc-builds/%s/rust-std-nightly-%s.tar.gz"
+                           % (version, target_triple))
                 tgz_file = install_dir + ('rust-std-nightly-%s.tar.gz' % target_triple)
 
             download_file("Host rust library for target %s" % target_triple, std_url, tgz_file)
