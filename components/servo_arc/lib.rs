@@ -637,6 +637,8 @@ impl<H: 'static, T: 'static> ThinArc<H, T> {
         let result = f(&transient);
 
         // Forget the transient Arc to leave the refcount untouched.
+        // XXXManishearth this can be removed when unions stabilize,
+        // since then NoDrop becomes zero overhead
         mem::forget(transient);
 
         // Forward the result.
@@ -699,6 +701,95 @@ impl<H: PartialEq + 'static, T: PartialEq + 'static> PartialEq for ThinArc<H, T>
 }
 
 impl<H: Eq + 'static, T: Eq + 'static> Eq for ThinArc<H, T> {}
+
+/// An Arc, except it holds a pointer to the T instead of to the
+/// entire ArcInner.
+///
+/// ```text
+///  Arc<T>    RawOffsetArc<T>
+///   |          |
+///   v          v
+///  ---------------------
+/// | RefCount | T (data) | [ArcInner<T>]
+///  ---------------------
+/// ```
+///
+/// This means that this is a direct pointer to
+/// its contained data (and can be read from by both C++ and Rust),
+/// but we can also convert it to a "regular" Arc<T> by removing the offset
+pub struct RawOffsetArc<T: 'static> {
+    ptr: NonZeroPtrMut<T>,
+}
+
+unsafe impl<T: 'static + Sync + Send> Send for RawOffsetArc<T> {}
+unsafe impl<T: 'static + Sync + Send> Sync for RawOffsetArc<T> {}
+
+impl<T: 'static> Deref for RawOffsetArc<T> {
+    type Target = T;
+    fn deref(&self) -> &Self::Target {
+        unsafe { &*self.ptr.ptr() }
+    }
+}
+
+impl<T: 'static> Clone for RawOffsetArc<T> {
+    fn clone(&self) -> Self {
+        RawOffsetArc::with_arc(self, |a| Arc::into_raw_offset(a.clone()))
+    }
+}
+
+impl<T: 'static> Drop for RawOffsetArc<T> {
+    fn drop(&mut self) {
+        let _ = Arc::from_raw_offset(RawOffsetArc { ptr: self.ptr.clone() });
+    }
+}
+
+
+impl<T: fmt::Debug + 'static> fmt::Debug for RawOffsetArc<T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Debug::fmt(&**self, f)
+    }
+}
+
+impl<T: 'static> RawOffsetArc<T> {
+    /// Temporarily converts |self| into a bonafide Arc and exposes it to the
+    /// provided callback. The refcount is not modified.
+    #[inline(always)]
+    pub fn with_arc<F, U>(&self, f: F) -> U
+        where F: FnOnce(&Arc<T>) -> U
+    {
+        // Synthesize transient Arc, which never touches the refcount of the ArcInner.
+        let transient = unsafe { NoDrop::new(Arc::from_raw(self.ptr.ptr())) };
+
+        // Expose the transient Arc to the callback, which may clone it if it wants.
+        let result = f(&transient);
+
+        // Forget the transient Arc to leave the refcount untouched.
+        // XXXManishearth this can be removed when unions stabilize,
+        // since then NoDrop becomes zero overhead
+        mem::forget(transient);
+
+        // Forward the result.
+        result
+    }
+}
+
+impl<T: 'static> Arc<T> {
+    /// Converts an Arc into a RawOffsetArc. This consumes the Arc, so the refcount
+    /// is not modified.
+    pub fn into_raw_offset(a: Self) -> RawOffsetArc<T> {
+        RawOffsetArc {
+            ptr: NonZeroPtrMut::new(Arc::into_raw(a) as *mut T),
+        }
+    }
+
+    /// Converts a RawOffsetArc into an Arc. This consumes the RawOffsetArc, so the refcount
+    /// is not modified.
+    pub fn from_raw_offset(a: RawOffsetArc<T>) -> Self {
+        let ptr = a.ptr.ptr();
+        mem::forget(a);
+        unsafe { Arc::from_raw(ptr) }
+    }
+}
 
 #[cfg(test)]
 mod tests {
