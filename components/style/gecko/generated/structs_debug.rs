@@ -13,6 +13,7 @@ pub type ServoWritingMode = ::logical_geometry::WritingMode;
 pub type ServoFontComputationData = ::properties::FontComputationData;
 pub type ServoCustomPropertiesMap = Option<::stylearc::Arc<::custom_properties::CustomPropertiesMap>>;
 pub type ServoVisitedStyle = Option<::stylearc::Arc<ServoComputedValues2>>;
+pub type ServoRawOffsetArc<T> = ::stylearc::RawOffsetArc<T>;
 
 #[allow(non_snake_case, non_camel_case_types, non_upper_case_globals)]
 pub mod root {
@@ -7615,30 +7616,30 @@ pub mod root {
         #[repr(C)]
         #[derive(Debug)]
         pub struct ServoComputedValues2 {
-            pub Font: *mut root::nsStyleFont,
-            pub Color: *mut root::nsStyleColor,
-            pub List: *mut root::nsStyleList,
-            pub Text: *mut root::nsStyleText,
-            pub Visibility: *mut root::nsStyleVisibility,
-            pub UserInterface: *mut root::nsStyleUserInterface,
-            pub TableBorder: *mut root::nsStyleTableBorder,
-            pub SVG: *mut root::nsStyleSVG,
-            pub Variables: *mut root::nsStyleVariables,
-            pub Background: *mut root::nsStyleBackground,
-            pub Position: *mut root::nsStylePosition,
-            pub TextReset: *mut root::nsStyleTextReset,
-            pub Display: *mut root::nsStyleDisplay,
-            pub Content: *mut root::nsStyleContent,
-            pub UIReset: *mut root::nsStyleUIReset,
-            pub Table: *mut root::nsStyleTable,
-            pub Margin: *mut root::nsStyleMargin,
-            pub Padding: *mut root::nsStylePadding,
-            pub Border: *mut root::nsStyleBorder,
-            pub Outline: *mut root::nsStyleOutline,
-            pub XUL: *mut root::nsStyleXUL,
-            pub SVGReset: *mut root::nsStyleSVGReset,
-            pub Column: *mut root::nsStyleColumn,
-            pub Effects: *mut root::nsStyleEffects,
+            pub Font: ::gecko_bindings::structs::ServoRawOffsetArc<root::nsStyleFont>,
+            pub Color: ::gecko_bindings::structs::ServoRawOffsetArc<root::nsStyleColor>,
+            pub List: ::gecko_bindings::structs::ServoRawOffsetArc<root::nsStyleList>,
+            pub Text: ::gecko_bindings::structs::ServoRawOffsetArc<root::nsStyleText>,
+            pub Visibility: ::gecko_bindings::structs::ServoRawOffsetArc<root::nsStyleVisibility>,
+            pub UserInterface: ::gecko_bindings::structs::ServoRawOffsetArc<root::nsStyleUserInterface>,
+            pub TableBorder: ::gecko_bindings::structs::ServoRawOffsetArc<root::nsStyleTableBorder>,
+            pub SVG: ::gecko_bindings::structs::ServoRawOffsetArc<root::nsStyleSVG>,
+            pub Variables: ::gecko_bindings::structs::ServoRawOffsetArc<root::nsStyleVariables>,
+            pub Background: ::gecko_bindings::structs::ServoRawOffsetArc<root::nsStyleBackground>,
+            pub Position: ::gecko_bindings::structs::ServoRawOffsetArc<root::nsStylePosition>,
+            pub TextReset: ::gecko_bindings::structs::ServoRawOffsetArc<root::nsStyleTextReset>,
+            pub Display: ::gecko_bindings::structs::ServoRawOffsetArc<root::nsStyleDisplay>,
+            pub Content: ::gecko_bindings::structs::ServoRawOffsetArc<root::nsStyleContent>,
+            pub UIReset: ::gecko_bindings::structs::ServoRawOffsetArc<root::nsStyleUIReset>,
+            pub Table: ::gecko_bindings::structs::ServoRawOffsetArc<root::nsStyleTable>,
+            pub Margin: ::gecko_bindings::structs::ServoRawOffsetArc<root::nsStyleMargin>,
+            pub Padding: ::gecko_bindings::structs::ServoRawOffsetArc<root::nsStylePadding>,
+            pub Border: ::gecko_bindings::structs::ServoRawOffsetArc<root::nsStyleBorder>,
+            pub Outline: ::gecko_bindings::structs::ServoRawOffsetArc<root::nsStyleOutline>,
+            pub XUL: ::gecko_bindings::structs::ServoRawOffsetArc<root::nsStyleXUL>,
+            pub SVGReset: ::gecko_bindings::structs::ServoRawOffsetArc<root::nsStyleSVGReset>,
+            pub Column: ::gecko_bindings::structs::ServoRawOffsetArc<root::nsStyleColumn>,
+            pub Effects: ::gecko_bindings::structs::ServoRawOffsetArc<root::nsStyleEffects>,
             pub custom_properties: ::gecko_bindings::structs::ServoCustomPropertiesMap,
             pub writing_mode: ::gecko_bindings::structs::ServoWritingMode,
             pub font_computation_data: ::gecko_bindings::structs::ServoFontComputationData,
@@ -39048,7 +39049,7 @@ pub mod root {
                    root::nsCharTraits ) ));
     }
     #[test]
-    fn __bindgen_test_layout__bindgen_ty_id_189479_instantiation_33() {
+    fn __bindgen_test_layout__bindgen_ty_id_189482_instantiation_33() {
         assert_eq!(::std::mem::size_of::<u8>() , 1usize , concat ! (
                    "Size of template specialization: " , stringify ! ( u8 )
                    ));
@@ -39057,7 +39058,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout__bindgen_ty_id_189515_instantiation_34() {
+    fn __bindgen_test_layout__bindgen_ty_id_189518_instantiation_34() {
         assert_eq!(::std::mem::size_of::<u8>() , 1usize , concat ! (
                    "Size of template specialization: " , stringify ! ( u8 )
                    ));
