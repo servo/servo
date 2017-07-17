@@ -13,7 +13,7 @@ use std::cmp::{max, min};
 use std::fmt;
 use style::computed_values::transform::ComputedMatrix;
 use style::logical_geometry::{LogicalMargin, WritingMode};
-use style::properties::ServoComputedValues;
+use style::properties::ComputedValues;
 use style::values::computed::{BorderCornerRadius, LengthOrPercentageOrAuto};
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrNone};
 
@@ -481,7 +481,7 @@ pub fn specified_border_radius(
 }
 
 #[inline]
-pub fn padding_from_style(style: &ServoComputedValues,
+pub fn padding_from_style(style: &ComputedValues,
                           containing_block_inline_size: Au,
                           writing_mode: WritingMode)
                           -> LogicalMargin<Au> {
@@ -498,7 +498,7 @@ pub fn padding_from_style(style: &ServoComputedValues,
 ///
 /// This is used when calculating intrinsic inline sizes.
 #[inline]
-pub fn specified_margin_from_style(style: &ServoComputedValues,
+pub fn specified_margin_from_style(style: &ComputedValues,
                                    writing_mode: WritingMode) -> LogicalMargin<Au> {
     let margin_style = style.get_margin();
     LogicalMargin::from_physical(writing_mode, SideOffsets2D::new(

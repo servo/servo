@@ -45,7 +45,7 @@ use style::computed_values::{overflow_wrap, overflow_x, position, text_decoratio
 use style::computed_values::{transform_style, vertical_align, white_space, word_break};
 use style::computed_values::content::ContentItem;
 use style::logical_geometry::{Direction, LogicalMargin, LogicalRect, LogicalSize, WritingMode};
-use style::properties::ServoComputedValues;
+use style::properties::ComputedValues;
 use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::RECONSTRUCT_FLOW;
 use style::str::char_is_whitespace;
@@ -95,10 +95,10 @@ pub struct Fragment {
     pub node: OpaqueNode,
 
     /// The CSS style of this fragment.
-    pub style: StyleArc<ServoComputedValues>,
+    pub style: StyleArc<ComputedValues>,
 
     /// The CSS style of this fragment when it's selected
-    pub selected_style: StyleArc<ServoComputedValues>,
+    pub selected_style: StyleArc<ComputedValues>,
 
     /// The position of this fragment relative to its owning flow. The size includes padding and
     /// border, but not margin.
@@ -676,8 +676,8 @@ impl Fragment {
     /// Constructs a new `Fragment` instance from an opaque node.
     pub fn from_opaque_node_and_style(node: OpaqueNode,
                                       pseudo: PseudoElementType<()>,
-                                      style: StyleArc<ServoComputedValues>,
-                                      selected_style: StyleArc<ServoComputedValues>,
+                                      style: StyleArc<ComputedValues>,
+                                      selected_style: StyleArc<ComputedValues>,
                                       mut restyle_damage: RestyleDamage,
                                       specific: SpecificFragmentInfo)
                                       -> Fragment {
@@ -706,7 +706,7 @@ impl Fragment {
     /// type. For the new anonymous fragment, layout-related values (border box, etc.) are reset to
     /// initial values.
     pub fn create_similar_anonymous_fragment(&self,
-                                             style: StyleArc<ServoComputedValues>,
+                                             style: StyleArc<ComputedValues>,
                                              specific: SpecificFragmentInfo)
                                              -> Fragment {
         let writing_mode = style.writing_mode;
@@ -1339,7 +1339,7 @@ impl Fragment {
 
     // Return offset from original position because of `position: relative`.
     pub fn relative_position(&self, containing_block_size: &LogicalSize<Au>) -> LogicalSize<Au> {
-        fn from_style(style: &ServoComputedValues, container_size: &LogicalSize<Au>)
+        fn from_style(style: &ComputedValues, container_size: &LogicalSize<Au>)
                       -> LogicalSize<Au> {
             let offsets = style.logical_position();
             let offset_i = if offsets.inline_start != LengthOrPercentageOrAuto::Auto {
@@ -1392,12 +1392,12 @@ impl Fragment {
     }
 
     #[inline(always)]
-    pub fn style(&self) -> &ServoComputedValues {
+    pub fn style(&self) -> &ComputedValues {
         &*self.style
     }
 
     #[inline(always)]
-    pub fn selected_style(&self) -> &ServoComputedValues {
+    pub fn selected_style(&self) -> &ComputedValues {
         &*self.selected_style
     }
 
@@ -2142,7 +2142,7 @@ impl Fragment {
         };
         return inline_metrics;
 
-        fn inline_metrics_of_block(flow: &FlowRef, style: &ServoComputedValues) -> InlineMetrics {
+        fn inline_metrics_of_block(flow: &FlowRef, style: &ComputedValues) -> InlineMetrics {
             // CSS 2.1 § 10.8: "The height of each inline-level box in the line box is calculated.
             // For replaced elements, inline-block elements, and inline-table elements, this is the
             // height of their margin box."
@@ -2423,7 +2423,7 @@ impl Fragment {
         }
     }
 
-    pub fn repair_style(&mut self, new_style: &StyleArc<ServoComputedValues>) {
+    pub fn repair_style(&mut self, new_style: &StyleArc<ComputedValues>) {
         self.style = (*new_style).clone()
     }
 
@@ -3038,9 +3038,9 @@ pub struct InlineStyleIterator<'a> {
 }
 
 impl<'a> Iterator for InlineStyleIterator<'a> {
-    type Item = &'a ServoComputedValues;
+    type Item = &'a ComputedValues;
 
-    fn next(&mut self) -> Option<&'a ServoComputedValues> {
+    fn next(&mut self) -> Option<&'a ComputedValues> {
         if !self.primary_style_yielded {
             self.primary_style_yielded = true;
             return Some(&*self.fragment.style)

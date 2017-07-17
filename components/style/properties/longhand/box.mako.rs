@@ -181,7 +181,7 @@
 
     % if product == "servo":
         fn cascade_property_custom(_declaration: &PropertyDeclaration,
-                                   _inherited_style: &ComputedValues,
+                                   _inherited_style: &ComputedValuesInner,
                                    context: &mut computed::Context,
                                    _cacheable: &mut bool) {
             longhands::_servo_display_for_hypothetical_box::derive_from_display(context);

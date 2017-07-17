@@ -16,7 +16,7 @@ use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx_traits::print_tree::PrintTree;
 use std::fmt;
 use style::logical_geometry::LogicalSize;
-use style::properties::ServoComputedValues;
+use style::properties::ComputedValues;
 
 /// A table formatting context.
 pub struct TableCaptionFlow {
@@ -83,7 +83,7 @@ impl Flow for TableCaptionFlow {
         self.block_flow.collect_stacking_contexts(state);
     }
 
-    fn repair_style(&mut self, new_style: &::StyleArc<ServoComputedValues>) {
+    fn repair_style(&mut self, new_style: &::StyleArc<ComputedValues>) {
         self.block_flow.repair_style(new_style)
     }
 

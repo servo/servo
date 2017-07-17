@@ -249,7 +249,7 @@ ${helpers.single_keyword("unicode-bidi",
 
     % if product == "servo":
         fn cascade_property_custom(_declaration: &PropertyDeclaration,
-                                   _inherited_style: &ComputedValues,
+                                   _inherited_style: &ComputedValuesInner,
                                    context: &mut computed::Context,
                                    _cacheable: &mut bool) {
             longhands::_servo_text_decorations_in_effect::derive_from_text_decoration(context);

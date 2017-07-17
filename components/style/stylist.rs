@@ -16,7 +16,7 @@ use gecko_bindings::structs::{nsIAtom, StyleRuleInclusion};
 use invalidation::element::invalidation_map::InvalidationMap;
 use invalidation::media_queries::{EffectiveMediaQueryResults, ToMediaListKey};
 use media_queries::Device;
-use properties::{self, CascadeFlags, ComputedValues};
+use properties::{self, CascadeFlags, ComputedValues, ComputedValuesInner};
 use properties::{AnimationRules, PropertyDeclarationBlock};
 #[cfg(feature = "servo")]
 use properties::INHERIT_ALL;
@@ -599,7 +599,7 @@ impl Stylist {
     pub fn precomputed_values_for_pseudo(&self,
                                          guards: &StylesheetGuards,
                                          pseudo: &PseudoElement,
-                                         parent: Option<&Arc<ComputedValues>>,
+                                         parent: Option<&ComputedValuesInner>,
                                          cascade_flags: CascadeFlags,
                                          font_metrics: &FontMetricsProvider)
                                          -> Arc<ComputedValues> {
@@ -629,18 +629,16 @@ impl Stylist {
         // descendant of a display: contents element where display: contents is
         // the actual used value, and the computed value of it would need
         // blockification.
-        let computed =
-            properties::cascade(&self.device,
-                                &rule_node,
-                                guards,
-                                parent.map(|p| &**p),
-                                parent.map(|p| &**p),
-                                None,
-                                None,
-                                font_metrics,
-                                cascade_flags,
-                                self.quirks_mode);
-        Arc::new(computed)
+        properties::cascade(&self.device,
+                            &rule_node,
+                            guards,
+                            parent,
+                            parent,
+                            None,
+                            None,
+                            font_metrics,
+                            cascade_flags,
+                            self.quirks_mode).to_outer()
     }
 
     /// Returns the style for an anonymous box of the given type.
@@ -648,7 +646,7 @@ impl Stylist {
     pub fn style_for_anonymous(&self,
                                guards: &StylesheetGuards,
                                pseudo: &PseudoElement,
-                               parent_style: &Arc<ComputedValues>)
+                               parent_style: &ComputedValuesInner)
                                -> Arc<ComputedValues> {
         use font_metrics::ServoMetricsProvider;
 
@@ -692,7 +690,7 @@ impl Stylist {
                                                   element: &E,
                                                   pseudo: &PseudoElement,
                                                   rule_inclusion: RuleInclusion,
-                                                  parent_style: &Arc<ComputedValues>,
+                                                  parent_style: &ComputedValuesInner,
                                                   is_probe: bool,
                                                   font_metrics: &FontMetricsProvider)
                                                   -> Option<Arc<ComputedValues>>
@@ -713,7 +711,7 @@ impl Stylist {
     pub fn compute_pseudo_element_style_with_inputs(&self,
                                                     inputs: &CascadeInputs,
                                                     guards: &StylesheetGuards,
-                                                    parent_style: &Arc<ComputedValues>,
+                                                    parent_style: &ComputedValuesInner,
                                                     font_metrics: &FontMetricsProvider)
                                                     -> Option<Arc<ComputedValues>>
     {
@@ -736,7 +734,7 @@ impl Stylist {
             // We want to use the visited bits (if any) from our parent style as
             // our parent.
             let inherited_style =
-                parent_style.get_visited_style().unwrap_or(&*parent_style);
+                parent_style.get_visited_style().unwrap_or(parent_style);
 
             // FIXME(emilio): The lack of layout_parent_style here could be
             // worrying, but we're probably dropping the display fixup for
@@ -753,9 +751,9 @@ impl Stylist {
                                     None,
                                     font_metrics,
                                     CascadeFlags::empty(),
-                                    self.quirks_mode);
+                                    self.quirks_mode).to_outer();
 
-            Some(Arc::new(computed))
+            Some(computed)
         } else {
             None
         };
@@ -768,19 +766,16 @@ impl Stylist {
         // difficult to assert that display: contents nodes never arrive here
         // (tl;dr: It doesn't apply for replaced elements and such, but the
         // computed value is still "contents").
-        let computed =
-            properties::cascade(&self.device,
-                                rules,
-                                guards,
-                                Some(parent_style),
-                                Some(parent_style),
-                                visited_values,
-                                None,
-                                font_metrics,
-                                CascadeFlags::empty(),
-                                self.quirks_mode);
-
-        Some(Arc::new(computed))
+        Some(properties::cascade(&self.device,
+                            rules,
+                            guards,
+                            Some(parent_style),
+                            Some(parent_style),
+                            visited_values,
+                            None,
+                            font_metrics,
+                            CascadeFlags::empty(),
+                            self.quirks_mode).to_outer())
     }
 
     /// Computes the cascade inputs for a lazily-cascaded pseudo-element.
@@ -1317,7 +1312,7 @@ impl Stylist {
     /// Computes styles for a given declaration with parent_style.
     pub fn compute_for_declarations(&self,
                                     guards: &StylesheetGuards,
-                                    parent_style: &Arc<ComputedValues>,
+                                    parent_style: &ComputedValuesInner,
                                     declarations: Arc<Locked<PropertyDeclarationBlock>>)
                                     -> Arc<ComputedValues> {
         use font_metrics::get_metrics_provider_for_product;
@@ -1333,16 +1328,16 @@ impl Stylist {
         // font styles in <canvas> via Servo_StyleSet_ResolveForDeclarations.
         // It is unclear if visited styles are meaningful for this case.
         let metrics = get_metrics_provider_for_product();
-        Arc::new(properties::cascade(&self.device,
-                                     &rule_node,
-                                     guards,
-                                     Some(parent_style),
-                                     Some(parent_style),
-                                     None,
-                                     None,
-                                     &metrics,
-                                     CascadeFlags::empty(),
-                                     self.quirks_mode))
+        properties::cascade(&self.device,
+                            &rule_node,
+                            guards,
+                            Some(parent_style),
+                            Some(parent_style),
+                            None,
+                            None,
+                            &metrics,
+                            CascadeFlags::empty(),
+                            self.quirks_mode).to_outer()
     }
 
     /// Accessor for a shared reference to the device.

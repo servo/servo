@@ -1514,7 +1514,8 @@ pub extern "C" fn Servo_ComputedValues_GetForAnonymousBox(parent_style_or_null: 
         .expect("Not an anon box pseudo?");
 
 
-    let maybe_parent = ComputedValues::arc_from_borrowed(&parent_style_or_null);
+    let maybe_parent = ComputedValues::arc_from_borrowed(&parent_style_or_null)
+                        .map(|p| &p.inner);
     let cascade_flags = SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP;
     let metrics = get_metrics_provider_for_product();
     data.stylist.precomputed_values_for_pseudo(&guards, &pseudo, maybe_parent,
@@ -1543,7 +1544,7 @@ pub extern "C" fn Servo_ResolvePseudoStyle(element: RawGeckoElementBorrowed,
         return if is_probe {
             Strong::null()
         } else {
-            doc_data.default_computed_values().clone().into_strong()
+            doc_data.default_computed_values().clone().to_outer().into_strong()
         };
     }
 
@@ -1676,10 +1677,10 @@ fn get_pseudo_style(
     }
 
     Some(style.unwrap_or_else(|| {
-        Arc::new(StyleBuilder::for_inheritance(
+        StyleBuilder::for_inheritance(
             styles.primary(),
             doc_data.default_computed_values(),
-        ).build())
+        ).build().to_outer()
     }))
 }
 
@@ -1702,20 +1703,20 @@ pub extern "C" fn Servo_ComputedValues_Inherit(
                 .adjust_for_text();
         }
 
-        Arc::new(style.build())
+        style.build()
     } else {
         debug_assert!(!for_text);
         data.default_computed_values().clone()
     };
 
-    style.into_strong()
+    style.to_outer().into_strong()
 }
 
 #[no_mangle]
 pub extern "C" fn Servo_ComputedValues_GetVisitedStyle(values: ServoComputedValuesBorrowed)
                                                        -> ServoComputedValuesStrong {
-    match ComputedValues::as_arc(&values).get_visited_style() {
-        Some(v) => v.clone().into_strong(),
+    match ComputedValues::as_arc(&values).clone_visited_style() {
+        Some(v) => v.into_strong(),
         None => Strong::null(),
     }
 }
@@ -2870,12 +2871,13 @@ fn create_context<'a>(per_doc_data: &'a PerDocumentStyleDataImpl,
                       parent_style: &'a Option<&Arc<ComputedValues>>)
                       -> Context<'a> {
     let default_values = per_doc_data.default_computed_values();
+    let inherited_style = parent_style.map(|x| &x.inner).unwrap_or(default_values);
 
     Context {
         is_root_element: false,
         device: per_doc_data.stylist.device(),
-        inherited_style: parent_style.unwrap_or(default_values),
-        layout_parent_style: parent_style.unwrap_or(default_values),
+        inherited_style: inherited_style,
+        layout_parent_style: inherited_style,
         style: StyleBuilder::for_derived_style(&style),
         font_metrics_provider: font_metrics_provider,
         cached_system_font: None,
@@ -3264,7 +3266,7 @@ pub extern "C" fn Servo_StyleSet_ResolveForDeclarations(
     let guards = StylesheetGuards::same(&guard);
 
     let parent_style = match ComputedValues::arc_from_borrowed(&parent_style_or_null) {
-        Some(parent) => &parent,
+        Some(parent) => &parent.inner,
         None => doc_data.default_computed_values(),
     };
 

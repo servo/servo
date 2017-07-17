@@ -24,7 +24,7 @@ use std::fmt;
 use style::computed_values::{border_collapse, border_spacing, table_layout};
 use style::context::SharedStyleContext;
 use style::logical_geometry::LogicalSize;
-use style::properties::ServoComputedValues;
+use style::properties::ComputedValues;
 use style::servo::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW};
 use style::values::CSSFloat;
 use style::values::computed::LengthOrPercentageOrAuto;
@@ -506,7 +506,7 @@ impl Flow for TableFlow {
         self.block_flow.collect_stacking_contexts(state);
     }
 
-    fn repair_style(&mut self, new_style: &::StyleArc<ServoComputedValues>) {
+    fn repair_style(&mut self, new_style: &::StyleArc<ComputedValues>) {
         self.block_flow.repair_style(new_style)
     }
 

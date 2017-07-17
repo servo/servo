@@ -11,7 +11,7 @@ use context::SharedStyleContext;
 use dom::OpaqueNode;
 use euclid::Point2D;
 use font_metrics::FontMetricsProvider;
-use properties::{self, CascadeFlags, ComputedValues, Importance};
+use properties::{self, CascadeFlags, ComputedValues, ComputedValuesInner, Importance};
 use properties::animated_properties::{AnimatableLonghand, AnimatedProperty, TransitionProperty};
 use properties::longhands::animation_direction::computed_value::single_value::T as AnimationDirection;
 use properties::longhands::animation_iteration_count::single_value::computed_value::T as AnimationIterationCount;
@@ -347,8 +347,8 @@ impl PropertyAnimation {
     fn from_animatable_longhand(animatable_longhand: &AnimatableLonghand,
                                 timing_function: TimingFunction,
                                 duration: Time,
-                                old_style: &ComputedValues,
-                                new_style: &ComputedValues)
+                                old_style: &ComputedValuesInner,
+                                new_style: &ComputedValuesInner)
                                 -> Option<PropertyAnimation> {
         let animated_property = AnimatedProperty::from_animatable_longhand(animatable_longhand,
                                                                            old_style,
@@ -480,10 +480,10 @@ pub fn start_transitions_if_applicable(new_animations_sender: &Sender<Animation>
 
 fn compute_style_for_animation_step(context: &SharedStyleContext,
                                     step: &KeyframesStep,
-                                    previous_style: &ComputedValues,
-                                    style_from_cascade: &ComputedValues,
+                                    previous_style: &ComputedValuesInner,
+                                    style_from_cascade: &ComputedValuesInner,
                                     font_metrics_provider: &FontMetricsProvider)
-                                    -> ComputedValues {
+                                    -> ComputedValuesInner {
     match step.value {
         KeyframesStepValue::ComputedValues => style_from_cascade.clone(),
         KeyframesStepValue::Declarations { block: ref declarations } => {

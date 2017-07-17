@@ -18,7 +18,7 @@ use smallvec::SmallVec;
 use std::collections::{HashMap, LinkedList};
 use style::computed_values::{display, list_style_type};
 use style::computed_values::content::ContentItem;
-use style::properties::ServoComputedValues;
+use style::properties::ComputedValues;
 use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::RESOLVE_GENERATED_CONTENT;
 use text::TextRunScanner;
@@ -298,7 +298,7 @@ impl<'a,'b> ResolveGeneratedContentFragmentMutator<'a,'b> {
         self.incremented = true
     }
 
-    fn quote(&self, style: &ServoComputedValues, close: bool) -> String {
+    fn quote(&self, style: &ComputedValues, close: bool) -> String {
         let quotes = &style.get_list().quotes;
         if quotes.0.is_empty() {
             return String::new()
@@ -368,7 +368,7 @@ impl Counter {
               layout_context: &LayoutContext,
               node: OpaqueNode,
               pseudo: PseudoElementType<()>,
-              style: ::StyleArc<ServoComputedValues>,
+              style: ::StyleArc<ComputedValues>,
               list_style_type: list_style_type::T,
               mode: RenderingMode)
               -> Option<SpecificFragmentInfo> {
@@ -431,7 +431,7 @@ struct CounterValue {
 fn render_text(layout_context: &LayoutContext,
                node: OpaqueNode,
                pseudo: PseudoElementType<()>,
-               style: ::StyleArc<ServoComputedValues>,
+               style: ::StyleArc<ComputedValues>,
                string: String)
                -> Option<SpecificFragmentInfo> {
     let mut fragments = LinkedList::new();
