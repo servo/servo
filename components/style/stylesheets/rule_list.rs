@@ -5,7 +5,7 @@
 //! A list of CSS rules.
 
 use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard};
-use stylearc::Arc;
+use stylearc::{Arc, RawOffsetArc};
 use stylesheets::{CssRule, RulesMutateError};
 use stylesheets::loader::StylesheetLoader;
 use stylesheets::memory::{MallocSizeOfFn, MallocSizeOfWithGuard};
@@ -109,7 +109,7 @@ pub trait CssRulesHelpers {
                    -> Result<CssRule, RulesMutateError>;
 }
 
-impl CssRulesHelpers for Arc<Locked<CssRules>> {
+impl CssRulesHelpers for RawOffsetArc<Locked<CssRules>> {
     fn insert_rule(&self,
                    lock: &SharedRwLock,
                    rule: &str,

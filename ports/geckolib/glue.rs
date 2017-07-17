@@ -90,7 +90,7 @@ use style::invalidation::element::restyle_hints::{self, RestyleHint};
 use style::media_queries::{MediaList, parse_media_query_list};
 use style::parallel;
 use style::parser::ParserContext;
-use style::properties::{ComputedValues, Importance, SourcePropertyDeclaration};
+use style::properties::{ComputedValues, ComputedValuesInner, Importance, SourcePropertyDeclaration};
 use style::properties::{LonghandIdSet, PropertyDeclaration, PropertyDeclarationBlock, PropertyId, StyleBuilder};
 use style::properties::SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP;
 use style::properties::animated_properties::{Animatable, AnimatableLonghand, AnimationValue};
@@ -101,7 +101,7 @@ use style::sequential;
 use style::shared_lock::{SharedRwLockReadGuard, StylesheetGuards, ToCssWithGuard, Locked};
 use style::string_cache::Atom;
 use style::style_adjuster::StyleAdjuster;
-use style::stylearc::Arc;
+use style::stylearc::{Arc, RawOffsetArc};
 use style::stylesheets::{CssRule, CssRules, CssRuleType, CssRulesHelpers, DocumentRule};
 use style::stylesheets::{ImportRule, KeyframesRule, MallocSizeOfWithGuard, MediaRule};
 use style::stylesheets::{NamespaceRule, Origin, PageRule, StyleRule, SupportsRule};
@@ -429,7 +429,7 @@ pub extern "C" fn Servo_AnimationCompose(raw_value_map: RawServoAnimationValueMa
         let previous_composed_value = value_map.get(&property).cloned();
         previous_composed_value.or_else(|| {
             let raw_base_style = unsafe { Gecko_AnimationGetBaseStyle(base_values, css_property) };
-            AnimationValue::arc_from_borrowed(&raw_base_style).map(|v| v.as_ref()).cloned()
+            AnimationValue::arc_from_borrowed(&raw_base_style).map(|v| &**v).cloned()
         })
     } else {
         None
@@ -459,7 +459,7 @@ pub extern "C" fn Servo_AnimationCompose(raw_value_map: RawServoAnimationValueMa
 
     // Composite with underlying value.
     // A return value of None means, "Just use keyframe_value as-is."
-    let composite_endpoint = |keyframe_value: Option<&Arc<AnimationValue>>,
+    let composite_endpoint = |keyframe_value: Option<&RawOffsetArc<AnimationValue>>,
                               composite_op: CompositeOperation| -> Option<AnimationValue> {
         match keyframe_value {
             Some(keyframe_value) => {
@@ -498,7 +498,7 @@ pub extern "C" fn Servo_AnimationCompose(raw_value_map: RawServoAnimationValueMa
         let raw_last_value;
         let last_value = if !last_segment.mToValue.mServo.mRawPtr.is_null() {
             raw_last_value = unsafe { &*last_segment.mToValue.mServo.mRawPtr };
-            AnimationValue::as_arc(&raw_last_value).as_ref()
+            &*AnimationValue::as_arc(&raw_last_value)
         } else {
             debug_assert!(need_underlying_value,
                           "Should have detected we need an underlying value");
@@ -506,7 +506,7 @@ pub extern "C" fn Servo_AnimationCompose(raw_value_map: RawServoAnimationValueMa
         };
 
         // As with composite_endpoint, a return value of None means, "Use keyframe_value as-is."
-        let apply_iteration_composite = |keyframe_value: Option<&Arc<AnimationValue>>,
+        let apply_iteration_composite = |keyframe_value: Option<&RawOffsetArc<AnimationValue>>,
                                          composited_value: Option<AnimationValue>|
                                         -> Option<AnimationValue> {
             let count = computed_timing.mCurrentIteration;
@@ -1244,7 +1244,7 @@ pub extern "C" fn Servo_StyleRule_SetStyle(rule: RawServoStyleRuleBorrowed,
                                            declarations: RawServoDeclarationBlockBorrowed) {
     let declarations = Locked::<PropertyDeclarationBlock>::as_arc(&declarations);
     write_locked_arc(rule, |rule: &mut StyleRule| {
-        rule.block = declarations.clone();
+        rule.block = declarations.clone_arc();
     })
 }
 
@@ -1382,7 +1382,7 @@ pub extern "C" fn Servo_Keyframe_SetStyle(keyframe: RawServoKeyframeBorrowed,
                                           declarations: RawServoDeclarationBlockBorrowed) {
     let declarations = Locked::<PropertyDeclarationBlock>::as_arc(&declarations);
     write_locked_arc(keyframe, |keyframe: &mut Keyframe| {
-        keyframe.block = declarations.clone();
+        keyframe.block = declarations.clone_arc();
     })
 }
 
@@ -1480,7 +1480,7 @@ pub extern "C" fn Servo_PageRule_SetStyle(rule: RawServoPageRuleBorrowed,
                                            declarations: RawServoDeclarationBlockBorrowed) {
     let declarations = Locked::<PropertyDeclarationBlock>::as_arc(&declarations);
     write_locked_arc(rule, |rule: &mut PageRule| {
-        rule.block = declarations.clone();
+        rule.block = declarations.clone_arc();
     })
 }
 
@@ -1559,7 +1559,7 @@ pub extern "C" fn Servo_ResolvePseudoStyle(element: RawGeckoElementBorrowed,
         &pseudo,
         RuleInclusion::All,
         &data.styles,
-        ComputedValues::arc_from_borrowed(&inherited_style),
+        ComputedValues::arc_from_borrowed(&inherited_style).map(|x| &***x),
         &*doc_data,
         is_probe
     );
@@ -1584,7 +1584,7 @@ pub extern "C" fn Servo_SetExplicitStyle(element: RawGeckoElementBorrowed,
     // work for other things, we just haven't had a reason to do so.
     debug_assert!(element.get_data().is_none());
     let mut data = unsafe { element.ensure_data() };
-    data.styles.primary = Some(style.clone());
+    data.styles.primary = Some(style.clone_arc());
 }
 
 #[no_mangle]
@@ -1613,7 +1613,7 @@ fn get_pseudo_style(
     pseudo: &PseudoElement,
     rule_inclusion: RuleInclusion,
     styles: &ElementStyles,
-    inherited_styles: Option<&Arc<ComputedValues>>,
+    inherited_styles: Option<&ComputedValuesInner>,
     doc_data: &PerDocumentStyleDataImpl,
     is_probe: bool,
 ) -> Option<Arc<ComputedValues>> {
@@ -1642,8 +1642,8 @@ fn get_pseudo_style(
                 },
                 _ => {
                     debug_assert!(inherited_styles.is_none() ||
-                                  ptr::eq(&**inherited_styles.unwrap(),
-                                          &**styles.primary()));
+                                  ptr::eq(&*inherited_styles.unwrap(),
+                                          &***styles.primary()));
                     styles.pseudos.get(&pseudo).cloned()
                 },
             }
@@ -1651,8 +1651,8 @@ fn get_pseudo_style(
         PseudoElementCascadeType::Precomputed => unreachable!("No anonymous boxes"),
         PseudoElementCascadeType::Lazy => {
             debug_assert!(inherited_styles.is_none() ||
-                          ptr::eq(&**inherited_styles.unwrap(),
-                                  &**styles.primary()));
+                          ptr::eq(&*inherited_styles.unwrap(),
+                                  &***styles.primary()));
             let base = if pseudo.inherits_from_default_values() {
                 doc_data.default_computed_values()
             } else {
@@ -1761,12 +1761,14 @@ pub extern "C" fn Servo_ComputedValues_GetStyleRuleList(values: ServoComputedVal
         let mut result = vec![];
         for node in rule_node.self_and_ancestors() {
             if let &StyleSource::Style(ref rule) = node.style_source() {
-                result.push(Locked::<StyleRule>::arc_as_borrowed(&rule));
+                result.push(rule);
             }
         }
         unsafe { rules.set_len(result.len() as u32) };
-        for (&src, dest) in result.into_iter().zip(rules.iter_mut()) {
-            *dest = src;
+        for (ref src, ref mut dest) in result.into_iter().zip(rules.iter_mut()) {
+            src.with_raw_offset_arc(|arc| {
+                **dest = *Locked::<StyleRule>::arc_as_borrowed(arc);
+            })
         }
     }
 }
@@ -3274,7 +3276,7 @@ pub extern "C" fn Servo_StyleSet_ResolveForDeclarations(
 
     doc_data.stylist.compute_for_declarations(&guards,
                                               parent_style,
-                                              declarations.clone()).into_strong()
+                                              declarations.clone_arc()).into_strong()
 }
 
 #[no_mangle]

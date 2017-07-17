@@ -64,7 +64,7 @@ use gecko_bindings::structs::EffectCompositor_CascadeLevel as CascadeLevel;
 use gecko_bindings::structs::NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE;
 use gecko_bindings::structs::NODE_IS_NATIVE_ANONYMOUS;
 use gecko_bindings::structs::nsIDocument_DocumentTheme as DocumentTheme;
-use gecko_bindings::sugar::ownership::{HasArcFFI, HasSimpleFFI};
+use gecko_bindings::sugar::ownership::{FFIArcHelpers, HasArcFFI, HasSimpleFFI};
 use logical_geometry::WritingMode;
 use media_queries::Device;
 use properties::{ComputedValues, parse_style_attribute};
@@ -88,7 +88,7 @@ use std::mem;
 use std::ops::DerefMut;
 use std::ptr;
 use string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
-use stylearc::Arc;
+use stylearc::{Arc, ArcBorrow, RawOffsetArc};
 use stylesheets::UrlExtraData;
 use stylist::Stylist;
 
@@ -860,13 +860,15 @@ impl<'le> TElement for GeckoElement<'le> {
             device.pres_context().mDocument.raw::<structs::nsIDocument>()
     }
 
-    fn style_attribute(&self) -> Option<&Arc<Locked<PropertyDeclarationBlock>>> {
+    fn style_attribute(&self) -> Option<ArcBorrow<Locked<PropertyDeclarationBlock>>> {
         if !self.may_have_style_attribute() {
             return None;
         }
 
         let declarations = unsafe { Gecko_GetStyleAttrDeclarationBlock(self.0) };
-        declarations.map_or(None, |s| s.as_arc_opt())
+        let declarations: Option<&RawOffsetArc<Locked<PropertyDeclarationBlock>>>
+            = declarations.and_then(|s| s.as_arc_opt());
+        declarations.map(|s| s.borrow_arc())
     }
 
     fn unset_dirty_style_attribute(&self) {
@@ -877,9 +879,11 @@ impl<'le> TElement for GeckoElement<'le> {
         unsafe { Gecko_UnsetDirtyStyleAttr(self.0) };
     }
 
-    fn get_smil_override(&self) -> Option<&Arc<Locked<PropertyDeclarationBlock>>> {
+    fn get_smil_override(&self) -> Option<ArcBorrow<Locked<PropertyDeclarationBlock>>> {
         let declarations = unsafe { Gecko_GetSMILOverrideDeclarationBlock(self.0) };
-        declarations.map(|s| s.as_arc_opt()).unwrap_or(None)
+        let declarations: Option<&RawOffsetArc<Locked<PropertyDeclarationBlock>>>
+            = declarations.and_then(|s| s.as_arc_opt());
+        declarations.map(|s| s.borrow_arc())
     }
 
     fn get_animation_rule_by_cascade(&self, cascade_level: ServoCascadeLevel)
@@ -1098,9 +1102,9 @@ impl<'le> TElement for GeckoElement<'le> {
         let computed_values =
             computed_data.as_ref().map(|d| d.styles.primary());
         let computed_values_opt =
-            computed_values.map(|v| *HasArcFFI::arc_as_borrowed(v));
+            computed_values.map(|v| v.as_borrowed());
         let before_change_values =
-            before_change_style.as_ref().map(|v| *HasArcFFI::arc_as_borrowed(v));
+            before_change_style.as_ref().map(|v| v.as_borrowed());
         unsafe {
             Gecko_UpdateAnimations(self.0,
                                    before_change_values,
@@ -1182,7 +1186,7 @@ impl<'le> TElement for GeckoElement<'le> {
             };
             let end_value = AnimationValue::arc_from_borrowed(&raw_end_value);
             debug_assert!(end_value.is_some());
-            map.insert(property, end_value.unwrap().clone());
+            map.insert(property, end_value.unwrap().clone_arc());
         }
         map
     }
@@ -1428,17 +1432,19 @@ impl<'le> PresentationalHintsSynthesizer for GeckoElement<'le> {
             }
         }
         let declarations = unsafe { Gecko_GetHTMLPresentationAttrDeclarationBlock(self.0) };
-        let declarations = declarations.and_then(|s| s.as_arc_opt());
+        let declarations: Option<&RawOffsetArc<Locked<PropertyDeclarationBlock>>>
+            = declarations.and_then(|s| s.as_arc_opt());
         if let Some(decl) = declarations {
             hints.push(
-                ApplicableDeclarationBlock::from_declarations(Clone::clone(decl), ServoCascadeLevel::PresHints)
+                ApplicableDeclarationBlock::from_declarations(decl.clone_arc(), ServoCascadeLevel::PresHints)
             );
         }
         let declarations = unsafe { Gecko_GetExtraContentStyleDeclarations(self.0) };
-        let declarations = declarations.and_then(|s| s.as_arc_opt());
+        let declarations: Option<&RawOffsetArc<Locked<PropertyDeclarationBlock>>>
+            = declarations.and_then(|s| s.as_arc_opt());
         if let Some(decl) = declarations {
             hints.push(
-                ApplicableDeclarationBlock::from_declarations(Clone::clone(decl), ServoCascadeLevel::PresHints)
+                ApplicableDeclarationBlock::from_declarations(decl.clone_arc(), ServoCascadeLevel::PresHints)
             );
         }
 
@@ -1458,20 +1464,22 @@ impl<'le> PresentationalHintsSynthesizer for GeckoElement<'le> {
                     Gecko_GetVisitedLinkAttrDeclarationBlock(self.0)
                 },
             };
-            let declarations = declarations.and_then(|s| s.as_arc_opt());
+            let declarations: Option<&RawOffsetArc<Locked<PropertyDeclarationBlock>>> =
+                declarations.and_then(|s| s.as_arc_opt());
             if let Some(decl) = declarations {
                 hints.push(
-                    ApplicableDeclarationBlock::from_declarations(Clone::clone(decl), ServoCascadeLevel::PresHints)
+                    ApplicableDeclarationBlock::from_declarations(decl.clone_arc(), ServoCascadeLevel::PresHints)
                 );
             }
 
             let active = self.get_state().intersects(NonTSPseudoClass::Active.state_flag());
             if active {
                 let declarations = unsafe { Gecko_GetActiveLinkAttrDeclarationBlock(self.0) };
-                let declarations = declarations.and_then(|s| s.as_arc_opt());
+                let declarations: Option<&RawOffsetArc<Locked<PropertyDeclarationBlock>>>
+                    = declarations.and_then(|s| s.as_arc_opt());
                 if let Some(decl) = declarations {
                     hints.push(
-                        ApplicableDeclarationBlock::from_declarations(Clone::clone(decl), ServoCascadeLevel::PresHints)
+                        ApplicableDeclarationBlock::from_declarations(decl.clone_arc(), ServoCascadeLevel::PresHints)
                     );
                 }
             }

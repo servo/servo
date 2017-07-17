@@ -18,7 +18,7 @@ use properties::longhands::display::computed_value as display;
 use rule_tree::{CascadeLevel, StrongRuleNode};
 use selector_parser::{PseudoElement, RestyleDamage};
 use selectors::matching::ElementSelectorFlags;
-use stylearc::Arc;
+use stylearc::{Arc, ArcBorrow};
 
 /// Represents the result of comparing an element's old and new style.
 pub struct StyleDifference {
@@ -690,7 +690,7 @@ pub trait MatchMethods : TElement {
         };
 
         let replace_rule_node = |level: CascadeLevel,
-                                 pdb: Option<&Arc<Locked<PropertyDeclarationBlock>>>,
+                                 pdb: Option<ArcBorrow<Locked<PropertyDeclarationBlock>>>,
                                  path: &mut StrongRuleNode| -> bool {
             let new_node = stylist.rule_tree()
                                   .update_rule_at_level(level, pdb, path, guards);
@@ -737,7 +737,7 @@ pub trait MatchMethods : TElement {
                                                    primary_rules: &mut StrongRuleNode| {
                 let animation_rule = self.get_animation_rule_by_cascade(level);
                 replace_rule_node(level,
-                                  animation_rule.as_ref(),
+                                  animation_rule.as_ref().map(|a| a.borrow_arc()),
                                   primary_rules);
             };
 

@@ -8,7 +8,7 @@ use std::marker::PhantomData;
 use std::mem::{forget, transmute};
 use std::ops::{Deref, DerefMut};
 use std::ptr;
-use stylearc::Arc;
+use stylearc::{Arc, RawOffsetArc};
 
 /// Indicates that a given Servo type has a corresponding Gecko FFI type.
 pub unsafe trait HasFFI : Sized + 'static {
@@ -88,7 +88,7 @@ pub unsafe trait HasArcFFI : HasFFI {
     /// (usually on the C++ side) without running the Arc destructor.
     unsafe fn release_opt(ptr: Option<&Self::FFIType>) {
         if let Some(arc) = Self::arc_from_borrowed(&ptr) {
-            let _: Arc<_> = ptr::read(arc as *const Arc<_>);
+            let _: RawOffsetArc<_> = ptr::read(arc as *const RawOffsetArc<_>);
         }
     }
 
@@ -102,16 +102,16 @@ pub unsafe trait HasArcFFI : HasFFI {
     /// know that a strong reference to the backing Arc is disappearing
     /// (usually on the C++ side) without running the Arc destructor.
     unsafe fn release(ptr: &Self::FFIType) {
-        let _: Arc<_> = ptr::read(Self::as_arc(&ptr) as *const Arc<_>);
+        let _: RawOffsetArc<_> = ptr::read(Self::as_arc(&ptr) as *const RawOffsetArc<_>);
     }
     #[inline]
     /// Converts a borrowed FFI reference to a borrowed Arc.
     ///
     /// &GeckoType -> &Arc<ServoType>
-    fn as_arc<'a>(ptr: &'a &Self::FFIType) -> &'a Arc<Self> {
+    fn as_arc<'a>(ptr: &'a &Self::FFIType) -> &'a RawOffsetArc<Self> {
         debug_assert!(!(ptr as *const _).is_null());
         unsafe {
-            transmute::<&&Self::FFIType, &Arc<Self>>(ptr)
+            transmute::<&&Self::FFIType, &RawOffsetArc<Self>>(ptr)
         }
     }
 
@@ -119,9 +119,9 @@ pub unsafe trait HasArcFFI : HasFFI {
     /// Converts a borrowed Arc to a borrowed FFI reference.
     ///
     /// &Arc<ServoType> -> &GeckoType
-    fn arc_as_borrowed<'a>(arc: &'a Arc<Self>) -> &'a &Self::FFIType {
+    fn arc_as_borrowed<'a>(arc: &'a RawOffsetArc<Self>) -> &'a &Self::FFIType {
         unsafe {
-            transmute::<&Arc<Self>, &&Self::FFIType>(arc)
+            transmute::<&RawOffsetArc<Self>, &&Self::FFIType>(arc)
         }
     }
 
@@ -129,10 +129,10 @@ pub unsafe trait HasArcFFI : HasFFI {
     /// Converts a borrowed nullable FFI reference to a borrowed Arc.
     ///
     /// &GeckoType -> &Arc<ServoType>
-    fn arc_from_borrowed<'a>(ptr: &'a Option<&Self::FFIType>) -> Option<&'a Arc<Self>> {
+    fn arc_from_borrowed<'a>(ptr: &'a Option<&Self::FFIType>) -> Option<&'a RawOffsetArc<Self>> {
         unsafe {
             if let Some(ref reference) = *ptr {
-                Some(transmute::<&&Self::FFIType, &Arc<_>>(reference))
+                Some(transmute::<&&Self::FFIType, &RawOffsetArc<_>>(reference))
             } else {
                 None
             }
@@ -165,7 +165,7 @@ impl<GeckoType> Strong<GeckoType> {
     /// Panics on null.
     ///
     /// Strong<GeckoType> -> Arc<ServoType>
-    pub fn into_arc<ServoType>(self) -> Arc<ServoType>
+    pub fn into_arc<ServoType>(self) -> RawOffsetArc<ServoType>
         where ServoType: HasArcFFI<FFIType = GeckoType>,
     {
         self.into_arc_opt().unwrap()
@@ -177,7 +177,7 @@ impl<GeckoType> Strong<GeckoType> {
     /// Returns None on null.
     ///
     /// Strong<GeckoType> -> Arc<ServoType>
-    pub fn into_arc_opt<ServoType>(self) -> Option<Arc<ServoType>>
+    pub fn into_arc_opt<ServoType>(self) -> Option<RawOffsetArc<ServoType>>
         where ServoType: HasArcFFI<FFIType = GeckoType>,
     {
         if self.is_null() {
@@ -194,7 +194,7 @@ impl<GeckoType> Strong<GeckoType> {
     /// Returns None on null.
     ///
     /// Strong<GeckoType> -> Arc<ServoType>
-    pub fn as_arc_opt<ServoType>(&self) -> Option<&Arc<ServoType>>
+    pub fn as_arc_opt<ServoType>(&self) -> Option<&RawOffsetArc<ServoType>>
         where ServoType: HasArcFFI<FFIType = GeckoType>,
     {
         if self.is_null() {
@@ -222,18 +222,15 @@ pub unsafe trait FFIArcHelpers {
     /// Arc<ServoType> -> Strong<GeckoType>
     fn into_strong(self) -> Strong<<Self::Inner as HasFFI>::FFIType>;
 
-    /// Produces a (nullable) borrowed FFI reference by borrowing an Arc.
+    /// Produces a borrowed FFI reference by borrowing an Arc.
     ///
-    /// &Arc<ServoType> -> Option<&GeckoType>
-    ///
-    /// FIXME(emilio): What's the point of the nullability? Arc should be
-    /// non-null, right?
+    /// &Arc<ServoType> -> &GeckoType
     ///
     /// Then the `arc_as_borrowed` method can go away.
-    fn as_borrowed_opt(&self) -> Option<&<Self::Inner as HasFFI>::FFIType>;
+    fn as_borrowed(&self) -> &<Self::Inner as HasFFI>::FFIType;
 }
 
-unsafe impl<T: HasArcFFI> FFIArcHelpers for Arc<T> {
+unsafe impl<T: HasArcFFI> FFIArcHelpers for RawOffsetArc<T> {
     type Inner = T;
 
     #[inline]
@@ -242,9 +239,22 @@ unsafe impl<T: HasArcFFI> FFIArcHelpers for Arc<T> {
     }
 
     #[inline]
-    fn as_borrowed_opt(&self) -> Option<&T::FFIType> {
-        let borrowedptr = self as *const Arc<T> as *const Option<&T::FFIType>;
-        unsafe { ptr::read(borrowedptr) }
+    fn as_borrowed(&self) -> &T::FFIType {
+        unsafe { &*(&**self as *const T as *const T::FFIType) }
+    }
+}
+
+unsafe impl<T: HasArcFFI> FFIArcHelpers for Arc<T> {
+    type Inner = T;
+
+    #[inline]
+    fn into_strong(self) -> Strong<T::FFIType> {
+        Arc::into_raw_offset(self).into_strong()
+    }
+
+    #[inline]
+    fn as_borrowed(&self) -> &T::FFIType {
+        unsafe { &*(&**self as *const T as *const T::FFIType) }
     }
 }
 

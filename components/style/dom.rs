@@ -30,7 +30,7 @@ use std::fmt;
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::ops::Deref;
-use stylearc::Arc;
+use stylearc::{Arc, ArcBorrow};
 use stylist::Stylist;
 use thread_state;
 
@@ -360,7 +360,7 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
     }
 
     /// Get this element's style attribute.
-    fn style_attribute(&self) -> Option<&Arc<Locked<PropertyDeclarationBlock>>>;
+    fn style_attribute(&self) -> Option<ArcBorrow<Locked<PropertyDeclarationBlock>>>;
 
     /// Unset the style attribute's dirty bit.
     /// Servo doesn't need to manage ditry bit for style attribute.
@@ -368,7 +368,7 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
     }
 
     /// Get this element's SMIL override declarations.
-    fn get_smil_override(&self) -> Option<&Arc<Locked<PropertyDeclarationBlock>>> {
+    fn get_smil_override(&self) -> Option<ArcBorrow<Locked<PropertyDeclarationBlock>>> {
         None
     }
 

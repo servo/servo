@@ -37,7 +37,7 @@ use std::fmt::Debug;
 #[cfg(feature = "servo")]
 use std::marker::PhantomData;
 use style_traits::viewport::ViewportConstraints;
-use stylearc::Arc;
+use stylearc::{Arc, ArcBorrow};
 #[cfg(feature = "gecko")]
 use stylesheets::{CounterStyleRule, FontFaceRule};
 use stylesheets::{CssRule, StyleRule};
@@ -1103,8 +1103,8 @@ impl Stylist {
                                         &self,
                                         element: &E,
                                         pseudo_element: Option<&PseudoElement>,
-                                        style_attribute: Option<&Arc<Locked<PropertyDeclarationBlock>>>,
-                                        smil_override: Option<&Arc<Locked<PropertyDeclarationBlock>>>,
+                                        style_attribute: Option<ArcBorrow<Locked<PropertyDeclarationBlock>>>,
+                                        smil_override: Option<ArcBorrow<Locked<PropertyDeclarationBlock>>>,
                                         animation_rules: AnimationRules,
                                         rule_inclusion: RuleInclusion,
                                         applicable_declarations: &mut V,
@@ -1208,7 +1208,7 @@ impl Stylist {
             if let Some(sa) = style_attribute {
                 Push::push(
                     applicable_declarations,
-                    ApplicableDeclarationBlock::from_declarations(sa.clone(),
+                    ApplicableDeclarationBlock::from_declarations(sa.clone_arc(),
                                                                   CascadeLevel::StyleAttributeNormal));
             }
 
@@ -1217,7 +1217,7 @@ impl Stylist {
             if let Some(so) = smil_override {
                 Push::push(
                     applicable_declarations,
-                    ApplicableDeclarationBlock::from_declarations(so.clone(),
+                    ApplicableDeclarationBlock::from_declarations(so.clone_arc(),
                                                                   CascadeLevel::SMILOverride));
             }
 
