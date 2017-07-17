@@ -2668,6 +2668,9 @@ bitflags! {
         /// is used by Gecko to prevent display:contents on generated
         /// content.
         const PROHIBIT_DISPLAY_CONTENTS = 0x10,
+
+        /// Whether we're styling the ::-moz-fieldset-content anonymous box.
+        const IS_FIELDSET_CONTENT = 0x20,
     }
 }
 
