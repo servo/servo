@@ -11,6 +11,7 @@ use offscreen_gl_context::{ColorAttachmentType, GLContext, GLLimits};
 use offscreen_gl_context::{GLContextAttributes, NativeGLContext, OSMesaContext};
 use servo_config::opts;
 use std::borrow::ToOwned;
+use std::mem;
 use std::sync::Arc;
 use std::sync::mpsc::channel;
 use std::thread;
@@ -102,7 +103,15 @@ impl GLContextWrapper {
 
 enum WebGLPaintTaskData {
     WebRender(webrender_api::RenderApi, webrender_api::WebGLContextId),
-    Readback(GLContextWrapper, webrender_api::RenderApi, Option<webrender_api::ImageKey>),
+    Readback {
+        context: GLContextWrapper,
+        webrender_api: webrender_api::RenderApi,
+        image_key: Option<webrender_api::ImageKey>,
+        /// An old webrender image key that can be deleted when the next epoch ends.
+        old_image_key: Option<webrender_api::ImageKey>,
+        /// An old webrender image key that can be deleted when the current epoch ends.
+        very_old_image_key: Option<webrender_api::ImageKey>,
+    },
 }
 
 pub struct WebGLPaintThread {
@@ -119,7 +128,13 @@ fn create_readback_painter(size: Size2D<i32>,
     let limits = context.get_limits();
     let painter = WebGLPaintThread {
         size: size,
-        data: WebGLPaintTaskData::Readback(context, webrender_api, None)
+        data: WebGLPaintTaskData::Readback {
+            context: context,
+            webrender_api: webrender_api,
+            image_key: None,
+            old_image_key: None,
+            very_old_image_key: None,
+        },
     };
 
     Ok((painter, limits))
@@ -154,8 +169,8 @@ impl WebGLPaintThread {
             WebGLPaintTaskData::WebRender(ref api, id) => {
                 api.send_webgl_command(id, message);
             }
-            WebGLPaintTaskData::Readback(ref ctx, _, _) => {
-                ctx.apply_command(message);
+            WebGLPaintTaskData::Readback { ref context, .. } => {
+                context.apply_command(message);
             }
         }
     }
@@ -165,7 +180,7 @@ impl WebGLPaintThread {
             WebGLPaintTaskData::WebRender(ref api, id) => {
                 api.send_vr_compositor_command(id, message);
             }
-            WebGLPaintTaskData::Readback(..) => {
+            WebGLPaintTaskData::Readback { .. } => {
                 error!("Webrender is required for WebVR implementation");
             }
         }
@@ -229,14 +244,20 @@ impl WebGLPaintThread {
 
     fn send_data(&mut self, chan: IpcSender<CanvasData>) {
         match self.data {
-            WebGLPaintTaskData::Readback(ref ctx, ref webrender_api, ref mut image_key) => {
+            WebGLPaintTaskData::Readback {
+                ref context,
+                ref webrender_api,
+                ref mut image_key,
+                ref mut old_image_key,
+                ref mut very_old_image_key,
+            } => {
                 let width = self.size.width as usize;
                 let height = self.size.height as usize;
 
-                let mut pixels = ctx.gl().read_pixels(0, 0,
-                                                      self.size.width as gl::GLsizei,
-                                                      self.size.height as gl::GLsizei,
-                                                      gl::RGBA, gl::UNSIGNED_BYTE);
+                let mut pixels = context.gl().read_pixels(0, 0,
+                                                          self.size.width as gl::GLsizei,
+                                                          self.size.height as gl::GLsizei,
+                                                          gl::RGBA, gl::UNSIGNED_BYTE);
                 // flip image vertically (texture is upside down)
                 let orig_pixels = pixels.clone();
                 let stride = width * 4;
@@ -276,6 +297,10 @@ impl WebGLPaintThread {
                     }
                 }
 
+                if let Some(image_key) = mem::replace(very_old_image_key, old_image_key.take()) {
+                    webrender_api.delete_image(image_key);
+                }
+
                 let image_data = CanvasImageData {
                     image_key: image_key.unwrap(),
                 };
@@ -291,7 +316,7 @@ impl WebGLPaintThread {
     #[allow(unsafe_code)]
     fn recreate(&mut self, size: Size2D<i32>) -> Result<(), &'static str> {
         match self.data {
-            WebGLPaintTaskData::Readback(ref mut context, ref webrender_api, ref mut image_key) => {
+            WebGLPaintTaskData::Readback { ref mut context, ref mut image_key, ref mut old_image_key, .. }  => {
                 if size.width > self.size.width ||
                    size.height > self.size.height {
                     self.size = context.resize(size)?;
@@ -301,7 +326,10 @@ impl WebGLPaintThread {
                 }
                 // Webrender doesn't let images change size, so we clear the webrender image key.
                 if let Some(image_key) = image_key.take() {
-                    webrender_api.delete_image(image_key);
+                    // If this executes, then we are in a new epoch since we last recreated the canvas,
+                    // so `old_image_key` must be `None`.
+                    debug_assert!(old_image_key.is_none());
+                    *old_image_key = Some(image_key);
                 }
             }
             WebGLPaintTaskData::WebRender(ref api, id) => {
@@ -314,7 +342,7 @@ impl WebGLPaintThread {
     }
 
     fn init(&mut self) {
-        if let WebGLPaintTaskData::Readback(ref context, _, _) = self.data {
+        if let WebGLPaintTaskData::Readback { ref context, .. } = self.data {
             context.make_current();
         }
     }
@@ -322,9 +350,21 @@ impl WebGLPaintThread {
 
 impl Drop for WebGLPaintThread {
     fn drop(&mut self) {
-        if let WebGLPaintTaskData::Readback(_, ref mut wr, image_key) = self.data {
+        if let WebGLPaintTaskData::Readback {
+            ref mut webrender_api,
+            image_key,
+            old_image_key,
+            very_old_image_key,
+            ..
+        } = self.data {
             if let Some(image_key) = image_key {
-                wr.delete_image(image_key);
+                webrender_api.delete_image(image_key);
+            }
+            if let Some(image_key) = old_image_key {
+                webrender_api.delete_image(image_key);
+            }
+            if let Some(image_key) = very_old_image_key {
+                webrender_api.delete_image(image_key);
             }
         }
     }
