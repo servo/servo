@@ -12,9 +12,9 @@ use parser::{Parse, ParserContext};
 use std::fmt;
 use style_traits::{HasViewportPercentage, ToCss, ParseError};
 use values::computed::{CalcLengthOrPercentage, LengthOrPercentage as ComputedLengthOrPercentage};
-use values::computed::{Context, ToComputedValue};
+use values::computed::{Context, Percentage, ToComputedValue};
 use values::generics::position::Position as GenericPosition;
-use values::specified::{AllowQuirks, LengthOrPercentage, Percentage};
+use values::specified::{AllowQuirks, LengthOrPercentage};
 use values::specified::transform::OriginComponent;
 
 /// The specified value of a CSS `<position>`
@@ -195,7 +195,7 @@ impl<S: Parse> PositionComponent<S> {
 impl<S> PositionComponent<S> {
     /// `0%`
     pub fn zero() -> Self {
-        PositionComponent::Length(LengthOrPercentage::Percentage(Percentage(0.)))
+        PositionComponent::Length(LengthOrPercentage::Percentage(Percentage::zero()))
     }
 }
 
@@ -214,7 +214,8 @@ impl<S: Side> ToComputedValue for PositionComponent<S> {
             PositionComponent::Side(ref keyword, Some(ref length)) if !keyword.is_start() => {
                 match length.to_computed_value(context) {
                     ComputedLengthOrPercentage::Length(length) => {
-                        ComputedLengthOrPercentage::Calc(CalcLengthOrPercentage::new(-length, Some(Percentage(1.0))))
+                        ComputedLengthOrPercentage::Calc(
+                            CalcLengthOrPercentage::new(-length, Some(Percentage::hundred())))
                     },
                     ComputedLengthOrPercentage::Percentage(p) => {
                         ComputedLengthOrPercentage::Percentage(Percentage(1.0 - p.0))

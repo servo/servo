@@ -2483,8 +2483,9 @@ pub extern "C" fn Servo_DeclarationBlock_SetPercentValue(declarations:
     use style::properties::{PropertyDeclaration, LonghandId};
     use style::properties::longhands::height::SpecifiedValue as Height;
     use style::properties::longhands::width::SpecifiedValue as Width;
+    use style::values::computed::Percentage;
     use style::values::specified::MozLength;
-    use style::values::specified::length::{LengthOrPercentage, Percentage};
+    use style::values::specified::length::LengthOrPercentage;
 
     let long = get_longhand_from_id!(property);
     let pc = Percentage(value);

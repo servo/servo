@@ -566,8 +566,7 @@ ${helpers.single_keyword_system("font-variant-caps",
     use std::fmt;
     use style_traits::{HasViewportPercentage, ToCss};
     use values::FONT_MEDIUM_PX;
-    use values::specified::{AllowQuirks, FontRelativeLength, LengthOrPercentage};
-    use values::specified::{NoCalcLength, Percentage};
+    use values::specified::{AllowQuirks, FontRelativeLength, LengthOrPercentage, NoCalcLength};
     use values::specified::length::FontBaseSize;
 
     impl ToCss for SpecifiedValue {
@@ -810,8 +809,8 @@ ${helpers.single_keyword_system("font-variant-caps",
                 SpecifiedValue::Length(LengthOrPercentage::Length(ref l)) => {
                     l.to_computed_value(context)
                 }
-                SpecifiedValue::Length(LengthOrPercentage::Percentage(Percentage(value))) => {
-                    base_size.resolve(context).scale_by(value)
+                SpecifiedValue::Length(LengthOrPercentage::Percentage(pc)) => {
+                    base_size.resolve(context).scale_by(pc.0)
                 }
                 SpecifiedValue::Length(LengthOrPercentage::Calc(ref calc)) => {
                     let calc = calc.to_computed_value(context);

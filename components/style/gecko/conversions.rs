@@ -18,11 +18,10 @@ use gecko_bindings::sugar::ns_style_coord::{CoordDataValue, CoordData, CoordData
 use std::f32::consts::PI;
 use stylesheets::{Origin, RulesMutateError};
 use values::computed::{Angle, CalcLengthOrPercentage, Gradient, Image};
-use values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
+use values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto, Percentage};
 use values::generics::grid::TrackSize;
 use values::generics::image::{CompatMode, Image as GenericImage, GradientItem};
 use values::generics::rect::Rect;
-use values::specified::length::Percentage;
 use values::specified::url::SpecifiedUrl;
 
 impl From<CalcLengthOrPercentage> for nsStyleCoord_CalcValue {

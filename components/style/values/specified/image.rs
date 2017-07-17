@@ -330,10 +330,10 @@ impl Gradient {
         impl<S: Side> From<Component<S>> for NumberOrPercentage {
             fn from(component: Component<S>) -> Self {
                 match component {
-                    Component::Center => NumberOrPercentage::Percentage(Percentage(0.5)),
+                    Component::Center => NumberOrPercentage::Percentage(Percentage::new(0.5)),
                     Component::Number(number) => number,
                     Component::Side(side) => {
-                        let p = Percentage(if side.is_start() { 0. } else { 1. });
+                        let p = if side.is_start() { Percentage::zero() } else { Percentage::hundred() };
                         NumberOrPercentage::Percentage(p)
                     },
                 }
@@ -363,7 +363,7 @@ impl Gradient {
             fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
                 match (NumberOrPercentage::from(*self), NumberOrPercentage::from(*other)) {
                     (NumberOrPercentage::Percentage(a), NumberOrPercentage::Percentage(b)) => {
-                        a.0.partial_cmp(&b.0)
+                        a.get().partial_cmp(&b.get())
                     },
                     (NumberOrPercentage::Number(a), NumberOrPercentage::Number(b)) => {
                         a.value.partial_cmp(&b.value)
@@ -444,14 +444,14 @@ impl Gradient {
                     let p = match_ignore_ascii_case! { &function,
                         "color-stop" => {
                             let p = match NumberOrPercentage::parse(context, i)? {
-                                NumberOrPercentage::Number(number) => number.value,
-                                NumberOrPercentage::Percentage(p) => p.0,
+                                NumberOrPercentage::Number(number) => Percentage::new(number.value),
+                                NumberOrPercentage::Percentage(p) => p,
                             };
                             i.expect_comma()?;
                             p
                         },
-                        "from" => 0.,
-                        "to" => 1.,
+                        "from" => Percentage::zero(),
+                        "to" => Percentage::hundred(),
                         _ => return Err(StyleParseError::UnexpectedFunction(function.clone()).into()),
                     };
                     let color = Color::parse(context, i)?;
@@ -461,11 +461,11 @@ impl Gradient {
                     Ok((color.into(), p))
                 })?;
                 if reverse_stops {
-                    p = 1. - p;
+                    p.reverse();
                 }
                 Ok(GenericGradientItem::ColorStop(GenericColorStop {
                     color: color,
-                    position: Some(LengthOrPercentage::Percentage(Percentage(p))),
+                    position: Some(p.into()),
                 }))
             })
         }).unwrap_or(vec![]);
@@ -474,11 +474,11 @@ impl Gradient {
             items = vec![
                 GenericGradientItem::ColorStop(GenericColorStop {
                     color: Color::transparent().into(),
-                    position: Some(Percentage(0.).into()),
+                    position: Some(Percentage::zero().into()),
                 }),
                 GenericGradientItem::ColorStop(GenericColorStop {
                     color: Color::transparent().into(),
-                    position: Some(Percentage(1.).into()),
+                    position: Some(Percentage::hundred().into()),
                 }),
             ];
         } else if items.len() == 1 {

@@ -4,7 +4,7 @@
 
 //! Specified types for CSS values related to effects.
 
-use cssparser::{BasicParseError, Parser, Token};
+use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use style_traits::{ParseError, StyleParseError};
 #[cfg(not(feature = "gecko"))]
@@ -15,7 +15,7 @@ use values::computed::effects::SimpleShadow as ComputedSimpleShadow;
 use values::generics::effects::BoxShadow as GenericBoxShadow;
 use values::generics::effects::Filter as GenericFilter;
 use values::generics::effects::SimpleShadow as GenericSimpleShadow;
-use values::specified::{Angle, Percentage};
+use values::specified::{Angle, NumberOrPercentage};
 use values::specified::color::Color;
 use values::specified::length::Length;
 #[cfg(feature = "gecko")]
@@ -33,15 +33,36 @@ pub type Filter = GenericFilter<Angle, Factor, Length, SimpleShadow>;
 pub type Filter = GenericFilter<Angle, Factor, Length, Impossible>;
 
 /// A value for the `<factor>` parts in `Filter`.
-///
-/// FIXME: Should be `NumberOrPercentage`, but Gecko doesn't support that yet.
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, Debug, HasViewportPercentage, PartialEq, ToCss)]
-pub enum Factor {
-    /// Literal number.
-    Number(ComputedNumber),
-    /// Literal percentage.
-    Percentage(Percentage),
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub struct Factor(NumberOrPercentage);
+
+impl Parse for Factor {
+    #[inline]
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>
+    ) -> Result<Self, ParseError<'i>> {
+        NumberOrPercentage::parse_non_negative(context, input).map(Factor)
+    }
+}
+
+impl ToComputedValue for Factor {
+    type ComputedValue = ComputedNumber;
+
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
+        use values::computed::NumberOrPercentage;
+        match self.0.to_computed_value(context) {
+            NumberOrPercentage::Number(n) => n,
+            NumberOrPercentage::Percentage(p) => p.0,
+        }
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        Factor(NumberOrPercentage::Number(ToComputedValue::from_computed_value(computed)))
+    }
 }
 
 /// A specified value for the `drop-shadow()` filter.
@@ -153,43 +174,6 @@ impl Parse for Filter {
                 "drop-shadow" => Ok(GenericFilter::DropShadow(Parse::parse(context, i)?)),
             }
         })
-    }
-}
-
-impl Parse for Factor {
-    #[inline]
-    fn parse<'i, 't>(
-        _context: &ParserContext,
-        input: &mut Parser<'i, 't>
-    ) -> Result<Self, ParseError<'i>> {
-        match input.next()? {
-            Token::Number { value, .. } if value.is_sign_positive() => {
-                Ok(Factor::Number(value))
-            },
-            Token::Percentage { unit_value, .. } if unit_value.is_sign_positive() => {
-                Ok(Factor::Percentage(Percentage(unit_value)))
-            },
-            other => Err(BasicParseError::UnexpectedToken(other).into()),
-        }
-    }
-}
-
-impl ToComputedValue for Factor {
-    /// This should actually be `ComputedNumberOrPercentage`, but layout uses
-    /// `computed::effects::Filter` directly in `StackingContext`.
-    type ComputedValue = ComputedNumber;
-
-    #[inline]
-    fn to_computed_value(&self, _context: &Context) -> Self::ComputedValue {
-        match *self {
-            Factor::Number(number) => number,
-            Factor::Percentage(percentage) => percentage.0,
-        }
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        Factor::Number(*computed)
     }
 }
 

@@ -4,7 +4,7 @@
 
 //! Generic types for CSS values related to flexbox.
 
-use values::specified::Percentage;
+use values::computed::Percentage;
 
 /// A generic value for the `flex-basis` property.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]

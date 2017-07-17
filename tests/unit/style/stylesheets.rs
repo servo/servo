@@ -26,7 +26,8 @@ use style::stylesheets::{Origin, Namespaces};
 use style::stylesheets::{Stylesheet, StylesheetContents, NamespaceRule, CssRule, CssRules, StyleRule, KeyframesRule};
 use style::stylesheets::keyframes_rule::{Keyframe, KeyframeSelector, KeyframePercentage};
 use style::values::{KeyframesName, CustomIdent};
-use style::values::specified::{LengthOrPercentageOrAuto, Percentage, PositionComponent};
+use style::values::computed::Percentage;
+use style::values::specified::{LengthOrPercentageOrAuto, PositionComponent};
 
 pub fn block_from<I>(iterable: I) -> PropertyDeclarationBlock
 where I: IntoIterator<Item=(PropertyDeclaration, Importance)> {

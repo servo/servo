@@ -504,8 +504,11 @@ impl ToCss for Number {
     }
 }
 
-/// <number-percentage>
+/// <number> | <percentage>
+///
 /// Accepts only non-negative numbers.
+///
+/// FIXME(emilio): Should probably use Either.
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, Copy, Debug, PartialEq, ToCss)]
@@ -517,10 +520,11 @@ pub enum NumberOrPercentage {
 no_viewport_percentage!(NumberOrPercentage);
 
 impl NumberOrPercentage {
-    fn parse_with_clamping_mode<'i, 't>(context: &ParserContext,
-                                        input: &mut Parser<'i, 't>,
-                                        type_: AllowedNumericType)
-                                        -> Result<Self, ParseError<'i>> {
+    fn parse_with_clamping_mode<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        type_: AllowedNumericType
+    ) -> Result<Self, ParseError<'i>> {
         if let Ok(per) = input.try(|i| Percentage::parse_with_clamping_mode(context, i, type_)) {
             return Ok(NumberOrPercentage::Percentage(per));
         }
