@@ -505,13 +505,20 @@ impl<'le> GeckoElement<'le> {
 
     /// Returns true if this element has a shadow root.
     fn has_shadow_root(&self) -> bool {
-        self.get_dom_slots().map_or(false, |slots| !slots.mShadowRoot.mRawPtr.is_null())
+        self.get_extended_slots().map_or(false, |slots| !slots.mShadowRoot.mRawPtr.is_null())
     }
 
     /// Returns a reference to the DOM slots for this Element, if they exist.
     fn get_dom_slots(&self) -> Option<&structs::FragmentOrElement_nsDOMSlots> {
         let slots = self.as_node().0.mSlots as *const structs::FragmentOrElement_nsDOMSlots;
         unsafe { slots.as_ref() }
+    }
+
+    /// Returns a reference to the extended DOM slots for this Element.
+    fn get_extended_slots(&self) -> Option<&structs::FragmentOrElement_nsExtendedDOMSlots> {
+        self.get_dom_slots().and_then(|s| {
+            unsafe { s.mExtendedSlots.mPtr.as_ref() }
+        })
     }
 
     #[inline]
@@ -556,10 +563,9 @@ impl<'le> GeckoElement<'le> {
 
     fn get_non_xul_xbl_binding_parent_raw_content(&self) -> *mut nsIContent {
         debug_assert!(!self.is_xul_element());
-        match self.get_dom_slots() {
-            Some(slots) => unsafe { *slots.__bindgen_anon_1.mBindingParent.as_ref() },
-            None => ptr::null_mut(),
-        }
+        self.get_extended_slots().map_or(ptr::null_mut(), |slots| {
+            slots.mBindingParent
+        })
     }
 
     fn has_xbl_binding_parent(&self) -> bool {
