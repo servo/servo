@@ -763,19 +763,93 @@ impl<Impl: SelectorImpl> ToCss for Selector<Impl> {
         // NB: A parse-order iterator is a Rev<>, which doesn't expose as_slice(),
         // which we need for |split|. So we split by combinators on a match-order
         // sequence and then reverse.
-        let mut combinators = self.iter_raw_match_order().rev().filter(|x| x.is_combinator());
+
+        let mut combinators = self.iter_raw_match_order().rev().filter(|x| x.is_combinator()).peekable();
         let compound_selectors = self.iter_raw_match_order().as_slice().split(|x| x.is_combinator()).rev();
 
         let mut combinators_exhausted = false;
         for compound in compound_selectors {
             debug_assert!(!combinators_exhausted);
-            for item in compound.iter() {
-                item.to_css(dest)?;
+
+            // https://drafts.csswg.org/cssom/#serializing-selectors
+
+            if !compound.is_empty() {
+                // 1. If there is only one simple selector in the compound selectors
+                //    which is a universal selector, append the result of
+                //    serializing the universal selector to s.
+                //
+                // Check if `!compound.empty()` first--this can happen if we have
+                // something like `... > ::before`, because we store `>` and `::`
+                // both as combinators internally.
+                //
+                // If we are in this case, we continue to the next iteration of the
+                // `for compound in compound_selectors` loop.
+                let (can_elide_namespace, first_non_namespace) = match &compound[0] {
+                    &Component::ExplicitAnyNamespace |
+                    &Component::ExplicitNoNamespace |
+                    &Component::Namespace(_, _) => (false, 1),
+                    &Component::DefaultNamespace(_) => (true, 1),
+                    _ => (true, 0),
+                };
+                if first_non_namespace == compound.len() - 1 {
+                    match (combinators.peek(), &compound[first_non_namespace]) {
+                        // We have to be careful here, because if there is a pseudo
+                        // element "combinator" there isn't really just the one
+                        // simple selector. Technically this compound selector
+                        // contains the pseudo element selector as
+                        // well--Combinator::PseudoElement doesn't exist in the
+                        // spec.
+                        (Some(&&Component::Combinator(Combinator::PseudoElement)), _) => (),
+                        (_, &Component::ExplicitUniversalType) => {
+                            // Iterate over everything so we serialize the namespace
+                            // too.
+                            for simple in compound.iter() {
+                                simple.to_css(dest)?;
+                            }
+                            continue
+                        }
+                        (_, _) => (),
+                    }
+                }
+
+                // 2. Otherwise, for each simple selector in the compound selectors
+                //    that is not a universal selector of which the namespace prefix
+                //    maps to a namespace that is not the default namespace
+                //    serialize the simple selector and append the result to s.
+                //
+                // See https://github.com/w3c/csswg-drafts/issues/1606, which is
+                // proposing to change this to match up with the behavior asserted
+                // in cssom/serialize-namespaced-type-selectors.html, which the
+                // following code tries to match.
+                for simple in compound.iter() {
+                    if let Component::ExplicitUniversalType = *simple {
+                        // Can't have a namespace followed by a pseudo-element
+                        // selector followed by a universal selector in the same
+                        // compound selector, so we don't have to worry about the
+                        // real namespace being in a different `compound`.
+                        if can_elide_namespace {
+                            continue
+                        }
+                    }
+                    simple.to_css(dest)?;
+                }
             }
+
+            // 3. If this is not the last part of the chain of the selector
+            //    append a single SPACE (U+0020), followed by the combinator
+            //    ">", "+", "~", ">>", "||", as appropriate, followed by another
+            //    single SPACE (U+0020) if the combinator was not whitespace, to
+            //    s.
             match combinators.next() {
                 Some(c) => c.to_css(dest)?,
                 None => combinators_exhausted = true,
             };
+
+            // 4. If this is the last part of the chain of the selector and
+            //    there is a pseudo-element, append "::" followed by the name of
+            //    the pseudo-element, to s.
+            //
+            // (we handle this above)
         }
 
        Ok(())
@@ -1017,13 +1091,30 @@ fn parse_type_selector<'i, 't, P, E, Impl, S>(parser: &P, input: &mut CssParser<
                     sink.push(Component::DefaultNamespace(url))
                 }
                 QNamePrefix::ExplicitNamespace(prefix, url) => {
-                    sink.push(Component::Namespace(prefix, url))
+                    sink.push(match parser.default_namespace() {
+                        Some(ref default_url) if url == *default_url => Component::DefaultNamespace(url),
+                        _ => Component::Namespace(prefix, url),
+                    })
                 }
                 QNamePrefix::ExplicitNoNamespace => {
                     sink.push(Component::ExplicitNoNamespace)
                 }
                 QNamePrefix::ExplicitAnyNamespace => {
-                    sink.push(Component::ExplicitAnyNamespace)
+                    match parser.default_namespace() {
+                        // Element type selectors that have no namespace
+                        // component (no namespace separator) represent elements
+                        // without regard to the element's namespace (equivalent
+                        // to "*|") unless a default namespace has been declared
+                        // for namespaced selectors (e.g. in CSS, in the style
+                        // sheet). If a default namespace has been declared,
+                        // such selectors will represent only elements in the
+                        // default namespace.
+                        // -- Selectors § 6.1.1
+                        // So we'll have this act the same as the
+                        // QNamePrefix::ImplicitAnyNamespace case.
+                        None => {},
+                        Some(_) => sink.push(Component::ExplicitAnyNamespace),
+                    }
                 }
                 QNamePrefix::ImplicitNoNamespace => {
                     unreachable!()  // Not returned with in_attr_selector = false
@@ -1640,6 +1731,15 @@ pub mod tests {
         ns_prefixes: HashMap<DummyAtom, DummyAtom>,
     }
 
+    impl DummyParser {
+        fn default_with_namespace(default_ns: DummyAtom) -> DummyParser {
+            DummyParser {
+                default_ns: Some(default_ns),
+                ns_prefixes: Default::default(),
+            }
+        }
+    }
+
     impl SelectorImpl for DummySelectorImpl {
         type AttrValue = DummyAtom;
         type Identifier = DummyAtom;
@@ -1729,19 +1829,40 @@ pub mod tests {
         }
     }
 
-    fn parse<'i>(input: &'i str) -> Result<SelectorList<DummySelectorImpl>,
-                                           ParseError<'i, SelectorParseError<'i, ()>>> {
+    fn parse<'i>(input: &'i str)
+                 -> Result<SelectorList<DummySelectorImpl>, ParseError<'i, SelectorParseError<'i, ()>>> {
         parse_ns(input, &DummyParser::default())
     }
 
+    fn parse_expected<'i, 'a>(input: &'i str, expected: Option<&'a str>)
+                              -> Result<SelectorList<DummySelectorImpl>, ParseError<'i, SelectorParseError<'i, ()>>> {
+        parse_ns_expected(input, &DummyParser::default(), expected)
+    }
+
     fn parse_ns<'i>(input: &'i str, parser: &DummyParser)
-                    -> Result<SelectorList<DummySelectorImpl>,
-                              ParseError<'i, SelectorParseError<'i, ()>>> {
+                    -> Result<SelectorList<DummySelectorImpl>, ParseError<'i, SelectorParseError<'i, ()>>> {
+        parse_ns_expected(input, parser, None)
+    }
+
+    fn parse_ns_expected<'i, 'a>(
+        input: &'i str,
+        parser: &DummyParser,
+        expected: Option<&'a str>
+    ) -> Result<SelectorList<DummySelectorImpl>, ParseError<'i, SelectorParseError<'i, ()>>> {
         let mut parser_input = ParserInput::new(input);
         let result = SelectorList::parse(parser, &mut CssParser::new(&mut parser_input));
         if let Ok(ref selectors) = result {
             assert_eq!(selectors.0.len(), 1);
-            assert_eq!(selectors.0[0].to_css_string(), input);
+            // We can't assume that the serialized parsed selector will equal
+            // the input; for example, if there is no default namespace, '*|foo'
+            // should serialize to 'foo'.
+            assert_eq!(
+                selectors.0[0].to_css_string(),
+                match expected {
+                    Some(x) => x,
+                    None => input
+                }
+            );
         }
         result
     }
@@ -1780,16 +1901,34 @@ pub mod tests {
                     lower_name: DummyAtom::from("e")
                 })), specificity(0, 0, 1))
         ))));
-        // https://github.com/servo/servo/issues/16020
-        assert_eq!(parse("*|e"), Ok(SelectorList::from_vec(vec!(
+        // When the default namespace is not set, *| should be elided.
+        // https://github.com/servo/servo/pull/17537
+        assert_eq!(parse_expected("*|e", Some("e")), Ok(SelectorList::from_vec(vec!(
             Selector::from_vec(vec!(
-                Component::ExplicitAnyNamespace,
                 Component::LocalName(LocalName {
                     name: DummyAtom::from("e"),
                     lower_name: DummyAtom::from("e")
                 })
             ), specificity(0, 0, 1))
         ))));
+        // When the default namespace is set, *| should _not_ be elided (as foo
+        // is no longer equivalent to *|foo--the former is only for foo in the
+        // default namespace).
+        // https://github.com/servo/servo/issues/16020
+        assert_eq!(
+            parse_ns(
+                "*|e",
+                &DummyParser::default_with_namespace(DummyAtom::from("https://mozilla.org"))
+            ),
+            Ok(SelectorList::from_vec(vec!(
+                Selector::from_vec(vec!(
+                    Component::ExplicitAnyNamespace,
+                    Component::LocalName(LocalName {
+                        name: DummyAtom::from("e"),
+                        lower_name: DummyAtom::from("e")
+                    })
+                ), specificity(0, 0, 1)))))
+        );
         assert_eq!(parse("*"), Ok(SelectorList::from_vec(vec!(
             Selector::from_vec(vec!(
                 Component::ExplicitUniversalType,
@@ -1801,12 +1940,22 @@ pub mod tests {
                 Component::ExplicitUniversalType,
             ), specificity(0, 0, 0))
         ))));
-        assert_eq!(parse("*|*"), Ok(SelectorList::from_vec(vec!(
+        assert_eq!(parse_expected("*|*", Some("*")), Ok(SelectorList::from_vec(vec!(
             Selector::from_vec(vec!(
-                Component::ExplicitAnyNamespace,
                 Component::ExplicitUniversalType,
             ), specificity(0, 0, 0))
         ))));
+        assert_eq!(
+            parse_ns(
+                "*|*",
+                &DummyParser::default_with_namespace(DummyAtom::from("https://mozilla.org"))
+            ),
+            Ok(SelectorList::from_vec(vec!(
+                Selector::from_vec(vec!(
+                    Component::ExplicitAnyNamespace,
+                    Component::ExplicitUniversalType,
+                ), specificity(0, 0, 0)))))
+        );
         assert_eq!(parse(".foo:lang(en-US)"), Ok(SelectorList::from_vec(vec!(
             Selector::from_vec(vec!(
                     Component::Class(DummyAtom::from("foo")),
@@ -2026,10 +2175,11 @@ pub mod tests {
                 ].into_boxed_slice()
             )), specificity(0, 0, 0))
         ))));
-        assert_eq!(parse_ns(":not(*|*)", &parser), Ok(SelectorList::from_vec(vec!(
+        // *| should be elided if there is no default namespace.
+        // https://github.com/servo/servo/pull/17537
+        assert_eq!(parse_ns_expected(":not(*|*)", &parser, Some(":not(*)")), Ok(SelectorList::from_vec(vec!(
             Selector::from_vec(vec!(Component::Negation(
                 vec![
-                    Component::ExplicitAnyNamespace,
                     Component::ExplicitUniversalType,
                 ].into_boxed_slice()
             )), specificity(0, 0, 0))
@@ -2060,7 +2210,10 @@ pub mod tests {
 
     #[test]
     fn test_universal() {
-        let selector = &parse("*|*::before").unwrap().0[0];
+        let selector = &parse_ns(
+            "*|*::before",
+            &DummyParser::default_with_namespace(DummyAtom::from("https://mozilla.org"))
+        ).unwrap().0[0];
         assert!(selector.is_universal());
     }
 
