@@ -10,9 +10,14 @@ interface HTMLHRElement : HTMLElement {
 
 // https://html.spec.whatwg.org/multipage/#HTMLHRElement-partial
 partial interface HTMLHRElement {
+  [CEReactions]
   attribute DOMString align;
+  [CEReactions]
   attribute DOMString color;
-  //         attribute boolean noShade;
-  //         attribute DOMString size;
+  // [CEReactions]
+  // attribute boolean noShade;
+  // [CEReactions]
+  // attribute DOMString size;
+  [CEReactions]
   attribute DOMString width;
 };

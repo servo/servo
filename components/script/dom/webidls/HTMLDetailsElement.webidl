@@ -5,5 +5,6 @@
 // https://html.spec.whatwg.org/multipage/#htmldetailselement
 [HTMLConstructor]
 interface HTMLDetailsElement : HTMLElement {
+    [CEReactions]
     attribute boolean open;
 };

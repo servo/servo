@@ -33,6 +33,7 @@ use microtask::Microtask;
 use script_thread::ScriptThread;
 use std::cell::Cell;
 use std::collections::{HashMap, VecDeque};
+use std::mem;
 use std::ops::Deref;
 use std::ptr;
 use std::rc::Rc;
@@ -495,6 +496,7 @@ enum BackupElementQueueFlag {
 #[derive(HeapSizeOf, JSTraceable)]
 #[must_root]
 pub struct CustomElementReactionStack {
+    stack: DOMRefCell<Vec<ElementQueue>>,
     backup_queue: ElementQueue,
     processing_backup_element_queue: Cell<BackupElementQueueFlag>,
 }
@@ -502,9 +504,27 @@ pub struct CustomElementReactionStack {
 impl CustomElementReactionStack {
     pub fn new() -> CustomElementReactionStack {
         CustomElementReactionStack {
+            stack: DOMRefCell::new(Vec::new()),
             backup_queue: ElementQueue::new(),
             processing_backup_element_queue: Cell::new(BackupElementQueueFlag::NotProcessing),
         }
+    }
+
+    pub fn push_new_element_queue(&self) {
+        self.stack.borrow_mut().push(ElementQueue::new());
+    }
+
+    pub fn pop_current_element_queue(&self) {
+        rooted_vec!(let mut stack);
+        mem::swap(&mut *stack, &mut *self.stack.borrow_mut());
+
+        if let Some(current_queue) = stack.last() {
+            current_queue.invoke_reactions();
+        }
+        stack.pop();
+
+        mem::swap(&mut *self.stack.borrow_mut(), &mut *stack);
+        self.stack.borrow_mut().append(&mut *stack);
     }
 
     /// https://html.spec.whatwg.org/multipage/#enqueue-an-element-on-the-appropriate-element-queue
@@ -519,22 +539,24 @@ impl CustomElementReactionStack {
 
     /// https://html.spec.whatwg.org/multipage/#enqueue-an-element-on-the-appropriate-element-queue
     pub fn enqueue_element(&self, element: &Element) {
-        // TODO: Steps 1 - 2
-        // Support multiple queues
+        if let Some(current_queue) = self.stack.borrow().last() {
+            // Step 2
+            current_queue.append_element(element);
+        } else {
+            // Step 1.1
+            self.backup_queue.append_element(element);
 
-        // Step 1.1
-        self.backup_queue.append_element(element);
+            // Step 1.2
+            if self.processing_backup_element_queue.get() == BackupElementQueueFlag::Processing {
+                return;
+            }
 
-        // Step 1.2
-        if self.processing_backup_element_queue.get() == BackupElementQueueFlag::Processing {
-            return;
+            // Step 1.3
+            self.processing_backup_element_queue.set(BackupElementQueueFlag::Processing);
+
+            // Step 4
+            ScriptThread::enqueue_microtask(Microtask::CustomElementReaction);
         }
-
-        // Step 1.3
-        self.processing_backup_element_queue.set(BackupElementQueueFlag::Processing);
-
-        // Step 4
-        ScriptThread::enqueue_microtask(Microtask::CustomElementReaction);
     }
 
     /// https://html.spec.whatwg.org/multipage/#enqueue-a-custom-element-callback-reaction
@@ -578,9 +600,11 @@ impl CustomElementReactionStack {
                     unsafe { val.to_jsval(cx, value.handle_mut()); }
                 }
 
-                let namespace = DOMString::from(&*namespace);
-                rooted!(in(cx) let mut namespace_value = UndefinedValue());
-                unsafe { namespace.to_jsval(cx, namespace_value.handle_mut()); }
+                rooted!(in(cx) let mut namespace_value = NullValue());
+                if namespace != ns!() {
+                    let namespace = DOMString::from(&*namespace);
+                    unsafe { namespace.to_jsval(cx, namespace_value.handle_mut()); }
+                }
 
                 let args = vec![Heap::default(), Heap::default(), Heap::default(), Heap::default()];
                 args[0].set(name_value.get());

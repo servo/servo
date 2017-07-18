@@ -23,9 +23,9 @@ interface Element : Node {
   [Pure]
   readonly attribute DOMString tagName;
 
-  [Pure]
+  [CEReactions, Pure]
            attribute DOMString id;
-  [Pure]
+  [CEReactions, Pure]
            attribute DOMString className;
   [SameObject, PutForwards=value]
   readonly attribute DOMTokenList classList;
@@ -40,11 +40,13 @@ interface Element : Node {
   DOMString? getAttribute(DOMString name);
   [Pure]
   DOMString? getAttributeNS(DOMString? namespace, DOMString localName);
-  [Throws]
+  [CEReactions, Throws]
   void setAttribute(DOMString name, DOMString value);
-  [Throws]
+  [CEReactions, Throws]
   void setAttributeNS(DOMString? namespace, DOMString name, DOMString value);
+  [CEReactions]
   void removeAttribute(DOMString name);
+  [CEReactions]
   void removeAttributeNS(DOMString? namespace, DOMString localName);
   boolean hasAttribute(DOMString name);
   boolean hasAttributeNS(DOMString? namespace, DOMString localName);
@@ -53,11 +55,11 @@ interface Element : Node {
   Attr? getAttributeNode(DOMString name);
   [Pure]
   Attr? getAttributeNodeNS(DOMString? namespace, DOMString localName);
-  [Throws]
+  [CEReactions, Throws]
   Attr? setAttributeNode(Attr attr);
-  [Throws]
+  [CEReactions, Throws]
   Attr? setAttributeNodeNS(Attr attr);
-  [Throws]
+  [CEReactions, Throws]
   Attr removeAttributeNode(Attr oldAttr);
 
   [Pure, Throws]
@@ -71,7 +73,7 @@ interface Element : Node {
   HTMLCollection getElementsByTagNameNS(DOMString? namespace, DOMString localName);
   HTMLCollection getElementsByClassName(DOMString classNames);
 
-  [Throws]
+  [CEReactions, Throws]
   Element? insertAdjacentElement(DOMString where_, Element element); // historical
   [Throws]
   void insertAdjacentText(DOMString where_, DOMString data);
@@ -105,9 +107,9 @@ partial interface Element {
 
 // https://w3c.github.io/DOM-Parsing/#extensions-to-the-element-interface
 partial interface Element {
-  [Throws,TreatNullAs=EmptyString]
+  [CEReactions, Throws,TreatNullAs=EmptyString]
   attribute DOMString innerHTML;
-  [Throws,TreatNullAs=EmptyString]
+  [CEReactions, Throws,TreatNullAs=EmptyString]
   attribute DOMString outerHTML;
 };
 

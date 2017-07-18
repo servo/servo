@@ -5,6 +5,8 @@
 // https://html.spec.whatwg.org/multipage/#htmloptgroupelement
 [HTMLConstructor]
 interface HTMLOptGroupElement : HTMLElement {
+  [CEReactions]
            attribute boolean disabled;
-  //         attribute DOMString label;
+  // [CEReactions]
+  //          attribute DOMString label;
 };

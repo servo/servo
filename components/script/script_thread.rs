@@ -753,6 +753,24 @@ impl ScriptThread {
         let _ = window.layout_chan().send(msg);
     }
 
+    pub fn push_new_element_queue() {
+        SCRIPT_THREAD_ROOT.with(|root| {
+            if let Some(script_thread) = root.get() {
+                let script_thread = unsafe { &*script_thread };
+                script_thread.custom_element_reaction_stack.push_new_element_queue();
+            }
+        })
+    }
+
+    pub fn pop_current_element_queue() {
+        SCRIPT_THREAD_ROOT.with(|root| {
+            if let Some(script_thread) = root.get() {
+                let script_thread = unsafe { &*script_thread };
+                script_thread.custom_element_reaction_stack.pop_current_element_queue();
+            }
+        })
+    }
+
     pub fn enqueue_callback_reaction(element:&Element, reaction: CallbackReaction) {
         SCRIPT_THREAD_ROOT.with(|root| {
             if let Some(script_thread) = root.get() {

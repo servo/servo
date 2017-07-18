@@ -5,8 +5,11 @@
 // https://html.spec.whatwg.org/multipage/#htmltableheadercellelement
 [HTMLConstructor]
 interface HTMLTableHeaderCellElement : HTMLTableCellElement {
+  // [CEReactions]
   //         attribute DOMString scope;
+  // [CEReactions]
   //         attribute DOMString abbr;
+  // [CEReactions]
   //         attribute DOMString sorted;
-  //void sort();
+  // void sort();
 };

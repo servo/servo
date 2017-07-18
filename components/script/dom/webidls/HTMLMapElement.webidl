@@ -5,7 +5,8 @@
 // https://html.spec.whatwg.org/multipage/#htmlmapelement
 [HTMLConstructor]
 interface HTMLMapElement : HTMLElement {
-  //         attribute DOMString name;
-  //readonly attribute HTMLCollection areas;
-  //readonly attribute HTMLCollection images;
+  // [CEReactions]
+  //          attribute DOMString name;
+  // readonly attribute HTMLCollection areas;
+  // readonly attribute HTMLCollection images;
 };

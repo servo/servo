@@ -5,9 +5,12 @@
 // https://html.spec.whatwg.org/multipage/#htmlvideoelement
 [HTMLConstructor]
 interface HTMLVideoElement : HTMLMediaElement {
-  //         attribute unsigned long width;
-  //         attribute unsigned long height;
-  //readonly attribute unsigned long videoWidth;
-  //readonly attribute unsigned long videoHeight;
-  //         attribute DOMString poster;
+  // [CEReactions]
+  //          attribute unsigned long width;
+  // [CEReactions]
+  //          attribute unsigned long height;
+  // readonly attribute unsigned long videoWidth;
+  // readonly attribute unsigned long videoHeight;
+  // [CEReactions]
+  //          attribute DOMString poster;
 };

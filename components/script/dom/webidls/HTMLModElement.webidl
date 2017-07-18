@@ -5,6 +5,8 @@
 // https://html.spec.whatwg.org/multipage/#htmlmodelement
 [HTMLConstructor]
 interface HTMLModElement : HTMLElement {
+  // [CEReactions]
   //         attribute DOMString cite;
+  // [CEReactions]
   //         attribute DOMString dateTime;
 };

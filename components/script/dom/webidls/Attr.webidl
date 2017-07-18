@@ -18,11 +18,11 @@ interface Attr {
   readonly attribute DOMString name;
   [Constant]
   readonly attribute DOMString nodeName; // historical alias of .name
-  [Pure]
+  [CEReactions, Pure]
            attribute DOMString value;
-  [Pure]
+  [CEReactions, Pure]
            attribute DOMString textContent; // historical alias of .value
-  [Pure]
+  [CEReactions, Pure]
            attribute DOMString nodeValue; // historical alias of .value
 
   [Pure]

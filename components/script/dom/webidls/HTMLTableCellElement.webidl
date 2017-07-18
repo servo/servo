@@ -5,9 +5,12 @@
 // https://html.spec.whatwg.org/multipage/#htmltablecellelement
 [HTMLConstructor, Abstract]
 interface HTMLTableCellElement : HTMLElement {
-  attribute unsigned long colSpan;
-  attribute unsigned long rowSpan;
-  //         attribute DOMString headers;
+  [CEReactions]
+           attribute unsigned long colSpan;
+  [CEReactions]
+           attribute unsigned long rowSpan;
+  // [CEReactions]
+  //          attribute DOMString headers;
   readonly attribute long cellIndex;
 
   // also has obsolete members
@@ -15,15 +18,23 @@ interface HTMLTableCellElement : HTMLElement {
 
 // https://html.spec.whatwg.org/multipage/#HTMLTableCellElement-partial
 partial interface HTMLTableCellElement {
-  //         attribute DOMString align;
-  //         attribute DOMString axis;
-  //         attribute DOMString height;
+  // [CEReactions]
+  //          attribute DOMString align;
+  // [CEReactions]
+  //          attribute DOMString axis;
+  // [CEReactions]
+  //          attribute DOMString height;
+  [CEReactions]
   attribute DOMString width;
 
-  //         attribute DOMString ch;
-  //         attribute DOMString chOff;
-  //         attribute boolean noWrap;
-  //         attribute DOMString vAlign;
+  //          attribute DOMString ch;
+  // [CEReactions]
+  //          attribute DOMString chOff;
+  // [CEReactions]
+  //          attribute boolean noWrap;
+  // [CEReactions]
+  //          attribute DOMString vAlign;
 
-  [TreatNullAs=EmptyString] attribute DOMString bgColor;
+  [CEReactions, TreatNullAs=EmptyString]
+  attribute DOMString bgColor;
 };

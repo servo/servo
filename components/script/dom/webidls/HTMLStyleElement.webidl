@@ -5,8 +5,11 @@
 // https://html.spec.whatwg.org/multipage/#htmlstyleelement
 [HTMLConstructor]
 interface HTMLStyleElement : HTMLElement {
-  //         attribute DOMString media;
-  //         attribute DOMString type;
-  //         attribute boolean scoped;
+  // [CEReactions]
+  //          attribute DOMString media;
+  // [CEReactions]
+  //          attribute DOMString type;
+  // [CEReactions]
+  //          attribute boolean scoped;
 };
 HTMLStyleElement implements LinkStyle;

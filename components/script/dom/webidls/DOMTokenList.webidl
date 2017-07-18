@@ -11,16 +11,16 @@ interface DOMTokenList {
 
   [Pure]
   boolean contains(DOMString token);
-  [Throws]
+  [CEReactions, Throws]
   void add(DOMString... tokens);
-  [Throws]
+  [CEReactions, Throws]
   void remove(DOMString... tokens);
-  [Throws]
+  [CEReactions, Throws]
   boolean toggle(DOMString token, optional boolean force);
-  [Throws]
+  [CEReactions, Throws]
   void replace(DOMString token, DOMString newToken);
 
-  [Pure]
+  [CEReactions, Pure]
            attribute DOMString value;
 
   stringifier;

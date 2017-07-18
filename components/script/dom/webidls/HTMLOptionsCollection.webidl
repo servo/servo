@@ -5,14 +5,13 @@
 // https://html.spec.whatwg.org/multipage/#htmloptionscollection
 interface HTMLOptionsCollection : HTMLCollection {
   // inherits item(), namedItem()
+  [CEReactions]
   attribute unsigned long length; // shadows inherited length
-  //[CEReactions]
-  [Throws]
+  [CEReactions, Throws]
   setter void (unsigned long index, HTMLOptionElement? option);
-  //[CEReactions]
-  [Throws]
+  [CEReactions, Throws]
   void add((HTMLOptionElement or HTMLOptGroupElement) element, optional (HTMLElement or long)? before = null);
-  //[CEReactions]
+  [CEReactions]
   void remove(long index);
   attribute long selectedIndex;
 };

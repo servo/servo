@@ -45,9 +45,9 @@ interface Document : Node {
   [NewObject, Throws]
   ProcessingInstruction createProcessingInstruction(DOMString target, DOMString data);
 
-  [NewObject, Throws]
+  [CEReactions, NewObject, Throws]
   Node importNode(Node node, optional boolean deep = false);
-  [Throws]
+  [CEReactions, Throws]
   Node adoptNode(Node node);
 
   [NewObject, Throws]
@@ -94,9 +94,11 @@ partial /*sealed*/ interface Document {
 
   // DOM tree accessors
      getter object (DOMString name);
+  [CEReactions]
            attribute DOMString title;
+  // [CEReactions]
   //       attribute DOMString dir;
-           [SetterThrows]
+  [CEReactions, SetterThrows]
            attribute HTMLElement? body;
   readonly attribute HTMLHeadElement? head;
   [SameObject]
@@ -115,21 +117,23 @@ partial /*sealed*/ interface Document {
   readonly attribute HTMLScriptElement? currentScript;
 
   // dynamic markup insertion
-  [Throws]
+  [CEReactions, Throws]
   Document open(optional DOMString type = "text/html", optional DOMString replace = "");
   // WindowProxy open(DOMString url, DOMString name, DOMString features, optional boolean replace = false);
-  [Throws]
+  [CEReactions, Throws]
   void close();
-  [Throws]
+  [CEReactions, Throws]
   void write(DOMString... text);
-  [Throws]
+  [CEReactions, Throws]
   void writeln(DOMString... text);
 
   // user interaction
   readonly attribute Window?/*Proxy?*/ defaultView;
   readonly attribute Element? activeElement;
   boolean hasFocus();
+  // [CEReactions]
   // attribute DOMString designMode;
+  // [CEReactions]
   // boolean execCommand(DOMString commandId, optional boolean showUI = false, optional DOMString value = "");
   // boolean queryCommandEnabled(DOMString commandId);
   // boolean queryCommandIndeterm(DOMString commandId);
@@ -147,18 +151,23 @@ Document implements DocumentAndElementEventHandlers;
 
 // https://html.spec.whatwg.org/multipage/#Document-partial
 partial interface Document {
-  [TreatNullAs=EmptyString] attribute DOMString fgColor;
+  [CEReactions, TreatNullAs=EmptyString]
+  attribute DOMString fgColor;
 
   // https://github.com/servo/servo/issues/8715
-  // [TreatNullAs=EmptyString] attribute DOMString linkColor;
+  // [CEReactions, TreatNullAs=EmptyString]
+  // attribute DOMString linkColor;
 
   // https://github.com/servo/servo/issues/8716
-  // [TreatNullAs=EmptyString] attribute DOMString vlinkColor;
+  // [CEReactions, TreatNullAs=EmptyString]
+  // attribute DOMString vlinkColor;
 
   // https://github.com/servo/servo/issues/8717
-  // [TreatNullAs=EmptyString] attribute DOMString alinkColor;
+  // [CEReactions, TreatNullAs=EmptyString]
+  // attribute DOMString alinkColor;
 
-  [TreatNullAs=EmptyString] attribute DOMString bgColor;
+  [CEReactions, TreatNullAs=EmptyString]
+  attribute DOMString bgColor;
 
   [SameObject]
   readonly attribute HTMLCollection anchors;

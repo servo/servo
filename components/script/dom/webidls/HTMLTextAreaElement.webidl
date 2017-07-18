@@ -5,44 +5,57 @@
 // https://html.spec.whatwg.org/multipage/#htmltextareaelement
 [HTMLConstructor]
 interface HTMLTextAreaElement : HTMLElement {
-  //         attribute DOMString autocomplete;
-  //         attribute boolean autofocus;
-             [SetterThrows]
-             attribute unsigned long cols;
-  //         attribute DOMString dirName;
+  // [CEReactions]
+  //          attribute DOMString autocomplete;
+  // [CEReactions]
+  //          attribute boolean autofocus;
+  [CEReactions, SetterThrows]
+           attribute unsigned long cols;
+  // [CEReactions]
+  //          attribute DOMString dirName;
+  [CEReactions]
            attribute boolean disabled;
   readonly attribute HTMLFormElement? form;
-  //         attribute DOMString inputMode;
-  //         attribute long maxLength;
-  //         attribute long minLength;
+  // [CEReactions]
+  //          attribute DOMString inputMode;
+  // [CEReactions]
+  //          attribute long maxLength;
+  // [CEReactions]
+  //          attribute long minLength;
            attribute DOMString name;
+  [CEReactions]
            attribute DOMString placeholder;
+  [CEReactions]
            attribute boolean readOnly;
+  [CEReactions]
            attribute boolean required;
-           [SetterThrows]
+  [CEReactions, SetterThrows]
            attribute unsigned long rows;
+  [CEReactions]
            attribute DOMString wrap;
 
   readonly attribute DOMString type;
+  [CEReactions]
            attribute DOMString defaultValue;
-  [TreatNullAs=EmptyString] attribute DOMString value;
-  //readonly attribute unsigned long textLength;
+  [CEReactions,TreatNullAs=EmptyString]
+           attribute DOMString value;
+  // readonly attribute unsigned long textLength;
 
-  //readonly attribute boolean willValidate;
-  //readonly attribute ValidityState validity;
-  //readonly attribute DOMString validationMessage;
-  //boolean checkValidity();
-  //boolean reportValidity();
-  //void setCustomValidity(DOMString error);
+  // readonly attribute boolean willValidate;
+  // readonly attribute ValidityState validity;
+  // readonly attribute DOMString validationMessage;
+  // boolean checkValidity();
+  // boolean reportValidity();
+  // void setCustomValidity(DOMString error);
 
   readonly attribute NodeList labels;
 
-  //void select();
+  // void select();
            attribute unsigned long selectionStart;
            attribute unsigned long selectionEnd;
            attribute DOMString selectionDirection;
-  //void setRangeText(DOMString replacement);
-  //void setRangeText(DOMString replacement, unsigned long start, unsigned long end,
-  //                  optional SelectionMode selectionMode = "preserve");
+  // void setRangeText(DOMString replacement);
+  // void setRangeText(DOMString replacement, unsigned long start, unsigned long end,
+  //                   optional SelectionMode selectionMode = "preserve");
   void setSelectionRange(unsigned long start, unsigned long end, optional DOMString direction);
 };
