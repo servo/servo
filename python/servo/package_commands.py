@@ -144,10 +144,10 @@ def copy_windows_dependencies(binary_path, destination):
         shutil.copy(path.join(binary_path, d), destination)
 
 
-def change_prefs(resources_path, platform):
+def change_prefs(dir_to_pkg_resources, dir_to_support, platform):
     print("Swapping prefs")
-    prefs_path = path.join(resources_path, "prefs.json")
-    package_prefs_path = path.join(resources_path, "package-prefs.json")
+    prefs_path = path.join(dir_to_pkg_resources, "prefs.json")
+    package_prefs_path = path.join(dir_to_support, 'package-prefs.json')
     os_type = "os:{}".format(platform)
     with open(prefs_path) as prefs, open(package_prefs_path) as package_prefs:
         prefs = json.load(prefs)
@@ -159,7 +159,6 @@ def change_prefs(resources_path, platform):
                 prefs[pref] = package_prefs[pref]
         with open(prefs_path, "w") as out:
             json.dump(prefs, out, sort_keys=True, indent=2)
-    delete(package_prefs_path)
 
 
 @CommandProvider
@@ -188,8 +187,9 @@ class PackageCommands(CommandBase):
         if not android:
             android = self.handle_android_target(target)
         binary_path = self.get_binary_path(release, dev, android=android)
-        dir_to_root = self.get_top_dir()
         target_dir = path.dirname(binary_path)
+        dir_to_resources = path.join(self.get_top_dir(), 'resources')
+        dir_to_support = path.join(self.get_top_dir(), 'support')
         if android:
             android_target = self.config["android"]["target"]
             if "aarch64" in android_target:
@@ -215,22 +215,27 @@ class PackageCommands(CommandBase):
             print("Creating Servo.app")
             dir_to_dmg = path.join(target_dir, 'dmg')
             dir_to_app = path.join(dir_to_dmg, 'Servo.app')
-            dir_to_resources = path.join(dir_to_app, 'Contents', 'Resources')
+            dir_to_pkg_resources = path.join(dir_to_app, 'Contents', 'Resources')
             if path.exists(dir_to_dmg):
                 print("Cleaning up from previous packaging")
                 delete(dir_to_dmg)
             browserhtml_path = get_browserhtml_path(binary_path)
 
             print("Copying files")
-            shutil.copytree(path.join(dir_to_root, 'resources'), dir_to_resources)
-            shutil.copytree(browserhtml_path, path.join(dir_to_resources, 'browserhtml'))
-            shutil.copy2(path.join(dir_to_root, 'Info.plist'), path.join(dir_to_app, 'Contents', 'Info.plist'))
+            shutil.copytree(dir_to_resources, dir_to_pkg_resources)
+            shutil.copytree(browserhtml_path, path.join(dir_to_pkg_resources, 'browserhtml'))
+            shutil.copy2(path.join(dir_to_support, 'macos', 'Info.plist'),
+                         path.join(dir_to_app, 'Contents', 'Info.plist'))
+            shutil.copy2(path.join(dir_to_support, 'macos', 'servo.icns'),
+                         path.join(dir_to_pkg_resources, 'servo.icns'))
+            shutil.copy2(path.join(dir_to_support, 'servo.png'),
+                         path.join(dir_to_pkg_resources, 'servo.png'))
 
             content_dir = path.join(dir_to_app, 'Contents', 'MacOS')
             os.makedirs(content_dir)
             shutil.copy2(binary_path, content_dir)
 
-            change_prefs(dir_to_resources, "macosx")
+            change_prefs(dir_to_pkg_resources, dir_to_support, 'macosx')
 
             print("Finding dylibs and relinking")
             copy_dependencies(path.join(content_dir, 'servo'), content_dir)
@@ -247,13 +252,12 @@ class PackageCommands(CommandBase):
             version = "Nightly version: " + version
 
             import mako.template
-            template_path = path.join(dir_to_resources, 'Credits.rtf.mako')
-            credits_path = path.join(dir_to_resources, 'Credits.rtf')
+            template_path = path.join(dir_to_support, 'macos', 'Credits.rtf.mako')
+            credits_path = path.join(dir_to_pkg_resources, 'Credits.rtf')
             with open(template_path) as template_file:
                 template = mako.template.Template(template_file.read())
                 with open(credits_path, "w") as credits_file:
                     credits_file.write(template.render(version=version))
-            delete(template_path)
 
             print("Writing run-servo")
             bhtml_path = path.join('${0%/*}', '..', 'Resources', 'browserhtml', 'index.html')
@@ -298,7 +302,7 @@ class PackageCommands(CommandBase):
             if path.exists(tar_path):
                 print("Deleting existing package")
                 os.remove(tar_path)
-            shutil.copytree(path.join(dir_to_root, 'resources'), path.join(dir_to_brew, 'resources'))
+            shutil.copytree(dir_to_resources, path.join(dir_to_brew, 'resources'))
             os.makedirs(path.join(dir_to_brew, 'bin'))
             shutil.copy2(binary_path, path.join(dir_to_brew, 'bin', 'servo'))
             # Note that in the context of Homebrew, libexec is reserved for private use by the formula
@@ -319,24 +323,28 @@ class PackageCommands(CommandBase):
             print("Copying files")
             dir_to_temp = path.join(dir_to_msi, 'temp')
             dir_to_temp_servo = path.join(dir_to_temp, 'servo')
-            dir_to_resources = path.join(dir_to_temp_servo, 'resources')
-            shutil.copytree(path.join(dir_to_root, 'resources'), dir_to_resources)
+            dir_to_pkg_resources = path.join(dir_to_temp_servo, 'resources')
+            shutil.copytree(path.join(dir_to_resources, dir_to_pkg_resources))
             shutil.copytree(browserhtml_path, path.join(dir_to_temp_servo, 'browserhtml'))
+            shutil.copy(path.join(dir_to_support, 'servo.png'),
+                        path.join(dir_to_pkg_resources, 'servo.png'))
+            shutil.copy(path.join(dir_to_support, 'windows', 'Servo.ico'),
+                        path.join(dir_to_pkg_resources, 'Servo.ico'))
             shutil.copy(binary_path, dir_to_temp_servo)
             shutil.copy("{}.manifest".format(binary_path), dir_to_temp_servo)
             copy_windows_dependencies(target_dir, dir_to_temp_servo)
 
-            change_prefs(dir_to_resources, "windows")
+            change_prefs(dir_to_pkg_resources, dir_to_support, 'windows')
 
             # generate Servo.wxs
             import mako.template
-            template_path = path.join(dir_to_root, "support", "windows", "Servo.wxs.mako")
+            template_path = path.join(dir_to_support, "windows", "Servo.wxs.mako")
             template = mako.template.Template(open(template_path).read())
             wxs_path = path.join(dir_to_msi, "Servo.wxs")
             open(wxs_path, "w").write(template.render(
                 exe_path=target_dir,
                 dir_to_temp=dir_to_temp_servo,
-                resources_path=dir_to_resources))
+                resources_path=dir_to_pkg_resources))
 
             # run candle and light
             print("Creating MSI")
@@ -370,12 +378,14 @@ class PackageCommands(CommandBase):
                 delete(dir_to_temp)
 
             print("Copying files")
-            dir_to_resources = path.join(dir_to_temp, 'resources')
-            shutil.copytree(path.join(dir_to_root, 'resources'), dir_to_resources)
+            dir_to_pkg_resources = path.join(dir_to_temp, 'resources')
+            shutil.copytree(path.join(dir_to_resources, dir_to_pkg_resources))
             shutil.copytree(browserhtml_path, path.join(dir_to_temp, 'browserhtml'))
+            shutil.copy(path.join(dir_to_support, 'servo.png'),
+                        path.join(dir_to_pkg_resources, 'servo.png'))
             shutil.copy(binary_path, dir_to_temp)
 
-            change_prefs(dir_to_resources, "linux")
+            change_prefs(dir_to_pkg_resources, dir_to_support, 'line')
 
             print("Creating tarball")
             tar_path = path.join(target_dir, 'servo-tech-demo.tar.gz')
