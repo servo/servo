@@ -165,7 +165,7 @@ impl ComputedValuesInner {
         unsafe { self.to_outer_helper(device.pres_context(), parent, ty, tag) }
     }
 
-    pub unsafe fn to_outer_helper(self, pres_context: bindings::RawGeckoPresContextBorrowed,
+    unsafe fn to_outer_helper(self, pres_context: bindings::RawGeckoPresContextBorrowed,
                                     parent: ParentStyleContextInfo,
                                     pseudo_ty: structs::CSSPseudoElementType,
                                     pseudo_tag: *mut structs::nsIAtom) -> Arc<ComputedValues> {
