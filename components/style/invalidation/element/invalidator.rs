@@ -266,12 +266,10 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
 
         // Roots of NAC subtrees can indeed generate sibling invalidations, but
         // they can be just ignored, since they have no siblings.
-        debug_assert!(child.implemented_pseudo_element().is_none() ||
-                      sibling_invalidations.is_empty(),
-                      "pseudos can't generate sibling invalidations, since \
-                      using them in other position that isn't the \
-                      rightmost part of the selector is invalid \
-                      (for now at least)");
+        //
+        // Note that we can end up testing selectors that wouldn't end up
+        // matching due to this being NAC, like those coming from document
+        // rules, but we overinvalidate instead of checking this.
 
         result
     }
