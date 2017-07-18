@@ -706,7 +706,7 @@ impl MaybeNew for ViewportConstraints {
             is_root_element: false,
             device: device,
             inherited_style: default_values,
-            style: StyleBuilder::for_derived_style(device, default_values),
+            style: StyleBuilder::for_derived_style(device, default_values, None),
             font_metrics_provider: &provider,
             cached_system_font: None,
             in_media_query: false,

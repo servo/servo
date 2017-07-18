@@ -231,7 +231,7 @@ impl Range<specified::Length> {
             is_root_element: false,
             device: device,
             inherited_style: default_values,
-            style: StyleBuilder::for_derived_style(device, default_values),
+            style: StyleBuilder::for_derived_style(device, default_values, None),
             // Servo doesn't support font metrics
             // A real provider will be needed here once we do; since
             // ch units can exist in media queries.

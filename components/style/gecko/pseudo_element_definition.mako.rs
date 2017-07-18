@@ -107,7 +107,6 @@ impl PseudoElement {
         }
     }
 
-
     /// Construct a `CSSPseudoElementType` from a pseudo-element
     #[inline]
     pub fn pseudo_type(&self) -> CSSPseudoElementType {
@@ -131,6 +130,21 @@ impl PseudoElement {
     /// Get a PseudoInfo for a pseudo
     pub fn pseudo_info(&self) -> (*mut structs::nsIAtom, CSSPseudoElementType) {
         (self.atom().as_ptr(), self.pseudo_type())
+    }
+
+    /// Construct a pseudo-element from an `Atom`.
+    #[inline]
+    pub fn from_atom(atom: &Atom) -> Option<Self> {
+        % for pseudo in PSEUDOS:
+            % if pseudo.is_tree_pseudo_element():
+                // We cannot generate ${pseudo_element_variant(pseudo)} from just an atom.
+            % else:
+                if atom == &atom!("${pseudo.value}") {
+                    return Some(${pseudo_element_variant(pseudo)});
+                }
+            % endif
+        % endfor
+        None
     }
 
     /// Construct a pseudo-element from an anonymous box `Atom`.

@@ -121,10 +121,8 @@ impl FontComputationData {
     }
 
     /// Assigns default values for variables in struct FontComputationData
-    pub fn default_values() -> Self {
-        FontComputationData{
-            font_size_keyword: Some((Default::default(), 1.))
-        }
+    pub fn default_font_size_keyword() -> Option<(longhands::font_size::KeywordSize, f32)> {
+        Some((Default::default(), 1.))
     }
 }
 
@@ -1873,7 +1871,7 @@ pub mod style_structs {
 
 
 #[cfg(feature = "gecko")]
-pub use gecko_properties::{ComputedValues, ComputedValuesInner, ParentStyleContextInfo, PseudoInfo};
+pub use gecko_properties::{ComputedValues, ComputedValuesInner};
 
 #[cfg(feature = "servo")]
 #[cfg_attr(feature = "servo", derive(Clone, Debug))]
@@ -1921,6 +1919,7 @@ pub struct ComputedValues {
     inner: ComputedValuesInner,
 }
 
+#[cfg(feature = "servo")]
 impl ComputedValues {
     /// Create a new refcounted `ComputedValues`
     pub fn new(
@@ -2521,8 +2520,12 @@ impl<'a> StyleBuilder<'a> {
 
     /// Creates a StyleBuilder holding only references to the structs of `s`, in
     /// order to create a derived style.
-    pub fn for_derived_style(device: &'a Device, s: &'a ComputedValues) -> Self {
-        Self::for_inheritance(device, s, s, s.pseudo())
+    pub fn for_derived_style(
+        device: &'a Device,
+        s: &'a ComputedValues,
+        pseudo: Option<<&'a PseudoElement>,
+    ) -> Self {
+        Self::for_inheritance(device, s, s, pseudo)
     }
 
     /// Inherits style from the parent element, accounting for the default
