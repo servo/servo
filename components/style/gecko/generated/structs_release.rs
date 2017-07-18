@@ -11,11 +11,11 @@ pub type ServoCell<T> = ::std::cell::Cell<T>;
 pub type ServoNodeData = AtomicRefCell<ElementData>;
 pub type ServoWritingMode = ::logical_geometry::WritingMode;
 pub type ServoFontComputationData = ::properties::FontComputationData;
-pub type ServoCustomPropertiesMap = Option<::stylearc::Arc<::custom_properties::CustomPropertiesMap>>;
+pub type ServoCustomPropertiesMap = Option<::servo_arc::Arc<::custom_properties::CustomPropertiesMap>>;
 pub type ServoRuleNode = Option<::rule_tree::StrongRuleNode>;
-pub type ServoVisitedStyle = Option<::stylearc::RawOffsetArc<::properties::ComputedValues>>;
+pub type ServoVisitedStyle = Option<::servo_arc::RawOffsetArc<::properties::ComputedValues>>;
 pub type ServoComputedValueFlags = ::properties::computed_value_flags::ComputedValueFlags;
-pub type ServoRawOffsetArc<T> = ::stylearc::RawOffsetArc<T>;
+pub type ServoRawOffsetArc<T> = ::servo_arc::RawOffsetArc<T>;
 pub type ServoStyleContextStrong = ::gecko_bindings::sugar::ownership::Strong<ServoStyleContext>;
 
 #[allow(non_snake_case, non_camel_case_types, non_upper_case_globals)]
