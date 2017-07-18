@@ -386,7 +386,7 @@ pub struct TrackRepeat<L> {
     /// If there's no `<line-names>`, then it's represented by an empty vector.
     /// For N `<track-size>` values, there will be N+1 `<line-names>`, and so this vector's
     /// length is always one value more than that of the `<track-size>`.
-    pub line_names: Vec<Vec<CustomIdent>>,
+    pub line_names: Box<[Box<[CustomIdent]>]>,
     /// `<track-size>` values.
     pub track_sizes: Vec<TrackSize<L>>,
 }
@@ -447,7 +447,8 @@ impl<L: Clone> TrackRepeat<L> {
                 let mut names_iter = self.line_names.iter();
                 for (size, names) in self.track_sizes.iter().zip(&mut names_iter) {
                     prev_names.extend_from_slice(&names);
-                    line_names.push(mem::replace(&mut prev_names, vec![]));
+                    let vec = mem::replace(&mut prev_names, vec![]);
+                    line_names.push(vec.into_boxed_slice());
                     track_sizes.push(size.clone());
                 }
 
@@ -456,11 +457,11 @@ impl<L: Clone> TrackRepeat<L> {
                 }
             }
 
-            line_names.push(prev_names);
+            line_names.push(prev_names.into_boxed_slice());
             TrackRepeat {
                 count: self.count,
                 track_sizes: track_sizes,
-                line_names: line_names,
+                line_names: line_names.into_boxed_slice(),
             }
 
         } else {    // if it's auto-fit/auto-fill, then it's left to the layout.
@@ -541,7 +542,7 @@ pub struct TrackList<T> {
     /// If there's no `<line-names>`, then it's represented by an empty vector.
     /// For N values, there will be N+1 `<line-names>`, and so this vector's
     /// length is always one value more than that of the `<track-size>`.
-    pub line_names: Vec<Vec<CustomIdent>>,
+    pub line_names: Box<[Box<[CustomIdent]>]>,
     /// `<auto-repeat>` value. There can only be one `<auto-repeat>` in a TrackList.
     pub auto_repeat: Option<TrackRepeat<T>>,
 }
@@ -598,7 +599,7 @@ impl<T: ToCss> ToCss for TrackList<T> {
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct LineNameList {
     /// The optional `<line-name-list>`
-    pub names: Vec<Vec<CustomIdent>>,
+    pub names: Box<[Box<[CustomIdent]>]>,
     /// Indicates the line name that requires `auto-fill`
     pub fill_idx: Option<u32>,
 }
@@ -650,7 +651,7 @@ impl Parse for LineNameList {
         }
 
         Ok(LineNameList {
-            names: line_names,
+            names: line_names.into_boxed_slice(),
             fill_idx: fill_idx,
         })
     }
