@@ -207,8 +207,8 @@ class MachCommands(CommandBase):
         os.makedirs(cargo_dir)
 
         tgz_file = "cargo-nightly-%s.tar.gz" % host_triple()
-        nightly_url = "https://s3.amazonaws.com/rust-lang-ci/cargo-builds/%s/%s" % \
-            (self.cargo_build_id(), tgz_file)
+        nightly_url = "https://s3.amazonaws.com/rust-lang-ci/rustc-builds/%s/%s" % \
+            (self.cargo_build_id()[len("rust-"):], tgz_file)
 
         download_file("Cargo nightly", nightly_url, tgz_file)
 
@@ -295,34 +295,24 @@ class MachCommands(CommandBase):
         rust_current_nightly = self.rust_version()
         self.set_use_stable_rust(True)
         rust_current_stable = self.rust_version()
-        cargo_current = self.cargo_build_id()
         print("Current Rust nightly version: {}".format(rust_current_nightly))
         print("Current Rust stable version: {}".format(rust_current_stable))
-        print("Current Cargo version: {}".format(cargo_current))
-        to_keep = {
-            'rust': set(),
-            'cargo': set(),
-        }
+        to_keep = set()
         if int(keep) == 1:
             # Optimize keep=1 case to not invoke git
-            to_keep['rust'].add(rust_current_nightly)
-            to_keep['rust'].add(rust_current_stable)
-            to_keep['cargo'].add(cargo_current)
+            to_keep.add(rust_current_nightly)
+            to_keep.add(rust_current_stable)
         else:
-            for tool, version_files in {
-                'rust': ['rust-commit-hash', 'rust-stable-version'],
-                'cargo': ['cargo-commit-hash'],
-            }.items():
-                for version_file in version_files:
-                    cmd = subprocess.Popen(
-                        ['git', 'log', '--oneline', '--no-color', '-n', keep, '--patch', version_file],
-                        stdout=subprocess.PIPE,
-                        universal_newlines=True
-                    )
-                    stdout, _ = cmd.communicate()
-                    for line in stdout.splitlines():
-                        if line.startswith(b"+") and not line.startswith(b"+++"):
-                            to_keep[tool].add(line[1:])
+            for version_file in ['rust-commit-hash', 'rust-stable-version']:
+                cmd = subprocess.Popen(
+                    ['git', 'log', '--oneline', '--no-color', '-n', keep, '--patch', version_file],
+                    stdout=subprocess.PIPE,
+                    universal_newlines=True
+                )
+                stdout, _ = cmd.communicate()
+                for line in stdout.splitlines():
+                    if line.startswith(b"+") and not line.startswith(b"+++"):
+                        to_keep.add(line[1:])
 
         removing_anything = False
         for tool in ["rust", "cargo"]:
@@ -330,11 +320,13 @@ class MachCommands(CommandBase):
             if not path.isdir(base):
                 continue
             for name in os.listdir(base):
+                if name.startswith("rust-"):
+                    name = name[len("rust-"):]
                 # We append `-alt` if LLVM assertions aren't enabled,
                 # so use just the commit hash itself.
                 # This may occasionally leave an extra nightly behind
                 # but won't remove too many nightlies.
-                if name.partition('-')[0] not in to_keep[tool]:
+                if name.partition('-')[0] not in to_keep:
                     removing_anything = True
                     full_path = path.join(base, name)
                     if force:
