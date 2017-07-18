@@ -1469,7 +1469,7 @@ fn static_assert() {
                         &mut ${self_grid}.mRepeatAutoLineNameListAfter, 0);
                 }
             },
-            GridTemplateComponent::Subgrid(mut list) => {
+            GridTemplateComponent::Subgrid(list) => {
                 ${self_grid}.set_mIsSubgrid(true);
                 let names_length = match list.fill_idx {
                     Some(_) => list.names.len() - 1,
@@ -1486,14 +1486,15 @@ fn static_assert() {
                         &mut ${self_grid}.mRepeatAutoLineNameListAfter, 0);
                 }
 
+                let mut names = list.names.into_vec();
                 if let Some(idx) = list.fill_idx {
                     ${self_grid}.set_mIsAutoFill(true);
                     ${self_grid}.mRepeatAutoIndex = idx as i16;
-                    set_line_names(&list.names.swap_remove(idx as usize),
+                    set_line_names(&names.swap_remove(idx as usize),
                                    &mut ${self_grid}.mRepeatAutoLineNameListBefore);
                 }
 
-                for (servo_names, gecko_names) in list.names.iter().zip(${self_grid}.mLineNameLists.iter_mut()) {
+                for (servo_names, gecko_names) in names.iter().zip(${self_grid}.mLineNameLists.iter_mut()) {
                     set_line_names(servo_names, gecko_names);
                 }
             },

@@ -278,34 +278,35 @@
             }
         % endfor
 
-        let first_line_names = input.try(parse_line_names).unwrap_or(vec![]);
+        let first_line_names = input.try(parse_line_names).unwrap_or(vec![].into_boxed_slice());
         if let Ok(s) = input.try(Parser::expect_string) {
             let mut strings = vec![];
             let mut values = vec![];
             let mut line_names = vec![];
-            let mut names = first_line_names;
+            let mut names = first_line_names.into_vec();
             let mut string = s.into_owned().into_boxed_str();
             loop {
-                line_names.push(names);
+                line_names.push(names.into_boxed_slice());
                 strings.push(string);
                 let size = input.try(|i| TrackSize::parse(context, i)).unwrap_or_default();
                 values.push(size);
-                names = input.try(parse_line_names).unwrap_or(vec![]);
+                names = input.try(parse_line_names).unwrap_or(vec![].into_boxed_slice()).into_vec();
                 if let Ok(v) = input.try(parse_line_names) {
-                    names.extend(v);
+                    names.extend(v.into_vec());
                 }
 
                 string = match input.try(Parser::expect_string) {
                     Ok(s) => s.into_owned().into_boxed_str(),
                     _ => {      // only the named area determines whether we should bail out
-                        line_names.push(names);
+                        line_names.push(names.into_boxed_slice());
                         break
                     },
                 };
             }
 
             if line_names.len() == values.len() {
-                line_names.push(vec![]);        // should be one longer than track sizes
+                // should be one longer than track sizes
+                line_names.push(vec![].into_boxed_slice());
             }
 
             let template_areas = TemplateAreas::from_vec(strings)
@@ -313,7 +314,7 @@
             let template_rows = TrackList {
                 list_type: TrackListType::Normal,
                 values: values,
-                line_names: line_names,
+                line_names: line_names.into_boxed_slice(),
                 auto_repeat: None,
             };
 
