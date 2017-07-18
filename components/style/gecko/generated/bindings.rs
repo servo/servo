@@ -2733,7 +2733,8 @@ extern "C" {
 }
 extern "C" {
     pub fn Servo_ResolveStyle(element: RawGeckoElementBorrowed,
-                              set: RawServoStyleSetBorrowed)
+                              set: RawServoStyleSetBorrowed,
+                              restyle_behavior: TraversalRestyleBehavior)
      -> ServoStyleContextStrong;
 }
 extern "C" {
