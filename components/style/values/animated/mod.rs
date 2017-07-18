@@ -88,3 +88,34 @@ where
     }
 }
 
+/// Returns a value similar to `self` that represents zero.
+pub trait ToAnimatedZero: Sized {
+    /// Returns a value that, when added with an underlying value, will produce the underlying
+    /// value. This is used for SMIL animation's "by-animation" where SMIL first interpolates from
+    /// the zero value to the 'by' value, and then adds the result to the underlying value.
+    ///
+    /// This is not the necessarily the same as the initial value of a property. For example, the
+    /// initial value of 'stroke-width' is 1, but the zero value is 0, since adding 1 to the
+    /// underlying value will not produce the underlying value.
+    fn to_animated_zero(&self) -> Result<Self, ()>;
+}
+
+impl ToAnimatedZero for Au {
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Self, ()> { Ok(Au(0)) }
+}
+
+impl ToAnimatedZero for f32 {
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Self, ()> { Ok(0.) }
+}
+
+impl ToAnimatedZero for f64 {
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Self, ()> { Ok(0.) }
+}
+
+impl ToAnimatedZero for i32 {
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Self, ()> { Ok(0) }
+}

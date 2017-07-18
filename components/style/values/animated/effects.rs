@@ -11,7 +11,7 @@ use properties::longhands::text_shadow::computed_value::T as ComputedTextShadowL
 use std::cmp;
 #[cfg(not(feature = "gecko"))]
 use values::Impossible;
-use values::animated::ToAnimatedValue;
+use values::animated::{ToAnimatedValue, ToAnimatedZero};
 use values::computed::{Angle, Number};
 use values::computed::length::Length;
 use values::generics::effects::BoxShadow as GenericBoxShadow;
@@ -66,7 +66,7 @@ impl ToAnimatedValue for ComputedBoxShadowList {
 
 impl<S> Animatable for ShadowList<S>
 where
-    S: Animatable + Clone,
+    S: Animatable + Clone + ToAnimatedZero,
 {
     #[inline]
     fn add_weighted(
@@ -83,10 +83,10 @@ where
                     shadow.add_weighted(other, self_portion, other_portion)?
                 },
                 (Some(shadow), None) => {
-                    shadow.add_weighted(&shadow.get_zero_value()?, self_portion, other_portion)?
+                    shadow.add_weighted(&shadow.to_animated_zero()?, self_portion, other_portion)?
                 },
                 (None, Some(shadow)) => {
-                    shadow.get_zero_value()?.add_weighted(&shadow, self_portion, other_portion)?
+                    shadow.to_animated_zero()?.add_weighted(&shadow, self_portion, other_portion)?
                 },
                 (None, None) => unreachable!(),
             });
@@ -99,6 +99,13 @@ where
         Ok(ShadowList(
             self.0.iter().cloned().chain(other.0.iter().cloned()).collect(),
         ))
+    }
+}
+
+impl<S> ToAnimatedZero for ShadowList<S> {
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        Ok(ShadowList(vec![]))
     }
 }
 
@@ -135,15 +142,6 @@ impl Animatable for BoxShadow {
     }
 
     #[inline]
-    fn get_zero_value(&self) -> Result<Self, ()> {
-        Ok(BoxShadow {
-            base: self.base.get_zero_value()?,
-            spread: self.spread.get_zero_value()?,
-            inset: self.inset,
-        })
-    }
-
-    #[inline]
     fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
         self.compute_squared_distance(other).map(|sd| sd.sqrt())
     }
@@ -157,6 +155,17 @@ impl Animatable for BoxShadow {
             self.base.compute_squared_distance(&other.base)? +
             self.spread.compute_squared_distance(&other.spread)?,
         )
+    }
+}
+
+impl ToAnimatedZero for BoxShadow {
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        Ok(BoxShadow {
+            base: self.base.to_animated_zero()?,
+            spread: self.spread.to_animated_zero()?,
+            inset: self.inset,
+        })
     }
 }
 
@@ -188,6 +197,13 @@ impl ToAnimatedValue for ComputedFilterList {
     }
 }
 
+impl ToAnimatedZero for FilterList {
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        Ok(FilterList(vec![]))
+    }
+}
+
 impl Animatable for SimpleShadow {
     #[inline]
     fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
@@ -205,16 +221,6 @@ impl Animatable for SimpleShadow {
     }
 
     #[inline]
-    fn get_zero_value(&self) -> Result<Self, ()> {
-        Ok(SimpleShadow {
-            color: IntermediateColor::transparent(),
-            horizontal: self.horizontal.get_zero_value()?,
-            vertical: self.vertical.get_zero_value()?,
-            blur: self.blur.get_zero_value()?,
-        })
-    }
-
-    #[inline]
     fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
         self.compute_squared_distance(other).map(|sd| sd.sqrt())
     }
@@ -227,5 +233,17 @@ impl Animatable for SimpleShadow {
             self.vertical.compute_squared_distance(&other.vertical)? +
             self.blur.compute_squared_distance(&other.blur)?
         )
+    }
+}
+
+impl ToAnimatedZero for SimpleShadow {
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        Ok(SimpleShadow {
+            color: IntermediateColor::transparent(),
+            horizontal: self.horizontal.to_animated_zero()?,
+            vertical: self.vertical.to_animated_zero()?,
+            blur: self.blur.to_animated_zero()?,
+        })
     }
 }

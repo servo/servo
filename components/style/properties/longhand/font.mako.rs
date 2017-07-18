@@ -1044,6 +1044,7 @@ ${helpers.single_keyword_system("font-variant-caps",
     pub mod computed_value {
         use properties::animated_properties::Animatable;
         use values::CSSFloat;
+        use values::animated::ToAnimatedZero;
 
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         #[derive(Copy, Clone, Debug, PartialEq, ToCss)]
@@ -1080,6 +1081,11 @@ ${helpers.single_keyword_system("font-variant-caps",
                     _ => Err(()),
                 }
             }
+        }
+
+        impl ToAnimatedZero for T {
+            #[inline]
+            fn to_animated_zero(&self) -> Result<Self, ()> { Err(()) }
         }
     }
 

@@ -7,6 +7,7 @@
 use app_units::Au;
 use properties::animated_properties::Animatable;
 use values::{CSSInteger, CSSFloat};
+use values::animated::ToAnimatedZero;
 use values::computed::length::{Length, LengthOrPercentage};
 use values::generics::text::InitialLetter as GenericInitialLetter;
 use values::generics::text::LineHeight as GenericLineHeight;
@@ -60,4 +61,9 @@ impl Animatable for LineHeight {
             _ => Err(()),
         }
     }
+}
+
+impl ToAnimatedZero for LineHeight {
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Self, ()> { Err(()) }
 }

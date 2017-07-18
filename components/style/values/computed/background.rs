@@ -5,6 +5,7 @@
 //! Computed types for CSS values related to backgrounds.
 
 use properties::animated_properties::{Animatable, RepeatableListAnimatable};
+use values::animated::ToAnimatedZero;
 use values::computed::length::LengthOrPercentageOrAuto;
 use values::generics::background::BackgroundSize as GenericBackgroundSize;
 
@@ -49,4 +50,9 @@ impl Animatable for BackgroundSize {
             _ => Err(()),
         }
     }
+}
+
+impl ToAnimatedZero for BackgroundSize {
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Self, ()> { Err(()) }
 }
