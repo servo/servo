@@ -114,7 +114,7 @@ use task_source::file_reading::FileReadingTaskSource;
 use task_source::history_traversal::HistoryTraversalTaskSource;
 use task_source::networking::NetworkingTaskSource;
 use task_source::user_interaction::{UserInteractionTask, UserInteractionTaskSource};
-use time::Tm;
+use time::{get_time, precise_time_ns, Tm};
 use url::Position;
 use webdriver_handlers;
 use webvr_traits::{WebVREvent, WebVRMsg};
@@ -159,6 +159,10 @@ struct InProgressLoad {
     url: ServoUrl,
     /// The origin for the document
     origin: MutableOrigin,
+    /// Timestamp reporting the time when the browser started this load.
+    navigation_start: u64,
+    /// High res timestamp reporting the time when the browser started this load.
+    navigation_start_precise: f64,
 }
 
 impl InProgressLoad {
@@ -171,6 +175,7 @@ impl InProgressLoad {
            window_size: Option<WindowSizeData>,
            url: ServoUrl,
            origin: MutableOrigin) -> InProgressLoad {
+        let current_time = get_time();
         InProgressLoad {
             pipeline_id: id,
             browsing_context_id: browsing_context_id,
@@ -182,6 +187,8 @@ impl InProgressLoad {
             is_visible: true,
             url: url,
             origin: origin,
+            navigation_start: (current_time.sec * 1000 + current_time.nsec as i64 / 1000000) as u64,
+            navigation_start_precise: precise_time_ns() as f64,
         }
     }
 }
@@ -1833,8 +1840,7 @@ impl ScriptThread {
     fn handle_iframe_load_event(&self,
                                 parent_id: PipelineId,
                                 browsing_context_id: BrowsingContextId,
-                                child_id: PipelineId)
-    {
+                                child_id: PipelineId) {
         let iframe = self.documents.borrow().find_iframe(parent_id, browsing_context_id);
         match iframe {
             Some(iframe) => iframe.iframe_load_event_steps(child_id),
@@ -1982,6 +1988,8 @@ impl ScriptThread {
                                  incomplete.parent_info,
                                  incomplete.window_size,
                                  origin,
+                                 incomplete.navigation_start,
+                                 incomplete.navigation_start_precise,
                                  self.webvr_thread.clone());
 
         // Initialize the browsing context for the window.
