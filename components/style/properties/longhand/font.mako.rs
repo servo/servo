@@ -1411,9 +1411,10 @@ ${helpers.single_keyword_system("font-kerning",
             )
         );
         while let Ok(_) = input.try(|input| {
-            match input.next()? {
-                Token::Ident(ident) => {
-                    if ident == "historical-forms" {
+            // FIXME: remove clone() when lifetimes are non-lexical
+            match input.next()?.clone() {
+                Token::Ident(ref ident) => {
+                    if *ident == "historical-forms" {
                         check_if_parsed!(HISTORICAL_FORMS);
                         alternates.push(VariantAlternates::HistoricalForms);
                         Ok(())
@@ -1421,7 +1422,7 @@ ${helpers.single_keyword_system("font-kerning",
                         return Err(StyleParseError::UnspecifiedError.into());
                     }
                 },
-                Token::Function(name) => {
+                Token::Function(ref name) => {
                     input.parse_nested_block(|i| {
                         match_ignore_ascii_case! { &name,
                             % for value in "swash stylistic ornaments annotation".split():

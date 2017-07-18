@@ -252,7 +252,8 @@ fn parse_declaration_value_block<'i, 't>
                                            ParseError<'i>> {
     let mut token_start = input.position();
     let mut token = match input.next_including_whitespace_and_comments() {
-        Ok(token) => token,
+        // FIXME: remove clone() when borrows are non-lexical
+        Ok(token) => token.clone(),
         Err(_) => return Ok((TokenSerializationType::nothing(), TokenSerializationType::nothing()))
     };
     let first_token_type = token.serialization_type();
@@ -351,7 +352,8 @@ fn parse_declaration_value_block<'i, 't>
 
         token_start = input.position();
         token = match input.next_including_whitespace_and_comments() {
-            Ok(token) => token,
+            // FIXME: remove clone() when borrows are non-lexical
+            Ok(token) => token.clone(),
             Err(..) => return Ok((first_token_type, last_token_type)),
         };
     }
@@ -597,7 +599,8 @@ fn substitute_block<'i, 't, F>(input: &mut Parser<'i, 't>,
     let mut set_position_at_next_iteration = false;
     loop {
         let before_this_token = input.position();
-        let next = input.next_including_whitespace_and_comments();
+        // FIXME: remove clone() when borrows are non-lexical
+        let next = input.next_including_whitespace_and_comments().map(|t| t.clone());
         if set_position_at_next_iteration {
             *position = (before_this_token, match next {
                 Ok(ref token) => token.serialization_type(),

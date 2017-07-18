@@ -89,9 +89,9 @@ macro_rules! parse_quoted_or_unquoted_string {
             let start = input.position();
             input.parse_entirely(|input| {
                 match input.next() {
-                    Ok(Token::QuotedString(value)) =>
-                        Ok($url_matching_function(value.into_owned())),
-                    Ok(t) => Err(BasicParseError::UnexpectedToken(t).into()),
+                    Ok(&Token::QuotedString(ref value)) =>
+                        Ok($url_matching_function(value.as_ref().to_owned())),
+                    Ok(t) => Err(BasicParseError::UnexpectedToken(t.clone()).into()),
                     Err(e) => Err(e.into()),
                 }
             }).or_else(|_: ParseError| {

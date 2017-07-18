@@ -1053,16 +1053,16 @@ fn parse_selector<'i, 't, P, E, Impl>(
             let position = input.position();
             match input.next_including_whitespace() {
                 Err(_e) => break 'outer_loop,
-                Ok(Token::WhiteSpace(_)) => any_whitespace = true,
-                Ok(Token::Delim('>')) => {
+                Ok(&Token::WhiteSpace(_)) => any_whitespace = true,
+                Ok(&Token::Delim('>')) => {
                     combinator = Combinator::Child;
                     break
                 }
-                Ok(Token::Delim('+')) => {
+                Ok(&Token::Delim('+')) => {
                     combinator = Combinator::NextSibling;
                     break
                 }
-                Ok(Token::Delim('~')) => {
+                Ok(&Token::Delim('~')) => {
                     combinator = Combinator::LaterSibling;
                     break
                 }
@@ -1196,27 +1196,28 @@ fn parse_qualified_name<'i, 't, P, E, Impl>
 
     let explicit_namespace = |input: &mut CssParser<'i, 't>, namespace| {
         match input.next_including_whitespace() {
-            Ok(Token::Delim('*')) if !in_attr_selector => {
+            Ok(&Token::Delim('*')) if !in_attr_selector => {
                 Ok(Some((namespace, None)))
             },
-            Ok(Token::Ident(local_name)) => {
-                Ok(Some((namespace, Some(local_name))))
+            Ok(&Token::Ident(ref local_name)) => {
+                Ok(Some((namespace, Some(local_name.clone()))))
             },
-            Ok(t) => Err(ParseError::Basic(BasicParseError::UnexpectedToken(t))),
+            Ok(t) => Err(ParseError::Basic(BasicParseError::UnexpectedToken(t.clone()))),
             Err(e) => Err(ParseError::Basic(e)),
         }
     };
 
     let position = input.position();
-    match input.next_including_whitespace() {
+    // FIXME: remove clone() when lifetimes are non-lexical
+    match input.next_including_whitespace().map(|t| t.clone()) {
         Ok(Token::Ident(value)) => {
             let position = input.position();
             match input.next_including_whitespace() {
-                Ok(Token::Delim('|')) => {
+                Ok(&Token::Delim('|')) => {
                     let prefix = value.as_ref().into();
                     let result = parser.namespace_for_prefix(&prefix);
                     let url = result.ok_or(ParseError::Custom(
-                        SelectorParseError::ExpectedNamespace(value.into())))?;
+                        SelectorParseError::ExpectedNamespace(value)))?;
                     explicit_namespace(input, QNamePrefix::ExplicitNamespace(prefix, url))
                 },
                 _ => {
@@ -1231,7 +1232,8 @@ fn parse_qualified_name<'i, 't, P, E, Impl>
         },
         Ok(Token::Delim('*')) => {
             let position = input.position();
-            match input.next_including_whitespace() {
+            // FIXME: remove clone() when lifetimes are non-lexical
+            match input.next_including_whitespace().map(|t| t.clone()) {
                 Ok(Token::Delim('|')) => {
                     explicit_namespace(input, QNamePrefix::ExplicitAnyNamespace)
                 }
@@ -1239,8 +1241,8 @@ fn parse_qualified_name<'i, 't, P, E, Impl>
                     input.reset(position);
                     if in_attr_selector {
                         match result {
-                            Ok(t) => Err(ParseError::Basic(BasicParseError::UnexpectedToken(t))),
-                             Err(e) => Err(ParseError::Basic(e)),
+                            Ok(t) => Err(ParseError::Basic(BasicParseError::UnexpectedToken(t.clone()))),
+                            Err(e) => Err(ParseError::Basic(e)),
                         }
                     } else {
                         default_namespace(None)
@@ -1315,37 +1317,37 @@ fn parse_attribute_selector<'i, 't, P, E, Impl>(parser: &P, input: &mut CssParse
         }
 
         // [foo=bar]
-        Ok(Token::Delim('=')) => {
+        Ok(&Token::Delim('=')) => {
             value = input.expect_ident_or_string()?;
             never_matches = false;
             operator = AttrSelectorOperator::Equal;
         }
         // [foo~=bar]
-        Ok(Token::IncludeMatch) => {
+        Ok(&Token::IncludeMatch) => {
             value = input.expect_ident_or_string()?;
             never_matches = value.is_empty() || value.contains(SELECTOR_WHITESPACE);
             operator = AttrSelectorOperator::Includes;
         }
         // [foo|=bar]
-        Ok(Token::DashMatch) => {
+        Ok(&Token::DashMatch) => {
             value = input.expect_ident_or_string()?;
             never_matches = false;
             operator = AttrSelectorOperator::DashMatch;
         }
         // [foo^=bar]
-        Ok(Token::PrefixMatch) => {
+        Ok(&Token::PrefixMatch) => {
             value = input.expect_ident_or_string()?;
             never_matches = value.is_empty();
             operator = AttrSelectorOperator::Prefix;
         }
         // [foo*=bar]
-        Ok(Token::SubstringMatch) => {
+        Ok(&Token::SubstringMatch) => {
             value = input.expect_ident_or_string()?;
             never_matches = value.is_empty();
             operator = AttrSelectorOperator::Substring;
         }
         // [foo$=bar]
-        Ok(Token::SuffixMatch) => {
+        Ok(&Token::SuffixMatch) => {
             value = input.expect_ident_or_string()?;
             never_matches = value.is_empty();
             operator = AttrSelectorOperator::Suffix;
@@ -1404,10 +1406,10 @@ fn parse_attribute_flags<'i, 't, E>(input: &mut CssParser<'i, 't>)
             // Selectors spec says language-defined, but HTML says sensitive.
             Ok(ParsedCaseSensitivity::CaseSensitive)
         }
-        Ok(Token::Ident(ref value)) if value.eq_ignore_ascii_case("i") => {
+        Ok(&Token::Ident(ref value)) if value.eq_ignore_ascii_case("i") => {
             Ok(ParsedCaseSensitivity::AsciiCaseInsensitive)
         }
-        Ok(t) => Err(ParseError::Basic(BasicParseError::UnexpectedToken(t)))
+        Ok(t) => Err(ParseError::Basic(BasicParseError::UnexpectedToken(t.clone())))
     }
 }
 
@@ -1426,7 +1428,7 @@ fn parse_negation<'i, 't, P, E, Impl>(parser: &P,
     // Consume any leading whitespace.
     loop {
         let position = input.position();
-        if !matches!(input.next_including_whitespace(), Ok(Token::WhiteSpace(_))) {
+        if !matches!(input.next_including_whitespace(), Ok(&Token::WhiteSpace(_))) {
             input.reset(position);
             break
         }
@@ -1469,7 +1471,7 @@ fn parse_compound_selector<'i, 't, P, E, Impl>(
     // Consume any leading whitespace.
     loop {
         let position = input.position();
-        if !matches!(input.next_including_whitespace(), Ok(Token::WhiteSpace(_))) {
+        if !matches!(input.next_including_whitespace(), Ok(&Token::WhiteSpace(_))) {
             input.reset(position);
             break
         }
@@ -1501,15 +1503,15 @@ fn parse_compound_selector<'i, 't, P, E, Impl>(
 
                 loop {
                     match input.next_including_whitespace() {
-                        Ok(Token::Colon) => {},
-                        Ok(Token::WhiteSpace(_)) | Err(_) => break,
+                        Ok(&Token::Colon) => {},
+                        Ok(&Token::WhiteSpace(_)) | Err(_) => break,
                         _ => return Err(SelectorParseError::PseudoElementExpectedColon.into()),
                     }
 
                     // TODO(emilio): Functional pseudo-classes too?
                     // We don't need it for now.
                     let name = match input.next_including_whitespace() {
-                        Ok(Token::Ident(name)) => name,
+                        Ok(&Token::Ident(ref name)) => name.clone(),
                         _ => return Err(SelectorParseError::PseudoElementExpectedIdent.into()),
                     };
 
@@ -1603,18 +1605,19 @@ fn parse_one_simple_selector<'i, 't, P, E, Impl>(parser: &P,
     where P: Parser<'i, Impl=Impl, Error=E>, Impl: SelectorImpl
 {
     let start_position = input.position();
-    match input.next_including_whitespace() {
+    // FIXME: remove clone() when lifetimes are non-lexical
+    match input.next_including_whitespace().map(|t| t.clone()) {
         Ok(Token::IDHash(id)) => {
             let id = Component::ID(id.as_ref().into());
             Ok(Some(SimpleSelectorParseResult::SimpleSelector(id)))
         }
         Ok(Token::Delim('.')) => {
-            match input.next_including_whitespace()? {
-                Token::Ident(class) => {
+            match *input.next_including_whitespace()? {
+                Token::Ident(ref class) => {
                     let class = Component::Class(class.as_ref().into());
                     Ok(Some(SimpleSelectorParseResult::SimpleSelector(class)))
                 }
-                t => Err(ParseError::Basic(BasicParseError::UnexpectedToken(t))),
+                ref t => Err(ParseError::Basic(BasicParseError::UnexpectedToken(t.clone()))),
             }
         }
         Ok(Token::SquareBracketBlock) => {
@@ -1622,8 +1625,8 @@ fn parse_one_simple_selector<'i, 't, P, E, Impl>(parser: &P,
             Ok(Some(SimpleSelectorParseResult::SimpleSelector(attr)))
         }
         Ok(Token::Colon) => {
-            let (is_single_colon, next_token) = match input.next_including_whitespace()? {
-                Token::Colon => (false, input.next_including_whitespace()?),
+            let (is_single_colon, next_token) = match input.next_including_whitespace()?.clone() {
+                Token::Colon => (false, input.next_including_whitespace()?.clone()),
                 t => (true, t),
             };
             let (name, is_functional) = match next_token {

@@ -197,13 +197,13 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
         let mut quotes = Vec::new();
         loop {
             let first = match input.next() {
-                Ok(Token::QuotedString(value)) => value.into_owned(),
-                Ok(t) => return Err(BasicParseError::UnexpectedToken(t).into()),
+                Ok(&Token::QuotedString(ref value)) => value.as_ref().to_owned(),
+                Ok(t) => return Err(BasicParseError::UnexpectedToken(t.clone()).into()),
                 Err(_) => break,
             };
             let second = match input.next() {
-                Ok(Token::QuotedString(value)) => value.into_owned(),
-                Ok(t) => return Err(BasicParseError::UnexpectedToken(t).into()),
+                Ok(&Token::QuotedString(ref value)) => value.as_ref().to_owned(),
+                Ok(t) => return Err(BasicParseError::UnexpectedToken(t.clone()).into()),
                 Err(e) => return Err(e.into()),
             };
             quotes.push((first, second))

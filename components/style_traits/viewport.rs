@@ -154,7 +154,7 @@ impl Zoom {
         use cssparser::Token;
         use values::specified::AllowedLengthType::NonNegative;
 
-        match input.next()? {
+        match *input.next()? {
             // TODO: This parse() method should take ParserContext as an
             // argument, and pass ParsingMode owned by the ParserContext to
             // is_ok() instead of using PARSING_MODE_DEFAULT directly.
@@ -168,7 +168,7 @@ impl Zoom {
             Token::Ident(ref value) if value.eq_ignore_ascii_case("auto") => {
                 Ok(Zoom::Auto)
             }
-            t => Err(CssParseError::Basic(BasicParseError::UnexpectedToken(t)))
+            ref t => Err(CssParseError::Basic(BasicParseError::UnexpectedToken(t.clone())))
         }
     }
 

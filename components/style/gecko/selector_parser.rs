@@ -352,9 +352,9 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
             let mut args = Vec::new();
             loop {
                 match parser.next() {
-                    Ok(Token::Ident(ident)) => args.push(ident.into_owned()),
-                    Ok(Token::Comma) => {},
-                    Ok(t) => return Err(BasicParseError::UnexpectedToken(t).into()),
+                    Ok(&Token::Ident(ref ident)) => args.push(ident.as_ref().to_owned()),
+                    Ok(&Token::Comma) => {},
+                    Ok(t) => return Err(BasicParseError::UnexpectedToken(t.clone()).into()),
                     Err(BasicParseError::EndOfInput) => break,
                     _ => unreachable!("Parser::next() shouldn't return any other error"),
                 }

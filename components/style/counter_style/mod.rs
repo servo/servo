@@ -351,9 +351,9 @@ pub enum Symbol {
 impl Parse for Symbol {
     fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         match input.next() {
-            Ok(Token::QuotedString(s)) => Ok(Symbol::String(s.into_owned())),
-            Ok(Token::Ident(s)) => Ok(Symbol::Ident(s.into_owned())),
-            Ok(t) => Err(BasicParseError::UnexpectedToken(t).into()),
+            Ok(&Token::QuotedString(ref s)) => Ok(Symbol::String(s.as_ref().to_owned())),
+            Ok(&Token::Ident(ref s)) => Ok(Symbol::Ident(s.as_ref().to_owned())),
+            Ok(t) => Err(BasicParseError::UnexpectedToken(t.clone()).into()),
             Err(e) => Err(e.into()),
         }
     }
@@ -419,9 +419,9 @@ impl Parse for Ranges {
 
 fn parse_bound<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Option<i32>, ParseError<'i>> {
     match input.next() {
-        Ok(Token::Number { int_value: Some(v), .. }) => Ok(Some(v)),
-        Ok(Token::Ident(ref ident)) if ident.eq_ignore_ascii_case("infinite") => Ok(None),
-        Ok(t) => Err(BasicParseError::UnexpectedToken(t).into()),
+        Ok(&Token::Number { int_value: Some(v), .. }) => Ok(Some(v)),
+        Ok(&Token::Ident(ref ident)) if ident.eq_ignore_ascii_case("infinite") => Ok(None),
+        Ok(t) => Err(BasicParseError::UnexpectedToken(t.clone()).into()),
         Err(e) => Err(e.into()),
     }
 }

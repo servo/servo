@@ -168,9 +168,9 @@ impl Image {
     fn parse_element<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Atom, ParseError<'i>> {
         input.try(|i| i.expect_function_matching("-moz-element"))?;
         input.parse_nested_block(|i| {
-            match i.next()? {
-                Token::IDHash(id) => Ok(Atom::from(id.as_ref())),
-                t => Err(BasicParseError::UnexpectedToken(t).into()),
+            match *i.next()? {
+                Token::IDHash(ref id) => Ok(Atom::from(id.as_ref())),
+                ref t => Err(BasicParseError::UnexpectedToken(t.clone()).into()),
             }
         })
     }

@@ -154,9 +154,9 @@ impl hash::Hash for KeyframesName {
 impl Parse for KeyframesName {
     fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         match input.next() {
-            Ok(Token::Ident(s)) => Ok(KeyframesName::Ident(CustomIdent::from_ident(s, &["none"])?)),
-            Ok(Token::QuotedString(s)) => Ok(KeyframesName::QuotedString(Atom::from(s.as_ref()))),
-            Ok(t) => Err(BasicParseError::UnexpectedToken(t).into()),
+            Ok(&Token::Ident(ref s)) => Ok(KeyframesName::Ident(CustomIdent::from_ident(s.clone(), &["none"])?)),
+            Ok(&Token::QuotedString(ref s)) => Ok(KeyframesName::QuotedString(Atom::from(s.as_ref()))),
+            Ok(t) => Err(BasicParseError::UnexpectedToken(t.clone()).into()),
             Err(e) => Err(e.into()),
         }
     }

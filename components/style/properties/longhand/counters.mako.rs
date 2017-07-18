@@ -179,11 +179,12 @@
                     continue;
                 }
             % endif
-            match input.next() {
-                Ok(Token::QuotedString(value)) => {
-                    content.push(ContentItem::String(value.into_owned()))
+            // FIXME: remove clone() when lifetimes are non-lexical
+            match input.next().map(|t| t.clone()) {
+                Ok(Token::QuotedString(ref value)) => {
+                    content.push(ContentItem::String(value.as_ref().to_owned()))
                 }
-                Ok(Token::Function(name)) => {
+                Ok(Token::Function(ref name)) => {
                     let result = match_ignore_ascii_case! { &name,
                         "counter" => Some(input.parse_nested_block(|input| {
                             let name = input.expect_ident()?.into_owned();
@@ -206,10 +207,10 @@
                     };
                     match result {
                         Some(result) => content.push(result?),
-                        None => return Err(StyleParseError::UnexpectedFunction(name).into())
+                        None => return Err(StyleParseError::UnexpectedFunction(name.clone()).into())
                     }
                 }
-                Ok(Token::Ident(ident)) => {
+                Ok(Token::Ident(ref ident)) => {
                     let valid = match_ignore_ascii_case! { &ident,
                         "open-quote" => { content.push(ContentItem::OpenQuote); true },
                         "close-quote" => { content.push(ContentItem::CloseQuote); true },
@@ -219,7 +220,7 @@
                         _ => false,
                     };
                     if !valid {
-                        return Err(SelectorParseError::UnexpectedIdent(ident).into())
+                        return Err(SelectorParseError::UnexpectedIdent(ident.clone()).into())
                     }
                 }
                 Err(_) => break,
@@ -333,8 +334,8 @@
         let mut counters = Vec::new();
         loop {
             let counter_name = match input.next() {
-                Ok(Token::Ident(ident)) => CustomIdent::from_ident(ident, &["none"])?,
-                Ok(t) => return Err(BasicParseError::UnexpectedToken(t).into()),
+                Ok(&Token::Ident(ref ident)) => CustomIdent::from_ident(ident.clone(), &["none"])?,
+                Ok(t) => return Err(BasicParseError::UnexpectedToken(t.clone()).into()),
                 Err(_) => break,
             };
             let counter_delta = input.try(|input| specified::parse_integer(context, input))

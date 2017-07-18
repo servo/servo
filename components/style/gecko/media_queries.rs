@@ -240,11 +240,11 @@ impl Resolution {
     }
 
     fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        let (value, unit) = match input.next()? {
-            Token::Dimension { value, unit, .. } => {
+        let (value, unit) = match *input.next()? {
+            Token::Dimension { value, ref unit, .. } => {
                 (value, unit)
             },
-            t => return Err(BasicParseError::UnexpectedToken(t).into()),
+            ref t => return Err(BasicParseError::UnexpectedToken(t.clone()).into()),
         };
 
         if value <= 0. {
@@ -256,7 +256,7 @@ impl Resolution {
             "dppx" => Ok(Resolution::Dppx(value)),
             "dpcm" => Ok(Resolution::Dpcm(value)),
             _ => Err(())
-        }).map_err(|()| StyleParseError::UnexpectedDimension(unit).into())
+        }).map_err(|()| StyleParseError::UnexpectedDimension(unit.clone()).into())
     }
 }
 

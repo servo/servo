@@ -361,7 +361,7 @@ ${helpers.predefined_type("object-position",
                 _ => false
             };
             if !success {
-                return Err(SelectorParseError::UnexpectedIdent(ident).into());
+                return Err(SelectorParseError::UnexpectedIdent(ident.clone()).into());
             }
         }
 

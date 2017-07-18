@@ -97,17 +97,18 @@ no_viewport_percentage!(SpecifiedUrl);
 /// Parse an `<integer>` value, handling `calc()` correctly.
 pub fn parse_integer<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                              -> Result<Integer, ParseError<'i>> {
-    match input.next()? {
-        Token::Number { int_value: Some(v), .. } => Ok(Integer::new(v)),
-        Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
-            let result = input.parse_nested_block(|i| {
-                CalcNode::parse_integer(context, i)
-            })?;
-
-            Ok(Integer::from_calc(result))
-        }
-        t => Err(BasicParseError::UnexpectedToken(t).into())
+    // FIXME: remove early returns when lifetimes are non-lexical
+    match *input.next()? {
+        Token::Number { int_value: Some(v), .. } => return Ok(Integer::new(v)),
+        Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {}
+        ref t => return Err(BasicParseError::UnexpectedToken(t.clone()).into())
     }
+
+    let result = input.parse_nested_block(|i| {
+        CalcNode::parse_integer(context, i)
+    })?;
+
+    Ok(Integer::from_calc(result))
 }
 
 /// Parse a `<number>` value, handling `calc()` correctly, and without length
@@ -122,25 +123,26 @@ pub fn parse_number_with_clamping_mode<'i, 't>(context: &ParserContext,
                                                input: &mut Parser<'i, 't>,
                                                clamping_mode: AllowedNumericType)
                                                -> Result<Number, ParseError<'i>> {
-    match input.next()? {
+    // FIXME: remove early returns when lifetimes are non-lexical
+    match *input.next()? {
         Token::Number { value, .. } if clamping_mode.is_ok(context.parsing_mode, value) => {
-            Ok(Number {
+            return Ok(Number {
                 value: value.min(f32::MAX).max(f32::MIN),
                 calc_clamping_mode: None,
             })
-        },
-        Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
-            let result = input.parse_nested_block(|i| {
-                CalcNode::parse_number(context, i)
-            })?;
-
-            Ok(Number {
-                value: result.min(f32::MAX).max(f32::MIN),
-                calc_clamping_mode: Some(clamping_mode),
-            })
         }
-        t => Err(BasicParseError::UnexpectedToken(t).into())
+        Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {}
+        ref t => return Err(BasicParseError::UnexpectedToken(t.clone()).into())
     }
+
+    let result = input.parse_nested_block(|i| {
+        CalcNode::parse_number(context, i)
+    })?;
+
+    Ok(Number {
+        value: result.min(f32::MAX).max(f32::MIN),
+        calc_clamping_mode: Some(clamping_mode),
+    })
 }
 
 #[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq)]
@@ -227,7 +229,8 @@ impl Angle {
 impl Parse for Angle {
     /// Parses an angle according to CSS-VALUES § 6.1.
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        let token = input.next()?;
+        // FIXME: remove clone() when lifetimes are non-lexical
+        let token = input.next()?.clone();
         match token {
             Token::Dimension { value, ref unit, .. } => {
                 Angle::parse_dimension(value, unit, /* from_calc = */ false)
@@ -236,7 +239,7 @@ impl Parse for Angle {
                 return input.parse_nested_block(|i| CalcNode::parse_angle(context, i))
             }
             _ => Err(())
-        }.map_err(|()| BasicParseError::UnexpectedToken(token).into())
+        }.map_err(|()| BasicParseError::UnexpectedToken(token.clone()).into())
     }
 }
 
@@ -267,7 +270,8 @@ impl Angle {
     /// https://github.com/w3c/csswg-drafts/issues/1162 is resolved.
     pub fn parse_with_unitless<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                                        -> Result<Self, ParseError<'i>> {
-        let token = input.next()?;
+        // FIXME: remove clone() when lifetimes are non-lexical
+        let token = input.next()?.clone();
         match token {
             Token::Dimension { value, ref unit, .. } => {
                 Angle::parse_dimension(value, unit, /* from_calc = */ false)
@@ -277,7 +281,7 @@ impl Angle {
                 return input.parse_nested_block(|i| CalcNode::parse_angle(context, i))
             }
             _ => Err(())
-        }.map_err(|()| BasicParseError::UnexpectedToken(token).into())
+        }.map_err(|()| BasicParseError::UnexpectedToken(token.clone()).into())
     }
 }
 
@@ -365,24 +369,24 @@ impl Time {
                                         -> Result<Self, ParseError<'i>> {
         use style_traits::PARSING_MODE_DEFAULT;
 
+        // FIXME: remove early returns when lifetimes are non-lexical
         match input.next() {
             // Note that we generally pass ParserContext to is_ok() to check
             // that the ParserMode of the ParserContext allows all numeric
             // values for SMIL regardless of clamping_mode, but in this Time
             // value case, the value does not animate for SMIL at all, so we use
             // PARSING_MODE_DEFAULT directly.
-            Ok(Token::Dimension { value, ref unit, .. }) if clamping_mode.is_ok(PARSING_MODE_DEFAULT, value) => {
-                Time::parse_dimension(value, unit, /* from_calc = */ false)
+            Ok(&Token::Dimension { value, ref unit, .. }) if clamping_mode.is_ok(PARSING_MODE_DEFAULT, value) => {
+                return Time::parse_dimension(value, unit, /* from_calc = */ false)
                     .map_err(|()| StyleParseError::UnspecifiedError.into())
             }
-            Ok(Token::Function(ref name)) if name.eq_ignore_ascii_case("calc") => {
-                match input.parse_nested_block(|i| CalcNode::parse_time(context, i)) {
-                    Ok(time) if clamping_mode.is_ok(PARSING_MODE_DEFAULT, time.seconds) => Ok(time),
-                    _ => Err(StyleParseError::UnspecifiedError.into()),
-                }
-            }
-            Ok(t) => Err(BasicParseError::UnexpectedToken(t).into()),
-            Err(e) => Err(e.into())
+            Ok(&Token::Function(ref name)) if name.eq_ignore_ascii_case("calc") => {}
+            Ok(t) => return Err(BasicParseError::UnexpectedToken(t.clone()).into()),
+            Err(e) => return Err(e.into())
+        }
+        match input.parse_nested_block(|i| CalcNode::parse_time(context, i)) {
+            Ok(time) if clamping_mode.is_ok(PARSING_MODE_DEFAULT, time.seconds) => Ok(time),
+            _ => Err(StyleParseError::UnspecifiedError.into()),
         }
     }
 
@@ -939,15 +943,15 @@ impl Attr {
         // Syntax is `[namespace? `|`]? ident`
         // no spaces allowed
         let first = input.try(|i| i.expect_ident()).ok();
-        if let Ok(token) = input.try(|i| i.next_including_whitespace()) {
+        if let Ok(token) = input.try(|i| i.next_including_whitespace().map(|t| t.clone())) {
             match token {
                 Token::Delim('|') => {}
-                t => return Err(BasicParseError::UnexpectedToken(t).into()),
+                ref t => return Err(BasicParseError::UnexpectedToken(t.clone()).into()),
             }
             // must be followed by an ident
-            let second_token = match input.next_including_whitespace()? {
-                Token::Ident(second) => second,
-                t => return Err(BasicParseError::UnexpectedToken(t).into()),
+            let second_token = match *input.next_including_whitespace()? {
+                Token::Ident(ref second) => second,
+                ref t => return Err(BasicParseError::UnexpectedToken(t.clone()).into()),
             };
 
             let ns_with_id = if let Some(ns) = first {
@@ -961,7 +965,7 @@ impl Attr {
             };
             return Ok(Attr {
                 namespace: ns_with_id,
-                attribute: second_token.into_owned(),
+                attribute: second_token.as_ref().to_owned(),
             })
         }
 

@@ -117,17 +117,17 @@
     impl Parse for Side {
         fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
                          -> Result<Side, ParseError<'i>> {
-            match input.next()? {
-                Token::Ident(ident) => {
+            match *input.next()? {
+                Token::Ident(ref ident) => {
                     try_match_ident_ignore_ascii_case! { ident,
                         "clip" => Ok(Side::Clip),
                         "ellipsis" => Ok(Side::Ellipsis),
                     }
                 }
-                Token::QuotedString(v) => {
-                    Ok(Side::String(v.into_owned().into_boxed_str()))
+                Token::QuotedString(ref v) => {
+                    Ok(Side::String(v.as_ref().to_owned().into_boxed_str()))
                 }
-                other => Err(BasicParseError::UnexpectedToken(other).into()),
+                ref t => Err(BasicParseError::UnexpectedToken(t.clone()).into()),
             }
         }
     }

@@ -263,7 +263,7 @@ pub fn parse_media_query_list(context: &ParserContext, input: &mut Parser) -> Me
         }
 
         match input.next() {
-            Ok(Token::Comma) => {},
+            Ok(&Token::Comma) => {},
             Ok(_) => unreachable!(),
             Err(_) => break,
         }
