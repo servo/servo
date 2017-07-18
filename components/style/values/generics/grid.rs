@@ -119,9 +119,7 @@ impl Parse for GridLine {
                 if i.value() <= 0 {       // disallow negative integers for grid spans
                     return Err(StyleParseError::UnspecifiedError.into())
                 }
-            } else if grid_line.ident.is_some() {       // integer could be omitted
-                grid_line.line_num = Some(Integer::new(1));
-            } else {
+            } else if grid_line.ident.is_none() {       // integer could be omitted
                 return Err(StyleParseError::UnspecifiedError.into())
             }
         }
