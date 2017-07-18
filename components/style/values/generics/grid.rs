@@ -701,3 +701,13 @@ pub enum GridTemplateComponent<L> {
     /// A `subgrid <line-name-list>?`
     Subgrid(LineNameList),
 }
+
+impl<L> GridTemplateComponent<L> {
+    /// Returns length of the <track-list>s <track-size>
+    pub fn track_list_len(&self) -> usize {
+        match *self {
+            GridTemplateComponent::TrackList(ref tracklist) => tracklist.values.len(),
+            _ => 0,
+        }
+    }
+}
