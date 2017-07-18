@@ -151,11 +151,10 @@ impl Storage {
     /// https://html.spec.whatwg.org/multipage/#send-a-storage-notification
     fn broadcast_change_notification(&self, key: Option<String>, old_value: Option<String>,
                                      new_value: Option<String>) {
-        let pipeline_id = self.global().pipeline_id();
         let storage = self.storage_type;
         let url = self.get_url();
-        let msg = ScriptMsg::BroadcastStorageEvent(pipeline_id, storage, url, key, old_value, new_value);
-        self.global().constellation_chan().send(msg).unwrap();
+        let msg = ScriptMsg::BroadcastStorageEvent(storage, url, key, old_value, new_value);
+        self.global().script_to_constellation_chan().send(msg).unwrap();
     }
 
     /// https://html.spec.whatwg.org/multipage/#send-a-storage-notification

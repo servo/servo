@@ -15,7 +15,7 @@ use dom::window::Window;
 use dom_struct::dom_struct;
 use ipc_channel::ipc;
 use msg::constellation_msg::TraversalDirection;
-use script_traits::ScriptMsg as ConstellationMsg;
+use script_traits::ScriptMsg;
 
 // https://html.spec.whatwg.org/multipage/#the-history-interface
 #[dom_struct]
@@ -44,9 +44,8 @@ impl History {
         if !self.window.Document().is_fully_active() {
             return Err(Error::Security);
         }
-        let top_level_browsing_context_id = self.window.window_proxy().top_level_browsing_context_id();
-        let msg = ConstellationMsg::TraverseHistory(top_level_browsing_context_id, direction);
-        let _ = self.window.upcast::<GlobalScope>().constellation_chan().send(msg);
+        let msg = ScriptMsg::TraverseHistory(direction);
+        let _ = self.window.upcast::<GlobalScope>().script_to_constellation_chan().send(msg);
         Ok(())
     }
 }
@@ -57,10 +56,9 @@ impl HistoryMethods for History {
         if !self.window.Document().is_fully_active() {
             return Err(Error::Security);
         }
-        let top_level_browsing_context_id = self.window.window_proxy().top_level_browsing_context_id();
         let (sender, recv) = ipc::channel().expect("Failed to create channel to send jsh length.");
-        let msg = ConstellationMsg::JointSessionHistoryLength(top_level_browsing_context_id, sender);
-        let _ = self.window.upcast::<GlobalScope>().constellation_chan().send(msg);
+        let msg = ScriptMsg::JointSessionHistoryLength(sender);
+        let _ = self.window.upcast::<GlobalScope>().script_to_constellation_chan().send(msg);
         Ok(recv.recv().unwrap())
 }
 

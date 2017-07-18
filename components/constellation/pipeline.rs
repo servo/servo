@@ -21,10 +21,10 @@ use net_traits::{IpcSend, ResourceThreads};
 use net_traits::image_cache::ImageCache;
 use profile_traits::mem as profile_mem;
 use profile_traits::time;
-use script_traits::{ConstellationControlMsg, DiscardBrowsingContext};
+use script_traits::{ConstellationControlMsg, DiscardBrowsingContext, ScriptToConstellationChan};
 use script_traits::{DocumentActivity, InitialScriptState};
 use script_traits::{LayoutControlMsg, LayoutMsg, LoadData, MozBrowserEvent};
-use script_traits::{NewLayoutInfo, SWManagerMsg, SWManagerSenders, ScriptMsg};
+use script_traits::{NewLayoutInfo, SWManagerMsg, SWManagerSenders};
 use script_traits::{ScriptThreadFactory, TimerSchedulerMsg, WindowSizeData};
 use servo_config::opts::{self, Opts};
 use servo_config::prefs::{PREFS, Pref};
@@ -112,7 +112,7 @@ pub struct InitialPipelineState {
     pub parent_info: Option<(PipelineId, FrameType)>,
 
     /// A channel to the associated constellation.
-    pub constellation_chan: IpcSender<ScriptMsg>,
+    pub script_to_constellation_chan: ScriptToConstellationChan,
 
     /// A channel for the layout thread to send messages to the constellation.
     pub layout_to_constellation_chan: IpcSender<LayoutMsg>,
@@ -246,7 +246,7 @@ impl Pipeline {
                     browsing_context_id: state.browsing_context_id,
                     top_level_browsing_context_id: state.top_level_browsing_context_id,
                     parent_info: state.parent_info,
-                    constellation_chan: state.constellation_chan,
+                    script_to_constellation_chan: state.script_to_constellation_chan.clone(),
                     scheduler_chan: state.scheduler_chan,
                     devtools_chan: script_to_devtools_chan,
                     bluetooth_thread: state.bluetooth_thread,
@@ -446,7 +446,7 @@ pub struct UnprivilegedPipelineContent {
     top_level_browsing_context_id: TopLevelBrowsingContextId,
     browsing_context_id: BrowsingContextId,
     parent_info: Option<(PipelineId, FrameType)>,
-    constellation_chan: IpcSender<ScriptMsg>,
+    script_to_constellation_chan: ScriptToConstellationChan,
     layout_to_constellation_chan: IpcSender<LayoutMsg>,
     scheduler_chan: IpcSender<TimerSchedulerMsg>,
     devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
@@ -487,7 +487,7 @@ impl UnprivilegedPipelineContent {
             parent_info: self.parent_info,
             control_chan: self.script_chan.clone(),
             control_port: self.script_port,
-            constellation_chan: self.constellation_chan,
+            script_to_constellation_chan: self.script_to_constellation_chan.clone(),
             layout_to_constellation_chan: self.layout_to_constellation_chan.clone(),
             scheduler_chan: self.scheduler_chan,
             bluetooth_thread: self.bluetooth_thread,
@@ -595,8 +595,8 @@ impl UnprivilegedPipelineContent {
         }
     }
 
-    pub fn constellation_chan(&self) -> IpcSender<ScriptMsg> {
-        self.constellation_chan.clone()
+    pub fn script_to_constellation_chan(&self) -> &ScriptToConstellationChan {
+        &self.script_to_constellation_chan
     }
 
     pub fn opts(&self) -> Opts {

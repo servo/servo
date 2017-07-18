@@ -45,7 +45,7 @@ use net_traits::response::HttpsState;
 use script_layout_interface::message::ReflowQueryType;
 use script_thread::{ScriptThread, Runnable};
 use script_traits::{IFrameLoadInfo, IFrameLoadInfoWithData, LoadData, UpdatePipelineIdReason};
-use script_traits::{MozBrowserEvent, NewLayoutInfo, ScriptMsg as ConstellationMsg};
+use script_traits::{MozBrowserEvent, NewLayoutInfo, ScriptMsg};
 use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
 use servo_atoms::Atom;
 use servo_config::prefs::PREFS;
@@ -170,8 +170,8 @@ impl HTMLIFrameElement {
                 let (pipeline_sender, pipeline_receiver) = ipc::channel().unwrap();
 
                 global_scope
-                    .constellation_chan()
-                    .send(ConstellationMsg::ScriptNewIFrame(load_info, pipeline_sender))
+                    .script_to_constellation_chan()
+                    .send(ScriptMsg::ScriptNewIFrame(load_info, pipeline_sender))
                     .unwrap();
 
                 let new_layout_info = NewLayoutInfo {
@@ -197,8 +197,8 @@ impl HTMLIFrameElement {
                     sandbox: sandboxed,
                 };
                 global_scope
-                  .constellation_chan()
-                  .send(ConstellationMsg::ScriptLoadedURLInIFrame(load_info))
+                  .script_to_constellation_chan()
+                  .send(ScriptMsg::ScriptLoadedURLInIFrame(load_info))
                   .unwrap();
             }
         }
@@ -349,11 +349,9 @@ impl HTMLIFrameElement {
     }
 
     pub fn set_visible(&self, visible: bool) {
-        if let Some(pipeline_id) = self.pipeline_id.get() {
-            let window = window_from_node(self);
-            let msg = ConstellationMsg::SetVisible(pipeline_id, visible);
-            window.upcast::<GlobalScope>().constellation_chan().send(msg).unwrap();
-        }
+        let msg = ScriptMsg::SetVisible(visible);
+        let window = window_from_node(self);
+        window.upcast::<GlobalScope>().script_to_constellation_chan().send(msg).unwrap();
     }
 
     /// https://html.spec.whatwg.org/multipage/#iframe-load-event-steps steps 1-4
@@ -540,10 +538,10 @@ unsafe fn build_mozbrowser_event_detail(event: MozBrowserEvent,
 
 pub fn Navigate(iframe: &HTMLIFrameElement, direction: TraversalDirection) -> ErrorResult {
     if iframe.Mozbrowser() {
-        if let Some(top_level_browsing_context_id) = iframe.top_level_browsing_context_id() {
+        if let Some(_) = iframe.top_level_browsing_context_id() {
             let window = window_from_node(iframe);
-            let msg = ConstellationMsg::TraverseHistory(top_level_browsing_context_id, direction);
-            window.upcast::<GlobalScope>().constellation_chan().send(msg).unwrap();
+            let msg = ScriptMsg::TraverseHistory(direction);
+            window.upcast::<GlobalScope>().script_to_constellation_chan().send(msg).unwrap();
             return Ok(());
         }
     }
@@ -795,8 +793,8 @@ impl VirtualMethods for HTMLIFrameElement {
         };
         debug!("Unbinding frame {}.", browsing_context_id);
 
-        let msg = ConstellationMsg::RemoveIFrame(browsing_context_id, sender);
-        window.upcast::<GlobalScope>().constellation_chan().send(msg).unwrap();
+        let msg = ScriptMsg::RemoveIFrame(browsing_context_id, sender);
+        window.upcast::<GlobalScope>().script_to_constellation_chan().send(msg).unwrap();
         let exited_pipeline_ids = receiver.recv().unwrap();
 
         // The spec for discarding is synchronous,
