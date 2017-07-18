@@ -289,7 +289,6 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                       item.text_run.font_key,
                                       item.text_color,
                                       item.text_run.actual_pt_size,
-                                      item.blur_radius.to_f32_px(),
                                       None);
                 }
             }
@@ -449,10 +448,23 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                         item.border_radius.to_f32_px(),
                                         item.clip_mode.to_clip_mode());
             }
+            DisplayItem::PushTextShadow(ref item) => {
+                let rect = item.base.bounds.to_rectf();
+                builder.push_text_shadow(rect,
+                                         Some(item.base.local_clip),
+                                         webrender_api::TextShadow {
+                                             blur_radius: item.blur_radius.to_f32_px(),
+                                             offset: item.offset.to_vectorf(),
+                                             color: item.color,
+                                         });
+            }
+            DisplayItem::PopTextShadow(_) => {
+                builder.pop_text_shadow();
+            }
             DisplayItem::Iframe(ref item) => {
                 let rect = item.base.bounds.to_rectf();
                 let pipeline_id = item.iframe.to_webrender();
-                builder.push_iframe(rect, pipeline_id);
+                builder.push_iframe(rect, Some(item.base.local_clip), pipeline_id);
             }
             DisplayItem::PushStackingContext(ref item) => {
                 let stacking_context = &item.stacking_context;
