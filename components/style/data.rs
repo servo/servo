@@ -241,6 +241,11 @@ impl ElementData {
         element: E,
         shared_context: &SharedStyleContext)
     {
+        // In animation-only restyle we shouldn't touch snapshot at all.
+        if shared_context.traversal_flags.for_animation_only() {
+            return;
+        }
+
         use invalidation::element::invalidator::TreeStyleInvalidator;
 
         debug!("invalidate_style_if_needed: {:?}, flags: {:?}, has_snapshot: {}, \
