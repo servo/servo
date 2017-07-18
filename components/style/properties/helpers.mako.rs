@@ -292,7 +292,7 @@
         #[allow(unused_imports)]
         use properties::{DeclaredValue, LonghandId, LonghandIdSet};
         #[allow(unused_imports)]
-        use properties::{CSSWideKeyword, ComputedValues, PropertyDeclaration};
+        use properties::{CSSWideKeyword, ComputedValuesInner, PropertyDeclaration};
         #[allow(unused_imports)]
         use properties::style_structs;
         #[allow(unused_imports)]
@@ -310,8 +310,8 @@
         ${caller.body()}
         #[allow(unused_variables)]
         pub fn cascade_property(declaration: &PropertyDeclaration,
-                                inherited_style: &ComputedValues,
-                                default_style: &ComputedValues,
+                                inherited_style: &ComputedValuesInner,
+                                default_style: &ComputedValuesInner,
                                 context: &mut computed::Context,
                                 cacheable: &mut bool,
                                 cascade_info: &mut Option<<&mut CascadeInfo>) {

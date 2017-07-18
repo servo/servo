@@ -689,6 +689,45 @@ impl PseudoElement {
         }
     }
 
+
+    /// Construct a `CSSPseudoElementType` from a pseudo-element
+    #[inline]
+    pub fn pseudo_type(&self) -> CSSPseudoElementType {
+        match *self {
+                    PseudoElement::After => CSSPseudoElementType::after,
+                    PseudoElement::Before => CSSPseudoElementType::before,
+                    PseudoElement::Backdrop => CSSPseudoElementType::backdrop,
+                    PseudoElement::Cue => CSSPseudoElementType::cue,
+                    PseudoElement::FirstLetter => CSSPseudoElementType::firstLetter,
+                    PseudoElement::FirstLine => CSSPseudoElementType::firstLine,
+                    PseudoElement::MozSelection => CSSPseudoElementType::mozSelection,
+                    PseudoElement::MozFocusInner => CSSPseudoElementType::mozFocusInner,
+                    PseudoElement::MozFocusOuter => CSSPseudoElementType::mozFocusOuter,
+                    PseudoElement::MozListBullet => CSSPseudoElementType::mozListBullet,
+                    PseudoElement::MozListNumber => CSSPseudoElementType::mozListNumber,
+                    PseudoElement::MozMathAnonymous => CSSPseudoElementType::mozMathAnonymous,
+                    PseudoElement::MozNumberWrapper => CSSPseudoElementType::mozNumberWrapper,
+                    PseudoElement::MozNumberText => CSSPseudoElementType::mozNumberText,
+                    PseudoElement::MozNumberSpinBox => CSSPseudoElementType::mozNumberSpinBox,
+                    PseudoElement::MozNumberSpinUp => CSSPseudoElementType::mozNumberSpinUp,
+                    PseudoElement::MozNumberSpinDown => CSSPseudoElementType::mozNumberSpinDown,
+                    PseudoElement::MozProgressBar => CSSPseudoElementType::mozProgressBar,
+                    PseudoElement::MozRangeTrack => CSSPseudoElementType::mozRangeTrack,
+                    PseudoElement::MozRangeProgress => CSSPseudoElementType::mozRangeProgress,
+                    PseudoElement::MozRangeThumb => CSSPseudoElementType::mozRangeThumb,
+                    PseudoElement::MozMeterBar => CSSPseudoElementType::mozMeterBar,
+                    PseudoElement::MozPlaceholder => CSSPseudoElementType::mozPlaceholder,
+                    PseudoElement::Placeholder => CSSPseudoElementType::placeholder,
+                    PseudoElement::MozColorSwatch => CSSPseudoElementType::mozColorSwatch,
+            _ => CSSPseudoElementType::NotPseudo
+        }
+    }
+
+    /// Get a PseudoInfo for a pseudo
+    pub fn pseudo_info(&self) -> (*mut structs::nsIAtom, CSSPseudoElementType) {
+        (self.atom().as_ptr(), self.pseudo_type())
+    }
+
     /// Construct a pseudo-element from an anonymous box `Atom`.
     #[inline]
     pub fn from_anon_box_atom(atom: &Atom) -> Option<Self> {

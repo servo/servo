@@ -52,7 +52,7 @@ use style::computed_values::content::ContentItem;
 use style::computed_values::position;
 use style::context::SharedStyleContext;
 use style::logical_geometry::Direction;
-use style::properties::ServoComputedValues;
+use style::properties::ComputedValues;
 use style::properties::longhands::list_style_image;
 use style::selector_parser::{PseudoElement, RestyleDamage};
 use style::servo::restyle_damage::{BUBBLE_ISIZES, RECONSTRUCT_FLOW};
@@ -109,7 +109,7 @@ pub enum ConstructionItem {
     /// Inline fragments and associated {ib} splits that have not yet found flows.
     InlineFragments(InlineFragmentsConstructionResult),
     /// Potentially ignorable whitespace.
-    Whitespace(OpaqueNode, PseudoElementType<()>, StyleArc<ServoComputedValues>, RestyleDamage),
+    Whitespace(OpaqueNode, PseudoElementType<()>, StyleArc<ComputedValues>, RestyleDamage),
     /// TableColumn Fragment
     TableColumnFragment(Fragment),
 }
@@ -677,7 +677,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
     fn create_fragments_for_node_text_content(&self,
                                               fragments: &mut IntermediateInlineFragments,
                                               node: &ConcreteThreadSafeLayoutNode,
-                                              style: &StyleArc<ServoComputedValues>) {
+                                              style: &StyleArc<ComputedValues>) {
         // Fast path: If there is no text content, return immediately.
         let text_content = node.text_content();
         if text_content.is_empty() {
@@ -1806,7 +1806,7 @@ pub fn strip_ignorable_whitespace_from_end(this: &mut LinkedList<Fragment>) {
 
 /// If the 'unicode-bidi' property has a value other than 'normal', return the bidi control codes
 /// to inject before and after the text content of the element.
-fn bidi_control_chars(style: &StyleArc<ServoComputedValues>) -> Option<(&'static str, &'static str)> {
+fn bidi_control_chars(style: &StyleArc<ComputedValues>) -> Option<(&'static str, &'static str)> {
     use style::computed_values::direction::T::*;
     use style::computed_values::unicode_bidi::T::*;
 
@@ -1851,7 +1851,7 @@ trait ComputedValueUtils {
     fn has_padding_or_border(&self) -> bool;
 }
 
-impl ComputedValueUtils for ServoComputedValues {
+impl ComputedValueUtils for ComputedValues {
     fn has_padding_or_border(&self) -> bool {
         let padding = self.get_padding();
         let border = self.get_border();

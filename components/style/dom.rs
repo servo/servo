@@ -15,7 +15,7 @@ use data::ElementData;
 use element_state::ElementState;
 use font_metrics::FontMetricsProvider;
 use media_queries::Device;
-use properties::{AnimationRules, ComputedValues, PropertyDeclarationBlock};
+use properties::{AnimationRules, ComputedValues, ComputedValuesInner, PropertyDeclarationBlock};
 #[cfg(feature = "gecko")] use properties::animated_properties::AnimationValue;
 #[cfg(feature = "gecko")] use properties::animated_properties::TransitionProperty;
 use rule_tree::CascadeLevel;
@@ -30,7 +30,7 @@ use std::fmt;
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::ops::Deref;
-use stylearc::Arc;
+use stylearc::{Arc, ArcBorrow};
 use stylist::Stylist;
 use thread_state;
 
@@ -360,7 +360,7 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
     }
 
     /// Get this element's style attribute.
-    fn style_attribute(&self) -> Option<&Arc<Locked<PropertyDeclarationBlock>>>;
+    fn style_attribute(&self) -> Option<ArcBorrow<Locked<PropertyDeclarationBlock>>>;
 
     /// Unset the style attribute's dirty bit.
     /// Servo doesn't need to manage ditry bit for style attribute.
@@ -368,7 +368,7 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
     }
 
     /// Get this element's SMIL override declarations.
-    fn get_smil_override(&self) -> Option<&Arc<Locked<PropertyDeclarationBlock>>> {
+    fn get_smil_override(&self) -> Option<ArcBorrow<Locked<PropertyDeclarationBlock>>> {
         None
     }
 
@@ -436,7 +436,7 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
     fn may_generate_pseudo(
         &self,
         pseudo: &PseudoElement,
-        _primary_style: &ComputedValues,
+        _primary_style: &ComputedValuesInner,
     ) -> bool {
         // ::before/::after are always supported for now, though we could try to
         // optimize out leaf elements.

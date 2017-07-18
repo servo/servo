@@ -107,6 +107,25 @@ impl PseudoElement {
         }
     }
 
+
+    /// Construct a `CSSPseudoElementType` from a pseudo-element
+    #[inline]
+    pub fn pseudo_type(&self) -> CSSPseudoElementType {
+        match *self {
+            % for pseudo in PSEUDOS:
+                % if not pseudo.is_anon_box():
+                    PseudoElement::${pseudo.capitalized()} => CSSPseudoElementType::${pseudo.original_ident},
+                % endif
+            % endfor
+            _ => CSSPseudoElementType::NotPseudo
+        }
+    }
+
+    /// Get a PseudoInfo for a pseudo
+    pub fn pseudo_info(&self) -> (*mut structs::nsIAtom, CSSPseudoElementType) {
+        (self.atom().as_ptr(), self.pseudo_type())
+    }
+
     /// Construct a pseudo-element from an anonymous box `Atom`.
     #[inline]
     pub fn from_anon_box_atom(atom: &Atom) -> Option<Self> {

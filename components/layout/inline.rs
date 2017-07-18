@@ -33,7 +33,7 @@ use std::sync::Arc;
 use style::computed_values::{display, overflow_x, position, text_align, text_justify};
 use style::computed_values::{vertical_align, white_space};
 use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
-use style::properties::{longhands, ServoComputedValues};
+use style::properties::{longhands, ComputedValues};
 use style::servo::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPOSITION, RESOLVE_GENERATED_CONTENT};
 use text;
 use unicode_bidi as bidi;
@@ -1106,7 +1106,7 @@ impl InlineFlow {
     /// Computes the minimum metrics for each line. This is done during flow construction.
     ///
     /// `style` is the style of the block.
-    pub fn minimum_line_metrics(&self, font_context: &mut FontContext, style: &ServoComputedValues)
+    pub fn minimum_line_metrics(&self, font_context: &mut FontContext, style: &ComputedValues)
                                 -> LineMetrics {
         InlineFlow::minimum_line_metrics_for_fragments(&self.fragments.fragments,
                                                        font_context,
@@ -1119,7 +1119,7 @@ impl InlineFlow {
     /// `style` is the style of the block that these fragments belong to.
     pub fn minimum_line_metrics_for_fragments(fragments: &[Fragment],
                                               font_context: &mut FontContext,
-                                              style: &ServoComputedValues)
+                                              style: &ComputedValues)
                                               -> LineMetrics {
         // As a special case, if this flow contains only hypothetical fragments, then the entire
         // flow is hypothetical and takes up no space. See CSS 2.1 § 10.3.7.
@@ -1665,7 +1665,7 @@ impl Flow for InlineFlow {
         self.build_display_list_for_inline(state);
     }
 
-    fn repair_style(&mut self, _: &StyleArc<ServoComputedValues>) {}
+    fn repair_style(&mut self, _: &StyleArc<ComputedValues>) {}
 
     fn compute_overflow(&self) -> Overflow {
         let mut overflow = Overflow::new();
@@ -1754,8 +1754,8 @@ impl fmt::Debug for InlineFlow {
 #[derive(Clone)]
 pub struct InlineFragmentNodeInfo {
     pub address: OpaqueNode,
-    pub style: StyleArc<ServoComputedValues>,
-    pub selected_style: StyleArc<ServoComputedValues>,
+    pub style: StyleArc<ComputedValues>,
+    pub selected_style: StyleArc<ComputedValues>,
     pub pseudo: PseudoElementType<()>,
     pub flags: InlineFragmentNodeFlags,
 }

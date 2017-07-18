@@ -46,7 +46,6 @@ use gecko_bindings::structs;
 use gecko_bindings::structs::nsCSSPropertyID;
 use gecko_bindings::structs::nsStyleVariables;
 use gecko_bindings::sugar::ns_style_coord::{CoordDataValue, CoordData, CoordDataMut};
-use gecko_bindings::sugar::ownership::HasArcFFI;
 use gecko::values::convert_nscolor_to_rgba;
 use gecko::values::convert_rgba_to_nscolor;
 use gecko::values::GeckoStyleCoordConvertible;
@@ -58,11 +57,9 @@ use properties::computed_value_flags::ComputedValueFlags;
 use properties::{longhands, FontComputationData, Importance, LonghandId};
 use properties::{PropertyDeclaration, PropertyDeclarationBlock, PropertyDeclarationId};
 use rule_tree::StrongRuleNode;
-use std::fmt::{self, Debug};
-use std::mem::{forget, transmute, zeroed};
-use std::ptr;
-use stylearc::Arc;
-use std::cmp;
+use std::mem::{forget, uninitialized, transmute, zeroed};
+use std::{cmp, ops, ptr};
+use stylearc::{Arc, RawOffsetArc};
 use values::{Auto, CustomIdent, Either, KeyframesName};
 use values::computed::ToComputedValue;
 use values::computed::effects::{BoxShadow, Filter, SimpleShadow};
@@ -75,28 +72,50 @@ pub mod style_structs {
     % endfor
 }
 
-// FIXME(emilio): Unify both definitions, since they're equal now.
-#[derive(Clone)]
-pub struct ComputedValues {
-    % for style_struct in data.style_structs:
-    ${style_struct.ident}: Arc<style_structs::${style_struct.name}>,
-    % endfor
-    custom_properties: Option<Arc<CustomPropertiesMap>>,
-    pub writing_mode: WritingMode,
-    pub font_computation_data: FontComputationData,
-    pub flags: ComputedValueFlags,
 
-    /// The rule node representing the ordered list of rules matched for this
-    /// node.  Can be None for default values and text nodes.  This is
-    /// essentially an optimization to avoid referencing the root rule node.
-    pub rules: Option<StrongRuleNode>,
-    /// The element's computed values if visited, only computed if there's a
-    /// relevant link for this element. A element's "relevant link" is the
-    /// element being matched if it is a link or the nearest ancestor link.
-    visited_style: Option<Arc<ComputedValues>>,
+pub type ComputedValuesInner = ::gecko_bindings::structs::ServoComputedValues;
+
+#[derive(Debug)]
+#[repr(C)]
+pub struct ComputedValues(::gecko_bindings::structs::mozilla::ServoStyleContext);
+
+impl Drop for ComputedValues {
+    fn drop(&mut self) {
+        unsafe {
+            bindings::Gecko_ServoStyleContext_Destroy(&mut self.0);
+        }
+    }
 }
 
-impl ComputedValues {
+unsafe impl Sync for ComputedValues {}
+unsafe impl Send for ComputedValues {}
+
+impl Clone for ComputedValues {
+    fn clone(&self) -> Self {
+        unreachable!()
+    }
+}
+
+impl Clone for ComputedValuesInner {
+    fn clone(&self) -> Self {
+        ComputedValuesInner {
+            % for style_struct in data.style_structs:
+                ${style_struct.gecko_name}: self.${style_struct.gecko_name}.clone(),
+            % endfor
+            custom_properties: self.custom_properties.clone(),
+            writing_mode: self.writing_mode.clone(),
+            font_computation_data: self.font_computation_data.clone(),
+            flags: self.flags.clone(),
+            rules: self.rules.clone(),
+            visited_style: self.visited_style.clone(),
+        }
+    }
+}
+
+pub type PseudoInfo = (*mut structs::nsIAtom, structs::CSSPseudoElementType);
+pub type ParentStyleContextInfo<'a> = Option< &'a ComputedValues>;
+
+impl ComputedValuesInner {
     pub fn new(custom_properties: Option<Arc<CustomPropertiesMap>>,
                writing_mode: WritingMode,
                font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>,
@@ -107,33 +126,76 @@ impl ComputedValues {
                ${style_struct.ident}: Arc<style_structs::${style_struct.name}>,
                % endfor
     ) -> Self {
-        ComputedValues {
-            custom_properties,
-            writing_mode,
+        ComputedValuesInner {
+            custom_properties: custom_properties,
+            writing_mode: writing_mode,
             font_computation_data: FontComputationData::new(font_size_keyword),
-            flags,
-            rules,
-            visited_style: visited_style,
+            rules: rules,
+            visited_style: visited_style.map(|x| Arc::into_raw_offset(x)),
+            flags: flags,
             % for style_struct in data.style_structs:
-            ${style_struct.ident},
+            ${style_struct.gecko_name}: Arc::into_raw_offset(${style_struct.ident}),
             % endfor
         }
     }
 
-    pub fn default_values(pres_context: RawGeckoPresContextBorrowed) -> Arc<Self> {
-        Arc::new(ComputedValues {
-            custom_properties: None,
-            writing_mode: WritingMode::empty(), // FIXME(bz): This seems dubious
-            font_computation_data: FontComputationData::default_values(),
-            flags: ComputedValueFlags::empty(),
-            rules: None,
-            visited_style: None,
-            % for style_struct in data.style_structs:
-                ${style_struct.ident}: style_structs::${style_struct.name}::default(pres_context),
-            % endfor
-        })
+    pub fn default_values(pres_context: RawGeckoPresContextBorrowed) -> Self {
+        ComputedValuesInner {
+                custom_properties: None,
+                writing_mode: WritingMode::empty(), // FIXME(bz): This seems dubious
+                font_computation_data: FontComputationData::default_values(),
+                rules: None,
+                visited_style: None,
+                flags: ComputedValueFlags::empty(),
+                % for style_struct in data.style_structs:
+                    ${style_struct.gecko_name}: Arc::into_raw_offset(
+                        style_structs::${style_struct.name}::default(pres_context)
+                    ),
+                % endfor
+        }
+    }
+    pub fn to_outer(self, device: &Device, parent: ParentStyleContextInfo,
+                    info: Option<PseudoInfo>) -> Arc<ComputedValues> {
+        let (tag, ty) = if let Some(info) = info {
+            info
+        } else {
+            (ptr::null_mut(), structs::CSSPseudoElementType::NotPseudo)
+        };
+
+        unsafe { self.to_outer_helper(device.pres_context(), parent, ty, tag) }
     }
 
+    pub unsafe fn to_outer_helper(self, pres_context: bindings::RawGeckoPresContextBorrowed,
+                                    parent: ParentStyleContextInfo,
+                                    pseudo_ty: structs::CSSPseudoElementType,
+                                    pseudo_tag: *mut structs::nsIAtom) -> Arc<ComputedValues> {
+        let arc = unsafe {
+            let arc: Arc<ComputedValues> = Arc::new(uninitialized());
+            bindings::Gecko_ServoStyleContext_Init(&arc.0 as *const _ as *mut _, parent, pres_context,
+                                                   &self, pseudo_ty, pseudo_tag);
+            // We're simulating a move by having C++ do a memcpy and then forgetting
+            // it on this end.
+            forget(self);
+            arc
+        };
+        arc
+    }
+}
+
+impl ops::Deref for ComputedValues {
+    type Target = ComputedValuesInner;
+    fn deref(&self) -> &ComputedValuesInner {
+        &self.0.mSource
+    }
+}
+
+impl ops::DerefMut for ComputedValues {
+    fn deref_mut(&mut self) -> &mut ComputedValuesInner {
+        &mut self.0.mSource
+    }
+}
+
+impl ComputedValuesInner {
     #[inline]
     pub fn is_display_contents(&self) -> bool {
         self.get_box().clone_display() == longhands::display::computed_value::T::contents
@@ -149,20 +211,21 @@ impl ComputedValues {
     % for style_struct in data.style_structs:
     #[inline]
     pub fn clone_${style_struct.name_lower}(&self) -> Arc<style_structs::${style_struct.name}> {
-        self.${style_struct.ident}.clone()
+        Arc::from_raw_offset(self.${style_struct.gecko_name}.clone())
     }
     #[inline]
     pub fn get_${style_struct.name_lower}(&self) -> &style_structs::${style_struct.name} {
-        &self.${style_struct.ident}
+        &self.${style_struct.gecko_name}
     }
 
-    pub fn ${style_struct.name_lower}_arc(&self) -> &Arc<style_structs::${style_struct.name}> {
-        &self.${style_struct.ident}
+
+    pub fn ${style_struct.name_lower}_arc(&self) -> &RawOffsetArc<style_structs::${style_struct.name}> {
+        &self.${style_struct.gecko_name}
     }
 
     #[inline]
     pub fn mutate_${style_struct.name_lower}(&mut self) -> &mut style_structs::${style_struct.name} {
-        Arc::make_mut(&mut self.${style_struct.ident})
+        RawOffsetArc::make_mut(&mut self.${style_struct.gecko_name})
     }
     % endfor
 
@@ -177,19 +240,19 @@ impl ComputedValues {
     }
 
     /// Gets a reference to the visited style, if any.
-    pub fn get_visited_style(&self) -> Option<<&Arc<ComputedValues>> {
-        self.visited_style.as_ref()
+    pub fn get_visited_style(&self) -> Option< & ComputedValues> {
+        self.visited_style.as_ref().map(|x| &**x)
     }
 
     /// Gets a reference to the visited style. Panic if no visited style exists.
-    pub fn visited_style(&self) -> &Arc<ComputedValues> {
+    pub fn visited_style(&self) -> &ComputedValues {
         self.get_visited_style().unwrap()
     }
 
     /// Clone the visited style.  Used for inheriting parent styles in
     /// StyleBuilder::for_inheritance.
     pub fn clone_visited_style(&self) -> Option<Arc<ComputedValues>> {
-        self.visited_style.clone()
+        self.visited_style.as_ref().map(|x| x.clone_arc())
     }
 
     /// Gets a reference to the custom properties map (if one exists).
@@ -238,9 +301,7 @@ impl ComputedValues {
 }
 
 <%def name="declare_style_struct(style_struct)">
-pub struct ${style_struct.gecko_struct_name} {
-    gecko: ${style_struct.gecko_ffi_name},
-}
+pub use ::gecko_bindings::structs::mozilla::Gecko${style_struct.gecko_name} as ${style_struct.gecko_struct_name};
 impl ${style_struct.gecko_struct_name} {
     pub fn gecko(&self) -> &${style_struct.gecko_ffi_name} {
         &self.gecko
@@ -737,20 +798,6 @@ impl Clone for ${style_struct.gecko_struct_name} {
     }
 }
 
-// FIXME(bholley): Make bindgen generate Debug for all types.
-%if style_struct.gecko_ffi_name in ("nsStyle" + x for x in "Border Display List Background Font SVGReset".split()):
-impl Debug for ${style_struct.gecko_struct_name} {
-    // FIXME(bholley): Generate this.
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Gecko style struct: ${style_struct.gecko_struct_name}")
-    }
-}
-%else:
-impl Debug for ${style_struct.gecko_struct_name} {
-    // FIXME(bholley): Generate this.
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { self.gecko.fmt(f) }
-}
-%endif
 </%def>
 
 <%def name="impl_simple_type_with_conversion(ident, gecko_ffi_name=None)">
@@ -4797,7 +4844,7 @@ clip-path
 #[allow(non_snake_case, unused_variables)]
 pub unsafe extern "C" fn Servo_GetStyle${style_struct.gecko_name}(computed_values:
         ServoComputedValuesBorrowedOrNull) -> *const ${style_struct.gecko_ffi_name} {
-    ComputedValues::arc_from_borrowed(&computed_values).unwrap().get_${style_struct.name_lower}().get_gecko()
+    computed_values.unwrap().get_${style_struct.name_lower}().get_gecko()
         as *const ${style_struct.gecko_ffi_name}
 }
 </%def>
@@ -4816,7 +4863,7 @@ static mut EMPTY_VARIABLES_STRUCT: Option<nsStyleVariables> = None;
 
 #[no_mangle]
 #[allow(non_snake_case)]
-pub unsafe extern "C" fn Servo_GetStyleVariables(_cv: ServoComputedValuesBorrowedOrNull)
+pub unsafe extern "C" fn Servo_GetEmptyVariables()
                                                  -> *const nsStyleVariables {
     EMPTY_VARIABLES_STRUCT.as_ref().unwrap()
 }

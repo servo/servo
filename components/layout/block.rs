@@ -56,7 +56,7 @@ use style::computed_values::{border_collapse, box_sizing, display, float, overfl
 use style::computed_values::{position, text_align};
 use style::context::SharedStyleContext;
 use style::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMode};
-use style::properties::ServoComputedValues;
+use style::properties::ComputedValues;
 use style::servo::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPOSITION};
 use style::values::computed::{LengthOrPercentageOrNone, LengthOrPercentage};
 use style::values::computed::LengthOrPercentageOrAuto;
@@ -2139,7 +2139,7 @@ impl Flow for BlockFlow {
         self.build_display_list_for_block(state, BorderPaintingMode::Separate);
     }
 
-    fn repair_style(&mut self, new_style: &::StyleArc<ServoComputedValues>) {
+    fn repair_style(&mut self, new_style: &::StyleArc<ComputedValues>) {
         self.fragment.repair_style(new_style)
     }
 

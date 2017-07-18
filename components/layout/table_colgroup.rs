@@ -16,7 +16,7 @@ use layout_debug;
 use std::cmp::max;
 use std::fmt;
 use style::logical_geometry::LogicalSize;
-use style::properties::ServoComputedValues;
+use style::properties::ComputedValues;
 use style::values::computed::LengthOrPercentageOrAuto;
 
 /// A table formatting context.
@@ -94,7 +94,7 @@ impl Flow for TableColGroupFlow {
 
     fn collect_stacking_contexts(&mut self, _: &mut DisplayListBuildState) {}
 
-    fn repair_style(&mut self, _: &::StyleArc<ServoComputedValues>) {}
+    fn repair_style(&mut self, _: &::StyleArc<ComputedValues>) {}
 
     fn compute_overflow(&self) -> Overflow {
         Overflow::new()

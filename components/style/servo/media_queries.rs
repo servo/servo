@@ -11,7 +11,7 @@ use euclid::{Size2D, TypedSize2D};
 use font_metrics::ServoMetricsProvider;
 use media_queries::MediaType;
 use parser::ParserContext;
-use properties::{ComputedValues, StyleBuilder};
+use properties::{ComputedValuesInner, StyleBuilder};
 use properties::longhands::font_size;
 use selectors::parser::SelectorParseError;
 use std::fmt;
@@ -62,11 +62,11 @@ impl Device {
     }
 
     /// Return the default computed values for this device.
-    pub fn default_computed_values(&self) -> &ComputedValues {
+    pub fn default_computed_values(&self) -> &ComputedValuesInner {
         // FIXME(bz): This isn't really right, but it's no more wrong
         // than what we used to do.  See
         // https://github.com/servo/servo/issues/14773 for fixing it properly.
-        ComputedValues::initial_values()
+        ComputedValuesInner::initial_values()
     }
 
     /// Get the font size of the root element (for rem)

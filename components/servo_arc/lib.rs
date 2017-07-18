@@ -194,6 +194,30 @@ impl<T> Arc<T> {
             p: NonZeroPtrMut::new(ptr as *mut ArcInner<T>),
         }
     }
+
+    /// Produce a pointer to the data that can be converted back
+    /// to an arc
+    pub fn borrow_arc<'a>(&'a self) -> ArcBorrow<'a, T> {
+        ArcBorrow(&**self)
+    }
+    /// Temporarily converts |self| into a bonafide RawOffsetArc and exposes it to the
+    /// provided callback. The refcount is not modified.
+    #[inline(always)]
+    pub fn with_raw_offset_arc<F, U>(&self, f: F) -> U
+        where F: FnOnce(&RawOffsetArc<T>) -> U
+    {
+        // Synthesize transient Arc, which never touches the refcount of the ArcInner.
+        let transient = unsafe { NoDrop::new(Arc::into_raw_offset(ptr::read(self))) };
+
+        // Expose the transient Arc to the callback, which may clone it if it wants.
+        let result = f(&transient);
+
+        // Forget the transient Arc to leave the refcount untouched.
+        mem::forget(transient);
+
+        // Forward the result.
+        result
+    }
 }
 
 impl<T: ?Sized> Arc<T> {
@@ -637,6 +661,8 @@ impl<H: 'static, T: 'static> ThinArc<H, T> {
         let result = f(&transient);
 
         // Forget the transient Arc to leave the refcount untouched.
+        // XXXManishearth this can be removed when unions stabilize,
+        // since then NoDrop becomes zero overhead
         mem::forget(transient);
 
         // Forward the result.
@@ -699,6 +725,193 @@ impl<H: PartialEq + 'static, T: PartialEq + 'static> PartialEq for ThinArc<H, T>
 }
 
 impl<H: Eq + 'static, T: Eq + 'static> Eq for ThinArc<H, T> {}
+
+/// An Arc, except it holds a pointer to the T instead of to the
+/// entire ArcInner.
+///
+/// ```text
+///  Arc<T>    RawOffsetArc<T>
+///   |          |
+///   v          v
+///  ---------------------
+/// | RefCount | T (data) | [ArcInner<T>]
+///  ---------------------
+/// ```
+///
+/// This means that this is a direct pointer to
+/// its contained data (and can be read from by both C++ and Rust),
+/// but we can also convert it to a "regular" Arc<T> by removing the offset
+#[derive(Eq)]
+pub struct RawOffsetArc<T: 'static> {
+    ptr: NonZeroPtrMut<T>,
+}
+
+unsafe impl<T: 'static + Sync + Send> Send for RawOffsetArc<T> {}
+unsafe impl<T: 'static + Sync + Send> Sync for RawOffsetArc<T> {}
+
+impl<T: 'static> Deref for RawOffsetArc<T> {
+    type Target = T;
+    fn deref(&self) -> &Self::Target {
+        unsafe { &*self.ptr.ptr() }
+    }
+}
+
+impl<T: 'static> Clone for RawOffsetArc<T> {
+    fn clone(&self) -> Self {
+        Arc::into_raw_offset(self.clone_arc())
+    }
+}
+
+impl<T: 'static> Drop for RawOffsetArc<T> {
+    fn drop(&mut self) {
+        let _ = Arc::from_raw_offset(RawOffsetArc { ptr: self.ptr.clone() });
+    }
+}
+
+
+impl<T: fmt::Debug + 'static> fmt::Debug for RawOffsetArc<T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Debug::fmt(&**self, f)
+    }
+}
+
+impl<T: PartialEq> PartialEq for RawOffsetArc<T> {
+    fn eq(&self, other: &RawOffsetArc<T>) -> bool {
+        *(*self) == *(*other)
+    }
+
+    fn ne(&self, other: &RawOffsetArc<T>) -> bool {
+        *(*self) != *(*other)
+    }
+}
+
+impl<T: 'static> RawOffsetArc<T> {
+    /// Temporarily converts |self| into a bonafide Arc and exposes it to the
+    /// provided callback. The refcount is not modified.
+    #[inline(always)]
+    pub fn with_arc<F, U>(&self, f: F) -> U
+        where F: FnOnce(&Arc<T>) -> U
+    {
+        // Synthesize transient Arc, which never touches the refcount of the ArcInner.
+        let transient = unsafe { NoDrop::new(Arc::from_raw(self.ptr.ptr())) };
+
+        // Expose the transient Arc to the callback, which may clone it if it wants.
+        let result = f(&transient);
+
+        // Forget the transient Arc to leave the refcount untouched.
+        // XXXManishearth this can be removed when unions stabilize,
+        // since then NoDrop becomes zero overhead
+        mem::forget(transient);
+
+        // Forward the result.
+        result
+    }
+
+    /// If uniquely owned, provide a mutable reference
+    /// Else create a copy, and mutate that
+    pub fn make_mut(&mut self) -> &mut T where T: Clone {
+        unsafe {
+            // extract the RawOffsetArc as an owned variable
+            let this = ptr::read(self);
+            // treat it as a real Arc
+            let mut arc = Arc::from_raw_offset(this);
+            // obtain the mutable reference. Cast away the lifetime
+            // This may mutate `arc`
+            let ret = Arc::make_mut(&mut arc) as *mut _;
+            // Store the possibly-mutated arc back inside, after converting
+            // it to a RawOffsetArc again
+            ptr::write(self, Arc::into_raw_offset(arc));
+            &mut *ret
+        }
+    }
+
+    /// Clone it as an Arc
+    pub fn clone_arc(&self) -> Arc<T> {
+        RawOffsetArc::with_arc(self, |a| a.clone())
+    }
+
+    /// Produce a pointer to the data that can be converted back
+    /// to an arc
+    pub fn borrow_arc<'a>(&'a self) -> ArcBorrow<'a, T> {
+        ArcBorrow(&**self)
+    }
+}
+
+impl<T: 'static> Arc<T> {
+    /// Converts an Arc into a RawOffsetArc. This consumes the Arc, so the refcount
+    /// is not modified.
+    #[inline]
+    pub fn into_raw_offset(a: Self) -> RawOffsetArc<T> {
+        RawOffsetArc {
+            ptr: NonZeroPtrMut::new(Arc::into_raw(a) as *mut T),
+        }
+    }
+
+    /// Converts a RawOffsetArc into an Arc. This consumes the RawOffsetArc, so the refcount
+    /// is not modified.
+    #[inline]
+    pub fn from_raw_offset(a: RawOffsetArc<T>) -> Self {
+        let ptr = a.ptr.ptr();
+        mem::forget(a);
+        unsafe { Arc::from_raw(ptr) }
+    }
+}
+
+/// A "borrowed Arc". This is a pointer to
+/// a T that is known to have been allocated within an
+/// Arc.
+///
+/// This is equivalent in guarantees to `&Arc<T>`, however it is
+/// a bit more flexible. To obtain an `&Arc<T>` you must have
+/// an Arc<T> instance somewhere pinned down until we're done with it.
+///
+/// However, Gecko hands us refcounted things as pointers to T directly,
+/// so we have to conjure up a temporary Arc on the stack each time. The
+/// same happens for when the object is managed by a RawOffsetArc.
+///
+/// ArcBorrow lets us deal with borrows of known-refcounted objects
+/// without needing to worry about how they're actually stored.
+#[derive(PartialEq, Eq)]
+pub struct ArcBorrow<'a, T: 'a>(&'a T);
+
+impl<'a, T> Copy for ArcBorrow<'a, T> {}
+impl<'a, T> Clone for ArcBorrow<'a, T> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
+impl<'a, T> ArcBorrow<'a, T> {
+    pub fn clone_arc(&self) -> Arc<T> {
+        let arc = unsafe { Arc::from_raw(self.0) };
+        // addref it!
+        mem::forget(arc.clone());
+        arc
+    }
+
+    pub fn with_arc<F, U>(&self, f: F) -> U where F: FnOnce(&Arc<T>) -> U, T: 'static {
+        // Synthesize transient Arc, which never touches the refcount.
+        let transient = unsafe { NoDrop::new(Arc::from_raw(self.0)) };
+
+        // Expose the transient Arc to the callback, which may clone it if it wants.
+        let result = f(&transient);
+
+        // Forget the transient Arc to leave the refcount untouched.
+        // XXXManishearth this can be removed when unions stabilize,
+        // since then NoDrop becomes zero overhead
+        mem::forget(transient);
+
+        // Forward the result.
+        result
+    }
+}
+
+impl<'a, T> Deref for ArcBorrow<'a, T> {
+    type Target = T;
+    fn deref(&self) -> &T {
+        &*self.0
+    }
+}
 
 #[cfg(test)]
 mod tests {

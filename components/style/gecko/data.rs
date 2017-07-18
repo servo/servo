@@ -16,7 +16,7 @@ use gecko_bindings::structs::nsIDocument;
 use gecko_bindings::sugar::ownership::{HasArcFFI, HasBoxFFI, HasFFI, HasSimpleFFI};
 use invalidation::media_queries::{MediaListKey, ToMediaListKey};
 use media_queries::{Device, MediaList};
-use properties::ComputedValues;
+use properties::ComputedValuesInner;
 use shared_lock::{Locked, StylesheetGuards, SharedRwLockReadGuard};
 use stylearc::Arc;
 use stylesheet_set::StylesheetSet;
@@ -188,8 +188,8 @@ impl PerDocumentStyleDataImpl {
     }
 
     /// Get the default computed values for this document.
-    pub fn default_computed_values(&self) -> &Arc<ComputedValues> {
-        self.stylist.device().default_computed_values_arc()
+    pub fn default_computed_values(&self) -> &ComputedValuesInner {
+        self.stylist.device().default_computed_values()
     }
 
     /// Clear the stylist.  This will be a no-op if the stylist is

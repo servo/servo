@@ -78,7 +78,7 @@ use style::selector_parser::{AttrValue as SelectorAttrValue, NonTSPseudoClass, P
 use style::selector_parser::{PseudoElement, SelectorImpl, extended_filtering};
 use style::shared_lock::{SharedRwLock as StyleSharedRwLock, Locked as StyleLocked};
 use style::str::is_whitespace;
-use style::stylearc::Arc;
+use style::stylearc::{Arc, ArcBorrow};
 
 pub unsafe fn drop_style_and_layout_data(data: OpaqueStyleAndLayoutData) {
     let ptr: *mut StyleData = data.ptr.get();
@@ -412,9 +412,9 @@ impl<'le> TElement for ServoLayoutElement<'le> {
         ServoLayoutNode::from_layout_js(self.element.upcast())
     }
 
-    fn style_attribute(&self) -> Option<&Arc<StyleLocked<PropertyDeclarationBlock>>> {
+    fn style_attribute(&self) -> Option<ArcBorrow<StyleLocked<PropertyDeclarationBlock>>> {
         unsafe {
-            (*self.element.style_attribute()).as_ref()
+            (*self.element.style_attribute()).as_ref().map(|x| x.borrow_arc())
         }
     }
 

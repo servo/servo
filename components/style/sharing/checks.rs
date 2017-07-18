@@ -43,7 +43,7 @@ pub fn have_same_style_attribute<E>(
     match (target.style_attribute(), candidate.style_attribute()) {
         (None, None) => true,
         (Some(_), None) | (None, Some(_)) => false,
-        (Some(a), Some(b)) => Arc::ptr_eq(a, b)
+        (Some(a), Some(b)) => &*a as *const _ == &*b as *const _
     }
 }
 

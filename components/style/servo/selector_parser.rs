@@ -166,6 +166,9 @@ impl PseudoElement {
     pub fn canonical(&self) -> PseudoElement {
         self.clone()
     }
+
+    /// Stub, only Gecko needs this
+    pub fn pseudo_info(&self) { () }
 }
 
 /// The type used for storing pseudo-class string arguments.

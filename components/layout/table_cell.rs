@@ -20,7 +20,7 @@ use script_layout_interface::wrapper_traits::ThreadSafeLayoutNode;
 use std::fmt;
 use style::computed_values::{border_collapse, border_top_style, vertical_align};
 use style::logical_geometry::{LogicalMargin, LogicalRect, LogicalSize, WritingMode};
-use style::properties::ServoComputedValues;
+use style::properties::ComputedValues;
 use style::values::computed::Color;
 use table::InternalTable;
 use table_row::{CollapsedBorder, CollapsedBorderProvenance};
@@ -263,7 +263,7 @@ impl Flow for TableCellFlow {
         self.block_flow.collect_stacking_contexts(state);
     }
 
-    fn repair_style(&mut self, new_style: &::StyleArc<ServoComputedValues>) {
+    fn repair_style(&mut self, new_style: &::StyleArc<ComputedValues>) {
         self.block_flow.repair_style(new_style)
     }
 

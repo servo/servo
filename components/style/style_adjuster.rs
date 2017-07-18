@@ -6,7 +6,7 @@
 //! a computed style needs in order for it to adhere to the CSS spec.
 
 use app_units::Au;
-use properties::{self, CascadeFlags, ComputedValues};
+use properties::{self, CascadeFlags, ComputedValuesInner};
 use properties::{IS_ROOT_ELEMENT, SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP, StyleBuilder};
 use properties::longhands::display::computed_value::T as display;
 use properties::longhands::float::computed_value::T as float;
@@ -54,7 +54,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     /// Apply the blockification rules based on the table in CSS 2.2 section 9.7.
     /// https://drafts.csswg.org/css2/visuren.html#dis-pos-flo
     fn blockify_if_necessary(&mut self,
-                             layout_parent_style: &ComputedValues,
+                             layout_parent_style: &ComputedValuesInner,
                              flags: CascadeFlags) {
         let mut blockify = false;
         macro_rules! blockify_if {
@@ -136,7 +136,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     /// https://lists.w3.org/Archives/Public/www-style/2017Mar/0045.html
     /// https://github.com/servo/servo/issues/15754
     fn adjust_for_writing_mode(&mut self,
-                               layout_parent_style: &ComputedValues) {
+                               layout_parent_style: &ComputedValuesInner) {
         let our_writing_mode = self.style.get_inheritedbox().clone_writing_mode();
         let parent_writing_mode = layout_parent_style.get_inheritedbox().clone_writing_mode();
 
@@ -196,7 +196,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     ///
     /// See https://github.com/servo/servo/issues/15229
     #[cfg(feature = "servo")]
-    fn adjust_for_alignment(&mut self, layout_parent_style: &ComputedValues) {
+    fn adjust_for_alignment(&mut self, layout_parent_style: &ComputedValuesInner) {
         use computed_values::align_items::T as align_items;
         use computed_values::align_self::T as align_self;
 
@@ -315,7 +315,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     }
 
     /// Set the HAS_TEXT_DECORATION_LINES flag based on parent style.
-    fn adjust_for_text_decoration_lines(&mut self, layout_parent_style: &ComputedValues) {
+    fn adjust_for_text_decoration_lines(&mut self, layout_parent_style: &ComputedValuesInner) {
         use properties::computed_value_flags::HAS_TEXT_DECORATION_LINES;
         if layout_parent_style.flags.contains(HAS_TEXT_DECORATION_LINES) ||
            !self.style.get_text().clone_text_decoration_line().is_empty() {
@@ -324,7 +324,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     }
 
     #[cfg(feature = "gecko")]
-    fn should_suppress_linebreak(&self, layout_parent_style: &ComputedValues) -> bool {
+    fn should_suppress_linebreak(&self, layout_parent_style: &ComputedValuesInner) -> bool {
         use properties::computed_value_flags::SHOULD_SUPPRESS_LINEBREAK;
         // Line break suppression should only be propagated to in-flow children.
         if self.style.floated() || self.style.out_of_flow_positioned() {
@@ -361,8 +361,8 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     /// * correct unicode-bidi.
     #[cfg(feature = "gecko")]
     fn adjust_for_ruby(&mut self,
-                       layout_parent_style: &ComputedValues,
-                       default_computed_values: &'b ComputedValues,
+                       layout_parent_style: &ComputedValuesInner,
+                       default_computed_values: &'b ComputedValuesInner,
                        flags: CascadeFlags) {
         use properties::SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP;
         use properties::computed_value_flags::SHOULD_SUPPRESS_LINEBREAK;
@@ -406,8 +406,8 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     /// When comparing to Gecko, this is similar to the work done by
     /// `nsStyleContext::ApplyStyleFixups`.
     pub fn adjust(&mut self,
-                  layout_parent_style: &ComputedValues,
-                  _default_computed_values: &'b ComputedValues,
+                  layout_parent_style: &ComputedValuesInner,
+                  _default_computed_values: &'b ComputedValuesInner,
                   flags: CascadeFlags) {
         #[cfg(feature = "gecko")]
         {

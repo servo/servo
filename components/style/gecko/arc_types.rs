@@ -10,11 +10,11 @@
 
 use gecko_bindings::bindings::{RawServoImportRule, RawServoSupportsRule};
 use gecko_bindings::bindings::{RawServoKeyframe, RawServoKeyframesRule};
-use gecko_bindings::bindings::{RawServoNamespaceRule, RawServoPageRule};
-use gecko_bindings::bindings::{RawServoRuleNode, RawServoRuleNodeStrong, RawServoDocumentRule, RawServoMediaRule};
-use gecko_bindings::bindings::{ServoComputedValues, ServoCssRules};
+use gecko_bindings::bindings::{RawServoMediaRule, RawServoNamespaceRule, RawServoPageRule};
+use gecko_bindings::bindings::{RawServoRuleNode, RawServoRuleNodeStrong, RawServoDocumentRule};
+use gecko_bindings::bindings::ServoCssRules;
 use gecko_bindings::structs::{RawServoAnimationValue, RawServoDeclarationBlock, RawServoStyleRule, RawServoMediaList};
-use gecko_bindings::structs::RawServoStyleSheetContents;
+use gecko_bindings::structs::{RawServoStyleSheetContents, ServoStyleContext};
 use gecko_bindings::sugar::ownership::{HasArcFFI, HasFFI};
 use media_queries::MediaList;
 use properties::{ComputedValues, PropertyDeclarationBlock};
@@ -51,8 +51,8 @@ impl_arc_ffi!(Locked<CssRules> => ServoCssRules
 impl_arc_ffi!(StylesheetContents => RawServoStyleSheetContents
               [Servo_StyleSheetContents_AddRef, Servo_StyleSheetContents_Release]);
 
-impl_arc_ffi!(ComputedValues => ServoComputedValues
-              [Servo_ComputedValues_AddRef, Servo_ComputedValues_Release]);
+impl_arc_ffi!(ComputedValues => ServoStyleContext
+              [Servo_StyleContext_AddRef, Servo_StyleContext_Release]);
 
 impl_arc_ffi!(Locked<PropertyDeclarationBlock> => RawServoDeclarationBlock
               [Servo_DeclarationBlock_AddRef, Servo_DeclarationBlock_Release]);

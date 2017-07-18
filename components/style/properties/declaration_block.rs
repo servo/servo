@@ -110,13 +110,13 @@ impl<'a> Iterator for PropertyDeclarationIterator<'a> {
 pub struct AnimationValueIterator<'a, 'cx, 'cx_a:'cx> {
     iter: Iter<'a, (PropertyDeclaration, Importance)>,
     context: &'cx mut Context<'cx_a>,
-    default_values: &'a Arc<ComputedValues>,
+    default_values: &'a ComputedValuesInner,
 }
 
 impl<'a, 'cx, 'cx_a:'cx> AnimationValueIterator<'a, 'cx, 'cx_a> {
     fn new(declarations: &'a PropertyDeclarationBlock,
            context: &'cx mut Context<'cx_a>,
-           default_values: &'a Arc<ComputedValues>) -> AnimationValueIterator<'a, 'cx, 'cx_a> {
+           default_values: &'a ComputedValuesInner) -> AnimationValueIterator<'a, 'cx, 'cx_a> {
         AnimationValueIterator {
             iter: declarations.declarations().iter(),
             context: context,
@@ -204,7 +204,7 @@ impl PropertyDeclarationBlock {
     /// Return an iterator of (AnimatableLonghand, AnimationValue).
     pub fn to_animation_value_iter<'a, 'cx, 'cx_a:'cx>(&'a self,
                                                        context: &'cx mut Context<'cx_a>,
-                                                       default_values: &'a Arc<ComputedValues>)
+                                                       default_values: &'a ComputedValuesInner)
                                                        -> AnimationValueIterator<'a, 'cx, 'cx_a> {
         AnimationValueIterator::new(self, context, default_values)
     }

@@ -52,7 +52,7 @@ use std::sync::atomic::Ordering;
 use style::computed_values::{clear, float, overflow_x, position, text_align};
 use style::context::SharedStyleContext;
 use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
-use style::properties::ServoComputedValues;
+use style::properties::ComputedValues;
 use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::{RECONSTRUCT_FLOW, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, REPOSITION};
 use style::values::computed::LengthOrPercentageOrAuto;
@@ -424,7 +424,7 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
 
     /// Attempts to perform incremental fixup of this flow by replacing its fragment's style with
     /// the new style. This can only succeed if the flow has exactly one fragment.
-    fn repair_style(&mut self, new_style: &::StyleArc<ServoComputedValues>);
+    fn repair_style(&mut self, new_style: &::StyleArc<ComputedValues>);
 
     /// Print any extra children (such as fragments) contained in this Flow
     /// for debugging purposes. Any items inserted into the tree will become
@@ -561,7 +561,7 @@ pub trait MutableFlowUtils {
 
     /// Calls `repair_style` and `bubble_inline_sizes`. You should use this method instead of
     /// calling them individually, since there is no reason not to perform both operations.
-    fn repair_style_and_bubble_inline_sizes(self, style: &::StyleArc<ServoComputedValues>);
+    fn repair_style_and_bubble_inline_sizes(self, style: &::StyleArc<ComputedValues>);
 }
 
 pub trait MutableOwnedFlowUtils {
@@ -1033,7 +1033,7 @@ pub enum ForceNonfloatedFlag {
 
 impl BaseFlow {
     #[inline]
-    pub fn new(style: Option<&ServoComputedValues>,
+    pub fn new(style: Option<&ComputedValues>,
                writing_mode: WritingMode,
                force_nonfloated: ForceNonfloatedFlag)
                -> BaseFlow {
@@ -1119,7 +1119,7 @@ impl BaseFlow {
     ///
     /// These flags are initially set during flow construction.  They only need to be updated here
     /// if they are based on properties that can change without triggering `RECONSTRUCT_FLOW`.
-    pub fn update_flags_if_needed(&mut self, style: &ServoComputedValues) {
+    pub fn update_flags_if_needed(&mut self, style: &ComputedValues) {
         // For absolutely-positioned flows, changes to top/bottom/left/right can cause these flags
         // to get out of date:
         if self.restyle_damage.contains(REFLOW_OUT_OF_FLOW) {
@@ -1381,7 +1381,7 @@ impl<'a> MutableFlowUtils for &'a mut Flow {
 
     /// Calls `repair_style` and `bubble_inline_sizes`. You should use this method instead of
     /// calling them individually, since there is no reason not to perform both operations.
-    fn repair_style_and_bubble_inline_sizes(self, style: &::StyleArc<ServoComputedValues>) {
+    fn repair_style_and_bubble_inline_sizes(self, style: &::StyleArc<ComputedValues>) {
         self.repair_style(style);
         mut_base(self).update_flags_if_needed(style);
         self.bubble_inline_sizes();

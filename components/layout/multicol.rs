@@ -20,7 +20,7 @@ use std::cmp::{min, max};
 use std::fmt;
 use std::sync::Arc;
 use style::logical_geometry::LogicalSize;
-use style::properties::ServoComputedValues;
+use style::properties::ComputedValues;
 use style::values::Either;
 use style::values::computed::{LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 
@@ -193,7 +193,7 @@ impl Flow for MulticolFlow {
         self.block_flow.collect_stacking_contexts(state);
     }
 
-    fn repair_style(&mut self, new_style: &StyleArc<ServoComputedValues>) {
+    fn repair_style(&mut self, new_style: &StyleArc<ComputedValues>) {
         self.block_flow.repair_style(new_style)
     }
 
@@ -275,7 +275,7 @@ impl Flow for MulticolColumnFlow {
         self.block_flow.collect_stacking_contexts(state);
     }
 
-    fn repair_style(&mut self, new_style: &StyleArc<ServoComputedValues>) {
+    fn repair_style(&mut self, new_style: &StyleArc<ComputedValues>) {
         self.block_flow.repair_style(new_style)
     }
 
