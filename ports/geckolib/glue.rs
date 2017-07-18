@@ -3358,7 +3358,6 @@ pub extern "C" fn Servo_StyleSet_HasStateDependency(
 pub extern "C" fn Servo_GetCustomPropertyValue(computed_values: ServoComputedValuesBorrowed,
                                                name: *const nsAString,
                                                value: *mut nsAString) -> bool {
-
     let custom_properties = match computed_values.custom_properties() {
         Some(p) => p,
         None => return false,

@@ -866,8 +866,8 @@ impl<'le> TElement for GeckoElement<'le> {
         }
 
         let declarations = unsafe { Gecko_GetStyleAttrDeclarationBlock(self.0) };
-        let declarations: Option<&RawOffsetArc<Locked<PropertyDeclarationBlock>>>
-            = declarations.and_then(|s| s.as_arc_opt());
+        let declarations: Option<&RawOffsetArc<Locked<PropertyDeclarationBlock>>> =
+            declarations.and_then(|s| s.as_arc_opt());
         declarations.map(|s| s.borrow_arc())
     }
 
@@ -881,8 +881,8 @@ impl<'le> TElement for GeckoElement<'le> {
 
     fn get_smil_override(&self) -> Option<ArcBorrow<Locked<PropertyDeclarationBlock>>> {
         let declarations = unsafe { Gecko_GetSMILOverrideDeclarationBlock(self.0) };
-        let declarations: Option<&RawOffsetArc<Locked<PropertyDeclarationBlock>>>
-            = declarations.and_then(|s| s.as_arc_opt());
+        let declarations: Option<&RawOffsetArc<Locked<PropertyDeclarationBlock>>> =
+            declarations.and_then(|s| s.as_arc_opt());
         declarations.map(|s| s.borrow_arc())
     }
 
@@ -1431,16 +1431,16 @@ impl<'le> PresentationalHintsSynthesizer for GeckoElement<'le> {
             }
         }
         let declarations = unsafe { Gecko_GetHTMLPresentationAttrDeclarationBlock(self.0) };
-        let declarations: Option<&RawOffsetArc<Locked<PropertyDeclarationBlock>>>
-            = declarations.and_then(|s| s.as_arc_opt());
+        let declarations: Option<&RawOffsetArc<Locked<PropertyDeclarationBlock>>> =
+            declarations.and_then(|s| s.as_arc_opt());
         if let Some(decl) = declarations {
             hints.push(
                 ApplicableDeclarationBlock::from_declarations(decl.clone_arc(), ServoCascadeLevel::PresHints)
             );
         }
         let declarations = unsafe { Gecko_GetExtraContentStyleDeclarations(self.0) };
-        let declarations: Option<&RawOffsetArc<Locked<PropertyDeclarationBlock>>>
-            = declarations.and_then(|s| s.as_arc_opt());
+        let declarations: Option<&RawOffsetArc<Locked<PropertyDeclarationBlock>>> =
+            declarations.and_then(|s| s.as_arc_opt());
         if let Some(decl) = declarations {
             hints.push(
                 ApplicableDeclarationBlock::from_declarations(decl.clone_arc(), ServoCascadeLevel::PresHints)
@@ -1474,8 +1474,8 @@ impl<'le> PresentationalHintsSynthesizer for GeckoElement<'le> {
             let active = self.get_state().intersects(NonTSPseudoClass::Active.state_flag());
             if active {
                 let declarations = unsafe { Gecko_GetActiveLinkAttrDeclarationBlock(self.0) };
-                let declarations: Option<&RawOffsetArc<Locked<PropertyDeclarationBlock>>>
-                    = declarations.and_then(|s| s.as_arc_opt());
+                let declarations: Option<&RawOffsetArc<Locked<PropertyDeclarationBlock>>> =
+                    declarations.and_then(|s| s.as_arc_opt());
                 if let Some(decl) = declarations {
                     hints.push(
                         ApplicableDeclarationBlock::from_declarations(decl.clone_arc(), ServoCascadeLevel::PresHints)

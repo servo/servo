@@ -148,7 +148,9 @@ impl ComputedValuesInner {
                 visited_style: None,
                 flags: ComputedValueFlags::empty(),
                 % for style_struct in data.style_structs:
-                    ${style_struct.gecko_name}: Arc::into_raw_offset(style_structs::${style_struct.name}::default(pres_context)),
+                    ${style_struct.gecko_name}: Arc::into_raw_offset(
+                        style_structs::${style_struct.name}::default(pres_context)
+                    ),
                 % endfor
         }
     }

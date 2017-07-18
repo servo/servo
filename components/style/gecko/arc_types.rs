@@ -10,8 +10,7 @@
 
 use gecko_bindings::bindings::{RawServoImportRule, RawServoSupportsRule};
 use gecko_bindings::bindings::{RawServoKeyframe, RawServoKeyframesRule};
-use gecko_bindings::bindings::RawServoMediaRule;
-use gecko_bindings::bindings::{RawServoNamespaceRule, RawServoPageRule};
+use gecko_bindings::bindings::{RawServoMediaRule, RawServoNamespaceRule, RawServoPageRule};
 use gecko_bindings::bindings::{RawServoRuleNode, RawServoRuleNodeStrong, RawServoDocumentRule};
 use gecko_bindings::bindings::ServoCssRules;
 use gecko_bindings::structs::{RawServoAnimationValue, RawServoDeclarationBlock, RawServoStyleRule, RawServoMediaList};

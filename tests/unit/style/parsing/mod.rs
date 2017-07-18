@@ -11,7 +11,7 @@ use style::context::QuirksMode;
 use style::font_metrics::ServoMetricsProvider;
 use style::media_queries::{Device, MediaType};
 use style::parser::ParserContext;
-use style::properties::{ComputedValues, StyleBuilder};
+use style::properties::{ComputedValues, ComputedValuesInner, StyleBuilder};
 use style::stylesheets::{CssRuleType, Origin};
 use style::values::computed::{Context, ToComputedValue};
 use style_traits::{PARSING_MODE_DEFAULT, ToCss, ParseError};
@@ -49,7 +49,7 @@ fn assert_computed_serialization<C, F, T>(f: F, input: &'static str, output: &st
           T: ToComputedValue<ComputedValue=C>, C: ToCss
 {
     let viewport_size = TypedSize2D::new(0., 0.);
-    let initial_style = ComputedValues::initial_values();
+    let initial_style = ComputedValuesInner::initial_values();
     let device = Device::new(MediaType::Screen, viewport_size);
 
     let context = Context {
