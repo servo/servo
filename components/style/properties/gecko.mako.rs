@@ -57,6 +57,7 @@ use properties::computed_value_flags::ComputedValueFlags;
 use properties::{longhands, FontComputationData, Importance, LonghandId};
 use properties::{PropertyDeclaration, PropertyDeclarationBlock, PropertyDeclarationId};
 use rule_tree::StrongRuleNode;
+use selector_parser::PseudoElement;
 use std::mem::{forget, uninitialized, transmute, zeroed};
 use std::{cmp, ops, ptr};
 use stylearc::{Arc, RawOffsetArc};
@@ -72,12 +73,71 @@ pub mod style_structs {
     % endfor
 }
 
-
+/// FIXME(emilio): This is completely duplicated with the other properties code.
 pub type ComputedValuesInner = ::gecko_bindings::structs::ServoComputedValues;
 
 #[derive(Debug)]
 #[repr(C)]
 pub struct ComputedValues(::gecko_bindings::structs::mozilla::ServoStyleContext);
+
+impl ComputedValues {
+    pub fn new(
+        device: &Device,
+        parent: Option<<&ComputedValues>,
+        pseudo: Option<<&PseudoElement>,
+        custom_properties: Option<Arc<CustomPropertiesMap>>,
+        writing_mode: WritingMode,
+        font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>,
+        flags: ComputedValueFlags,
+        rules: Option<StrongRuleNode>,
+        visited_style: Option<Arc<ComputedValues>>,
+        % for style_struct in data.style_structs:
+        ${style_struct.ident}: Arc<style_structs::${style_struct.name}>,
+        % endfor
+    ) -> Arc<Self> {
+        ComputedValuesInner::new(
+            custom_properties,
+            writing_mode,
+            font_size_keyword,
+            flags,
+            rules,
+            visited_style,
+            % for style_struct in data.style_structs:
+            ${style_struct.ident},
+            % endfor
+        ).to_outer(
+            device.pres_context(),
+            parent,
+            pseudo.map(|p| p.pseudo_info())
+        )
+    }
+
+    pub fn default_values(pres_context: RawGeckoPresContextBorrowed) -> Arc<Self> {
+        ComputedValuesInner::new(
+            /* custom_properties = */ None,
+            /* writing_mode = */ WritingMode::empty(), // FIXME(bz): This seems dubious
+            FontComputationData::default_font_size_keyword(),
+            ComputedValueFlags::empty(),
+            /* rules = */ None,
+            /* visited_style = */ None,
+            % for style_struct in data.style_structs:
+            style_structs::${style_struct.name}::default(pres_context),
+            % endfor
+        ).to_outer(pres_context, None, None)
+    }
+
+    pub fn pseudo(&self) -> Option<PseudoElement> {
+        use string_cache::Atom;
+
+        let atom = (self.0)._base.mPseudoTag.raw::<structs::nsIAtom>();
+        if atom.is_null() {
+            return None;
+        }
+
+        let atom = Atom::from(atom);
+        PseudoElement::from_atom(&atom)
+    }
+}
 
 impl Drop for ComputedValues {
     fn drop(&mut self) {
@@ -112,8 +172,8 @@ impl Clone for ComputedValuesInner {
     }
 }
 
-pub type PseudoInfo = (*mut structs::nsIAtom, structs::CSSPseudoElementType);
-pub type ParentStyleContextInfo<'a> = Option< &'a ComputedValues>;
+type PseudoInfo = (*mut structs::nsIAtom, structs::CSSPseudoElementType);
+type ParentStyleContextInfo<'a> = Option< &'a ComputedValues>;
 
 impl ComputedValuesInner {
     pub fn new(custom_properties: Option<Arc<CustomPropertiesMap>>,
@@ -139,36 +199,28 @@ impl ComputedValuesInner {
         }
     }
 
-    pub fn default_values(pres_context: RawGeckoPresContextBorrowed) -> Self {
-        ComputedValuesInner {
-                custom_properties: None,
-                writing_mode: WritingMode::empty(), // FIXME(bz): This seems dubious
-                font_computation_data: FontComputationData::default_values(),
-                rules: None,
-                visited_style: None,
-                flags: ComputedValueFlags::empty(),
-                % for style_struct in data.style_structs:
-                    ${style_struct.gecko_name}: Arc::into_raw_offset(
-                        style_structs::${style_struct.name}::default(pres_context)
-                    ),
-                % endfor
-        }
-    }
-    pub fn to_outer(self, device: &Device, parent: ParentStyleContextInfo,
-                    info: Option<PseudoInfo>) -> Arc<ComputedValues> {
+    fn to_outer(
+        self,
+        pres_context: RawGeckoPresContextBorrowed,
+        parent: ParentStyleContextInfo,
+        info: Option<PseudoInfo>
+    ) -> Arc<ComputedValues> {
         let (tag, ty) = if let Some(info) = info {
             info
         } else {
             (ptr::null_mut(), structs::CSSPseudoElementType::NotPseudo)
         };
 
-        unsafe { self.to_outer_helper(device.pres_context(), parent, ty, tag) }
+        unsafe { self.to_outer_helper(pres_context, parent, ty, tag) }
     }
 
-    pub unsafe fn to_outer_helper(self, pres_context: bindings::RawGeckoPresContextBorrowed,
-                                    parent: ParentStyleContextInfo,
-                                    pseudo_ty: structs::CSSPseudoElementType,
-                                    pseudo_tag: *mut structs::nsIAtom) -> Arc<ComputedValues> {
+    unsafe fn to_outer_helper(
+        self,
+        pres_context: bindings::RawGeckoPresContextBorrowed,
+        parent: ParentStyleContextInfo,
+        pseudo_ty: structs::CSSPseudoElementType,
+        pseudo_tag: *mut structs::nsIAtom
+    ) -> Arc<ComputedValues> {
         let arc = unsafe {
             let arc: Arc<ComputedValues> = Arc::new(uninitialized());
             bindings::Gecko_ServoStyleContext_Init(&arc.0 as *const _ as *mut _, parent, pres_context,

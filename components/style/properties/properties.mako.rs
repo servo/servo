@@ -32,6 +32,7 @@ use media_queries::Device;
 use parser::{Parse, ParserContext};
 use properties::animated_properties::AnimatableLonghand;
 #[cfg(feature = "gecko")] use properties::longhands::system_font::SystemFont;
+use selector_parser::PseudoElement;
 use selectors::parser::SelectorParseError;
 #[cfg(feature = "servo")] use servo_config::prefs::PREFS;
 use shared_lock::StylesheetGuards;
@@ -107,22 +108,26 @@ pub struct FontComputationData {
     ///
     /// When this is Some, we compute font sizes by computing the keyword against
     /// the generic font, and then multiplying it by the ratio.
-   pub font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>
+    pub font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>
 }
 
 
 impl FontComputationData {
-        /// Assigns values for variables in struct FontComputationData
+    /// Assigns values for variables in struct FontComputationData
     pub fn new(font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>) -> Self {
         FontComputationData {
             font_size_keyword: font_size_keyword
         }
     }
-        /// Assigns default values for variables in struct FontComputationData
-   pub fn default_values() -> Self {
-        FontComputationData{
-            font_size_keyword: Some((Default::default(), 1.))
-        }
+
+    /// Assigns default values for variables in struct FontComputationData
+    pub fn default_font_size_keyword() -> Option<(longhands::font_size::KeywordSize, f32)> {
+        Some((Default::default(), 1.))
+    }
+
+    /// Gets a FontComputationData with the default values.
+    pub fn default_values() -> Self {
+        Self::new(Self::default_font_size_keyword())
     }
 }
 
@@ -1871,15 +1876,7 @@ pub mod style_structs {
 
 
 #[cfg(feature = "gecko")]
-pub use gecko_properties::{ComputedValues, ComputedValuesInner, ParentStyleContextInfo, PseudoInfo};
-
-#[cfg(feature = "servo")]
-/// Servo doesn't have style contexts so this is extraneous info
-pub type PseudoInfo = ();
-#[cfg(feature = "servo")]
-/// Servo doesn't have style contexts so this is extraneous info
-pub type ParentStyleContextInfo = ();
-
+pub use gecko_properties::{ComputedValues, ComputedValuesInner};
 
 #[cfg(feature = "servo")]
 #[cfg_attr(feature = "servo", derive(Clone, Debug))]
@@ -1891,6 +1888,7 @@ pub struct ComputedValuesInner {
     custom_properties: Option<Arc<::custom_properties::CustomPropertiesMap>>,
     /// The writing mode of this computed values struct.
     pub writing_mode: WritingMode,
+
     /// The keyword behind the current font-size property, if any
     pub font_computation_data: FontComputationData,
 
@@ -1923,12 +1921,48 @@ pub struct ComputedValues {
     /// whereas ComputedValuesInner is the core set of computed values.
     ///
     /// We maintain this distinction in servo to reduce the amount of special casing.
-    pub inner: ComputedValuesInner,
+    inner: ComputedValuesInner,
+}
+
+#[cfg(feature = "servo")]
+impl ComputedValues {
+    /// Create a new refcounted `ComputedValues`
+    pub fn new(
+        _: &Device,
+        _: Option<<&ComputedValues>,
+        _: Option<<&PseudoElement>,
+        custom_properties: Option<Arc<::custom_properties::CustomPropertiesMap>>,
+        writing_mode: WritingMode,
+        font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>,
+        flags: ComputedValueFlags,
+        rules: Option<StrongRuleNode>,
+        visited_style: Option<Arc<ComputedValues>>,
+        % for style_struct in data.active_style_structs():
+        ${style_struct.ident}: Arc<style_structs::${style_struct.name}>,
+        % endfor
+    ) -> Arc<Self> {
+        Arc::new(Self {
+            inner: ComputedValuesInner::new(
+                custom_properties,
+                writing_mode,
+                font_size_keyword,
+                flags,
+                rules,
+                visited_style,
+                % for style_struct in data.active_style_structs():
+                ${style_struct.ident},
+                % endfor
+            )
+        })
+    }
+
+    /// Get the initial computed values.
+    pub fn initial_values() -> &'static Self { &*INITIAL_SERVO_VALUES }
 }
 
 #[cfg(feature = "servo")]
 impl ComputedValuesInner {
-    /// Construct a `ComputedValues` instance.
+    /// Construct a `ComputedValuesInner` instance.
     pub fn new(
         custom_properties: Option<Arc<::custom_properties::CustomPropertiesMap>>,
         writing_mode: WritingMode,
@@ -1952,9 +1986,6 @@ impl ComputedValuesInner {
         % endfor
         }
     }
-
-    /// Get the initial computed values.
-    pub fn initial_values() -> &'static Self { &*INITIAL_SERVO_VALUES }
 }
 
 #[cfg(feature = "servo")]
@@ -1974,12 +2005,6 @@ impl ops::DerefMut for ComputedValues {
 
 #[cfg(feature = "servo")]
 impl ComputedValuesInner {
-    /// Convert to an Arc<ComputedValues>
-    pub fn to_outer(self, _: &Device, _: ParentStyleContextInfo,
-                    _: Option<PseudoInfo>) -> Arc<ComputedValues> {
-        Arc::new(ComputedValues {inner: self})
-    }
-
     % for style_struct in data.active_style_structs():
         /// Clone the ${style_struct.name} struct.
         #[inline]
@@ -2428,6 +2453,9 @@ impl<'a, T: 'a> ops::Deref for StyleStructRef<'a, T> {
 /// actually cloning them, until we either build the style, or mutate the
 /// inherited value.
 pub struct StyleBuilder<'a> {
+    device: &'a Device,
+    parent_style: Option<<&'a ComputedValues>,
+    pseudo: Option<<&'a PseudoElement>,
     /// The rule node representing the ordered list of rules matched for this
     /// node.
     rules: Option<StrongRuleNode>,
@@ -2452,8 +2480,11 @@ pub struct StyleBuilder<'a> {
 impl<'a> StyleBuilder<'a> {
     /// Trivially construct a `StyleBuilder`.
     fn new(
-        inherited_style: &'a ComputedValuesInner,
-        reset_style: &'a ComputedValuesInner,
+        device: &'a Device,
+        parent_style: Option<<&'a ComputedValues>,
+        reset_style: &'a ComputedValues,
+        pseudo: Option<<&'a PseudoElement>,
+        cascade_flags: CascadeFlags,
         rules: Option<StrongRuleNode>,
         custom_properties: Option<Arc<::custom_properties::CustomPropertiesMap>>,
         writing_mode: WritingMode,
@@ -2461,7 +2492,17 @@ impl<'a> StyleBuilder<'a> {
         flags: ComputedValueFlags,
         visited_style: Option<Arc<ComputedValues>>,
     ) -> Self {
+        let inherited_style = parent_style.unwrap_or(reset_style);
+        let reset_style = if cascade_flags.contains(INHERIT_ALL) {
+            inherited_style
+        } else {
+            reset_style
+        };
+
         StyleBuilder {
+            device,
+            parent_style,
+            pseudo,
             rules,
             custom_properties,
             writing_mode,
@@ -2480,19 +2521,31 @@ impl<'a> StyleBuilder<'a> {
 
     /// Creates a StyleBuilder holding only references to the structs of `s`, in
     /// order to create a derived style.
-    pub fn for_derived_style(s: &'a ComputedValuesInner) -> Self {
-        Self::for_inheritance(s, s)
+    pub fn for_derived_style(
+        device: &'a Device,
+        s: &'a ComputedValues,
+        pseudo: Option<<&'a PseudoElement>,
+    ) -> Self {
+        Self::for_inheritance(device, s, s, pseudo)
     }
 
     /// Inherits style from the parent element, accounting for the default
     /// computed values that need to be provided as well.
     pub fn for_inheritance(
-        parent: &'a ComputedValuesInner,
-        default: &'a ComputedValuesInner
+        device: &'a Device,
+        parent: &'a ComputedValues,
+        reset: &'a ComputedValues,
+        pseudo: Option<<&'a PseudoElement>,
     ) -> Self {
+        // FIXME(emilio): This Some(parent) here is inconsistent with what we
+        // usually do if `parent` is the default computed values, but that's
+        // fine, and we want to eventually get rid of it.
         Self::new(
-            parent,
-            default,
+            device,
+            Some(parent),
+            reset,
+            pseudo,
+            CascadeFlags::empty(),
             /* rules = */ None,
             parent.custom_properties(),
             parent.writing_mode,
@@ -2566,16 +2619,20 @@ impl<'a> StyleBuilder<'a> {
 
 
     /// Turns this `StyleBuilder` into a proper `ComputedValues` instance.
-    pub fn build(self) -> ComputedValuesInner {
-        ComputedValuesInner::new(self.custom_properties,
-                            self.writing_mode,
-                            self.font_size_keyword,
-                            self.flags,
-                            self.rules,
-                            self.visited_style,
-                            % for style_struct in data.active_style_structs():
-                            self.${style_struct.ident}.build(),
-                            % endfor
+    pub fn build(self) -> Arc<ComputedValues> {
+        ComputedValues::new(
+            self.device,
+            self.parent_style,
+            self.pseudo,
+            self.custom_properties,
+            self.writing_mode,
+            self.font_size_keyword,
+            self.flags,
+            self.rules,
+            self.visited_style,
+            % for style_struct in data.active_style_structs():
+            self.${style_struct.ident}.build(),
+            % endfor
         )
     }
 
@@ -2597,28 +2654,30 @@ pub use self::lazy_static_module::INITIAL_SERVO_VALUES;
 mod lazy_static_module {
     use logical_geometry::WritingMode;
     use stylearc::Arc;
-    use super::{ComputedValuesInner, longhands, style_structs, FontComputationData};
+    use super::{ComputedValues, ComputedValuesInner, longhands, style_structs, FontComputationData};
     use super::computed_value_flags::ComputedValueFlags;
 
     /// The initial values for all style structs as defined by the specification.
     lazy_static! {
-        pub static ref INITIAL_SERVO_VALUES: ComputedValuesInner = ComputedValuesInner {
-            % for style_struct in data.active_style_structs():
-                ${style_struct.ident}: Arc::new(style_structs::${style_struct.name} {
-                    % for longhand in style_struct.longhands:
-                        ${longhand.ident}: longhands::${longhand.ident}::get_initial_value(),
-                    % endfor
-                    % if style_struct.name == "Font":
-                        hash: 0,
-                    % endif
-                }),
-            % endfor
-            custom_properties: None,
-            writing_mode: WritingMode::empty(),
-            font_computation_data: FontComputationData::default_values(),
-            rules: None,
-            visited_style: None,
-            flags: ComputedValueFlags::empty(),
+        pub static ref INITIAL_SERVO_VALUES: ComputedValues = ComputedValues {
+            inner: ComputedValuesInner {
+                % for style_struct in data.active_style_structs():
+                    ${style_struct.ident}: Arc::new(style_structs::${style_struct.name} {
+                        % for longhand in style_struct.longhands:
+                            ${longhand.ident}: longhands::${longhand.ident}::get_initial_value(),
+                        % endfor
+                        % if style_struct.name == "Font":
+                            hash: 0,
+                        % endif
+                    }),
+                % endfor
+                custom_properties: None,
+                writing_mode: WritingMode::empty(),
+                font_computation_data: FontComputationData::default_values(),
+                rules: None,
+                visited_style: None,
+                flags: ComputedValueFlags::empty(),
+            }
         };
     }
 }
@@ -2626,8 +2685,8 @@ mod lazy_static_module {
 /// A per-longhand function that performs the CSS cascade for that longhand.
 pub type CascadePropertyFn =
     extern "Rust" fn(declaration: &PropertyDeclaration,
-                     inherited_style: &ComputedValuesInner,
-                     default_style: &ComputedValuesInner,
+                     inherited_style: &ComputedValues,
+                     default_style: &ComputedValues,
                      context: &mut computed::Context,
                      cacheable: &mut bool,
                      cascade_info: &mut Option<<&mut CascadeInfo>);
@@ -2688,29 +2747,19 @@ bitflags! {
 /// Returns the computed values.
 ///   * `flags`: Various flags.
 ///
-pub fn cascade(device: &Device,
-               rule_node: &StrongRuleNode,
-               guards: &StylesheetGuards,
-               parent_style: Option<<&ComputedValuesInner>,
-               layout_parent_style: Option<<&ComputedValuesInner>,
-               visited_style: Option<Arc<ComputedValues>>,
-               cascade_info: Option<<&mut CascadeInfo>,
-               font_metrics_provider: &FontMetricsProvider,
-               flags: CascadeFlags,
-               quirks_mode: QuirksMode)
-               -> ComputedValuesInner {
-    debug_assert!(layout_parent_style.is_none() || parent_style.is_some());
-    let (inherited_style, layout_parent_style) = match parent_style {
-        Some(parent_style) => {
-            (parent_style,
-             layout_parent_style.unwrap_or(parent_style))
-        },
-        None => {
-            (device.default_computed_values(),
-             device.default_computed_values())
-        }
-    };
-
+pub fn cascade(
+    device: &Device,
+    pseudo: Option<<&PseudoElement>,
+    rule_node: &StrongRuleNode,
+    guards: &StylesheetGuards,
+    parent_style: Option<<&ComputedValues>,
+    layout_parent_style: Option<<&ComputedValues>,
+    visited_style: Option<Arc<ComputedValues>>,
+    cascade_info: Option<<&mut CascadeInfo>,
+    font_metrics_provider: &FontMetricsProvider,
+    flags: CascadeFlags,
+    quirks_mode: QuirksMode
+) -> Arc<ComputedValues> {
     let iter_declarations = || {
         rule_node.self_and_ancestors().flat_map(|node| {
             let cascade_level = node.cascade_level();
@@ -2735,35 +2784,53 @@ pub fn cascade(device: &Device,
                 })
         })
     };
-    apply_declarations(device,
-                       rule_node,
-                       iter_declarations,
-                       inherited_style,
-                       layout_parent_style,
-                       visited_style,
-                       cascade_info,
-                       font_metrics_provider,
-                       flags,
-                       quirks_mode)
+    apply_declarations(
+        device,
+        pseudo,
+        rule_node,
+        iter_declarations,
+        parent_style,
+        layout_parent_style,
+        visited_style,
+        cascade_info,
+        font_metrics_provider,
+        flags,
+        quirks_mode,
+    )
 }
 
 /// NOTE: This function expects the declaration with more priority to appear
 /// first.
 #[allow(unused_mut)] // conditionally compiled code for "position"
-pub fn apply_declarations<'a, F, I>(device: &Device,
-                                    rules: &StrongRuleNode,
-                                    iter_declarations: F,
-                                    inherited_style: &ComputedValuesInner,
-                                    layout_parent_style: &ComputedValuesInner,
-                                    visited_style: Option<Arc<ComputedValues>>,
-                                    mut cascade_info: Option<<&mut CascadeInfo>,
-                                    font_metrics_provider: &FontMetricsProvider,
-                                    flags: CascadeFlags,
-                                    quirks_mode: QuirksMode)
-                                    -> ComputedValuesInner
-    where F: Fn() -> I,
-          I: Iterator<Item = (&'a PropertyDeclaration, CascadeLevel)>,
+pub fn apply_declarations<'a, F, I>(
+    device: &Device,
+    pseudo: Option<<&PseudoElement>,
+    rules: &StrongRuleNode,
+    iter_declarations: F,
+    parent_style: Option<<&ComputedValues>,
+    layout_parent_style: Option<<&ComputedValues>,
+    visited_style: Option<Arc<ComputedValues>>,
+    mut cascade_info: Option<<&mut CascadeInfo>,
+    font_metrics_provider: &FontMetricsProvider,
+    flags: CascadeFlags,
+    quirks_mode: QuirksMode,
+) -> Arc<ComputedValues>
+where
+    F: Fn() -> I,
+    I: Iterator<Item = (&'a PropertyDeclaration, CascadeLevel)>,
 {
+    debug_assert!(layout_parent_style.is_none() || parent_style.is_some());
+    let (inherited_style, layout_parent_style) = match parent_style {
+        Some(parent_style) => {
+            (parent_style,
+             layout_parent_style.unwrap_or(parent_style))
+        },
+        None => {
+            (device.default_computed_values(),
+             device.default_computed_values())
+        }
+    };
+
     let default_style = device.default_computed_values();
     let inherited_custom_properties = inherited_style.custom_properties();
     let mut custom_properties = None;
@@ -2780,23 +2847,19 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
         ::custom_properties::finish_cascade(
             custom_properties, &inherited_custom_properties);
 
-    let reset_style = if flags.contains(INHERIT_ALL) {
-        inherited_style
-    } else {
-        default_style
-    };
-
     let mut context = computed::Context {
         is_root_element: flags.contains(IS_ROOT_ELEMENT),
         device: device,
         inherited_style: inherited_style,
-        layout_parent_style: layout_parent_style,
         // We'd really like to own the rules here to avoid refcount traffic, but
         // animation's usage of `apply_declarations` make this tricky. See bug
         // 1375525.
         style: StyleBuilder::new(
-            inherited_style,
-            reset_style,
+            device,
+            parent_style,
+            device.default_computed_values(),
+            pseudo,
+            flags,
             Some(rules.clone()),
             custom_properties,
             WritingMode::empty(),
@@ -3038,8 +3101,11 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
 
     {
         StyleAdjuster::new(&mut style)
-            .adjust(context.layout_parent_style,
-                    context.device.default_computed_values(), flags);
+            .adjust(
+                layout_parent_style,
+                context.device.default_computed_values(),
+                flags
+            );
     }
 
     % if product == "gecko":

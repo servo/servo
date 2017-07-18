@@ -17,9 +17,10 @@ use gecko_bindings::structs::{nsMediaFeature_ValueType, nsMediaFeature_RangeType
 use gecko_bindings::structs::{nsPresContext, RawGeckoPresContextOwned};
 use media_queries::MediaType;
 use parser::ParserContext;
-use properties::{ComputedValuesInner, StyleBuilder};
+use properties::{ComputedValues, StyleBuilder};
 use properties::longhands::font_size;
 use selectors::parser::SelectorParseError;
+use servo_arc::Arc;
 use std::fmt::{self, Write};
 use std::sync::atomic::{AtomicBool, AtomicIsize, Ordering};
 use str::starts_with_ignore_ascii_case;
@@ -36,7 +37,7 @@ pub struct Device {
     /// stylist, and thus the `Device`, so having a raw pres context pointer
     /// here is fine.
     pres_context: RawGeckoPresContextOwned,
-    default_values: ComputedValuesInner,
+    default_values: Arc<ComputedValues>,
     viewport_override: Option<ViewportConstraints>,
     /// The font size of the root element
     /// This is set when computing the style of the root
@@ -61,7 +62,7 @@ impl Device {
         assert!(!pres_context.is_null());
         Device {
             pres_context: pres_context,
-            default_values: ComputedValuesInner::default_values(unsafe { &*pres_context }),
+            default_values: ComputedValues::default_values(unsafe { &*pres_context }),
             viewport_override: None,
             root_font_size: AtomicIsize::new(font_size::get_initial_value().0 as isize), // FIXME(bz): Seems dubious?
             used_root_font_size: AtomicBool::new(false),
@@ -77,7 +78,12 @@ impl Device {
 
     /// Returns the default computed values as a reference, in order to match
     /// Servo.
-    pub fn default_computed_values(&self) -> &ComputedValuesInner {
+    pub fn default_computed_values(&self) -> &ComputedValues {
+        &self.default_values
+    }
+
+    /// Returns the default computed values as an `Arc`.
+    pub fn default_computed_values_arc(&self) -> &Arc<ComputedValues> {
         &self.default_values
     }
 
@@ -101,7 +107,7 @@ impl Device {
     pub fn reset_computed_values(&mut self) {
         // NB: A following stylesheet flush will populate this if appropriate.
         self.viewport_override = None;
-        self.default_values = ComputedValuesInner::default_values(self.pres_context());
+        self.default_values = ComputedValues::default_values(self.pres_context());
         self.used_root_font_size.store(false, Ordering::Relaxed);
     }
 
@@ -620,8 +626,7 @@ impl Expression {
             is_root_element: false,
             device: device,
             inherited_style: default_values,
-            layout_parent_style: default_values,
-            style: StyleBuilder::for_derived_style(default_values),
+            style: StyleBuilder::for_derived_style(device, default_values, None),
             font_metrics_provider: &provider,
             cached_system_font: None,
             in_media_query: true,
