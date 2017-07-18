@@ -643,7 +643,10 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
             miss!(UserAndAuthorRules)
         }
 
-        if !checks::have_same_state_ignoring_visitedness(target.element, candidate) {
+        // We do not ignore visited state here, because Gecko
+        // needs to store extra bits on visited style contexts,
+        // so these contexts cannot be shared
+        if target.element.get_state() != candidate.get_state() {
             miss!(State)
         }
 

@@ -10,7 +10,6 @@ use Atom;
 use bloom::StyleBloom;
 use context::{SelectorFlagsMap, SharedStyleContext};
 use dom::TElement;
-use element_state::*;
 use sharing::{StyleSharingCandidate, StyleSharingTarget};
 use stylearc::Arc;
 
@@ -66,20 +65,6 @@ pub fn have_same_class<E>(target: &mut StyleSharingTarget<E>,
     where E: TElement,
 {
     target.class_list() == candidate.class_list()
-}
-
-/// Compare element and candidate state, but ignore visitedness.  Styles don't
-/// actually changed based on visitedness (since both possibilities are computed
-/// up front), so it's safe to share styles if visitedness differs.
-pub fn have_same_state_ignoring_visitedness<E>(element: E,
-                                               candidate: &StyleSharingCandidate<E>)
-                                               -> bool
-    where E: TElement,
-{
-    let state_mask = !IN_VISITED_OR_UNVISITED_STATE;
-    let state = element.get_state() & state_mask;
-    let candidate_state = candidate.element.get_state() & state_mask;
-    state == candidate_state
 }
 
 /// Whether a given element and a candidate match the same set of "revalidation"
