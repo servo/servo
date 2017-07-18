@@ -9,6 +9,7 @@ use cssparser::Parser;
 use parser::ParserContext;
 use properties::animated_properties::Animatable;
 use style_traits::ParseError;
+use values::animated::ToAnimatedZero;
 
 /// A generic value for the `initial-letter` property.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -91,6 +92,14 @@ impl<Value> Animatable for Spacing<Value>
         let other = other.value().unwrap_or(&zero);
         this.compute_distance(other)
     }
+}
+
+impl<V> ToAnimatedZero for Spacing<V>
+where
+    V: From<Au>,
+{
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Self, ()> { Err(()) }
 }
 
 /// A generic value for the `line-height` property.

@@ -33,7 +33,7 @@ use super::ComputedValuesInner;
 #[cfg(any(feature = "gecko", feature = "testing"))]
 use values::Auto;
 use values::{CSSFloat, CustomIdent, Either};
-use values::animated::ToAnimatedValue;
+use values::animated::{ToAnimatedValue, ToAnimatedZero};
 use values::animated::effects::BoxShadowList as AnimatedBoxShadowList;
 use values::animated::effects::Filter as AnimatedFilter;
 use values::animated::effects::FilterList as AnimatedFilterList;
@@ -76,16 +76,6 @@ pub trait Animatable: Sized {
     fn accumulate(&self, other: &Self, count: u64) -> Result<Self, ()> {
         self.add_weighted(other, count as f64, 1.0)
     }
-
-    /// Returns a value that, when added with an underlying value, will produce the underlying
-    /// value. This is used for SMIL animation's "by-animation" where SMIL first interpolates from
-    /// the zero value to the 'by' value, and then adds the result to the underlying value.
-    ///
-    /// This is not the necessarily the same as the initial value of a property. For example, the
-    /// initial value of 'stroke-width' is 1, but the zero value is 0, since adding 1 to the
-    /// underlying value will not produce the underlying value.
-    #[inline]
-    fn get_zero_value(&self) -> Result<Self, ()> { Err(()) }
 
     /// Compute distance between a value and another for a given property.
     fn compute_distance(&self, _other: &Self) -> Result<f64, ()>  { Err(()) }
@@ -745,19 +735,6 @@ impl Animatable for AnimationValue {
         }
     }
 
-    fn get_zero_value(&self) -> Result<Self, ()> {
-        match *self {
-            % for prop in data.longhands:
-            % if prop.animatable and prop.animation_value_type != "discrete":
-            AnimationValue::${prop.camel_case}(ref base) => {
-                Ok(AnimationValue::${prop.camel_case}(base.get_zero_value()?))
-            },
-            % endif
-            % endfor
-            _ => Err(()),
-        }
-    }
-
     fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
         match (self, other) {
             % for prop in data.longhands:
@@ -779,6 +756,22 @@ impl Animatable for AnimationValue {
                 panic!("Expected compute_distance of computed values of the same \
                         property, got: {:?}, {:?}", self, other);
             }
+        }
+    }
+}
+
+impl ToAnimatedZero for AnimationValue {
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        match *self {
+            % for prop in data.longhands:
+            % if prop.animatable and prop.animation_value_type != "discrete":
+            AnimationValue::${prop.camel_case}(ref base) => {
+                Ok(AnimationValue::${prop.camel_case}(base.to_animated_zero()?))
+            },
+            % endif
+            % endfor
+            _ => Err(()),
         }
     }
 }
@@ -833,9 +826,6 @@ impl Animatable for Au {
     }
 
     #[inline]
-    fn get_zero_value(&self) -> Result<Self, ()> { Ok(Au(0)) }
-
-    #[inline]
     fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
         self.0.compute_distance(&other.0)
     }
@@ -886,9 +876,6 @@ impl Animatable for f32 {
     }
 
     #[inline]
-    fn get_zero_value(&self) -> Result<Self, ()> { Ok(0.) }
-
-    #[inline]
     fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
         Ok((*self - *other).abs() as f64)
     }
@@ -902,9 +889,6 @@ impl Animatable for f64 {
     }
 
     #[inline]
-    fn get_zero_value(&self) -> Result<Self, ()> { Ok(0.) }
-
-    #[inline]
     fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
         Ok((*self - *other).abs())
     }
@@ -916,9 +900,6 @@ impl Animatable for i32 {
     fn add_weighted(&self, other: &i32, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
         Ok((*self as f64 * self_portion + *other as f64 * other_portion).round() as i32)
     }
-
-    #[inline]
-    fn get_zero_value(&self) -> Result<Self, ()> { Ok(0) }
 
     #[inline]
     fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
@@ -955,11 +936,15 @@ impl Animatable for Percentage {
     }
 
     #[inline]
-    fn get_zero_value(&self) -> Result<Self, ()> { Ok(Percentage(0.)) }
-
-    #[inline]
     fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
         Ok((self.0 as f64 - other.0 as f64).abs())
+    }
+}
+
+impl ToAnimatedZero for Percentage {
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        Ok(Percentage(0.))
     }
 }
 
@@ -985,6 +970,13 @@ impl Animatable for Visibility {
         } else {
             Ok(1.0)
         }
+    }
+}
+
+impl ToAnimatedZero for Visibility {
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        Err(())
     }
 }
 
@@ -1026,6 +1018,11 @@ impl Animatable for BorderCornerRadius {
     }
 }
 
+impl ToAnimatedZero for BorderCornerRadius {
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Self, ()> { Err(()) }
+}
+
 /// https://drafts.csswg.org/css-transitions/#animtype-length
 impl Animatable for VerticalAlign {
     #[inline]
@@ -1051,6 +1048,11 @@ impl Animatable for VerticalAlign {
             _ => Err(()),
         }
     }
+}
+
+impl ToAnimatedZero for VerticalAlign {
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Self, ()> { Err(()) }
 }
 
 /// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
@@ -1124,11 +1126,6 @@ impl Animatable for LengthOrPercentage {
     }
 
     #[inline]
-    fn get_zero_value(&self) -> Result<Self, ()> {
-        Ok(LengthOrPercentage::zero())
-    }
-
-    #[inline]
     fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
         match (*self, *other) {
             (LengthOrPercentage::Length(ref this),
@@ -1171,6 +1168,13 @@ impl Animatable for LengthOrPercentage {
     }
 }
 
+impl ToAnimatedZero for LengthOrPercentage {
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        Ok(LengthOrPercentage::zero())
+    }
+}
+
 /// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
 impl Animatable for LengthOrPercentageOrAuto {
     #[inline]
@@ -1197,18 +1201,6 @@ impl Animatable for LengthOrPercentageOrAuto {
                     _ => Err(()),
                 }
             }
-        }
-    }
-
-    #[inline]
-    fn get_zero_value(&self) -> Result<Self, ()> {
-        match *self {
-            LengthOrPercentageOrAuto::Length(_) |
-            LengthOrPercentageOrAuto::Percentage(_) |
-            LengthOrPercentageOrAuto::Calc(_) => {
-                Ok(LengthOrPercentageOrAuto::Length(Au(0)))
-            },
-            LengthOrPercentageOrAuto::Auto => Err(()),
         }
     }
 
@@ -1260,6 +1252,20 @@ impl Animatable for LengthOrPercentageOrAuto {
     }
 }
 
+impl ToAnimatedZero for LengthOrPercentageOrAuto {
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        match *self {
+            LengthOrPercentageOrAuto::Length(_) |
+            LengthOrPercentageOrAuto::Percentage(_) |
+            LengthOrPercentageOrAuto::Calc(_) => {
+                Ok(LengthOrPercentageOrAuto::Length(Au(0)))
+            },
+            LengthOrPercentageOrAuto::Auto => Err(()),
+        }
+    }
+}
+
 /// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
 impl Animatable for LengthOrPercentageOrNone {
     #[inline]
@@ -1290,18 +1296,6 @@ impl Animatable for LengthOrPercentageOrNone {
     }
 
     #[inline]
-    fn get_zero_value(&self) -> Result<Self, ()> {
-        match *self {
-            LengthOrPercentageOrNone::Length(_) |
-            LengthOrPercentageOrNone::Percentage(_) |
-            LengthOrPercentageOrNone::Calc(_) => {
-                Ok(LengthOrPercentageOrNone::Length(Au(0)))
-            },
-            LengthOrPercentageOrNone::None => Err(()),
-        }
-    }
-
-    #[inline]
     fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
         match (*self, *other) {
             (LengthOrPercentageOrNone::Length(ref this),
@@ -1318,6 +1312,20 @@ impl Animatable for LengthOrPercentageOrNone {
                 let other = <Option<CalcLengthOrPercentage>>::from(other);
                 this.compute_distance(&other)
             },
+        }
+    }
+}
+
+impl ToAnimatedZero for LengthOrPercentageOrNone {
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        match *self {
+            LengthOrPercentageOrNone::Length(_) |
+            LengthOrPercentageOrNone::Percentage(_) |
+            LengthOrPercentageOrNone::Calc(_) => {
+                Ok(LengthOrPercentageOrNone::Length(Au(0)))
+            },
+            LengthOrPercentageOrNone::None => Err(()),
         }
     }
 }
@@ -1348,6 +1356,11 @@ impl Animatable for MozLength {
     }
 }
 
+impl ToAnimatedZero for MozLength {
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Self, ()> { Err(()) }
+}
+
 /// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
 impl Animatable for MaxLength {
     #[inline]
@@ -1374,6 +1387,11 @@ impl Animatable for MaxLength {
     }
 }
 
+impl ToAnimatedZero for MaxLength {
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Self, ()> { Err(()) }
+}
+
 /// http://dev.w3.org/csswg/css-transitions/#animtype-font-weight
 impl Animatable for FontWeight {
     #[inline]
@@ -1387,13 +1405,17 @@ impl Animatable for FontWeight {
     }
 
     #[inline]
-    fn get_zero_value(&self) -> Result<Self, ()> { Ok(FontWeight::normal()) }
-
-    #[inline]
     fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
         let a = self.0 as f64;
         let b = other.0 as f64;
         a.compute_distance(&b)
+    }
+}
+
+impl ToAnimatedZero for FontWeight {
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        Ok(FontWeight::normal())
     }
 }
 
@@ -1418,6 +1440,11 @@ impl Animatable for FontStretch {
         let to   = f64::from(*other);
         from.compute_distance(&to)
     }
+}
+
+impl ToAnimatedZero for FontStretch {
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Self, ()> { Err(()) }
 }
 
 /// We should treat font stretch as real number in order to interpolate this property.
@@ -1461,14 +1488,6 @@ impl<H: Animatable, V: Animatable> Animatable for generic_position::Position<H, 
     }
 
     #[inline]
-    fn get_zero_value(&self) -> Result<Self, ()> {
-        Ok(generic_position::Position {
-            horizontal: self.horizontal.get_zero_value()?,
-            vertical: self.vertical.get_zero_value()?,
-        })
-    }
-
-    #[inline]
     fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
         self.compute_squared_distance(other).map(|sd| sd.sqrt())
     }
@@ -1477,6 +1496,20 @@ impl<H: Animatable, V: Animatable> Animatable for generic_position::Position<H, 
     fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
         Ok(self.horizontal.compute_squared_distance(&other.horizontal)? +
            self.vertical.compute_squared_distance(&other.vertical)?)
+    }
+}
+
+impl<H, V> ToAnimatedZero for generic_position::Position<H, V>
+where
+    H: ToAnimatedZero,
+    V: ToAnimatedZero,
+{
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        Ok(generic_position::Position {
+            horizontal: self.horizontal.to_animated_zero()?,
+            vertical: self.vertical.to_animated_zero()?,
+        })
     }
 }
 
@@ -1511,6 +1544,11 @@ impl Animatable for ClipRect {
         ];
         Ok(list.iter().fold(0.0f64, |sum, diff| sum + diff * diff))
     }
+}
+
+impl ToAnimatedZero for ClipRect {
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Self, ()> { Err(()) }
 }
 
 /// Check if it's possible to do a direct numerical interpolation
@@ -2587,9 +2625,13 @@ impl Animatable for TransformList {
             }
         }
     }
+}
 
+impl ToAnimatedZero for TransformList {
     #[inline]
-    fn get_zero_value(&self) -> Result<Self, ()> { Ok(TransformList(None)) }
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        Ok(TransformList(None))
+    }
 }
 
 impl<T, U> Animatable for Either<T, U>
@@ -2608,18 +2650,6 @@ impl<T, U> Animatable for Either<T, U>
                 let result = if self_portion > other_portion {*self} else {*other};
                 Ok(result)
             }
-        }
-    }
-
-    #[inline]
-    fn get_zero_value(&self) -> Result<Self, ()> {
-        match *self {
-            Either::First(ref this) => {
-                Ok(Either::First(this.get_zero_value()?))
-            },
-            Either::Second(ref this) => {
-                Ok(Either::Second(this.get_zero_value()?))
-            },
         }
     }
 
@@ -2646,6 +2676,24 @@ impl<T, U> Animatable for Either<T, U>
                 this.compute_squared_distance(other)
             },
             _ => Err(())
+        }
+    }
+}
+
+impl<A, B> ToAnimatedZero for Either<A, B>
+where
+    A: ToAnimatedZero,
+    B: ToAnimatedZero,
+{
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        match *self {
+            Either::First(ref first) => {
+                Ok(Either::First(first.to_animated_zero()?))
+            },
+            Either::Second(ref second) => {
+                Ok(Either::Second(second.to_animated_zero()?))
+            },
         }
     }
 }
@@ -2729,11 +2777,6 @@ impl Animatable for IntermediateRGBA {
     }
 
     #[inline]
-    fn get_zero_value(&self) -> Result<Self, ()> {
-        Ok(IntermediateRGBA::transparent())
-    }
-
-    #[inline]
     fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
         self.compute_squared_distance(other).map(|sq| sq.sqrt())
     }
@@ -2754,6 +2797,13 @@ impl Animatable for IntermediateRGBA {
                                    n + diff * diff
                                });
         Ok(diff)
+    }
+}
+
+impl ToAnimatedZero for IntermediateRGBA {
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        Ok(IntermediateRGBA::transparent())
     }
 }
 
@@ -2895,6 +2945,11 @@ impl Animatable for IntermediateColor {
     }
 }
 
+impl ToAnimatedZero for IntermediateColor {
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Self, ()> { Err(()) }
+}
+
 /// Animatable SVGPaint
 pub type IntermediateSVGPaint = SVGPaint<IntermediateRGBA>;
 
@@ -2920,12 +2975,14 @@ impl Animatable for IntermediateSVGPaint {
         Ok(self.kind.compute_squared_distance(&other.kind)? +
             self.fallback.compute_squared_distance(&other.fallback)?)
     }
+}
 
+impl ToAnimatedZero for IntermediateSVGPaint {
     #[inline]
-    fn get_zero_value(&self) -> Result<Self, ()> {
+    fn to_animated_zero(&self) -> Result<Self, ()> {
         Ok(IntermediateSVGPaint {
-            kind: self.kind.get_zero_value()?,
-            fallback: self.fallback.and_then(|v| v.get_zero_value().ok()),
+            kind: self.kind.to_animated_zero()?,
+            fallback: self.fallback.and_then(|v| v.to_animated_zero().ok()),
         })
     }
 }
@@ -2958,12 +3015,14 @@ impl Animatable for IntermediateSVGPaintKind {
             _ => Err(())
         }
     }
+}
 
+impl ToAnimatedZero for IntermediateSVGPaintKind {
     #[inline]
-    fn get_zero_value(&self) -> Result<Self, ()> {
+    fn to_animated_zero(&self) -> Result<Self, ()> {
         match *self {
             SVGPaintKind::Color(ref color) => {
-                Ok(SVGPaintKind::Color(color.get_zero_value()?))
+                Ok(SVGPaintKind::Color(color.to_animated_zero()?))
             },
             SVGPaintKind::None |
             SVGPaintKind::ContextFill |

@@ -28,6 +28,7 @@ ${helpers.single_keyword("caption-side", "top bottom",
     pub mod computed_value {
         use app_units::Au;
         use properties::animated_properties::Animatable;
+        use values::animated::ToAnimatedZero;
 
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         #[derive(Clone, Copy, Debug, PartialEq, ToCss)]
@@ -59,6 +60,11 @@ ${helpers.single_keyword("caption-side", "top bottom",
                 Ok(self.horizontal.compute_squared_distance(&other.horizontal)? +
                    self.vertical.compute_squared_distance(&other.vertical)?)
             }
+        }
+
+        impl ToAnimatedZero for T {
+            #[inline]
+            fn to_animated_zero(&self) -> Result<Self, ()> { Err(()) }
         }
     }
 
