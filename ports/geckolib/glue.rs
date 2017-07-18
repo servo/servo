@@ -1738,19 +1738,6 @@ pub extern "C" fn Servo_ComputedValues_Inherit(
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_StyleContext_NewContext(values: ServoComputedValuesBorrowed,
-                                                parent: ServoStyleContextBorrowedOrNull,
-                                                pres_context: bindings::RawGeckoPresContextBorrowed,
-                                                pseudo_type: CSSPseudoElementType,
-                                                pseudo_tag: *mut nsIAtom)
-                                                       -> ServoStyleContextStrong {
-    unsafe {
-        (*values).clone().to_outer_helper(pres_context, parent,
-                                        pseudo_type, pseudo_tag).into_strong()
-    }
-}
-
-#[no_mangle]
 pub extern "C" fn Servo_ComputedValues_GetStyleBits(values: ServoComputedValuesBorrowed) -> u64 {
     use style::properties::computed_value_flags::*;
     let flags = values.flags;
