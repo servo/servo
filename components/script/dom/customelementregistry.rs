@@ -2,14 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::callback::CallbackContainer;
+use dom::bindings::callback::{CallbackContainer, ExceptionHandling};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::CustomElementRegistryBinding;
 use dom::bindings::codegen::Bindings::CustomElementRegistryBinding::CustomElementRegistryMethods;
 use dom::bindings::codegen::Bindings::CustomElementRegistryBinding::ElementDefinitionOptions;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
-use dom::bindings::conversions::{ConversionResult, FromJSValConvertible};
+use dom::bindings::conversions::{ConversionResult, FromJSValConvertible, StringificationBehavior};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root};
@@ -24,13 +24,16 @@ use dom::node::Node;
 use dom::promise::Promise;
 use dom::window::Window;
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix};
+use html5ever::{LocalName, Namespace, Prefix};
 use js::conversions::ToJSValConvertible;
-use js::jsapi::{Construct1, IsConstructor, HandleValueArray, HandleObject};
-use js::jsapi::{JS_GetProperty, JSAutoCompartment, JSContext};
-use js::jsval::{JSVal, ObjectValue, UndefinedValue};
+use js::jsapi::{Construct1, IsCallable, IsConstructor, HandleValueArray, HandleObject, MutableHandleValue};
+use js::jsapi::{Heap, JS_GetProperty, JSAutoCompartment, JSContext};
+use js::jsval::{JSVal, NullValue, ObjectValue, UndefinedValue};
+use microtask::Microtask;
+use script_thread::ScriptThread;
 use std::cell::Cell;
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
+use std::ops::Deref;
 use std::ptr;
 use std::rc::Rc;
 
@@ -94,15 +97,14 @@ impl CustomElementRegistry {
     /// https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define
     /// Steps 10.1, 10.2
     #[allow(unsafe_code)]
-    fn check_prototype(&self, constructor: HandleObject) -> ErrorResult {
+    fn check_prototype(&self, constructor: HandleObject, prototype: MutableHandleValue) -> ErrorResult {
         let global_scope = self.window.upcast::<GlobalScope>();
-        rooted!(in(global_scope.get_cx()) let mut prototype = UndefinedValue());
         unsafe {
             // Step 10.1
             if !JS_GetProperty(global_scope.get_cx(),
                                constructor,
                                b"prototype\0".as_ptr() as *const _,
-                               prototype.handle_mut()) {
+                               prototype) {
                 return Err(Error::JSFailed);
             }
 
@@ -113,14 +115,80 @@ impl CustomElementRegistry {
         }
         Ok(())
     }
+
+    /// https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define
+    /// Steps 10.3, 10.4
+    fn get_callbacks(&self, prototype: HandleObject) -> Fallible<LifecycleCallbacks> {
+        let cx = self.window.get_cx();
+
+        // Step 4
+        Ok(LifecycleCallbacks {
+            connected_callback: get_callback(cx, prototype, b"connectedCallback\0")?,
+            disconnected_callback: get_callback(cx, prototype, b"disconnectedCallback\0")?,
+            adopted_callback: get_callback(cx, prototype, b"adoptedCallback\0")?,
+            attribute_changed_callback: get_callback(cx, prototype, b"attributeChangedCallback\0")?,
+        })
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define
+    /// Step 10.6
+    #[allow(unsafe_code)]
+    fn get_observed_attributes(&self, constructor: HandleObject) -> Fallible<Vec<DOMString>> {
+        let cx = self.window.get_cx();
+        rooted!(in(cx) let mut observed_attributes = UndefinedValue());
+        if unsafe { !JS_GetProperty(cx,
+                                    constructor,
+                                    b"observedAttributes\0".as_ptr() as *const _,
+                                    observed_attributes.handle_mut()) } {
+            return Err(Error::JSFailed);
+        }
+
+        if observed_attributes.is_undefined() {
+            return Ok(Vec::new());
+        }
+
+        let conversion = unsafe {
+            FromJSValConvertible::from_jsval(cx, observed_attributes.handle(), StringificationBehavior::Default)
+        };
+        match conversion {
+            Ok(ConversionResult::Success(attributes)) => Ok(attributes),
+            Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into())),
+            _ => Err(Error::JSFailed),
+        }
+    }
+}
+
+/// https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define
+/// Step 10.4
+#[allow(unsafe_code)]
+fn get_callback(cx: *mut JSContext, prototype: HandleObject, name: &[u8]) -> Fallible<Option<Rc<Function>>> {
+    rooted!(in(cx) let mut callback = UndefinedValue());
+
+    // Step 10.4.1
+    if unsafe { !JS_GetProperty(cx,
+                                prototype,
+                                name.as_ptr() as *const _,
+                                callback.handle_mut()) } {
+        return Err(Error::JSFailed);
+    }
+
+    // Step 10.4.2
+    if !callback.is_undefined() {
+        if !callback.is_object() || unsafe { !IsCallable(callback.to_object()) } {
+            return Err(Error::Type("Lifecycle callback is not callable".to_owned()));
+        }
+        Ok(Some(Function::new(cx, callback.to_object())))
+    } else {
+        Ok(None)
+    }
 }
 
 impl CustomElementRegistryMethods for CustomElementRegistry {
     #[allow(unsafe_code, unrooted_must_root)]
     /// https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define
     fn Define(&self, name: DOMString, constructor_: Rc<Function>, options: &ElementDefinitionOptions) -> ErrorResult {
-        let global_scope = self.window.upcast::<GlobalScope>();
-        rooted!(in(global_scope.get_cx()) let constructor = constructor_.callback());
+        let cx = self.window.get_cx();
+        rooted!(in(cx) let constructor = constructor_.callback());
         let name = LocalName::from(&*name);
 
         // Step 1
@@ -173,22 +241,50 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
         self.element_definition_is_running.set(true);
 
         // Steps 10.1 - 10.2
-        let result = {
-            let _ac = JSAutoCompartment::new(global_scope.get_cx(), constructor.get());
-            self.check_prototype(constructor.handle())
+        rooted!(in(cx) let mut prototype = UndefinedValue());
+        {
+            let _ac = JSAutoCompartment::new(cx, constructor.get());
+            if let Err(error) = self.check_prototype(constructor.handle(), prototype.handle_mut()) {
+                self.element_definition_is_running.set(false);
+                return Err(error);
+            }
         };
 
-        // TODO: Steps 10.3 - 10.6
-        // 10.3 - 10.4 Handle lifecycle callbacks
-        // 10.5 - 10.6 Get observed attributes from the constructor
+        // Steps 10.3 - 10.4
+        rooted!(in(cx) let proto_object = prototype.to_object());
+        let callbacks = {
+            let _ac = JSAutoCompartment::new(cx, proto_object.get());
+            match self.get_callbacks(proto_object.handle()) {
+                Ok(callbacks) => callbacks,
+                Err(error) => {
+                    self.element_definition_is_running.set(false);
+                    return Err(error);
+                },
+            }
+        };
+
+        // Step 10.5 - 10.6
+        let observed_attributes = if callbacks.attribute_changed_callback.is_some() {
+            let _ac = JSAutoCompartment::new(cx, constructor.get());
+            match self.get_observed_attributes(constructor.handle()) {
+                Ok(attributes) => attributes,
+                Err(error) => {
+                    self.element_definition_is_running.set(false);
+                    return Err(error);
+                },
+            }
+        } else {
+            Vec::new()
+        };
 
         self.element_definition_is_running.set(false);
-        result?;
 
         // Step 11
         let definition = CustomElementDefinition::new(name.clone(),
                                                       local_name,
-                                                      constructor_);
+                                                      constructor_,
+                                                      observed_attributes,
+                                                      callbacks);
 
         // Step 12
         self.definitions.borrow_mut().insert(name.clone(), Rc::new(definition));
@@ -254,6 +350,21 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
     }
 }
 
+#[derive(HeapSizeOf, JSTraceable, Clone)]
+pub struct LifecycleCallbacks {
+    #[ignore_heap_size_of = "Rc"]
+    connected_callback: Option<Rc<Function>>,
+
+    #[ignore_heap_size_of = "Rc"]
+    disconnected_callback: Option<Rc<Function>>,
+
+    #[ignore_heap_size_of = "Rc"]
+    adopted_callback: Option<Rc<Function>>,
+
+    #[ignore_heap_size_of = "Rc"]
+    attribute_changed_callback: Option<Rc<Function>>,
+}
+
 /// https://html.spec.whatwg.org/multipage/#custom-element-definition
 #[derive(HeapSizeOf, JSTraceable, Clone)]
 pub struct CustomElementDefinition {
@@ -263,14 +374,25 @@ pub struct CustomElementDefinition {
 
     #[ignore_heap_size_of = "Rc"]
     pub constructor: Rc<Function>,
+
+    pub observed_attributes: Vec<DOMString>,
+
+    pub callbacks: LifecycleCallbacks,
 }
 
 impl CustomElementDefinition {
-    fn new(name: LocalName, local_name: LocalName, constructor: Rc<Function>) -> CustomElementDefinition {
+    fn new(name: LocalName,
+           local_name: LocalName,
+           constructor: Rc<Function>,
+           observed_attributes: Vec<DOMString>,
+           callbacks: LifecycleCallbacks)
+           -> CustomElementDefinition {
         CustomElementDefinition {
             name: name,
             local_name: local_name,
             constructor: constructor,
+            observed_attributes: observed_attributes,
+            callbacks: callbacks,
         }
     }
 
@@ -327,6 +449,192 @@ impl CustomElementDefinition {
         // Element's `is` is None by default
 
         Ok(element)
+    }
+}
+
+#[derive(HeapSizeOf, JSTraceable)]
+#[must_root]
+pub enum CustomElementReaction {
+    // TODO: Support upgrade reactions
+    Callback(
+        #[ignore_heap_size_of = "Rc"]
+        Rc<Function>,
+        Box<[Heap<JSVal>]>
+    ),
+}
+
+impl CustomElementReaction {
+    /// https://html.spec.whatwg.org/multipage/#invoke-custom-element-reactions
+    #[allow(unsafe_code)]
+    pub fn invoke(&self, element: &Element) {
+        // Step 2.1
+        match *self {
+            CustomElementReaction::Callback(ref callback, ref arguments) => {
+                let arguments = arguments.iter().map(|arg| arg.handle()).collect();
+                let _ = callback.Call_(&*element, arguments, ExceptionHandling::Report);
+            }
+        }
+    }
+}
+
+pub enum CallbackReaction {
+    Connected,
+    Disconnected,
+    Adopted(Root<Document>, Root<Document>),
+    AttributeChanged(LocalName, Option<DOMString>, Option<DOMString>, Namespace),
+}
+
+/// https://html.spec.whatwg.org/multipage/#processing-the-backup-element-queue
+#[derive(HeapSizeOf, JSTraceable, Eq, PartialEq, Clone, Copy)]
+enum BackupElementQueueFlag {
+    Processing,
+    NotProcessing,
+}
+
+/// https://html.spec.whatwg.org/multipage/#custom-element-reactions-stack
+#[derive(HeapSizeOf, JSTraceable)]
+#[must_root]
+pub struct CustomElementReactionStack {
+    backup_queue: ElementQueue,
+    processing_backup_element_queue: Cell<BackupElementQueueFlag>,
+}
+
+impl CustomElementReactionStack {
+    pub fn new() -> CustomElementReactionStack {
+        CustomElementReactionStack {
+            backup_queue: ElementQueue::new(),
+            processing_backup_element_queue: Cell::new(BackupElementQueueFlag::NotProcessing),
+        }
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#enqueue-an-element-on-the-appropriate-element-queue
+    /// Step 4
+    pub fn invoke_backup_element_queue(&self) {
+        // Step 4.1
+        self.backup_queue.invoke_reactions();
+
+        // Step 4.2
+        self.processing_backup_element_queue.set(BackupElementQueueFlag::NotProcessing);
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#enqueue-an-element-on-the-appropriate-element-queue
+    pub fn enqueue_element(&self, element: &Element) {
+        // TODO: Steps 1 - 2
+        // Support multiple queues
+
+        // Step 1.1
+        self.backup_queue.append_element(element);
+
+        // Step 1.2
+        if self.processing_backup_element_queue.get() == BackupElementQueueFlag::Processing {
+            return;
+        }
+
+        // Step 1.3
+        self.processing_backup_element_queue.set(BackupElementQueueFlag::Processing);
+
+        // Step 4
+        ScriptThread::enqueue_microtask(Microtask::CustomElementReaction);
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#enqueue-a-custom-element-callback-reaction
+    #[allow(unsafe_code)]
+    pub fn enqueue_callback_reaction(&self, element: &Element, reaction: CallbackReaction) {
+        // Step 1
+        let definition = match element.get_custom_element_definition() {
+            Some(definition) => definition,
+            None => return,
+        };
+
+        // Step 2
+        let (callback, args) = match reaction {
+            CallbackReaction::Connected => (definition.callbacks.connected_callback.clone(), Vec::new()),
+            CallbackReaction::Disconnected => (definition.callbacks.disconnected_callback.clone(), Vec::new()),
+            CallbackReaction::Adopted(ref old_doc, ref new_doc) => {
+                let args = vec![Heap::default(), Heap::default()];
+                args[0].set(ObjectValue(old_doc.reflector().get_jsobject().get()));
+                args[1].set(ObjectValue(new_doc.reflector().get_jsobject().get()));
+                (definition.callbacks.adopted_callback.clone(), args)
+            },
+            CallbackReaction::AttributeChanged(local_name, old_val, val, namespace) => {
+                // Step 4
+                if !definition.observed_attributes.iter().any(|attr| *attr == *local_name) {
+                    return;
+                }
+
+                let cx = element.global().get_cx();
+
+                let local_name = DOMString::from(&*local_name);
+                rooted!(in(cx) let mut name_value = UndefinedValue());
+                unsafe { local_name.to_jsval(cx, name_value.handle_mut()); }
+
+                rooted!(in(cx) let mut old_value = NullValue());
+                if let Some(old_val) = old_val {
+                    unsafe { old_val.to_jsval(cx, old_value.handle_mut()); }
+                }
+
+                rooted!(in(cx) let mut value = NullValue());
+                if let Some(val) = val {
+                    unsafe { val.to_jsval(cx, value.handle_mut()); }
+                }
+
+                let namespace = DOMString::from(&*namespace);
+                rooted!(in(cx) let mut namespace_value = UndefinedValue());
+                unsafe { namespace.to_jsval(cx, namespace_value.handle_mut()); }
+
+                let args = vec![Heap::default(), Heap::default(), Heap::default(), Heap::default()];
+                args[0].set(name_value.get());
+                args[1].set(old_value.get());
+                args[2].set(value.get());
+                args[3].set(namespace_value.get());
+
+                (definition.callbacks.attribute_changed_callback.clone(), args)
+            },
+        };
+
+        // Step 3
+        let callback = match callback {
+            Some(callback) => callback,
+            None => return,
+        };
+
+        // Step 5
+        element.push_callback_reaction(callback, args.into_boxed_slice());
+
+        // Step 6
+        self.enqueue_element(element);
+    }
+}
+
+/// https://html.spec.whatwg.org/multipage/#element-queue
+#[derive(HeapSizeOf, JSTraceable)]
+#[must_root]
+struct ElementQueue {
+    queue: DOMRefCell<VecDeque<JS<Element>>>,
+}
+
+impl ElementQueue {
+    fn new() -> ElementQueue {
+        ElementQueue {
+            queue: Default::default(),
+        }
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#invoke-custom-element-reactions
+    fn invoke_reactions(&self) {
+        // Steps 1-2
+        while let Some(element) = self.next_element() {
+            element.invoke_reactions()
+        }
+        self.queue.borrow_mut().clear();
+    }
+
+    fn next_element(&self) -> Option<Root<Element>> {
+        self.queue.borrow_mut().pop_front().as_ref().map(JS::deref).map(Root::from_ref)
+    }
+
+    fn append_element(&self, element: &Element) {
+        self.queue.borrow_mut().push_back(JS::from_ref(element));
     }
 }
 
