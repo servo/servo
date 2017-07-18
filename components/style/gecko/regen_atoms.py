@@ -39,14 +39,14 @@ def msvc32_symbolify(source, ident):
 
 
 class GkAtomSource:
-    PATTERN = re.compile('^GK_ATOM\((.+),\s*"(.*)"\)')
+    PATTERN = re.compile('^(GK_ATOM)\((.+),\s*"(.*)"\)')
     FILE = "include/nsGkAtomList.h"
     CLASS = "nsGkAtoms"
     TYPE = "nsIAtom"
 
 
 class CSSPseudoElementsAtomSource:
-    PATTERN = re.compile('^CSS_PSEUDO_ELEMENT\((.+),\s*"(.*)",')
+    PATTERN = re.compile('^(CSS_PSEUDO_ELEMENT)\((.+),\s*"(.*)",')
     FILE = "include/nsCSSPseudoElementList.h"
     CLASS = "nsCSSPseudoElements"
     # NB: nsICSSPseudoElement is effectively the same as a nsIAtom, but we need
@@ -55,7 +55,7 @@ class CSSPseudoElementsAtomSource:
 
 
 class CSSAnonBoxesAtomSource:
-    PATTERN = re.compile('^(?:CSS_ANON_BOX|CSS_NON_INHERITING_ANON_BOX)\((.+),\s*"(.*)"\)')
+    PATTERN = re.compile('^(CSS_ANON_BOX|CSS_NON_INHERITING_ANON_BOX)\((.+),\s*"(.*)"\)')
     FILE = "include/nsCSSAnonBoxList.h"
     CLASS = "nsCSSAnonBoxes"
     TYPE = "nsICSSAnonBoxPseudo"
@@ -76,11 +76,14 @@ def map_atom(ident):
 
 
 class Atom:
-    def __init__(self, source, ident, value):
+    def __init__(self, source, macro_name, ident, value):
         self.ident = "{}_{}".format(source.CLASS, ident)
         self.original_ident = ident
         self.value = value
         self.source = source
+        self.macro = macro_name
+        if self.is_anon_box():
+            assert self.is_inheriting_anon_box() or self.is_non_inheriting_anon_box()
 
     def cpp_class(self):
         return self.source.CLASS
@@ -103,6 +106,12 @@ class Atom:
     def is_anon_box(self):
         return self.type() == "nsICSSAnonBoxPseudo"
 
+    def is_non_inheriting_anon_box(self):
+        return self.macro == "CSS_NON_INHERITING_ANON_BOX"
+
+    def is_inheriting_anon_box(self):
+        return self.macro == "CSS_ANON_BOX"
+
     def is_tree_pseudo_element(self):
         return self.value.startswith(":-moz-tree-")
 
@@ -116,7 +125,7 @@ def collect_atoms(objdir):
             for line in f.readlines():
                 result = re.match(source.PATTERN, line)
                 if result:
-                    atoms.append(Atom(source, result.group(1), result.group(2)))
+                    atoms.append(Atom(source, result.group(1), result.group(2), result.group(3)))
     return atoms
 
 
