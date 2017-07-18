@@ -118,6 +118,7 @@ use script_traits::{MouseButton, MouseEventType, MozBrowserEvent};
 use script_traits::{MsDuration, ScriptMsg as ConstellationMsg, TouchpadPressurePhase};
 use script_traits::{TouchEventType, TouchId};
 use script_traits::UntrustedNodeAddress;
+use servo_arc::Arc;
 use servo_atoms::Atom;
 use servo_config::prefs::PREFS;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
@@ -137,7 +138,6 @@ use style::invalidation::element::restyle_hints::{RestyleHint, RESTYLE_SELF, RES
 use style::selector_parser::{RestyleDamage, Snapshot};
 use style::shared_lock::SharedRwLock as StyleSharedRwLock;
 use style::str::{HTML_SPACE_CHARACTERS, split_html_space_chars, str_join};
-use style::stylearc::Arc;
 use style::stylesheets::Stylesheet;
 use task_source::TaskSource;
 use time;

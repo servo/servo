@@ -9,8 +9,8 @@ use gecko_bindings::structs;
 use gecko_bindings::structs::{nsChangeHint, nsStyleContext};
 use matching::{StyleChange, StyleDifference};
 use properties::ComputedValues;
+use servo_arc::Arc;
 use std::ops::{BitAnd, BitOr, BitOrAssign, Not};
-use stylearc::Arc;
 
 /// The representation of Gecko's restyle damage is just a wrapper over
 /// `nsChangeHint`.

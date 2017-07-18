@@ -368,7 +368,7 @@ impl Counter {
               layout_context: &LayoutContext,
               node: OpaqueNode,
               pseudo: PseudoElementType<()>,
-              style: ::StyleArc<ComputedValues>,
+              style: ::ServoArc<ComputedValues>,
               list_style_type: list_style_type::T,
               mode: RenderingMode)
               -> Option<SpecificFragmentInfo> {
@@ -431,7 +431,7 @@ struct CounterValue {
 fn render_text(layout_context: &LayoutContext,
                node: OpaqueNode,
                pseudo: PseudoElementType<()>,
-               style: ::StyleArc<ComputedValues>,
+               style: ::ServoArc<ComputedValues>,
                string: String)
                -> Option<SpecificFragmentInfo> {
     let mut fragments = LinkedList::new();

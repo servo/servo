@@ -6,7 +6,7 @@
 
 #![deny(unsafe_code)]
 
-use StyleArc;
+use ServoArc;
 use app_units::Au;
 use block::BlockFlow;
 use context::LayoutContext;
@@ -193,7 +193,7 @@ impl Flow for MulticolFlow {
         self.block_flow.collect_stacking_contexts(state);
     }
 
-    fn repair_style(&mut self, new_style: &StyleArc<ComputedValues>) {
+    fn repair_style(&mut self, new_style: &ServoArc<ComputedValues>) {
         self.block_flow.repair_style(new_style)
     }
 
@@ -275,7 +275,7 @@ impl Flow for MulticolColumnFlow {
         self.block_flow.collect_stacking_contexts(state);
     }
 
-    fn repair_style(&mut self, new_style: &StyleArc<ComputedValues>) {
+    fn repair_style(&mut self, new_style: &ServoArc<ComputedValues>) {
         self.block_flow.repair_style(new_style)
     }
 

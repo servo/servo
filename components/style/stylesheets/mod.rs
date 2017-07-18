@@ -25,10 +25,10 @@ pub mod viewport_rule;
 use cssparser::{parse_one_rule, Parser, ParserInput};
 use error_reporting::NullReporter;
 use parser::ParserContext;
+use servo_arc::Arc;
 use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt;
 use style_traits::PARSING_MODE_DEFAULT;
-use stylearc::Arc;
 
 pub use self::counter_style_rule::CounterStyleRule;
 pub use self::document_rule::DocumentRule;

@@ -30,6 +30,7 @@ extern crate profile_traits;
 extern crate range;
 extern crate script_traits;
 extern crate selectors;
+extern crate servo_arc;
 extern crate servo_atoms;
 extern crate servo_url;
 extern crate style;

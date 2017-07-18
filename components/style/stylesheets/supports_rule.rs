@@ -9,10 +9,10 @@ use cssparser::{Delimiter, parse_important, Parser, SourceLocation, Token};
 use parser::ParserContext;
 use properties::{PropertyId, PropertyDeclaration, SourcePropertyDeclaration};
 use selectors::parser::SelectorParseError;
+use servo_arc::Arc;
 use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt;
 use style_traits::{ToCss, ParseError, StyleParseError};
-use stylearc::Arc;
 use stylesheets::{CssRuleType, CssRules};
 
 /// An [`@supports`][supports] rule.

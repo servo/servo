@@ -10,13 +10,13 @@ use applicable_declarations::ApplicableDeclarationList;
 #[cfg(feature = "servo")]
 use heapsize::HeapSizeOf;
 use properties::{Importance, LonghandIdSet, PropertyDeclarationBlock};
+use servo_arc::{Arc, ArcBorrow, NonZeroPtrMut};
 use shared_lock::{Locked, StylesheetGuards, SharedRwLockReadGuard};
 use smallvec::SmallVec;
 use std::io::{self, Write};
 use std::mem;
 use std::ptr;
 use std::sync::atomic::{AtomicPtr, AtomicUsize, Ordering};
-use stylearc::{Arc, ArcBorrow, NonZeroPtrMut};
 use stylesheets::StyleRule;
 use thread_state;
 

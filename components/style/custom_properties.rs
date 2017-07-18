@@ -11,12 +11,12 @@ use cssparser::{Delimiter, Parser, ParserInput, SourcePosition, Token, TokenSeri
 use parser::ParserContext;
 use properties::{CSSWideKeyword, DeclaredValue};
 use selectors::parser::SelectorParseError;
+use servo_arc::Arc;
 use std::ascii::AsciiExt;
 use std::borrow::Cow;
 use std::collections::{HashMap, hash_map, HashSet};
 use std::fmt;
 use style_traits::{HasViewportPercentage, ToCss, StyleParseError, ParseError};
-use stylearc::Arc;
 
 /// A custom property name is just an `Atom`.
 ///

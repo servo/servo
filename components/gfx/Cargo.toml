@@ -29,6 +29,7 @@ net_traits = {path = "../net_traits"}
 ordered-float = "0.4"
 range = {path = "../range"}
 serde = "1.0"
+servo_arc = {path = "../servo_arc"}
 servo_atoms = {path = "../atoms"}
 servo_geometry = {path = "../geometry"}
 servo_url = {path = "../url"}

@@ -79,6 +79,7 @@ use selectors::attr::{AttrSelectorOperation, AttrSelectorOperator, CaseSensitivi
 use selectors::matching::{ElementSelectorFlags, LocalMatchingContext, MatchingContext};
 use selectors::matching::{RelevantLinkStatus, VisitedHandlingMode};
 use selectors::sink::Push;
+use servo_arc::{Arc, ArcBorrow, RawOffsetArc};
 use shared_lock::Locked;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -88,7 +89,6 @@ use std::mem;
 use std::ops::DerefMut;
 use std::ptr;
 use string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
-use stylearc::{Arc, ArcBorrow, RawOffsetArc};
 use stylesheets::UrlExtraData;
 use stylist::Stylist;
 

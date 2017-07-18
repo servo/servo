@@ -10,10 +10,10 @@
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
+use servo_arc::{Arc, UniqueArc};
 use std::borrow::Cow;
 use std::collections::HashSet;
 use std::{fmt, mem, ops};
-use stylearc::{Arc, UniqueArc};
 
 use app_units::Au;
 #[cfg(feature = "servo")] use cssparser::RGBA;
@@ -2352,13 +2352,13 @@ pub fn get_writing_mode(inheritedbox_style: &style_structs::InheritedBox) -> Wri
 }
 
 % if product == "gecko":
-    pub use ::stylearc::RawOffsetArc as BuilderArc;
+    pub use ::servo_arc::RawOffsetArc as BuilderArc;
     /// Clone an arc, returning a regular arc
     fn clone_arc<T: 'static>(x: &BuilderArc<T>) -> Arc<T> {
         Arc::from_raw_offset(x.clone())
     }
 % else:
-    pub use ::stylearc::Arc as BuilderArc;
+    pub use ::servo_arc::Arc as BuilderArc;
     /// Clone an arc, returning a regular arc
     fn clone_arc<T: 'static>(x: &BuilderArc<T>) -> Arc<T> {
         x.clone()
@@ -2653,7 +2653,7 @@ pub use self::lazy_static_module::INITIAL_SERVO_VALUES;
 #[allow(missing_docs)]
 mod lazy_static_module {
     use logical_geometry::WritingMode;
-    use stylearc::Arc;
+    use servo_arc::Arc;
     use super::{ComputedValues, ComputedValuesInner, longhands, style_structs, FontComputationData};
     use super::computed_value_flags::ComputedValueFlags;
 

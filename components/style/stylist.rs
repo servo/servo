@@ -31,13 +31,13 @@ use selectors::parser::{AncestorHashes, Combinator, Component, Selector};
 use selectors::parser::{SelectorIter, SelectorMethods};
 use selectors::sink::Push;
 use selectors::visitor::SelectorVisitor;
+use servo_arc::{Arc, ArcBorrow};
 use shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
 use smallvec::VecLike;
 use std::fmt::Debug;
 #[cfg(feature = "servo")]
 use std::marker::PhantomData;
 use style_traits::viewport::ViewportConstraints;
-use stylearc::{Arc, ArcBorrow};
 #[cfg(feature = "gecko")]
 use stylesheets::{CounterStyleRule, FontFaceRule};
 use stylesheets::{CssRule, StyleRule};

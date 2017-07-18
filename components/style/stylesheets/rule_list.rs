@@ -4,8 +4,8 @@
 
 //! A list of CSS rules.
 
+use servo_arc::{Arc, RawOffsetArc};
 use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard};
-use stylearc::{Arc, RawOffsetArc};
 use stylesheets::{CssRule, RulesMutateError};
 use stylesheets::loader::StylesheetLoader;
 use stylesheets::memory::{MallocSizeOfFn, MallocSizeOfWithGuard};

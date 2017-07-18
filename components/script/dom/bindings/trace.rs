@@ -77,6 +77,7 @@ use script_traits::{DocumentActivity, TimerEventId, TimerSource, TouchpadPressur
 use script_traits::{UntrustedNodeAddress, WindowSizeData, WindowSizeType};
 use selectors::matching::ElementSelectorFlags;
 use serde::{Deserialize, Serialize};
+use servo_arc::Arc as ServoArc;
 use servo_atoms::Atom;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use smallvec::SmallVec;
@@ -97,7 +98,6 @@ use style::media_queries::MediaList;
 use style::properties::PropertyDeclarationBlock;
 use style::selector_parser::{PseudoElement, Snapshot};
 use style::shared_lock::{SharedRwLock as StyleSharedRwLock, Locked as StyleLocked};
-use style::stylearc::Arc as StyleArc;
 use style::stylesheets::{CssRules, FontFaceRule, KeyframesRule, MediaRule};
 use style::stylesheets::{NamespaceRule, StyleRule, ImportRule, SupportsRule, ViewportRule};
 use style::stylesheets::keyframes_rule::Keyframe;
@@ -165,7 +165,7 @@ unsafe impl<T: JSTraceable> JSTraceable for Arc<T> {
     }
 }
 
-unsafe impl<T: JSTraceable> JSTraceable for StyleArc<T> {
+unsafe impl<T: JSTraceable> JSTraceable for ServoArc<T> {
     unsafe fn trace(&self, trc: *mut JSTracer) {
         (**self).trace(trc)
     }

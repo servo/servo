@@ -14,9 +14,9 @@ use dom::element::Element;
 use dom::stylesheet::StyleSheet;
 use dom::window::Window;
 use dom_struct::dom_struct;
+use servo_arc::Arc;
 use std::cell::Cell;
 use style::shared_lock::SharedRwLock;
-use style::stylearc::Arc;
 use style::stylesheets::Stylesheet as StyleStyleSheet;
 
 #[dom_struct]

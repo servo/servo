@@ -52,6 +52,7 @@ extern crate net_traits;
 extern crate ordered_float;
 extern crate range;
 #[macro_use] extern crate serde;
+extern crate servo_arc;
 extern crate servo_geometry;
 extern crate servo_url;
 #[macro_use] extern crate servo_atoms;

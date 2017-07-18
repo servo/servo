@@ -93,6 +93,7 @@ use selectors::matching::{ElementSelectorFlags, LocalMatchingContext, MatchingCo
 use selectors::matching::{HAS_EDGE_CHILD_SELECTOR, HAS_SLOW_SELECTOR, HAS_SLOW_SELECTOR_LATER_SIBLINGS};
 use selectors::matching::{RelevantLinkStatus, matches_selector_list};
 use selectors::sink::Push;
+use servo_arc::Arc;
 use servo_atoms::Atom;
 use std::ascii::AsciiExt;
 use std::borrow::Cow;
@@ -113,7 +114,6 @@ use style::rule_tree::CascadeLevel;
 use style::selector_parser::{NonTSPseudoClass, PseudoElement, RestyleDamage, SelectorImpl, SelectorParser};
 use style::selector_parser::extended_filtering;
 use style::shared_lock::{SharedRwLock, Locked};
-use style::stylearc::Arc;
 use style::thread_state;
 use style::values::{CSSFloat, Either};
 use style::values::{specified, computed};

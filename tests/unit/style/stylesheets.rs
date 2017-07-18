@@ -8,6 +8,7 @@ use media_queries::CSSErrorReporterTest;
 use parking_lot::RwLock;
 use selectors::attr::*;
 use selectors::parser::*;
+use servo_arc::Arc;
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
@@ -21,7 +22,6 @@ use style::properties::{CSSWideKeyword, DeclaredValueOwned, PropertyDeclaration,
 use style::properties::longhands;
 use style::properties::longhands::animation_play_state;
 use style::shared_lock::SharedRwLock;
-use style::stylearc::Arc;
 use style::stylesheets::{Origin, Namespaces};
 use style::stylesheets::{Stylesheet, StylesheetContents, NamespaceRule, CssRule, CssRules, StyleRule, KeyframesRule};
 use style::stylesheets::keyframes_rule::{Keyframe, KeyframeSelector, KeyframePercentage};

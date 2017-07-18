@@ -10,8 +10,8 @@ use dom::cssmediarule::CSSMediaRule;
 use dom::cssstylesheet::CSSStyleSheet;
 use dom::csssupportsrule::CSSSupportsRule;
 use dom_struct::dom_struct;
+use servo_arc::Arc;
 use style::shared_lock::{SharedRwLock, Locked};
-use style::stylearc::Arc;
 use style::stylesheets::CssRules as StyleCssRules;
 
 #[dom_struct]

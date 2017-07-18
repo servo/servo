@@ -18,7 +18,7 @@ use properties::longhands::display::computed_value as display;
 use rule_tree::{CascadeLevel, StrongRuleNode};
 use selector_parser::{PseudoElement, RestyleDamage};
 use selectors::matching::ElementSelectorFlags;
-use stylearc::{Arc, ArcBorrow};
+use servo_arc::{Arc, ArcBorrow};
 
 /// Represents the result of comparing an element's old and new style.
 pub struct StyleDifference {

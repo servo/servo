@@ -20,8 +20,8 @@ use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use net_traits::image::base::Image;
+use servo_arc::Arc;
 use std::default::Default;
-use style::stylearc::Arc;
 
 #[dom_struct]
 pub struct HTMLObjectElement {

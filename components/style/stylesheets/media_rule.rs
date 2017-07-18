@@ -8,10 +8,10 @@
 
 use cssparser::SourceLocation;
 use media_queries::MediaList;
+use servo_arc::Arc;
 use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt;
 use style_traits::ToCss;
-use stylearc::Arc;
 use stylesheets::CssRules;
 
 /// An [`@media`][media] urle.

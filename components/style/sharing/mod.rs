@@ -77,11 +77,11 @@ use matching::MatchMethods;
 use owning_ref::OwningHandle;
 use properties::ComputedValues;
 use selectors::matching::{ElementSelectorFlags, VisitedHandlingMode};
+use servo_arc::Arc;
 use smallvec::SmallVec;
 use std::marker::PhantomData;
 use std::mem;
 use std::ops::Deref;
-use stylearc::Arc;
 use stylist::Stylist;
 
 mod checks;

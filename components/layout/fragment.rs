@@ -6,7 +6,7 @@
 
 #![deny(unsafe_code)]
 
-use StyleArc;
+use ServoArc;
 use app_units::Au;
 use canvas_traits::CanvasMsg;
 use context::{LayoutContext, with_thread_local_font_context};
@@ -95,10 +95,10 @@ pub struct Fragment {
     pub node: OpaqueNode,
 
     /// The CSS style of this fragment.
-    pub style: StyleArc<ComputedValues>,
+    pub style: ServoArc<ComputedValues>,
 
     /// The CSS style of this fragment when it's selected
-    pub selected_style: StyleArc<ComputedValues>,
+    pub selected_style: ServoArc<ComputedValues>,
 
     /// The position of this fragment relative to its owning flow. The size includes padding and
     /// border, but not margin.
@@ -676,8 +676,8 @@ impl Fragment {
     /// Constructs a new `Fragment` instance from an opaque node.
     pub fn from_opaque_node_and_style(node: OpaqueNode,
                                       pseudo: PseudoElementType<()>,
-                                      style: StyleArc<ComputedValues>,
-                                      selected_style: StyleArc<ComputedValues>,
+                                      style: ServoArc<ComputedValues>,
+                                      selected_style: ServoArc<ComputedValues>,
                                       mut restyle_damage: RestyleDamage,
                                       specific: SpecificFragmentInfo)
                                       -> Fragment {
@@ -706,7 +706,7 @@ impl Fragment {
     /// type. For the new anonymous fragment, layout-related values (border box, etc.) are reset to
     /// initial values.
     pub fn create_similar_anonymous_fragment(&self,
-                                             style: StyleArc<ComputedValues>,
+                                             style: ServoArc<ComputedValues>,
                                              specific: SpecificFragmentInfo)
                                              -> Fragment {
         let writing_mode = style.writing_mode;
@@ -2423,7 +2423,7 @@ impl Fragment {
         }
     }
 
-    pub fn repair_style(&mut self, new_style: &StyleArc<ComputedValues>) {
+    pub fn repair_style(&mut self, new_style: &ServoArc<ComputedValues>) {
         self.style = (*new_style).clone()
     }
 

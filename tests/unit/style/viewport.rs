@@ -5,13 +5,13 @@
 use cssparser::{Parser, ParserInput};
 use euclid::TypedSize2D;
 use media_queries::CSSErrorReporterTest;
+use servo_arc::Arc;
 use servo_config::prefs::{PREFS, PrefValue};
 use servo_url::ServoUrl;
 use style::context::QuirksMode;
 use style::media_queries::{Device, MediaList, MediaType};
 use style::parser::{Parse, ParserContext};
 use style::shared_lock::SharedRwLock;
-use style::stylearc::Arc;
 use style::stylesheets::{CssRuleType, Stylesheet, StylesheetInDocument, Origin};
 use style::stylesheets::viewport_rule::*;
 use style::values::specified::LengthOrPercentageOrAuto::{self, Auto};

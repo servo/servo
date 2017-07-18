@@ -6,10 +6,10 @@
 
 use gecko_bindings::structs;
 use gecko_bindings::sugar::ownership::HasArcFFI;
+use servo_arc::Arc;
 use std::{mem, ptr};
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
-use stylearc::Arc;
 
 /// Trait for all objects that have Addref() and Release
 /// methods and can be placed inside RefPtr<T>
