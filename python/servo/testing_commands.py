@@ -814,8 +814,8 @@ class WebPlatformTestsCreator(CommandBase):
     template_long_timeout = "<meta name=timeout content=long>\n"
 
     template_body_th = """<title></title>
-<script src="/resources/testharness.js"></script>
-<script src="/resources/testharnessreport.js"></script>
+<script src="/tests/resources/testharness.js"></script>
+<script src="/tests/resources/testharnessreport.js"></script>
 <script>
 
 </script>
