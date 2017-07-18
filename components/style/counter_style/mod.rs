@@ -8,7 +8,7 @@
 
 use Atom;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser};
-use cssparser::{Parser, Token, serialize_identifier, BasicParseError, CompactCowStr};
+use cssparser::{Parser, Token, serialize_identifier, BasicParseError, CowRcStr};
 use error_reporting::ContextualParseError;
 #[cfg(feature = "gecko")] use gecko::rules::CounterStyleDescriptors;
 #[cfg(feature = "gecko")] use gecko_bindings::structs::nsCSSCounterDesc;
@@ -184,7 +184,7 @@ macro_rules! counter_style_descriptors {
             type Declaration = ();
             type Error = SelectorParseError<'i, StyleParseError<'i>>;
 
-            fn parse_value<'t>(&mut self, name: CompactCowStr<'i>, input: &mut Parser<'i, 't>)
+            fn parse_value<'t>(&mut self, name: CowRcStr<'i>, input: &mut Parser<'i, 't>)
                                -> Result<(), ParseError<'i>> {
                 match_ignore_ascii_case! { &*name,
                     $(

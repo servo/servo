@@ -9,11 +9,10 @@
 #![deny(missing_docs)]
 
 use Atom;
-pub use cssparser::{RGBA, Token, Parser, serialize_identifier, BasicParseError, CompactCowStr};
+pub use cssparser::{RGBA, Token, Parser, serialize_identifier, BasicParseError, CowRcStr};
 use parser::{Parse, ParserContext};
 use selectors::parser::SelectorParseError;
 use std::ascii::AsciiExt;
-use std::borrow::Cow;
 use std::fmt::{self, Debug};
 use std::hash;
 use style_traits::{ToCss, ParseError, StyleParseError};
@@ -87,7 +86,7 @@ pub struct CustomIdent(pub Atom);
 
 impl CustomIdent {
     /// Parse an already-tokenizer identifier
-    pub fn from_ident<'i>(ident: CompactCowStr<'i>, excluding: &[&str]) -> Result<Self, ParseError<'i>> {
+    pub fn from_ident<'i>(ident: CowRcStr<'i>, excluding: &[&str]) -> Result<Self, ParseError<'i>> {
         let valid = match_ignore_ascii_case! { &ident,
             "initial" | "inherit" | "unset" | "default" => false,
             _ => true
@@ -98,7 +97,7 @@ impl CustomIdent {
         if excluding.iter().any(|s| ident.eq_ignore_ascii_case(s)) {
             Err(StyleParseError::UnspecifiedError.into())
         } else {
-            Ok(CustomIdent(Atom::from(Cow::from(ident))))
+            Ok(CustomIdent(Atom::from(ident.as_ref())))
         }
     }
 }
@@ -156,7 +155,7 @@ impl Parse for KeyframesName {
     fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         match input.next() {
             Ok(Token::Ident(s)) => Ok(KeyframesName::Ident(CustomIdent::from_ident(s, &["none"])?)),
-            Ok(Token::QuotedString(s)) => Ok(KeyframesName::QuotedString(Atom::from(Cow::from(s)))),
+            Ok(Token::QuotedString(s)) => Ok(KeyframesName::QuotedString(Atom::from(s.as_ref()))),
             Ok(t) => Err(BasicParseError::UnexpectedToken(t).into()),
             Err(e) => Err(e.into()),
         }

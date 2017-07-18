@@ -10,7 +10,7 @@
 use app_units::Au;
 use context::QuirksMode;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser, parse_important};
-use cssparser::{CompactCowStr, ToCss as ParserToCss};
+use cssparser::{CowRcStr, ToCss as ParserToCss};
 use error_reporting::ContextualParseError;
 use euclid::TypedSize2D;
 use font_metrics::get_metrics_provider_for_product;
@@ -280,7 +280,7 @@ impl<'a, 'b, 'i> DeclarationParser<'i> for ViewportRuleParser<'a, 'b> {
     type Declaration = Vec<ViewportDescriptorDeclaration>;
     type Error = SelectorParseError<'i, StyleParseError<'i>>;
 
-    fn parse_value<'t>(&mut self, name: CompactCowStr<'i>, input: &mut Parser<'i, 't>)
+    fn parse_value<'t>(&mut self, name: CowRcStr<'i>, input: &mut Parser<'i, 't>)
                        -> Result<Vec<ViewportDescriptorDeclaration>, ParseError<'i>> {
         macro_rules! declaration {
             ($declaration:ident($parse:expr)) => {

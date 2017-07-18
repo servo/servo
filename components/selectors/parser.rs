@@ -7,7 +7,7 @@ use attr::{ParsedCaseSensitivity, SELECTOR_WHITESPACE, NamespaceConstraint};
 use bloom::BLOOM_HASH_MASK;
 use builder::{SelectorBuilder, SpecificityAndFlags};
 use context::QuirksMode;
-use cssparser::{ParseError, BasicParseError, CompactCowStr};
+use cssparser::{ParseError, BasicParseError, CowRcStr};
 use cssparser::{Token, Parser as CssParser, parse_nth, ToCss, serialize_identifier, CssStringWriter};
 use precomputed_hash::PrecomputedHash;
 use servo_arc::ThinArc;
@@ -59,8 +59,8 @@ pub enum SelectorParseError<'i, T> {
     PseudoElementExpectedColon,
     PseudoElementExpectedIdent,
     UnsupportedPseudoClass,
-    UnexpectedIdent(CompactCowStr<'i>),
-    ExpectedNamespace(CompactCowStr<'i>),
+    UnexpectedIdent(CowRcStr<'i>),
+    ExpectedNamespace(CowRcStr<'i>),
     Custom(T),
 }
 
@@ -76,13 +76,6 @@ macro_rules! with_all_bounds {
         [ $( $CommonBounds: tt )* ]
         [ $( $FromStr: tt )* ]
     ) => {
-        fn from_cow_str<T>(cow: Cow<str>) -> T where T: $($FromStr)* {
-            match cow {
-                Cow::Borrowed(s) => T::from(s),
-                Cow::Owned(s) => T::from(s),
-            }
-        }
-
         /// This trait allows to define the parser implementation in regards
         /// of pseudo-classes/elements
         ///
@@ -125,7 +118,7 @@ macro_rules! with_bounds {
 
 with_bounds! {
     [Clone + Eq]
-    [From<String> + for<'a> From<&'a str>]
+    [for<'a> From<&'a str>]
 }
 
 pub trait Parser<'i> {
@@ -134,34 +127,34 @@ pub trait Parser<'i> {
 
     /// Whether the name is a pseudo-element that can be specified with
     /// the single colon syntax in addition to the double-colon syntax.
-    fn is_pseudo_element_allows_single_colon(name: &CompactCowStr<'i>) -> bool {
+    fn is_pseudo_element_allows_single_colon(name: &CowRcStr<'i>) -> bool {
         is_css2_pseudo_element(name)
     }
 
     /// This function can return an "Err" pseudo-element in order to support CSS2.1
     /// pseudo-elements.
-    fn parse_non_ts_pseudo_class(&self, name: CompactCowStr<'i>)
+    fn parse_non_ts_pseudo_class(&self, name: CowRcStr<'i>)
                                  -> Result<<Self::Impl as SelectorImpl>::NonTSPseudoClass,
                                            ParseError<'i, SelectorParseError<'i, Self::Error>>> {
         Err(ParseError::Custom(SelectorParseError::UnexpectedIdent(name)))
     }
 
     fn parse_non_ts_functional_pseudo_class<'t>
-        (&self, name: CompactCowStr<'i>, _arguments: &mut CssParser<'i, 't>)
+        (&self, name: CowRcStr<'i>, _arguments: &mut CssParser<'i, 't>)
          -> Result<<Self::Impl as SelectorImpl>::NonTSPseudoClass,
                    ParseError<'i, SelectorParseError<'i, Self::Error>>>
     {
         Err(ParseError::Custom(SelectorParseError::UnexpectedIdent(name)))
     }
 
-    fn parse_pseudo_element(&self, name: CompactCowStr<'i>)
+    fn parse_pseudo_element(&self, name: CowRcStr<'i>)
                             -> Result<<Self::Impl as SelectorImpl>::PseudoElement,
                                       ParseError<'i, SelectorParseError<'i, Self::Error>>> {
         Err(ParseError::Custom(SelectorParseError::UnexpectedIdent(name)))
     }
 
     fn parse_functional_pseudo_element<'t>
-        (&self, name: CompactCowStr<'i>, _arguments: &mut CssParser<'i, 't>)
+        (&self, name: CowRcStr<'i>, _arguments: &mut CssParser<'i, 't>)
          -> Result<<Self::Impl as SelectorImpl>::PseudoElement,
                    ParseError<'i, SelectorParseError<'i, Self::Error>>> {
         Err(ParseError::Custom(SelectorParseError::UnexpectedIdent(name)))
@@ -1154,8 +1147,8 @@ fn parse_type_selector<'i, 't, P, E, Impl, S>(parser: &P, input: &mut CssParser<
             match local_name {
                 Some(name) => {
                     sink.push(Component::LocalName(LocalName {
-                        lower_name: from_cow_str(to_ascii_lowercase(&name)),
-                        name: from_cow_str(name.into()),
+                        lower_name: to_ascii_lowercase(&name).as_ref().into(),
+                        name: name.as_ref().into(),
                     }))
                 }
                 None => {
@@ -1189,7 +1182,7 @@ enum QNamePrefix<Impl: SelectorImpl> {
 fn parse_qualified_name<'i, 't, P, E, Impl>
                        (parser: &P, input: &mut CssParser<'i, 't>,
                         in_attr_selector: bool)
-                        -> Result<Option<(QNamePrefix<Impl>, Option<CompactCowStr<'i>>)>,
+                        -> Result<Option<(QNamePrefix<Impl>, Option<CowRcStr<'i>>)>,
                                   ParseError<'i, SelectorParseError<'i, E>>>
     where P: Parser<'i, Impl=Impl, Error=E>, Impl: SelectorImpl
 {
@@ -1220,7 +1213,7 @@ fn parse_qualified_name<'i, 't, P, E, Impl>
             let position = input.position();
             match input.next_including_whitespace() {
                 Ok(Token::Delim('|')) => {
-                    let prefix = from_cow_str(value.clone().into());
+                    let prefix = value.as_ref().into();
                     let result = parser.namespace_for_prefix(&prefix);
                     let url = result.ok_or(ParseError::Custom(
                         SelectorParseError::ExpectedNamespace(value.into())))?;
@@ -1303,8 +1296,8 @@ fn parse_attribute_selector<'i, 't, P, E, Impl>(parser: &P, input: &mut CssParse
     match input.next() {
         // [foo]
         Err(_) => {
-            let local_name_lower = from_cow_str(to_ascii_lowercase(&local_name));
-            let local_name = from_cow_str(local_name.into());
+            let local_name_lower = to_ascii_lowercase(&local_name).as_ref().into();
+            let local_name = local_name.as_ref().into();
             if let Some(namespace) = namespace {
                 return Ok(Component::AttributeOther(Box::new(AttrSelectorWithNamespace {
                     namespace: namespace,
@@ -1362,7 +1355,7 @@ fn parse_attribute_selector<'i, 't, P, E, Impl>(parser: &P, input: &mut CssParse
 
     let mut case_sensitivity = parse_attribute_flags(input)?;
 
-    let value = from_cow_str(value.into());
+    let value = value.as_ref().into();
     let local_name_lower;
     {
         let local_name_lower_cow = to_ascii_lowercase(&local_name);
@@ -1375,9 +1368,9 @@ fn parse_attribute_selector<'i, 't, P, E, Impl>(parser: &P, input: &mut CssParse
                     ParsedCaseSensitivity::AsciiCaseInsensitiveIfInHtmlElementInHtmlDocument
             }
         }
-        local_name_lower = from_cow_str(local_name_lower_cow.into());
+        local_name_lower = local_name_lower_cow.as_ref().into();
     }
-    let local_name = from_cow_str(local_name.into());
+    let local_name = local_name.as_ref().into();
     if let Some(namespace) = namespace {
         Ok(Component::AttributeOther(Box::new(AttrSelectorWithNamespace {
             namespace: namespace,
@@ -1553,7 +1546,7 @@ fn parse_compound_selector<'i, 't, P, E, Impl>(
 
 fn parse_functional_pseudo_class<'i, 't, P, E, Impl>(parser: &P,
                                                      input: &mut CssParser<'i, 't>,
-                                                     name: CompactCowStr<'i>,
+                                                     name: CowRcStr<'i>,
                                                      inside_negation: bool)
                                                      -> Result<Component<Impl>,
                                                                ParseError<'i, SelectorParseError<'i, E>>>
@@ -1589,7 +1582,7 @@ where Impl: SelectorImpl, F: FnOnce(i32, i32) -> Component<Impl> {
 /// Returns whether the name corresponds to a CSS2 pseudo-element that
 /// can be specified with the single colon syntax (in addition to the
 /// double-colon syntax, which can be used for all pseudo-elements).
-pub fn is_css2_pseudo_element<'i>(name: &CompactCowStr<'i>) -> bool {
+pub fn is_css2_pseudo_element<'i>(name: &CowRcStr<'i>) -> bool {
     // ** Do not add to this list! **
     return name.eq_ignore_ascii_case("before") ||
            name.eq_ignore_ascii_case("after") ||
@@ -1612,13 +1605,13 @@ fn parse_one_simple_selector<'i, 't, P, E, Impl>(parser: &P,
     let start_position = input.position();
     match input.next_including_whitespace() {
         Ok(Token::IDHash(id)) => {
-            let id = Component::ID(from_cow_str(id.into()));
+            let id = Component::ID(id.as_ref().into());
             Ok(Some(SimpleSelectorParseResult::SimpleSelector(id)))
         }
         Ok(Token::Delim('.')) => {
             match input.next_including_whitespace()? {
                 Token::Ident(class) => {
-                    let class = Component::Class(from_cow_str(class.into()));
+                    let class = Component::Class(class.as_ref().into());
                     Ok(Some(SimpleSelectorParseResult::SimpleSelector(class)))
                 }
                 t => Err(ParseError::Basic(BasicParseError::UnexpectedToken(t))),
@@ -1667,7 +1660,7 @@ fn parse_one_simple_selector<'i, 't, P, E, Impl>(parser: &P,
     }
 }
 
-fn parse_simple_pseudo_class<'i, P, E, Impl>(parser: &P, name: CompactCowStr<'i>)
+fn parse_simple_pseudo_class<'i, P, E, Impl>(parser: &P, name: CowRcStr<'i>)
                                              -> Result<Component<Impl>,
                                                        ParseError<'i, SelectorParseError<'i, E>>>
     where P: Parser<'i, Impl=Impl, Error=E>, Impl: SelectorImpl
@@ -1821,7 +1814,7 @@ pub mod tests {
         type Impl = DummySelectorImpl;
         type Error = ();
 
-        fn parse_non_ts_pseudo_class(&self, name: CompactCowStr<'i>)
+        fn parse_non_ts_pseudo_class(&self, name: CowRcStr<'i>)
                                      -> Result<PseudoClass,
                                                ParseError<'i, SelectorParseError<'i, ()>>> {
             match_ignore_ascii_case! { &name,
@@ -1831,7 +1824,7 @@ pub mod tests {
             }
         }
 
-        fn parse_non_ts_functional_pseudo_class<'t>(&self, name: CompactCowStr<'i>,
+        fn parse_non_ts_functional_pseudo_class<'t>(&self, name: CowRcStr<'i>,
                                                     parser: &mut CssParser<'i, 't>)
                                                     -> Result<PseudoClass,
                                                               ParseError<'i, SelectorParseError<'i, ()>>> {
@@ -1841,7 +1834,7 @@ pub mod tests {
             }
         }
 
-        fn parse_pseudo_element(&self, name: CompactCowStr<'i>)
+        fn parse_pseudo_element(&self, name: CowRcStr<'i>)
                                 -> Result<PseudoElement,
                                           ParseError<'i, SelectorParseError<'i, ()>>> {
             match_ignore_ascii_case! { &name,

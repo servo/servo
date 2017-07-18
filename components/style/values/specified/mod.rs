@@ -12,7 +12,6 @@ use cssparser::{Parser, Token, serialize_identifier, BasicParseError};
 use parser::{ParserContext, Parse};
 use self::url::SpecifiedUrl;
 use std::ascii::AsciiExt;
-use std::borrow::Cow;
 use std::f32;
 use std::fmt;
 use style_traits::{ToCss, ParseError, StyleParseError};
@@ -952,7 +951,7 @@ impl Attr {
             };
 
             let ns_with_id = if let Some(ns) = first {
-                let ns = Namespace::from(Cow::from(ns));
+                let ns = Namespace::from(ns.as_ref());
                 let id: Result<_, ParseError> =
                     get_id_for_namespace(&ns, context)
                     .map_err(|()| StyleParseError::UnspecifiedError.into());
