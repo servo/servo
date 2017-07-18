@@ -17,7 +17,7 @@ use ipc_channel::ipc;
 use js::jsapi::{JSContext, HandleValue};
 use js::jsval::{JSVal, UndefinedValue};
 use msg::constellation_msg::PipelineId;
-use script_traits::ScriptMsg as ConstellationMsg;
+use script_traits::ScriptMsg;
 use servo_url::ImmutableOrigin;
 use servo_url::MutableOrigin;
 use servo_url::ServoUrl;
@@ -54,7 +54,7 @@ impl DissimilarOriginWindow {
                                                     global_to_clone_from.devtools_chan().cloned(),
                                                     global_to_clone_from.mem_profiler_chan().clone(),
                                                     global_to_clone_from.time_profiler_chan().clone(),
-                                                    global_to_clone_from.constellation_chan().clone(),
+                                                    global_to_clone_from.script_to_constellation_chan().clone(),
                                                     global_to_clone_from.scheduler_chan().clone(),
                                                     global_to_clone_from.resource_threads().clone(),
                                                     timer_event_chan,
@@ -184,9 +184,9 @@ impl DissimilarOriginWindowMethods for DissimilarOriginWindow {
 
 impl DissimilarOriginWindow {
     pub fn post_message(&self, origin: Option<ImmutableOrigin>, data: StructuredCloneData) {
-        let msg = ConstellationMsg::PostMessage(self.window_proxy.browsing_context_id(),
+        let msg = ScriptMsg::PostMessage(self.window_proxy.browsing_context_id(),
                                                 origin,
                                                 data.move_to_arraybuffer());
-        let _ = self.upcast::<GlobalScope>().constellation_chan().send(msg);
+        let _ = self.upcast::<GlobalScope>().script_to_constellation_chan().send(msg);
     }
 }

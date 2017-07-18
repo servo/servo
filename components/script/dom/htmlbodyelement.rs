@@ -19,7 +19,7 @@ use dom::node::{Node, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
-use script_traits::ScriptMsg as ConstellationMsg;
+use script_traits::ScriptMsg;
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
 use time;
@@ -138,8 +138,8 @@ impl VirtualMethods for HTMLBodyElement {
         let window = window_from_node(self);
         let document = window.Document();
         document.set_reflow_timeout(time::precise_time_ns() + INITIAL_REFLOW_DELAY);
-        let event = ConstellationMsg::HeadParsed;
-        window.upcast::<GlobalScope>().constellation_chan().send(event).unwrap();
+        let event = ScriptMsg::HeadParsed;
+        window.upcast::<GlobalScope>().script_to_constellation_chan().send(event).unwrap();
     }
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {

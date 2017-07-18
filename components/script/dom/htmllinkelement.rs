@@ -25,7 +25,7 @@ use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use net_traits::ReferrerPolicy;
 use script_layout_interface::message::Msg;
-use script_traits::{MozBrowserEvent, ScriptMsg as ConstellationMsg};
+use script_traits::{MozBrowserEvent, ScriptMsg};
 use servo_arc::Arc;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
@@ -309,8 +309,8 @@ impl HTMLLinkElement {
         let document = document_from_node(self);
         match document.base_url().join(href) {
             Ok(url) => {
-                let event = ConstellationMsg::NewFavicon(url.clone());
-                document.window().upcast::<GlobalScope>().constellation_chan().send(event).unwrap();
+                let event = ScriptMsg::NewFavicon(url.clone());
+                document.window().upcast::<GlobalScope>().script_to_constellation_chan().send(event).unwrap();
 
                 let mozbrowser_event = match *sizes {
                     Some(ref sizes) => MozBrowserEvent::IconChange(rel.to_owned(), url.to_string(), sizes.to_owned()),
