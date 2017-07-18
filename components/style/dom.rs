@@ -33,7 +33,6 @@ use std::fmt::Debug;
 use std::hash::Hash;
 use std::ops::Deref;
 use stylist::Stylist;
-use thread_state;
 use traversal_flags::{TraversalFlags, self};
 
 pub use style_traits::UnsafeNode;
@@ -238,44 +237,6 @@ fn fmt_subtree<F, N: TNode>(f: &mut fmt::Formatter, stringify: &F, n: N, indent:
     }
 
     Ok(())
-}
-
-/// Flag that this element has a descendant for style processing, propagating
-/// the bit up to the root as needed.
-///
-/// This is _not_ safe to call during the parallel traversal.
-///
-/// This is intended as a helper so Servo and Gecko can override it with custom
-/// stuff if needed.
-///
-/// Returns whether no parent had already noted it, that is, whether we reached
-/// the root during the walk up.
-pub unsafe fn raw_note_descendants<E, B>(element: E) -> bool
-    where E: TElement,
-          B: DescendantsBit<E>,
-{
-    debug_assert!(!thread_state::get().is_worker());
-    // TODO(emilio, bholley): Documenting the flags setup a bit better wouldn't
-    // really hurt I guess.
-    debug_assert!(element.get_data().is_some(),
-                  "You should ensure you only flag styled elements");
-
-    let mut curr = Some(element);
-    while let Some(el) = curr {
-        if B::has(el) {
-            break;
-        }
-        B::set(el);
-        curr = el.traversal_parent();
-    }
-
-    // Note: We disable this assertion on servo because of bugs. See the
-    // comment around note_dirty_descendant in layout/wrapper.rs.
-    if cfg!(feature = "gecko") {
-        debug_assert!(element.descendants_bit_is_propagated::<B>());
-    }
-
-    curr.is_none()
 }
 
 /// A trait used to synthesize presentational hints for HTML element attributes.
@@ -501,29 +462,10 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
         data.has_styles() && !data.restyle.hint.has_non_animation_invalidations()
     }
 
-    /// Flags an element and its ancestors with a given `DescendantsBit`.
-    ///
-    /// TODO(emilio): We call this conservatively from restyle_element_internal
-    /// because we never flag unstyled stuff. A different setup for this may be
-    /// a bit cleaner, but it's probably not worth to invest on it right now
-    /// unless necessary.
-    unsafe fn note_descendants<B: DescendantsBit<Self>>(&self);
-
     /// Flag that this element has a descendant for style processing.
     ///
     /// Only safe to call with exclusive access to the element.
     unsafe fn set_dirty_descendants(&self);
-
-    /// Debug helper to be sure the bit is propagated.
-    fn descendants_bit_is_propagated<B: DescendantsBit<Self>>(&self) -> bool {
-        let mut current = Some(*self);
-        while let Some(el) = current {
-            if !B::has(el) { return false; }
-            current = el.traversal_parent();
-        }
-
-        true
-    }
 
     /// Flag that this element has no descendant for style processing.
     ///

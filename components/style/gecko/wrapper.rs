@@ -20,7 +20,7 @@ use applicable_declarations::ApplicableDeclarationBlock;
 use atomic_refcell::{AtomicRefCell, AtomicRefMut};
 use context::{QuirksMode, SharedStyleContext, PostAnimationTasks, UpdateAnimationsTasks};
 use data::{ElementData, RestyleData};
-use dom::{self, DescendantsBit, LayoutIterator, NodeInfo, TElement, TNode, UnsafeNode};
+use dom::{LayoutIterator, NodeInfo, TElement, TNode, UnsafeNode};
 use dom::{OpaqueNode, PresentationalHintsSynthesizer};
 use element_state::{ElementState, DocumentState, NS_DOCUMENT_STATE_WINDOW_INACTIVE};
 use error_reporting::ParseErrorReporter;
@@ -685,8 +685,6 @@ impl<'le> GeckoElement<'le> {
     unsafe fn maybe_restyle<'a>(&self,
                                 data: &'a mut ElementData,
                                 animation_only: bool) -> Option<&'a mut RestyleData> {
-        use dom::{AnimationOnlyDirtyDescendants, DirtyDescendants};
-
         // Don't generate a useless RestyleData if the element hasn't been styled.
         if !data.has_styles() {
             return None;
@@ -695,13 +693,14 @@ impl<'le> GeckoElement<'le> {
         // Propagate the bit up the chain.
         if let Some(p) = self.traversal_parent() {
             if animation_only {
-                p.note_descendants::<AnimationOnlyDirtyDescendants>();
+                bindings::Gecko_NoteAnimationOnlyDirtyDescendants(p.0);
             } else {
-                p.note_descendants::<DirtyDescendants>();
+                bindings::Gecko_NoteDirtyDescendants(p.0);
             }
-        };
-
-        bindings::Gecko_SetOwnerDocumentNeedsStyleFlush(self.0);
+        } else {
+            // If there's no parent, we still need to trigger the style flush.
+            bindings::Gecko_SetOwnerDocumentNeedsStyleFlush(self.0);
+        }
 
         // Ensure and return the RestyleData.
         Some(&mut data.restyle)
@@ -1040,23 +1039,6 @@ impl<'le> TElement for GeckoElement<'le> {
         debug_assert!(self.get_data().is_some());
         debug!("Setting dirty descendants: {:?}", self);
         self.set_flags(ELEMENT_HAS_DIRTY_DESCENDANTS_FOR_SERVO as u32)
-    }
-
-    unsafe fn note_descendants<B: DescendantsBit<Self>>(&self) {
-        // FIXME(emilio): We seem to reach this in Gecko's
-        // layout/style/test/test_pseudoelement_state.html, while changing the
-        // state of an anonymous content element which is styled, but whose
-        // parent isn't, presumably because we've cleared the data and haven't
-        // reached it yet.
-        //
-        // Otherwise we should be able to assert this.
-        if self.get_data().is_none() {
-            return;
-        }
-
-        if dom::raw_note_descendants::<Self, B>(*self) {
-            bindings::Gecko_SetOwnerDocumentNeedsStyleFlush(self.0);
-        }
     }
 
     unsafe fn unset_dirty_descendants(&self) {
