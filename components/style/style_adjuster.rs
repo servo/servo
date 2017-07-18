@@ -291,6 +291,31 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         self.style.mutate_box().set_display(display::inline);
     }
 
+    /// If a <fieldset> has grid/flex display type, we need to inherit
+    /// this type into its ::-moz-fieldset-content anonymous box.
+    #[cfg(feature = "gecko")]
+    fn adjust_for_fieldset_content(&mut self,
+                                   layout_parent_style: &ComputedValuesInner,
+                                   flags: CascadeFlags) {
+        use properties::IS_FIELDSET_CONTENT;
+        if !flags.contains(IS_FIELDSET_CONTENT) {
+            return;
+        }
+        debug_assert_eq!(self.style.get_box().clone_display(), display::block);
+        // TODO We actually want style from parent rather than layout
+        // parent, so that this fixup doesn't happen incorrectly when
+        // when <fieldset> has "display: contents".
+        let parent_display = layout_parent_style.get_box().clone_display();
+        let new_display = match parent_display {
+            display::flex | display::inline_flex => Some(display::flex),
+            display::grid | display::inline_grid => Some(display::grid),
+            _ => None,
+        };
+        if let Some(new_display) = new_display {
+            self.style.mutate_box().set_display(new_display);
+        }
+    }
+
     /// -moz-center, -moz-left and -moz-right are used for HTML's alignment.
     ///
     /// This is covering the <div align="right"><table>...</table></div> case.
@@ -412,6 +437,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         #[cfg(feature = "gecko")]
         {
             self.adjust_for_prohibited_display_contents(flags);
+            self.adjust_for_fieldset_content(layout_parent_style, flags);
         }
         self.adjust_for_top_layer();
         self.blockify_if_necessary(layout_parent_style, flags);

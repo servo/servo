@@ -91,9 +91,11 @@ use style::invalidation::element::restyle_hints::{self, RestyleHint};
 use style::media_queries::{MediaList, parse_media_query_list};
 use style::parallel;
 use style::parser::ParserContext;
-use style::properties::{ComputedValues, ComputedValuesInner, Importance, SourcePropertyDeclaration};
-use style::properties::{LonghandIdSet, PropertyDeclaration, PropertyDeclarationBlock, PropertyId, StyleBuilder};
-use style::properties::{SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP, PseudoInfo, ParentStyleContextInfo};
+use style::properties::{ComputedValues, ComputedValuesInner, Importance};
+use style::properties::{IS_FIELDSET_CONTENT, LonghandIdSet};
+use style::properties::{ParentStyleContextInfo, PseudoInfo};
+use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, PropertyId};
+use style::properties::{SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP, SourcePropertyDeclaration, StyleBuilder};
 use style::properties::animated_properties::{Animatable, AnimatableLonghand, AnimationValue};
 use style::properties::parse_one_declaration_into;
 use style::rule_tree::StyleSource;
@@ -1514,7 +1516,10 @@ pub extern "C" fn Servo_ComputedValues_GetForAnonymousBox(parent_style_or_null: 
     let pseudo = PseudoElement::from_anon_box_atom(&atom)
         .expect("Not an anon box pseudo?");
 
-    let cascade_flags = SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP;
+    let mut cascade_flags = SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP;
+    if pseudo.is_fieldset_content() {
+        cascade_flags.insert(IS_FIELDSET_CONTENT);
+    }
     let metrics = get_metrics_provider_for_product();
     data.stylist.precomputed_values_for_pseudo(&guards, &pseudo, parent_style_or_null.map(|x| &**x),
                                                cascade_flags, &metrics,

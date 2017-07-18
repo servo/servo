@@ -83,6 +83,12 @@ impl PseudoElement {
         *self == PseudoElement::FirstLetter
     }
 
+    /// Whether this pseudo-element is ::-moz-fieldset-content.
+    #[inline]
+    pub fn is_fieldset_content(&self) -> bool {
+        *self == PseudoElement::FieldsetContent
+    }
+
     /// Whether this pseudo-element is lazily-cascaded.
     #[inline]
     pub fn is_lazy(&self) -> bool {
