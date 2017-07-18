@@ -131,6 +131,13 @@ impl RestyleHint {
         self.intersects(Self::for_animations())
     }
 
+    /// Returns whether the hint specifies that an animation cascade level must
+    /// be replaced.
+    #[inline]
+    pub fn has_animation_hint_or_recascade(&self) -> bool {
+        self.intersects(Self::for_animations() | RECASCADE_SELF)
+    }
+
     /// Returns whether the hint specifies some restyle work other than an
     /// animation cascade level replacement.
     #[inline]

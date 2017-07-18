@@ -675,7 +675,7 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
         }
 
         let data = candidate.element.borrow_data().unwrap();
-        debug_assert!(target.has_current_styles(&data));
+        debug_assert!(target.has_current_styles_for_traversal(&data, shared.traversal_flags));
 
         debug!("Sharing style between {:?} and {:?}",
                target.element, candidate.element);

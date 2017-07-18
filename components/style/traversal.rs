@@ -328,8 +328,7 @@ pub trait DomTraversal<E: TElement> : Sync {
         // animation-only restyle hint or recascade.
         if traversal_flags.for_animation_only() {
             return el.has_animation_only_dirty_descendants() ||
-                   data.restyle.hint.has_animation_hint() ||
-                   data.restyle.hint.has_recascade_self();
+                   data.restyle.hint.has_animation_hint_or_recascade();
         }
 
         // If the dirty descendants bit is set, we need to traverse no matter
@@ -341,7 +340,7 @@ pub trait DomTraversal<E: TElement> : Sync {
         // If we have a restyle hint or need to recascade, we need to visit the
         // element.
         //
-        // Note that this is different than checking has_current_styles(),
+        // Note that this is different than checking has_current_styles_for_traversal(),
         // since that can return true even if we have a restyle hint indicating
         // that the element's descendants (but not necessarily the element) need
         // restyling.
@@ -527,7 +526,8 @@ where
     debug_assert!(!element.has_snapshot() || element.handled_snapshot(),
                   "Should've handled snapshots here already");
 
-    let compute_self = !element.has_current_styles(data);
+    let compute_self =
+        !element.has_current_styles_for_traversal(data, context.shared.traversal_flags);
     let mut hint = RestyleHint::empty();
 
     debug!("recalc_style_at: {:?} (compute_self={:?}, \
@@ -580,8 +580,7 @@ where
            propagated_hint,
            data.styles.is_display_none(),
            element.implemented_pseudo_element());
-    debug_assert!(element.has_current_styles(data) ||
-                  context.shared.traversal_flags.for_animation_only(),
+    debug_assert!(element.has_current_styles_for_traversal(data, context.shared.traversal_flags),
                   "Should have computed style or haven't yet valid computed \
                    style in case of animation-only restyle");
 

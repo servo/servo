@@ -33,6 +33,7 @@ use std::ops::Deref;
 use stylearc::{Arc, ArcBorrow};
 use stylist::Stylist;
 use thread_state;
+use traversal::TraversalFlags;
 
 pub use style_traits::UnsafeNode;
 
@@ -471,6 +472,29 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
 
     /// Returns whether the element's styles are up-to-date.
     fn has_current_styles(&self, data: &ElementData) -> bool {
+        if self.has_snapshot() && !self.handled_snapshot() {
+            return false;
+        }
+
+        data.has_styles() && !data.has_invalidations()
+    }
+
+    /// Returns whether the element's styles are up-to-date for |traversal_flags|.
+    fn has_current_styles_for_traversal(&self,
+                                        data: &ElementData,
+                                        traversal_flags: TraversalFlags) -> bool {
+        if traversal_flags.for_animation_only() {
+            // In animation-only restyle we never touch snapshots and don't
+            // care about them. But we can't assert '!self.handled_snapshot()'
+            // here since there are some cases that a second animation-only
+            // restyle which is a result of normal restyle (e.g. setting
+            // animation-name in normal restyle and creating a new CSS
+            // animation in a SequentialTask) is processed after the normal
+            // traversal in that we had elements that handled snapshot.
+            return data.has_styles() &&
+                   !data.restyle.hint.has_animation_hint_or_recascade();
+        }
+
         if self.has_snapshot() && !self.handled_snapshot() {
             return false;
         }
