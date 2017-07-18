@@ -76,8 +76,10 @@
     We assume that the default/initial value is an empty vector for these.
     `initial_value` need not be defined for these.
 </%doc>
-<%def name="vector_longhand(name, animation_value_type=None, allow_empty=False, separator='Comma', **kwargs)">
-    <%call expr="longhand(name, animation_value_type=animation_value_type, vector=True, **kwargs)">
+<%def name="vector_longhand(name, animation_value_type=None, restriction=None, allow_empty=False,
+            separator='Comma', **kwargs)">
+    <%call expr="longhand(name, animation_value_type=animation_value_type, restriction=restriction,
+                 vector=True, **kwargs)">
         #[allow(unused_imports)]
         use smallvec::SmallVec;
         use std::fmt;
@@ -149,6 +151,18 @@
                         self.0.compute_squared_distance(&other.0)
                     }
                 }
+
+                % if restriction is not None:
+                use values::animated::{AnimatedValueAsComputed, ToAnimatedValue, Restriction};
+                impl AnimatedValueAsComputed for T {
+                    #[inline]
+                    fn restrict_value(self, restriction_type: Restriction) -> Self {
+                        T(self.0.into_iter().map(|value| {
+                            single_value::T::from_animated_value_with_restriction(value, restriction_type)
+                        }).collect())
+                    }
+                }
+                % endif
             % endif
 
             pub type Iter<'a, 'cx, 'cx_a> = ComputedVecIter<'a, 'cx, 'cx_a, super::single_value::SpecifiedValue>;

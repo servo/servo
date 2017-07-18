@@ -98,6 +98,7 @@ ${helpers.predefined_type(
     vector=True,
     products="gecko",
     animation_value_type="ComputedValue",
+    restriction="Restriction::NonNegative",
     separator="CommaWithSpace",
     spec="https://www.w3.org/TR/SVG2/painting.html#StrokeDashing",
 )}
