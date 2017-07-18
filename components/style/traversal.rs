@@ -14,6 +14,8 @@ use smallvec::SmallVec;
 use style_resolver::StyleResolverForElement;
 use stylist::RuleInclusion;
 use traversal_flags::{TraversalFlags, self};
+use values::Either;
+use values::generics::image::Image;
 
 /// A per-traversal-level chunk of data. This is sent down by the traversal, and
 /// currently only holds the dom depth for the bloom filter.
@@ -518,6 +520,11 @@ where
                    element);
             clear_descendant_data(element)
         }
+
+        // Inform any paint worklets of changed style, to speculatively
+        // evaluate the worklet code. In the case that the size hasn't changed,
+        // this will result in increased concurrency between script and layout.
+        notify_paint_worklet(context, data);
     }
 
     // Now that matching and cascading is done, clear the bits corresponding to
@@ -713,6 +720,40 @@ where
         new_styles,
         important_rules_changed
     )
+}
+
+#[cfg(feature = "servo")]
+fn notify_paint_worklet<E>(context: &StyleContext<E>, data: &ElementData)
+where
+    E: TElement,
+{
+    // We speculatively evaluate any paint worklets during styling.
+    // This allows us to run paint worklets in parallel with style and layout.
+    // Note that this is wasted effort if the size of the node has
+    // changed, but in may cases it won't have.
+    if let Some(ref values) = data.styles.primary {
+        for image in &values.get_background().background_image.0 {
+            let name = match *image {
+                Either::Second(Image::PaintWorklet(ref worklet)) => &worklet.name,
+                _ => continue,
+            };
+            let painter = match context.shared.registered_speculative_painters.get(name) {
+                Some(painter) => painter,
+                None => continue,
+            };
+            let properties = vec![]; // TODO
+            debug!("Notifying paint worklet {}.", painter.name());
+            painter.speculatively_draw_a_paint_image(properties);
+        }
+    }
+}
+
+#[cfg(feature = "gecko")]
+fn notify_paint_worklet<E>(context: &StyleContext<E>, data: &ElementData)
+where
+    E: TElement,
+{
+    // The CSS paint API is Servo-only at the moment
 }
 
 fn note_children<E, D, F>(
