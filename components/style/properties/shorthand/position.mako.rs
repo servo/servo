@@ -374,7 +374,10 @@
             Either::First(ref areas) => {
                 let track_list = match *template_rows {
                     GenericGridTemplateComponent::TrackList(ref list) => list,
-                    _ => unreachable!(),        // should exist!
+                    // Others template components shouldn't exist with normal shorthand values.
+                    // But if we need to serialize a group of longhand sub-properties for
+                    // the shorthand, we should be able to return empty string instead of crashing.
+                    _ => return Ok(()),
                 };
 
                 let mut names_iter = track_list.line_names.iter();
