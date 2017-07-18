@@ -94,7 +94,7 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
             Ok(if let Ok(style) = input.try(|i| CounterStyleOrNone::parse(context, i)) {
                 SpecifiedValue::CounterStyle(style)
             } else {
-                SpecifiedValue::String(input.expect_string()?.into_owned())
+                SpecifiedValue::String(input.expect_string()?.as_ref().to_owned())
             })
         }
     </%helpers:longhand>

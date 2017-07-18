@@ -295,7 +295,7 @@ pub enum System {
 
 impl Parse for System {
     fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        try_match_ident_ignore_ascii_case! { input.expect_ident()?,
+        try_match_ident_ignore_ascii_case! { input.expect_ident_cloned()?,
             "cyclic" => Ok(System::Cyclic),
             "numeric" => Ok(System::Numeric),
             "alphabetic" => Ok(System::Alphabetic),

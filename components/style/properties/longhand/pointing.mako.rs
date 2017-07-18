@@ -101,7 +101,7 @@
             } else {
                 Cursor::from_css_keyword(&ident)
                     .map(computed_value::Keyword::Cursor)
-                    .map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
+                    .map_err(|()| SelectorParseError::UnexpectedIdent(ident.clone()).into())
             }
         }
     }

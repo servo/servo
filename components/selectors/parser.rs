@@ -1318,37 +1318,37 @@ fn parse_attribute_selector<'i, 't, P, E, Impl>(parser: &P, input: &mut CssParse
 
         // [foo=bar]
         Ok(&Token::Delim('=')) => {
-            value = input.expect_ident_or_string()?;
+            value = input.expect_ident_or_string()?.clone();
             never_matches = false;
             operator = AttrSelectorOperator::Equal;
         }
         // [foo~=bar]
         Ok(&Token::IncludeMatch) => {
-            value = input.expect_ident_or_string()?;
+            value = input.expect_ident_or_string()?.clone();
             never_matches = value.is_empty() || value.contains(SELECTOR_WHITESPACE);
             operator = AttrSelectorOperator::Includes;
         }
         // [foo|=bar]
         Ok(&Token::DashMatch) => {
-            value = input.expect_ident_or_string()?;
+            value = input.expect_ident_or_string()?.clone();
             never_matches = false;
             operator = AttrSelectorOperator::DashMatch;
         }
         // [foo^=bar]
         Ok(&Token::PrefixMatch) => {
-            value = input.expect_ident_or_string()?;
+            value = input.expect_ident_or_string()?.clone();
             never_matches = value.is_empty();
             operator = AttrSelectorOperator::Prefix;
         }
         // [foo*=bar]
         Ok(&Token::SubstringMatch) => {
-            value = input.expect_ident_or_string()?;
+            value = input.expect_ident_or_string()?.clone();
             never_matches = value.is_empty();
             operator = AttrSelectorOperator::Substring;
         }
         // [foo$=bar]
         Ok(&Token::SuffixMatch) => {
-            value = input.expect_ident_or_string()?;
+            value = input.expect_ident_or_string()?.clone();
             never_matches = value.is_empty();
             operator = AttrSelectorOperator::Suffix;
         }
@@ -1832,7 +1832,7 @@ pub mod tests {
                                                     -> Result<PseudoClass,
                                                               ParseError<'i, SelectorParseError<'i, ()>>> {
             match_ignore_ascii_case! { &name,
-                "lang" => Ok(PseudoClass::Lang(parser.expect_ident_or_string()?.into_owned())),
+                "lang" => Ok(PseudoClass::Lang(parser.expect_ident_or_string()?.as_ref().to_owned())),
                 _ => Err(SelectorParseError::Custom(()).into())
             }
         }

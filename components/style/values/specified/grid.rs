@@ -85,8 +85,8 @@ pub fn parse_line_names<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Box<[Custo
     input.expect_square_bracket_block()?;
     input.parse_nested_block(|input| {
         let mut values = vec![];
-        while let Ok(ident) = input.try(|i| i.expect_ident()) {
-            let ident = CustomIdent::from_ident(ident, &["span"])?;
+        while let Ok(ident) = input.try(|i| i.expect_ident_cloned()) {
+            let ident = CustomIdent::from_ident(&ident, &["span"])?;
             values.push(ident);
         }
 

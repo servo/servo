@@ -1025,7 +1025,7 @@ ${helpers.predefined_type(
         }
 
         Ok(SpecifiedValue(Space::parse(input, |input| {
-            let function = input.expect_function()?;
+            let function = input.expect_function()?.clone();
             input.parse_nested_block(|input| {
                 let result = match_ignore_ascii_case! { &function,
                     "matrix" => {
@@ -1217,7 +1217,7 @@ ${helpers.predefined_type(
                     _ => Err(()),
                 };
                 result
-                    .map_err(|()| StyleParseError::UnexpectedFunction(function).into())
+                    .map_err(|()| StyleParseError::UnexpectedFunction(function.clone()).into())
             })
         })?))
     }
@@ -1764,7 +1764,7 @@ ${helpers.predefined_type("transform-origin",
             return Ok(result)
         }
 
-        while let Ok(name) = input.try(|input| input.expect_ident()) {
+        while let Ok(name) = input.try(|i| i.expect_ident_cloned()) {
             let flag = match_ignore_ascii_case! { &name,
                 "layout" => Some(LAYOUT),
                 "style" => Some(STYLE),
@@ -1773,7 +1773,7 @@ ${helpers.predefined_type("transform-origin",
             };
             let flag = match flag {
                 Some(flag) if !result.contains(flag) => flag,
-                _ => return Err(SelectorParseError::UnexpectedIdent(name).into())
+                _ => return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
             };
             result.insert(flag);
         }
@@ -1960,7 +1960,8 @@ ${helpers.predefined_type("shape-outside", "basic_shape::FloatAreaShape",
 
     pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
                          -> Result<SpecifiedValue, ParseError<'i>> {
-        try_match_ident_ignore_ascii_case! { input.expect_ident()?,
+        // FIXME: remove clone() when lifetimes are non-lexical
+        try_match_ident_ignore_ascii_case! { input.expect_ident()?.clone(),
             "auto" => Ok(TOUCH_ACTION_AUTO),
             "none" => Ok(TOUCH_ACTION_NONE),
             "manipulation" => Ok(TOUCH_ACTION_MANIPULATION),

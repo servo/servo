@@ -211,10 +211,10 @@ impl MediaQuery {
             None
         };
 
-        let media_type = match input.try(|input| input.expect_ident()) {
+        let media_type = match input.try(|i| i.expect_ident_cloned()) {
             Ok(ident) => {
                 let result: Result<_, ParseError> = MediaQueryType::parse(&*ident)
-                    .map_err(|()| SelectorParseError::UnexpectedIdent(ident).into());
+                    .map_err(|()| SelectorParseError::UnexpectedIdent(ident.clone()).into());
                 result?
             }
             Err(_) => {

@@ -112,7 +112,7 @@ impl UrlMatchingFunction {
             parse_quoted_or_unquoted_string!(input, UrlMatchingFunction::Domain)
         } else if input.try(|input| input.expect_function_matching("regexp")).is_ok() {
             input.parse_nested_block(|input| {
-                Ok(UrlMatchingFunction::RegExp(input.expect_string()?.into_owned()))
+                Ok(UrlMatchingFunction::RegExp(input.expect_string()?.as_ref().to_owned()))
             })
         } else if let Ok(url) = input.try(|input| SpecifiedUrl::parse(context, input)) {
             Ok(UrlMatchingFunction::Url(url))

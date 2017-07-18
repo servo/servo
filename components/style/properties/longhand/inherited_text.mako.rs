@@ -590,7 +590,7 @@ ${helpers.predefined_type(
             return Ok(SpecifiedValue::None);
         }
 
-        if let Ok(s) = input.try(|input| input.expect_string()) {
+        if let Ok(s) = input.try(|i| i.expect_string_cloned()) {
             // Handle <string>
             return Ok(SpecifiedValue::String(s.into_owned()));
         }

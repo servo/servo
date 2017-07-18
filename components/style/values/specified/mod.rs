@@ -817,10 +817,7 @@ impl ClipRect {
             }
         }
 
-        let func = input.expect_function()?;
-        if !func.eq_ignore_ascii_case("rect") {
-            return Err(StyleParseError::UnexpectedFunction(func).into())
-        }
+        input.expect_function_matching("rect")?;
 
         input.parse_nested_block(|input| {
             let top = parse_argument(context, input, allow_quirks)?;
@@ -942,7 +939,7 @@ impl Attr {
                                   -> Result<Attr, ParseError<'i>> {
         // Syntax is `[namespace? `|`]? ident`
         // no spaces allowed
-        let first = input.try(|i| i.expect_ident()).ok();
+        let first = input.try(|i| i.expect_ident_cloned()).ok();
         if let Ok(token) = input.try(|i| i.next_including_whitespace().map(|t| t.clone())) {
             match token {
                 Token::Delim('|') => {}

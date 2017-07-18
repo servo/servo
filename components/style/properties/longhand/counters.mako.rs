@@ -187,14 +187,14 @@
                 Ok(Token::Function(ref name)) => {
                     let result = match_ignore_ascii_case! { &name,
                         "counter" => Some(input.parse_nested_block(|input| {
-                            let name = input.expect_ident()?.into_owned();
+                            let name = input.expect_ident()?.as_ref().to_owned();
                             let style = parse_counter_style(context, input);
                             Ok(ContentItem::Counter(name, style))
                         })),
                         "counters" => Some(input.parse_nested_block(|input| {
-                            let name = input.expect_ident()?.into_owned();
+                            let name = input.expect_ident()?.as_ref().to_owned();
                             input.expect_comma()?;
-                            let separator = input.expect_string()?.into_owned();
+                            let separator = input.expect_string()?.as_ref().to_owned();
                             let style = parse_counter_style(context, input);
                             Ok(ContentItem::Counters(name, separator, style))
                         })),
@@ -334,7 +334,7 @@
         let mut counters = Vec::new();
         loop {
             let counter_name = match input.next() {
-                Ok(&Token::Ident(ref ident)) => CustomIdent::from_ident(ident.clone(), &["none"])?,
+                Ok(&Token::Ident(ref ident)) => CustomIdent::from_ident(ident, &["none"])?,
                 Ok(t) => return Err(BasicParseError::UnexpectedToken(t.clone()).into()),
                 Err(_) => break,
             };

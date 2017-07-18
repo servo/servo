@@ -363,7 +363,7 @@ fn parse_declaration_value_block<'i, 't>
 fn parse_var_function<'i, 't>(input: &mut Parser<'i, 't>,
                               references: &mut Option<HashSet<Name>>)
                               -> Result<(), ParseError<'i>> {
-    let name = input.expect_ident()?;
+    let name = input.expect_ident_cloned()?;
     let name: Result<_, ParseError> =
         parse_name(&name)
         .map_err(|()| SelectorParseError::UnexpectedIdent(name.clone()).into());
@@ -618,7 +618,7 @@ fn substitute_block<'i, 't, F>(input: &mut Parser<'i, 't>,
                     input.slice(position.0..before_this_token), position.1, last_token_type);
                 input.parse_nested_block(|input| {
                     // parse_var_function() ensures neither .unwrap() will fail.
-                    let name = input.expect_ident().unwrap();
+                    let name = input.expect_ident_cloned().unwrap();
                     let name = Atom::from(parse_name(&name).unwrap());
 
                     if let Ok(last) = substitute_one(&name, partial_computed_value) {

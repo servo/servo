@@ -182,7 +182,7 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
                 }
                 self.state = State::Namespaces;
 
-                let prefix_result = input.try(|input| input.expect_ident());
+                let prefix_result = input.try(|i| i.expect_ident_cloned());
                 let maybe_namespace = match input.expect_url_or_string() {
                     Ok(url_or_string) => url_or_string,
                     Err(BasicParseError::UnexpectedToken(t)) =>

@@ -183,7 +183,8 @@ impl Parse for Gradient {
             Radial,
         }
 
-        let func = input.expect_function()?;
+        // FIXME: remove clone() when lifetimes are non-lexical
+        let func = input.expect_function()?.clone();
         let result = match_ignore_ascii_case! { &func,
             "linear-gradient" => {
                 Some((Shape::Linear, false, CompatMode::Modern))
@@ -233,7 +234,7 @@ impl Parse for Gradient {
 
         let (shape, repeating, mut compat_mode) = match result {
             Some(result) => result,
-            None => return Err(StyleParseError::UnexpectedFunction(func).into()),
+            None => return Err(StyleParseError::UnexpectedFunction(func.clone()).into()),
         };
 
         let (kind, items) = input.parse_nested_block(|i| {
@@ -388,7 +389,7 @@ impl Gradient {
             }
         }
 
-        let ident = input.expect_ident()?;
+        let ident = input.expect_ident_cloned()?;
         input.expect_comma()?;
 
         let (kind, reverse_stops) = match_ignore_ascii_case! { &ident,
@@ -438,7 +439,7 @@ impl Gradient {
         let mut items = input.try(|i| {
             i.expect_comma()?;
             i.parse_comma_separated(|i| {
-                let function = i.expect_function()?;
+                let function = i.expect_function()?.clone();
                 let (color, mut p) = i.parse_nested_block(|i| {
                     let p = match_ignore_ascii_case! { &function,
                         "color-stop" => {

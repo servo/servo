@@ -197,7 +197,7 @@ impl Parse for Source {
         let format_hints = if input.try(|input| input.expect_function_matching("format")).is_ok() {
             input.parse_nested_block(|input| {
                 input.parse_comma_separated(|input| {
-                    Ok(input.expect_string()?.into_owned())
+                    Ok(input.expect_string()?.as_ref().to_owned())
                 })
             })?
         } else {

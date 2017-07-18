@@ -422,7 +422,7 @@ impl CSSWideKeyword {
 
 impl Parse for CSSWideKeyword {
     fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        let ident = input.expect_ident()?;
+        let ident = input.expect_ident()?.clone();
         input.expect_exhausted()?;
         CSSWideKeyword::from_ident(&ident)
             .ok_or(SelectorParseError::UnexpectedIdent(ident).into())

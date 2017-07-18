@@ -236,7 +236,7 @@ ${helpers.single_keyword("unicode-bidi",
                             "blink" => if result.contains(BLINK) { Err(()) }
                                        else { empty = false; result.insert(BLINK); Ok(()) },
                             _ => Err(())
-                        }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
+                        }).map_err(|()| SelectorParseError::UnexpectedIdent(ident.clone()).into())
                     }
                     Err(e) => return Err(e.into())
                 }

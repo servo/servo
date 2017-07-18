@@ -278,7 +278,7 @@
         % endfor
 
         let first_line_names = input.try(parse_line_names).unwrap_or(vec![].into_boxed_slice());
-        if let Ok(s) = input.try(Parser::expect_string) {
+        if let Ok(s) = input.try(|i| i.expect_string_cloned()) {
             let mut strings = vec![];
             let mut values = vec![];
             let mut line_names = vec![];
@@ -294,7 +294,7 @@
                     names.extend(v.into_vec());
                 }
 
-                string = match input.try(Parser::expect_string) {
+                string = match input.try(|i| i.expect_string_cloned()) {
                     Ok(s) => s.into_owned().into_boxed_str(),
                     _ => {      // only the named area determines whether we should bail out
                         line_names.push(names.into_boxed_slice());

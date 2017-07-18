@@ -245,7 +245,7 @@ impl Declaration {
         let mut input = ParserInput::new(&self.0);
         let mut input = Parser::new(&mut input);
         input.parse_entirely(|input| {
-            let prop = input.expect_ident().unwrap();
+            let prop = input.expect_ident().unwrap().as_ref().to_owned();
             input.expect_colon().unwrap();
             let id = PropertyId::parse(&prop)
                 .map_err(|_| StyleParseError::UnspecifiedError)?;

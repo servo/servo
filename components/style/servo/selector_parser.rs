@@ -372,7 +372,7 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
         use self::NonTSPseudoClass::*;
         let pseudo_class = match_ignore_ascii_case!{ &name,
             "lang" => {
-                Lang(parser.expect_ident_or_string()?.into_owned().into_boxed_str())
+                Lang(parser.expect_ident_or_string()?.as_ref().into())
             }
             "-servo-case-sensitive-type-attr" => {
                 if !self.in_user_agent_stylesheet() {

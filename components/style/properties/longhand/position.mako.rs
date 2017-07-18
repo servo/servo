@@ -463,7 +463,7 @@ ${helpers.predefined_type("object-position",
         fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
                          -> Result<Self, ParseError<'i>> {
             let mut strings = vec![];
-            while let Ok(string) = input.try(Parser::expect_string) {
+            while let Ok(string) = input.try(|i| i.expect_string_cloned()) {
                 strings.push(string.into_owned().into_boxed_str());
             }
 
