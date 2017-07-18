@@ -57,6 +57,7 @@ use std::ptr::null_mut;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::Mutex;
+use std::sync::RwLock;
 use std::sync::mpsc;
 use std::sync::mpsc::Sender;
 
@@ -243,22 +244,41 @@ impl PaintWorkletGlobalScope {
 
     fn painter(&self, name: Atom) -> Arc<Painter> {
         // Rather annoyingly we have to use a mutex here to make the painter Sync.
-        struct WorkletPainter(Atom, Mutex<WorkletExecutor>);
+        struct WorkletPainter {
+            name: Atom,
+            executor: Mutex<WorkletExecutor>,
+            cache: RwLock<(Size2D<Au>, Vec<(Atom, String)>, DrawAPaintImageResult)>,
+        }
         impl Painter for WorkletPainter {
             fn draw_a_paint_image(&self,
                                   size: Size2D<Au>,
                                   properties: Vec<(Atom, String)>)
                                   -> DrawAPaintImageResult
             {
-                let name = self.0.clone();
+                {
+                    let cached = self.cache.read().expect("Locking paint cache.");
+                    if (cached.0 == size) && (cached.1 == properties) {
+                        return cached.2.clone();
+                    }
+                }
+                let name = self.name.clone();
                 let (sender, receiver) = mpsc::channel();
-                let task = PaintWorkletTask::DrawAPaintImage(name, size, properties, sender);
-                self.1.lock().expect("Locking a painter.")
+                let task = PaintWorkletTask::DrawAPaintImage(name, size, properties.clone(), sender);
+                self.executor.lock().expect("Locking a painter.")
                     .schedule_a_worklet_task(WorkletTask::Paint(task));
-                receiver.recv().expect("Worklet thread died?")
+                let result = receiver.recv().expect("Worklet thread died?");
+                if (result.image_key.is_some()) && (result.missing_image_urls.is_empty()) {
+                    let mut cached = self.cache.write().expect("Locking paint cache.");
+                    *cached = (size, properties, result.clone());
+                }
+                result
             }
         }
-        Arc::new(WorkletPainter(name, Mutex::new(self.worklet_global.executor())))
+        Arc::new(WorkletPainter {
+            name: name,
+            executor: Mutex::new(self.worklet_global.executor()),
+            cache: RwLock::new((Size2D::zero(), Vec::new(), self.invalid_image(Size2D::zero(), Vec::new()))),
+        })
     }
 }
 
