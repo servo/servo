@@ -609,7 +609,7 @@ impl WorkletThread {
             if old_counter == 1 {
                 debug!("Resolving promise.");
                 let msg = MainThreadScriptMsg::WorkletLoaded(pipeline_id);
-                self.global_init.script_sender.send(msg).expect("Worklet thread outlived script thread.");
+                self.global_init.to_script_thread_sender.send(msg).expect("Worklet thread outlived script thread.");
                 self.run_in_script_thread(promise.resolve_runnable(()));
             }
         }
@@ -651,7 +651,7 @@ impl WorkletThread {
     {
         let msg = CommonScriptMsg::RunnableMsg(ScriptThreadEventCategory::WorkletEvent, box runnable);
         let msg = MainThreadScriptMsg::Common(msg);
-        self.global_init.script_sender.send(msg).expect("Worklet thread outlived script thread.");
+        self.global_init.to_script_thread_sender.send(msg).expect("Worklet thread outlived script thread.");
     }
 }
 
