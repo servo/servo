@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://drafts.css-houdini.org/css-paint-api/#paintrenderingcontext2d
-[Exposed=PaintWorklet]
+[Pref="dom.worklet.enabled", Exposed=PaintWorklet]
 interface PaintRenderingContext2D {
 };
 PaintRenderingContext2D implements CanvasState;
