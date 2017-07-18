@@ -121,13 +121,15 @@ ${helpers.predefined_type("flex-grow", "Number",
                           "0.0", "parse_non_negative",
                           spec="https://drafts.csswg.org/css-flexbox/#flex-grow-property",
                           extra_prefixes="webkit",
-                          animation_value_type="ComputedValue")}
+                          animation_value_type="ComputedValue",
+                          restriction="Restriction::NonNegative")}
 
 ${helpers.predefined_type("flex-shrink", "Number",
                           "1.0", "parse_non_negative",
                           spec="https://drafts.csswg.org/css-flexbox/#flex-shrink-property",
                           extra_prefixes="webkit",
-                          animation_value_type="ComputedValue")}
+                          animation_value_type="ComputedValue",
+                          restriction="Restriction::NonNegative")}
 
 // https://drafts.csswg.org/css-align/#align-self-property
 % if product == "servo":
@@ -166,7 +168,8 @@ ${helpers.predefined_type("order", "Integer", "0",
                               logical=False,
                               spec="https://drafts.csswg.org/css-flexbox/#flex-basis-property",
                               extra_prefixes="webkit",
-                              animation_value_type="ComputedValue")}
+                              animation_value_type="ComputedValue",
+                              restriction="Restriction::NonNegative")}
 % else:
     // FIXME: This property should be animatable.
     ${helpers.predefined_type("flex-basis",
@@ -187,17 +190,20 @@ ${helpers.predefined_type("order", "Integer", "0",
         ${helpers.gecko_size_type("%s" % size, "MozLength", "auto()",
                                   logical,
                                   spec=spec % size,
-                                  animation_value_type="ComputedValue")}
+                                  animation_value_type="ComputedValue",
+                                  restriction="Restriction::NonNegative")}
         // min-width, min-height, min-block-size, min-inline-size,
         // max-width, max-height, max-block-size, max-inline-size
         ${helpers.gecko_size_type("min-%s" % size, "MozLength", "auto()",
                                   logical,
                                   spec=spec % size,
-                                  animation_value_type="ComputedValue")}
+                                  animation_value_type="ComputedValue",
+                                  restriction="Restriction::NonNegative")}
         ${helpers.gecko_size_type("max-%s" % size, "MaxLength", "none()",
                                   logical,
                                   spec=spec % size,
-                                  animation_value_type="ComputedValue")}
+                                  animation_value_type="ComputedValue",
+                                  restriction="Restriction::NonNegative")}
     % else:
         // servo versions (no keyword support)
         ${helpers.predefined_type("%s" % size,
@@ -206,13 +212,16 @@ ${helpers.predefined_type("order", "Integer", "0",
                                   "parse_non_negative",
                                   spec=spec % size,
                                   allow_quirks=not logical,
-                                  animation_value_type="ComputedValue", logical = logical)}
+                                  animation_value_type="ComputedValue",
+                                  restriction="Restriction::NonNegative",
+                                  logical = logical)}
         ${helpers.predefined_type("min-%s" % size,
                                   "LengthOrPercentage",
                                   "computed::LengthOrPercentage::Length(Au(0))",
                                   "parse_non_negative",
                                   spec=spec % ("min-%s" % size),
                                   animation_value_type="ComputedValue",
+                                  restriction="Restriction::NonNegative",
                                   logical=logical,
                                   allow_quirks=not logical)}
         ${helpers.predefined_type("max-%s" % size,
@@ -221,6 +230,7 @@ ${helpers.predefined_type("order", "Integer", "0",
                                   "parse_non_negative",
                                   spec=spec % ("min-%s" % size),
                                   animation_value_type="ComputedValue",
+                                  restriction="Restriction::NonNegative",
                                   logical=logical,
                                   allow_quirks=not logical)}
     % endif
@@ -254,6 +264,7 @@ ${helpers.predefined_type("object-position",
                               "parse_non_negative",
                               spec="https://drafts.csswg.org/css-grid/#propdef-grid-%s-gap" % kind,
                               animation_value_type="ComputedValue",
+                              restriction="Restriction::NonNegative",
                               products="gecko")}
 
     % for range in ["start", "end"]:

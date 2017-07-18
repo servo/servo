@@ -13,6 +13,10 @@ use std::cmp;
 use values::computed::Angle as ComputedAngle;
 use values::computed::BorderCornerRadius as ComputedBorderCornerRadius;
 use values::computed::LengthOrPercentage as ComputedLengthOrPercentage;
+use values::computed::LengthOrPercentageOrAuto as ComputedLengthOrPercentageOrAuto;
+use values::computed::LengthOrPercentageOrNone as ComputedLengthOrPercentageOrNone;
+use values::computed::MaxLength as ComputedMaxLength;
+use values::computed::MozLength as ComputedMozLength;
 use values::computed::Percentage as ComputedPercentage;
 use values::specified::url::SpecifiedUrl;
 
@@ -190,5 +194,61 @@ impl AnimatedValueAsComputed for ComputedBorderCornerRadius {
     fn restrict_value(self, restriction_type: Restriction) -> Self {
         ComputedBorderCornerRadius::new(self.0.width.restrict_value(restriction_type),
                                         self.0.height.restrict_value(restriction_type))
+    }
+}
+
+impl AnimatedValueAsComputed for ComputedLengthOrPercentageOrAuto {
+    #[inline]
+    fn restrict_value(self, restriction_type: Restriction) -> Self {
+        match self {
+            ComputedLengthOrPercentageOrAuto::Length(length) => {
+                ComputedLengthOrPercentageOrAuto::Length(length.restrict_value(restriction_type))
+            },
+            ComputedLengthOrPercentageOrAuto::Percentage(percentage) => {
+                ComputedLengthOrPercentageOrAuto::Percentage(
+                    percentage.restrict_value(restriction_type))
+            },
+            _ => self
+        }
+    }
+}
+
+impl AnimatedValueAsComputed for ComputedMozLength {
+    #[inline]
+    fn restrict_value(self, restriction_type: Restriction) -> Self {
+        match self {
+            ComputedMozLength::LengthOrPercentageOrAuto(lopoa) => {
+                ComputedMozLength::LengthOrPercentageOrAuto(lopoa.restrict_value(restriction_type))
+            }
+            _ => self
+        }
+    }
+}
+
+impl AnimatedValueAsComputed for ComputedLengthOrPercentageOrNone {
+    #[inline]
+    fn restrict_value(self, restriction_type: Restriction) -> Self {
+        match self {
+            ComputedLengthOrPercentageOrNone::Length(length) => {
+                ComputedLengthOrPercentageOrNone::Length(length.restrict_value(restriction_type))
+            },
+            ComputedLengthOrPercentageOrNone::Percentage(percentage) => {
+                ComputedLengthOrPercentageOrNone::Percentage(
+                    percentage.restrict_value(restriction_type))
+            },
+            _ => self
+        }
+    }
+}
+
+impl AnimatedValueAsComputed for ComputedMaxLength {
+    #[inline]
+    fn restrict_value(self, restriction_type: Restriction) -> Self {
+        match self {
+            ComputedMaxLength::LengthOrPercentageOrNone(lopon) => {
+                ComputedMaxLength::LengthOrPercentageOrNone(lopon.restrict_value(restriction_type))
+            }
+            _ => self
+        }
     }
 }
