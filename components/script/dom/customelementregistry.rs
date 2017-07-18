@@ -600,9 +600,11 @@ impl CustomElementReactionStack {
                     unsafe { val.to_jsval(cx, value.handle_mut()); }
                 }
 
-                let namespace = DOMString::from(&*namespace);
-                rooted!(in(cx) let mut namespace_value = UndefinedValue());
-                unsafe { namespace.to_jsval(cx, namespace_value.handle_mut()); }
+                rooted!(in(cx) let mut namespace_value = NullValue());
+                if namespace != ns!() {
+                    let namespace = DOMString::from(&*namespace);
+                    unsafe { namespace.to_jsval(cx, namespace_value.handle_mut()); }
+                }
 
                 let args = vec![Heap::default(), Heap::default(), Heap::default(), Heap::default()];
                 args[0].set(name_value.get());
