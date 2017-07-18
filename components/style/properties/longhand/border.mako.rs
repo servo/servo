@@ -39,6 +39,7 @@
                               alias=maybe_moz_logical_alias(product, side, "-moz-border-%s-width"),
                               spec=maybe_logical_spec(side, "width"),
                               animation_value_type="ComputedValue",
+                              restriction="Restriction::NonNegative",
                               logical=side[1],
                               allow_quirks=not side[1])}
 % endfor
@@ -54,7 +55,8 @@ ${helpers.gecko_keyword_conversion(Keyword('border-style',
                               "parse", extra_prefixes="webkit",
                               spec="https://drafts.csswg.org/css-backgrounds/#border-%s-radius" % corner,
                               boxed=True,
-                              animation_value_type="ComputedValue")}
+                              animation_value_type="ComputedValue",
+                              restriction="Restriction::NonNegative")}
 % endfor
 
 /// -moz-border-*-colors: color, string, enum, none, inherit/initial

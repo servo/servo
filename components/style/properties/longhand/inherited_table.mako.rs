@@ -20,7 +20,8 @@ ${helpers.single_keyword("caption-side", "top bottom",
                          animation_value_type="discrete",
                          spec="https://drafts.csswg.org/css-tables/#propdef-caption-side")}
 
-<%helpers:longhand name="border-spacing" animation_value_type="ComputedValue" boxed="True"
+<%helpers:longhand name="border-spacing" animation_value_type="ComputedValue"
+                   restriction="Restriction::NonNegative" boxed="True"
                    spec="https://drafts.csswg.org/css-tables/#propdef-border-spacing">
     use app_units::Au;
     use values::specified::{AllowQuirks, Length};
@@ -28,6 +29,7 @@ ${helpers.single_keyword("caption-side", "top bottom",
     pub mod computed_value {
         use app_units::Au;
         use properties::animated_properties::Animatable;
+        use values::animated::{AnimatedValueAsComputed, Restriction};
 
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         #[derive(Clone, Copy, Debug, PartialEq, ToCss)]
@@ -58,6 +60,14 @@ ${helpers.single_keyword("caption-side", "top bottom",
             fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
                 Ok(self.horizontal.compute_squared_distance(&other.horizontal)? +
                    self.vertical.compute_squared_distance(&other.vertical)?)
+            }
+        }
+
+        impl AnimatedValueAsComputed for T {
+            #[inline]
+            fn restrict_value(self, restriction_type: Restriction) -> Self {
+                T { horizontal: self.horizontal.restrict_value(restriction_type),
+                    vertical: self.vertical.restrict_value(restriction_type) }
             }
         }
     }

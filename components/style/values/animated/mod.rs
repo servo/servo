@@ -11,6 +11,9 @@
 use app_units::Au;
 use std::cmp;
 use values::computed::Angle as ComputedAngle;
+use values::computed::BorderCornerRadius as ComputedBorderCornerRadius;
+use values::computed::LengthOrPercentage as ComputedLengthOrPercentage;
+use values::computed::Percentage as ComputedPercentage;
 use values::specified::url::SpecifiedUrl;
 
 pub mod effects;
@@ -157,5 +160,35 @@ impl AnimatedValueAsComputed for Au {
     #[inline]
     fn restrict_value(self, restriction_type: Restriction) -> Self {
         Au(self.0.restrict_value(restriction_type))
+    }
+}
+
+impl AnimatedValueAsComputed for ComputedPercentage {
+    #[inline]
+    fn restrict_value(self, restriction_type: Restriction) -> Self {
+        ComputedPercentage(self.0.restrict_value(restriction_type))
+    }
+}
+
+impl AnimatedValueAsComputed for ComputedLengthOrPercentage {
+    #[inline]
+    fn restrict_value(self, restriction_type: Restriction) -> Self {
+        match self {
+            ComputedLengthOrPercentage::Length(length) => {
+                ComputedLengthOrPercentage::Length(length.restrict_value(restriction_type))
+            },
+            ComputedLengthOrPercentage::Percentage(percentage) => {
+                ComputedLengthOrPercentage::Percentage(percentage.restrict_value(restriction_type))
+            },
+            _ => self
+        }
+    }
+}
+
+impl AnimatedValueAsComputed for ComputedBorderCornerRadius {
+    #[inline]
+    fn restrict_value(self, restriction_type: Restriction) -> Self {
+        ComputedBorderCornerRadius::new(self.0.width.restrict_value(restriction_type),
+                                        self.0.height.restrict_value(restriction_type))
     }
 }

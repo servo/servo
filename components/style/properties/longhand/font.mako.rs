@@ -559,7 +559,8 @@ ${helpers.single_keyword_system("font-variant-caps",
 </%helpers:longhand>
 
 <%helpers:longhand name="font-size" need_clone="True" animation_value_type="ComputedValue"
-                   allow_quirks="True" spec="https://drafts.csswg.org/css-fonts/#propdef-font-size">
+                   restriction="Restriction::NonNegative" allow_quirks="True"
+                   spec="https://drafts.csswg.org/css-fonts/#propdef-font-size">
     use app_units::Au;
     use properties::longhands::system_font::SystemFont;
     use properties::style_structs::Font;
@@ -992,6 +993,7 @@ ${helpers.single_keyword_system("font-variant-caps",
 </%helpers:longhand>
 
 <%helpers:longhand products="gecko" name="font-size-adjust" animation_value_type="ComputedValue"
+                   restriction="Restriction::NonNegative"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-size-adjust">
     use properties::longhands::system_font::SystemFont;
 
@@ -1043,6 +1045,7 @@ ${helpers.single_keyword_system("font-variant-caps",
 
     pub mod computed_value {
         use properties::animated_properties::Animatable;
+        use values::animated::{AnimatedValueAsComputed, Restriction};
         use values::CSSFloat;
 
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -1078,6 +1081,16 @@ ${helpers.single_keyword_system("font-variant-caps",
                     (T::Number(ref number), T::Number(ref other)) =>
                         number.compute_distance(other),
                     _ => Err(()),
+                }
+            }
+        }
+
+        impl AnimatedValueAsComputed for T {
+            #[inline]
+            fn restrict_value(self, restriction_type: Restriction) -> Self {
+                match self {
+                    T::Number(number) => T::Number(number.restrict_value(restriction_type)),
+                    _ => self
                 }
             }
         }

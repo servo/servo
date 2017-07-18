@@ -68,6 +68,7 @@ ${helpers.predefined_type("outline-width",
                           initial_specified_value="specified::BorderSideWidth::Medium",
                           computed_type="::app_units::Au",
                           animation_value_type="ComputedValue",
+                          restriction="Restriction::NonNegative",
                           spec="https://drafts.csswg.org/css-ui/#propdef-outline-width")}
 
 // The -moz-outline-radius-* properties are non-standard and not on a standards track.
@@ -77,6 +78,7 @@ ${helpers.predefined_type("outline-width",
         products="gecko",
         boxed=True,
         animation_value_type="ComputedValue",
+        restriction="Restriction::NonNegative",
         spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-outline-radius)")}
 % endfor
 

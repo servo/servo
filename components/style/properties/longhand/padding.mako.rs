@@ -17,6 +17,7 @@
                               "parse_non_negative",
                               alias=maybe_moz_logical_alias(product, side, "-moz-padding-%s"),
                               animation_value_type="ComputedValue",
+                              restriction="Restriction::NonNegative",
                               logical = side[1],
                               spec = spec,
                               allow_quirks=not side[1])}
