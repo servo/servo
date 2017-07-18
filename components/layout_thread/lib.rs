@@ -46,6 +46,7 @@ extern crate servo_config;
 extern crate servo_geometry;
 extern crate servo_url;
 extern crate style;
+extern crate style_traits;
 extern crate webrender_api;
 
 mod dom_wrapper;
@@ -53,7 +54,7 @@ mod dom_wrapper;
 use app_units::Au;
 use dom_wrapper::{ServoLayoutElement, ServoLayoutDocument, ServoLayoutNode};
 use dom_wrapper::drop_style_and_layout_data;
-use euclid::{Point2D, Rect, Size2D, ScaleFactor};
+use euclid::{Point2D, Rect, Size2D, ScaleFactor, TypedSize2D};
 use fnv::FnvHashMap;
 use gfx::display_list::{OpaqueNode, WebRenderImageInfo};
 use gfx::font;
@@ -67,6 +68,7 @@ use layout::animation;
 use layout::construct::ConstructionResult;
 use layout::context::LayoutContext;
 use layout::context::RegisteredPainter;
+use layout::context::RegisteredPainters;
 use layout::context::heap_size_of_persistent_local_context;
 use layout::display_list_builder::ToGfxColor;
 use layout::flow::{self, Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
@@ -99,6 +101,8 @@ use script_layout_interface::rpc::TextIndexResponse;
 use script_layout_interface::wrapper_traits::LayoutNode;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, LayoutMsg as ConstellationMsg};
 use script_traits::{ScrollState, UntrustedNodeAddress};
+use script_traits::DrawAPaintImageResult;
+use script_traits::Painter;
 use selectors::Element;
 use servo_arc::Arc as ServoArc;
 use servo_atoms::Atom;
@@ -122,6 +126,8 @@ use std::thread;
 use style::animation::Animation;
 use style::context::{QuirksMode, ReflowGoal, SharedStyleContext};
 use style::context::{StyleSystemOptions, ThreadLocalStyleContextCreationInfo};
+use style::context::RegisteredSpeculativePainter;
+use style::context::RegisteredSpeculativePainters;
 use style::dom::{ShowSubtree, ShowSubtreeDataAndPrimaryValues, TElement, TNode};
 use style::error_reporting::{NullReporter, RustLogReporter};
 use style::invalidation::element::restyle_hints::RestyleHint;
@@ -137,6 +143,9 @@ use style::thread_state;
 use style::timer::Timer;
 use style::traversal::{DomTraversal, TraversalDriver};
 use style::traversal_flags::TraversalFlags;
+use style_traits::CSSPixel;
+use style_traits::DevicePixel;
+use style_traits::SpeculativePainter;
 
 /// Information needed by the layout thread.
 pub struct LayoutThread {
@@ -235,9 +244,9 @@ pub struct LayoutThread {
 
     webrender_image_cache: Arc<RwLock<FnvHashMap<(ServoUrl, UsePlaceholder),
                                                  WebRenderImageInfo>>>,
-    /// The executor for paint worklets.
-    /// Will be None if the script thread hasn't added any paint worklet modules.
-    registered_painters: Arc<RwLock<FnvHashMap<Atom, RegisteredPainter>>>,
+
+    /// The executors for paint worklets.
+    registered_painters: RegisteredPaintersImpl,
 
     /// Webrender interface.
     webrender_api: webrender_api::RenderApi,
@@ -520,7 +529,7 @@ impl LayoutThread {
             constellation_chan: constellation_chan.clone(),
             time_profiler_chan: time_profiler_chan,
             mem_profiler_chan: mem_profiler_chan,
-            registered_painters: Arc::new(RwLock::new(FnvHashMap::default())),
+            registered_painters: RegisteredPaintersImpl(FnvHashMap::default()),
             image_cache: image_cache.clone(),
             font_cache_thread: font_cache_thread,
             first_reflow: Cell::new(true),
@@ -605,6 +614,7 @@ impl LayoutThread {
                 visited_styles_enabled: false,
                 running_animations: self.running_animations.clone(),
                 expired_animations: self.expired_animations.clone(),
+                registered_speculative_painters: &self.registered_painters,
                 local_context_creation_data: Mutex::new(thread_local_style_context_creation_data),
                 timer: self.timer.clone(),
                 quirks_mode: self.quirks_mode.unwrap(),
@@ -616,7 +626,7 @@ impl LayoutThread {
             webrender_image_cache: self.webrender_image_cache.clone(),
             pending_images: if script_initiated_layout { Some(Mutex::new(vec![])) } else { None },
             newly_transitioning_nodes: if script_initiated_layout { Some(Mutex::new(vec![])) } else { None },
-            registered_painters: self.registered_painters.clone(),
+            registered_painters: &self.registered_painters,
         }
     }
 
@@ -738,13 +748,12 @@ impl LayoutThread {
                     .filter_map(|name| PropertyId::parse(&*name).ok().map(|id| (name.clone(), id)))
                     .filter(|&(_, ref id)| id.as_shorthand().is_err())
                     .collect();
-                let registered_painter = RegisteredPainter {
+                let registered_painter = RegisteredPainterImpl {
                     name: name.clone(),
                     properties: properties,
                     painter: painter,
                 };
-                self.registered_painters.write()
-                    .insert(name, registered_painter);
+                self.registered_painters.0.insert(name, registered_painter);
             },
             Msg::PrepareToExit(response_chan) => {
                 self.prepare_to_exit(response_chan);
@@ -1789,4 +1798,53 @@ lazy_static! {
             }
         }
     };
+}
+
+struct RegisteredPainterImpl {
+    painter: Box<Painter>,
+    name: Atom,
+    properties: FnvHashMap<Atom, PropertyId>,
+}
+
+impl SpeculativePainter for RegisteredPainterImpl {
+    fn speculatively_draw_a_paint_image(&self, properties: Vec<(Atom, String)>, arguments: Vec<String>) {
+        self.painter.speculatively_draw_a_paint_image(properties, arguments);
+    }
+}
+
+impl RegisteredSpeculativePainter for RegisteredPainterImpl {
+    fn properties(&self) -> &FnvHashMap<Atom, PropertyId> {
+        &self.properties
+    }
+    fn name(&self) -> Atom {
+        self.name.clone()
+    }
+}
+
+impl Painter for RegisteredPainterImpl {
+    fn draw_a_paint_image(&self,
+                          size: TypedSize2D<f32, CSSPixel>,
+                          device_pixel_ratio: ScaleFactor<f32, CSSPixel, DevicePixel>,
+                          properties: Vec<(Atom, String)>,
+                          arguments: Vec<String>)
+                          -> DrawAPaintImageResult
+    {
+        self.painter.draw_a_paint_image(size, device_pixel_ratio, properties, arguments)
+    }
+}
+
+impl RegisteredPainter for RegisteredPainterImpl {}
+
+struct RegisteredPaintersImpl(FnvHashMap<Atom, RegisteredPainterImpl>);
+
+impl RegisteredSpeculativePainters for RegisteredPaintersImpl  {
+    fn get(&self, name: &Atom) -> Option<&RegisteredSpeculativePainter> {
+        self.0.get(&name).map(|painter| painter as &RegisteredSpeculativePainter)
+    }
+}
+
+impl RegisteredPainters for RegisteredPaintersImpl {
+    fn get(&self, name: &Atom) -> Option<&RegisteredPainter> {
+        self.0.get(&name).map(|painter| painter as &RegisteredPainter)
+    }
 }

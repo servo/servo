@@ -12,8 +12,11 @@ use matching::{ChildCascadeRequirement, MatchMethods};
 use sharing::StyleSharingTarget;
 use smallvec::SmallVec;
 use style_resolver::StyleResolverForElement;
+#[cfg(feature = "servo")] use style_traits::ToCss;
 use stylist::RuleInclusion;
 use traversal_flags::{TraversalFlags, self};
+#[cfg(feature = "servo")] use values::Either;
+#[cfg(feature = "servo")] use values::generics::image::Image;
 
 /// A per-traversal-level chunk of data. This is sent down by the traversal, and
 /// currently only holds the dom depth for the bloom filter.
@@ -518,6 +521,11 @@ where
                    element);
             clear_descendant_data(element)
         }
+
+        // Inform any paint worklets of changed style, to speculatively
+        // evaluate the worklet code. In the case that the size hasn't changed,
+        // this will result in increased concurrency between script and layout.
+        notify_paint_worklet(context, data);
     }
 
     // Now that matching and cascading is done, clear the bits corresponding to
@@ -713,6 +721,46 @@ where
         new_styles,
         important_rules_changed
     )
+}
+
+#[cfg(feature = "servo")]
+fn notify_paint_worklet<E>(context: &StyleContext<E>, data: &ElementData)
+where
+    E: TElement,
+{
+    // We speculatively evaluate any paint worklets during styling.
+    // This allows us to run paint worklets in parallel with style and layout.
+    // Note that this is wasted effort if the size of the node has
+    // changed, but in may cases it won't have.
+    if let Some(ref values) = data.styles.primary {
+        for image in &values.get_background().background_image.0 {
+            let (name, arguments) = match *image {
+                Either::Second(Image::PaintWorklet(ref worklet)) => (&worklet.name, &worklet.arguments),
+                _ => continue,
+            };
+            let painter = match context.shared.registered_speculative_painters.get(name) {
+                Some(painter) => painter,
+                None => continue,
+            };
+            let properties = painter.properties().iter()
+                .filter_map(|(name, id)| id.as_shorthand().err().map(|id| (name, id)))
+                .map(|(name, id)| (name.clone(), values.computed_value_to_string(id)))
+                .collect();
+            let arguments = arguments.iter()
+                .map(|argument| argument.to_css_string())
+                .collect();
+            debug!("Notifying paint worklet {}.", painter.name());
+            painter.speculatively_draw_a_paint_image(properties, arguments);
+        }
+    }
+}
+
+#[cfg(feature = "gecko")]
+fn notify_paint_worklet<E>(_context: &StyleContext<E>, _data: &ElementData)
+where
+    E: TElement,
+{
+    // The CSS paint API is Servo-only at the moment
 }
 
 fn note_children<E, D, F>(
