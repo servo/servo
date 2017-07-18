@@ -11,7 +11,7 @@ use data::{ElementStyles, EagerPseudoStyles};
 use dom::TElement;
 use log::LogLevel::Trace;
 use matching::{CascadeVisitedMode, MatchMethods};
-use properties::{AnimationRules, CascadeFlags, ComputedValues, ComputedValuesInner};
+use properties::{AnimationRules, CascadeFlags, ComputedValues};
 use properties::{IS_ROOT_ELEMENT, PROHIBIT_DISPLAY_CONTENTS, SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP};
 use properties::{VISITED_DEPENDENT_ONLY, cascade};
 use rule_tree::StrongRuleNode;
@@ -47,7 +47,7 @@ pub struct PrimaryStyle {
 fn with_default_parent_styles<E, F, R>(element: E, f: F) -> R
 where
     E: TElement,
-    F: FnOnce(Option<&ComputedValues>, Option<&ComputedValuesInner>) -> R,
+    F: FnOnce(Option<&ComputedValues>, Option<&ComputedValues>) -> R,
 {
     let parent_el = element.inheritance_parent();
     let parent_data = parent_el.as_ref().and_then(|e| e.borrow_data());
@@ -72,7 +72,7 @@ where
         layout_parent_style = Some(layout_parent_data.styles.primary());
     }
 
-    f(parent_style.map(|x| &**x), layout_parent_style.map(|s| &***s))
+    f(parent_style.map(|x| &**x), layout_parent_style.map(|s| &**s))
 }
 
 impl<'a, 'ctx, 'le, E> StyleResolverForElement<'a, 'ctx, 'le, E>
@@ -99,7 +99,7 @@ where
     pub fn resolve_primary_style(
         &mut self,
         parent_style: Option<&ComputedValues>,
-        layout_parent_style: Option<&ComputedValuesInner>,
+        layout_parent_style: Option<&ComputedValues>,
     ) -> PrimaryStyle {
         let primary_results =
             self.match_primary(VisitedHandlingMode::AllLinksUnvisited);
@@ -147,7 +147,7 @@ where
     pub fn resolve_style(
         &mut self,
         parent_style: Option<&ComputedValues>,
-        layout_parent_style: Option<&ComputedValuesInner>,
+        layout_parent_style: Option<&ComputedValues>,
     ) -> ElementStyles {
         use properties::longhands::display::computed_value::T as display;
 
@@ -168,7 +168,7 @@ where
                 if primary_style.style.is_display_contents() {
                     layout_parent_style
                 } else {
-                    Some(&**primary_style.style)
+                    Some(&*primary_style.style)
                 };
             SelectorImpl::each_eagerly_cascaded_pseudo_element(|pseudo| {
                 let pseudo_style = self.resolve_pseudo_style(
@@ -216,7 +216,7 @@ where
         &mut self,
         inputs: CascadeInputs,
         parent_style: Option<&ComputedValues>,
-        layout_parent_style: Option<&ComputedValuesInner>,
+        layout_parent_style: Option<&ComputedValues>,
         pseudo: Option<&PseudoElement>,
     ) -> Arc<ComputedValues> {
         let mut style_if_visited = None;
@@ -272,7 +272,7 @@ where
                     if primary_style.style.is_display_contents() {
                         layout_parent_style
                     } else {
-                        Some(&**primary_style.style)
+                        Some(&*primary_style.style)
                     };
 
                 for (i, mut inputs) in pseudo_array.unwrap().iter_mut().enumerate() {
@@ -302,7 +302,7 @@ where
         &mut self,
         pseudo: &PseudoElement,
         originating_element_style: &PrimaryStyle,
-        layout_parent_style: Option<&ComputedValuesInner>,
+        layout_parent_style: Option<&ComputedValues>,
     ) -> Option<Arc<ComputedValues>> {
         let rules = self.match_pseudo(
             &originating_element_style.style,
@@ -398,7 +398,7 @@ where
 
     fn match_pseudo(
         &mut self,
-        originating_element_style: &ComputedValuesInner,
+        originating_element_style: &ComputedValues,
         pseudo_element: &PseudoElement,
         visited_handling: VisitedHandlingMode,
     ) -> Option<StrongRuleNode> {
@@ -463,7 +463,7 @@ where
         rules: Option<&StrongRuleNode>,
         style_if_visited: Option<Arc<ComputedValues>>,
         mut parent_style: Option<&ComputedValues>,
-        layout_parent_style: Option<&ComputedValuesInner>,
+        layout_parent_style: Option<&ComputedValues>,
         cascade_visited: CascadeVisitedMode,
         pseudo: Option<&PseudoElement>,
     ) -> Arc<ComputedValues> {
@@ -485,17 +485,14 @@ where
             cascade_flags.insert(IS_ROOT_ELEMENT);
         }
 
-        #[cfg(feature = "gecko")]
-        let parent_style_context = parent_style;
-        #[cfg(feature = "servo")]
-        let parent_style_context = ();
-
+        let implemented_pseudo = self.element.implemented_pseudo_element();
         let values =
             cascade(
                 self.context.shared.stylist.device(),
+                pseudo.or(implemented_pseudo.as_ref()),
                 rules.unwrap_or(self.context.shared.stylist.rule_tree().root()),
                 &self.context.shared.guards,
-                parent_style.map(|x| &**x),
+                parent_style,
                 layout_parent_style,
                 style_if_visited,
                 Some(&mut cascade_info),
@@ -506,17 +503,6 @@ where
 
         cascade_info.finish(&self.element.as_node());
 
-        // In case of NAC like ::placeholder we style it via
-        // cascade_primary without a PseudoElement, but
-        // the element itself is a pseudo, so try to use that
-        // when `pseudo` is unset
-        let pseudo_info = if let Some(pseudo) = pseudo {
-            Some(pseudo.pseudo_info())
-        } else {
-            self.element.implemented_pseudo_element().map(|x| x.pseudo_info())
-        };
-        values.to_outer(self.context.shared.stylist.device(),
-                        parent_style_context,
-                       pseudo_info)
+        values
     }
 }

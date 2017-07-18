@@ -486,7 +486,7 @@ where
             StyleResolverForElement::new(*ancestor, context, rule_inclusion)
                 .resolve_primary_style(
                     style.as_ref().map(|s| &**s),
-                    layout_parent_style.as_ref().map(|s| &***s)
+                    layout_parent_style.as_ref().map(|s| &**s)
                 );
 
         let is_display_contents = primary_style.style.is_display_contents();
@@ -503,7 +503,7 @@ where
     StyleResolverForElement::new(element, context, rule_inclusion)
         .resolve_style(
             style.as_ref().map(|s| &**s),
-            layout_parent_style.as_ref().map(|s| &***s)
+            layout_parent_style.as_ref().map(|s| &**s)
         )
 }
 

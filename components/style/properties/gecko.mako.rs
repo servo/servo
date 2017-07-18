@@ -72,12 +72,45 @@ pub mod style_structs {
     % endfor
 }
 
-
+/// FIXME(emilio): This is completely duplicated with the other properties code.
 pub type ComputedValuesInner = ::gecko_bindings::structs::ServoComputedValues;
 
 #[derive(Debug)]
 #[repr(C)]
 pub struct ComputedValues(::gecko_bindings::structs::mozilla::ServoStyleContext);
+
+impl ComputedValues {
+    pub fn new(
+        device: &Device,
+        parent: Option<<&ComputedValues>,
+        pseudo: Option<<&PseudoElement>,
+        custom_properties: Option<Arc<CustomPropertiesMap>>,
+        writing_mode: WritingMode,
+        font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>,
+        flags: ComputedValueFlags,
+        rules: Option<StrongRuleNode>,
+        visited_style: Option<Arc<ComputedValues>>,
+        % for style_struct in data.style_structs:
+        ${style_struct.ident}: Arc<style_structs::${style_struct.name}>,
+        % endfor
+    ) -> Arc<Self> {
+        ComputedValuesInner::new(
+            custom_properties,
+            writing_mode,
+            font_size_keyword,
+            flags,
+            rules,
+            visited_style,
+            % for style_struct in data.style_structs:
+            ${style_struct.ident},
+            % endfor
+        ).to_outer(
+            device,
+            parent,
+            pseudo.map(|p| p.pseudo_info())
+        )
+    }
+}
 
 impl Drop for ComputedValues {
     fn drop(&mut self) {
@@ -154,6 +187,7 @@ impl ComputedValuesInner {
                 % endfor
         }
     }
+
     pub fn to_outer(self, device: &Device, parent: ParentStyleContextInfo,
                     info: Option<PseudoInfo>) -> Arc<ComputedValues> {
         let (tag, ty) = if let Some(info) = info {
