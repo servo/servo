@@ -47,6 +47,59 @@ use values::generics::border::BorderCornerRadius as GenericBorderCornerRadius;
 use values::generics::effects::Filter;
 use values::generics::position as generic_position;
 
+/// A trait used to implement various procedures used during animation.
+pub trait Animatable: Sized {
+    /// Performs a weighted sum of this value and |other|. This is used for
+    /// interpolation and addition of animation values.
+    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64)
+        -> Result<Self, ()>;
+
+    /// [Interpolates][interpolation] a value with another for a given property.
+    ///
+    /// [interpolation]: https://w3c.github.io/web-animations/#animation-interpolation
+    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
+        self.add_weighted(other, 1.0 - progress, progress)
+    }
+
+    /// Returns the [sum][animation-addition] of this value and |other|.
+    ///
+    /// [animation-addition]: https://w3c.github.io/web-animations/#animation-addition
+    fn add(&self, other: &Self) -> Result<Self, ()> {
+        self.add_weighted(other, 1.0, 1.0)
+    }
+
+    /// [Accumulates][animation-accumulation] this value onto itself (|count| - 1) times then
+    /// accumulates |other| onto the result.
+    /// If |count| is zero, the result will be |other|.
+    ///
+    /// [animation-accumulation]: https://w3c.github.io/web-animations/#animation-accumulation
+    fn accumulate(&self, other: &Self, count: u64) -> Result<Self, ()> {
+        self.add_weighted(other, count as f64, 1.0)
+    }
+
+    /// Returns a value that, when added with an underlying value, will produce the underlying
+    /// value. This is used for SMIL animation's "by-animation" where SMIL first interpolates from
+    /// the zero value to the 'by' value, and then adds the result to the underlying value.
+    ///
+    /// This is not the necessarily the same as the initial value of a property. For example, the
+    /// initial value of 'stroke-width' is 1, but the zero value is 0, since adding 1 to the
+    /// underlying value will not produce the underlying value.
+    #[inline]
+    fn get_zero_value(&self) -> Result<Self, ()> { Err(()) }
+
+    /// Compute distance between a value and another for a given property.
+    fn compute_distance(&self, _other: &Self) -> Result<f64, ()>  { Err(()) }
+
+    /// In order to compute the Euclidean distance of a list or property value with multiple
+    /// components, we need to compute squared distance for each element, so the vector can sum it
+    /// and then get its squared root as the distance.
+    fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
+        self.compute_distance(other).map(|d| d * d)
+    }
+}
+
+/// https://drafts.csswg.org/css-transitions/#animtype-repeatable-list
+pub trait RepeatableListAnimatable: Animatable {}
 
 /// A longhand property whose animation type is not "none".
 ///
@@ -729,61 +782,6 @@ impl Animatable for AnimationValue {
         }
     }
 }
-
-
-/// A trait used to implement various procedures used during animation.
-pub trait Animatable: Sized {
-    /// Performs a weighted sum of this value and |other|. This is used for
-    /// interpolation and addition of animation values.
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64)
-        -> Result<Self, ()>;
-
-    /// [Interpolates][interpolation] a value with another for a given property.
-    ///
-    /// [interpolation]: https://w3c.github.io/web-animations/#animation-interpolation
-    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
-        self.add_weighted(other, 1.0 - progress, progress)
-    }
-
-    /// Returns the [sum][animation-addition] of this value and |other|.
-    ///
-    /// [animation-addition]: https://w3c.github.io/web-animations/#animation-addition
-    fn add(&self, other: &Self) -> Result<Self, ()> {
-        self.add_weighted(other, 1.0, 1.0)
-    }
-
-    /// [Accumulates][animation-accumulation] this value onto itself (|count| - 1) times then
-    /// accumulates |other| onto the result.
-    /// If |count| is zero, the result will be |other|.
-    ///
-    /// [animation-accumulation]: https://w3c.github.io/web-animations/#animation-accumulation
-    fn accumulate(&self, other: &Self, count: u64) -> Result<Self, ()> {
-        self.add_weighted(other, count as f64, 1.0)
-    }
-
-    /// Returns a value that, when added with an underlying value, will produce the underlying
-    /// value. This is used for SMIL animation's "by-animation" where SMIL first interpolates from
-    /// the zero value to the 'by' value, and then adds the result to the underlying value.
-    ///
-    /// This is not the necessarily the same as the initial value of a property. For example, the
-    /// initial value of 'stroke-width' is 1, but the zero value is 0, since adding 1 to the
-    /// underlying value will not produce the underlying value.
-    #[inline]
-    fn get_zero_value(&self) -> Result<Self, ()> { Err(()) }
-
-    /// Compute distance between a value and another for a given property.
-    fn compute_distance(&self, _other: &Self) -> Result<f64, ()>  { Err(()) }
-
-    /// In order to compute the Euclidean distance of a list or property value with multiple
-    /// components, we need to compute squared distance for each element, so the vector can sum it
-    /// and then get its squared root as the distance.
-    fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
-        self.compute_distance(other).map(|d| d * d)
-    }
-}
-
-/// https://drafts.csswg.org/css-transitions/#animtype-repeatable-list
-pub trait RepeatableListAnimatable: Animatable {}
 
 impl RepeatableListAnimatable for LengthOrPercentage {}
 impl RepeatableListAnimatable for Either<f32, LengthOrPercentage> {}
