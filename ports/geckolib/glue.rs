@@ -2799,9 +2799,12 @@ pub extern "C" fn Servo_TakeChangeHint(element: RawGeckoElementBorrowed,
 
 #[no_mangle]
 pub extern "C" fn Servo_ResolveStyle(element: RawGeckoElementBorrowed,
-                                     _raw_data: RawServoStyleSetBorrowed)
+                                     _raw_data: RawServoStyleSetBorrowed,
+                                     restyle_behavior: structs::TraversalRestyleBehavior)
                                      -> ServoStyleContextStrong
 {
+    use self::structs::TraversalRestyleBehavior as Restyle;
+
     let element = GeckoElement(element);
     debug!("Servo_ResolveStyle: {:?}", element);
     let data =
@@ -2809,7 +2812,14 @@ pub extern "C" fn Servo_ResolveStyle(element: RawGeckoElementBorrowed,
 
     // TODO(emilio): Downgrade to debug assertions when close to release.
     assert!(data.has_styles(), "Resolving style on unstyled element");
-    debug_assert!(element.has_current_styles(&*data),
+    // In the case where we process for throttled animation, there remaings
+    // restyle hints other than animation hints.
+    let flags = if restyle_behavior == Restyle::ForThrottledAnimationFlush {
+        ANIMATION_ONLY
+    } else {
+        TraversalFlags::empty()
+    };
+    debug_assert!(element.has_current_styles_for_traversal(&*data, flags),
                   "Resolving style on element without current styles");
     data.styles.primary().clone().into_strong()
 }
