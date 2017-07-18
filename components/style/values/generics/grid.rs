@@ -354,8 +354,13 @@ pub enum RepeatCount {
 
 impl Parse for RepeatCount {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        if let Ok(i) = input.try(|i| Integer::parse(context, i)) {
+        // Maximum number of repeat is 10000. The greater numbers should be clamped.
+        const MAX_LINE: i32 = 10000;
+        if let Ok(mut i) = input.try(|i| Integer::parse(context, i)) {
             if i.value() > 0 {
+                if i.value() > MAX_LINE {
+                    i = Integer::new(MAX_LINE);
+                }
                 Ok(RepeatCount::Number(i))
             } else {
                 Err(StyleParseError::UnspecifiedError.into())

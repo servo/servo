@@ -252,7 +252,6 @@
                                        -> Result<(GridTemplateComponent,
                                                   GridTemplateComponent,
                                                   Either<TemplateAreas, None_>), ParseError<'i>> {
-
         // Other shorthand sub properties also parse `none` and `subgrid` keywords and this
         // shorthand should know after these keywords there is nothing to parse. Otherwise it
         // gets confused and rejects the sub properties that contains `none` or `subgrid`.
