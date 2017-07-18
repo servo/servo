@@ -203,7 +203,7 @@ impl<L: ToComputedValue> ToComputedValue for TrackBreadth<L> {
 ///
 /// https://drafts.csswg.org/css-grid/#typedef-track-size
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Debug, HasViewportPercentage, PartialEq, ToCss)]
+#[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
 pub enum TrackSize<L> {
     /// A flexible `<track-breadth>`
     Breadth(TrackBreadth<L>),
@@ -211,12 +211,10 @@ pub enum TrackSize<L> {
     /// and a flexible `<track-breadth>`
     ///
     /// https://drafts.csswg.org/css-grid/#valdef-grid-template-columns-minmax
-    #[css(comma, function)]
     Minmax(TrackBreadth<L>, TrackBreadth<L>),
     /// A `fit-content` function.
     ///
     /// https://drafts.csswg.org/css-grid/#valdef-grid-template-columns-fit-content
-    #[css(function)]
     FitContent(L),
 }
 
@@ -256,6 +254,34 @@ impl<L: PartialEq> TrackSize<L> {
     /// Returns true if current TrackSize is same as default.
     pub fn is_default(&self) -> bool {
         *self == TrackSize::default()
+    }
+}
+
+impl<L: ToCss> ToCss for TrackSize<L> {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            TrackSize::Breadth(ref breadth) => breadth.to_css(dest),
+            TrackSize::Minmax(ref min, ref max) => {
+                // According to gecko minmax(auto, <flex>) is equivalent to <flex>,
+                // and both are serialized as <flex>.
+                if let TrackBreadth::Keyword(TrackKeyword::Auto) = *min {
+                    if let TrackBreadth::Flex(_) = *max {
+                        return max.to_css(dest);
+                    }
+                }
+
+                dest.write_str("minmax(")?;
+                min.to_css(dest)?;
+                dest.write_str(", ")?;
+                max.to_css(dest)?;
+                dest.write_str(")")
+            },
+            TrackSize::FitContent(ref lop) => {
+                dest.write_str("fit-content(")?;
+                lop.to_css(dest)?;
+                dest.write_str(")")
+            },
+        }
     }
 }
 

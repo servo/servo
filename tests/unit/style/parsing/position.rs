@@ -237,7 +237,7 @@ fn test_computed_grid_template_rows_colums() {
 
     assert_computed_serialization(grid_template_rows::parse,
         "10px repeat(2, 1fr auto minmax(200px, 1fr))",
-        "10px minmax(auto, 1fr) auto minmax(200px, 1fr) minmax(auto, 1fr) auto minmax(200px, 1fr)");
+        "10px 1fr auto minmax(200px, 1fr) 1fr auto minmax(200px, 1fr)");
 
     assert_computed_serialization(grid_template_rows::parse,
         "subgrid [a] [] repeat(auto-fill, [])", "subgrid [a] [] repeat(auto-fill, [])");
