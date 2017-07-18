@@ -372,10 +372,37 @@
                 template_columns.to_css(dest)
             },
             Either::First(ref areas) => {
+                // The length of template-area and template-rows values should be equal.
+                if areas.strings.len() != template_rows.len() {
+                    return Ok(());
+                }
+
                 let track_list = match *template_rows {
-                    GenericGridTemplateComponent::TrackList(ref list) => list,
+                    GenericGridTemplateComponent::TrackList(ref list) => {
+                        // We should fail if there is a `repeat` function. `grid` and
+                        // `grid-template` shorthands doesn't accept that. Only longhand accepts.
+                        if list.auto_repeat.is_some() {
+                            return Ok(());
+                        }
+                        list
+                    },
                     _ => return Ok(()),        // should exist!
                 };
+
+                // We need to check some values that longhand accepts but shorthands don't.
+                match *template_columns {
+                    // We should fail if there is a `repeat` function. `grid` and
+                    // `grid-template` shorthands doesn't accept that. Only longhand accepts that.
+                    GenericGridTemplateComponent::TrackList(ref list) if list.auto_repeat.is_some() => {
+                        return Ok(());
+                    },
+                    // Also the shorthands don't accept subgrids unlike longhand.
+                    // We should fail without and error here.
+                    GenericGridTemplateComponent::Subgrid(_) => {
+                        return Ok(());
+                    },
+                    _ => {},
+                }
 
                 let mut names_iter = track_list.line_names.iter();
                 for (((i, string), names), size) in areas.strings.iter().enumerate()
@@ -428,8 +455,8 @@
     use properties::longhands::{grid_auto_columns, grid_auto_rows, grid_auto_flow};
     use properties::longhands::grid_auto_flow::computed_value::{AutoFlow, T as SpecifiedAutoFlow};
     use values::{Either, None_};
-    use values::generics::grid::GridTemplateComponent;
-    use values::specified::{LengthOrPercentage, TrackSize};
+    use values::generics::grid::{GridTemplateComponent, TrackListType};
+    use values::specified::{GenericGridTemplateComponent, LengthOrPercentage, TrackSize};
 
     pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                                -> Result<Longhands, ParseError<'i>> {
@@ -507,6 +534,14 @@
 
     impl<'a> ToCss for LonghandsToSerialize<'a> {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            // `grid` shorthand resets these properties. If they are not zero, that means they
+            // are changed by longhands and in that case we should fail serializing `grid`.
+            if *self.grid_row_gap != LengthOrPercentage::zero() ||
+               *self.grid_column_gap != LengthOrPercentage::zero() {
+                return Ok(());
+            }
+
+
             if *self.grid_template_areas != Either::Second(None_) ||
                (*self.grid_template_rows != GridTemplateComponent::None &&
                    *self.grid_template_columns != GridTemplateComponent::None) ||
@@ -517,6 +552,19 @@
             }
 
             if self.grid_auto_flow.autoflow == AutoFlow::Column {
+                // It should fail to parse if other branch's values are set.
+                if *self.grid_auto_rows != TrackSize::default() ||
+                   *self.grid_template_columns != GridTemplateComponent::None {
+                    return Ok(());
+                }
+
+                // It should fail to serialize if template-rows value is not Explicit.
+                if let GenericGridTemplateComponent::TrackList(ref list) = *self.grid_template_rows {
+                    if list.list_type != TrackListType::Explicit {
+                        return Ok(());
+                    }
+                }
+
                 self.grid_template_rows.to_css(dest)?;
                 dest.write_str(" / auto-flow")?;
                 if self.grid_auto_flow.dense {
@@ -528,6 +576,19 @@
                     self.grid_auto_columns.to_css(dest)?;
                 }
             } else {
+                // It should fail to parse if other branch's values are set.
+                if *self.grid_auto_columns != TrackSize::default() ||
+                   *self.grid_template_rows != GridTemplateComponent::None {
+                    return Ok(());
+                }
+
+                // It should fail to serialize if template-column value is not Explicit.
+                if let GenericGridTemplateComponent::TrackList(ref list) = *self.grid_template_columns {
+                    if list.list_type != TrackListType::Explicit {
+                        return Ok(());
+                    }
+                }
+
                 dest.write_str("auto-flow")?;
                 if self.grid_auto_flow.dense {
                     dest.write_str(" dense")?;
