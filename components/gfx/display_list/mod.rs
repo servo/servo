@@ -605,6 +605,8 @@ pub enum DisplayItem {
     RadialGradient(Box<RadialGradientDisplayItem>),
     Line(Box<LineDisplayItem>),
     BoxShadow(Box<BoxShadowDisplayItem>),
+    PushTextShadow(Box<PushTextShadowDisplayItem>),
+    PopTextShadow(Box<PopTextShadowDisplayItem>),
     Iframe(Box<IframeDisplayItem>),
     PushStackingContext(Box<PushStackingContextItem>),
     PopStackingContext(Box<PopStackingContextItem>),
@@ -895,9 +897,6 @@ pub struct TextDisplayItem {
 
     /// The orientation of the text: upright or sideways left/right.
     pub orientation: TextOrientation,
-
-    /// The blur radius for this text. If zero, this text is not blurred.
-    pub blur_radius: Au,
 }
 
 #[derive(Clone, Eq, PartialEq, HeapSizeOf, Deserialize, Serialize)]
@@ -1180,6 +1179,29 @@ pub struct BoxShadowDisplayItem {
     pub clip_mode: BoxShadowClipMode,
 }
 
+/// Defines a text shadow that affects all items until the paired PopTextShadow.
+#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
+pub struct PushTextShadowDisplayItem {
+    /// Fields common to all display items.
+    pub base: BaseDisplayItem,
+
+    /// The offset of this shadow from the text.
+    pub offset: Vector2D<Au>,
+
+    /// The color of this shadow.
+    pub color: ColorF,
+
+    /// The blur radius for this shadow.
+    pub blur_radius: Au,
+}
+
+/// Defines a text shadow that affects all items until the next PopTextShadow.
+#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
+pub struct PopTextShadowDisplayItem {
+    /// Fields common to all display items.
+    pub base: BaseDisplayItem,
+}
+
 /// Defines a stacking context.
 #[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
 pub struct PushStackingContextItem {
@@ -1233,6 +1255,8 @@ impl DisplayItem {
             DisplayItem::RadialGradient(ref gradient) => &gradient.base,
             DisplayItem::Line(ref line) => &line.base,
             DisplayItem::BoxShadow(ref box_shadow) => &box_shadow.base,
+            DisplayItem::PushTextShadow(ref push_text_shadow) => &push_text_shadow.base,
+            DisplayItem::PopTextShadow(ref pop_text_shadow) => &pop_text_shadow.base,
             DisplayItem::Iframe(ref iframe) => &iframe.base,
             DisplayItem::PushStackingContext(ref stacking_context) => &stacking_context.base,
             DisplayItem::PopStackingContext(ref item) => &item.base,
@@ -1353,6 +1377,8 @@ impl fmt::Debug for DisplayItem {
                 DisplayItem::RadialGradient(_) => "RadialGradient".to_owned(),
                 DisplayItem::Line(_) => "Line".to_owned(),
                 DisplayItem::BoxShadow(_) => "BoxShadow".to_owned(),
+                DisplayItem::PushTextShadow(_) => "PushTextShadow".to_owned(),
+                DisplayItem::PopTextShadow(_) => "PopTextShadow".to_owned(),
                 DisplayItem::Iframe(_) => "Iframe".to_owned(),
                 DisplayItem::PushStackingContext(_) |
                 DisplayItem::PopStackingContext(_) |
