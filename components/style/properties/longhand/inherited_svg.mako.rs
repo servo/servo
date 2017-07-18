@@ -69,6 +69,7 @@ ${helpers.predefined_type(
     "parse_non_negative",
     products="gecko",
     animation_value_type="ComputedValue",
+    restriction="Restriction::NonNegative",
     spec="https://www.w3.org/TR/SVG2/painting.html#StrokeWidth")}
 
 ${helpers.single_keyword("stroke-linecap", "butt round square",

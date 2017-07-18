@@ -13,6 +13,7 @@ ${helpers.predefined_type("column-width",
                           parse_method="parse_non_negative_length",
                           extra_prefixes="moz",
                           animation_value_type="ComputedValue",
+                          restriction="Restriction::NonNegative",
                           experimental=True,
                           spec="https://drafts.csswg.org/css-multicol/#propdef-column-width")}
 
@@ -24,6 +25,7 @@ ${helpers.predefined_type("column-count",
                           initial_specified_value="Either::Second(Auto)",
                           experimental="True",
                           animation_value_type="ComputedValue",
+                          restriction="Restriction::GreaterThanOrEqualToOne",
                           extra_prefixes="moz",
                           spec="https://drafts.csswg.org/css-multicol/#propdef-column-count")}
 
@@ -34,6 +36,7 @@ ${helpers.predefined_type("column-gap",
                           extra_prefixes="moz",
                           experimental=True,
                           animation_value_type="ComputedValue",
+                          restriction="Restriction::NonNegative",
                           spec="https://drafts.csswg.org/css-multicol/#propdef-column-gap")}
 
 ${helpers.single_keyword("column-fill", "balance auto", extra_prefixes="moz",
@@ -48,6 +51,7 @@ ${helpers.predefined_type("column-rule-width",
                           products="gecko",
                           spec="https://drafts.csswg.org/css-multicol/#propdef-column-rule-width",
                           animation_value_type="ComputedValue",
+                          restriction="Restriction::NonNegative",
                           extra_prefixes="moz")}
 
 // https://drafts.csswg.org/css-multicol-1/#crc

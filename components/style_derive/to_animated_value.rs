@@ -47,6 +47,9 @@ pub fn derive(input: syn::DeriveInput) -> quote::Tokens {
     let from_body = match_body(&input, |field| {
         quote!(::values::animated::ToAnimatedValue::from_animated_value(#field))
     });
+    let from_with_restriction_body = match_body(&input, |field| {
+        quote!(::values::animated::ToAnimatedValue::from_animated_value_with_restriction(#field, restriction_type))
+    });
 
     quote! {
         impl #impl_generics ::values::animated::ToAnimatedValue for #name #ty_generics #where_clause {
@@ -64,6 +67,15 @@ pub fn derive(input: syn::DeriveInput) -> quote::Tokens {
             fn from_animated_value(animated: Self::AnimatedValue) -> Self {
                 match animated {
                     #from_body
+                }
+            }
+
+            #[inline]
+            fn from_animated_value_with_restriction(animated: Self::AnimatedValue,
+                                                    restriction_type:
+                                                        ::values::animated::Restriction) -> Self {
+                match animated {
+                    #from_with_restriction_body
                 }
             }
         }

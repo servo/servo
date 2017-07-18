@@ -708,6 +708,7 @@ ${helpers.predefined_type(
     "::values::Either::Second(8.0)",
     "parse_non_negative",
     products="gecko", animation_value_type="ComputedValue",
+    restriction="Restriction::NonNegative",
     spec="https://drafts.csswg.org/css-text-3/#tab-size-property")}
 
 
