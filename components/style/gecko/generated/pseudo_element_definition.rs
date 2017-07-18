@@ -689,10 +689,11 @@ impl PseudoElement {
         }
     }
 
-
     /// Construct a `CSSPseudoElementType` from a pseudo-element
     #[inline]
     pub fn pseudo_type(&self) -> CSSPseudoElementType {
+        use gecko_bindings::structs::CSSPseudoElementType_InheritingAnonBox;
+
         match *self {
                     PseudoElement::After => CSSPseudoElementType::after,
                     PseudoElement::Before => CSSPseudoElementType::before,
@@ -719,13 +720,301 @@ impl PseudoElement {
                     PseudoElement::MozPlaceholder => CSSPseudoElementType::mozPlaceholder,
                     PseudoElement::Placeholder => CSSPseudoElementType::placeholder,
                     PseudoElement::MozColorSwatch => CSSPseudoElementType::mozColorSwatch,
-            _ => CSSPseudoElementType::NotPseudo
+                    PseudoElement::MozText => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::OofPlaceholder => CSSPseudoElementType::NonInheritingAnonBox,
+                    PseudoElement::FirstLetterContinuation => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::MozBlockInsideInlineWrapper => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::MozMathMLAnonymousBlock => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::MozXULAnonymousBlock => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::HorizontalFramesetBorder => CSSPseudoElementType::NonInheritingAnonBox,
+                    PseudoElement::VerticalFramesetBorder => CSSPseudoElementType::NonInheritingAnonBox,
+                    PseudoElement::MozLineFrame => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::ButtonContent => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::CellContent => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::DropDownList => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::FieldsetContent => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::FramesetBlank => CSSPseudoElementType::NonInheritingAnonBox,
+                    PseudoElement::MozDisplayComboboxControlFrame => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::HtmlCanvasContent => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::InlineTable => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::Table => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::TableCell => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::TableColGroup => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::TableCol => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::TableWrapper => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::TableRowGroup => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::TableRow => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::Canvas => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::PageBreak => CSSPseudoElementType::NonInheritingAnonBox,
+                    PseudoElement::Page => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::PageContent => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::PageSequence => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::ScrolledContent => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::ScrolledCanvas => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::ScrolledPageSequence => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::ColumnContent => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::Viewport => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::ViewportScroll => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::AnonymousFlexItem => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::AnonymousGridItem => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::Ruby => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::RubyBase => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::RubyBaseContainer => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::RubyText => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::RubyTextContainer => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::MozTreeColumn(..) => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::MozTreeRow(..) => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::MozTreeSeparator(..) => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::MozTreeCell(..) => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::MozTreeIndentation(..) => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::MozTreeLine(..) => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::MozTreeTwisty(..) => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::MozTreeImage(..) => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::MozTreeCellText(..) => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::MozTreeCheckbox(..) => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::MozTreeProgressmeter(..) => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::MozTreeDropFeedback(..) => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::MozSVGMarkerAnonChild => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::MozSVGOuterSVGAnonChild => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::MozSVGForeignContent => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::MozSVGText => CSSPseudoElementType_InheritingAnonBox,
         }
     }
 
     /// Get a PseudoInfo for a pseudo
     pub fn pseudo_info(&self) -> (*mut structs::nsIAtom, CSSPseudoElementType) {
         (self.atom().as_ptr(), self.pseudo_type())
+    }
+
+    /// Construct a pseudo-element from an `Atom`.
+    #[inline]
+    pub fn from_atom(atom: &Atom) -> Option<Self> {
+                if atom == &atom!(":after") {
+                    return Some(PseudoElement::After);
+                }
+                if atom == &atom!(":before") {
+                    return Some(PseudoElement::Before);
+                }
+                if atom == &atom!(":backdrop") {
+                    return Some(PseudoElement::Backdrop);
+                }
+                if atom == &atom!(":cue") {
+                    return Some(PseudoElement::Cue);
+                }
+                if atom == &atom!(":first-letter") {
+                    return Some(PseudoElement::FirstLetter);
+                }
+                if atom == &atom!(":first-line") {
+                    return Some(PseudoElement::FirstLine);
+                }
+                if atom == &atom!(":-moz-selection") {
+                    return Some(PseudoElement::MozSelection);
+                }
+                if atom == &atom!(":-moz-focus-inner") {
+                    return Some(PseudoElement::MozFocusInner);
+                }
+                if atom == &atom!(":-moz-focus-outer") {
+                    return Some(PseudoElement::MozFocusOuter);
+                }
+                if atom == &atom!(":-moz-list-bullet") {
+                    return Some(PseudoElement::MozListBullet);
+                }
+                if atom == &atom!(":-moz-list-number") {
+                    return Some(PseudoElement::MozListNumber);
+                }
+                if atom == &atom!(":-moz-math-anonymous") {
+                    return Some(PseudoElement::MozMathAnonymous);
+                }
+                if atom == &atom!(":-moz-number-wrapper") {
+                    return Some(PseudoElement::MozNumberWrapper);
+                }
+                if atom == &atom!(":-moz-number-text") {
+                    return Some(PseudoElement::MozNumberText);
+                }
+                if atom == &atom!(":-moz-number-spin-box") {
+                    return Some(PseudoElement::MozNumberSpinBox);
+                }
+                if atom == &atom!(":-moz-number-spin-up") {
+                    return Some(PseudoElement::MozNumberSpinUp);
+                }
+                if atom == &atom!(":-moz-number-spin-down") {
+                    return Some(PseudoElement::MozNumberSpinDown);
+                }
+                if atom == &atom!(":-moz-progress-bar") {
+                    return Some(PseudoElement::MozProgressBar);
+                }
+                if atom == &atom!(":-moz-range-track") {
+                    return Some(PseudoElement::MozRangeTrack);
+                }
+                if atom == &atom!(":-moz-range-progress") {
+                    return Some(PseudoElement::MozRangeProgress);
+                }
+                if atom == &atom!(":-moz-range-thumb") {
+                    return Some(PseudoElement::MozRangeThumb);
+                }
+                if atom == &atom!(":-moz-meter-bar") {
+                    return Some(PseudoElement::MozMeterBar);
+                }
+                if atom == &atom!(":-moz-placeholder") {
+                    return Some(PseudoElement::MozPlaceholder);
+                }
+                if atom == &atom!(":placeholder") {
+                    return Some(PseudoElement::Placeholder);
+                }
+                if atom == &atom!(":-moz-color-swatch") {
+                    return Some(PseudoElement::MozColorSwatch);
+                }
+                if atom == &atom!(":-moz-text") {
+                    return Some(PseudoElement::MozText);
+                }
+                if atom == &atom!(":-moz-oof-placeholder") {
+                    return Some(PseudoElement::OofPlaceholder);
+                }
+                if atom == &atom!(":-moz-first-letter-continuation") {
+                    return Some(PseudoElement::FirstLetterContinuation);
+                }
+                if atom == &atom!(":-moz-block-inside-inline-wrapper") {
+                    return Some(PseudoElement::MozBlockInsideInlineWrapper);
+                }
+                if atom == &atom!(":-moz-mathml-anonymous-block") {
+                    return Some(PseudoElement::MozMathMLAnonymousBlock);
+                }
+                if atom == &atom!(":-moz-xul-anonymous-block") {
+                    return Some(PseudoElement::MozXULAnonymousBlock);
+                }
+                if atom == &atom!(":-moz-hframeset-border") {
+                    return Some(PseudoElement::HorizontalFramesetBorder);
+                }
+                if atom == &atom!(":-moz-vframeset-border") {
+                    return Some(PseudoElement::VerticalFramesetBorder);
+                }
+                if atom == &atom!(":-moz-line-frame") {
+                    return Some(PseudoElement::MozLineFrame);
+                }
+                if atom == &atom!(":-moz-button-content") {
+                    return Some(PseudoElement::ButtonContent);
+                }
+                if atom == &atom!(":-moz-cell-content") {
+                    return Some(PseudoElement::CellContent);
+                }
+                if atom == &atom!(":-moz-dropdown-list") {
+                    return Some(PseudoElement::DropDownList);
+                }
+                if atom == &atom!(":-moz-fieldset-content") {
+                    return Some(PseudoElement::FieldsetContent);
+                }
+                if atom == &atom!(":-moz-frameset-blank") {
+                    return Some(PseudoElement::FramesetBlank);
+                }
+                if atom == &atom!(":-moz-display-comboboxcontrol-frame") {
+                    return Some(PseudoElement::MozDisplayComboboxControlFrame);
+                }
+                if atom == &atom!(":-moz-html-canvas-content") {
+                    return Some(PseudoElement::HtmlCanvasContent);
+                }
+                if atom == &atom!(":-moz-inline-table") {
+                    return Some(PseudoElement::InlineTable);
+                }
+                if atom == &atom!(":-moz-table") {
+                    return Some(PseudoElement::Table);
+                }
+                if atom == &atom!(":-moz-table-cell") {
+                    return Some(PseudoElement::TableCell);
+                }
+                if atom == &atom!(":-moz-table-column-group") {
+                    return Some(PseudoElement::TableColGroup);
+                }
+                if atom == &atom!(":-moz-table-column") {
+                    return Some(PseudoElement::TableCol);
+                }
+                if atom == &atom!(":-moz-table-wrapper") {
+                    return Some(PseudoElement::TableWrapper);
+                }
+                if atom == &atom!(":-moz-table-row-group") {
+                    return Some(PseudoElement::TableRowGroup);
+                }
+                if atom == &atom!(":-moz-table-row") {
+                    return Some(PseudoElement::TableRow);
+                }
+                if atom == &atom!(":-moz-canvas") {
+                    return Some(PseudoElement::Canvas);
+                }
+                if atom == &atom!(":-moz-pagebreak") {
+                    return Some(PseudoElement::PageBreak);
+                }
+                if atom == &atom!(":-moz-page") {
+                    return Some(PseudoElement::Page);
+                }
+                if atom == &atom!(":-moz-pagecontent") {
+                    return Some(PseudoElement::PageContent);
+                }
+                if atom == &atom!(":-moz-page-sequence") {
+                    return Some(PseudoElement::PageSequence);
+                }
+                if atom == &atom!(":-moz-scrolled-content") {
+                    return Some(PseudoElement::ScrolledContent);
+                }
+                if atom == &atom!(":-moz-scrolled-canvas") {
+                    return Some(PseudoElement::ScrolledCanvas);
+                }
+                if atom == &atom!(":-moz-scrolled-page-sequence") {
+                    return Some(PseudoElement::ScrolledPageSequence);
+                }
+                if atom == &atom!(":-moz-column-content") {
+                    return Some(PseudoElement::ColumnContent);
+                }
+                if atom == &atom!(":-moz-viewport") {
+                    return Some(PseudoElement::Viewport);
+                }
+                if atom == &atom!(":-moz-viewport-scroll") {
+                    return Some(PseudoElement::ViewportScroll);
+                }
+                if atom == &atom!(":-moz-anonymous-flex-item") {
+                    return Some(PseudoElement::AnonymousFlexItem);
+                }
+                if atom == &atom!(":-moz-anonymous-grid-item") {
+                    return Some(PseudoElement::AnonymousGridItem);
+                }
+                if atom == &atom!(":-moz-ruby") {
+                    return Some(PseudoElement::Ruby);
+                }
+                if atom == &atom!(":-moz-ruby-base") {
+                    return Some(PseudoElement::RubyBase);
+                }
+                if atom == &atom!(":-moz-ruby-base-container") {
+                    return Some(PseudoElement::RubyBaseContainer);
+                }
+                if atom == &atom!(":-moz-ruby-text") {
+                    return Some(PseudoElement::RubyText);
+                }
+                if atom == &atom!(":-moz-ruby-text-container") {
+                    return Some(PseudoElement::RubyTextContainer);
+                }
+                // We cannot generate PseudoElement::MozTreeColumn(..) from just an atom.
+                // We cannot generate PseudoElement::MozTreeRow(..) from just an atom.
+                // We cannot generate PseudoElement::MozTreeSeparator(..) from just an atom.
+                // We cannot generate PseudoElement::MozTreeCell(..) from just an atom.
+                // We cannot generate PseudoElement::MozTreeIndentation(..) from just an atom.
+                // We cannot generate PseudoElement::MozTreeLine(..) from just an atom.
+                // We cannot generate PseudoElement::MozTreeTwisty(..) from just an atom.
+                // We cannot generate PseudoElement::MozTreeImage(..) from just an atom.
+                // We cannot generate PseudoElement::MozTreeCellText(..) from just an atom.
+                // We cannot generate PseudoElement::MozTreeCheckbox(..) from just an atom.
+                // We cannot generate PseudoElement::MozTreeProgressmeter(..) from just an atom.
+                // We cannot generate PseudoElement::MozTreeDropFeedback(..) from just an atom.
+                if atom == &atom!(":-moz-svg-marker-anon-child") {
+                    return Some(PseudoElement::MozSVGMarkerAnonChild);
+                }
+                if atom == &atom!(":-moz-svg-outer-svg-anon-child") {
+                    return Some(PseudoElement::MozSVGOuterSVGAnonChild);
+                }
+                if atom == &atom!(":-moz-svg-foreign-content") {
+                    return Some(PseudoElement::MozSVGForeignContent);
+                }
+                if atom == &atom!(":-moz-svg-text") {
+                    return Some(PseudoElement::MozSVGText);
+                }
+        None
     }
 
     /// Construct a pseudo-element from an anonymous box `Atom`.

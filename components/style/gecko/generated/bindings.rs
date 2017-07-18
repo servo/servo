@@ -1972,6 +1972,12 @@ extern "C" {
      -> ServoStyleContextStrong;
 }
 extern "C" {
+    pub fn Servo_StyleContext_AddRef(ctx: ServoStyleContextBorrowed);
+}
+extern "C" {
+    pub fn Servo_StyleContext_Release(ctx: ServoStyleContextBorrowed);
+}
+extern "C" {
     pub fn Servo_StyleSet_MightHaveAttributeDependency(set:
                                                            RawServoStyleSetBorrowed,
                                                        element:
@@ -2289,14 +2295,14 @@ extern "C" {
     pub fn Servo_GetComputedKeyframeValues(keyframes:
                                                RawGeckoKeyframeListBorrowed,
                                            element: RawGeckoElementBorrowed,
-                                           style: ServoComputedValuesBorrowed,
+                                           style: ServoStyleContextBorrowed,
                                            set: RawServoStyleSetBorrowed,
                                            result:
                                                RawGeckoComputedKeyframeValuesListBorrowedMut);
 }
 extern "C" {
     pub fn Servo_ComputedValues_ExtractAnimationValue(computed_values:
-                                                          ServoComputedValuesBorrowed,
+                                                          ServoStyleContextBorrowed,
                                                       property:
                                                           nsCSSPropertyID)
      -> RawServoAnimationValueStrong;
@@ -2336,7 +2342,7 @@ extern "C" {
     pub fn Servo_GetAnimationValues(declarations:
                                         RawServoDeclarationBlockBorrowed,
                                     element: RawGeckoElementBorrowed,
-                                    style: ServoComputedValuesBorrowed,
+                                    style: ServoStyleContextBorrowed,
                                     style_set: RawServoStyleSetBorrowed,
                                     animation_values:
                                         RawGeckoServoAnimationValueListBorrowedMut);
@@ -2419,7 +2425,7 @@ extern "C" {
     pub fn Servo_AnimationValue_Compute(element: RawGeckoElementBorrowed,
                                         declarations:
                                             RawServoDeclarationBlockBorrowed,
-                                        style: ServoComputedValuesBorrowed,
+                                        style: ServoStyleContextBorrowed,
                                         raw_data: RawServoStyleSetBorrowed)
      -> RawServoAnimationValueStrong;
 }
@@ -2671,8 +2677,6 @@ extern "C" {
 extern "C" {
     pub fn Servo_ComputedValues_GetForAnonymousBox(parent_style_or_null:
                                                        ServoStyleContextBorrowedOrNull,
-                                                   pseudo_type:
-                                                       CSSPseudoElementType,
                                                    pseudo_tag: *mut nsIAtom,
                                                    set:
                                                        RawServoStyleSetBorrowed)
@@ -2680,7 +2684,6 @@ extern "C" {
 }
 extern "C" {
     pub fn Servo_ComputedValues_Inherit(set: RawServoStyleSetBorrowed,
-                                        pseudo_type: CSSPseudoElementType,
                                         pseudo_tag: *mut nsIAtom,
                                         parent_style:
                                             ServoStyleContextBorrowedOrNull,
@@ -2704,16 +2707,6 @@ extern "C" {
                                                      ServoComputedValuesBorrowed,
                                                  rules:
                                                      RawGeckoServoStyleRuleListBorrowedMut);
-}
-extern "C" {
-    pub fn Servo_StyleContext_NewContext(values: ServoComputedValuesBorrowed,
-                                         parent:
-                                             ServoStyleContextBorrowedOrNull,
-                                         pres_context:
-                                             RawGeckoPresContextBorrowed,
-                                         pseudo_type: CSSPseudoElementType,
-                                         pseudo_tag: *mut nsIAtom)
-     -> ServoStyleContextStrong;
 }
 extern "C" {
     pub fn Servo_Initialize(dummy_url_data: *mut RawGeckoURLExtraData);
@@ -2740,10 +2733,8 @@ extern "C" {
 extern "C" {
     pub fn Servo_ResolvePseudoStyle(element: RawGeckoElementBorrowed,
                                     pseudo_type: CSSPseudoElementType,
-                                    pseudo_tag: *mut nsIAtom, is_probe: bool,
+                                    is_probe: bool,
                                     inherited_style:
-                                        ServoComputedValuesBorrowedOrNull,
-                                    parent_style_context:
                                         ServoStyleContextBorrowedOrNull,
                                     set: RawServoStyleSetBorrowed)
      -> ServoStyleContextStrong;
@@ -2760,9 +2751,6 @@ extern "C" {
 extern "C" {
     pub fn Servo_ResolveStyleLazily(element: RawGeckoElementBorrowed,
                                     pseudo_type: CSSPseudoElementType,
-                                    pseudo_tag: *mut nsIAtom,
-                                    parent_style_context:
-                                        ServoStyleContextBorrowedOrNull,
                                     rule_inclusion: StyleRuleInclusion,
                                     snapshots:
                                         *const ServoElementSnapshotTable,
