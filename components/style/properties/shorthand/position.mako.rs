@@ -374,7 +374,7 @@
             Either::First(ref areas) => {
                 let track_list = match *template_rows {
                     GenericGridTemplateComponent::TrackList(ref list) => list,
-                    _ => unreachable!(),        // should exist!
+                    _ => return Ok(()),        // should exist!
                 };
 
                 let mut names_iter = track_list.line_names.iter();
