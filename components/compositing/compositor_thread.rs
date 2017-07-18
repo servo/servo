@@ -8,7 +8,7 @@ use SendableFrameTree;
 use compositor::CompositingReason;
 use euclid::{Point2D, Size2D};
 use ipc_channel::ipc::IpcSender;
-use msg::constellation_msg::{Key, KeyModifiers, KeyState, PipelineId};
+use msg::constellation_msg::{Key, KeyModifiers, KeyState, PipelineId, TopLevelBrowsingContextId};
 use net_traits::image::base::Image;
 use profile_traits::mem;
 use profile_traits::time;
@@ -87,23 +87,23 @@ pub enum Msg {
     /// Scroll a page in a window
     ScrollFragmentPoint(webrender_api::ClipId, Point2D<f32>, bool),
     /// Alerts the compositor that the current page has changed its title.
-    ChangePageTitle(PipelineId, Option<String>),
+    ChangePageTitle(TopLevelBrowsingContextId, Option<String>),
     /// Alerts the compositor that the given pipeline has changed whether it is running animations.
     ChangeRunningAnimationsState(PipelineId, AnimationState),
     /// Replaces the current frame tree, typically called during main frame navigation.
     SetFrameTree(SendableFrameTree),
     /// The load of a page has begun
-    LoadStart,
+    LoadStart(TopLevelBrowsingContextId),
     /// The load of a page has completed
-    LoadComplete,
+    LoadComplete(TopLevelBrowsingContextId),
     /// The history state has changed.
-    HistoryChanged(Vec<LoadData>, usize),
+    HistoryChanged(TopLevelBrowsingContextId, Vec<LoadData>, usize),
     /// Wether or not to follow a link
-    AllowNavigation(ServoUrl, IpcSender<bool>),
+    AllowNavigation(TopLevelBrowsingContextId, ServoUrl, IpcSender<bool>),
     /// Composite.
     Recomposite(CompositingReason),
     /// Sends an unconsumed key event back to the compositor.
-    KeyEvent(Option<char>, Key, KeyState, KeyModifiers),
+    KeyEvent(Option<TopLevelBrowsingContextId>, Option<char>, Key, KeyState, KeyModifiers),
     /// Script has handled a touch event, and either prevented or allowed default actions.
     TouchEventProcessed(EventResult),
     /// Changes the cursor.
@@ -115,17 +115,17 @@ pub enum Msg {
     /// A reply to the compositor asking if the output image is stable.
     IsReadyToSaveImageReply(bool),
     /// A favicon was detected
-    NewFavicon(ServoUrl),
+    NewFavicon(TopLevelBrowsingContextId, ServoUrl),
     /// <head> tag finished parsing
-    HeadParsed,
+    HeadParsed(TopLevelBrowsingContextId),
     /// A status message to be displayed by the browser chrome.
-    Status(Option<String>),
+    Status(TopLevelBrowsingContextId, Option<String>),
     /// Get Window Informations size and position
-    GetClientWindow(IpcSender<(Size2D<u32>, Point2D<i32>)>),
+    GetClientWindow(TopLevelBrowsingContextId, IpcSender<(Size2D<u32>, Point2D<i32>)>),
     /// Move the window to a point
-    MoveTo(Point2D<i32>),
+    MoveTo(TopLevelBrowsingContextId, Point2D<i32>),
     /// Resize the window to size
-    ResizeTo(Size2D<u32>),
+    ResizeTo(TopLevelBrowsingContextId, Size2D<u32>),
     /// Pipeline visibility changed
     PipelineVisibilityChanged(PipelineId, bool),
     /// WebRender has successfully processed a scroll. The boolean specifies whether a composite is
@@ -142,7 +142,7 @@ pub enum Msg {
     /// Required to allow WGL GLContext sharing in Windows.
     Dispatch(Box<Fn() + Send>),
     /// Enter or exit fullscreen
-    SetFullscreenState(bool),
+    SetFullscreenState(TopLevelBrowsingContextId, bool),
 }
 
 impl Debug for Msg {
@@ -154,9 +154,9 @@ impl Debug for Msg {
             Msg::ChangeRunningAnimationsState(..) => write!(f, "ChangeRunningAnimationsState"),
             Msg::ChangePageTitle(..) => write!(f, "ChangePageTitle"),
             Msg::SetFrameTree(..) => write!(f, "SetFrameTree"),
-            Msg::LoadComplete => write!(f, "LoadComplete"),
+            Msg::LoadComplete(..) => write!(f, "LoadComplete"),
             Msg::AllowNavigation(..) => write!(f, "AllowNavigation"),
-            Msg::LoadStart => write!(f, "LoadStart"),
+            Msg::LoadStart(..) => write!(f, "LoadStart"),
             Msg::HistoryChanged(..) => write!(f, "HistoryChanged"),
             Msg::Recomposite(..) => write!(f, "Recomposite"),
             Msg::KeyEvent(..) => write!(f, "KeyEvent"),
@@ -166,7 +166,7 @@ impl Debug for Msg {
             Msg::ViewportConstrained(..) => write!(f, "ViewportConstrained"),
             Msg::IsReadyToSaveImageReply(..) => write!(f, "IsReadyToSaveImageReply"),
             Msg::NewFavicon(..) => write!(f, "NewFavicon"),
-            Msg::HeadParsed => write!(f, "HeadParsed"),
+            Msg::HeadParsed(..) => write!(f, "HeadParsed"),
             Msg::Status(..) => write!(f, "Status"),
             Msg::GetClientWindow(..) => write!(f, "GetClientWindow"),
             Msg::MoveTo(..) => write!(f, "MoveTo"),

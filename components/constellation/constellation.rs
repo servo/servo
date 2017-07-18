@@ -799,9 +799,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
     }
 
-    fn add_pending_change(&mut self, change: SessionHistoryChange)
-    {
-        self.handle_load_start_msg(change.new_pipeline_id);
+    fn add_pending_change(&mut self, change: SessionHistoryChange) {
+        self.handle_load_start_msg(change.top_level_browsing_context_id, change.new_pipeline_id);
         self.pending_changes.push(change);
     }
 
@@ -926,9 +925,15 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             // Load a new page from a typed url
             // If there is already a pending page (self.pending_changes), it will not be overridden;
             // However, if the id is not encompassed by another change, it will be.
-            FromCompositorMsg::LoadUrl(source_id, load_data) => {
+            FromCompositorMsg::LoadUrl(top_level_browsing_context_id, url) => {
                 debug!("constellation got URL load message from compositor");
-                self.handle_load_url_msg(source_id, load_data, false);
+                let load_data = LoadData::new(url, None, None, None);
+                let ctx_id = BrowsingContextId::from(top_level_browsing_context_id);
+                let pipeline_id = match self.browsing_contexts.get(&ctx_id) {
+                    Some(ctx) => ctx.pipeline_id,
+                    None => return warn!("LoadUrl for unknow browsing context: {:?}", top_level_browsing_context_id),
+                };
+                self.handle_load_url_msg(top_level_browsing_context_id, pipeline_id, load_data, false);
             }
             FromCompositorMsg::IsReadyToSaveImage(pipeline_states) => {
                 let is_ready = self.handle_is_ready_to_save_image(pipeline_states);
@@ -1710,14 +1715,17 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
     }
 
-    fn handle_load_url_msg(&mut self, source_id: PipelineId, load_data: LoadData, replace: bool) {
-        self.load_url(source_id, load_data, replace);
+    fn handle_load_url_msg(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId, source_id: PipelineId,
+                           load_data: LoadData, replace: bool) {
+        self.load_url(top_level_browsing_context_id, source_id, load_data, replace);
     }
 
-    fn load_url(&mut self, source_id: PipelineId, load_data: LoadData, replace: bool) -> Option<PipelineId> {
+    fn load_url(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId, source_id: PipelineId,
+                load_data: LoadData, replace: bool) -> Option<PipelineId> {
         // Allow the embedder to handle the url itself
         let (chan, port) = ipc::channel().expect("Failed to create IPC channel!");
-        self.compositor_proxy.send(ToCompositorMsg::AllowNavigation(load_data.url.clone(), chan));
+        let msg = ToCompositorMsg::AllowNavigation(top_level_browsing_context_id, load_data.url.clone(), chan);
+        self.compositor_proxy.send(msg);
         if let Ok(false) = port.recv() {
             return None;
         }
@@ -1807,11 +1815,16 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
     }
 
-    fn handle_load_start_msg(&mut self, _pipeline_id: PipelineId) {
-        self.compositor_proxy.send(ToCompositorMsg::LoadStart);
+    fn handle_load_start_msg(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId,
+                             pipeline_id: PipelineId) {
+        if self.pipelines.get(&pipeline_id).and_then(|p| p.parent_info).is_none() {
+            // Notify embedder top level document started loading.
+            self.compositor_proxy.send(ToCompositorMsg::LoadStart(top_level_browsing_context_id));
+        }
     }
 
-    fn handle_load_complete_msg(&mut self, pipeline_id: PipelineId) {
+    fn handle_load_complete_msg(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId,
+                                pipeline_id: PipelineId) {
         let mut webdriver_reset = false;
         if let Some((expected_pipeline_id, ref reply_chan)) = self.webdriver.load_channel {
             debug!("Sending load to WebDriver");
@@ -1823,7 +1836,14 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         if webdriver_reset {
             self.webdriver.load_channel = None;
         }
-        self.compositor_proxy.send(ToCompositorMsg::LoadComplete);
+        let pipeline_is_top_level_pipeline = self.browsing_contexts
+            .get(&BrowsingContextId::from(top_level_browsing_context_id))
+            .map(|ctx| ctx.pipeline_id == pipeline_id)
+            .unwrap_or(false);
+        if pipeline_is_top_level_pipeline {
+            // Notify embedder top level document finished loading.
+            self.compositor_proxy.send(ToCompositorMsg::LoadComplete(top_level_browsing_context_id));
+        }
         self.handle_subframe_loaded(pipeline_id);
     }
 
@@ -1889,7 +1909,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 }
             },
             None => {
-                let event = ToCompositorMsg::KeyEvent(ch, key, state, mods);
+                let event = ToCompositorMsg::KeyEvent(None, ch, key, state, mods);
                 self.compositor_proxy.clone_compositor_proxy().send(event);
             }
         }
@@ -2080,9 +2100,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             WebDriverCommandMsg::GetWindowSize(_, reply) => {
                let _ = reply.send(self.window_size);
             },
-            WebDriverCommandMsg::SetWindowSize(_, size, reply) => {
+            WebDriverCommandMsg::SetWindowSize(top_level_browsing_context_id, size, reply) => {
                 self.webdriver.resize_channel = Some(reply);
-                self.compositor_proxy.send(ToCompositorMsg::ResizeTo(size));
+                self.compositor_proxy.send(ToCompositorMsg::ResizeTo(top_level_browsing_context_id, size));
             },
             WebDriverCommandMsg::LoadUrl(top_level_browsing_context_id, load_data, reply) => {
                 self.load_url_for_webdriver(top_level_browsing_context_id, load_data, reply, false);
@@ -2316,7 +2336,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                        .map(&keep_load_data_if_top_browsing_context)
                        .scan(current_load_data.clone(), &resolve_load_data));
 
-        self.compositor_proxy.send(ToCompositorMsg::HistoryChanged(entries, current_index));
+        let msg = ToCompositorMsg::HistoryChanged(top_level_browsing_context_id, entries, current_index);
+        self.compositor_proxy.send(msg);
     }
 
     fn load_url_for_webdriver(&mut self,
@@ -2330,7 +2351,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             Some(browsing_context) => browsing_context.pipeline_id,
             None => return warn!("Webdriver load for closed browsing context {}.", browsing_context_id),
         };
-        if let Some(new_pipeline_id) = self.load_url(pipeline_id, load_data, replace) {
+        if let Some(new_pipeline_id) = self.load_url(top_level_browsing_context_id, pipeline_id, load_data, replace) {
             self.webdriver.load_channel = Some((new_pipeline_id, reply));
         }
     }
