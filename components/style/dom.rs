@@ -15,7 +15,7 @@ use data::ElementData;
 use element_state::ElementState;
 use font_metrics::FontMetricsProvider;
 use media_queries::Device;
-use properties::{AnimationRules, ComputedValues, ComputedValuesInner, PropertyDeclarationBlock};
+use properties::{AnimationRules, ComputedValues, PropertyDeclarationBlock};
 #[cfg(feature = "gecko")] use properties::animated_properties::AnimationValue;
 #[cfg(feature = "gecko")] use properties::animated_properties::TransitionProperty;
 use rule_tree::CascadeLevel;
@@ -437,7 +437,7 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
     fn may_generate_pseudo(
         &self,
         pseudo: &PseudoElement,
-        _primary_style: &ComputedValuesInner,
+        _primary_style: &ComputedValues,
     ) -> bool {
         // ::before/::after are always supported for now, though we could try to
         // optimize out leaf elements.

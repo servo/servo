@@ -62,7 +62,7 @@ impl Device {
     }
 
     /// Return the default computed values for this device.
-    pub fn default_computed_values(&self) -> &ComputedValues{
+    pub fn default_computed_values(&self) -> &ComputedValues {
         // FIXME(bz): This isn't really right, but it's no more wrong
         // than what we used to do.  See
         // https://github.com/servo/servo/issues/14773 for fixing it properly.

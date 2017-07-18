@@ -124,6 +124,11 @@ impl FontComputationData {
     pub fn default_font_size_keyword() -> Option<(longhands::font_size::KeywordSize, f32)> {
         Some((Default::default(), 1.))
     }
+
+    /// Gets a FontComputationData with the default values.
+    pub fn default_values() -> Self {
+        Self::new(Self::default_font_size_keyword())
+    }
 }
 
 impl<T> MaybeBoxed<T> for T {
@@ -1953,10 +1958,6 @@ impl ComputedValues {
 
     /// Get the initial computed values.
     pub fn initial_values() -> &'static Self { &*INITIAL_SERVO_VALUES }
-
-    /// Servo doesn't track the pseudo-element, so no need to do anything fancy
-    /// here.
-    fn pseudo(&self) -> Option<<&PseudoElement> { None }
 }
 
 #[cfg(feature = "servo")]

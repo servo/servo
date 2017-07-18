@@ -723,15 +723,16 @@ pub extern "C" fn Servo_StyleSet_GetBaseComputedValuesForElement(raw_data: RawSe
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_ComputedValues_ExtractAnimationValue(computed_values: ServoComputedValuesBorrowed,
+pub extern "C" fn Servo_ComputedValues_ExtractAnimationValue(computed_values: ServoStyleContextBorrowed,
                                                              property_id: nsCSSPropertyID)
                                                              -> RawServoAnimationValueStrong
 {
     let property = match AnimatableLonghand::from_nscsspropertyid(property_id) {
         Some(longhand) => longhand,
-        None => { return Strong::null(); }
+        None => return Strong::null(),
     };
 
+    let computed_values = ComputedValues::as_arc(&computed_values);
     Arc::new(AnimationValue::from_computed_values(&property, computed_values)).into_strong()
 }
 
