@@ -22,11 +22,13 @@ extern crate euclid;
 extern crate selectors;
 #[cfg(feature = "servo")] #[macro_use] extern crate serde;
 extern crate webrender_api;
+#[cfg(feature = "servo")] extern crate servo_atoms;
 
 pub use webrender_api::DevicePixel;
 
 use cssparser::{CowRcStr, Token};
 use selectors::parser::SelectorParseError;
+#[cfg(feature = "servo")] use servo_atoms::Atom;
 
 /// Opaque type stored in type-unsafe work queues for parallel layout.
 /// Must be transmutable to and from `TNode`.
@@ -177,3 +179,9 @@ impl ParsingMode {
     }
 }
 
+#[cfg(feature = "servo")]
+/// Speculatively execute paint code in the worklet thread pool.
+pub trait SpeculativePainter: Send + Sync {
+    /// https://drafts.css-houdini.org/css-paint-api/#draw-a-paint-image
+    fn speculatively_draw_a_paint_image(&self, properties: Vec<(Atom, String)>);
+}

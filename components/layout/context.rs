@@ -4,7 +4,6 @@
 
 //! Data needed by the layout thread.
 
-use fnv::FnvHashMap;
 use fnv::FnvHasher;
 use gfx::display_list::{WebRenderImageInfo, OpaqueNode};
 use gfx::font_cache_thread::FontCacheThread;
@@ -25,8 +24,8 @@ use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
 use std::sync::{Arc, Mutex};
 use std::thread;
+use style::context::RegisteredSpeculativePainter;
 use style::context::SharedStyleContext;
-use style::properties::PropertyId;
 
 thread_local!(static FONT_CONTEXT_KEY: RefCell<Option<FontContext>> = RefCell::new(None));
 
@@ -73,7 +72,7 @@ pub struct LayoutContext<'a> {
                                                   BuildHasherDefault<FnvHasher>>>>,
 
     /// Paint worklets
-    pub registered_painters: Arc<RwLock<FnvHashMap<Atom, RegisteredPainter>>>,
+    pub registered_painters: &'a RegisteredPainters,
 
     /// A list of in-progress image loads to be shared with the script thread.
     /// A None value means that this layout was not initiated by the script thread.
@@ -179,9 +178,11 @@ impl<'a> LayoutContext<'a> {
     }
 }
 
-/// A registered paint worklet.
-pub struct RegisteredPainter {
-    pub name: Atom,
-    pub properties: FnvHashMap<Atom, PropertyId>,
-    pub painter: Arc<Painter>,
+/// A registered painter
+pub trait RegisteredPainter: RegisteredSpeculativePainter + Painter {}
+
+/// A set of registered painters
+pub trait RegisteredPainters: Sync {
+    /// Look up a painter
+    fn get(&self, name: &Atom) -> Option<&RegisteredPainter>;
 }
