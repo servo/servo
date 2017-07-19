@@ -5,7 +5,7 @@
 use dom::bindings::error::{report_pending_exception, throw_dom_exception};
 use dom::bindings::js::Root;
 use dom::bindings::reflector::DomObject;
-use dom::customelementregistry::is_valid_custom_element_name;
+use dom::customelementregistry::{is_valid_custom_element_name, upgrade_element};
 use dom::document::Document;
 use dom::element::{CustomElementCreationMode, Element, ElementCreator};
 use dom::globalscope::GlobalScope;
@@ -81,6 +81,7 @@ use dom::htmlvideoelement::HTMLVideoElement;
 use dom::svgsvgelement::SVGSVGElement;
 use html5ever::{LocalName, Prefix, QualName};
 use js::jsapi::JSAutoCompartment;
+use script_thread::ScriptThread;
 use servo_config::prefs::PREFS;
 
 fn create_svg_element(name: QualName,
@@ -127,8 +128,11 @@ fn create_html_element(name: QualName,
     if let Some(definition) = definition {
         if definition.is_autonomous() {
             match mode {
-                // TODO: Handle asynchronous CE creation. Relies on CE upgrades.
-                CustomElementCreationMode::Asynchronous => {},
+                CustomElementCreationMode::Asynchronous => {
+                    let result = Root::upcast(HTMLElement::new(name.local.clone(), prefix.clone(), document));
+                    ScriptThread::enqueue_upgrade_reaction(&*result, definition);
+                    return result;
+                },
                 CustomElementCreationMode::Synchronous => {
                     let local_name = name.local.clone();
                     return match definition.create_element(document, prefix.clone()) {
@@ -155,9 +159,17 @@ fn create_html_element(name: QualName,
                 },
             }
         } else {
+            // Steps 5.1-5.2
             let element = create_native_html_element(name, prefix, document, creator);
             element.set_is(definition.name.clone());
-            // TODO: Enqueue custom element upgrade
+            match mode {
+                // Step 5.3
+                CustomElementCreationMode::Synchronous =>
+                    upgrade_element(definition, &*element),
+                // Step 5.4
+                CustomElementCreationMode::Asynchronous =>
+                    ScriptThread::enqueue_upgrade_reaction(&*element, definition),
+            }
             return element;
         }
     }

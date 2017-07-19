@@ -30,7 +30,7 @@ use dom::bindings::str::{DOMString, USVString};
 use dom::bindings::xmlname::namespace_from_domstring;
 use dom::characterdata::{CharacterData, LayoutCharacterDataHelpers};
 use dom::cssstylesheet::CSSStyleSheet;
-use dom::customelementregistry::CallbackReaction;
+use dom::customelementregistry::{CallbackReaction, try_upgrade_element};
 use dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
 use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
@@ -1639,12 +1639,13 @@ impl Node {
             for descendant in kid.traverse_preorder().filter_map(Root::downcast::<Element>) {
                 // Step 7.7.2.
                 if descendant.is_connected() {
-                    // Step 7.7.2.1.
                     if descendant.get_custom_element_definition().is_some() {
+                        // Step 7.7.2.1.
                         ScriptThread::enqueue_callback_reaction(&*descendant, CallbackReaction::Connected);
+                    } else {
+                        // Step 7.7.2.2.
+                        try_upgrade_element(&*descendant);
                     }
-                    // TODO: Step 7.7.2.2.
-                    // Try to upgrade descendant.
                 }
             }
         }

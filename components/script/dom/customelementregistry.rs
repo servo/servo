@@ -9,6 +9,7 @@ use dom::bindings::codegen::Bindings::CustomElementRegistryBinding::CustomElemen
 use dom::bindings::codegen::Bindings::CustomElementRegistryBinding::ElementDefinitionOptions;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
+use dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use dom::bindings::conversions::{ConversionResult, FromJSValConvertible, StringificationBehavior};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
@@ -287,17 +288,28 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
         self.element_definition_is_running.set(false);
 
         // Step 11
-        let definition = CustomElementDefinition::new(name.clone(),
-                                                      local_name,
-                                                      constructor_,
-                                                      observed_attributes,
-                                                      callbacks);
+        let definition = Rc::new(CustomElementDefinition::new(name.clone(),
+                                                              local_name.clone(),
+                                                              constructor_,
+                                                              observed_attributes,
+                                                              callbacks));
 
         // Step 12
-        self.definitions.borrow_mut().insert(name.clone(), Rc::new(definition));
+        self.definitions.borrow_mut().insert(name.clone(), definition.clone());
 
-        // TODO: Step 13, 14, 15
-        // Handle custom element upgrades
+        // Step 13
+        let document = self.window.Document();
+
+        // Steps 14-15
+        for candidate in document.upcast::<Node>().traverse_preorder().filter_map(Root::downcast::<Element>) {
+            let is = candidate.get_is();
+            if *candidate.local_name() == local_name &&
+                *candidate.namespace() == ns!(html) &&
+                (is.is_none() || is.as_ref() == Some(&name))
+            {
+                ScriptThread::enqueue_upgrade_reaction(&*candidate, definition.clone());
+            }
+        }
 
         // Step 16, 16.3
         if let Some(promise) = self.when_defined.borrow_mut().remove(&name) {
@@ -470,7 +482,7 @@ impl CustomElementDefinition {
 
 /// https://html.spec.whatwg.org/multipage/#concept-upgrade-an-element
 #[allow(unsafe_code)]
-fn upgrade_element(definition: Rc<CustomElementDefinition>, element: &Element) {
+pub fn upgrade_element(definition: Rc<CustomElementDefinition>, element: &Element) {
     // TODO: Steps 1-2
     // Track custom element state
 
