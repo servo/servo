@@ -20,14 +20,14 @@ use dom::domexception::{DOMErrorName, DOMException};
 use dom::element::Element;
 use dom::globalscope::GlobalScope;
 use dom::htmlelement::HTMLElement;
-use dom::node::Node;
+use dom::node::{document_from_node, Node, window_from_node};
 use dom::promise::Promise;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Namespace, Prefix};
 use js::conversions::ToJSValConvertible;
 use js::jsapi::{Construct1, IsCallable, IsConstructor, HandleValueArray, HandleObject, MutableHandleValue};
-use js::jsapi::{Heap, JS_GetProperty, JSAutoCompartment, JSContext};
+use js::jsapi::{Heap, JS_GetProperty, JS_SameValue, JSAutoCompartment, JSContext};
 use js::jsval::{JSVal, NullValue, ObjectValue, UndefinedValue};
 use microtask::Microtask;
 use script_thread::ScriptThread;
@@ -459,6 +459,72 @@ impl CustomElementDefinition {
         // Element's `is` is None by default
 
         Ok(element)
+    }
+}
+
+/// https://html.spec.whatwg.org/multipage/#concept-upgrade-an-element
+#[allow(unsafe_code)]
+fn upgrade_element(definition: Rc<CustomElementDefinition>, element: &Element) {
+    // TODO: Steps 1-2
+    // Track custom element state
+
+    // Step 3
+    for attr in element.attrs().iter() {
+        let local_name = attr.local_name().clone();
+        let value = DOMString::from(&**attr.value());
+        let namespace = attr.namespace().clone();
+        ScriptThread::enqueue_callback_reaction(element,
+            CallbackReaction::AttributeChanged(local_name, None, Some(value), namespace));
+    }
+
+    // Step 4
+    if element.is_connected() {
+        ScriptThread::enqueue_callback_reaction(element, CallbackReaction::Connected);
+    }
+
+    // Step 5
+    definition.construction_stack.borrow_mut().push(ConstructionStackEntry::Element(Root::from_ref(element)));
+
+    // Step 6
+    let window = window_from_node(element);
+    let cx = window.get_cx();
+    rooted!(in(cx) let constructor = ObjectValue(definition.constructor.callback()));
+    rooted!(in(cx) let mut element_val = UndefinedValue());
+    unsafe { element.to_jsval(cx, element_val.handle_mut()); }
+    rooted!(in(cx) let mut construct_result = ptr::null_mut());
+    {
+        // Go into the constructor's compartment
+        let _ac = JSAutoCompartment::new(cx, definition.constructor.callback());
+        let args = HandleValueArray::new();
+        // Step 7
+        if unsafe { !Construct1(cx, constructor.handle(), &args, construct_result.handle_mut()) } {
+            // TODO: Catch exceptions
+            return;
+        }
+        // Step 8
+        let mut same = false;
+        rooted!(in(cx) let construct_result_val = ObjectValue(construct_result.get()));
+        if unsafe { !JS_SameValue(cx, construct_result_val.handle(), element_val.handle(), &mut same) } {
+            // TODO: Catch exceptions
+            return;
+        }
+        if !same {
+            // TODO: Throw InvalidStateError
+        }
+    }
+    definition.construction_stack.borrow_mut().pop();
+    // TODO: Handle Exceptions
+
+    element.set_custom_element_definition(definition);
+}
+
+/// https://html.spec.whatwg.org/multipage/#concept-try-upgrade
+pub fn try_upgrade_element(element: &Element) {
+    // Step 1
+    let document = document_from_node(element);
+    if let Some(definition) = document.lookup_custom_element_definition(element.local_name().clone(), element.get_is()) {
+        // Step 2
+        ScriptThread::enqueue_upgrade_reaction(element, definition);
     }
 }
 
