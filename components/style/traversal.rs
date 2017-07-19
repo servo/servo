@@ -227,26 +227,23 @@ pub trait DomTraversal<E: TElement> : Sync {
         }
 
         let flags = shared_context.traversal_flags;
-        let data = root.mutate_data();
-        let should_traverse = if data.as_ref().map_or(true, |d| !d.has_styles()) {
-            !flags.for_animation_only()
-        } else {
-            let mut data = data.unwrap();
-            // Look at whether there has been any attribute or state change, and
-            // invalidate our style, and the one of our siblings and descendants as
-            // needed.
-            if !flags.for_animation_only() {
-                data.invalidate_style_if_needed(root, shared_context);
-            }
+        let mut data = root.mutate_data();
+        let mut data = data.as_mut().map(|d| &mut **d);
 
-            let parent = root.traversal_parent();
-            let parent_data = match parent {
-                None => None,
-                Some(ref x) => Some(x.borrow_data().unwrap())
-            };
-            let parent_data_borrow = parent_data.as_ref().map(|x| &**x);
-            Self::element_needs_traversal(root, flags, &*data, parent_data_borrow)
+        if let Some(ref mut data) = data {
+            // Invalidate our style, and the one of our siblings and descendants
+            // as needed.
+            data.invalidate_style_if_needed(root, shared_context);
         };
+
+        let parent = root.traversal_parent();
+        let parent_data = parent.as_ref().and_then(|p| p.borrow_data());
+        let should_traverse = Self::element_needs_traversal(
+            root,
+            flags,
+            data.map(|d| &*d),
+            parent_data.as_ref().map(|d| &**d)
+        );
 
         PreTraverseToken {
             traverse: should_traverse,
@@ -269,10 +266,15 @@ pub trait DomTraversal<E: TElement> : Sync {
     fn element_needs_traversal(
         el: E,
         traversal_flags: TraversalFlags,
-        data: &ElementData,
+        data: Option<&ElementData>,
         parent_data: Option<&ElementData>,
     ) -> bool {
-        debug_assert!(data.has_styles(), "Caller should check this");
+        debug!("element_needs_traversal({:?}, {:?}, {:?}, {:?})",
+               el, traversal_flags, data, parent_data);
+        let data = match data {
+            Some(d) if d.has_styles() => d,
+            _ => return !traversal_flags.for_animation_only(),
+        };
 
         // Non-incremental layout visits every node.
         if is_servo_nonincremental_layout() {
@@ -773,6 +775,7 @@ where
 {
     trace!("note_children: {:?}", element);
     let flags = context.shared.traversal_flags;
+    let is_initial_style = context.thread_local.is_initial_style();
 
     // Loop over all the traversal children.
     for child_node in element.as_node().traversal_children() {
@@ -787,37 +790,31 @@ where
             },
         };
 
-        let child_data = child.mutate_data();
-        if child_data.as_ref().map_or(true, |d| !d.has_styles()) {
-            if !flags.for_animation_only() {
-                note_child(child_node);
-            }
-            continue;
-        }
-        let mut child_data = child_data.unwrap();
-
+        let mut child_data = child.mutate_data();
+        let mut child_data = child_data.as_mut().map(|d| &mut **d);
         trace!(" > {:?} -> {:?} + {:?}, pseudo: {:?}",
                child,
-               child_data.restyle.hint,
+               child_data.as_ref().map(|d| d.restyle.hint),
                propagated_hint,
                child.implemented_pseudo_element());
 
-        // Propagate the parent restyle hint, that may make us restyle the whole
-        // subtree.
-        if reconstructed_ancestor {
-            child_data.restyle.set_reconstructed_ancestor();
-        }
-        child_data.restyle.hint.insert(propagated_hint);
+        if let Some(ref mut child_data) = child_data {
+            // Propagate the parent restyle hint, that may make us restyle the whole
+            // subtree.
+            if reconstructed_ancestor {
+                child_data.restyle.set_reconstructed_ancestor();
+            }
 
-        // Handle element snapshots and invalidation of descendants and siblings
-        // as needed.
-        //
-        // NB: This will be a no-op if there's no snapshot.
-        if !flags.for_animation_only() {
+            child_data.restyle.hint.insert(propagated_hint);
+
+            // Handle element snapshots and invalidation of descendants and siblings
+            // as needed.
+            //
+            // NB: This will be a no-op if there's no snapshot.
             child_data.invalidate_style_if_needed(child, &context.shared);
         }
 
-        if D::element_needs_traversal(child, flags, &*child_data, Some(data)) {
+        if D::element_needs_traversal(child, flags, child_data.map(|d| &*d), Some(data)) {
             note_child(child_node);
 
             // Set the dirty descendants bit on the parent as needed, so that we
@@ -826,8 +823,8 @@ where
             // If we are in a restyle for reconstruction, there is no need to
             // perform a post-traversal, so we don't need to set the dirty
             // descendants bit on the parent.
-            if !context.shared.traversal_flags.for_reconstruct() {
-                if context.shared.traversal_flags.for_animation_only() {
+            if !flags.for_reconstruct() && !is_initial_style {
+                if flags.for_animation_only() {
                     unsafe { element.set_animation_only_dirty_descendants(); }
                 } else {
                     unsafe { element.set_dirty_descendants(); }
