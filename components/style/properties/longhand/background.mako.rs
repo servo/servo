@@ -161,6 +161,7 @@ ${helpers.predefined_type("background-size", "BackgroundSize",
     spec="https://drafts.csswg.org/css-backgrounds/#the-background-size",
     vector=True,
     animation_value_type="ComputedValue",
+    restriction="Restriction::NonNegative",
     extra_prefixes="webkit")}
 
 // https://drafts.fxtf.org/compositing/#background-blend-mode

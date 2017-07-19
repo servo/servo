@@ -5,6 +5,7 @@
 //! Computed types for CSS values related to backgrounds.
 
 use properties::animated_properties::{Animatable, RepeatableListAnimatable};
+use values::animated::{AnimatedValueAsComputed, Restriction};
 use values::computed::length::LengthOrPercentageOrAuto;
 use values::generics::background::BackgroundSize as GenericBackgroundSize;
 
@@ -47,6 +48,19 @@ impl Animatable for BackgroundSize {
                 )
             }
             _ => Err(()),
+        }
+    }
+}
+
+impl AnimatedValueAsComputed for BackgroundSize {
+    #[inline]
+    fn restrict_value(self, restriction_type: Restriction) -> Self {
+        match self {
+            GenericBackgroundSize::Explicit { width, height } => {
+                GenericBackgroundSize::Explicit { width: width.restrict_value(restriction_type),
+                                                  height: height.restrict_value(restriction_type) }
+            }
+            _ => self
         }
     }
 }
