@@ -117,17 +117,17 @@ ${helpers.single_keyword("flex-wrap", "nowrap wrap wrap-reverse",
 % endif
 
 // Flex item properties
-${helpers.predefined_type("flex-grow", "Number",
-                          "0.0", "parse_non_negative",
+${helpers.predefined_type("flex-grow", "NonNegativeNumber",
+                          "::values::computed::NonNegativeNumber(0.0)",
                           spec="https://drafts.csswg.org/css-flexbox/#flex-grow-property",
                           extra_prefixes="webkit",
-                          animation_value_type="ComputedValue")}
+                          animation_value_type="NonNegativeNumber")}
 
-${helpers.predefined_type("flex-shrink", "Number",
-                          "1.0", "parse_non_negative",
+${helpers.predefined_type("flex-shrink", "NonNegativeNumber",
+                          "::values::computed::NonNegativeNumber(1.0)",
                           spec="https://drafts.csswg.org/css-flexbox/#flex-shrink-property",
                           extra_prefixes="webkit",
-                          animation_value_type="ComputedValue")}
+                          animation_value_type="NonNegativeNumber")}
 
 // https://drafts.csswg.org/css-align/#align-self-property
 % if product == "servo":

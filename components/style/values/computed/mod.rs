@@ -436,6 +436,16 @@ impl ComputedValueAsSpecified for specified::BorderStyle {}
 /// A `<number>` value.
 pub type Number = CSSFloat;
 
+/// A wrapper of Number, but only accept a value >= 0.
+#[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
+#[derive(Clone, PartialEq, PartialOrd, Copy, Debug, ToCss)]
+pub struct NonNegativeNumber(pub CSSFloat);
+
+/// A wrapper of Number, but only accept a value >= 1.
+#[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
+#[derive(Clone, PartialEq, PartialOrd, Copy, Debug, ToCss)]
+pub struct GreaterThanOrEqualToOneNumber(pub CSSFloat);
+
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, Copy, Debug, PartialEq, ToCss)]

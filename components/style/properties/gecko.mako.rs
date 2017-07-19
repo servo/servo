@@ -392,6 +392,20 @@ impl ${style_struct.gecko_struct_name} {
     }
 </%def>
 
+<%def name="impl_simple_wrapper_setter(ident, gecko_ffi_name)">
+    #[allow(non_snake_case)]
+    pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
+        ${set_gecko_property(gecko_ffi_name, "v.0")}
+    }
+</%def>
+
+<%def name="impl_simple_wrapper_clone(ident, gecko_ffi_name)">
+    #[allow(non_snake_case)]
+    pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
+        longhands::${ident}::computed_value::T(self.gecko.${gecko_ffi_name})
+    }
+</%def>
+
 <%!
 def get_gecko_property(ffi_name, self_param = "self"):
     if "mBorderColor" in ffi_name:
@@ -489,6 +503,14 @@ def set_gecko_property(ffi_name, expr):
 <%call expr="impl_simple_copy(ident, gecko_ffi_name)"></%call>
 % if need_clone:
     <%call expr="impl_simple_clone(ident, gecko_ffi_name)"></%call>
+% endif
+</%def>
+
+<%def name="impl_simple_wrapper(ident, gecko_ffi_name, need_clone=False)">
+<%call expr="impl_simple_wrapper_setter(ident, gecko_ffi_name)"></%call>
+<%call expr="impl_simple_copy(ident, gecko_ffi_name)"></%call>
+% if need_clone:
+    <%call expr="impl_simple_wrapper_clone(ident, gecko_ffi_name)"></%call>
 % endif
 </%def>
 
@@ -887,6 +909,7 @@ impl Clone for ${style_struct.gecko_struct_name} {
     predefined_types = {
         "length::LengthOrAuto": impl_style_coord,
         "length::LengthOrNormal": impl_style_coord,
+        "GreaterThanOrEqualToOneNumber": impl_simple_wrapper,
         "Length": impl_absolute_length,
         "Position": impl_position,
         "LengthOrPercentage": impl_style_coord,
@@ -896,6 +919,7 @@ impl Clone for ${style_struct.gecko_struct_name} {
         "LengthOrNormal": impl_style_coord,
         "MaxLength": impl_style_coord,
         "MozLength": impl_style_coord,
+        "NonNegativeNumber": impl_simple_wrapper,
         "Number": impl_simple,
         "Integer": impl_simple,
         "Opacity": impl_simple,

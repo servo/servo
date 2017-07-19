@@ -10,6 +10,8 @@
 
 use app_units::Au;
 use values::computed::Angle as ComputedAngle;
+use values::computed::GreaterThanOrEqualToOneNumber as ComputedGreaterThanOrEqualToOneNumber;
+use values::computed::NonNegativeNumber as ComputedNonNegativeNumber;
 use values::specified::url::SpecifiedUrl;
 
 pub mod effects;
@@ -88,6 +90,34 @@ where
     }
 }
 
+impl ToAnimatedValue for ComputedNonNegativeNumber {
+    type AnimatedValue = Self;
+
+    #[inline]
+    fn to_animated_value(self) -> Self {
+        self
+    }
+
+    #[inline]
+    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+        ComputedNonNegativeNumber(animated.0.max(0.))
+    }
+}
+
+impl ToAnimatedValue for ComputedGreaterThanOrEqualToOneNumber {
+    type AnimatedValue = Self;
+
+    #[inline]
+    fn to_animated_value(self) -> Self {
+        self
+    }
+
+    #[inline]
+    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+        ComputedGreaterThanOrEqualToOneNumber(animated.0.max(1.))
+    }
+}
+
 /// Returns a value similar to `self` that represents zero.
 pub trait ToAnimatedZero: Sized {
     /// Returns a value that, when added with an underlying value, will produce the underlying
@@ -118,4 +148,14 @@ impl ToAnimatedZero for f64 {
 impl ToAnimatedZero for i32 {
     #[inline]
     fn to_animated_zero(&self) -> Result<Self, ()> { Ok(0) }
+}
+
+impl ToAnimatedZero for ComputedNonNegativeNumber {
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Self, ()> { Ok(ComputedNonNegativeNumber(0.)) }
+}
+
+impl ToAnimatedZero for ComputedGreaterThanOrEqualToOneNumber {
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Self, ()> { Ok(ComputedGreaterThanOrEqualToOneNumber(0.)) }
 }

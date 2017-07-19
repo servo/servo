@@ -507,6 +507,68 @@ impl ToCss for Number {
     }
 }
 
+/// A wrapper of Number, with value >= 0.
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd, ToCss)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub struct NonNegativeNumber(pub Number);
+
+no_viewport_percentage!(NonNegativeNumber);
+
+impl Parse for NonNegativeNumber {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        parse_number_with_clamping_mode(context, input, AllowedNumericType::NonNegative).map(NonNegativeNumber)
+    }
+}
+
+impl ToComputedValue for NonNegativeNumber {
+    type ComputedValue = computed::NonNegativeNumber;
+
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
+        computed::NonNegativeNumber(self.0.to_computed_value(context))
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        NonNegativeNumber(Number::from_computed_value(&computed.0))
+    }
+}
+
+impl NonNegativeNumber {
+    /// Returns a new non-negative number with the value `val`.
+    pub fn new(val: CSSFloat) -> Self {
+        NonNegativeNumber(Number::new(val.max(0.)))
+    }
+}
+
+/// A wrapper of Number, with value >= 1.
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd, ToCss)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub struct GreaterThanOrEqualToOneNumber(Number);
+
+no_viewport_percentage!(GreaterThanOrEqualToOneNumber);
+
+impl Parse for GreaterThanOrEqualToOneNumber {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        parse_number_with_clamping_mode(context, input, AllowedNumericType::AtLeastOne)
+            .map(GreaterThanOrEqualToOneNumber)
+    }
+}
+
+impl ToComputedValue for GreaterThanOrEqualToOneNumber {
+    type ComputedValue = computed::GreaterThanOrEqualToOneNumber;
+
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
+        computed::GreaterThanOrEqualToOneNumber(self.0.to_computed_value(context))
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        GreaterThanOrEqualToOneNumber(Number::from_computed_value(&computed.0))
+    }
+}
+
 /// <number> | <percentage>
 ///
 /// Accepts only non-negative numbers.

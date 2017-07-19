@@ -46,7 +46,7 @@
                     extra_prefixes="webkit"
                     derive_serialize="True"
                     spec="https://drafts.csswg.org/css-flexbox/#flex-property">
-    use values::specified::Number;
+    use values::specified::{NonNegativeNumber, Number};
 
     fn parse_flexibility<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                                  -> Result<(Number, Option<Number>),ParseError<'i>> {
@@ -63,8 +63,8 @@
 
         if input.try(|input| input.expect_ident_matching("none")).is_ok() {
             return Ok(expanded! {
-                flex_grow: Number::new(0.0),
-                flex_shrink: Number::new(0.0),
+                flex_grow: NonNegativeNumber::new(0.0),
+                flex_shrink: NonNegativeNumber::new(0.0),
                 flex_basis: longhands::flex_basis::SpecifiedValue::auto(),
             })
         }
@@ -89,8 +89,8 @@
             return Err(StyleParseError::UnspecifiedError.into())
         }
         Ok(expanded! {
-            flex_grow: grow.unwrap_or(Number::new(1.0)),
-            flex_shrink: shrink.unwrap_or(Number::new(1.0)),
+            flex_grow: NonNegativeNumber(grow.unwrap_or(Number::new(1.0))),
+            flex_shrink: NonNegativeNumber(shrink.unwrap_or(Number::new(1.0))),
             // Per spec, this should be SpecifiedValue::zero(), but all
             // browsers currently agree on using `0%`. This is a spec
             // change which hasn't been adopted by browsers:
