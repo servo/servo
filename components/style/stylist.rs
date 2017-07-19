@@ -481,19 +481,20 @@ impl Stylist {
         ua_sheets: Option<&UserAgentStylesheets>,
         extra_data: &mut PerOrigin<ExtraStyleData>,
         document_element: Option<E>,
-    )
+    ) -> bool
     where
         E: TElement,
     {
         if !self.stylesheets.has_changed() {
-            return;
+            return false;
         }
 
         let author_style_disabled = self.stylesheets.author_style_disabled();
-        let (doc_stylesheets, origins_to_rebuild) = self.stylesheets.flush(document_element);
+        let (doc_stylesheets, origins_to_rebuild, have_invalidations) =
+            self.stylesheets.flush(document_element);
 
         if origins_to_rebuild.is_empty() {
-            return;
+            return have_invalidations;
         }
 
         self.num_rebuilds += 1;
@@ -538,6 +539,8 @@ impl Stylist {
             extra_data,
             origins_to_rebuild,
         );
+
+        have_invalidations
     }
 
     /// Insert a given stylesheet before another stylesheet in the document.

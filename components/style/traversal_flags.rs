@@ -27,8 +27,8 @@ bitflags! {
         /// Actively seeks out and clears change hints that may have been posted into
         /// the tree. Nonsensical without also passing Forgetful.
         const AggressivelyForgetful = 1 << 4,
-        /// Clears the dirty descendants bit in the subtree.
-        const ClearDirtyDescendants = 1 << 5,
+        /// Clears all the dirty bits on the elements traversed.
+        const ClearDirtyBits = 1 << 5,
         /// Clears the animation-only dirty descendants bit in the subtree.
         const ClearAnimationOnlyDirtyDescendants = 1 << 6,
         /// Allows the traversal to run in parallel if there are sufficient cores on
@@ -67,7 +67,7 @@ pub fn assert_traversal_flags_match() {
         ServoTraversalFlags_UnstyledOnly => UnstyledOnly,
         ServoTraversalFlags_Forgetful => Forgetful,
         ServoTraversalFlags_AggressivelyForgetful => AggressivelyForgetful,
-        ServoTraversalFlags_ClearDirtyDescendants => ClearDirtyDescendants,
+        ServoTraversalFlags_ClearDirtyBits => ClearDirtyBits,
         ServoTraversalFlags_ClearAnimationOnlyDirtyDescendants =>
             ClearAnimationOnlyDirtyDescendants,
         ServoTraversalFlags_ParallelTraversal => ParallelTraversal,

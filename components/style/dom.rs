@@ -501,12 +501,19 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
     unsafe fn unset_animation_only_dirty_descendants(&self) {
     }
 
-    /// Clear all bits related to dirty descendant.
+    /// Clear all bits related describing the dirtiness of descendants.
     ///
     /// In Gecko, this corresponds to the regular dirty descendants bit, the
     /// animation-only dirty descendants bit, and the lazy frame construction
     /// descendants bit.
     unsafe fn clear_descendants_bits(&self) { self.unset_dirty_descendants(); }
+
+    /// Clear all element flags related to dirtiness.
+    ///
+    /// In Gecko, this corresponds to the regular dirty descendants bit, the
+    /// animation-only dirty descendants bit, the lazy frame construction bit,
+    /// and the lazy frame construction descendants bit.
+    unsafe fn clear_dirty_bits(&self) { self.unset_dirty_descendants(); }
 
     /// Returns true if this element is a visited link.
     ///
@@ -716,28 +723,6 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
                           override_lang: Option<Option<AttrValue>>,
                           value: &PseudoClassStringArg)
                           -> bool;
-}
-
-/// Trait abstracting over different kinds of dirty-descendants bits.
-pub trait DescendantsBit<E: TElement> {
-    /// Returns true if the Element has the bit.
-    fn has(el: E) -> bool;
-    /// Sets the bit on the Element.
-    unsafe fn set(el: E);
-}
-
-/// Implementation of DescendantsBit for the regular dirty descendants bit.
-pub struct DirtyDescendants;
-impl<E: TElement> DescendantsBit<E> for DirtyDescendants {
-    fn has(el: E) -> bool { el.has_dirty_descendants() }
-    unsafe fn set(el: E) { el.set_dirty_descendants(); }
-}
-
-/// Implementation of DescendantsBit for the animation-only dirty descendants bit.
-pub struct AnimationOnlyDirtyDescendants;
-impl<E: TElement> DescendantsBit<E> for AnimationOnlyDirtyDescendants {
-    fn has(el: E) -> bool { el.has_animation_only_dirty_descendants() }
-    unsafe fn set(el: E) { el.set_animation_only_dirty_descendants(); }
 }
 
 /// TNode and TElement aren't Send because we want to be careful and explicit

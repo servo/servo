@@ -152,7 +152,7 @@ impl PerDocumentStyleDataImpl {
         &mut self,
         guard: &SharedRwLockReadGuard,
         document_element: Option<E>,
-    )
+    ) -> bool
     where
         E: TElement,
     {

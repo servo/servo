@@ -61,6 +61,7 @@ use gecko_bindings::structs::ELEMENT_HAS_DIRTY_DESCENDANTS_FOR_SERVO;
 use gecko_bindings::structs::ELEMENT_HAS_SNAPSHOT;
 use gecko_bindings::structs::EffectCompositor_CascadeLevel as CascadeLevel;
 use gecko_bindings::structs::NODE_DESCENDANTS_NEED_FRAMES;
+use gecko_bindings::structs::NODE_NEEDS_FRAME;
 use gecko_bindings::structs::nsChangeHint;
 use gecko_bindings::structs::nsIDocument_DocumentTheme as DocumentTheme;
 use gecko_bindings::structs::nsRestyleHint;
@@ -491,6 +492,33 @@ impl<'le> GeckoElement<'le> {
 
     fn unset_flags(&self, flags: u32) {
         unsafe { Gecko_UnsetNodeFlags(self.as_node().0, flags) }
+    }
+
+    /// Returns true if this element has descendants for lazy frame construction.
+    pub fn descendants_need_frames(&self) -> bool {
+        self.flags() & (NODE_DESCENDANTS_NEED_FRAMES  as u32) != 0
+    }
+
+    /// Returns true if this element needs lazy frame construction.
+    pub fn needs_frame(&self) -> bool {
+        self.flags() & (NODE_NEEDS_FRAME as u32) != 0
+    }
+
+    /// Returns true if a traversal starting from this element requires a post-traversal.
+    pub fn needs_post_traversal(&self) -> bool {
+        debug!("needs_post_traversal: dd={}, aodd={}, lfcd={}, lfc={}, restyle={:?}",
+               self.has_dirty_descendants(),
+               self.has_animation_only_dirty_descendants(),
+               self.descendants_need_frames(),
+               self.needs_frame(),
+               self.borrow_data().unwrap().restyle);
+
+        let has_flag =
+            self.flags() & (ELEMENT_HAS_DIRTY_DESCENDANTS_FOR_SERVO as u32 |
+                            ELEMENT_HAS_ANIMATION_ONLY_DIRTY_DESCENDANTS_FOR_SERVO as u32 |
+                            NODE_DESCENDANTS_NEED_FRAMES as u32 |
+                            NODE_NEEDS_FRAME as u32) != 0;
+        has_flag || self.borrow_data().unwrap().restyle.contains_restyle_data()
     }
 
     /// Returns true if this element has a shadow root.
@@ -1070,6 +1098,13 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     #[inline]
+    unsafe fn clear_dirty_bits(&self) {
+        self.unset_flags(ELEMENT_HAS_DIRTY_DESCENDANTS_FOR_SERVO as u32 |
+                         ELEMENT_HAS_ANIMATION_ONLY_DIRTY_DESCENDANTS_FOR_SERVO as u32 |
+                         NODE_DESCENDANTS_NEED_FRAMES as u32 |
+                         NODE_NEEDS_FRAME as u32)
+    }
+
     fn is_visited_link(&self) -> bool {
         use element_state::IN_VISITED_STATE;
         self.get_state().intersects(IN_VISITED_STATE)
