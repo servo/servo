@@ -95,6 +95,7 @@ class CheckTidiness(unittest.TestCase):
 
     def test_rust(self):
         errors = tidy.collect_errors_for_files(iterFile('rust_tidy.rs'), [], [tidy.check_rust], print_text=False)
+        self.assertEqual('extra space after use', errors.next()[2])
         self.assertEqual('extra space after {', errors.next()[2])
         self.assertEqual('extra space before }', errors.next()[2])
         self.assertEqual('use statement spans multiple lines', errors.next()[2])
