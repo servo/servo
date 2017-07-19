@@ -300,6 +300,10 @@ impl Element {
         self.custom_element_reaction_queue.borrow_mut().push(CustomElementReaction::Callback(function, args));
     }
 
+    pub fn push_upgrade_reaction(&self, definition: Rc<CustomElementDefinition>) {
+        self.custom_element_reaction_queue.borrow_mut().push(CustomElementReaction::Upgrade(definition));
+    }
+
     pub fn invoke_reactions(&self) {
         let mut reaction_queue = self.custom_element_reaction_queue.borrow_mut();
         for reaction in reaction_queue.iter() {
