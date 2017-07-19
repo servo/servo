@@ -2146,7 +2146,7 @@ fn decompose_3d_matrix(mut matrix: ComputedMatrix) -> Result<MatrixDecomposed3D,
     row[1] = combine(row[1], row[0], 1.0, -skew.0);
 
     // Now, compute Y scale and normalize 2nd row.
-    let row1len = (row[0][0] * row[0][0] + row[0][1] * row[0][1] + row[0][2] * row[0][2]).sqrt();
+    let row1len = (row[1][0] * row[1][0] + row[1][1] * row[1][1] + row[1][2] * row[1][2]).sqrt();
     scale.1 = row1len;
     row[1] = [row[1][0] / row1len, row[1][1] / row1len, row[1][2] / row1len];
     skew.0 /= scale.1;
