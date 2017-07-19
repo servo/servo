@@ -1481,7 +1481,7 @@ impl PropertyDeclaration {
                     Ok(keyword) => DeclaredValueOwned::CSSWideKeyword(keyword),
                     Err(_) => match ::custom_properties::SpecifiedValue::parse(context, input) {
                         Ok(value) => DeclaredValueOwned::Value(value),
-                        Err(_) => return Err(PropertyDeclarationParseError::InvalidValue(name.to_string())),
+                        Err(_) => return Err(PropertyDeclarationParseError::InvalidValue(name.to_string().into())),
                     }
                 };
                 declarations.push(PropertyDeclaration::Custom(name, value));

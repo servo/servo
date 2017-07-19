@@ -124,7 +124,7 @@ pub enum PropertyDeclarationParseError<'i> {
     /// The property declaration was for a disabled experimental property.
     ExperimentalProperty,
     /// The property declaration contained an invalid value.
-    InvalidValue(String),
+    InvalidValue(CompactCowStr<'i>),
     /// The declaration contained an animation property, and we were parsing
     /// this as a keyframe block (so that property should be ignored).
     ///

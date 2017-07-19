@@ -224,7 +224,7 @@ impl<'a> ErrorHelpers<'a> for ContextualParseError<'a> {
             (_, CssParseError::Custom(SelectorParseError::Custom(
                 StyleParseError::PropertyDeclaration(
                     PropertyDeclarationParseError::InvalidValue(property))))) =>
-                ErrorString::Snippet(property.into()),
+                ErrorString::Snippet(property),
 
             (_, CssParseError::Custom(SelectorParseError::UnexpectedIdent(ident))) =>
                 ErrorString::Ident(ident),
