@@ -235,9 +235,7 @@ pub trait DomTraversal<E: TElement> : Sync {
             // Look at whether there has been any attribute or state change, and
             // invalidate our style, and the one of our siblings and descendants as
             // needed.
-            if !flags.for_animation_only() {
-                data.invalidate_style_if_needed(root, shared_context);
-            }
+            data.invalidate_style_if_needed(root, shared_context);
 
             let parent = root.traversal_parent();
             let parent_data = match parent {
@@ -813,9 +811,7 @@ where
         // as needed.
         //
         // NB: This will be a no-op if there's no snapshot.
-        if !flags.for_animation_only() {
-            child_data.invalidate_style_if_needed(child, &context.shared);
-        }
+        child_data.invalidate_style_if_needed(child, &context.shared);
 
         if D::element_needs_traversal(child, flags, &*child_data, Some(data)) {
             note_child(child_node);
