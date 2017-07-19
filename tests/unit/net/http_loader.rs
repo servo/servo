@@ -943,7 +943,7 @@ fn test_load_follows_a_redirect() {
 }
 
 #[test]
-fn  test_redirect_from_x_to_y_provides_y_cookies_from_y() {
+fn test_redirect_from_x_to_y_provides_y_cookies_from_y() {
     let shared_url_y = Arc::new(Mutex::new(None::<ServoUrl>));
     let shared_url_y_clone = shared_url_y.clone();
     let handler = move |request: HyperRequest, mut response: HyperResponse| {
