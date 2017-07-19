@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::SourceLocation;
+use servo_arc::Arc;
 use style::gecko::data::GeckoStyleSheet;
 use style::gecko_bindings::bindings::Gecko_LoadStyleSheet;
 use style::gecko_bindings::structs::{Loader, ServoStyleSheet, LoaderReusableStyleSheets};
@@ -10,7 +11,6 @@ use style::gecko_bindings::sugar::ownership::FFIArcHelpers;
 use style::media_queries::MediaList;
 use style::parser::ParserContext;
 use style::shared_lock::{Locked, SharedRwLock};
-use style::stylearc::Arc;
 use style::stylesheets::{ImportRule, StylesheetLoader as StyleStylesheetLoader};
 use style::stylesheets::import_rule::ImportSheet;
 use style::values::specified::url::SpecifiedUrl;

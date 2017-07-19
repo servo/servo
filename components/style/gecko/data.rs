@@ -17,8 +17,8 @@ use gecko_bindings::sugar::ownership::{HasArcFFI, HasBoxFFI, HasFFI, HasSimpleFF
 use invalidation::media_queries::{MediaListKey, ToMediaListKey};
 use media_queries::{Device, MediaList};
 use properties::ComputedValues;
+use servo_arc::Arc;
 use shared_lock::{Locked, StylesheetGuards, SharedRwLockReadGuard};
-use stylearc::Arc;
 use stylesheet_set::StylesheetSet;
 use stylesheets::{Origin, StylesheetContents, StylesheetInDocument};
 use stylist::{ExtraStyleData, Stylist};

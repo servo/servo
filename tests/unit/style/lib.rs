@@ -14,6 +14,7 @@ extern crate parking_lot;
 extern crate rayon;
 extern crate rustc_serialize;
 extern crate selectors;
+extern crate servo_arc;
 extern crate servo_atoms;
 extern crate servo_config;
 extern crate servo_url;

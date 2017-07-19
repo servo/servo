@@ -4,11 +4,11 @@
 
 //! Helpers for different FFI pointer kinds that Gecko's FFI layer uses.
 
+use servo_arc::{Arc, RawOffsetArc};
 use std::marker::PhantomData;
 use std::mem::{forget, transmute};
 use std::ops::{Deref, DerefMut};
 use std::ptr;
-use stylearc::{Arc, RawOffsetArc};
 
 /// Indicates that a given Servo type has a corresponding Gecko FFI type.
 pub unsafe trait HasFFI : Sized + 'static {

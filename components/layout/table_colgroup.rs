@@ -94,7 +94,7 @@ impl Flow for TableColGroupFlow {
 
     fn collect_stacking_contexts(&mut self, _: &mut DisplayListBuildState) {}
 
-    fn repair_style(&mut self, _: &::StyleArc<ComputedValues>) {}
+    fn repair_style(&mut self, _: &::ServoArc<ComputedValues>) {}
 
     fn compute_overflow(&self) -> Overflow {
         Overflow::new()

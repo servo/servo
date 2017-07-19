@@ -14,6 +14,7 @@ use rpc::LayoutRPC;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, LayoutMsg as ConstellationMsg};
 use script_traits::{ScrollState, UntrustedNodeAddress, WindowSizeData};
 use script_traits::Painter;
+use servo_arc::Arc as ServoArc;
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use std::sync::Arc;
@@ -26,7 +27,7 @@ use style::stylesheets::Stylesheet;
 /// Asynchronous messages that script can send to layout.
 pub enum Msg {
     /// Adds the given stylesheet to the document.
-    AddStylesheet(::style::stylearc::Arc<Stylesheet>),
+    AddStylesheet(ServoArc<Stylesheet>),
 
     /// Change the quirks mode.
     SetQuirksMode(QuirksMode),
@@ -133,7 +134,7 @@ pub struct ScriptReflow {
     /// The document node.
     pub document: TrustedNodeAddress,
     /// The document's list of stylesheets.
-    pub document_stylesheets: Vec<::style::stylearc::Arc<Stylesheet>>,
+    pub document_stylesheets: Vec<ServoArc<Stylesheet>>,
     /// Whether the document's stylesheets have changed since the last script reflow.
     pub stylesheets_changed: bool,
     /// The current window size.

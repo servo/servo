@@ -4,6 +4,7 @@
 
 use cssparser::{Parser, SourcePosition};
 use rayon;
+use servo_arc::Arc;
 use servo_url::ServoUrl;
 use style::context::QuirksMode;
 use style::error_reporting::{ParseErrorReporter, ContextualParseError};
@@ -11,7 +12,6 @@ use style::media_queries::MediaList;
 use style::properties::{longhands, Importance, PropertyDeclaration, PropertyDeclarationBlock};
 use style::rule_tree::{CascadeLevel, RuleTree, StrongRuleNode, StyleSource};
 use style::shared_lock::SharedRwLock;
-use style::stylearc::Arc;
 use style::stylesheets::{Origin, Stylesheet, CssRule};
 use test::{self, Bencher};
 

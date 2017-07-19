@@ -10,8 +10,8 @@ use Atom;
 use bloom::StyleBloom;
 use context::{SelectorFlagsMap, SharedStyleContext};
 use dom::TElement;
+use servo_arc::Arc;
 use sharing::{StyleSharingCandidate, StyleSharingTarget};
-use stylearc::Arc;
 
 /// Whether, given two elements, they have pointer-equal computed values.
 ///

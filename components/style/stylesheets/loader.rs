@@ -8,8 +8,8 @@
 use cssparser::SourceLocation;
 use media_queries::MediaList;
 use parser::ParserContext;
+use servo_arc::Arc;
 use shared_lock::{Locked, SharedRwLock};
-use stylearc::Arc;
 use stylesheets::import_rule::ImportRule;
 use values::specified::url::SpecifiedUrl;
 

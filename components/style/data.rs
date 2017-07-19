@@ -11,9 +11,9 @@ use properties::ComputedValues;
 use properties::longhands::display::computed_value as display;
 use rule_tree::StrongRuleNode;
 use selector_parser::{EAGER_PSEUDO_COUNT, PseudoElement, RestyleDamage};
+use servo_arc::Arc;
 use shared_lock::StylesheetGuards;
 use std::ops::{Deref, DerefMut};
-use stylearc::Arc;
 
 bitflags! {
     flags RestyleFlags: u8 {

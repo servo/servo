@@ -7,7 +7,7 @@
 use parser::ParserContext;
 use servo_url::ServoUrl;
 use std::fmt;
-// Note: We use std::sync::Arc rather than stylearc::Arc here because the
+// Note: We use std::sync::Arc rather than servo_arc::Arc here because the
 // nonzero optimization is important in keeping the size of SpecifiedUrl below
 // the threshold.
 use std::sync::Arc;

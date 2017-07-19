@@ -11,8 +11,8 @@ use atomic_refcell::{AtomicRefMut, AtomicRefCell};
 use dom::{SendElement, TElement};
 use owning_ref::OwningHandle;
 use selectors::bloom::BloomFilter;
+use servo_arc::Arc;
 use smallvec::SmallVec;
-use stylearc::Arc;
 
 /// Bloom filters are large allocations, so we store them in thread-local storage
 /// such that they can be reused across style traversals. StyleBloom is responsible

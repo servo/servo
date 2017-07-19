@@ -13,6 +13,7 @@ use gfx_traits::{ByteIndex, FragmentType, combine_id_with_fragment_type};
 use html5ever::{Namespace, LocalName};
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use range::Range;
+use servo_arc::Arc;
 use servo_url::ServoUrl;
 use std::fmt::Debug;
 use style::attr::AttrValue;
@@ -24,7 +25,6 @@ use style::dom::OpaqueNode;
 use style::font_metrics::ServoMetricsProvider;
 use style::properties::{CascadeFlags, ComputedValues};
 use style::selector_parser::{PseudoElement, PseudoElementCascadeType, SelectorImpl};
-use style::stylearc::Arc;
 use style::stylist::RuleInclusion;
 use webrender_api::ClipId;
 

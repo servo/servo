@@ -34,6 +34,7 @@ script_layout_interface = {path = "../script_layout_interface"}
 script_traits = {path = "../script_traits"}
 selectors = { path = "../selectors" }
 serde = "1.0"
+servo_arc = {path = "../servo_arc"}
 servo_atoms = {path = "../atoms"}
 servo_geometry = {path = "../geometry"}
 serde_json = "1.0"

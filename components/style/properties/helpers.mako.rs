@@ -305,7 +305,7 @@
         #[allow(unused_imports)]
         use selectors::parser::SelectorParseError;
         #[allow(unused_imports)]
-        use stylearc::Arc;
+        use servo_arc::Arc;
         #[allow(unused_imports)]
         use style_traits::{ParseError, StyleParseError};
         #[allow(unused_imports)]

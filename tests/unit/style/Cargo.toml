@@ -22,6 +22,7 @@ parking_lot = "0.4"
 rayon = "0.8"
 rustc-serialize = "0.3"
 selectors = {path = "../../../components/selectors"}
+servo_arc = {path = "../../../components/servo_arc"}
 servo_atoms = {path = "../../../components/atoms"}
 servo_config = {path = "../../../components/config"}
 servo_url = {path = "../../../components/url"}

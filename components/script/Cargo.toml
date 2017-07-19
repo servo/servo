@@ -74,6 +74,7 @@ script_plugins = {path = "../script_plugins"}
 script_traits = {path = "../script_traits"}
 selectors = { path = "../selectors" }
 serde = "1.0"
+servo_arc = {path = "../servo_arc"}
 servo_atoms = {path = "../atoms"}
 servo_config = {path = "../config"}
 servo_geometry = {path = "../geometry" }

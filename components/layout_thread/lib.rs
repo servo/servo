@@ -39,6 +39,7 @@ extern crate script_layout_interface;
 extern crate script_traits;
 extern crate selectors;
 extern crate serde_json;
+extern crate servo_arc;
 extern crate servo_atoms;
 extern crate servo_config;
 extern crate servo_geometry;
@@ -97,6 +98,7 @@ use script_layout_interface::wrapper_traits::LayoutNode;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, LayoutMsg as ConstellationMsg};
 use script_traits::{ScrollState, UntrustedNodeAddress};
 use selectors::Element;
+use servo_arc::Arc as ServoArc;
 use servo_atoms::Atom;
 use servo_config::opts;
 use servo_config::prefs::PREFS;
@@ -127,7 +129,6 @@ use style::properties::PropertyId;
 use style::selector_parser::SnapshotMap;
 use style::servo::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, REPOSITION, STORE_OVERFLOW};
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, StylesheetGuards};
-use style::stylearc::Arc as StyleArc;
 use style::stylesheets::{Origin, Stylesheet, StylesheetInDocument, UserAgentStylesheets};
 use style::stylist::{ExtraStyleData, Stylist};
 use style::thread_state;
@@ -211,10 +212,10 @@ pub struct LayoutThread {
     document_shared_lock: Option<SharedRwLock>,
 
     /// The list of currently-running animations.
-    running_animations: StyleArc<RwLock<FnvHashMap<OpaqueNode, Vec<Animation>>>>,
+    running_animations: ServoArc<RwLock<FnvHashMap<OpaqueNode, Vec<Animation>>>>,
 
     /// The list of animations that have expired since the last style recalculation.
-    expired_animations: StyleArc<RwLock<FnvHashMap<OpaqueNode, Vec<Animation>>>>,
+    expired_animations: ServoArc<RwLock<FnvHashMap<OpaqueNode, Vec<Animation>>>>,
 
     /// A counter for epoch messages
     epoch: Cell<Epoch>,
@@ -426,7 +427,7 @@ fn add_font_face_rules(stylesheet: &Stylesheet,
 }
 
 #[derive(Clone)]
-struct StylesheetIterator<'a>(slice::Iter<'a, StyleArc<Stylesheet>>);
+struct StylesheetIterator<'a>(slice::Iter<'a, ServoArc<Stylesheet>>);
 
 impl<'a> Iterator for StylesheetIterator<'a> {
     type Item = &'a Stylesheet;
@@ -515,8 +516,8 @@ impl LayoutThread {
             outstanding_web_fonts: outstanding_web_fonts_counter,
             root_flow: RefCell::new(None),
             document_shared_lock: None,
-            running_animations: StyleArc::new(RwLock::new(FnvHashMap::default())),
-            expired_animations: StyleArc::new(RwLock::new(FnvHashMap::default())),
+            running_animations: ServoArc::new(RwLock::new(FnvHashMap::default())),
+            expired_animations: ServoArc::new(RwLock::new(FnvHashMap::default())),
             epoch: Cell::new(Epoch(0)),
             viewport_size: Size2D::new(Au(0), Au(0)),
             webrender_api: webrender_api_sender.create_api(),
@@ -825,7 +826,7 @@ impl LayoutThread {
     }
 
     fn handle_add_stylesheet<'a, 'b>(&self,
-                                     stylesheet: StyleArc<Stylesheet>,
+                                     stylesheet: ServoArc<Stylesheet>,
                                      possibly_locked_rw_data: &mut RwData<'a, 'b>) {
         // Find all font-face rules and notify the font cache of them.
         // GWTODO: Need to handle unloading web fonts.

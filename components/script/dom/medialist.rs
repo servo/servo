@@ -12,11 +12,11 @@ use dom::bindings::str::DOMString;
 use dom::cssstylesheet::CSSStyleSheet;
 use dom::window::Window;
 use dom_struct::dom_struct;
+use servo_arc::Arc;
 use style::media_queries::{MediaQuery, parse_media_query_list};
 use style::media_queries::MediaList as StyleMediaList;
 use style::parser::ParserContext;
 use style::shared_lock::{SharedRwLock, Locked};
-use style::stylearc::Arc;
 use style::stylesheets::CssRuleType;
 use style_traits::{PARSING_MODE_DEFAULT, ToCss};
 

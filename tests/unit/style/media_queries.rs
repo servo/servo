@@ -4,6 +4,7 @@
 
 use cssparser::{Parser, SourcePosition};
 use euclid::TypedSize2D;
+use servo_arc::Arc;
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use style::Atom;
@@ -12,7 +13,6 @@ use style::error_reporting::{ParseErrorReporter, ContextualParseError};
 use style::media_queries::*;
 use style::servo::media_queries::*;
 use style::shared_lock::SharedRwLock;
-use style::stylearc::Arc;
 use style::stylesheets::{AllRules, Stylesheet, StylesheetInDocument, Origin, CssRule};
 use style::values::specified;
 use style_traits::ToCss;

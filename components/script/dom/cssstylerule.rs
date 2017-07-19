@@ -16,10 +16,10 @@ use dom::cssstylesheet::CSSStyleSheet;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use selectors::parser::SelectorList;
+use servo_arc::Arc;
 use std::mem;
 use style::selector_parser::SelectorParser;
 use style::shared_lock::{Locked, ToCssWithGuard};
-use style::stylearc::Arc;
 use style::stylesheets::{StyleRule, Origin};
 
 #[dom_struct]

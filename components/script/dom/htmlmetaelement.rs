@@ -20,13 +20,13 @@ use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use parking_lot::RwLock;
+use servo_arc::Arc;
 use servo_config::prefs::PREFS;
 use std::ascii::AsciiExt;
 use std::sync::atomic::AtomicBool;
 use style::attr::AttrValue;
 use style::media_queries::MediaList;
 use style::str::HTML_SPACE_CHARACTERS;
-use style::stylearc::Arc;
 use style::stylesheets::{Stylesheet, StylesheetContents, CssRule, CssRules, Origin, ViewportRule};
 
 #[dom_struct]

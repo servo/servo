@@ -28,6 +28,7 @@ profile_traits = {path = "../profile_traits"}
 range = {path = "../range"}
 script_traits = {path = "../script_traits"}
 selectors = { path = "../selectors" }
+servo_arc = {path = "../servo_arc"}
 servo_atoms = {path = "../atoms"}
 servo_url = {path = "../url"}
 style = {path = "../style"}

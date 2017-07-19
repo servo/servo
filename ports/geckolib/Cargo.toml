@@ -23,6 +23,7 @@ log = {version = "0.3.5", features = ["release_max_level_info"]}
 nsstring_vendor = {path = "../../components/style/gecko_bindings/nsstring_vendor"}
 parking_lot = "0.4"
 selectors = {path = "../../components/selectors"}
+servo_arc = {path = "../../components/servo_arc"}
 style = {path = "../../components/style", features = ["gecko"]}
 style_traits = {path = "../../components/style_traits"}
 

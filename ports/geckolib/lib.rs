@@ -10,6 +10,7 @@ extern crate env_logger;
 extern crate libc;
 #[macro_use] extern crate log;
 extern crate selectors;
+extern crate servo_arc;
 #[macro_use] extern crate style;
 extern crate style_traits;
 

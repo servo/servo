@@ -54,6 +54,7 @@ use selectors::attr::{AttrSelectorOperation, NamespaceConstraint, CaseSensitivit
 use selectors::matching::{ElementSelectorFlags, LocalMatchingContext, MatchingContext, RelevantLinkStatus};
 use selectors::matching::VisitedHandlingMode;
 use selectors::sink::Push;
+use servo_arc::{Arc, ArcBorrow};
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use std::fmt;
@@ -78,7 +79,6 @@ use style::selector_parser::{AttrValue as SelectorAttrValue, NonTSPseudoClass, P
 use style::selector_parser::{PseudoElement, SelectorImpl, extended_filtering};
 use style::shared_lock::{SharedRwLock as StyleSharedRwLock, Locked as StyleLocked};
 use style::str::is_whitespace;
-use style::stylearc::{Arc, ArcBorrow};
 
 pub unsafe fn drop_style_and_layout_data(data: OpaqueStyleAndLayoutData) {
     let ptr: *mut StyleData = data.ptr.get();

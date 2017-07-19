@@ -16,8 +16,8 @@ use properties::longhands::animation_direction::computed_value::single_value::T 
 use properties::longhands::animation_iteration_count::single_value::computed_value::T as AnimationIterationCount;
 use properties::longhands::animation_play_state::computed_value::single_value::T as AnimationPlayState;
 use rule_tree::CascadeLevel;
+use servo_arc::Arc;
 use std::sync::mpsc::Sender;
-use stylearc::Arc;
 use stylesheets::keyframes_rule::{KeyframesStep, KeyframesStepValue};
 use timer::Timer;
 use values::computed::Time;
