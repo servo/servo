@@ -366,6 +366,12 @@ pub struct LifecycleCallbacks {
     attribute_changed_callback: Option<Rc<Function>>,
 }
 
+#[derive(HeapSizeOf, JSTraceable, Clone)]
+pub enum ConstructionStackEntry {
+    Element(Root<Element>),
+    AlreadyConstructedMarker,
+}
+
 /// https://html.spec.whatwg.org/multipage/#custom-element-definition
 #[derive(HeapSizeOf, JSTraceable, Clone)]
 pub struct CustomElementDefinition {
@@ -379,6 +385,8 @@ pub struct CustomElementDefinition {
     pub observed_attributes: Vec<DOMString>,
 
     pub callbacks: LifecycleCallbacks,
+
+    pub construction_stack: DOMRefCell<Vec<ConstructionStackEntry>>,
 }
 
 impl CustomElementDefinition {
@@ -394,6 +402,7 @@ impl CustomElementDefinition {
             constructor: constructor,
             observed_attributes: observed_attributes,
             callbacks: callbacks,
+            construction_stack: Default::default(),
         }
     }
 
