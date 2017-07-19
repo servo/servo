@@ -240,7 +240,7 @@ pub trait StylesheetInDocument {
         device: &'a Device,
         guard: &'a SharedRwLockReadGuard<'b>
     ) -> EffectiveRulesIterator<'a, 'b> {
-        self.iter_rules::<'a, 'b, EffectiveRules>(device, guard)
+        self.iter_rules::<EffectiveRules>(device, guard)
     }
 
     rule_filter! {
