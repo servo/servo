@@ -75,9 +75,6 @@ pub struct Pipeline {
     /// to a hash URL.
     pub url: ServoUrl,
 
-    /// The title of the most recently-loaded page.
-    pub title: Option<String>,
-
     /// Whether this pipeline is currently running animations. Pipelines that are running
     /// animations cause composites to be continually scheduled.
     pub running_animations: bool,
@@ -316,7 +313,6 @@ impl Pipeline {
             layout_chan: layout_chan,
             compositor_proxy: compositor_proxy,
             url: url,
-            title: None,
             children: vec!(),
             running_animations: false,
             visible: visible,
