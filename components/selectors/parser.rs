@@ -871,6 +871,23 @@ impl ToCss for Combinator {
 impl<Impl: SelectorImpl> ToCss for Component<Impl> {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         use self::Component::*;
+
+        /// Serialize <an+b> values (part of the CSS Syntax spec, but currently only used here).
+        /// https://drafts.csswg.org/css-syntax-3/#serialize-an-anb-value
+        fn write_affine<W>(dest: &mut W, a: i32, b: i32) -> fmt::Result where W: fmt::Write {
+            match (a, b) {
+                (0, 0) => dest.write_char('0'),
+
+                (1, 0) => dest.write_char('n'),
+                (_, 0) => write!(dest, "{}n", a),
+
+                (0, _) => write!(dest, "{}", b),
+                (1, _) => write!(dest, "n{:+}", b),
+                (-1, _) => write!(dest, "-n{:+}", b),
+                (_, _) => write!(dest, "{}n{:+}", a, b),
+            }
+        }
+
         match *self {
             Combinator(ref c) => {
                 c.to_css(dest)
@@ -935,10 +952,17 @@ impl<Impl: SelectorImpl> ToCss for Component<Impl> {
             FirstOfType => dest.write_str(":first-of-type"),
             LastOfType => dest.write_str(":last-of-type"),
             OnlyOfType => dest.write_str(":only-of-type"),
-            NthChild(a, b) => write!(dest, ":nth-child({}n{:+})", a, b),
-            NthLastChild(a, b) => write!(dest, ":nth-last-child({}n{:+})", a, b),
-            NthOfType(a, b) => write!(dest, ":nth-of-type({}n{:+})", a, b),
-            NthLastOfType(a, b) => write!(dest, ":nth-last-of-type({}n{:+})", a, b),
+            NthChild(a, b) | NthLastChild(a, b) | NthOfType(a, b) | NthLastOfType(a, b) => {
+                match *self {
+                    NthChild(_, _) => dest.write_str(":nth-child(")?,
+                    NthLastChild(_, _) => dest.write_str(":nth-last-child(")?,
+                    NthOfType(_, _) => dest.write_str(":nth-of-type(")?,
+                    NthLastOfType(_, _) => dest.write_str(":nth-last-of-type(")?,
+                    _ => unreachable!(),
+                }
+                write_affine(dest, a, b)?;
+                dest.write_char(')')
+            }
             NonTSPseudoClass(ref pseudo) => pseudo.to_css(dest),
         }
     }
