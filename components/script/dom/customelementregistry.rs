@@ -531,7 +531,10 @@ pub fn try_upgrade_element(element: &Element) {
 #[derive(HeapSizeOf, JSTraceable)]
 #[must_root]
 pub enum CustomElementReaction {
-    // TODO: Support upgrade reactions
+    Upgrade(
+        #[ignore_heap_size_of = "Rc"]
+        Rc<CustomElementDefinition>
+    ),
     Callback(
         #[ignore_heap_size_of = "Rc"]
         Rc<Function>,
@@ -545,6 +548,7 @@ impl CustomElementReaction {
     pub fn invoke(&self, element: &Element) {
         // Step 2.1
         match *self {
+            CustomElementReaction::Upgrade(ref definition) => upgrade_element(definition.clone(), element),
             CustomElementReaction::Callback(ref callback, ref arguments) => {
                 let arguments = arguments.iter().map(|arg| arg.handle()).collect();
                 let _ = callback.Call_(&*element, arguments, ExceptionHandling::Report);
@@ -701,6 +705,14 @@ impl CustomElementReactionStack {
         element.push_callback_reaction(callback, args.into_boxed_slice());
 
         // Step 6
+        self.enqueue_element(element);
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#enqueue-a-custom-element-upgrade-reaction
+    pub fn enqueue_upgrade_reaction(&self, element: &Element, definition: Rc<CustomElementDefinition>) {
+        // Step 1
+        element.push_upgrade_reaction(definition);
+        // Step 2
         self.enqueue_element(element);
     }
 }
