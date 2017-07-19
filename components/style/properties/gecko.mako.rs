@@ -227,7 +227,8 @@ impl ComputedValuesInner {
     ) -> Arc<ComputedValues> {
         let arc = unsafe {
             let arc: Arc<ComputedValues> = Arc::new(uninitialized());
-            bindings::Gecko_ServoStyleContext_Init(&arc.0 as *const _ as *mut _, parent, pres_context,
+            bindings::Gecko_ServoStyleContext_Init(&arc.0 as *const _ as *mut _,
+                                                   parent, pres_context,
                                                    &self, pseudo_ty, pseudo_tag);
             // We're simulating a move by having C++ do a memcpy and then forgetting
             // it on this end.

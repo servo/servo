@@ -13,13 +13,14 @@ use gecko_bindings::bindings::{RawServoKeyframe, RawServoKeyframesRule};
 use gecko_bindings::bindings::{RawServoMediaRule, RawServoNamespaceRule, RawServoPageRule};
 use gecko_bindings::bindings::{RawServoRuleNode, RawServoRuleNodeStrong, RawServoDocumentRule};
 use gecko_bindings::bindings::ServoCssRules;
-use gecko_bindings::structs::{RawServoAnimationValue, RawServoDeclarationBlock, RawServoStyleRule, RawServoMediaList};
-use gecko_bindings::structs::{RawServoStyleSheetContents, ServoStyleContext};
-use gecko_bindings::sugar::ownership::{HasArcFFI, HasFFI};
+use gecko_bindings::structs::{RawServoAnimationValue, RawServoDeclarationBlock, RawServoStyleRule};
+use gecko_bindings::structs::{RawServoMediaList, RawServoStyleSheetContents};
+use gecko_bindings::sugar::ownership::{HasArcFFI, HasFFI, Strong};
 use media_queries::MediaList;
 use properties::{ComputedValues, PropertyDeclarationBlock};
 use properties::animated_properties::AnimationValue;
 use rule_tree::StrongRuleNode;
+use servo_arc::{Arc, ArcBorrow};
 use shared_lock::Locked;
 use std::{mem, ptr};
 use stylesheets::{CssRules, StylesheetContents, StyleRule, ImportRule, KeyframesRule, MediaRule};
@@ -50,9 +51,6 @@ impl_arc_ffi!(Locked<CssRules> => ServoCssRules
 
 impl_arc_ffi!(StylesheetContents => RawServoStyleSheetContents
               [Servo_StyleSheetContents_AddRef, Servo_StyleSheetContents_Release]);
-
-impl_arc_ffi!(ComputedValues => ServoStyleContext
-              [Servo_StyleContext_AddRef, Servo_StyleContext_Release]);
 
 impl_arc_ffi!(Locked<PropertyDeclarationBlock> => RawServoDeclarationBlock
               [Servo_DeclarationBlock_AddRef, Servo_DeclarationBlock_Release]);
@@ -113,4 +111,29 @@ pub unsafe extern "C" fn Servo_RuleNode_AddRef(obj: &RawServoRuleNode) {
 pub unsafe extern "C" fn Servo_RuleNode_Release(obj: &RawServoRuleNode) {
     let ptr = StrongRuleNode::from_ffi(&obj);
     ptr::read(ptr as *const StrongRuleNode);
+}
+
+// ServoStyleContext is not an opaque type on any side of FFI.
+// This means that doing the HasArcFFI type trick is actually unsound,
+// since it gives us a way to construct an Arc<ServoStyleContext> from
+// an &ServoStyleContext, which in general is not allowed. So we
+// implement the restricted set of arc type functionality we need.
+
+#[no_mangle]
+pub unsafe extern "C" fn Servo_StyleContext_AddRef(obj: &ComputedValues) {
+    mem::forget(ArcBorrow::from_ref(obj).clone_arc());
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Servo_StyleContext_Release(obj: &ComputedValues) {
+    ArcBorrow::from_ref(obj).with_arc(|a: &Arc<ComputedValues>| {
+        let _: Arc<ComputedValues> = ptr::read(a);
+    });
+}
+
+
+impl From<Arc<ComputedValues>> for Strong<ComputedValues> {
+    fn from(arc: Arc<ComputedValues>) -> Self {
+        unsafe { mem::transmute(Arc::into_raw_offset(arc)) }
+    }
 }

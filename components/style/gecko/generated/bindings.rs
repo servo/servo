@@ -5,7 +5,7 @@ use gecko_bindings::structs::nsStyleTransformMatrix;
 use gecko_bindings::structs::nsTArray;
 type nsACString_internal = nsACString;
 type nsAString_internal = nsAString;
-pub type ServoStyleContextBorrowed<'a> = &'a ServoStyleContext;
+pub type ServoStyleContextBorrowed<'a> = &'a ::properties::ComputedValues;
 pub type ServoStyleContextBorrowedOrNull<'a> = Option<&'a ::properties::ComputedValues>;
 pub type ServoComputedValuesBorrowed<'a> = &'a ServoComputedValues;
 pub type ServoComputedValuesBorrowedOrNull<'a> = Option<&'a ServoComputedValues>;
@@ -2322,7 +2322,7 @@ extern "C" {
 }
 extern "C" {
     pub fn Servo_ComputedValues_SpecifiesAnimationsOrTransitions(computed_values:
-                                                                     ServoComputedValuesBorrowed)
+                                                                     ServoStyleContextBorrowed)
      -> bool;
 }
 extern "C" {
@@ -2705,7 +2705,7 @@ extern "C" {
 }
 extern "C" {
     pub fn Servo_ComputedValues_GetStyleBits(values:
-                                                 ServoComputedValuesBorrowed)
+                                                 ServoStyleContextBorrowed)
      -> u64;
 }
 extern "C" {
@@ -2717,7 +2717,7 @@ extern "C" {
 }
 extern "C" {
     pub fn Servo_ComputedValues_GetStyleRuleList(values:
-                                                     ServoComputedValuesBorrowed,
+                                                     ServoStyleContextBorrowed,
                                                  rules:
                                                      RawGeckoServoStyleRuleListBorrowedMut);
 }
@@ -2804,17 +2804,17 @@ extern "C" {
 }
 extern "C" {
     pub fn Servo_GetCustomPropertyValue(computed_values:
-                                            ServoComputedValuesBorrowed,
+                                            ServoStyleContextBorrowed,
                                         name: *const nsAString,
                                         value: *mut nsAString) -> bool;
 }
 extern "C" {
     pub fn Servo_GetCustomPropertiesCount(computed_values:
-                                              ServoComputedValuesBorrowed)
+                                              ServoStyleContextBorrowed)
      -> u32;
 }
 extern "C" {
-    pub fn Servo_GetCustomPropertyNameAt(arg1: ServoComputedValuesBorrowed,
+    pub fn Servo_GetCustomPropertyNameAt(arg1: ServoStyleContextBorrowed,
                                          index: u32, name: *mut nsAString)
      -> bool;
 }
