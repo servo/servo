@@ -691,15 +691,10 @@ impl<'le> GeckoElement<'le> {
         }
 
         // Propagate the bit up the chain.
-        if let Some(p) = self.traversal_parent() {
-            if animation_only {
-                bindings::Gecko_NoteAnimationOnlyDirtyDescendants(p.0);
-            } else {
-                bindings::Gecko_NoteDirtyDescendants(p.0);
-            }
+        if animation_only {
+            bindings::Gecko_NoteAnimationOnlyDirtyElement(self.0);
         } else {
-            // If there's no parent, we still need to trigger the style flush.
-            bindings::Gecko_SetOwnerDocumentNeedsStyleFlush(self.0);
+            bindings::Gecko_NoteDirtyElement(self.0);
         }
 
         // Ensure and return the RestyleData.
