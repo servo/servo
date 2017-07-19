@@ -556,12 +556,12 @@ mod shorthand_serialization {
 
     #[test]
     fn flex_should_serialize_all_available_properties() {
-        use style::values::specified::{Number, Percentage};
+        use style::values::specified::{NonNegativeNumber, Percentage};
 
         let mut properties = Vec::new();
 
-        let grow = Number::new(2f32);
-        let shrink = Number::new(3f32);
+        let grow = NonNegativeNumber::new(2f32);
+        let shrink = NonNegativeNumber::new(3f32);
         let basis =
             FlexBasis::Length(Percentage::new(0.5f32).into());
 

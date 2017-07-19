@@ -10,6 +10,8 @@
 
 use app_units::Au;
 use values::computed::Angle as ComputedAngle;
+use values::computed::GreaterThanOrEqualToOneNumber as ComputedGreaterThanOrEqualToOneNumber;
+use values::computed::NonNegativeNumber as ComputedNonNegativeNumber;
 use values::specified::url::SpecifiedUrl;
 
 pub mod effects;
@@ -85,6 +87,34 @@ where
     #[inline]
     fn from_animated_value(animated: Self::AnimatedValue) -> Self {
         animated
+    }
+}
+
+impl ToAnimatedValue for ComputedNonNegativeNumber {
+    type AnimatedValue = Self;
+
+    #[inline]
+    fn to_animated_value(self) -> Self {
+        self
+    }
+
+    #[inline]
+    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+        animated.0.max(0.).into()
+    }
+}
+
+impl ToAnimatedValue for ComputedGreaterThanOrEqualToOneNumber {
+    type AnimatedValue = Self;
+
+    #[inline]
+    fn to_animated_value(self) -> Self {
+        self
+    }
+
+    #[inline]
+    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+        animated.0.max(1.).into()
     }
 }
 

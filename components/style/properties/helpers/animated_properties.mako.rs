@@ -43,6 +43,8 @@ use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone
 use values::computed::{BorderCornerRadius, ClipRect};
 use values::computed::{CalcLengthOrPercentage, Color, Context, ComputedValueAsSpecified};
 use values::computed::{LengthOrPercentage, MaxLength, MozLength, Percentage, ToComputedValue};
+use values::computed::NonNegativeNumber;
+use values::generics::{GreaterThanOrEqualToOne, NonNegative};
 use values::generics::border::BorderCornerRadius as GenericBorderCornerRadius;
 use values::generics::effects::Filter;
 use values::generics::position as generic_position;
@@ -3364,5 +3366,51 @@ sorted_shorthands = [(p, position) for position, p in enumerate(sorted_shorthand
         % for property, position in sorted_shorthands:
             ShorthandId::${property.camel_case} => ${position},
         % endfor
+    }
+}
+
+impl<T> Animatable for NonNegative<T>
+    where T: Animatable + Clone
+{
+    #[inline]
+    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
+        self.0.add_weighted(&other.0, self_portion, other_portion).map(NonNegative::<T>)
+    }
+
+    #[inline]
+    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
+        self.0.compute_distance(&other.0)
+    }
+}
+
+impl<T> ToAnimatedZero for NonNegative<T>
+    where T: ToAnimatedZero
+{
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        self.0.to_animated_zero().map(NonNegative::<T>)
+    }
+}
+
+impl<T> Animatable for GreaterThanOrEqualToOne<T>
+    where T: Animatable + Clone
+{
+    #[inline]
+    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
+        self.0.add_weighted(&other.0, self_portion, other_portion).map(GreaterThanOrEqualToOne::<T>)
+    }
+
+    #[inline]
+    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
+        self.0.compute_distance(&other.0)
+    }
+}
+
+impl<T> ToAnimatedZero for GreaterThanOrEqualToOne<T>
+    where T: ToAnimatedZero
+{
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        self.0.to_animated_zero().map(GreaterThanOrEqualToOne::<T>)
     }
 }

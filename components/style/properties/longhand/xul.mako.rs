@@ -24,9 +24,9 @@ ${helpers.single_keyword("-moz-box-direction", "normal reverse",
                          alias="-webkit-box-direction",
                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/box-direction)")}
 
-${helpers.predefined_type("-moz-box-flex", "Number", "0.0", "parse_non_negative",
+${helpers.predefined_type("-moz-box-flex", "NonNegativeNumber", "From::from(0.)",
                           products="gecko", gecko_ffi_name="mBoxFlex",
-                          animation_value_type="ComputedValue",
+                          animation_value_type="NonNegativeNumber",
                           alias="-webkit-box-flex",
                           spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/box-flex)")}
 

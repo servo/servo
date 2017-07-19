@@ -18,6 +18,7 @@ use style_traits::{ToCss, ParseError, StyleParseError};
 use style_traits::values::specified::AllowedNumericType;
 use super::{Auto, CSSFloat, CSSInteger, Either, None_};
 use super::computed::{self, Context, ToComputedValue};
+use super::generics::{GreaterThanOrEqualToOne, NonNegative};
 use super::generics::grid::{TrackBreadth as GenericTrackBreadth, TrackSize as GenericTrackSize};
 use super::generics::grid::TrackList as GenericTrackList;
 use values::computed::ComputedValueAsSpecified;
@@ -506,6 +507,33 @@ impl ToCss for Number {
             dest.write_str(")")?;
         }
         Ok(())
+    }
+}
+
+/// A Number which is >= 0.0.
+pub type NonNegativeNumber = NonNegative<Number>;
+
+impl Parse for NonNegativeNumber {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        parse_number_with_clamping_mode(context, input, AllowedNumericType::NonNegative)
+            .map(NonNegative::<Number>)
+    }
+}
+
+impl NonNegativeNumber {
+    /// Returns a new non-negative number with the value `val`.
+    pub fn new(val: CSSFloat) -> Self {
+        NonNegative::<Number>(Number::new(val.max(0.)))
+    }
+}
+
+/// A Number which is >= 1.0.
+pub type GreaterThanOrEqualToOneNumber = GreaterThanOrEqualToOne<Number>;
+
+impl Parse for GreaterThanOrEqualToOneNumber {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        parse_number_with_clamping_mode(context, input, AllowedNumericType::AtLeastOne)
+            .map(GreaterThanOrEqualToOne::<Number>)
     }
 }
 

@@ -18,6 +18,7 @@ use std::f64::consts::PI;
 use std::fmt;
 use style_traits::ToCss;
 use super::{CSSFloat, CSSInteger};
+use super::generics::{GreaterThanOrEqualToOne, NonNegative};
 use super::generics::grid::{TrackBreadth as GenericTrackBreadth, TrackSize as GenericTrackSize};
 use super::generics::grid::GridTemplateComponent as GenericGridTemplateComponent;
 use super::generics::grid::TrackList as GenericTrackList;
@@ -424,6 +425,40 @@ impl ComputedValueAsSpecified for specified::BorderStyle {}
 
 /// A `<number>` value.
 pub type Number = CSSFloat;
+
+/// A wrapper of Number, but the value >= 0.
+pub type NonNegativeNumber = NonNegative<CSSFloat>;
+
+impl From<CSSFloat> for NonNegativeNumber {
+    #[inline]
+    fn from(number: CSSFloat) -> NonNegativeNumber {
+        NonNegative::<CSSFloat>(number)
+    }
+}
+
+impl From<NonNegativeNumber> for CSSFloat {
+    #[inline]
+    fn from(number: NonNegativeNumber) -> CSSFloat {
+        number.0
+    }
+}
+
+/// A wrapper of Number, but the value >= 1.
+pub type GreaterThanOrEqualToOneNumber = GreaterThanOrEqualToOne<CSSFloat>;
+
+impl From<CSSFloat> for GreaterThanOrEqualToOneNumber {
+    #[inline]
+    fn from(number: CSSFloat) -> GreaterThanOrEqualToOneNumber {
+        GreaterThanOrEqualToOne::<CSSFloat>(number)
+    }
+}
+
+impl From<GreaterThanOrEqualToOneNumber> for CSSFloat {
+    #[inline]
+    fn from(number: GreaterThanOrEqualToOneNumber) -> CSSFloat {
+        number.0
+    }
+}
 
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
