@@ -7,6 +7,7 @@
 use app_units::Au;
 use properties::animated_properties::Animatable;
 use values::{CSSInteger, CSSFloat};
+use values::animated::{AnimatedValueAsComputed, Restriction};
 use values::computed::length::{Length, LengthOrPercentage};
 use values::generics::text::InitialLetter as GenericInitialLetter;
 use values::generics::text::LineHeight as GenericLineHeight;
@@ -58,6 +59,21 @@ impl Animatable for LineHeight {
             #[cfg(feature = "gecko")]
             (GenericLineHeight::MozBlockHeight, GenericLineHeight::MozBlockHeight) => Ok(0.),
             _ => Err(()),
+        }
+    }
+}
+
+impl AnimatedValueAsComputed for LineHeight {
+    #[inline]
+    fn restrict_value(self, restriction_type: Restriction) -> Self {
+        match self {
+            GenericLineHeight::Length(lop) => {
+                GenericLineHeight::Length(lop.restrict_value(restriction_type))
+            },
+            GenericLineHeight::Number(number) => {
+                GenericLineHeight::Number(number.restrict_value(restriction_type))
+            }
+            _ => self
         }
     }
 }

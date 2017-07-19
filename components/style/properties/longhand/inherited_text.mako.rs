@@ -10,6 +10,7 @@ ${helpers.predefined_type("line-height",
                           "LineHeight",
                           "computed::LineHeight::normal()",
                           animation_value_type="ComputedValue",
+                          restriction="Restriction::NonNegative",
                           spec="https://drafts.csswg.org/css2/visudet.html#propdef-line-height")}
 
 // CSS Text Module Level 3
