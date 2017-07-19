@@ -129,6 +129,8 @@
 
             % if animation_value_type == "ComputedValue":
                 use properties::animated_properties::Animatable;
+                use values::animated::ToAnimatedZero;
+
                 impl Animatable for T {
                     fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64)
                         -> Result<Self, ()> {
@@ -148,6 +150,11 @@
                     fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
                         self.0.compute_squared_distance(&other.0)
                     }
+                }
+
+                impl ToAnimatedZero for T {
+                    #[inline]
+                    fn to_animated_zero(&self) -> Result<Self, ()> { Err(()) }
                 }
             % endif
 

@@ -4,7 +4,7 @@
 
 use app_units::Au;
 use cssparser::RGBA;
-use style::properties::animated_properties::{Animatable, IntermediateRGBA};
+use style::properties::animated_properties::Animatable;
 use style::properties::longhands::transform::computed_value::ComputedOperation as TransformOperation;
 use style::properties::longhands::transform::computed_value::T as TransformList;
 use style::values::animated::ToAnimatedValue;

@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use euclid::{Point2D, TypedPoint2D};
 use gecko_bindings::structs::{nsTimingFunction, nsTimingFunction_Type};
 use std::mem;
 use values::computed::ToComputedValue;
@@ -28,18 +27,19 @@ impl nsTimingFunction {
         }
     }
 
-    fn set_as_bezier(&mut self,
-                     function_type: nsTimingFunction_Type,
-                     p1: Point2D<f32>,
-                     p2: Point2D<f32>) {
+    fn set_as_bezier(
+        &mut self,
+        function_type: nsTimingFunction_Type,
+        x1: f32, y1: f32, x2: f32, y2: f32,
+    ) {
         self.mType = function_type;
         unsafe {
             let ref mut gecko_cubic_bezier =
                 unsafe { self.__bindgen_anon_1.mFunc.as_mut() };
-            gecko_cubic_bezier.mX1 = p1.x;
-            gecko_cubic_bezier.mY1 = p1.y;
-            gecko_cubic_bezier.mX2 = p2.x;
-            gecko_cubic_bezier.mY2 = p2.y;
+            gecko_cubic_bezier.mX1 = x1;
+            gecko_cubic_bezier.mY1 = y1;
+            gecko_cubic_bezier.mX2 = x2;
+            gecko_cubic_bezier.mY2 = y2;
         }
     }
 }
@@ -67,14 +67,15 @@ impl From<TimingFunction> for nsTimingFunction {
                 debug_assert!(frames.value() >= 2);
                 tf.set_as_frames(frames.value() as u32);
             },
-            GenericTimingFunction::CubicBezier(p1, p2) => {
-                tf.set_as_bezier(nsTimingFunction_Type::CubicBezier,
-                                 Point2D::new(p1.x.get(), p1.y.get()),
-                                 Point2D::new(p2.x.get(), p2.y.get()));
+            GenericTimingFunction::CubicBezier { x1, y1, x2, y2 } => {
+                tf.set_as_bezier(
+                    nsTimingFunction_Type::CubicBezier,
+                    x1.get(), y1.get(), x2.get(), y2.get(),
+                );
             },
             GenericTimingFunction::Keyword(keyword) => {
-                let (p1, p2) = keyword.to_bezier_points();
-                tf.set_as_bezier(keyword.into(), p1, p2)
+                let (x1, y1, x2, y2) = keyword.to_bezier();
+                tf.set_as_bezier(keyword.into(), x1, y1, x2, y2);
             },
         }
         tf
@@ -114,11 +115,14 @@ impl From<nsTimingFunction> for ComputedTimingFunction {
                 GenericTimingFunction::Keyword(TimingKeyword::EaseInOut)
             },
             nsTimingFunction_Type::CubicBezier => {
-                GenericTimingFunction::CubicBezier(
-                    TypedPoint2D::new(unsafe { function.__bindgen_anon_1.mFunc.as_ref().mX1 },
-                                      unsafe { function.__bindgen_anon_1.mFunc.as_ref().mY1 }),
-                    TypedPoint2D::new(unsafe { function.__bindgen_anon_1.mFunc.as_ref().mX2 },
-                                      unsafe { function.__bindgen_anon_1.mFunc.as_ref().mY2 }))
+                unsafe {
+                    GenericTimingFunction::CubicBezier {
+                        x1: function.__bindgen_anon_1.mFunc.as_ref().mX1,
+                        y1: function.__bindgen_anon_1.mFunc.as_ref().mY1,
+                        x2: function.__bindgen_anon_1.mFunc.as_ref().mX2,
+                        y2: function.__bindgen_anon_1.mFunc.as_ref().mY2,
+                    }
+                }
             },
         }
     }

@@ -112,5 +112,10 @@ macro_rules! define_keyword_type {
         impl $crate::values::computed::ComputedValueAsSpecified for $name {}
         impl $crate::values::animated::AnimatedValueAsComputed for $name {}
         no_viewport_percentage!($name);
+
+        impl $crate::values::animated::ToAnimatedZero for $name {
+            #[inline]
+            fn to_animated_zero(&self) -> Result<Self, ()> { Ok($name) }
+        }
     };
 }

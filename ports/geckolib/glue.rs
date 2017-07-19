@@ -117,6 +117,7 @@ use style::traversal::{ANIMATION_ONLY, DomTraversal, FOR_CSS_RULE_CHANGES, FOR_R
 use style::traversal::{TraversalDriver, TraversalFlags, UNSTYLED_CHILDREN_ONLY};
 use style::traversal::resolve_style;
 use style::values::{CustomIdent, KeyframesName};
+use style::values::animated::ToAnimatedZero;
 use style::values::computed::Context;
 use style_traits::{PARSING_MODE_DEFAULT, ToCss};
 use super::error_reporter::ErrorReporter;
@@ -375,7 +376,7 @@ pub extern "C" fn Servo_AnimationValues_GetZeroValue(
     -> RawServoAnimationValueStrong
 {
     let value_to_match = AnimationValue::as_arc(&value_to_match);
-    if let Ok(zero_value) = value_to_match.get_zero_value() {
+    if let Ok(zero_value) = value_to_match.to_animated_zero() {
         Arc::new(zero_value).into_strong()
     } else {
         RawServoAnimationValueStrong::null()
