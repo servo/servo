@@ -350,13 +350,13 @@ ${helpers.predefined_type("word-spacing",
     #[inline]
     pub fn derive_from_text_decoration(context: &mut Context) {
         let derived = derive(context);
-        context.mutate_style().mutate_inheritedtext().set__servo_text_decorations_in_effect(derived);
+        context.builder.set__servo_text_decorations_in_effect(derived);
     }
 
     #[inline]
     pub fn derive_from_display(context: &mut Context) {
         let derived = derive(context);
-        context.mutate_style().mutate_inheritedtext().set__servo_text_decorations_in_effect(derived);
+        context.builder.set__servo_text_decorations_in_effect(derived);
     }
 </%helpers:longhand>
 

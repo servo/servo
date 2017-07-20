@@ -285,8 +285,8 @@ ${helpers.single_keyword("image-rendering",
         use super::display::computed_value::T as Display;
 
         if context.style().get_box().clone_display() == Display::none {
-            context.mutate_style().mutate_inheritedbox()
-                                  .set__servo_under_display_none(SpecifiedValue(true));
+            context.builder
+                .set__servo_under_display_none(SpecifiedValue(true));
         }
     }
 </%helpers:longhand>

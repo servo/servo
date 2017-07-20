@@ -68,16 +68,10 @@ pub struct Context<'a> {
     /// Whether the current element is the root element.
     pub is_root_element: bool,
 
-    /// The Device holds the viewport and other external state.
-    pub device: &'a Device,
-
-    /// The style we're inheriting from.
-    pub inherited_style: &'a ComputedValues,
-
     /// Values accessed through this need to be in the properties "computed
     /// early": color, text-decoration, font-size, display, position, float,
     /// border-*-style, outline-style, font-family, writing-mode...
-    pub style: StyleBuilder<'a>,
+    pub builder: StyleBuilder<'a>,
 
     /// A cached computed system font value, for use by gecko.
     ///
@@ -105,18 +99,34 @@ pub struct Context<'a> {
 
 impl<'a> Context<'a> {
     /// Whether the current element is the root element.
-    pub fn is_root_element(&self) -> bool { self.is_root_element }
+    pub fn is_root_element(&self) -> bool {
+        self.is_root_element
+    }
+
+    /// The current device.
+    pub fn device(&self) -> &Device {
+        self.builder.device
+    }
+
     /// The current viewport size.
-    pub fn viewport_size(&self) -> Size2D<Au> { self.device.au_viewport_size() }
+    pub fn viewport_size(&self) -> Size2D<Au> {
+        self.builder.device.au_viewport_size()
+    }
+
     /// The style we're inheriting from.
-    pub fn inherited_style(&self) -> &ComputedValues { &self.inherited_style }
-    /// The current style. Note that only "eager" properties should be accessed
-    /// from here, see the comment in the member.
-    pub fn style(&self) -> &StyleBuilder { &self.style }
-    /// A mutable reference to the current style.
-    pub fn mutate_style(&mut self) -> &mut StyleBuilder<'a> { &mut self.style }
-    /// Get a mutable reference to the current style as well as the device
-    pub fn mutate_style_with_device(&mut self) -> (&mut StyleBuilder<'a>, &Device) { (&mut self.style, &self.device) }
+    pub fn inherited_style(&self) -> &ComputedValues {
+        self.builder.inherited_style()
+    }
+
+    /// The default computed style we're getting our reset style from.
+    pub fn default_style(&self) -> &ComputedValues {
+        self.builder.default_style()
+    }
+
+    /// The current style.
+    pub fn style(&self) -> &StyleBuilder {
+        &self.builder
+    }
 }
 
 /// An iterator over a slice of computed values
@@ -395,7 +405,7 @@ impl ToComputedValue for specified::JustifyItems {
         // If the inherited value of `justify-items` includes the `legacy` keyword, `auto` computes
         // to the inherited value.
         if self.0 == align::ALIGN_AUTO {
-            let inherited = context.inherited_style.get_position().clone_justify_items();
+            let inherited = context.inherited_style().get_position().clone_justify_items();
             if inherited.0.contains(align::ALIGN_LEGACY) {
                 return inherited
             }

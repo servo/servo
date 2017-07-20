@@ -229,9 +229,7 @@ impl Range<specified::Length> {
         // em units are relative to the initial font-size.
         let context = computed::Context {
             is_root_element: false,
-            device: device,
-            inherited_style: default_values,
-            style: StyleBuilder::for_derived_style(device, default_values, None),
+            builder: StyleBuilder::for_derived_style(device, default_values, None, None),
             // Servo doesn't support font metrics
             // A real provider will be needed here once we do; since
             // ch units can exist in media queries.

@@ -704,9 +704,7 @@ impl MaybeNew for ViewportConstraints {
 
         let context = Context {
             is_root_element: false,
-            device: device,
-            inherited_style: default_values,
-            style: StyleBuilder::for_derived_style(device, default_values, None),
+            builder: StyleBuilder::for_derived_style(device, default_values, None, None),
             font_metrics_provider: &provider,
             cached_system_font: None,
             in_media_query: false,

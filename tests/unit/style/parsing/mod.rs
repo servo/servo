@@ -54,9 +54,7 @@ fn assert_computed_serialization<C, F, T>(f: F, input: &'static str, output: &st
 
     let context = Context {
         is_root_element: true,
-        device: &device,
-        inherited_style: initial_style,
-        style: StyleBuilder::for_derived_style(&device, initial_style, None),
+        builder: StyleBuilder::for_derived_style(&device, initial_style, None, None),
         cached_system_font: None,
         font_metrics_provider: &ServoMetricsProvider,
         in_media_query: false,
