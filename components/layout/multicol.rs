@@ -107,11 +107,11 @@ impl Flow for MulticolFlow {
                 column_count =
                     max(1, (content_inline_size + column_gap).0 / (column_width.0 + column_gap).0);
                 if let Either::First(specified_column_count) = column_style.column_count {
-                    column_count = min(column_count, specified_column_count as i32);
+                    column_count = min(column_count, specified_column_count.0 as i32);
                 }
             } else {
                 column_count = match column_style.column_count {
-                    Either::First(n) => n,
+                    Either::First(n) => n.0,
                     _ => unreachable!(),
                 }
             }

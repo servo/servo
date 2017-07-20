@@ -14,6 +14,7 @@ use values::computed::Angle as ComputedAngle;
 use values::computed::GreaterThanOrEqualToOneNumber as ComputedGreaterThanOrEqualToOneNumber;
 use values::computed::NonNegativeAu;
 use values::computed::NonNegativeNumber as ComputedNonNegativeNumber;
+use values::computed::PositiveInteger as ComputedPositiveInteger;
 use values::specified::url::SpecifiedUrl;
 
 pub mod effects;
@@ -131,6 +132,20 @@ impl ToAnimatedValue for NonNegativeAu {
     #[inline]
     fn from_animated_value(animated: Self::AnimatedValue) -> Self {
         max(animated.0, Au(0)).into()
+    }
+}
+
+impl ToAnimatedValue for ComputedPositiveInteger {
+    type AnimatedValue = Self;
+
+    #[inline]
+    fn to_animated_value(self) -> Self {
+        self
+    }
+
+    #[inline]
+    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+        max(animated.0, 0).into()
     }
 }
 

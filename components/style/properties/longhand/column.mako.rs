@@ -17,12 +17,11 @@ ${helpers.predefined_type("column-width",
 
 
 ${helpers.predefined_type("column-count",
-                          "IntegerOrAuto",
+                          "PositiveIntegerOrAuto",
                           "Either::Second(Auto)",
-                          parse_method="parse_positive",
                           initial_specified_value="Either::Second(Auto)",
                           experimental="True",
-                          animation_value_type="ComputedValue",
+                          animation_value_type="PositiveIntegerOrAuto",
                           extra_prefixes="moz",
                           spec="https://drafts.csswg.org/css-multicol/#propdef-column-count")}
 

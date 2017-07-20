@@ -511,6 +511,19 @@ impl IntegerOrAuto {
     }
 }
 
+/// A wrapper of Integer, but only accept a value >= 1.
+pub type PositiveInteger = GreaterThanOrEqualToOne<CSSInteger>;
+
+impl From<CSSInteger> for PositiveInteger {
+    #[inline]
+    fn from(int: CSSInteger) -> PositiveInteger {
+        GreaterThanOrEqualToOne::<CSSInteger>(int)
+    }
+}
+
+/// PositiveInteger | auto
+pub type PositiveIntegerOrAuto = Either<PositiveInteger, Auto>;
+
 /// <length> | <percentage> | <number>
 pub type LengthOrPercentageOrNumber = Either<Number, LengthOrPercentage>;
 

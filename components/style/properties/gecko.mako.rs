@@ -5423,8 +5423,8 @@ clip-path
         use gecko_bindings::structs::{NS_STYLE_COLUMN_COUNT_AUTO, nsStyleColumn_kMaxColumnCount};
 
         self.gecko.mColumnCount = match v {
-            Either::First(number) => unsafe {
-                cmp::min(number as u32, nsStyleColumn_kMaxColumnCount)
+            Either::First(integer) => unsafe {
+                cmp::min(integer.0 as u32, nsStyleColumn_kMaxColumnCount)
             },
             Either::Second(Auto) => NS_STYLE_COLUMN_COUNT_AUTO
         };
@@ -5437,7 +5437,7 @@ clip-path
         if self.gecko.mColumnCount != NS_STYLE_COLUMN_COUNT_AUTO {
             debug_assert!((self.gecko.mColumnCount as i32) >= 0 &&
                           (self.gecko.mColumnCount as i32) < i32::max_value());
-            Either::First(self.gecko.mColumnCount as i32)
+            Either::First((self.gecko.mColumnCount as i32).into())
         } else {
             Either::Second(Auto)
         }

@@ -44,7 +44,7 @@ use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone
 use values::computed::{BorderCornerRadius, ClipRect};
 use values::computed::{CalcLengthOrPercentage, Color, Context, ComputedValueAsSpecified};
 use values::computed::{LengthOrPercentage, MaxLength, MozLength, Percentage, ToComputedValue};
-use values::computed::{NonNegativeAu, NonNegativeNumber};
+use values::computed::{NonNegativeAu, NonNegativeNumber, PositiveIntegerOrAuto};
 use values::computed::length::{NonNegativeLengthOrAuto, NonNegativeLengthOrNormal};
 use values::generics::{GreaterThanOrEqualToOne, NonNegative};
 use values::generics::border::BorderCornerRadius as GenericBorderCornerRadius;
