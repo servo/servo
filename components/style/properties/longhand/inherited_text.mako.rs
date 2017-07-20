@@ -742,9 +742,9 @@ ${helpers.predefined_type(
 
 ${helpers.predefined_type("-webkit-text-stroke-width",
                           "BorderSideWidth",
-                          "Au::from_px(0)",
+                          "::values::computed::NonNegativeAu::from_px(0)",
                           initial_specified_value="specified::BorderSideWidth::Length(specified::Length::zero())",
-                          computed_type="::app_units::Au",
+                          computed_type="::values::computed::NonNegativeAu",
                           products="gecko",
                           flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
                           spec="https://compat.spec.whatwg.org/#the-webkit-text-stroke-width",

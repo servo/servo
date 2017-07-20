@@ -803,15 +803,16 @@ def set_gecko_property(ffi_name, expr):
     }
 </%def>
 
-<%def name="impl_app_units(ident, gecko_ffi_name, need_clone, inherit_from=None, round_to_pixels=False)">
+<%def name="impl_non_negative_app_units(ident, gecko_ffi_name, need_clone, inherit_from=None,
+                                        round_to_pixels=False)">
     #[allow(non_snake_case)]
     pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
         let value = {
             % if round_to_pixels:
             let au_per_device_px = Au(self.gecko.mTwipsPerPixel);
-            round_border_to_device_pixels(v, au_per_device_px).0
+            round_border_to_device_pixels(v.0, au_per_device_px).0
             % else:
-            v.0
+            v.value()
             % endif
         };
 
@@ -847,7 +848,7 @@ def set_gecko_property(ffi_name, expr):
 %if need_clone:
     #[allow(non_snake_case)]
     pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
-        Au(self.gecko.${gecko_ffi_name})
+        Au(self.gecko.${gecko_ffi_name}).into()
     }
 % endif
 </%def>
@@ -1312,11 +1313,11 @@ fn static_assert() {
 
     <% impl_color("border_%s_color" % side.ident, "(mBorderColor)[%s]" % side.index, need_clone=True) %>
 
-    <% impl_app_units("border_%s_width" % side.ident,
-                      "mComputedBorder.%s" % side.ident,
-                      inherit_from="mBorder.%s" % side.ident,
-                      need_clone=True,
-                      round_to_pixels=True) %>
+    <% impl_non_negative_app_units("border_%s_width" % side.ident,
+                                   "mComputedBorder.%s" % side.ident,
+                                   inherit_from="mBorder.%s" % side.ident,
+                                   need_clone=True,
+                                   round_to_pixels=True) %>
 
     pub fn border_${side.ident}_has_nonzero_width(&self) -> bool {
         self.gecko.mComputedBorder.${side.ident} != 0
@@ -2054,9 +2055,9 @@ fn static_assert() {
         }
     }
 
-    <% impl_app_units("outline_width", "mActualOutlineWidth",
-                      inherit_from="mOutlineWidth",
-                      need_clone=True, round_to_pixels=True) %>
+    <% impl_non_negative_app_units("outline_width", "mActualOutlineWidth",
+                                   inherit_from="mOutlineWidth",
+                                   need_clone=True, round_to_pixels=True) %>
 
     % for corner in CORNERS:
     <% impl_corner_style_coord("_moz_outline_radius_%s" % corner.ident.replace("_", ""),
@@ -4787,7 +4788,9 @@ fn static_assert() {
         })
     }
 
-    <%call expr="impl_app_units('_webkit_text_stroke_width', 'mWebkitTextStrokeWidth', need_clone=True)"></%call>
+    <%call expr="impl_non_negative_app_units('_webkit_text_stroke_width',
+                                             'mWebkitTextStrokeWidth',
+                                             need_clone=True)"></%call>
 
     #[allow(non_snake_case)]
     pub fn set__moz_tab_size(&mut self, v: longhands::_moz_tab_size::computed_value::T) {
@@ -5438,8 +5441,8 @@ clip-path
         }
     }
 
-    <% impl_app_units("column_rule_width", "mColumnRuleWidth", need_clone=True,
-                      round_to_pixels=True) %>
+    <% impl_non_negative_app_units("column_rule_width", "mColumnRuleWidth", need_clone=True,
+                                   round_to_pixels=True) %>
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Counters"

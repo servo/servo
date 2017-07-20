@@ -10,13 +10,13 @@
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
+#[cfg(feature = "servo")] use app_units::Au;
 use servo_arc::{Arc, UniqueArc};
 use std::borrow::Cow;
 use std::collections::HashSet;
 use std::{fmt, mem, ops};
 #[cfg(feature = "gecko")] use std::ptr;
 
-use app_units::Au;
 #[cfg(feature = "servo")] use cssparser::RGBA;
 use cssparser::{Parser, TokenSerializationType, serialize_identifier};
 use cssparser::ParserInput;
@@ -43,6 +43,7 @@ use stylesheets::{CssRuleType, MallocSizeOf, MallocSizeOfFn, Origin, UrlExtraDat
 #[cfg(feature = "servo")] use values::Either;
 use values::generics::text::LineHeight;
 use values::computed;
+use values::computed::NonNegativeAu;
 use cascade_info::CascadeInfo;
 use rule_tree::{CascadeLevel, StrongRuleNode};
 use self::computed_value_flags::ComputedValueFlags;
@@ -1752,7 +1753,7 @@ pub mod style_structs {
                     /// Whether the border-${side} property has nonzero width.
                     #[allow(non_snake_case)]
                     pub fn border_${side}_has_nonzero_width(&self) -> bool {
-                        self.border_${side}_width != ::app_units::Au(0)
+                        self.border_${side}_width != NonNegativeAu::zero()
                     }
                 % endfor
             % elif style_struct.name == "Font":
@@ -1790,7 +1791,7 @@ pub mod style_structs {
                 /// Whether the outline-width property is non-zero.
                 #[inline]
                 pub fn outline_has_nonzero_width(&self) -> bool {
-                    self.outline_width != ::app_units::Au(0)
+                    self.outline_width != NonNegativeAu::zero()
                 }
             % elif style_struct.name == "Text":
                 /// Whether the text decoration has an underline.
@@ -2202,10 +2203,10 @@ impl ComputedValuesInner {
     pub fn border_width_for_writing_mode(&self, writing_mode: WritingMode) -> LogicalMargin<Au> {
         let border_style = self.get_border();
         LogicalMargin::from_physical(writing_mode, SideOffsets2D::new(
-            border_style.border_top_width,
-            border_style.border_right_width,
-            border_style.border_bottom_width,
-            border_style.border_left_width,
+            border_style.border_top_width.0,
+            border_style.border_right_width.0,
+            border_style.border_bottom_width.0,
+            border_style.border_left_width.0,
         ))
     }
 
@@ -3360,7 +3361,7 @@ pub fn adjust_border_width(style: &mut StyleBuilder) {
         // Like calling to_computed_value, which wouldn't type check.
         if style.get_border().clone_border_${side}_style().none_or_hidden() &&
            style.get_border().border_${side}_has_nonzero_width() {
-            style.set_border_${side}_width(Au(0));
+            style.set_border_${side}_width(NonNegativeAu::zero());
         }
     % endfor
 }
@@ -3384,7 +3385,7 @@ pub fn modify_border_style_for_inline_sides(style: &mut Arc<ComputedValues>,
                 PhysicalSide::Top =>    (border.border_top_width,    border.border_top_style),
                 PhysicalSide::Bottom => (border.border_bottom_width, border.border_bottom_style),
             };
-            if current_style == (Au(0), BorderStyle::none) {
+            if current_style == (NonNegativeAu::zero(), BorderStyle::none) {
                 return;
             }
         }
@@ -3392,19 +3393,19 @@ pub fn modify_border_style_for_inline_sides(style: &mut Arc<ComputedValues>,
         let border = Arc::make_mut(&mut style.border);
         match side {
             PhysicalSide::Left => {
-                border.border_left_width = Au(0);
+                border.border_left_width = NonNegativeAu::zero();
                 border.border_left_style = BorderStyle::none;
             }
             PhysicalSide::Right => {
-                border.border_right_width = Au(0);
+                border.border_right_width = NonNegativeAu::zero();
                 border.border_right_style = BorderStyle::none;
             }
             PhysicalSide::Bottom => {
-                border.border_bottom_width = Au(0);
+                border.border_bottom_width = NonNegativeAu::zero();
                 border.border_bottom_style = BorderStyle::none;
             }
             PhysicalSide::Top => {
-                border.border_top_width = Au(0);
+                border.border_top_width = NonNegativeAu::zero();
                 border.border_top_style = BorderStyle::none;
             }
         }

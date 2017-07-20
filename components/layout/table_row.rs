@@ -616,7 +616,7 @@ impl CollapsedBorder {
            -> CollapsedBorder {
         CollapsedBorder {
             style: css_style.get_border().border_top_style,
-            width: css_style.get_border().border_top_width,
+            width: css_style.get_border().border_top_width.0,
             color: css_style.get_border().border_top_color,
             provenance: provenance,
         }
@@ -628,7 +628,7 @@ impl CollapsedBorder {
              -> CollapsedBorder {
         CollapsedBorder {
             style: css_style.get_border().border_right_style,
-            width: css_style.get_border().border_right_width,
+            width: css_style.get_border().border_right_width.0,
             color: css_style.get_border().border_right_color,
             provenance: provenance,
         }
@@ -640,7 +640,7 @@ impl CollapsedBorder {
               -> CollapsedBorder {
         CollapsedBorder {
             style: css_style.get_border().border_bottom_style,
-            width: css_style.get_border().border_bottom_width,
+            width: css_style.get_border().border_bottom_width.0,
             color: css_style.get_border().border_bottom_color,
             provenance: provenance,
         }
@@ -652,7 +652,7 @@ impl CollapsedBorder {
             -> CollapsedBorder {
         CollapsedBorder {
             style: css_style.get_border().border_left_style,
-            width: css_style.get_border().border_left_width,
+            width: css_style.get_border().border_left_width.0,
             color: css_style.get_border().border_left_color,
             provenance: provenance,
         }

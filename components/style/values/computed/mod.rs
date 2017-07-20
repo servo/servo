@@ -591,3 +591,33 @@ impl ClipRectOrAuto {
 
 /// <color> | auto
 pub type ColorOrAuto = Either<Color, Auto>;
+
+/// A wrapper of Au, but the value >= 0.
+pub type NonNegativeAu = NonNegative<Au>;
+
+impl NonNegativeAu {
+    /// Return a zero value.
+    #[inline]
+    pub fn zero() -> Self {
+        NonNegative::<Au>(Au(0))
+    }
+
+    /// Return a NonNegativeAu from pixel.
+    #[inline]
+    pub fn from_px(px: i32) -> Self {
+        NonNegative::<Au>(Au::from_px(::std::cmp::max(px, 0)))
+    }
+
+    /// Get the inner value of |NonNegativeAu.0|.
+    #[inline]
+    pub fn value(self) -> i32 {
+        (self.0).0
+    }
+}
+
+impl From<Au> for NonNegativeAu {
+    #[inline]
+    fn from(au: Au) -> NonNegativeAu {
+        NonNegative::<Au>(au)
+    }
+}

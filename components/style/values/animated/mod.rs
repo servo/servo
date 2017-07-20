@@ -9,8 +9,10 @@
 //! module's raison d'être is to ultimately contain all these types.
 
 use app_units::Au;
+use std::cmp::max;
 use values::computed::Angle as ComputedAngle;
 use values::computed::GreaterThanOrEqualToOneNumber as ComputedGreaterThanOrEqualToOneNumber;
+use values::computed::NonNegativeAu;
 use values::computed::NonNegativeNumber as ComputedNonNegativeNumber;
 use values::specified::url::SpecifiedUrl;
 
@@ -115,6 +117,20 @@ impl ToAnimatedValue for ComputedGreaterThanOrEqualToOneNumber {
     #[inline]
     fn from_animated_value(animated: Self::AnimatedValue) -> Self {
         animated.0.max(1.).into()
+    }
+}
+
+impl ToAnimatedValue for NonNegativeAu {
+    type AnimatedValue = Self;
+
+    #[inline]
+    fn to_animated_value(self) -> Self {
+        self
+    }
+
+    #[inline]
+    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+        max(animated.0, Au(0)).into()
     }
 }
 

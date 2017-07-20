@@ -1572,7 +1572,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                     clip: &Rect<Au>) {
         use style::values::Either;
 
-        let width = style.get_outline().outline_width;
+        let width = style.get_outline().outline_width.0;
         if width == Au(0) {
             return
         }
