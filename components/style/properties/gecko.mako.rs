@@ -1089,6 +1089,8 @@ impl Clone for ${style_struct.gecko_struct_name} {
     predefined_types = {
         "length::LengthOrAuto": impl_style_coord,
         "length::LengthOrNormal": impl_style_coord,
+        "length::NonNegativeLengthOrAuto": impl_style_coord,
+        "length::NonNegativeLengthOrNormal": impl_style_coord,
         "GreaterThanOrEqualToOneNumber": impl_simple,
         "Length": impl_absolute_length,
         "Position": impl_position,
@@ -4797,11 +4799,11 @@ fn static_assert() {
         use values::Either;
 
         match v {
-            Either::Second(number) => {
-                self.gecko.mTabSize.set_value(CoordDataValue::Factor(number));
+            Either::Second(non_negative_number) => {
+                self.gecko.mTabSize.set_value(CoordDataValue::Factor(non_negative_number.0));
             }
-            Either::First(au) => {
-                self.gecko.mTabSize.set(au);
+            Either::First(non_negative_au) => {
+                self.gecko.mTabSize.set(non_negative_au.0);
             }
         }
     }
@@ -4811,8 +4813,8 @@ fn static_assert() {
         use values::Either;
 
         match self.gecko.mTabSize.as_value() {
-            CoordDataValue::Coord(coord) => Either::First(Au(coord)),
-            CoordDataValue::Factor(number) => Either::Second(number),
+            CoordDataValue::Coord(coord) => Either::First(Au(coord).into()),
+            CoordDataValue::Factor(number) => Either::Second(From::from(number)),
             _ => unreachable!(),
         }
     }

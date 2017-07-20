@@ -11,6 +11,7 @@ use style_traits::ToCss;
 use style_traits::values::specified::AllowedLengthType;
 use super::{Number, ToComputedValue, Context};
 use values::{Auto, CSSFloat, Either, ExtremumLength, None_, Normal, specified};
+use values::computed::{NonNegativeAu, NonNegativeNumber};
 use values::specified::length::{AbsoluteLength, FontBaseSize, FontRelativeLength};
 use values::specified::length::ViewportPercentageLength;
 
@@ -572,6 +573,18 @@ impl LengthOrNumber {
 
 /// Either a computed `<length>` or the `normal` keyword.
 pub type LengthOrNormal = Either<Length, Normal>;
+
+/// A wrapper of Length, whose value must be >= 0.
+pub type NonNegativeLength = NonNegativeAu;
+
+/// Either a computed NonNegativeLength or the `auto` keyword.
+pub type NonNegativeLengthOrAuto = Either<NonNegativeLength, Auto>;
+
+/// Either a computed NonNegativeLength or the `normal` keyword.
+pub type NonNegativeLengthOrNormal = Either<NonNegativeLength, Normal>;
+
+/// Either a computed NonNegativeLength or a NonNegativeNumber value.
+pub type NonNegativeLengthOrNumber = Either<NonNegativeLength, NonNegativeNumber>;
 
 /// A value suitable for a `min-width`, `min-height`, `width` or `height` property.
 /// See specified/values/length.rs for more details.
