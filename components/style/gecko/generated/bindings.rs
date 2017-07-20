@@ -1984,10 +1984,10 @@ extern "C" {
      -> ServoStyleContextStrong;
 }
 extern "C" {
-    pub fn Servo_StyleContext_AddRef(ctx: ServoStyleContextBorrowed);
+    pub fn Servo_StyleContext_AddRef(ctx: &ServoStyleContext);
 }
 extern "C" {
-    pub fn Servo_StyleContext_Release(ctx: ServoStyleContextBorrowed);
+    pub fn Servo_StyleContext_Release(ctx: &ServoStyleContext);
 }
 extern "C" {
     pub fn Servo_StyleSet_MightHaveAttributeDependency(set:

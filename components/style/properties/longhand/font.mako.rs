@@ -620,16 +620,18 @@ ${helpers.single_keyword_system("font-variant-caps",
     #[derive(Debug, Copy, Clone, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum KeywordSize {
-        XXSmall = 0,
-        XSmall = 1,
-        Small = 2,
-        Medium = 3,
-        Large = 4,
-        XLarge = 5,
-        XXLarge = 6,
+        XXSmall = 1, // This is to enable the NonZero optimization
+                     // which simplifies the representation of Option<KeywordSize>
+                     // in bindgen
+        XSmall,
+        Small,
+        Medium,
+        Large,
+        XLarge,
+        XXLarge,
         // This is not a real font keyword and will not parse
         // HTML font-size 7 corresponds to this value
-        XXXLarge = 7,
+        XXXLarge,
     }
 
     pub use self::KeywordSize::*;
@@ -644,6 +646,19 @@ ${helpers.single_keyword_system("font-variant-caps",
                 "large" => Ok(Large),
                 "x-large" => Ok(XLarge),
                 "xx-large" => Ok(XXLarge),
+            }
+        }
+
+        pub fn html_size(&self) -> u8 {
+            match *self {
+                KeywordSize::XXSmall => 0,
+                KeywordSize::XSmall => 1,
+                KeywordSize::Small => 2,
+                KeywordSize::Medium => 3,
+                KeywordSize::Large => 4,
+                KeywordSize::XLarge => 5,
+                KeywordSize::XXLarge => 6,
+                KeywordSize::XXXLarge => 7,
             }
         }
     }
@@ -731,7 +746,7 @@ ${helpers.single_keyword_system("font-variant-caps",
                 }) };
 
                 let base_size_px = au_to_int_px(base_size as f32);
-                let html_size = *self as usize;
+                let html_size = self.html_size() as usize;
                 if base_size_px >= 9 && base_size_px <= 16 {
                     Au::from_px(FONT_SIZE_MAPPING[(base_size_px - 9) as usize][html_size])
                 } else {

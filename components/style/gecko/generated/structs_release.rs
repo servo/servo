@@ -7420,6 +7420,19 @@ pub mod root {
             FirstLetterContinuation = 1,
             PlaceholderFrame = 2,
         }
+        #[repr(u32)]
+        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        pub enum ServoKeywordSize {
+            Empty = 0,
+            XXSmall = 1,
+            XSmall = 2,
+            Small = 3,
+            Medium = 4,
+            Large = 5,
+            XLarge = 6,
+            XXLarge = 7,
+            XXXLarge = 8,
+        }
         #[repr(C)]
         #[derive(Debug)]
         pub struct ServoStyleContext {
@@ -7429,7 +7442,7 @@ pub mod root {
         }
         #[test]
         fn bindgen_test_layout_ServoStyleContext() {
-            assert_eq!(::std::mem::size_of::<ServoStyleContext>() , 272usize ,
+            assert_eq!(::std::mem::size_of::<ServoStyleContext>() , 264usize ,
                        concat ! (
                        "Size of: " , stringify ! ( ServoStyleContext ) ));
             assert_eq! (::std::mem::align_of::<ServoStyleContext>() , 8usize ,
@@ -20622,7 +20635,7 @@ pub mod root {
         pub Effects: ::gecko_bindings::structs::ServoRawOffsetArc<root::mozilla::GeckoEffects>,
         pub custom_properties: ::gecko_bindings::structs::ServoCustomPropertiesMap,
         pub writing_mode: ::gecko_bindings::structs::ServoWritingMode,
-        pub font_computation_data: ::gecko_bindings::structs::ServoFontComputationData,
+        pub flags: ::gecko_bindings::structs::ServoComputedValueFlags,
         /// The rule node representing the ordered list of rules matched for this
   /// node.  Can be None for default values and text nodes.  This is
   /// essentially an optimization to avoid referencing the root rule node.
@@ -20631,11 +20644,11 @@ pub mod root {
   /// relevant link for this element. A element's "relevant link" is the
   /// element being matched if it is a link or the nearest ancestor link.
         pub visited_style: ::gecko_bindings::structs::ServoVisitedStyle,
-        pub flags: ::gecko_bindings::structs::ServoComputedValueFlags,
+        pub font_computation_data: ::gecko_bindings::structs::ServoFontComputationData,
     }
     #[test]
     fn bindgen_test_layout_ServoComputedValues() {
-        assert_eq!(::std::mem::size_of::<ServoComputedValues>() , 232usize ,
+        assert_eq!(::std::mem::size_of::<ServoComputedValues>() , 224usize ,
                    concat ! (
                    "Size of: " , stringify ! ( ServoComputedValues ) ));
         assert_eq! (::std::mem::align_of::<ServoComputedValues>() , 8usize ,
@@ -20770,27 +20783,27 @@ pub mod root {
                     "Alignment of field: " , stringify ! ( ServoComputedValues
                     ) , "::" , stringify ! ( writing_mode ) ));
         assert_eq! (unsafe {
-                    & ( * ( 0 as * const ServoComputedValues ) ) .
-                    font_computation_data as * const _ as usize } , 196usize ,
-                    concat ! (
+                    & ( * ( 0 as * const ServoComputedValues ) ) . flags as *
+                    const _ as usize } , 193usize , concat ! (
                     "Alignment of field: " , stringify ! ( ServoComputedValues
-                    ) , "::" , stringify ! ( font_computation_data ) ));
+                    ) , "::" , stringify ! ( flags ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const ServoComputedValues ) ) . rules as *
-                    const _ as usize } , 208usize , concat ! (
+                    const _ as usize } , 200usize , concat ! (
                     "Alignment of field: " , stringify ! ( ServoComputedValues
                     ) , "::" , stringify ! ( rules ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const ServoComputedValues ) ) .
-                    visited_style as * const _ as usize } , 216usize , concat
+                    visited_style as * const _ as usize } , 208usize , concat
                     ! (
                     "Alignment of field: " , stringify ! ( ServoComputedValues
                     ) , "::" , stringify ! ( visited_style ) ));
         assert_eq! (unsafe {
-                    & ( * ( 0 as * const ServoComputedValues ) ) . flags as *
-                    const _ as usize } , 224usize , concat ! (
+                    & ( * ( 0 as * const ServoComputedValues ) ) .
+                    font_computation_data as * const _ as usize } , 216usize ,
+                    concat ! (
                     "Alignment of field: " , stringify ! ( ServoComputedValues
-                    ) , "::" , stringify ! ( flags ) ));
+                    ) , "::" , stringify ! ( font_computation_data ) ));
     }
     #[repr(C)]
     #[derive(Debug, Copy)]
