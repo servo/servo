@@ -1089,6 +1089,16 @@ impl<'le> TElement for GeckoElement<'le> {
 
     #[inline]
     fn may_have_animations(&self) -> bool {
+        if let Some(pseudo) = self.implemented_pseudo_element() {
+            if !pseudo.is_before_or_after() {
+                return false;
+            }
+            return self.parent_element()
+                       .map_or(false, |p| {
+                           p.as_node()
+                            .get_bool_flag(nsINode_BooleanFlag::ElementHasAnimations)
+            });
+        }
         self.as_node().get_bool_flag(nsINode_BooleanFlag::ElementHasAnimations)
     }
 
