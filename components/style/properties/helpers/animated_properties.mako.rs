@@ -43,7 +43,7 @@ use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone
 use values::computed::{BorderCornerRadius, ClipRect};
 use values::computed::{CalcLengthOrPercentage, Color, Context, ComputedValueAsSpecified};
 use values::computed::{LengthOrPercentage, MaxLength, MozLength, Percentage, ToComputedValue};
-use values::computed::{GreaterThanOrEqualToOneNumber, NonNegativeNumber};
+use values::computed::{GreaterThanOrEqualToOneNumber, NonNegativeAu, NonNegativeNumber};
 use values::generics::{SVGPaint, SVGPaintKind};
 use values::generics::border::BorderCornerRadius as GenericBorderCornerRadius;
 use values::generics::effects::Filter;
@@ -904,6 +904,19 @@ impl Animatable for i32 {
     #[inline]
     fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
         Ok((*self - *other).abs() as f64)
+    }
+}
+
+/// https://drafts.csswg.org/css-transitions/#animtype-number
+impl Animatable for NonNegativeAu {
+    #[inline]
+    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
+        self.0.add_weighted(&other.0, self_portion, other_portion).map(NonNegativeAu)
+    }
+
+    #[inline]
+    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
+        self.0.compute_distance(&other.0)
     }
 }
 

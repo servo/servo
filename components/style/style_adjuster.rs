@@ -12,6 +12,7 @@ use properties::longhands::display::computed_value::T as display;
 use properties::longhands::float::computed_value::T as float;
 use properties::longhands::overflow_x::computed_value::T as overflow;
 use properties::longhands::position::computed_value::T as position;
+use values::computed::NonNegativeAu;
 
 /// An unsized struct that implements all the adjustment methods.
 pub struct StyleAdjuster<'a, 'b: 'a> {
@@ -225,7 +226,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     fn adjust_for_outline(&mut self) {
         if self.style.get_outline().clone_outline_style().none_or_hidden() &&
            self.style.get_outline().outline_has_nonzero_width() {
-            self.style.mutate_outline().set_outline_width(Au(0));
+            self.style.mutate_outline().set_outline_width(NonNegativeAu(Au(0)));
         }
     }
 

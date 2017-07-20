@@ -11,6 +11,7 @@
 use app_units::Au;
 use values::computed::Angle as ComputedAngle;
 use values::computed::GreaterThanOrEqualToOneNumber as ComputedGreaterThanOrEqualToOneNumber;
+use values::computed::NonNegativeAu;
 use values::computed::NonNegativeNumber as ComputedNonNegativeNumber;
 use values::specified::url::SpecifiedUrl;
 
@@ -118,6 +119,20 @@ impl ToAnimatedValue for ComputedGreaterThanOrEqualToOneNumber {
     }
 }
 
+impl ToAnimatedValue for NonNegativeAu {
+    type AnimatedValue = Self;
+
+    #[inline]
+    fn to_animated_value(self) -> Self {
+        self
+    }
+
+    #[inline]
+    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+        animated.max(NonNegativeAu(Au(0)))
+    }
+}
+
 /// Returns a value similar to `self` that represents zero.
 pub trait ToAnimatedZero: Sized {
     /// Returns a value that, when added with an underlying value, will produce the underlying
@@ -158,4 +173,9 @@ impl ToAnimatedZero for ComputedNonNegativeNumber {
 impl ToAnimatedZero for ComputedGreaterThanOrEqualToOneNumber {
     #[inline]
     fn to_animated_zero(&self) -> Result<Self, ()> { Ok(ComputedGreaterThanOrEqualToOneNumber(0.)) }
+}
+
+impl ToAnimatedZero for NonNegativeAu {
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Self, ()> { Ok(NonNegativeAu(Au(0))) }
 }

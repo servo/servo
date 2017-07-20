@@ -602,3 +602,28 @@ impl ClipRectOrAuto {
 
 /// <color> | auto
 pub type ColorOrAuto = Either<Color, Auto>;
+
+/// A wrapper of Au, but only accept a value >= 0.
+#[derive(Clone, PartialEq, PartialOrd, Copy, Debug, ToCss)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
+pub struct NonNegativeAu(pub Au);
+
+impl NonNegativeAu {
+    /// Return a NonNegativeAu from pixel.
+    #[inline]
+    pub fn from_px(px: i32) -> Self {
+        NonNegativeAu(Au::from_px(::std::cmp::max(px, 0)))
+    }
+
+    /// Get the inner value of |NonNegativeAu.0|.
+    #[inline]
+    pub fn value(self) -> i32 {
+        (self.0).0
+    }
+
+    /// Returns the maximum of |self| and |other|.
+    #[inline]
+    pub fn max(self, other: Self) -> Self {
+        NonNegativeAu(Au(::std::cmp::max(self.value(), other.value())))
+    }
+}
