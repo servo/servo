@@ -3,6 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::{Au, AU_PER_PX};
+use core::ops::Deref;
+use cssparser::{Parser, ParserInput};
 use document_loader::{LoadType, LoadBlocker};
 use dom::activation::Activatable;
 use dom::attr::Attr;
@@ -52,10 +54,18 @@ use script_thread::{Runnable, ScriptThread};
 use servo_url::ServoUrl;
 use servo_url::origin::ImmutableOrigin;
 use std::cell::{Cell, RefMut};
+use std::char;
 use std::default::Default;
 use std::i32;
 use std::sync::{Arc, Mutex};
+use style::context::QuirksMode;
+use style::error_reporting::NullReporter;
+use style::media_queries::MediaQuery;
+use style::parser::ParserContext;
+use style::values::specified::{Length, ViewportPercentageLength};
+use style::values::specified::length::NoCalcLength;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
+use style_traits::ParsingMode;
 use task_source::TaskSource;
 
 #[derive(Clone, Copy, JSTraceable, HeapSizeOf)]
@@ -65,6 +75,11 @@ enum State {
     PartiallyAvailable,
     CompletelyAvailable,
     Broken,
+}
+#[allow(dead_code)]
+pub struct Size {
+    pub query: Option<MediaQuery>,
+    pub length: Length,
 }
 #[derive(Copy, Clone, JSTraceable, HeapSizeOf)]
 enum ImageRequestPhase {
@@ -782,6 +797,71 @@ impl LayoutHTMLImageElementHelpers for LayoutJS<HTMLImageElement> {
     }
 }
 
+pub fn parse_a_sizes_attribute(input: DOMString, width: Option<u32>) -> Result<Vec<Size>, String> {
+let mut sizes = Vec::<Size>::new();
+let unparsed_sizes = input.deref().split(',').collect::<Vec<_>>();
+
+    for unparsed_size in &unparsed_sizes {
+        let whitespace = unparsed_size.chars().rev().take_while(|c| char::is_whitespace(*c)).count();
+        let trimmed: String = unparsed_size.chars().take(unparsed_size.chars().count() - whitespace).collect();
+
+        if trimmed.is_empty() {
+            // return Err("reason".to_owned());
+            continue;
+        }
+        let mut input = ParserInput::new(&trimmed);
+        let url = ServoUrl::parse("about:blank").unwrap();
+        let reporter = NullReporter;
+        let context = ParserContext::new_for_cssom(&url,
+                                                        &reporter,
+                                                        None,
+                                                        ParsingMode::empty(),
+                                                        QuirksMode::NoQuirks);
+        let url = ServoUrl::parse("about:blank").unwrap();
+        let length = Parser::new(&mut input).try(|i| Length::parse_non_negative(&context, i));
+        match length {
+            Ok(len) => sizes.push(Size {
+                length: len,
+                query: None
+            }),
+            Err(_) => {
+                // return Err("reason".to_owned());
+                let mut media_query_parser = Parser::new(&mut input);
+                let media_query = media_query_parser.try(|i| MediaQuery::parse(&context, i));
+                match media_query {
+                    Ok(query) => {
+                        let length = media_query_parser.try(|i| Length::parse_non_negative(&context, i));
+                        if length.is_ok() {
+                            sizes.push (Size {
+                                length: length.unwrap(),
+                                query: Some(query)
+                            })
+                        }
+                    },
+                    Err(_) => {
+                        // return Err("reason".to_owned());
+                        continue;
+                    },
+                }
+            },
+        }
+    }
+    if sizes.len() == 0 {
+        let size = match width {
+            Some(w) => Size {
+                length: Length::from_px(w as f32),
+                query: None
+            },
+            None => Size {
+                length: Length::NoCalc(NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vw(100.))),
+                query: None
+            },
+        };
+        sizes.push(size);
+    }
+    return Ok(sizes)
+}
+
 impl HTMLImageElementMethods for HTMLImageElement {
     // https://html.spec.whatwg.org/multipage/#dom-img-alt
     make_getter!(Alt, "alt");
@@ -792,6 +872,12 @@ impl HTMLImageElementMethods for HTMLImageElement {
     make_url_getter!(Src, "src");
     // https://html.spec.whatwg.org/multipage/#dom-img-src
     make_setter!(SetSrc, "src");
+
+    // https://html.spec.whatwg.org/multipage/images.html#parse-a-sizes-attribute
+    make_url_getter!(Sizes, "sizes");
+    // https://html.spec.whatwg.org/multipage/images.html#parse-a-sizes-attribute
+    make_setter!(SetSizes, "sizes");
+
 
     // https://html.spec.whatwg.org/multipage/#dom-img-crossOrigin
     fn GetCrossOrigin(&self) -> Option<DOMString> {
