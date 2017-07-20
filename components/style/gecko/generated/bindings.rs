@@ -25,6 +25,7 @@ use gecko_bindings::structs::RawGeckoCSSPropertyIDList;
 use gecko_bindings::structs::RawGeckoDocument;
 use gecko_bindings::structs::RawGeckoElement;
 use gecko_bindings::structs::RawGeckoKeyframeList;
+use gecko_bindings::structs::RawGeckoPropertyValuePairList;
 use gecko_bindings::structs::RawGeckoComputedKeyframeValuesList;
 use gecko_bindings::structs::RawGeckoFontFaceRuleList;
 use gecko_bindings::structs::RawGeckoNode;
@@ -54,6 +55,7 @@ use gecko_bindings::structs::FontSizePrefs;
 use gecko_bindings::structs::GeckoFontMetrics;
 use gecko_bindings::structs::IterationCompositeOperation;
 use gecko_bindings::structs::Keyframe;
+use gecko_bindings::structs::PropertyValuePair;
 use gecko_bindings::structs::ServoBundledURI;
 use gecko_bindings::structs::ServoElementSnapshot;
 use gecko_bindings::structs::ServoElementSnapshotTable;
@@ -297,6 +299,10 @@ pub type RawGeckoKeyframeListBorrowed<'a> = &'a RawGeckoKeyframeList;
 pub type RawGeckoKeyframeListBorrowedOrNull<'a> = Option<&'a RawGeckoKeyframeList>;
 pub type RawGeckoKeyframeListBorrowedMut<'a> = &'a mut RawGeckoKeyframeList;
 pub type RawGeckoKeyframeListBorrowedMutOrNull<'a> = Option<&'a mut RawGeckoKeyframeList>;
+pub type RawGeckoPropertyValuePairListBorrowed<'a> = &'a RawGeckoPropertyValuePairList;
+pub type RawGeckoPropertyValuePairListBorrowedOrNull<'a> = Option<&'a RawGeckoPropertyValuePairList>;
+pub type RawGeckoPropertyValuePairListBorrowedMut<'a> = &'a mut RawGeckoPropertyValuePairList;
+pub type RawGeckoPropertyValuePairListBorrowedMutOrNull<'a> = Option<&'a mut RawGeckoPropertyValuePairList>;
 pub type RawGeckoComputedKeyframeValuesListBorrowed<'a> = &'a RawGeckoComputedKeyframeValuesList;
 pub type RawGeckoComputedKeyframeValuesListBorrowedOrNull<'a> = Option<&'a RawGeckoComputedKeyframeValuesList>;
 pub type RawGeckoComputedKeyframeValuesListBorrowedMut<'a> = &'a mut RawGeckoComputedKeyframeValuesList;
@@ -1163,6 +1169,12 @@ extern "C" {
                                           timingFunction:
                                               *const nsTimingFunction)
      -> *mut Keyframe;
+}
+extern "C" {
+    pub fn Gecko_AppendPropertyValuePair(aProperties:
+                                             RawGeckoPropertyValuePairListBorrowedMut,
+                                         aProperty: nsCSSPropertyID)
+     -> *mut PropertyValuePair;
 }
 extern "C" {
     pub fn Gecko_ResetStyleCoord(unit: *mut nsStyleUnit,
