@@ -187,6 +187,8 @@ impl Parse for TrackList<LengthOrPercentage> {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         // Merge the line names while parsing values. The resulting values will
         // all be bunch of `<track-size>` and one <auto-repeat>.
+        // FIXME: We need to decide which way is better for repeat function in
+        // https://bugzilla.mozilla.org/show_bug.cgi?id=1382369.
         //
         // For example,
         // `[a b] 100px [c d] repeat(1, 30px [g]) [h]` will be merged as `[a b] 100px [c d] 30px [g h]`
