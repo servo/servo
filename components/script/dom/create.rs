@@ -5,6 +5,7 @@
 use dom::bindings::error::{report_pending_exception, throw_dom_exception};
 use dom::bindings::js::Root;
 use dom::bindings::reflector::DomObject;
+use dom::customelementregistry::is_valid_custom_element_name;
 use dom::document::Document;
 use dom::element::{CustomElementCreationMode, Element, ElementCreator};
 use dom::globalscope::GlobalScope;
@@ -184,6 +185,7 @@ pub fn create_native_html_element(name: QualName,
 
     // This is a big match, and the IDs for inline-interned atoms are not very structured.
     // Perhaps we should build a perfect hash from those IDs instead.
+    // https://html.spec.whatwg.org/multipage/#elements-in-the-dom
     match name.local {
         local_name!("a")          => make!(HTMLAnchorElement),
         local_name!("abbr")       => make!(HTMLElement),
@@ -326,7 +328,8 @@ pub fn create_native_html_element(name: QualName,
         local_name!("video")      => make!(HTMLVideoElement),
         local_name!("wbr")        => make!(HTMLElement),
         local_name!("xmp")        => make!(HTMLPreElement),
-        _                   => make!(HTMLUnknownElement),
+        _ if is_valid_custom_element_name(&*name.local) => make!(HTMLElement),
+        _                         => make!(HTMLUnknownElement),
     }
 }
 
