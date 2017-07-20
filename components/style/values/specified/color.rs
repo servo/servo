@@ -269,16 +269,12 @@ impl ToComputedValue for Color {
                 use gecko::wrapper::GeckoElement;
                 use gecko_bindings::bindings::Gecko_GetBody;
                 let pres_context = _context.device().pres_context();
-                let body = unsafe {
-                    Gecko_GetBody(pres_context)
-                };
-                if let Some(body) = body {
-                    let wrap = GeckoElement(body);
-                    let borrow = wrap.borrow_data();
-                    ComputedColor::rgba(borrow.as_ref().unwrap()
-                                              .styles.primary()
-                                              .get_color()
-                                              .clone_color())
+                let body = unsafe { Gecko_GetBody(pres_context) }.map(GeckoElement);
+                let data = body.as_ref().and_then(|wrap| wrap.borrow_data());
+                if let Some(data) = data {
+                    ComputedColor::rgba(data.styles.primary()
+                                            .get_color()
+                                            .clone_color())
                 } else {
                     convert_nscolor_to_computedcolor(pres_context.mDefaultColor)
                 }
