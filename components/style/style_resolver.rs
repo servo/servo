@@ -474,9 +474,11 @@ where
             cascade_flags.insert(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP);
         }
         if cascade_visited.visited_dependent_only() {
-            parent_style = parent_style.map(|s| {
-                s.get_visited_style().unwrap_or(s)
-            });
+            if pseudo.is_some() || !self.element.is_link() {
+                parent_style = parent_style.map(|s| {
+                    s.get_visited_style().unwrap_or(s)
+                });
+            }
             cascade_flags.insert(VISITED_DEPENDENT_ONLY);
         }
         if self.element.is_native_anonymous() || pseudo.is_some() {
