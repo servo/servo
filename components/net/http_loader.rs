@@ -27,7 +27,8 @@ use hyper::header::{Pragma, Quality, QualityItem, Referer, SetCookie};
 use hyper::header::{UserAgent, q, qitem};
 use hyper::method::Method;
 use hyper::status::StatusCode;
-use hyper_openssl::OpensslClient;
+//use hyper_openssl::OpensslClient;
+use hyper_rustls::TlsClient;
 use hyper_serde::Serde;
 use log;
 use msg::constellation_msg::PipelineId;
@@ -69,12 +70,12 @@ pub struct HttpState {
     pub hsts_list: RwLock<HstsList>,
     pub cookie_jar: RwLock<CookieStorage>,
     pub auth_cache: RwLock<AuthCache>,
-    pub ssl_client: OpensslClient,
+    pub ssl_client: TlsClient,
     pub connector: Pool<Connector>,
 }
 
 impl HttpState {
-    pub fn new(ssl_client: OpensslClient) -> HttpState {
+    pub fn new(ssl_client: TlsClient) -> HttpState {
         HttpState {
             hsts_list: RwLock::new(HstsList::new()),
             cookie_jar: RwLock::new(CookieStorage::new(150)),

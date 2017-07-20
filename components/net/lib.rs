@@ -5,7 +5,6 @@
 #![deny(unsafe_code)]
 #![feature(box_syntax)]
 #![feature(iterator_step_by)]
-
 extern crate base64;
 extern crate brotli;
 extern crate cookie as cookie_rs;
@@ -40,6 +39,9 @@ extern crate url;
 extern crate uuid;
 extern crate webrender_api;
 extern crate websocket;
+extern crate rustls;
+extern crate tokio_core;
+extern crate hyper_rustls;
 
 mod blob_loader;
 mod chrome_loader;

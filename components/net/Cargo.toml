@@ -30,6 +30,7 @@ net_traits = {path = "../net_traits"}
 openssl = "0.9"
 parse-hosts = "0.4.0"
 profile_traits = {path = "../profile_traits"}
+rustls = "0.9.0"
 serde = "1.0"
 serde_json = "1.0"
 servo_config = {path = "../config"}
@@ -41,6 +42,8 @@ unicase = "1.4.0"
 url = {version = "1.2", features = ["heap_size"]}
 uuid = {version = "0.5", features = ["v4"]}
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
+tokio-core = "0.1.7"
+hyper-rustls = {git = "https://github.com/SimranGujral/hyper-rustls.git", branch = "servo_config", version="0.6.1"}
 
 [target.'cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))'.dependencies]
 tinyfiledialogs = "2.5.9"

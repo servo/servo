@@ -9,16 +9,20 @@ use hyper::net::{NetworkConnector, HttpsStream, HttpStream, SslClient};
 use hyper_openssl::OpensslClient;
 use openssl::ssl::{SSL_OP_NO_COMPRESSION, SSL_OP_NO_SSLV2, SSL_OP_NO_SSLV3};
 use openssl::ssl::{SslConnectorBuilder, SslMethod};
-use std::io;
+use std::{io, fs };
+use std::sync::Arc;
 use std::net::TcpStream;
 use std::path::PathBuf;
+use rustls;
+use tokio_core;
+use hyper_rustls:: {TlsClient};
 
 pub struct HttpsConnector {
-    ssl: OpensslClient,
+    ssl: TlsClient,
 }
 
 impl HttpsConnector {
-    fn new(ssl: OpensslClient) -> HttpsConnector {
+    fn new(ssl: TlsClient) -> HttpsConnector {
         HttpsConnector {
             ssl: ssl,
         }
@@ -26,7 +30,7 @@ impl HttpsConnector {
 }
 
 impl NetworkConnector for HttpsConnector {
-    type Stream = HttpsStream<<OpensslClient as SslClient>::Stream>;
+    type Stream = HttpsStream<<TlsClient as SslClient>::Stream>;
 
     fn connect(&self, host: &str, port: u16, scheme: &str) -> HyperResult<Self::Stream> {
         if scheme != "http" && scheme != "https" {
@@ -50,8 +54,22 @@ impl NetworkConnector for HttpsConnector {
 
 pub type Connector = HttpsConnector;
 
-pub fn create_ssl_client(ca_file: &PathBuf) -> OpensslClient {
-    let mut ssl_connector_builder = SslConnectorBuilder::new(SslMethod::tls()).unwrap();
+pub fn create_ssl_client(ca_file: &PathBuf) -> TlsClient {
+    let mut ca = {
+        let f = fs::File::open(ca_file).unwrap();
+        let rd = io::BufReader::new(f);
+        rd
+    };
+    println!("rustls");
+    let mut tls = rustls::ClientConfig::new();
+    tls.root_store.add_pem_file(&mut ca).unwrap();
+    let tls = Arc::new(tls);
+    let mut client = TlsClient { cfg: tls};
+    client
+
+
+    // convert this client config to a client. it does not support clone
+    /*let mut ssl_connector_builder = SslConnectorBuilder::new(SslMethod::tls()).unwrap();
     {
         let context = ssl_connector_builder.builder_mut();
         context.set_ca_file(ca_file).expect("could not set CA file");
@@ -59,14 +77,15 @@ pub fn create_ssl_client(ca_file: &PathBuf) -> OpensslClient {
         context.set_options(SSL_OP_NO_SSLV2 | SSL_OP_NO_SSLV3 | SSL_OP_NO_COMPRESSION);
     }
     let ssl_connector = ssl_connector_builder.build();
-    OpensslClient::from(ssl_connector)
+    OpensslClient::from(ssl_connector)*/
 }
 
-pub fn create_http_connector(ssl_client: OpensslClient) -> Pool<Connector> {
-    let https_connector = HttpsConnector::new(ssl_client);
+pub fn create_http_connector(ssl_client: TlsClient ) -> Pool<Connector> {
+    let https_connector = HttpsConnector::new(ssl_client);  
     Pool::with_connector(Default::default(), https_connector)
+    /*let https_connector = HttpsConnector::new(ssl_client);
+    Pool::with_connector(Default::default(), https_connector)*/
 }
-
 // The basic logic here is to prefer ciphers with ECDSA certificates, Forward
 // Secrecy, AES GCM ciphers, AES ciphers, and finally 3DES ciphers.
 // A complete discussion of the issues involved in TLS configuration can be found here:
