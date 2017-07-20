@@ -1047,9 +1047,8 @@ extern "C" {
      -> CSSPseudoElementType;
 }
 extern "C" {
-    pub fn Gecko_CalcStyleDifference(old_style: *const ServoStyleContext,
-                                     new_style: *const ServoStyleContext,
-                                     old_style_bits: u64,
+    pub fn Gecko_CalcStyleDifference(oldstyle: *mut nsStyleContext,
+                                     newstyle: ServoComputedValuesBorrowed,
                                      any_style_changed: *mut bool)
      -> nsChangeHint;
 }

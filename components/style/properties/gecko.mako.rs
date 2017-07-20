@@ -137,10 +137,6 @@ impl ComputedValues {
         let atom = Atom::from(atom);
         PseudoElement::from_atom(&atom)
     }
-
-    pub fn as_style_context(&self) -> &::gecko_bindings::structs::mozilla::ServoStyleContext {
-        &self.0
-    }
 }
 
 impl Drop for ComputedValues {
