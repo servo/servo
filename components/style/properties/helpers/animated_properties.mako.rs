@@ -44,6 +44,7 @@ use values::computed::{BorderCornerRadius, ClipRect};
 use values::computed::{CalcLengthOrPercentage, Color, Context, ComputedValueAsSpecified};
 use values::computed::{LengthOrPercentage, MaxLength, MozLength, Percentage, ToComputedValue};
 use values::computed::{GreaterThanOrEqualToOneNumber, NonNegativeAu, NonNegativeNumber};
+use values::computed::length::{NonNegativeLengthOrAuto, NonNegativeLengthOrNormal};
 use values::generics::{SVGPaint, SVGPaintKind};
 use values::generics::border::BorderCornerRadius as GenericBorderCornerRadius;
 use values::generics::effects::Filter;

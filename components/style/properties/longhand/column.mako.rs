@@ -7,12 +7,11 @@
 <% data.new_style_struct("Column", inherited=False) %>
 
 ${helpers.predefined_type("column-width",
-                          "length::LengthOrAuto",
+                          "length::NonNegativeLengthOrAuto",
                           "Either::Second(Auto)",
                           initial_specified_value="Either::Second(Auto)",
-                          parse_method="parse_non_negative_length",
                           extra_prefixes="moz",
-                          animation_value_type="ComputedValue",
+                          animation_value_type="NonNegativeLengthOrAuto",
                           experimental=True,
                           spec="https://drafts.csswg.org/css-multicol/#propdef-column-width")}
 
@@ -28,12 +27,11 @@ ${helpers.predefined_type("column-count",
                           spec="https://drafts.csswg.org/css-multicol/#propdef-column-count")}
 
 ${helpers.predefined_type("column-gap",
-                          "length::LengthOrNormal",
+                          "length::NonNegativeLengthOrNormal",
                           "Either::Second(Normal)",
-                          parse_method='parse_non_negative_length',
                           extra_prefixes="moz",
                           experimental=True,
-                          animation_value_type="ComputedValue",
+                          animation_value_type="NonNegativeLengthOrNormal",
                           spec="https://drafts.csswg.org/css-multicol/#propdef-column-gap")}
 
 ${helpers.single_keyword("column-fill", "balance auto", extra_prefixes="moz",
