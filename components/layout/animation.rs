@@ -161,9 +161,7 @@ pub fn recalc_style_for_animations(context: &LayoutContext,
                                            &mut fragment.style,
                                            &ServoMetricsProvider);
                 let difference =
-                    RestyleDamage::compute_style_difference(&old_style,
-                                                            &old_style,
-                                                            &fragment.style);
+                    RestyleDamage::compute_style_difference(&old_style, &fragment.style);
                 damage |= difference.damage;
             }
         }
