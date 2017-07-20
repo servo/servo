@@ -2489,11 +2489,13 @@ ${helpers.single_keyword("-moz-math-variant",
         /// Must be called before attempting to compute a system font
         /// specified value
         pub fn resolve_system_font(system: SystemFont, context: &mut Context) {
-            if context.cached_system_font.is_none() {
+            // Checking if context.cached_system_font.is_none() isn't enough,
+            // if animating from one system font to another the cached system font
+            // may change
+            if Some(system) != context.cached_system_font.as_ref().map(|x| x.system_font) {
                 let computed = system.to_computed_value(context);
                 context.cached_system_font = Some(computed);
             }
-            debug_assert!(system == context.cached_system_font.as_ref().unwrap().system_font)
         }
 
         #[derive(Clone, Debug)]
