@@ -6,6 +6,7 @@ use attr::{AttrSelectorWithNamespace, ParsedAttrSelectorOperation, AttrSelectorO
 use attr::{ParsedCaseSensitivity, SELECTOR_WHITESPACE, NamespaceConstraint};
 use bloom::BLOOM_HASH_MASK;
 use builder::{SelectorBuilder, SpecificityAndFlags};
+use context::QuirksMode;
 use cssparser::{ParseError, BasicParseError, CompactCowStr};
 use cssparser::{Token, Parser as CssParser, parse_nth, ToCss, serialize_identifier, CssStringWriter};
 use precomputed_hash::PrecomputedHash;
@@ -218,17 +219,21 @@ pub struct AncestorHashes {
 }
 
 impl AncestorHashes {
-    pub fn new<Impl: SelectorImpl>(s: &Selector<Impl>) -> Self {
-        Self::from_iter(s.iter())
+    pub fn new<Impl: SelectorImpl>(
+        selector: &Selector<Impl>,
+        quirks_mode: QuirksMode,
+    ) -> Self {
+        Self::from_iter(selector.iter(), quirks_mode)
     }
 
-    pub fn from_iter<Impl: SelectorImpl>(iter: SelectorIter<Impl>) -> Self {
+    fn from_iter<Impl: SelectorImpl>(
+        iter: SelectorIter<Impl>,
+        quirks_mode: QuirksMode,
+    ) -> Self {
         // Compute ancestor hashes for the bloom filter.
         let mut hashes = [0u32; 4];
         let mut hash_iter = AncestorIter::new(iter)
-                             .map(|x| x.ancestor_hash())
-                             .filter(|x| x.is_some())
-                             .map(|x| x.unwrap());
+                             .filter_map(|x| x.ancestor_hash(quirks_mode));
         for i in 0..4 {
             hashes[i] = match hash_iter.next() {
                 Some(x) => x & BLOOM_HASH_MASK,
@@ -532,7 +537,7 @@ impl<'a, Impl: SelectorImpl> fmt::Debug for SelectorIter<'a, Impl> {
 }
 
 /// An iterator over all simple selectors belonging to ancestors.
-pub struct AncestorIter<'a, Impl: 'a + SelectorImpl>(SelectorIter<'a, Impl>);
+struct AncestorIter<'a, Impl: 'a + SelectorImpl>(SelectorIter<'a, Impl>);
 impl<'a, Impl: 'a + SelectorImpl> AncestorIter<'a, Impl> {
     /// Creates an AncestorIter. The passed-in iterator is assumed to point to
     /// the beginning of the child sequence, which will be skipped.
@@ -672,12 +677,12 @@ pub enum Component<Impl: SelectorImpl> {
 
 impl<Impl: SelectorImpl> Component<Impl> {
     /// Compute the ancestor hash to check against the bloom filter.
-    pub fn ancestor_hash(&self) -> Option<u32> {
+    fn ancestor_hash(&self, quirks_mode: QuirksMode) -> Option<u32> {
         match *self {
             Component::LocalName(LocalName { ref name, ref lower_name }) => {
-                // Only insert the local-name into the filter if it's all lowercase.
-                // Otherwise we would need to test both hashes, and our data structures
-                // aren't really set up for that.
+                // Only insert the local-name into the filter if it's all
+                // lowercase.  Otherwise we would need to test both hashes, and
+                // our data structures aren't really set up for that.
                 if name == lower_name {
                     Some(name.precomputed_hash())
                 } else {
@@ -688,10 +693,12 @@ impl<Impl: SelectorImpl> Component<Impl> {
             Component::Namespace(_, ref url) => {
                 Some(url.precomputed_hash())
             },
-            Component::ID(ref id) => {
+            // In quirks mode, class and id selectors should match
+            // case-insensitively, so just avoid inserting them into the filter.
+            Component::ID(ref id) if quirks_mode != QuirksMode::Quirks => {
                 Some(id.precomputed_hash())
             },
-            Component::Class(ref class) => {
+            Component::Class(ref class) if quirks_mode != QuirksMode::Quirks => {
                 Some(class.precomputed_hash())
             },
             _ => None,
