@@ -1189,7 +1189,7 @@ fn static_assert() {
         }
 
         if let Either::Second(image) = image {
-            self.gecko.mBorderImageSource.set(image, &mut false)
+            self.gecko.mBorderImageSource.set(image);
         }
     }
 
@@ -3423,7 +3423,7 @@ fn static_assert() {
     }
 
     #[allow(unused_variables)]
-    pub fn set_${shorthand}_image<I>(&mut self, images: I, cacheable: &mut bool)
+    pub fn set_${shorthand}_image<I>(&mut self, images: I)
         where I: IntoIterator<Item = longhands::${shorthand}_image::computed_value::single_value::T>,
               I::IntoIter: ExactSizeIterator
     {
@@ -3446,7 +3446,7 @@ fn static_assert() {
         for (image, geckoimage) in images.zip(self.gecko.${image_layers_field}
                                                   .mLayers.iter_mut()) {
             if let Either::Second(image) = image {
-                geckoimage.mImage.set(image, cacheable)
+                geckoimage.mImage.set(image)
             }
         }
     }

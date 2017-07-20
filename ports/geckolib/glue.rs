@@ -1689,7 +1689,6 @@ fn get_pseudo_style(
         StyleBuilder::for_inheritance(
             doc_data.stylist.device(),
             styles.primary(),
-            doc_data.default_computed_values(),
             Some(pseudo),
         ).build()
     }))
@@ -1712,7 +1711,6 @@ pub extern "C" fn Servo_ComputedValues_Inherit(
         let mut style = StyleBuilder::for_inheritance(
             data.stylist.device(),
             reference,
-            data.default_computed_values(),
             Some(&pseudo)
         );
 
@@ -1727,6 +1725,7 @@ pub extern "C" fn Servo_ComputedValues_Inherit(
         StyleBuilder::for_derived_style(
             data.stylist.device(),
             data.default_computed_values(),
+            /* parent_style = */ None,
             Some(&pseudo),
         ).build()
     };
@@ -2886,20 +2885,21 @@ fn simulate_compute_values_failure(_: &PropertyValuePair) -> bool {
     false
 }
 
-fn create_context<'a>(per_doc_data: &'a PerDocumentStyleDataImpl,
-                      font_metrics_provider: &'a FontMetricsProvider,
-                      style: &'a ComputedValues,
-                      parent_style: Option<&'a ComputedValues>,
-                      pseudo: Option<&'a PseudoElement>)
-                      -> Context<'a> {
-    let default_values = per_doc_data.default_computed_values();
-    let inherited_style = parent_style.unwrap_or(default_values);
-
+fn create_context<'a>(
+    per_doc_data: &'a PerDocumentStyleDataImpl,
+    font_metrics_provider: &'a FontMetricsProvider,
+    style: &'a ComputedValues,
+    parent_style: Option<&'a ComputedValues>,
+    pseudo: Option<&'a PseudoElement>,
+) -> Context<'a> {
     Context {
         is_root_element: false,
-        device: per_doc_data.stylist.device(),
-        inherited_style: inherited_style,
-        style: StyleBuilder::for_derived_style(per_doc_data.stylist.device(), style, pseudo),
+        builder: StyleBuilder::for_derived_style(
+            per_doc_data.stylist.device(),
+            style,
+            parent_style,
+            pseudo,
+        ),
         font_metrics_provider: font_metrics_provider,
         cached_system_font: None,
         in_media_query: false,

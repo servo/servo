@@ -455,12 +455,7 @@ impl AnimatedProperty {
                             let value: longhands::${prop.ident}::computed_value::T =
                                 ToAnimatedValue::from_animated_value(value);
                         % endif
-                        <% method = "style.mutate_" + prop.style_struct.ident.strip("_") + "().set_" + prop.ident %>
-                        % if prop.has_uncacheable_values is "True":
-                            ${method}(value, &mut false);
-                        % else:
-                            ${method}(value);
-                        % endif
+                        style.mutate_${prop.style_struct.name_lower}().set_${prop.ident}(value);
                     }
                 % endif
             % endfor
@@ -562,9 +557,12 @@ impl AnimationValue {
         }
     }
 
-    /// Construct an AnimationValue from a property declaration
-    pub fn from_declaration(decl: &PropertyDeclaration, context: &mut Context,
-                            initial: &ComputedValues) -> Option<Self> {
+    /// Construct an AnimationValue from a property declaration.
+    pub fn from_declaration(
+        decl: &PropertyDeclaration,
+        context: &mut Context,
+        initial: &ComputedValues
+    ) -> Option<Self> {
         use properties::LonghandId;
 
         match *decl {
@@ -606,7 +604,7 @@ impl AnimationValue {
                                 CSSWideKeyword::Unset |
                             % endif
                             CSSWideKeyword::Inherit => {
-                                let inherit_struct = context.inherited_style
+                                let inherit_struct = context.inherited_style()
                                                             .get_${prop.style_struct.name_lower}();
                                 inherit_struct.clone_${prop.ident}()
                             },

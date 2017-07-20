@@ -107,7 +107,7 @@ impl FontRelativeLength {
                                                 reference_font_size,
                                                 context.style().writing_mode,
                                                 context.in_media_query,
-                                                context.device)
+                                                context.device())
         }
 
         let reference_font_size = base_size.resolve(context);
@@ -158,7 +158,7 @@ impl FontRelativeLength {
                 if context.is_root_element {
                     reference_font_size.scale_by(length)
                 } else {
-                    context.device.root_font_size().scale_by(length)
+                    context.device().root_font_size().scale_by(length)
                 }
             }
         }
@@ -362,7 +362,7 @@ impl PhysicalLength {
         const MM_PER_INCH: f32 = 25.4;
 
         let physical_inch = unsafe {
-            bindings::Gecko_GetAppUnitsPerPhysicalInch(context.device.pres_context())
+            bindings::Gecko_GetAppUnitsPerPhysicalInch(context.device().pres_context())
         };
 
         let inch = self.0 / MM_PER_INCH;

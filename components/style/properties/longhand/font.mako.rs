@@ -562,7 +562,6 @@ ${helpers.single_keyword_system("font-variant-caps",
                    allow_quirks="True" spec="https://drafts.csswg.org/css-fonts/#propdef-font-size">
     use app_units::Au;
     use properties::longhands::system_font::SystemFont;
-    use properties::style_structs::Font;
     use std::fmt;
     use style_traits::{HasViewportPercentage, ToCss};
     use values::FONT_MEDIUM_PX;
@@ -906,11 +905,10 @@ ${helpers.single_keyword_system("font-variant-caps",
 
     #[allow(unused_mut)]
     pub fn cascade_specified_font_size(context: &mut Context,
-                                      specified_value: &SpecifiedValue,
-                                      mut computed: Au,
-                                      parent: &Font) {
+                                       specified_value: &SpecifiedValue,
+                                       mut computed: Au) {
         if let SpecifiedValue::Keyword(kw, fraction) = *specified_value {
-            context.mutate_style().font_size_keyword = Some((kw, fraction));
+            context.builder.font_size_keyword = Some((kw, fraction));
         } else if let Some(ratio) = specified_value.as_font_ratio() {
             // In case a font-size-relative value was applied to a keyword
             // value, we must preserve this fact in case the generic font family
@@ -918,13 +916,13 @@ ${helpers.single_keyword_system("font-variant-caps",
             // recomputed from the base size for the keyword and the relative size.
             //
             // See bug 1355707
-            if let Some((kw, fraction)) = context.inherited_style().font_computation_data.font_size_keyword {
-                context.mutate_style().font_size_keyword = Some((kw, fraction * ratio));
+            if let Some((kw, fraction)) = context.builder.inherited_style().font_computation_data.font_size_keyword {
+                context.builder.font_size_keyword = Some((kw, fraction * ratio));
             } else {
-                context.mutate_style().font_size_keyword = None;
+                context.builder.font_size_keyword = None;
             }
         } else {
-            context.mutate_style().font_size_keyword = None;
+            context.builder.font_size_keyword = None;
         }
 
         // we could use clone_language and clone_font_family() here but that's
@@ -933,61 +931,76 @@ ${helpers.single_keyword_system("font-variant-caps",
             use gecko_bindings::structs::nsIAtom;
             // if the language or generic changed, we need to recalculate
             // the font size from the stored font-size origin information.
-            if context.style().get_font().gecko().mLanguage.raw::<nsIAtom>() !=
-               context.inherited_style().get_font().gecko().mLanguage.raw::<nsIAtom>() ||
-               context.style().get_font().gecko().mGenericID !=
-               context.inherited_style().get_font().gecko().mGenericID {
-                if let Some((kw, ratio)) = context.style().font_size_keyword {
+            if context.builder.get_font().gecko().mLanguage.raw::<nsIAtom>() !=
+               context.builder.inherited_style().get_font().gecko().mLanguage.raw::<nsIAtom>() ||
+               context.builder.get_font().gecko().mGenericID !=
+               context.builder.inherited_style().get_font().gecko().mGenericID {
+                if let Some((kw, ratio)) = context.builder.font_size_keyword {
                     computed = kw.to_computed_value(context).scale_by(ratio);
                 }
             }
         % endif
 
+        let device = context.builder.device;
+        let mut font = context.builder.take_font();
         let parent_unconstrained = {
-            let (style, device) = context.mutate_style_with_device();
-
-            style.mutate_font().apply_font_size(computed, parent, device)
+            let parent_style = context.builder.inherited_style();
+            let parent_font = parent_style.get_font();
+            font.apply_font_size(computed, parent_font, device)
         };
-
+        context.builder.put_font(font);
 
         if let Some(parent) = parent_unconstrained {
-            let new_unconstrained = specified_value
-                        .to_computed_value_against(context, FontBaseSize::Custom(parent));
-            context.mutate_style()
+            let new_unconstrained =
+                specified_value
+                    .to_computed_value_against(context, FontBaseSize::Custom(parent));
+            context.builder
                    .mutate_font()
                    .apply_unconstrained_font_size(new_unconstrained);
         }
     }
 
-    pub fn cascade_inherit_font_size(context: &mut Context, parent: &Font) {
-        // If inheriting, we must recompute font-size in case of language changes
-        // using the font_size_keyword. We also need to do this to handle
-        // mathml scriptlevel changes
-        let kw_inherited_size = context.style().font_size_keyword.map(|(kw, ratio)| {
+    /// FIXME(emilio): This is very complex. Also, it should move to
+    /// StyleBuilder.
+    pub fn cascade_inherit_font_size(context: &mut Context) {
+        // If inheriting, we must recompute font-size in case of language
+        // changes using the font_size_keyword. We also need to do this to
+        // handle mathml scriptlevel changes
+        let kw_inherited_size = context.builder.font_size_keyword.map(|(kw, ratio)| {
             SpecifiedValue::Keyword(kw, ratio).to_computed_value(context)
         });
-        let parent_kw = context.inherited_style.font_computation_data.font_size_keyword;
-        let (style, device) = context.mutate_style_with_device();
-        let used_kw = style.mutate_font()
-               .inherit_font_size_from(parent, kw_inherited_size, device);
-        if used_kw {
-            style.font_size_keyword = parent_kw;
-        } else {
-            style.font_size_keyword = None;
-        }
+        let parent_kw;
+        let device = context.builder.device;
+        let mut font = context.builder.take_font();
+        let used_kw = {
+            let parent_style = context.builder.inherited_style();
+            let parent_font = parent_style.get_font();
+            parent_kw = parent_style.font_computation_data.font_size_keyword;
+
+            font.inherit_font_size_from(parent_font, kw_inherited_size, device)
+        };
+        context.builder.put_font(font);
+        context.builder.font_size_keyword =
+            if used_kw { parent_kw } else { None };
     }
 
+    /// Cascade the initial value for the `font-size` property.
+    ///
+    /// FIXME(emilio): This is the only function that is outside of the
+    /// `StyleBuilder`, and should really move inside!
+    ///
+    /// Can we move the font stuff there?
     pub fn cascade_initial_font_size(context: &mut Context) {
         // font-size's default ("medium") does not always
         // compute to the same value and depends on the font
         let computed = longhands::font_size::get_initial_specified_value()
                             .to_computed_value(context);
-        let (style, _device) = context.mutate_style_with_device();
-        style.mutate_font().set_font_size(computed);
+        context.builder.mutate_font().set_font_size(computed);
         % if product == "gecko":
-            style.mutate_font().fixup_font_min_size(_device);
+            let device = context.builder.device;
+            context.builder.mutate_font().fixup_font_min_size(device);
         % endif
-        style.font_size_keyword = Some((Default::default(), 1.));
+        context.builder.font_size_keyword = Some((Default::default(), 1.));
     }
 </%helpers:longhand>
 
@@ -2414,8 +2427,8 @@ ${helpers.single_keyword("-moz-math-variant",
                     bindings::Gecko_nsFont_InitSystem(
                         &mut system,
                         id as i32,
-                        cx.style.get_font().gecko(),
-                        cx.device.pres_context()
+                        cx.style().get_font().gecko(),
+                        cx.device().pres_context()
                     )
                 }
                 let family = system.fontlist.mFontlist.iter().map(|font| {

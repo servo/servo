@@ -387,7 +387,6 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     #[cfg(feature = "gecko")]
     fn adjust_for_ruby(&mut self,
                        layout_parent_style: &ComputedValues,
-                       default_computed_values: &'b ComputedValues,
                        flags: CascadeFlags) {
         use properties::SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP;
         use properties::computed_value_flags::SHOULD_SUPPRESS_LINEBREAK;
@@ -408,8 +407,8 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         // how border and padding should be handled for ruby level container,
         // and suppressing them here make it easier for layout to handle.
         if self_display.is_ruby_level_container() {
-            self.style.reset_border(default_computed_values);
-            self.style.reset_padding(default_computed_values);
+            self.style.reset_border_struct();
+            self.style.reset_padding_struct();
         }
         // Force bidi isolation on all internal ruby boxes and ruby container
         // per spec https://drafts.csswg.org/css-ruby-1/#bidi
@@ -432,7 +431,6 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     /// `nsStyleContext::ApplyStyleFixups`.
     pub fn adjust(&mut self,
                   layout_parent_style: &ComputedValues,
-                  _default_computed_values: &'b ComputedValues,
                   flags: CascadeFlags) {
         #[cfg(feature = "gecko")]
         {
@@ -459,8 +457,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         self.adjust_for_text_decoration_lines(layout_parent_style);
         #[cfg(feature = "gecko")]
         {
-            self.adjust_for_ruby(layout_parent_style,
-                                 _default_computed_values, flags);
+            self.adjust_for_ruby(layout_parent_style, flags);
         }
     }
 }

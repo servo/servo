@@ -2453,12 +2453,31 @@ impl<'a, T: 'a> ops::Deref for StyleStructRef<'a, T> {
 /// actually cloning them, until we either build the style, or mutate the
 /// inherited value.
 pub struct StyleBuilder<'a> {
-    device: &'a Device,
+    /// The device we're using to compute style.
+    ///
+    /// This provides access to viewport unit ratios, etc.
+    pub device: &'a Device,
+
+    /// The style we're inheriting from.
+    ///
+    /// This is effectively
+    /// `parent_style.unwrap_or(device.default_computed_values())`.
+    inherited_style: &'a ComputedValues,
+
+    /// The style we're getting reset structs from.
+    reset_style: &'a ComputedValues,
+
+    /// The style we're inheriting from explicitly, or none if we're the root of
+    /// a subtree.
     parent_style: Option<<&'a ComputedValues>,
+
+    /// The pseudo-element this style will represent.
     pseudo: Option<<&'a PseudoElement>,
+
     /// The rule node representing the ordered list of rules matched for this
     /// node.
     rules: Option<StrongRuleNode>,
+
     custom_properties: Option<Arc<::custom_properties::CustomPropertiesMap>>,
     /// The writing mode flags.
     ///
@@ -2482,7 +2501,6 @@ impl<'a> StyleBuilder<'a> {
     fn new(
         device: &'a Device,
         parent_style: Option<<&'a ComputedValues>,
-        reset_style: &'a ComputedValues,
         pseudo: Option<<&'a PseudoElement>,
         cascade_flags: CascadeFlags,
         rules: Option<StrongRuleNode>,
@@ -2492,6 +2510,7 @@ impl<'a> StyleBuilder<'a> {
         flags: ComputedValueFlags,
         visited_style: Option<Arc<ComputedValues>>,
     ) -> Self {
+        let reset_style = device.default_computed_values();
         let inherited_style = parent_style.unwrap_or(reset_style);
         let reset_style = if cascade_flags.contains(INHERIT_ALL) {
             inherited_style
@@ -2502,6 +2521,8 @@ impl<'a> StyleBuilder<'a> {
         StyleBuilder {
             device,
             parent_style,
+            inherited_style,
+            reset_style,
             pseudo,
             rules,
             custom_properties,
@@ -2523,18 +2544,87 @@ impl<'a> StyleBuilder<'a> {
     /// order to create a derived style.
     pub fn for_derived_style(
         device: &'a Device,
-        s: &'a ComputedValues,
+        style_to_derive_from: &'a ComputedValues,
+        parent_style: Option<<&'a ComputedValues>,
         pseudo: Option<<&'a PseudoElement>,
     ) -> Self {
-        Self::for_inheritance(device, s, s, pseudo)
+        let reset_style = device.default_computed_values();
+        let inherited_style = parent_style.unwrap_or(reset_style);
+        StyleBuilder {
+            device,
+            parent_style,
+            inherited_style,
+            reset_style,
+            pseudo,
+            rules: None, // FIXME(emilio): Dubious...
+            custom_properties: style_to_derive_from.custom_properties(),
+            writing_mode: style_to_derive_from.writing_mode,
+            font_size_keyword: style_to_derive_from.font_computation_data.font_size_keyword,
+            flags: style_to_derive_from.flags,
+            visited_style: style_to_derive_from.clone_visited_style(),
+            % for style_struct in data.active_style_structs():
+            ${style_struct.ident}: StyleStructRef::Borrowed(
+                style_to_derive_from.${style_struct.name_lower}_arc()
+            ),
+            % endfor
+        }
     }
+
+    % for property in data.longhands:
+    % if property.ident != "font_size":
+    /// Inherit `${property.ident}` from our parent style.
+    #[allow(non_snake_case)]
+    pub fn inherit_${property.ident}(&mut self) {
+        let inherited_struct =
+            self.inherited_style.get_${property.style_struct.name_lower}();
+        self.${property.style_struct.ident}.mutate()
+            .copy_${property.ident}_from(
+                inherited_struct,
+                % if property.logical:
+                self.writing_mode,
+                % endif
+            );
+    }
+
+    /// Reset `${property.ident}` to the initial value.
+    #[allow(non_snake_case)]
+    pub fn reset_${property.ident}(&mut self) {
+        let reset_struct = self.reset_style.get_${property.style_struct.name_lower}();
+        self.${property.style_struct.ident}.mutate()
+            .copy_${property.ident}_from(
+                reset_struct,
+                % if property.logical:
+                self.writing_mode,
+                % endif
+            );
+    }
+
+    % if not property.is_vector:
+    /// Set the `${property.ident}` to the computed value `value`.
+    #[allow(non_snake_case)]
+    pub fn set_${property.ident}(
+        &mut self,
+        value: longhands::${property.ident}::computed_value::T
+    ) {
+        self.${property.style_struct.ident}.mutate()
+            .set_${property.ident}(
+                value,
+                % if property.logical:
+                self.writing_mode,
+                % elif product == "gecko" and property.ident in ["content", "list_style_type"]:
+                self.device,
+                % endif
+            );
+    }
+    % endif
+    % endif
+    % endfor
 
     /// Inherits style from the parent element, accounting for the default
     /// computed values that need to be provided as well.
     pub fn for_inheritance(
         device: &'a Device,
         parent: &'a ComputedValues,
-        reset: &'a ComputedValues,
         pseudo: Option<<&'a PseudoElement>,
     ) -> Self {
         // FIXME(emilio): This Some(parent) here is inconsistent with what we
@@ -2543,7 +2633,6 @@ impl<'a> StyleBuilder<'a> {
         Self::new(
             device,
             Some(parent),
-            reset,
             pseudo,
             CascadeFlags::empty(),
             /* rules = */ None,
@@ -2555,6 +2644,15 @@ impl<'a> StyleBuilder<'a> {
         )
     }
 
+    /// Returns the style we're inheriting from.
+    pub fn inherited_style(&self) -> &'a ComputedValues {
+        self.inherited_style
+    }
+
+    /// Returns the style we're getting reset properties from.
+    pub fn default_style(&self) -> &'a ComputedValues {
+        self.reset_style
+    }
 
     % for style_struct in data.active_style_structs():
         /// Gets an immutable view of the current `${style_struct.name}` style.
@@ -2585,9 +2683,9 @@ impl<'a> StyleBuilder<'a> {
         }
 
         /// Reset the current `${style_struct.name}` style to its default value.
-        pub fn reset_${style_struct.name_lower}(&mut self, default: &'a ComputedValuesInner) {
+        pub fn reset_${style_struct.name_lower}_struct(&mut self) {
             self.${style_struct.ident} =
-                StyleStructRef::Borrowed(default.${style_struct.name_lower}_arc());
+                StyleStructRef::Borrowed(self.reset_style.${style_struct.name_lower}_arc());
         }
     % endfor
 
@@ -2685,10 +2783,7 @@ mod lazy_static_module {
 /// A per-longhand function that performs the CSS cascade for that longhand.
 pub type CascadePropertyFn =
     extern "Rust" fn(declaration: &PropertyDeclaration,
-                     inherited_style: &ComputedValues,
-                     default_style: &ComputedValues,
                      context: &mut computed::Context,
-                     cacheable: &mut bool,
                      cascade_info: &mut Option<<&mut CascadeInfo>);
 
 /// A per-longhand array of functions to perform the CSS cascade on each of
@@ -2831,7 +2926,6 @@ where
         }
     };
 
-    let default_style = device.default_computed_values();
     let inherited_custom_properties = inherited_style.custom_properties();
     let mut custom_properties = None;
     let mut seen_custom = HashSet::new();
@@ -2849,15 +2943,12 @@ where
 
     let mut context = computed::Context {
         is_root_element: flags.contains(IS_ROOT_ELEMENT),
-        device: device,
-        inherited_style: inherited_style,
         // We'd really like to own the rules here to avoid refcount traffic, but
         // animation's usage of `apply_declarations` make this tricky. See bug
         // 1375525.
-        style: StyleBuilder::new(
+        builder: StyleBuilder::new(
             device,
             parent_style,
-            device.default_computed_values(),
             pseudo,
             flags,
             Some(rules.clone()),
@@ -2883,10 +2974,6 @@ where
 
     // Set computed values, overwriting earlier declarations for the same
     // property.
-    //
-    // NB: The cacheable boolean is not used right now, but will be once we
-    // start caching computed values in the rule nodes.
-    let mut cacheable = true;
     let mut seen = LonghandIdSet::new();
 
     // Declaration blocks are stored in increasing precedence order, we want
@@ -2909,7 +2996,7 @@ where
                 PropertyDeclaration::WithVariables(id, ref unparsed) => {
                     Cow::Owned(unparsed.substitute_variables(
                         id,
-                        &context.style.custom_properties,
+                        &context.builder.custom_properties,
                         context.quirks_mode
                     ))
                 }
@@ -2983,15 +3070,12 @@ where
 
             let discriminant = longhand_id as usize;
             (CASCADE_PROPERTY[discriminant])(&*declaration,
-                                             inherited_style,
-                                             default_style,
                                              &mut context,
-                                             &mut cacheable,
                                              &mut cascade_info);
         }
         % if category_to_cascade_now == "early":
-            let writing_mode = get_writing_mode(context.style.get_inheritedbox());
-            context.style.writing_mode = writing_mode;
+            let writing_mode = get_writing_mode(context.builder.get_inheritedbox());
+            context.builder.writing_mode = writing_mode;
 
             let mut _skip_font_family = false;
 
@@ -3027,13 +3111,14 @@ where
                     // which Gecko just does regular cascading with. Do the same.
                     // This can only happen in the case where the language changed but the family did not
                     if generic != structs::kGenericFont_NONE {
-                        let gecko_font = context.style.mutate_font().gecko_mut();
+                        let pres_context = context.builder.device.pres_context();
+                        let gecko_font = context.builder.mutate_font().gecko_mut();
                         gecko_font.mGenericID = generic;
                         unsafe {
                             bindings::Gecko_nsStyleFont_PrefillDefaultForGeneric(
                                 gecko_font,
-                                context.device.pres_context(),
-                                generic
+                                pres_context,
+                                generic,
                             );
                         }
                     }
@@ -3056,13 +3141,11 @@ where
 
                     let discriminant = LonghandId::FontFamily as usize;
                     (CASCADE_PROPERTY[discriminant])(declaration,
-                                                     inherited_style,
-                                                     default_style,
                                                      &mut context,
-                                                     &mut cacheable,
                                                      &mut cascade_info);
                     % if product == "gecko":
-                        context.style.mutate_font().fixup_none_generic(context.device);
+                        let device = context.builder.device;
+                        context.builder.mutate_font().fixup_none_generic(device);
                     % endif
                 }
             }
@@ -3070,10 +3153,7 @@ where
             if let Some(ref declaration) = font_size {
                 let discriminant = LonghandId::FontSize as usize;
                 (CASCADE_PROPERTY[discriminant])(declaration,
-                                                 inherited_style,
-                                                 default_style,
                                                  &mut context,
-                                                 &mut cacheable,
                                                  &mut cascade_info);
             % if product == "gecko":
             // Font size must be explicitly inherited to handle lang changes and
@@ -3087,33 +3167,26 @@ where
                     LonghandId::FontSize, CSSWideKeyword::Inherit);
 
                 (CASCADE_PROPERTY[discriminant])(&size,
-                                                 inherited_style,
-                                                 default_style,
                                                  &mut context,
-                                                 &mut cacheable,
                                                  &mut cascade_info);
             % endif
             }
         % endif
     % endfor
 
-    let mut style = context.style;
+    let mut builder = context.builder;
 
     {
-        StyleAdjuster::new(&mut style)
-            .adjust(
-                layout_parent_style,
-                context.device.default_computed_values(),
-                flags
-            );
+        StyleAdjuster::new(&mut builder)
+            .adjust(layout_parent_style, flags);
     }
 
     % if product == "gecko":
-        if let Some(ref mut bg) = style.get_background_if_mutated() {
+        if let Some(ref mut bg) = builder.get_background_if_mutated() {
             bg.fill_arrays();
         }
 
-        if let Some(ref mut svg) = style.get_svg_if_mutated() {
+        if let Some(ref mut svg) = builder.get_svg_if_mutated() {
             svg.fill_arrays();
         }
     % endif
@@ -3123,11 +3196,11 @@ where
            seen.contains(LonghandId::FontWeight) ||
            seen.contains(LonghandId::FontStretch) ||
            seen.contains(LonghandId::FontFamily) {
-            style.mutate_font().compute_font_hash();
+            builder.mutate_font().compute_font_hash();
         }
     % endif
 
-    style.build()
+    builder.build()
 }
 
 /// See StyleAdjuster::adjust_for_border_width.
@@ -3136,7 +3209,7 @@ pub fn adjust_border_width(style: &mut StyleBuilder) {
         // Like calling to_computed_value, which wouldn't type check.
         if style.get_border().clone_border_${side}_style().none_or_hidden() &&
            style.get_border().border_${side}_has_nonzero_width() {
-            style.mutate_border().set_border_${side}_width(Au(0));
+            style.set_border_${side}_width(Au(0));
         }
     % endfor
 }

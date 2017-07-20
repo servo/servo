@@ -138,7 +138,7 @@ impl Angle {
 
 impl nsStyleImage {
     /// Set a given Servo `Image` value into this `nsStyleImage`.
-    pub fn set(&mut self, image: Image, cacheable: &mut bool) {
+    pub fn set(&mut self, image: Image) {
         match image {
             GenericImage::Gradient(gradient) => {
                 self.set_gradient(gradient)
@@ -146,29 +146,12 @@ impl nsStyleImage {
             GenericImage::Url(ref url) => {
                 unsafe {
                     Gecko_SetLayerImageImageValue(self, url.image_value.clone().unwrap().get());
-                    // We unfortunately must make any url() value uncacheable, since
-                    // the applicable declarations cache is not per document, but
-                    // global, and the imgRequestProxy objects we store in the style
-                    // structs don't like to be tracked by more than one document.
-                    //
-                    // FIXME(emilio): With the scoped TLS thing this is no longer
-                    // true, remove this line in a follow-up!
-                    *cacheable = false;
                 }
             },
             GenericImage::Rect(ref image_rect) => {
                 unsafe {
                     Gecko_SetLayerImageImageValue(self, image_rect.url.image_value.clone().unwrap().get());
                     Gecko_InitializeImageCropRect(self);
-
-                    // We unfortunately must make any url() value uncacheable, since
-                    // the applicable declarations cache is not per document, but
-                    // global, and the imgRequestProxy objects we store in the style
-                    // structs don't like to be tracked by more than one document.
-                    //
-                    // FIXME(emilio): With the scoped TLS thing this is no longer
-                    // true, remove this line in a follow-up!
-                    *cacheable = false;
 
                     // Set CropRect
                     let ref mut rect = *self.mCropRect.mPtr;

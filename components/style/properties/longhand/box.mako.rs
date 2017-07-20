@@ -181,9 +181,7 @@
 
     % if product == "servo":
         fn cascade_property_custom(_declaration: &PropertyDeclaration,
-                                   _inherited_style: &ComputedValues,
-                                   context: &mut computed::Context,
-                                   _cacheable: &mut bool) {
+                                   context: &mut computed::Context) {
             longhands::_servo_display_for_hypothetical_box::derive_from_display(context);
             longhands::_servo_text_decorations_in_effect::derive_from_display(context);
             longhands::_servo_under_display_none::derive_from_display(context);
@@ -302,7 +300,7 @@ ${helpers.single_keyword("position", "static absolute relative fixed",
     #[inline]
     pub fn derive_from_display(context: &mut Context) {
         let d = context.style().get_box().clone_display();
-        context.mutate_style().mutate_box().set__servo_display_for_hypothetical_box(d);
+        context.builder.set__servo_display_for_hypothetical_box(d);
     }
 
 </%helpers:longhand>
