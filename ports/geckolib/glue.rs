@@ -2885,20 +2885,15 @@ fn simulate_compute_values_failure(_: &PropertyValuePair) -> bool {
     false
 }
 
-fn create_context<'a>(per_doc_data: &'a PerDocumentStyleDataImpl,
-                      font_metrics_provider: &'a FontMetricsProvider,
-                      style: &'a ComputedValues,
-                      parent_style: Option<&'a ComputedValues>,
-                      pseudo: Option<&'a PseudoElement>)
-                      -> Context<'a> {
-    let default_values = per_doc_data.default_computed_values();
-    let inherited_style = parent_style.unwrap_or(default_values);
-
+fn create_context<'a>(
+    per_doc_data: &'a PerDocumentStyleDataImpl,
+    font_metrics_provider: &'a FontMetricsProvider,
+    style: &'a ComputedValues,
+    pseudo: Option<&'a PseudoElement>,
+) -> Context<'a> {
     Context {
         is_root_element: false,
-        device: per_doc_data.stylist.device(),
-        inherited_style: inherited_style,
-        style: StyleBuilder::for_derived_style(per_doc_data.stylist.device(), style, pseudo),
+        builder: StyleBuilder::for_derived_style(per_doc_data.stylist.device(), style, pseudo),
         font_metrics_provider: font_metrics_provider,
         cached_system_font: None,
         in_media_query: false,
@@ -2908,7 +2903,7 @@ fn create_context<'a>(per_doc_data: &'a PerDocumentStyleDataImpl,
 
 #[no_mangle]
 pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeListBorrowed,
-                                                  element: RawGeckoElementBorrowed,
+                                                  _element: RawGeckoElementBorrowed,
                                                   style: ServoStyleContextBorrowed,
                                                   raw_data: RawServoStyleSetBorrowed,
                                                   computed_keyframes: RawGeckoComputedKeyframeValuesListBorrowedMut)
@@ -2920,13 +2915,8 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeLis
     let metrics = get_metrics_provider_for_product();
     let style = ComputedValues::as_arc(&style);
 
-    let element = GeckoElement(element);
-    let parent_element = element.inheritance_parent();
-    let parent_data = parent_element.as_ref().and_then(|e| e.borrow_data());
-    let parent_style = parent_data.as_ref().map(|d| d.styles.primary()).map(|x| &**x);
-
     let pseudo = style.pseudo();
-    let mut context = create_context(&data, &metrics, style, parent_style, pseudo.as_ref());
+    let mut context = create_context(&data, &metrics, style, pseudo.as_ref());
 
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
@@ -2994,7 +2984,7 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeLis
 
 #[no_mangle]
 pub extern "C" fn Servo_GetAnimationValues(declarations: RawServoDeclarationBlockBorrowed,
-                                           element: RawGeckoElementBorrowed,
+                                           _element: RawGeckoElementBorrowed,
                                            style: ServoStyleContextBorrowed,
                                            raw_data: RawServoStyleSetBorrowed,
                                            animation_values: RawGeckoServoAnimationValueListBorrowedMut) {
@@ -3002,13 +2992,8 @@ pub extern "C" fn Servo_GetAnimationValues(declarations: RawServoDeclarationBloc
     let metrics = get_metrics_provider_for_product();
     let style = ComputedValues::as_arc(&style);
 
-    let element = GeckoElement(element);
-    let parent_element = element.inheritance_parent();
-    let parent_data = parent_element.as_ref().and_then(|e| e.borrow_data());
-    let parent_style = parent_data.as_ref().map(|d| d.styles.primary()).map(|x| &**x);
-
     let pseudo = style.pseudo();
-    let mut context = create_context(&data, &metrics, style, parent_style, pseudo.as_ref());
+    let mut context = create_context(&data, &metrics, style, pseudo.as_ref());
 
     let default_values = data.default_computed_values();
     let global_style_data = &*GLOBAL_STYLE_DATA;
@@ -3023,7 +3008,7 @@ pub extern "C" fn Servo_GetAnimationValues(declarations: RawServoDeclarationBloc
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_AnimationValue_Compute(element: RawGeckoElementBorrowed,
+pub extern "C" fn Servo_AnimationValue_Compute(_element: RawGeckoElementBorrowed,
                                                declarations: RawServoDeclarationBlockBorrowed,
                                                style: ServoStyleContextBorrowed,
                                                raw_data: RawServoStyleSetBorrowed)
@@ -3032,13 +3017,8 @@ pub extern "C" fn Servo_AnimationValue_Compute(element: RawGeckoElementBorrowed,
     let metrics = get_metrics_provider_for_product();
     let style = ComputedValues::as_arc(&style);
 
-    let element = GeckoElement(element);
-    let parent_element = element.inheritance_parent();
-    let parent_data = parent_element.as_ref().and_then(|e| e.borrow_data());
-    let parent_style = parent_data.as_ref().map(|d| d.styles.primary()).map(|x| &**x);
-
     let pseudo = style.pseudo();
-    let mut context = create_context(&data, &metrics, style, parent_style, pseudo.as_ref());
+    let mut context = create_context(&data, &metrics, style, pseudo.as_ref());
 
     let default_values = data.default_computed_values();
     let global_style_data = &*GLOBAL_STYLE_DATA;

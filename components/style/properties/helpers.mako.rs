@@ -263,6 +263,7 @@
             fn to_computed_value(&self, context: &Context) -> computed_value::T {
                 computed_value::T(self.compute_iter(context).collect())
             }
+
             #[inline]
             fn from_computed_value(computed: &computed_value::T) -> Self {
                 SpecifiedValue(computed.0.iter()
@@ -316,12 +317,11 @@
         use Atom;
         ${caller.body()}
         #[allow(unused_variables)]
-        pub fn cascade_property(declaration: &PropertyDeclaration,
-                                inherited_style: &ComputedValues,
-                                default_style: &ComputedValues,
-                                context: &mut computed::Context,
-                                cacheable: &mut bool,
-                                cascade_info: &mut Option<<&mut CascadeInfo>) {
+        pub fn cascade_property(
+            declaration: &PropertyDeclaration,
+            context: &mut computed::Context,
+            cascade_info: &mut Option<<&mut CascadeInfo>,
+        ) {
             let value = match *declaration {
                 PropertyDeclaration::${property.camel_case}(ref value) => {
                     DeclaredValue::Value(value)
@@ -338,18 +338,8 @@
 
             % if not property.derived_from:
                 if let Some(ref mut cascade_info) = *cascade_info {
-                    cascade_info.on_cascade_property(&declaration,
-                                                     &value);
+                    cascade_info.on_cascade_property(&declaration, &value);
                 }
-                % if property.logical:
-                    let wm = context.style.writing_mode;
-                % endif
-                <%
-                    maybe_wm = ", wm" if property.logical else ""
-                    maybe_cacheable = ", cacheable" if property.has_uncacheable_values == "True" else ""
-                    props_need_device = "content list_style_type".split() if product == "gecko" else []
-                    maybe_device = ", context.device" if property.ident in props_need_device else ""
-                %>
                 match value {
                     DeclaredValue::Value(ref specified_value) => {
                         % if property.ident in SYSTEM_FONT_LONGHANDS and product == "gecko":
@@ -358,30 +348,33 @@
                             }
                         % endif
                         % if property.is_vector:
-                            // In the case of a vector property we want to pass down
-                            // an iterator so that this can be computed without allocation
+                            // In the case of a vector property we want to pass
+                            // down an iterator so that this can be computed
+                            // without allocation
                             //
-                            // However, computing requires a context, but the style struct
-                            // being mutated is on the context. We temporarily remove it,
-                            // mutate it, and then put it back. Vector longhands cannot
-                            // touch their own style struct whilst computing, else this will panic.
-                            let mut s = context.mutate_style().take_${data.current_style_struct.name_lower}();
+                            // However, computing requires a context, but the
+                            // style struct being mutated is on the context. We
+                            // temporarily remove it, mutate it, and then put it
+                            // back. Vector longhands cannot touch their own
+                            // style struct whilst computing, else this will
+                            // panic.
+                            let mut s =
+                                context.builder.take_${data.current_style_struct.name_lower}();
                             {
                                 let iter = specified_value.compute_iter(context);
-                                s.set_${property.ident}(iter ${maybe_cacheable});
+                                s.set_${property.ident}(iter);
                             }
-                            context.mutate_style().put_${data.current_style_struct.name_lower}(s);
+                            context.builder.put_${data.current_style_struct.name_lower}(s);
                         % else:
                             let computed = specified_value.to_computed_value(context);
-                             % if property.ident == "font_size":
-                                 longhands::font_size::cascade_specified_font_size(context,
-                                                                                   specified_value,
-                                                                                   computed,
-                                                                                   inherited_style.get_font());
+                            % if property.ident == "font_size":
+                                 longhands::font_size::cascade_specified_font_size(
+                                     context,
+                                     &specified_value,
+                                     computed,
+                                 );
                             % else:
-                                context.mutate_style().mutate_${data.current_style_struct.name_lower}()
-                                       .set_${property.ident}(computed ${maybe_device}
-                                                              ${maybe_cacheable} ${maybe_wm});
+                                context.builder.set_${property.ident}(computed)
                             % endif
                         % endif
                     }
@@ -394,41 +387,24 @@
                             % if property.ident == "font_size":
                                 longhands::font_size::cascade_initial_font_size(context);
                             % else:
-                                // We assume that it's faster to use copy_*_from rather than
-                                // set_*(get_initial_value());
-                                let initial_struct = default_style
-                                                    .get_${data.current_style_struct.name_lower}();
-                                context.mutate_style().mutate_${data.current_style_struct.name_lower}()
-                                                    .copy_${property.ident}_from(initial_struct ${maybe_wm});
+                                context.builder.reset_${property.ident}();
                             % endif
                         },
                         % if data.current_style_struct.inherited:
                         CSSWideKeyword::Unset |
                         % endif
                         CSSWideKeyword::Inherit => {
-                            // This is a bit slow, but this is rare so it shouldn't
-                            // matter.
-                            //
-                            // FIXME: is it still?
-                            *cacheable = false;
-                            let inherited_struct =
-                                inherited_style.get_${data.current_style_struct.name_lower}();
-
                             % if property.ident == "font_size":
-                                longhands::font_size::cascade_inherit_font_size(context, inherited_struct);
+                                longhands::font_size::cascade_inherit_font_size(context);
                             % else:
-                                context.mutate_style().mutate_${data.current_style_struct.name_lower}()
-                                    .copy_${property.ident}_from(inherited_struct ${maybe_wm});
+                                context.builder.inherit_${property.ident}();
                             % endif
                         }
                     }
                 }
 
                 % if property.custom_cascade:
-                    cascade_property_custom(declaration,
-                                            inherited_style,
-                                            context,
-                                            cacheable);
+                    cascade_property_custom(declaration, context);
                 % endif
             % else:
                 // Do not allow stylesheets to set derived properties.
@@ -1108,7 +1084,7 @@
                 % else:
                     if let ${length_type}::ExtremumLength(..) = computed {
                         <% is_height = "true" if "height" in name else "false" %>
-                        if ${is_height} != context.style().writing_mode.is_vertical() {
+                        if ${is_height} != context.builder.writing_mode.is_vertical() {
                             return get_initial_value()
                         }
                     }
