@@ -13,6 +13,7 @@ use rule_tree::StrongRuleNode;
 use selector_parser::{EAGER_PSEUDO_COUNT, PseudoElement, RestyleDamage};
 use servo_arc::Arc;
 use shared_lock::StylesheetGuards;
+use std::fmt;
 use std::ops::{Deref, DerefMut};
 
 bitflags! {
@@ -118,7 +119,7 @@ impl RestyleData {
 #[derive(Clone, Debug, Default)]
 pub struct EagerPseudoStyles(Option<Arc<EagerPseudoArray>>);
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 struct EagerPseudoArray(EagerPseudoArrayInner);
 type EagerPseudoArrayInner = [Option<Arc<ComputedValues>>; EAGER_PSEUDO_COUNT];
 
@@ -144,6 +145,20 @@ impl Clone for EagerPseudoArray {
             clone[i] = self.0[i].clone();
         }
         clone
+    }
+}
+
+// Override Debug to print which pseudos we have, and substitute the rule node
+// for the much-more-verbose ComputedValues stringification.
+impl fmt::Debug for EagerPseudoArray {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "EagerPseudoArray {{ ")?;
+        for i in 0..EAGER_PSEUDO_COUNT {
+            if let Some(ref values) = self[i] {
+                write!(f, "{:?}: {:?}, ", PseudoElement::from_eager_index(i), &values.rules)?;
+            }
+        }
+        write!(f, "}}")
     }
 }
 
@@ -179,7 +194,7 @@ impl EagerPseudoStyles {
 
 /// The styles associated with a node, including the styles for any
 /// pseudo-elements.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Default)]
 pub struct ElementStyles {
     /// The element's style.
     pub primary: Option<Arc<ComputedValues>>,
@@ -201,6 +216,16 @@ impl ElementStyles {
     /// Whether this element `display` value is `none`.
     pub fn is_display_none(&self) -> bool {
         self.primary().get_box().clone_display() == display::T::none
+    }
+}
+
+// We manually implement Debug for ElementStyles so that we can avoid the
+// verbose stringification of every property in the ComputedValues. We
+// substitute the rule node instead.
+impl fmt::Debug for ElementStyles {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "ElementStyles {{ primary: {:?}, pseudos: {:?} }}",
+               self.primary.as_ref().map(|x| &x.rules), self.pseudos)
     }
 }
 
