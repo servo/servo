@@ -71,6 +71,7 @@ use js::jsapi::{JSTracer, SetWindowProxyClass};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use mem::heap_size_of_self_and_children;
+use metrics::PaintTimeMetrics;
 use microtask::{MicrotaskQueue, Microtask};
 use msg::constellation_msg::{BrowsingContextId, FrameType, PipelineId, PipelineNamespace, TopLevelBrowsingContextId};
 use net_traits::{FetchMetadata, FetchResponseListener, FetchResponseMsg};
@@ -176,6 +177,8 @@ impl InProgressLoad {
            url: ServoUrl,
            origin: MutableOrigin) -> InProgressLoad {
         let current_time = get_time();
+        let navigation_start_precise = precise_time_ns() as f64;
+        layout_chan.send(message::Msg::SetNavigationStart(navigation_start_precise)).unwrap();
         InProgressLoad {
             pipeline_id: id,
             browsing_context_id: browsing_context_id,
@@ -188,7 +191,7 @@ impl InProgressLoad {
             url: url,
             origin: origin,
             navigation_start: (current_time.sec * 1000 + current_time.nsec as i64 / 1000000) as u64,
-            navigation_start_precise: precise_time_ns() as f64,
+            navigation_start_precise: navigation_start_precise,
         }
     }
 }
@@ -1453,6 +1456,7 @@ impl ScriptThread {
             image_cache: self.image_cache.clone(),
             content_process_shutdown_chan: content_process_shutdown_chan,
             layout_threads: layout_threads,
+            paint_time_metrics: PaintTimeMetrics::new(self.time_profiler_chan.clone()),
         });
 
         // Pick a layout thread, any layout thread

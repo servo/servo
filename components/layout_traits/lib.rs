@@ -6,6 +6,7 @@
 
 extern crate gfx;
 extern crate ipc_channel;
+extern crate metrics;
 extern crate msg;
 extern crate net_traits;
 extern crate profile_traits;
@@ -20,6 +21,7 @@ extern crate webrender_api;
 
 use gfx::font_cache_thread::FontCacheThread;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
+use metrics::PaintTimeMetrics;
 use msg::constellation_msg::PipelineId;
 use msg::constellation_msg::TopLevelBrowsingContextId;
 use net_traits::image_cache::ImageCache;
@@ -48,5 +50,6 @@ pub trait LayoutThreadFactory {
               mem_profiler_chan: mem::ProfilerChan,
               content_process_shutdown_chan: Option<IpcSender<()>>,
               webrender_api_sender: webrender_api::RenderApiSender,
-              layout_threads: usize);
+              layout_threads: usize,
+              paint_time_metrics: PaintTimeMetrics);
 }
