@@ -11,7 +11,6 @@ extern crate cookie as cookie_rs;
 extern crate devtools_traits;
 extern crate flate2;
 extern crate hyper;
-extern crate hyper_openssl;
 extern crate hyper_serde;
 extern crate immeta;
 extern crate ipc_channel;
@@ -40,7 +39,6 @@ extern crate uuid;
 extern crate webrender_api;
 extern crate websocket;
 extern crate rustls;
-extern crate tokio_core;
 extern crate hyper_rustls;
 
 mod blob_loader;
