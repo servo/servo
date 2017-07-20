@@ -255,7 +255,7 @@ impl ToCss for FontSettingTagFloat {
 ///
 /// https://www.w3.org/TR/SVG2/painting.html#SpecifyingPaint
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Debug, PartialEq, ToAnimatedValue)]
+#[derive(Clone, Debug, PartialEq, ToAnimatedValue, ToComputedValue)]
 pub struct SVGPaint<ColorType> {
     /// The paint source
     pub kind: SVGPaintKind<ColorType>,
@@ -269,7 +269,7 @@ pub struct SVGPaint<ColorType> {
 /// to have a fallback, Gecko lets the context
 /// properties have a fallback as well.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Debug, PartialEq, ToAnimatedValue, ToCss)]
+#[derive(Clone, Debug, PartialEq, ToAnimatedValue, ToComputedValue, ToCss)]
 pub enum SVGPaintKind<ColorType> {
     /// `none`
     None,
@@ -281,35 +281,6 @@ pub enum SVGPaintKind<ColorType> {
     ContextFill,
     /// `context-stroke`
     ContextStroke,
-}
-
-impl<ColorType> SVGPaintKind<ColorType> {
-    /// Convert to a value with a different kind of color
-    pub fn convert<F, OtherColor>(&self, f: F) -> SVGPaintKind<OtherColor>
-        where F: Fn(&ColorType) -> OtherColor {
-            match *self {
-                SVGPaintKind::None => SVGPaintKind::None,
-                SVGPaintKind::ContextStroke => SVGPaintKind::ContextStroke,
-                SVGPaintKind::ContextFill => SVGPaintKind::ContextFill,
-                SVGPaintKind::Color(ref color) => {
-                    SVGPaintKind::Color(f(color))
-                }
-                SVGPaintKind::PaintServer(ref server) => {
-                    SVGPaintKind::PaintServer(server.clone())
-                }
-            }
-    }
-}
-
-impl<ColorType> SVGPaint<ColorType> {
-    /// Convert to a value with a different kind of color
-    pub fn convert<F, OtherColor>(&self, f: F) -> SVGPaint<OtherColor>
-        where F: Fn(&ColorType) -> OtherColor {
-        SVGPaint {
-            kind: self.kind.convert(&f),
-            fallback: self.fallback.as_ref().map(|color| f(color))
-        }
-    }
 }
 
 impl<ColorType> SVGPaintKind<ColorType> {

@@ -701,40 +701,6 @@ pub type SVGPaint = ::values::generics::SVGPaint<RGBAColor>;
 /// Specified SVG Paint Kind value
 pub type SVGPaintKind = ::values::generics::SVGPaintKind<RGBAColor>;
 
-impl ToComputedValue for SVGPaint {
-    type ComputedValue = super::computed::SVGPaint;
-
-    #[inline]
-    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
-        super::computed::SVGPaint {
-            kind: self.kind.to_computed_value(context),
-            fallback: self.fallback.as_ref().map(|f| f.to_computed_value(context))
-        }
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        SVGPaint {
-            kind: ToComputedValue::from_computed_value(&computed.kind),
-            fallback: computed.fallback.as_ref().map(ToComputedValue::from_computed_value)
-        }
-    }
-}
-
-impl ToComputedValue for SVGPaintKind {
-    type ComputedValue = super::computed::SVGPaintKind;
-
-    #[inline]
-    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
-        self.convert(|color| color.to_computed_value(context))
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        computed.convert(ToComputedValue::from_computed_value)
-    }
-}
-
 /// <length> | <percentage> | <number>
 pub type LengthOrPercentageOrNumber = Either<Number, LengthOrPercentage>;
 
