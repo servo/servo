@@ -750,7 +750,7 @@ impl ElementQueue {
 }
 
 /// https://html.spec.whatwg.org/multipage/#valid-custom-element-name
-fn is_valid_custom_element_name(name: &str) -> bool {
+pub fn is_valid_custom_element_name(name: &str) -> bool {
     // Custom elment names must match:
     // PotentialCustomElementName ::= [a-z] (PCENChar)* '-' (PCENChar)*
 
