@@ -590,9 +590,9 @@ ${helpers.predefined_type(
             return Ok(SpecifiedValue::None);
         }
 
-        if let Ok(s) = input.try(|input| input.expect_string()) {
+        if let Ok(s) = input.try(|i| i.expect_string().map(|s| s.as_ref().to_owned())) {
             // Handle <string>
-            return Ok(SpecifiedValue::String(s.into_owned()));
+            return Ok(SpecifiedValue::String(s));
         }
 
         // Handle a pair of keywords

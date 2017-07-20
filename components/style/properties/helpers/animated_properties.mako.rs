@@ -286,7 +286,7 @@ impl TransitionProperty {
         match supported {
             Ok(Some(property)) => Ok(property),
             Ok(None) => CustomIdent::from_ident(ident, &[]).map(TransitionProperty::Unsupported),
-            Err(()) => Err(SelectorParseError::UnexpectedIdent(ident).into()),
+            Err(()) => Err(SelectorParseError::UnexpectedIdent(ident.clone()).into()),
         }
     }
 

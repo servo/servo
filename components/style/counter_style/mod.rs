@@ -8,7 +8,7 @@
 
 use Atom;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser};
-use cssparser::{Parser, Token, serialize_identifier, BasicParseError, CompactCowStr};
+use cssparser::{Parser, Token, serialize_identifier, BasicParseError, CowRcStr};
 use error_reporting::ContextualParseError;
 #[cfg(feature = "gecko")] use gecko::rules::CounterStyleDescriptors;
 #[cfg(feature = "gecko")] use gecko_bindings::structs::nsCSSCounterDesc;
@@ -184,7 +184,7 @@ macro_rules! counter_style_descriptors {
             type Declaration = ();
             type Error = SelectorParseError<'i, StyleParseError<'i>>;
 
-            fn parse_value<'t>(&mut self, name: CompactCowStr<'i>, input: &mut Parser<'i, 't>)
+            fn parse_value<'t>(&mut self, name: CowRcStr<'i>, input: &mut Parser<'i, 't>)
                                -> Result<(), ParseError<'i>> {
                 match_ignore_ascii_case! { &*name,
                     $(
@@ -295,7 +295,7 @@ pub enum System {
 
 impl Parse for System {
     fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        try_match_ident_ignore_ascii_case! { input.expect_ident()?,
+        try_match_ident_ignore_ascii_case! { input.expect_ident_cloned()?,
             "cyclic" => Ok(System::Cyclic),
             "numeric" => Ok(System::Numeric),
             "alphabetic" => Ok(System::Alphabetic),
@@ -351,9 +351,9 @@ pub enum Symbol {
 impl Parse for Symbol {
     fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         match input.next() {
-            Ok(Token::QuotedString(s)) => Ok(Symbol::String(s.into_owned())),
-            Ok(Token::Ident(s)) => Ok(Symbol::Ident(s.into_owned())),
-            Ok(t) => Err(BasicParseError::UnexpectedToken(t).into()),
+            Ok(&Token::QuotedString(ref s)) => Ok(Symbol::String(s.as_ref().to_owned())),
+            Ok(&Token::Ident(ref s)) => Ok(Symbol::Ident(s.as_ref().to_owned())),
+            Ok(t) => Err(BasicParseError::UnexpectedToken(t.clone()).into()),
             Err(e) => Err(e.into()),
         }
     }
@@ -419,9 +419,9 @@ impl Parse for Ranges {
 
 fn parse_bound<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Option<i32>, ParseError<'i>> {
     match input.next() {
-        Ok(Token::Number { int_value: Some(v), .. }) => Ok(Some(v)),
-        Ok(Token::Ident(ref ident)) if ident.eq_ignore_ascii_case("infinite") => Ok(None),
-        Ok(t) => Err(BasicParseError::UnexpectedToken(t).into()),
+        Ok(&Token::Number { int_value: Some(v), .. }) => Ok(Some(v)),
+        Ok(&Token::Ident(ref ident)) if ident.eq_ignore_ascii_case("infinite") => Ok(None),
+        Ok(t) => Err(BasicParseError::UnexpectedToken(t.clone()).into()),
         Err(e) => Err(e.into()),
     }
 }

@@ -211,10 +211,10 @@ impl MediaQuery {
             None
         };
 
-        let media_type = match input.try(|input| input.expect_ident()) {
+        let media_type = match input.try(|i| i.expect_ident_cloned()) {
             Ok(ident) => {
                 let result: Result<_, ParseError> = MediaQueryType::parse(&*ident)
-                    .map_err(|()| SelectorParseError::UnexpectedIdent(ident).into());
+                    .map_err(|()| SelectorParseError::UnexpectedIdent(ident.clone()).into());
                 result?
             }
             Err(_) => {
@@ -263,7 +263,7 @@ pub fn parse_media_query_list(context: &ParserContext, input: &mut Parser) -> Me
         }
 
         match input.next() {
-            Ok(Token::Comma) => {},
+            Ok(&Token::Comma) => {},
             Ok(_) => unreachable!(),
             Err(_) => break,
         }

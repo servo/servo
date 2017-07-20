@@ -147,7 +147,7 @@ impl Parse for TimingFunction {
         if let Ok(keyword) = input.try(TimingKeyword::parse) {
             return Ok(GenericTimingFunction::Keyword(keyword));
         }
-        if let Ok(ident) = input.try(|i| i.expect_ident()) {
+        if let Ok(ident) = input.try(|i| i.expect_ident_cloned()) {
             let position = match_ignore_ascii_case! { &ident,
                 "step-start" => StepPosition::Start,
                 "step-end" => StepPosition::End,
@@ -155,7 +155,7 @@ impl Parse for TimingFunction {
             };
             return Ok(GenericTimingFunction::Steps(Integer::new(1), position));
         }
-        let function = input.expect_function()?;
+        let function = input.expect_function()?.clone();
         input.parse_nested_block(move |i| {
             (match_ignore_ascii_case! { &function,
                 "cubic-bezier" => {
@@ -190,7 +190,7 @@ impl Parse for TimingFunction {
                     }
                 },
                 _ => Err(()),
-            }).map_err(|()| StyleParseError::UnexpectedFunction(function).into())
+            }).map_err(|()| StyleParseError::UnexpectedFunction(function.clone()).into())
         })
     }
 }

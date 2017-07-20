@@ -240,11 +240,11 @@ impl Resolution {
     }
 
     fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        let (value, unit) = match input.next()? {
-            Token::Dimension { value, unit, .. } => {
+        let (value, unit) = match *input.next()? {
+            Token::Dimension { value, ref unit, .. } => {
                 (value, unit)
             },
-            t => return Err(BasicParseError::UnexpectedToken(t).into()),
+            ref t => return Err(BasicParseError::UnexpectedToken(t.clone()).into()),
         };
 
         if value <= 0. {
@@ -256,7 +256,7 @@ impl Resolution {
             "dppx" => Ok(Resolution::Dppx(value)),
             "dpcm" => Ok(Resolution::Dpcm(value)),
             _ => Err(())
-        }).map_err(|()| StyleParseError::UnexpectedDimension(unit).into())
+        }).map_err(|()| StyleParseError::UnexpectedDimension(unit.clone()).into())
     }
 }
 
@@ -474,47 +474,55 @@ impl Expression {
                          -> Result<Self, ParseError<'i>> {
         input.expect_parenthesis_block()?;
         input.parse_nested_block(|input| {
-            let ident = input.expect_ident()?;
+            // FIXME: remove extra indented block when lifetimes are non-lexical
+            let feature;
+            let range;
+            {
+                let ident = input.expect_ident()?;
 
-            let mut flags = 0;
-            let result = {
-                let mut feature_name = &*ident;
+                let mut flags = 0;
+                let result = {
+                    let mut feature_name = &**ident;
 
-                // TODO(emilio): this is under a pref in Gecko.
-                if starts_with_ignore_ascii_case(feature_name, "-webkit-") {
-                    feature_name = &feature_name[8..];
-                    flags |= nsMediaFeature_RequirementFlags::eHasWebkitPrefix as u8;
-                }
+                    // TODO(emilio): this is under a pref in Gecko.
+                    if starts_with_ignore_ascii_case(feature_name, "-webkit-") {
+                        feature_name = &feature_name[8..];
+                        flags |= nsMediaFeature_RequirementFlags::eHasWebkitPrefix as u8;
+                    }
 
-                let range = if starts_with_ignore_ascii_case(feature_name, "min-") {
-                    feature_name = &feature_name[4..];
-                    nsMediaExpression_Range::eMin
-                } else if starts_with_ignore_ascii_case(feature_name, "max-") {
-                    feature_name = &feature_name[4..];
-                    nsMediaExpression_Range::eMax
-                } else {
-                    nsMediaExpression_Range::eEqual
+                    let range = if starts_with_ignore_ascii_case(feature_name, "min-") {
+                        feature_name = &feature_name[4..];
+                        nsMediaExpression_Range::eMin
+                    } else if starts_with_ignore_ascii_case(feature_name, "max-") {
+                        feature_name = &feature_name[4..];
+                        nsMediaExpression_Range::eMax
+                    } else {
+                        nsMediaExpression_Range::eEqual
+                    };
+
+                    let atom = Atom::from(feature_name);
+                    match find_feature(|f| atom.as_ptr() == unsafe { *f.mName }) {
+                        Some(f) => Ok((f, range)),
+                        None => Err(()),
+                    }
                 };
 
-                let atom = Atom::from(feature_name);
-                match find_feature(|f| atom.as_ptr() == unsafe { *f.mName }) {
-                    Some(f) => Ok((f, range)),
-                    None => Err(()),
+                match result {
+                    Ok((f, r)) => {
+                        feature = f;
+                        range = r;
+                    }
+                    Err(()) => return Err(SelectorParseError::UnexpectedIdent(ident.clone()).into()),
                 }
-            };
 
-            let (feature, range) = match result {
-                Ok((feature, range)) => (feature, range),
-                Err(()) => return Err(SelectorParseError::UnexpectedIdent(ident).into()),
-            };
+                if (feature.mReqFlags & !flags) != 0 {
+                    return Err(SelectorParseError::UnexpectedIdent(ident.clone()).into());
+                }
 
-            if (feature.mReqFlags & !flags) != 0 {
-                return Err(SelectorParseError::UnexpectedIdent(ident).into());
-            }
-
-            if range != nsMediaExpression_Range::eEqual &&
-                feature.mRangeType != nsMediaFeature_RangeType::eMinMaxAllowed {
-                return Err(SelectorParseError::UnexpectedIdent(ident).into());
+                if range != nsMediaExpression_Range::eEqual &&
+                    feature.mRangeType != nsMediaFeature_RangeType::eMinMaxAllowed {
+                    return Err(SelectorParseError::UnexpectedIdent(ident.clone()).into());
+                }
             }
 
             // If there's no colon, this is a media query of the form
@@ -590,7 +598,7 @@ impl Expression {
                     MediaExpressionValue::Enumerated(value)
                 }
                 nsMediaFeature_ValueType::eIdent => {
-                    MediaExpressionValue::Ident(input.expect_ident()?.into_owned())
+                    MediaExpressionValue::Ident(input.expect_ident()?.as_ref().to_owned())
                 }
             };
 

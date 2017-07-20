@@ -145,13 +145,13 @@ macro_rules! impl_gecko_keyword_conversions {
 
             /// Parse a font-family value
             pub fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-                if let Ok(value) = input.try(|input| input.expect_string()) {
+                if let Ok(value) = input.try(|i| i.expect_string_cloned()) {
                     return Ok(FontFamily::FamilyName(FamilyName {
                         name: Atom::from(&*value),
                         quoted: true,
                     }))
                 }
-                let first_ident = input.expect_ident()?;
+                let first_ident = input.expect_ident()?.clone();
 
                 // FIXME(bholley): The fast thing to do here would be to look up the
                 // string (as lowercase) in the static atoms table. We don't have an
@@ -181,7 +181,7 @@ macro_rules! impl_gecko_keyword_conversions {
                     _ => {}
                 }
 
-                let mut value = first_ident.into_owned();
+                let mut value = first_ident.as_ref().to_owned();
                 // These keywords are not allowed by themselves.
                 // The only way this value can be valid with with another keyword.
                 if css_wide_keyword {
@@ -189,7 +189,7 @@ macro_rules! impl_gecko_keyword_conversions {
                     value.push_str(" ");
                     value.push_str(&ident);
                 }
-                while let Ok(ident) = input.try(|input| input.expect_ident()) {
+                while let Ok(ident) = input.try(|i| i.expect_ident_cloned()) {
                     value.push_str(" ");
                     value.push_str(&ident);
                 }
@@ -1189,7 +1189,8 @@ ${helpers.single_keyword_system("font-variant-caps",
     pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
                          -> Result<SpecifiedValue, ParseError<'i>> {
         let mut result = SpecifiedValue { weight: false, style: false };
-        try_match_ident_ignore_ascii_case! { input.expect_ident()?,
+        // FIXME: remove clone() when lifetimes are non-lexical
+        try_match_ident_ignore_ascii_case! { input.expect_ident()?.clone(),
             "none" => Ok(result),
             "weight" => {
                 result.weight = true;
@@ -1411,9 +1412,10 @@ ${helpers.single_keyword_system("font-kerning",
             )
         );
         while let Ok(_) = input.try(|input| {
-            match input.next()? {
-                Token::Ident(ident) => {
-                    if ident == "historical-forms" {
+            // FIXME: remove clone() when lifetimes are non-lexical
+            match input.next()?.clone() {
+                Token::Ident(ref ident) => {
+                    if *ident == "historical-forms" {
                         check_if_parsed!(HISTORICAL_FORMS);
                         alternates.push(VariantAlternates::HistoricalForms);
                         Ok(())
@@ -1421,7 +1423,7 @@ ${helpers.single_keyword_system("font-kerning",
                         return Err(StyleParseError::UnspecifiedError.into());
                     }
                 },
-                Token::Function(name) => {
+                Token::Function(ref name) => {
                     input.parse_nested_block(|i| {
                         match_ignore_ascii_case! { &name,
                             % for value in "swash stylistic ornaments annotation".split():
@@ -2136,8 +2138,8 @@ https://drafts.csswg.org/css-fonts-4/#low-level-font-variation-settings-control-
         if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
             Ok(SpecifiedValue::Normal)
         } else {
-            input.expect_string().map(|cow| {
-                SpecifiedValue::Override(cow.into_owned())
+            input.expect_string().map(|s| {
+                SpecifiedValue::Override(s.as_ref().to_owned())
             }).map_err(|e| e.into())
         }
     }

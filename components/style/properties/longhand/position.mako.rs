@@ -361,7 +361,7 @@ ${helpers.predefined_type("object-position",
                 _ => false
             };
             if !success {
-                return Err(SelectorParseError::UnexpectedIdent(ident).into());
+                return Err(SelectorParseError::UnexpectedIdent(ident.clone()).into());
             }
         }
 
@@ -463,8 +463,8 @@ ${helpers.predefined_type("object-position",
         fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
                          -> Result<Self, ParseError<'i>> {
             let mut strings = vec![];
-            while let Ok(string) = input.try(Parser::expect_string) {
-                strings.push(string.into_owned().into_boxed_str());
+            while let Ok(string) = input.try(|i| i.expect_string().map(|s| s.as_ref().into())) {
+                strings.push(string);
             }
 
             TemplateAreas::from_vec(strings)

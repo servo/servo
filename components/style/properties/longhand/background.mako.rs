@@ -122,14 +122,14 @@ ${helpers.predefined_type("background-image", "ImageLayer",
 
     pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
                          -> Result<SpecifiedValue, ParseError<'i>> {
-        let ident = input.expect_ident()?;
+        let ident = input.expect_ident_cloned()?;
         (match_ignore_ascii_case! { &ident,
             "repeat-x" => Ok(SpecifiedValue::RepeatX),
             "repeat-y" => Ok(SpecifiedValue::RepeatY),
             _ => Err(()),
         }).or_else(|()| {
             let horizontal: Result<_, ParseError> = RepeatKeyword::from_ident(&ident)
-                .map_err(|()| SelectorParseError::UnexpectedIdent(ident).into());
+                .map_err(|()| SelectorParseError::UnexpectedIdent(ident.clone()).into());
             let horizontal = horizontal?;
             let vertical = input.try(RepeatKeyword::parse).ok();
             Ok(SpecifiedValue::Other(horizontal, vertical))

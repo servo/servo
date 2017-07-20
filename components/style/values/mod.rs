@@ -9,11 +9,10 @@
 #![deny(missing_docs)]
 
 use Atom;
-pub use cssparser::{RGBA, Token, Parser, serialize_identifier, BasicParseError, CompactCowStr};
+pub use cssparser::{RGBA, Token, Parser, serialize_identifier, BasicParseError, CowRcStr};
 use parser::{Parse, ParserContext};
 use selectors::parser::SelectorParseError;
 use std::ascii::AsciiExt;
-use std::borrow::Cow;
 use std::fmt::{self, Debug};
 use std::hash;
 use style_traits::{ToCss, ParseError, StyleParseError};
@@ -87,18 +86,18 @@ pub struct CustomIdent(pub Atom);
 
 impl CustomIdent {
     /// Parse an already-tokenizer identifier
-    pub fn from_ident<'i>(ident: CompactCowStr<'i>, excluding: &[&str]) -> Result<Self, ParseError<'i>> {
-        let valid = match_ignore_ascii_case! { &ident,
+    pub fn from_ident<'i>(ident: &CowRcStr<'i>, excluding: &[&str]) -> Result<Self, ParseError<'i>> {
+        let valid = match_ignore_ascii_case! { ident,
             "initial" | "inherit" | "unset" | "default" => false,
             _ => true
         };
         if !valid {
-            return Err(SelectorParseError::UnexpectedIdent(ident).into());
+            return Err(SelectorParseError::UnexpectedIdent(ident.clone()).into());
         }
         if excluding.iter().any(|s| ident.eq_ignore_ascii_case(s)) {
             Err(StyleParseError::UnspecifiedError.into())
         } else {
-            Ok(CustomIdent(Atom::from(Cow::from(ident))))
+            Ok(CustomIdent(Atom::from(ident.as_ref())))
         }
     }
 }
@@ -121,8 +120,8 @@ pub enum KeyframesName {
 
 impl KeyframesName {
     /// https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-name
-    pub fn from_ident(value: String) -> Self {
-        let custom_ident = CustomIdent::from_ident((&*value).into(), &["none"]).ok();
+    pub fn from_ident(value: &str) -> Self {
+        let custom_ident = CustomIdent::from_ident(&value.into(), &["none"]).ok();
         match custom_ident {
             Some(ident) => KeyframesName::Ident(ident),
             None => KeyframesName::QuotedString(value.into()),
@@ -155,9 +154,9 @@ impl hash::Hash for KeyframesName {
 impl Parse for KeyframesName {
     fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         match input.next() {
-            Ok(Token::Ident(s)) => Ok(KeyframesName::Ident(CustomIdent::from_ident(s, &["none"])?)),
-            Ok(Token::QuotedString(s)) => Ok(KeyframesName::QuotedString(Atom::from(Cow::from(s)))),
-            Ok(t) => Err(BasicParseError::UnexpectedToken(t).into()),
+            Ok(&Token::Ident(ref s)) => Ok(KeyframesName::Ident(CustomIdent::from_ident(s, &["none"])?)),
+            Ok(&Token::QuotedString(ref s)) => Ok(KeyframesName::QuotedString(Atom::from(s.as_ref()))),
+            Ok(t) => Err(BasicParseError::UnexpectedToken(t.clone()).into()),
             Err(e) => Err(e.into()),
         }
     }

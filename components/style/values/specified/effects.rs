@@ -159,7 +159,7 @@ impl Parse for Filter {
                 return Ok(GenericFilter::Url(url));
             }
         }
-        let function = input.expect_function()?;
+        let function = input.expect_function()?.clone();
         input.parse_nested_block(|i| {
             try_match_ident_ignore_ascii_case! { function,
                 "blur" => Ok(GenericFilter::Blur(Length::parse_non_negative(context, i)?)),
