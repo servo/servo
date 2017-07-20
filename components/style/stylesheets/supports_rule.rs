@@ -128,21 +128,18 @@ impl SupportsCondition {
         let pos = input.position();
         match input.next()? {
             Token::ParenthesisBlock => {
-                input.parse_nested_block(|input| {
-                    // `input.try()` not needed here since the alternative uses `consume_all()`.
-                    parse_condition_or_declaration(input).or_else(|_| {
-                        consume_all(input);
-                        Ok(SupportsCondition::FutureSyntax(input.slice_from(pos).to_owned()))
-                    })
-                })
+                let nested = input.try(|input| {
+                    input.parse_nested_block(|i| parse_condition_or_declaration(i))
+                });
+                if nested.is_ok() {
+                    return nested;
+                }
             }
-            Token::Function(_) => {
-                let result: Result<_, ParseError> = input.parse_nested_block(|i| Ok(consume_all(i)));
-                result.unwrap();
-                Ok(SupportsCondition::FutureSyntax(input.slice_from(pos).to_owned()))
-            }
-            t => Err(CssParseError::Basic(BasicParseError::UnexpectedToken(t)))
+            Token::Function(_) => {}
+            t => return Err(CssParseError::Basic(BasicParseError::UnexpectedToken(t))),
         }
+        input.parse_nested_block(|i| consume_any_value(i))?;
+        Ok(SupportsCondition::FutureSyntax(input.slice_from(pos).to_owned()))
     }
 
     /// Evaluate a supports condition
@@ -235,16 +232,9 @@ impl ToCss for Declaration {
     }
 }
 
-/// Slurps up input till exhausted, return string from source position
-fn parse_anything(input: &mut Parser) -> String {
-    let pos = input.position();
-    consume_all(input);
-    input.slice_from(pos).to_owned()
-}
-
-/// Consume input till done
-fn consume_all(input: &mut Parser) {
-    while let Ok(_) = input.next() {}
+/// https://drafts.csswg.org/css-syntax-3/#typedef-any-value
+fn consume_any_value<'i, 't>(input: &mut Parser<'i, 't>) -> Result<(), ParseError<'i>> {
+    input.expect_no_error_token().map_err(|err| err.into())
 }
 
 impl Declaration {
@@ -252,8 +242,9 @@ impl Declaration {
     pub fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Declaration, ParseError<'i>> {
         let prop = input.expect_ident()?.into_owned();
         input.expect_colon()?;
-        let val = parse_anything(input);
-        Ok(Declaration { prop: prop, val: val })
+        let pos = input.position();
+        consume_any_value(input)?;
+        Ok(Declaration { prop: prop, val: input.slice_from(pos).to_owned() })
     }
 
     /// Determine if a declaration parses
