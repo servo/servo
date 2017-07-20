@@ -255,7 +255,7 @@ impl ToCss for FontSettingTagFloat {
 ///
 /// https://www.w3.org/TR/SVG2/painting.html#SpecifyingPaint
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Debug, PartialEq, ToAnimatedValue, ToComputedValue)]
+#[derive(Clone, Debug, PartialEq, ToAnimatedValue, ToComputedValue, ToCss)]
 pub struct SVGPaint<ColorType> {
     /// The paint source
     pub kind: SVGPaintKind<ColorType>,
@@ -336,15 +336,3 @@ impl<ColorType: Parse> Parse for SVGPaint<ColorType> {
         }
     }
 }
-
-impl<ColorType: ToCss> ToCss for SVGPaint<ColorType> {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        self.kind.to_css(dest)?;
-        if let Some(ref fallback) = self.fallback {
-            fallback.to_css(dest)?;
-        }
-        Ok(())
-    }
-}
-
-
