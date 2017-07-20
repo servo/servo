@@ -119,9 +119,7 @@ impl Parse for GridLine {
                 if i.value() <= 0 {       // disallow negative integers for grid spans
                     return Err(StyleParseError::UnspecifiedError.into())
                 }
-            } else if grid_line.ident.is_some() {       // integer could be omitted
-                grid_line.line_num = Some(Integer::new(1));
-            } else {
+            } else if grid_line.ident.is_none() {       // integer could be omitted
                 return Err(StyleParseError::UnspecifiedError.into())
             }
         }
@@ -205,7 +203,7 @@ impl<L: ToComputedValue> ToComputedValue for TrackBreadth<L> {
 ///
 /// https://drafts.csswg.org/css-grid/#typedef-track-size
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Debug, HasViewportPercentage, PartialEq, ToCss)]
+#[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
 pub enum TrackSize<L> {
     /// A flexible `<track-breadth>`
     Breadth(TrackBreadth<L>),
@@ -213,12 +211,10 @@ pub enum TrackSize<L> {
     /// and a flexible `<track-breadth>`
     ///
     /// https://drafts.csswg.org/css-grid/#valdef-grid-template-columns-minmax
-    #[css(comma, function)]
     Minmax(TrackBreadth<L>, TrackBreadth<L>),
     /// A `fit-content` function.
     ///
     /// https://drafts.csswg.org/css-grid/#valdef-grid-template-columns-fit-content
-    #[css(function)]
     FitContent(L),
 }
 
@@ -258,6 +254,34 @@ impl<L: PartialEq> TrackSize<L> {
     /// Returns true if current TrackSize is same as default.
     pub fn is_default(&self) -> bool {
         *self == TrackSize::default()
+    }
+}
+
+impl<L: ToCss> ToCss for TrackSize<L> {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            TrackSize::Breadth(ref breadth) => breadth.to_css(dest),
+            TrackSize::Minmax(ref min, ref max) => {
+                // According to gecko minmax(auto, <flex>) is equivalent to <flex>,
+                // and both are serialized as <flex>.
+                if let TrackBreadth::Keyword(TrackKeyword::Auto) = *min {
+                    if let TrackBreadth::Flex(_) = *max {
+                        return max.to_css(dest);
+                    }
+                }
+
+                dest.write_str("minmax(")?;
+                min.to_css(dest)?;
+                dest.write_str(", ")?;
+                max.to_css(dest)?;
+                dest.write_str(")")
+            },
+            TrackSize::FitContent(ref lop) => {
+                dest.write_str("fit-content(")?;
+                lop.to_css(dest)?;
+                dest.write_str(")")
+            },
+        }
     }
 }
 
@@ -330,8 +354,13 @@ pub enum RepeatCount {
 
 impl Parse for RepeatCount {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        if let Ok(i) = input.try(|i| Integer::parse(context, i)) {
+        // Maximum number of repeat is 10000. The greater numbers should be clamped.
+        const MAX_LINE: i32 = 10000;
+        if let Ok(mut i) = input.try(|i| Integer::parse(context, i)) {
             if i.value() > 0 {
+                if i.value() > MAX_LINE {
+                    i = Integer::new(MAX_LINE);
+                }
                 Ok(RepeatCount::Number(i))
             } else {
                 Err(StyleParseError::UnspecifiedError.into())
@@ -362,7 +391,7 @@ pub struct TrackRepeat<L> {
     /// If there's no `<line-names>`, then it's represented by an empty vector.
     /// For N `<track-size>` values, there will be N+1 `<line-names>`, and so this vector's
     /// length is always one value more than that of the `<track-size>`.
-    pub line_names: Vec<Vec<CustomIdent>>,
+    pub line_names: Box<[Box<[CustomIdent]>]>,
     /// `<track-size>` values.
     pub track_sizes: Vec<TrackSize<L>>,
 }
@@ -423,7 +452,8 @@ impl<L: Clone> TrackRepeat<L> {
                 let mut names_iter = self.line_names.iter();
                 for (size, names) in self.track_sizes.iter().zip(&mut names_iter) {
                     prev_names.extend_from_slice(&names);
-                    line_names.push(mem::replace(&mut prev_names, vec![]));
+                    let vec = mem::replace(&mut prev_names, vec![]);
+                    line_names.push(vec.into_boxed_slice());
                     track_sizes.push(size.clone());
                 }
 
@@ -432,11 +462,11 @@ impl<L: Clone> TrackRepeat<L> {
                 }
             }
 
-            line_names.push(prev_names);
+            line_names.push(prev_names.into_boxed_slice());
             TrackRepeat {
                 count: self.count,
                 track_sizes: track_sizes,
-                line_names: line_names,
+                line_names: line_names.into_boxed_slice(),
             }
 
         } else {    // if it's auto-fit/auto-fill, then it's left to the layout.
@@ -517,7 +547,7 @@ pub struct TrackList<T> {
     /// If there's no `<line-names>`, then it's represented by an empty vector.
     /// For N values, there will be N+1 `<line-names>`, and so this vector's
     /// length is always one value more than that of the `<track-size>`.
-    pub line_names: Vec<Vec<CustomIdent>>,
+    pub line_names: Box<[Box<[CustomIdent]>]>,
     /// `<auto-repeat>` value. There can only be one `<auto-repeat>` in a TrackList.
     pub auto_repeat: Option<TrackRepeat<T>>,
 }
@@ -574,7 +604,7 @@ impl<T: ToCss> ToCss for TrackList<T> {
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct LineNameList {
     /// The optional `<line-name-list>`
-    pub names: Vec<Vec<CustomIdent>>,
+    pub names: Box<[Box<[CustomIdent]>]>,
     /// Indicates the line name that requires `auto-fill`
     pub fill_idx: Option<u32>,
 }
@@ -626,7 +656,7 @@ impl Parse for LineNameList {
         }
 
         Ok(LineNameList {
-            names: line_names,
+            names: line_names.into_boxed_slice(),
             fill_idx: fill_idx,
         })
     }
@@ -676,4 +706,14 @@ pub enum GridTemplateComponent<L> {
     TrackList(TrackList<L>),
     /// A `subgrid <line-name-list>?`
     Subgrid(LineNameList),
+}
+
+impl<L> GridTemplateComponent<L> {
+    /// Returns length of the <track-list>s <track-size>
+    pub fn track_list_len(&self) -> usize {
+        match *self {
+            GridTemplateComponent::TrackList(ref tracklist) => tracklist.values.len(),
+            _ => 0,
+        }
+    }
 }
