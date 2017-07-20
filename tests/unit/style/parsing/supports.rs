@@ -11,4 +11,6 @@ fn test_supports_condition() {
     assert_roundtrip!(SupportsCondition::parse, "(margin: 1px)");
     assert_roundtrip!(SupportsCondition::parse, "not (--be: to be)");
     assert_roundtrip!(SupportsCondition::parse, "(color: blue) and future-extension(4)");
+    assert_roundtrip!(SupportsCondition::parse, "future-\\1 extension(4)");
+    assert_roundtrip!(SupportsCondition::parse, "((test))");
 }
