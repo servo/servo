@@ -5377,7 +5377,12 @@ let result = match result {
     },
 };
 
-JS_SetPrototype(cx, result.reflector().get_jsobject(), prototype.handle());
+rooted!(in(cx) let mut element = result.reflector().get_jsobject().get());
+if !JS_WrapObject(cx, element.handle_mut()) {
+    return false;
+}
+
+JS_SetPrototype(cx, element.handle(), prototype.handle());
 
 (result).to_jsval(cx, args.rval());
 return true;
