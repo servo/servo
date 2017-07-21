@@ -11,6 +11,7 @@
 <%helpers:longhand name="color" need_clone="True"
                    animation_value_type="IntermediateRGBA"
                    ignored_when_colors_disabled="True"
+                   flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER"
                    spec="https://drafts.csswg.org/css-color/#color">
     use cssparser::RGBA;
     use values::specified::{AllowQuirks, Color};
