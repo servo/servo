@@ -17,6 +17,7 @@ bench = false
 compiletest_helper = {path = "../../tests/compiletest/helper"}
 gfx_tests = {path = "../../tests/unit/gfx"}
 layout_tests = {path = "../../tests/unit/layout"}
+metrics_tests = {path = "../../tests/unit/metrics"}
 net_tests = {path = "../../tests/unit/net"}
 net_traits_tests = {path = "../../tests/unit/net_traits"}
 plugin_compiletest = {path = "../../tests/compiletest/plugin"}
