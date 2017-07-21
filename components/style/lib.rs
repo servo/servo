@@ -139,10 +139,6 @@ pub mod traversal;
 #[allow(non_camel_case_types)]
 pub mod values;
 
-// Compat shim for the old name when it lived in the style crate.
-// FIXME(bholley) Remove this.
-pub use servo_arc as stylearc;
-
 use std::fmt;
 use style_traits::ToCss;
 
