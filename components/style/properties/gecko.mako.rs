@@ -4049,8 +4049,8 @@ fn static_assert() {
                   skip_longhands="border-spacing">
 
     pub fn set_border_spacing(&mut self, v: longhands::border_spacing::computed_value::T) {
-        self.gecko.mBorderSpacingCol = v.horizontal.0;
-        self.gecko.mBorderSpacingRow = v.vertical.0;
+        self.gecko.mBorderSpacingCol = v.horizontal.value();
+        self.gecko.mBorderSpacingRow = v.vertical.value();
     }
 
     pub fn copy_border_spacing_from(&mut self, other: &Self) {
@@ -4060,8 +4060,8 @@ fn static_assert() {
 
     pub fn clone_border_spacing(&self) -> longhands::border_spacing::computed_value::T {
         longhands::border_spacing::computed_value::T {
-            horizontal: Au(self.gecko.mBorderSpacingCol),
-            vertical: Au(self.gecko.mBorderSpacingRow)
+            horizontal: NonNegativeAu(Au(self.gecko.mBorderSpacingCol)),
+            vertical: NonNegativeAu(Au(self.gecko.mBorderSpacingRow))
         }
     }
 </%self:impl_trait>

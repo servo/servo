@@ -117,6 +117,7 @@ use style::shared_lock::{SharedRwLock, Locked};
 use style::thread_state;
 use style::values::{CSSFloat, Either};
 use style::values::{specified, computed};
+use style::values::specified::length::NonNegativeLength;
 use stylesheet_loader::StylesheetOwner;
 
 // TODO: Update focus state when the top-level browsing context gains or loses system focus,
@@ -548,7 +549,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
                 shared_lock,
                 PropertyDeclaration::BorderSpacing(
                     Box::new(border_spacing::SpecifiedValue {
-                        horizontal: width_value,
+                        horizontal: NonNegativeLength(width_value),
                         vertical: None,
                     }))));
         }

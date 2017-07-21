@@ -709,6 +709,13 @@ impl<T: Parse> Either<Length, T> {
 #[derive(Clone, Debug, HasViewportPercentage, PartialEq, ToCss)]
 pub struct NonNegativeLength(pub Length);
 
+impl From<NoCalcLength> for NonNegativeLength {
+    #[inline]
+    fn from(len: NoCalcLength) -> Self {
+        NonNegativeLength(Length::NoCalc(len))
+    }
+}
+
 impl<T: Parse> Parse for Either<NonNegativeLength, T> {
     #[inline]
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
