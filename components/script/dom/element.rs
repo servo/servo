@@ -101,6 +101,7 @@ use std::cell::{Cell, Ref};
 use std::convert::TryFrom;
 use std::default::Default;
 use std::fmt;
+use std::mem;
 use std::rc::Rc;
 use style::CaseSensitivityExt;
 use style::applicable_declarations::ApplicableDeclarationBlock;
@@ -304,12 +305,21 @@ impl Element {
         self.custom_element_reaction_queue.borrow_mut().push(CustomElementReaction::Upgrade(definition));
     }
 
+    pub fn clear_reaction_queue(&self) {
+        self.custom_element_reaction_queue.borrow_mut().clear();
+    }
+
     pub fn invoke_reactions(&self) {
-        let mut reaction_queue = self.custom_element_reaction_queue.borrow_mut();
-        for reaction in reaction_queue.iter() {
-            reaction.invoke(self);
+        // TODO: This is not spec compliant, as this will allow some reactions to be processed
+        // after clear_reaction_queue has been called.
+        rooted_vec!(let mut reactions);
+        while !self.custom_element_reaction_queue.borrow().is_empty() {
+            mem::swap(&mut *reactions, &mut *self.custom_element_reaction_queue.borrow_mut());
+            for reaction in reactions.iter() {
+                reaction.invoke(self);
+            }
+            reactions.clear();
         }
-        reaction_queue.clear();
     }
 
     // https://drafts.csswg.org/cssom-view/#css-layout-box
@@ -1081,7 +1091,7 @@ impl Element {
 
         if self.get_custom_element_definition().is_some() {
             let reaction = CallbackReaction::AttributeChanged(name, None, Some(value), namespace);
-            ScriptThread::enqueue_callback_reaction(self, reaction);
+            ScriptThread::enqueue_callback_reaction(self, reaction, None);
         }
 
         assert!(attr.GetOwnerElement().r() == Some(self));
@@ -1224,7 +1234,7 @@ impl Element {
             MutationObserver::queue_a_mutation_record(&self.node, mutation);
 
             let reaction = CallbackReaction::AttributeChanged(name, Some(old_value), None, namespace);
-            ScriptThread::enqueue_callback_reaction(self, reaction);
+            ScriptThread::enqueue_callback_reaction(self, reaction, None);
 
             self.attrs.borrow_mut().remove(idx);
             attr.set_owner(None);

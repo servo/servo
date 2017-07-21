@@ -11,7 +11,7 @@ use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use dom::bindings::conversions::{ConversionResult, FromJSValConvertible, StringificationBehavior};
-use dom::bindings::error::{Error, ErrorResult, Fallible};
+use dom::bindings::error::{Error, ErrorResult, Fallible, report_pending_exception, throw_dom_exception};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
@@ -486,48 +486,72 @@ pub fn upgrade_element(definition: Rc<CustomElementDefinition>, element: &Elemen
         let value = DOMString::from(&**attr.value());
         let namespace = attr.namespace().clone();
         ScriptThread::enqueue_callback_reaction(element,
-            CallbackReaction::AttributeChanged(local_name, None, Some(value), namespace));
+            CallbackReaction::AttributeChanged(local_name, None, Some(value), namespace), Some(definition.clone()));
     }
 
     // Step 4
     if element.is_connected() {
-        ScriptThread::enqueue_callback_reaction(element, CallbackReaction::Connected);
+        ScriptThread::enqueue_callback_reaction(element, CallbackReaction::Connected, Some(definition.clone()));
     }
 
     // Step 5
     definition.construction_stack.borrow_mut().push(ConstructionStackEntry::Element(Root::from_ref(element)));
 
-    // Step 6
+    // Step 7
+    let result = run_upgrade_constructor(&definition.constructor, element);
+
+    definition.construction_stack.borrow_mut().pop();
+
+    // Step 7 exception handling
+    if let Err(error) = result {
+        // TODO: Step 7.1
+        // Track custom element state
+
+        // Step 7.2
+        element.clear_reaction_queue();
+
+        // Step 7.3
+        let global = GlobalScope::current().expect("No current global");
+        let cx = global.get_cx();
+        unsafe {
+            throw_dom_exception(cx, &global, error);
+            report_pending_exception(cx, true);
+        }
+        return;
+    }
+
+    element.set_custom_element_definition(definition);
+}
+
+/// https://html.spec.whatwg.org/multipage/#concept-upgrade-an-element
+/// Steps 7.1-7.2
+#[allow(unsafe_code)]
+fn run_upgrade_constructor(constructor: &Rc<Function>, element: &Element) -> ErrorResult {
     let window = window_from_node(element);
     let cx = window.get_cx();
-    rooted!(in(cx) let constructor = ObjectValue(definition.constructor.callback()));
+    rooted!(in(cx) let constructor_val = ObjectValue(constructor.callback()));
     rooted!(in(cx) let mut element_val = UndefinedValue());
     unsafe { element.to_jsval(cx, element_val.handle_mut()); }
     rooted!(in(cx) let mut construct_result = ptr::null_mut());
     {
         // Go into the constructor's compartment
-        let _ac = JSAutoCompartment::new(cx, definition.constructor.callback());
+        let _ac = JSAutoCompartment::new(cx, constructor.callback());
         let args = HandleValueArray::new();
-        // Step 7
-        if unsafe { !Construct1(cx, constructor.handle(), &args, construct_result.handle_mut()) } {
-            // TODO: Catch exceptions
-            return;
+        // Step 7.1
+        if unsafe { !Construct1(cx, constructor_val.handle(), &args, construct_result.handle_mut()) } {
+            return Err(Error::JSFailed);
         }
-        // Step 8
+        // Step 7.2
         let mut same = false;
         rooted!(in(cx) let construct_result_val = ObjectValue(construct_result.get()));
         if unsafe { !JS_SameValue(cx, construct_result_val.handle(), element_val.handle(), &mut same) } {
-            // TODO: Catch exceptions
-            return;
+            return Err(Error::JSFailed);
         }
         if !same {
-            // TODO: Throw InvalidStateError
+            return Err(Error::InvalidState);
         }
     }
-    definition.construction_stack.borrow_mut().pop();
-    // TODO: Handle Exceptions
-
-    element.set_custom_element_definition(definition);
+    Ok(())
 }
 
 /// https://html.spec.whatwg.org/multipage/#concept-try-upgrade
@@ -655,9 +679,12 @@ impl CustomElementReactionStack {
 
     /// https://html.spec.whatwg.org/multipage/#enqueue-a-custom-element-callback-reaction
     #[allow(unsafe_code)]
-    pub fn enqueue_callback_reaction(&self, element: &Element, reaction: CallbackReaction) {
+    pub fn enqueue_callback_reaction(&self,
+                                     element: &Element,
+                                     reaction: CallbackReaction,
+                                     definition: Option<Rc<CustomElementDefinition>>) {
         // Step 1
-        let definition = match element.get_custom_element_definition() {
+        let definition = match definition.or_else(|| element.get_custom_element_definition()) {
             Some(definition) => definition,
             None => return,
         };
