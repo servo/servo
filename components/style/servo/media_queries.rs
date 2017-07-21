@@ -60,7 +60,8 @@ impl Device {
             media_type: media_type,
             viewport_size: viewport_size,
             device_pixel_ratio: device_pixel_ratio,
-            root_font_size: AtomicIsize::new(font_size::get_initial_value().0 as isize), // FIXME(bz): Seems dubious?
+            // FIXME(bz): Seems dubious?
+            root_font_size: AtomicIsize::new(font_size::get_initial_value().value() as isize),
             used_root_font_size: AtomicBool::new(false),
         }
     }

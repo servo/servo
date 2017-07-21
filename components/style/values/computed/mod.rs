@@ -626,4 +626,10 @@ impl NonNegativeAu {
     pub fn max(self, other: Self) -> Self {
         NonNegativeAu(Au(::std::cmp::max(self.value(), other.value())))
     }
+
+    /// Scale this NonNegativeAu.
+    #[inline]
+    pub fn scale_by(self, factor: f32) -> Self {
+        NonNegativeAu(self.0.scale_by(factor))
+    }
 }

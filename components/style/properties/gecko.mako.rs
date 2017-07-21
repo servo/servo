@@ -61,7 +61,7 @@ use servo_arc::{Arc, RawOffsetArc};
 use std::mem::{forget, uninitialized, transmute, zeroed};
 use std::{cmp, ops, ptr};
 use values::{Auto, CustomIdent, Either, KeyframesName};
-use values::computed::ToComputedValue;
+use values::computed::{NonNegativeAu, ToComputedValue};
 use values::computed::effects::{BoxShadow, Filter, SimpleShadow};
 use values::computed::length::Percentage;
 use computed_values::border_style;
@@ -690,7 +690,6 @@ def set_gecko_property(ffi_name, expr):
 %if need_clone:
     #[allow(non_snake_case)]
     pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
-        use values::computed::NonNegativeAu;
         NonNegativeAu(Au(self.gecko.${gecko_ffi_name}))
     }
 % endif
@@ -1861,15 +1860,15 @@ fn static_assert() {
     // actual computed size, and the other of which (mFont.size) is the 'display
     // size' which takes font zooming into account. We don't handle font zooming yet.
     pub fn set_font_size(&mut self, v: longhands::font_size::computed_value::T) {
-        self.gecko.mSize = v.0;
-        self.gecko.mScriptUnconstrainedSize = v.0;
+        self.gecko.mSize = v.value();
+        self.gecko.mScriptUnconstrainedSize = v.value();
     }
 
     /// Set font size, taking into account scriptminsize and scriptlevel
     /// Returns Some(size) if we have to recompute the script unconstrained size
     pub fn apply_font_size(&mut self, v: longhands::font_size::computed_value::T,
                            parent: &Self,
-                           device: &Device) -> Option<Au> {
+                           device: &Device) -> Option<NonNegativeAu> {
         let (adjusted_size, adjusted_unconstrained_size)
             = self.calculate_script_level_size(parent);
         // In this case, we have been unaffected by scriptminsize, ignore it
@@ -1879,9 +1878,9 @@ fn static_assert() {
             self.fixup_font_min_size(device);
             None
         } else {
-            self.gecko.mSize = v.0;
+            self.gecko.mSize = v.value();
             self.fixup_font_min_size(device);
-            Some(Au(parent.gecko.mScriptUnconstrainedSize))
+            Some(NonNegativeAu(Au(parent.gecko.mScriptUnconstrainedSize)))
         }
     }
 
@@ -1889,8 +1888,8 @@ fn static_assert() {
         unsafe { bindings::Gecko_nsStyleFont_FixupMinFontSize(&mut self.gecko, device.pres_context()) }
     }
 
-    pub fn apply_unconstrained_font_size(&mut self, v: Au) {
-        self.gecko.mScriptUnconstrainedSize = v.0;
+    pub fn apply_unconstrained_font_size(&mut self, v: NonNegativeAu) {
+        self.gecko.mScriptUnconstrainedSize = v.value();
     }
 
     /// Calculates the constrained and unconstrained font sizes to be inherited
@@ -1997,7 +1996,7 @@ fn static_assert() {
     ///
     /// Returns true if the inherited keyword size was actually used
     pub fn inherit_font_size_from(&mut self, parent: &Self,
-                                  kw_inherited_size: Option<Au>,
+                                  kw_inherited_size: Option<NonNegativeAu>,
                                   device: &Device) -> bool {
         let (adjusted_size, adjusted_unconstrained_size)
             = self.calculate_script_level_size(parent);
@@ -2023,9 +2022,9 @@ fn static_assert() {
             false
         } else if let Some(size) = kw_inherited_size {
             // Parent element was a keyword-derived size.
-            self.gecko.mSize = size.0;
+            self.gecko.mSize = size.value();
             // MathML constraints didn't apply here, so we can ignore this.
-            self.gecko.mScriptUnconstrainedSize = size.0;
+            self.gecko.mScriptUnconstrainedSize = size.value();
             self.fixup_font_min_size(device);
             true
         } else {
@@ -2039,7 +2038,7 @@ fn static_assert() {
     }
 
     pub fn clone_font_size(&self) -> longhands::font_size::computed_value::T {
-        Au(self.gecko.mSize)
+        NonNegativeAu(Au(self.gecko.mSize))
     }
 
     pub fn set_font_weight(&mut self, v: longhands::font_weight::computed_value::T) {
