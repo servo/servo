@@ -249,11 +249,10 @@ ${helpers.predefined_type("object-position",
 
 % for kind in ["row", "column"]:
     ${helpers.predefined_type("grid-%s-gap" % kind,
-                              "LengthOrPercentage",
-                              "computed::LengthOrPercentage::Length(Au(0))",
-                              "parse_non_negative",
+                              "NonNegativeLengthOrPercentage",
+                              "computed::NonNegativeLengthOrPercentage::zero()",
                               spec="https://drafts.csswg.org/css-grid/#propdef-grid-%s-gap" % kind,
-                              animation_value_type="ComputedValue",
+                              animation_value_type="NonNegativeLengthOrPercentage",
                               products="gecko")}
 
     % for range in ["start", "end"]:

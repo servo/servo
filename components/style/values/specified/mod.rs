@@ -42,6 +42,7 @@ pub use self::length::{FontRelativeLength, Length, LengthOrNone, LengthOrNumber}
 pub use self::length::{LengthOrPercentage, LengthOrPercentageOrAuto};
 pub use self::length::{LengthOrPercentageOrNone, MaxLength, MozLength};
 pub use self::length::{NoCalcLength, Percentage, ViewportPercentageLength};
+pub use self::length::NonNegativeLengthOrPercentage;
 pub use self::rect::LengthOrNumberRect;
 pub use self::position::{Position, PositionComponent};
 pub use self::svg::{SVGLength, SVGOpacity, SVGPaint, SVGPaintKind, SVGStrokeDashArray};

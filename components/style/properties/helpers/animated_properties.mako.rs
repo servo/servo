@@ -46,6 +46,7 @@ use values::computed::{CalcLengthOrPercentage, Color, Context, ComputedValueAsSp
 use values::computed::{LengthOrPercentage, MaxLength, MozLength, Percentage, ToComputedValue};
 use values::computed::{NonNegativeAu, NonNegativeNumber, PositiveIntegerOrAuto};
 use values::computed::length::{NonNegativeLengthOrAuto, NonNegativeLengthOrNormal};
+use values::computed::length::NonNegativeLengthOrPercentage;
 use values::generics::{GreaterThanOrEqualToOne, NonNegative};
 use values::generics::border::BorderCornerRadius as GenericBorderCornerRadius;
 use values::generics::effects::Filter;

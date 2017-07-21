@@ -2192,10 +2192,10 @@ impl ComputedValuesInner {
     pub fn logical_padding(&self) -> LogicalMargin<computed::LengthOrPercentage> {
         let padding_style = self.get_padding();
         LogicalMargin::from_physical(self.writing_mode, SideOffsets2D::new(
-            padding_style.padding_top,
-            padding_style.padding_right,
-            padding_style.padding_bottom,
-            padding_style.padding_left,
+            padding_style.padding_top.0,
+            padding_style.padding_right.0,
+            padding_style.padding_bottom.0,
+            padding_style.padding_left.0,
         ))
     }
 

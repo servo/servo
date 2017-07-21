@@ -459,7 +459,7 @@
     use properties::longhands::grid_auto_flow::computed_value::{AutoFlow, T as SpecifiedAutoFlow};
     use values::{Either, None_};
     use values::generics::grid::{GridTemplateComponent, TrackListType};
-    use values::specified::{GenericGridTemplateComponent, LengthOrPercentage, TrackSize};
+    use values::specified::{GenericGridTemplateComponent, NonNegativeLengthOrPercentage, TrackSize};
 
     pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                                -> Result<Longhands, ParseError<'i>> {
@@ -520,8 +520,8 @@
             grid_auto_columns: auto_cols,
             grid_auto_flow: flow,
             // This shorthand also resets grid gap
-            grid_row_gap: LengthOrPercentage::zero(),
-            grid_column_gap: LengthOrPercentage::zero(),
+            grid_row_gap: NonNegativeLengthOrPercentage::zero(),
+            grid_column_gap: NonNegativeLengthOrPercentage::zero(),
         })
     }
 
@@ -539,8 +539,8 @@
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             // `grid` shorthand resets these properties. If they are not zero, that means they
             // are changed by longhands and in that case we should fail serializing `grid`.
-            if *self.grid_row_gap != LengthOrPercentage::zero() ||
-               *self.grid_column_gap != LengthOrPercentage::zero() {
+            if *self.grid_row_gap != NonNegativeLengthOrPercentage::zero() ||
+               *self.grid_column_gap != NonNegativeLengthOrPercentage::zero() {
                 return Ok(());
             }
 

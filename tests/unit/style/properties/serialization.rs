@@ -268,10 +268,12 @@ mod shorthand_serialization {
 
         #[test]
         fn padding_should_serialize_correctly() {
+            use style::values::specified::NonNegativeLengthOrPercentage;
+
             let mut properties = Vec::new();
 
-            let px_10 = LengthOrPercentage::Length(NoCalcLength::from_px(10f32));
-            let px_15 = LengthOrPercentage::Length(NoCalcLength::from_px(15f32));
+            let px_10: NonNegativeLengthOrPercentage = NoCalcLength::from_px(10f32).into();
+            let px_15: NonNegativeLengthOrPercentage = NoCalcLength::from_px(15f32).into();
             properties.push(PropertyDeclaration::PaddingTop(px_10.clone()));
             properties.push(PropertyDeclaration::PaddingRight(px_15.clone()));
             properties.push(PropertyDeclaration::PaddingBottom(px_10));

@@ -13,6 +13,7 @@ use std::cmp::max;
 use values::computed::Angle as ComputedAngle;
 use values::computed::GreaterThanOrEqualToOneNumber as ComputedGreaterThanOrEqualToOneNumber;
 use values::computed::NonNegativeAu;
+use values::computed::NonNegativeLengthOrPercentage as ComputedNonNegativeLengthOrPercentage;
 use values::computed::NonNegativeNumber as ComputedNonNegativeNumber;
 use values::computed::PositiveInteger as ComputedPositiveInteger;
 use values::specified::url::SpecifiedUrl;
@@ -146,6 +147,27 @@ impl ToAnimatedValue for ComputedPositiveInteger {
     #[inline]
     fn from_animated_value(animated: Self::AnimatedValue) -> Self {
         max(animated.0, 0).into()
+    }
+}
+
+impl ToAnimatedValue for ComputedNonNegativeLengthOrPercentage {
+    type AnimatedValue = Self;
+
+    #[inline]
+    fn to_animated_value(self) -> Self {
+        self
+    }
+
+    #[inline]
+    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+        use values::computed::{LengthOrPercentage, Percentage};
+        match animated.0 {
+            LengthOrPercentage::Length(au) => LengthOrPercentage::Length(max(au, Au(0))).into(),
+            LengthOrPercentage::Percentage(percentage) => {
+                LengthOrPercentage::Percentage(Percentage(percentage.0.max(0.))).into()
+            },
+            _ => animated
+        }
     }
 }
 
