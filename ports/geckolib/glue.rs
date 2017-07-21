@@ -1742,6 +1742,9 @@ pub extern "C" fn Servo_ComputedValues_GetStyleBits(values: ServoStyleContextBor
     if flags.contains(SHOULD_SUPPRESS_LINEBREAK) {
         result |= structs::NS_STYLE_SUPPRESS_LINEBREAK as u64;
     }
+    if flags.contains(IS_TEXT_COMBINED) {
+        result |= structs::NS_STYLE_IS_TEXT_COMBINED as u64;
+    }
     result
 }
 

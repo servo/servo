@@ -28,5 +28,10 @@ bitflags! {
         /// This bit is propagated to all children of line participants.
         /// It is currently used by ruby to make its content unbreakable.
         const SHOULD_SUPPRESS_LINEBREAK = 1 << 1,
+
+        /// A flag used to mark text that that has text-combine-upright.
+        ///
+        /// This is used from Gecko's layout engine.
+        const IS_TEXT_COMBINED = 1 << 2,
     }
 }
