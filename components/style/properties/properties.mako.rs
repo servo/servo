@@ -442,6 +442,12 @@ bitflags! {
         const ABSPOS_CB = 1 << 2,
         /// This shorthand property is an alias of another property.
         const SHORTHAND_ALIAS_PROPERTY = 1 << 3,
+        /// This longhand property applies to ::first-letter.
+        const APPLIES_TO_FIRST_LETTER = 1 << 4,
+        /// This longhand property applies to ::first-line.
+        const APPLIES_TO_FIRST_LINE = 1 << 5,
+        /// This longhand property applies to ::placeholder.
+        const APPLIES_TO_PLACEHOLDER = 1 << 6,
     }
 }
 
