@@ -275,8 +275,7 @@ pub extern "C" fn Servo_TraverseSubtree(root: RawGeckoElementBorrowed,
         (Root::Normal, Restyle::ForThrottledAnimationFlush)
             => TraversalFlags::empty(),
         (Root::UnstyledChildrenOnly, Restyle::Normal) |
-        (Root::UnstyledChildrenOnly, Restyle::ForNewlyBoundElement) |
-        (Root::UnstyledChildrenOnly, Restyle::ForThrottledAnimationFlush)
+        (Root::UnstyledChildrenOnly, Restyle::ForNewlyBoundElement)
             => UNSTYLED_CHILDREN_ONLY,
         (Root::Normal, Restyle::ForCSSRuleChanges) => FOR_CSS_RULE_CHANGES,
         (Root::Normal, Restyle::ForReconstruct) => FOR_RECONSTRUCT,
