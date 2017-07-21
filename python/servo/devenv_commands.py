@@ -284,6 +284,9 @@ class MachCommands(CommandBase):
         # Reset self.config["tools"]["rust-root"]
         self._rust_version = None
         self.set_use_stable_rust(False)
+
+        # Reset self.config["tools"]["cargo-root"]
+        self._cargo_build_id = None
         self.set_cargo_root()
 
         self.fetch()
