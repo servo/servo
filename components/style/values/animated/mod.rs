@@ -11,6 +11,7 @@
 use app_units::Au;
 use std::cmp::max;
 use values::computed::Angle as ComputedAngle;
+use values::computed::BorderCornerRadius as ComputedBorderCornerRadius;
 use values::computed::GreaterThanOrEqualToOneNumber as ComputedGreaterThanOrEqualToOneNumber;
 use values::computed::NonNegativeAu;
 use values::computed::NonNegativeLengthOrPercentage as ComputedNonNegativeLengthOrPercentage;
@@ -160,14 +161,22 @@ impl ToAnimatedValue for ComputedNonNegativeLengthOrPercentage {
 
     #[inline]
     fn from_animated_value(animated: Self::AnimatedValue) -> Self {
-        use values::computed::{LengthOrPercentage, Percentage};
-        match animated.0 {
-            LengthOrPercentage::Length(au) => LengthOrPercentage::Length(max(au, Au(0))).into(),
-            LengthOrPercentage::Percentage(percentage) => {
-                LengthOrPercentage::Percentage(Percentage(percentage.0.max(0.))).into()
-            },
-            _ => animated
-        }
+        animated.0.clamp_to_non_negative().into()
+    }
+}
+
+impl ToAnimatedValue for ComputedBorderCornerRadius {
+    type AnimatedValue = Self;
+
+    #[inline]
+    fn to_animated_value(self) -> Self {
+        self
+    }
+
+    #[inline]
+    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+        ComputedBorderCornerRadius::new(animated.0.width.clamp_to_non_negative(),
+                                        animated.0.height.clamp_to_non_negative())
     }
 }
 

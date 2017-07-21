@@ -76,7 +76,7 @@ ${helpers.predefined_type("outline-width",
         "computed::LengthOrPercentage::zero().into()",
         products="gecko",
         boxed=True,
-        animation_value_type="ComputedValue",
+        animation_value_type="BorderCornerRadius",
         spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-outline-radius)")}
 % endfor
 

@@ -351,6 +351,20 @@ impl LengthOrPercentage {
             },
         }
     }
+
+    /// Returns the clamped non-negative values.
+    #[inline]
+    pub fn clamp_to_non_negative(self) -> Self {
+        match self {
+            LengthOrPercentage::Length(length) => {
+                LengthOrPercentage::Length(Au(::std::cmp::max(length.0, 0)))
+            },
+            LengthOrPercentage::Percentage(percentage) => {
+                LengthOrPercentage::Percentage(Percentage(percentage.0.max(0.)))
+            },
+            _ => self
+        }
+    }
 }
 
 impl fmt::Debug for LengthOrPercentage {

@@ -62,7 +62,7 @@ ${helpers.gecko_keyword_conversion(Keyword('border-style',
                               spec="https://drafts.csswg.org/css-backgrounds/#border-%s-radius" % corner,
                               boxed=True,
                               flags="APPLIES_TO_FIRST_LETTER",
-                              animation_value_type="ComputedValue")}
+                              animation_value_type="BorderCornerRadius")}
 % endfor
 
 /// -moz-border-*-colors: color, string, enum, none, inherit/initial
