@@ -110,4 +110,16 @@ impl PaintTimeMetrics {
             }
         }
     }
+
+    pub fn get_navigation_start(&self) -> Option<f64> {
+        self.navigation_start
+    }
+
+    pub fn get_first_paint(&self) -> Option<f64> {
+        self.first_paint.get()
+    }
+
+    pub fn get_first_contentful_paint(&self) -> Option<f64> {
+        self.first_contentful_paint.get()
+    }
 }

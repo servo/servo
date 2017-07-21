@@ -1708,6 +1708,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "metrics_tests"
+version = "0.0.1"
+dependencies = [
+ "euclid 0.15.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gfx 0.0.1",
+ "ipc-channel 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "metrics 0.0.1",
+ "msg 0.0.1",
+ "net_traits 0.0.1",
+ "profile_traits 0.0.1",
+ "style 0.0.1",
+ "time 0.1.37 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "mime"
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2666,6 +2681,7 @@ dependencies = [
  "layout_tests 0.0.1",
  "libservo 0.0.1",
  "log 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "metrics_tests 0.0.1",
  "net_tests 0.0.1",
  "net_traits_tests 0.0.1",
  "plugin_compiletest 0.0.1",
