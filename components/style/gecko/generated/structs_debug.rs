@@ -38456,8 +38456,6 @@ pub mod root {
     pub type ServoStyleContextBorrowedOrNull =
         *const root::mozilla::ServoStyleContext;
     pub type ServoComputedValuesBorrowed = *const root::ServoComputedValues;
-    pub type ServoComputedValuesBorrowedOrNull =
-        *const root::ServoComputedValues;
     pub type RawServoAnimationValueMapBorrowedMut =
         *mut root::RawServoAnimationValueMap;
     pub type RawGeckoNodeBorrowed = *const root::RawGeckoNode;
