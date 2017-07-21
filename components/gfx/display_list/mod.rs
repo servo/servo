@@ -1146,7 +1146,8 @@ pub struct LineDisplayItem {
     pub color: ColorF,
 
     /// The line segment style.
-    pub style: border_style::T
+    #[ignore_heap_size_of = "enum type in webrender"]
+    pub style: webrender_api::LineStyle,
 }
 
 /// Paints a box shadow per CSS-BACKGROUNDS.

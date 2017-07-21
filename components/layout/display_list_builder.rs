@@ -71,7 +71,7 @@ use style_traits::CSSPixel;
 use style_traits::cursor::Cursor;
 use table_cell::CollapsedBordersForCell;
 use webrender_api::{ClipId, ColorF, ComplexClipRegion, GradientStop, LocalClip, RepeatMode};
-use webrender_api::{ScrollPolicy, TransformStyle};
+use webrender_api::{LineStyle, ScrollPolicy, TransformStyle};
 use webrender_helpers::{ToBorderRadius, ToMixBlendMode, ToRectF, ToTransformStyle};
 
 trait ResolvePercentage {
@@ -1651,7 +1651,7 @@ impl FragmentDisplayListBuilding for Fragment {
         state.add_display_item(DisplayItem::Line(box LineDisplayItem {
             base: base,
             color: ColorF::rgb(0, 200, 0),
-            style: border_style::T::dashed,
+            style: LineStyle::Dashed,
         }));
     }
 
@@ -2217,9 +2217,10 @@ impl FragmentDisplayListBuilding for Fragment {
             self.style.get_cursor(Cursor::Default),
             DisplayListSection::Content);
 
-        state.add_display_item(DisplayItem::SolidColor(box SolidColorDisplayItem {
+        state.add_display_item(DisplayItem::Line(box LineDisplayItem {
             base: base,
             color: color.to_gfx_color(),
+            style: LineStyle::Solid,
         }));
     }
 
