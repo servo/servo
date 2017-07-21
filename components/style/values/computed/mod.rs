@@ -137,12 +137,12 @@ impl<'a> Context<'a> {
 
     /// Apply text-zoom if enabled
     #[cfg(feature = "gecko")]
-    pub fn maybe_zoom_text(&self, size: Au) -> Au {
+    pub fn maybe_zoom_text(&self, size: NonNegativeAu) -> NonNegativeAu {
         // We disable zoom for <svg:text> by unsetting the
         // -x-text-zoom property, which leads to a false value
         // in mAllowZoom
         if self.style().get_font().gecko.mAllowZoom {
-            self.device().zoom_text(size)
+            self.device().zoom_text(size.0).into()
         } else {
             size
         }
@@ -150,7 +150,7 @@ impl<'a> Context<'a> {
 
     /// (Servo doesn't do text-zoom)
     #[cfg(feature = "servo")]
-    pub fn maybe_zoom_text(&self, size: Au) -> Au {
+    pub fn maybe_zoom_text(&self, size: NonNegativeAu) -> NonNegativeAu {
         size
     }
 }
@@ -612,6 +612,13 @@ impl NonNegativeAu {
     #[inline]
     pub fn value(self) -> i32 {
         (self.0).0
+    }
+
+    /// Scale this NonNegativeAu.
+    #[inline]
+    pub fn scale_by(self, factor: f32) -> Self {
+        // scale this by zero if factor is negative.
+        NonNegative::<Au>(self.0.scale_by(factor.max(0.)))
     }
 }
 

@@ -95,7 +95,7 @@ impl ToComputedValue for LineHeight {
                 GenericLineHeight::Number(number.to_computed_value(context))
             },
             GenericLineHeight::Length(LengthOrPercentage::Length(ref length)) => {
-                GenericLineHeight::Length(context.maybe_zoom_text(length.to_computed_value(context)))
+                GenericLineHeight::Length(context.maybe_zoom_text(length.to_computed_value(context).into()).0)
             },
             GenericLineHeight::Length(LengthOrPercentage::Percentage(p)) => {
                 let font_relative_length =

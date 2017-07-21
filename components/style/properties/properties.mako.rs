@@ -1648,12 +1648,12 @@ pub use gecko_properties::style_structs;
 /// The module where all the style structs are defined.
 #[cfg(feature = "servo")]
 pub mod style_structs {
-    use app_units::Au;
     use fnv::FnvHasher;
     use super::longhands;
     use std::hash::{Hash, Hasher};
     use logical_geometry::WritingMode;
     use media_queries::Device;
+    use values::computed::NonNegativeAu;
 
     % for style_struct in data.active_style_structs():
         % if style_struct.name == "Font":
@@ -1771,7 +1771,8 @@ pub mod style_structs {
 
                 /// (Servo does not handle MathML, so this just calls copy_font_size_from)
                 pub fn inherit_font_size_from(&mut self, parent: &Self,
-                                              _: Option<Au>, _: &Device) -> bool {
+                                              _: Option<NonNegativeAu>,
+                                              _: &Device) -> bool {
                     self.copy_font_size_from(parent);
                     false
                 }
@@ -1779,12 +1780,12 @@ pub mod style_structs {
                 pub fn apply_font_size(&mut self,
                                        v: longhands::font_size::computed_value::T,
                                        _: &Self,
-                                       _: &Device) -> Option<Au> {
+                                       _: &Device) -> Option<NonNegativeAu> {
                     self.set_font_size(v);
                     None
                 }
                 /// (Servo does not handle MathML, so this does nothing)
-                pub fn apply_unconstrained_font_size(&mut self, _: Au) {
+                pub fn apply_unconstrained_font_size(&mut self, _: NonNegativeAu) {
                 }
 
             % elif style_struct.name == "Outline":
