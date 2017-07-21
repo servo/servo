@@ -12,12 +12,12 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasFillRule;
+use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasImageSource;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasLineCap;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasLineJoin;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasRenderingContext2DMethods;
 use dom::bindings::codegen::Bindings::ImageDataBinding::ImageDataMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::codegen::UnionTypes::HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D;
 use dom::bindings::codegen::UnionTypes::StringOrCanvasGradientOrCanvasPattern;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
@@ -29,21 +29,25 @@ use dom::canvasgradient::{CanvasGradient, CanvasGradientStyle, ToFillOrStrokeSty
 use dom::canvaspattern::CanvasPattern;
 use dom::globalscope::GlobalScope;
 use dom::htmlcanvaselement::HTMLCanvasElement;
-use dom::htmlcanvaselement::utils as canvas_utils;
-use dom::htmlimageelement::HTMLImageElement;
 use dom::imagedata::ImageData;
 use dom::node::{document_from_node, Node, NodeDamage, window_from_node};
 use dom_struct::dom_struct;
 use euclid::{Transform2D, Point2D, Vector2D, Rect, Size2D, vec2};
 use ipc_channel::ipc::{self, IpcSender};
 use net_traits::image::base::PixelFormat;
+use net_traits::image_cache::CanRequestImages;
+use net_traits::image_cache::ImageCache;
+use net_traits::image_cache::ImageOrMetadataAvailable;
 use net_traits::image_cache::ImageResponse;
+use net_traits::image_cache::ImageState;
+use net_traits::image_cache::UsePlaceholder;
 use num_traits::ToPrimitive;
 use script_traits::ScriptMsg as ConstellationMsg;
 use servo_url::ServoUrl;
-use std::{cmp, fmt};
+use std::{cmp, fmt, mem};
 use std::cell::Cell;
 use std::str::FromStr;
+use std::sync::Arc;
 use unpremultiplytable::UNPREMULTIPLY_TABLE;
 
 #[must_root]
@@ -61,9 +65,16 @@ pub struct CanvasRenderingContext2D {
     reflector_: Reflector,
     #[ignore_heap_size_of = "Defined in ipc-channel"]
     ipc_renderer: IpcSender<CanvasMsg>,
-    // For rendering contexts created by an HTML canvas element, this is Some,
-    // for ones created by a paint worklet, this is None.
+    /// For rendering contexts created by an HTML canvas element, this is Some,
+    /// for ones created by a paint worklet, this is None.
     canvas: Option<JS<HTMLCanvasElement>>,
+    #[ignore_heap_size_of = "Arc"]
+    image_cache: Arc<ImageCache>,
+    /// Any missing image URLs.
+    missing_image_urls: DOMRefCell<Vec<ServoUrl>>,
+    /// The base URL for resolving CSS image URL values.
+    /// Needed because of https://github.com/servo/servo/issues/17625
+    base_url: ServoUrl,
     state: DOMRefCell<CanvasContextState>,
     saved_states: DOMRefCell<Vec<CanvasContextState>>,
     origin_clean: Cell<bool>,
@@ -113,6 +124,8 @@ impl CanvasContextState {
 impl CanvasRenderingContext2D {
     pub fn new_inherited(global: &GlobalScope,
                          canvas: Option<&HTMLCanvasElement>,
+                         image_cache: Arc<ImageCache>,
+                         base_url: ServoUrl,
                          size: Size2D<i32>)
                          -> CanvasRenderingContext2D {
         debug!("Creating new canvas rendering context.");
@@ -126,6 +139,9 @@ impl CanvasRenderingContext2D {
             reflector_: Reflector::new(),
             ipc_renderer: ipc_renderer,
             canvas: canvas.map(JS::from_ref),
+            image_cache: image_cache,
+            missing_image_urls: DOMRefCell::new(Vec::new()),
+            base_url: base_url,
             state: DOMRefCell::new(CanvasContextState::new()),
             saved_states: DOMRefCell::new(Vec::new()),
             origin_clean: Cell::new(true),
@@ -136,9 +152,11 @@ impl CanvasRenderingContext2D {
                canvas: &HTMLCanvasElement,
                size: Size2D<i32>)
                -> Root<CanvasRenderingContext2D> {
-        reflect_dom_object(box CanvasRenderingContext2D::new_inherited(global, Some(canvas), size),
-                           global,
-                           CanvasRenderingContext2DBinding::Wrap)
+        let window = window_from_node(canvas);
+        let image_cache = window.image_cache();
+        let base_url = window.get_url();
+        let boxed = box CanvasRenderingContext2D::new_inherited(global, Some(canvas), image_cache, base_url, size);
+        reflect_dom_object(boxed, global, CanvasRenderingContext2DBinding::Wrap)
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-canvas-set-bitmap-dimensions
@@ -224,15 +242,15 @@ impl CanvasRenderingContext2D {
 
     // https://html.spec.whatwg.org/multipage/#the-image-argument-is-not-origin-clean
     fn is_origin_clean(&self,
-                       image: HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D)
+                       image: CanvasImageSource)
                            -> bool {
         match image {
-            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::HTMLCanvasElement(canvas) => {
+            CanvasImageSource::HTMLCanvasElement(canvas) => {
                 canvas.origin_is_clean()
             }
-            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::CanvasRenderingContext2D(image) =>
+            CanvasImageSource::CanvasRenderingContext2D(image) =>
                 image.origin_is_clean(),
-            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::HTMLImageElement(image) => {
+            CanvasImageSource::HTMLImageElement(image) => {
                 let canvas = match self.canvas {
                     Some(ref canvas) => canvas,
                     None => return false,
@@ -241,6 +259,7 @@ impl CanvasRenderingContext2D {
                 let document = document_from_node(&**canvas);
                 document.url().clone().origin() == image_origin
             }
+            CanvasImageSource::CSSStyleValue(_) => true,
         }
     }
 
@@ -266,7 +285,7 @@ impl CanvasRenderingContext2D {
     //
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
     fn draw_image(&self,
-                  image: HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D,
+                  image: CanvasImageSource,
                   sx: f64,
                   sy: f64,
                   sw: Option<f64>,
@@ -277,38 +296,30 @@ impl CanvasRenderingContext2D {
                   dh: Option<f64>)
                   -> ErrorResult {
         let result = match image {
-            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::HTMLCanvasElement(ref canvas) => {
+            CanvasImageSource::HTMLCanvasElement(ref canvas) => {
                 self.draw_html_canvas_element(&canvas,
                                               sx, sy, sw, sh,
                                               dx, dy, dw, dh)
             }
-            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::CanvasRenderingContext2D(ref image) => {
+            CanvasImageSource::CanvasRenderingContext2D(ref image) => {
                 self.draw_html_canvas_element(&image.Canvas(),
                                               sx, sy, sw, sh,
                                               dx, dy, dw, dh)
             }
-            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::HTMLImageElement(ref image) => {
+            CanvasImageSource::HTMLImageElement(ref image) => {
                 // https://html.spec.whatwg.org/multipage/#img-error
                 // If the image argument is an HTMLImageElement object that is in the broken state,
                 // then throw an InvalidStateError exception
-                let (image_data, image_size) = match self.fetch_image_data(image) {
-                    Some((mut data, size)) => {
-                        // Pixels come from cache in BGRA order and drawImage expects RGBA so we
-                        // have to swap the color values
-                        byte_swap_and_premultiply(&mut data);
-                        let size = Size2D::new(size.width as f64, size.height as f64);
-                        (data, size)
-                    },
-                    None => return Err(Error::InvalidState),
-                };
-                let dw = dw.unwrap_or(image_size.width);
-                let dh = dh.unwrap_or(image_size.height);
-                let sw = sw.unwrap_or(image_size.width);
-                let sh = sh.unwrap_or(image_size.height);
-                self.draw_image_data(image_data,
-                                     image_size,
-                                     sx, sy, sw, sh,
-                                     dx, dy, dw, dh)
+                let url = image.get_url().ok_or(Error::InvalidState)?;
+                self.fetch_and_draw_image_data(url,
+                                               sx, sy, sw, sh,
+                                               dx, dy, dw, dh)
+            }
+            CanvasImageSource::CSSStyleValue(ref value) => {
+                let url = value.get_url(self.base_url.clone()).ok_or(Error::InvalidState)?;
+                self.fetch_and_draw_image_data(url,
+                                               sx, sy, sw, sh,
+                                               dx, dy, dw, dh)
             }
         };
 
@@ -386,6 +397,41 @@ impl CanvasRenderingContext2D {
         Ok(())
     }
 
+    fn fetch_and_draw_image_data(&self,
+                                 url: ServoUrl,
+                                 sx: f64,
+                                 sy: f64,
+                                 sw: Option<f64>,
+                                 sh: Option<f64>,
+                                 dx: f64,
+                                 dy: f64,
+                                 dw: Option<f64>,
+                                 dh: Option<f64>)
+                                 -> ErrorResult {
+        debug!("Fetching image {}.", url);
+        // https://html.spec.whatwg.org/multipage/#img-error
+        // If the image argument is an HTMLImageElement object that is in the broken state,
+        // then throw an InvalidStateError exception
+        let (image_data, image_size) = match self.fetch_image_data(url) {
+            Some((mut data, size)) => {
+                // Pixels come from cache in BGRA order and drawImage expects RGBA so we
+                // have to swap the color values
+                byte_swap_and_premultiply(&mut data);
+                let size = Size2D::new(size.width as f64, size.height as f64);
+                (data, size)
+            },
+            None => return Err(Error::InvalidState),
+        };
+        let dw = dw.unwrap_or(image_size.width);
+        let dh = dh.unwrap_or(image_size.height);
+        let sw = sw.unwrap_or(image_size.width);
+        let sh = sh.unwrap_or(image_size.height);
+        self.draw_image_data(image_data,
+                             image_size,
+                             sx, sy, sw, sh,
+                             dx, dy, dw, dh)
+    }
+
     fn draw_image_data(&self,
                        image_data: Vec<u8>,
                        image_size: Size2D<f64>,
@@ -425,12 +471,7 @@ impl CanvasRenderingContext2D {
         Ok(())
     }
 
-    fn fetch_image_data(&self, image_element: &HTMLImageElement) -> Option<(Vec<u8>, Size2D<i32>)> {
-        let url = match image_element.get_url() {
-            Some(url) => url,
-            None => return None,
-        };
-
+    fn fetch_image_data(&self, url: ServoUrl) -> Option<(Vec<u8>, Size2D<i32>)> {
         let img = match self.request_image_from_cache(url) {
             ImageResponse::Loaded(img, _) => img,
             ImageResponse::PlaceholderLoaded(_, _) |
@@ -453,10 +494,26 @@ impl CanvasRenderingContext2D {
 
     #[inline]
     fn request_image_from_cache(&self, url: ServoUrl) -> ImageResponse {
-        self.canvas.as_ref()
-            .map(|canvas| window_from_node(&**canvas))
-            .map(|window| canvas_utils::request_image_from_cache(&window, url))
-            .unwrap_or(ImageResponse::None)
+        let response = self.image_cache
+            .find_image_or_metadata(url.clone(),
+                                    UsePlaceholder::No,
+                                    CanRequestImages::No);
+        match response {
+            Ok(ImageOrMetadataAvailable::ImageAvailable(image, url)) =>
+                ImageResponse::Loaded(image, url),
+            Err(ImageState::Pending(_)) =>
+                ImageResponse::None,
+            _ => {
+                // Rather annoyingly, we get the same response back from
+                // A load which really failed and from a load which hasn't started yet.
+                self.missing_image_urls.borrow_mut().push(url);
+                ImageResponse::None
+            },
+        }
+    }
+
+    pub fn take_missing_image_urls(&self) -> Vec<ServoUrl> {
+        mem::replace(&mut self.missing_image_urls.borrow_mut(), vec![])
     }
 
     fn create_drawable_rect(&self, x: f64, y: f64, w: f64, h: f64) -> Option<Rect<f32>> {
@@ -749,7 +806,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
     fn DrawImage(&self,
-                 image: HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D,
+                 image: CanvasImageSource,
                  dx: f64,
                  dy: f64)
                  -> ErrorResult {
@@ -762,7 +819,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
     fn DrawImage_(&self,
-                  image: HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D,
+                  image: CanvasImageSource,
                   dx: f64,
                   dy: f64,
                   dw: f64,
@@ -777,7 +834,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
     fn DrawImage__(&self,
-                   image: HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D,
+                   image: CanvasImageSource,
                    sx: f64,
                    sy: f64,
                    sw: f64,
@@ -1152,26 +1209,33 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createpattern
     fn CreatePattern(&self,
-                     image: HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D,
+                     image: CanvasImageSource,
                      mut repetition: DOMString)
                      -> Fallible<Root<CanvasPattern>> {
         let (image_data, image_size) = match image {
-            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::HTMLImageElement(ref image) => {
+            CanvasImageSource::HTMLImageElement(ref image) => {
                 // https://html.spec.whatwg.org/multipage/#img-error
                 // If the image argument is an HTMLImageElement object that is in the broken state,
                 // then throw an InvalidStateError exception
-                self.fetch_image_data(image).ok_or(Error::InvalidState)?
+                image.get_url()
+                    .and_then(|url| self.fetch_image_data(url))
+                    .ok_or(Error::InvalidState)?
             },
-            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::HTMLCanvasElement(ref canvas) => {
+            CanvasImageSource::HTMLCanvasElement(ref canvas) => {
                 let _ = canvas.get_or_init_2d_context();
 
                 canvas.fetch_all_data().ok_or(Error::InvalidState)?
             },
-            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::CanvasRenderingContext2D(ref context) => {
+            CanvasImageSource::CanvasRenderingContext2D(ref context) => {
                 let canvas = context.Canvas();
                 let _ = canvas.get_or_init_2d_context();
 
                 canvas.fetch_all_data().ok_or(Error::InvalidState)?
+            }
+            CanvasImageSource::CSSStyleValue(ref value) => {
+                value.get_url(self.base_url.clone())
+                    .and_then(|url| self.fetch_image_data(url))
+                    .ok_or(Error::InvalidState)?
             }
         };
 

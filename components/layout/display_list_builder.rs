@@ -1173,7 +1173,6 @@ impl FragmentDisplayListBuilding for Fragment {
         let device_pixel_ratio = state.layout_context.style_context.device_pixel_ratio();
         let size_in_au = unbordered_box.size.to_physical(style.writing_mode);
         let size_in_px = TypedSize2D::new(size_in_au.width.to_f32_px(), size_in_au.height.to_f32_px());
-        let size_in_dpx = size_in_px * device_pixel_ratio;
         let name = paint_worklet.name.clone();
 
         // Get the painter, and the computed values for its properties.
@@ -1192,23 +1191,18 @@ impl FragmentDisplayListBuilding for Fragment {
         // TODO: add a one-place cache to avoid drawing the paint image every time.
         // https://github.com/servo/servo/issues/17369
         debug!("Drawing a paint image {}({},{}).", name, size_in_px.width, size_in_px.height);
-        let (sender, receiver) = ipc::channel().unwrap();
-        painter.draw_a_paint_image(size_in_px, device_pixel_ratio, properties, sender);
-
-        // TODO: timeout
-        let webrender_image = match receiver.recv() {
-            Ok(CanvasData::Image(canvas_data)) => {
-                WebRenderImageInfo {
-                    // TODO: it would be nice to get this data back from the canvas
-                    width: size_in_dpx.width as u32,
-                    height: size_in_dpx.height as u32,
-                    format: PixelFormat::BGRA8,
-                    key: Some(canvas_data.image_key),
-                }
-            },
-            Ok(CanvasData::WebGL(_)) => return warn!("Paint worklet generated WebGL."),
-            Err(err) => return warn!("Paint worklet recv generated error ({}).", err),
+        let mut draw_result = painter.draw_a_paint_image(size_in_px, device_pixel_ratio, properties);
+        let webrender_image = WebRenderImageInfo {
+            width: draw_result.width,
+            height: draw_result.height,
+            format: draw_result.format,
+            key: draw_result.image_key,
         };
+
+        for url in draw_result.missing_image_urls.drain(..) {
+            debug!("Requesting missing image URL {}.", url);
+            state.layout_context.get_webrender_image_for_url(self.node, url, UsePlaceholder::No);
+        }
 
         self.build_display_list_for_webrender_image(state,
                                                     style,
