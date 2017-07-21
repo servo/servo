@@ -12,9 +12,6 @@ use properties::longhands::display::computed_value::T as display;
 use properties::longhands::float::computed_value::T as float;
 use properties::longhands::overflow_x::computed_value::T as overflow;
 use properties::longhands::position::computed_value::T as position;
-#[cfg(feature = "gecko")]
-use properties::longhands::unicode_bidi::computed_value::T as unicode_bidi;
-
 
 /// An unsized struct that implements all the adjustment methods.
 pub struct StyleAdjuster<'a, 'b: 'a> {
@@ -390,6 +387,8 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
                        flags: CascadeFlags) {
         use properties::SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP;
         use properties::computed_value_flags::SHOULD_SUPPRESS_LINEBREAK;
+        use properties::longhands::unicode_bidi::computed_value::T as unicode_bidi;
+
         let self_display = self.style.get_box().clone_display();
         // Check whether line break should be suppressed for this element.
         if self.should_suppress_linebreak(layout_parent_style) {
