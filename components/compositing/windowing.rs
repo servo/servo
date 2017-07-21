@@ -11,11 +11,12 @@ use gleam::gl;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, TraversalDirection};
 use net_traits::net_error_list::NetError;
-use script_traits::{DevicePixel, LoadData, MouseButton, TouchEventType, TouchId, TouchpadPressurePhase};
+use script_traits::{LoadData, MouseButton, TouchEventType, TouchId, TouchpadPressurePhase};
 use servo_geometry::DeviceIndependentPixel;
 use servo_url::ServoUrl;
 use std::fmt::{Debug, Error, Formatter};
 use std::rc::Rc;
+use style_traits::DevicePixel;
 use style_traits::cursor::Cursor;
 use webrender_api::ScrollLocation;
 

@@ -59,6 +59,12 @@ impl PinchZoomFactor {
 #[derive(Clone, Copy, Debug)]
 pub enum CSSPixel {}
 
+/// One hardware pixel.
+///
+/// This unit corresponds to the smallest addressable element of the display hardware.
+#[derive(Copy, Clone, Debug)]
+pub enum DevicePixel {}
+
 // In summary, the hierarchy of pixel units and the factors to convert from one to the next:
 //
 // DevicePixel
