@@ -2813,7 +2813,7 @@ pub extern "C" fn Servo_ResolveStyle(element: RawGeckoElementBorrowed,
         TraversalFlags::empty()
     };
     debug_assert!(element.has_current_styles_for_traversal(&*data, flags),
-                  "Resolving style on element without current styles");
+                  "Resolving style on {:?} without current styles: {:?}", element, data);
     data.styles.primary().clone().into()
 }
 
