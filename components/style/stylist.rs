@@ -490,7 +490,9 @@ impl Stylist {
                             self.element_map.borrow_for_origin(&origin)
                         };
 
-                        let hashes = AncestorHashes::new(&selector);
+                        let hashes =
+                            AncestorHashes::new(&selector, self.quirks_mode);
+
                         map.insert(
                             Rule::new(selector.clone(),
                                       hashes.clone(),
