@@ -2872,11 +2872,26 @@ pub fn cascade(
                 &[]
             };
             let node_importance = node.importance();
+
+            let property_restriction = pseudo.and_then(|p| p.property_restriction());
+
             declarations
                 .iter()
                 // Yield declarations later in source order (with more precedence) first.
                 .rev()
                 .filter_map(move |&(ref declaration, declaration_importance)| {
+                    if let Some(property_restriction) = property_restriction {
+                        // declaration.id() is either a longhand or a custom
+                        // property.  Custom properties are always allowed, but
+                        // longhands are only allowed if they have our
+                        // property_restriction flag set.
+                        if let PropertyDeclarationId::Longhand(id) = declaration.id() {
+                            if !id.flags().contains(property_restriction) {
+                                return None
+                            }
+                        }
+                    }
+
                     if declaration_importance == node_importance {
                         Some((declaration, cascade_level))
                     } else {
