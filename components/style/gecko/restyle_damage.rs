@@ -53,8 +53,8 @@ impl GeckoRestyleDamage {
     ) -> StyleDifference {
         let mut any_style_changed: bool = false;
         let hint = unsafe {
-            bindings::Gecko_CalcStyleDifference(old_style.as_style_context(),
-                                                new_style.as_style_context(),
+            bindings::Gecko_CalcStyleDifference(old_style,
+                                                new_style,
                                                 source.mBits,
                                                 &mut any_style_changed)
         };

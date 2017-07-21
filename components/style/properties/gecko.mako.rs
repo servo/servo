@@ -39,7 +39,6 @@ use gecko_bindings::bindings::Gecko_nsStyleFont_CopyLangFrom;
 use gecko_bindings::bindings::Gecko_SetListStyleImageNone;
 use gecko_bindings::bindings::Gecko_SetListStyleImageImageValue;
 use gecko_bindings::bindings::Gecko_SetNullImageValue;
-use gecko_bindings::bindings::ServoComputedValuesBorrowedOrNull;
 use gecko_bindings::bindings::{Gecko_ResetFilters, Gecko_CopyFiltersFrom};
 use gecko_bindings::bindings::RawGeckoPresContextBorrowed;
 use gecko_bindings::structs;
@@ -74,7 +73,7 @@ pub mod style_structs {
 }
 
 /// FIXME(emilio): This is completely duplicated with the other properties code.
-pub type ComputedValuesInner = ::gecko_bindings::structs::ServoComputedValues;
+pub type ComputedValuesInner = ::gecko_bindings::structs::ServoComputedData;
 
 #[derive(Debug)]
 #[repr(C)]
@@ -136,10 +135,6 @@ impl ComputedValues {
 
         let atom = Atom::from(atom);
         PseudoElement::from_atom(&atom)
-    }
-
-    pub fn as_style_context(&self) -> &::gecko_bindings::structs::mozilla::ServoStyleContext {
-        &self.0
     }
 }
 
@@ -227,7 +222,8 @@ impl ComputedValuesInner {
     ) -> Arc<ComputedValues> {
         let arc = unsafe {
             let arc: Arc<ComputedValues> = Arc::new(uninitialized());
-            bindings::Gecko_ServoStyleContext_Init(&arc.0 as *const _ as *mut _, parent, pres_context,
+            bindings::Gecko_ServoStyleContext_Init(&arc.0 as *const _ as *mut _,
+                                                   parent, pres_context,
                                                    &self, pseudo_ty, pseudo_tag);
             // We're simulating a move by having C++ do a memcpy and then forgetting
             // it on this end.
@@ -4973,23 +4969,12 @@ clip-path
     }
 </%self:impl_trait>
 
-<%def name="define_ffi_struct_accessor(style_struct)">
-#[no_mangle]
-#[allow(non_snake_case, unused_variables)]
-pub unsafe extern "C" fn Servo_GetStyle${style_struct.gecko_name}(computed_values:
-        ServoComputedValuesBorrowedOrNull) -> *const ${style_struct.gecko_ffi_name} {
-    computed_values.unwrap().get_${style_struct.name_lower}().get_gecko()
-        as *const ${style_struct.gecko_ffi_name}
-}
-</%def>
-
 % for style_struct in data.style_structs:
 ${declare_style_struct(style_struct)}
 ${impl_style_struct(style_struct)}
 % if not style_struct.name in data.manual_style_structs:
 <%self:raw_impl_trait style_struct="${style_struct}"></%self:raw_impl_trait>
 % endif
-${define_ffi_struct_accessor(style_struct)}
 % endfor
 
 // This is only accessed from the Gecko main thread.

@@ -11,12 +11,12 @@ pub type ServoCell<T> = ::std::cell::Cell<T>;
 pub type ServoNodeData = AtomicRefCell<ElementData>;
 pub type ServoWritingMode = ::logical_geometry::WritingMode;
 pub type ServoFontComputationData = ::properties::FontComputationData;
-pub type ServoCustomPropertiesMap = Option<::stylearc::Arc<::custom_properties::CustomPropertiesMap>>;
+pub type ServoCustomPropertiesMap = Option<::servo_arc::Arc<::custom_properties::CustomPropertiesMap>>;
 pub type ServoRuleNode = Option<::rule_tree::StrongRuleNode>;
-pub type ServoVisitedStyle = Option<::stylearc::RawOffsetArc<::properties::ComputedValues>>;
+pub type ServoVisitedStyle = Option<::servo_arc::RawOffsetArc<::properties::ComputedValues>>;
 pub type ServoComputedValueFlags = ::properties::computed_value_flags::ComputedValueFlags;
-pub type ServoRawOffsetArc<T> = ::stylearc::RawOffsetArc<T>;
-pub type ServoStyleContextStrong = ::gecko_bindings::sugar::ownership::Strong<ServoStyleContext>;
+pub type ServoRawOffsetArc<T> = ::servo_arc::RawOffsetArc<T>;
+pub type ServoStyleContextStrong = ::gecko_bindings::sugar::ownership::Strong<::properties::ComputedValues>;
 
 #[allow(non_snake_case, non_camel_case_types, non_upper_case_globals)]
 pub mod root {
@@ -7590,7 +7590,7 @@ pub mod root {
         pub struct ServoStyleContext {
             pub _base: root::nsStyleContext,
             pub mPresContext: *mut root::nsPresContext,
-            pub mSource: root::ServoComputedValues,
+            pub mSource: root::ServoComputedData,
         }
         #[test]
         fn bindgen_test_layout_ServoStyleContext() {
@@ -20993,7 +20993,7 @@ pub mod root {
  */
     #[repr(C)]
     #[derive(Debug)]
-    pub struct ServoComputedValues {
+    pub struct ServoComputedData {
         pub Font: ::gecko_bindings::structs::ServoRawOffsetArc<root::mozilla::GeckoFont>,
         pub Color: ::gecko_bindings::structs::ServoRawOffsetArc<root::mozilla::GeckoColor>,
         pub List: ::gecko_bindings::structs::ServoRawOffsetArc<root::mozilla::GeckoList>,
@@ -21031,187 +21031,187 @@ pub mod root {
         pub font_computation_data: ::gecko_bindings::structs::ServoFontComputationData,
     }
     #[test]
-    fn bindgen_test_layout_ServoComputedValues() {
-        assert_eq!(::std::mem::size_of::<ServoComputedValues>() , 224usize ,
+    fn bindgen_test_layout_ServoComputedData() {
+        assert_eq!(::std::mem::size_of::<ServoComputedData>() , 224usize ,
                    concat ! (
-                   "Size of: " , stringify ! ( ServoComputedValues ) ));
-        assert_eq! (::std::mem::align_of::<ServoComputedValues>() , 8usize ,
+                   "Size of: " , stringify ! ( ServoComputedData ) ));
+        assert_eq! (::std::mem::align_of::<ServoComputedData>() , 8usize ,
                     concat ! (
-                    "Alignment of " , stringify ! ( ServoComputedValues ) ));
+                    "Alignment of " , stringify ! ( ServoComputedData ) ));
         assert_eq! (unsafe {
-                    & ( * ( 0 as * const ServoComputedValues ) ) . Font as *
+                    & ( * ( 0 as * const ServoComputedData ) ) . Font as *
                     const _ as usize } , 0usize , concat ! (
-                    "Alignment of field: " , stringify ! ( ServoComputedValues
+                    "Alignment of field: " , stringify ! ( ServoComputedData
                     ) , "::" , stringify ! ( Font ) ));
         assert_eq! (unsafe {
-                    & ( * ( 0 as * const ServoComputedValues ) ) . Color as *
+                    & ( * ( 0 as * const ServoComputedData ) ) . Color as *
                     const _ as usize } , 8usize , concat ! (
-                    "Alignment of field: " , stringify ! ( ServoComputedValues
+                    "Alignment of field: " , stringify ! ( ServoComputedData
                     ) , "::" , stringify ! ( Color ) ));
         assert_eq! (unsafe {
-                    & ( * ( 0 as * const ServoComputedValues ) ) . List as *
+                    & ( * ( 0 as * const ServoComputedData ) ) . List as *
                     const _ as usize } , 16usize , concat ! (
-                    "Alignment of field: " , stringify ! ( ServoComputedValues
+                    "Alignment of field: " , stringify ! ( ServoComputedData
                     ) , "::" , stringify ! ( List ) ));
         assert_eq! (unsafe {
-                    & ( * ( 0 as * const ServoComputedValues ) ) . Text as *
+                    & ( * ( 0 as * const ServoComputedData ) ) . Text as *
                     const _ as usize } , 24usize , concat ! (
-                    "Alignment of field: " , stringify ! ( ServoComputedValues
+                    "Alignment of field: " , stringify ! ( ServoComputedData
                     ) , "::" , stringify ! ( Text ) ));
         assert_eq! (unsafe {
-                    & ( * ( 0 as * const ServoComputedValues ) ) . Visibility
+                    & ( * ( 0 as * const ServoComputedData ) ) . Visibility
                     as * const _ as usize } , 32usize , concat ! (
-                    "Alignment of field: " , stringify ! ( ServoComputedValues
+                    "Alignment of field: " , stringify ! ( ServoComputedData
                     ) , "::" , stringify ! ( Visibility ) ));
         assert_eq! (unsafe {
-                    & ( * ( 0 as * const ServoComputedValues ) ) .
+                    & ( * ( 0 as * const ServoComputedData ) ) .
                     UserInterface as * const _ as usize } , 40usize , concat !
                     (
-                    "Alignment of field: " , stringify ! ( ServoComputedValues
+                    "Alignment of field: " , stringify ! ( ServoComputedData
                     ) , "::" , stringify ! ( UserInterface ) ));
         assert_eq! (unsafe {
-                    & ( * ( 0 as * const ServoComputedValues ) ) . TableBorder
+                    & ( * ( 0 as * const ServoComputedData ) ) . TableBorder
                     as * const _ as usize } , 48usize , concat ! (
-                    "Alignment of field: " , stringify ! ( ServoComputedValues
+                    "Alignment of field: " , stringify ! ( ServoComputedData
                     ) , "::" , stringify ! ( TableBorder ) ));
         assert_eq! (unsafe {
-                    & ( * ( 0 as * const ServoComputedValues ) ) . SVG as *
+                    & ( * ( 0 as * const ServoComputedData ) ) . SVG as *
                     const _ as usize } , 56usize , concat ! (
-                    "Alignment of field: " , stringify ! ( ServoComputedValues
+                    "Alignment of field: " , stringify ! ( ServoComputedData
                     ) , "::" , stringify ! ( SVG ) ));
         assert_eq! (unsafe {
-                    & ( * ( 0 as * const ServoComputedValues ) ) . Background
+                    & ( * ( 0 as * const ServoComputedData ) ) . Background
                     as * const _ as usize } , 64usize , concat ! (
-                    "Alignment of field: " , stringify ! ( ServoComputedValues
+                    "Alignment of field: " , stringify ! ( ServoComputedData
                     ) , "::" , stringify ! ( Background ) ));
         assert_eq! (unsafe {
-                    & ( * ( 0 as * const ServoComputedValues ) ) . Position as
+                    & ( * ( 0 as * const ServoComputedData ) ) . Position as
                     * const _ as usize } , 72usize , concat ! (
-                    "Alignment of field: " , stringify ! ( ServoComputedValues
+                    "Alignment of field: " , stringify ! ( ServoComputedData
                     ) , "::" , stringify ! ( Position ) ));
         assert_eq! (unsafe {
-                    & ( * ( 0 as * const ServoComputedValues ) ) . TextReset
+                    & ( * ( 0 as * const ServoComputedData ) ) . TextReset
                     as * const _ as usize } , 80usize , concat ! (
-                    "Alignment of field: " , stringify ! ( ServoComputedValues
+                    "Alignment of field: " , stringify ! ( ServoComputedData
                     ) , "::" , stringify ! ( TextReset ) ));
         assert_eq! (unsafe {
-                    & ( * ( 0 as * const ServoComputedValues ) ) . Display as
+                    & ( * ( 0 as * const ServoComputedData ) ) . Display as
                     * const _ as usize } , 88usize , concat ! (
-                    "Alignment of field: " , stringify ! ( ServoComputedValues
+                    "Alignment of field: " , stringify ! ( ServoComputedData
                     ) , "::" , stringify ! ( Display ) ));
         assert_eq! (unsafe {
-                    & ( * ( 0 as * const ServoComputedValues ) ) . Content as
+                    & ( * ( 0 as * const ServoComputedData ) ) . Content as
                     * const _ as usize } , 96usize , concat ! (
-                    "Alignment of field: " , stringify ! ( ServoComputedValues
+                    "Alignment of field: " , stringify ! ( ServoComputedData
                     ) , "::" , stringify ! ( Content ) ));
         assert_eq! (unsafe {
-                    & ( * ( 0 as * const ServoComputedValues ) ) . UIReset as
+                    & ( * ( 0 as * const ServoComputedData ) ) . UIReset as
                     * const _ as usize } , 104usize , concat ! (
-                    "Alignment of field: " , stringify ! ( ServoComputedValues
+                    "Alignment of field: " , stringify ! ( ServoComputedData
                     ) , "::" , stringify ! ( UIReset ) ));
         assert_eq! (unsafe {
-                    & ( * ( 0 as * const ServoComputedValues ) ) . Table as *
+                    & ( * ( 0 as * const ServoComputedData ) ) . Table as *
                     const _ as usize } , 112usize , concat ! (
-                    "Alignment of field: " , stringify ! ( ServoComputedValues
+                    "Alignment of field: " , stringify ! ( ServoComputedData
                     ) , "::" , stringify ! ( Table ) ));
         assert_eq! (unsafe {
-                    & ( * ( 0 as * const ServoComputedValues ) ) . Margin as *
+                    & ( * ( 0 as * const ServoComputedData ) ) . Margin as *
                     const _ as usize } , 120usize , concat ! (
-                    "Alignment of field: " , stringify ! ( ServoComputedValues
+                    "Alignment of field: " , stringify ! ( ServoComputedData
                     ) , "::" , stringify ! ( Margin ) ));
         assert_eq! (unsafe {
-                    & ( * ( 0 as * const ServoComputedValues ) ) . Padding as
+                    & ( * ( 0 as * const ServoComputedData ) ) . Padding as
                     * const _ as usize } , 128usize , concat ! (
-                    "Alignment of field: " , stringify ! ( ServoComputedValues
+                    "Alignment of field: " , stringify ! ( ServoComputedData
                     ) , "::" , stringify ! ( Padding ) ));
         assert_eq! (unsafe {
-                    & ( * ( 0 as * const ServoComputedValues ) ) . Border as *
+                    & ( * ( 0 as * const ServoComputedData ) ) . Border as *
                     const _ as usize } , 136usize , concat ! (
-                    "Alignment of field: " , stringify ! ( ServoComputedValues
+                    "Alignment of field: " , stringify ! ( ServoComputedData
                     ) , "::" , stringify ! ( Border ) ));
         assert_eq! (unsafe {
-                    & ( * ( 0 as * const ServoComputedValues ) ) . Outline as
+                    & ( * ( 0 as * const ServoComputedData ) ) . Outline as
                     * const _ as usize } , 144usize , concat ! (
-                    "Alignment of field: " , stringify ! ( ServoComputedValues
+                    "Alignment of field: " , stringify ! ( ServoComputedData
                     ) , "::" , stringify ! ( Outline ) ));
         assert_eq! (unsafe {
-                    & ( * ( 0 as * const ServoComputedValues ) ) . XUL as *
+                    & ( * ( 0 as * const ServoComputedData ) ) . XUL as *
                     const _ as usize } , 152usize , concat ! (
-                    "Alignment of field: " , stringify ! ( ServoComputedValues
+                    "Alignment of field: " , stringify ! ( ServoComputedData
                     ) , "::" , stringify ! ( XUL ) ));
         assert_eq! (unsafe {
-                    & ( * ( 0 as * const ServoComputedValues ) ) . SVGReset as
+                    & ( * ( 0 as * const ServoComputedData ) ) . SVGReset as
                     * const _ as usize } , 160usize , concat ! (
-                    "Alignment of field: " , stringify ! ( ServoComputedValues
+                    "Alignment of field: " , stringify ! ( ServoComputedData
                     ) , "::" , stringify ! ( SVGReset ) ));
         assert_eq! (unsafe {
-                    & ( * ( 0 as * const ServoComputedValues ) ) . Column as *
+                    & ( * ( 0 as * const ServoComputedData ) ) . Column as *
                     const _ as usize } , 168usize , concat ! (
-                    "Alignment of field: " , stringify ! ( ServoComputedValues
+                    "Alignment of field: " , stringify ! ( ServoComputedData
                     ) , "::" , stringify ! ( Column ) ));
         assert_eq! (unsafe {
-                    & ( * ( 0 as * const ServoComputedValues ) ) . Effects as
+                    & ( * ( 0 as * const ServoComputedData ) ) . Effects as
                     * const _ as usize } , 176usize , concat ! (
-                    "Alignment of field: " , stringify ! ( ServoComputedValues
+                    "Alignment of field: " , stringify ! ( ServoComputedData
                     ) , "::" , stringify ! ( Effects ) ));
         assert_eq! (unsafe {
-                    & ( * ( 0 as * const ServoComputedValues ) ) .
+                    & ( * ( 0 as * const ServoComputedData ) ) .
                     custom_properties as * const _ as usize } , 184usize ,
                     concat ! (
-                    "Alignment of field: " , stringify ! ( ServoComputedValues
+                    "Alignment of field: " , stringify ! ( ServoComputedData
                     ) , "::" , stringify ! ( custom_properties ) ));
         assert_eq! (unsafe {
-                    & ( * ( 0 as * const ServoComputedValues ) ) .
+                    & ( * ( 0 as * const ServoComputedData ) ) .
                     writing_mode as * const _ as usize } , 192usize , concat !
                     (
-                    "Alignment of field: " , stringify ! ( ServoComputedValues
+                    "Alignment of field: " , stringify ! ( ServoComputedData
                     ) , "::" , stringify ! ( writing_mode ) ));
         assert_eq! (unsafe {
-                    & ( * ( 0 as * const ServoComputedValues ) ) . flags as *
+                    & ( * ( 0 as * const ServoComputedData ) ) . flags as *
                     const _ as usize } , 193usize , concat ! (
-                    "Alignment of field: " , stringify ! ( ServoComputedValues
+                    "Alignment of field: " , stringify ! ( ServoComputedData
                     ) , "::" , stringify ! ( flags ) ));
         assert_eq! (unsafe {
-                    & ( * ( 0 as * const ServoComputedValues ) ) . rules as *
+                    & ( * ( 0 as * const ServoComputedData ) ) . rules as *
                     const _ as usize } , 200usize , concat ! (
-                    "Alignment of field: " , stringify ! ( ServoComputedValues
+                    "Alignment of field: " , stringify ! ( ServoComputedData
                     ) , "::" , stringify ! ( rules ) ));
         assert_eq! (unsafe {
-                    & ( * ( 0 as * const ServoComputedValues ) ) .
+                    & ( * ( 0 as * const ServoComputedData ) ) .
                     visited_style as * const _ as usize } , 208usize , concat
                     ! (
-                    "Alignment of field: " , stringify ! ( ServoComputedValues
+                    "Alignment of field: " , stringify ! ( ServoComputedData
                     ) , "::" , stringify ! ( visited_style ) ));
         assert_eq! (unsafe {
-                    & ( * ( 0 as * const ServoComputedValues ) ) .
+                    & ( * ( 0 as * const ServoComputedData ) ) .
                     font_computation_data as * const _ as usize } , 216usize ,
                     concat ! (
-                    "Alignment of field: " , stringify ! ( ServoComputedValues
+                    "Alignment of field: " , stringify ! ( ServoComputedData
                     ) , "::" , stringify ! ( font_computation_data ) ));
     }
     #[repr(C)]
     #[derive(Debug, Copy)]
-    pub struct ServoComputedValuesForgotten {
-        pub mPtr: *const root::ServoComputedValues,
+    pub struct ServoComputedDataForgotten {
+        pub mPtr: *const root::ServoComputedData,
     }
     #[test]
-    fn bindgen_test_layout_ServoComputedValuesForgotten() {
-        assert_eq!(::std::mem::size_of::<ServoComputedValuesForgotten>() ,
+    fn bindgen_test_layout_ServoComputedDataForgotten() {
+        assert_eq!(::std::mem::size_of::<ServoComputedDataForgotten>() ,
                    8usize , concat ! (
-                   "Size of: " , stringify ! ( ServoComputedValuesForgotten )
+                   "Size of: " , stringify ! ( ServoComputedDataForgotten )
                    ));
-        assert_eq! (::std::mem::align_of::<ServoComputedValuesForgotten>() ,
+        assert_eq! (::std::mem::align_of::<ServoComputedDataForgotten>() ,
                     8usize , concat ! (
                     "Alignment of " , stringify ! (
-                    ServoComputedValuesForgotten ) ));
+                    ServoComputedDataForgotten ) ));
         assert_eq! (unsafe {
-                    & ( * ( 0 as * const ServoComputedValuesForgotten ) ) .
+                    & ( * ( 0 as * const ServoComputedDataForgotten ) ) .
                     mPtr as * const _ as usize } , 0usize , concat ! (
                     "Alignment of field: " , stringify ! (
-                    ServoComputedValuesForgotten ) , "::" , stringify ! ( mPtr
+                    ServoComputedDataForgotten ) , "::" , stringify ! ( mPtr
                     ) ));
     }
-    impl Clone for ServoComputedValuesForgotten {
+    impl Clone for ServoComputedDataForgotten {
         fn clone(&self) -> Self { *self }
     }
     #[repr(u32)]
@@ -38455,9 +38455,7 @@ pub mod root {
         *const root::mozilla::ServoStyleContext;
     pub type ServoStyleContextBorrowedOrNull =
         *const root::mozilla::ServoStyleContext;
-    pub type ServoComputedValuesBorrowed = *const root::ServoComputedValues;
-    pub type ServoComputedValuesBorrowedOrNull =
-        *const root::ServoComputedValues;
+    pub type ServoComputedDataBorrowed = *const root::ServoComputedData;
     pub type RawServoAnimationValueMapBorrowedMut =
         *mut root::RawServoAnimationValueMap;
     pub type RawGeckoNodeBorrowed = *const root::RawGeckoNode;

@@ -889,6 +889,12 @@ impl<'a, T> ArcBorrow<'a, T> {
         arc
     }
 
+    /// For constructing from a reference known to be Arc-backed,
+    /// e.g. if we obtain such a reference over FFI
+    pub unsafe fn from_ref(r: &'a T) -> Self {
+        ArcBorrow(r)
+    }
+
     pub fn with_arc<F, U>(&self, f: F) -> U where F: FnOnce(&Arc<T>) -> U, T: 'static {
         // Synthesize transient Arc, which never touches the refcount.
         let transient = unsafe { NoDrop::new(Arc::from_raw(self.0)) };
