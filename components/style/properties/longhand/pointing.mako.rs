@@ -152,6 +152,7 @@
 // TODO(pcwalton): SVG-only values.
 ${helpers.single_keyword("pointer-events", "auto none", animation_value_type="discrete",
                          extra_gecko_values="visiblepainted visiblefill visiblestroke visible painted fill stroke all",
+                         flags="APPLIES_TO_PLACEHOLDER",
                          spec="https://www.w3.org/TR/SVG11/interact.html#PointerEventsProperty")}
 
 ${helpers.single_keyword("-moz-user-input", "auto none enabled disabled",

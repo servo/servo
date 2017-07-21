@@ -11,7 +11,7 @@ ${helpers.predefined_type("opacity",
                           "Opacity",
                           "1.0",
                           animation_value_type="ComputedValue",
-                          flags="CREATES_STACKING_CONTEXT",
+                          flags="CREATES_STACKING_CONTEXT APPLIES_TO_PLACEHOLDER",
                           spec="https://drafts.csswg.org/css-color/#opacity")}
 
 ${helpers.predefined_type(
@@ -22,6 +22,7 @@ ${helpers.predefined_type(
     animation_value_type="AnimatedBoxShadowList",
     extra_prefixes="webkit",
     ignored_when_colors_disabled=True,
+    flags="APPLIES_TO_FIRST_LETTER",
     spec="https://drafts.csswg.org/css-backgrounds/#box-shadow",
 )}
 

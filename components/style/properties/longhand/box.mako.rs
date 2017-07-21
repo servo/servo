@@ -10,10 +10,14 @@
                          gecko_name="Display") %>
 
 // TODO(SimonSapin): don't parse `inline-table`, since we don't support it
+//
+// We allow "display" to apply to placeholders because we need to make the
+// placeholder pseudo-element an inline-block in the UA stylesheet in Gecko.
 <%helpers:longhand name="display"
                    need_clone="True"
                    animation_value_type="discrete"
                    custom_cascade="${product == 'servo'}"
+                   flags="APPLIES_TO_PLACEHOLDER"
                    spec="https://drafts.csswg.org/css-display/#propdef-display">
     <%
         values = """inline block inline-block
@@ -216,6 +220,7 @@ ${helpers.single_keyword("position", "static absolute relative fixed",
                                   gecko_inexhaustive="True"
                                   gecko_ffi_name="mFloat"
                                   gecko_pref_ident="float_"
+                                  flags="APPLIES_TO_FIRST_LETTER"
                                   spec="https://drafts.csswg.org/css-box/#propdef-float">
     no_viewport_percentage!(SpecifiedValue);
     impl ToComputedValue for SpecifiedValue {
@@ -306,6 +311,7 @@ ${helpers.single_keyword("position", "static absolute relative fixed",
 </%helpers:longhand>
 
 <%helpers:longhand name="vertical-align" animation_value_type="ComputedValue"
+                   flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
                    spec="https://www.w3.org/TR/CSS2/visudet.html#propdef-vertical-align">
     use std::fmt;
     use style_traits::ToCss;
@@ -432,6 +438,7 @@ ${helpers.single_keyword("-servo-overflow-clip-box", "padding-box content-box",
 
 ${helpers.single_keyword("overflow-clip-box", "padding-box content-box",
     products="gecko", animation_value_type="discrete", internal=True,
+    flags="APPLIES_TO_PLACEHOLDER",
     spec="Internal, not web-exposed, \
           may be standardized in the future (https://developer.mozilla.org/en-US/docs/Web/CSS/overflow-clip-box)")}
 
@@ -445,10 +452,12 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                          extra_gecko_values="-moz-hidden-unscrollable",
                          custom_consts=overflow_custom_consts,
                          gecko_constant_prefix="NS_STYLE_OVERFLOW",
+                         flags="APPLIES_TO_PLACEHOLDER",
                          spec="https://drafts.csswg.org/css-overflow/#propdef-overflow-x")}
 
 // FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
 <%helpers:longhand name="overflow-y" need_clone="True" animation_value_type="discrete"
+                   flags="APPLIES_TO_PLACEHOLDER",
                    spec="https://drafts.csswg.org/css-overflow/#propdef-overflow-y">
     pub use super::overflow_x::{SpecifiedValue, parse, get_initial_value, computed_value};
 </%helpers:longhand>
@@ -1618,10 +1627,15 @@ ${helpers.single_keyword("page-break-inside",
 // CSS Basic User Interface Module Level 3
 // http://dev.w3.org/csswg/css-ui
 // FIXME support logical values `block` and `inline` (https://drafts.csswg.org/css-logical-props/#resize)
+//
+// This is APPLIES_TO_PLACEHOLDER so we can override, in the UA sheet, the
+// 'resize' property we'd inherit from textarea otherwise.  Basically, just
+// makes the UA rules easier to write.
 ${helpers.single_keyword("resize",
                          "none both horizontal vertical",
                          products="gecko",
                          spec="https://drafts.csswg.org/css-ui/#propdef-resize",
+                         flags="APPLIES_TO_PLACEHOLDER",
                          animation_value_type="discrete")}
 
 
@@ -1888,6 +1902,7 @@ ${helpers.predefined_type("shape-outside", "basic_shape::FloatAreaShape",
                           "generics::basic_shape::ShapeSource::None",
                           products="gecko", boxed="True",
                           animation_value_type="none",
+                          flags="APPLIES_TO_FIRST_LETTER",
                           spec="https://drafts.csswg.org/css-shapes/#shape-outside-property")}
 
 <%helpers:longhand name="touch-action"

@@ -10,6 +10,7 @@ ${helpers.predefined_type("line-height",
                           "LineHeight",
                           "computed::LineHeight::normal()",
                           animation_value_type="ComputedValue",
+                          flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
                           spec="https://drafts.csswg.org/css2/visudet.html#propdef-line-height")}
 
 // CSS Text Module Level 3
@@ -19,6 +20,7 @@ ${helpers.single_keyword("text-transform",
                          "none capitalize uppercase lowercase",
                          extra_gecko_values="full-width",
                          animation_value_type="discrete",
+                         flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
                          spec="https://drafts.csswg.org/css-text/#propdef-text-transform")}
 
 ${helpers.single_keyword("hyphens", "manual none auto",
@@ -66,6 +68,7 @@ ${helpers.single_keyword("word-break",
                                   gecko_enum_prefix="StyleTextJustify"
                                   gecko_inexhaustive="True"
                                   animation_value_type="discrete"
+                                  flags="APPLIES_TO_PLACEHOLDER",
                                   spec="https://drafts.csswg.org/css-text/#propdef-text-justify">
     no_viewport_percentage!(SpecifiedValue);
 
@@ -109,6 +112,7 @@ ${helpers.single_keyword("text-align-last",
 
 // TODO make this a shorthand and implement text-align-last/text-align-all
 <%helpers:longhand name="text-align" animation_value_type="discrete"
+                   flags="APPLIES_TO_PLACEHOLDER"
                    spec="https://drafts.csswg.org/css-text/#propdef-text-align">
     no_viewport_percentage!(SpecifiedValue);
     pub mod computed_value {
@@ -267,12 +271,14 @@ ${helpers.predefined_type("letter-spacing",
                           "LetterSpacing",
                           "computed::LetterSpacing::normal()",
                           animation_value_type="ComputedValue",
+                          flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
                           spec="https://drafts.csswg.org/css-text/#propdef-letter-spacing")}
 
 ${helpers.predefined_type("word-spacing",
                           "WordSpacing",
                           "computed::WordSpacing::normal()",
                           animation_value_type="ComputedValue",
+                          flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
                           spec="https://drafts.csswg.org/css-text/#propdef-word-spacing")}
 
 <%helpers:longhand name="-servo-text-decorations-in-effect"
@@ -367,6 +373,9 @@ ${helpers.predefined_type("word-spacing",
                                   needs_conversion="True"
                                   gecko_inexhaustive="True"
                                   animation_value_type="discrete"
+                                  // Only allowed for UA sheets, which set it
+                                  // !important.
+                                  flags="APPLIES_TO_PLACEHOLDER"
                                   spec="https://drafts.csswg.org/css-text/#propdef-white-space">
     use values::computed::ComputedValueAsSpecified;
     impl ComputedValueAsSpecified for SpecifiedValue {}
@@ -414,6 +423,7 @@ ${helpers.predefined_type(
     vector=True,
     animation_value_type="AnimatedTextShadowList",
     ignored_when_colors_disabled=True,
+    flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
     spec="https://drafts.csswg.org/css-text-decor-3/#text-shadow-property",
 )}
 
@@ -718,6 +728,7 @@ ${helpers.predefined_type(
     "computed_value::T::currentcolor()",
     products="gecko", animation_value_type="IntermediateColor",
     need_clone=True, ignored_when_colors_disabled=True,
+    flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
     spec="https://compat.spec.whatwg.org/#the-webkit-text-fill-color")}
 
 ${helpers.predefined_type(
@@ -726,6 +737,7 @@ ${helpers.predefined_type(
     initial_specified_value="specified::Color::currentcolor()",
     products="gecko", animation_value_type="IntermediateColor",
     need_clone=True, ignored_when_colors_disabled=True,
+    flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
     spec="https://compat.spec.whatwg.org/#the-webkit-text-stroke-color")}
 
 ${helpers.predefined_type("-webkit-text-stroke-width",
@@ -734,6 +746,7 @@ ${helpers.predefined_type("-webkit-text-stroke-width",
                           initial_specified_value="specified::BorderSideWidth::Length(specified::Length::zero())",
                           computed_type="::app_units::Au",
                           products="gecko",
+                          flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
                           spec="https://compat.spec.whatwg.org/#the-webkit-text-stroke-width",
                           animation_value_type="none")}
 

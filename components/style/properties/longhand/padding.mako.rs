@@ -6,6 +6,8 @@
 <% from data import ALL_SIDES, maybe_moz_logical_alias %>
 <% data.new_style_struct("Padding", inherited=False) %>
 
+// APPLIES_TO_PLACEHOLDER so we can set it in UA  stylesheets.  But we use a
+// !important value there, so pages can't set it.
 % for side in ALL_SIDES:
     <%
         spec = "https://drafts.csswg.org/css-box/#propdef-padding-%s" % side[0]
@@ -19,5 +21,6 @@
                               animation_value_type="ComputedValue",
                               logical = side[1],
                               spec = spec,
+                              flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_PLACEHOLDER",
                               allow_quirks=not side[1])}
 % endfor

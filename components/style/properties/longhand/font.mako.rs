@@ -69,6 +69,7 @@ macro_rules! impl_gecko_keyword_conversions {
 </%def>
 
 <%helpers:longhand name="font-family" animation_value_type="discrete" need_index="True"  boxed="${product == 'gecko'}"
+                   flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-family">
     use properties::longhands::system_font::SystemFont;
     use self::computed_value::{FontFamily, FamilyName};
@@ -379,6 +380,7 @@ ${helpers.single_keyword_system("font-style",
                                 gecko_constant_prefix="NS_FONT_STYLE",
                                 gecko_ffi_name="mFont.style",
                                 spec="https://drafts.csswg.org/css-fonts/#propdef-font-style",
+                                flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
                                 animation_value_type="discrete")}
 
 
@@ -395,9 +397,11 @@ ${helpers.single_keyword_system("font-variant-caps",
                                gecko_ffi_name="mFont.variantCaps",
                                spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-caps",
                                custom_consts=font_variant_caps_custom_consts,
+                               flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
                                animation_value_type="discrete")}
 
 <%helpers:longhand name="font-weight" need_clone="True" animation_value_type="ComputedValue"
+                   flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-weight">
     use properties::longhands::system_font::SystemFont;
 
@@ -559,6 +563,7 @@ ${helpers.single_keyword_system("font-variant-caps",
 </%helpers:longhand>
 
 <%helpers:longhand name="font-size" need_clone="True" animation_value_type="ComputedValue"
+                   flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER"
                    allow_quirks="True" spec="https://drafts.csswg.org/css-fonts/#propdef-font-size">
     use app_units::Au;
     use properties::longhands::system_font::SystemFont;
@@ -1020,6 +1025,7 @@ ${helpers.single_keyword_system("font-variant-caps",
 </%helpers:longhand>
 
 <%helpers:longhand products="gecko" name="font-size-adjust" animation_value_type="ComputedValue"
+                   flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-size-adjust">
     use properties::longhands::system_font::SystemFont;
 
@@ -1141,6 +1147,7 @@ ${helpers.single_keyword_system("font-variant-caps",
 </%helpers:longhand>
 
 <%helpers:longhand products="gecko" name="font-synthesis" animation_value_type="discrete"
+                   flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-synthesis">
     use std::fmt;
     use style_traits::ToCss;
@@ -1238,6 +1245,7 @@ ${helpers.single_keyword_system("font-stretch",
                                 gecko_constant_prefix="NS_FONT_STRETCH",
                                 cast_type='i16',
                                 spec="https://drafts.csswg.org/css-fonts/#propdef-font-stretch",
+                                flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
                                 animation_value_type="ComputedValue")}
 
 ${helpers.single_keyword_system("font-kerning",
@@ -1246,9 +1254,11 @@ ${helpers.single_keyword_system("font-kerning",
                                 gecko_ffi_name="mFont.kerning",
                                 gecko_constant_prefix="NS_FONT_KERNING",
                                 spec="https://drafts.csswg.org/css-fonts/#propdef-font-kerning",
+                                flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
                                 animation_value_type="discrete")}
 
 <%helpers:longhand name="font-variant-alternates" products="gecko" animation_value_type="none"
+                   flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-alternates">
     use properties::longhands::system_font::SystemFont;
     use std::fmt;
@@ -1458,6 +1468,7 @@ macro_rules! exclusive_value {
 }
 
 <%helpers:longhand name="font-variant-east-asian" products="gecko" animation_value_type="discrete"
+                   flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-east-asian">
     use properties::longhands::system_font::SystemFont;
     use std::fmt;
@@ -1603,6 +1614,7 @@ macro_rules! exclusive_value {
 </%helpers:longhand>
 
 <%helpers:longhand name="font-variant-ligatures" products="gecko" animation_value_type="discrete"
+                   flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-ligatures">
     use properties::longhands::system_font::SystemFont;
     use std::fmt;
@@ -1762,6 +1774,7 @@ macro_rules! exclusive_value {
 </%helpers:longhand>
 
 <%helpers:longhand name="font-variant-numeric" products="gecko" animation_value_type="discrete"
+                   flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-numeric">
     use properties::longhands::system_font::SystemFont;
     use std::fmt;
@@ -1915,10 +1928,12 @@ ${helpers.single_keyword_system("font-variant-position",
                                 gecko_ffi_name="mFont.variantPosition",
                                 gecko_constant_prefix="NS_FONT_VARIANT_POSITION",
                                 spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-position",
+                                flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
                                 animation_value_type="discrete")}
 
 <%helpers:longhand name="font-feature-settings" products="gecko" animation_value_type="discrete"
                    extra_prefixes="moz" boxed="True"
+                   flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-feature-settings">
     use properties::longhands::system_font::SystemFont;
     use values::generics::FontSettings;
@@ -1961,6 +1976,7 @@ https://drafts.csswg.org/css-fonts-4/#low-level-font-variation-settings-control-
 """
 %>
 <%helpers:longhand name="font-variation-settings" products="gecko" animation_value_type="none"
+                   flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER"
                    spec="${variation_spec}">
     use values::computed::ComputedValueAsSpecified;
     use values::generics::FontSettings;
@@ -1991,6 +2007,7 @@ https://drafts.csswg.org/css-fonts-4/#low-level-font-variation-settings-control-
 
 <%helpers:longhand name="font-language-override" products="gecko" animation_value_type="discrete"
                    extra_prefixes="moz" boxed="True"
+                   flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER"
                    spec="https://drafts.csswg.org/css-fonts-3/#propdef-font-language-override">
     use properties::longhands::system_font::SystemFont;
     use std::fmt;
@@ -2550,6 +2567,7 @@ ${helpers.single_keyword("-moz-osx-font-smoothing",
                          gecko_ffi_name="mFont.smoothing",
                          products="gecko",
                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/font-smooth)",
+                         flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
                          animation_value_type="discrete")}
 
 ${helpers.predefined_type("-moz-min-font-size-ratio",
