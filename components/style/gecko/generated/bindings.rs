@@ -7,7 +7,7 @@ type nsACString_internal = nsACString;
 type nsAString_internal = nsAString;
 pub type ServoStyleContextBorrowed<'a> = &'a ::properties::ComputedValues;
 pub type ServoStyleContextBorrowedOrNull<'a> = Option<&'a ::properties::ComputedValues>;
-pub type ServoComputedValuesBorrowed<'a> = &'a ServoComputedValues;
+pub type ServoComputedDataBorrowed<'a> = &'a ServoComputedData;
 use gecko_bindings::structs::mozilla::css::GridTemplateAreasValue;
 use gecko_bindings::structs::mozilla::css::ErrorReporter;
 use gecko_bindings::structs::mozilla::css::ImageValue;
@@ -220,7 +220,7 @@ use gecko_bindings::structs::nsresult;
 use gecko_bindings::structs::Loader;
 use gecko_bindings::structs::LoaderReusableStyleSheets;
 use gecko_bindings::structs::ServoStyleSheet;
-use gecko_bindings::structs::ServoComputedValues;
+use gecko_bindings::structs::ServoComputedData;
 use gecko_bindings::structs::ServoStyleContext;
 use gecko_bindings::structs::ServoStyleContextStrong;
 use gecko_bindings::structs::EffectCompositor_CascadeLevel;
@@ -535,7 +535,7 @@ extern "C" {
                                             ServoStyleContextBorrowedOrNull,
                                         pres_context:
                                             RawGeckoPresContextBorrowed,
-                                        values: ServoComputedValuesBorrowed,
+                                        values: ServoComputedDataBorrowed,
                                         pseudo_type: CSSPseudoElementType,
                                         pseudo_tag: *mut nsIAtom);
 }
@@ -1046,8 +1046,8 @@ extern "C" {
      -> CSSPseudoElementType;
 }
 extern "C" {
-    pub fn Gecko_CalcStyleDifference(old_style: *const ServoStyleContext,
-                                     new_style: *const ServoStyleContext,
+    pub fn Gecko_CalcStyleDifference(old_style: ServoStyleContextBorrowed,
+                                     new_style: ServoStyleContextBorrowed,
                                      old_style_bits: u64,
                                      any_style_changed: *mut bool)
      -> nsChangeHint;
@@ -1984,10 +1984,10 @@ extern "C" {
      -> ServoStyleContextStrong;
 }
 extern "C" {
-    pub fn Servo_StyleContext_AddRef(ctx: &ServoStyleContext);
+    pub fn Servo_StyleContext_AddRef(ctx: ServoStyleContextBorrowed);
 }
 extern "C" {
-    pub fn Servo_StyleContext_Release(ctx: &ServoStyleContext);
+    pub fn Servo_StyleContext_Release(ctx: ServoStyleContextBorrowed);
 }
 extern "C" {
     pub fn Servo_StyleSet_MightHaveAttributeDependency(set:
@@ -2709,9 +2709,9 @@ extern "C" {
 }
 extern "C" {
     pub fn Servo_ComputedValues_EqualCustomProperties(first:
-                                                          ServoComputedValuesBorrowed,
+                                                          ServoComputedDataBorrowed,
                                                       second:
-                                                          ServoComputedValuesBorrowed)
+                                                          ServoComputedDataBorrowed)
      -> bool;
 }
 extern "C" {

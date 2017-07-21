@@ -39,7 +39,7 @@ use style::gecko_bindings::bindings::{RawServoMediaRule, RawServoMediaRuleBorrow
 use style::gecko_bindings::bindings::{RawServoNamespaceRule, RawServoNamespaceRuleBorrowed};
 use style::gecko_bindings::bindings::{RawServoPageRule, RawServoPageRuleBorrowed};
 use style::gecko_bindings::bindings::{RawServoStyleSetBorrowed, RawServoStyleSetOwned};
-use style::gecko_bindings::bindings::{RawServoStyleSheetContentsBorrowed, ServoComputedValuesBorrowed};
+use style::gecko_bindings::bindings::{RawServoStyleSheetContentsBorrowed, ServoComputedDataBorrowed};
 use style::gecko_bindings::bindings::{RawServoStyleSheetContentsStrong, ServoStyleContextBorrowed};
 use style::gecko_bindings::bindings::{RawServoSupportsRule, RawServoSupportsRuleBorrowed};
 use style::gecko_bindings::bindings::{ServoCssRulesBorrowed, ServoCssRulesStrong};
@@ -1754,8 +1754,8 @@ pub extern "C" fn Servo_ComputedValues_SpecifiesAnimationsOrTransitions(values: 
 
 #[no_mangle]
 pub extern "C" fn Servo_ComputedValues_EqualCustomProperties(
-    first: ServoComputedValuesBorrowed,
-    second: ServoComputedValuesBorrowed
+    first: ServoComputedDataBorrowed,
+    second: ServoComputedDataBorrowed
 ) -> bool {
     first.get_custom_properties() == second.get_custom_properties()
 }
