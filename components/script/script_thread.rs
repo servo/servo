@@ -771,11 +771,13 @@ impl ScriptThread {
         })
     }
 
-    pub fn enqueue_callback_reaction(element: &Element, reaction: CallbackReaction) {
+    pub fn enqueue_callback_reaction(element: &Element,
+                                     reaction: CallbackReaction,
+                                     definition: Option<Rc<CustomElementDefinition>>) {
         SCRIPT_THREAD_ROOT.with(|root| {
             if let Some(script_thread) = root.get() {
                 let script_thread = unsafe { &*script_thread };
-                script_thread.custom_element_reaction_stack.enqueue_callback_reaction(element, reaction);
+                script_thread.custom_element_reaction_stack.enqueue_callback_reaction(element, reaction, definition);
             }
         })
     }

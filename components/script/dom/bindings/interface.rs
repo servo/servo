@@ -316,7 +316,9 @@ pub unsafe fn html_constructor<T>(window: &Window, call_args: &CallArgs) -> Fall
             Root::downcast(element).ok_or(Error::InvalidState)
         },
         // Step 10
-        Some(ConstructionStackEntry::AlreadyConstructedMarker) => return Err(Error::InvalidState),
+        Some(ConstructionStackEntry::AlreadyConstructedMarker) => {
+            return Err(Error::InvalidState)
+        },
     }
 }
 
