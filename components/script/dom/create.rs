@@ -122,7 +122,7 @@ fn create_html_element(name: QualName,
     assert!(name.ns == ns!(html));
 
     // Step 4
-    let definition = document.lookup_custom_element_definition(name.local.clone(), is);
+    let definition = document.lookup_custom_element_definition(&name.ns, &name.local, is.as_ref());
 
     if let Some(definition) = definition {
         if definition.is_autonomous() {

@@ -79,13 +79,19 @@ impl CustomElementRegistry {
 
     /// https://html.spec.whatwg.org/multipage/#look-up-a-custom-element-definition
     pub fn lookup_definition(&self,
-                             local_name: LocalName,
-                             is: Option<LocalName>)
+                             namespace: &Namespace,
+                             local_name: &LocalName,
+                             is: Option<&LocalName>)
                              -> Option<Rc<CustomElementDefinition>> {
+        // Step 1
+        if *namespace != ns!(html) {
+            return None;
+        }
+
         self.definitions.borrow().values().find(|definition| {
             // Step 4-5
-            definition.local_name == local_name &&
-                (definition.name == local_name || Some(&definition.name) == is.as_ref())
+            definition.local_name == *local_name &&
+                (definition.name == *local_name || Some(&definition.name) == is)
         }).cloned()
     }
 
@@ -522,7 +528,10 @@ fn upgrade_element(definition: Rc<CustomElementDefinition>, element: &Element) {
 pub fn try_upgrade_element(element: &Element) {
     // Step 1
     let document = document_from_node(element);
-    if let Some(definition) = document.lookup_custom_element_definition(element.local_name().clone(), element.get_is()) {
+    let namespace = element.namespace();
+    let local_name = element.local_name();
+    let is = element.get_is();
+    if let Some(definition) = document.lookup_custom_element_definition(namespace, local_name, is.as_ref()) {
         // Step 2
         ScriptThread::enqueue_upgrade_reaction(element, definition);
     }
