@@ -6,7 +6,7 @@
 
 <% data.new_style_struct("Pointing", inherited=True, gecko_name="UserInterface") %>
 
-<%helpers:longhand name="cursor" boxed="${product == 'gecko'}" animation_value_type="none"
+<%helpers:longhand name="cursor" boxed="${product == 'gecko'}" animation_value_type="discrete"
   spec="https://drafts.csswg.org/css-ui/#cursor">
     pub use self::computed_value::T as SpecifiedValue;
     use values::computed::ComputedValueAsSpecified;

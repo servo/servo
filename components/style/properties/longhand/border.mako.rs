@@ -16,31 +16,35 @@
             return "https://drafts.csswg.org/css-backgrounds/#border-%s-%s" % (side[0], kind)
 %>
 % for side in ALL_SIDES:
-    ${helpers.predefined_type("border-%s-color" % side[0], "Color",
+    <%
+        side_name = side[0]
+        is_logical = side[1]
+    %>
+    ${helpers.predefined_type("border-%s-color" % side_name, "Color",
                               "computed_value::T::currentcolor()",
                               alias=maybe_moz_logical_alias(product, side, "-moz-border-%s-color"),
                               spec=maybe_logical_spec(side, "color"),
                               animation_value_type="IntermediateColor",
-                              logical=side[1],
-                              allow_quirks=not side[1],
+                              logical=is_logical,
+                              allow_quirks=not is_logical,
                               ignored_when_colors_disabled=True)}
 
-    ${helpers.predefined_type("border-%s-style" % side[0], "BorderStyle",
+    ${helpers.predefined_type("border-%s-style" % side_name, "BorderStyle",
                               "specified::BorderStyle::none",
-                              need_clone=True,
                               alias=maybe_moz_logical_alias(product, side, "-moz-border-%s-style"),
                               spec=maybe_logical_spec(side, "style"),
-                              animation_value_type="none", logical=side[1])}
+                              animation_value_type="discrete" if not is_logical else "none",
+                              logical=is_logical)}
 
-    ${helpers.predefined_type("border-%s-width" % side[0],
+    ${helpers.predefined_type("border-%s-width" % side_name,
                               "BorderSideWidth",
                               "Au::from_px(3)",
                               computed_type="::app_units::Au",
                               alias=maybe_moz_logical_alias(product, side, "-moz-border-%s-width"),
                               spec=maybe_logical_spec(side, "width"),
                               animation_value_type="ComputedValue",
-                              logical=side[1],
-                              allow_quirks=not side[1])}
+                              logical=is_logical,
+                              allow_quirks=not is_logical)}
 % endfor
 
 ${helpers.gecko_keyword_conversion(Keyword('border-style',

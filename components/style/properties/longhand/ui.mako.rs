@@ -22,9 +22,10 @@ ${helpers.single_keyword("-moz-user-select", "auto text none all element element
                          alias="-webkit-user-select",
                          gecko_ffi_name="mUserSelect",
                          gecko_enum_prefix="StyleUserSelect",
+                         gecko_inexhaustive=True,
                          gecko_strip_moz_prefix=False,
                          aliases="-moz-none=none",
-                         animation_value_type="none",
+                         animation_value_type="discrete",
                          spec="https://drafts.csswg.org/css-ui-4/#propdef-user-select")}
 
 ${helpers.single_keyword("-moz-window-dragging", "default drag no-drag", products="gecko",
