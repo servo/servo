@@ -768,7 +768,7 @@ pub trait MatchMethods : TElement {
     ) -> StyleDifference {
         debug_assert!(pseudo.map_or(true, |p| p.is_eager()));
         if let Some(source) = self.existing_style_for_restyle_damage(old_values, pseudo) {
-            return RestyleDamage::compute_style_difference(source, new_values)
+            return RestyleDamage::compute_style_difference(source, old_values, new_values)
         }
 
         let new_display = new_values.get_box().clone_display();
