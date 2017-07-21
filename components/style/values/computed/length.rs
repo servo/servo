@@ -569,6 +569,13 @@ impl ToComputedValue for specified::LengthOrPercentageOrNone {
 /// A wrapper of LengthOrPercentage, whose value must be >= 0.
 pub type NonNegativeLengthOrPercentage = NonNegative<LengthOrPercentage>;
 
+impl From<NonNegativeAu> for NonNegativeLengthOrPercentage {
+    #[inline]
+    fn from(length: NonNegativeAu) -> Self {
+        LengthOrPercentage::Length(length.0).into()
+    }
+}
+
 impl From<LengthOrPercentage> for NonNegativeLengthOrPercentage {
     #[inline]
     fn from(lop: LengthOrPercentage) -> Self {

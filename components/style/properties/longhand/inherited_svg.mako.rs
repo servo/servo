@@ -64,12 +64,11 @@ ${helpers.predefined_type(
     spec="https://www.w3.org/TR/SVG2/painting.html#SpecifyingStrokePaint")}
 
 ${helpers.predefined_type(
-    "stroke-width", "SVGLength",
-    "Au::from_px(1).into()",
-    "parse_non_negative",
+    "stroke-width", "SVGWidth",
+    "::values::computed::NonNegativeAu::from_px(1).into()",
     products="gecko",
     boxed="True",
-    animation_value_type="ComputedValue",
+    animation_value_type="::values::computed::SVGWidth",
     spec="https://www.w3.org/TR/SVG2/painting.html#StrokeWidth")}
 
 ${helpers.single_keyword("stroke-linecap", "butt round square",
@@ -95,7 +94,7 @@ ${helpers.predefined_type(
     "SVGStrokeDashArray",
     "Default::default()",
     products="gecko",
-    animation_value_type="ComputedValue",
+    animation_value_type="::values::computed::SVGStrokeDashArray",
     spec="https://www.w3.org/TR/SVG2/painting.html#StrokeDashing",
 )}
 

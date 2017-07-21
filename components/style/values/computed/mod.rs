@@ -46,7 +46,7 @@ pub use self::length::{CalcLengthOrPercentage, Length, LengthOrNone, LengthOrNum
 pub use self::length::{LengthOrPercentageOrAuto, LengthOrPercentageOrNone, MaxLength, MozLength, Percentage};
 pub use self::length::NonNegativeLengthOrPercentage;
 pub use self::position::Position;
-pub use self::svg::{SVGLength, SVGOpacity, SVGPaint, SVGPaintKind, SVGStrokeDashArray};
+pub use self::svg::{SVGLength, SVGOpacity, SVGPaint, SVGPaintKind, SVGStrokeDashArray, SVGWidth};
 pub use self::text::{InitialLetter, LetterSpacing, LineHeight, WordSpacing};
 pub use self::transform::{TimingFunction, TransformOrigin};
 
@@ -527,6 +527,9 @@ pub type PositiveIntegerOrAuto = Either<PositiveInteger, Auto>;
 
 /// <length> | <percentage> | <number>
 pub type LengthOrPercentageOrNumber = Either<Number, LengthOrPercentage>;
+
+/// NonNegativeLengthOrPercentage | NonNegativeNumber
+pub type NonNegativeLengthOrPercentageOrNumber = Either<NonNegativeNumber, NonNegativeLengthOrPercentage>;
 
 #[derive(Clone, PartialEq, Eq, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]

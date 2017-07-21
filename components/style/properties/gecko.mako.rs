@@ -616,7 +616,7 @@ def set_gecko_property(ffi_name, expr):
         };
         match length {
             Either::First(number) =>
-                self.gecko.${gecko_ffi_name}.set_value(CoordDataValue::Factor(number)),
+                self.gecko.${gecko_ffi_name}.set_value(CoordDataValue::Factor(From::from(number))),
             Either::Second(lop) => self.gecko.${gecko_ffi_name}.set(lop),
         }
     }
@@ -641,10 +641,10 @@ def set_gecko_property(ffi_name, expr):
             return SVGLength::ContextValue;
         }
         let length = match self.gecko.${gecko_ffi_name}.as_value() {
-            CoordDataValue::Factor(number) => Either::First(number),
-            CoordDataValue::Coord(coord) => Either::Second(LengthOrPercentage::Length(Au(coord))),
-            CoordDataValue::Percent(p) => Either::Second(LengthOrPercentage::Percentage(Percentage(p))),
-            CoordDataValue::Calc(calc) => Either::Second(LengthOrPercentage::Calc(calc.into())),
+            CoordDataValue::Factor(number) => Either::First(From::from(number)),
+            CoordDataValue::Coord(coord) => Either::Second(From::from(LengthOrPercentage::Length(Au(coord)))),
+            CoordDataValue::Percent(p) => Either::Second(From::from(LengthOrPercentage::Percentage(Percentage(p)))),
+            CoordDataValue::Calc(calc) => Either::Second(From::from(LengthOrPercentage::Calc(calc.into()))),
             _ => unreachable!("Unexpected coordinate {:?} in ${ident}",
                               self.gecko.${gecko_ffi_name}.as_value()),
         };
@@ -1111,6 +1111,7 @@ impl Clone for ${style_struct.gecko_struct_name} {
         "SVGLength": impl_svg_length,
         "SVGOpacity": impl_svg_opacity,
         "SVGPaint": impl_svg_paint,
+        "SVGWidth": impl_svg_length,
         "UrlOrNone": impl_css_url,
     }
 
@@ -5152,7 +5153,7 @@ clip-path
                 }
                 for (mut gecko, servo) in self.gecko.mStrokeDasharray.iter_mut().zip(v) {
                     match servo {
-                        Either::First(number) => gecko.set_value(CoordDataValue::Factor(number)),
+                        Either::First(number) => gecko.set_value(CoordDataValue::Factor(number.into())),
                         Either::Second(lop) => gecko.set(lop),
                     }
                 }
@@ -5192,13 +5193,13 @@ clip-path
         let mut vec = vec![];
         for gecko in self.gecko.mStrokeDasharray.iter() {
             match gecko.as_value() {
-                CoordDataValue::Factor(number) => vec.push(Either::First(number)),
+                CoordDataValue::Factor(number) => vec.push(Either::First(number.into())),
                 CoordDataValue::Coord(coord) =>
-                    vec.push(Either::Second(LengthOrPercentage::Length(Au(coord)))),
+                    vec.push(Either::Second(LengthOrPercentage::Length(Au(coord)).into())),
                 CoordDataValue::Percent(p) =>
-                    vec.push(Either::Second(LengthOrPercentage::Percentage(Percentage(p)))),
+                    vec.push(Either::Second(LengthOrPercentage::Percentage(Percentage(p)).into())),
                 CoordDataValue::Calc(calc) =>
-                    vec.push(Either::Second(LengthOrPercentage::Calc(calc.into()))),
+                    vec.push(Either::Second(LengthOrPercentage::Calc(calc.into()).into())),
                 _ => unreachable!(),
             }
         }

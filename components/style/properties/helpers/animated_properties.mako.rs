@@ -782,6 +782,7 @@ impl ToAnimatedZero for AnimationValue {
 
 impl RepeatableListAnimatable for LengthOrPercentage {}
 impl RepeatableListAnimatable for Either<f32, LengthOrPercentage> {}
+impl RepeatableListAnimatable for Either<NonNegativeNumber, NonNegativeLengthOrPercentage> {}
 
 macro_rules! repeated_vec_impl {
     ($($ty:ty),*) => {

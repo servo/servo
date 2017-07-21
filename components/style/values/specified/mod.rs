@@ -45,7 +45,7 @@ pub use self::length::{NoCalcLength, Percentage, ViewportPercentageLength};
 pub use self::length::NonNegativeLengthOrPercentage;
 pub use self::rect::LengthOrNumberRect;
 pub use self::position::{Position, PositionComponent};
-pub use self::svg::{SVGLength, SVGOpacity, SVGPaint, SVGPaintKind, SVGStrokeDashArray};
+pub use self::svg::{SVGLength, SVGOpacity, SVGPaint, SVGPaintKind, SVGStrokeDashArray, SVGWidth};
 pub use self::text::{InitialLetter, LetterSpacing, LineHeight, WordSpacing};
 pub use self::transform::{TimingFunction, TransformOrigin};
 pub use super::generics::grid::GridLine;
@@ -750,19 +750,8 @@ pub type GridTemplateComponent = GenericGridTemplateComponent<LengthOrPercentage
 /// <length> | <percentage> | <number>
 pub type LengthOrPercentageOrNumber = Either<Number, LengthOrPercentage>;
 
-impl LengthOrPercentageOrNumber {
-    /// parse a <length-percentage> | <number> enforcing that the contents aren't negative
-    pub fn parse_non_negative<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                                      -> Result<Self, ParseError<'i>> {
-        // NB: Parse numbers before Lengths so we are consistent about how to
-        // recognize and serialize "0".
-        if let Ok(num) = input.try(|i| Number::parse_non_negative(context, i)) {
-            return Ok(Either::First(num))
-        }
-
-        LengthOrPercentage::parse_non_negative(context, input).map(Either::Second)
-    }
-}
+/// NonNegativeLengthOrPercentage | NonNegativeNumber
+pub type NonNegativeLengthOrPercentageOrNumber = Either<NonNegativeNumber, NonNegativeLengthOrPercentage>;
 
 #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
