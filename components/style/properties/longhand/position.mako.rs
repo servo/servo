@@ -166,7 +166,7 @@ ${helpers.predefined_type("order", "Integer", "0",
                               logical=False,
                               spec="https://drafts.csswg.org/css-flexbox/#flex-basis-property",
                               extra_prefixes="webkit",
-                              animation_value_type="ComputedValue")}
+                              animation_value_type="MozLength")}
 % else:
     // FIXME: This property should be animatable.
     ${helpers.predefined_type("flex-basis",
@@ -187,17 +187,17 @@ ${helpers.predefined_type("order", "Integer", "0",
         ${helpers.gecko_size_type("%s" % size, "MozLength", "auto()",
                                   logical,
                                   spec=spec % size,
-                                  animation_value_type="ComputedValue")}
+                                  animation_value_type="MozLength")}
         // min-width, min-height, min-block-size, min-inline-size,
         // max-width, max-height, max-block-size, max-inline-size
         ${helpers.gecko_size_type("min-%s" % size, "MozLength", "auto()",
                                   logical,
                                   spec=spec % size,
-                                  animation_value_type="ComputedValue")}
+                                  animation_value_type="MozLength")}
         ${helpers.gecko_size_type("max-%s" % size, "MaxLength", "none()",
                                   logical,
                                   spec=spec % size,
-                                  animation_value_type="ComputedValue")}
+                                  animation_value_type="MaxLength")}
     % else:
         // servo versions (no keyword support)
         ${helpers.predefined_type("%s" % size,

@@ -13,6 +13,8 @@ use std::cmp::max;
 use values::computed::Angle as ComputedAngle;
 use values::computed::BorderCornerRadius as ComputedBorderCornerRadius;
 use values::computed::GreaterThanOrEqualToOneNumber as ComputedGreaterThanOrEqualToOneNumber;
+use values::computed::MaxLength as ComputedMaxLength;
+use values::computed::MozLength as ComputedMozLength;
 use values::computed::NonNegativeAu;
 use values::computed::NonNegativeLengthOrPercentage as ComputedNonNegativeLengthOrPercentage;
 use values::computed::NonNegativeNumber as ComputedNonNegativeNumber;
@@ -177,6 +179,64 @@ impl ToAnimatedValue for ComputedBorderCornerRadius {
     fn from_animated_value(animated: Self::AnimatedValue) -> Self {
         ComputedBorderCornerRadius::new(animated.0.width.clamp_to_non_negative(),
                                         animated.0.height.clamp_to_non_negative())
+    }
+}
+
+impl ToAnimatedValue for ComputedMaxLength {
+    type AnimatedValue = Self;
+
+    #[inline]
+    fn to_animated_value(self) -> Self {
+        self
+    }
+
+    #[inline]
+    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+        use values::computed::{LengthOrPercentageOrNone, Percentage};
+        match animated {
+            ComputedMaxLength::LengthOrPercentageOrNone(lopn) => {
+                let result = match lopn {
+                    LengthOrPercentageOrNone::Length(au) => {
+                        LengthOrPercentageOrNone::Length(max(au, Au(0)))
+                    },
+                    LengthOrPercentageOrNone::Percentage(percentage) => {
+                        LengthOrPercentageOrNone::Percentage(Percentage(percentage.0.max(0.)))
+                    }
+                    _ => lopn
+                };
+                ComputedMaxLength::LengthOrPercentageOrNone(result)
+            },
+            _ => animated
+        }
+    }
+}
+
+impl ToAnimatedValue for ComputedMozLength {
+    type AnimatedValue = Self;
+
+    #[inline]
+    fn to_animated_value(self) -> Self {
+        self
+    }
+
+    #[inline]
+    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+        use values::computed::{LengthOrPercentageOrAuto, Percentage};
+        match animated {
+            ComputedMozLength::LengthOrPercentageOrAuto(lopa) => {
+                let result = match lopa {
+                    LengthOrPercentageOrAuto::Length(au) => {
+                        LengthOrPercentageOrAuto::Length(max(au, Au(0)))
+                    },
+                    LengthOrPercentageOrAuto::Percentage(percentage) => {
+                        LengthOrPercentageOrAuto::Percentage(Percentage(percentage.0.max(0.)))
+                    }
+                    _ => lopa
+                };
+                ComputedMozLength::LengthOrPercentageOrAuto(result)
+            },
+            _ => animated
+        }
     }
 }
 
