@@ -38,7 +38,7 @@ pub type ImageLayer = Either<None_, Image>;
 
 /// Specified values for an image according to CSS-IMAGES.
 /// https://drafts.csswg.org/css-images/#image-values
-pub type Image = GenericImage<Gradient, MozImageRect>;
+pub type Image = GenericImage<Gradient, MozImageRect, SpecifiedUrl>;
 
 /// Specified values for a CSS gradient.
 /// https://drafts.csswg.org/css-images/#gradients
@@ -125,7 +125,7 @@ pub type ColorStop = GenericColorStop<RGBAColor, LengthOrPercentage>;
 
 /// Specified values for `moz-image-rect`
 /// -moz-image-rect(<uri>, top, right, bottom, left);
-pub type MozImageRect = GenericMozImageRect<NumberOrPercentage>;
+pub type MozImageRect = GenericMozImageRect<NumberOrPercentage, SpecifiedUrl>;
 
 impl Parse for Image {
     #[cfg_attr(not(feature = "gecko"), allow(unused_mut))]
