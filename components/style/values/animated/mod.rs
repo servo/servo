@@ -13,6 +13,7 @@ use smallvec::SmallVec;
 use std::cmp::max;
 use values::computed::Angle as ComputedAngle;
 use values::computed::BorderCornerRadius as ComputedBorderCornerRadius;
+use values::computed::ComputedUrl;
 use values::computed::GreaterThanOrEqualToOneNumber as ComputedGreaterThanOrEqualToOneNumber;
 use values::computed::MaxLength as ComputedMaxLength;
 use values::computed::MozLength as ComputedMozLength;
@@ -20,6 +21,7 @@ use values::computed::NonNegativeAu;
 use values::computed::NonNegativeLengthOrPercentage as ComputedNonNegativeLengthOrPercentage;
 use values::computed::NonNegativeNumber as ComputedNonNegativeNumber;
 use values::computed::PositiveInteger as ComputedPositiveInteger;
+#[cfg(feature = "servo")]
 use values::specified::url::SpecifiedUrl;
 
 pub mod effects;
@@ -95,6 +97,8 @@ pub trait AnimatedValueAsComputed {}
 impl AnimatedValueAsComputed for Au {}
 impl AnimatedValueAsComputed for ComputedAngle {}
 impl AnimatedValueAsComputed for SpecifiedUrl {}
+#[cfg(feature = "servo")]
+impl AnimatedValueAsComputed for ComputedUrl {}
 impl AnimatedValueAsComputed for bool {}
 impl AnimatedValueAsComputed for f32 {}
 

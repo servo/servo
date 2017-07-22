@@ -8,12 +8,13 @@ use app_units::Au;
 use values::{Either, RGBA};
 use values::computed::{LengthOrPercentageOrNumber, Opacity};
 use values::computed::{NonNegativeAu, NonNegativeLengthOrPercentageOrNumber};
+use values::computed::ComputedUrl;
 use values::generics::svg as generic;
 
 /// Computed SVG Paint value
-pub type SVGPaint = generic::SVGPaint<RGBA>;
+pub type SVGPaint = generic::SVGPaint<RGBA, ComputedUrl>;
 /// Computed SVG Paint Kind value
-pub type SVGPaintKind = generic::SVGPaintKind<RGBA>;
+pub type SVGPaintKind = generic::SVGPaintKind<RGBA, ComputedUrl>;
 
 impl Default for SVGPaint {
     fn default() -> Self {

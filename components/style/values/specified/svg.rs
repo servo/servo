@@ -8,16 +8,16 @@ use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use style_traits::{CommaWithSpace, ParseError, Separator, StyleParseError};
 use values::generics::svg as generic;
-use values::specified::{LengthOrPercentageOrNumber, NonNegativeLengthOrPercentageOrNumber, Opacity};
+use values::specified::{LengthOrPercentageOrNumber, NonNegativeLengthOrPercentageOrNumber, Opacity, SpecifiedUrl};
 use values::specified::color::RGBAColor;
 
 /// Specified SVG Paint value
-pub type SVGPaint = generic::SVGPaint<RGBAColor>;
+pub type SVGPaint = generic::SVGPaint<RGBAColor, SpecifiedUrl>;
 
 no_viewport_percentage!(SVGPaint);
 
 /// Specified SVG Paint Kind value
-pub type SVGPaintKind = generic::SVGPaintKind<RGBAColor>;
+pub type SVGPaintKind = generic::SVGPaintKind<RGBAColor, SpecifiedUrl>;
 
 #[cfg(feature = "gecko")]
 fn is_context_value_enabled() -> bool {
