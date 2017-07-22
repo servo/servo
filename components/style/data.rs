@@ -305,9 +305,10 @@ impl ElementData {
 
     /// Returns the kind of restyling that we're going to need to do on this
     /// element, based of the stored restyle hint.
-    pub fn restyle_kind(&self,
-                        shared_context: &SharedStyleContext)
-                        -> RestyleKind {
+    pub fn restyle_kind(
+        &self,
+        shared_context: &SharedStyleContext
+    ) -> RestyleKind {
         if shared_context.traversal_flags.for_animation_only() {
             return self.restyle_kind_for_animation(shared_context);
         }
@@ -335,9 +336,10 @@ impl ElementData {
     }
 
     /// Returns the kind of restyling for animation-only restyle.
-    pub fn restyle_kind_for_animation(&self,
-                                      shared_context: &SharedStyleContext)
-                                      -> RestyleKind {
+    fn restyle_kind_for_animation(
+        &self,
+        shared_context: &SharedStyleContext,
+    ) -> RestyleKind {
         debug_assert!(shared_context.traversal_flags.for_animation_only());
         debug_assert!(self.has_styles(),
                       "Unstyled element shouldn't be traversed during \
@@ -350,8 +352,8 @@ impl ElementData {
         if hint.has_animation_hint() {
             return RestyleKind::CascadeWithReplacements(hint & RestyleHint::for_animations());
         }
-        return RestyleKind::CascadeOnly;
 
+        return RestyleKind::CascadeOnly;
     }
 
     /// Return true if important rules are different.
@@ -362,9 +364,11 @@ impl ElementData {
     ///       the check which properties do they want.
     ///       If it costs too much, get_properties_overriding_animations() should return a set
     ///       containing only opacity and transform properties.
-    pub fn important_rules_are_different(&self,
-                                         rules: &StrongRuleNode,
-                                         guards: &StylesheetGuards) -> bool {
+    pub fn important_rules_are_different(
+        &self,
+        rules: &StrongRuleNode,
+        guards: &StylesheetGuards
+    ) -> bool {
         debug_assert!(self.has_styles());
         let (important_rules, _custom) =
             self.styles.primary().rules().get_properties_overriding_animations(&guards);

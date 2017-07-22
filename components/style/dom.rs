@@ -480,9 +480,11 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
     }
 
     /// Returns whether the element's styles are up-to-date for |traversal_flags|.
-    fn has_current_styles_for_traversal(&self,
-                                        data: &ElementData,
-                                        traversal_flags: TraversalFlags) -> bool {
+    fn has_current_styles_for_traversal(
+        &self,
+        data: &ElementData,
+        traversal_flags: TraversalFlags,
+    ) -> bool {
         if traversal_flags.for_animation_only() {
             // In animation-only restyle we never touch snapshots and don't
             // care about them. But we can't assert '!self.handled_snapshot()'
