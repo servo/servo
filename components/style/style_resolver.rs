@@ -52,17 +52,7 @@ where
 {
     let parent_el = element.inheritance_parent();
     let parent_data = parent_el.as_ref().and_then(|e| e.borrow_data());
-    let parent_style = parent_data.as_ref().map(|d| {
-        // Sometimes Gecko eagerly styles things without processing
-        // pending restyles first. In general we'd like to avoid this,
-        // but there can be good reasons (for example, needing to
-        // construct a frame for some small piece of newly-added
-        // content in order to do something specific with that frame,
-        // but not wanting to flush all of layout).
-        debug_assert!(cfg!(feature = "gecko") ||
-                      parent_el.unwrap().has_current_styles(d));
-        d.styles.primary()
-    });
+    let parent_style = parent_data.as_ref().map(|d| d.styles.primary());
 
     let mut layout_parent_el = parent_el.clone();
     let layout_parent_data;

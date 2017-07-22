@@ -470,15 +470,6 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
     /// Flags this element as having handled already its snapshot.
     unsafe fn set_handled_snapshot(&self);
 
-    /// Returns whether the element's styles are up-to-date.
-    fn has_current_styles(&self, data: &ElementData) -> bool {
-        if self.has_snapshot() && !self.handled_snapshot() {
-            return false;
-        }
-
-        data.has_styles() && !data.has_invalidations()
-    }
-
     /// Returns whether the element's styles are up-to-date for |traversal_flags|.
     fn has_current_styles_for_traversal(
         &self,
