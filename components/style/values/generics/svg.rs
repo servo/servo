@@ -8,16 +8,15 @@ use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use std::fmt;
 use style_traits::{ParseError, StyleParseError, ToCss};
-use values::specified::url::SpecifiedUrl;
 
 /// An SVG paint value
 ///
 /// https://www.w3.org/TR/SVG2/painting.html#SpecifyingPaint
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, Debug, PartialEq, ToAnimatedValue, ToComputedValue, ToCss)]
-pub struct SVGPaint<ColorType> {
+pub struct SVGPaint<ColorType, UrlPaintServer> {
     /// The paint source
-    pub kind: SVGPaintKind<ColorType>,
+    pub kind: SVGPaintKind<ColorType, UrlPaintServer>,
     /// The fallback color
     pub fallback: Option<ColorType>,
 }
@@ -29,20 +28,20 @@ pub struct SVGPaint<ColorType> {
 /// properties have a fallback as well.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, Debug, PartialEq, ToAnimatedValue, ToComputedValue, ToCss)]
-pub enum SVGPaintKind<ColorType> {
+pub enum SVGPaintKind<ColorType, UrlPaintServer> {
     /// `none`
     None,
     /// `<color>`
     Color(ColorType),
     /// `url(...)`
-    PaintServer(SpecifiedUrl),
+    PaintServer(UrlPaintServer),
     /// `context-fill`
     ContextFill,
     /// `context-stroke`
     ContextStroke,
 }
 
-impl<ColorType> SVGPaintKind<ColorType> {
+impl<ColorType, UrlPaintServer> SVGPaintKind<ColorType, UrlPaintServer> {
     /// Parse a keyword value only
     fn parse_ident<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         try_match_ident_ignore_ascii_case! { input.expect_ident()?,
@@ -66,9 +65,9 @@ fn parse_fallback<'i, 't, ColorType: Parse>(context: &ParserContext,
     }
 }
 
-impl<ColorType: Parse> Parse for SVGPaint<ColorType> {
+impl<ColorType: Parse, UrlPaintServer: Parse> Parse for SVGPaint<ColorType, UrlPaintServer> {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        if let Ok(url) = input.try(|i| SpecifiedUrl::parse(context, i)) {
+        if let Ok(url) = input.try(|i| UrlPaintServer::parse(context, i)) {
             Ok(SVGPaint {
                 kind: SVGPaintKind::PaintServer(url),
                 fallback: parse_fallback(context, input),

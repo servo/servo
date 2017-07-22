@@ -12,6 +12,7 @@ use std::fmt;
 // the threshold.
 use std::sync::Arc;
 use style_traits::{ToCss, ParseError};
+use values::computed::{Context, ToComputedValue, ComputedUrl};
 
 /// A specified url() value for servo.
 ///
@@ -126,3 +127,35 @@ impl ToCss for SpecifiedUrl {
         dest.write_str(")")
     }
 }
+
+impl ToComputedValue for SpecifiedUrl {
+    type ComputedValue = ComputedUrl;
+
+    // If we can't resolve the URL from the specified one, we fall back to the original
+    // but still return it as a ComputedUrl::Invalid
+    fn to_computed_value(&self, _: &Context) -> Self::ComputedValue {
+        match self.resolved {
+            Some(ref url) => ComputedUrl::Valid(url.clone()),
+            None => match self.original {
+                Some(ref url) => ComputedUrl::Invalid(url.clone()),
+                None => {
+                    unreachable!("Found specified url with neither resolved or original URI!");
+                },
+            }
+        }
+    }
+
+    fn from_computed_value(computed: &ComputedUrl) -> Self {
+        match *computed {
+            ComputedUrl::Valid(ref url) => SpecifiedUrl {
+                original: None,
+                resolved: Some(url.clone()),
+            },
+            ComputedUrl::Invalid(ref url) => SpecifiedUrl {
+                original: Some(url.clone()),
+                resolved: None,
+            }
+        }
+    }
+}
+

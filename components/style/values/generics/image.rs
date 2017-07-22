@@ -12,16 +12,15 @@ use custom_properties::SpecifiedValue;
 use std::fmt;
 use style_traits::{HasViewportPercentage, ToCss};
 use values::computed::ComputedValueAsSpecified;
-use values::specified::url::SpecifiedUrl;
 
 /// An [image].
 ///
 /// [image]: https://drafts.csswg.org/css-images/#image-values
 #[derive(Clone, PartialEq, ToComputedValue)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub enum Image<Gradient, MozImageRect> {
+pub enum Image<Gradient, MozImageRect, ImageUrl> {
     /// A `<url()>` image.
-    Url(SpecifiedUrl),
+    Url(ImageUrl),
     /// A `<gradient>` image.
     Gradient(Gradient),
     /// A `-moz-image-rect` image
@@ -168,16 +167,16 @@ impl ToCss for PaintWorklet {
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[css(comma, function)]
 #[derive(Clone, Debug, PartialEq, ToComputedValue, ToCss)]
-pub struct MozImageRect<NumberOrPercentage> {
-    pub url: SpecifiedUrl,
+pub struct MozImageRect<NumberOrPercentage, MozImageRectUrl> {
+    pub url: MozImageRectUrl,
     pub top: NumberOrPercentage,
     pub right: NumberOrPercentage,
     pub bottom: NumberOrPercentage,
     pub left: NumberOrPercentage,
 }
 
-impl<G, R> fmt::Debug for Image<G, R>
-    where G: fmt::Debug, R: fmt::Debug,
+impl<G, R, U> fmt::Debug for Image<G, R, U>
+    where G: fmt::Debug, R: fmt::Debug, U: fmt::Debug + ToCss
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
@@ -195,8 +194,8 @@ impl<G, R> fmt::Debug for Image<G, R>
     }
 }
 
-impl<G, R> ToCss for Image<G, R>
-    where G: ToCss, R: ToCss,
+impl<G, R, U> ToCss for Image<G, R, U>
+    where G: ToCss, R: ToCss, U: ToCss
 {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
@@ -214,7 +213,7 @@ impl<G, R> ToCss for Image<G, R>
     }
 }
 
-impl<G, R> HasViewportPercentage for Image<G, R>
+impl<G, R, U> HasViewportPercentage for Image<G, R, U>
     where G: HasViewportPercentage
 {
     fn has_viewport_percentage(&self) -> bool {
