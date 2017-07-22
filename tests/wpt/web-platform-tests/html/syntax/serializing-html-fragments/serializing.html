@@ -25,6 +25,7 @@
 <span>&quot;</span>
 <span><style><&></style></span>
 <span><script type="test"><&></script></span>
+<script type="test"><&></script>
 <span><xmp><&></xmp></span>
 <span><iframe><&></iframe></span>
 <span><noembed><&></noembed></span>
@@ -37,7 +38,7 @@
 <!-- TODO: template element -->
 <script>
 
-var test_data = document.getElementById("test").getElementsByTagName("span");
+var test_data = document.getElementById("test").children;
 var expected = [
 ["", "<span></span>"],
 ["<a></a>", "<span><a></a></span>"],
@@ -58,6 +59,7 @@ var expected = [
 ["\"", "<span>\"</span>"],
 ["<style><&></style>", "<span><style><&></style></span>"],
 ["<script type=\"test\"><&><\/script>", "<span><script type=\"test\"><&><\/script></span>"],
+["<&>", "<script type=\"test\"><&><\/script>"],
 ["<xmp><&></xmp>", "<span><xmp><&></xmp></span>"],
 ["<iframe><&></iframe>", "<span><iframe><&></iframe></span>"],
 ["<noembed><&></noembed>", "<span><noembed><&></noembed></span>"],
