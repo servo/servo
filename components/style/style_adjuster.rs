@@ -107,6 +107,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     fn adjust_for_text_combine_upright(&mut self) {
         use computed_values::text_combine_upright::T as text_combine_upright;
         use computed_values::writing_mode::T as writing_mode;
+        use properties::computed_value_flags::IS_TEXT_COMBINED;
 
         let writing_mode =
             self.style.get_inheritedbox().clone_writing_mode();
@@ -115,6 +116,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
 
         if writing_mode != writing_mode::horizontal_tb &&
            text_combine_upright == text_combine_upright::all {
+            self.style.flags.insert(IS_TEXT_COMBINED);
             self.style.mutate_inheritedbox().set_writing_mode(writing_mode::horizontal_tb);
         }
     }
@@ -409,6 +411,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
             self.style.reset_border_struct();
             self.style.reset_padding_struct();
         }
+
         // Force bidi isolation on all internal ruby boxes and ruby container
         // per spec https://drafts.csswg.org/css-ruby-1/#bidi
         if self_display.is_ruby_type() {
