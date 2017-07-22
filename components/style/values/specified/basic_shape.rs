@@ -26,10 +26,10 @@ use values::specified::position::{HorizontalPosition, Position, PositionComponen
 use values::specified::url::SpecifiedUrl;
 
 /// A specified clipping shape.
-pub type ClippingShape = GenericClippingShape<BasicShape>;
+pub type ClippingShape = GenericClippingShape<BasicShape, SpecifiedUrl>;
 
 /// A specified float area shape.
-pub type FloatAreaShape = GenericFloatAreaShape<BasicShape>;
+pub type FloatAreaShape = GenericFloatAreaShape<BasicShape, SpecifiedUrl>;
 
 /// A specified basic shape.
 pub type BasicShape = GenericBasicShape<HorizontalPosition, VerticalPosition, LengthOrPercentage>;
@@ -49,7 +49,7 @@ pub type ShapeRadius = GenericShapeRadius<LengthOrPercentage>;
 /// The specified value of `Polygon`
 pub type Polygon = GenericPolygon<LengthOrPercentage>;
 
-impl<ReferenceBox: Parse> Parse for ShapeSource<BasicShape, ReferenceBox> {
+impl<ReferenceBox: Parse> Parse for ShapeSource<BasicShape, ReferenceBox, SpecifiedUrl> {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         if input.try(|i| i.expect_ident_matching("none")).is_ok() {
             return Ok(ShapeSource::None)

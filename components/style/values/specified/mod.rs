@@ -73,6 +73,7 @@ pub mod url {
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use style_traits::ParseError;
+#[cfg(feature = "gecko")]
 use values::computed::ComputedValueAsSpecified;
 
 #[cfg(feature = "servo")]
@@ -89,7 +90,7 @@ impl Parse for SpecifiedUrl {
 
 impl Eq for SpecifiedUrl {}
 
-// TODO(emilio): Maybe consider ComputedUrl to save a word in style structs?
+#[cfg(feature = "gecko")]
 impl ComputedValueAsSpecified for SpecifiedUrl {}
 
 no_viewport_percentage!(SpecifiedUrl);
@@ -696,10 +697,10 @@ pub type GridTemplateComponent = GenericGridTemplateComponent<LengthOrPercentage
 no_viewport_percentage!(SVGPaint);
 
 /// Specified SVG Paint value
-pub type SVGPaint = ::values::generics::SVGPaint<RGBAColor>;
+pub type SVGPaint = ::values::generics::SVGPaint<RGBAColor, SpecifiedUrl>;
 
 /// Specified SVG Paint Kind value
-pub type SVGPaintKind = ::values::generics::SVGPaintKind<RGBAColor>;
+pub type SVGPaintKind = ::values::generics::SVGPaintKind<RGBAColor, SpecifiedUrl>;
 
 /// <length> | <percentage> | <number>
 pub type LengthOrPercentageOrNumber = Either<Number, LengthOrPercentage>;

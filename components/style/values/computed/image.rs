@@ -12,7 +12,7 @@ use std::f32::consts::PI;
 use std::fmt;
 use style_traits::ToCss;
 use values::{Either, None_};
-use values::computed::{Angle, Context, Length, LengthOrPercentage, NumberOrPercentage, ToComputedValue};
+use values::computed::{Angle, ComputedUrl, Context, Length, LengthOrPercentage, NumberOrPercentage, ToComputedValue};
 use values::computed::position::Position;
 use values::generics::image::{CompatMode, ColorStop as GenericColorStop, EndingShape as GenericEndingShape};
 use values::generics::image::{Gradient as GenericGradient, GradientItem as GenericGradientItem};
@@ -27,7 +27,7 @@ pub type ImageLayer = Either<None_, Image>;
 
 /// Computed values for an image according to CSS-IMAGES.
 /// https://drafts.csswg.org/css-images/#image-values
-pub type Image = GenericImage<Gradient, MozImageRect>;
+pub type Image = GenericImage<Gradient, MozImageRect, ComputedUrl>;
 
 /// Computed values for a CSS gradient.
 /// https://drafts.csswg.org/css-images/#gradients
@@ -76,7 +76,7 @@ pub type GradientItem = GenericGradientItem<RGBA, LengthOrPercentage>;
 pub type ColorStop = GenericColorStop<RGBA, LengthOrPercentage>;
 
 /// Computed values for `-moz-image-rect(...)`.
-pub type MozImageRect = GenericMozImageRect<NumberOrPercentage>;
+pub type MozImageRect = GenericMozImageRect<NumberOrPercentage, ComputedUrl>;
 
 impl GenericLineDirection for LineDirection {
     fn points_downwards(&self) -> bool {

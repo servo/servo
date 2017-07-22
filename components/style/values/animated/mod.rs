@@ -9,7 +9,9 @@
 //! module's raison d'être is to ultimately contain all these types.
 
 use app_units::Au;
-use values::computed::Angle as ComputedAngle;
+use values::computed::{Angle as ComputedAngle};
+#[cfg(feature = "servo")]
+use values::computed::ComputedUrl;
 use values::specified::url::SpecifiedUrl;
 
 pub mod effects;
@@ -68,6 +70,8 @@ pub trait AnimatedValueAsComputed {}
 impl AnimatedValueAsComputed for Au {}
 impl AnimatedValueAsComputed for ComputedAngle {}
 impl AnimatedValueAsComputed for SpecifiedUrl {}
+#[cfg(feature = "servo")]
+impl AnimatedValueAsComputed for ComputedUrl {}
 impl AnimatedValueAsComputed for bool {}
 impl AnimatedValueAsComputed for f32 {}
 
