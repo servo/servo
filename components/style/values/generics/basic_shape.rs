@@ -11,10 +11,9 @@ use values::computed::ComputedValueAsSpecified;
 use values::generics::border::BorderRadius;
 use values::generics::position::Position;
 use values::generics::rect::Rect;
-use values::specified::url::SpecifiedUrl;
 
 /// A clipping shape, for `clip-path`.
-pub type ClippingShape<BasicShape> = ShapeSource<BasicShape, GeometryBox>;
+pub type ClippingShape<BasicShape, UrlShapeSource> = ShapeSource<BasicShape, GeometryBox, UrlShapeSource>;
 
 /// https://drafts.fxtf.org/css-masking-1/#typedef-geometry-box
 #[allow(missing_docs)]
@@ -29,7 +28,7 @@ pub enum GeometryBox {
 impl ComputedValueAsSpecified for GeometryBox {}
 
 /// A float area shape, for `shape-outside`.
-pub type FloatAreaShape<BasicShape> = ShapeSource<BasicShape, ShapeBox>;
+pub type FloatAreaShape<BasicShape, UrlShapeSource> = ShapeSource<BasicShape, ShapeBox, UrlShapeSource>;
 
 // https://drafts.csswg.org/css-shapes-1/#typedef-shape-box
 define_css_keyword_enum!(ShapeBox:
@@ -44,8 +43,8 @@ add_impls_for_keyword_enum!(ShapeBox);
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, Debug, PartialEq, ToComputedValue, ToCss)]
-pub enum ShapeSource<BasicShape, ReferenceBox> {
-    Url(SpecifiedUrl),
+pub enum ShapeSource<BasicShape, ReferenceBox, UrlShapeSource> {
+    Url(UrlShapeSource),
     Shape(BasicShape, Option<ReferenceBox>),
     Box(ReferenceBox),
     None,
@@ -121,7 +120,7 @@ define_css_keyword_enum!(FillRule:
 );
 add_impls_for_keyword_enum!(FillRule);
 
-impl<B, T> HasViewportPercentage for ShapeSource<B, T> {
+impl<B, T, U> HasViewportPercentage for ShapeSource<B, T, U> {
     #[inline]
     fn has_viewport_percentage(&self) -> bool { false }
 }

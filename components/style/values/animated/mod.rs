@@ -20,6 +20,9 @@ use values::computed::NonNegativeAu;
 use values::computed::NonNegativeLengthOrPercentage as ComputedNonNegativeLengthOrPercentage;
 use values::computed::NonNegativeNumber as ComputedNonNegativeNumber;
 use values::computed::PositiveInteger as ComputedPositiveInteger;
+use values::computed::{Angle as ComputedAngle};
+#[cfg(feature = "servo")]
+use values::computed::ComputedUrl;
 use values::specified::url::SpecifiedUrl;
 
 pub mod effects;
@@ -95,6 +98,8 @@ pub trait AnimatedValueAsComputed {}
 impl AnimatedValueAsComputed for Au {}
 impl AnimatedValueAsComputed for ComputedAngle {}
 impl AnimatedValueAsComputed for SpecifiedUrl {}
+#[cfg(feature = "servo")]
+impl AnimatedValueAsComputed for ComputedUrl {}
 impl AnimatedValueAsComputed for bool {}
 impl AnimatedValueAsComputed for f32 {}
 
