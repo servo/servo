@@ -40,7 +40,7 @@ use values::animated::effects::FilterList as AnimatedFilterList;
 use values::animated::effects::TextShadowList as AnimatedTextShadowList;
 use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 use values::computed::{BorderCornerRadius, ClipRect};
-use values::computed::{CalcLengthOrPercentage, Color, Context, ComputedValueAsSpecified};
+use values::computed::{CalcLengthOrPercentage, Color, Context, ComputedValueAsSpecified, ComputedUrl};
 use values::computed::{LengthOrPercentage, MaxLength, MozLength, Percentage, ToComputedValue};
 use values::generics::{SVGPaint, SVGPaintKind};
 use values::generics::border::BorderCornerRadius as GenericBorderCornerRadius;
@@ -2949,10 +2949,10 @@ impl ToAnimatedZero for IntermediateColor {
 }
 
 /// Animatable SVGPaint
-pub type IntermediateSVGPaint = SVGPaint<IntermediateRGBA>;
+pub type IntermediateSVGPaint = SVGPaint<IntermediateRGBA, ComputedUrl>;
 
 /// Animatable SVGPaintKind
-pub type IntermediateSVGPaintKind = SVGPaintKind<IntermediateRGBA>;
+pub type IntermediateSVGPaintKind = SVGPaintKind<IntermediateRGBA, ComputedUrl>;
 
 impl Animatable for IntermediateSVGPaint {
     #[inline]
