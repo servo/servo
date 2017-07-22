@@ -298,11 +298,6 @@ impl ElementData {
         self.styles.primary.is_some()
     }
 
-    /// Returns whether we have any outstanding style invalidation.
-    pub fn has_invalidations(&self) -> bool {
-        self.restyle.hint.has_self_invalidations()
-    }
-
     /// Returns the kind of restyling that we're going to need to do on this
     /// element, based of the stored restyle hint.
     pub fn restyle_kind(
@@ -313,8 +308,6 @@ impl ElementData {
             return self.restyle_kind_for_animation(shared_context);
         }
 
-        debug_assert!(!self.has_styles() || self.has_invalidations(),
-                      "Should've stopped earlier");
         if !self.has_styles() {
             return RestyleKind::MatchAndCascade;
         }

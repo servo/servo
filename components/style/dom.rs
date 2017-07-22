@@ -492,7 +492,7 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
             return false;
         }
 
-        data.has_styles() && !data.has_invalidations()
+        data.has_styles() && !data.restyle.hint.has_non_animation_hint()
     }
 
     /// Flags an element and its ancestors with a given `DescendantsBit`.
