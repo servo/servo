@@ -187,6 +187,13 @@ impl PerDocumentStyleDataImpl {
         );
     }
 
+    /// Returns whether private browsing is enabled.
+    pub fn is_private_browsing_enabled(&self) -> bool {
+        let doc =
+            self.stylist.device().pres_context().mDocument.raw::<nsIDocument>();
+        unsafe { bindings::Gecko_IsPrivateBrowsingEnabled(doc) }
+    }
+
     /// Get the default computed values for this document.
     pub fn default_computed_values(&self) -> &Arc<ComputedValues> {
         self.stylist.device().default_computed_values_arc()

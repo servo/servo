@@ -12,7 +12,8 @@ use dom::TElement;
 use log::LogLevel::Trace;
 use matching::{CascadeVisitedMode, MatchMethods};
 use properties::{AnimationRules, CascadeFlags, ComputedValues};
-use properties::{IS_ROOT_ELEMENT, IS_VISITED_LINK, PROHIBIT_DISPLAY_CONTENTS, SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP};
+use properties::{IS_LINK, IS_ROOT_ELEMENT, IS_VISITED_LINK};
+use properties::{PROHIBIT_DISPLAY_CONTENTS, SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP};
 use properties::{VISITED_DEPENDENT_ONLY, cascade};
 use rule_tree::StrongRuleNode;
 use selector_parser::{PseudoElement, SelectorImpl};
@@ -474,8 +475,12 @@ where
             cascade_flags.insert(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP);
         }
 
-        if pseudo.is_none() && self.element.is_visited_link() {
-            cascade_flags.insert(IS_VISITED_LINK);
+        if pseudo.is_none() && self.element.is_link() {
+            cascade_flags.insert(IS_LINK);
+            if self.element.is_visited_link() &&
+                self.context.shared.visited_styles_enabled {
+                cascade_flags.insert(IS_VISITED_LINK);
+            }
         }
 
         if cascade_visited.visited_dependent_only() {

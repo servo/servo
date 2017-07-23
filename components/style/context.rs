@@ -117,6 +117,9 @@ pub struct SharedStyleContext<'a> {
     /// The CSS selector stylist.
     pub stylist: &'a Stylist,
 
+    /// Whether visited styles are enabled.
+    pub visited_styles_enabled: bool,
+
     /// Configuration options.
     pub options: StyleSystemOptions,
 

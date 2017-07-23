@@ -436,15 +436,20 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     /// FIXME(emilio): This isn't technically a style adjustment thingie, could
     /// it move somewhere else?
     fn adjust_for_visited(&mut self, flags: CascadeFlags) {
-        use properties::IS_VISITED_LINK;
+        use properties::{IS_LINK, IS_VISITED_LINK};
         use properties::computed_value_flags::IS_RELEVANT_LINK_VISITED;
 
         if !self.style.has_visited_style() {
             return;
         }
 
-        if flags.contains(IS_VISITED_LINK) ||
-            self.style.inherited_style().flags.contains(IS_RELEVANT_LINK_VISITED) {
+        let relevant_link_visited = if flags.contains(IS_LINK) {
+            flags.contains(IS_VISITED_LINK)
+        } else {
+            self.style.inherited_style().flags.contains(IS_RELEVANT_LINK_VISITED)
+        };
+
+        if relevant_link_visited {
             self.style.flags.insert(IS_RELEVANT_LINK_VISITED);
         }
     }
