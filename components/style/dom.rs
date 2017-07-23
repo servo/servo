@@ -550,6 +550,11 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
     unsafe fn unset_animation_only_dirty_descendants(&self) {
     }
 
+    /// Returns true if this element is a visited link.
+    ///
+    /// Servo doesn't support visited styles yet.
+    fn is_visited_link(&self) -> bool { false }
+
     /// Returns true if this element is native anonymous (only Gecko has native
     /// anonymous content).
     fn is_native_anonymous(&self) -> bool { false }
