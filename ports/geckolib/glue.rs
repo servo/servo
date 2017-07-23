@@ -1742,8 +1742,7 @@ pub extern "C" fn Servo_ComputedValues_GetStyleBits(values: ServoStyleContextBor
     let flags = values.flags;
     let mut result = 0;
     if flags.contains(IS_RELEVANT_LINK_VISITED) {
-        // FIXME(emilio): This doesn't account for the pref.
-        // result |= structs::NS_STYLE_RELEVANT_LINK_VISITED as u64;
+        result |= structs::NS_STYLE_RELEVANT_LINK_VISITED as u64;
     }
     if flags.contains(HAS_TEXT_DECORATION_LINES) {
         result |= structs::NS_STYLE_HAS_TEXT_DECORATION_LINES as u64;
