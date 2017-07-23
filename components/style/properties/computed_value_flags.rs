@@ -33,5 +33,9 @@ bitflags! {
         ///
         /// This is used from Gecko's layout engine.
         const IS_TEXT_COMBINED = 1 << 2,
+
+        /// A flag used to mark styles under a relevant link that is also
+        /// visited.
+        const IS_RELEVANT_LINK_VISITED = 1 << 3,
     }
 }

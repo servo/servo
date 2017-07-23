@@ -426,14 +426,39 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         }
     }
 
+    /// Computes the RELEVANT_LINK_VISITED flag based on the parent style and on
+    /// whether we're a relevant link.
+    ///
+    /// NOTE(emilio): We don't do this for text styles, which is... dubious, but
+    /// Gecko doesn't seem to do it either. It's extremely easy to do if needed
+    /// though.
+    ///
+    /// FIXME(emilio): This isn't technically a style adjustment thingie, could
+    /// it move somewhere else?
+    fn adjust_for_visited(&mut self, flags: CascadeFlags) {
+        use properties::IS_VISITED_LINK;
+        use properties::computed_value_flags::IS_RELEVANT_LINK_VISITED;
+
+        if !self.style.has_visited_style() {
+            return;
+        }
+
+        if flags.contains(IS_VISITED_LINK) ||
+            self.style.inherited_style().flags.contains(IS_RELEVANT_LINK_VISITED) {
+            self.style.flags.insert(IS_RELEVANT_LINK_VISITED);
+        }
+    }
+
     /// Adjusts the style to account for various fixups that don't fit naturally
     /// into the cascade.
     ///
     /// When comparing to Gecko, this is similar to the work done by
-    /// `nsStyleContext::ApplyStyleFixups`.
+    /// `nsStyleContext::ApplyStyleFixups`, plus some parts of
+    /// `nsStyleSet::GetContext`.
     pub fn adjust(&mut self,
                   layout_parent_style: &ComputedValues,
                   flags: CascadeFlags) {
+        self.adjust_for_visited(flags);
         #[cfg(feature = "gecko")]
         {
             self.adjust_for_prohibited_display_contents(flags);

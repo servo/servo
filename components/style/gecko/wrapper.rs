@@ -1011,6 +1011,11 @@ impl<'le> TElement for GeckoElement<'le> {
         self.unset_flags(ELEMENT_HAS_ANIMATION_ONLY_DIRTY_DESCENDANTS_FOR_SERVO as u32)
     }
 
+    fn is_visited_link(&self) -> bool {
+        use element_state::IN_VISITED_STATE;
+        self.get_state().intersects(IN_VISITED_STATE)
+    }
+
     fn is_native_anonymous(&self) -> bool {
         self.flags() & (NODE_IS_NATIVE_ANONYMOUS as u32) != 0
     }
