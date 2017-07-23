@@ -127,6 +127,7 @@ fn buttom_up_flow(mut unsafe_flow: UnsafeFlow,
 }
 
 fn top_down_flow<'scope>(unsafe_flows: &[UnsafeFlow],
+                         pool: &'scope rayon::ThreadPool,
                          scope: &rayon::Scope<'scope>,
                          assign_isize_traversal: &'scope AssignISizes,
                          assign_bsize_traversal: &'scope AssignBSizes)
@@ -138,13 +139,8 @@ fn top_down_flow<'scope>(unsafe_flows: &[UnsafeFlow],
         unsafe {
             // Get a real flow.
             let flow: &mut Flow = mem::transmute(*unsafe_flow);
-
-            // FIXME(emilio): With the switch to rayon we can no longer
-            // access a thread id from here easily. Either instrument
-            // rayon (the unstable feature) to get a worker thread
-            // identifier, or remove all the layout tinting mode.
-            //
-            // flow::mut_base(flow).thread_id = proxy.worker_index();
+            flow::mut_base(flow).thread_id =
+                pool.current_thread_index().unwrap() as u8;
 
             if assign_isize_traversal.should_process(flow) {
                 // Perform the appropriate traversal.
@@ -171,6 +167,7 @@ fn top_down_flow<'scope>(unsafe_flows: &[UnsafeFlow],
     if discovered_child_flows.len() <= CHUNK_SIZE {
         // We can handle all the children in this work unit.
         top_down_flow(&discovered_child_flows,
+                      pool,
                       scope,
                       &assign_isize_traversal,
                       &assign_bsize_traversal);
@@ -181,11 +178,11 @@ fn top_down_flow<'scope>(unsafe_flows: &[UnsafeFlow],
         for chunk in chunks {
             let nodes = chunk.iter().cloned().collect::<FlowList>();
             scope.spawn(move |scope| {
-                top_down_flow(&nodes, scope, &assign_isize_traversal, &assign_bsize_traversal);
+                top_down_flow(&nodes, pool, scope, &assign_isize_traversal, &assign_bsize_traversal);
             });
         }
         if let Some(chunk) = first_chunk {
-            top_down_flow(chunk, scope, &assign_isize_traversal, &assign_bsize_traversal);
+            top_down_flow(chunk, pool, scope, &assign_isize_traversal, &assign_bsize_traversal);
         }
     }
 }
@@ -209,7 +206,7 @@ pub fn traverse_flow_tree_preorder(
         rayon::scope(move |scope| {
             profile(time::ProfilerCategory::LayoutParallelWarmup,
                     profiler_metadata, time_profiler_chan, move || {
-                        top_down_flow(&nodes, scope, assign_isize_traversal, assign_bsize_traversal);
+                        top_down_flow(&nodes, queue, scope, assign_isize_traversal, assign_bsize_traversal);
             });
         });
     });
