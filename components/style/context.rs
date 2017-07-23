@@ -118,6 +118,9 @@ pub struct SharedStyleContext<'a> {
     pub stylist: &'a Stylist,
 
     /// Whether visited styles are enabled.
+    ///
+    /// They may be disabled when Gecko's pref layout.css.visited_links_enabled
+    /// is false, or when in private browsing mode.
     pub visited_styles_enabled: bool,
 
     /// Configuration options.
