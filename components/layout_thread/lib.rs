@@ -594,6 +594,7 @@ impl LayoutThread {
                 stylist: &self.stylist,
                 options: StyleSystemOptions::default(),
                 guards: guards,
+                visited_styles_enabled: false,
                 running_animations: self.running_animations.clone(),
                 expired_animations: self.expired_animations.clone(),
                 local_context_creation_data: Mutex::new(thread_local_style_context_creation_data),
