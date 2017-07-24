@@ -374,9 +374,8 @@ pub trait DomTraversal<E: TElement> : Sync {
         parent: E,
         parent_data: &ElementData,
     ) -> bool {
-        // See the comment on `cascade_node` for why we allow this on Gecko.
         debug_assert!(cfg!(feature = "gecko") ||
-                      parent.has_current_styles(parent_data));
+                      parent.has_current_styles_for_traversal(parent_data, context.shared.traversal_flags));
 
         // If the parent computed display:none, we don't style the subtree.
         if parent_data.styles.is_display_none() {

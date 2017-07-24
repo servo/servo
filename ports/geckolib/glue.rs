@@ -275,21 +275,26 @@ pub extern "C" fn Servo_TraverseSubtree(root: RawGeckoElementBorrowed,
         (Root::Normal, Restyle::ForThrottledAnimationFlush)
             => TraversalFlags::empty(),
         (Root::UnstyledChildrenOnly, Restyle::Normal) |
-        (Root::UnstyledChildrenOnly, Restyle::ForNewlyBoundElement) |
-        (Root::UnstyledChildrenOnly, Restyle::ForThrottledAnimationFlush)
+        (Root::UnstyledChildrenOnly, Restyle::ForNewlyBoundElement)
             => UNSTYLED_CHILDREN_ONLY,
         (Root::Normal, Restyle::ForCSSRuleChanges) => FOR_CSS_RULE_CHANGES,
         (Root::Normal, Restyle::ForReconstruct) => FOR_RECONSTRUCT,
         _ => panic!("invalid combination of TraversalRootBehavior and TraversalRestyleBehavior"),
     };
 
-    let needs_animation_only_restyle = element.has_animation_only_dirty_descendants() ||
-                                       element.has_animation_restyle_hints();
-    if needs_animation_only_restyle {
-        traverse_subtree(element,
-                         raw_data,
-                         traversal_flags | ANIMATION_ONLY,
-                         unsafe { &*snapshots });
+    // It makes no sense to do an animation restyle when we're restyling
+    // newly-inserted content.
+    if !traversal_flags.contains(UNSTYLED_CHILDREN_ONLY) {
+        let needs_animation_only_restyle =
+            element.has_animation_only_dirty_descendants() ||
+            element.has_animation_restyle_hints();
+
+        if needs_animation_only_restyle {
+            traverse_subtree(element,
+                             raw_data,
+                             traversal_flags | ANIMATION_ONLY,
+                             unsafe { &*snapshots });
+        }
     }
 
     if restyle_behavior == Restyle::ForThrottledAnimationFlush {
@@ -2814,7 +2819,7 @@ pub extern "C" fn Servo_ResolveStyle(element: RawGeckoElementBorrowed,
         TraversalFlags::empty()
     };
     debug_assert!(element.has_current_styles_for_traversal(&*data, flags),
-                  "Resolving style on element without current styles");
+                  "Resolving style on {:?} without current styles: {:?}", element, data);
     data.styles.primary().clone().into()
 }
 

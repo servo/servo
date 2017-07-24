@@ -470,19 +470,12 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
     /// Flags this element as having handled already its snapshot.
     unsafe fn set_handled_snapshot(&self);
 
-    /// Returns whether the element's styles are up-to-date.
-    fn has_current_styles(&self, data: &ElementData) -> bool {
-        if self.has_snapshot() && !self.handled_snapshot() {
-            return false;
-        }
-
-        data.has_styles() && !data.has_invalidations()
-    }
-
     /// Returns whether the element's styles are up-to-date for |traversal_flags|.
-    fn has_current_styles_for_traversal(&self,
-                                        data: &ElementData,
-                                        traversal_flags: TraversalFlags) -> bool {
+    fn has_current_styles_for_traversal(
+        &self,
+        data: &ElementData,
+        traversal_flags: TraversalFlags,
+    ) -> bool {
         if traversal_flags.for_animation_only() {
             // In animation-only restyle we never touch snapshots and don't
             // care about them. But we can't assert '!self.handled_snapshot()'
@@ -499,7 +492,7 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
             return false;
         }
 
-        data.has_styles() && !data.has_invalidations()
+        data.has_styles() && !data.restyle.hint.has_non_animation_hint()
     }
 
     /// Flags an element and its ancestors with a given `DescendantsBit`.
