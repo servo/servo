@@ -9,6 +9,7 @@
 //! module's raison d'être is to ultimately contain all these types.
 
 use app_units::Au;
+use smallvec::SmallVec;
 use std::cmp::max;
 use values::computed::Angle as ComputedAngle;
 use values::computed::BorderCornerRadius as ComputedBorderCornerRadius;
@@ -59,6 +60,23 @@ where
     T: ToAnimatedValue,
 {
     type AnimatedValue = Vec<<T as ToAnimatedValue>::AnimatedValue>;
+
+    #[inline]
+    fn to_animated_value(self) -> Self::AnimatedValue {
+        self.into_iter().map(T::to_animated_value).collect()
+    }
+
+    #[inline]
+    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+        animated.into_iter().map(T::from_animated_value).collect()
+    }
+}
+
+impl<T> ToAnimatedValue for SmallVec<[T; 1]>
+where
+    T: ToAnimatedValue,
+{
+    type AnimatedValue = SmallVec<[T::AnimatedValue; 1]>;
 
     #[inline]
     fn to_animated_value(self) -> Self::AnimatedValue {

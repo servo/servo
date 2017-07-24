@@ -167,7 +167,8 @@ ${helpers.predefined_type("background-size", "BackgroundSize",
     initial_specified_value="specified::LengthOrPercentageOrAuto::Auto.into()",
     spec="https://drafts.csswg.org/css-backgrounds/#the-background-size",
     vector=True,
-    animation_value_type="ComputedValue",
+    animation_value_type="BackgroundSizeList",
+    need_animatable=True,
     flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
     extra_prefixes="webkit")}
 

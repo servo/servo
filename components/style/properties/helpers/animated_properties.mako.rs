@@ -16,6 +16,7 @@ use euclid::{Point2D, Size2D};
 #[cfg(feature = "gecko")] use gecko_string_cache::Atom;
 use properties::{CSSWideKeyword, PropertyDeclaration};
 use properties::longhands;
+use properties::longhands::background_size::computed_value::T as BackgroundSizeList;
 use properties::longhands::border_spacing::computed_value::T as BorderSpacing;
 use properties::longhands::font_weight::computed_value::T as FontWeight;
 use properties::longhands::font_stretch::computed_value::T as FontStretch;
