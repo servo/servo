@@ -65,8 +65,12 @@ impl RestyleHint {
     }
 
     /// Returns whether we need to restyle this element.
-    pub fn has_self_invalidations(&self) -> bool {
-        self.intersects(RESTYLE_SELF | RECASCADE_SELF | Self::replacements())
+    pub fn has_non_animation_invalidations(&self) -> bool {
+        self.intersects(
+            RESTYLE_SELF |
+            RECASCADE_SELF |
+            (Self::replacements() & !Self::for_animations())
+        )
     }
 
     /// Propagates this restyle hint to a child element.
