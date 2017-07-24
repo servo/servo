@@ -4420,11 +4420,11 @@ fn static_assert() {
             match servo {
                 % for func in FILTER_FUNCTIONS:
                 ${func}(factor) => fill_filter(NS_STYLE_FILTER_${func.upper()},
-                                               CoordDataValue::Factor(factor),
+                                               CoordDataValue::Factor(factor.0),
                                                gecko_filter),
                 % endfor
                 Blur(length) => fill_filter(NS_STYLE_FILTER_BLUR,
-                                            CoordDataValue::Coord(length.0),
+                                            CoordDataValue::Coord(length.value()),
                                             gecko_filter),
 
                 HueRotate(angle) => fill_filter(NS_STYLE_FILTER_HUE_ROTATE,
@@ -4492,7 +4492,7 @@ fn static_assert() {
                 },
                 % endfor
                 NS_STYLE_FILTER_BLUR => {
-                    filters.push(Filter::Blur(Au::from_gecko_style_coord(
+                    filters.push(Filter::Blur(NonNegativeAu::from_gecko_style_coord(
                         &filter.mFilterParameter).unwrap()));
                 },
                 NS_STYLE_FILTER_HUE_ROTATE => {

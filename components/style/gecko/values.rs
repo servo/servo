@@ -17,9 +17,9 @@ use nsstring::{nsACString, nsCString};
 use std::cmp::max;
 use values::{Auto, Either, ExtremumLength, None_, Normal};
 use values::computed::{Angle, LengthOrPercentage, LengthOrPercentageOrAuto};
-use values::computed::{LengthOrPercentageOrNone, Number, NumberOrPercentage, NonNegativeAu};
+use values::computed::{LengthOrPercentageOrNone, Number, NumberOrPercentage};
 use values::computed::{MaxLength, MozLength, Percentage};
-use values::computed::NonNegativeLengthOrPercentage;
+use values::computed::{NonNegativeAu, NonNegativeLengthOrPercentage, NonNegativeNumber};
 use values::computed::basic_shape::ShapeRadius as ComputedShapeRadius;
 use values::generics::{CounterStyleOrNone, NonNegative};
 use values::generics::basic_shape::ShapeRadius;
@@ -152,6 +152,16 @@ impl GeckoStyleCoordConvertible for NonNegativeAu {
 
     fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
         Au::from_gecko_style_coord(coord).map(NonNegative::<Au>)
+    }
+}
+
+impl GeckoStyleCoordConvertible for NonNegativeNumber {
+    fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
+        self.0.to_gecko_style_coord(coord);
+    }
+
+    fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
+        Number::from_gecko_style_coord(coord).map(NonNegative::<Number>)
     }
 }
 

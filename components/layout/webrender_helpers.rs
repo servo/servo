@@ -190,15 +190,15 @@ impl ToFilterOps for Vec<Filter> {
         let mut result = Vec::with_capacity(self.len());
         for filter in self.iter() {
             match *filter {
-                GenericFilter::Blur(radius) => result.push(webrender_api::FilterOp::Blur(radius.to_f32_px())),
-                GenericFilter::Brightness(amount) => result.push(webrender_api::FilterOp::Brightness(amount)),
-                GenericFilter::Contrast(amount) => result.push(webrender_api::FilterOp::Contrast(amount)),
-                GenericFilter::Grayscale(amount) => result.push(webrender_api::FilterOp::Grayscale(amount)),
+                GenericFilter::Blur(radius) => result.push(webrender_api::FilterOp::Blur(radius.0.to_f32_px())),
+                GenericFilter::Brightness(amount) => result.push(webrender_api::FilterOp::Brightness(amount.0)),
+                GenericFilter::Contrast(amount) => result.push(webrender_api::FilterOp::Contrast(amount.0)),
+                GenericFilter::Grayscale(amount) => result.push(webrender_api::FilterOp::Grayscale(amount.0)),
                 GenericFilter::HueRotate(angle) => result.push(webrender_api::FilterOp::HueRotate(angle.radians())),
-                GenericFilter::Invert(amount) => result.push(webrender_api::FilterOp::Invert(amount)),
-                GenericFilter::Opacity(amount) => result.push(webrender_api::FilterOp::Opacity(amount.into())),
-                GenericFilter::Saturate(amount) => result.push(webrender_api::FilterOp::Saturate(amount)),
-                GenericFilter::Sepia(amount) => result.push(webrender_api::FilterOp::Sepia(amount)),
+                GenericFilter::Invert(amount) => result.push(webrender_api::FilterOp::Invert(amount.0)),
+                GenericFilter::Opacity(amount) => result.push(webrender_api::FilterOp::Opacity(amount.0.into())),
+                GenericFilter::Saturate(amount) => result.push(webrender_api::FilterOp::Saturate(amount.0)),
+                GenericFilter::Sepia(amount) => result.push(webrender_api::FilterOp::Sepia(amount.0)),
                 GenericFilter::DropShadow(ref shadow) => match *shadow {},
             }
         }

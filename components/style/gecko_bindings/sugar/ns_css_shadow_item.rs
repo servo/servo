@@ -27,7 +27,7 @@ impl nsCSSShadowItem {
                 color: Color::rgba(convert_nscolor_to_rgba(self.mColor)),
                 horizontal: Au(self.mXOffset),
                 vertical: Au(self.mYOffset),
-                blur: Au(self.mRadius),
+                blur: Au(self.mRadius).into(),
             },
             spread: Au(self.mSpread),
             inset: self.mInset,
@@ -39,7 +39,7 @@ impl nsCSSShadowItem {
     pub fn set_from_simple_shadow(&mut self, shadow: SimpleShadow) {
         self.mXOffset = shadow.horizontal.0;
         self.mYOffset = shadow.vertical.0;
-        self.mRadius = shadow.blur.0;
+        self.mRadius = shadow.blur.value();
         self.mSpread = 0;
         self.mInset = false;
         if shadow.color.is_currentcolor() {
@@ -62,7 +62,7 @@ impl nsCSSShadowItem {
             color: Color::rgba(convert_nscolor_to_rgba(self.mColor)),
             horizontal: Au(self.mXOffset),
             vertical: Au(self.mYOffset),
-            blur: Au(self.mRadius),
+            blur: Au(self.mRadius).into(),
         }
     }
 }

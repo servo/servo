@@ -733,6 +733,20 @@ impl<T: Parse> Parse for Either<NonNegativeLength, T> {
     }
 }
 
+impl NonNegativeLength {
+    /// Returns a `zero` length.
+    #[inline]
+    pub fn zero() -> Self {
+        Length::zero().into()
+    }
+
+    /// Get an absolute length from a px value.
+    #[inline]
+    pub fn from_px(px_value: CSSFloat) -> Self {
+        Length::from_px(px_value.max(0.)).into()
+    }
+}
+
 /// Either a NonNegativeLength or the `normal` keyword.
 pub type NonNegativeLengthOrNormal = Either<NonNegativeLength, Normal>;
 

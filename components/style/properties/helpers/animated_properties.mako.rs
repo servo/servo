@@ -3192,7 +3192,7 @@ fn add_weighted_filter_function_impl(from: &AnimatedFilter,
                     &to_value,
                     self_portion,
                     other_portion,
-                    &0.0,
+                    &NonNegative::<CSSFloat>(0.0),
                 )?))
             },
         % endfor
@@ -3203,7 +3203,7 @@ fn add_weighted_filter_function_impl(from: &AnimatedFilter,
                     &to_value,
                     self_portion,
                     other_portion,
-                    &1.0,
+                    &NonNegative::<CSSFloat>(1.0),
                 )?))
                 },
         % endfor

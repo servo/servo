@@ -1241,13 +1241,15 @@ mod shorthand_serialization {
 
         #[test]
         fn box_shadow_should_serialize_correctly() {
+            use style::values::specified::length::NonNegativeLength;
+
             let mut properties = Vec::new();
             let shadow_val = BoxShadow {
                 base: SimpleShadow {
                     color: None,
                     horizontal: Length::from_px(1f32),
                     vertical: Length::from_px(2f32),
-                    blur: Some(Length::from_px(3f32)),
+                    blur: Some(NonNegativeLength::from_px(3f32)),
                 },
                 spread: Some(Length::from_px(4f32)),
                 inset: false,
