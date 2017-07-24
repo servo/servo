@@ -1297,9 +1297,11 @@ impl Fragment {
                                       containing_block_inline_size: Au,
                                       border_collapse: border_collapse::T) {
         // Compute border.
-        let border = match border_collapse {
-            border_collapse::T::separate => self.border_width(),
-            border_collapse::T::collapse => LogicalMargin::zero(self.style.writing_mode),
+        let border = match (&self.specific, border_collapse) {
+            (&SpecificFragmentInfo::TableCell, border_collapse::T::collapse) |
+            (&SpecificFragmentInfo::TableColumn(_), border_collapse::T::collapse) =>
+                LogicalMargin::zero(self.style.writing_mode),
+            _ => self.border_width(),
         };
 
         // Compute padding from the fragment's style.
