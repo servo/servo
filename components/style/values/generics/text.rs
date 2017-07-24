@@ -104,7 +104,7 @@ where
 
 /// A generic value for the `line-height` property.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, ToCss)]
+#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, ToAnimatedValue, ToCss)]
 pub enum LineHeight<Number, LengthOrPercentage> {
     /// `normal`
     Normal,

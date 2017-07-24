@@ -9,7 +9,7 @@
 ${helpers.predefined_type("line-height",
                           "LineHeight",
                           "computed::LineHeight::normal()",
-                          animation_value_type="ComputedValue",
+                          animation_value_type="LineHeight",
                           flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
                           spec="https://drafts.csswg.org/css2/visudet.html#propdef-line-height")}
 

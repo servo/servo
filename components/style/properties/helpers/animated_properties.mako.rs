@@ -20,6 +20,7 @@ use properties::longhands::background_size::computed_value::T as BackgroundSizeL
 use properties::longhands::border_spacing::computed_value::T as BorderSpacing;
 use properties::longhands::font_weight::computed_value::T as FontWeight;
 use properties::longhands::font_stretch::computed_value::T as FontStretch;
+use properties::longhands::line_height::computed_value::T as LineHeight;
 use properties::longhands::transform::computed_value::ComputedMatrix;
 use properties::longhands::transform::computed_value::ComputedOperation as TransformOperation;
 use properties::longhands::transform::computed_value::T as TransformList;

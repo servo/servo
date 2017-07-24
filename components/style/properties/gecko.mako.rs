@@ -4645,8 +4645,8 @@ fn static_assert() {
         // FIXME: Align binary representations and ditch |match| for cast + static_asserts
         let en = match v {
             LineHeight::Normal => CoordDataValue::Normal,
-            LineHeight::Length(val) => CoordDataValue::Coord(val.0),
-            LineHeight::Number(val) => CoordDataValue::Factor(val),
+            LineHeight::Length(val) => CoordDataValue::Coord(val.value()),
+            LineHeight::Number(val) => CoordDataValue::Factor(val.0),
             LineHeight::MozBlockHeight =>
                     CoordDataValue::Enumerated(structs::NS_STYLE_LINE_HEIGHT_BLOCK_HEIGHT),
         };
@@ -4657,8 +4657,8 @@ fn static_assert() {
         use values::generics::text::LineHeight;
         return match self.gecko.mLineHeight.as_value() {
             CoordDataValue::Normal => LineHeight::Normal,
-            CoordDataValue::Coord(coord) => LineHeight::Length(Au(coord)),
-            CoordDataValue::Factor(n) => LineHeight::Number(n),
+            CoordDataValue::Coord(coord) => LineHeight::Length(Au(coord).into()),
+            CoordDataValue::Factor(n) => LineHeight::Number(n.into()),
             CoordDataValue::Enumerated(val) if val == structs::NS_STYLE_LINE_HEIGHT_BLOCK_HEIGHT =>
                 LineHeight::MozBlockHeight,
             _ => panic!("this should not happen"),
