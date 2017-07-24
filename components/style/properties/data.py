@@ -46,6 +46,11 @@ def to_camel_case_lower(ident):
     return camel[0].lower() + camel[1:]
 
 
+# https://drafts.csswg.org/cssom/#css-property-to-idl-attribute
+def to_idl_name(ident):
+    return re.sub("-([a-z])", lambda m: m.group(1).upper(), ident)
+
+
 def parse_aliases(value):
     aliases = {}
     for pair in value.split():
