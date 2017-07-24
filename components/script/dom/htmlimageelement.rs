@@ -60,6 +60,11 @@ use task_source::TaskSource;
 
 #[derive(Clone, Copy, JSTraceable, HeapSizeOf)]
 #[allow(dead_code)]
+enum ParseState {
+    InDescriptor,
+    InParens,
+    AfterDescriptor,
+}
 enum State {
     Unavailable,
     PartiallyAvailable,
@@ -73,6 +78,10 @@ enum ImageRequestPhase {
 }
 #[derive(JSTraceable, HeapSizeOf)]
 #[must_root]
+struct ImageSource {
+    candidate: String,
+    length: Length,
+}
 struct ImageRequest {
     state: State,
     parsed_url: Option<ServoUrl>,
@@ -792,6 +801,11 @@ impl HTMLImageElementMethods for HTMLImageElement {
     make_url_getter!(Src, "src");
     // https://html.spec.whatwg.org/multipage/#dom-img-src
     make_setter!(SetSrc, "src");
+    
+    // https://html.spec.whatwg.org/multipage/#parsing-a-srcset-attribute
+    // make_getter!(Srcset, "srcset");
+    // https://html.spec.whatwg.org/multipage/#parsing-a-srcset-attribute
+    // make_setter!(SetSrcset, "srcset");
 
     // https://html.spec.whatwg.org/multipage/#dom-img-crossOrigin
     fn GetCrossOrigin(&self) -> Option<DOMString> {
@@ -1031,4 +1045,113 @@ fn image_dimension_setter(element: &Element, attr: LocalName, value: u32) {
     let dim = LengthOrPercentageOrAuto::Length(Au::from_px(pixel_value as i32));
     let value = AttrValue::Dimension(value.to_string(), dim);
     element.set_attribute(&attr, value);
+}
+
+fn collect_sequence_characters<'a, P>(s: &'a str, predicate: P)
+                  -> (&'a str, &'a str)
+                  where P: Fn(char) -> bool {
+    for (i, c) in s.chars().enumerate() {
+        if !predicate(c) {
+            return (&s[0..i], &s[i..]);
+        }
+    }
+    return (s, "");
+}
+
+fn parse_a_srcset_attribute(input: String) -> Vec<ImageSource> {
+        let position = &input;
+        let candidate: Vec<ImageSource> = Vec::new();
+        let(spaces, position) = collect_sequence_characters(position, |c| c ==',' || char::is_whitespace(c));
+        println!("{} {}", spaces, position);
+        let x = spaces.find(',');
+        match x {
+            Some(val) => println!("Parse Error"),
+            None => println!("No commas"),
+        }
+        if position == "" {
+            //Does something need to be asserted here? The algorithm says abort the steps is this condition exists
+            return candidate;
+        }
+        let (url, spaces) = collect_sequence_characters(position, |c| !char::is_whitespace(c));
+        let comma_count = url.chars().rev().take_while(|c| *c == ',').count();
+        let url: String = url.chars().take(url.chars().count() - comma_count).collect();
+        if comma_count > 1 {
+            println!("Parse Error (trailing commas)")
+        }
+
+        let mut descriptor = List::<String>::new();
+        // Descriptor Tokeniser: whitespace
+        let (space, position) = collect_sequence_characters(position, |c| char::is_whitespace(c));
+        let mut current_descriptor = String::new();
+        let mut state = ParseState::InDescriptor;
+        for (i, c) in position.chars().enumerate() {
+            match state {
+                ParseState::InDescriptor => {
+                    match c {
+                     ' ' => {
+                                if current_descriptor != "" {
+                                    descriptor.push_back(current_descriptor.clone());
+                                    state = ParseState::AfterDescriptor;
+                                }
+                            },
+                     ',' => {   position.chars().enumerate();
+                                if current_descriptor != "" {
+                                    descriptor.push_back(current_descriptor.clone());
+                                    state = ParseState::AfterDescriptor;
+                                }
+                            }
+                     '(' => {
+                                current_descriptor.push(c);
+                                state = ParseState::InParens;
+                            }
+                    //Matching EOF
+                     /*''  => {   if current_descriptor != "" {
+                                    descriptor.push_back(current_descriptor.clone());
+                                    state = ParseState::AfterDescriptor;
+                                }
+                            }
+                    */
+                      _  => {
+                                current_descriptor.push(c);
+                            }
+                    }
+                }
+                ParseState::InParens =>{
+                    match c {
+                     '(' => {
+                                current_descriptor.push(c);
+                                state = ParseState::InDescriptor;
+                            }
+                    //Matching EOF
+                     /*''  => {   if current_descriptor != "" {
+                                    descriptor.push_back(current_descriptor.clone());
+                                    state = ParseState::AfterDescriptor;
+                                }
+                            }
+                    */
+                      _  => {
+                                current_descriptor.push(c);
+                            }
+                    }
+                }
+                ParseState::AfterDescriptor => {
+                    match c {
+                         ' ' => {
+                                        state = ParseState::AfterDescriptor;
+                                }
+                        //Matching EOF
+                         /*''  => {   if current_descriptor != "" {
+                                        descriptor.push_back(current_descriptor.clone());
+                                        state = ParseState::AfterDescriptor;
+                                    }
+                                }
+                        */
+                          _  => {
+                                    state = ParseState::InDescriptor;
+                                }
+                        }
+                }
+            }
+        }
+        return candidate;
 }
