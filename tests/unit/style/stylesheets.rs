@@ -20,7 +20,7 @@ use style::media_queries::MediaList;
 use style::properties::Importance;
 use style::properties::{CSSWideKeyword, DeclaredValueOwned, PropertyDeclaration, PropertyDeclarationBlock};
 use style::properties::longhands;
-use style::properties::longhands::animation_play_state;
+use style::properties::longhands::animation_timing_function;
 use style::shared_lock::SharedRwLock;
 use style::stylesheets::{Origin, Namespaces};
 use style::stylesheets::{Stylesheet, StylesheetContents, NamespaceRule, CssRule, CssRules, StyleRule, KeyframesRule};
@@ -28,6 +28,7 @@ use style::stylesheets::keyframes_rule::{Keyframe, KeyframeSelector, KeyframePer
 use style::values::{KeyframesName, CustomIdent};
 use style::values::computed::Percentage;
 use style::values::specified::{LengthOrPercentageOrAuto, PositionComponent};
+use style::values::specified::transform::TimingFunction;
 
 pub fn block_from<I>(iterable: I) -> PropertyDeclarationBlock
 where I: IntoIterator<Item=(PropertyDeclaration, Importance)> {
@@ -62,7 +63,7 @@ fn test_parse_stylesheet() {
                 width: 100%;
                 width: 50% !important; /* !important not allowed here */
                 animation-name: 'foo'; /* animation properties not allowed here */
-                animation-play-state: running; /* … except animation-play-state */
+                animation-timing-function: ease; /* … except animation-timing-function */
             }
         }";
     let url = ServoUrl::parse("about::test").unwrap();
@@ -226,9 +227,9 @@ fn test_parse_stylesheet() {
                                 (PropertyDeclaration::Width(
                                     LengthOrPercentageOrAuto::Percentage(Percentage(1.))),
                                  Importance::Normal),
-                                (PropertyDeclaration::AnimationPlayState(
-                                    animation_play_state::SpecifiedValue(
-                                        vec![animation_play_state::SingleSpecifiedValue::running])),
+                                (PropertyDeclaration::AnimationTimingFunction(
+                                    animation_timing_function::SpecifiedValue(
+                                        vec![TimingFunction::ease()])),
                                  Importance::Normal),
                             ]))),
                         })),

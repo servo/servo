@@ -591,6 +591,8 @@ ${helpers.predefined_type("animation-duration",
                           extra_prefixes="moz webkit",
                           spec="https://drafts.csswg.org/css-transitions/#propdef-transition-duration")}
 
+// animation-timing-function is the exception to the rule for allowed_in_keyframe_block:
+// https://drafts.csswg.org/css-animations/#keyframes
 ${helpers.predefined_type("animation-timing-function",
                           "TimingFunction",
                           "computed::TimingFunction::ease()",
@@ -671,8 +673,6 @@ ${helpers.single_keyword("animation-direction",
                          spec="https://drafts.csswg.org/css-animations/#propdef-animation-direction",
                          allowed_in_keyframe_block=False)}
 
-// animation-play-state is the exception to the rule for allowed_in_keyframe_block:
-// https://drafts.csswg.org/css-animations/#keyframes
 ${helpers.single_keyword("animation-play-state",
                          "running paused",
                          need_clone=True,
@@ -681,7 +681,7 @@ ${helpers.single_keyword("animation-play-state",
                          vector=True,
                          extra_prefixes="moz webkit",
                          spec="https://drafts.csswg.org/css-animations/#propdef-animation-play-state",
-                         allowed_in_keyframe_block=True)}
+                         allowed_in_keyframe_block=False)}
 
 ${helpers.single_keyword("animation-fill-mode",
                          "none forwards backwards both",
