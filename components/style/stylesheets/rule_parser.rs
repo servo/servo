@@ -515,6 +515,7 @@ fn get_location_with_offset(
 ) -> SourceLocation {
     SourceLocation {
         line: location.line + offset as u32,
-        column: location.column,
+        // Column offsets are not yet supported, but Gecko devtools expect 1-based columns.
+        column: location.column + 1,
     }
 }
