@@ -409,7 +409,7 @@ macro_rules! __define_css_keyword_enum__actual {
                 Self::from_ident(&ident)
                     .map_err(|()| ::cssparser::ParseError::Basic(
                         ::cssparser::BasicParseError::UnexpectedToken(
-                            ::cssparser::Token::Ident(ident))))
+                            ::cssparser::Token::Ident(ident.clone()))))
             }
 
             /// Parse this property from an already-tokenized identifier.

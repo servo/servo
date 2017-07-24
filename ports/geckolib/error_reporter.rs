@@ -7,7 +7,7 @@
 #![allow(unsafe_code)]
 
 use cssparser::{Parser, SourcePosition, ParseError as CssParseError, Token, BasicParseError};
-use cssparser::CompactCowStr;
+use cssparser::CowRcStr;
 use selectors::parser::SelectorParseError;
 use style::error_reporting::{ParseErrorReporter, ContextualParseError};
 use style::gecko_bindings::bindings::{Gecko_CreateCSSErrorReporter, Gecko_DestroyCSSErrorReporter};
@@ -43,15 +43,15 @@ impl Drop for ErrorReporter {
 }
 
 enum ErrorString<'a> {
-    Snippet(CompactCowStr<'a>),
-    Ident(CompactCowStr<'a>),
+    Snippet(CowRcStr<'a>),
+    Ident(CowRcStr<'a>),
     UnexpectedToken(Token<'a>),
 }
 
 impl<'a> ErrorString<'a> {
     fn into_str(self) -> String {
         match self {
-            ErrorString::Snippet(s) => s.into_owned(),
+            ErrorString::Snippet(s) => s.as_ref().to_owned(),
             ErrorString::Ident(i) => escape_css_ident(&i),
             ErrorString::UnexpectedToken(t) => token_to_str(t),
         }
@@ -186,13 +186,13 @@ fn token_to_str<'a>(t: Token<'a>) -> String {
 }
 
 trait ErrorHelpers<'a> {
-    fn error_data(self) -> (CompactCowStr<'a>, ParseError<'a>);
+    fn error_data(self) -> (CowRcStr<'a>, ParseError<'a>);
     fn error_param(self) -> ErrorString<'a>;
     fn to_gecko_message(&self) -> &'static [u8];
 }
 
 impl<'a> ErrorHelpers<'a> for ContextualParseError<'a> {
-    fn error_data(self) -> (CompactCowStr<'a>, ParseError<'a>) {
+    fn error_data(self) -> (CowRcStr<'a>, ParseError<'a>) {
         match self {
             ContextualParseError::UnsupportedPropertyDeclaration(s, err) |
             ContextualParseError::UnsupportedFontFaceDescriptor(s, err) |

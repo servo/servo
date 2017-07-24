@@ -4,7 +4,7 @@
 
 //! Gecko-specific bits for selector-parsing.
 
-use cssparser::{BasicParseError, Parser, ToCss, Token, CompactCowStr};
+use cssparser::{BasicParseError, Parser, ToCss, Token, CowRcStr};
 use element_state::ElementState;
 use gecko_bindings::structs::CSSPseudoClassType;
 use selector_parser::{SelectorParser, PseudoElementCascadeType};
@@ -267,12 +267,12 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
     type Impl = SelectorImpl;
     type Error = StyleParseError<'i>;
 
-    fn is_pseudo_element_allows_single_colon(name: &CompactCowStr<'i>) -> bool {
+    fn is_pseudo_element_allows_single_colon(name: &CowRcStr<'i>) -> bool {
         ::selectors::parser::is_css2_pseudo_element(name) ||
             name.starts_with("-moz-tree-") // tree pseudo-elements
     }
 
-    fn parse_non_ts_pseudo_class(&self, name: CompactCowStr<'i>)
+    fn parse_non_ts_pseudo_class(&self, name: CowRcStr<'i>)
                                  -> Result<NonTSPseudoClass, ParseError<'i>> {
         macro_rules! pseudo_class_parse {
             (bare: [$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*],
@@ -294,7 +294,7 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
     }
 
     fn parse_non_ts_functional_pseudo_class<'t>(&self,
-                                                name: CompactCowStr<'i>,
+                                                name: CowRcStr<'i>,
                                                 parser: &mut Parser<'i, 't>)
                                                 -> Result<NonTSPseudoClass, ParseError<'i>> {
         macro_rules! pseudo_class_string_parse {
@@ -338,12 +338,12 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
         }
     }
 
-    fn parse_pseudo_element(&self, name: CompactCowStr<'i>) -> Result<PseudoElement, ParseError<'i>> {
+    fn parse_pseudo_element(&self, name: CowRcStr<'i>) -> Result<PseudoElement, ParseError<'i>> {
         PseudoElement::from_slice(&name, self.in_user_agent_stylesheet())
             .ok_or(SelectorParseError::UnexpectedIdent(name.clone()).into())
     }
 
-    fn parse_functional_pseudo_element<'t>(&self, name: CompactCowStr<'i>,
+    fn parse_functional_pseudo_element<'t>(&self, name: CowRcStr<'i>,
                                            parser: &mut Parser<'i, 't>)
                                            -> Result<PseudoElement, ParseError<'i>> {
         if name.starts_with("-moz-tree-") {
@@ -352,9 +352,9 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
             let mut args = Vec::new();
             loop {
                 match parser.next() {
-                    Ok(Token::Ident(ident)) => args.push(ident.into_owned()),
-                    Ok(Token::Comma) => {},
-                    Ok(t) => return Err(BasicParseError::UnexpectedToken(t).into()),
+                    Ok(&Token::Ident(ref ident)) => args.push(ident.as_ref().to_owned()),
+                    Ok(&Token::Comma) => {},
+                    Ok(t) => return Err(BasicParseError::UnexpectedToken(t.clone()).into()),
                     Err(BasicParseError::EndOfInput) => break,
                     _ => unreachable!("Parser::next() shouldn't return any other error"),
                 }

@@ -18,10 +18,10 @@ use values::specified::LengthOrPercentage;
 
 /// Parse a single flexible length.
 pub fn parse_flex<'i, 't>(input: &mut Parser<'i, 't>) -> Result<CSSFloat, ParseError<'i>> {
-    match input.next()? {
+    match *input.next()? {
         Token::Dimension { value, ref unit, .. } if unit.eq_ignore_ascii_case("fr") && value.is_sign_positive()
             => Ok(value),
-        t => Err(BasicParseError::UnexpectedToken(t).into()),
+        ref t => Err(BasicParseError::UnexpectedToken(t.clone()).into()),
     }
 }
 
@@ -85,8 +85,8 @@ pub fn parse_line_names<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Box<[Custo
     input.expect_square_bracket_block()?;
     input.parse_nested_block(|input| {
         let mut values = vec![];
-        while let Ok(ident) = input.try(|i| i.expect_ident()) {
-            let ident = CustomIdent::from_ident(ident, &["span"])?;
+        while let Ok(ident) = input.try(|i| i.expect_ident_cloned()) {
+            let ident = CustomIdent::from_ident(&ident, &["span"])?;
             values.push(ident);
         }
 

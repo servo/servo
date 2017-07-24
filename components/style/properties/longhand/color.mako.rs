@@ -134,7 +134,7 @@
                 if let Some(color) = color_name(&ident) {
                     Ok(*color)
                 } else {
-                    Err(SelectorParseError::UnexpectedIdent(ident).into())
+                    Err(SelectorParseError::UnexpectedIdent(ident.clone()).into())
                 }
             }
         }

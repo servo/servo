@@ -151,17 +151,20 @@ impl<T: Parse> Parse for FontSettingTag<T> {
         use byteorder::{ReadBytesExt, BigEndian};
         use std::io::Cursor;
 
-        let tag = input.expect_string()?;
-
-        // allowed strings of length 4 containing chars: <U+20, U+7E>
-        if tag.len() != 4 ||
-           tag.chars().any(|c| c < ' ' || c > '~')
+        let u_tag;
         {
-            return Err(StyleParseError::UnspecifiedError.into())
-        }
+            let tag = input.expect_string()?;
 
-        let mut raw = Cursor::new(tag.as_bytes());
-        let u_tag = raw.read_u32::<BigEndian>().unwrap();
+            // allowed strings of length 4 containing chars: <U+20, U+7E>
+            if tag.len() != 4 ||
+               tag.chars().any(|c| c < ' ' || c > '~')
+            {
+                return Err(StyleParseError::UnspecifiedError.into())
+            }
+
+            let mut raw = Cursor::new(tag.as_bytes());
+            u_tag = raw.read_u32::<BigEndian>().unwrap();
+        }
 
         Ok(FontSettingTag { tag: u_tag, value: T::parse(context, input)? })
     }

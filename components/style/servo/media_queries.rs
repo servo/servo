@@ -165,7 +165,7 @@ impl Expression {
                          -> Result<Self, ParseError<'i>> {
         input.expect_parenthesis_block()?;
         input.parse_nested_block(|input| {
-            let name = input.expect_ident()?;
+            let name = input.expect_ident_cloned()?;
             input.expect_colon()?;
             // TODO: Handle other media features
             Ok(Expression(match_ignore_ascii_case! { &name,

@@ -22,7 +22,7 @@ extern crate euclid;
 extern crate selectors;
 #[cfg(feature = "servo")] #[macro_use] extern crate serde;
 
-use cssparser::{CompactCowStr, Token};
+use cssparser::{CowRcStr, Token};
 use selectors::parser::SelectorParseError;
 
 /// Opaque type stored in type-unsafe work queues for parallel layout.
@@ -87,9 +87,9 @@ pub type ParseError<'i> = cssparser::ParseError<'i, SelectorParseError<'i, Style
 /// Errors that can be encountered while parsing CSS values.
 pub enum StyleParseError<'i> {
     /// A bad URL token in a DVB.
-    BadUrlInDeclarationValueBlock(CompactCowStr<'i>),
+    BadUrlInDeclarationValueBlock(CowRcStr<'i>),
     /// A bad string token in a DVB.
-    BadStringInDeclarationValueBlock(CompactCowStr<'i>),
+    BadStringInDeclarationValueBlock(CowRcStr<'i>),
     /// Unexpected closing parenthesis in a DVB.
     UnbalancedCloseParenthesisInDeclarationValueBlock,
     /// Unexpected closing bracket in a DVB.
@@ -101,11 +101,11 @@ pub enum StyleParseError<'i> {
     /// A property declaration value had input remaining after successfully parsing.
     PropertyDeclarationValueNotExhausted,
     /// An unexpected dimension token was encountered.
-    UnexpectedDimension(CompactCowStr<'i>),
+    UnexpectedDimension(CowRcStr<'i>),
     /// A media query using a ranged expression with no value was encountered.
     RangedExpressionWithNoValue,
     /// A function was encountered that was not expected.
-    UnexpectedFunction(CompactCowStr<'i>),
+    UnexpectedFunction(CowRcStr<'i>),
     /// @namespace must be before any rule but @charset and @import
     UnexpectedNamespaceRule,
     /// @import must be before any rule but @charset
@@ -113,7 +113,7 @@ pub enum StyleParseError<'i> {
     /// Unexpected @charset rule encountered.
     UnexpectedCharsetRule,
     /// Unsupported @ rule
-    UnsupportedAtRule(CompactCowStr<'i>),
+    UnsupportedAtRule(CowRcStr<'i>),
     /// A placeholder for many sources of errors that require more specific variants.
     UnspecifiedError,
     /// An unexpected token was found within a namespace rule.
@@ -124,13 +124,13 @@ pub enum StyleParseError<'i> {
 #[derive(Eq, PartialEq, Clone, Debug)]
 pub enum PropertyDeclarationParseError<'i> {
     /// The property declaration was for an unknown property.
-    UnknownProperty(CompactCowStr<'i>),
+    UnknownProperty(CowRcStr<'i>),
     /// An unknown vendor-specific identifier was encountered.
     UnknownVendorProperty,
     /// The property declaration was for a disabled experimental property.
     ExperimentalProperty,
     /// The property declaration contained an invalid value.
-    InvalidValue(CompactCowStr<'i>),
+    InvalidValue(CowRcStr<'i>),
     /// The declaration contained an animation property, and we were parsing
     /// this as a keyframe block (so that property should be ignored).
     ///

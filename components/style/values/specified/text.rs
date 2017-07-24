@@ -73,7 +73,7 @@ impl Parse for LineHeight {
             ref ident if ident.eq_ignore_ascii_case("-moz-block-height") => {
                 Ok(GenericLineHeight::MozBlockHeight)
             },
-            ident => Err(SelectorParseError::UnexpectedIdent(ident).into()),
+            ident => Err(SelectorParseError::UnexpectedIdent(ident.clone()).into()),
         }
     }
 }

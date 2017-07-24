@@ -17,7 +17,7 @@ macro_rules! try_match_ident_ignore_ascii_case {
             _ => Err(()),
         })
         .map_err(|()| {
-            ::selectors::parser::SelectorParseError::UnexpectedIdent(__ident).into()
+            ::selectors::parser::SelectorParseError::UnexpectedIdent(__ident.clone()).into()
         })
     }
 }

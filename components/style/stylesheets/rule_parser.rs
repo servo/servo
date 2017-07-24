@@ -7,7 +7,7 @@
 use {Namespace, Prefix};
 use counter_style::{parse_counter_style_body, parse_counter_style_name};
 use cssparser::{AtRuleParser, AtRuleType, Parser, QualifiedRuleParser, RuleListParser};
-use cssparser::{CompactCowStr, SourceLocation, BasicParseError};
+use cssparser::{CowRcStr, SourceLocation, BasicParseError};
 use error_reporting::ContextualParseError;
 use font_face::parse_font_face_block;
 use media_queries::{parse_media_query_list, MediaList};
@@ -18,7 +18,6 @@ use selectors::SelectorList;
 use selectors::parser::SelectorParseError;
 use servo_arc::Arc;
 use shared_lock::{Locked, SharedRwLock};
-use std::borrow::Cow;
 use str::starts_with_ignore_ascii_case;
 use style_traits::{StyleParseError, ParseError};
 use stylesheets::{CssRule, CssRules, CssRuleType, Origin, StylesheetLoader};
@@ -142,7 +141,7 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
 
     fn parse_prelude<'t>(
         &mut self,
-        name: CompactCowStr<'i>,
+        name: CowRcStr<'i>,
         input: &mut Parser<'i, 't>
     ) -> Result<AtRuleType<AtRulePrelude, CssRule>, ParseError<'i>> {
         let location = get_location_with_offset(input.current_source_location(),
@@ -156,7 +155,7 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
                 }
 
                 self.state = State::Imports;
-                let url_string = input.expect_url_or_string()?.into_owned();
+                let url_string = input.expect_url_or_string()?.as_ref().to_owned();
                 let specified_url = SpecifiedUrl::parse_from_string(url_string, &self.context)?;
 
                 let media = parse_media_query_list(&self.context, input);
@@ -183,14 +182,14 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
                 }
                 self.state = State::Namespaces;
 
-                let prefix_result = input.try(|input| input.expect_ident());
+                let prefix_result = input.try(|i| i.expect_ident_cloned());
                 let maybe_namespace = match input.expect_url_or_string() {
                     Ok(url_or_string) => url_or_string,
                     Err(BasicParseError::UnexpectedToken(t)) =>
                         return Err(StyleParseError::UnexpectedTokenWithinNamespace(t).into()),
                     Err(e) => return Err(e.into()),
                 };
-                let url = Namespace::from(Cow::from(maybe_namespace));
+                let url = Namespace::from(maybe_namespace.as_ref());
 
                 let id = register_namespace(&url)
                     .map_err(|()| StyleParseError::UnspecifiedError)?;
@@ -198,7 +197,7 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
                 let mut namespaces = self.namespaces.as_mut().unwrap();
 
                 let opt_prefix = if let Ok(prefix) = prefix_result {
-                    let prefix = Prefix::from(Cow::from(prefix));
+                    let prefix = Prefix::from(prefix.as_ref());
                     namespaces
                         .prefixes
                         .insert(prefix.clone(), (url.clone(), id));
@@ -324,7 +323,7 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
 
     fn parse_prelude<'t>(
         &mut self,
-        name: CompactCowStr<'i>,
+        name: CowRcStr<'i>,
         input: &mut Parser<'i, 't>
     ) -> Result<AtRuleType<AtRulePrelude, CssRule>, ParseError<'i>> {
         let location =

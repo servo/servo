@@ -27,6 +27,6 @@ impl Parse for BackgroundSize {
             "cover" => Ok(GenericBackgroundSize::Cover),
             "contain" => Ok(GenericBackgroundSize::Contain),
             _ => Err(()),
-        }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
+        }).map_err(|()| SelectorParseError::UnexpectedIdent(ident.clone()).into())
     }
 }

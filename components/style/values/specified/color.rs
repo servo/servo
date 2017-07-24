@@ -72,7 +72,7 @@ impl Parse for Color {
         // specified value.
         let start_position = input.position();
         let authored = match input.next() {
-            Ok(Token::Ident(s)) => Some(s.to_lowercase().into_boxed_str()),
+            Ok(&Token::Ident(ref s)) => Some(s.to_lowercase().into_boxed_str()),
             _ => None,
         };
         input.reset(start_position);
@@ -173,22 +173,22 @@ impl Color {
     ///
     /// https://quirks.spec.whatwg.org/#the-hashless-hex-color-quirk
     fn parse_quirky_color<'i, 't>(input: &mut Parser<'i, 't>) -> Result<RGBA, ParseError<'i>> {
-        let (value, unit) = match input.next()? {
+        let (value, unit) = match *input.next()? {
             Token::Number { int_value: Some(integer), .. } => {
                 (integer, None)
             },
-            Token::Dimension { int_value: Some(integer), unit, .. } => {
+            Token::Dimension { int_value: Some(integer), ref unit, .. } => {
                 (integer, Some(unit))
             },
-            Token::Ident(ident) => {
+            Token::Ident(ref ident) => {
                 if ident.len() != 3 && ident.len() != 6 {
                     return Err(StyleParseError::UnspecifiedError.into());
                 }
                 return parse_hash_color(ident.as_bytes())
                     .map_err(|()| StyleParseError::UnspecifiedError.into());
             }
-            t => {
-                return Err(BasicParseError::UnexpectedToken(t).into());
+            ref t => {
+                return Err(BasicParseError::UnexpectedToken(t.clone()).into());
             },
         };
         if value < 0 {
