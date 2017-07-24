@@ -4,7 +4,7 @@
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
-<% from data import SYSTEM_FONT_LONGHANDS %>
+<% from data import to_idl_name, SYSTEM_FONT_LONGHANDS %>
 
 use app_units::Au;
 use cssparser::{Parser, RGBA};
@@ -23,7 +23,8 @@ use properties::longhands::transform::computed_value::ComputedOperation as Trans
 use properties::longhands::transform::computed_value::T as TransformList;
 use properties::longhands::vertical_align::computed_value::T as VerticalAlign;
 use properties::longhands::visibility::computed_value::T as Visibility;
-#[cfg(feature = "gecko")] use properties::{PropertyDeclarationId, LonghandId};
+#[cfg(feature = "gecko")] use properties::{PropertyId, PropertyDeclarationId, LonghandId};
+#[cfg(feature = "gecko")] use properties::{ShorthandId};
 use selectors::parser::SelectorParseError;
 use smallvec::SmallVec;
 use std::cmp;
@@ -3202,5 +3203,58 @@ impl Animatable for AnimatedFilterList {
             square_distance += current_square_distance;
         }
         Ok(square_distance.sqrt())
+    }
+}
+
+/// A comparator to sort PropertyIds such that longhands are sorted before shorthands,
+/// shorthands with fewer components are sorted before shorthands with more components,
+/// and otherwise shorthands are sorted by IDL name as defined by [Web Animations][property-order].
+///
+/// Using this allows us to prioritize values specified by longhands (or smaller
+/// shorthand subsets) when longhands and shorthands are both specified on the one keyframe.
+///
+/// Example orderings that result from this:
+///
+///   margin-left, margin
+///
+/// and:
+///
+///   border-top-color, border-color, border-top, border
+///
+/// [property-order] https://w3c.github.io/web-animations/#calculating-computed-keyframes
+#[cfg(feature = "gecko")]
+pub fn compare_property_priority(a: &PropertyId, b: &PropertyId) -> cmp::Ordering {
+    match (a.as_shorthand(), b.as_shorthand()) {
+        // Within shorthands, sort by the number of subproperties, then by IDL name.
+        (Ok(a), Ok(b)) => {
+            let subprop_count_a = a.longhands().len();
+            let subprop_count_b = b.longhands().len();
+            subprop_count_a.cmp(&subprop_count_b).then_with(
+                || get_idl_name_sort_order(&a).cmp(&get_idl_name_sort_order(&b)))
+        },
+
+        // Longhands go before shorthands.
+        (Ok(_), Err(_)) => cmp::Ordering::Greater,
+        (Err(_), Ok(_)) => cmp::Ordering::Less,
+
+        // Both are longhands or custom properties in which case they don't overlap and should
+        // sort equally.
+        _ => cmp::Ordering::Equal,
+    }
+}
+
+#[cfg(feature = "gecko")]
+fn get_idl_name_sort_order(shorthand: &ShorthandId) -> u32 {
+<%
+# Sort by IDL name.
+sorted_shorthands = sorted(data.shorthands, key=lambda p: to_idl_name(p.ident))
+
+# Annotate with sorted position
+sorted_shorthands = [(p, position) for position, p in enumerate(sorted_shorthands)]
+%>
+    match *shorthand {
+        % for property, position in sorted_shorthands:
+            ShorthandId::${property.camel_case} => ${position},
+        % endfor
     }
 }
