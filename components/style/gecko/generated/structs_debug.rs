@@ -4206,19 +4206,21 @@ pub mod root {
                 fn clone(&self) -> Self { *self }
             }
             #[repr(C)]
-            #[derive(Debug)]
+            #[derive(Debug, Copy)]
             pub struct NodeInfo_NodeInfoInner {
-                pub mName: root::nsCOMPtr<root::nsIAtom>,
-                pub mPrefix: root::nsCOMPtr<root::nsIAtom>,
+                pub mName: *const root::nsIAtom,
+                pub mPrefix: *mut root::nsIAtom,
                 pub mNamespaceID: i32,
                 pub mNodeType: u16,
                 pub mNameString: *const root::nsAString,
-                pub mExtraName: root::nsCOMPtr<root::nsIAtom>,
+                pub mExtraName: *mut root::nsIAtom,
+                pub mHash: root::PLHashNumber,
+                pub mHashInitialized: bool,
             }
             #[test]
             fn bindgen_test_layout_NodeInfo_NodeInfoInner() {
                 assert_eq!(::std::mem::size_of::<NodeInfo_NodeInfoInner>() ,
-                           40usize , concat ! (
+                           48usize , concat ! (
                            "Size of: " , stringify ! ( NodeInfo_NodeInfoInner
                            ) ));
                 assert_eq! (::std::mem::align_of::<NodeInfo_NodeInfoInner>() ,
@@ -4267,6 +4269,23 @@ pub mod root {
                             "Alignment of field: " , stringify ! (
                             NodeInfo_NodeInfoInner ) , "::" , stringify ! (
                             mExtraName ) ));
+                assert_eq! (unsafe {
+                            & ( * ( 0 as * const NodeInfo_NodeInfoInner ) ) .
+                            mHash as * const _ as usize } , 40usize , concat !
+                            (
+                            "Alignment of field: " , stringify ! (
+                            NodeInfo_NodeInfoInner ) , "::" , stringify ! (
+                            mHash ) ));
+                assert_eq! (unsafe {
+                            & ( * ( 0 as * const NodeInfo_NodeInfoInner ) ) .
+                            mHashInitialized as * const _ as usize } , 44usize
+                            , concat ! (
+                            "Alignment of field: " , stringify ! (
+                            NodeInfo_NodeInfoInner ) , "::" , stringify ! (
+                            mHashInitialized ) ));
+            }
+            impl Clone for NodeInfo_NodeInfoInner {
+                fn clone(&self) -> Self { *self }
             }
             extern "C" {
                 #[link_name =
@@ -4276,7 +4295,7 @@ pub mod root {
             }
             #[test]
             fn bindgen_test_layout_NodeInfo() {
-                assert_eq!(::std::mem::size_of::<NodeInfo>() , 120usize ,
+                assert_eq!(::std::mem::size_of::<NodeInfo>() , 128usize ,
                            concat ! ( "Size of: " , stringify ! ( NodeInfo )
                            ));
                 assert_eq! (::std::mem::align_of::<NodeInfo>() , 8usize ,
@@ -4304,22 +4323,22 @@ pub mod root {
                             , "::" , stringify ! ( mInner ) ));
                 assert_eq! (unsafe {
                             & ( * ( 0 as * const NodeInfo ) ) . mOwnerManager
-                            as * const _ as usize } , 64usize , concat ! (
+                            as * const _ as usize } , 72usize , concat ! (
                             "Alignment of field: " , stringify ! ( NodeInfo )
                             , "::" , stringify ! ( mOwnerManager ) ));
                 assert_eq! (unsafe {
                             & ( * ( 0 as * const NodeInfo ) ) . mQualifiedName
-                            as * const _ as usize } , 72usize , concat ! (
+                            as * const _ as usize } , 80usize , concat ! (
                             "Alignment of field: " , stringify ! ( NodeInfo )
                             , "::" , stringify ! ( mQualifiedName ) ));
                 assert_eq! (unsafe {
                             & ( * ( 0 as * const NodeInfo ) ) . mNodeName as *
-                            const _ as usize } , 88usize , concat ! (
+                            const _ as usize } , 96usize , concat ! (
                             "Alignment of field: " , stringify ! ( NodeInfo )
                             , "::" , stringify ! ( mNodeName ) ));
                 assert_eq! (unsafe {
                             & ( * ( 0 as * const NodeInfo ) ) . mLocalName as
-                            * const _ as usize } , 104usize , concat ! (
+                            * const _ as usize } , 112usize , concat ! (
                             "Alignment of field: " , stringify ! ( NodeInfo )
                             , "::" , stringify ! ( mLocalName ) ));
             }
