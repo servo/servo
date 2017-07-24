@@ -432,8 +432,16 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                              rect.size,
                                              webrender_api::LayoutSize::zero());
             }
-            DisplayItem::Line(..) => {
-                println!("TODO DisplayItem::Line");
+            DisplayItem::Line(ref item) => {
+                let box_bounds = item.base.bounds.to_rectf();
+                builder.push_line(Some(item.base.local_clip),
+                                  box_bounds.origin.y + box_bounds.size.height,
+                                  box_bounds.origin.x,
+                                  box_bounds.origin.x + box_bounds.size.width,
+                                  webrender_api::LineOrientation::Horizontal,
+                                  box_bounds.size.height,
+                                  item.color,
+                                  item.style);
             }
             DisplayItem::BoxShadow(ref item) => {
                 let rect = item.base.bounds.to_rectf();
