@@ -85,7 +85,7 @@ fn test_parse_stylesheet() {
                     url: NsAtom::from("http://www.w3.org/1999/xhtml"),
                     source_location: SourceLocation {
                         line: 1,
-                        column: 18,
+                        column: 19,
                     },
                 }))),
                 CssRule::Style(Arc::new(stylesheet.shared_lock.wrap(StyleRule {
@@ -115,7 +115,7 @@ fn test_parse_stylesheet() {
                     ]))),
                     source_location: SourceLocation {
                         line: 3,
-                        column: 8,
+                        column: 9,
                     },
                 }))),
                 CssRule::Style(Arc::new(stylesheet.shared_lock.wrap(StyleRule {
@@ -142,7 +142,7 @@ fn test_parse_stylesheet() {
                     ]))),
                     source_location: SourceLocation {
                         line: 11,
-                        column: 8,
+                        column: 9,
                     },
                 }))),
                 CssRule::Style(Arc::new(stylesheet.shared_lock.wrap(StyleRule {
@@ -204,7 +204,7 @@ fn test_parse_stylesheet() {
                     ]))),
                     source_location: SourceLocation {
                         line: 15,
-                        column: 8,
+                        column: 9,
                     },
                 }))),
                 CssRule::Keyframes(Arc::new(stylesheet.shared_lock.wrap(KeyframesRule {
@@ -236,7 +236,7 @@ fn test_parse_stylesheet() {
                     vendor_prefix: None,
                     source_location: SourceLocation {
                         line: 16,
-                        column: 18,
+                        column: 19,
                     },
                 })))
 
