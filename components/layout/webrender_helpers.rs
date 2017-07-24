@@ -223,8 +223,9 @@ impl WebRenderDisplayListConverter for DisplayList {
     fn convert_to_webrender(&self, pipeline_id: PipelineId) -> DisplayListBuilder {
         let traversal = DisplayListTraversal::new(self);
         let webrender_pipeline_id = pipeline_id.to_webrender();
-        let mut builder = DisplayListBuilder::new(webrender_pipeline_id,
-                                                  self.bounds().size.to_sizef());
+        let mut builder = DisplayListBuilder::with_capacity(webrender_pipeline_id,
+                                                            self.bounds().size.to_sizef(),
+                                                            1024 * 1024); // 1 MB of space
 
         let mut current_scroll_root_id = ClipId::root_scroll_node(webrender_pipeline_id);
         builder.push_clip_id(current_scroll_root_id);
