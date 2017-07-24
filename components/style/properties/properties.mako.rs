@@ -2996,6 +2996,7 @@ where
         cached_system_font: None,
         in_media_query: false,
         quirks_mode: quirks_mode,
+        for_smil_animation: false,
     };
 
     let ignore_colors = !device.use_document_colors();

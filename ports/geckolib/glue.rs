@@ -2907,6 +2907,7 @@ fn create_context<'a>(
     style: &'a ComputedValues,
     parent_style: Option<&'a ComputedValues>,
     pseudo: Option<&'a PseudoElement>,
+    for_smil_animation: bool,
 ) -> Context<'a> {
     Context {
         is_root_element: false,
@@ -2920,6 +2921,7 @@ fn create_context<'a>(
         cached_system_font: None,
         in_media_query: false,
         quirks_mode: per_doc_data.stylist.quirks_mode(),
+        for_smil_animation,
     }
 }
 
@@ -2989,7 +2991,14 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeLis
     let parent_style = parent_data.as_ref().map(|d| d.styles.primary()).map(|x| &**x);
 
     let pseudo = style.pseudo();
-    let mut context = create_context(&data, &metrics, &style, parent_style, pseudo.as_ref());
+    let mut context = create_context(
+        &data,
+        &metrics,
+        &style,
+        parent_style,
+        pseudo.as_ref(),
+        /* for_smil_animation = */ false,
+    );
 
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
@@ -3069,7 +3078,14 @@ pub extern "C" fn Servo_GetAnimationValues(declarations: RawServoDeclarationBloc
     let parent_style = parent_data.as_ref().map(|d| d.styles.primary()).map(|x| &**x);
 
     let pseudo = style.pseudo();
-    let mut context = create_context(&data, &metrics, &style, parent_style, pseudo.as_ref());
+    let mut context = create_context(
+        &data,
+        &metrics,
+        &style,
+        parent_style,
+        pseudo.as_ref(),
+        /* for_smil_animation = */ true
+    );
 
     let default_values = data.default_computed_values();
     let global_style_data = &*GLOBAL_STYLE_DATA;
@@ -3098,7 +3114,14 @@ pub extern "C" fn Servo_AnimationValue_Compute(element: RawGeckoElementBorrowed,
     let parent_style = parent_data.as_ref().map(|d| d.styles.primary()).map(|x| &**x);
 
     let pseudo = style.pseudo();
-    let mut context = create_context(&data, &metrics, style, parent_style, pseudo.as_ref());
+    let mut context = create_context(
+        &data,
+        &metrics,
+        style,
+        parent_style,
+        pseudo.as_ref(),
+        /* for_smil_animation = */ false
+    );
 
     let default_values = data.default_computed_values();
     let global_style_data = &*GLOBAL_STYLE_DATA;

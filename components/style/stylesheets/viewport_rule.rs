@@ -709,6 +709,7 @@ impl MaybeNew for ViewportConstraints {
             cached_system_font: None,
             in_media_query: false,
             quirks_mode: quirks_mode,
+            for_smil_animation: false,
         };
 
         // DEVICE-ADAPT § 9.3 Resolving 'extend-to-zoom'
