@@ -228,10 +228,8 @@ impl FetchTaskTarget for IpcSender<FetchResponseMsg> {
     }
 
     fn process_response_eof(&mut self, response: &Response) {
-        if response.is_network_error() {
-            // todo: finer grained errors
-            let _ =
-                self.send(FetchResponseMsg::ProcessResponseEOF(Err(NetworkError::Internal("Network error".into()))));
+        if let Some(e) = response.get_network_error() {
+            let _ = self.send(FetchResponseMsg::ProcessResponseEOF(Err(e.clone())));
         } else {
             let _ = self.send(FetchResponseMsg::ProcessResponseEOF(Ok(())));
         }
