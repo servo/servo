@@ -324,7 +324,7 @@ impl ElementData {
         }
 
         debug_assert!(hint.has_recascade_self(),
-                      "We definitely need to do something!");
+                      "We definitely need to do something: {:?}!", hint);
         return RestyleKind::CascadeOnly;
     }
 
