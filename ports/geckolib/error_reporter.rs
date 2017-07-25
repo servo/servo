@@ -9,6 +9,7 @@
 use cssparser::{Parser, SourcePosition, ParseError as CssParseError, Token, BasicParseError};
 use cssparser::CowRcStr;
 use selectors::parser::SelectorParseError;
+use std::ptr;
 use style::error_reporting::{ParseErrorReporter, ContextualParseError};
 use style::gecko_bindings::bindings::{Gecko_CreateCSSErrorReporter, Gecko_DestroyCSSErrorReporter};
 use style::gecko_bindings::bindings::Gecko_ReportUnexpectedCSSError;
@@ -185,10 +186,16 @@ fn token_to_str<'a>(t: Token<'a>) -> String {
     }
 }
 
+enum Action {
+    Nothing,
+    Skip,
+    Drop,
+}
+
 trait ErrorHelpers<'a> {
     fn error_data(self) -> (CowRcStr<'a>, ParseError<'a>);
     fn error_param(self) -> ErrorString<'a>;
-    fn to_gecko_message(&self) -> &'static [u8];
+    fn to_gecko_message(&self) -> (&'static [u8], Action);
 }
 
 impl<'a> ErrorHelpers<'a> for ContextualParseError<'a> {
@@ -245,37 +252,37 @@ impl<'a> ErrorHelpers<'a> for ContextualParseError<'a> {
         }
     }
 
-    fn to_gecko_message(&self) -> &'static [u8] {
+    fn to_gecko_message(&self) -> (&'static [u8], Action) {
         match *self {
             ContextualParseError::UnsupportedPropertyDeclaration(
                 _, CssParseError::Basic(BasicParseError::UnexpectedToken(_))) |
             ContextualParseError::UnsupportedPropertyDeclaration(
                 _, CssParseError::Basic(BasicParseError::AtRuleInvalid(_))) =>
-                b"PEParseDeclarationDeclExpected\0",
+                (b"PEParseDeclarationDeclExpected\0", Action::Skip),
             ContextualParseError::UnsupportedPropertyDeclaration(
                 _, CssParseError::Custom(SelectorParseError::Custom(
                     StyleParseError::PropertyDeclaration(
                         PropertyDeclarationParseError::InvalidValue(_))))) =>
-                b"PEValueParsingError\0",
+                (b"PEValueParsingError\0", Action::Drop),
             ContextualParseError::UnsupportedPropertyDeclaration(..) =>
-                b"PEUnknownProperty\0",
+                (b"PEUnknownProperty\0", Action::Drop),
             ContextualParseError::UnsupportedFontFaceDescriptor(..) =>
-                b"PEUnknwnFontDesc\0",
+                (b"PEUnknwnFontDesc\0", Action::Skip),
             ContextualParseError::InvalidKeyframeRule(..) =>
-                b"PEKeyframeBadName\0",
+                (b"PEKeyframeBadName\0", Action::Nothing),
             ContextualParseError::UnsupportedKeyframePropertyDeclaration(..) =>
-                b"PEBadSelectorKeyframeRuleIgnored\0",
+                (b"PEBadSelectorKeyframeRuleIgnored\0", Action::Nothing),
             ContextualParseError::InvalidRule(
                 _, CssParseError::Custom(SelectorParseError::ExpectedNamespace(_))) =>
-                b"PEUnknownNamespacePrefix\0",
+                (b"PEUnknownNamespacePrefix\0", Action::Nothing),
             ContextualParseError::InvalidRule(
                 _, CssParseError::Custom(SelectorParseError::Custom(
                 StyleParseError::UnexpectedTokenWithinNamespace(_)))) =>
-                b"PEAtNSUnexpected\0",
+                (b"PEAtNSUnexpected\0", Action::Nothing),
             ContextualParseError::InvalidRule(..) =>
-                b"PEBadSelectorRSIgnored\0",
+                (b"PEBadSelectorRSIgnored\0", Action::Nothing),
             ContextualParseError::UnsupportedRule(..) =>
-                b"PEDeclDropped\0",
+                (b"PEDeclDropped\0", Action::Nothing),
             ContextualParseError::UnsupportedViewportDescriptorDeclaration(..) |
             ContextualParseError::UnsupportedCounterStyleDescriptorDeclaration(..) |
             ContextualParseError::InvalidCounterStyleWithoutSymbols(..) |
@@ -283,7 +290,7 @@ impl<'a> ErrorHelpers<'a> for ContextualParseError<'a> {
             ContextualParseError::InvalidCounterStyleWithoutAdditiveSymbols |
             ContextualParseError::InvalidCounterStyleExtendsWithSymbols |
             ContextualParseError::InvalidCounterStyleExtendsWithAdditiveSymbols =>
-                b"PEUnknownAtRule\0",
+                (b"PEUnknownAtRule\0", Action::Skip),
         }
     }
 }
@@ -298,7 +305,12 @@ impl ParseErrorReporter for ErrorReporter {
         let location = input.source_location(position);
         let line_number = location.line + line_number_offset as u32;
 
-        let name = error.to_gecko_message();
+        let (name, action) = error.to_gecko_message();
+        let followup = match action {
+            Action::Nothing => ptr::null(),
+            Action::Skip => b"PEDeclSkipped\0".as_ptr(),
+            Action::Drop => b"PEDeclDropped\0".as_ptr(),
+        };
         let param = error.error_param().into_str();
         // The CSS source text is unused and will be removed in bug 1381188.
         let source = "";
@@ -311,7 +323,8 @@ impl ParseErrorReporter for ErrorReporter {
                                            source.len() as u32,
                                            line_number as u32,
                                            location.column as u32,
-                                           url.mBaseURI.raw::<nsIURI>());
+                                           url.mBaseURI.raw::<nsIURI>(),
+                                           followup as *const _);
         }
     }
 }
