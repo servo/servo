@@ -457,6 +457,9 @@ ${helpers.single_keyword_system("font-variant-caps",
     pub mod computed_value {
         /// As of CSS Fonts Module Level 3, only the following values are
         /// valid: 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900
+        ///
+        /// However, system fonts may provide other values. Pango
+        /// may provide 350, 380, and 1000 (on top of the existing values), for example.
         #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, ToCss)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
         pub struct T(pub u16);
@@ -483,8 +486,9 @@ ${helpers.single_keyword_system("font-variant-caps",
 
             /// Convert from an Gecko weight
             pub fn from_gecko_weight(weight: u16) -> Self {
-                Self::from_int(weight as i32)
-                    .expect("from_gecko_weight: called with invalid weight")
+                // we allow a wider range of weights than is parseable
+                // because system fonts may provide custom values
+                T(weight)
             }
 
             /// Weither this weight is bold
