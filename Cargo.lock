@@ -1291,9 +1291,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "hyper-rustls"
-version = "0.6.1"
-source = "git+https://github.com/SimranGujral/hyper-rustls.git?branch=servo_config#fe3d40d8ce1464693e0b63016fc34bc61a043486"
+name = "hyper-sync-rustls"
+version = "0.1.0"
+source = "git+https://github.com/SergioBenitez/hyper-sync-rustls.git#33a052910fce5d0a40178c43707e0e89fd090dc0"
 dependencies = [
  "hyper 0.10.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustls 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1863,7 +1863,7 @@ dependencies = [
  "flate2 0.2.19 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.10.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper-openssl 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "hyper-rustls 0.6.1 (git+https://github.com/SimranGujral/hyper-rustls.git?branch=servo_config)",
+ "hyper-sync-rustls 0.1.0 (git+https://github.com/SergioBenitez/hyper-sync-rustls.git)",
  "hyper_serde 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "immeta 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3867,7 +3867,7 @@ dependencies = [
 "checksum httparse 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "a6e7a63e511f9edffbab707141fbb8707d1a3098615fb2adbd5769cdfcc9b17d"
 "checksum hyper 0.10.10 (registry+https://github.com/rust-lang/crates.io-index)" = "36e108e0b1fa2d17491cbaac4bc460dc0956029d10ccf83c913dd0e5db3e7f07"
 "checksum hyper-openssl 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)" = "85a372eb692590b3fe014c196c30f9f52d4c42f58cd49dd94caeee1593c9cc37"
-"checksum hyper-rustls 0.6.1 (git+https://github.com/SimranGujral/hyper-rustls.git?branch=servo_config)" = "<none>"
+"checksum hyper-sync-rustls 0.1.0 (git+https://github.com/SergioBenitez/hyper-sync-rustls.git)" = "<none>"
 "checksum hyper_serde 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)" = "cbe43f514f80494e9329c9fc47d61b85b167d245685424637a0f4a409177e444"
 "checksum idna 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "2233d4940b1f19f0418c158509cd7396b8d70a5db5705ce410914dc8fa603b37"
 "checksum image 0.12.4 (registry+https://github.com/rust-lang/crates.io-index)" = "d95816db758249fe16f23a4e23f1a3a817fe11892dbfd1c5836f625324702158"

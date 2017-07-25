@@ -7,11 +7,11 @@ use hyper::client::Pool;
 use hyper::error::{Result as HyperResult, Error as HyperError};
 use hyper::net::{NetworkConnector, HttpsStream, HttpStream, SslClient};
 use std::{io, fs };
-use std::sync::Arc;
 use std::net::TcpStream;
 use std::path::PathBuf;
 use rustls;
-use hyper_rustls:: {TlsClient};
+use hyper_sync_rustls:: {TlsClient};
+use std::sync::Arc;
 
 pub struct HttpsConnector {
     ssl: TlsClient,
@@ -56,11 +56,10 @@ pub fn create_ssl_client(ca_file: &PathBuf) -> TlsClient {
         let rd = io::BufReader::new(f);
         rd
     };
-    println!("rustls");
     let mut tls = rustls::ClientConfig::new();
     tls.root_store.add_pem_file(&mut ca).unwrap();
     let tls = Arc::new(tls);
-    let client = TlsClient { cfg: tls};
+    let client = TlsClient {cfg: tls};
     client
 }
 

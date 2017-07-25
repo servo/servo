@@ -28,7 +28,7 @@ use hyper::header::{UserAgent, q, qitem};
 use hyper::method::Method;
 use hyper::status::StatusCode;
 //use hyper_openssl::OpensslClient;
-use hyper_rustls::TlsClient;
+use hyper_sync_rustls::TlsClient;
 use hyper_serde::Serde;
 use log;
 use msg::constellation_msg::PipelineId;

@@ -39,7 +39,7 @@ extern crate uuid;
 extern crate webrender_api;
 extern crate websocket;
 extern crate rustls;
-extern crate hyper_rustls;
+extern crate hyper_sync_rustls;
 
 mod blob_loader;
 mod chrome_loader;
