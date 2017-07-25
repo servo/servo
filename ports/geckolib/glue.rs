@@ -865,7 +865,8 @@ pub extern "C" fn Servo_StyleSet_AppendStyleSheet(
 #[no_mangle]
 pub extern "C" fn Servo_StyleSet_MediumFeaturesChanged(
     raw_data: RawServoStyleSetBorrowed,
-) -> bool {
+    viewport_changed: bool,
+) -> nsRestyleHint {
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
 
@@ -881,11 +882,19 @@ pub extern "C" fn Servo_StyleSet_MediumFeaturesChanged(
     // less often.
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
 
+    let viewport_units_used = data.stylist.device().used_viewport_size();
     data.stylist.device_mut().reset_computed_values();
-    data.stylist.media_features_change_changed_style(
+    let rules_changed = data.stylist.media_features_change_changed_style(
         data.stylesheets.iter(),
         &guard,
-    )
+    );
+    if rules_changed {
+        structs::nsRestyleHint_eRestyle_Subtree
+    } else if viewport_changed && viewport_units_used {
+        structs::nsRestyleHint_eRestyle_ForceDescendants
+    } else {
+        nsRestyleHint(0)
+    }
 }
 
 #[no_mangle]

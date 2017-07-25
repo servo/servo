@@ -54,6 +54,9 @@ pub struct Device {
     /// Whether any styles computed in the document relied on the root font-size
     /// by using rem units.
     used_root_font_size: AtomicBool,
+    /// Whether any styles computed in the document relied on the viewport size
+    /// by using vw/vh/vmin/vmax units.
+    used_viewport_size: AtomicBool,
 }
 
 unsafe impl Sync for Device {}
@@ -69,6 +72,7 @@ impl Device {
             viewport_override: None,
             root_font_size: AtomicIsize::new(font_size::get_initial_value().0 as isize), // FIXME(bz): Seems dubious?
             used_root_font_size: AtomicBool::new(false),
+            used_viewport_size: AtomicBool::new(false),
         }
     }
 
@@ -112,6 +116,7 @@ impl Device {
         self.viewport_override = None;
         self.default_values = ComputedValues::default_values(self.pres_context());
         self.used_root_font_size.store(false, Ordering::Relaxed);
+        self.used_viewport_size.store(false, Ordering::Relaxed);
     }
 
     /// Returns whether we ever looked up the root font size of the Device.
@@ -146,6 +151,7 @@ impl Device {
 
     /// Returns the current viewport size in app units.
     pub fn au_viewport_size(&self) -> Size2D<Au> {
+        self.used_viewport_size.store(true, Ordering::Relaxed);
         self.viewport_override.as_ref().map(|v| {
             Size2D::new(Au::from_f32_px(v.size.width),
                         Au::from_f32_px(v.size.height))
@@ -154,6 +160,11 @@ impl Device {
             let area = &self.pres_context().mVisibleArea;
             Size2D::new(Au(area.width), Au(area.height))
         })
+    }
+
+    /// Returns whether we ever looked up the viewport size of the Device.
+    pub fn used_viewport_size(&self) -> bool {
+        self.used_viewport_size.load(Ordering::Relaxed)
     }
 
     /// Returns the device pixel ratio.

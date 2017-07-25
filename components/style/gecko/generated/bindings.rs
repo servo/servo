@@ -1921,8 +1921,9 @@ extern "C" {
     pub fn Servo_StyleSet_RebuildData(set: RawServoStyleSetBorrowed);
 }
 extern "C" {
-    pub fn Servo_StyleSet_MediumFeaturesChanged(set: RawServoStyleSetBorrowed)
-     -> bool;
+    pub fn Servo_StyleSet_MediumFeaturesChanged(set: RawServoStyleSetBorrowed,
+                                                viewport_changed: bool)
+     -> nsRestyleHint;
 }
 extern "C" {
     pub fn Servo_StyleSet_CompatModeChanged(raw_data:
