@@ -783,8 +783,11 @@ pub trait MatchMethods : TElement {
         // This happens with display:none elements, and not-yet-existing
         // pseudo-elements.
         if new_style_is_display_none && old_style_is_display_none {
-            // The style remains display:none. No need for damage.
-            return StyleDifference::new(RestyleDamage::empty(), StyleChange::Unchanged)
+            // The style remains display:none.  The only case we need to care
+            // about is if -moz-binding changed, and to generate a reconstruct
+            // so that we can start the binding load.  Otherwise, there is no
+            // need for damage.
+            return RestyleDamage::compute_undisplayed_style_difference(old_values, new_values);
         }
 
         if pseudo.map_or(false, |p| p.is_before_or_after()) {
