@@ -140,19 +140,10 @@ where
         parent_style: Option<&ComputedValues>,
         layout_parent_style: Option<&ComputedValues>,
     ) -> ElementStyles {
-        use properties::longhands::display::computed_value::T as display;
-
         let primary_style =
             self.resolve_primary_style(parent_style, layout_parent_style);
 
         let mut pseudo_styles = EagerPseudoStyles::default();
-        if primary_style.style.get_box().clone_display() == display::none {
-            return ElementStyles {
-                // FIXME(emilio): Remove the Option<>.
-                primary: Some(primary_style.style),
-                pseudos: pseudo_styles,
-            }
-        }
 
         if self.element.implemented_pseudo_element().is_none() {
             let layout_parent_style_for_pseudo =
@@ -237,7 +228,6 @@ where
         &mut self,
         inputs: ElementCascadeInputs,
     ) -> ElementStyles {
-        use properties::longhands::display::computed_value::T as display;
         with_default_parent_styles(self.element, move |parent_style, layout_parent_style| {
             let primary_style = PrimaryStyle {
                 style: self.cascade_style_and_visited(
@@ -249,16 +239,7 @@ where
             };
 
             let mut pseudo_styles = EagerPseudoStyles::default();
-            let pseudo_array = inputs.pseudos.into_array();
-            if pseudo_array.is_none() ||
-                primary_style.style.get_box().clone_display() == display::none {
-                return ElementStyles {
-                    primary: Some(primary_style.style),
-                    pseudos: pseudo_styles,
-                }
-            }
-
-            {
+            if let Some(mut pseudo_array) = inputs.pseudos.into_array() {
                 let layout_parent_style_for_pseudo =
                     if primary_style.style.is_display_contents() {
                         layout_parent_style
@@ -266,7 +247,7 @@ where
                         Some(&*primary_style.style)
                     };
 
-                for (i, mut inputs) in pseudo_array.unwrap().iter_mut().enumerate() {
+                for (i, mut inputs) in pseudo_array.iter_mut().enumerate() {
                     if let Some(inputs) = inputs.take() {
                         let pseudo = PseudoElement::from_eager_index(i);
                         pseudo_styles.set(
