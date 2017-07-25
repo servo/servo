@@ -457,6 +457,9 @@ ${helpers.single_keyword_system("font-variant-caps",
     pub mod computed_value {
         /// As of CSS Fonts Module Level 3, only the following values are
         /// valid: 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900
+        ///
+        /// However, system fonts may provide other values. Pango
+        /// may provide 350, 380, and 1000 (on top of the existing values), for example.
         #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, ToCss)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
         pub struct T(pub u16);
@@ -474,7 +477,7 @@ ${helpers.single_keyword_system("font-variant-caps",
 
             /// Convert from an integer to Weight
             pub fn from_int(n: i32) -> Result<Self, ()> {
-                if n >= 100 && n <= 900 && n % 100 == 0 {
+                if n >= 0 && n <= u16::MAX {
                     Ok(T(n as u16))
                 } else {
                     Err(())
