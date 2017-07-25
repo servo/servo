@@ -13,6 +13,7 @@ use dom::cssstylevalue::CSSStyleValue;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use servo_atoms::Atom;
+use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::iter::Iterator;
 
@@ -62,5 +63,30 @@ impl StylePropertyMapReadOnlyMethods for StylePropertyMapReadOnly {
     fn Has(&self, property: DOMString) -> bool {
         // TODO: avoid constructing an Atom
         self.entries.contains_key(&Atom::from(property))
+    }
+
+    /// https://drafts.css-houdini.org/css-typed-om-1/#dom-stylepropertymapreadonly-getproperties
+    fn GetProperties(&self) -> Vec<DOMString> {
+        let mut result: Vec<DOMString> = self.entries.keys()
+            .map(|key| DOMString::from(&**key))
+            .collect();
+        // https://drafts.css-houdini.org/css-typed-om-1/#dom-stylepropertymap-getproperties
+        // requires this sort order
+        result.sort_by(|key1, key2| {
+            if key1.starts_with("-") {
+                if key2.starts_with("-") {
+                    key1.cmp(key2)
+                } else {
+                    Ordering::Greater
+                }
+            } else {
+                if key2.starts_with("-") {
+                    Ordering::Less
+                } else {
+                    key1.cmp(key2)
+                }
+            }
+        });
+        result
     }
 }
