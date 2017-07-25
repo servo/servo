@@ -566,7 +566,14 @@ impl ToComputedValue for Opacity {
 
     #[inline]
     fn to_computed_value(&self, context: &Context) -> CSSFloat {
-        self.0.to_computed_value(context).min(1.0).max(0.0)
+        let value = self.0.to_computed_value(context);
+        if context.for_smil_animation {
+            // SMIL expects to be able to interpolate between out-of-range
+            // opacity values.
+            value
+        } else {
+            value.min(1.0).max(0.0)
+        }
     }
 
     #[inline]
