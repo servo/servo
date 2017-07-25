@@ -696,6 +696,10 @@ impl MaybeNew for ViewportConstraints {
         //
         // Note: DEVICE-ADAPT § 5. states that relative length values are
         // resolved against initial values
+        //
+        // Note, we set used_viewport_size flag for Gecko in au_viewport_size.
+        // If we ever start supporting ViewportRule in Gecko, we probably want
+        // to avoid doing so at this place.
         let initial_viewport = device.au_viewport_size();
 
         let provider = get_metrics_provider_for_product();
