@@ -119,11 +119,6 @@ impl<'a> Context<'a> {
         self.builder.device.au_viewport_size()
     }
 
-    /// The style we're inheriting from.
-    pub fn inherited_style(&self) -> &ComputedValues {
-        self.builder.inherited_style()
-    }
-
     /// The default computed style we're getting our reset style from.
     pub fn default_style(&self) -> &ComputedValues {
         self.builder.default_style()
@@ -411,7 +406,7 @@ impl ToComputedValue for specified::JustifyItems {
         // If the inherited value of `justify-items` includes the `legacy` keyword, `auto` computes
         // to the inherited value.
         if self.0 == align::ALIGN_AUTO {
-            let inherited = context.inherited_style().get_position().clone_justify_items();
+            let inherited = context.builder.get_parent_position().clone_justify_items();
             if inherited.0.contains(align::ALIGN_LEGACY) {
                 return inherited
             }

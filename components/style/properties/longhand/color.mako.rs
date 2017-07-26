@@ -22,7 +22,7 @@
         #[inline]
         fn to_computed_value(&self, context: &Context) -> computed_value::T {
             self.0.to_computed_value(context)
-                .to_rgba(context.inherited_style().get_color().clone_color())
+                .to_rgba(context.builder.get_parent_color().clone_color())
         }
 
         #[inline]

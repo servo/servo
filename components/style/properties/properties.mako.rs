@@ -14,6 +14,7 @@ use servo_arc::{Arc, UniqueArc};
 use std::borrow::Cow;
 use std::collections::HashSet;
 use std::{fmt, mem, ops};
+#[cfg(feature = "gecko")] use std::ptr;
 
 use app_units::Au;
 #[cfg(feature = "servo")] use cssparser::RGBA;
@@ -2470,6 +2471,11 @@ pub struct StyleBuilder<'a> {
     /// `parent_style.unwrap_or(device.default_computed_values())`.
     inherited_style: &'a ComputedValues,
 
+    /// The style we're inheriting from for properties that don't inherit from
+    /// ::first-line.  This is the same as inherited_style, unless
+    /// inherited_style is a ::first-line style.
+    inherited_style_ignoring_first_line: &'a ComputedValues,
+
     /// The style we're getting reset structs from.
     reset_style: &'a ComputedValues,
 
@@ -2507,6 +2513,7 @@ impl<'a> StyleBuilder<'a> {
     fn new(
         device: &'a Device,
         parent_style: Option<<&'a ComputedValues>,
+        parent_style_ignoring_first_line: Option<<&'a ComputedValues>,
         pseudo: Option<<&'a PseudoElement>,
         cascade_flags: CascadeFlags,
         rules: Option<StrongRuleNode>,
@@ -2516,8 +2523,19 @@ impl<'a> StyleBuilder<'a> {
         flags: ComputedValueFlags,
         visited_style: Option<Arc<ComputedValues>>,
     ) -> Self {
+        debug_assert_eq!(parent_style.is_some(), parent_style_ignoring_first_line.is_some());
+        #[cfg(feature = "gecko")]
+        debug_assert!(parent_style.is_none() ||
+                      ptr::eq(parent_style.unwrap(),
+                              parent_style_ignoring_first_line.unwrap()) ||
+                      parent_style.unwrap().pseudo() == Some(PseudoElement::FirstLine));
         let reset_style = device.default_computed_values();
         let inherited_style = parent_style.unwrap_or(reset_style);
+        let inherited_style_ignoring_first_line = parent_style_ignoring_first_line.unwrap_or(reset_style);
+        // FIXME(bz): INHERIT_ALL seems like a fundamentally broken idea.  I'm
+        // 99% sure it should give incorrect behavior for table anonymous box
+        // backgrounds, for example.  This code doesn't attempt to make it play
+        // nice with inherited_style_ignoring_first_line.
         let reset_style = if cascade_flags.contains(INHERIT_ALL) {
             inherited_style
         } else {
@@ -2528,6 +2546,7 @@ impl<'a> StyleBuilder<'a> {
             device,
             parent_style,
             inherited_style,
+            inherited_style_ignoring_first_line,
             reset_style,
             pseudo,
             rules,
@@ -2556,10 +2575,15 @@ impl<'a> StyleBuilder<'a> {
     ) -> Self {
         let reset_style = device.default_computed_values();
         let inherited_style = parent_style.unwrap_or(reset_style);
+        #[cfg(feature = "gecko")]
+        debug_assert!(parent_style.is_none() ||
+                      parent_style.unwrap().pseudo() != Some(PseudoElement::FirstLine));
         StyleBuilder {
             device,
             parent_style,
             inherited_style,
+            // None of our callers pass in ::first-line parent styles.
+            inherited_style_ignoring_first_line: inherited_style,
             reset_style,
             pseudo,
             rules: None, // FIXME(emilio): Dubious...
@@ -2581,8 +2605,13 @@ impl<'a> StyleBuilder<'a> {
     /// Inherit `${property.ident}` from our parent style.
     #[allow(non_snake_case)]
     pub fn inherit_${property.ident}(&mut self) {
+        % if property.style_struct.inherited:
         let inherited_struct =
             self.inherited_style.get_${property.style_struct.name_lower}();
+        % else:
+        let inherited_struct =
+            self.inherited_style_ignoring_first_line.get_${property.style_struct.name_lower}();
+        % endif
         self.${property.style_struct.ident}.mutate()
             .copy_${property.ident}_from(
                 inherited_struct,
@@ -2639,6 +2668,7 @@ impl<'a> StyleBuilder<'a> {
         Self::new(
             device,
             Some(parent),
+            Some(parent),
             pseudo,
             CascadeFlags::empty(),
             /* rules = */ None,
@@ -2653,11 +2683,6 @@ impl<'a> StyleBuilder<'a> {
     /// Returns whether we have a visited style.
     pub fn has_visited_style(&self) -> bool {
         self.visited_style.is_some()
-    }
-
-    /// Returns the style we're inheriting from.
-    pub fn inherited_style(&self) -> &'a ComputedValues {
-        self.inherited_style
     }
 
     /// Returns the style we're getting reset properties from.
@@ -2752,6 +2777,42 @@ impl<'a> StyleBuilder<'a> {
     fn custom_properties(&self) -> Option<Arc<::custom_properties::CustomPropertiesMap>> {
         self.custom_properties.clone()
     }
+
+    /// Access to various information about our inherited styles.  We don't
+    /// expose an inherited ComputedValues directly, because in the
+    /// ::first-line case some of the inherited information needs to come from
+    /// one ComputedValues instance and some from a different one.
+
+    /// Inherited font bits.
+    pub fn inherited_font_computation_data(&self) -> &FontComputationData {
+        &self.inherited_style.font_computation_data
+    }
+
+    /// Inherited writing-mode.
+    pub fn inherited_writing_mode(&self) -> &WritingMode {
+        &self.inherited_style.writing_mode
+    }
+
+    /// Inherited style flags.
+    pub fn inherited_flags(&self) -> &ComputedValueFlags {
+        &self.inherited_style.flags
+    }
+
+    /// And access to inherited style structs.
+    % for style_struct in data.active_style_structs():
+        /// Gets our inherited `${style_struct.name}`.  We don't name these
+        /// accessors `inherited_${style_struct.name_lower}` because we already
+        /// have things like "box" vs "inherited_box" as struct names.  Do the
+        /// next-best thing and call them `parent_${style_struct.name_lower}`
+        /// instead.
+        pub fn get_parent_${style_struct.name_lower}(&self) -> &style_structs::${style_struct.name} {
+            % if style_struct.inherited:
+            self.inherited_style.get_${style_struct.name_lower}()
+            % else:
+            self.inherited_style_ignoring_first_line.get_${style_struct.name_lower}()
+            % endif
+        }
+    % endfor
 }
 
 #[cfg(feature = "servo")]
@@ -2867,6 +2928,7 @@ pub fn cascade(
     rule_node: &StrongRuleNode,
     guards: &StylesheetGuards,
     parent_style: Option<<&ComputedValues>,
+    parent_style_ignoring_first_line: Option<<&ComputedValues>,
     layout_parent_style: Option<<&ComputedValues>,
     visited_style: Option<Arc<ComputedValues>>,
     cascade_info: Option<<&mut CascadeInfo>,
@@ -2874,6 +2936,12 @@ pub fn cascade(
     flags: CascadeFlags,
     quirks_mode: QuirksMode
 ) -> Arc<ComputedValues> {
+    debug_assert_eq!(parent_style.is_some(), parent_style_ignoring_first_line.is_some());
+    #[cfg(feature = "gecko")]
+    debug_assert!(parent_style.is_none() ||
+                  ptr::eq(parent_style.unwrap(),
+                          parent_style_ignoring_first_line.unwrap()) ||
+                  parent_style.unwrap().pseudo() == Some(PseudoElement::FirstLine));
     let iter_declarations = || {
         rule_node.self_and_ancestors().flat_map(|node| {
             let cascade_level = node.cascade_level();
@@ -2919,6 +2987,7 @@ pub fn cascade(
         rule_node,
         iter_declarations,
         parent_style,
+        parent_style_ignoring_first_line,
         layout_parent_style,
         visited_style,
         cascade_info,
@@ -2937,6 +3006,7 @@ pub fn apply_declarations<'a, F, I>(
     rules: &StrongRuleNode,
     iter_declarations: F,
     parent_style: Option<<&ComputedValues>,
+    parent_style_ignoring_first_line: Option<<&ComputedValues>,
     layout_parent_style: Option<<&ComputedValues>,
     visited_style: Option<Arc<ComputedValues>>,
     mut cascade_info: Option<<&mut CascadeInfo>,
@@ -2949,6 +3019,12 @@ where
     I: Iterator<Item = (&'a PropertyDeclaration, CascadeLevel)>,
 {
     debug_assert!(layout_parent_style.is_none() || parent_style.is_some());
+    debug_assert_eq!(parent_style.is_some(), parent_style_ignoring_first_line.is_some());
+    #[cfg(feature = "gecko")]
+    debug_assert!(parent_style.is_none() ||
+                  ptr::eq(parent_style.unwrap(),
+                          parent_style_ignoring_first_line.unwrap()) ||
+                  parent_style.unwrap().pseudo() == Some(PseudoElement::FirstLine));
     let (inherited_style, layout_parent_style) = match parent_style {
         Some(parent_style) => {
             (parent_style,
@@ -2983,6 +3059,7 @@ where
         builder: StyleBuilder::new(
             device,
             parent_style,
+            parent_style_ignoring_first_line,
             pseudo,
             flags,
             Some(rules.clone()),
