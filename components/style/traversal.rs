@@ -14,8 +14,8 @@ use smallvec::SmallVec;
 use style_resolver::StyleResolverForElement;
 use stylist::RuleInclusion;
 use traversal_flags::{TraversalFlags, self};
-use values::Either;
-use values::generics::image::Image;
+#[cfg(feature = "servo")] use values::Either;
+#[cfg(feature = "servo")] use values::generics::image::Image;
 
 /// A per-traversal-level chunk of data. This is sent down by the traversal, and
 /// currently only holds the dom depth for the bloom filter.
@@ -746,7 +746,7 @@ where
 }
 
 #[cfg(feature = "gecko")]
-fn notify_paint_worklet<E>(context: &StyleContext<E>, data: &ElementData)
+fn notify_paint_worklet<E>(_context: &StyleContext<E>, _data: &ElementData)
 where
     E: TElement,
 {
