@@ -446,7 +446,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         let relevant_link_visited = if flags.contains(IS_LINK) {
             flags.contains(IS_VISITED_LINK)
         } else {
-            self.style.inherited_style().flags.contains(IS_RELEVANT_LINK_VISITED)
+            self.style.inherited_flags().contains(IS_RELEVANT_LINK_VISITED)
         };
 
         if relevant_link_visited {

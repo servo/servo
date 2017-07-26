@@ -230,8 +230,8 @@ ${helpers.single_keyword("text-align-last",
                         if context.is_root_element {
                             return get_initial_value();
                         }
-                        let parent = context.inherited_style().get_inheritedtext().clone_text_align();
-                        let ltr = context.inherited_style().writing_mode.is_bidi_ltr();
+                        let parent = context.builder.get_parent_inheritedtext().clone_text_align();
+                        let ltr = context.builder.inherited_writing_mode().is_bidi_ltr();
                         match (parent, ltr) {
                             (computed_value::T::start, true) => computed_value::T::left,
                             (computed_value::T::start, false) => computed_value::T::right,
@@ -241,7 +241,7 @@ ${helpers.single_keyword("text-align-last",
                         }
                     }
                     SpecifiedValue::MozCenterOrInherit => {
-                        let parent = context.inherited_style().get_inheritedtext().clone_text_align();
+                        let parent = context.builder.get_parent_inheritedtext().clone_text_align();
                         if parent == computed_value::T::start {
                             computed_value::T::center
                         } else {
@@ -340,7 +340,7 @@ ${helpers.predefined_type("word-spacing",
                 overline: None,
                 line_through: None,
             },
-            _ => context.inherited_style().get_inheritedtext().clone__servo_text_decorations_in_effect()
+            _ => context.builder.get_parent_inheritedtext().clone__servo_text_decorations_in_effect()
         };
 
         result.underline = maybe(context.style().get_text().has_underline()

@@ -548,9 +548,9 @@ ${helpers.single_keyword_system("font-variant-caps",
                 SpecifiedValue::Normal => computed_value::T::normal(),
                 SpecifiedValue::Bold => computed_value::T::bold(),
                 SpecifiedValue::Bolder =>
-                    context.inherited_style().get_font().clone_font_weight().bolder(),
+                    context.builder.get_parent_font().clone_font_weight().bolder(),
                 SpecifiedValue::Lighter =>
-                    context.inherited_style().get_font().clone_font_weight().lighter(),
+                    context.builder.get_parent_font().clone_font_weight().lighter(),
                 SpecifiedValue::System(_) => {
                     <%self:nongecko_unreachable>
                         context.cached_system_font.as_ref().unwrap().font_weight.clone()
@@ -940,7 +940,7 @@ ${helpers.single_keyword_system("font-variant-caps",
             // recomputed from the base size for the keyword and the relative size.
             //
             // See bug 1355707
-            if let Some((kw, fraction)) = context.builder.inherited_style().font_computation_data.font_size_keyword {
+            if let Some((kw, fraction)) = context.builder.inherited_font_computation_data().font_size_keyword {
                 context.builder.font_size_keyword = Some((kw, fraction * ratio));
             } else {
                 context.builder.font_size_keyword = None;
@@ -956,9 +956,9 @@ ${helpers.single_keyword_system("font-variant-caps",
             // if the language or generic changed, we need to recalculate
             // the font size from the stored font-size origin information.
             if context.builder.get_font().gecko().mLanguage.raw::<nsIAtom>() !=
-               context.builder.inherited_style().get_font().gecko().mLanguage.raw::<nsIAtom>() ||
+               context.builder.get_parent_font().gecko().mLanguage.raw::<nsIAtom>() ||
                context.builder.get_font().gecko().mGenericID !=
-               context.builder.inherited_style().get_font().gecko().mGenericID {
+               context.builder.get_parent_font().gecko().mGenericID {
                 if let Some((kw, ratio)) = context.builder.font_size_keyword {
                     computed = kw.to_computed_value(context).scale_by(ratio);
                 }
@@ -968,8 +968,7 @@ ${helpers.single_keyword_system("font-variant-caps",
         let device = context.builder.device;
         let mut font = context.builder.take_font();
         let parent_unconstrained = {
-            let parent_style = context.builder.inherited_style();
-            let parent_font = parent_style.get_font();
+            let parent_font = context.builder.get_parent_font();
             font.apply_font_size(computed, parent_font, device)
         };
         context.builder.put_font(font);
@@ -997,9 +996,8 @@ ${helpers.single_keyword_system("font-variant-caps",
         let device = context.builder.device;
         let mut font = context.builder.take_font();
         let used_kw = {
-            let parent_style = context.builder.inherited_style();
-            let parent_font = parent_style.get_font();
-            parent_kw = parent_style.font_computation_data.font_size_keyword;
+            let parent_font = context.builder.get_parent_font();
+            parent_kw = context.builder.inherited_font_computation_data().font_size_keyword;
 
             font.inherit_font_size_from(parent_font, kw_inherited_size, device)
         };
@@ -2279,8 +2277,8 @@ https://drafts.csswg.org/css-fonts-4/#low-level-font-variation-settings-control-
 
             let int = match *self {
                 SpecifiedValue::Auto => {
-                    let parent = cx.inherited_style().get_font().clone__moz_script_level() as i32;
-                    let display = cx.inherited_style().get_font().clone__moz_math_display();
+                    let parent = cx.builder.get_parent_font().clone__moz_script_level() as i32;
+                    let display = cx.builder.get_parent_font().clone__moz_math_display();
                     if display == DisplayValue::inline {
                         parent + 1
                     } else {
@@ -2288,7 +2286,7 @@ https://drafts.csswg.org/css-fonts-4/#low-level-font-variation-settings-control-
                     }
                 }
                 SpecifiedValue::Relative(rel) => {
-                    let parent = cx.inherited_style().get_font().clone__moz_script_level();
+                    let parent = cx.builder.get_parent_font().clone__moz_script_level();
                     parent as i32 + rel
                 }
                 SpecifiedValue::Absolute(abs) => abs,

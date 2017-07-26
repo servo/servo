@@ -93,7 +93,7 @@ impl FontBaseSize {
         match *self {
             FontBaseSize::Custom(size) => size,
             FontBaseSize::CurrentStyle => context.style().get_font().clone_font_size(),
-            FontBaseSize::InheritedStyle => context.inherited_style().get_font().clone_font_size(),
+            FontBaseSize::InheritedStyle => context.style().get_parent_font().clone_font_size(),
         }
     }
 }

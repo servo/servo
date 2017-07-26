@@ -2655,11 +2655,6 @@ impl<'a> StyleBuilder<'a> {
         self.visited_style.is_some()
     }
 
-    /// Returns the style we're inheriting from.
-    pub fn inherited_style(&self) -> &'a ComputedValues {
-        self.inherited_style
-    }
-
     /// Returns the style we're getting reset properties from.
     pub fn default_style(&self) -> &'a ComputedValues {
         self.reset_style
@@ -2752,6 +2747,38 @@ impl<'a> StyleBuilder<'a> {
     fn custom_properties(&self) -> Option<Arc<::custom_properties::CustomPropertiesMap>> {
         self.custom_properties.clone()
     }
+
+    /// Access to various information about our inherited styles.  We don't
+    /// expose an inherited ComputedValues directly, because in the
+    /// ::first-line case some of the inherited information needs to come from
+    /// one ComputedValues instance and some from a different one.
+
+    /// Inherited font bits.
+    pub fn inherited_font_computation_data(&self) -> &FontComputationData {
+        &self.inherited_style.font_computation_data
+    }
+
+    /// Inherited writing-mode.
+    pub fn inherited_writing_mode(&self) -> &WritingMode {
+        &self.inherited_style.writing_mode
+    }
+
+    /// Inherited style flags.
+    pub fn inherited_flags(&self) -> &ComputedValueFlags {
+        &self.inherited_style.flags
+    }
+
+    /// And access to inherited style structs.
+    % for style_struct in data.active_style_structs():
+        /// Gets our inherited `${style_struct.name}`.  We don't name these
+        /// accessors `inherited_${style_struct.name_lower}` because we already
+        /// have things like "box" vs "inherited_box" as struct names.  Do the
+        /// next-best thing and call them `parent_${style_struct.name_lower}`
+        /// instead.
+        pub fn get_parent_${style_struct.name_lower}(&self) -> &style_structs::${style_struct.name} {
+            self.inherited_style.get_${style_struct.name_lower}()
+        }
+    % endfor
 }
 
 #[cfg(feature = "servo")]
