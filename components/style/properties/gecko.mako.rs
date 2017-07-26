@@ -2119,6 +2119,59 @@ fn static_assert() {
         }
     }
 
+    pub fn clone_font_variant_alternates(&self) -> longhands::font_variant_alternates::computed_value::T {
+        use Atom;
+        % for value in "normal swash stylistic ornaments annotation styleset character_variant historical".split():
+            use gecko_bindings::structs::NS_FONT_VARIANT_ALTERNATES_${value.upper()};
+        % endfor
+        use properties::longhands::font_variant_alternates::VariantAlternates;
+        use properties::longhands::font_variant_alternates::VariantAlternatesList;
+        use values::CustomIdent;
+
+        if self.gecko.mFont.variantAlternates == NS_FONT_VARIANT_ALTERNATES_NORMAL as u16 {
+            return VariantAlternatesList(vec![].into_boxed_slice());
+        }
+
+        let mut alternates = Vec::with_capacity(self.gecko.mFont.alternateValues.len());
+        if self.gecko.mFont.variantAlternates & (NS_FONT_VARIANT_ALTERNATES_HISTORICAL as u16) != 0 {
+            alternates.push(VariantAlternates::HistoricalForms);
+        }
+
+        <%
+            property_need_ident_list = "styleset character_variant".split()
+        %>
+        % for value in property_need_ident_list:
+            let mut ${value}_list = Vec::new();
+        % endfor
+
+        for gecko_alternate_value in self.gecko.mFont.alternateValues.iter() {
+            let ident = Atom::from(gecko_alternate_value.value.to_string());
+            match gecko_alternate_value.alternate {
+                % for value in "Swash Stylistic Ornaments Annotation".split():
+                    NS_FONT_VARIANT_ALTERNATES_${value.upper()} => {
+                        alternates.push(VariantAlternates::${value}(CustomIdent(ident)));
+                    },
+                % endfor
+                % for value in property_need_ident_list:
+                    NS_FONT_VARIANT_ALTERNATES_${value.upper()} => {
+                        ${value}_list.push(CustomIdent(ident));
+                    },
+                % endfor
+                x => {
+                    panic!("Found unexpected value for font-variant-alternates: {:?}", x);
+                }
+            }
+        }
+
+        % for value in property_need_ident_list:
+            if !${value}_list.is_empty() {
+                alternates.push(VariantAlternates::${to_camel_case(value)}(${value}_list.into_boxed_slice()));
+            }
+        % endfor
+
+        VariantAlternatesList(alternates.into_boxed_slice())
+    }
+
     ${impl_simple_type_with_conversion("font_variant_ligatures", "mFont.variantLigatures")}
     ${impl_simple_type_with_conversion("font_variant_east_asian", "mFont.variantEastAsian")}
     ${impl_simple_type_with_conversion("font_variant_numeric", "mFont.variantNumeric")}

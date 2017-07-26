@@ -1262,7 +1262,7 @@ ${helpers.single_keyword_system("font-kerning",
                                 flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
                                 animation_value_type="discrete")}
 
-<%helpers:longhand name="font-variant-alternates" products="gecko" animation_value_type="none"
+<%helpers:longhand name="font-variant-alternates" products="gecko" animation_value_type="discrete"
                    flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-alternates">
     use properties::longhands::system_font::SystemFont;
