@@ -377,9 +377,9 @@ impl HTMLElementMethods for HTMLElement {
 fn to_snake_case(name: DOMString) -> DOMString {
     let mut attr_name = "data-".to_owned();
     for ch in name.chars() {
-        if ch.is_uppercase() {
+        if ch.is_ascii_uppercase() {
             attr_name.push('\x2d');
-            attr_name.extend(ch.to_lowercase());
+            attr_name.push(ch.to_ascii_lowercase());
         } else {
             attr_name.push(ch);
         }
@@ -398,9 +398,7 @@ fn to_camel_case(name: &str) -> Option<DOMString> {
         return None;
     }
     let name = &name[5..];
-    let has_uppercase = name.chars().any(|curr_char| {
-        curr_char.is_ascii() && curr_char.is_uppercase()
-    });
+    let has_uppercase = name.chars().any(|curr_char| curr_char.is_ascii_uppercase());
     if has_uppercase {
         return None;
     }
@@ -410,7 +408,7 @@ fn to_camel_case(name: &str) -> Option<DOMString> {
         //check for hyphen followed by character
         if curr_char == '\x2d' {
             if let Some(next_char) = name_chars.next() {
-                if next_char.is_ascii() && next_char.is_lowercase() {
+                if next_char.is_ascii_lowercase() {
                     result.push(next_char.to_ascii_uppercase());
                 } else {
                     result.push(curr_char);
