@@ -20,8 +20,6 @@ bitflags! {
         const UnstyledChildrenOnly = 1 << 2,
         /// FIXME(bholley): This will go away.
         const ForReconstruct = 1 << 3,
-        /// FIXME(bholley): This will go away.
-        const ForNewlyBoundElement = 1 << 4,
     }
 }
 
@@ -49,7 +47,6 @@ pub fn assert_traversal_flags_match() {
         ServoTraversalFlags_ForCSSRuleChanges => ForCSSRuleChanges,
         ServoTraversalFlags_UnstyledChildrenOnly => UnstyledChildrenOnly,
         ServoTraversalFlags_ForReconstruct => ForReconstruct,
-        ServoTraversalFlags_ForNewlyBoundElement => ForNewlyBoundElement,
     }
 }
 

@@ -291,14 +291,6 @@ pub extern "C" fn Servo_TraverseSubtree(root: RawGeckoElementBorrowed,
                      traversal_flags,
                      unsafe { &*snapshots });
 
-    if traversal_flags.contains(traversal_flags::ForNewlyBoundElement) {
-        // In this mode, we only ever restyle new elements, so there is no
-        // need for a post-traversal, and the borrow_data().unwrap() call below
-        // could panic, so we don't bother computing whether a post-traversal
-        // is required.
-        return false;
-    }
-
     element.has_dirty_descendants() ||
     element.has_animation_only_dirty_descendants() ||
     element.borrow_data().unwrap().restyle.contains_restyle_data()
@@ -2813,6 +2805,18 @@ pub extern "C" fn Servo_ResolveStyle(element: RawGeckoElementBorrowed,
     // restyle hints other than animation hints.
     debug_assert!(element.has_current_styles_for_traversal(&*data, flags),
                   "Resolving style on {:?} without current styles: {:?}", element, data);
+    data.styles.primary().clone().into()
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_ResolveStyleAllowStale(element: RawGeckoElementBorrowed)
+                                               -> ServoStyleContextStrong
+{
+    let element = GeckoElement(element);
+    debug!("Servo_ResolveStyleAllowStale: {:?}", element);
+    let data =
+        element.borrow_data().expect("Resolving style on unstyled element");
+    assert!(data.has_styles(), "Resolving style on unstyled element");
     data.styles.primary().clone().into()
 }
 
