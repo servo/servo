@@ -174,10 +174,6 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
                 None
             };
 
-            let framebuffer_size = window.framebuffer_size();
-            let framebuffer_size = webrender_api::DeviceUintSize::new(framebuffer_size.width,
-                                                                      framebuffer_size.height);
-
             webrender::Renderer::new(window.gl(), webrender::RendererOptions {
                 device_pixel_ratio: device_pixel_ratio,
                 resource_override_path: Some(resource_path),
@@ -191,8 +187,11 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
                 renderer_kind: renderer_kind,
                 enable_subpixel_aa: opts.enable_subpixel_text_antialiasing,
                 ..Default::default()
-            }, framebuffer_size).expect("Unable to initialize webrender!")
+            }).expect("Unable to initialize webrender!")
         };
+
+        let webrender_api = webrender_api_sender.create_api();
+        let webrender_document = webrender_api.add_document(window.framebuffer_size());
 
         // Important that this call is done in a single-threaded fashion, we
         // can't defer it after `create_constellation` has started.
@@ -211,7 +210,8 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
                                                                     devtools_chan,
                                                                     supports_clipboard,
                                                                     &webrender,
-                                                                    webrender_api_sender.clone());
+                                                                    webrender_document,
+                                                                    webrender_api_sender);
 
         // Send the constellation's swmanager sender to service worker manager thread
         script::init_service_workers(sw_senders);
@@ -230,8 +230,9 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
             constellation_chan: constellation_chan.clone(),
             time_profiler_chan: time_profiler_chan,
             mem_profiler_chan: mem_profiler_chan,
-            webrender: webrender,
-            webrender_api_sender: webrender_api_sender,
+            webrender,
+            webrender_document,
+            webrender_api,
         });
 
         Browser {
@@ -287,6 +288,7 @@ fn create_constellation(user_agent: Cow<'static, str>,
                         devtools_chan: Option<Sender<devtools_traits::DevtoolsControlMsg>>,
                         supports_clipboard: bool,
                         webrender: &webrender::Renderer,
+                        webrender_document: webrender_api::DocumentId,
                         webrender_api_sender: webrender_api::RenderApiSender)
                         -> (Sender<ConstellationMsg>, SWManagerSenders) {
     let bluetooth_thread: IpcSender<BluetoothRequest> = BluetoothThreadFactory::new();
@@ -302,17 +304,18 @@ fn create_constellation(user_agent: Cow<'static, str>,
     let resource_sender = public_resource_threads.sender();
 
     let initial_state = InitialConstellationState {
-        compositor_proxy: compositor_proxy,
-        debugger_chan: debugger_chan,
-        devtools_chan: devtools_chan,
-        bluetooth_thread: bluetooth_thread,
-        font_cache_thread: font_cache_thread,
-        public_resource_threads: public_resource_threads,
-        private_resource_threads: private_resource_threads,
-        time_profiler_chan: time_profiler_chan,
-        mem_profiler_chan: mem_profiler_chan,
-        supports_clipboard: supports_clipboard,
-        webrender_api_sender: webrender_api_sender,
+        compositor_proxy,
+        debugger_chan,
+        devtools_chan,
+        bluetooth_thread,
+        font_cache_thread,
+        public_resource_threads,
+        private_resource_threads,
+        time_profiler_chan,
+        mem_profiler_chan,
+        supports_clipboard,
+        webrender_document,
+        webrender_api_sender,
     };
     let (constellation_chan, from_swmanager_sender) =
         Constellation::<script_layout_interface::message::Msg,

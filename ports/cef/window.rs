@@ -19,7 +19,7 @@ use wrappers::CefWrap;
 
 use compositing::compositor_thread::EventLoopWaker;
 use compositing::windowing::{WindowEvent, WindowMethods};
-use euclid::{Point2D, TypedPoint2D, TypedRect, Size2D, TypedSize2D, ScaleFactor};
+use euclid::{Point2D, TypedPoint2D, Size2D, TypedSize2D, ScaleFactor};
 use gleam::gl;
 use msg::constellation_msg::{Key, KeyModifiers};
 use net_traits::net_error_list::NetError;
@@ -38,6 +38,7 @@ use style_traits::DevicePixel;
 extern crate x11;
 #[cfg(target_os="linux")]
 use self::x11::xlib::{XInitThreads,XOpenDisplay};
+use webrender_api::{DeviceUintSize, DeviceUintRect};
 
 #[cfg(target_os="linux")]
 pub static mut DISPLAY: *mut c_void = 0 as *mut c_void;
@@ -46,7 +47,7 @@ pub static mut DISPLAY: *mut c_void = 0 as *mut c_void;
 #[derive(Clone)]
 pub struct Window {
     cef_browser: RefCell<Option<CefBrowser>>,
-    size: TypedSize2D<u32, DevicePixel>,
+    size: DeviceUintSize,
     gl: Rc<gl::Gl>,
 }
 
@@ -174,7 +175,7 @@ impl WindowMethods for Window {
         self.gl.clone()
     }
 
-    fn framebuffer_size(&self) -> TypedSize2D<u32, DevicePixel> {
+    fn framebuffer_size(&self) -> DeviceUintSize {
         let browser = self.cef_browser.borrow();
         match *browser {
             None => self.size,
@@ -205,16 +206,16 @@ impl WindowMethods for Window {
                         }
                     }
 
-                    TypedSize2D::new(rect.width as u32, rect.height as u32)
+                    DeviceUintSize::new(rect.width as u32, rect.height as u32)
                 }
             }
         }
     }
 
-    fn window_rect(&self) -> TypedRect<u32, DevicePixel> {
+    fn window_rect(&self) -> DeviceUintRect {
         let size = self.framebuffer_size();
         let origin = TypedPoint2D::zero();
-        TypedRect::new(origin, size)
+        DeviceUintRect::new(origin, size)
     }
 
     fn size(&self) -> TypedSize2D<f32, DeviceIndependentPixel> {

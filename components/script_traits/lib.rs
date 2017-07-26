@@ -66,10 +66,8 @@ use std::fmt;
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender, RecvTimeoutError};
 use style_traits::CSSPixel;
-use style_traits::DevicePixel;
 use webdriver_msg::{LoadStatus, WebDriverScriptCommand};
-use webrender_api::ClipId;
-use webrender_api::ImageKey;
+use webrender_api::{ClipId, DevicePixel, ImageKey};
 use webvr_traits::{WebVREvent, WebVRMsg};
 
 pub use script_msg::{LayoutMsg, ScriptMsg, EventResult, LogEntry};

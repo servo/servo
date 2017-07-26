@@ -3087,6 +3087,7 @@ dependencies = [
  "heapsize_derive 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "selectors 0.19.0",
  "serde 1.0.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "webrender_api 0.48.0 (git+https://github.com/servo/webrender)",
 ]
 
 [[package]]
@@ -3466,7 +3467,7 @@ dependencies = [
 [[package]]
 name = "webrender"
 version = "0.48.0"
-source = "git+https://github.com/servo/webrender#283192c41743a59da87b065cbc14c659d94c90b5"
+source = "git+https://github.com/servo/webrender#1ec6fb9ae47d8356920975a4be60552608dbfa1b"
 dependencies = [
  "app_units 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "bincode 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3495,7 +3496,7 @@ dependencies = [
 [[package]]
 name = "webrender_api"
 version = "0.48.0"
-source = "git+https://github.com/servo/webrender#283192c41743a59da87b065cbc14c659d94c90b5"
+source = "git+https://github.com/servo/webrender#1ec6fb9ae47d8356920975a4be60552608dbfa1b"
 dependencies = [
  "app_units 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "bincode 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
