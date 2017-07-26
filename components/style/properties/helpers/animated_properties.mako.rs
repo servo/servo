@@ -925,6 +925,13 @@ impl Animatable for Angle {
             }
         }
     }
+
+    #[inline]
+    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
+        // Use the formula for calculating the distance between angles defined in SVG:
+        // https://www.w3.org/TR/SVG/animate.html#complexDistances
+        Ok((self.radians64() - other.radians64()).abs())
+    }
 }
 
 /// https://drafts.csswg.org/css-transitions/#animtype-percentage
