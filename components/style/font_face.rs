@@ -110,8 +110,7 @@ impl Parse for FontWeight {
 /// Note that the prelude parsing code lives in the `stylesheets` module.
 pub fn parse_font_face_block(context: &ParserContext, input: &mut Parser, location: SourceLocation)
     -> FontFaceRuleData {
-    let mut rule = FontFaceRuleData::empty();
-    rule.source_location = location;
+    let mut rule = FontFaceRuleData::empty(location);
     {
         let parser = FontFaceRuleParser {
             context: context,
@@ -229,15 +228,12 @@ macro_rules! font_face_descriptors_common {
         }
 
         impl FontFaceRuleData {
-            fn empty() -> Self {
+            fn empty(location: SourceLocation) -> Self {
                 FontFaceRuleData {
                     $(
                         $ident: None,
                     )*
-                    source_location: SourceLocation {
-                        line: 0,
-                        column: 0,
-                    },
+                    source_location: location,
                 }
             }
 
