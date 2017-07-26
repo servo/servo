@@ -59,47 +59,26 @@ pub fn traverse_dom<E, D>(traversal: &D,
     where E: TElement,
           D: DomTraversal<E>,
 {
+    debug_assert!(traversal.is_parallel());
+    debug_assert!(token.should_traverse());
+
     let dump_stats = traversal.shared_context().options.dump_style_statistics;
     let start_time = if dump_stats { Some(time::precise_time_s()) } else { None };
 
-    // Set up the SmallVec. We need to move this, and in most cases this is just
-    // one node, so keep it small.
-    let mut nodes = SmallVec::<[SendNode<E::ConcreteNode>; 8]>::new();
-
-    debug_assert!(traversal.is_parallel());
-    // Handle Gecko's eager initial styling. We don't currently support it
-    // in conjunction with bottom-up traversal. If we did, we'd need to put
-    // it on the context to make it available to the bottom-up phase.
-    let depth = if token.traverse_unstyled_children_only() {
-        debug_assert!(!D::needs_postorder_traversal());
-        for kid in root.as_node().traversal_children() {
-            if kid.as_element().map_or(false, |el| el.get_data().is_none()) {
-                nodes.push(unsafe { SendNode::new(kid) });
-            }
-        }
-        root.depth() + 1
-    } else {
-        nodes.push(unsafe { SendNode::new(root.as_node()) });
-        root.depth()
-    };
-
-    if nodes.is_empty() {
-        return;
-    }
-
     let traversal_data = PerLevelTraversalData {
-        current_dom_depth: depth,
+        current_dom_depth: root.depth(),
     };
     let tls = ScopedTLS::<ThreadLocalStyleContext<E>>::new(pool);
-    let root = root.as_node().opaque();
+    let send_root = unsafe { SendNode::new(root.as_node()) };
 
     pool.install(|| {
         rayon::scope(|scope| {
-            let nodes = nodes;
-            traverse_nodes(&*nodes,
+            let root = send_root;
+            let root_opaque = root.opaque();
+            traverse_nodes(&[root],
                            DispatchMode::TailCall,
                            0,
-                           root,
+                           root_opaque,
                            traversal_data,
                            scope,
                            pool,
