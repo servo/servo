@@ -7,8 +7,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use msg::constellation_msg::{ALT, CONTROL, SUPER};
-use msg::constellation_msg::{Key, KeyModifiers};
+use msg::constellation_msg::{Key, KeyModifiers, CONTROL};
 use script::clipboard_provider::DummyClipboardContext;
 use script::test::DOMString;
 use script::textinput::{TextInput, TextPoint, Selection, Lines, Direction, SelectionDirection};
