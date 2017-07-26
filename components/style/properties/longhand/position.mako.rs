@@ -108,7 +108,7 @@ ${helpers.single_keyword("flex-wrap", "nowrap wrap wrap-reverse",
 
     ${helpers.predefined_type(name="justify-items",
                               type="JustifyItems",
-                              initial_value="specified::JustifyItems::auto()",
+                              initial_value="computed::JustifyItems::auto()",
                               spec="https://drafts.csswg.org/css-align/#propdef-justify-items",
                               animation_value_type="discrete")}
 

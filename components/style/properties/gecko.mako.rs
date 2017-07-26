@@ -60,7 +60,7 @@ use selector_parser::PseudoElement;
 use servo_arc::{Arc, RawOffsetArc};
 use std::mem::{forget, uninitialized, transmute, zeroed};
 use std::{cmp, ops, ptr};
-use values::{Auto, CustomIdent, Either, KeyframesName};
+use values::{self, Auto, CustomIdent, Either, KeyframesName};
 use values::computed::ToComputedValue;
 use values::computed::effects::{BoxShadow, Filter, SimpleShadow};
 use values::computed::length::Percentage;
@@ -1366,8 +1366,35 @@ fn static_assert() {
     % for kind in ["align", "justify"]:
     ${impl_simple_type_with_conversion(kind + "_content")}
     ${impl_simple_type_with_conversion(kind + "_self")}
-    ${impl_simple_type_with_conversion(kind + "_items")}
     % endfor
+    ${impl_simple_type_with_conversion("align_items")}
+
+    pub fn set_justify_items(&mut self, v: longhands::justify_items::computed_value::T) {
+        self.gecko.mSpecifiedJustifyItems = v.specified.into();
+        self.set_computed_justify_items(v.computed);
+    }
+
+    pub fn set_computed_justify_items(&mut self, v: values::specified::JustifyItems) {
+        debug_assert!(v.0 != ::values::specified::align::ALIGN_AUTO);
+        self.gecko.mJustifyItems = v.into();
+    }
+
+    pub fn reset_justify_items(&mut self, reset_style: &Self) {
+        self.gecko.mJustifyItems = reset_style.gecko.mJustifyItems;
+        self.gecko.mSpecifiedJustifyItems = reset_style.gecko.mSpecifiedJustifyItems;
+    }
+
+    pub fn copy_justify_items_from(&mut self, other: &Self) {
+        self.gecko.mJustifyItems = other.gecko.mJustifyItems;
+        self.gecko.mSpecifiedJustifyItems = other.gecko.mJustifyItems;
+    }
+
+    pub fn clone_justify_items(&self) -> longhands::justify_items::computed_value::T {
+        longhands::justify_items::computed_value::T {
+            computed: self.gecko.mJustifyItems.into(),
+            specified: self.gecko.mSpecifiedJustifyItems.into(),
+        }
+    }
 
     pub fn set_order(&mut self, v: longhands::order::computed_value::T) {
         self.gecko.mOrder = v;

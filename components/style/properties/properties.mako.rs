@@ -2606,13 +2606,13 @@ impl<'a> StyleBuilder<'a> {
     /// Inherit `${property.ident}` from our parent style.
     #[allow(non_snake_case)]
     pub fn inherit_${property.ident}(&mut self) {
-        % if property.style_struct.inherited:
         let inherited_struct =
+        % if property.style_struct.inherited:
             self.inherited_style.get_${property.style_struct.name_lower}();
         % else:
-        let inherited_struct =
             self.inherited_style_ignoring_first_line.get_${property.style_struct.name_lower}();
         % endif
+
         self.${property.style_struct.ident}.mutate()
             .copy_${property.ident}_from(
                 inherited_struct,
@@ -2625,14 +2625,21 @@ impl<'a> StyleBuilder<'a> {
     /// Reset `${property.ident}` to the initial value.
     #[allow(non_snake_case)]
     pub fn reset_${property.ident}(&mut self) {
-        let reset_struct = self.reset_style.get_${property.style_struct.name_lower}();
-        self.${property.style_struct.ident}.mutate()
-            .copy_${property.ident}_from(
-                reset_struct,
-                % if property.logical:
-                self.writing_mode,
-                % endif
-            );
+        let reset_struct =
+            self.reset_style.get_${property.style_struct.name_lower}();
+        % if property.ident == "justify_items":
+            // TODO(emilio): Generalise this!
+            self.${property.style_struct.ident}.mutate()
+                .reset_${property.ident}(reset_struct)
+        % else:
+            self.${property.style_struct.ident}.mutate()
+                .copy_${property.ident}_from(
+                    reset_struct,
+                    % if property.logical:
+                    self.writing_mode,
+                    % endif
+                );
+        % endif
     }
 
     % if not property.is_vector:
