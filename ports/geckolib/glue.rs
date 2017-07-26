@@ -2779,8 +2779,13 @@ pub extern "C" fn Servo_TakeChangeHint(element: RawGeckoElementBorrowed,
 
             let damage = data.restyle.damage;
             if restyle_behavior == structs::TraversalRestyleBehavior::ForThrottledAnimationFlush {
-                debug_assert!(data.restyle.is_restyle() || damage.is_empty(),
-                              "Restyle damage should be empty if the element was not restyled");
+                if !*was_restyled {
+                    // Don't touch elements if the element was not restyled
+                    // in throttled animation flush.
+                    debug!("Skip post traversal for throttled animation flush {:?} restyle={:?}",
+                           element, data.restyle);
+                    return nsChangeHint(0);
+                }
                 // In the case where we call this function for post traversal for
                 // flusing throttled animations (i.e. without normal restyle
                 // traversal), we need to preserve restyle hints for normal restyle
