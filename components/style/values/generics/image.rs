@@ -7,10 +7,11 @@
 //! [images]: https://drafts.csswg.org/css-images/#image-values
 
 use Atom;
-use cssparser::serialize_identifier;
+use cssparser::{serialize_identifier, Parser};
+use parser::{ParserContext, Parse};
+use selectors::parser::SelectorParseError;
 use std::fmt;
-use style_traits::{HasViewportPercentage, ToCss};
-use values::computed::ComputedValueAsSpecified;
+use style_traits::{HasViewportPercentage, ParseError, ToCss};
 use values::specified::url::SpecifiedUrl;
 
 /// An [image].
@@ -101,16 +102,54 @@ pub enum Ellipse<LengthOrPercentage> {
 }
 
 /// https://drafts.csswg.org/css-images/#typedef-extent-keyword
-define_css_keyword_enum!(ShapeExtent:
-    "closest-side" => ClosestSide,
-    "farthest-side" => FarthestSide,
-    "closest-corner" => ClosestCorner,
-    "farthest-corner" => FarthestCorner,
-    "contain" => Contain,
-    "cover" => Cover
-);
-no_viewport_percentage!(ShapeExtent);
-impl ComputedValueAsSpecified for ShapeExtent {}
+#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, ToComputedValue)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub enum ShapeExtent {
+    /// The gradient's ending shape meets the side of the box closest to its center (for circles) or
+    /// meets both the vertical and horizontal sides closest to the center (for ellipses).
+    ClosestSide,
+    /// Similar to closest-side, except the ending shape is sized to meet the side of the box
+    /// farthest from its center (or vertical and horizontal sides).
+    FarthestSide,
+    /// The gradient's ending shape is sized so that it exactly meets the closest corner of the box
+    /// from its center.
+    ClosestCorner,
+    /// The gradient's ending shape is sized so that it exactly meets the closest corner of the box
+    /// from its center.
+    FarthestCorner,
+    /// Legacy value, equivalent to ClosestSide.
+    Contain,
+    /// Legacy value, equivalent to FarthestCorner.
+    Cover,
+}
+
+impl Parse for ShapeExtent {
+    fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        let ident = input.expect_ident()?;
+        Ok(match_ignore_ascii_case! { &ident,
+            "closest-side" => ShapeExtent::ClosestSide,
+            "farthest-side" => ShapeExtent::FarthestSide,
+            "closest-corner" => ShapeExtent::ClosestCorner,
+            "farthest-corner" => ShapeExtent::FarthestCorner,
+            "contain" => ShapeExtent::ClosestSide,
+            "cover" => ShapeExtent::FarthestCorner,
+            _ => return Err(SelectorParseError::UnexpectedIdent(ident.clone()).into()),
+        })
+    }
+}
+
+impl ToCss for ShapeExtent {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            ShapeExtent::ClosestSide |
+            ShapeExtent::Contain => dest.write_str("closest-side"),
+            ShapeExtent::FarthestSide => dest.write_str("farthest-side"),
+            ShapeExtent::ClosestCorner => dest.write_str("closest-corner"),
+            ShapeExtent::FarthestCorner |
+            ShapeExtent::Cover => dest.write_str("farthest-corner"),
+        }
+    }
+}
 
 /// A gradient item.
 /// https://drafts.csswg.org/css-images-4/#color-stop-syntax
@@ -220,7 +259,12 @@ impl<D, L, LoP, P, C, A> ToCss for Gradient<D, L, LoP, P, C, A>
 {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match self.compat_mode {
-            CompatMode::WebKit => dest.write_str("-webkit-")?,
+            CompatMode::WebKit => {
+                match self.kind {
+                    GradientKind::Radial(_, _, _) => {},
+                    _ => dest.write_str("-webkit-")?
+                }
+            },
             CompatMode::Moz => dest.write_str("-moz-")?,
             _ => {},
         }
@@ -251,6 +295,11 @@ impl<D, L, LoP, P, C, A> ToCss for Gradient<D, L, LoP, P, C, A>
                     }
                     dest.write_str("at ")?;
                     position.to_css(dest)?;
+                } else if self.compat_mode == CompatMode::WebKit {
+                    if !omit_shape {
+                        shape.to_css(dest)?;
+                    }
+
                 } else {
                     position.to_css(dest)?;
                     if let Some(ref a) = *angle {
