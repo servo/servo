@@ -6,7 +6,7 @@
 
 #[cfg(feature = "gecko")]
 use gecko_bindings::structs::nsRestyleHint;
-use traversal::TraversalFlags;
+use traversal_flags::TraversalFlags;
 
 bitflags! {
     /// The kind of restyle we need to do for a given element.

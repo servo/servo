@@ -135,7 +135,8 @@ use style::stylesheets::{Origin, Stylesheet, StylesheetInDocument, UserAgentStyl
 use style::stylist::{ExtraStyleData, Stylist};
 use style::thread_state;
 use style::timer::Timer;
-use style::traversal::{DomTraversal, TraversalDriver, TraversalFlags};
+use style::traversal::{DomTraversal, TraversalDriver};
+use style::traversal_flags::TraversalFlags;
 
 /// Information needed by the layout thread.
 pub struct LayoutThread {

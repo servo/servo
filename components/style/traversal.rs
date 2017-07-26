@@ -13,6 +13,7 @@ use sharing::StyleSharingTarget;
 use smallvec::SmallVec;
 use style_resolver::StyleResolverForElement;
 use stylist::RuleInclusion;
+use traversal_flags::{TraversalFlags, self};
 
 /// A per-traversal-level chunk of data. This is sent down by the traversal, and
 /// currently only holds the dom depth for the bloom filter.
@@ -25,45 +26,6 @@ pub struct PerLevelTraversalData {
     /// This is kept with cooperation from the traversal code and the bloom
     /// filter.
     pub current_dom_depth: usize,
-}
-
-bitflags! {
-    /// Flags that control the traversal process.
-    pub flags TraversalFlags: u8 {
-        /// Traverse only unstyled children.
-        const UNSTYLED_CHILDREN_ONLY = 0x01,
-        /// Traverse only elements for animation restyles.
-        const ANIMATION_ONLY = 0x02,
-        /// Traverse without generating any change hints.
-        const FOR_RECONSTRUCT = 0x04,
-        /// Traverse triggered by CSS rule changes.
-        ///
-        /// Traverse and update all elements with CSS animations since
-        /// @keyframes rules may have changed
-        const FOR_CSS_RULE_CHANGES = 0x08,
-    }
-}
-
-impl TraversalFlags {
-    /// Returns true if the traversal is for animation-only restyles.
-    pub fn for_animation_only(&self) -> bool {
-        self.contains(ANIMATION_ONLY)
-    }
-
-    /// Returns true if the traversal is for unstyled children.
-    pub fn for_unstyled_children_only(&self) -> bool {
-        self.contains(UNSTYLED_CHILDREN_ONLY)
-    }
-
-    /// Returns true if the traversal is for a frame reconstruction.
-    pub fn for_reconstruct(&self) -> bool {
-        self.contains(FOR_RECONSTRUCT)
-    }
-
-    /// Returns true if the traversal is triggered by CSS rule changes.
-    pub fn for_css_rule_changes(&self) -> bool {
-        self.contains(FOR_CSS_RULE_CHANGES)
-    }
 }
 
 /// This structure exists to enforce that callers invoke pre_traverse, and also
@@ -208,12 +170,12 @@ pub trait DomTraversal<E: TElement> : Sync {
         shared_context: &SharedStyleContext,
         traversal_flags: TraversalFlags
     ) -> PreTraverseToken {
-        debug_assert!(!(traversal_flags.for_reconstruct() &&
-                        traversal_flags.for_unstyled_children_only()),
+        debug_assert!(!(traversal_flags.contains(traversal_flags::ForReconstruct) &&
+                        traversal_flags.contains(traversal_flags::UnstyledChildrenOnly)),
                       "must not specify FOR_RECONSTRUCT in combination with \
                        UNSTYLED_CHILDREN_ONLY");
 
-        if traversal_flags.for_unstyled_children_only() {
+        if traversal_flags.contains(traversal_flags::UnstyledChildrenOnly) {
             if root.borrow_data().map_or(true, |d| d.has_styles() && d.styles.is_display_none()) {
                 return PreTraverseToken {
                     traverse: false,
@@ -281,7 +243,7 @@ pub trait DomTraversal<E: TElement> : Sync {
             return true;
         }
 
-        if traversal_flags.for_reconstruct() {
+        if traversal_flags.contains(traversal_flags::ForReconstruct) {
             return true;
         }
 
@@ -358,7 +320,7 @@ pub trait DomTraversal<E: TElement> : Sync {
         //
         // We also need to traverse nodes with explicit damage and no other
         // restyle data, so that this damage can be cleared.
-        if (cfg!(feature = "servo") || traversal_flags.for_reconstruct()) &&
+        if (cfg!(feature = "servo") || traversal_flags.contains(traversal_flags::ForReconstruct)) &&
            !data.restyle.damage.is_empty() {
             return true;
         }
@@ -618,7 +580,7 @@ where
                                 !propagated_hint.is_empty() ||
                                 context.thread_local.is_initial_style() ||
                                 data.restyle.reconstructed_self() ||
-                                flags.for_reconstruct() ||
+                                flags.contains(traversal_flags::ForReconstruct) ||
                                 is_servo_nonincremental_layout();
 
     traverse_children = traverse_children &&
@@ -639,7 +601,7 @@ where
     // If we are in a restyle for reconstruction, drop the existing restyle
     // data here, since we won't need to perform a post-traversal to pick up
     // any change hints.
-    if context.shared.traversal_flags.for_reconstruct() {
+    if context.shared.traversal_flags.contains(traversal_flags::ForReconstruct) {
         data.clear_restyle_state();
     }
 
@@ -659,7 +621,7 @@ where
     // The second case is when we are in a restyle for reconstruction, where we
     // won't need to perform a post-traversal to pick up any change hints.
     if data.styles.is_display_none() ||
-       context.shared.traversal_flags.for_reconstruct() {
+       context.shared.traversal_flags.contains(traversal_flags::ForReconstruct) {
         unsafe { element.unset_dirty_descendants(); }
     }
 
@@ -822,7 +784,7 @@ where
             // If we are in a restyle for reconstruction, there is no need to
             // perform a post-traversal, so we don't need to set the dirty
             // descendants bit on the parent.
-            if !flags.for_reconstruct() && !is_initial_style {
+            if !flags.contains(traversal_flags::ForReconstruct) && !is_initial_style {
                 if flags.for_animation_only() {
                     unsafe { element.set_animation_only_dirty_descendants(); }
                 } else {
