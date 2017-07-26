@@ -2845,5 +2845,6 @@ extern "C" {
                                           source:
                                               *const ::std::os::raw::c_char,
                                           sourceLen: u32, lineNumber: u32,
-                                          colNumber: u32, aURI: *mut nsIURI);
+                                          colNumber: u32, aURI: *mut nsIURI,
+                                          followup: *const ::std::os::raw::c_char);
 }
