@@ -71,7 +71,7 @@ use style_traits::CSSPixel;
 use style_traits::cursor::Cursor;
 use table_cell::CollapsedBordersForCell;
 use webrender_api::{ClipId, ColorF, ComplexClipRegion, GradientStop, LocalClip, RepeatMode};
-use webrender_api::{LineStyle, ScrollPolicy, TransformStyle};
+use webrender_api::{LineStyle, ScrollPolicy, ScrollSensitivity, TransformStyle};
 use webrender_helpers::{ToBorderRadius, ToMixBlendMode, ToRectF, ToTransformStyle};
 
 trait ResolvePercentage {
@@ -2257,7 +2257,6 @@ pub trait BlockFlowDisplayListBuilding {
                                 -> ClipId;
     fn setup_scroll_root_for_overflow(&mut self,
                                       state: &mut DisplayListBuildState,
-                                      preserved_state: &mut PreservedDisplayListState,
                                       border_box: &Rect<Au>);
     fn setup_scroll_root_for_css_clip(&mut self,
                                       state: &mut DisplayListBuildState,
@@ -2483,7 +2482,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
             self.transform_clip_to_coordinate_space(state, preserved_state);
         }
 
-        self.setup_scroll_root_for_overflow(state, preserved_state, &stacking_relative_border_box);
+        self.setup_scroll_root_for_overflow(state, &stacking_relative_border_box);
         self.setup_scroll_root_for_css_clip(state, preserved_state, &stacking_relative_border_box);
         self.base.clip = state.clip_stack.last().cloned().unwrap_or_else(max_rect);
 
@@ -2498,7 +2497,6 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
 
     fn setup_scroll_root_for_overflow(&mut self,
                                       state: &mut DisplayListBuildState,
-                                      preserved_state: &mut PreservedDisplayListState,
                                       border_box: &Rect<Au>) {
         if !self.overflow_style_may_require_scroll_root() {
             return;
@@ -2526,27 +2524,12 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
             return;
         }
 
-        let overflow_x = self.fragment.style.get_box().overflow_x;
-        let overflow_y = self.fragment.style.get_box().overflow_y;
-
-        let content_size = self.base.overflow.scroll.origin + self.base.overflow.scroll.size;
-        let mut content_size = Size2D::new(content_size.x, content_size.y);
-        if overflow_x::T::hidden == overflow_x {
-            content_size.width = content_box.size.width;
-        }
-
-        if overflow_x::T::hidden == overflow_y {
-            content_size.height = content_box.size.height;
-        }
-
-        if overflow_x::T::hidden == overflow_y || overflow_x::T::hidden == overflow_x {
-            preserved_state.push_clip(state, &border_box, self.positioning());
-        }
-
-        let mut root_type = ScrollRootType::ScrollFrame;
-        if overflow_x::T::hidden == overflow_y && overflow_x::T::hidden == overflow_x {
-            root_type = ScrollRootType::Clip;
-        }
+        let sensitivity = if overflow_x::T::hidden == self.fragment.style.get_box().overflow_x &&
+                             overflow_x::T::hidden == self.fragment.style.get_box().overflow_y {
+            ScrollSensitivity::Script
+        } else {
+            ScrollSensitivity::ScriptAndInputEvents
+        };
 
         let clip_rect = build_inner_border_box_for_border_rect(&border_box, &self.fragment.style);
         let mut clip = ClippingRegion::from_rect(&clip_rect);
@@ -2555,6 +2538,9 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
             clip.intersect_with_rounded_rect(&clip_rect, &radii)
         }
 
+        let content_size = self.base.overflow.scroll.origin + self.base.overflow.scroll.size;
+        let content_size = Size2D::new(content_size.x, content_size.y);
+
         let parent_id = self.scroll_root_id(state.layout_context.id);
         state.add_scroll_root(
             ScrollRoot {
@@ -2562,7 +2548,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                 parent_id: parent_id,
                 clip: clip,
                 content_rect: Rect::new(content_box.origin, content_size),
-                root_type,
+                root_type: ScrollRootType::ScrollFrame(sensitivity),
             },
             self.base.stacking_context_id
         );

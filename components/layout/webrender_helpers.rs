@@ -16,8 +16,8 @@ use msg::constellation_msg::PipelineId;
 use style::computed_values::{image_rendering, mix_blend_mode, transform_style};
 use style::values::computed::{BorderStyle, Filter};
 use style::values::generics::effects::Filter as GenericFilter;
-use webrender_api::{self, ComplexClipRegion, DisplayListBuilder, ExtendMode};
-use webrender_api::{LayoutTransform, ClipId};
+use webrender_api::{self, ClipId, ComplexClipRegion, DisplayListBuilder, ExtendMode};
+use webrender_api::LayoutTransform;
 
 pub trait WebRenderDisplayListConverter {
     fn convert_to_webrender(&self, pipeline_id: PipelineId) -> DisplayListBuilder;
@@ -190,7 +190,7 @@ impl ToFilterOps for Vec<Filter> {
         let mut result = Vec::with_capacity(self.len());
         for filter in self.iter() {
             match *filter {
-                GenericFilter::Blur(radius) => result.push(webrender_api::FilterOp::Blur(radius)),
+                GenericFilter::Blur(radius) => result.push(webrender_api::FilterOp::Blur(radius.to_f32_px())),
                 GenericFilter::Brightness(amount) => result.push(webrender_api::FilterOp::Brightness(amount)),
                 GenericFilter::Contrast(amount) => result.push(webrender_api::FilterOp::Contrast(amount)),
                 GenericFilter::Grayscale(amount) => result.push(webrender_api::FilterOp::Grayscale(amount)),
@@ -506,12 +506,13 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                             item.scroll_root.clip.get_complex_clips(),
                                             None)
                     }
-                    ScrollRootType::ScrollFrame => {
+                    ScrollRootType::ScrollFrame(scroll_sensitivity) => {
                         builder.define_scroll_frame(Some(our_id),
                                                     item.scroll_root.content_rect.to_rectf(),
                                                     item.scroll_root.clip.main.to_rectf(),
                                                     item.scroll_root.clip.get_complex_clips(),
-                                                    None)
+                                                    None,
+                                                    scroll_sensitivity)
                     }
                 };
                 debug_assert!(our_id == webrender_id);
