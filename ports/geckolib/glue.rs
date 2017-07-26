@@ -281,7 +281,7 @@ pub extern "C" fn Servo_TraverseSubtree(root: RawGeckoElementBorrowed,
         }
     }
 
-    if traversal_flags.contains(traversal_flags::ForThrottledAnimationFlush) {
+    if traversal_flags.for_animation_only() {
         return element.has_animation_only_dirty_descendants() ||
                element.borrow_data().unwrap().restyle.is_restyle();
     }
@@ -2763,7 +2763,7 @@ pub extern "C" fn Servo_TakeChangeHint(element: RawGeckoElementBorrowed,
             *was_restyled = data.restyle.is_restyle();
 
             let damage = data.restyle.damage;
-            if flags.contains(traversal_flags::ForThrottledAnimationFlush) {
+            if flags.for_animation_only() {
                 if !*was_restyled {
                     // Don't touch elements if the element was not restyled
                     // in throttled animation flush.
@@ -2811,14 +2811,7 @@ pub extern "C" fn Servo_ResolveStyle(element: RawGeckoElementBorrowed,
     assert!(data.has_styles(), "Resolving style on unstyled element");
     // In the case where we process for throttled animation, there remaings
     // restyle hints other than animation hints.
-    //
-    // FIXME(bholley): Unify these flags.
-    let assert_flags = if flags.contains(traversal_flags::ForThrottledAnimationFlush) {
-        traversal_flags::AnimationOnly
-    } else {
-        TraversalFlags::empty()
-    };
-    debug_assert!(element.has_current_styles_for_traversal(&*data, assert_flags),
+    debug_assert!(element.has_current_styles_for_traversal(&*data, flags),
                   "Resolving style on {:?} without current styles: {:?}", element, data);
     data.styles.primary().clone().into()
 }

@@ -22,8 +22,6 @@ bitflags! {
         const ForReconstruct = 1 << 3,
         /// FIXME(bholley): This will go away.
         const ForNewlyBoundElement = 1 << 4,
-        /// FIXME(bholley): This will go away.
-        const ForThrottledAnimationFlush = 1 << 5,
     }
 }
 
@@ -52,7 +50,6 @@ pub fn assert_traversal_flags_match() {
         ServoTraversalFlags_UnstyledChildrenOnly => UnstyledChildrenOnly,
         ServoTraversalFlags_ForReconstruct => ForReconstruct,
         ServoTraversalFlags_ForNewlyBoundElement => ForNewlyBoundElement,
-        ServoTraversalFlags_ForThrottledAnimationFlush => ForThrottledAnimationFlush,
     }
 }
 
