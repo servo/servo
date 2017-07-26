@@ -1255,6 +1255,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 debug!("constellation got iframe size message");
                 self.handle_iframe_size_msg(iframe_sizes);
             }
+            FromLayoutMsg::PendingPaintMetric(pipeline_id, epoch) => {
+                debug!("constellation got a pending paint metric message");
+                self.handle_pending_paint_metric(pipeline_id, epoch);
+            }
             FromLayoutMsg::SetCursor(cursor) => {
                 self.handle_set_cursor_msg(cursor)
             }
@@ -1698,6 +1702,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             load_data: load_data,
             replace_instant: replace_instant,
         });
+    }
+
+    fn handle_pending_paint_metric(&self, pipeline_id: PipelineId, epoch: Epoch) {
+        self.compositor_proxy.send(ToCompositorMsg::PendingPaintMetric(pipeline_id, epoch))
     }
 
     fn handle_set_cursor_msg(&mut self, cursor: Cursor) {

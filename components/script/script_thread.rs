@@ -1480,7 +1480,9 @@ impl ScriptThread {
             image_cache: self.image_cache.clone(),
             content_process_shutdown_chan: content_process_shutdown_chan,
             layout_threads: layout_threads,
-            paint_time_metrics: PaintTimeMetrics::new(self.time_profiler_chan.clone()),
+            paint_time_metrics: PaintTimeMetrics::new(new_pipeline_id,
+                                                      self.time_profiler_chan.clone(),
+                                                      self.layout_to_constellation_chan.clone()),
         });
 
         // Pick a layout thread, any layout thread
