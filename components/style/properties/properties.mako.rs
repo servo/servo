@@ -2470,6 +2470,11 @@ pub struct StyleBuilder<'a> {
     /// `parent_style.unwrap_or(device.default_computed_values())`.
     inherited_style: &'a ComputedValues,
 
+    /// The style we're inheriting from for properties that don't inherit from
+    /// ::first-line.  This is the same as inherited_style, unless
+    /// inherited_style is a ::first-line style.
+    inherited_style_ignoring_first_line: &'a ComputedValues,
+
     /// The style we're getting reset structs from.
     reset_style: &'a ComputedValues,
 
@@ -2528,6 +2533,7 @@ impl<'a> StyleBuilder<'a> {
             device,
             parent_style,
             inherited_style,
+            inherited_style_ignoring_first_line: inherited_style,
             reset_style,
             pseudo,
             rules,
@@ -2560,6 +2566,7 @@ impl<'a> StyleBuilder<'a> {
             device,
             parent_style,
             inherited_style,
+            inherited_style_ignoring_first_line: inherited_style,
             reset_style,
             pseudo,
             rules: None, // FIXME(emilio): Dubious...
@@ -2581,8 +2588,13 @@ impl<'a> StyleBuilder<'a> {
     /// Inherit `${property.ident}` from our parent style.
     #[allow(non_snake_case)]
     pub fn inherit_${property.ident}(&mut self) {
+        % if property.style_struct.inherited:
         let inherited_struct =
             self.inherited_style.get_${property.style_struct.name_lower}();
+        % else:
+        let inherited_struct =
+            self.inherited_style_ignoring_first_line.get_${property.style_struct.name_lower}();
+        % endif
         self.${property.style_struct.ident}.mutate()
             .copy_${property.ident}_from(
                 inherited_struct,
@@ -2776,7 +2788,11 @@ impl<'a> StyleBuilder<'a> {
         /// next-best thing and call them `parent_${style_struct.name_lower}`
         /// instead.
         pub fn get_parent_${style_struct.name_lower}(&self) -> &style_structs::${style_struct.name} {
+            % if style_struct.inherited:
             self.inherited_style.get_${style_struct.name_lower}()
+            % else:
+            self.inherited_style_ignoring_first_line.get_${style_struct.name_lower}()
+            % endif
         }
     % endfor
 }
