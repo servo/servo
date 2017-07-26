@@ -302,8 +302,8 @@ trait PrivateMatchMethods: TElement {
                              new_values: &Arc<ComputedValues>,
                              pseudo: Option<&PseudoElement>)
                              -> ChildCascadeRequirement {
-        // Don't accumulate damage if we're in a restyle for reconstruction.
-        if shared_context.traversal_flags.contains(traversal_flags::ForReconstruct) {
+        // Don't accumulate damage if we're in a forgetful traversal.
+        if shared_context.traversal_flags.contains(traversal_flags::Forgetful) {
             return ChildCascadeRequirement::MustCascadeChildren;
         }
 
@@ -499,8 +499,8 @@ pub trait MatchMethods : TElement {
             }
         }
 
-        // Don't accumulate damage if we're in a restyle for reconstruction.
-        if context.shared.traversal_flags.contains(traversal_flags::ForReconstruct) {
+        // Don't accumulate damage if we're in a forgetful traversal.
+        if context.shared.traversal_flags.contains(traversal_flags::Forgetful) {
             return ChildCascadeRequirement::MustCascadeChildren;
         }
 

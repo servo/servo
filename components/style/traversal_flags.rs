@@ -18,8 +18,18 @@ bitflags! {
         const ForCSSRuleChanges = 1 << 1,
         /// Traverse only unstyled children of the root and their descendants.
         const UnstyledChildrenOnly = 1 << 2,
-        /// FIXME(bholley): This will go away.
-        const ForReconstruct = 1 << 3,
+        /// A forgetful traversal ignores the previous state of the frame tree, and
+        /// thus does not compute damage or maintain other state describing the styles
+        /// pre-traversal. A forgetful traversal is usually the right thing if you
+        /// aren't going to do a post-traversal.
+        const Forgetful = 1 << 3,
+        /// Actively seeks out and clears change hints that may have been posted into
+        /// the tree. Nonsensical without also passing Forgetful.
+        const AggressivelyForgetful = 1 << 4,
+        /// Clears the dirty descendants bit in the subtree.
+        const ClearDirtyDescendants = 1 << 5,
+        /// Clears the animation-only dirty descendants bit in the subtree.
+        const ClearAnimationOnlyDirtyDescendants = 1 << 6,
     }
 }
 
@@ -46,7 +56,11 @@ pub fn assert_traversal_flags_match() {
         ServoTraversalFlags_AnimationOnly => AnimationOnly,
         ServoTraversalFlags_ForCSSRuleChanges => ForCSSRuleChanges,
         ServoTraversalFlags_UnstyledChildrenOnly => UnstyledChildrenOnly,
-        ServoTraversalFlags_ForReconstruct => ForReconstruct,
+        ServoTraversalFlags_Forgetful => Forgetful,
+        ServoTraversalFlags_AggressivelyForgetful => AggressivelyForgetful,
+        ServoTraversalFlags_ClearDirtyDescendants => ClearDirtyDescendants,
+        ServoTraversalFlags_ClearAnimationOnlyDirtyDescendants =>
+            ClearAnimationOnlyDirtyDescendants,
     }
 }
 
