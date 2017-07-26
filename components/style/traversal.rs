@@ -243,10 +243,6 @@ pub trait DomTraversal<E: TElement> : Sync {
             return true;
         }
 
-        if traversal_flags.contains(traversal_flags::ForReconstruct) {
-            return true;
-        }
-
         // If the element is native-anonymous and an ancestor frame will be
         // reconstructed, the child and all its descendants will be destroyed.
         // In that case, we wouldn't need to traverse the subtree...
