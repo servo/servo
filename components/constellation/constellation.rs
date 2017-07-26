@@ -978,6 +978,23 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 debug!("constellation got {:?} WebVR events", events.len());
                 self.handle_webvr_events(pipeline_ids, events);
             }
+            FromCompositorMsg::PaintedEpochs(painted_epochs) => {
+                debug!("constellation got a new painted epochs message");
+                self.handle_painted_epochs(painted_epochs);
+            }
+        }
+    }
+
+    fn handle_painted_epochs(&self, painted_epochs: HashMap<PipelineId, Epoch>) {
+        for (pipeline_id, epoch) in &painted_epochs {
+            match self.pipelines.get(&pipeline_id) {
+                Some(pipeline) => {
+                    if let Err(e) = pipeline.layout_chan.send(LayoutControlMsg::PaintedEpoch(*epoch)) {
+                        warn!("Failed to send PaintedEpoch {:?}", e);
+                    }
+                },
+                None => return warn!("Pipeline {:?} got painted epoch after closure.", pipeline_id),
+            };
         }
     }
 

@@ -14,3 +14,4 @@ gfx = {path = "../gfx"}
 profile_traits = {path = "../profile_traits"}
 servo_config = {path = "../config"}
 time = "0.1.12"
+webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}

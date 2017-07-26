@@ -1466,6 +1466,23 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             // Paint the scene.
             let size = webrender_api::DeviceUintSize::from_untyped(&self.frame_size.to_untyped());
             self.webrender.render(size);
+
+            // Collect the currently painted epoch of each pipeline that is
+            // complete (i.e. has *all* layers painted to the requested epoch).
+            let mut pipeline_epochs = HashMap::new();
+            for (id, _) in &self.pipeline_details {
+                let webrender_pipeline_id = id.to_webrender();
+                if let Some(webrender_api::Epoch(epoch)) =
+                    self.webrender.current_epoch(webrender_pipeline_id) {
+                        let epoch = Epoch(epoch);
+                        pipeline_epochs.insert(*id, epoch);
+                    }
+            }
+
+            let msg = ConstellationMsg::PaintedEpochs(pipeline_epochs);
+            if let Err(e) = self.constellation_chan.send(msg) {
+                warn!("Sending painted epochs to constellation failed ({}).", e);
+            }
         });
 
         let rv = match target {

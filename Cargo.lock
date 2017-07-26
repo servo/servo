@@ -1705,6 +1705,7 @@ dependencies = [
  "profile_traits 0.0.1",
  "servo_config 0.0.1",
  "time 0.1.37 (registry+https://github.com/rust-lang/crates.io-index)",
+ "webrender_api 0.48.0 (git+https://github.com/servo/webrender)",
 ]
 
 [[package]]
