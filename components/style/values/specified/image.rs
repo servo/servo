@@ -751,7 +751,7 @@ impl EndingShape {
                      input: &mut Parser<'i, 't>,
                      compat_mode: CompatMode)
                      -> Result<Self, ParseError<'i>> {
-        if let Ok(extent) = input.try(|i| ShapeExtent::parse_with_compat_mode(i, compat_mode)) {
+        if let Ok(extent) = input.try(|i| ShapeExtent::parse_with_compat_mode(context, i, compat_mode)) {
             if input.try(|i| i.expect_ident_matching("circle")).is_ok() {
                 return Ok(GenericEndingShape::Circle(Circle::Extent(extent)));
             }
@@ -759,7 +759,7 @@ impl EndingShape {
             return Ok(GenericEndingShape::Ellipse(Ellipse::Extent(extent)));
         }
         if input.try(|i| i.expect_ident_matching("circle")).is_ok() {
-            if let Ok(extent) = input.try(|i| ShapeExtent::parse_with_compat_mode(i, compat_mode)) {
+            if let Ok(extent) = input.try(|i| ShapeExtent::parse_with_compat_mode(context, i, compat_mode)) {
                 return Ok(GenericEndingShape::Circle(Circle::Extent(extent)));
             }
             if compat_mode == CompatMode::Modern {
@@ -770,7 +770,7 @@ impl EndingShape {
             return Ok(GenericEndingShape::Circle(Circle::Extent(ShapeExtent::FarthestCorner)));
         }
         if input.try(|i| i.expect_ident_matching("ellipse")).is_ok() {
-            if let Ok(extent) = input.try(|i| ShapeExtent::parse_with_compat_mode(i, compat_mode)) {
+            if let Ok(extent) = input.try(|i| ShapeExtent::parse_with_compat_mode(context, i, compat_mode)) {
                 return Ok(GenericEndingShape::Ellipse(Ellipse::Extent(extent)));
             }
             if compat_mode == CompatMode::Modern {
@@ -828,10 +828,11 @@ impl EndingShape {
 }
 
 impl ShapeExtent {
-    fn parse_with_compat_mode<'i, 't>(input: &mut Parser<'i, 't>,
+    fn parse_with_compat_mode<'i, 't>(context: &ParserContext,
+                                      input: &mut Parser<'i, 't>,
                                       compat_mode: CompatMode)
                                       -> Result<Self, ParseError<'i>> {
-        match Self::parse(input)? {
+        match Self::parse(context, input)? {
             ShapeExtent::Contain | ShapeExtent::Cover if compat_mode == CompatMode::Modern => {
                 Err(StyleParseError::UnspecifiedError.into())
             },
