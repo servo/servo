@@ -123,6 +123,8 @@ pub enum LayoutControlMsg {
     /// Requests the current load state of Web fonts. `true` is returned if fonts are still loading
     /// and `false` is returned if all fonts have loaded.
     GetWebFontLoadState(IpcSender<bool>),
+    /// Send the last painted epoch to the layout thread.
+    PaintedEpoch(Epoch),
 }
 
 /// can be passed to `LoadUrl` to load a page with GET/POST
@@ -764,6 +766,9 @@ pub enum ConstellationMsg {
     SetWebVRThread(IpcSender<WebVRMsg>),
     /// Dispatch WebVR events to the subscribed script threads.
     WebVREvents(Vec<PipelineId>, Vec<WebVREvent>),
+    /// Send the list of currently painted epochs of each pipeline that
+    /// is complete.
+    PaintedEpochs(HashMap<PipelineId, Epoch>)
 }
 
 /// Resources required by workerglobalscopes
