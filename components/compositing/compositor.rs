@@ -186,6 +186,13 @@ pub struct IOCompositor<Window: WindowMethods> {
 
     /// GL functions interface (may be GL or GLES)
     gl: Rc<gl::Gl>,
+
+    /// Map of the pending paint metrics per layout thread.
+    /// The layout thread for each specific pipeline expects the compositor to
+    /// paint frames with specific given IDs (epoch). Once the compositor paints
+    /// these frames, it records the paint time for each of them and sends the
+    /// metric to the corresponding layout thread.
+    pending_paint_metrics: HashMap<PipelineId, Epoch>,
 }
 
 #[derive(Copy, Clone)]
@@ -371,6 +378,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             webrender: state.webrender,
             webrender_document: state.webrender_document,
             webrender_api: state.webrender_api,
+            pending_paint_metrics: HashMap::new(),
         }
     }
 
@@ -591,6 +599,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
             (Msg::SetFullscreenState(top_level_browsing_context_id, state), ShutdownState::NotShuttingDown) => {
                 self.window.set_fullscreen_state(top_level_browsing_context_id, state);
+            }
+
+            (Msg::PendingPaintMetric(pipeline_id, epoch), _) =>
+            {
+                self.pending_paint_metrics.insert(pipeline_id, epoch);
             }
 
             // When we are shutting_down, we need to avoid performing operations
@@ -1421,6 +1434,40 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             // Paint the scene.
             self.webrender.render(self.frame_size);
         });
+
+        // If there are pending paint metrics, we check if any of the painted epochs is
+        // one of the ones that the paint metrics recorder is expecting . In that case,
+        // we get the current time, inform the layout thread about it and remove the
+        // pending metric from the list.
+        if !self.pending_paint_metrics.is_empty() {
+            let paint_time = precise_time_ns() as f64;
+            let mut to_remove = Vec::new();
+            // For each pipeline
+            for (id, _) in &self.pipeline_details {
+                // if its layout thread is expecting the paint time for a specifc frame
+                if let Some(pending_epoch) = self.pending_paint_metrics.get(id) {
+                    // we get the last painted frame id from webrender
+                    if let Some(webrender_api::Epoch(epoch)) =
+                        self.webrender.current_epoch(id.to_webrender()) {
+                            // and check if it is the one the layout thread is expecting,
+                            let epoch = Epoch(epoch);
+                            if *pending_epoch != epoch {
+                                continue;
+                            }
+                            // in which case, we remove it from the list of pending metrics,
+                            to_remove.push(id);
+                            if let Some(pipeline) = self.pipeline(*id) {
+                                // and inform the layout thread with the measured paint time.
+                                let msg = LayoutControlMsg::PaintMetric(epoch, paint_time);
+                                let _ = pipeline.layout_chan.send(msg);
+                            }
+                        }
+                }
+            }
+            for id in to_remove.iter() {
+                self.pending_paint_metrics.remove(id);
+            }
+        }
 
         let rv = match target {
             CompositeTarget::Window => None,
