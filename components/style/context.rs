@@ -18,7 +18,7 @@ use font_metrics::FontMetricsProvider;
 #[cfg(feature = "gecko")] use gecko_bindings::structs;
 #[cfg(feature = "servo")] use parking_lot::RwLock;
 use properties::ComputedValues;
-use properties::PropertyId;
+#[cfg(feature = "servo")] use properties::PropertyId;
 use rule_tree::StrongRuleNode;
 use selector_parser::{EAGER_PSEUDO_COUNT, SnapshotMap};
 use selectors::matching::ElementSelectorFlags;
@@ -686,6 +686,7 @@ pub enum ReflowGoal {
 }
 
 /// A registered painter
+#[cfg(feature = "servo")]
 pub trait RegisteredSpeculativePainter: SpeculativePainter {
     /// The name it was registered with
     fn name(&self) -> Atom;
