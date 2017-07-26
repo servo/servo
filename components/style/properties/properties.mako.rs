@@ -14,6 +14,7 @@ use servo_arc::{Arc, UniqueArc};
 use std::borrow::Cow;
 use std::collections::HashSet;
 use std::{fmt, mem, ops};
+#[cfg(feature = "gecko")] use std::ptr;
 
 use app_units::Au;
 #[cfg(feature = "servo")] use cssparser::RGBA;
@@ -2512,6 +2513,7 @@ impl<'a> StyleBuilder<'a> {
     fn new(
         device: &'a Device,
         parent_style: Option<<&'a ComputedValues>,
+        parent_style_ignoring_first_line: Option<<&'a ComputedValues>,
         pseudo: Option<<&'a PseudoElement>,
         cascade_flags: CascadeFlags,
         rules: Option<StrongRuleNode>,
@@ -2521,8 +2523,19 @@ impl<'a> StyleBuilder<'a> {
         flags: ComputedValueFlags,
         visited_style: Option<Arc<ComputedValues>>,
     ) -> Self {
+        debug_assert_eq!(parent_style.is_some(), parent_style_ignoring_first_line.is_some());
+        #[cfg(feature = "gecko")]
+        debug_assert!(parent_style.is_none() ||
+                      ptr::eq(parent_style.unwrap(),
+                              parent_style_ignoring_first_line.unwrap()) ||
+                      parent_style.unwrap().pseudo() == Some(PseudoElement::FirstLine));
         let reset_style = device.default_computed_values();
         let inherited_style = parent_style.unwrap_or(reset_style);
+        let inherited_style_ignoring_first_line = parent_style_ignoring_first_line.unwrap_or(reset_style);
+        // FIXME(bz): INHERIT_ALL seems like a fundamentally broken idea.  I'm
+        // 99% sure it should give incorrect behavior for table anonymous box
+        // backgrounds, for example.  This code doesn't attempt to make it play
+        // nice with inherited_style_ignoring_first_line.
         let reset_style = if cascade_flags.contains(INHERIT_ALL) {
             inherited_style
         } else {
@@ -2533,7 +2546,7 @@ impl<'a> StyleBuilder<'a> {
             device,
             parent_style,
             inherited_style,
-            inherited_style_ignoring_first_line: inherited_style,
+            inherited_style_ignoring_first_line,
             reset_style,
             pseudo,
             rules,
@@ -2562,10 +2575,14 @@ impl<'a> StyleBuilder<'a> {
     ) -> Self {
         let reset_style = device.default_computed_values();
         let inherited_style = parent_style.unwrap_or(reset_style);
+        #[cfg(feature = "gecko")]
+        debug_assert!(parent_style.is_none() ||
+                      parent_style.unwrap().pseudo() != Some(PseudoElement::FirstLine));
         StyleBuilder {
             device,
             parent_style,
             inherited_style,
+            // None of our callers pass in ::first-line parent styles.
             inherited_style_ignoring_first_line: inherited_style,
             reset_style,
             pseudo,
@@ -2650,6 +2667,7 @@ impl<'a> StyleBuilder<'a> {
         // fine, and we want to eventually get rid of it.
         Self::new(
             device,
+            Some(parent),
             Some(parent),
             pseudo,
             CascadeFlags::empty(),
@@ -2910,6 +2928,7 @@ pub fn cascade(
     rule_node: &StrongRuleNode,
     guards: &StylesheetGuards,
     parent_style: Option<<&ComputedValues>,
+    parent_style_ignoring_first_line: Option<<&ComputedValues>,
     layout_parent_style: Option<<&ComputedValues>,
     visited_style: Option<Arc<ComputedValues>>,
     cascade_info: Option<<&mut CascadeInfo>,
@@ -2917,6 +2936,12 @@ pub fn cascade(
     flags: CascadeFlags,
     quirks_mode: QuirksMode
 ) -> Arc<ComputedValues> {
+    debug_assert_eq!(parent_style.is_some(), parent_style_ignoring_first_line.is_some());
+    #[cfg(feature = "gecko")]
+    debug_assert!(parent_style.is_none() ||
+                  ptr::eq(parent_style.unwrap(),
+                          parent_style_ignoring_first_line.unwrap()) ||
+                  parent_style.unwrap().pseudo() == Some(PseudoElement::FirstLine));
     let iter_declarations = || {
         rule_node.self_and_ancestors().flat_map(|node| {
             let cascade_level = node.cascade_level();
@@ -2962,6 +2987,7 @@ pub fn cascade(
         rule_node,
         iter_declarations,
         parent_style,
+        parent_style_ignoring_first_line,
         layout_parent_style,
         visited_style,
         cascade_info,
@@ -2980,6 +3006,7 @@ pub fn apply_declarations<'a, F, I>(
     rules: &StrongRuleNode,
     iter_declarations: F,
     parent_style: Option<<&ComputedValues>,
+    parent_style_ignoring_first_line: Option<<&ComputedValues>,
     layout_parent_style: Option<<&ComputedValues>,
     visited_style: Option<Arc<ComputedValues>>,
     mut cascade_info: Option<<&mut CascadeInfo>,
@@ -2992,6 +3019,12 @@ where
     I: Iterator<Item = (&'a PropertyDeclaration, CascadeLevel)>,
 {
     debug_assert!(layout_parent_style.is_none() || parent_style.is_some());
+    debug_assert_eq!(parent_style.is_some(), parent_style_ignoring_first_line.is_some());
+    #[cfg(feature = "gecko")]
+    debug_assert!(parent_style.is_none() ||
+                  ptr::eq(parent_style.unwrap(),
+                          parent_style_ignoring_first_line.unwrap()) ||
+                  parent_style.unwrap().pseudo() == Some(PseudoElement::FirstLine));
     let (inherited_style, layout_parent_style) = match parent_style {
         Some(parent_style) => {
             (parent_style,
@@ -3026,6 +3059,7 @@ where
         builder: StyleBuilder::new(
             device,
             parent_style,
+            parent_style_ignoring_first_line,
             pseudo,
             flags,
             Some(rules.clone()),

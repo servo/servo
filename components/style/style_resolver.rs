@@ -479,6 +479,7 @@ where
                 rules.unwrap_or(self.context.shared.stylist.rule_tree().root()),
                 &self.context.shared.guards,
                 parent_style,
+                parent_style,
                 layout_parent_style,
                 style_if_visited,
                 Some(&mut cascade_info),
