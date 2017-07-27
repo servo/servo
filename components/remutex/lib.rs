@@ -35,7 +35,7 @@ impl ThreadId {
     #[allow(unsafe_code)]
     fn new() -> ThreadId {
         let number = THREAD_COUNT.fetch_add(1, Ordering::SeqCst);
-        ThreadId(unsafe { NonZero::new(number) })
+        ThreadId(NonZero::new(number).unwrap())
     }
     pub fn current() -> ThreadId {
         THREAD_ID.with(|tls| tls.clone())
@@ -59,13 +59,13 @@ impl AtomicOptThreadId {
     #[allow(unsafe_code)]
     pub fn load(&self, ordering: Ordering) -> Option<ThreadId> {
         let number = self.0.load(ordering);
-        if number == 0 { None } else { Some(ThreadId(unsafe { NonZero::new(number) })) }
+        NonZero::new(number).map(ThreadId)
     }
     #[allow(unsafe_code)]
     pub fn swap(&self, value: Option<ThreadId>, ordering: Ordering) -> Option<ThreadId> {
         let number = value.map(|id| id.0.get()).unwrap_or(0);
         let number = self.0.swap(number, ordering);
-        if number == 0 { None } else { Some(ThreadId(unsafe { NonZero::new(number) })) }
+        NonZero::new(number).map(ThreadId)
     }
 }
 

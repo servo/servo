@@ -200,7 +200,7 @@ impl<T: DomObject> Trusted<T> {
             self.owner_thread == (&*live_references) as *const _ as *const libc::c_void
         }));
         unsafe {
-            Root::new(NonZero::new(self.refcount.0 as *const T))
+            Root::new(NonZero::new_unchecked(self.refcount.0 as *const T))
         }
     }
 }

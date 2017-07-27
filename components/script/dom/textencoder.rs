@@ -53,6 +53,6 @@ impl TextEncoderMethods for TextEncoder {
         rooted!(in(cx) let mut js_object = ptr::null_mut());
         assert!(Uint8Array::create(cx, CreateWith::Slice(&encoded), js_object.handle_mut()).is_ok());
 
-        NonZero::new(js_object.get())
+        NonZero::new_unchecked(js_object.get())
     }
 }

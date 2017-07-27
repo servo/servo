@@ -256,7 +256,7 @@ impl<'ln> LayoutNode for ServoLayoutNode<'ln> {
             let ptr: *mut StyleAndLayoutData =
                 Box::into_raw(Box::new(StyleAndLayoutData::new()));
             let opaque = OpaqueStyleAndLayoutData {
-                ptr: NonZero::new(ptr as *mut StyleData),
+                ptr: NonZero::new_unchecked(ptr as *mut StyleData),
             };
             self.init_style_and_layout_data(opaque);
         };

@@ -58,7 +58,7 @@ fn heap_to_option(heap: &Heap<*mut JSObject>) -> Option<NonZero<*mut JSObject>> 
         None
     } else {
         unsafe {
-            Some(NonZero::new(js_object))
+            Some(NonZero::new_unchecked(js_object))
         }
     }
 }

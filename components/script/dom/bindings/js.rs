@@ -81,7 +81,7 @@ impl<T: DomObject> JS<T> {
     pub fn from_ref(obj: &T) -> JS<T> {
         debug_assert!(thread_state::get().is_script());
         JS {
-            ptr: unsafe { NonZero::new(&*obj) },
+            ptr: unsafe { NonZero::new_unchecked(&*obj) },
         }
     }
 }
@@ -135,7 +135,7 @@ impl<T: Castable> LayoutJS<T> {
         debug_assert!(thread_state::get().is_layout());
         let ptr: *const T = self.ptr.get();
         LayoutJS {
-            ptr: unsafe { NonZero::new(ptr as *const U) },
+            ptr: unsafe { NonZero::new_unchecked(ptr as *const U) },
         }
     }
 
@@ -148,7 +148,7 @@ impl<T: Castable> LayoutJS<T> {
             if (*self.unsafe_get()).is::<U>() {
                 let ptr: *const T = self.ptr.get();
                 Some(LayoutJS {
-                    ptr: NonZero::new(ptr as *const U),
+                    ptr: NonZero::new_unchecked(ptr as *const U),
                 })
             } else {
                 None
@@ -223,7 +223,7 @@ impl LayoutJS<Node> {
         debug_assert!(thread_state::get().is_layout());
         let TrustedNodeAddress(addr) = inner;
         LayoutJS {
-            ptr: NonZero::new(addr as *const Node),
+            ptr: NonZero::new_unchecked(addr as *const Node),
         }
     }
 }
@@ -554,7 +554,7 @@ impl<T: DomObject> Root<T> {
 
     /// Generate a new root from a reference
     pub fn from_ref(unrooted: &T) -> Root<T> {
-        Root::new(unsafe { NonZero::new(unrooted) })
+        Root::new(unsafe { NonZero::new_unchecked(unrooted) })
     }
 }
 
