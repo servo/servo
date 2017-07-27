@@ -203,7 +203,9 @@ impl<'a> ErrorHelpers<'a> for ContextualParseError<'a> {
         match self {
             ContextualParseError::UnsupportedPropertyDeclaration(s, err) |
             ContextualParseError::UnsupportedFontFaceDescriptor(s, err) |
+            ContextualParseError::UnsupportedFontFeatureValuesDescriptor(s, err) |
             ContextualParseError::InvalidKeyframeRule(s, err) |
+            ContextualParseError::InvalidFontFeatureValuesRule(s, err) |
             ContextualParseError::UnsupportedKeyframePropertyDeclaration(s, err) |
             ContextualParseError::InvalidRule(s, err) |
             ContextualParseError::UnsupportedRule(s, err) |
@@ -289,7 +291,9 @@ impl<'a> ErrorHelpers<'a> for ContextualParseError<'a> {
             ContextualParseError::InvalidCounterStyleNotEnoughSymbols(..) |
             ContextualParseError::InvalidCounterStyleWithoutAdditiveSymbols |
             ContextualParseError::InvalidCounterStyleExtendsWithSymbols |
-            ContextualParseError::InvalidCounterStyleExtendsWithAdditiveSymbols =>
+            ContextualParseError::InvalidCounterStyleExtendsWithAdditiveSymbols |
+            ContextualParseError::UnsupportedFontFeatureValuesDescriptor(..) |
+            ContextualParseError::InvalidFontFeatureValuesRule(..) =>
                 (b"PEUnknownAtRule\0", Action::Skip),
         }
     }

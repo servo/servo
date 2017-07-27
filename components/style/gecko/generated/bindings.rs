@@ -378,6 +378,11 @@ pub type RawServoDocumentRuleBorrowed<'a> = &'a RawServoDocumentRule;
 pub type RawServoDocumentRuleBorrowedOrNull<'a> = Option<&'a RawServoDocumentRule>;
 enum RawServoDocumentRuleVoid { }
 pub struct RawServoDocumentRule(RawServoDocumentRuleVoid);
+pub type RawServoFontFeatureValuesRuleStrong = ::gecko_bindings::sugar::ownership::Strong<RawServoFontFeatureValuesRule>;
+pub type RawServoFontFeatureValuesRuleBorrowed<'a> = &'a RawServoFontFeatureValuesRule;
+pub type RawServoFontFeatureValuesRuleBorrowedOrNull<'a> = Option<&'a RawServoFontFeatureValuesRule>;
+enum RawServoFontFeatureValuesRuleVoid { }
+pub struct RawServoFontFeatureValuesRule(RawServoFontFeatureValuesRuleVoid);
 pub type RawServoRuleNodeStrong = ::gecko_bindings::sugar::ownership::Strong<RawServoRuleNode>;
 pub type RawServoRuleNodeBorrowed<'a> = &'a RawServoRuleNode;
 pub type RawServoRuleNodeBorrowedOrNull<'a> = Option<&'a RawServoRuleNode>;
@@ -479,6 +484,14 @@ extern "C" {
 }
 extern "C" {
     pub fn Servo_DocumentRule_Release(ptr: RawServoDocumentRuleBorrowed);
+}
+extern "C" {
+    pub fn Servo_FontFeatureValuesRule_AddRef(ptr:
+                                                  RawServoFontFeatureValuesRuleBorrowed);
+}
+extern "C" {
+    pub fn Servo_FontFeatureValuesRule_Release(ptr:
+                                                   RawServoFontFeatureValuesRuleBorrowed);
 }
 extern "C" {
     pub fn Servo_RuleNode_AddRef(ptr: RawServoRuleNodeBorrowed);
@@ -2160,6 +2173,24 @@ extern "C" {
      -> ServoCssRulesStrong;
 }
 extern "C" {
+    pub fn Servo_CssRules_GetFontFeatureValuesRuleAt(rules:
+                                                         ServoCssRulesBorrowed,
+                                                     index: u32,
+                                                     line: *mut u32,
+                                                     column: *mut u32)
+     -> RawServoFontFeatureValuesRuleStrong;
+}
+extern "C" {
+    pub fn Servo_FontFeatureValuesRule_Debug(rule:
+                                                 RawServoFontFeatureValuesRuleBorrowed,
+                                             result: *mut nsACString);
+}
+extern "C" {
+    pub fn Servo_FontFeatureValuesRule_GetCssText(rule:
+                                                      RawServoFontFeatureValuesRuleBorrowed,
+                                                  result: *mut nsAString);
+}
+extern "C" {
     pub fn Servo_CssRules_GetFontFaceRuleAt(rules: ServoCssRulesBorrowed,
                                             index: u32)
      -> *mut nsCSSFontFaceRule;
@@ -2295,6 +2326,16 @@ extern "C" {
     pub fn Servo_DocumentRule_GetConditionText(rule:
                                                    RawServoDocumentRuleBorrowed,
                                                result: *mut nsAString);
+}
+extern "C" {
+    pub fn Servo_FontFeatureValuesRule_GetFontFamily(rule:
+                                                         RawServoFontFeatureValuesRuleBorrowed,
+                                                     result: *mut nsAString);
+}
+extern "C" {
+    pub fn Servo_FontFeatureValuesRule_GetValueText(rule:
+                                                        RawServoFontFeatureValuesRuleBorrowed,
+                                                    result: *mut nsAString);
 }
 extern "C" {
     pub fn Servo_ParseProperty(property: nsCSSPropertyID,

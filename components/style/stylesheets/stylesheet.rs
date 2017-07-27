@@ -247,6 +247,7 @@ pub trait StylesheetInDocument {
         effective_style_rules(Style => StyleRule),
         effective_media_rules(Media => MediaRule),
         effective_font_face_rules(FontFace => FontFaceRule),
+        effective_font_face_feature_values_rules(FontFeatureValues => FontFeatureValuesRule),
         effective_counter_style_rules(CounterStyle => CounterStyleRule),
         effective_viewport_rules(Viewport => ViewportRule),
         effective_keyframes_rules(Keyframes => KeyframesRule),

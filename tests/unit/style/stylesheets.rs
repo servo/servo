@@ -14,6 +14,7 @@ use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::sync::Mutex;
 use std::sync::atomic::AtomicBool;
+use style::computed_values::font_family::FamilyName;
 use style::context::QuirksMode;
 use style::error_reporting::{ParseErrorReporter, ContextualParseError};
 use style::media_queries::MediaList;
@@ -24,6 +25,8 @@ use style::properties::longhands::animation_timing_function;
 use style::shared_lock::SharedRwLock;
 use style::stylesheets::{Origin, Namespaces};
 use style::stylesheets::{Stylesheet, StylesheetContents, NamespaceRule, CssRule, CssRules, StyleRule, KeyframesRule};
+use style::stylesheets::font_feature_values_rule::{FFVDeclaration, FontFeatureValuesRule};
+use style::stylesheets::font_feature_values_rule::{SingleValue, PairValues, VectorValues};
 use style::stylesheets::keyframes_rule::{Keyframe, KeyframeSelector, KeyframePercentage};
 use style::values::{KeyframesName, CustomIdent};
 use style::values::computed::Percentage;
@@ -65,6 +68,14 @@ fn test_parse_stylesheet() {
                 animation-name: 'foo'; /* animation properties not allowed here */
                 animation-timing-function: ease; /* … except animation-timing-function */
             }
+        }
+        @font-feature-values test {
+            @swash { foo: 12; bar: 24; }
+            @swash { bar: 36; baz: 48; }
+            @stylistic { fooo: 14; }
+            @rubbish { shouldnt-parse: 1; }
+            @styleset { hello: 10 11 12; }
+            @character-variant { ok: 78 2; }
         }";
     let url = ServoUrl::parse("about::test").unwrap();
     let lock = SharedRwLock::new();
@@ -238,6 +249,50 @@ fn test_parse_stylesheet() {
                     source_location: SourceLocation {
                         line: 16,
                         column: 19,
+                    },
+                }))),
+                CssRule::FontFeatureValues(Arc::new(stylesheet.shared_lock.wrap(FontFeatureValuesRule {
+                    family_names: vec![FamilyName {
+                        name: Atom::from("test"),
+                        quoted: false,
+                    }],
+                    swash: vec![
+                        FFVDeclaration {
+                            name: "foo".into(),
+                            value: SingleValue(12 as u32),
+                        },
+                        FFVDeclaration {
+                            name: "bar".into(),
+                            value: SingleValue(36 as u32),
+                        },
+                        FFVDeclaration {
+                            name: "baz".into(),
+                            value: SingleValue(48 as u32),
+                        }
+                    ],
+                    stylistic: vec![
+                        FFVDeclaration {
+                            name: "fooo".into(),
+                            value: SingleValue(14 as u32),
+                        }
+                    ],
+                    ornaments: vec![],
+                    annotation: vec![],
+                    character_variant: vec![
+                        FFVDeclaration {
+                            name: "ok".into(),
+                            value: PairValues(78 as u32, Some(2 as u32)),
+                        },
+                    ],
+                    styleset: vec![
+                        FFVDeclaration {
+                            name: "hello".into(),
+                            value: VectorValues(vec![10 as u32, 11 as u32, 12 as u32]),
+                        },
+                    ],
+                    source_location: SourceLocation {
+                        line: 25,
+                        column: 29,
                     },
                 })))
 
