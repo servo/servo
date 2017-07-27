@@ -30,7 +30,7 @@ testing = []
 gecko_debug = ["nsstring_vendor/gecko_debug"]
 
 [dependencies]
-app_units = "0.5.1"
+app_units = "0.5"
 arrayvec = "0.3.20"
 arraydeque = "0.2.3"
 atomic_refcell = "0.1"
