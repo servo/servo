@@ -63,7 +63,7 @@ use table_colgroup::TableColGroupFlow;
 use table_row::TableRowFlow;
 use table_rowgroup::TableRowGroupFlow;
 use table_wrapper::TableWrapperFlow;
-use webrender_api::ClipId;
+use webrender_api::ClipAndScrollInfo;
 
 /// Virtual methods that make up a float context.
 ///
@@ -431,12 +431,12 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
     /// children of this flow.
     fn print_extra_flow_children(&self, _: &mut PrintTree) { }
 
-    fn scroll_root_id(&self, pipeline_id: PipelineId) -> ClipId {
-        match base(self).scroll_root_id {
-            Some(id) => id,
+    fn clip_and_scroll_info(&self, pipeline_id: PipelineId) -> ClipAndScrollInfo {
+        match base(self).clip_and_scroll_info {
+            Some(info) => info,
             None => {
-                warn!("Tried to access scroll root id on Flow before assignment");
-                pipeline_id.root_scroll_node()
+                debug_assert!(false, "Tried to access scroll root id on Flow before assignment");
+                pipeline_id.root_clip_and_scroll_info()
             }
         }
     }
@@ -969,7 +969,7 @@ pub struct BaseFlow {
     /// list construction.
     pub stacking_context_id: StackingContextId,
 
-    pub scroll_root_id: Option<ClipId>,
+    pub clip_and_scroll_info: Option<ClipAndScrollInfo>,
 }
 
 impl fmt::Debug for BaseFlow {
@@ -1111,7 +1111,7 @@ impl BaseFlow {
             writing_mode: writing_mode,
             thread_id: 0,
             stacking_context_id: StackingContextId::root(),
-            scroll_root_id: None,
+            clip_and_scroll_info: None,
         }
     }
 
