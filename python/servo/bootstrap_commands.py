@@ -27,7 +27,7 @@ from mach.decorators import (
 )
 
 import servo.bootstrap as bootstrap
-from servo.command_base import CommandBase, BIN_SUFFIX, cd
+from servo.command_base import CommandBase, BIN_SUFFIX, cd, call
 from servo.util import delete, download_bytes, download_file, extract, host_triple
 
 
@@ -67,6 +67,20 @@ class MachCommands(CommandBase):
                      action='store_true',
                      help='Use stable rustc version')
     def bootstrap_rustc(self, force=False, target=[], stable=False):
+        if self.has_rustup():
+            print("Found rustup, using rustup to manage rust toolchain")
+            self.bootstrap_rustc_rustup(force=force, target=target, stable=stable)
+        else:
+            print("No rustup, downloading rust toolchain")
+            self.bootstrap_rustc_vendor(force=force, target=target, stable=stable)
+
+    def bootstrap_rustc_rustup(self, force=False, target=[], stable=False):
+        # TODO: how do we install the stable toolchain with the override file?
+        with open("rust-toolchain", "rb") as fo:
+            toolchain_version = fo.read().rstrip()
+        call(["rustup", "install", toolchain_version])
+
+    def bootstrap_rustc_vendor(self, force=False, target=[], stable=False):
         self.set_use_stable_rust(stable)
         version = self.rust_version()
         rust_path = self.rust_path()

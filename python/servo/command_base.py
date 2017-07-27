@@ -420,6 +420,8 @@ class CommandBase(object):
             # Always build harfbuzz from source
             env["HARFBUZZ_SYS_NO_PKG_CONFIG"] = "true"
 
+        if self.has_rustup():
+            self.config["tools"]["rust-root"] = subprocess.check_output(["rustup", "which", "rustc"]).rstrip("rustc")
         if not self.config["tools"]["system-rust"] \
                 or self.config["tools"]["rust-root"]:
             env["RUST_ROOT"] = self.config["tools"]["rust-root"]
@@ -430,6 +432,8 @@ class CommandBase(object):
             extra_path += [path.join(self.config["tools"]["rust-root"], "bin")]
             extra_lib += [path.join(self.config["tools"]["rust-root"], "lib")]
 
+        if self.has_rustup():
+            self.config["tools"]["cargo-root"] = subprocess.check_output(["rustup", "which", "cargo"]).rstrip("cargo")
         if not self.config["tools"]["system-cargo"] \
                 or self.config["tools"]["cargo-root"]:
             # This path is for when rust-root points to an unpacked installer
@@ -442,6 +446,7 @@ class CommandBase(object):
         if extra_path:
             env["PATH"] = "%s%s%s" % (os.pathsep.join(extra_path), os.pathsep, env["PATH"])
 
+        # TODO: set this with rustup
         env["CARGO_HOME"] = self.config["tools"]["cargo-home-dir"]
         if self.config["build"]["incremental"]:
             env["CARGO_INCREMENTAL"] = "1"
@@ -565,7 +570,26 @@ class CommandBase(object):
             return True
         return False
 
+    def has_rustup(self):
+        # TODO: Cache the result and don't call subprocess everytime
+        try:
+            check_call(["rustup", "--version"])
+            self.config['tools']['rustup'] = True
+            return True
+
+        except OSError, subprocess.CalledProcessError:
+            return False
+
     def ensure_bootstrapped(self, target=None):
+        if self.has_rustup():
+            try:
+                self.config["tools"]["rust-root"] = subprocess.check_output(["rustup", "which", "rustc"]).rstrip("rustc")
+            except subprocess.CalledProcessError:
+                Registrar.dispatch("bootstrap-rust", context=self.context, target=filter(None, [target]),
+                                stable=self._use_stable_rust)
+                # TODO: should we also bootstrap cargo here? Maybe rustup
+                # install implies cargo as well?
+
         if self.context.bootstrapped:
             return
 
