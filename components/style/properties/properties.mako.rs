@@ -1709,6 +1709,13 @@ pub mod style_structs {
                     pub fn copy_${longhand.ident}_from(&mut self, other: &Self) {
                         self.${longhand.ident} = other.${longhand.ident}.clone();
                     }
+
+                    /// Reset ${longhand.name} from the initial struct.
+                    #[allow(non_snake_case)]
+                    #[inline]
+                    pub fn reset_${longhand.ident}(&mut self, other: &Self) {
+                        self.copy_${longhand.ident}_from(other)
+                    }
                     % if longhand.need_clone:
                         /// Get the computed value for ${longhand.name}.
                         #[allow(non_snake_case)]
@@ -2627,19 +2634,14 @@ impl<'a> StyleBuilder<'a> {
     pub fn reset_${property.ident}(&mut self) {
         let reset_struct =
             self.reset_style.get_${property.style_struct.name_lower}();
-        % if property.ident == "justify_items":
-            // TODO(emilio): Generalise this!
-            self.${property.style_struct.ident}.mutate()
-                .reset_${property.ident}(reset_struct)
-        % else:
-            self.${property.style_struct.ident}.mutate()
-                .copy_${property.ident}_from(
-                    reset_struct,
-                    % if property.logical:
-                    self.writing_mode,
-                    % endif
-                );
-        % endif
+
+        self.${property.style_struct.ident}.mutate()
+            .reset_${property.ident}(
+                reset_struct,
+                % if property.logical:
+                self.writing_mode,
+                % endif
+            );
     }
 
     % if not property.is_vector:
