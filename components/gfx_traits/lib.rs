@@ -32,7 +32,7 @@ impl Epoch {
 pub struct StackingContextId(
     /// The identifier for this StackingContext, derived from the Flow's memory address
     /// and fragment type.  As a space optimization, these are combined into a single word.
-    u64
+    pub u64
 );
 
 impl StackingContextId {

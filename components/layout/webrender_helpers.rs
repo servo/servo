@@ -16,8 +16,8 @@ use msg::constellation_msg::PipelineId;
 use style::computed_values::{image_rendering, mix_blend_mode, transform_style};
 use style::values::computed::{BorderStyle, Filter};
 use style::values::generics::effects::Filter as GenericFilter;
-use webrender_api::{self, ClipId, ComplexClipRegion, DisplayListBuilder, ExtendMode};
-use webrender_api::LayoutTransform;
+use webrender_api::{self, ClipAndScrollInfo, ComplexClipRegion, DisplayListBuilder};
+use webrender_api::{ExtendMode, LayoutTransform};
 
 pub trait WebRenderDisplayListConverter {
     fn convert_to_webrender(&self, pipeline_id: PipelineId) -> DisplayListBuilder;
@@ -26,7 +26,7 @@ pub trait WebRenderDisplayListConverter {
 trait WebRenderDisplayItemConverter {
     fn convert_to_webrender(&self,
                             builder: &mut DisplayListBuilder,
-                            current_scroll_root_id: &mut ClipId);
+                            current_clip_and_scroll_info: &mut ClipAndScrollInfo);
 }
 
 trait ToBorderStyle {
@@ -222,16 +222,15 @@ impl ToTransformStyle for transform_style::T {
 impl WebRenderDisplayListConverter for DisplayList {
     fn convert_to_webrender(&self, pipeline_id: PipelineId) -> DisplayListBuilder {
         let traversal = DisplayListTraversal::new(self);
-        let webrender_pipeline_id = pipeline_id.to_webrender();
-        let mut builder = DisplayListBuilder::with_capacity(webrender_pipeline_id,
+        let mut builder = DisplayListBuilder::with_capacity(pipeline_id.to_webrender(),
                                                             self.bounds().size.to_sizef(),
                                                             1024 * 1024); // 1 MB of space
 
-        let mut current_scroll_root_id = ClipId::root_scroll_node(webrender_pipeline_id);
-        builder.push_clip_id(current_scroll_root_id);
+        let mut current_clip_and_scroll_info = pipeline_id.root_clip_and_scroll_info();
+        builder.push_clip_and_scroll_info(current_clip_and_scroll_info);
 
         for item in traversal {
-            item.convert_to_webrender(&mut builder, &mut current_scroll_root_id);
+            item.convert_to_webrender(&mut builder, &mut current_clip_and_scroll_info);
         }
         builder
     }
@@ -240,12 +239,12 @@ impl WebRenderDisplayListConverter for DisplayList {
 impl WebRenderDisplayItemConverter for DisplayItem {
     fn convert_to_webrender(&self,
                             builder: &mut DisplayListBuilder,
-                            current_scroll_root_id: &mut ClipId) {
-        let scroll_root_id = self.base().scroll_root_id;
-        if scroll_root_id != *current_scroll_root_id {
+                            current_clip_and_scroll_info: &mut ClipAndScrollInfo) {
+        let clip_and_scroll_info = self.base().clip_and_scroll_info;
+        if clip_and_scroll_info != *current_clip_and_scroll_info {
             builder.pop_clip_id();
-            builder.push_clip_id(scroll_root_id);
-            *current_scroll_root_id = scroll_root_id;
+            builder.push_clip_and_scroll_info(clip_and_scroll_info);
+            *current_clip_and_scroll_info = clip_and_scroll_info;
         }
 
         match *self {

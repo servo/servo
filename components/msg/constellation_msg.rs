@@ -248,6 +248,10 @@ impl PipelineId {
     pub fn root_scroll_node(&self) -> webrender_api::ClipId {
         webrender_api::ClipId::root_scroll_node(self.to_webrender())
     }
+
+    pub fn root_clip_and_scroll_info(&self) -> webrender_api::ClipAndScrollInfo {
+        webrender_api::ClipAndScrollInfo::simple(self.root_scroll_node())
+    }
 }
 
 impl fmt::Display for PipelineId {
