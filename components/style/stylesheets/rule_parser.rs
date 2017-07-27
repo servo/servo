@@ -5,6 +5,7 @@
 //! Parsing of the stylesheet contents.
 
 use {Namespace, Prefix};
+use computed_values::font_family::FamilyName;
 use counter_style::{parse_counter_style_body, parse_counter_style_name};
 use cssparser::{AtRuleParser, AtRuleType, Parser, QualifiedRuleParser, RuleListParser};
 use cssparser::{CowRcStr, SourceLocation, BasicParseError};
@@ -21,9 +22,10 @@ use shared_lock::{Locked, SharedRwLock};
 use str::starts_with_ignore_ascii_case;
 use style_traits::{StyleParseError, ParseError};
 use stylesheets::{CssRule, CssRules, CssRuleType, Origin, StylesheetLoader};
-use stylesheets::{DocumentRule, KeyframesRule, MediaRule, NamespaceRule, PageRule};
-use stylesheets::{StyleRule, SupportsRule, ViewportRule};
+use stylesheets::{DocumentRule, FontFeatureValuesRule, KeyframesRule, MediaRule};
+use stylesheets::{NamespaceRule, PageRule, StyleRule, SupportsRule, ViewportRule};
 use stylesheets::document_rule::DocumentCondition;
+use stylesheets::font_feature_values_rule::parse_family_name_list;
 use stylesheets::keyframes_rule::parse_keyframe_list;
 use stylesheets::stylesheet::Namespaces;
 use stylesheets::supports_rule::SupportsCondition;
@@ -101,6 +103,8 @@ pub enum VendorPrefix {
 pub enum AtRulePrelude {
     /// A @font-face rule prelude.
     FontFace(SourceLocation),
+    /// A @font-feature-values rule prelude, with its FamilyName list.
+    FontFeatureValues(Vec<FamilyName>, SourceLocation),
     /// A @counter-style rule prelude, with its counter style name.
     CounterStyle(CustomIdent),
     /// A @media rule prelude, with its media queries.
@@ -345,6 +349,14 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
             "font-face" => {
                 Ok(AtRuleType::WithBlock(AtRulePrelude::FontFace(location)))
             },
+            "font-feature-values" => {
+                if !cfg!(feature = "gecko") && !cfg!(feature = "testing") {
+                    // Support for this rule is not fully implemented in Servo yet.
+                    return Err(StyleParseError::UnsupportedAtRule(name.clone()).into())
+                }
+                let family_names = parse_family_name_list(self.context, input)?;
+                Ok(AtRuleType::WithBlock(AtRulePrelude::FontFeatureValues(family_names, location)))
+            },
             "counter-style" => {
                 if !cfg!(feature = "gecko") {
                     // Support for this rule is not fully implemented in Servo yet.
@@ -412,6 +424,11 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
                 let context = ParserContext::new_with_rule_type(self.context, Some(CssRuleType::FontFace));
                 Ok(CssRule::FontFace(Arc::new(self.shared_lock.wrap(
                    parse_font_face_block(&context, input, location).into()))))
+            }
+            AtRulePrelude::FontFeatureValues(family_names, location) => {
+                let context = ParserContext::new_with_rule_type(self.context, Some(CssRuleType::FontFeatureValues));
+                Ok(CssRule::FontFeatureValues(Arc::new(self.shared_lock.wrap(
+                    FontFeatureValuesRule::parse(&context, input, family_names, location)))))
             }
             AtRulePrelude::CounterStyle(name) => {
                 let context = ParserContext::new_with_rule_type(self.context, Some(CssRuleType::CounterStyle));

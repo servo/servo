@@ -995,7 +995,8 @@ impl Stylist {
                     CssRule::Keyframes(..) |
                     CssRule::Page(..) |
                     CssRule::Viewport(..) |
-                    CssRule::Document(..) => {
+                    CssRule::Document(..) |
+                    CssRule::FontFeatureValues(..) => {
                         // Not affected by device changes.
                         continue;
                     }
