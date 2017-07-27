@@ -647,14 +647,12 @@ pub trait MatchMethods : TElement {
             CascadeVisitedMode::Unvisited,
             cascade_inputs,
         );
-        if !context.shared.traversal_flags.for_animation_only() {
-            result |= self.replace_rules_internal(
-                replacements,
-                context,
-                CascadeVisitedMode::Visited,
-                cascade_inputs
-            );
-        }
+        result |= self.replace_rules_internal(
+            replacements,
+            context,
+            CascadeVisitedMode::Visited,
+            cascade_inputs
+        );
         result
     }
 
