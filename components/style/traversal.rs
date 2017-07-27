@@ -13,6 +13,7 @@ use sharing::StyleSharingTarget;
 use smallvec::SmallVec;
 use style_resolver::StyleResolverForElement;
 use stylist::RuleInclusion;
+use traversal_flags::{TraversalFlags, self};
 
 /// A per-traversal-level chunk of data. This is sent down by the traversal, and
 /// currently only holds the dom depth for the bloom filter.
@@ -25,45 +26,6 @@ pub struct PerLevelTraversalData {
     /// This is kept with cooperation from the traversal code and the bloom
     /// filter.
     pub current_dom_depth: usize,
-}
-
-bitflags! {
-    /// Flags that control the traversal process.
-    pub flags TraversalFlags: u8 {
-        /// Traverse only unstyled children.
-        const UNSTYLED_CHILDREN_ONLY = 0x01,
-        /// Traverse only elements for animation restyles.
-        const ANIMATION_ONLY = 0x02,
-        /// Traverse without generating any change hints.
-        const FOR_RECONSTRUCT = 0x04,
-        /// Traverse triggered by CSS rule changes.
-        ///
-        /// Traverse and update all elements with CSS animations since
-        /// @keyframes rules may have changed
-        const FOR_CSS_RULE_CHANGES = 0x08,
-    }
-}
-
-impl TraversalFlags {
-    /// Returns true if the traversal is for animation-only restyles.
-    pub fn for_animation_only(&self) -> bool {
-        self.contains(ANIMATION_ONLY)
-    }
-
-    /// Returns true if the traversal is for unstyled children.
-    pub fn for_unstyled_children_only(&self) -> bool {
-        self.contains(UNSTYLED_CHILDREN_ONLY)
-    }
-
-    /// Returns true if the traversal is for a frame reconstruction.
-    pub fn for_reconstruct(&self) -> bool {
-        self.contains(FOR_RECONSTRUCT)
-    }
-
-    /// Returns true if the traversal is triggered by CSS rule changes.
-    pub fn for_css_rule_changes(&self) -> bool {
-        self.contains(FOR_CSS_RULE_CHANGES)
-    }
 }
 
 /// This structure exists to enforce that callers invoke pre_traverse, and also
@@ -208,12 +170,7 @@ pub trait DomTraversal<E: TElement> : Sync {
         shared_context: &SharedStyleContext,
         traversal_flags: TraversalFlags
     ) -> PreTraverseToken {
-        debug_assert!(!(traversal_flags.for_reconstruct() &&
-                        traversal_flags.for_unstyled_children_only()),
-                      "must not specify FOR_RECONSTRUCT in combination with \
-                       UNSTYLED_CHILDREN_ONLY");
-
-        if traversal_flags.for_unstyled_children_only() {
+        if traversal_flags.contains(traversal_flags::UnstyledChildrenOnly) {
             if root.borrow_data().map_or(true, |d| d.has_styles() && d.styles.is_display_none()) {
                 return PreTraverseToken {
                     traverse: false,
@@ -278,10 +235,6 @@ pub trait DomTraversal<E: TElement> : Sync {
 
         // Non-incremental layout visits every node.
         if is_servo_nonincremental_layout() {
-            return true;
-        }
-
-        if traversal_flags.for_reconstruct() {
             return true;
         }
 
@@ -356,9 +309,11 @@ pub trait DomTraversal<E: TElement> : Sync {
         // to traverse any element with damage so that we can perform fixup /
         // reconstruction on our way back up the tree.
         //
-        // We also need to traverse nodes with explicit damage and no other
-        // restyle data, so that this damage can be cleared.
-        if (cfg!(feature = "servo") || traversal_flags.for_reconstruct()) &&
+        // In aggressively forgetful traversals (where we seek out and clear damage
+        // in addition to not computing it) we also need to traverse nodes with
+        // explicit damage and no other restyle data, so that this damage can be cleared.
+        if (cfg!(feature = "servo") ||
+            traversal_flags.contains(traversal_flags::AggressivelyForgetful)) &&
            !data.restyle.damage.is_empty() {
             return true;
         }
@@ -608,7 +563,6 @@ where
     // * We generated a reconstruct hint on self (which could mean that we
     //   switched from display:none to something else, which means the children
     //   need initial styling).
-    // * This is a reconstruct traversal.
     // * This is a servo non-incremental traversal.
     //
     // Additionally, there are a few scenarios where we avoid traversing the
@@ -618,7 +572,6 @@ where
                                 !propagated_hint.is_empty() ||
                                 context.thread_local.is_initial_style() ||
                                 data.restyle.reconstructed_self() ||
-                                flags.for_reconstruct() ||
                                 is_servo_nonincremental_layout();
 
     traverse_children = traverse_children &&
@@ -636,17 +589,18 @@ where
         );
     }
 
-    // If we are in a restyle for reconstruction, drop the existing restyle
+    // If we are in a forgetful traversal, drop the existing restyle
     // data here, since we won't need to perform a post-traversal to pick up
     // any change hints.
-    if context.shared.traversal_flags.for_reconstruct() {
+    if flags.contains(traversal_flags::Forgetful) {
         data.clear_restyle_state();
     }
 
     // There are two cases when we want to clear the dity descendants bit here
-    // after styling this element.
+    // after styling this element. The first case is when we were explicitly
+    // asked to clear the bit by the caller.
     //
-    // The first case is when this element is the root of a display:none
+    // The second case is when this element is the root of a display:none
     // subtree, even if the style didn't change (since, if the style did change,
     // we'd have already cleared it above).
     //
@@ -655,12 +609,14 @@ where
     // moderately expensive). Instead, DOM implementations can unconditionally
     // set the dirty descendants bit on any styled parent, and let the traversal
     // sort it out.
-    //
-    // The second case is when we are in a restyle for reconstruction, where we
-    // won't need to perform a post-traversal to pick up any change hints.
-    if data.styles.is_display_none() ||
-       context.shared.traversal_flags.for_reconstruct() {
+    if flags.contains(traversal_flags::ClearDirtyDescendants) ||
+       data.styles.is_display_none() {
         unsafe { element.unset_dirty_descendants(); }
+    }
+
+    // Similarly, check if we're supposed to clear the animation bit.
+    if flags.contains(traversal_flags::ClearAnimationOnlyDirtyDescendants) {
+        unsafe { element.unset_animation_only_dirty_descendants(); }
     }
 
     context.thread_local.end_element(element);
@@ -819,10 +775,9 @@ where
             // Set the dirty descendants bit on the parent as needed, so that we
             // can find elements during the post-traversal.
             //
-            // If we are in a restyle for reconstruction, there is no need to
-            // perform a post-traversal, so we don't need to set the dirty
-            // descendants bit on the parent.
-            if !flags.for_reconstruct() && !is_initial_style {
+            // Note that these bits may be cleared again at the bottom of
+            // recalc_style_at if requested by the caller.
+            if !is_initial_style {
                 if flags.for_animation_only() {
                     unsafe { element.set_animation_only_dirty_descendants(); }
                 } else {

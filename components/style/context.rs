@@ -34,7 +34,8 @@ use stylist::Stylist;
 use thread_state;
 use time;
 use timer::Timer;
-use traversal::{DomTraversal, TraversalFlags};
+use traversal::DomTraversal;
+use traversal_flags::TraversalFlags;
 
 pub use selectors::matching::QuirksMode;
 

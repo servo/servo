@@ -44,8 +44,7 @@ use gecko_bindings::structs::RawGeckoXBLBinding;
 use gecko_bindings::structs::RefPtr;
 use gecko_bindings::structs::CSSPseudoClassType;
 use gecko_bindings::structs::CSSPseudoElementType;
-use gecko_bindings::structs::TraversalRestyleBehavior;
-use gecko_bindings::structs::TraversalRootBehavior;
+use gecko_bindings::structs::ServoTraversalFlags;
 use gecko_bindings::structs::ComputedTimingFunction_BeforeFlag;
 use gecko_bindings::structs::CounterStylePtr;
 use gecko_bindings::structs::FontFamilyList;
@@ -2781,13 +2780,17 @@ extern "C" {
 }
 extern "C" {
     pub fn Servo_TakeChangeHint(element: RawGeckoElementBorrowed,
-                                restyle_behavior: TraversalRestyleBehavior,
+                                flags: ServoTraversalFlags,
                                 was_restyled: *mut bool) -> nsChangeHint;
 }
 extern "C" {
     pub fn Servo_ResolveStyle(element: RawGeckoElementBorrowed,
                               set: RawServoStyleSetBorrowed,
-                              restyle_behavior: TraversalRestyleBehavior)
+                              flags: ServoTraversalFlags)
+     -> ServoStyleContextStrong;
+}
+extern "C" {
+    pub fn Servo_ResolveStyleAllowStale(element: RawGeckoElementBorrowed)
      -> ServoStyleContextStrong;
 }
 extern "C" {
@@ -2821,9 +2824,7 @@ extern "C" {
     pub fn Servo_TraverseSubtree(root: RawGeckoElementBorrowed,
                                  set: RawServoStyleSetBorrowed,
                                  snapshots: *const ServoElementSnapshotTable,
-                                 root_behavior: TraversalRootBehavior,
-                                 restyle_behavior: TraversalRestyleBehavior)
-     -> bool;
+                                 flags: ServoTraversalFlags) -> bool;
 }
 extern "C" {
     pub fn Servo_AssertTreeIsClean(root: RawGeckoElementBorrowed);
@@ -2887,5 +2888,6 @@ extern "C" {
                                               *const ::std::os::raw::c_char,
                                           sourceLen: u32, lineNumber: u32,
                                           colNumber: u32, aURI: *mut nsIURI,
-                                          followup: *const ::std::os::raw::c_char);
+                                          followup:
+                                              *const ::std::os::raw::c_char);
 }

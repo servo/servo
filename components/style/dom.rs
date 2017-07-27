@@ -33,7 +33,7 @@ use std::hash::Hash;
 use std::ops::Deref;
 use stylist::Stylist;
 use thread_state;
-use traversal::TraversalFlags;
+use traversal_flags::TraversalFlags;
 
 pub use style_traits::UnsafeNode;
 
