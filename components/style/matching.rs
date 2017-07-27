@@ -324,15 +324,19 @@ trait PrivateMatchMethods: TElement {
             restyle.damage |= difference.damage;
         }
 
+        // We need to cascade the children in order to ensure the correct
+        // propagation of computed value flags.
+        //
+        // FIXME(emilio): If we start optimizing changes to reset-only
+        // properties that aren't explicitly inherited, we'd need to add a flag
+        // to handle justify-items: auto correctly when there's a legacy
+        // justify-items.
+        if old_values.flags != new_values.flags {
+            return ChildCascadeRequirement::MustCascadeChildren;
+        }
+
         match difference.change {
-            StyleChange::Unchanged => {
-                // We need to cascade the children in order to ensure the
-                // correct propagation of computed value flags.
-                if old_values.flags != new_values.flags {
-                    return ChildCascadeRequirement::MustCascadeChildren;
-                }
-                ChildCascadeRequirement::CanSkipCascade
-            },
+            StyleChange::Unchanged => ChildCascadeRequirement::CanSkipCascade,
             StyleChange::Changed => ChildCascadeRequirement::MustCascadeChildren,
         }
     }
