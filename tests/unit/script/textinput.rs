@@ -7,6 +7,8 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+#[cfg(target_os = "macos")]
+use msg::constellation_msg::{ALT, SUPER};
 use msg::constellation_msg::{Key, KeyModifiers, CONTROL};
 use script::clipboard_provider::DummyClipboardContext;
 use script::test::DOMString;
