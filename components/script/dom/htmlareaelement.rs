@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::activation::Activatable;
-use std::ascii::AsciiExt;
 use dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListMethods;
 use dom::bindings::codegen::Bindings::HTMLAreaElementBinding;
 use dom::bindings::codegen::Bindings::HTMLAreaElementBinding::HTMLAreaElementMethods;
@@ -241,13 +240,13 @@ impl HTMLAreaElement {
     pub fn get_shape_from_coords(&self) -> Option<Area> {
        let elem = self.upcast::<Element>();
        let shape = elem.get_string_attribute(&"shape".into());
-       let shp: Shape = match &shape {
-           s if s.eq_ignore_ascii_case("circle") => Shape::Circle,
-           s if s.eq_ignore_ascii_case("circ") => Shape::Circle,
-           s if s.eq_ignore_ascii_case("rectangle") => Shape::Rectangle,
-           s if s.eq_ignore_ascii_case("rect") => Shape::Rectangle,
-           s if s.eq_ignore_ascii_case("polygon") => Shape::Rectangle,
-           s if s.eq_ignore_ascii_case("poly") => Shape::Polygon,
+       let shp: Shape = match_ignore_ascii_case! { &shape,
+           "circle" => Shape::Circle,
+           "circ" => Shape::Circle,
+           "rectangle" => Shape::Rectangle,
+           "rect" => Shape::Rectangle,
+           "polygon" => Shape::Rectangle,
+           "poly" => Shape::Polygon,
            _ => return None,
         };
         if elem.has_attribute(&"coords".into()) {

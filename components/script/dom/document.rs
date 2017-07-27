@@ -3875,16 +3875,16 @@ fn update_with_current_time_ms(marker: &Cell<u64>) {
 
 /// https://w3c.github.io/webappsec-referrer-policy/#determine-policy-for-token
 pub fn determine_policy_for_token(token: &str) -> Option<ReferrerPolicy> {
-    match token {
-        t if t.eq_ignore_ascii_case("never") | t.eq_ignore_ascii_case("no-referrer") => Some(ReferrerPolicy::NoReferrer),
-        t if t.eq_ignore_ascii_case("default") | t.eq_ignore_ascii_case("no-referrer-when-downgrade") => Some(ReferrerPolicy::NoReferrerWhenDowngrade),
-        t if t.eq_ignore_ascii_case("origin") => Some(ReferrerPolicy::Origin),
-        t if t.eq_ignore_ascii_case("same-origin") => Some(ReferrerPolicy::SameOrigin),
-        t if t.eq_ignore_ascii_case("strict-origin") => Some(ReferrerPolicy::StrictOrigin),
-        t if t.eq_ignore_ascii_case("strict-origin-when-cross-origin") => Some(ReferrerPolicy::StrictOriginWhenCrossOrigin),
-        t if t.eq_ignore_ascii_case("origin-when-cross-origin") => Some(ReferrerPolicy::OriginWhenCrossOrigin),
-        t if t.eq_ignore_ascii_case("always") | t.eq_ignore_ascii_case("unsafe-url") => Some(ReferrerPolicy::UnsafeUrl),
-        t if t.eq_ignore_ascii_case("") => Some(ReferrerPolicy::NoReferrer),
+    match_ignore_ascii_case! { token,
+        "never" | "no-referrer" => Some(ReferrerPolicy::NoReferrer),
+        "default" | "no-referrer-when-downgrade" => Some(ReferrerPolicy::NoReferrerWhenDowngrade),
+        "origin" => Some(ReferrerPolicy::Origin),
+        "same-origin" => Some(ReferrerPolicy::SameOrigin),
+        "strict-origin" => Some(ReferrerPolicy::StrictOrigin),
+        "strict-origin-when-cross-origin" => Some(ReferrerPolicy::StrictOriginWhenCrossOrigin),
+        "origin-when-cross-origin" => Some(ReferrerPolicy::OriginWhenCrossOrigin),
+        "always" | "unsafe-url" => Some(ReferrerPolicy::UnsafeUrl),
+        "" => Some(ReferrerPolicy::NoReferrer),
         _ => None,
     }
 }
