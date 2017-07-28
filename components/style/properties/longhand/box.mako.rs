@@ -979,7 +979,14 @@ ${helpers.predefined_type(
                     dest, "rotate3d({}, {}, {}, {})",
                     Css(x), Css(y), Css(z), Css(theta)),
                 SpecifiedOperation::Perspective(ref length) => write!(dest, "perspective({})", Css(length)),
-                _ => unreachable!(),
+                SpecifiedOperation::InterpolateMatrix { ref from_list, ref to_list, progress } => {
+                    write!(dest, "interpolatematrix({}, {}, {})",
+                           Css(from_list), Css(to_list), Css(progress))
+                },
+                SpecifiedOperation::AccumulateMatrix { ref from_list, ref to_list, count } => {
+                    write!(dest, "accumulatematrix({}, {}, {})",
+                           Css(from_list), Css(to_list), Css(count))
+                }
             }
         }
     }
