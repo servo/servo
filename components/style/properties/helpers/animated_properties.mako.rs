@@ -2397,19 +2397,19 @@ impl From<MatrixDecomposed3D> for ComputedMatrix {
         let mut temp = ComputedMatrix::identity();
         if decomposed.skew.2 != 0.0 {
             temp.m32 = decomposed.skew.2;
-            matrix = multiply(matrix, temp);
+            matrix = multiply(temp, matrix);
         }
 
         if decomposed.skew.1 != 0.0 {
             temp.m32 = 0.0;
             temp.m31 = decomposed.skew.1;
-            matrix = multiply(matrix, temp);
+            matrix = multiply(temp, matrix);
         }
 
         if decomposed.skew.0 != 0.0 {
             temp.m31 = 0.0;
             temp.m21 = decomposed.skew.0;
-            matrix = multiply(matrix, temp);
+            matrix = multiply(temp, matrix);
         }
 
         // Apply scale
