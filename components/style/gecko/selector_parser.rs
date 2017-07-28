@@ -20,7 +20,7 @@ pub use gecko::snapshot::SnapshotMap;
 bitflags! {
     flags NonTSPseudoClassFlag: u8 {
         // See NonTSPseudoClass::is_internal()
-        const PSEUDO_CLASS_INTERNAL = 0x01,
+        const PSEUDO_CLASS_ENABLED_IN_UA_SHEETS = 1 << 0,
     }
 }
 
@@ -127,7 +127,7 @@ impl NonTSPseudoClass {
     pub fn is_internal(&self) -> bool {
         macro_rules! check_flag {
             (_) => (false);
-            ($flags:expr) => ($flags.contains(PSEUDO_CLASS_INTERNAL));
+            ($flags:expr) => ($flags.contains(PSEUDO_CLASS_ENABLED_IN_UA_SHEETS));
         }
         macro_rules! pseudo_class_check_internal {
             (bare: [$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*],
