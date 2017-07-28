@@ -228,11 +228,8 @@ pub struct Constellation<Message, LTF, STF> {
     /// timer thread.
     scheduler_chan: IpcSender<TimerSchedulerMsg>,
 
-    /// A single WebRender document the constellation operates on.
-    webrender_document: webrender_api::DocumentId,
-
     /// A channel for the constellation to send messages to the
-    /// WebRender thread.
+    /// Webrender thread.
     webrender_api_sender: webrender_api::RenderApiSender,
 
     /// The set of all event loops in the browser. We generate a new
@@ -327,9 +324,6 @@ pub struct InitialConstellationState {
 
     /// A channel to the memory profiler thread.
     pub mem_profiler_chan: mem::ProfilerChan,
-
-    /// Webrender document ID.
-    pub webrender_document: webrender_api::DocumentId,
 
     /// Webrender API.
     pub webrender_api_sender: webrender_api::RenderApiSender,
@@ -567,7 +561,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 webdriver: WebDriverData::new(),
                 scheduler_chan: TimerScheduler::start(),
                 document_states: HashMap::new(),
-                webrender_document: state.webrender_document,
                 webrender_api_sender: state.webrender_api_sender,
                 shutting_down: false,
                 handled_warnings: VecDeque::new(),
@@ -671,9 +664,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
         let result = Pipeline::spawn::<Message, LTF, STF>(InitialPipelineState {
             id: pipeline_id,
-            browsing_context_id,
-            top_level_browsing_context_id,
-            parent_info,
+            browsing_context_id: browsing_context_id,
+            top_level_browsing_context_id: top_level_browsing_context_id,
+            parent_info: parent_info,
             constellation_chan: self.script_sender.clone(),
             layout_to_constellation_chan: self.layout_sender.clone(),
             scheduler_chan: self.scheduler_chan.clone(),
@@ -682,18 +675,17 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             bluetooth_thread: self.bluetooth_thread.clone(),
             swmanager_thread: self.swmanager_sender.clone(),
             font_cache_thread: self.font_cache_thread.clone(),
-            resource_threads,
+            resource_threads: resource_threads,
             time_profiler_chan: self.time_profiler_chan.clone(),
             mem_profiler_chan: self.mem_profiler_chan.clone(),
             window_size: initial_window_size,
-            event_loop,
-            load_data,
+            event_loop: event_loop,
+            load_data: load_data,
             device_pixel_ratio: self.window_size.device_pixel_ratio,
             pipeline_namespace_id: self.next_pipeline_namespace_id(),
-            prev_visibility,
+            prev_visibility: prev_visibility,
             webrender_api_sender: self.webrender_api_sender.clone(),
-            webrender_document: self.webrender_document,
-            is_private,
+            is_private: is_private,
             webvr_thread: self.webvr_thread.clone()
         });
 

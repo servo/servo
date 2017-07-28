@@ -6,7 +6,7 @@ use CompositionPipeline;
 use SendableFrameTree;
 use compositor_thread::{CompositorProxy, CompositorReceiver};
 use compositor_thread::{InitialCompositorState, Msg, RenderListener};
-use euclid::{Point2D, TypedPoint2D, TypedVector2D, ScaleFactor};
+use euclid::{Point2D, TypedPoint2D, TypedVector2D, TypedRect, ScaleFactor, TypedSize2D};
 use gfx_traits::Epoch;
 use gleam::gl;
 use image::{DynamicImage, ImageFormat, RgbImage};
@@ -34,8 +34,7 @@ use style_traits::viewport::ViewportConstraints;
 use time::{precise_time_ns, precise_time_s};
 use touch::{TouchHandler, TouchAction};
 use webrender;
-use webrender_api::{self, ClipId, DeviceUintRect, DeviceUintSize, LayoutPoint, LayoutVector2D};
-use webrender_api::{ScrollEventPhase, ScrollLocation, ScrollClamping};
+use webrender_api::{self, ClipId, LayoutPoint, LayoutVector2D, ScrollEventPhase, ScrollLocation, ScrollClamping};
 use windowing::{self, MouseWindowEvent, WindowEvent, WindowMethods};
 
 #[derive(Debug, PartialEq)]
@@ -111,10 +110,10 @@ pub struct IOCompositor<Window: WindowMethods> {
     scale: ScaleFactor<f32, LayerPixel, DevicePixel>,
 
     /// The size of the rendering area.
-    frame_size: DeviceUintSize,
+    frame_size: TypedSize2D<u32, DevicePixel>,
 
     /// The position and size of the window within the rendering area.
-    window_rect: DeviceUintRect,
+    window_rect: TypedRect<u32, DevicePixel>,
 
     /// "Mobile-style" zoom that does not reflow the page.
     viewport_zoom: PinchZoomFactor,
@@ -179,9 +178,6 @@ pub struct IOCompositor<Window: WindowMethods> {
 
     /// The webrender renderer.
     webrender: webrender::Renderer,
-
-    /// The active webrender document.
-    webrender_document: webrender_api::DocumentId,
 
     /// The webrender interface, if enabled.
     webrender_api: webrender_api::RenderApi,
@@ -382,8 +378,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             scroll_in_progress: false,
             in_scroll_transaction: None,
             webrender: state.webrender,
-            webrender_document: state.webrender_document,
-            webrender_api: state.webrender_api,
+            webrender_api: state.webrender_api_sender.create_api(),
         }
     }
 
@@ -680,8 +675,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.root_pipeline = Some(frame_tree.pipeline.clone());
 
         let pipeline_id = frame_tree.pipeline.id.to_webrender();
-        self.webrender_api.set_root_pipeline(self.webrender_document, pipeline_id);
-        self.webrender_api.generate_frame(self.webrender_document, None);
+        self.webrender_api.set_root_pipeline(pipeline_id);
+        self.webrender_api.generate_frame(None);
 
         self.create_pipeline_details_for_frame_tree(&frame_tree);
 
@@ -705,7 +700,14 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn send_window_size(&self, size_type: WindowSizeType) {
         let dppx = self.page_zoom * self.hidpi_factor();
 
-        self.webrender_api.set_window_parameters(self.webrender_document, self.frame_size, self.window_rect);
+        let window_rect = {
+            let offset = webrender_api::DeviceUintPoint::new(self.window_rect.origin.x, self.window_rect.origin.y);
+            let size = webrender_api::DeviceUintSize::new(self.window_rect.size.width, self.window_rect.size.height);
+            webrender_api::DeviceUintRect::new(offset, size)
+        };
+
+        let frame_size = webrender_api::DeviceUintSize::new(self.frame_size.width, self.frame_size.height);
+        self.webrender_api.set_window_parameters(frame_size, window_rect);
 
         let initial_viewport = self.window_rect.size.to_f32() / dppx;
 
@@ -725,9 +727,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn scroll_fragment_to_point(&mut self, id: ClipId, point: Point2D<f32>) {
-        self.webrender_api.scroll_node_with_id(self.webrender_document,
-                                               LayoutPoint::from_untyped(&point),
-                                               id,
+        self.webrender_api.scroll_node_with_id(LayoutPoint::from_untyped(&point), id,
                                                ScrollClamping::ToContentBounds);
     }
 
@@ -821,12 +821,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             WindowEvent::ToggleWebRenderProfiler => {
                 let profiler_enabled = self.webrender.get_profiler_enabled();
                 self.webrender.set_profiler_enabled(!profiler_enabled);
-                self.webrender_api.generate_frame(self.webrender_document, None);
+                self.webrender_api.generate_frame(None);
             }
         }
     }
 
-    fn on_resize_window_event(&mut self, new_size: DeviceUintSize) {
+    fn on_resize_window_event(&mut self, new_size: TypedSize2D<u32, DevicePixel>) {
         debug!("compositor resizing to {:?}", new_size.to_untyped());
 
         // A size change could also mean a resolution change.
@@ -1123,7 +1123,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                         (combined_event.cursor.to_f32() / self.scale).to_untyped();
                     let location = webrender_api::ScrollLocation::Delta(delta);
                     let cursor = webrender_api::WorldPoint::from_untyped(&cursor);
-                    self.webrender_api.scroll(self.webrender_document, location, cursor, combined_event.phase);
+                    self.webrender_api.scroll(location, cursor, combined_event.phase);
                     last_combined_event = None
                 }
             }
@@ -1179,7 +1179,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             };
             let cursor = (combined_event.cursor.to_f32() / self.scale).to_untyped();
             let cursor = webrender_api::WorldPoint::from_untyped(&cursor);
-            self.webrender_api.scroll(self.webrender_document, scroll_location, cursor, combined_event.phase);
+            self.webrender_api.scroll(scroll_location, cursor, combined_event.phase);
             self.waiting_for_results_of_scroll = true
         }
 
@@ -1277,7 +1277,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn update_page_zoom_for_webrender(&mut self) {
         let page_zoom = webrender_api::ZoomFactor::new(self.page_zoom.get());
-        self.webrender_api.set_page_zoom(self.webrender_document, page_zoom);
+        self.webrender_api.set_page_zoom(page_zoom);
     }
 
     /// Simulate a pinch zoom
@@ -1315,7 +1315,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn send_viewport_rects(&self) {
         let mut scroll_states_per_pipeline = HashMap::new();
-        for scroll_layer_state in self.webrender_api.get_scroll_node_state(self.webrender_document) {
+        for scroll_layer_state in self.webrender_api.get_scroll_node_state() {
             if scroll_layer_state.id.external_id().is_none() &&
                !scroll_layer_state.id.is_root_scroll_node() {
                 continue;
@@ -1464,7 +1464,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             debug!("compositor: compositing");
 
             // Paint the scene.
-            self.webrender.render(self.frame_size);
+            let size = webrender_api::DeviceUintSize::from_untyped(&self.frame_size.to_untyped());
+            self.webrender.render(size);
         });
 
         let rv = match target {
@@ -1564,7 +1565,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
 
         if self.webrender.layers_are_bouncing_back() {
-            self.webrender_api.tick_scrolling_bounce_animations(self.webrender_document);
+            self.webrender_api.tick_scrolling_bounce_animations();
             self.send_viewport_rects()
         }
     }
