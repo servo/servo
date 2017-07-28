@@ -90,7 +90,7 @@ use style::gecko_bindings::structs::nsresult;
 use style::gecko_bindings::sugar::ownership::{FFIArcHelpers, HasFFI, HasArcFFI, HasBoxFFI};
 use style::gecko_bindings::sugar::ownership::{HasSimpleFFI, Strong};
 use style::gecko_bindings::sugar::refptr::RefPtr;
-use style::gecko_properties::{self, style_structs};
+use style::gecko_properties::style_structs;
 use style::invalidation::element::restyle_hints::{self, RestyleHint};
 use style::media_queries::{MediaList, parse_media_query_list};
 use style::parallel;
@@ -158,18 +158,12 @@ pub extern "C" fn Servo_Initialize(dummy_url_data: *mut URLExtraData) {
     parser::assert_parsing_mode_match();
     traversal_flags::assert_traversal_flags_match();
 
-    // Initialize some static data.
-    gecko_properties::initialize();
-
     // Initialize the dummy url data
     unsafe { DUMMY_URL_DATA = dummy_url_data; }
 }
 
 #[no_mangle]
 pub extern "C" fn Servo_Shutdown() {
-    // Clear some static data to avoid shutdown leaks.
-    gecko_properties::shutdown();
-
     // The dummy url will be released after shutdown, so clear the
     // reference to avoid use-after-free.
     unsafe { DUMMY_URL_DATA = ptr::null_mut(); }

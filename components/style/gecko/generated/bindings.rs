@@ -2867,9 +2867,6 @@ extern "C" {
      -> bool;
 }
 extern "C" {
-    pub fn Servo_GetEmptyVariables() -> *const nsStyleVariables;
-}
-extern "C" {
     pub fn Gecko_CreateCSSErrorReporter(sheet: *mut ServoStyleSheet,
                                         loader: *mut Loader, uri: *mut nsIURI)
      -> *mut ErrorReporter;
