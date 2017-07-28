@@ -8,7 +8,7 @@ use NestedEventLoopListener;
 use compositing::compositor_thread::EventLoopWaker;
 use compositing::windowing::{AnimationState, MouseWindowEvent};
 use compositing::windowing::{WindowEvent, WindowMethods};
-use euclid::{Point2D, Size2D, TypedPoint2D, TypedVector2D, ScaleFactor, TypedSize2D};
+use euclid::{Point2D, Size2D, TypedPoint2D, TypedVector2D, TypedRect, ScaleFactor, TypedSize2D};
 #[cfg(target_os = "windows")]
 use gdi32;
 use gleam::gl;
@@ -43,7 +43,7 @@ use style_traits::DevicePixel;
 use style_traits::cursor::Cursor;
 #[cfg(target_os = "windows")]
 use user32;
-use webrender_api::{DeviceUintRect, DeviceUintSize, ScrollLocation};
+use webrender_api::ScrollLocation;
 #[cfg(target_os = "windows")]
 use winapi;
 
@@ -962,24 +962,24 @@ impl WindowMethods for Window {
         self.gl.clone()
     }
 
-    fn framebuffer_size(&self) -> DeviceUintSize {
+    fn framebuffer_size(&self) -> TypedSize2D<u32, DevicePixel> {
         match self.kind {
             WindowKind::Window(ref window) => {
                 let scale_factor = window.hidpi_factor() as u32;
                 // TODO(ajeffrey): can this fail?
                 let (width, height) = window.get_inner_size().expect("Failed to get window inner size.");
-                DeviceUintSize::new(width, height) * scale_factor
+                TypedSize2D::new(width * scale_factor, height * scale_factor)
             }
             WindowKind::Headless(ref context) => {
-                DeviceUintSize::new(context.width, context.height)
+                TypedSize2D::new(context.width, context.height)
             }
         }
     }
 
-    fn window_rect(&self) -> DeviceUintRect {
+    fn window_rect(&self) -> TypedRect<u32, DevicePixel> {
         let size = self.framebuffer_size();
         let origin = TypedPoint2D::zero();
-        DeviceUintRect::new(origin, size)
+        TypedRect::new(origin, size)
     }
 
     fn size(&self) -> TypedSize2D<f32, DeviceIndependentPixel> {

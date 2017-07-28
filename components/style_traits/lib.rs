@@ -21,9 +21,6 @@ extern crate euclid;
 #[cfg(feature = "servo")] #[macro_use] extern crate heapsize_derive;
 extern crate selectors;
 #[cfg(feature = "servo")] #[macro_use] extern crate serde;
-extern crate webrender_api;
-
-pub use webrender_api::DevicePixel;
 
 use cssparser::{CowRcStr, Token};
 use selectors::parser::SelectorParseError;
@@ -61,6 +58,12 @@ impl PinchZoomFactor {
 /// document is zoomed in or out then this scale may be larger or smaller.
 #[derive(Clone, Copy, Debug)]
 pub enum CSSPixel {}
+
+/// One hardware pixel.
+///
+/// This unit corresponds to the smallest addressable element of the display hardware.
+#[derive(Copy, Clone, Debug)]
+pub enum DevicePixel {}
 
 // In summary, the hierarchy of pixel units and the factors to convert from one to the next:
 //
