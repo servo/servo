@@ -12,6 +12,8 @@ use cssparser::{ToCss, serialize_identifier};
 use gecko_bindings::structs::{self, CSSPseudoElementType};
 use properties::{PropertyFlags, APPLIES_TO_FIRST_LETTER, APPLIES_TO_FIRST_LINE};
 use properties::APPLIES_TO_PLACEHOLDER;
+use properties::ComputedValues;
+use properties::longhands::display::computed_value as display;
 use selector_parser::{NonTSPseudoClass, PseudoElementCascadeType, SelectorImpl};
 use std::fmt;
 use string_cache::Atom;
@@ -131,5 +133,20 @@ impl PseudoElement {
             PseudoElement::Placeholder => Some(APPLIES_TO_PLACEHOLDER),
             _ => None,
         }
+    }
+
+    /// Whether this pseudo-element should actually exist if it has
+    /// the given styles.
+    pub fn should_exist(&self, style: &ComputedValues) -> bool
+    {
+        let display = style.get_box().clone_display();
+        if display == display::T::none {
+            return false;
+        }
+        if self.is_before_or_after() && style.ineffective_content_property() {
+            return false;
+        }
+
+        true
     }
 }
