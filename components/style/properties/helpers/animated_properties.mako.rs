@@ -925,6 +925,13 @@ impl Animatable for Angle {
             }
         }
     }
+
+    #[inline]
+    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
+        // Use the formula for calculating the distance between angles defined in SVG:
+        // https://www.w3.org/TR/SVG/animate.html#complexDistances
+        Ok((self.radians64() - other.radians64()).abs())
+    }
 }
 
 /// https://drafts.csswg.org/css-transitions/#animtype-percentage
@@ -3172,37 +3179,21 @@ impl Animatable for AnimatedFilterList {
 
     #[inline]
     fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
+        use itertools::{EitherOrBoth, Itertools};
+
         let mut square_distance: f64 = 0.0;
-        let mut from_iter = self.0.iter();
-        let mut to_iter = other.0.iter();
-
-        let mut from = from_iter.next();
-        let mut to = to_iter.next();
-        while from.is_some() || to.is_some() {
-            let current_square_distance: f64 ;
-            if from.is_none() {
-                let none = try!(add_weighted_filter_function(to, to, 0.0, 0.0));
-                current_square_distance =
-                    compute_filter_square_distance(&none, &(to.unwrap())).unwrap();
-
-                to = to_iter.next();
-            } else if to.is_none() {
-                let none = try!(add_weighted_filter_function(from, from, 0.0, 0.0));
-                current_square_distance =
-                    compute_filter_square_distance(&none, &(from.unwrap())).unwrap();
-
-                from = from_iter.next();
-            } else {
-                current_square_distance =
-                    compute_filter_square_distance(&(from.unwrap()),
-                                                   &(to.unwrap())).unwrap();
-
-                from = from_iter.next();
-                to = to_iter.next();
-            }
-            square_distance += current_square_distance;
+        for it in self.0.iter().zip_longest(other.0.iter()) {
+            square_distance += match it {
+                EitherOrBoth::Both(from, to) => {
+                    compute_filter_square_distance(&from, &to)?
+                },
+                EitherOrBoth::Left(list) | EitherOrBoth::Right(list)=> {
+                    let none = add_weighted_filter_function(Some(list), Some(list), 0.0, 0.0)?;
+                    compute_filter_square_distance(&none, &list)?
+                },
+            };
         }
-        Ok(square_distance.sqrt())
+        Ok(square_distance)
     }
 }
 
