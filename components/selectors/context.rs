@@ -48,7 +48,7 @@ pub enum VisitedHandlingMode {
 /// Which quirks mode is this document in.
 ///
 /// See: https://quirks.spec.whatwg.org/
-#[derive(PartialEq, Eq, Copy, Clone, Hash, Debug, HeapSizeOf)]
+#[derive(PartialEq, Eq, Copy, Clone, Hash, Debug)]
 pub enum QuirksMode {
     /// Quirks mode.
     Quirks,

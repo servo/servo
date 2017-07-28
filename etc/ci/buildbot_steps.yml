@@ -27,8 +27,6 @@ mac-rel-wpt4:
   - ./mach build --release
   - ./mach test-wpt --release --processes 4 --total-chunks 4 --this-chunk 4 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
   - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --use-tracker
-  - ./mach test-wpt --release --pref dom.servoparser.async_html_tokenizer.enabled --processes=8 --log-raw test-async-parsing.log --log-errorsummary async-parsing-errorsummary.log --always-succeed domparsing html/syntax html/dom/documents html/dom/dynamic-markup-insertion
-  - ./mach filter-intermittents async-parsing-errorsummary.log --log-intermittents async-parsing-intermittents.log --log-filteredsummary filtered-async-parsing-errorsummary.log --use-tracker
 
 mac-dev-unit:
   - ./mach clean-nightlies --keep 3 --force
