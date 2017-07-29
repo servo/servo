@@ -204,6 +204,15 @@ impl PerDocumentStyleDataImpl {
     pub fn clear_stylist(&mut self) {
         self.stylist.clear();
     }
+
+    /// Returns whether visited links are enabled.
+    fn visited_links_enabled(&self) -> bool {
+        unsafe { bindings::Gecko_AreVisitedLinksEnabled() }
+    }
+    /// Returns whether visited styles are enabled.
+    pub fn visited_styles_enabled(&self) -> bool {
+        self.visited_links_enabled() && !self.is_private_browsing_enabled()
+    }
 }
 
 unsafe impl HasFFI for PerDocumentStyleData {
