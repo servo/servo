@@ -42,6 +42,8 @@ pub enum PseudoElement {
     Selection,
     // If/when :first-letter is added, update is_first_letter accordingly.
 
+    // If/when :first-line is added, update is_first_line accordingly.
+
     // If/when ::first-letter, ::first-line, or ::placeholder are added, adjust
     // our property_restriction implementation to do property filtering for
     // them.  Also, make sure the UA sheet has the !important rules some of the
@@ -122,6 +124,12 @@ impl PseudoElement {
     /// Whether the current pseudo element is :first-letter
     #[inline]
     pub fn is_first_letter(&self) -> bool {
+        false
+    }
+
+    /// Whether the current pseudo element is :first-line
+    #[inline]
+    pub fn is_first_line(&self) -> bool {
         false
     }
 
