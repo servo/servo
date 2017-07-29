@@ -242,6 +242,9 @@ pub struct LayoutThread {
     /// Webrender interface.
     webrender_api: webrender_api::RenderApi,
 
+    /// Webrender document.
+    webrender_document: webrender_api::DocumentId,
+
     /// The timer object to control the timing of the animations. This should
     /// only be a test-mode timer during testing for animations.
     timer: Timer,
@@ -275,6 +278,7 @@ impl LayoutThreadFactory for LayoutThread {
               mem_profiler_chan: mem::ProfilerChan,
               content_process_shutdown_chan: Option<IpcSender<()>>,
               webrender_api_sender: webrender_api::RenderApiSender,
+              webrender_document: webrender_api::DocumentId,
               layout_threads: usize,
               paint_time_metrics: PaintTimeMetrics) {
         thread::Builder::new().name(format!("LayoutThread {:?}", id)).spawn(move || {
@@ -298,6 +302,7 @@ impl LayoutThreadFactory for LayoutThread {
                                                time_profiler_chan,
                                                mem_profiler_chan.clone(),
                                                webrender_api_sender,
+                                               webrender_document,
                                                layout_threads,
                                                paint_time_metrics);
 
@@ -460,6 +465,7 @@ impl LayoutThread {
            time_profiler_chan: time::ProfilerChan,
            mem_profiler_chan: mem::ProfilerChan,
            webrender_api_sender: webrender_api::RenderApiSender,
+           webrender_document: webrender_api::DocumentId,
            layout_threads: usize,
            paint_time_metrics: PaintTimeMetrics)
            -> LayoutThread {
@@ -533,6 +539,7 @@ impl LayoutThread {
             epoch: Cell::new(Epoch(0)),
             viewport_size: Size2D::new(Au(0), Au(0)),
             webrender_api: webrender_api_sender.create_api(),
+            webrender_document,
             stylist: stylist,
             rw_data: Arc::new(Mutex::new(
                 LayoutThreadData {
@@ -802,6 +809,7 @@ impl LayoutThread {
                              self.mem_profiler_chan.clone(),
                              info.content_process_shutdown_chan,
                              self.webrender_api.clone_sender(),
+                             self.webrender_document,
                              info.layout_threads,
                              info.paint_time_metrics);
     }
@@ -1045,12 +1053,13 @@ impl LayoutThread {
             self.paint_time_metrics.maybe_set_first_contentful_paint(self, &display_list);
 
             self.webrender_api.set_display_list(
-                Some(get_root_flow_background_color(layout_root)),
+                self.webrender_document,
                 webrender_api::Epoch(epoch.0),
+                Some(get_root_flow_background_color(layout_root)),
                 viewport_size,
                 builder.finalize(),
                 true);
-            self.webrender_api.generate_frame(None);
+            self.webrender_api.generate_frame(self.webrender_document, None);
         });
     }
 
