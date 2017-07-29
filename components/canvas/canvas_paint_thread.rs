@@ -80,13 +80,7 @@ struct CanvasPaintState<'a> {
 }
 
 impl<'a> CanvasPaintState<'a> {
-    fn new(antialias: bool) -> CanvasPaintState<'a> {
-        let antialias = if antialias {
-            AntialiasMode::Default
-        } else {
-            AntialiasMode::None
-        };
-
+    fn new(antialias: AntialiasMode) -> CanvasPaintState<'a> {
         CanvasPaintState {
             draw_options: DrawOptions::new(1.0, CompositionOp::Over, antialias),
             fill_style: Pattern::Color(ColorPattern::new(Color::black())),
@@ -104,7 +98,7 @@ impl<'a> CanvasPaintState<'a> {
 impl<'a> CanvasPaintThread<'a> {
     fn new(size: Size2D<i32>,
            webrender_api_sender: webrender_api::RenderApiSender,
-           antialias: bool) -> CanvasPaintThread<'a> {
+           antialias: AntialiasMode) -> CanvasPaintThread<'a> {
         let draw_target = CanvasPaintThread::create(size);
         let path_builder = draw_target.create_path_builder();
         let webrender_api = webrender_api_sender.create_api();
@@ -127,6 +121,11 @@ impl<'a> CanvasPaintThread<'a> {
                  antialias: bool)
                  -> IpcSender<CanvasMsg> {
         let (sender, receiver) = ipc::channel::<CanvasMsg>().unwrap();
+        let antialias = if antialias {
+            AntialiasMode::Default
+        } else {
+            AntialiasMode::None
+        };
         thread::Builder::new().name("CanvasThread".to_owned()).spawn(move || {
             let mut painter = CanvasPaintThread::new(size, webrender_api_sender, antialias);
             loop {
@@ -550,7 +549,7 @@ impl<'a> CanvasPaintThread<'a> {
 
     fn recreate(&mut self, size: Size2D<i32>) {
         self.drawtarget = CanvasPaintThread::create(size);
-        self.state = CanvasPaintState::new(self.state.draw_options.antialias == AntialiasMode::Default);
+        self.state = CanvasPaintState::new(self.state.draw_options.antialias);
         self.saved_states.clear();
         // Webrender doesn't let images change size, so we clear the webrender image key.
         if let Some(image_key) = self.image_key.take() {
