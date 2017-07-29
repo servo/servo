@@ -1184,8 +1184,9 @@ impl PropertyId {
                 }
             % endif
             % if product == "gecko":
+                use gecko_bindings::structs;
                 let id = self.to_nscsspropertyid().unwrap();
-                unsafe { bindings::Gecko_PropertyId_IsPrefEnabled(id) }
+                unsafe { structs::nsCSSProps_gPropertyEnabled[id as usize] }
             % endif
         };
 
