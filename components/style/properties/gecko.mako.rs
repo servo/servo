@@ -3446,7 +3446,7 @@ fn static_assert() {
                 LengthOrPercentageOrAuto::Auto
             } else {
                 debug_assert!(ty == DimensionType::eLengthPercentage as u8);
-                LengthOrPercentageOrAuto::Calc(value.into())
+                value.into()
             }
         }
 

@@ -102,6 +102,16 @@ impl From<nsStyleCoord_CalcValue> for LengthOrPercentage {
     }
 }
 
+impl From<nsStyleCoord_CalcValue> for LengthOrPercentageOrAuto {
+    fn from(other: nsStyleCoord_CalcValue) -> LengthOrPercentageOrAuto {
+        match (other.mHasPercent, other.mLength) {
+            (false, _) => LengthOrPercentageOrAuto::Length(Au(other.mLength)),
+            (true, 0) => LengthOrPercentageOrAuto::Percentage(Percentage(other.mPercent)),
+            _ => LengthOrPercentageOrAuto::Calc(other.into()),
+        }
+    }
+}
+
 impl From<Angle> for CoordDataValue {
     fn from(reference: Angle) -> Self {
         match reference {
