@@ -132,6 +132,26 @@ impl<'a> Context<'a> {
     pub fn style(&self) -> &StyleBuilder {
         &self.builder
     }
+
+
+    /// Apply text-zoom if enabled
+    #[cfg(feature = "gecko")]
+    pub fn maybe_zoom_text(&self, size: Au) -> Au {
+        // We disable zoom for <svg:text> by unsetting the
+        // -x-text-zoom property, which leads to a false value
+        // in mAllowZoom
+        if self.style().get_font().gecko.mAllowZoom {
+            self.device().zoom_text(size)
+        } else {
+            size
+        }
+    }
+
+    /// (Servo doesn't do text-zoom)
+    #[cfg(feature = "servo")]
+    pub fn maybe_zoom_text(&self, size: Au) -> Au {
+        size
+    }
 }
 
 /// An iterator over a slice of computed values

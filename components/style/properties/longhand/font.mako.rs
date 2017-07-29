@@ -830,17 +830,17 @@ ${helpers.single_keyword_system("font-variant-caps",
                     value.to_computed_value(base_size.resolve(context))
                 }
                 SpecifiedValue::Length(LengthOrPercentage::Length(ref l)) => {
-                    l.to_computed_value(context)
+                    context.maybe_zoom_text(l.to_computed_value(context))
                 }
                 SpecifiedValue::Length(LengthOrPercentage::Percentage(pc)) => {
                     base_size.resolve(context).scale_by(pc.0)
                 }
                 SpecifiedValue::Length(LengthOrPercentage::Calc(ref calc)) => {
-                    let calc = calc.to_computed_value(context);
+                    let calc = calc.to_computed_value_zoomed(context);
                     calc.to_used_value(Some(base_size.resolve(context))).unwrap()
                 }
                 SpecifiedValue::Keyword(ref key, fraction) => {
-                    key.to_computed_value(context).scale_by(fraction)
+                    context.maybe_zoom_text(key.to_computed_value(context).scale_by(fraction))
                 }
                 SpecifiedValue::Smaller => {
                     FontRelativeLength::Em(1. / LARGER_FONT_SIZE_RATIO)
@@ -960,7 +960,7 @@ ${helpers.single_keyword_system("font-variant-caps",
                context.builder.get_font().gecko().mGenericID !=
                context.builder.get_parent_font().gecko().mGenericID {
                 if let Some((kw, ratio)) = context.builder.font_size_keyword {
-                    computed = kw.to_computed_value(context).scale_by(ratio);
+                    computed = context.maybe_zoom_text(kw.to_computed_value(context).scale_by(ratio));
                 }
             }
         % endif
@@ -990,7 +990,7 @@ ${helpers.single_keyword_system("font-variant-caps",
         // changes using the font_size_keyword. We also need to do this to
         // handle mathml scriptlevel changes
         let kw_inherited_size = context.builder.font_size_keyword.map(|(kw, ratio)| {
-            SpecifiedValue::Keyword(kw, ratio).to_computed_value(context)
+            context.maybe_zoom_text(SpecifiedValue::Keyword(kw, ratio).to_computed_value(context))
         });
         let parent_kw;
         let device = context.builder.device;
@@ -1015,8 +1015,10 @@ ${helpers.single_keyword_system("font-variant-caps",
     pub fn cascade_initial_font_size(context: &mut Context) {
         // font-size's default ("medium") does not always
         // compute to the same value and depends on the font
-        let computed = longhands::font_size::get_initial_specified_value()
-                            .to_computed_value(context);
+        let computed = context.maybe_zoom_text(
+                            longhands::font_size::get_initial_specified_value()
+                                .to_computed_value(context)
+                        );
         context.builder.mutate_font().set_font_size(computed);
         % if product == "gecko":
             let device = context.builder.device;

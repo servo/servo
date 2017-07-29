@@ -2231,9 +2231,6 @@ fn static_assert() {
         )
     }
 
-    // FIXME(bholley): Gecko has two different sizes, one of which (mSize) is the
-    // actual computed size, and the other of which (mFont.size) is the 'display
-    // size' which takes font zooming into account. We don't handle font zooming yet.
     pub fn set_font_size(&mut self, v: longhands::font_size::computed_value::T) {
         self.gecko.mSize = v.0;
         self.gecko.mScriptUnconstrainedSize = v.0;
