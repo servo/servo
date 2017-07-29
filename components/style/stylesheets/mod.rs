@@ -255,18 +255,19 @@ impl CssRule {
             shared_lock: &shared_lock,
             loader: loader,
             state: state,
+            had_hierarchy_error: false,
             namespaces: Some(&mut *guard),
         };
 
-        match parse_one_rule(&mut input, &mut rule_parser) {
-            Ok(result) => Ok((result, rule_parser.state)),
-            Err(_) => {
-                Err(match rule_parser.state {
-                    State::Invalid => SingleRuleParseError::Hierarchy,
-                    _ => SingleRuleParseError::Syntax,
-                })
-            }
-        }
+        parse_one_rule(&mut input, &mut rule_parser)
+            .map(|result| (result, rule_parser.state))
+            .map_err(|_| {
+                if rule_parser.take_had_hierarchy_error() {
+                    SingleRuleParseError::Hierarchy
+                } else {
+                    SingleRuleParseError::Syntax
+                }
+            })
     }
 }
 

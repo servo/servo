@@ -337,6 +337,7 @@ impl Stylesheet {
             loader: stylesheet_loader,
             context: context,
             state: State::Start,
+            had_hierarchy_error: false,
             namespaces: Some(namespaces),
         };
 
