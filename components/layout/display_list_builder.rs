@@ -68,6 +68,7 @@ use style::values::generics::image::{Image, ShapeExtent};
 use style::values::generics::image::PaintWorklet;
 use style::values::specified::position::{X, Y};
 use style_traits::CSSPixel;
+use style_traits::ToCss;
 use style_traits::cursor::Cursor;
 use table_cell::CollapsedBordersForCell;
 use webrender_api::{ClipId, ColorF, ComplexClipRegion, GradientStop, LocalClip, RepeatMode};
@@ -1173,9 +1174,15 @@ impl FragmentDisplayListBuilding for Fragment {
         let device_pixel_ratio = state.layout_context.style_context.device_pixel_ratio();
         let size_in_au = unbordered_box.size.to_physical(style.writing_mode);
         let size_in_px = TypedSize2D::new(size_in_au.width.to_f32_px(), size_in_au.height.to_f32_px());
+
+        // TODO: less copying.
         let name = paint_worklet.name.clone();
+        let arguments = paint_worklet.arguments.iter()
+            .map(|argument| argument.to_css_string())
+            .collect();
 
         // Get the painter, and the computed values for its properties.
+        // TODO: less copying.
         let (properties, painter) = match state.layout_context.registered_painters.read().get(&name) {
             Some(registered_painter) => (
                 registered_painter.properties
@@ -1191,7 +1198,7 @@ impl FragmentDisplayListBuilding for Fragment {
         // TODO: add a one-place cache to avoid drawing the paint image every time.
         // https://github.com/servo/servo/issues/17369
         debug!("Drawing a paint image {}({},{}).", name, size_in_px.width, size_in_px.height);
-        let mut draw_result = painter.draw_a_paint_image(size_in_px, device_pixel_ratio, properties);
+        let mut draw_result = painter.draw_a_paint_image(size_in_px, device_pixel_ratio, properties, arguments);
         let webrender_image = WebRenderImageInfo {
             width: draw_result.width,
             height: draw_result.height,
