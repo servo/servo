@@ -1419,9 +1419,6 @@ extern "C" {
                                                               *mut nsCSSValueSharedList);
 }
 extern "C" {
-    pub fn Gecko_PropertyId_IsPrefEnabled(id: nsCSSPropertyID) -> bool;
-}
-extern "C" {
     pub fn Gecko_nsStyleFont_SetLang(font: *mut nsStyleFont,
                                      atom: *mut nsIAtom);
 }
