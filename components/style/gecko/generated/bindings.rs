@@ -78,7 +78,6 @@ use gecko_bindings::structs::nsFont;
 use gecko_bindings::structs::nsIAtom;
 use gecko_bindings::structs::nsIURI;
 use gecko_bindings::structs::nsCompatibility;
-use gecko_bindings::structs::nsMediaFeature;
 use gecko_bindings::structs::nsRestyleHint;
 use gecko_bindings::structs::nsStyleBackground;
 unsafe impl Send for nsStyleBackground {}
@@ -1484,9 +1483,6 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_StyleSheet_Release(aSheet: *const ServoStyleSheet);
-}
-extern "C" {
-    pub fn Gecko_GetMediaFeatures() -> *const nsMediaFeature;
 }
 extern "C" {
     pub fn Gecko_LookupCSSKeyword(string: *const u8, len: u32)
