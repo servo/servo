@@ -47,6 +47,10 @@ pub struct TopLevelRuleParser<'a> {
     pub context: ParserContext<'a>,
     /// The current state of the parser.
     pub state: State,
+    /// Whether we have tried to parse was invalid due to being in the wrong
+    /// place (e.g. an @import rule was found while in the `Body` state). Reset
+    /// to `false` when `take_had_hierarchy_error` is called.
+    pub had_hierarchy_error: bool,
     /// The namespace map we use for parsing. Needs to start as `Some()`, and
     /// will be taken out after parsing namespace rules, and that reference will
     /// be moved to `ParserContext`.
@@ -71,6 +75,16 @@ impl<'b> TopLevelRuleParser<'b> {
     pub fn state(&self) -> State {
         self.state
     }
+
+    /// Returns whether we previously tried to parse a rule that was invalid
+    /// due to being in the wrong place (e.g. an @import rule was found after
+    /// a regular style rule).  The state of this flag is reset when this
+    /// function is called.
+    pub fn take_had_hierarchy_error(&mut self) -> bool {
+        let had_hierarchy_error = self.had_hierarchy_error;
+        self.had_hierarchy_error = false;
+        had_hierarchy_error
+    }
 }
 
 /// The current state of the parser.
@@ -84,9 +98,6 @@ pub enum State {
     Namespaces = 3,
     /// We're parsing the main body of the stylesheet.
     Body = 4,
-    /// We've found an invalid state (as, a namespace rule after style rules),
-    /// and the rest of the stylesheet should be ignored.
-    Invalid = 5,
 }
 
 #[derive(Clone, Debug)]
@@ -153,8 +164,8 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
         match_ignore_ascii_case! { &*name,
             "import" => {
                 if self.state > State::Imports {
-                    self.state = State::Invalid;
                     // "@import must be before any rule but @charset"
+                    self.had_hierarchy_error = true;
                     return Err(StyleParseError::UnexpectedImportRule.into())
                 }
 
@@ -180,8 +191,8 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
             },
             "namespace" => {
                 if self.state > State::Namespaces {
-                    self.state = State::Invalid;
                     // "@namespace must be before any rule but @charset and @import"
+                    self.had_hierarchy_error = true;
                     return Err(StyleParseError::UnexpectedNamespaceRule.into())
                 }
                 self.state = State::Namespaces;
@@ -221,13 +232,11 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
             },
             // @charset is removed by rust-cssparser if it’s the first rule in the stylesheet
             // anything left is invalid.
-            "charset" => return Err(StyleParseError::UnexpectedCharsetRule.into()),
+            "charset" => {
+                self.had_hierarchy_error = true;
+                return Err(StyleParseError::UnexpectedCharsetRule.into())
+            }
             _ => {}
-        }
-        // Don't allow starting with an invalid state
-        if self.state > State::Body {
-            self.state = State::Invalid;
-            return Err(StyleParseError::UnspecifiedError.into());
         }
         self.state = State::Body;
 
