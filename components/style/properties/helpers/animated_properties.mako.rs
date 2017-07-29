@@ -1738,7 +1738,7 @@ fn add_weighted_transform_lists(from_list: &[TransformOperation],
     TransformList(Some(result))
 }
 
-/// https://drafts.csswg.org/css-transforms/#Rotate3dDefined
+/// https://www.w3.org/TR/css-transforms-1/#Rotate3dDefined
 fn rotate_to_matrix(x: f32, y: f32, z: f32, a: Angle) -> ComputedMatrix {
     let half_rad = a.radians() / 2.0;
     let sc = (half_rad).sin() * (half_rad).cos();
@@ -1746,17 +1746,17 @@ fn rotate_to_matrix(x: f32, y: f32, z: f32, a: Angle) -> ComputedMatrix {
 
     ComputedMatrix {
         m11: 1.0 - 2.0 * (y * y + z * z) * sq,
-        m12: 2.0 * (x * y * sq - z * sc),
-        m13: 2.0 * (x * z * sq + y * sc),
+        m12: 2.0 * (x * y * sq + z * sc),
+        m13: 2.0 * (x * z * sq - y * sc),
         m14: 0.0,
 
-        m21: 2.0 * (x * y * sq + z * sc),
+        m21: 2.0 * (x * y * sq - z * sc),
         m22: 1.0 - 2.0 * (x * x + z * z) * sq,
-        m23: 2.0 * (y * z * sq - x * sc),
+        m23: 2.0 * (y * z * sq + x * sc),
         m24: 0.0,
 
-        m31: 2.0 * (x * z * sq - y * sc),
-        m32: 2.0 * (y * z * sq + x * sc),
+        m31: 2.0 * (x * z * sq + y * sc),
+        m32: 2.0 * (y * z * sq - x * sc),
         m33: 1.0 - 2.0 * (x * x + y * y) * sq,
         m34: 0.0,
 
@@ -2397,19 +2397,19 @@ impl From<MatrixDecomposed3D> for ComputedMatrix {
         let mut temp = ComputedMatrix::identity();
         if decomposed.skew.2 != 0.0 {
             temp.m32 = decomposed.skew.2;
-            matrix = multiply(matrix, temp);
+            matrix = multiply(temp, matrix);
         }
 
         if decomposed.skew.1 != 0.0 {
             temp.m32 = 0.0;
             temp.m31 = decomposed.skew.1;
-            matrix = multiply(matrix, temp);
+            matrix = multiply(temp, matrix);
         }
 
         if decomposed.skew.0 != 0.0 {
             temp.m31 = 0.0;
             temp.m21 = decomposed.skew.0;
-            matrix = multiply(matrix, temp);
+            matrix = multiply(temp, matrix);
         }
 
         // Apply scale
