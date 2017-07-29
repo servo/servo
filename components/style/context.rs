@@ -191,7 +191,7 @@ pub struct CascadeInputs {
 
 impl CascadeInputs {
     /// Construct inputs from previous cascade results, if any.
-    pub fn new_from_style(style: &Arc<ComputedValues>) -> Self {
+    pub fn new_from_style(style: &ComputedValues) -> Self {
         CascadeInputs {
             rules: style.rules.clone(),
             visited_rules: style.get_visited_style().and_then(|v| v.rules.clone()),

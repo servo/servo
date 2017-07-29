@@ -41,6 +41,9 @@ use gecko_bindings::bindings::{Gecko_ResetFilters, Gecko_CopyFiltersFrom};
 use gecko_bindings::bindings::RawGeckoPresContextBorrowed;
 use gecko_bindings::structs;
 use gecko_bindings::structs::nsCSSPropertyID;
+use gecko_bindings::structs::mozilla::CSSPseudoElementType;
+use gecko_bindings::structs::mozilla::CSSPseudoElementType_InheritingAnonBox;
+use gecko_bindings::structs::root::NS_STYLE_CONTEXT_TYPE_SHIFT;
 use gecko_bindings::sugar::ns_style_coord::{CoordDataValue, CoordData, CoordDataMut};
 use gecko::values::convert_nscolor_to_rgba;
 use gecko::values::convert_rgba_to_nscolor;
@@ -132,6 +135,18 @@ impl ComputedValues {
 
         let atom = Atom::from(atom);
         PseudoElement::from_atom(&atom)
+    }
+
+    fn get_pseudo_type(&self) -> CSSPseudoElementType {
+        let bits = (self.0)._base.mBits;
+        let our_type = bits >> NS_STYLE_CONTEXT_TYPE_SHIFT;
+        unsafe { transmute(our_type as u8) }
+    }
+
+    pub fn is_anon_box(&self) -> bool {
+        let our_type = self.get_pseudo_type();
+        return our_type == CSSPseudoElementType_InheritingAnonBox ||
+               our_type == CSSPseudoElementType::NonInheritingAnonBox;
     }
 }
 

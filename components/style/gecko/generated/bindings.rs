@@ -2818,6 +2818,16 @@ extern "C" {
      -> ServoStyleContextStrong;
 }
 extern "C" {
+    pub fn Servo_ReparentStyle(style_to_reparent: ServoStyleContextBorrowed,
+                               parent_style: ServoStyleContextBorrowed,
+                               parent_style_ignoring_first_line:
+                                   ServoStyleContextBorrowed,
+                               layout_parent_style: ServoStyleContextBorrowed,
+                               element: RawGeckoElementBorrowedOrNull,
+                               set: RawServoStyleSetBorrowed)
+     -> ServoStyleContextStrong;
+}
+extern "C" {
     pub fn Servo_TraverseSubtree(root: RawGeckoElementBorrowed,
                                  set: RawServoStyleSetBorrowed,
                                  snapshots: *const ServoElementSnapshotTable,

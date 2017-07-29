@@ -87,6 +87,12 @@ impl PseudoElement {
         *self == PseudoElement::FirstLetter
     }
 
+    /// Whether this pseudo-element is ::first-line.
+    #[inline]
+    pub fn is_first_line(&self) -> bool {
+        *self == PseudoElement::FirstLine
+    }
+
     /// Whether this pseudo-element is ::-moz-fieldset-content.
     #[inline]
     pub fn is_fieldset_content(&self) -> bool {
