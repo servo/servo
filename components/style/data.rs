@@ -162,6 +162,13 @@ impl fmt::Debug for EagerPseudoArray {
     }
 }
 
+// Can't use [None; EAGER_PSEUDO_COUNT] here because it complains
+// about Copy not being implemented for our Arc type.
+#[cfg(feature = "gecko")]
+const EMPTY_PSEUDO_ARRAY: &'static EagerPseudoArrayInner = &[None, None, None, None];
+#[cfg(feature = "servo")]
+const EMPTY_PSEUDO_ARRAY: &'static EagerPseudoArrayInner = &[None, None, None];
+
 impl EagerPseudoStyles {
     /// Returns whether there are any pseudo styles.
     pub fn is_empty(&self) -> bool {
@@ -169,11 +176,17 @@ impl EagerPseudoStyles {
     }
 
     /// Grabs a reference to the list of styles, if they exist.
-    pub fn as_array(&self) -> Option<&EagerPseudoArrayInner> {
+    pub fn as_optional_array(&self) -> Option<&EagerPseudoArrayInner> {
         match self.0 {
             None => None,
             Some(ref x) => Some(&x.0),
         }
+    }
+
+    /// Grabs a reference to the list of styles or a list of None if
+    /// there are no styles to be had.
+    pub fn as_array(&self) -> &EagerPseudoArrayInner {
+        self.as_optional_array().unwrap_or(EMPTY_PSEUDO_ARRAY)
     }
 
     /// Returns a reference to the style for a given eager pseudo, if it exists.

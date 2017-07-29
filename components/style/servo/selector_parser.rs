@@ -13,7 +13,9 @@ use dom::{OpaqueNode, TElement, TNode};
 use element_state::ElementState;
 use fnv::FnvHashMap;
 use invalidation::element::element_wrapper::ElementSnapshot;
+use properties::ComputedValues;
 use properties::PropertyFlags;
+use properties::longhands::display::computed_value as display;
 use selector_parser::{AttrValue as SelectorAttrValue, ElementExt, PseudoElementCascadeType, SelectorParser};
 use selectors::Element;
 use selectors::attr::{AttrSelectorOperation, NamespaceConstraint, CaseSensitivity};
@@ -180,6 +182,21 @@ impl PseudoElement {
     #[inline]
     pub fn property_restriction(&self) -> Option<PropertyFlags> {
         None
+    }
+
+    /// Whether this pseudo-element should actually exist if it has
+    /// the given styles.
+    pub fn should_exist(&self, style: &ComputedValues) -> bool
+    {
+        let display = style.get_box().clone_display();
+        if display == display::T::none {
+            return false;
+        }
+        if self.is_before_or_after() && style.ineffective_content_property() {
+            return false;
+        }
+
+        true
     }
 }
 

@@ -522,18 +522,13 @@ pub trait MatchMethods : TElement {
         );
 
         if data.styles.pseudos.is_empty() && old_styles.pseudos.is_empty() {
-            return cascade_requirement;
-        }
-
-        // If it matched a different number of pseudos, reconstruct.
-        if data.styles.pseudos.is_empty() != old_styles.pseudos.is_empty() {
-            data.restyle.damage |= RestyleDamage::reconstruct();
+            // This is the common case; no need to examine pseudos here.
             return cascade_requirement;
         }
 
         let pseudo_styles =
-            old_styles.pseudos.as_array().unwrap().iter().zip(
-            data.styles.pseudos.as_array().unwrap().iter());
+            old_styles.pseudos.as_array().iter().zip(
+            data.styles.pseudos.as_array().iter());
 
         for (i, (old, new)) in pseudo_styles.enumerate() {
             match (old, new) {
@@ -548,8 +543,21 @@ pub trait MatchMethods : TElement {
                 }
                 (&None, &None) => {},
                 _ => {
-                    data.restyle.damage |= RestyleDamage::reconstruct();
-                    return cascade_requirement;
+                    // It's possible that we're switching from not having
+                    // ::before/::after at all to having styles for them but not
+                    // actually having a useful pseudo-element.  Check for that
+                    // case.
+                    let pseudo = PseudoElement::from_eager_index(i);
+                    let new_pseudo_should_exist =
+                        new.as_ref().map_or(false,
+                                            |s| pseudo.should_exist(s));
+                    let old_pseudo_should_exist =
+                        old.as_ref().map_or(false,
+                                            |s| pseudo.should_exist(s));
+                    if new_pseudo_should_exist != old_pseudo_should_exist {
+                        data.restyle.damage |= RestyleDamage::reconstruct();
+                        return cascade_requirement;
+                    }
                 }
             }
         }
@@ -790,6 +798,9 @@ pub trait MatchMethods : TElement {
         }
 
         if pseudo.map_or(false, |p| p.is_before_or_after()) {
+            // FIXME(bz) This duplicates some of the logic in
+            // PseudoElement::should_exist, but it's not clear how best to share
+            // that logic without redoing the "get the display" work.
             let old_style_generates_no_pseudo =
                 old_style_is_display_none ||
                 old_values.ineffective_content_property();
