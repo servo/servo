@@ -1610,7 +1610,10 @@ pub extern "C" fn Servo_HasAuthorSpecifiedRules(element: RawGeckoElementBorrowed
 {
     let element = GeckoElement(element);
 
-    let data = element.borrow_data().unwrap();
+    let data =
+        element.borrow_data()
+        .expect("calling Servo_HasAuthorSpecifiedRules on an unstyled element");
+
     let primary_style = data.styles.primary();
 
     let guard = (*GLOBAL_STYLE_DATA).shared_lock.read();
