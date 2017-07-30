@@ -13536,6 +13536,12 @@
      {}
     ]
    ],
+   "css/get-computed-style-for-url.html": [
+    [
+     "/_mozilla/css/get-computed-style-for-url.html",
+     {}
+    ]
+   ],
    "css/import_serialization.html": [
     [
      "/_mozilla/css/import_serialization.html",
@@ -23356,6 +23362,10 @@
   "css/fonts/takao-p-gothic/TakaoPGothic.ttf": [
    "13a3f8dd23fa28c0b2ad2fe0662d29a27a569e74",
    "support"
+  ],
+  "css/get-computed-style-for-url.html": [
+   "d5e1649c88102f27da5fe1ac16715cfee7f70f84",
+   "testharness"
   ],
   "css/green.png": [
    "15e39f6df8def787cefcfb30e27de5f43da65c9a",
