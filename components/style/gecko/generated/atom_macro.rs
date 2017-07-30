@@ -2026,6 +2026,8 @@ cfg_if! {
             pub static nsGkAtoms_onussdreceived: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms15onversionchangeE"]
             pub static nsGkAtoms_onversionchange: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms18onvisibilitychangeE"]
+            pub static nsGkAtoms_onvisibilitychange: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms13onvoicechangeE"]
             pub static nsGkAtoms_onvoicechange: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms15onvoiceschangedE"]
@@ -7155,6 +7157,8 @@ cfg_if! {
             pub static nsGkAtoms_onussdreceived: *mut nsIAtom;
             #[link_name = "?onversionchange@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_onversionchange: *mut nsIAtom;
+            #[link_name = "?onvisibilitychange@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_onvisibilitychange: *mut nsIAtom;
             #[link_name = "?onvoicechange@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_onvoicechange: *mut nsIAtom;
             #[link_name = "?onvoiceschanged@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -12284,6 +12288,8 @@ cfg_if! {
             pub static nsGkAtoms_onussdreceived: *mut nsIAtom;
             #[link_name = "\x01?onversionchange@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_onversionchange: *mut nsIAtom;
+            #[link_name = "\x01?onvisibilitychange@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_onvisibilitychange: *mut nsIAtom;
             #[link_name = "\x01?onvoicechange@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_onvoicechange: *mut nsIAtom;
             #[link_name = "\x01?onvoiceschanged@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -17416,6 +17422,8 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onussdreceived as *mut _) } };
 ("onversionchange") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onversionchange as *mut _) } };
+("onvisibilitychange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onvisibilitychange as *mut _) } };
 ("onvoicechange") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onvoicechange as *mut _) } };
 ("onvoiceschanged") =>
