@@ -20,7 +20,6 @@ use values::computed::NonNegativeAu;
 use values::computed::NonNegativeLengthOrPercentage as ComputedNonNegativeLengthOrPercentage;
 use values::computed::NonNegativeNumber as ComputedNonNegativeNumber;
 use values::computed::PositiveInteger as ComputedPositiveInteger;
-use values::computed::{Angle as ComputedAngle};
 #[cfg(feature = "servo")]
 use values::computed::ComputedUrl;
 use values::specified::url::SpecifiedUrl;
