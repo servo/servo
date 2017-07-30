@@ -138,7 +138,9 @@ impl ToComputedValue for SpecifiedUrl {
             Some(ref url) => ComputedUrl::Valid(url.clone()),
             None => match self.original {
                 Some(ref url) => ComputedUrl::Invalid(url.clone()),
-                None => ComputedUrl::Invalid(Arc::new("about:invalid".to_string())),
+                None => {
+                    unreachable!("Found specified url with neither resolved or original URI!");
+                },
             }
         }
     }
