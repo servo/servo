@@ -1709,6 +1709,13 @@ pub mod style_structs {
                     pub fn copy_${longhand.ident}_from(&mut self, other: &Self) {
                         self.${longhand.ident} = other.${longhand.ident}.clone();
                     }
+
+                    /// Reset ${longhand.name} from the initial struct.
+                    #[allow(non_snake_case)]
+                    #[inline]
+                    pub fn reset_${longhand.ident}(&mut self, other: &Self) {
+                        self.copy_${longhand.ident}_from(other)
+                    }
                     % if longhand.need_clone:
                         /// Get the computed value for ${longhand.name}.
                         #[allow(non_snake_case)]
@@ -2606,13 +2613,13 @@ impl<'a> StyleBuilder<'a> {
     /// Inherit `${property.ident}` from our parent style.
     #[allow(non_snake_case)]
     pub fn inherit_${property.ident}(&mut self) {
-        % if property.style_struct.inherited:
         let inherited_struct =
+        % if property.style_struct.inherited:
             self.inherited_style.get_${property.style_struct.name_lower}();
         % else:
-        let inherited_struct =
             self.inherited_style_ignoring_first_line.get_${property.style_struct.name_lower}();
         % endif
+
         self.${property.style_struct.ident}.mutate()
             .copy_${property.ident}_from(
                 inherited_struct,
@@ -2625,9 +2632,11 @@ impl<'a> StyleBuilder<'a> {
     /// Reset `${property.ident}` to the initial value.
     #[allow(non_snake_case)]
     pub fn reset_${property.ident}(&mut self) {
-        let reset_struct = self.reset_style.get_${property.style_struct.name_lower}();
+        let reset_struct =
+            self.reset_style.get_${property.style_struct.name_lower}();
+
         self.${property.style_struct.ident}.mutate()
-            .copy_${property.ident}_from(
+            .reset_${property.ident}(
                 reset_struct,
                 % if property.logical:
                 self.writing_mode,

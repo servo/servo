@@ -25,6 +25,8 @@ use super::specified;
 
 pub use app_units::Au;
 pub use properties::animated_properties::TransitionProperty;
+#[cfg(feature = "gecko")]
+pub use self::align::{AlignItems, AlignJustifyContent, AlignJustifySelf, JustifyItems};
 pub use self::background::BackgroundSize;
 pub use self::border::{BorderImageSlice, BorderImageWidth, BorderImageSideWidth};
 pub use self::border::{BorderRadius, BorderCornerRadius};
@@ -36,8 +38,6 @@ pub use self::image::{Gradient, GradientItem, Image, ImageLayer, LineDirection, 
 pub use self::gecko::ScrollSnapPoint;
 pub use self::rect::LengthOrNumberRect;
 pub use super::{Auto, Either, None_};
-#[cfg(feature = "gecko")]
-pub use super::specified::{AlignItems, AlignJustifyContent, AlignJustifySelf, JustifyItems};
 pub use super::specified::{BorderStyle, UrlOrNone};
 pub use super::generics::grid::GridLine;
 pub use super::specified::url::SpecifiedUrl;
@@ -47,6 +47,8 @@ pub use self::position::Position;
 pub use self::text::{InitialLetter, LetterSpacing, LineHeight, WordSpacing};
 pub use self::transform::{TimingFunction, TransformOrigin};
 
+#[cfg(feature = "gecko")]
+pub mod align;
 pub mod background;
 pub mod basic_shape;
 pub mod border;
@@ -396,36 +398,6 @@ impl ToCss for Time {
     }
 }
 
-#[cfg(feature = "gecko")]
-impl ToComputedValue for specified::JustifyItems {
-    type ComputedValue = JustifyItems;
-
-    // https://drafts.csswg.org/css-align/#valdef-justify-items-auto
-    fn to_computed_value(&self, context: &Context) -> JustifyItems {
-        use values::specified::align;
-        // If the inherited value of `justify-items` includes the `legacy` keyword, `auto` computes
-        // to the inherited value.
-        if self.0 == align::ALIGN_AUTO {
-            let inherited = context.builder.get_parent_position().clone_justify_items();
-            if inherited.0.contains(align::ALIGN_LEGACY) {
-                return inherited
-            }
-        }
-        return *self
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &JustifyItems) -> Self {
-        *computed
-    }
-}
-
-#[cfg(feature = "gecko")]
-impl ComputedValueAsSpecified for specified::AlignItems {}
-#[cfg(feature = "gecko")]
-impl ComputedValueAsSpecified for specified::AlignJustifyContent {}
-#[cfg(feature = "gecko")]
-impl ComputedValueAsSpecified for specified::AlignJustifySelf {}
 impl ComputedValueAsSpecified for specified::BorderStyle {}
 
 /// A `<number>` value.

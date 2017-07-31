@@ -292,6 +292,12 @@ impl JustifyItems {
         JustifyItems(ALIGN_AUTO)
     }
 
+    /// The value 'normal'
+    #[inline]
+    pub fn normal() -> Self {
+        JustifyItems(ALIGN_NORMAL)
+    }
+
     /// Whether this value has extra flags.
     #[inline]
     pub fn has_extra_flags(self) -> bool {
