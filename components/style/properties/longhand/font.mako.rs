@@ -2383,6 +2383,41 @@ ${helpers.single_keyword("-moz-math-variant",
     }
 </%helpers:longhand>
 
+<%helpers:longhand name="-x-text-zoom" products="gecko" animation_value_type="none" internal="True"
+                   spec="Internal (not web-exposed)">
+    use values::computed::ComputedValueAsSpecified;
+    pub use self::computed_value::T as SpecifiedValue;
+
+    impl ComputedValueAsSpecified for SpecifiedValue {}
+    no_viewport_percentage!(SpecifiedValue);
+
+    pub mod computed_value {
+        use std::fmt;
+        use style_traits::ToCss;
+
+        impl ToCss for T {
+            fn to_css<W>(&self, _: &mut W) -> fmt::Result where W: fmt::Write {
+                Ok(())
+            }
+        }
+
+        #[derive(Clone, Debug, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        /// text-zoom. Enable if true, disable if false
+        pub struct T(pub bool);
+    }
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        computed_value::T(true)
+    }
+
+    pub fn parse<'i, 't>(_context: &ParserContext, _input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
+        debug_assert!(false, "Should be set directly by presentation attributes only.");
+        Err(StyleParseError::UnspecifiedError.into())
+    }
+</%helpers:longhand>
 
 % if product == "gecko":
     pub mod system_font {

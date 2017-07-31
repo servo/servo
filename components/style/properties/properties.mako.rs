@@ -608,6 +608,7 @@ impl LonghandId {
             LonghandId::AnimationName |
             LonghandId::TransitionProperty |
             LonghandId::XLang |
+            LonghandId::XTextZoom |
             LonghandId::MozScriptLevel |
             LonghandId::MozMinFontSizeRatio |
             % endif
@@ -3207,6 +3208,23 @@ where
             let mut _skip_font_family = false;
 
             % if product == "gecko":
+
+                // <svg:text> is not affected by text zoom, and it uses a preshint to
+                // disable it. We fix up the struct when this happens by unzooming
+                // its contained font values, which will have been zoomed in the parent
+                if seen.contains(LonghandId::XTextZoom) {
+                    let zoom = context.builder.get_font().gecko().mAllowZoom;
+                    let parent_zoom = context.style().get_parent_font().gecko().mAllowZoom;
+                    if  zoom != parent_zoom {
+                        debug_assert!(!zoom,
+                                      "We only ever disable text zoom (in svg:text), never enable it");
+                        // can't borrow both device and font, use the take/put machinery
+                        let mut font = context.builder.take_font();
+                        font.unzoom_fonts(context.device());
+                        context.builder.put_font(font);
+                    }
+                }
+
                 // Whenever a single generic value is specified, gecko will do a bunch of
                 // recalculation walking up the rule tree, including handling the font-size stuff.
                 // It basically repopulates the font struct with the default font for a given

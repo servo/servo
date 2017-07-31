@@ -2057,7 +2057,7 @@ fn static_assert() {
                              font-variant-east-asian font-variant-ligatures
                              font-variant-numeric font-language-override
                              font-feature-settings font-variation-settings
-                             -moz-min-font-size-ratio"""
+                             -moz-min-font-size-ratio -x-text-zoom"""
 %>
 <%self:impl_trait style_struct_name="Font"
     skip_longhands="${skip_font_longhands}"
@@ -2229,6 +2229,12 @@ fn static_assert() {
                 }
             }).collect()
         )
+    }
+
+    pub fn unzoom_fonts(&mut self, device: &Device) {
+        self.gecko.mSize = device.unzoom_text(Au(self.gecko.mSize)).0;
+        self.gecko.mScriptUnconstrainedSize = device.unzoom_text(Au(self.gecko.mScriptUnconstrainedSize)).0;
+        self.gecko.mFont.size = device.unzoom_text(Au(self.gecko.mFont.size)).0;
     }
 
     pub fn set_font_size(&mut self, v: longhands::font_size::computed_value::T) {
@@ -2463,6 +2469,21 @@ fn static_assert() {
         unsafe {
             Gecko_nsStyleFont_CopyLangFrom(&mut self.gecko, &other.gecko);
         }
+    }
+
+    #[allow(non_snake_case)]
+    pub fn set__x_text_zoom(&mut self, v: longhands::_x_text_zoom::computed_value::T) {
+        self.gecko.mAllowZoom = v.0;
+    }
+
+    #[allow(non_snake_case)]
+    pub fn copy__x_text_zoom_from(&mut self, other: &Self) {
+        self.gecko.mAllowZoom = other.gecko.mAllowZoom;
+    }
+
+    #[allow(non_snake_case)]
+    pub fn reset__x_text_zoom(&mut self, other: &Self) {
+        self.copy__x_text_zoom_from(other)
     }
 
     #[allow(non_snake_case)]

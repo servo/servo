@@ -1402,6 +1402,7 @@ impl<'le> PresentationalHintsSynthesizer for GeckoElement<'le> {
         where V: Push<ApplicableDeclarationBlock>,
     {
         use properties::longhands::_x_lang::SpecifiedValue as SpecifiedLang;
+        use properties::longhands::_x_text_zoom::SpecifiedValue as SpecifiedZoom;
         use properties::longhands::color::SpecifiedValue as SpecifiedColor;
         use properties::longhands::text_align::SpecifiedValue as SpecifiedTextAlign;
         use values::specified::color::Color;
@@ -1433,6 +1434,15 @@ impl<'le> PresentationalHintsSynthesizer for GeckoElement<'le> {
                 let arc = Arc::new(global_style_data.shared_lock.wrap(pdb));
                 ApplicableDeclarationBlock::from_declarations(arc, ServoCascadeLevel::PresHints)
             };
+            static ref SVG_TEXT_DISABLE_ZOOM_RULE: ApplicableDeclarationBlock = {
+                let global_style_data = &*GLOBAL_STYLE_DATA;
+                let pdb = PropertyDeclarationBlock::with_one(
+                    PropertyDeclaration::XTextZoom(SpecifiedZoom(false)),
+                    Importance::Normal
+                );
+                let arc = Arc::new(global_style_data.shared_lock.wrap(pdb));
+                ApplicableDeclarationBlock::from_declarations(arc, ServoCascadeLevel::PresHints)
+            };
         };
 
         let ns = self.get_namespace();
@@ -1443,6 +1453,11 @@ impl<'le> PresentationalHintsSynthesizer for GeckoElement<'le> {
             } else if self.get_local_name().as_ptr() == atom!("table").as_ptr() &&
                       self.as_node().owner_doc().mCompatMode == structs::nsCompatibility::eCompatibility_NavQuirks {
                 hints.push(TABLE_COLOR_RULE.clone());
+            }
+        }
+        if ns == &*Namespace(atom!("http://www.w3.org/2000/svg")) {
+            if self.get_local_name().as_ptr() == atom!("text").as_ptr() {
+                hints.push(SVG_TEXT_DISABLE_ZOOM_RULE.clone());
             }
         }
         let declarations = unsafe { Gecko_GetHTMLPresentationAttrDeclarationBlock(self.0) };

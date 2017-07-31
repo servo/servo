@@ -191,6 +191,10 @@ impl Device {
     pub fn zoom_text(&self, size: Au) -> Au {
         size.scale_by(self.pres_context().mEffectiveTextZoom)
     }
+    /// Un-apply text zoom (see nsStyleFont::UnzoomText).
+    pub fn unzoom_text(&self, size: Au) -> Au {
+        size.scale_by(1. / self.pres_context().mEffectiveTextZoom)
+    }
 }
 
 /// A expression for gecko contains a reference to the media feature, the value
