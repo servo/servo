@@ -2241,8 +2241,8 @@ fn static_assert() {
     pub fn apply_font_size(&mut self, v: longhands::font_size::computed_value::T,
                            parent: &Self,
                            device: &Device) -> Option<Au> {
-        let (adjusted_size, adjusted_unconstrained_size)
-            = self.calculate_script_level_size(parent);
+        let (adjusted_size, adjusted_unconstrained_size) =
+            self.calculate_script_level_size(parent, device);
         // In this case, we have been unaffected by scriptminsize, ignore it
         if parent.gecko.mSize == parent.gecko.mScriptUnconstrainedSize &&
            adjusted_size == adjusted_unconstrained_size {
@@ -2321,7 +2321,7 @@ fn static_assert() {
     /// will be set to the value of that unit computed against the parent
     /// unconstrained size, whereas the font size will be set computing against
     /// the parent font size.
-    pub fn calculate_script_level_size(&self, parent: &Self) -> (Au, Au) {
+    pub fn calculate_script_level_size(&self, parent: &Self, device: &Device) -> (Au, Au) {
         use std::cmp;
 
         let delta = self.gecko.mScriptLevel - parent.gecko.mScriptLevel;
@@ -2333,8 +2333,11 @@ fn static_assert() {
             return (parent_size, parent_unconstrained_size)
         }
 
-        /// XXXManishearth this should also handle text zoom
-        let min = Au(parent.gecko.mScriptMinSize);
+
+        let mut min = Au(parent.gecko.mScriptMinSize);
+        if self.gecko.mAllowZoom {
+            min = device.zoom_text(min);
+        }
 
         let scale = (parent.gecko.mScriptSizeMultiplier as f32).powi(delta as i32);
 
@@ -2371,7 +2374,7 @@ fn static_assert() {
                                   kw_inherited_size: Option<Au>,
                                   device: &Device) -> bool {
         let (adjusted_size, adjusted_unconstrained_size)
-            = self.calculate_script_level_size(parent);
+            = self.calculate_script_level_size(parent, device);
         if adjusted_size.0 != parent.gecko.mSize ||
            adjusted_unconstrained_size.0 != parent.gecko.mScriptUnconstrainedSize {
             // This is incorrect. When there is both a keyword size being inherited
