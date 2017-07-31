@@ -134,8 +134,8 @@ impl<S> OriginComponent<S> {
 #[cfg(feature = "gecko")]
 #[inline]
 fn allow_frames_timing() -> bool {
-    use gecko_bindings::bindings;
-    unsafe { bindings::Gecko_IsFramesTimingEnabled() }
+    use gecko_bindings::structs::mozilla;
+    unsafe { mozilla::StylePrefs_sFramesTimingFunctionEnabled }
 }
 
 #[cfg(feature = "servo")]

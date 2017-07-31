@@ -835,9 +835,6 @@ extern "C" {
      -> f64;
 }
 extern "C" {
-    pub fn Gecko_IsFramesTimingEnabled() -> bool;
-}
-extern "C" {
     pub fn Gecko_AnimationGetBaseStyle(aBaseStyles:
                                            *mut ::std::os::raw::c_void,
                                        aProperty: nsCSSPropertyID)

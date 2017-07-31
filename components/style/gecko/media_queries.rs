@@ -490,10 +490,13 @@ impl Expression {
                 let result = {
                     let mut feature_name = &**ident;
 
-                    // TODO(emilio): this is under a pref in Gecko.
-                    if starts_with_ignore_ascii_case(feature_name, "-webkit-") {
+                    if unsafe { structs::StylePrefs_sWebkitPrefixedAliasesEnabled } &&
+                       starts_with_ignore_ascii_case(feature_name, "-webkit-") {
                         feature_name = &feature_name[8..];
                         flags |= nsMediaFeature_RequirementFlags::eHasWebkitPrefix as u8;
+                        if unsafe { structs::StylePrefs_sWebkitDevicePixelRatioEnabled } {
+                            flags |= nsMediaFeature_RequirementFlags::eWebkitDevicePixelRatioPrefEnabled as u8;
+                        }
                     }
 
                     let range = if starts_with_ignore_ascii_case(feature_name, "min-") {
