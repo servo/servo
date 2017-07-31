@@ -2881,10 +2881,15 @@ extern "C" {
                                           param:
                                               *const ::std::os::raw::c_char,
                                           paramLen: u32,
+                                          prefix:
+                                              *const ::std::os::raw::c_char,
+                                          prefixParam:
+                                              *const ::std::os::raw::c_char,
+                                          prefixParamLen: u32,
+                                          suffix:
+                                              *const ::std::os::raw::c_char,
                                           source:
                                               *const ::std::os::raw::c_char,
                                           sourceLen: u32, lineNumber: u32,
-                                          colNumber: u32, aURI: *mut nsIURI,
-                                          followup:
-                                              *const ::std::os::raw::c_char);
+                                          colNumber: u32);
 }
