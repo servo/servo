@@ -124,10 +124,31 @@ pub enum StyleParseError<'i> {
     UnspecifiedError,
     /// An unexpected token was found within a namespace rule.
     UnexpectedTokenWithinNamespace(Token<'i>),
+    /// An error was encountered while parsing a property value.
+    ValueError(ValueParseError<'i>),
+}
+
+/// Specific errors that can be encountered while parsing property values.
+#[derive(Clone, Debug, PartialEq)]
+pub enum ValueParseError<'i> {
+    /// An invalid token was encountered while parsing a color value.
+    InvalidColor(Token<'i>),
+}
+
+impl<'i> ValueParseError<'i> {
+    /// Attempt to extract a ValueParseError value from a ParseError.
+    pub fn from_parse_error(this: ParseError<'i>) -> Option<ValueParseError<'i>> {
+        match this {
+            cssparser::ParseError::Custom(
+                SelectorParseError::Custom(
+                    StyleParseError::ValueError(e))) => Some(e),
+            _ => None,
+        }
+    }
 }
 
 /// The result of parsing a property declaration.
-#[derive(Eq, PartialEq, Clone, Debug)]
+#[derive(PartialEq, Clone, Debug)]
 pub enum PropertyDeclarationParseError<'i> {
     /// The property declaration was for an unknown property.
     UnknownProperty(CowRcStr<'i>),
@@ -136,7 +157,7 @@ pub enum PropertyDeclarationParseError<'i> {
     /// The property declaration was for a disabled experimental property.
     ExperimentalProperty,
     /// The property declaration contained an invalid value.
-    InvalidValue(CowRcStr<'i>),
+    InvalidValue(CowRcStr<'i>, Option<ValueParseError<'i>>),
     /// The declaration contained an animation property, and we were parsing
     /// this as a keyframe block (so that property should be ignored).
     ///

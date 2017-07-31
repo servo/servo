@@ -378,7 +378,7 @@ fn test_report_error_stylesheet() {
 
     let error = errors.pop().unwrap();
     assert_eq!("Unsupported property declaration: 'display: invalid;', \
-                Custom(PropertyDeclaration(InvalidValue(\"display\")))", error.message);
+                Custom(PropertyDeclaration(InvalidValue(\"display\", None)))", error.message);
     assert_eq!(8, error.line);
     assert_eq!(8, error.column);
 

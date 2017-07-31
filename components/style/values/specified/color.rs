@@ -13,7 +13,7 @@ use parser::{ParserContext, Parse};
 use properties::longhands::color::SystemColor;
 use std::fmt;
 use std::io::Write;
-use style_traits::{ToCss, ParseError, StyleParseError};
+use style_traits::{ToCss, ParseError, StyleParseError, ValueParseError};
 use super::AllowQuirks;
 use values::computed::{Color as ComputedColor, Context, ToComputedValue};
 
@@ -76,24 +76,28 @@ impl Parse for Color {
             _ => None,
         };
         input.reset(start_position);
-        if let Ok(value) = input.try(CSSParserColor::parse) {
-            Ok(match value {
-                CSSParserColor::CurrentColor => Color::CurrentColor,
-                CSSParserColor::RGBA(rgba) => Color::Numeric {
-                    parsed: rgba,
-                    authored: authored,
-                },
-            })
-        } else {
-            #[cfg(feature = "gecko")] {
-                if let Ok(system) = input.try(SystemColor::parse) {
-                    Ok(Color::System(system))
-                } else {
-                    gecko::SpecialColorKeyword::parse(input).map(Color::Special)
+        match input.try(CSSParserColor::parse) {
+            Ok(value) =>
+                Ok(match value {
+                    CSSParserColor::CurrentColor => Color::CurrentColor,
+                    CSSParserColor::RGBA(rgba) => Color::Numeric {
+                        parsed: rgba,
+                        authored: authored,
+                    },
+                }),
+            Err(e) => {
+                #[cfg(feature = "gecko")] {
+                    if let Ok(system) = input.try(SystemColor::parse) {
+                        return Ok(Color::System(system));
+                    } else if let Ok(c) = gecko::SpecialColorKeyword::parse(input) {
+                        return Ok(Color::Special(c));
+                    }
                 }
-            }
-            #[cfg(not(feature = "gecko"))] {
-                Err(StyleParseError::UnspecifiedError.into())
+                match e {
+                    BasicParseError::UnexpectedToken(t) =>
+                        Err(StyleParseError::ValueError(ValueParseError::InvalidColor(t)).into()),
+                    e => Err(e.into())
+                }
             }
         }
     }
@@ -161,11 +165,13 @@ impl Color {
                                 input: &mut Parser<'i, 't>,
                                 allow_quirks: AllowQuirks)
                                 -> Result<Self, ParseError<'i>> {
-        input.try(|i| Self::parse(context, i)).or_else(|_| {
+        input.try(|i| Self::parse(context, i)).or_else(|e| {
             if !allow_quirks.allowed(context.quirks_mode) {
-                return Err(StyleParseError::UnspecifiedError.into());
+                return Err(e);
             }
-            Color::parse_quirky_color(input).map(|rgba| Color::rgba(rgba))
+            Color::parse_quirky_color(input)
+                .map(|rgba| Color::rgba(rgba))
+                .map_err(|_| e)
         })
     }
 
