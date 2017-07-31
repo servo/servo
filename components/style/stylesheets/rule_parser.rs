@@ -507,6 +507,7 @@ impl<'a, 'b, 'i> QualifiedRuleParser<'i> for NestedRuleParser<'a, 'b> {
         let selector_parser = SelectorParser {
             stylesheet_origin: self.stylesheet_origin,
             namespaces: self.context.namespaces.unwrap(),
+            url_data: Some(self.context.url_data),
         };
 
         let location = get_location_with_offset(input.current_source_location(),

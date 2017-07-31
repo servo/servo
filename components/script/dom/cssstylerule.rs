@@ -93,6 +93,7 @@ impl CSSStyleRuleMethods for CSSStyleRule {
         let parser = SelectorParser {
             stylesheet_origin: Origin::Author,
             namespaces: &namespaces,
+            url_data: None,
         };
         let mut css_parser = CssParserInput::new(&*value);
         let mut css_parser = CssParser::new(&mut css_parser);

@@ -14,6 +14,7 @@ fn parse_selector<'i, 't>(input: &mut Parser<'i, 't>) -> Result<SelectorList<Sel
     let parser = SelectorParser {
         stylesheet_origin: Origin::UserAgent,
         namespaces: &ns,
+        url_data: None,
     };
     SelectorList::parse(&parser, input)
 }

@@ -11,7 +11,7 @@ use selectors::Element;
 use selectors::parser::SelectorList;
 use std::fmt::Debug;
 use style_traits::ParseError;
-use stylesheets::{Origin, Namespaces};
+use stylesheets::{Origin, Namespaces, UrlExtraData};
 
 /// A convenient alias for the type that represents an attribute value used for
 /// selector parser implementation.
@@ -52,6 +52,9 @@ pub struct SelectorParser<'a> {
     pub stylesheet_origin: Origin,
     /// The namespace set of the stylesheet.
     pub namespaces: &'a Namespaces,
+    /// The extra URL data of the stylesheet, which is used to look up
+    /// whether we are parsing a chrome:// URL style sheet.
+    pub url_data: Option<&'a UrlExtraData>,
 }
 
 impl<'a> SelectorParser<'a> {
@@ -65,6 +68,7 @@ impl<'a> SelectorParser<'a> {
         let parser = SelectorParser {
             stylesheet_origin: Origin::Author,
             namespaces: &namespaces,
+            url_data: None,
         };
         let mut input = ParserInput::new(input);
         SelectorList::parse(&parser, &mut CssParser::new(&mut input))
@@ -73,6 +77,12 @@ impl<'a> SelectorParser<'a> {
     /// Whether we're parsing selectors in a user-agent stylesheet.
     pub fn in_user_agent_stylesheet(&self) -> bool {
         matches!(self.stylesheet_origin, Origin::UserAgent)
+    }
+
+    /// Whether we're parsing selectors in a stylesheet that has chrome
+    /// privilege.
+    pub fn in_chrome_stylesheet(&self) -> bool {
+        self.url_data.map_or(false, |d| d.is_chrome())
     }
 }
 
