@@ -37,5 +37,12 @@ bitflags! {
         /// A flag used to mark styles under a relevant link that is also
         /// visited.
         const IS_RELEVANT_LINK_VISITED = 1 << 3,
+
+        /// A flag used to mark styles which are a pseudo-element or under one.
+        const IS_IN_PSEUDO_ELEMENT_SUBTREE = 1 << 4,
+
+        /// A flag used to mark styles which are in a display: none subtree, or
+        /// under one.
+        const IS_IN_DISPLAY_NONE_SUBTREE = 1 << 5,
     }
 }

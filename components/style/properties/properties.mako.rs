@@ -2497,14 +2497,15 @@ pub struct StyleBuilder<'a> {
     /// a subtree.
     parent_style: Option<<&'a ComputedValues>,
 
-    /// The pseudo-element this style will represent.
-    pseudo: Option<<&'a PseudoElement>,
-
     /// The rule node representing the ordered list of rules matched for this
     /// node.
     rules: Option<StrongRuleNode>,
 
     custom_properties: Option<Arc<::custom_properties::CustomPropertiesMap>>,
+
+    /// The pseudo-element this style will represent.
+    pseudo: Option<<&'a PseudoElement>,
+
     /// The writing mode flags.
     ///
     /// TODO(emilio): Make private.
@@ -2699,6 +2700,11 @@ impl<'a> StyleBuilder<'a> {
     /// Returns whether we have a visited style.
     pub fn has_visited_style(&self) -> bool {
         self.visited_style.is_some()
+    }
+
+    /// Returns whether we're a pseudo-elements style.
+    pub fn is_pseudo_element(&self) -> bool {
+        self.pseudo.map_or(false, |p| !p.is_anon_box())
     }
 
     /// Returns the style we're getting reset properties from.

@@ -57,7 +57,7 @@ impl PseudoElement {
 
     /// Whether this pseudo-element is an anonymous box.
     #[inline]
-    fn is_anon_box(&self) -> bool {
+    pub fn is_anon_box(&self) -> bool {
         match *self {
             % for pseudo in PSEUDOS:
                 % if pseudo.is_anon_box():
