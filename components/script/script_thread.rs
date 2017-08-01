@@ -115,6 +115,7 @@ use task_source::dom_manipulation::{DOMManipulationTask, DOMManipulationTaskSour
 use task_source::file_reading::FileReadingTaskSource;
 use task_source::history_traversal::HistoryTraversalTaskSource;
 use task_source::networking::NetworkingTaskSource;
+use task_source::performance_timeline::{PerformanceTimelineTask, PerformanceTimelineTaskSource};
 use task_source::user_interaction::{UserInteractionTask, UserInteractionTaskSource};
 use time::{get_time, precise_time_ns, Tm};
 use url::Position;
@@ -270,6 +271,8 @@ pub enum MainThreadScriptMsg {
     /// Notifies the script thread that a new worklet has been loaded, and thus the page should be
     /// reflowed.
     WorkletLoaded(PipelineId),
+    /// Tasks that originate from the performance timeline task source.
+    PerformanceTimeline(PerformanceTimelineTask),
 }
 
 impl OpaqueSender<CommonScriptMsg> for Box<ScriptChan + Send> {
@@ -454,6 +457,8 @@ pub struct ScriptThread {
     history_traversal_task_source: HistoryTraversalTaskSource,
 
     file_reading_task_source: FileReadingTaskSource,
+
+    performance_timeline_task_source: PerformanceTimelineTaskSource,
 
     /// A channel to hand out to threads that need to respond to a message from the script thread.
     control_chan: IpcSender<ConstellationControlMsg>,
@@ -854,8 +859,9 @@ impl ScriptThread {
             dom_manipulation_task_source: DOMManipulationTaskSource(chan.clone()),
             user_interaction_task_source: UserInteractionTaskSource(chan.clone()),
             networking_task_source: NetworkingTaskSource(boxed_script_sender.clone()),
-            history_traversal_task_source: HistoryTraversalTaskSource(chan),
+            history_traversal_task_source: HistoryTraversalTaskSource(chan.clone()),
             file_reading_task_source: FileReadingTaskSource(boxed_script_sender),
+            performance_timeline_task_source: PerformanceTimelineTaskSource(chan),
 
             control_chan: state.control_chan,
             control_port: control_port,
@@ -1285,6 +1291,8 @@ impl ScriptThread {
             MainThreadScriptMsg::WorkletLoaded(pipeline_id) =>
                 self.handle_worklet_loaded(pipeline_id),
             MainThreadScriptMsg::DOMManipulation(task) =>
+                task.handle_task(self),
+            MainThreadScriptMsg::PerformanceTimeline(task) =>
                 task.handle_task(self),
             MainThreadScriptMsg::UserInteraction(task) =>
                 task.handle_task(self),
@@ -1717,6 +1725,10 @@ impl ScriptThread {
         &self.dom_manipulation_task_source
     }
 
+    pub fn performance_timeline_task_source(&self) -> &PerformanceTimelineTaskSource {
+        &self.performance_timeline_task_source
+    }
+
     /// Handles a request for the window title.
     fn handle_get_title_msg(&self, pipeline_id: PipelineId) {
         let document = match { self.documents.borrow().find_document(pipeline_id) } {
@@ -1991,6 +2003,7 @@ impl ScriptThread {
         let DOMManipulationTaskSource(ref dom_sender) = self.dom_manipulation_task_source;
         let UserInteractionTaskSource(ref user_sender) = self.user_interaction_task_source;
         let HistoryTraversalTaskSource(ref history_sender) = self.history_traversal_task_source;
+        let PerformanceTimelineTaskSource(ref performance_sender) = self.performance_timeline_task_source;
 
         let (ipc_timer_event_chan, ipc_timer_event_port) = ipc::channel().unwrap();
         ROUTER.route_ipc_receiver_to_mpsc_sender(ipc_timer_event_port,
@@ -2015,6 +2028,7 @@ impl ScriptThread {
                                  self.networking_task_source.clone(),
                                  HistoryTraversalTaskSource(history_sender.clone()),
                                  self.file_reading_task_source.clone(),
+                                 PerformanceTimelineTaskSource(performance_sender.clone()),
                                  self.image_cache_channel.clone(),
                                  self.image_cache.clone(),
                                  self.resource_threads.clone(),
