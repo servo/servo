@@ -502,19 +502,22 @@ impl Stylist {
                             self.quirks_mode);
 
                         self.invalidation_map.note_selector(selector, self.quirks_mode);
-                        if needs_revalidation(&selector) {
-                            self.selectors_for_cache_revalidation.insert(
-                                RevalidationSelectorAndHashes::new(&selector, &hashes),
-                                self.quirks_mode);
-                        }
-                        selector.visit(&mut AttributeAndStateDependencyVisitor {
+                        let mut visitor = StylistSelectorVisitor {
+                            needs_revalidation: false,
+                            passed_rightmost_selector: false,
                             attribute_dependencies: &mut self.attribute_dependencies,
                             style_attribute_dependency: &mut self.style_attribute_dependency,
                             state_dependencies: &mut self.state_dependencies,
-                        });
-                        selector.visit(&mut MappedIdVisitor {
                             mapped_ids: &mut self.mapped_ids,
-                        });
+                        };
+
+                        selector.visit(&mut visitor);
+
+                        if visitor.needs_revalidation {
+                            self.selectors_for_cache_revalidation.insert(
+                                RevalidationSelectorAndHashes::new(selector.clone(), hashes),
+                                self.quirks_mode);
+                        }
                     }
                     self.rules_source_order += 1;
                 }
@@ -1421,20 +1424,128 @@ impl Stylist {
     }
 }
 
-/// Visitor to collect names that appear in attribute selectors and any
-/// dependencies on ElementState bits.
-struct AttributeAndStateDependencyVisitor<'a> {
+/// SelectorMapEntry implementation for use in our revalidation selector map.
+#[derive(Clone, Debug)]
+struct RevalidationSelectorAndHashes {
+    selector: Selector<SelectorImpl>,
+    selector_offset: usize,
+    hashes: AncestorHashes,
+}
+
+impl RevalidationSelectorAndHashes {
+    fn new(selector: Selector<SelectorImpl>, hashes: AncestorHashes) -> Self {
+        let selector_offset = {
+            // We basically want to check whether the first combinator is a
+            // pseudo-element combinator.  If it is, we want to use the offset
+            // one past it.  Otherwise, our offset is 0.
+            let mut index = 0;
+            let mut iter = selector.iter();
+
+            // First skip over the first ComplexSelector.
+            //
+            // We can't check what sort of what combinator we have until we do
+            // that.
+            for _ in &mut iter {
+                index += 1; // Simple selector
+            }
+
+            match iter.next_sequence() {
+                Some(Combinator::PseudoElement) => index + 1, // +1 for the combinator
+                _ => 0
+            }
+        };
+
+        RevalidationSelectorAndHashes { selector, selector_offset, hashes, }
+    }
+}
+
+impl SelectorMapEntry for RevalidationSelectorAndHashes {
+    fn selector(&self) -> SelectorIter<SelectorImpl> {
+        self.selector.iter_from(self.selector_offset)
+    }
+}
+
+/// A selector visitor implementation that collects all the state the Stylist
+/// cares about a selector.
+struct StylistSelectorVisitor<'a> {
+    /// Whether the selector needs revalidation for the style sharing cache.
+    needs_revalidation: bool,
+    /// Whether we've past the rightmost compound selector, not counting
+    /// pseudo-elements.
+    passed_rightmost_selector: bool,
+    /// The filter with all the id's getting referenced from rightmost
+    /// selectors.
+    mapped_ids: &'a mut BloomFilter,
+    /// The filter with the local names of attributes there are selectors for.
     attribute_dependencies: &'a mut BloomFilter,
+    /// Whether there's any attribute selector for the [style] attribute.
     style_attribute_dependency: &'a mut bool,
+    /// All the states selectors in the page reference.
     state_dependencies: &'a mut ElementState,
 }
 
-impl<'a> SelectorVisitor for AttributeAndStateDependencyVisitor<'a> {
+fn component_needs_revalidation(c: &Component<SelectorImpl>) -> bool {
+    match *c {
+        Component::AttributeInNoNamespaceExists { .. } |
+        Component::AttributeInNoNamespace { .. } |
+        Component::AttributeOther(_) |
+        Component::Empty |
+        // FIXME(bz) We really only want to do this for some cases of id
+        // selectors.  See
+        // https://bugzilla.mozilla.org/show_bug.cgi?id=1369611
+        Component::ID(_) |
+        Component::FirstChild |
+        Component::LastChild |
+        Component::OnlyChild |
+        Component::NthChild(..) |
+        Component::NthLastChild(..) |
+        Component::NthOfType(..) |
+        Component::NthLastOfType(..) |
+        Component::FirstOfType |
+        Component::LastOfType |
+        Component::OnlyOfType => {
+            true
+        },
+        Component::NonTSPseudoClass(ref p) => {
+            p.needs_cache_revalidation()
+        },
+        _ => {
+            false
+        }
+    }
+}
+
+impl<'a> SelectorVisitor for StylistSelectorVisitor<'a> {
     type Impl = SelectorImpl;
 
-    fn visit_attribute_selector(&mut self, _ns: &NamespaceConstraint<&Namespace>,
-                                name: &LocalName, lower_name: &LocalName)
-                                -> bool {
+    fn visit_complex_selector(
+        &mut self,
+        _: SelectorIter<SelectorImpl>,
+        combinator: Option<Combinator>
+    ) -> bool {
+        self.needs_revalidation =
+            self.needs_revalidation || combinator.map_or(false, |c| c.is_sibling());
+
+        // NOTE(emilio): This works properly right now because we can't store
+        // complex selectors in nested selectors, otherwise we may need to
+        // rethink this.
+        //
+        // Also, note that this call happens before we visit any of the simple
+        // selectors in the next ComplexSelector, so we can use this to skip
+        // looking at them.
+        self.passed_rightmost_selector =
+            self.passed_rightmost_selector ||
+            !matches!(combinator, None | Some(Combinator::PseudoElement));
+
+        true
+    }
+
+    fn visit_attribute_selector(
+        &mut self,
+        _ns: &NamespaceConstraint<&Namespace>,
+        name: &LocalName,
+        lower_name: &LocalName
+    ) -> bool {
         if *lower_name == local_name!("style") {
             *self.style_attribute_dependency = true;
         } else {
@@ -1445,165 +1556,32 @@ impl<'a> SelectorVisitor for AttributeAndStateDependencyVisitor<'a> {
     }
 
     fn visit_simple_selector(&mut self, s: &Component<SelectorImpl>) -> bool {
-        if let Component::NonTSPseudoClass(ref p) = *s {
-            self.state_dependencies.insert(p.state_flag());
-        }
-        true
-    }
-}
+        self.needs_revalidation =
+            self.needs_revalidation || component_needs_revalidation(s);
 
-/// Visitor to collect ids that appear in the rightmost portion of selectors.
-struct MappedIdVisitor<'a> {
-    mapped_ids: &'a mut BloomFilter,
-}
-
-impl<'a> SelectorVisitor for MappedIdVisitor<'a> {
-    type Impl = SelectorImpl;
-
-    /// We just want to insert all the ids we find into mapped_ids.
-    fn visit_simple_selector(&mut self, s: &Component<SelectorImpl>) -> bool {
-        if let Component::ID(ref id) = *s {
-            self.mapped_ids.insert_hash(id.get_hash());
-        }
-        true
-    }
-
-    /// We want to stop as soon as we've moved off the rightmost ComplexSelector
-    /// that is not a psedo-element.  That can be detected by a
-    /// visit_complex_selector call with a combinator other than None and
-    /// PseudoElement.  Importantly, this call happens before we visit any of
-    /// the simple selectors in that ComplexSelector.
-    fn visit_complex_selector(&mut self,
-                              _: SelectorIter<SelectorImpl>,
-                              combinator: Option<Combinator>) -> bool {
-        match combinator {
-            None | Some(Combinator::PseudoElement) => true,
-            _ => false,
-        }
-    }
-}
-
-/// SelectorMapEntry implementation for use in our revalidation selector map.
-#[derive(Clone, Debug)]
-struct RevalidationSelectorAndHashes {
-    selector: Selector<SelectorImpl>,
-    selector_offset: usize,
-    hashes: AncestorHashes,
-}
-
-impl RevalidationSelectorAndHashes {
-    fn new(selector: &Selector<SelectorImpl>, hashes: &AncestorHashes) -> Self {
-        // We basically want to check whether the first combinator is a
-        // pseudo-element combinator.  If it is, we want to use the offset one
-        // past it.  Otherwise, our offset is 0.
-        let mut index = 0;
-        let mut iter = selector.iter();
-
-        // First skip over the first ComplexSelector.  We can't check what sort
-        // of combinator we have until we do that.
-        for _ in &mut iter {
-            index += 1; // Simple selector
-        }
-
-        let offset = match iter.next_sequence() {
-            Some(Combinator::PseudoElement) => index + 1, // +1 for the combinator
-            _ => 0
-        };
-
-        RevalidationSelectorAndHashes {
-            selector: selector.clone(),
-            selector_offset: offset,
-            hashes: hashes.clone(),
-        }
-    }
-}
-
-impl SelectorMapEntry for RevalidationSelectorAndHashes {
-    fn selector(&self) -> SelectorIter<SelectorImpl> {
-        self.selector.iter_from(self.selector_offset)
-    }
-}
-
-/// Visitor to determine whether a selector requires cache revalidation.
-///
-/// Note that we just check simple selectors and eagerly return when the first
-/// need for revalidation is found, so we don't need to store state on the
-/// visitor.
-///
-/// Also, note that it's important to check the whole selector, due to cousins
-/// sharing arbitrarily deep in the DOM, not just the rightmost part of it
-/// (unfortunately, though).
-///
-/// With cousin sharing, we not only need to care about selectors in stuff like
-/// foo:first-child, but also about selectors like p:first-child foo, since the
-/// two parents may have shared style, and in that case we can test cousins
-/// whose matching depends on the selector up in the chain.
-///
-/// TODO(emilio): We can optimize when matching only siblings to only match the
-/// rightmost selector until a descendant combinator is found, I guess, and in
-/// general when we're sharing at depth `n`, to the `n + 1` sequences of
-/// descendant combinators.
-///
-/// I don't think that in presence of the bloom filter it's worth it, though.
-struct RevalidationVisitor;
-
-impl SelectorVisitor for RevalidationVisitor {
-    type Impl = SelectorImpl;
-
-
-    fn visit_complex_selector(&mut self,
-                              _: SelectorIter<SelectorImpl>,
-                              combinator: Option<Combinator>) -> bool {
-        let is_sibling_combinator =
-            combinator.map_or(false, |c| c.is_sibling());
-
-        !is_sibling_combinator
-    }
-
-
-    /// Check whether sequence of simple selectors containing this simple
-    /// selector to be explicitly matched against both the style sharing cache
-    /// entry and the candidate.
-    ///
-    /// We use this for selectors that can have different matching behavior
-    /// between siblings that are otherwise identical as far as the cache is
-    /// concerned.
-    fn visit_simple_selector(&mut self, s: &Component<SelectorImpl>) -> bool {
         match *s {
-            Component::AttributeInNoNamespaceExists { .. } |
-            Component::AttributeInNoNamespace { .. } |
-            Component::AttributeOther(_) |
-            Component::Empty |
-            // FIXME(bz) We really only want to do this for some cases of id
-            // selectors.  See
-            // https://bugzilla.mozilla.org/show_bug.cgi?id=1369611
-            Component::ID(_) |
-            Component::FirstChild |
-            Component::LastChild |
-            Component::OnlyChild |
-            Component::NthChild(..) |
-            Component::NthLastChild(..) |
-            Component::NthOfType(..) |
-            Component::NthLastOfType(..) |
-            Component::FirstOfType |
-            Component::LastOfType |
-            Component::OnlyOfType => {
-                false
-            },
             Component::NonTSPseudoClass(ref p) => {
-                !p.needs_cache_revalidation()
-            },
-            _ => {
-                true
+                self.state_dependencies.insert(p.state_flag());
             }
+            Component::ID(ref id) if !self.passed_rightmost_selector => {
+                // We want to stop storing mapped ids as soon as we've moved off
+                // the rightmost ComplexSelector that is not a pseudo-element.
+                //
+                // That can be detected by a visit_complex_selector call with a
+                // combinator other than None and PseudoElement.
+                //
+                // Importantly, this call happens before we visit any of the
+                // simple selectors in that ComplexSelector.
+                //
+                // NOTE(emilio): See the comment regarding on when this may
+                // break in visit_complex_selector.
+                self.mapped_ids.insert_hash(id.get_hash());
+            }
+            _ => {},
         }
-    }
-}
 
-/// Returns true if the given selector needs cache revalidation.
-pub fn needs_revalidation(selector: &Selector<SelectorImpl>) -> bool {
-    let mut visitor = RevalidationVisitor;
-    !selector.visit(&mut visitor)
+        true
+    }
 }
 
 /// Map that contains the CSS rules for a specific PseudoElement
@@ -1700,4 +1678,22 @@ impl Rule {
             source_order: source_order,
         }
     }
+}
+
+/// A function to be able to test the revalidation stuff.
+pub fn needs_revalidation_for_testing(s: &Selector<SelectorImpl>) -> bool {
+    let mut attribute_dependencies = BloomFilter::new();
+    let mut mapped_ids = BloomFilter::new();
+    let mut style_attribute_dependency = false;
+    let mut state_dependencies = ElementState::empty();
+    let mut visitor = StylistSelectorVisitor {
+        needs_revalidation: false,
+        passed_rightmost_selector: false,
+        attribute_dependencies: &mut attribute_dependencies,
+        style_attribute_dependency: &mut style_attribute_dependency,
+        state_dependencies: &mut state_dependencies,
+        mapped_ids: &mut mapped_ids,
+    };
+    s.visit(&mut visitor);
+    visitor.needs_revalidation
 }
