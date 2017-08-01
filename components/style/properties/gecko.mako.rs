@@ -1726,6 +1726,49 @@ fn static_assert() {
     pub fn reset_grid_template_areas(&mut self, other: &Self) {
         self.copy_grid_template_areas_from(other)
     }
+
+    pub fn clone_grid_template_areas(&self) -> longhands::grid_template_areas::computed_value::T {
+        use properties::longhands::grid_template_areas::{NamedArea, TemplateAreas};
+        use std::ops::Range;
+        use values::None_;
+
+        if self.gecko.mGridTemplateAreas.mRawPtr.is_null() {
+            return Either::Second(None_);
+        }
+
+        let gecko_grid_template_areas = self.gecko.mGridTemplateAreas.mRawPtr;
+        let areas = unsafe {
+            let vec: Vec<NamedArea> =
+                (*gecko_grid_template_areas).mNamedAreas.iter().map(|gecko_name_area| {
+                    let name = gecko_name_area.mName.to_string().into_boxed_str();
+                    let rows = Range {
+                        start: gecko_name_area.mRowStart,
+                        end: gecko_name_area.mRowEnd
+                    };
+                    let columns = Range {
+                        start: gecko_name_area.mColumnStart,
+                        end: gecko_name_area.mColumnEnd
+                    };
+                    NamedArea{ name, rows, columns }
+                }).collect();
+            vec.into_boxed_slice()
+        };
+
+        let strings = unsafe {
+            let vec: Vec<Box<str>> =
+                (*gecko_grid_template_areas).mTemplates.iter().map(|gecko_template| {
+                    gecko_template.to_string().into_boxed_str()
+                }).collect();
+            vec.into_boxed_slice()
+        };
+
+        let width = unsafe {
+            (*gecko_grid_template_areas).mNColumns
+        };
+
+        Either::First(TemplateAreas{ areas, strings, width })
+    }
+
 </%self:impl_trait>
 
 <% skip_outline_longhands = " ".join("outline-style outline-width".split() +
