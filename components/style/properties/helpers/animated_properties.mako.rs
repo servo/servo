@@ -43,10 +43,10 @@ use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone
 use values::computed::{BorderCornerRadius, ClipRect};
 use values::computed::{CalcLengthOrPercentage, Color, Context, ComputedValueAsSpecified};
 use values::computed::{LengthOrPercentage, MaxLength, MozLength, Percentage, ToComputedValue};
-use values::generics::{SVGPaint, SVGPaintKind};
 use values::generics::border::BorderCornerRadius as GenericBorderCornerRadius;
 use values::generics::effects::Filter;
 use values::generics::position as generic_position;
+use values::generics::svg::{SVGPaint, SVGPaintKind};
 
 /// A trait used to implement various procedures used during animation.
 pub trait Animatable: Sized {

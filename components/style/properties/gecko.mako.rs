@@ -579,7 +579,7 @@ def set_gecko_property(ffi_name, expr):
 <%def name="impl_svg_paint(ident, gecko_ffi_name, need_clone=False)">
     #[allow(non_snake_case)]
     pub fn set_${ident}(&mut self, mut v: longhands::${ident}::computed_value::T) {
-        use values::generics::SVGPaintKind;
+        use values::generics::svg::SVGPaintKind;
         use self::structs::nsStyleSVGPaintType;
         use self::structs::nsStyleSVGFallbackType;
 
@@ -632,7 +632,7 @@ def set_gecko_property(ffi_name, expr):
 
     #[allow(non_snake_case)]
     pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
-        use values::generics::{SVGPaint, SVGPaintKind};
+        use values::generics::svg::{SVGPaint, SVGPaintKind};
         use values::specified::url::SpecifiedUrl;
         use self::structs::nsStyleSVGPaintType;
         use self::structs::nsStyleSVGFallbackType;
