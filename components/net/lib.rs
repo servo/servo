@@ -12,6 +12,7 @@ extern crate devtools_traits;
 extern crate flate2;
 extern crate hyper;
 extern crate hyper_serde;
+extern crate hyper_sync_rustls;
 extern crate immeta;
 extern crate ipc_channel;
 #[macro_use]
@@ -26,6 +27,7 @@ extern crate net_traits;
 extern crate openssl;
 extern crate parse_hosts;
 extern crate profile_traits;
+extern crate rustls;
 #[macro_use] extern crate serde;
 extern crate serde_json;
 extern crate servo_config;
@@ -38,8 +40,6 @@ extern crate url;
 extern crate uuid;
 extern crate webrender_api;
 extern crate websocket;
-extern crate rustls;
-extern crate hyper_sync_rustls;
 
 mod blob_loader;
 mod chrome_loader;

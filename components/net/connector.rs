@@ -6,11 +6,11 @@ use hosts::replace_host;
 use hyper::client::Pool;
 use hyper::error::{Result as HyperResult, Error as HyperError};
 use hyper::net::{NetworkConnector, HttpsStream, HttpStream, SslClient};
-use std::{io, fs };
+use hyper_sync_rustls::TlsClient;
+use rustls;
+use std::{io, fs};
 use std::net::TcpStream;
 use std::path::PathBuf;
-use rustls;
-use hyper_sync_rustls:: {TlsClient};
 use std::sync::Arc;
 
 pub struct HttpsConnector {
@@ -59,26 +59,11 @@ pub fn create_ssl_client(ca_file: &PathBuf) -> TlsClient {
     let mut tls = rustls::ClientConfig::new();
     tls.root_store.add_pem_file(&mut ca).unwrap();
     let tls = Arc::new(tls);
-    let client = TlsClient {cfg: tls};
+    let client = TlsClient { cfg: tls };
     client
 }
 
 pub fn create_http_connector(ssl_client: TlsClient ) -> Pool<Connector> {
-    let https_connector = HttpsConnector::new(ssl_client);  
+    let https_connector = HttpsConnector::new(ssl_client);
     Pool::with_connector(Default::default(), https_connector)
 }
-// The basic logic here is to prefer ciphers with ECDSA certificates, Forward
-// Secrecy, AES GCM ciphers, AES ciphers, and finally 3DES ciphers.
-// A complete discussion of the issues involved in TLS configuration can be found here:
-// https://wiki.mozilla.org/Security/Server_Side_TLS
-const DEFAULT_CIPHERS: &'static str = concat!(
-    "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:",
-    "ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:",
-    "DHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-SHA256:",
-    "ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA384:",
-    "ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES256-SHA:",
-    "ECDHE-RSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:",
-    "DHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA:ECDHE-RSA-DES-CBC3-SHA:",
-    "ECDHE-ECDSA-DES-CBC3-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:",
-    "AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA"
-);

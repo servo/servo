@@ -42,7 +42,6 @@ unicase = "1.4.0"
 url = {version = "1.2", features = ["heap_size"]}
 uuid = {version = "0.5", features = ["v4"]}
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
-tokio-core = "0.1.7"
 hyper-sync-rustls = {git = "https://github.com/SergioBenitez/hyper-sync-rustls.git"}
 
 [target.'cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))'.dependencies]
