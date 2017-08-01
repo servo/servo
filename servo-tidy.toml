@@ -36,6 +36,8 @@ packages = [
   "error-chain",
   "bitflags",
   "libloading", # Conflicting version is only used at build-time by geckolib.
+  "base64", # Conflicting version is used for ring
+  "rayon", # Conflicting verswon is used for rustls
 ]
 # Files that are ignored for all tidy and lint checks.
 files = [
