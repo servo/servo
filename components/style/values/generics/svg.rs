@@ -6,7 +6,8 @@
 
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
-use style_traits::{ParseError, StyleParseError};
+use std::fmt;
+use style_traits::{ParseError, StyleParseError, ToCss};
 use values::specified::url::SpecifiedUrl;
 
 /// An SVG paint value
@@ -103,4 +104,37 @@ pub enum SVGLength<LengthType> {
     Length(LengthType),
     /// `context-value`
     ContextValue,
+}
+
+/// Generic value for stroke-dasharray.
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Debug, PartialEq, HasViewportPercentage, ToComputedValue)]
+pub enum SVGStrokeDashArray<LengthType> {
+    /// `[ <length> | <percentage> | <number> ]#`
+    Values(Vec<LengthType>),
+    /// `context-value`
+    ContextValue,
+}
+
+impl<LengthType> ToCss for SVGStrokeDashArray<LengthType> where LengthType: ToCss {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match self {
+            &SVGStrokeDashArray::Values(ref values) => {
+                let mut iter = values.iter();
+                if let Some(first) = iter.next() {
+                    first.to_css(dest)?;
+                    for item in iter {
+                        dest.write_str(", ")?;
+                        item.to_css(dest)?;
+                    }
+                    Ok(())
+                } else {
+                    dest.write_str("none")
+                }
+            }
+            &SVGStrokeDashArray::ContextValue => {
+                dest.write_str("context-value")
+            }
+        }
+    }
 }

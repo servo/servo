@@ -42,3 +42,12 @@ impl From<Au> for SVGLength {
         generic::SVGLength::Length(Either::Second(length.into()))
     }
 }
+
+/// [ <length> | <percentage> | <number> ]# | context-value
+pub type SVGStrokeDashArray = generic::SVGStrokeDashArray<LengthOrPercentageOrNumber>;
+
+impl Default for SVGStrokeDashArray {
+    fn default() -> Self {
+        generic::SVGStrokeDashArray::Values(vec![])
+    }
+}

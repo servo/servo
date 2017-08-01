@@ -46,7 +46,7 @@ use values::computed::{LengthOrPercentage, MaxLength, MozLength, Percentage, ToC
 use values::generics::border::BorderCornerRadius as GenericBorderCornerRadius;
 use values::generics::effects::Filter;
 use values::generics::position as generic_position;
-use values::generics::svg::{SVGLength, SVGPaint, SVGPaintKind};
+use values::generics::svg::{SVGLength, SVGPaint, SVGPaintKind, SVGStrokeDashArray};
 
 /// A trait used to implement various procedures used during animation.
 pub trait Animatable: Sized {
@@ -3070,6 +3070,48 @@ impl<LengthType> ToAnimatedZero for SVGLength<LengthType> where LengthType : ToA
         match self {
             &SVGLength::Length(ref length) => length.to_animated_zero().map(SVGLength::Length),
             &SVGLength::ContextValue => Ok(SVGLength::ContextValue),
+        }
+    }
+}
+
+impl<LengthType> Animatable for SVGStrokeDashArray<LengthType>
+    where LengthType : RepeatableListAnimatable + Clone
+{
+    #[inline]
+    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
+        match (self, other) {
+            (&SVGStrokeDashArray::Values(ref this), &SVGStrokeDashArray::Values(ref other))=> {
+                this.add_weighted(other, self_portion, other_portion)
+                    .map(SVGStrokeDashArray::Values)
+            }
+            _ => {
+                Ok(if self_portion > other_portion { self.clone() } else { other.clone() })
+            }
+        }
+    }
+
+    #[inline]
+    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
+        match (self, other) {
+            (&SVGStrokeDashArray::Values(ref this), &SVGStrokeDashArray::Values(ref other)) => {
+                this.compute_distance(other)
+            }
+            _ => Err(())
+        }
+    }
+}
+
+impl<LengthType> ToAnimatedZero for SVGStrokeDashArray<LengthType>
+    where LengthType : ToAnimatedZero + Clone
+{
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        match self {
+            &SVGStrokeDashArray::Values(ref values) => {
+                values.iter().map(ToAnimatedZero::to_animated_zero)
+                      .collect::<Result<Vec<_>, ()>>().map(SVGStrokeDashArray::Values)
+            }
+            &SVGStrokeDashArray::ContextValue => Ok(SVGStrokeDashArray::ContextValue),
         }
     }
 }

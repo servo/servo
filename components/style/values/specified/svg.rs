@@ -6,7 +6,7 @@
 
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
-use style_traits::{ParseError, StyleParseError};
+use style_traits::{CommaWithSpace, ParseError, Separator, StyleParseError};
 use values::generics::svg as generic;
 use values::specified::LengthOrPercentageOrNumber;
 use values::specified::color::RGBAColor;
@@ -67,5 +67,23 @@ impl SVGLength {
 impl From<LengthOrPercentageOrNumber> for SVGLength {
     fn from(length: LengthOrPercentageOrNumber) -> Self {
         generic::SVGLength::Length(length)
+    }
+}
+
+/// [ <length> | <percentage> | <number> ]# | context-value
+pub type SVGStrokeDashArray = generic::SVGStrokeDashArray<LengthOrPercentageOrNumber>;
+
+impl Parse for SVGStrokeDashArray {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                     -> Result<Self, ParseError<'i>> {
+        if let Ok(values) = input.try(|i| CommaWithSpace::parse(i, |i| {
+            LengthOrPercentageOrNumber::parse_non_negative(context, i)
+        })) {
+            Ok(generic::SVGStrokeDashArray::Values(values))
+        } else if let Ok(_) = input.try(|i| i.expect_ident_matching("none")) {
+            Ok(generic::SVGStrokeDashArray::Values(vec![]))
+        } else {
+            parse_context_value(input, generic::SVGStrokeDashArray::ContextValue)
+        }
     }
 }

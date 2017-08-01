@@ -91,13 +91,10 @@ ${helpers.predefined_type("stroke-opacity", "Opacity", "1.0",
 
 ${helpers.predefined_type(
     "stroke-dasharray",
-    "LengthOrPercentageOrNumber",
-    None,
-    "parse_non_negative",
-    vector=True,
+    "SVGStrokeDashArray",
+    "Default::default()",
     products="gecko",
     animation_value_type="ComputedValue",
-    separator="CommaWithSpace",
     spec="https://www.w3.org/TR/SVG2/painting.html#StrokeDashing",
 )}
 

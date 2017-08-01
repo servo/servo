@@ -43,7 +43,7 @@ pub use self::length::{LengthOrPercentageOrNone, MaxLength, MozLength};
 pub use self::length::{NoCalcLength, Percentage, ViewportPercentageLength};
 pub use self::rect::LengthOrNumberRect;
 pub use self::position::{Position, PositionComponent};
-pub use self::svg::{SVGLength, SVGPaint, SVGPaintKind};
+pub use self::svg::{SVGLength, SVGPaint, SVGPaintKind, SVGStrokeDashArray};
 pub use self::text::{InitialLetter, LetterSpacing, LineHeight, WordSpacing};
 pub use self::transform::{TimingFunction, TransformOrigin};
 pub use super::generics::grid::GridLine;
