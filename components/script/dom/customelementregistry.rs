@@ -18,7 +18,7 @@ use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::domexception::{DOMErrorName, DOMException};
-use dom::element::Element;
+use dom::element::{CustomElementState, Element};
 use dom::globalscope::GlobalScope;
 use dom::htmlelement::HTMLElement;
 use dom::node::{document_from_node, Node, window_from_node};
@@ -483,8 +483,11 @@ impl CustomElementDefinition {
 /// https://html.spec.whatwg.org/multipage/#concept-upgrade-an-element
 #[allow(unsafe_code)]
 pub fn upgrade_element(definition: Rc<CustomElementDefinition>, element: &Element) {
-    // TODO: Steps 1-2
-    // Track custom element state
+    // Steps 1-2
+    let state = element.get_custom_element_state();
+    if state == CustomElementState::Custom || state == CustomElementState::Failed {
+        return;
+    }
 
     // Step 3
     for attr in element.attrs().iter() {
@@ -510,8 +513,8 @@ pub fn upgrade_element(definition: Rc<CustomElementDefinition>, element: &Elemen
 
     // Step 7 exception handling
     if let Err(error) = result {
-        // TODO: Step 7.1
-        // Track custom element state
+        // Step 7.1
+        element.set_custom_element_state(CustomElementState::Failed);
 
         // Step 7.2
         element.clear_reaction_queue();
@@ -526,6 +529,10 @@ pub fn upgrade_element(definition: Rc<CustomElementDefinition>, element: &Elemen
         return;
     }
 
+    // Step 8
+    element.set_custom_element_state(CustomElementState::Custom);
+
+    // Step 9
     element.set_custom_element_definition(definition);
 }
 

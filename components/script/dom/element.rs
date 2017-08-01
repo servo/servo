@@ -150,6 +150,7 @@ pub struct Element {
     /// https://dom.spec.whatwg.org/#concept-element-custom-element-definition
     #[ignore_heap_size_of = "Rc"]
     custom_element_definition: DOMRefCell<Option<Rc<CustomElementDefinition>>>,
+    custom_element_state: Cell<CustomElementState>,
 }
 
 impl fmt::Debug for Element {
@@ -177,6 +178,14 @@ pub enum ElementCreator {
 pub enum CustomElementCreationMode {
     Synchronous,
     Asynchronous,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, HeapSizeOf, JSTraceable)]
+pub enum CustomElementState {
+    Undefined,
+    Failed,
+    Uncustomized,
+    Custom,
 }
 
 impl ElementCreator {
@@ -255,6 +264,7 @@ impl Element {
             selector_flags: Cell::new(ElementSelectorFlags::empty()),
             custom_element_reaction_queue: Default::default(),
             custom_element_definition: Default::default(),
+            custom_element_state: Cell::new(CustomElementState::Uncustomized),
         }
     }
 
@@ -287,6 +297,14 @@ impl Element {
 
     pub fn get_is(&self) -> Option<LocalName> {
         self.is.borrow().clone()
+    }
+
+    pub fn set_custom_element_state(&self, state: CustomElementState) {
+        self.custom_element_state.set(state);
+    }
+
+    pub fn get_custom_element_state(&self) -> CustomElementState {
+        self.custom_element_state.get()
     }
 
     pub fn set_custom_element_definition(&self, definition: Rc<CustomElementDefinition>) {

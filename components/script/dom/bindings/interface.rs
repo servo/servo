@@ -81,7 +81,7 @@ use dom::bindings::js::Root;
 use dom::bindings::utils::{DOM_PROTOTYPE_SLOT, ProtoOrIfaceArray, get_proto_or_iface_array};
 use dom::create::create_native_html_element;
 use dom::customelementregistry::ConstructionStackEntry;
-use dom::element::{Element, ElementCreator};
+use dom::element::{CustomElementState, Element, ElementCreator};
 use dom::htmlelement::HTMLElement;
 use dom::window::Window;
 use html5ever::LocalName;
@@ -296,8 +296,10 @@ pub unsafe fn html_constructor<T>(window: &Window, call_args: &CallArgs) -> Fall
 
             // Step 8.2 is performed in the generated caller code.
 
-            // TODO: Step 8.3 - 8.4
-            // Set the element's custom element state and definition.
+            // Step 8.3
+            element.set_custom_element_state(CustomElementState::Custom);
+
+            // Step 8.4
             element.set_custom_element_definition(definition.clone());
 
             // Step 8.5
