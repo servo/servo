@@ -7,6 +7,7 @@
  */
 
 typedef double DOMHighResTimeStamp;
+typedef sequence<PerformanceEntry> PerformanceEntryList;
 
 [Exposed=(Window,Worker)]
 interface Performance {
@@ -16,4 +17,12 @@ interface Performance {
 
 partial interface Performance {
   DOMHighResTimeStamp now();
+};
+
+// https://w3c.github.io/performance-timeline/#extensions-to-the-performance-interface
+partial interface Performance {
+  PerformanceEntryList getEntries();
+  PerformanceEntryList getEntriesByType(DOMString type);
+  PerformanceEntryList getEntriesByName(DOMString name,
+                                        optional DOMString type);
 };
