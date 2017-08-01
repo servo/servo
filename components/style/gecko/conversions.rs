@@ -810,7 +810,8 @@ impl TrackSize<LengthOrPercentage> {
 
         if gecko_min.unit() == nsStyleUnit::eStyleUnit_None {
             debug_assert!(gecko_max.unit() == nsStyleUnit::eStyleUnit_Coord ||
-                          gecko_max.unit() == nsStyleUnit::eStyleUnit_Percent);
+                          gecko_max.unit() == nsStyleUnit::eStyleUnit_Percent ||
+                          gecko_max.unit() == nsStyleUnit::eStyleUnit_Calc);
             return TrackSize::FitContent(LengthOrPercentage::from_gecko_style_coord(gecko_max)
                                          .expect("gecko_max could not convert to LengthOrPercentage"));
         }
