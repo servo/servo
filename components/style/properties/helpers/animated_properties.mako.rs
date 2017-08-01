@@ -46,7 +46,7 @@ use values::computed::{LengthOrPercentage, MaxLength, MozLength, Percentage, ToC
 use values::generics::border::BorderCornerRadius as GenericBorderCornerRadius;
 use values::generics::effects::Filter;
 use values::generics::position as generic_position;
-use values::generics::svg::{SVGPaint, SVGPaintKind};
+use values::generics::svg::{SVGLength, SVGPaint, SVGPaintKind};
 
 /// A trait used to implement various procedures used during animation.
 pub trait Animatable: Sized {
@@ -3034,6 +3034,42 @@ impl ToAnimatedZero for IntermediateSVGPaintKind {
             SVGPaintKind::ContextFill |
             SVGPaintKind::ContextStroke => Ok(self.clone()),
             _ => Err(()),
+        }
+    }
+}
+
+impl<LengthType> Animatable for SVGLength<LengthType>
+        where LengthType: Animatable + Clone
+{
+    #[inline]
+    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
+        match (self, other) {
+            (&SVGLength::Length(ref this), &SVGLength::Length(ref other)) => {
+                this.add_weighted(&other, self_portion, other_portion).map(SVGLength::Length)
+            }
+            _ => {
+                Ok(if self_portion > other_portion { self.clone() } else { other.clone() })
+            }
+        }
+    }
+
+    #[inline]
+    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
+        match (self, other) {
+            (&SVGLength::Length(ref this), &SVGLength::Length(ref other)) => {
+                this.compute_distance(other)
+            }
+            _ => Err(())
+        }
+    }
+}
+
+impl<LengthType> ToAnimatedZero for SVGLength<LengthType> where LengthType : ToAnimatedZero {
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        match self {
+            &SVGLength::Length(ref length) => length.to_animated_zero().map(SVGLength::Length),
+            &SVGLength::ContextValue => Ok(SVGLength::ContextValue),
         }
     }
 }

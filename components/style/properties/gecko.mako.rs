@@ -576,6 +576,64 @@ def set_gecko_property(ffi_name, expr):
     % endif
 </%def>
 
+<%def name="impl_svg_length(ident, gecko_ffi_name, need_clone=False)">
+    // When context-value is used on an SVG length, the corresponding flag is
+    // set on mContextFlags, and the length field is set to the initial value.
+
+    pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
+        use values::generics::svg::SVGLength;
+        use gecko_bindings::structs::nsStyleSVG_${ident.upper()}_CONTEXT as CONTEXT_VALUE;
+        let length = match v {
+            SVGLength::Length(length) => {
+                self.gecko.mContextFlags &= !CONTEXT_VALUE;
+                length
+            }
+            SVGLength::ContextValue => {
+                self.gecko.mContextFlags |= CONTEXT_VALUE;
+                match longhands::${ident}::get_initial_value() {
+                    SVGLength::Length(length) => length,
+                    _ => unreachable!("Initial value should not be context-value"),
+                }
+            }
+        };
+        match length {
+            Either::First(number) =>
+                self.gecko.${gecko_ffi_name}.set_value(CoordDataValue::Factor(number)),
+            Either::Second(lop) => self.gecko.${gecko_ffi_name}.set(lop),
+        }
+    }
+
+    pub fn copy_${ident}_from(&mut self, other: &Self) {
+        use gecko_bindings::structs::nsStyleSVG_${ident.upper()}_CONTEXT as CONTEXT_VALUE;
+        self.gecko.${gecko_ffi_name}.copy_from(&other.gecko.${gecko_ffi_name});
+        self.gecko.mContextFlags =
+            (self.gecko.mContextFlags & !CONTEXT_VALUE) |
+            (other.gecko.mContextFlags & CONTEXT_VALUE);
+    }
+
+    pub fn reset_${ident}(&mut self, other: &Self) {
+        self.copy_${ident}_from(other)
+    }
+
+    pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
+        use values::generics::svg::SVGLength;
+        use values::computed::LengthOrPercentage;
+        use gecko_bindings::structs::nsStyleSVG_${ident.upper()}_CONTEXT as CONTEXT_VALUE;
+        if (self.gecko.mContextFlags & CONTEXT_VALUE) != 0 {
+            return SVGLength::ContextValue;
+        }
+        let length = match self.gecko.${gecko_ffi_name}.as_value() {
+            CoordDataValue::Factor(number) => Either::First(number),
+            CoordDataValue::Coord(coord) => Either::Second(LengthOrPercentage::Length(Au(coord))),
+            CoordDataValue::Percent(p) => Either::Second(LengthOrPercentage::Percentage(Percentage(p))),
+            CoordDataValue::Calc(calc) => Either::Second(LengthOrPercentage::Calc(calc.into())),
+            _ => unreachable!("Unexpected coordinate {:?} in ${ident}",
+                              self.gecko.${gecko_ffi_name}.as_value()),
+        };
+        SVGLength::Length(length)
+    }
+</%def>
+
 <%def name="impl_svg_paint(ident, gecko_ffi_name, need_clone=False)">
     #[allow(non_snake_case)]
     pub fn set_${ident}(&mut self, mut v: longhands::${ident}::computed_value::T) {
@@ -965,6 +1023,7 @@ impl Clone for ${style_struct.gecko_struct_name} {
         "Opacity": impl_simple,
         "Color": impl_color,
         "RGBAColor": impl_rgba_color,
+        "SVGLength": impl_svg_length,
         "SVGPaint": impl_svg_paint,
         "UrlOrNone": impl_css_url,
     }
@@ -4896,7 +4955,7 @@ clip-path
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="InheritedSVG"
-                  skip_longhands="paint-order stroke-dasharray stroke-dashoffset stroke-width -moz-context-properties"
+                  skip_longhands="paint-order stroke-dasharray -moz-context-properties"
                   skip_additionals="*">
     pub fn set_paint_order(&mut self, v: longhands::paint_order::computed_value::T) {
         use self::longhands::paint_order;
@@ -4966,46 +5025,6 @@ clip-path
             }
         }
         longhands::stroke_dasharray::computed_value::T(vec)
-    }
-
-    pub fn set_stroke_dashoffset(&mut self, v: longhands::stroke_dashoffset::computed_value::T) {
-        match v {
-            Either::First(number) => self.gecko.mStrokeDashoffset.set_value(CoordDataValue::Factor(number)),
-            Either::Second(lop) => self.gecko.mStrokeDashoffset.set(lop),
-        }
-    }
-
-    ${impl_coord_copy('stroke_dashoffset', 'mStrokeDashoffset')}
-
-    pub fn clone_stroke_dashoffset(&self) -> longhands::stroke_dashoffset::computed_value::T {
-        use values::computed::LengthOrPercentage;
-        match self.gecko.mStrokeDashoffset.as_value() {
-            CoordDataValue::Factor(number) => Either::First(number),
-            CoordDataValue::Coord(coord) => Either::Second(LengthOrPercentage::Length(Au(coord))),
-            CoordDataValue::Percent(p) => Either::Second(LengthOrPercentage::Percentage(Percentage(p))),
-            CoordDataValue::Calc(calc) => Either::Second(LengthOrPercentage::Calc(calc.into())),
-            _ => unreachable!(),
-        }
-    }
-
-    pub fn set_stroke_width(&mut self, v: longhands::stroke_width::computed_value::T) {
-        match v {
-            Either::First(number) => self.gecko.mStrokeWidth.set_value(CoordDataValue::Factor(number)),
-            Either::Second(lop) => self.gecko.mStrokeWidth.set(lop),
-        }
-    }
-
-    ${impl_coord_copy('stroke_width', 'mStrokeWidth')}
-
-    pub fn clone_stroke_width(&self) -> longhands::stroke_width::computed_value::T {
-        use values::computed::LengthOrPercentage;
-        match self.gecko.mStrokeWidth.as_value() {
-            CoordDataValue::Factor(number) => Either::First(number),
-            CoordDataValue::Coord(coord) => Either::Second(LengthOrPercentage::Length(Au(coord))),
-            CoordDataValue::Percent(p) => Either::Second(LengthOrPercentage::Percentage(Percentage(p))),
-            CoordDataValue::Calc(calc) => Either::Second(LengthOrPercentage::Calc(calc.into())),
-            _ => unreachable!(),
-        }
     }
 
     #[allow(non_snake_case)]

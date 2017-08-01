@@ -4,7 +4,9 @@
 
 //! Computed types for SVG properties.
 
-use values::RGBA;
+use app_units::Au;
+use values::{Either, RGBA};
+use values::computed::LengthOrPercentageOrNumber;
 use values::generics::svg as generic;
 
 /// Computed SVG Paint value
@@ -29,5 +31,14 @@ impl SVGPaint {
             kind: generic::SVGPaintKind::Color(rgba),
             fallback: None,
         }
+    }
+}
+
+/// <length> | <percentage> | <number> | context-value
+pub type SVGLength = generic::SVGLength<LengthOrPercentageOrNumber>;
+
+impl From<Au> for SVGLength {
+    fn from(length: Au) -> Self {
+        generic::SVGLength::Length(Either::Second(length.into()))
     }
 }

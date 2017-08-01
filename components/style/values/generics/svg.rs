@@ -94,3 +94,13 @@ impl<ColorType: Parse> Parse for SVGPaint<ColorType> {
         }
     }
 }
+
+/// An SVG length value supports `context-value` in addition to length.
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Copy, Debug, PartialEq, HasViewportPercentage, ToComputedValue, ToCss)]
+pub enum SVGLength<LengthType> {
+    /// `<length> | <percentage> | <number>`
+    Length(LengthType),
+    /// `context-value`
+    ContextValue,
+}
