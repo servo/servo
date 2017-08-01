@@ -6,7 +6,7 @@
 
 use app_units::Au;
 use values::{Either, RGBA};
-use values::computed::LengthOrPercentageOrNumber;
+use values::computed::{LengthOrPercentageOrNumber, Opacity};
 use values::generics::svg as generic;
 
 /// Computed SVG Paint value
@@ -49,5 +49,14 @@ pub type SVGStrokeDashArray = generic::SVGStrokeDashArray<LengthOrPercentageOrNu
 impl Default for SVGStrokeDashArray {
     fn default() -> Self {
         generic::SVGStrokeDashArray::Values(vec![])
+    }
+}
+
+/// <opacity-value> | context-fill-opacity | context-stroke-opacity
+pub type SVGOpacity = generic::SVGOpacity<Opacity>;
+
+impl Default for SVGOpacity {
+    fn default() -> Self {
+        generic::SVGOpacity::Opacity(1.)
     }
 }

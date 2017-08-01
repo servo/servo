@@ -8,7 +8,7 @@ use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use style_traits::{CommaWithSpace, ParseError, Separator, StyleParseError};
 use values::generics::svg as generic;
-use values::specified::LengthOrPercentageOrNumber;
+use values::specified::{LengthOrPercentageOrNumber, Opacity};
 use values::specified::color::RGBAColor;
 
 /// Specified SVG Paint value
@@ -84,6 +84,25 @@ impl Parse for SVGStrokeDashArray {
             Ok(generic::SVGStrokeDashArray::Values(vec![]))
         } else {
             parse_context_value(input, generic::SVGStrokeDashArray::ContextValue)
+        }
+    }
+}
+
+/// <opacity-value> | context-fill-opacity | context-stroke-opacity
+pub type SVGOpacity = generic::SVGOpacity<Opacity>;
+
+impl Parse for SVGOpacity {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                     -> Result<Self, ParseError<'i>> {
+        if let Ok(opacity) = input.try(|i| Opacity::parse(context, i)) {
+            Ok(generic::SVGOpacity::Opacity(opacity))
+        } else if is_context_value_enabled() {
+            try_match_ident_ignore_ascii_case! { input.expect_ident()?,
+                "context-fill-opacity" => Ok(generic::SVGOpacity::ContextFillOpacity),
+                "context-stroke-opacity" => Ok(generic::SVGOpacity::ContextStrokeOpacity),
+            }
+        } else {
+            Err(StyleParseError::UnspecifiedError.into())
         }
     }
 }

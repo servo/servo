@@ -138,3 +138,16 @@ impl<LengthType> ToCss for SVGStrokeDashArray<LengthType> where LengthType: ToCs
         }
     }
 }
+
+/// An SVG opacity value accepts `context-{fill,stroke}-opacity` in
+/// addition to opacity value.
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Copy, Debug, PartialEq, HasViewportPercentage, ToComputedValue, ToCss)]
+pub enum SVGOpacity<OpacityType> {
+    /// `<opacity-value>`
+    Opacity(OpacityType),
+    /// `context-fill-opacity`
+    ContextFillOpacity,
+    /// `context-stroke-opacity`
+    ContextStrokeOpacity,
+}

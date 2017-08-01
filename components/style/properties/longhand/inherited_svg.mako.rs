@@ -39,7 +39,7 @@ ${helpers.predefined_type(
     boxed=True,
     spec="https://www.w3.org/TR/SVG2/painting.html#SpecifyingFillPaint")}
 
-${helpers.predefined_type("fill-opacity", "Opacity", "1.0",
+${helpers.predefined_type("fill-opacity", "SVGOpacity", "Default::default()",
                           products="gecko", animation_value_type="ComputedValue",
                           spec="https://www.w3.org/TR/SVG11/painting.html#FillOpacityProperty")}
 
@@ -85,7 +85,7 @@ ${helpers.predefined_type("stroke-miterlimit", "Number", "4.0",
                           animation_value_type="ComputedValue",
                           spec="https://www.w3.org/TR/SVG11/painting.html#StrokeMiterlimitProperty")}
 
-${helpers.predefined_type("stroke-opacity", "Opacity", "1.0",
+${helpers.predefined_type("stroke-opacity", "SVGOpacity", "Default::default()",
                           products="gecko", animation_value_type="ComputedValue",
                           spec="https://www.w3.org/TR/SVG11/painting.html#StrokeOpacityProperty")}
 

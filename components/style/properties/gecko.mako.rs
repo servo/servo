@@ -634,6 +634,67 @@ def set_gecko_property(ffi_name, expr):
     }
 </%def>
 
+<%def name="impl_svg_opacity(ident, gecko_ffi_name, need_clone=False)">
+    <% source_prefix = ident.split("_")[0].upper() + "_OPACITY_SOURCE" %>
+
+    pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
+        use gecko_bindings::structs::nsStyleSVG_${source_prefix}_MASK as MASK;
+        use gecko_bindings::structs::nsStyleSVG_${source_prefix}_SHIFT as SHIFT;
+        use gecko_bindings::structs::nsStyleSVGOpacitySource::*;
+        use values::generics::svg::SVGOpacity;
+        self.gecko.mContextFlags &= !MASK;
+        match v {
+            SVGOpacity::Opacity(opacity) => {
+                self.gecko.mContextFlags |=
+                    (eStyleSVGOpacitySource_Normal as u8) << SHIFT;
+                self.gecko.${gecko_ffi_name} = opacity;
+            }
+            SVGOpacity::ContextFillOpacity => {
+                self.gecko.mContextFlags |=
+                    (eStyleSVGOpacitySource_ContextFillOpacity as u8) << SHIFT;
+                self.gecko.${gecko_ffi_name} = 1.;
+            }
+            SVGOpacity::ContextStrokeOpacity => {
+                self.gecko.mContextFlags |=
+                    (eStyleSVGOpacitySource_ContextStrokeOpacity as u8) << SHIFT;
+                self.gecko.${gecko_ffi_name} = 1.;
+            }
+        }
+    }
+
+    pub fn copy_${ident}_from(&mut self, other: &Self) {
+        use gecko_bindings::structs::nsStyleSVG_${source_prefix}_MASK as MASK;
+        self.gecko.${gecko_ffi_name} = other.gecko.${gecko_ffi_name};
+        self.gecko.mContextFlags =
+            (self.gecko.mContextFlags & !MASK) |
+            (other.gecko.mContextFlags & MASK);
+    }
+
+    pub fn reset_${ident}(&mut self, other: &Self) {
+        self.copy_${ident}_from(other)
+    }
+
+    pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
+        use gecko_bindings::structs::nsStyleSVG_${source_prefix}_MASK as MASK;
+        use gecko_bindings::structs::nsStyleSVG_${source_prefix}_SHIFT as SHIFT;
+        use gecko_bindings::structs::nsStyleSVGOpacitySource::*;
+        use values::generics::svg::SVGOpacity;
+
+        let source = (self.gecko.mContextFlags & MASK) >> SHIFT;
+        if source == eStyleSVGOpacitySource_Normal as u8 {
+            return SVGOpacity::Opacity(self.gecko.${gecko_ffi_name});
+        } else {
+            debug_assert_eq!(self.gecko.${gecko_ffi_name}, 1.0);
+            if source == eStyleSVGOpacitySource_ContextFillOpacity as u8 {
+                SVGOpacity::ContextFillOpacity
+            } else {
+                debug_assert_eq!(source, eStyleSVGOpacitySource_ContextStrokeOpacity as u8);
+                SVGOpacity::ContextStrokeOpacity
+            }
+        }
+    }
+</%def>
+
 <%def name="impl_svg_paint(ident, gecko_ffi_name, need_clone=False)">
     #[allow(non_snake_case)]
     pub fn set_${ident}(&mut self, mut v: longhands::${ident}::computed_value::T) {
@@ -1024,6 +1085,7 @@ impl Clone for ${style_struct.gecko_struct_name} {
         "Color": impl_color,
         "RGBAColor": impl_rgba_color,
         "SVGLength": impl_svg_length,
+        "SVGOpacity": impl_svg_opacity,
         "SVGPaint": impl_svg_paint,
         "UrlOrNone": impl_css_url,
     }
