@@ -282,7 +282,7 @@ ${helpers.predefined_type("object-position",
                               products="gecko",
                               spec="https://drafts.csswg.org/css-grid/#propdef-grid-template-%ss" % kind,
                               boxed=True,
-                              animation_value_type="none")}
+                              animation_value_type="discrete")}
 
 % endfor
 
@@ -416,7 +416,7 @@ ${helpers.predefined_type("object-position",
 <%helpers:longhand name="grid-template-areas"
         spec="https://drafts.csswg.org/css-grid/#propdef-grid-template-areas"
         products="gecko"
-        animation_value_type="none"
+        animation_value_type="discrete"
         disable_when_testing="True"
         boxed="True">
     use std::collections::HashMap;
@@ -442,14 +442,14 @@ ${helpers.predefined_type("object-position",
         SpecifiedValue::parse(context, input)
     }
 
-    #[derive(Clone, PartialEq)]
+    #[derive(Clone, Debug, PartialEq)]
     pub struct TemplateAreas {
         pub areas: Box<[NamedArea]>,
         pub strings: Box<[Box<str>]>,
         pub width: u32,
     }
 
-    #[derive(Clone, PartialEq)]
+    #[derive(Clone, Debug, PartialEq)]
     pub struct NamedArea {
         pub name: Box<str>,
         pub rows: Range<u32>,
