@@ -282,7 +282,7 @@ ${helpers.predefined_type("object-position",
                               products="gecko",
                               spec="https://drafts.csswg.org/css-grid/#propdef-grid-template-%ss" % kind,
                               boxed=True,
-                              animation_value_type="none")}
+                              animation_value_type="discrete")}
 
 % endfor
 
