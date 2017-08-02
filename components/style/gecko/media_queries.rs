@@ -186,6 +186,15 @@ impl Device {
     pub fn default_background_color(&self) -> RGBA {
         convert_nscolor_to_rgba(self.pres_context().mBackgroundColor)
     }
+
+    /// Applies text zoom to a font-size or line-height value (see nsStyleFont::ZoomText).
+    pub fn zoom_text(&self, size: Au) -> Au {
+        size.scale_by(self.pres_context().mEffectiveTextZoom)
+    }
+    /// Un-apply text zoom (see nsStyleFont::UnzoomText).
+    pub fn unzoom_text(&self, size: Au) -> Au {
+        size.scale_by(1. / self.pres_context().mEffectiveTextZoom)
+    }
 }
 
 /// A expression for gecko contains a reference to the media feature, the value

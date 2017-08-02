@@ -830,17 +830,17 @@ ${helpers.single_keyword_system("font-variant-caps",
                     value.to_computed_value(base_size.resolve(context))
                 }
                 SpecifiedValue::Length(LengthOrPercentage::Length(ref l)) => {
-                    l.to_computed_value(context)
+                    context.maybe_zoom_text(l.to_computed_value(context))
                 }
                 SpecifiedValue::Length(LengthOrPercentage::Percentage(pc)) => {
                     base_size.resolve(context).scale_by(pc.0)
                 }
                 SpecifiedValue::Length(LengthOrPercentage::Calc(ref calc)) => {
-                    let calc = calc.to_computed_value(context);
+                    let calc = calc.to_computed_value_zoomed(context);
                     calc.to_used_value(Some(base_size.resolve(context))).unwrap()
                 }
                 SpecifiedValue::Keyword(ref key, fraction) => {
-                    key.to_computed_value(context).scale_by(fraction)
+                    context.maybe_zoom_text(key.to_computed_value(context).scale_by(fraction))
                 }
                 SpecifiedValue::Smaller => {
                     FontRelativeLength::Em(1. / LARGER_FONT_SIZE_RATIO)
@@ -960,7 +960,7 @@ ${helpers.single_keyword_system("font-variant-caps",
                context.builder.get_font().gecko().mGenericID !=
                context.builder.get_parent_font().gecko().mGenericID {
                 if let Some((kw, ratio)) = context.builder.font_size_keyword {
-                    computed = kw.to_computed_value(context).scale_by(ratio);
+                    computed = context.maybe_zoom_text(kw.to_computed_value(context).scale_by(ratio));
                 }
             }
         % endif
@@ -990,7 +990,7 @@ ${helpers.single_keyword_system("font-variant-caps",
         // changes using the font_size_keyword. We also need to do this to
         // handle mathml scriptlevel changes
         let kw_inherited_size = context.builder.font_size_keyword.map(|(kw, ratio)| {
-            SpecifiedValue::Keyword(kw, ratio).to_computed_value(context)
+            context.maybe_zoom_text(SpecifiedValue::Keyword(kw, ratio).to_computed_value(context))
         });
         let parent_kw;
         let device = context.builder.device;
@@ -1015,8 +1015,10 @@ ${helpers.single_keyword_system("font-variant-caps",
     pub fn cascade_initial_font_size(context: &mut Context) {
         // font-size's default ("medium") does not always
         // compute to the same value and depends on the font
-        let computed = longhands::font_size::get_initial_specified_value()
-                            .to_computed_value(context);
+        let computed = context.maybe_zoom_text(
+                            longhands::font_size::get_initial_specified_value()
+                                .to_computed_value(context)
+                        );
         context.builder.mutate_font().set_font_size(computed);
         % if product == "gecko":
             let device = context.builder.device;
@@ -2381,6 +2383,41 @@ ${helpers.single_keyword("-moz-math-variant",
     }
 </%helpers:longhand>
 
+<%helpers:longhand name="-x-text-zoom" products="gecko" animation_value_type="none" internal="True"
+                   spec="Internal (not web-exposed)">
+    use values::computed::ComputedValueAsSpecified;
+    pub use self::computed_value::T as SpecifiedValue;
+
+    impl ComputedValueAsSpecified for SpecifiedValue {}
+    no_viewport_percentage!(SpecifiedValue);
+
+    pub mod computed_value {
+        use std::fmt;
+        use style_traits::ToCss;
+
+        impl ToCss for T {
+            fn to_css<W>(&self, _: &mut W) -> fmt::Result where W: fmt::Write {
+                Ok(())
+            }
+        }
+
+        #[derive(Clone, Debug, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        /// text-zoom. Enable if true, disable if false
+        pub struct T(pub bool);
+    }
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        computed_value::T(true)
+    }
+
+    pub fn parse<'i, 't>(_context: &ParserContext, _input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
+        debug_assert!(false, "Should be set directly by presentation attributes only.");
+        Err(StyleParseError::UnspecifiedError.into())
+    }
+</%helpers:longhand>
 
 % if product == "gecko":
     pub mod system_font {
