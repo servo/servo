@@ -74,6 +74,7 @@ use style::gecko_bindings::structs::IterationCompositeOperation;
 use style::gecko_bindings::structs::MallocSizeOf;
 use style::gecko_bindings::structs::RawGeckoGfxMatrix4x4;
 use style::gecko_bindings::structs::RawGeckoPresContextOwned;
+use style::gecko_bindings::structs::SeenPtrs;
 use style::gecko_bindings::structs::ServoElementSnapshotTable;
 use style::gecko_bindings::structs::ServoTraversalFlags;
 use style::gecko_bindings::structs::StyleRuleInclusion;
@@ -107,8 +108,9 @@ use style::shared_lock::{SharedRwLockReadGuard, StylesheetGuards, ToCssWithGuard
 use style::string_cache::Atom;
 use style::style_adjuster::StyleAdjuster;
 use style::stylesheets::{CssRule, CssRules, CssRuleType, CssRulesHelpers, DocumentRule};
-use style::stylesheets::{FontFeatureValuesRule, ImportRule, KeyframesRule, MallocSizeOfWithGuard, MediaRule};
-use style::stylesheets::{NamespaceRule, Origin, PageRule, StyleRule, SupportsRule};
+use style::stylesheets::{FontFeatureValuesRule, ImportRule, KeyframesRule, MallocSizeOfWithGuard};
+use style::stylesheets::{MallocSizeOfWithRepeats, MediaRule};
+use style::stylesheets::{NamespaceRule, Origin, PageRule, SizeOfState, StyleRule, SupportsRule};
 use style::stylesheets::StylesheetContents;
 use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
 use style::stylesheets::keyframes_rule::{Keyframe, KeyframeSelector, KeyframesStepValue};
@@ -742,6 +744,24 @@ pub extern "C" fn Servo_StyleWorkerThreadCount() -> u32 {
 #[no_mangle]
 pub extern "C" fn Servo_Element_ClearData(element: RawGeckoElementBorrowed) {
     unsafe { GeckoElement(element).clear_data() };
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_Element_SizeOfExcludingThis(malloc_size_of: MallocSizeOf,
+                                                    seen_ptrs: *mut SeenPtrs,
+                                                    element: RawGeckoElementBorrowed) -> usize {
+    let malloc_size_of = malloc_size_of.unwrap();
+    let element = GeckoElement(element);
+    let borrow = element.borrow_data();
+    if let Some(data) = borrow {
+        let mut state = SizeOfState {
+            malloc_size_of: malloc_size_of,
+            seen_ptrs: seen_ptrs,
+        };
+        (*data).malloc_size_of_children(&mut state)
+    } else {
+        0
+    }
 }
 
 #[no_mangle]

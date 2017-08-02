@@ -60,6 +60,7 @@ use selector_parser::PseudoElement;
 use servo_arc::{Arc, RawOffsetArc};
 use std::mem::{forget, uninitialized, transmute, zeroed};
 use std::{cmp, ops, ptr};
+use stylesheets::{MallocSizeOfWithRepeats, SizeOfState};
 use values::{self, Auto, CustomIdent, Either, KeyframesName};
 use values::computed::ToComputedValue;
 use values::computed::effects::{BoxShadow, Filter, SimpleShadow};
@@ -308,6 +309,11 @@ impl ComputedValuesInner {
         self.visited_style.as_ref().map(|x| &**x)
     }
 
+    /// Gets the raw visited style. Useful for memory reporting.
+    pub fn get_raw_visited_style(&self) -> &Option<RawOffsetArc<ComputedValues>> {
+        &self.visited_style
+    }
+
     /// Gets a reference to the visited style. Panic if no visited style exists.
     pub fn visited_style(&self) -> &ComputedValues {
         self.get_visited_style().unwrap()
@@ -361,6 +367,18 @@ impl ComputedValuesInner {
             PropertyDeclarationId::Custom(_name) => unimplemented!(),
             _ => unimplemented!()
         }
+    }
+}
+
+impl MallocSizeOfWithRepeats for ComputedValues {
+    fn malloc_size_of_children(&self, state: &mut SizeOfState) -> usize {
+        let mut n = 0;
+        if let Some(ref raw_offset_arc) = *self.get_raw_visited_style() {
+            n += raw_offset_arc.with_arc(|a: &Arc<ComputedValues>| {
+                a.malloc_size_of_children(state)
+            })
+        }
+        n
     }
 }
 

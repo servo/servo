@@ -6024,6 +6024,21 @@ pub mod root {
             MAX = 29,
         }
         #[repr(C)]
+        #[derive(Debug, Copy)]
+        pub struct SeenPtrs {
+            pub _bindgen_opaque_blob: [u64; 6usize],
+        }
+        #[test]
+        fn bindgen_test_layout_SeenPtrs() {
+            assert_eq!(::std::mem::size_of::<SeenPtrs>() , 48usize , concat !
+                       ( "Size of: " , stringify ! ( SeenPtrs ) ));
+            assert_eq! (::std::mem::align_of::<SeenPtrs>() , 8usize , concat !
+                        ( "Alignment of " , stringify ! ( SeenPtrs ) ));
+        }
+        impl Clone for SeenPtrs {
+            fn clone(&self) -> Self { *self }
+        }
+        #[repr(C)]
         #[derive(Debug)]
         pub struct URLExtraData {
             pub mRefCnt: root::mozilla::ThreadSafeAutoRefCnt,

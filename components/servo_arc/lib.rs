@@ -41,6 +41,7 @@ use std::hash::{Hash, Hasher};
 use std::iter::{ExactSizeIterator, Iterator};
 use std::mem;
 use std::ops::{Deref, DerefMut};
+use std::os::raw::c_void;
 use std::process;
 use std::ptr;
 use std::slice;
@@ -200,6 +201,7 @@ impl<T> Arc<T> {
     pub fn borrow_arc<'a>(&'a self) -> ArcBorrow<'a, T> {
         ArcBorrow(&**self)
     }
+
     /// Temporarily converts |self| into a bonafide RawOffsetArc and exposes it to the
     /// provided callback. The refcount is not modified.
     #[inline(always)]
@@ -217,6 +219,12 @@ impl<T> Arc<T> {
 
         // Forward the result.
         result
+    }
+
+    /// Returns the address on the heap of the Arc itself -- not the T within it -- for memory
+    /// reporting.
+    pub fn heap_ptr(&self) -> *const c_void {
+        self.p.ptr() as *const ArcInner<T> as *const c_void
     }
 }
 

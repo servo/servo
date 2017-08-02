@@ -14,6 +14,7 @@ use gecko_bindings::structs::mozilla::css::ImageValue;
 use gecko_bindings::structs::mozilla::css::URLValue;
 use gecko_bindings::structs::mozilla::css::URLValueData;
 use gecko_bindings::structs::mozilla::MallocSizeOf;
+use gecko_bindings::structs::mozilla::SeenPtrs;
 use gecko_bindings::structs::mozilla::Side;
 use gecko_bindings::structs::nsIContent;
 use gecko_bindings::structs::nsIDocument;
@@ -1082,6 +1083,10 @@ extern "C" {
     pub fn Gecko_DropElementSnapshot(snapshot: ServoElementSnapshotOwned);
 }
 extern "C" {
+    pub fn Gecko_HaveSeenPtr(table: *mut SeenPtrs, ptr: *const ::std::os::raw::c_void)
+     -> bool;
+}
+extern "C" {
     pub fn Gecko_ResizeTArrayForStrings(array: *mut nsTArray<nsStringRepr>,
                                         length: u32);
 }
@@ -1877,6 +1882,11 @@ extern "C" {
 }
 extern "C" {
     pub fn Servo_Element_ClearData(node: RawGeckoElementBorrowed);
+}
+extern "C" {
+    pub fn Servo_Element_SizeOfExcludingThis(malloc_size_of: MallocSizeOf,
+                                             seen_ptrs: *mut SeenPtrs,
+                                             node: RawGeckoElementBorrowed) -> usize;
 }
 extern "C" {
     pub fn Servo_StyleSheet_FromUTF8Bytes(loader: *mut Loader,
