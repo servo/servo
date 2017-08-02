@@ -1528,7 +1528,7 @@ fn parse_compound_selector<'i, 't, P, E, Impl>(
                 }
 
                 builder.push_simple_selector(Component::PseudoElement(p));
-                for state_selector in state_selectors.into_iter() {
+                for state_selector in state_selectors.drain() {
                     builder.push_simple_selector(state_selector);
                 }
 
