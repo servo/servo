@@ -185,14 +185,55 @@ trait PrivateMatchMethods: TElement {
         })
     }
 
+    /// Create a SequentialTask for resolving descendants in a SMIL display property
+    /// animation if the display property changed from none.
+    #[cfg(feature = "gecko")]
+    fn handle_display_change_for_smil_if_needed(&self,
+                                                context: &mut StyleContext<Self>,
+                                                old_values: Option<&ComputedValues>,
+                                                new_values: &ComputedValues,
+                                                restyle_hints: RestyleHint) {
+        use context::DISPLAY_CHANGED_FROM_NONE_FOR_SMIL;
+
+        let display_changed_from_none = old_values.as_ref().map_or(false, |old| {
+            let old_display_style = old.get_box().clone_display();
+            let new_display_style = new_values.get_box().clone_display();
+            old_display_style == display::T::none &&
+            new_display_style != display::T::none
+        });
+
+        if display_changed_from_none {
+          // When display value is changed from none to other, we need
+          // to traverse descendant elements in a subsequent normal
+          // traversal (we can't traverse them in this animation-only
+          // restyle since we have no way to know whether the decendants
+          // need to be traversed at the beginning of the animation-only
+          // restyle)
+          debug_assert!(restyle_hints.intersects(RESTYLE_SMIL),
+                        "Display animation should only happen for SMIL");
+          let task = ::context::SequentialTask::process_post_animation(*self,
+                                                                       DISPLAY_CHANGED_FROM_NONE_FOR_SMIL);
+          context.thread_local.tasks.push(task);
+        }
+    }
+
     #[cfg(feature = "gecko")]
     fn process_animations(&self,
                           context: &mut StyleContext<Self>,
                           old_values: &mut Option<Arc<ComputedValues>>,
                           new_values: &mut Arc<ComputedValues>,
+                          restyle_hint: RestyleHint,
                           important_rules_changed: bool) {
         use context::{CASCADE_RESULTS, CSS_ANIMATIONS, CSS_TRANSITIONS, EFFECT_PROPERTIES};
         use context::UpdateAnimationsTasks;
+
+        if context.shared.traversal_flags.for_animation_only() {
+            self.handle_display_change_for_smil_if_needed(context,
+                                                          old_values.as_ref().map(|v| &**v),
+                                                          new_values,
+                                                          restyle_hint);
+            return;
+        }
 
         // Bug 868975: These steps should examine and update the visited styles
         // in addition to the unvisited styles.
@@ -258,6 +299,7 @@ trait PrivateMatchMethods: TElement {
                           context: &mut StyleContext<Self>,
                           old_values: &mut Option<Arc<ComputedValues>>,
                           new_values: &mut Arc<ComputedValues>,
+                          _restyle_hint: RestyleHint,
                           _important_rules_changed: bool) {
         use animation;
         use dom::TNode;
@@ -450,14 +492,13 @@ pub trait MatchMethods : TElement {
 
         debug_assert!(new_styles.primary.is_some(), "How did that happen?");
 
-        if !context.shared.traversal_flags.for_animation_only() {
-            self.process_animations(
-                context,
-                &mut data.styles.primary,
-                &mut new_styles.primary.as_mut().unwrap(),
-                important_rules_changed,
-            );
-        }
+        self.process_animations(
+            context,
+            &mut data.styles.primary,
+            &mut new_styles.primary.as_mut().unwrap(),
+            data.restyle.hint,
+            important_rules_changed,
+        );
 
         // First of all, update the styles.
         let old_styles = mem::replace(&mut data.styles, new_styles);
