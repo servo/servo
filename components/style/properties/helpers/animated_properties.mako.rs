@@ -43,10 +43,10 @@ use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone
 use values::computed::{BorderCornerRadius, ClipRect};
 use values::computed::{CalcLengthOrPercentage, Color, Context, ComputedValueAsSpecified};
 use values::computed::{LengthOrPercentage, MaxLength, MozLength, Percentage, ToComputedValue};
-use values::generics::{SVGPaint, SVGPaintKind};
 use values::generics::border::BorderCornerRadius as GenericBorderCornerRadius;
 use values::generics::effects::Filter;
 use values::generics::position as generic_position;
+use values::generics::svg::{SVGLength, SVGOpacity, SVGPaint, SVGPaintKind, SVGStrokeDashArray};
 
 /// A trait used to implement various procedures used during animation.
 pub trait Animatable: Sized {
@@ -3034,6 +3034,123 @@ impl ToAnimatedZero for IntermediateSVGPaintKind {
             SVGPaintKind::ContextFill |
             SVGPaintKind::ContextStroke => Ok(self.clone()),
             _ => Err(()),
+        }
+    }
+}
+
+impl<LengthType> Animatable for SVGLength<LengthType>
+        where LengthType: Animatable + Clone
+{
+    #[inline]
+    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
+        match (self, other) {
+            (&SVGLength::Length(ref this), &SVGLength::Length(ref other)) => {
+                this.add_weighted(&other, self_portion, other_portion).map(SVGLength::Length)
+            }
+            _ => {
+                Ok(if self_portion > other_portion { self.clone() } else { other.clone() })
+            }
+        }
+    }
+
+    #[inline]
+    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
+        match (self, other) {
+            (&SVGLength::Length(ref this), &SVGLength::Length(ref other)) => {
+                this.compute_distance(other)
+            }
+            _ => Err(())
+        }
+    }
+}
+
+impl<LengthType> ToAnimatedZero for SVGLength<LengthType> where LengthType : ToAnimatedZero {
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        match self {
+            &SVGLength::Length(ref length) => length.to_animated_zero().map(SVGLength::Length),
+            &SVGLength::ContextValue => Ok(SVGLength::ContextValue),
+        }
+    }
+}
+
+impl<LengthType> Animatable for SVGStrokeDashArray<LengthType>
+    where LengthType : RepeatableListAnimatable + Clone
+{
+    #[inline]
+    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
+        match (self, other) {
+            (&SVGStrokeDashArray::Values(ref this), &SVGStrokeDashArray::Values(ref other))=> {
+                this.add_weighted(other, self_portion, other_portion)
+                    .map(SVGStrokeDashArray::Values)
+            }
+            _ => {
+                Ok(if self_portion > other_portion { self.clone() } else { other.clone() })
+            }
+        }
+    }
+
+    #[inline]
+    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
+        match (self, other) {
+            (&SVGStrokeDashArray::Values(ref this), &SVGStrokeDashArray::Values(ref other)) => {
+                this.compute_distance(other)
+            }
+            _ => Err(())
+        }
+    }
+}
+
+impl<LengthType> ToAnimatedZero for SVGStrokeDashArray<LengthType>
+    where LengthType : ToAnimatedZero + Clone
+{
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        match self {
+            &SVGStrokeDashArray::Values(ref values) => {
+                values.iter().map(ToAnimatedZero::to_animated_zero)
+                      .collect::<Result<Vec<_>, ()>>().map(SVGStrokeDashArray::Values)
+            }
+            &SVGStrokeDashArray::ContextValue => Ok(SVGStrokeDashArray::ContextValue),
+        }
+    }
+}
+
+impl<OpacityType> Animatable for SVGOpacity<OpacityType>
+    where OpacityType: Animatable + Clone
+{
+    #[inline]
+    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
+        match (self, other) {
+            (&SVGOpacity::Opacity(ref this), &SVGOpacity::Opacity(ref other)) => {
+                this.add_weighted(other, self_portion, other_portion).map(SVGOpacity::Opacity)
+            }
+            _ => {
+                Ok(if self_portion > other_portion { self.clone() } else { other.clone() })
+            }
+        }
+    }
+
+    #[inline]
+    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
+        match (self, other) {
+            (&SVGOpacity::Opacity(ref this), &SVGOpacity::Opacity(ref other)) => {
+                this.compute_distance(other)
+            }
+            _ => Err(())
+        }
+    }
+}
+
+impl<OpacityType> ToAnimatedZero for SVGOpacity<OpacityType>
+    where OpacityType: ToAnimatedZero + Clone
+{
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        match self {
+            &SVGOpacity::Opacity(ref opacity) =>
+                opacity.to_animated_zero().map(SVGOpacity::Opacity),
+            other => Ok(other.clone()),
         }
     }
 }

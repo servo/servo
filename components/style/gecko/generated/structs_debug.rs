@@ -13741,39 +13741,14 @@ pub mod root {
         pub mContextPropsBits: u8,
         pub mContextFlags: u8,
     }
-    pub const nsStyleSVG_FILL_OPACITY_SOURCE_MASK:
-              root::nsStyleSVG__bindgen_ty_1 =
-        nsStyleSVG__bindgen_ty_1::FILL_OPACITY_SOURCE_MASK;
-    pub const nsStyleSVG_STROKE_OPACITY_SOURCE_MASK:
-              root::nsStyleSVG__bindgen_ty_1 =
-        nsStyleSVG__bindgen_ty_1::STROKE_OPACITY_SOURCE_MASK;
-    pub const nsStyleSVG_STROKE_DASHARRAY_CONTEXT:
-              root::nsStyleSVG__bindgen_ty_1 =
-        nsStyleSVG__bindgen_ty_1::STROKE_DASHARRAY_CONTEXT;
-    pub const nsStyleSVG_STROKE_DASHOFFSET_CONTEXT:
-              root::nsStyleSVG__bindgen_ty_1 =
-        nsStyleSVG__bindgen_ty_1::STROKE_DASHOFFSET_CONTEXT;
-    pub const nsStyleSVG_STROKE_WIDTH_CONTEXT: root::nsStyleSVG__bindgen_ty_1
-              =
-        nsStyleSVG__bindgen_ty_1::STROKE_WIDTH_CONTEXT;
-    pub const nsStyleSVG_FILL_OPACITY_SOURCE_SHIFT:
-              root::nsStyleSVG__bindgen_ty_1 =
-        nsStyleSVG__bindgen_ty_1::FILL_OPACITY_SOURCE_SHIFT;
-    pub const nsStyleSVG_STROKE_OPACITY_SOURCE_SHIFT:
-              root::nsStyleSVG__bindgen_ty_1 =
-        nsStyleSVG__bindgen_ty_1::STROKE_OPACITY_SOURCE_SHIFT;
-    #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-    pub enum nsStyleSVG__bindgen_ty_1 {
-        FILL_OPACITY_SOURCE_MASK = 3,
-        STROKE_OPACITY_SOURCE_MASK = 12,
-        STROKE_DASHARRAY_CONTEXT = 16,
-        STROKE_DASHOFFSET_CONTEXT = 32,
-        STROKE_WIDTH_CONTEXT = 64,
-        FILL_OPACITY_SOURCE_SHIFT = 0,
-        STROKE_OPACITY_SOURCE_SHIFT = 2,
-    }
     pub const nsStyleSVG_kHasFinishStyle: bool = false;
+    pub const nsStyleSVG_FILL_OPACITY_SOURCE_MASK: u8 = 3;
+    pub const nsStyleSVG_STROKE_OPACITY_SOURCE_MASK: u8 = 12;
+    pub const nsStyleSVG_STROKE_DASHARRAY_CONTEXT: u8 = 16;
+    pub const nsStyleSVG_STROKE_DASHOFFSET_CONTEXT: u8 = 32;
+    pub const nsStyleSVG_STROKE_WIDTH_CONTEXT: u8 = 64;
+    pub const nsStyleSVG_FILL_OPACITY_SOURCE_SHIFT: u8 = 0;
+    pub const nsStyleSVG_STROKE_OPACITY_SOURCE_SHIFT: u8 = 2;
     #[test]
     fn bindgen_test_layout_nsStyleSVG() {
         assert_eq!(::std::mem::size_of::<nsStyleSVG>() , 128usize , concat ! (
@@ -31552,6 +31527,13 @@ pub mod root {
         eStyleSVGFallbackType_NotSet = 0,
         eStyleSVGFallbackType_None = 1,
         eStyleSVGFallbackType_Color = 2,
+    }
+    #[repr(u8)]
+    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    pub enum nsStyleSVGOpacitySource {
+        eStyleSVGOpacitySource_Normal = 0,
+        eStyleSVGOpacitySource_ContextFillOpacity = 1,
+        eStyleSVGOpacitySource_ContextStrokeOpacity = 2,
     }
     #[repr(C)]
     #[derive(Debug)]

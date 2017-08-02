@@ -43,6 +43,7 @@ pub use self::length::{LengthOrPercentageOrNone, MaxLength, MozLength};
 pub use self::length::{NoCalcLength, Percentage, ViewportPercentageLength};
 pub use self::rect::LengthOrNumberRect;
 pub use self::position::{Position, PositionComponent};
+pub use self::svg::{SVGLength, SVGOpacity, SVGPaint, SVGPaintKind, SVGStrokeDashArray};
 pub use self::text::{InitialLetter, LetterSpacing, LineHeight, WordSpacing};
 pub use self::transform::{TimingFunction, TransformOrigin};
 pub use super::generics::grid::GridLine;
@@ -64,6 +65,7 @@ pub mod image;
 pub mod length;
 pub mod position;
 pub mod rect;
+pub mod svg;
 pub mod text;
 pub mod transform;
 
@@ -702,14 +704,6 @@ pub type TrackList = GenericTrackList<LengthOrPercentage>;
 
 /// `<grid-template-rows> | <grid-template-columns>`
 pub type GridTemplateComponent = GenericGridTemplateComponent<LengthOrPercentage>;
-
-no_viewport_percentage!(SVGPaint);
-
-/// Specified SVG Paint value
-pub type SVGPaint = ::values::generics::SVGPaint<RGBAColor>;
-
-/// Specified SVG Paint Kind value
-pub type SVGPaintKind = ::values::generics::SVGPaintKind<RGBAColor>;
 
 /// <length> | <percentage> | <number>
 pub type LengthOrPercentageOrNumber = Either<Number, LengthOrPercentage>;

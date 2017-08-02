@@ -17,7 +17,7 @@ use std::f64;
 use std::f64::consts::PI;
 use std::fmt;
 use style_traits::ToCss;
-use super::{CSSFloat, CSSInteger, RGBA};
+use super::{CSSFloat, CSSInteger};
 use super::generics::grid::{TrackBreadth as GenericTrackBreadth, TrackSize as GenericTrackSize};
 use super::generics::grid::GridTemplateComponent as GenericGridTemplateComponent;
 use super::generics::grid::TrackList as GenericTrackList;
@@ -44,6 +44,7 @@ pub use super::specified::url::SpecifiedUrl;
 pub use self::length::{CalcLengthOrPercentage, Length, LengthOrNone, LengthOrNumber, LengthOrPercentage};
 pub use self::length::{LengthOrPercentageOrAuto, LengthOrPercentageOrNone, MaxLength, MozLength, Percentage};
 pub use self::position::Position;
+pub use self::svg::{SVGLength, SVGOpacity, SVGPaint, SVGPaintKind, SVGStrokeDashArray};
 pub use self::text::{InitialLetter, LetterSpacing, LineHeight, WordSpacing};
 pub use self::transform::{TimingFunction, TransformOrigin};
 
@@ -61,6 +62,7 @@ pub mod gecko;
 pub mod length;
 pub mod position;
 pub mod rect;
+pub mod svg;
 pub mod text;
 pub mod transform;
 
@@ -450,31 +452,6 @@ impl IntegerOrAuto {
         match *self {
             Either::First(n) => n,
             Either::Second(Auto) => auto_value,
-        }
-    }
-}
-
-/// Computed SVG Paint value
-pub type SVGPaint = ::values::generics::SVGPaint<RGBA>;
-/// Computed SVG Paint Kind value
-pub type SVGPaintKind = ::values::generics::SVGPaintKind<RGBA>;
-
-impl Default for SVGPaint {
-    fn default() -> Self {
-        SVGPaint {
-            kind: ::values::generics::SVGPaintKind::None,
-            fallback: None,
-        }
-    }
-}
-
-impl SVGPaint {
-    /// Opaque black color
-    pub fn black() -> Self {
-        let rgba = RGBA::from_floats(0., 0., 0., 1.);
-        SVGPaint {
-            kind: ::values::generics::SVGPaintKind::Color(rgba),
-            fallback: None,
         }
     }
 }
