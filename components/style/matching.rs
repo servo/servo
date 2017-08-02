@@ -744,15 +744,17 @@ pub trait MatchMethods : TElement {
         let replace_rule_node = |level: CascadeLevel,
                                  pdb: Option<ArcBorrow<Locked<PropertyDeclarationBlock>>>,
                                  path: &mut StrongRuleNode| -> bool {
+            let mut important_rules_changed = false;
             let new_node = stylist.rule_tree()
-                                  .update_rule_at_level(level, pdb, path, guards);
-            match new_node {
-                Some(n) => {
-                    *path = n;
-                    level.is_important()
-                },
-                None => false,
+                                  .update_rule_at_level(level,
+                                                        pdb,
+                                                        path,
+                                                        guards,
+                                                        &mut important_rules_changed);
+            if let Some(n) = new_node {
+                *path = n;
             }
+            important_rules_changed
         };
 
         if !context.shared.traversal_flags.for_animation_only() {

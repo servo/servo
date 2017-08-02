@@ -310,12 +310,14 @@ impl RuleTree {
                                 level: CascadeLevel,
                                 pdb: Option<ArcBorrow<Locked<PropertyDeclarationBlock>>>,
                                 path: &StrongRuleNode,
-                                guards: &StylesheetGuards)
+                                guards: &StylesheetGuards,
+                                important_rules_changed: &mut bool)
                                 -> Option<StrongRuleNode> {
         debug_assert!(level.is_unique_per_element());
         // TODO(emilio): Being smarter with lifetimes we could avoid a bit of
         // the refcount churn.
         let mut current = path.clone();
+        *important_rules_changed = false;
 
         // First walk up until the first less-or-equally specific rule.
         let mut children = SmallVec::<[_; 10]>::new();
@@ -335,6 +337,8 @@ impl RuleTree {
         // special cases, and replacing them for a `while` loop, avoiding the
         // optimizations).
         if current.get().level == level {
+            *important_rules_changed |= level.is_important();
+
             if let Some(pdb) = pdb {
                 // If the only rule at the level we're replacing is exactly the
                 // same as `pdb`, we're done, and `path` is still valid.
