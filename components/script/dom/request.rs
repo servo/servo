@@ -38,7 +38,6 @@ use net_traits::request::Request as NetTraitsRequest;
 use net_traits::request::RequestMode as NetTraitsRequestMode;
 use net_traits::request::Type as NetTraitsRequestType;
 use servo_url::ServoUrl;
-use std::ascii::AsciiExt;
 use std::cell::{Cell, Ref};
 use std::rc::Rc;
 
@@ -453,15 +452,16 @@ fn net_request_from_global(global: &GlobalScope,
 
 // https://fetch.spec.whatwg.org/#concept-method-normalize
 fn normalize_method(m: &str) -> HttpMethod {
-    match m {
-        m if m.eq_ignore_ascii_case("DELETE") => HttpMethod::Delete,
-        m if m.eq_ignore_ascii_case("GET") => HttpMethod::Get,
-        m if m.eq_ignore_ascii_case("HEAD") => HttpMethod::Head,
-        m if m.eq_ignore_ascii_case("OPTIONS") => HttpMethod::Options,
-        m if m.eq_ignore_ascii_case("POST") => HttpMethod::Post,
-        m if m.eq_ignore_ascii_case("PUT") => HttpMethod::Put,
-        m => HttpMethod::Extension(m.to_string()),
+    match_ignore_ascii_case! { m,
+        "delete" => return HttpMethod::Delete,
+        "get" => return HttpMethod::Get,
+        "head" => return HttpMethod::Head,
+        "options" => return HttpMethod::Options,
+        "post" => return HttpMethod::Post,
+        "put" => return HttpMethod::Put,
+        _ => (),
     }
+    HttpMethod::Extension(m.to_string())
 }
 
 // https://fetch.spec.whatwg.org/#concept-method

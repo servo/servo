@@ -12,7 +12,6 @@ use cssparser::{Delimiter, Parser, Token, ParserInput};
 use parser::ParserContext;
 use selectors::parser::SelectorParseError;
 use serialize_comma_separated_list;
-use std::ascii::AsciiExt;
 use std::fmt;
 use style_traits::{ToCss, ParseError, StyleParseError};
 
@@ -146,20 +145,15 @@ pub enum MediaQueryType {
 
 impl MediaQueryType {
     fn parse(ident: &str) -> Result<Self, ()> {
-        if ident.eq_ignore_ascii_case("all") {
-            return Ok(MediaQueryType::All);
-        }
-
-        // From https://drafts.csswg.org/mediaqueries/#mq-syntax:
-        //
-        //   The <media-type> production does not include the keywords only,
-        //   not, and, and or.
-        if ident.eq_ignore_ascii_case("not") ||
-           ident.eq_ignore_ascii_case("or") ||
-           ident.eq_ignore_ascii_case("and") ||
-           ident.eq_ignore_ascii_case("only") {
-            return Err(())
-        }
+        match_ignore_ascii_case! { ident,
+            "all" => return Ok(MediaQueryType::All),
+            // From https://drafts.csswg.org/mediaqueries/#mq-syntax:
+            //
+            //   The <media-type> production does not include the keywords only,
+            //   not, and, and or.
+            "not" | "or" | "and" | "only" => return Err(()),
+            _ => (),
+        };
 
         Ok(match MediaType::parse(ident) {
             Some(media_type) => MediaQueryType::Known(media_type),

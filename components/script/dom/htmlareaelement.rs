@@ -240,7 +240,7 @@ impl HTMLAreaElement {
     pub fn get_shape_from_coords(&self) -> Option<Area> {
        let elem = self.upcast::<Element>();
        let shape = elem.get_string_attribute(&"shape".into());
-       let shp: Shape = match shape.to_lowercase().as_ref() {
+       let shp: Shape = match_ignore_ascii_case! { &shape,
            "circle" => Shape::Circle,
            "circ" => Shape::Circle,
            "rectangle" => Shape::Rectangle,

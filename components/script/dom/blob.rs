@@ -16,6 +16,7 @@ use ipc_channel::ipc;
 use net_traits::{CoreResourceMsg, IpcSend};
 use net_traits::blob_url_store::{BlobBuf, get_blob_origin};
 use net_traits::filemanager_thread::{FileManagerThreadMsg, ReadFileProgress, RelativePos};
+use std::ascii::AsciiExt;
 use std::mem;
 use std::ops::Index;
 use std::path::PathBuf;
@@ -381,7 +382,7 @@ impl BlobMethods for Blob {
 /// see https://github.com/w3c/FileAPI/issues/43
 fn normalize_type_string(s: &str) -> String {
     if is_ascii_printable(s) {
-        let s_lower = s.to_lowercase();
+        let s_lower = s.to_ascii_lowercase();
         // match s_lower.parse() as Result<Mime, ()> {
             // Ok(_) => s_lower,
             // Err(_) => "".to_string()

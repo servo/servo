@@ -3875,8 +3875,7 @@ fn update_with_current_time_ms(marker: &Cell<u64>) {
 
 /// https://w3c.github.io/webappsec-referrer-policy/#determine-policy-for-token
 pub fn determine_policy_for_token(token: &str) -> Option<ReferrerPolicy> {
-    let lower = token.to_lowercase();
-    return match lower.as_ref() {
+    match_ignore_ascii_case! { token,
         "never" | "no-referrer" => Some(ReferrerPolicy::NoReferrer),
         "default" | "no-referrer-when-downgrade" => Some(ReferrerPolicy::NoReferrerWhenDowngrade),
         "origin" => Some(ReferrerPolicy::Origin),
