@@ -38,8 +38,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "angle"
-version = "0.2.0"
-source = "git+https://github.com/servo/angle?branch=servo#a1371e8a160128677af863d1d73f150862ba42b2"
+version = "0.4.0"
+source = "git+https://github.com/servo/angle?branch=servo#bf8c7e19b4a28c40e1ef1374ab39a3aea24a79e0"
 dependencies = [
  "cmake 0.1.22 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -2448,7 +2448,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "script"
 version = "0.0.1"
 dependencies = [
- "angle 0.2.0 (git+https://github.com/servo/angle?branch=servo)",
+ "angle 0.4.0 (git+https://github.com/servo/angle?branch=servo)",
  "app_units 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "audio-video-metadata 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "base64 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3634,7 +3634,7 @@ dependencies = [
 "checksum alloc-no-stdlib 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "b21f6ad9c9957eb5d70c3dee16d31c092b3cab339628f821766b05e6833d72b8"
 "checksum android_glue 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "d8289e9637439939cc92b1995b0972117905be88bc28116c86b64d6e589bcd38"
 "checksum android_injected_glue 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "7ec08bc5e100186b5223a24dcfe5655d1488aed9eafeb44fb9a0f67a4f53d0fc"
-"checksum angle 0.2.0 (git+https://github.com/servo/angle?branch=servo)" = "<none>"
+"checksum angle 0.4.0 (git+https://github.com/servo/angle?branch=servo)" = "<none>"
 "checksum ansi_term 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)" = "23ac7c30002a5accbf7e8987d0632fa6de155b7c3d39d0067317a391e00a2ef6"
 "checksum antidote 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "34fde25430d87a9388dadbe6e34d7f72a462c8b43ac8d309b42b0a8505d7e2a5"
 "checksum app_units 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)" = "813ec2cdca52df57e839c4f4083b47cd7b2c2ae5409cee26f50a020144a8e631"
