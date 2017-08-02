@@ -42,7 +42,6 @@ pub struct Device {
     /// here is fine.
     pres_context: RawGeckoPresContextOwned,
     default_values: Arc<ComputedValues>,
-    viewport_override: Option<ViewportConstraints>,
     /// The font size of the root element
     /// This is set when computing the style of the root
     /// element, and used for rem units in other elements.
@@ -70,7 +69,6 @@ impl Device {
         Device {
             pres_context: pres_context,
             default_values: ComputedValues::default_values(unsafe { &*pres_context }),
-            viewport_override: None,
             root_font_size: AtomicIsize::new(font_size::get_initial_value().0 as isize), // FIXME(bz): Seems dubious?
             used_root_font_size: AtomicBool::new(false),
             used_viewport_size: AtomicBool::new(false),
@@ -79,9 +77,11 @@ impl Device {
 
     /// Tells the device that a new viewport rule has been found, and stores the
     /// relevant viewport constraints.
-    pub fn account_for_viewport_rule(&mut self,
-                                     constraints: &ViewportConstraints) {
-        self.viewport_override = Some(constraints.clone());
+    pub fn account_for_viewport_rule(
+        &mut self,
+        _constraints: &ViewportConstraints
+    ) {
+        unreachable!("Gecko doesn't support @viewport");
     }
 
     /// Returns the default computed values as a reference, in order to match
@@ -113,9 +113,12 @@ impl Device {
 
     /// Recreates the default computed values.
     pub fn reset_computed_values(&mut self) {
-        // NB: A following stylesheet flush will populate this if appropriate.
-        self.viewport_override = None;
         self.default_values = ComputedValues::default_values(self.pres_context());
+    }
+
+    /// Rebuild all the cached data.
+    pub fn rebuild_cached_data(&mut self) {
+        self.reset_computed_values();
         self.used_root_font_size.store(false, Ordering::Relaxed);
         self.used_viewport_size.store(false, Ordering::Relaxed);
     }
@@ -130,8 +133,6 @@ impl Device {
     /// This includes the viewport override from `@viewport` rules, and also the
     /// default computed values.
     pub fn reset(&mut self) {
-        // NB: A following stylesheet flush will populate this if appropriate.
-        self.viewport_override = None;
         self.reset_computed_values();
     }
 
@@ -153,14 +154,11 @@ impl Device {
     /// Returns the current viewport size in app units.
     pub fn au_viewport_size(&self) -> Size2D<Au> {
         self.used_viewport_size.store(true, Ordering::Relaxed);
-        self.viewport_override.as_ref().map(|v| {
-            Size2D::new(Au::from_f32_px(v.size.width),
-                        Au::from_f32_px(v.size.height))
-        }).unwrap_or_else(|| unsafe {
+        unsafe {
             // TODO(emilio): Need to take into account scrollbars.
             let area = &self.pres_context().mVisibleArea;
             Size2D::new(Au(area.width), Au(area.height))
-        })
+        }
     }
 
     /// Returns whether we ever looked up the viewport size of the Device.
