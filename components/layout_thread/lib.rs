@@ -13,7 +13,7 @@ extern crate app_units;
 extern crate atomic_refcell;
 extern crate core;
 extern crate euclid;
-extern crate fnv;
+extern crate fxhash;
 extern crate gfx;
 extern crate gfx_traits;
 extern crate heapsize;
@@ -55,7 +55,7 @@ use app_units::Au;
 use dom_wrapper::{ServoLayoutElement, ServoLayoutDocument, ServoLayoutNode};
 use dom_wrapper::drop_style_and_layout_data;
 use euclid::{Point2D, Rect, Size2D, ScaleFactor, TypedSize2D};
-use fnv::FnvHashMap;
+use fxhash::FxHashMap;
 use gfx::display_list::{OpaqueNode, WebRenderImageInfo};
 use gfx::font;
 use gfx::font_cache_thread::FontCacheThread;
@@ -224,10 +224,10 @@ pub struct LayoutThread {
     document_shared_lock: Option<SharedRwLock>,
 
     /// The list of currently-running animations.
-    running_animations: ServoArc<RwLock<FnvHashMap<OpaqueNode, Vec<Animation>>>>,
+    running_animations: ServoArc<RwLock<FxHashMap<OpaqueNode, Vec<Animation>>>>,
 
     /// The list of animations that have expired since the last style recalculation.
-    expired_animations: ServoArc<RwLock<FnvHashMap<OpaqueNode, Vec<Animation>>>>,
+    expired_animations: ServoArc<RwLock<FxHashMap<OpaqueNode, Vec<Animation>>>>,
 
     /// A counter for epoch messages
     epoch: Cell<Epoch>,
@@ -242,7 +242,7 @@ pub struct LayoutThread {
     /// All the other elements of this struct are read-only.
     rw_data: Arc<Mutex<LayoutThreadData>>,
 
-    webrender_image_cache: Arc<RwLock<FnvHashMap<(ServoUrl, UsePlaceholder),
+    webrender_image_cache: Arc<RwLock<FxHashMap<(ServoUrl, UsePlaceholder),
                                                  WebRenderImageInfo>>>,
 
     /// The executors for paint worklets.
@@ -529,7 +529,7 @@ impl LayoutThread {
             constellation_chan: constellation_chan.clone(),
             time_profiler_chan: time_profiler_chan,
             mem_profiler_chan: mem_profiler_chan,
-            registered_painters: RegisteredPaintersImpl(FnvHashMap::default()),
+            registered_painters: RegisteredPaintersImpl(FxHashMap::default()),
             image_cache: image_cache.clone(),
             font_cache_thread: font_cache_thread,
             first_reflow: Cell::new(true),
@@ -543,8 +543,8 @@ impl LayoutThread {
             outstanding_web_fonts: outstanding_web_fonts_counter,
             root_flow: RefCell::new(None),
             document_shared_lock: None,
-            running_animations: ServoArc::new(RwLock::new(FnvHashMap::default())),
-            expired_animations: ServoArc::new(RwLock::new(FnvHashMap::default())),
+            running_animations: ServoArc::new(RwLock::new(FxHashMap::default())),
+            expired_animations: ServoArc::new(RwLock::new(FxHashMap::default())),
             epoch: Cell::new(Epoch(0)),
             viewport_size: Size2D::new(Au(0), Au(0)),
             webrender_api: webrender_api_sender.create_api(),
@@ -569,7 +569,7 @@ impl LayoutThread {
                     nodes_from_point_response: vec![],
                 })),
             webrender_image_cache:
-                Arc::new(RwLock::new(FnvHashMap::default())),
+                Arc::new(RwLock::new(FxHashMap::default())),
             timer:
                 if PREFS.get("layout.animations.test.enabled")
                            .as_boolean().unwrap_or(false) {
@@ -1803,7 +1803,7 @@ lazy_static! {
 struct RegisteredPainterImpl {
     painter: Box<Painter>,
     name: Atom,
-    properties: FnvHashMap<Atom, PropertyId>,
+    properties: FxHashMap<Atom, PropertyId>,
 }
 
 impl SpeculativePainter for RegisteredPainterImpl {
@@ -1813,7 +1813,7 @@ impl SpeculativePainter for RegisteredPainterImpl {
 }
 
 impl RegisteredSpeculativePainter for RegisteredPainterImpl {
-    fn properties(&self) -> &FnvHashMap<Atom, PropertyId> {
+    fn properties(&self) -> &FxHashMap<Atom, PropertyId> {
         &self.properties
     }
     fn name(&self) -> Atom {
@@ -1835,7 +1835,7 @@ impl Painter for RegisteredPainterImpl {
 
 impl RegisteredPainter for RegisteredPainterImpl {}
 
-struct RegisteredPaintersImpl(FnvHashMap<Atom, RegisteredPainterImpl>);
+struct RegisteredPaintersImpl(FxHashMap<Atom, RegisteredPainterImpl>);
 
 impl RegisteredSpeculativePainters for RegisteredPaintersImpl  {
     fn get(&self, name: &Atom) -> Option<&RegisteredSpeculativePainter> {

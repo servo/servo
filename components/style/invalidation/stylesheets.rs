@@ -9,7 +9,7 @@
 
 use Atom;
 use dom::{TElement, TNode};
-use fnv::FnvHashSet;
+use fxhash::FxHashSet;
 use invalidation::element::restyle_hints::RestyleHint;
 use selector_parser::SelectorImpl;
 use selectors::attr::CaseSensitivity;
@@ -56,7 +56,7 @@ impl InvalidationScope {
 /// media query changes too?
 pub struct StylesheetInvalidationSet {
     /// The style scopes we know we have to restyle so far.
-    invalid_scopes: FnvHashSet<InvalidationScope>,
+    invalid_scopes: FxHashSet<InvalidationScope>,
     /// Whether the whole document should be invalid.
     fully_invalid: bool,
 }
@@ -65,7 +65,7 @@ impl StylesheetInvalidationSet {
     /// Create an empty `StylesheetInvalidationSet`.
     pub fn new() -> Self {
         Self {
-            invalid_scopes: FnvHashSet::default(),
+            invalid_scopes: FxHashSet::default(),
             fully_invalid: false,
         }
     }

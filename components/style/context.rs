@@ -13,8 +13,8 @@ use data::{EagerPseudoStyles, ElementData};
 use dom::{OpaqueNode, TNode, TElement, SendElement};
 use euclid::ScaleFactor;
 use euclid::Size2D;
-use fnv::FnvHashMap;
 use font_metrics::FontMetricsProvider;
+use fxhash::FxHashMap;
 #[cfg(feature = "gecko")] use gecko_bindings::structs;
 #[cfg(feature = "servo")] use parking_lot::RwLock;
 use properties::ComputedValues;
@@ -148,11 +148,11 @@ pub struct SharedStyleContext<'a> {
 
     /// The animations that are currently running.
     #[cfg(feature = "servo")]
-    pub running_animations: Arc<RwLock<FnvHashMap<OpaqueNode, Vec<Animation>>>>,
+    pub running_animations: Arc<RwLock<FxHashMap<OpaqueNode, Vec<Animation>>>>,
 
     /// The list of animations that have expired since the last style recalculation.
     #[cfg(feature = "servo")]
-    pub expired_animations: Arc<RwLock<FnvHashMap<OpaqueNode, Vec<Animation>>>>,
+    pub expired_animations: Arc<RwLock<FxHashMap<OpaqueNode, Vec<Animation>>>>,
 
     /// Paint worklets
     #[cfg(feature = "servo")]
@@ -478,7 +478,7 @@ impl<E: TElement> SequentialTask<E> {
 /// flags until after the traversal.
 pub struct SelectorFlagsMap<E: TElement> {
     /// The hashmap storing the flags to apply.
-    map: FnvHashMap<SendElement<E>, ElementSelectorFlags>,
+    map: FxHashMap<SendElement<E>, ElementSelectorFlags>,
     /// An LRU cache to avoid hashmap lookups, which can be slow if the map
     /// gets big.
     cache: LRUCache<[(SendElement<E>, ElementSelectorFlags); 4 + 1]>,
@@ -495,7 +495,7 @@ impl<E: TElement> SelectorFlagsMap<E> {
     /// Creates a new empty SelectorFlagsMap.
     pub fn new() -> Self {
         SelectorFlagsMap {
-            map: FnvHashMap::default(),
+            map: FxHashMap::default(),
             cache: LRUCache::new(),
         }
     }
@@ -691,7 +691,7 @@ pub trait RegisteredSpeculativePainter: SpeculativePainter {
     /// The name it was registered with
     fn name(&self) -> Atom;
     /// The properties it was registered with
-    fn properties(&self) -> &FnvHashMap<Atom, PropertyId>;
+    fn properties(&self) -> &FxHashMap<Atom, PropertyId>;
 }
 
 /// A set of registered painters

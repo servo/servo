@@ -11,7 +11,7 @@ use attr::{AttrIdentifier, AttrValue};
 use cssparser::{Parser as CssParser, ToCss, serialize_identifier, CowRcStr};
 use dom::{OpaqueNode, TElement, TNode};
 use element_state::ElementState;
-use fnv::FnvHashMap;
+use fxhash::FxHashMap;
 use invalidation::element::element_wrapper::ElementSnapshot;
 use properties::ComputedValues;
 use properties::PropertyFlags;
@@ -554,12 +554,12 @@ impl SelectorImpl {
 
 /// A map from elements to snapshots for the Servo style back-end.
 #[derive(Debug)]
-pub struct SnapshotMap(FnvHashMap<OpaqueNode, ServoElementSnapshot>);
+pub struct SnapshotMap(FxHashMap<OpaqueNode, ServoElementSnapshot>);
 
 impl SnapshotMap {
     /// Create a new empty `SnapshotMap`.
     pub fn new() -> Self {
-        SnapshotMap(FnvHashMap::default())
+        SnapshotMap(FxHashMap::default())
     }
 
     /// Get a snapshot given an element.
@@ -569,7 +569,7 @@ impl SnapshotMap {
 }
 
 impl Deref for SnapshotMap {
-    type Target = FnvHashMap<OpaqueNode, ServoElementSnapshot>;
+    type Target = FxHashMap<OpaqueNode, ServoElementSnapshot>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
