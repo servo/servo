@@ -10,6 +10,7 @@
 use {Atom, Namespace, LocalName};
 use applicable_declarations::ApplicableDeclarationBlock;
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
+#[cfg(feature = "gecko")] use context::PostAnimationTasks;
 #[cfg(feature = "gecko")] use context::UpdateAnimationsTasks;
 use data::ElementData;
 use element_state::ElementState;
@@ -624,6 +625,10 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
     fn update_animations(&self,
                          before_change_style: Option<Arc<ComputedValues>>,
                          tasks: UpdateAnimationsTasks);
+
+    /// Creates a task to process post animation on a given element.
+    #[cfg(feature = "gecko")]
+    fn process_post_animation(&self, tasks: PostAnimationTasks);
 
     /// Returns true if the element has relevant animations. Relevant
     /// animations are those animations that are affecting the element's style
