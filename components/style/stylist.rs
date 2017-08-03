@@ -942,7 +942,7 @@ impl Stylist {
             if !declarations.is_empty() {
                 let rule_node =
                     self.rule_tree.insert_ordered_rules_with_important(
-                        declarations.into_iter().map(|a| a.order_and_level()),
+                        declarations.drain().map(|a| a.order_and_level()),
                         guards);
                 if rule_node != *self.rule_tree.root() {
                     inputs.visited_rules = Some(rule_node);
