@@ -1934,12 +1934,12 @@ extern "C" {
     pub fn Servo_StyleSet_Clear(set: RawServoStyleSetBorrowed);
 }
 extern "C" {
-    pub fn Servo_StyleSet_RebuildData(set: RawServoStyleSetBorrowed);
+    pub fn Servo_StyleSet_RebuildCachedData(set: RawServoStyleSetBorrowed);
 }
 extern "C" {
     pub fn Servo_StyleSet_MediumFeaturesChanged(set: RawServoStyleSetBorrowed,
-                                                viewport_changed: bool)
-     -> nsRestyleHint;
+                                                viewport_units_used:
+                                                    *mut bool) -> bool;
 }
 extern "C" {
     pub fn Servo_StyleSet_CompatModeChanged(raw_data:
