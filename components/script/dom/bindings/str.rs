@@ -4,7 +4,7 @@
 
 //! The `ByteString` struct.
 
-use cssparser::CompactCowStr;
+use cssparser::CowRcStr;
 use html5ever::{LocalName, Namespace};
 use servo_atoms::Atom;
 use std::ascii::AsciiExt;
@@ -298,8 +298,8 @@ impl<'a> Into<Cow<'a, str>> for DOMString {
     }
 }
 
-impl<'a> Into<CompactCowStr<'a>> for DOMString {
-    fn into(self) -> CompactCowStr<'a> {
+impl<'a> Into<CowRcStr<'a>> for DOMString {
+    fn into(self) -> CowRcStr<'a> {
         self.0.into()
     }
 }

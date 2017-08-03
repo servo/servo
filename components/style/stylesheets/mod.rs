@@ -7,6 +7,7 @@
 mod counter_style_rule;
 mod document_rule;
 mod font_face_rule;
+pub mod font_feature_values_rule;
 pub mod import_rule;
 pub mod keyframes_rule;
 mod loader;
@@ -33,11 +34,14 @@ use style_traits::PARSING_MODE_DEFAULT;
 pub use self::counter_style_rule::CounterStyleRule;
 pub use self::document_rule::DocumentRule;
 pub use self::font_face_rule::FontFaceRule;
+pub use self::font_feature_values_rule::FontFeatureValuesRule;
 pub use self::import_rule::ImportRule;
 pub use self::keyframes_rule::KeyframesRule;
 pub use self::loader::StylesheetLoader;
 pub use self::media_rule::MediaRule;
 pub use self::memory::{MallocSizeOf, MallocSizeOfFn, MallocSizeOfWithGuard};
+#[cfg(feature = "gecko")]
+pub use self::memory::{MallocSizeOfWithRepeats, SizeOfState};
 pub use self::namespace_rule::NamespaceRule;
 pub use self::page_rule::PageRule;
 pub use self::rule_parser::{State, TopLevelRuleParser};
@@ -103,6 +107,7 @@ pub enum CssRule {
     Style(Arc<Locked<StyleRule>>),
     Media(Arc<Locked<MediaRule>>),
     FontFace(Arc<Locked<FontFaceRule>>),
+    FontFeatureValues(Arc<Locked<FontFeatureValuesRule>>),
     CounterStyle(Arc<Locked<CounterStyleRule>>),
     Viewport(Arc<Locked<ViewportRule>>),
     Keyframes(Arc<Locked<KeyframesRule>>),
@@ -125,6 +130,7 @@ impl MallocSizeOfWithGuard for CssRule {
             CssRule::Import(_) => 0,
             CssRule::Media(_) => 0,
             CssRule::FontFace(_) => 0,
+            CssRule::FontFeatureValues(_) => 0,
             CssRule::CounterStyle(_) => 0,
             CssRule::Keyframes(_) => 0,
             CssRule::Namespace(_) => 0,
@@ -195,6 +201,7 @@ impl CssRule {
             CssRule::Import(_) => CssRuleType::Import,
             CssRule::Media(_) => CssRuleType::Media,
             CssRule::FontFace(_) => CssRuleType::FontFace,
+            CssRule::FontFeatureValues(_) => CssRuleType::FontFeatureValues,
             CssRule::CounterStyle(_) => CssRuleType::CounterStyle,
             CssRule::Keyframes(_) => CssRuleType::Keyframes,
             CssRule::Namespace(_) => CssRuleType::Namespace,
@@ -250,18 +257,19 @@ impl CssRule {
             shared_lock: &shared_lock,
             loader: loader,
             state: state,
+            had_hierarchy_error: false,
             namespaces: Some(&mut *guard),
         };
 
-        match parse_one_rule(&mut input, &mut rule_parser) {
-            Ok(result) => Ok((result, rule_parser.state)),
-            Err(_) => {
-                Err(match rule_parser.state {
-                    State::Invalid => SingleRuleParseError::Hierarchy,
-                    _ => SingleRuleParseError::Syntax,
-                })
-            }
-        }
+        parse_one_rule(&mut input, &mut rule_parser)
+            .map(|result| (result, rule_parser.state))
+            .map_err(|_| {
+                if rule_parser.take_had_hierarchy_error() {
+                    SingleRuleParseError::Hierarchy
+                } else {
+                    SingleRuleParseError::Syntax
+                }
+            })
     }
 }
 
@@ -297,6 +305,10 @@ impl DeepCloneWithLock for CssRule {
                 let rule = arc.read_with(guard);
                 CssRule::FontFace(Arc::new(lock.wrap(
                     rule.clone_conditionally_gecko_or_servo())))
+            },
+            CssRule::FontFeatureValues(ref arc) => {
+                let rule = arc.read_with(guard);
+                CssRule::FontFeatureValues(Arc::new(lock.wrap(rule.clone())))
             },
             CssRule::CounterStyle(ref arc) => {
                 let rule = arc.read_with(guard);
@@ -340,6 +352,7 @@ impl ToCssWithGuard for CssRule {
             CssRule::Import(ref lock) => lock.read_with(guard).to_css(guard, dest),
             CssRule::Style(ref lock) => lock.read_with(guard).to_css(guard, dest),
             CssRule::FontFace(ref lock) => lock.read_with(guard).to_css(guard, dest),
+            CssRule::FontFeatureValues(ref lock) => lock.read_with(guard).to_css(guard, dest),
             CssRule::CounterStyle(ref lock) => lock.read_with(guard).to_css(guard, dest),
             CssRule::Viewport(ref lock) => lock.read_with(guard).to_css(guard, dest),
             CssRule::Keyframes(ref lock) => lock.read_with(guard).to_css(guard, dest),

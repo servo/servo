@@ -12,7 +12,7 @@
 use computed_values::{font_feature_settings, font_stretch, font_style, font_weight};
 use computed_values::font_family::FamilyName;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
-use cssparser::{SourceLocation, CompactCowStr};
+use cssparser::{SourceLocation, CowRcStr};
 use error_reporting::ContextualParseError;
 #[cfg(feature = "gecko")] use gecko_bindings::structs::CSSFontFaceDescriptors;
 #[cfg(feature = "gecko")] use cssparser::UnicodeRange;
@@ -110,8 +110,7 @@ impl Parse for FontWeight {
 /// Note that the prelude parsing code lives in the `stylesheets` module.
 pub fn parse_font_face_block(context: &ParserContext, input: &mut Parser, location: SourceLocation)
     -> FontFaceRuleData {
-    let mut rule = FontFaceRuleData::empty();
-    rule.source_location = location;
+    let mut rule = FontFaceRuleData::empty(location);
     {
         let parser = FontFaceRuleParser {
             context: context,
@@ -197,7 +196,7 @@ impl Parse for Source {
         let format_hints = if input.try(|input| input.expect_function_matching("format")).is_ok() {
             input.parse_nested_block(|input| {
                 input.parse_comma_separated(|input| {
-                    Ok(input.expect_string()?.into_owned())
+                    Ok(input.expect_string()?.as_ref().to_owned())
                 })
             })?
         } else {
@@ -229,15 +228,12 @@ macro_rules! font_face_descriptors_common {
         }
 
         impl FontFaceRuleData {
-            fn empty() -> Self {
+            fn empty(location: SourceLocation) -> Self {
                 FontFaceRuleData {
                     $(
                         $ident: None,
                     )*
-                    source_location: SourceLocation {
-                        line: 0,
-                        column: 0,
-                    },
+                    source_location: location,
                 }
             }
 
@@ -275,7 +271,7 @@ macro_rules! font_face_descriptors_common {
            type Declaration = ();
            type Error = SelectorParseError<'i, StyleParseError<'i>>;
 
-           fn parse_value<'t>(&mut self, name: CompactCowStr<'i>, input: &mut Parser<'i, 't>)
+           fn parse_value<'t>(&mut self, name: CowRcStr<'i>, input: &mut Parser<'i, 't>)
                               -> Result<(), ParseError<'i>> {
                 match_ignore_ascii_case! { &*name,
                     $(

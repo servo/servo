@@ -4,7 +4,6 @@
 
 #![deny(warnings)]
 
-extern crate atomic_refcell;
 extern crate cssparser;
 extern crate env_logger;
 extern crate libc;

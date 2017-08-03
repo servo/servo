@@ -154,7 +154,7 @@ impl TestBindingMethods for TestBinding {
     unsafe fn ArrayAttribute(&self, cx: *mut JSContext) -> NonZero<*mut JSObject> {
         rooted!(in(cx) let array = JS_NewUint8ClampedArray(cx, 16));
         assert!(!array.is_null());
-        NonZero::new(array.get())
+        NonZero::new_unchecked(array.get())
     }
     #[allow(unsafe_code)]
     unsafe fn AnyAttribute(&self, _: *mut JSContext) -> JSVal { NullValue() }
@@ -164,7 +164,7 @@ impl TestBindingMethods for TestBinding {
     unsafe fn ObjectAttribute(&self, cx: *mut JSContext) -> NonZero<*mut JSObject> {
         rooted!(in(cx) let obj = JS_NewPlainObject(cx));
         assert!(!obj.is_null());
-        NonZero::new(obj.get())
+        NonZero::new_unchecked(obj.get())
     }
     #[allow(unsafe_code)]
     unsafe fn SetObjectAttribute(&self, _: *mut JSContext, _: *mut JSObject) {}

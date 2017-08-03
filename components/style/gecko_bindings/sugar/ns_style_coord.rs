@@ -54,6 +54,14 @@ impl nsStyleCoord_CalcValue {
     }
 }
 
+impl PartialEq for nsStyleCoord_CalcValue {
+    fn eq(&self, other: &Self) -> bool {
+        self.mLength == other.mLength &&
+            self.mPercent == other.mPercent &&
+            self.mHasPercent == other.mHasPercent
+    }
+}
+
 impl nsStyleSides {
     /// Immutably get the `nsStyleCoord`-like object representing the side at
     /// index `index`.
@@ -192,11 +200,11 @@ impl<'a> CoordDataMut for CornersDataMut<'a> {
     }
 }
 
-#[derive(Copy, Clone)]
 /// Enum representing the tagged union that is CoordData.
 ///
 /// In release mode this should never actually exist in the code, and will be
 /// optimized out by threading matches and inlining.
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum CoordDataValue {
     /// eStyleUnit_Null
     Null,

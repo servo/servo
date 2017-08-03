@@ -145,13 +145,13 @@ macro_rules! impl_gecko_keyword_conversions {
 
             /// Parse a font-family value
             pub fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-                if let Ok(value) = input.try(|input| input.expect_string()) {
+                if let Ok(value) = input.try(|i| i.expect_string_cloned()) {
                     return Ok(FontFamily::FamilyName(FamilyName {
                         name: Atom::from(&*value),
                         quoted: true,
                     }))
                 }
-                let first_ident = input.expect_ident()?;
+                let first_ident = input.expect_ident()?.clone();
 
                 // FIXME(bholley): The fast thing to do here would be to look up the
                 // string (as lowercase) in the static atoms table. We don't have an
@@ -181,7 +181,7 @@ macro_rules! impl_gecko_keyword_conversions {
                     _ => {}
                 }
 
-                let mut value = first_ident.into_owned();
+                let mut value = first_ident.as_ref().to_owned();
                 // These keywords are not allowed by themselves.
                 // The only way this value can be valid with with another keyword.
                 if css_wide_keyword {
@@ -189,7 +189,7 @@ macro_rules! impl_gecko_keyword_conversions {
                     value.push_str(" ");
                     value.push_str(&ident);
                 }
-                while let Ok(ident) = input.try(|input| input.expect_ident()) {
+                while let Ok(ident) = input.try(|i| i.expect_ident_cloned()) {
                     value.push_str(" ");
                     value.push_str(&ident);
                 }
@@ -457,6 +457,9 @@ ${helpers.single_keyword_system("font-variant-caps",
     pub mod computed_value {
         /// As of CSS Fonts Module Level 3, only the following values are
         /// valid: 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900
+        ///
+        /// However, system fonts may provide other values. Pango
+        /// may provide 350, 380, and 1000 (on top of the existing values), for example.
         #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, ToCss)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
         pub struct T(pub u16);
@@ -483,8 +486,9 @@ ${helpers.single_keyword_system("font-variant-caps",
 
             /// Convert from an Gecko weight
             pub fn from_gecko_weight(weight: u16) -> Self {
-                Self::from_int(weight as i32)
-                    .expect("from_gecko_weight: called with invalid weight")
+                // we allow a wider range of weights than is parseable
+                // because system fonts may provide custom values
+                T(weight)
             }
 
             /// Weither this weight is bold
@@ -544,9 +548,9 @@ ${helpers.single_keyword_system("font-variant-caps",
                 SpecifiedValue::Normal => computed_value::T::normal(),
                 SpecifiedValue::Bold => computed_value::T::bold(),
                 SpecifiedValue::Bolder =>
-                    context.inherited_style().get_font().clone_font_weight().bolder(),
+                    context.builder.get_parent_font().clone_font_weight().bolder(),
                 SpecifiedValue::Lighter =>
-                    context.inherited_style().get_font().clone_font_weight().lighter(),
+                    context.builder.get_parent_font().clone_font_weight().lighter(),
                 SpecifiedValue::System(_) => {
                     <%self:nongecko_unreachable>
                         context.cached_system_font.as_ref().unwrap().font_weight.clone()
@@ -826,17 +830,17 @@ ${helpers.single_keyword_system("font-variant-caps",
                     value.to_computed_value(base_size.resolve(context))
                 }
                 SpecifiedValue::Length(LengthOrPercentage::Length(ref l)) => {
-                    l.to_computed_value(context)
+                    context.maybe_zoom_text(l.to_computed_value(context))
                 }
                 SpecifiedValue::Length(LengthOrPercentage::Percentage(pc)) => {
                     base_size.resolve(context).scale_by(pc.0)
                 }
                 SpecifiedValue::Length(LengthOrPercentage::Calc(ref calc)) => {
-                    let calc = calc.to_computed_value(context);
+                    let calc = calc.to_computed_value_zoomed(context);
                     calc.to_used_value(Some(base_size.resolve(context))).unwrap()
                 }
                 SpecifiedValue::Keyword(ref key, fraction) => {
-                    key.to_computed_value(context).scale_by(fraction)
+                    context.maybe_zoom_text(key.to_computed_value(context).scale_by(fraction))
                 }
                 SpecifiedValue::Smaller => {
                     FontRelativeLength::Em(1. / LARGER_FONT_SIZE_RATIO)
@@ -936,7 +940,7 @@ ${helpers.single_keyword_system("font-variant-caps",
             // recomputed from the base size for the keyword and the relative size.
             //
             // See bug 1355707
-            if let Some((kw, fraction)) = context.builder.inherited_style().font_computation_data.font_size_keyword {
+            if let Some((kw, fraction)) = context.builder.inherited_font_computation_data().font_size_keyword {
                 context.builder.font_size_keyword = Some((kw, fraction * ratio));
             } else {
                 context.builder.font_size_keyword = None;
@@ -952,11 +956,11 @@ ${helpers.single_keyword_system("font-variant-caps",
             // if the language or generic changed, we need to recalculate
             // the font size from the stored font-size origin information.
             if context.builder.get_font().gecko().mLanguage.raw::<nsIAtom>() !=
-               context.builder.inherited_style().get_font().gecko().mLanguage.raw::<nsIAtom>() ||
+               context.builder.get_parent_font().gecko().mLanguage.raw::<nsIAtom>() ||
                context.builder.get_font().gecko().mGenericID !=
-               context.builder.inherited_style().get_font().gecko().mGenericID {
+               context.builder.get_parent_font().gecko().mGenericID {
                 if let Some((kw, ratio)) = context.builder.font_size_keyword {
-                    computed = kw.to_computed_value(context).scale_by(ratio);
+                    computed = context.maybe_zoom_text(kw.to_computed_value(context).scale_by(ratio));
                 }
             }
         % endif
@@ -964,8 +968,7 @@ ${helpers.single_keyword_system("font-variant-caps",
         let device = context.builder.device;
         let mut font = context.builder.take_font();
         let parent_unconstrained = {
-            let parent_style = context.builder.inherited_style();
-            let parent_font = parent_style.get_font();
+            let parent_font = context.builder.get_parent_font();
             font.apply_font_size(computed, parent_font, device)
         };
         context.builder.put_font(font);
@@ -987,15 +990,14 @@ ${helpers.single_keyword_system("font-variant-caps",
         // changes using the font_size_keyword. We also need to do this to
         // handle mathml scriptlevel changes
         let kw_inherited_size = context.builder.font_size_keyword.map(|(kw, ratio)| {
-            SpecifiedValue::Keyword(kw, ratio).to_computed_value(context)
+            context.maybe_zoom_text(SpecifiedValue::Keyword(kw, ratio).to_computed_value(context))
         });
         let parent_kw;
         let device = context.builder.device;
         let mut font = context.builder.take_font();
         let used_kw = {
-            let parent_style = context.builder.inherited_style();
-            let parent_font = parent_style.get_font();
-            parent_kw = parent_style.font_computation_data.font_size_keyword;
+            let parent_font = context.builder.get_parent_font();
+            parent_kw = context.builder.inherited_font_computation_data().font_size_keyword;
 
             font.inherit_font_size_from(parent_font, kw_inherited_size, device)
         };
@@ -1013,8 +1015,10 @@ ${helpers.single_keyword_system("font-variant-caps",
     pub fn cascade_initial_font_size(context: &mut Context) {
         // font-size's default ("medium") does not always
         // compute to the same value and depends on the font
-        let computed = longhands::font_size::get_initial_specified_value()
-                            .to_computed_value(context);
+        let computed = context.maybe_zoom_text(
+                            longhands::font_size::get_initial_specified_value()
+                                .to_computed_value(context)
+                        );
         context.builder.mutate_font().set_font_size(computed);
         % if product == "gecko":
             let device = context.builder.device;
@@ -1189,7 +1193,8 @@ ${helpers.single_keyword_system("font-variant-caps",
     pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
                          -> Result<SpecifiedValue, ParseError<'i>> {
         let mut result = SpecifiedValue { weight: false, style: false };
-        try_match_ident_ignore_ascii_case! { input.expect_ident()?,
+        // FIXME: remove clone() when lifetimes are non-lexical
+        try_match_ident_ignore_ascii_case! { input.expect_ident()?.clone(),
             "none" => Ok(result),
             "weight" => {
                 result.weight = true;
@@ -1257,7 +1262,7 @@ ${helpers.single_keyword_system("font-kerning",
                                 flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
                                 animation_value_type="discrete")}
 
-<%helpers:longhand name="font-variant-alternates" products="gecko" animation_value_type="none"
+<%helpers:longhand name="font-variant-alternates" products="gecko" animation_value_type="discrete"
                    flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-alternates">
     use properties::longhands::system_font::SystemFont;
@@ -1411,9 +1416,10 @@ ${helpers.single_keyword_system("font-kerning",
             )
         );
         while let Ok(_) = input.try(|input| {
-            match input.next()? {
-                Token::Ident(ident) => {
-                    if ident == "historical-forms" {
+            // FIXME: remove clone() when lifetimes are non-lexical
+            match input.next()?.clone() {
+                Token::Ident(ref ident) => {
+                    if *ident == "historical-forms" {
                         check_if_parsed!(HISTORICAL_FORMS);
                         alternates.push(VariantAlternates::HistoricalForms);
                         Ok(())
@@ -1421,7 +1427,7 @@ ${helpers.single_keyword_system("font-kerning",
                         return Err(StyleParseError::UnspecifiedError.into());
                     }
                 },
-                Token::Function(name) => {
+                Token::Function(ref name) => {
                     input.parse_nested_block(|i| {
                         match_ignore_ascii_case! { &name,
                             % for value in "swash stylistic ornaments annotation".split():
@@ -2136,8 +2142,8 @@ https://drafts.csswg.org/css-fonts-4/#low-level-font-variation-settings-control-
         if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
             Ok(SpecifiedValue::Normal)
         } else {
-            input.expect_string().map(|cow| {
-                SpecifiedValue::Override(cow.into_owned())
+            input.expect_string().map(|s| {
+                SpecifiedValue::Override(s.as_ref().to_owned())
             }).map_err(|e| e.into())
         }
     }
@@ -2273,8 +2279,8 @@ https://drafts.csswg.org/css-fonts-4/#low-level-font-variation-settings-control-
 
             let int = match *self {
                 SpecifiedValue::Auto => {
-                    let parent = cx.inherited_style().get_font().clone__moz_script_level() as i32;
-                    let display = cx.inherited_style().get_font().clone__moz_math_display();
+                    let parent = cx.builder.get_parent_font().clone__moz_script_level() as i32;
+                    let display = cx.builder.get_parent_font().clone__moz_math_display();
                     if display == DisplayValue::inline {
                         parent + 1
                     } else {
@@ -2282,7 +2288,7 @@ https://drafts.csswg.org/css-fonts-4/#low-level-font-variation-settings-control-
                     }
                 }
                 SpecifiedValue::Relative(rel) => {
-                    let parent = cx.inherited_style().get_font().clone__moz_script_level();
+                    let parent = cx.builder.get_parent_font().clone__moz_script_level();
                     parent as i32 + rel
                 }
                 SpecifiedValue::Absolute(abs) => abs,
@@ -2377,6 +2383,41 @@ ${helpers.single_keyword("-moz-math-variant",
     }
 </%helpers:longhand>
 
+<%helpers:longhand name="-x-text-zoom" products="gecko" animation_value_type="none" internal="True"
+                   spec="Internal (not web-exposed)">
+    use values::computed::ComputedValueAsSpecified;
+    pub use self::computed_value::T as SpecifiedValue;
+
+    impl ComputedValueAsSpecified for SpecifiedValue {}
+    no_viewport_percentage!(SpecifiedValue);
+
+    pub mod computed_value {
+        use std::fmt;
+        use style_traits::ToCss;
+
+        impl ToCss for T {
+            fn to_css<W>(&self, _: &mut W) -> fmt::Result where W: fmt::Write {
+                Ok(())
+            }
+        }
+
+        #[derive(Clone, Debug, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        /// text-zoom. Enable if true, disable if false
+        pub struct T(pub bool);
+    }
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        computed_value::T(true)
+    }
+
+    pub fn parse<'i, 't>(_context: &ParserContext, _input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
+        debug_assert!(false, "Should be set directly by presentation attributes only.");
+        Err(StyleParseError::UnspecifiedError.into())
+    }
+</%helpers:longhand>
 
 % if product == "gecko":
     pub mod system_font {

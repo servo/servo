@@ -102,6 +102,16 @@ impl From<nsStyleCoord_CalcValue> for LengthOrPercentage {
     }
 }
 
+impl From<nsStyleCoord_CalcValue> for LengthOrPercentageOrAuto {
+    fn from(other: nsStyleCoord_CalcValue) -> LengthOrPercentageOrAuto {
+        match (other.mHasPercent, other.mLength) {
+            (false, _) => LengthOrPercentageOrAuto::Length(Au(other.mLength)),
+            (true, 0) => LengthOrPercentageOrAuto::Percentage(Percentage(other.mPercent)),
+            _ => LengthOrPercentageOrAuto::Calc(other.into()),
+        }
+    }
+}
+
 impl From<Angle> for CoordDataValue {
     fn from(reference: Angle) -> Self {
         match reference {
@@ -297,7 +307,7 @@ impl nsStyleImage {
                     Gecko_CreateGradient(gecko_shape,
                                          gecko_size,
                                          gradient.repeating,
-                                         gradient.compat_mode != CompatMode::Modern,
+                                         gradient.compat_mode == CompatMode::Moz,
                                          gradient.compat_mode == CompatMode::Moz,
                                          stop_count as u32)
                 };
@@ -800,7 +810,8 @@ impl TrackSize<LengthOrPercentage> {
 
         if gecko_min.unit() == nsStyleUnit::eStyleUnit_None {
             debug_assert!(gecko_max.unit() == nsStyleUnit::eStyleUnit_Coord ||
-                          gecko_max.unit() == nsStyleUnit::eStyleUnit_Percent);
+                          gecko_max.unit() == nsStyleUnit::eStyleUnit_Percent ||
+                          gecko_max.unit() == nsStyleUnit::eStyleUnit_Calc);
             return TrackSize::FitContent(LengthOrPercentage::from_gecko_style_coord(gecko_max)
                                          .expect("gecko_max could not convert to LengthOrPercentage"));
         }

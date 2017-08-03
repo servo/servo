@@ -6,7 +6,7 @@
 
 use compositor_thread::EventLoopWaker;
 use euclid::{Point2D, Size2D};
-use euclid::{TypedPoint2D, TypedRect, ScaleFactor, TypedSize2D};
+use euclid::{ScaleFactor, TypedPoint2D, TypedSize2D};
 use gleam::gl;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, TraversalDirection};
@@ -18,7 +18,7 @@ use std::fmt::{Debug, Error, Formatter};
 use std::rc::Rc;
 use style_traits::DevicePixel;
 use style_traits::cursor::Cursor;
-use webrender_api::ScrollLocation;
+use webrender_api::{DeviceUintSize, DeviceUintRect, ScrollLocation};
 
 #[derive(Clone)]
 pub enum MouseWindowEvent {
@@ -41,7 +41,7 @@ pub enum WindowEvent {
     /// message, the window must make the same GL context as in `PrepareRenderingEvent` current.
     Refresh,
     /// Sent when the window is resized.
-    Resize(TypedSize2D<u32, DevicePixel>),
+    Resize(DeviceUintSize),
     /// Touchpad Pressure
     TouchpadPressure(TypedPoint2D<f32, DevicePixel>, f32, TouchpadPressurePhase),
     /// Sent when a new URL is to be loaded.
@@ -105,9 +105,9 @@ pub enum AnimationState {
 
 pub trait WindowMethods {
     /// Returns the rendering area size in hardware pixels.
-    fn framebuffer_size(&self) -> TypedSize2D<u32, DevicePixel>;
+    fn framebuffer_size(&self) -> DeviceUintSize;
     /// Returns the position and size of the window within the rendering area.
-    fn window_rect(&self) -> TypedRect<u32, DevicePixel>;
+    fn window_rect(&self) -> DeviceUintRect;
     /// Returns the size of the window in density-independent "px" units.
     fn size(&self) -> TypedSize2D<f32, DeviceIndependentPixel>;
     /// Presents the window to the screen (perhaps by page flipping).

@@ -10,7 +10,7 @@
 use app_units::Au;
 use context::QuirksMode;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser, parse_important};
-use cssparser::{CompactCowStr, ToCss as ParserToCss};
+use cssparser::{CowRcStr, ToCss as ParserToCss};
 use error_reporting::ContextualParseError;
 use euclid::TypedSize2D;
 use font_metrics::get_metrics_provider_for_product;
@@ -280,7 +280,7 @@ impl<'a, 'b, 'i> DeclarationParser<'i> for ViewportRuleParser<'a, 'b> {
     type Declaration = Vec<ViewportDescriptorDeclaration>;
     type Error = SelectorParseError<'i, StyleParseError<'i>>;
 
-    fn parse_value<'t>(&mut self, name: CompactCowStr<'i>, input: &mut Parser<'i, 't>)
+    fn parse_value<'t>(&mut self, name: CowRcStr<'i>, input: &mut Parser<'i, 't>)
                        -> Result<Vec<ViewportDescriptorDeclaration>, ParseError<'i>> {
         macro_rules! declaration {
             ($declaration:ident($parse:expr)) => {
@@ -696,6 +696,10 @@ impl MaybeNew for ViewportConstraints {
         //
         // Note: DEVICE-ADAPT § 5. states that relative length values are
         // resolved against initial values
+        //
+        // Note, we set used_viewport_size flag for Gecko in au_viewport_size.
+        // If we ever start supporting ViewportRule in Gecko, we probably want
+        // to avoid doing so at this place.
         let initial_viewport = device.au_viewport_size();
 
         let provider = get_metrics_provider_for_product();
@@ -709,6 +713,7 @@ impl MaybeNew for ViewportConstraints {
             cached_system_font: None,
             in_media_query: false,
             quirks_mode: quirks_mode,
+            for_smil_animation: false,
         };
 
         // DEVICE-ADAPT § 9.3 Resolving 'extend-to-zoom'

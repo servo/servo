@@ -68,10 +68,11 @@ use style::values::generics::image::{Image, ShapeExtent};
 use style::values::generics::image::PaintWorklet;
 use style::values::specified::position::{X, Y};
 use style_traits::CSSPixel;
+use style_traits::ToCss;
 use style_traits::cursor::Cursor;
 use table_cell::CollapsedBordersForCell;
 use webrender_api::{ClipId, ColorF, ComplexClipRegion, GradientStop, LocalClip, RepeatMode};
-use webrender_api::{LineStyle, ScrollPolicy, TransformStyle};
+use webrender_api::{LineStyle, ScrollPolicy, ScrollSensitivity, TransformStyle};
 use webrender_helpers::{ToBorderRadius, ToMixBlendMode, ToRectF, ToTransformStyle};
 
 trait ResolvePercentage {
@@ -1173,25 +1174,25 @@ impl FragmentDisplayListBuilding for Fragment {
         let device_pixel_ratio = state.layout_context.style_context.device_pixel_ratio();
         let size_in_au = unbordered_box.size.to_physical(style.writing_mode);
         let size_in_px = TypedSize2D::new(size_in_au.width.to_f32_px(), size_in_au.height.to_f32_px());
-        let name = paint_worklet.name.clone();
 
-        // Get the painter, and the computed values for its properties.
-        let (properties, painter) = match state.layout_context.registered_painters.read().get(&name) {
-            Some(registered_painter) => (
-                registered_painter.properties
-                    .iter()
+        // TODO: less copying.
+        let name = paint_worklet.name.clone();
+        let arguments = paint_worklet.arguments.iter()
+            .map(|argument| argument.to_css_string())
+            .collect();
+
+        let mut draw_result = match state.layout_context.registered_painters.get(&name) {
+            Some(painter) => {
+                debug!("Drawing a paint image {}({},{}).", name, size_in_px.width, size_in_px.height);
+                let properties = painter.properties().iter()
                     .filter_map(|(name, id)| id.as_shorthand().err().map(|id| (name, id)))
                     .map(|(name, id)| (name.clone(), style.computed_value_to_string(id)))
-                    .collect(),
-                registered_painter.painter.clone()
-            ),
+                    .collect();
+                painter.draw_a_paint_image(size_in_px, device_pixel_ratio, properties, arguments)
+            },
             None => return debug!("Worklet {} called before registration.", name),
         };
 
-        // TODO: add a one-place cache to avoid drawing the paint image every time.
-        // https://github.com/servo/servo/issues/17369
-        debug!("Drawing a paint image {}({},{}).", name, size_in_px.width, size_in_px.height);
-        let mut draw_result = painter.draw_a_paint_image(size_in_px, device_pixel_ratio, properties);
         let webrender_image = WebRenderImageInfo {
             width: draw_result.width,
             height: draw_result.height,
@@ -2257,7 +2258,6 @@ pub trait BlockFlowDisplayListBuilding {
                                 -> ClipId;
     fn setup_scroll_root_for_overflow(&mut self,
                                       state: &mut DisplayListBuildState,
-                                      preserved_state: &mut PreservedDisplayListState,
                                       border_box: &Rect<Au>);
     fn setup_scroll_root_for_css_clip(&mut self,
                                       state: &mut DisplayListBuildState,
@@ -2483,7 +2483,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
             self.transform_clip_to_coordinate_space(state, preserved_state);
         }
 
-        self.setup_scroll_root_for_overflow(state, preserved_state, &stacking_relative_border_box);
+        self.setup_scroll_root_for_overflow(state, &stacking_relative_border_box);
         self.setup_scroll_root_for_css_clip(state, preserved_state, &stacking_relative_border_box);
         self.base.clip = state.clip_stack.last().cloned().unwrap_or_else(max_rect);
 
@@ -2498,7 +2498,6 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
 
     fn setup_scroll_root_for_overflow(&mut self,
                                       state: &mut DisplayListBuildState,
-                                      preserved_state: &mut PreservedDisplayListState,
                                       border_box: &Rect<Au>) {
         if !self.overflow_style_may_require_scroll_root() {
             return;
@@ -2526,27 +2525,12 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
             return;
         }
 
-        let overflow_x = self.fragment.style.get_box().overflow_x;
-        let overflow_y = self.fragment.style.get_box().overflow_y;
-
-        let content_size = self.base.overflow.scroll.origin + self.base.overflow.scroll.size;
-        let mut content_size = Size2D::new(content_size.x, content_size.y);
-        if overflow_x::T::hidden == overflow_x {
-            content_size.width = content_box.size.width;
-        }
-
-        if overflow_x::T::hidden == overflow_y {
-            content_size.height = content_box.size.height;
-        }
-
-        if overflow_x::T::hidden == overflow_y || overflow_x::T::hidden == overflow_x {
-            preserved_state.push_clip(state, &border_box, self.positioning());
-        }
-
-        let mut root_type = ScrollRootType::ScrollFrame;
-        if overflow_x::T::hidden == overflow_y && overflow_x::T::hidden == overflow_x {
-            root_type = ScrollRootType::Clip;
-        }
+        let sensitivity = if overflow_x::T::hidden == self.fragment.style.get_box().overflow_x &&
+                             overflow_x::T::hidden == self.fragment.style.get_box().overflow_y {
+            ScrollSensitivity::Script
+        } else {
+            ScrollSensitivity::ScriptAndInputEvents
+        };
 
         let clip_rect = build_inner_border_box_for_border_rect(&border_box, &self.fragment.style);
         let mut clip = ClippingRegion::from_rect(&clip_rect);
@@ -2555,6 +2539,9 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
             clip.intersect_with_rounded_rect(&clip_rect, &radii)
         }
 
+        let content_size = self.base.overflow.scroll.origin + self.base.overflow.scroll.size;
+        let content_size = Size2D::new(content_size.x, content_size.y);
+
         let parent_id = self.scroll_root_id(state.layout_context.id);
         state.add_scroll_root(
             ScrollRoot {
@@ -2562,7 +2549,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                 parent_id: parent_id,
                 clip: clip,
                 content_rect: Rect::new(content_box.origin, content_size),
-                root_type,
+                root_type: ScrollRootType::ScrollFrame(sensitivity),
             },
             self.base.stacking_context_id
         );

@@ -108,7 +108,7 @@ ${helpers.single_keyword("flex-wrap", "nowrap wrap wrap-reverse",
 
     ${helpers.predefined_type(name="justify-items",
                               type="JustifyItems",
-                              initial_value="specified::JustifyItems::auto()",
+                              initial_value="computed::JustifyItems::auto()",
                               spec="https://drafts.csswg.org/css-align/#propdef-justify-items",
                               animation_value_type="discrete")}
 
@@ -282,7 +282,7 @@ ${helpers.predefined_type("object-position",
                               products="gecko",
                               spec="https://drafts.csswg.org/css-grid/#propdef-grid-template-%ss" % kind,
                               boxed=True,
-                              animation_value_type="none")}
+                              animation_value_type="discrete")}
 
 % endfor
 
@@ -361,7 +361,7 @@ ${helpers.predefined_type("object-position",
                 _ => false
             };
             if !success {
-                return Err(SelectorParseError::UnexpectedIdent(ident).into());
+                return Err(SelectorParseError::UnexpectedIdent(ident.clone()).into());
             }
         }
 
@@ -416,7 +416,7 @@ ${helpers.predefined_type("object-position",
 <%helpers:longhand name="grid-template-areas"
         spec="https://drafts.csswg.org/css-grid/#propdef-grid-template-areas"
         products="gecko"
-        animation_value_type="none"
+        animation_value_type="discrete"
         disable_when_testing="True"
         boxed="True">
     use std::collections::HashMap;
@@ -442,14 +442,14 @@ ${helpers.predefined_type("object-position",
         SpecifiedValue::parse(context, input)
     }
 
-    #[derive(Clone, PartialEq)]
+    #[derive(Clone, Debug, PartialEq)]
     pub struct TemplateAreas {
         pub areas: Box<[NamedArea]>,
         pub strings: Box<[Box<str>]>,
         pub width: u32,
     }
 
-    #[derive(Clone, PartialEq)]
+    #[derive(Clone, Debug, PartialEq)]
     pub struct NamedArea {
         pub name: Box<str>,
         pub rows: Range<u32>,
@@ -463,8 +463,8 @@ ${helpers.predefined_type("object-position",
         fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
                          -> Result<Self, ParseError<'i>> {
             let mut strings = vec![];
-            while let Ok(string) = input.try(Parser::expect_string) {
-                strings.push(string.into_owned().into_boxed_str());
+            while let Ok(string) = input.try(|i| i.expect_string().map(|s| s.as_ref().into())) {
+                strings.push(string);
             }
 
             TemplateAreas::from_vec(strings)

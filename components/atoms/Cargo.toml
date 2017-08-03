@@ -5,7 +5,6 @@ authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
 publish = false
 build = "build.rs"
-workspace = "../.."
 
 [lib]
 path = "lib.rs"

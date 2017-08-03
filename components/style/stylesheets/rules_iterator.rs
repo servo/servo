@@ -86,7 +86,8 @@ impl<'a, 'b, C> Iterator for RulesIterator<'a, 'b, C>
                     CssRule::CounterStyle(_) |
                     CssRule::Viewport(_) |
                     CssRule::Keyframes(_) |
-                    CssRule::Page(_) => {
+                    CssRule::Page(_) |
+                    CssRule::FontFeatureValues(_) => {
                         return Some(rule)
                     },
                     CssRule::Import(ref import_rule) => {

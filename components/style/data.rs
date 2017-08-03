@@ -15,6 +15,8 @@ use servo_arc::Arc;
 use shared_lock::StylesheetGuards;
 use std::fmt;
 use std::ops::{Deref, DerefMut};
+#[cfg(feature = "gecko")]
+use stylesheets::{MallocSizeOfWithRepeats, SizeOfState};
 
 bitflags! {
     flags RestyleFlags: u8 {
@@ -162,6 +164,13 @@ impl fmt::Debug for EagerPseudoArray {
     }
 }
 
+// Can't use [None; EAGER_PSEUDO_COUNT] here because it complains
+// about Copy not being implemented for our Arc type.
+#[cfg(feature = "gecko")]
+const EMPTY_PSEUDO_ARRAY: &'static EagerPseudoArrayInner = &[None, None, None, None];
+#[cfg(feature = "servo")]
+const EMPTY_PSEUDO_ARRAY: &'static EagerPseudoArrayInner = &[None, None, None];
+
 impl EagerPseudoStyles {
     /// Returns whether there are any pseudo styles.
     pub fn is_empty(&self) -> bool {
@@ -169,11 +178,17 @@ impl EagerPseudoStyles {
     }
 
     /// Grabs a reference to the list of styles, if they exist.
-    pub fn as_array(&self) -> Option<&EagerPseudoArrayInner> {
+    pub fn as_optional_array(&self) -> Option<&EagerPseudoArrayInner> {
         match self.0 {
             None => None,
             Some(ref x) => Some(&x.0),
         }
+    }
+
+    /// Grabs a reference to the list of styles or a list of None if
+    /// there are no styles to be had.
+    pub fn as_array(&self) -> &EagerPseudoArrayInner {
+        self.as_optional_array().unwrap_or(EMPTY_PSEUDO_ARRAY)
     }
 
     /// Returns a reference to the style for a given eager pseudo, if it exists.
@@ -226,6 +241,20 @@ impl fmt::Debug for ElementStyles {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "ElementStyles {{ primary: {:?}, pseudos: {:?} }}",
                self.primary.as_ref().map(|x| &x.rules), self.pseudos)
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl MallocSizeOfWithRepeats for ElementStyles {
+    fn malloc_size_of_children(&self, state: &mut SizeOfState) -> usize {
+        let mut n = 0;
+        if let Some(ref primary) = self.primary {
+            n += primary.malloc_size_of_children(state)
+        };
+
+        // We may measure more fields in the future if DMD says it's worth it.
+
+        n
     }
 }
 
@@ -377,5 +406,16 @@ impl ElementData {
     /// Drops restyle flags and damage from the element.
     pub fn clear_restyle_flags_and_damage(&mut self) {
         self.restyle.clear_flags_and_damage();
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl MallocSizeOfWithRepeats for ElementData {
+    fn malloc_size_of_children(&self, state: &mut SizeOfState) -> usize {
+        let n = self.styles.malloc_size_of_children(state);
+
+        // We may measure more fields in the future if DMD says it's worth it.
+
+        n
     }
 }

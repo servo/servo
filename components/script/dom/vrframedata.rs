@@ -119,25 +119,25 @@ impl VRFrameDataMethods for VRFrameData {
     #[allow(unsafe_code)]
     // https://w3c.github.io/webvr/#dom-vrframedata-leftprojectionmatrix
     unsafe fn LeftProjectionMatrix(&self, _cx: *mut JSContext) -> NonZero<*mut JSObject> {
-        NonZero::new(self.left_proj.get())
+        NonZero::new_unchecked(self.left_proj.get())
     }
 
     #[allow(unsafe_code)]
     // https://w3c.github.io/webvr/#dom-vrframedata-leftviewmatrix
     unsafe fn LeftViewMatrix(&self, _cx: *mut JSContext) -> NonZero<*mut JSObject> {
-        NonZero::new(self.left_view.get())
+        NonZero::new_unchecked(self.left_view.get())
     }
 
     #[allow(unsafe_code)]
     // https://w3c.github.io/webvr/#dom-vrframedata-rightprojectionmatrix
     unsafe fn RightProjectionMatrix(&self, _cx: *mut JSContext) -> NonZero<*mut JSObject> {
-        NonZero::new(self.right_proj.get())
+        NonZero::new_unchecked(self.right_proj.get())
     }
 
     #[allow(unsafe_code)]
     // https://w3c.github.io/webvr/#dom-vrframedata-rightviewmatrix
     unsafe fn RightViewMatrix(&self, _cx: *mut JSContext) -> NonZero<*mut JSObject> {
-        NonZero::new(self.right_view.get())
+        NonZero::new_unchecked(self.right_view.get())
     }
 
     // https://w3c.github.io/webvr/#dom-vrframedata-pose
