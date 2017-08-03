@@ -145,6 +145,11 @@ impl PseudoElement {
         self.cascade_type() == PseudoElementCascadeType::Lazy
     }
 
+    /// Whether this pseudo-element is for an anonymous box.
+    pub fn is_anon_box(&self) -> bool {
+        self.is_precomputed()
+    }
+
     /// Whether this pseudo-element is precomputed.
     #[inline]
     pub fn is_precomputed(&self) -> bool {

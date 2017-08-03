@@ -1783,6 +1783,7 @@ pub extern "C" fn Servo_ComputedValues_Inherit(
 #[no_mangle]
 pub extern "C" fn Servo_ComputedValues_GetStyleBits(values: ServoStyleContextBorrowed) -> u64 {
     use style::properties::computed_value_flags::*;
+    // FIXME(emilio): We could do this more efficiently I'm quite sure.
     let flags = values.flags;
     let mut result = 0;
     if flags.contains(IS_RELEVANT_LINK_VISITED) {
@@ -1796,6 +1797,12 @@ pub extern "C" fn Servo_ComputedValues_GetStyleBits(values: ServoStyleContextBor
     }
     if flags.contains(IS_TEXT_COMBINED) {
         result |= structs::NS_STYLE_IS_TEXT_COMBINED as u64;
+    }
+    if flags.contains(IS_IN_PSEUDO_ELEMENT_SUBTREE) {
+        result |= structs::NS_STYLE_HAS_PSEUDO_ELEMENT_DATA as u64;
+    }
+    if flags.contains(IS_IN_DISPLAY_NONE_SUBTREE) {
+        result |= structs::NS_STYLE_IN_DISPLAY_NONE_SUBTREE as u64;
     }
     result
 }
