@@ -92,7 +92,11 @@ impl Flow for TableColGroupFlow {
     // Table columns are invisible.
     fn build_display_list(&mut self, _: &mut DisplayListBuildState) { }
 
-    fn collect_stacking_contexts(&mut self, _: &mut DisplayListBuildState) {}
+    fn collect_stacking_contexts(&mut self, state: &mut DisplayListBuildState) {
+        self.base.stacking_context_id = state.current_stacking_context_id;
+        self.base.scroll_root_id = Some(state.current_scroll_root_id);
+    }
+
 
     fn repair_style(&mut self, _: &::ServoArc<ComputedValues>) {}
 
