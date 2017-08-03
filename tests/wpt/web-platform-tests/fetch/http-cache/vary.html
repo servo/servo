@@ -103,6 +103,7 @@
             request_headers: [
               ["Foo", "1"]
             ],
+            response_body: http_content('foo_1'),
             expected_type: "cached"
           }
         ]
@@ -245,7 +246,32 @@
         ]
       },
       {
-        name: "HTTP cache doesn't use three-way Vary response when request omits variant header.",
+        name: "HTTP cache doesn't use three-way Vary response when request doesn't match, regardless of header order.",
+        requests: [
+          {
+            request_headers: [
+              ["Foo", "1"],
+              ["Bar", "abc4"],
+              ["Baz", "789"]
+            ],
+            response_headers: [
+              ["Expires", http_date(5000)],
+              ["Last-Modified", http_date(-3000)],
+              ["Vary", "Foo, Bar, Baz"]
+            ]
+          },
+          {
+            request_headers: [
+              ["Foo", "1"],
+              ["Bar", "abc"],
+              ["Baz", "789"]
+            ],
+            expected_type: "not_cached"
+          }
+        ]
+      },
+      {
+        name: "HTTP cache uses three-way Vary response when both request and the original request omited a variant header.",
         requests: [
           {
             request_headers: [
@@ -259,6 +285,33 @@
             ]
           },
           {
+            request_headers: [
+              ["Foo", "1"],
+              ["Baz", "789"]
+            ],
+            expected_type: "cached"
+          }
+        ]
+      },
+      {
+        name: "HTTP cache doesn't use Vary response with a field value of '*'.",
+        requests: [
+          {
+            request_headers: [
+              ["Foo", "1"],
+              ["Baz", "789"]
+            ],
+            response_headers: [
+              ["Expires", http_date(5000)],
+              ["Last-Modified", http_date(-3000)],
+              ["Vary", "*"]
+            ]
+          },
+          {
+            request_headers: [
+              ["*", "1"],
+              ["Baz", "789"]
+            ],
             expected_type: "not_cached"
           }
         ]
