@@ -97,32 +97,35 @@ impl ToCss for ComputedValue {
 /// DOM. CSSDeclarations expose property names as indexed properties, which
 /// need to be stable. So we keep an array of property names which order is
 /// determined on the order that they are added to the name-value map.
+pub type CustomPropertiesMap = OrderedMap<ComputedValue>;
+
+/// A map that preserves order for the keys, and that is easily indexable.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct CustomPropertiesMap {
+pub struct OrderedMap<T> {
     /// Custom property name index.
     index: Vec<Name>,
     /// Computed values indexed by custom property name.
-    values: HashMap<Name, ComputedValue>,
+    values: HashMap<Name, T>,
 }
 
-impl CustomPropertiesMap {
+impl<T> OrderedMap<T> {
     /// Creates a new custom properties map.
     pub fn new() -> Self {
-        CustomPropertiesMap {
+        OrderedMap {
             index: Vec::new(),
             values: HashMap::new(),
         }
     }
 
     /// Insert a computed value if it has not previously been inserted.
-    pub fn insert(&mut self, name: &Name, value: ComputedValue) {
+    pub fn insert(&mut self, name: &Name, value: T) {
         debug_assert!(!self.index.contains(name));
         self.index.push(name.clone());
         self.values.insert(name.clone(), value);
     }
 
     /// Custom property computed value getter by name.
-    pub fn get_computed_value(&self, name: &Name) -> Option<&ComputedValue> {
+    pub fn get(&self, name: &Name) -> Option<&T> {
         let value = self.values.get(name);
         debug_assert_eq!(value.is_some(), self.index.contains(name));
         value
@@ -134,7 +137,7 @@ impl CustomPropertiesMap {
     }
 
     /// Get an iterator for custom properties computed values.
-    pub fn iter(&self) -> hash_map::Iter<Name, ComputedValue> {
+    pub fn iter(&self) -> hash_map::Iter<Name, T> {
         self.values.iter()
     }
 
@@ -525,7 +528,7 @@ fn substitute_one(name: &Name,
                   custom_properties_map: &mut CustomPropertiesMap,
                   invalid: &mut HashSet<Name>)
                   -> Result<TokenSerializationType, ()> {
-    if let Some(computed_value) = custom_properties_map.get_computed_value(&name) {
+    if let Some(computed_value) = custom_properties_map.get(&name) {
         if let Some(partial_computed_value) = partial_computed_value {
             partial_computed_value.push_variable(computed_value)
         }
@@ -679,7 +682,7 @@ pub fn substitute<'i>(input: &'i str, first_token_type: TokenSerializationType,
     let mut position = (input.position(), first_token_type);
     let last_token_type = substitute_block(
         &mut input, &mut position, &mut substituted, &mut |name, substituted| {
-            if let Some(value) = computed_values_map.as_ref().and_then(|map| map.get_computed_value(name)) {
+            if let Some(value) = computed_values_map.as_ref().and_then(|map| map.get(name)) {
                 substituted.push_variable(value);
                 Ok(value.last_token_type)
             } else {
