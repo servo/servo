@@ -59,7 +59,7 @@ ${helpers.single_keyword("image-rendering",
 // Image Orientation
 <%helpers:longhand name="image-orientation"
                    products="gecko"
-                   animation_value_type="none"
+                   animation_value_type="discrete"
     spec="https://drafts.csswg.org/css-images/#propdef-image-orientation, \
       /// additional values in https://developer.mozilla.org/en-US/docs/Web/CSS/image-orientation">
     use std::fmt;
