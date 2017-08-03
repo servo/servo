@@ -5,9 +5,10 @@
 //! Parsing of the stylesheet contents.
 
 use {Namespace, Prefix};
+use computed_values::font_family::FamilyName;
 use counter_style::{parse_counter_style_body, parse_counter_style_name};
 use cssparser::{AtRuleParser, AtRuleType, Parser, QualifiedRuleParser, RuleListParser};
-use cssparser::{CompactCowStr, SourceLocation, BasicParseError};
+use cssparser::{CowRcStr, SourceLocation, BasicParseError};
 use error_reporting::ContextualParseError;
 use font_face::parse_font_face_block;
 use media_queries::{parse_media_query_list, MediaList};
@@ -18,13 +19,13 @@ use selectors::SelectorList;
 use selectors::parser::SelectorParseError;
 use servo_arc::Arc;
 use shared_lock::{Locked, SharedRwLock};
-use std::borrow::Cow;
 use str::starts_with_ignore_ascii_case;
 use style_traits::{StyleParseError, ParseError};
 use stylesheets::{CssRule, CssRules, CssRuleType, Origin, StylesheetLoader};
-use stylesheets::{DocumentRule, KeyframesRule, MediaRule, NamespaceRule, PageRule};
-use stylesheets::{StyleRule, SupportsRule, ViewportRule};
+use stylesheets::{DocumentRule, FontFeatureValuesRule, KeyframesRule, MediaRule};
+use stylesheets::{NamespaceRule, PageRule, StyleRule, SupportsRule, ViewportRule};
 use stylesheets::document_rule::DocumentCondition;
+use stylesheets::font_feature_values_rule::parse_family_name_list;
 use stylesheets::keyframes_rule::parse_keyframe_list;
 use stylesheets::stylesheet::Namespaces;
 use stylesheets::supports_rule::SupportsCondition;
@@ -46,6 +47,10 @@ pub struct TopLevelRuleParser<'a> {
     pub context: ParserContext<'a>,
     /// The current state of the parser.
     pub state: State,
+    /// Whether we have tried to parse was invalid due to being in the wrong
+    /// place (e.g. an @import rule was found while in the `Body` state). Reset
+    /// to `false` when `take_had_hierarchy_error` is called.
+    pub had_hierarchy_error: bool,
     /// The namespace map we use for parsing. Needs to start as `Some()`, and
     /// will be taken out after parsing namespace rules, and that reference will
     /// be moved to `ParserContext`.
@@ -70,6 +75,16 @@ impl<'b> TopLevelRuleParser<'b> {
     pub fn state(&self) -> State {
         self.state
     }
+
+    /// Returns whether we previously tried to parse a rule that was invalid
+    /// due to being in the wrong place (e.g. an @import rule was found after
+    /// a regular style rule).  The state of this flag is reset when this
+    /// function is called.
+    pub fn take_had_hierarchy_error(&mut self) -> bool {
+        let had_hierarchy_error = self.had_hierarchy_error;
+        self.had_hierarchy_error = false;
+        had_hierarchy_error
+    }
 }
 
 /// The current state of the parser.
@@ -83,9 +98,6 @@ pub enum State {
     Namespaces = 3,
     /// We're parsing the main body of the stylesheet.
     Body = 4,
-    /// We've found an invalid state (as, a namespace rule after style rules),
-    /// and the rest of the stylesheet should be ignored.
-    Invalid = 5,
 }
 
 #[derive(Clone, Debug)]
@@ -102,6 +114,8 @@ pub enum VendorPrefix {
 pub enum AtRulePrelude {
     /// A @font-face rule prelude.
     FontFace(SourceLocation),
+    /// A @font-feature-values rule prelude, with its FamilyName list.
+    FontFeatureValues(Vec<FamilyName>, SourceLocation),
     /// A @counter-style rule prelude, with its counter style name.
     CounterStyle(CustomIdent),
     /// A @media rule prelude, with its media queries.
@@ -142,7 +156,7 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
 
     fn parse_prelude<'t>(
         &mut self,
-        name: CompactCowStr<'i>,
+        name: CowRcStr<'i>,
         input: &mut Parser<'i, 't>
     ) -> Result<AtRuleType<AtRulePrelude, CssRule>, ParseError<'i>> {
         let location = get_location_with_offset(input.current_source_location(),
@@ -150,13 +164,13 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
         match_ignore_ascii_case! { &*name,
             "import" => {
                 if self.state > State::Imports {
-                    self.state = State::Invalid;
                     // "@import must be before any rule but @charset"
+                    self.had_hierarchy_error = true;
                     return Err(StyleParseError::UnexpectedImportRule.into())
                 }
 
                 self.state = State::Imports;
-                let url_string = input.expect_url_or_string()?.into_owned();
+                let url_string = input.expect_url_or_string()?.as_ref().to_owned();
                 let specified_url = SpecifiedUrl::parse_from_string(url_string, &self.context)?;
 
                 let media = parse_media_query_list(&self.context, input);
@@ -177,20 +191,20 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
             },
             "namespace" => {
                 if self.state > State::Namespaces {
-                    self.state = State::Invalid;
                     // "@namespace must be before any rule but @charset and @import"
+                    self.had_hierarchy_error = true;
                     return Err(StyleParseError::UnexpectedNamespaceRule.into())
                 }
                 self.state = State::Namespaces;
 
-                let prefix_result = input.try(|input| input.expect_ident());
+                let prefix_result = input.try(|i| i.expect_ident_cloned());
                 let maybe_namespace = match input.expect_url_or_string() {
                     Ok(url_or_string) => url_or_string,
                     Err(BasicParseError::UnexpectedToken(t)) =>
                         return Err(StyleParseError::UnexpectedTokenWithinNamespace(t).into()),
                     Err(e) => return Err(e.into()),
                 };
-                let url = Namespace::from(Cow::from(maybe_namespace));
+                let url = Namespace::from(maybe_namespace.as_ref());
 
                 let id = register_namespace(&url)
                     .map_err(|()| StyleParseError::UnspecifiedError)?;
@@ -198,7 +212,7 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
                 let mut namespaces = self.namespaces.as_mut().unwrap();
 
                 let opt_prefix = if let Ok(prefix) = prefix_result {
-                    let prefix = Prefix::from(Cow::from(prefix));
+                    let prefix = Prefix::from(prefix.as_ref());
                     namespaces
                         .prefixes
                         .insert(prefix.clone(), (url.clone(), id));
@@ -218,13 +232,11 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
             },
             // @charset is removed by rust-cssparser if it’s the first rule in the stylesheet
             // anything left is invalid.
-            "charset" => return Err(StyleParseError::UnexpectedCharsetRule.into()),
+            "charset" => {
+                self.had_hierarchy_error = true;
+                return Err(StyleParseError::UnexpectedCharsetRule.into())
+            }
             _ => {}
-        }
-        // Don't allow starting with an invalid state
-        if self.state > State::Body {
-            self.state = State::Invalid;
-            return Err(StyleParseError::UnspecifiedError.into());
         }
         self.state = State::Body;
 
@@ -324,7 +336,7 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
 
     fn parse_prelude<'t>(
         &mut self,
-        name: CompactCowStr<'i>,
+        name: CowRcStr<'i>,
         input: &mut Parser<'i, 't>
     ) -> Result<AtRuleType<AtRulePrelude, CssRule>, ParseError<'i>> {
         let location =
@@ -345,6 +357,14 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
             },
             "font-face" => {
                 Ok(AtRuleType::WithBlock(AtRulePrelude::FontFace(location)))
+            },
+            "font-feature-values" => {
+                if !cfg!(feature = "gecko") && !cfg!(feature = "testing") {
+                    // Support for this rule is not fully implemented in Servo yet.
+                    return Err(StyleParseError::UnsupportedAtRule(name.clone()).into())
+                }
+                let family_names = parse_family_name_list(self.context, input)?;
+                Ok(AtRuleType::WithBlock(AtRulePrelude::FontFeatureValues(family_names, location)))
             },
             "counter-style" => {
                 if !cfg!(feature = "gecko") {
@@ -413,6 +433,11 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
                 let context = ParserContext::new_with_rule_type(self.context, Some(CssRuleType::FontFace));
                 Ok(CssRule::FontFace(Arc::new(self.shared_lock.wrap(
                    parse_font_face_block(&context, input, location).into()))))
+            }
+            AtRulePrelude::FontFeatureValues(family_names, location) => {
+                let context = ParserContext::new_with_rule_type(self.context, Some(CssRuleType::FontFeatureValues));
+                Ok(CssRule::FontFeatureValues(Arc::new(self.shared_lock.wrap(
+                    FontFeatureValuesRule::parse(&context, input, family_names, location)))))
             }
             AtRulePrelude::CounterStyle(name) => {
                 let context = ParserContext::new_with_rule_type(self.context, Some(CssRuleType::CounterStyle));
@@ -516,6 +541,7 @@ fn get_location_with_offset(
 ) -> SourceLocation {
     SourceLocation {
         line: location.line + offset as u32,
-        column: location.column,
+        // Column offsets are not yet supported, but Gecko devtools expect 1-based columns.
+        column: location.column + 1,
     }
 }

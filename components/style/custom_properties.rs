@@ -252,7 +252,8 @@ fn parse_declaration_value_block<'i, 't>
                                            ParseError<'i>> {
     let mut token_start = input.position();
     let mut token = match input.next_including_whitespace_and_comments() {
-        Ok(token) => token,
+        // FIXME: remove clone() when borrows are non-lexical
+        Ok(token) => token.clone(),
         Err(_) => return Ok((TokenSerializationType::nothing(), TokenSerializationType::nothing()))
     };
     let first_token_type = token.serialization_type();
@@ -351,7 +352,8 @@ fn parse_declaration_value_block<'i, 't>
 
         token_start = input.position();
         token = match input.next_including_whitespace_and_comments() {
-            Ok(token) => token,
+            // FIXME: remove clone() when borrows are non-lexical
+            Ok(token) => token.clone(),
             Err(..) => return Ok((first_token_type, last_token_type)),
         };
     }
@@ -361,7 +363,7 @@ fn parse_declaration_value_block<'i, 't>
 fn parse_var_function<'i, 't>(input: &mut Parser<'i, 't>,
                               references: &mut Option<HashSet<Name>>)
                               -> Result<(), ParseError<'i>> {
-    let name = input.expect_ident()?;
+    let name = input.expect_ident_cloned()?;
     let name: Result<_, ParseError> =
         parse_name(&name)
         .map_err(|()| SelectorParseError::UnexpectedIdent(name.clone()).into());
@@ -597,7 +599,8 @@ fn substitute_block<'i, 't, F>(input: &mut Parser<'i, 't>,
     let mut set_position_at_next_iteration = false;
     loop {
         let before_this_token = input.position();
-        let next = input.next_including_whitespace_and_comments();
+        // FIXME: remove clone() when borrows are non-lexical
+        let next = input.next_including_whitespace_and_comments().map(|t| t.clone());
         if set_position_at_next_iteration {
             *position = (before_this_token, match next {
                 Ok(ref token) => token.serialization_type(),
@@ -615,7 +618,7 @@ fn substitute_block<'i, 't, F>(input: &mut Parser<'i, 't>,
                     input.slice(position.0..before_this_token), position.1, last_token_type);
                 input.parse_nested_block(|input| {
                     // parse_var_function() ensures neither .unwrap() will fail.
-                    let name = input.expect_ident().unwrap();
+                    let name = input.expect_ident_cloned().unwrap();
                     let name = Atom::from(parse_name(&name).unwrap());
 
                     if let Ok(last) = substitute_one(&name, partial_computed_value) {

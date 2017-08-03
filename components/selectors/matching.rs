@@ -93,10 +93,10 @@ impl<'a, 'b, Impl> LocalMatchingContext<'a, 'b, Impl>
 
     /// Updates offset of Selector to show new compound selector.
     /// To be able to correctly re-synthesize main SelectorIter.
-    pub fn note_next_sequence(&mut self, selector_iter: &SelectorIter<Impl>) {
+    fn note_position(&mut self, selector_iter: &SelectorIter<Impl>) {
         if let QuirksMode::Quirks = self.shared.quirks_mode() {
             if self.selector.has_pseudo_element() && self.offset != 0 {
-                // This is the _second_ call to note_next_sequence,
+                // This is the _second_ call to note_position,
                 // which means we've moved past the compound
                 // selector adjacent to the pseudo-element.
                 self.hover_active_quirk_disabled = false;
@@ -108,7 +108,7 @@ impl<'a, 'b, Impl> LocalMatchingContext<'a, 'b, Impl>
 
     /// Returns true if current compound selector matches :active and :hover quirk.
     /// https://quirks.spec.whatwg.org/#the-active-and-hover-quirk
-    pub fn active_hover_quirk_matches(&mut self) -> bool {
+    pub fn active_hover_quirk_matches(&self) -> bool {
         if self.shared.quirks_mode() != QuirksMode::Quirks {
             return false;
         }
@@ -490,11 +490,12 @@ pub fn matches_complex_selector<E, F>(mut iter: SelectorIter<E::Impl>,
             return false;
         }
 
-        // Advance to the non-pseudo-element part of the selector, and inform the context.
+        // Advance to the non-pseudo-element part of the selector, and inform
+        // the context.
         if iter.next_sequence().is_none() {
             return true;
         }
-        context.note_next_sequence(&mut iter);
+        context.note_position(&iter);
     }
 
     match matches_complex_selector_internal(iter,
@@ -526,8 +527,6 @@ fn matches_complex_selector_internal<E, F>(mut selector_iter: SelectorIter<E::Im
            element, selector_iter, relevant_link);
 
     let combinator = selector_iter.next_sequence();
-    // Inform the context that the we've advanced to the next compound selector.
-    context.note_next_sequence(&mut selector_iter);
     let siblings = combinator.map_or(false, |c| c.is_sibling());
     if siblings {
         flags_setter(element, HAS_SLOW_SELECTOR_LATER_SIBLINGS);
@@ -567,6 +566,8 @@ fn matches_complex_selector_internal<E, F>(mut selector_iter: SelectorIter<E::Im
                     None => return candidate_not_found,
                     Some(next_element) => next_element,
                 };
+                // Note in which compound selector are we currently.
+                context.note_position(&selector_iter);
                 let result = matches_complex_selector_internal(selector_iter.clone(),
                                                                &element,
                                                                context,

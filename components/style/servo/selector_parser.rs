@@ -8,19 +8,20 @@
 
 use {Atom, Prefix, Namespace, LocalName, CaseSensitivityExt};
 use attr::{AttrIdentifier, AttrValue};
-use cssparser::{Parser as CssParser, ToCss, serialize_identifier, CompactCowStr};
+use cssparser::{Parser as CssParser, ToCss, serialize_identifier, CowRcStr};
 use dom::{OpaqueNode, TElement, TNode};
 use element_state::ElementState;
 use fnv::FnvHashMap;
 use invalidation::element::element_wrapper::ElementSnapshot;
+use properties::ComputedValues;
 use properties::PropertyFlags;
+use properties::longhands::display::computed_value as display;
 use selector_parser::{AttrValue as SelectorAttrValue, ElementExt, PseudoElementCascadeType, SelectorParser};
 use selectors::Element;
 use selectors::attr::{AttrSelectorOperation, NamespaceConstraint, CaseSensitivity};
 use selectors::parser::{SelectorMethods, SelectorParseError};
 use selectors::visitor::SelectorVisitor;
 use std::ascii::AsciiExt;
-use std::borrow::Cow;
 use std::fmt;
 use std::fmt::Debug;
 use std::mem;
@@ -40,6 +41,8 @@ pub enum PseudoElement {
     Before,
     Selection,
     // If/when :first-letter is added, update is_first_letter accordingly.
+
+    // If/when :first-line is added, update is_first_line accordingly.
 
     // If/when ::first-letter, ::first-line, or ::placeholder are added, adjust
     // our property_restriction implementation to do property filtering for
@@ -124,6 +127,12 @@ impl PseudoElement {
         false
     }
 
+    /// Whether the current pseudo element is :first-line
+    #[inline]
+    pub fn is_first_line(&self) -> bool {
+        false
+    }
+
     /// Whether this pseudo-element is eagerly-cascaded.
     #[inline]
     pub fn is_eager(&self) -> bool {
@@ -181,6 +190,21 @@ impl PseudoElement {
     #[inline]
     pub fn property_restriction(&self) -> Option<PropertyFlags> {
         None
+    }
+
+    /// Whether this pseudo-element should actually exist if it has
+    /// the given styles.
+    pub fn should_exist(&self, style: &ComputedValues) -> bool
+    {
+        let display = style.get_box().clone_display();
+        if display == display::T::none {
+            return false;
+        }
+        if self.is_before_or_after() && style.ineffective_content_property() {
+            return false;
+        }
+
+        true
     }
 }
 
@@ -334,7 +358,7 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
     type Impl = SelectorImpl;
     type Error = StyleParseError<'i>;
 
-    fn parse_non_ts_pseudo_class(&self, name: CompactCowStr<'i>)
+    fn parse_non_ts_pseudo_class(&self, name: CowRcStr<'i>)
                                  -> Result<NonTSPseudoClass, ParseError<'i>> {
         use self::NonTSPseudoClass::*;
         let pseudo_class = match_ignore_ascii_case! { &name,
@@ -367,19 +391,19 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
     }
 
     fn parse_non_ts_functional_pseudo_class<'t>(&self,
-                                                name: CompactCowStr<'i>,
+                                                name: CowRcStr<'i>,
                                                 parser: &mut CssParser<'i, 't>)
                                                 -> Result<NonTSPseudoClass, ParseError<'i>> {
         use self::NonTSPseudoClass::*;
         let pseudo_class = match_ignore_ascii_case!{ &name,
             "lang" => {
-                Lang(parser.expect_ident_or_string()?.into_owned().into_boxed_str())
+                Lang(parser.expect_ident_or_string()?.as_ref().into())
             }
             "-servo-case-sensitive-type-attr" => {
                 if !self.in_user_agent_stylesheet() {
                     return Err(SelectorParseError::UnexpectedIdent(name.clone()).into());
                 }
-                ServoCaseSensitiveTypeAttr(Atom::from(Cow::from(parser.expect_ident()?)))
+                ServoCaseSensitiveTypeAttr(Atom::from(parser.expect_ident()?.as_ref()))
             }
             _ => return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
         };
@@ -387,7 +411,7 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
         Ok(pseudo_class)
     }
 
-    fn parse_pseudo_element(&self, name: CompactCowStr<'i>) -> Result<PseudoElement, ParseError<'i>> {
+    fn parse_pseudo_element(&self, name: CowRcStr<'i>) -> Result<PseudoElement, ParseError<'i>> {
         use self::PseudoElement::*;
         let pseudo_element = match_ignore_ascii_case! { &name,
             "before" => Before,

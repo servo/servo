@@ -34,9 +34,16 @@ use traversal::{DomTraversal, PerLevelTraversalData, PreTraverseToken};
 
 /// The maximum number of child nodes that we will process as a single unit.
 ///
-/// Larger values will increase style sharing cache hits and general DOM locality
-/// at the expense of decreased opportunities for parallelism. This value has not
-/// been measured and could potentially be tuned.
+/// Larger values will increase style sharing cache hits and general DOM
+/// locality at the expense of decreased opportunities for parallelism.  There
+/// are some measurements in
+/// https://bugzilla.mozilla.org/show_bug.cgi?id=1385982#c11 and comments 12
+/// and 13 that investigate some slightly different values for the work unit
+/// size.  If the size is significantly increased, make sure to adjust the
+/// condition for kicking off a new work unit in top_down_dom, because
+/// otherwise we're likely to end up doing too much work serially.  For
+/// example, the condition there could become some fraction of WORK_UNIT_MAX
+/// instead of WORK_UNIT_MAX.
 pub const WORK_UNIT_MAX: usize = 16;
 
 /// A set of nodes, sized to the work unit. This gets copied when sent to other
@@ -137,7 +144,8 @@ fn create_thread_local_context<'scope, E, D>(
 /// * Never process a child before its parent (since child style depends on
 ///   parent style). If this were to happen, the styling algorithm would panic.
 /// * Prioritize discovering nodes as quickly as possible to maximize
-///   opportunities for parallelism.
+///   opportunities for parallelism.  But this needs to be weighed against
+///   styling cousins on a single thread to improve sharing.
 /// * Style all the children of a given node (i.e. all sibling nodes) on
 ///   a single thread (with an upper bound to handle nodes with an
 ///   abnormally large number of children). This is important because we use
@@ -173,10 +181,10 @@ fn top_down_dom<'a, 'scope, E, D>(nodes: &'a [SendNode<E::ConcreteNode>],
         };
 
         for n in nodes {
-            // If the last node we processed produced children, spawn them off
-            // into a work item. We do this at the beginning of the loop (rather
-            // than at the end) so that we can traverse the children of the last
-            // sibling directly on this thread without a spawn call.
+            // If the last node we processed produced children, we may want to
+            // spawn them off into a work item. We do this at the beginning of
+            // the loop (rather than at the end) so that we can traverse our
+            // last bits of work directly on this thread without a spawn call.
             //
             // This has the important effect of removing the allocation and
             // context-switching overhead of the parallel traversal for perfectly
@@ -184,8 +192,33 @@ fn top_down_dom<'a, 'scope, E, D>(nodes: &'a [SendNode<E::ConcreteNode>],
             //
             // <russian><doll><tag><nesting></nesting></tag></doll></russian>
             //
-            // Which are not at all uncommon.
-            if !discovered_child_nodes.is_empty() {
+            // which are not at all uncommon.
+            //
+            // There's a tension here between spawning off a work item as soon
+            // as discovered_child_nodes is nonempty and waiting until we have a
+            // full work item to do so.  The former optimizes for speed of
+            // discovery (we'll start discovering the kids of the things in
+            // "nodes" ASAP).  The latter gives us better sharing (e.g. we can
+            // share between cousins much better, because we don't hand them off
+            // as separate work items, which are likely to end up on separate
+            // threads) and gives us a chance to just handle everything on this
+            // thread for small DOM subtrees, as in the linear example above.
+            //
+            // There are performance and "number of ComputedValues"
+            // measurements for various testcases in
+            // https://bugzilla.mozilla.org/show_bug.cgi?id=1385982#c10 and
+            // following.
+            //
+            // The worst case behavior for waiting until we have a full work
+            // item is a deep tree which has WORK_UNIT_MAX "linear" branches,
+            // hence WORK_UNIT_MAX elements at each level.  Such a tree would
+            // end up getting processed entirely sequentially, because we would
+            // process each level one at a time as a single work unit, whether
+            // via our end-of-loop tail call or not.  If we kicked off a
+            // traversal as soon as we discovered kids, we would instead
+            // process such a tree more or less with a thread-per-branch,
+            // multiplexed across our actual threadpool.
+            if discovered_child_nodes.len() >= WORK_UNIT_MAX {
                 let mut traversal_data_copy = traversal_data.clone();
                 traversal_data_copy.current_dom_depth += 1;
                 traverse_nodes(&*discovered_child_nodes,
@@ -213,9 +246,9 @@ fn top_down_dom<'a, 'scope, E, D>(nodes: &'a [SendNode<E::ConcreteNode>],
         }
     }
 
-    // Handle the children of the last element in this work unit. If any exist,
-    // we can process them (or at least one work unit's worth of them) directly
-    // on this thread by passing TailCall.
+    // Handle whatever elements we have queued up but not kicked off traversals
+    // for yet.  If any exist, we can process them (or at least one work unit's
+    // worth of them) directly on this thread by passing TailCall.
     if !discovered_child_nodes.is_empty() {
         traversal_data.current_dom_depth += 1;
         traverse_nodes(&discovered_child_nodes,

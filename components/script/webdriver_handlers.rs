@@ -392,7 +392,7 @@ pub fn handle_is_selected(documents: &Documents,
             else if let Some(option_element) = node.downcast::<HTMLOptionElement>() {
                 Ok(option_element.Selected())
             }
-            else if let Some(_) = node.downcast::<HTMLElement>() {
+            else if node.is::<HTMLElement>() {
                 Ok(false) // regular elements are not selectable
             } else {
                 Err(())

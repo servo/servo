@@ -18,8 +18,8 @@ use CaseSensitivityExt;
 use app_units::Au;
 use applicable_declarations::ApplicableDeclarationBlock;
 use atomic_refcell::{AtomicRefCell, AtomicRefMut};
-use context::{QuirksMode, SharedStyleContext, UpdateAnimationsTasks};
-use data::ElementData;
+use context::{QuirksMode, SharedStyleContext, PostAnimationTasks, UpdateAnimationsTasks};
+use data::{ElementData, RestyleData};
 use dom::{self, DescendantsBit, LayoutIterator, NodeInfo, TElement, TNode, UnsafeNode};
 use dom::{OpaqueNode, PresentationalHintsSynthesizer};
 use element_state::{ElementState, DocumentState, NS_DOCUMENT_STATE_WINDOW_INACTIVE};
@@ -63,7 +63,9 @@ use gecko_bindings::structs::ELEMENT_HAS_SNAPSHOT;
 use gecko_bindings::structs::EffectCompositor_CascadeLevel as CascadeLevel;
 use gecko_bindings::structs::NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE;
 use gecko_bindings::structs::NODE_IS_NATIVE_ANONYMOUS;
+use gecko_bindings::structs::nsChangeHint;
 use gecko_bindings::structs::nsIDocument_DocumentTheme as DocumentTheme;
+use gecko_bindings::structs::nsRestyleHint;
 use gecko_bindings::sugar::ownership::{HasArcFFI, HasSimpleFFI};
 use logical_geometry::WritingMode;
 use media_queries::Device;
@@ -670,6 +672,64 @@ impl<'le> GeckoElement<'le> {
     pub fn owner_document_quirks_mode(&self) -> QuirksMode {
         self.as_node().owner_doc().mCompatMode.into()
     }
+
+    /// Only safe to call on the main thread, with exclusive access to the element and
+    /// its ancestors.
+    /// This function is also called after display property changed for SMIL animation.
+    ///
+    /// Also this function schedules style flush.
+    unsafe fn maybe_restyle<'a>(&self,
+                                data: &'a mut ElementData,
+                                animation_only: bool) -> Option<&'a mut RestyleData> {
+        use dom::{AnimationOnlyDirtyDescendants, DirtyDescendants};
+
+        // Don't generate a useless RestyleData if the element hasn't been styled.
+        if !data.has_styles() {
+            return None;
+        }
+
+        // Propagate the bit up the chain.
+        if let Some(p) = self.traversal_parent() {
+            if animation_only {
+                p.note_descendants::<AnimationOnlyDirtyDescendants>();
+            } else {
+                p.note_descendants::<DirtyDescendants>();
+            }
+        };
+
+        bindings::Gecko_SetOwnerDocumentNeedsStyleFlush(self.0);
+
+        // Ensure and return the RestyleData.
+        Some(&mut data.restyle)
+    }
+
+    /// Set restyle and change hints to the element data.
+    pub fn note_explicit_hints(&self,
+                               restyle_hint: nsRestyleHint,
+                               change_hint: nsChangeHint) {
+        use gecko::restyle_damage::GeckoRestyleDamage;
+        use invalidation::element::restyle_hints::RestyleHint;
+
+        let damage = GeckoRestyleDamage::new(change_hint);
+        debug!("note_explicit_hints: {:?}, restyle_hint={:?}, change_hint={:?}",
+               self, restyle_hint, change_hint);
+
+        let restyle_hint: RestyleHint = restyle_hint.into();
+        debug_assert!(!(restyle_hint.has_animation_hint() &&
+                        restyle_hint.has_non_animation_hint()),
+                      "Animation restyle hints should not appear with non-animation restyle hints");
+
+        let mut maybe_data = self.mutate_data();
+        let maybe_restyle_data = maybe_data.as_mut().and_then(|d| unsafe {
+            self.maybe_restyle(d, restyle_hint.has_animation_hint())
+        });
+        if let Some(restyle_data) = maybe_restyle_data {
+            restyle_data.hint.insert(restyle_hint.into());
+            restyle_data.damage |= damage;
+        } else {
+            debug!("(Element not styled, discarding hints)");
+        }
+    }
 }
 
 /// Converts flags from the layout used by rust-selectors to the layout used
@@ -1107,6 +1167,31 @@ impl<'le> TElement for GeckoElement<'le> {
         self.as_node().get_bool_flag(nsINode_BooleanFlag::ElementHasAnimations)
     }
 
+    /// Process various tasks that are a result of animation-only restyle.
+    fn process_post_animation(&self,
+                              tasks: PostAnimationTasks) {
+        use context::DISPLAY_CHANGED_FROM_NONE_FOR_SMIL;
+        use gecko_bindings::structs::nsChangeHint_nsChangeHint_Empty;
+        use gecko_bindings::structs::nsRestyleHint_eRestyle_Subtree;
+
+        debug_assert!(!tasks.is_empty(), "Should be involved a task");
+
+        // If display style was changed from none to other, we need to resolve
+        // the descendants in the display:none subtree. Instead of resolving
+        // those styles in animation-only restyle, we defer it to a subsequent
+        // normal restyle.
+        if tasks.intersects(DISPLAY_CHANGED_FROM_NONE_FOR_SMIL) {
+            debug_assert!(self.implemented_pseudo_element()
+                              .map_or(true, |p| !p.is_before_or_after()),
+                          "display property animation shouldn't run on pseudo elements \
+                           since it's only for SMIL");
+            self.note_explicit_hints(nsRestyleHint_eRestyle_Subtree,
+                                     nsChangeHint_nsChangeHint_Empty);
+        }
+    }
+
+    /// Update various animation-related state on a given (pseudo-)element as
+    /// results of normal restyle.
     fn update_animations(&self,
                          before_change_style: Option<Arc<ComputedValues>>,
                          tasks: UpdateAnimationsTasks) {
@@ -1402,6 +1487,7 @@ impl<'le> PresentationalHintsSynthesizer for GeckoElement<'le> {
         where V: Push<ApplicableDeclarationBlock>,
     {
         use properties::longhands::_x_lang::SpecifiedValue as SpecifiedLang;
+        use properties::longhands::_x_text_zoom::SpecifiedValue as SpecifiedZoom;
         use properties::longhands::color::SpecifiedValue as SpecifiedColor;
         use properties::longhands::text_align::SpecifiedValue as SpecifiedTextAlign;
         use values::specified::color::Color;
@@ -1433,6 +1519,15 @@ impl<'le> PresentationalHintsSynthesizer for GeckoElement<'le> {
                 let arc = Arc::new(global_style_data.shared_lock.wrap(pdb));
                 ApplicableDeclarationBlock::from_declarations(arc, ServoCascadeLevel::PresHints)
             };
+            static ref SVG_TEXT_DISABLE_ZOOM_RULE: ApplicableDeclarationBlock = {
+                let global_style_data = &*GLOBAL_STYLE_DATA;
+                let pdb = PropertyDeclarationBlock::with_one(
+                    PropertyDeclaration::XTextZoom(SpecifiedZoom(false)),
+                    Importance::Normal
+                );
+                let arc = Arc::new(global_style_data.shared_lock.wrap(pdb));
+                ApplicableDeclarationBlock::from_declarations(arc, ServoCascadeLevel::PresHints)
+            };
         };
 
         let ns = self.get_namespace();
@@ -1443,6 +1538,11 @@ impl<'le> PresentationalHintsSynthesizer for GeckoElement<'le> {
             } else if self.get_local_name().as_ptr() == atom!("table").as_ptr() &&
                       self.as_node().owner_doc().mCompatMode == structs::nsCompatibility::eCompatibility_NavQuirks {
                 hints.push(TABLE_COLOR_RULE.clone());
+            }
+        }
+        if ns == &*Namespace(atom!("http://www.w3.org/2000/svg")) {
+            if self.get_local_name().as_ptr() == atom!("text").as_ptr() {
+                hints.push(SVG_TEXT_DISABLE_ZOOM_RULE.clone());
             }
         }
         let declarations = unsafe { Gecko_GetHTMLPresentationAttrDeclarationBlock(self.0) };
@@ -1665,7 +1765,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
 
     fn get_local_name(&self) -> &WeakAtom {
         unsafe {
-            WeakAtom::new(self.as_node().node_info().mInner.mName.raw::<nsIAtom>())
+            WeakAtom::new(self.as_node().node_info().mInner.mName)
         }
     }
 

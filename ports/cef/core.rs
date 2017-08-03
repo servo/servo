@@ -13,8 +13,6 @@ use servo_config::opts;
 use std::ffi;
 use std::str;
 
-const MAX_RENDERING_THREADS: usize = 128;
-
 //static HOME_URL: &'static str = "http://s27.postimg.org/vqbtrolyr/servo.jpg";
 
 static CEF_API_HASH_UNIVERSAL: &'static [u8] = b"8efd129f4afc344bd04b2feb7f73a149b6c4e27f\0";
@@ -56,16 +54,6 @@ pub extern "C" fn cef_initialize(args: *const cef_main_args_t,
             CEF_APP = application;
         }
     }
-
-    let rendering_threads = unsafe {
-        if ((*settings).rendering_threads as usize) < 1 {
-            1
-        } else if (*settings).rendering_threads as usize > MAX_RENDERING_THREADS {
-            MAX_RENDERING_THREADS
-        } else {
-            (*settings).rendering_threads as usize
-        }
-    };
 
     let mut temp_opts = opts::default_opts();
     temp_opts.headless = false;

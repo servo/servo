@@ -19,6 +19,7 @@ use dom::bindings::js::{LayoutJS, MutNullableJS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
 use dom::bindings::str::DOMString;
+use dom::bindings::trace::JSTraceable;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
 use dom::element::{reflect_cross_origin_attribute, set_cross_origin_attribute};
@@ -52,10 +53,12 @@ use script_thread::{Runnable, ScriptThread};
 use servo_url::ServoUrl;
 use servo_url::origin::ImmutableOrigin;
 use std::cell::{Cell, RefMut};
+use std::collections::LinkedList;
 use std::default::Default;
 use std::i32;
+use std::iter::Iterator;
 use std::sync::{Arc, Mutex};
-use style::attr::{AttrValue, LengthOrPercentageOrAuto};
+use style::attr::{AttrValue, LengthOrPercentageOrAuto, parse_double, parse_unsigned_integer};
 use task_source::TaskSource;
 
 #[derive(Clone, Copy, JSTraceable, HeapSizeOf)]
@@ -65,6 +68,13 @@ enum ParseState {
     InParens,
     AfterDescriptor,
 }
+#[derive(Clone)]
+enum Error {
+    Yes,
+    No,
+}
+#[derive(Clone, Copy, JSTraceable, HeapSizeOf)]
+#[allow(dead_code)]
 enum State {
     Unavailable,
     PartiallyAvailable,
@@ -78,10 +88,6 @@ enum ImageRequestPhase {
 }
 #[derive(JSTraceable, HeapSizeOf)]
 #[must_root]
-struct ImageSource {
-    candidate: String,
-    length: Length,
-}
 struct ImageRequest {
     state: State,
     parsed_url: Option<ServoUrl>,
@@ -801,11 +807,11 @@ impl HTMLImageElementMethods for HTMLImageElement {
     make_url_getter!(Src, "src");
     // https://html.spec.whatwg.org/multipage/#dom-img-src
     make_setter!(SetSrc, "src");
-    
+
     // https://html.spec.whatwg.org/multipage/#parsing-a-srcset-attribute
-    // make_getter!(Srcset, "srcset");
+    make_url_getter!(Srcset, "srcset");
     // https://html.spec.whatwg.org/multipage/#parsing-a-srcset-attribute
-    // make_setter!(SetSrcset, "srcset");
+    make_setter!(SetSrcset, "srcset");
 
     // https://html.spec.whatwg.org/multipage/#dom-img-crossOrigin
     fn GetCrossOrigin(&self) -> Option<DOMString> {
@@ -1047,111 +1053,214 @@ fn image_dimension_setter(element: &Element, attr: LocalName, value: u32) {
     element.set_attribute(&attr, value);
 }
 
-fn collect_sequence_characters<'a, P>(s: &'a str, predicate: P)
-                  -> (&'a str, &'a str)
-                  where P: Fn(char) -> bool {
-    for (i, c) in s.chars().enumerate() {
-        if !predicate(c) {
-            return (&s[0..i], &s[i..]);
-        }
-    }
-    return (s, "");
+#[derive(Debug)]
+#[derive(PartialEq)]
+pub struct ImageSource {
+    pub url: String,
+    pub descriptor: Descriptor,
+}
+#[derive(PartialEq)]
+#[derive(Debug)]
+pub struct Descriptor {
+    pub wid: Option<u32>,
+    pub den: Option<f64>,
 }
 
-fn parse_a_srcset_attribute(input: String) -> Vec<ImageSource> {
-        let position = &input;
-        let candidate: Vec<ImageSource> = Vec::new();
-        let(spaces, position) = collect_sequence_characters(position, |c| c ==',' || char::is_whitespace(c));
-        println!("{} {}", spaces, position);
-        let x = spaces.find(',');
-        match x {
-            Some(val) => println!("Parse Error"),
-            None => println!("No commas"),
-        }
-        if position == "" {
-            //Does something need to be asserted here? The algorithm says abort the steps is this condition exists
-            return candidate;
-        }
-        let (url, spaces) = collect_sequence_characters(position, |c| !char::is_whitespace(c));
-        let comma_count = url.chars().rev().take_while(|c| *c == ',').count();
-        let url: String = url.chars().take(url.chars().count() - comma_count).collect();
-        if comma_count > 1 {
-            println!("Parse Error (trailing commas)")
+pub fn collect_sequence_characters<F>(s: &str, predicate: F) -> (&str, &str)
+        where F: Fn(char) -> bool
+        {
+            for (i, ch) in s.chars().enumerate() {
+                if !predicate(ch) {
+                    return (&s[0..i], &s[i..])
+                }
+            }
+        return (s, "");
         }
 
-        let mut descriptor = List::<String>::new();
-        // Descriptor Tokeniser: whitespace
-        let (space, position) = collect_sequence_characters(position, |c| char::is_whitespace(c));
-        let mut current_descriptor = String::new();
-        let mut state = ParseState::InDescriptor;
-        for (i, c) in position.chars().enumerate() {
-            match state {
-                ParseState::InDescriptor => {
-                    match c {
-                     ' ' => {
-                                if current_descriptor != "" {
-                                    descriptor.push_back(current_descriptor.clone());
+pub fn parse_a_srcset_attribute(input: String) -> Vec<ImageSource> {
+        let mut start = 0;
+        let mut candidates: Vec<ImageSource> = Vec::new();
+        loop {
+            let position = &input[start..];
+            let(spaces, position) = collect_sequence_characters(position, |c| c ==',' || char::is_whitespace(c));
+            println!("\nspaces:`{}`, position:`{}`", spaces, position);
+            let x = spaces.find(',');
+            match x {
+                Some(val) => println!("Parse Error"),
+                None => println!("No commas"),
+            }
+            if position.is_empty() {
+                return candidates;
+            }
+            let(url, spaces) = collect_sequence_characters(position, |c| !char::is_whitespace(c));
+            println!("\nurl:'{}', spaces:'{}'", url, spaces);
+            let comma_count = url.chars().rev().take_while(|c| *c == ',').count();
+            let url: String = url.chars().take(url.chars().count() - comma_count).collect();
+            if comma_count > 1 {
+                println!("Parse Error (trailing commas)")
+            }
+            let mut descriptors = LinkedList::<String>::new();
+            //descriptor tokenizer
+            let(space, position) = collect_sequence_characters(spaces, |c| char::is_whitespace(c));
+            println!("\nspace: `{}`and position: `{}`", spaces, position);
+            let mut current_descriptor = String::new();
+            let mut state = ParseState::InDescriptor;
+            println!("\nposition: `{}`", position);
+            let mut char_stream = position.chars().enumerate();
+            let mut last_index = 0;
+            let mut buffered: Option<(usize, char)> = None;
+            loop {
+                let nextChar = buffered.take().or_else(|| char_stream.next());
+                if let Some((i, _)) = nextChar {
+                    start = i;
+                }
+                match state {
+                    ParseState::InDescriptor => {
+                        match nextChar {
+                            Some((idx, c @ ' ')) => {
+                                if !current_descriptor.is_empty() { 
+                                    descriptors.push_back(current_descriptor.clone());
+                                    current_descriptor = String::new();
                                     state = ParseState::AfterDescriptor;
                                 }
-                            },
-                     ',' => {   position.chars().enumerate();
-                                if current_descriptor != "" {
-                                    descriptor.push_back(current_descriptor.clone());
-                                    state = ParseState::AfterDescriptor;
-                                }
+                                continue;
                             }
-                     '(' => {
+                            Some((idx, c @ ',')) => {
+                                position.chars().enumerate();
+                                if !current_descriptor.is_empty() {
+                                    descriptors.push_back(current_descriptor.clone());
+                                }
+                                break;
+                            }
+                            Some((idx, c @ '(')) => {
                                 current_descriptor.push(c);
                                 state = ParseState::InParens;
+                                continue;
                             }
-                    //Matching EOF
-                     /*''  => {   if current_descriptor != "" {
-                                    descriptor.push_back(current_descriptor.clone());
-                                    state = ParseState::AfterDescriptor;
-                                }
-                            }
-                    */
-                      _  => {
+                            Some((_, c)) => {
                                 current_descriptor.push(c);
+                                continue;
                             }
+                            None => {
+                                if !current_descriptor.is_empty() {
+                                    descriptors.push_back(current_descriptor.clone());
+                                }
+                                break;
+                            }
+                        }
                     }
-                }
-                ParseState::InParens =>{
-                    match c {
-                     '(' => {
+                    ParseState::InParens => {
+                        match nextChar {
+                            Some((idx, c @ ')')) => {
                                 current_descriptor.push(c);
                                 state = ParseState::InDescriptor;
+                                continue;
                             }
-                    //Matching EOF
-                     /*''  => {   if current_descriptor != "" {
-                                    descriptor.push_back(current_descriptor.clone());
-                                    state = ParseState::AfterDescriptor;
-                                }
-                            }
-                    */
-                      _  => {
+                            Some((_, c)) => {
                                 current_descriptor.push(c);
+                                continue;
                             }
+                            None => {
+                                if !current_descriptor.is_empty() {
+                                    descriptors.push_back(current_descriptor.clone());
+                                }
+                                break;
+                            }
+                        }
+                    }
+                    ParseState::AfterDescriptor => {
+                        match nextChar {
+                            Some((idx, ' ')) => {
+                                state = ParseState::AfterDescriptor;
+                                continue;
+                            }
+                            Some((idx, c)) => {
+                                state = ParseState::InDescriptor;
+                                buffered = Some((idx, c));
+                                continue;
+                            }
+                            None => {
+                                if !current_descriptor.is_empty() {
+                                    descriptors.push_back(current_descriptor.clone());
+                                }
+                                break;
+                            }
+                        }
                     }
                 }
-                ParseState::AfterDescriptor => {
-                    match c {
-                         ' ' => {
-                                        state = ParseState::AfterDescriptor;
-                                }
-                        //Matching EOF
-                         /*''  => {   if current_descriptor != "" {
-                                        descriptor.push_back(current_descriptor.clone());
-                                        state = ParseState::AfterDescriptor;
-                                    }
-                                }
-                        */
-                          _  => {
-                                    state = ParseState::InDescriptor;
-                                }
-                        }
+            }
+            start += last_index;
+            println!("Descriptors: `{:?}`", descriptors);
+            break;
+            let mut error = Error::No;
+            let mut width: Option<u32> = None;
+            let mut density: Option<f64> = None;
+            let mut future_compat_h: Option<u32> = None;
+            for descriptor in descriptors {
+                let mut char_iter = descriptor.chars();
+                let valid_non_negative_integer = parse_unsigned_integer(char_iter.clone());
+                let has_w = if let Some('w') = char_iter.next() {
+                    true
+                } else {
+                    false
+                };
+                let valid_floating_point = parse_double(char_iter.as_str());
+                let has_x = if let Some('x') = char_iter.next() {
+                    true
+                } else {
+                    false
+                };
+                let has_h = if let Some('h') = char_iter.next() {
+                    true
+                } else {
+                    false
+                };
+                if valid_non_negative_integer.is_ok() && has_w {
+                    //not support sizes attribute
+                    if width != None && density != None {
+                        error = Error::Yes;
+                    }
+                    let result = parse_unsigned_integer(char_iter.clone());
+                    if result.is_err() {
+                        error = Error::Yes;
+                    } else {
+                        width = Some(result.unwrap());
+                    }
+                } else if valid_floating_point.is_ok() && has_x {
+                    if width != None && density != None && future_compat_h != None {
+                        error = Error::Yes;
+                    }
+                    let result = parse_double(char_iter.as_str());
+                    if result.is_err() {
+                        error = Error::Yes;
+                    } else {
+                        density = Some(result.unwrap());
+                    }
+                } else if valid_non_negative_integer.is_ok() && has_h {
+                    if density != None && future_compat_h != None {
+                        error = Error::Yes;
+                    }
+                    let result = parse_unsigned_integer(char_iter.clone());
+                    if result.is_err() {
+                        error = Error::Yes;
+                    } else {
+                        future_compat_h = Some(result.unwrap());
+                    }
+                } else {
+                    error = Error::Yes;
+                }
+            }
+            if future_compat_h != None && width == None {
+                error = Error::Yes;
+            }
+            if let Error::No = error {
+                if width != None && density != None {
+                    let descriptor = Descriptor { wid: width, den: density };
+                    let mut imageSource = ImageSource { url: url, descriptor: descriptor };
+                    candidates.push(imageSource);
+                } else {
+                    debug!("parse error");
                 }
             }
         }
-        return candidate;
-}
+    }

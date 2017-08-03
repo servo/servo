@@ -94,7 +94,7 @@ unsafe impl Sync for WeakAtom {}
 impl WeakAtom {
     /// Construct a `WeakAtom` from a raw `nsIAtom`.
     #[inline]
-    pub unsafe fn new<'a>(atom: *mut nsIAtom) -> &'a mut Self {
+    pub unsafe fn new<'a>(atom: *const nsIAtom) -> &'a mut Self {
         &mut *(atom as *mut WeakAtom)
     }
 

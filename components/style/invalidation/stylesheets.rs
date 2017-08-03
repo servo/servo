@@ -301,7 +301,8 @@ impl StylesheetInvalidationSet {
             CounterStyle(..) |
             Keyframes(..) |
             Page(..) |
-            Viewport(..) => {
+            Viewport(..) |
+            FontFeatureValues(..) => {
                 debug!(" > Found unsupported rule, marking the whole subtree \
                        invalid.");
 

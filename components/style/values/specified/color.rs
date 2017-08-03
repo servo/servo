@@ -13,7 +13,7 @@ use parser::{ParserContext, Parse};
 use properties::longhands::color::SystemColor;
 use std::fmt;
 use std::io::Write;
-use style_traits::{ToCss, ParseError, StyleParseError};
+use style_traits::{ToCss, ParseError, StyleParseError, ValueParseError};
 use super::AllowQuirks;
 use values::computed::{Color as ComputedColor, Context, ToComputedValue};
 
@@ -72,28 +72,32 @@ impl Parse for Color {
         // specified value.
         let start_position = input.position();
         let authored = match input.next() {
-            Ok(Token::Ident(s)) => Some(s.to_lowercase().into_boxed_str()),
+            Ok(&Token::Ident(ref s)) => Some(s.to_lowercase().into_boxed_str()),
             _ => None,
         };
         input.reset(start_position);
-        if let Ok(value) = input.try(CSSParserColor::parse) {
-            Ok(match value {
-                CSSParserColor::CurrentColor => Color::CurrentColor,
-                CSSParserColor::RGBA(rgba) => Color::Numeric {
-                    parsed: rgba,
-                    authored: authored,
-                },
-            })
-        } else {
-            #[cfg(feature = "gecko")] {
-                if let Ok(system) = input.try(SystemColor::parse) {
-                    Ok(Color::System(system))
-                } else {
-                    gecko::SpecialColorKeyword::parse(input).map(Color::Special)
+        match input.try(CSSParserColor::parse) {
+            Ok(value) =>
+                Ok(match value {
+                    CSSParserColor::CurrentColor => Color::CurrentColor,
+                    CSSParserColor::RGBA(rgba) => Color::Numeric {
+                        parsed: rgba,
+                        authored: authored,
+                    },
+                }),
+            Err(e) => {
+                #[cfg(feature = "gecko")] {
+                    if let Ok(system) = input.try(SystemColor::parse) {
+                        return Ok(Color::System(system));
+                    } else if let Ok(c) = gecko::SpecialColorKeyword::parse(input) {
+                        return Ok(Color::Special(c));
+                    }
                 }
-            }
-            #[cfg(not(feature = "gecko"))] {
-                Err(StyleParseError::UnspecifiedError.into())
+                match e {
+                    BasicParseError::UnexpectedToken(t) =>
+                        Err(StyleParseError::ValueError(ValueParseError::InvalidColor(t)).into()),
+                    e => Err(e.into())
+                }
             }
         }
     }
@@ -161,11 +165,13 @@ impl Color {
                                 input: &mut Parser<'i, 't>,
                                 allow_quirks: AllowQuirks)
                                 -> Result<Self, ParseError<'i>> {
-        input.try(|i| Self::parse(context, i)).or_else(|_| {
+        input.try(|i| Self::parse(context, i)).or_else(|e| {
             if !allow_quirks.allowed(context.quirks_mode) {
-                return Err(StyleParseError::UnspecifiedError.into());
+                return Err(e);
             }
-            Color::parse_quirky_color(input).map(|rgba| Color::rgba(rgba))
+            Color::parse_quirky_color(input)
+                .map(|rgba| Color::rgba(rgba))
+                .map_err(|_| e)
         })
     }
 
@@ -173,22 +179,22 @@ impl Color {
     ///
     /// https://quirks.spec.whatwg.org/#the-hashless-hex-color-quirk
     fn parse_quirky_color<'i, 't>(input: &mut Parser<'i, 't>) -> Result<RGBA, ParseError<'i>> {
-        let (value, unit) = match input.next()? {
+        let (value, unit) = match *input.next()? {
             Token::Number { int_value: Some(integer), .. } => {
                 (integer, None)
             },
-            Token::Dimension { int_value: Some(integer), unit, .. } => {
+            Token::Dimension { int_value: Some(integer), ref unit, .. } => {
                 (integer, Some(unit))
             },
-            Token::Ident(ident) => {
+            Token::Ident(ref ident) => {
                 if ident.len() != 3 && ident.len() != 6 {
                     return Err(StyleParseError::UnspecifiedError.into());
                 }
                 return parse_hash_color(ident.as_bytes())
                     .map_err(|()| StyleParseError::UnspecifiedError.into());
             }
-            t => {
-                return Err(BasicParseError::UnexpectedToken(t).into());
+            ref t => {
+                return Err(BasicParseError::UnexpectedToken(t.clone()).into());
             },
         };
         if value < 0 {

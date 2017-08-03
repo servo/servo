@@ -14,20 +14,24 @@ use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::sync::Mutex;
 use std::sync::atomic::AtomicBool;
+use style::computed_values::font_family::FamilyName;
 use style::context::QuirksMode;
 use style::error_reporting::{ParseErrorReporter, ContextualParseError};
 use style::media_queries::MediaList;
 use style::properties::Importance;
 use style::properties::{CSSWideKeyword, DeclaredValueOwned, PropertyDeclaration, PropertyDeclarationBlock};
 use style::properties::longhands;
-use style::properties::longhands::animation_play_state;
+use style::properties::longhands::animation_timing_function;
 use style::shared_lock::SharedRwLock;
 use style::stylesheets::{Origin, Namespaces};
 use style::stylesheets::{Stylesheet, StylesheetContents, NamespaceRule, CssRule, CssRules, StyleRule, KeyframesRule};
+use style::stylesheets::font_feature_values_rule::{FFVDeclaration, FontFeatureValuesRule};
+use style::stylesheets::font_feature_values_rule::{SingleValue, PairValues, VectorValues};
 use style::stylesheets::keyframes_rule::{Keyframe, KeyframeSelector, KeyframePercentage};
 use style::values::{KeyframesName, CustomIdent};
 use style::values::computed::Percentage;
 use style::values::specified::{LengthOrPercentageOrAuto, PositionComponent};
+use style::values::specified::transform::TimingFunction;
 
 pub fn block_from<I>(iterable: I) -> PropertyDeclarationBlock
 where I: IntoIterator<Item=(PropertyDeclaration, Importance)> {
@@ -62,8 +66,16 @@ fn test_parse_stylesheet() {
                 width: 100%;
                 width: 50% !important; /* !important not allowed here */
                 animation-name: 'foo'; /* animation properties not allowed here */
-                animation-play-state: running; /* … except animation-play-state */
+                animation-timing-function: ease; /* … except animation-timing-function */
             }
+        }
+        @font-feature-values test {
+            @swash { foo: 12; bar: 24; }
+            @swash { bar: 36; baz: 48; }
+            @stylistic { fooo: 14; }
+            @rubbish { shouldnt-parse: 1; }
+            @styleset { hello: 10 11 12; }
+            @character-variant { ok: 78 2; }
         }";
     let url = ServoUrl::parse("about::test").unwrap();
     let lock = SharedRwLock::new();
@@ -85,7 +97,7 @@ fn test_parse_stylesheet() {
                     url: NsAtom::from("http://www.w3.org/1999/xhtml"),
                     source_location: SourceLocation {
                         line: 1,
-                        column: 18,
+                        column: 19,
                     },
                 }))),
                 CssRule::Style(Arc::new(stylesheet.shared_lock.wrap(StyleRule {
@@ -115,7 +127,7 @@ fn test_parse_stylesheet() {
                     ]))),
                     source_location: SourceLocation {
                         line: 3,
-                        column: 8,
+                        column: 9,
                     },
                 }))),
                 CssRule::Style(Arc::new(stylesheet.shared_lock.wrap(StyleRule {
@@ -142,7 +154,7 @@ fn test_parse_stylesheet() {
                     ]))),
                     source_location: SourceLocation {
                         line: 11,
-                        column: 8,
+                        column: 9,
                     },
                 }))),
                 CssRule::Style(Arc::new(stylesheet.shared_lock.wrap(StyleRule {
@@ -204,7 +216,7 @@ fn test_parse_stylesheet() {
                     ]))),
                     source_location: SourceLocation {
                         line: 15,
-                        column: 8,
+                        column: 9,
                     },
                 }))),
                 CssRule::Keyframes(Arc::new(stylesheet.shared_lock.wrap(KeyframesRule {
@@ -226,9 +238,9 @@ fn test_parse_stylesheet() {
                                 (PropertyDeclaration::Width(
                                     LengthOrPercentageOrAuto::Percentage(Percentage(1.))),
                                  Importance::Normal),
-                                (PropertyDeclaration::AnimationPlayState(
-                                    animation_play_state::SpecifiedValue(
-                                        vec![animation_play_state::SingleSpecifiedValue::running])),
+                                (PropertyDeclaration::AnimationTimingFunction(
+                                    animation_timing_function::SpecifiedValue(
+                                        vec![TimingFunction::ease()])),
                                  Importance::Normal),
                             ]))),
                         })),
@@ -236,7 +248,51 @@ fn test_parse_stylesheet() {
                     vendor_prefix: None,
                     source_location: SourceLocation {
                         line: 16,
-                        column: 18,
+                        column: 19,
+                    },
+                }))),
+                CssRule::FontFeatureValues(Arc::new(stylesheet.shared_lock.wrap(FontFeatureValuesRule {
+                    family_names: vec![FamilyName {
+                        name: Atom::from("test"),
+                        quoted: false,
+                    }],
+                    swash: vec![
+                        FFVDeclaration {
+                            name: "foo".into(),
+                            value: SingleValue(12 as u32),
+                        },
+                        FFVDeclaration {
+                            name: "bar".into(),
+                            value: SingleValue(36 as u32),
+                        },
+                        FFVDeclaration {
+                            name: "baz".into(),
+                            value: SingleValue(48 as u32),
+                        }
+                    ],
+                    stylistic: vec![
+                        FFVDeclaration {
+                            name: "fooo".into(),
+                            value: SingleValue(14 as u32),
+                        }
+                    ],
+                    ornaments: vec![],
+                    annotation: vec![],
+                    character_variant: vec![
+                        FFVDeclaration {
+                            name: "ok".into(),
+                            value: PairValues(78 as u32, Some(2 as u32)),
+                        },
+                    ],
+                    styleset: vec![
+                        FFVDeclaration {
+                            name: "hello".into(),
+                            value: VectorValues(vec![10 as u32, 11 as u32, 12 as u32]),
+                        },
+                    ],
+                    source_location: SourceLocation {
+                        line: 25,
+                        column: 29,
                     },
                 })))
 
@@ -322,7 +378,7 @@ fn test_report_error_stylesheet() {
 
     let error = errors.pop().unwrap();
     assert_eq!("Unsupported property declaration: 'display: invalid;', \
-                Custom(PropertyDeclaration(InvalidValue(\"display\")))", error.message);
+                Custom(PropertyDeclaration(InvalidValue(\"display\", None)))", error.message);
     assert_eq!(8, error.line);
     assert_eq!(8, error.column);
 

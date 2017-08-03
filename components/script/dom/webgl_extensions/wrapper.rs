@@ -57,7 +57,7 @@ impl<T> WebGLExtensionWrapper for TypedWebGLExtensionWrapper<T>
             self.enable(ext);
         }
         unsafe {
-            NonZero::new(extension.reflector().get_jsobject().get())
+            NonZero::new_unchecked(extension.reflector().get_jsobject().get())
         }
     }
 

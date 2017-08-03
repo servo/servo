@@ -7,8 +7,9 @@
 #![allow(unsafe_code)]
 
 use cssparser::{Parser, SourcePosition, ParseError as CssParseError, Token, BasicParseError};
-use cssparser::CompactCowStr;
+use cssparser::CowRcStr;
 use selectors::parser::SelectorParseError;
+use std::ptr;
 use style::error_reporting::{ParseErrorReporter, ContextualParseError};
 use style::gecko_bindings::bindings::{Gecko_CreateCSSErrorReporter, Gecko_DestroyCSSErrorReporter};
 use style::gecko_bindings::bindings::Gecko_ReportUnexpectedCSSError;
@@ -17,7 +18,7 @@ use style::gecko_bindings::structs::ErrorReporter as GeckoErrorReporter;
 use style::gecko_bindings::structs::URLExtraData as RawUrlExtraData;
 use style::gecko_bindings::sugar::refptr::RefPtr;
 use style::stylesheets::UrlExtraData;
-use style_traits::{ParseError, StyleParseError, PropertyDeclarationParseError};
+use style_traits::{ParseError, StyleParseError, PropertyDeclarationParseError, ValueParseError};
 
 /// Wrapper around an instance of Gecko's CSS error reporter.
 pub struct ErrorReporter(*mut GeckoErrorReporter);
@@ -43,15 +44,15 @@ impl Drop for ErrorReporter {
 }
 
 enum ErrorString<'a> {
-    Snippet(CompactCowStr<'a>),
-    Ident(CompactCowStr<'a>),
+    Snippet(CowRcStr<'a>),
+    Ident(CowRcStr<'a>),
     UnexpectedToken(Token<'a>),
 }
 
 impl<'a> ErrorString<'a> {
     fn into_str(self) -> String {
         match self {
-            ErrorString::Snippet(s) => s.into_owned(),
+            ErrorString::Snippet(s) => s.as_ref().to_owned(),
             ErrorString::Ident(i) => escape_css_ident(&i),
             ErrorString::UnexpectedToken(t) => token_to_str(t),
         }
@@ -185,18 +186,77 @@ fn token_to_str<'a>(t: Token<'a>) -> String {
     }
 }
 
+enum Action {
+    Nothing,
+    Skip,
+    Drop,
+}
+
 trait ErrorHelpers<'a> {
-    fn error_data(self) -> (CompactCowStr<'a>, ParseError<'a>);
-    fn error_param(self) -> ErrorString<'a>;
-    fn to_gecko_message(&self) -> &'static [u8];
+    fn error_data(self) -> (CowRcStr<'a>, ParseError<'a>);
+    fn error_params(self) -> (ErrorString<'a>, Option<ErrorString<'a>>);
+    fn to_gecko_message(&self) -> (Option<&'static [u8]>, &'static [u8], Action);
+}
+
+fn extract_error_param<'a>(err: ParseError<'a>) -> Option<ErrorString<'a>> {
+    Some(match err {
+        CssParseError::Basic(BasicParseError::UnexpectedToken(t)) =>
+            ErrorString::UnexpectedToken(t),
+
+        CssParseError::Basic(BasicParseError::AtRuleInvalid(i)) =>
+            ErrorString::Snippet(format!("@{}", escape_css_ident(&i)).into()),
+
+        CssParseError::Custom(SelectorParseError::Custom(
+            StyleParseError::PropertyDeclaration(
+                PropertyDeclarationParseError::InvalidValue(property, None)))) =>
+            ErrorString::Snippet(property),
+
+        CssParseError::Custom(SelectorParseError::UnexpectedIdent(ident)) =>
+            ErrorString::Ident(ident),
+
+        CssParseError::Custom(SelectorParseError::ExpectedNamespace(namespace)) =>
+            ErrorString::Ident(namespace),
+
+        CssParseError::Custom(SelectorParseError::Custom(
+            StyleParseError::PropertyDeclaration(
+                PropertyDeclarationParseError::UnknownProperty(property)))) =>
+            ErrorString::Ident(property),
+
+        CssParseError::Custom(SelectorParseError::Custom(
+            StyleParseError::UnexpectedTokenWithinNamespace(token))) =>
+            ErrorString::UnexpectedToken(token),
+
+        _ => return None,
+    })
+}
+
+fn extract_value_error_param<'a>(err: ValueParseError<'a>) -> ErrorString<'a> {
+    match err {
+        ValueParseError::InvalidColor(t) => ErrorString::UnexpectedToken(t),
+    }
+}
+
+/// If an error parameter is present in the given error, return it. Additionally return
+/// a second parameter if it exists, for use in the prefix for the eventual error message.
+fn extract_error_params<'a>(err: ParseError<'a>) -> Option<(ErrorString<'a>, Option<ErrorString<'a>>)> {
+    match err {
+        CssParseError::Custom(SelectorParseError::Custom(
+            StyleParseError::PropertyDeclaration(
+                PropertyDeclarationParseError::InvalidValue(property, Some(e))))) =>
+            Some((ErrorString::Snippet(property.into()), Some(extract_value_error_param(e)))),
+
+        err => extract_error_param(err).map(|e| (e, None)),
+    }
 }
 
 impl<'a> ErrorHelpers<'a> for ContextualParseError<'a> {
-    fn error_data(self) -> (CompactCowStr<'a>, ParseError<'a>) {
+    fn error_data(self) -> (CowRcStr<'a>, ParseError<'a>) {
         match self {
             ContextualParseError::UnsupportedPropertyDeclaration(s, err) |
             ContextualParseError::UnsupportedFontFaceDescriptor(s, err) |
+            ContextualParseError::UnsupportedFontFeatureValuesDescriptor(s, err) |
             ContextualParseError::InvalidKeyframeRule(s, err) |
+            ContextualParseError::InvalidFontFeatureValuesRule(s, err) |
             ContextualParseError::UnsupportedKeyframePropertyDeclaration(s, err) |
             ContextualParseError::InvalidRule(s, err) |
             ContextualParseError::UnsupportedRule(s, err) |
@@ -213,78 +273,59 @@ impl<'a> ErrorHelpers<'a> for ContextualParseError<'a> {
         }
     }
 
-    fn error_param(self) -> ErrorString<'a> {
-        match self.error_data() {
-            (_, CssParseError::Basic(BasicParseError::UnexpectedToken(t))) =>
-                ErrorString::UnexpectedToken(t),
-
-            (_, CssParseError::Basic(BasicParseError::AtRuleInvalid(i))) =>
-                ErrorString::Snippet(format!("@{}", escape_css_ident(&i)).into()),
-
-            (_, CssParseError::Custom(SelectorParseError::Custom(
-                StyleParseError::PropertyDeclaration(
-                    PropertyDeclarationParseError::InvalidValue(property))))) =>
-                ErrorString::Snippet(property),
-
-            (_, CssParseError::Custom(SelectorParseError::UnexpectedIdent(ident))) =>
-                ErrorString::Ident(ident),
-
-            (_, CssParseError::Custom(SelectorParseError::ExpectedNamespace(namespace))) =>
-                ErrorString::Ident(namespace),
-
-            (_, CssParseError::Custom(SelectorParseError::Custom(
-                StyleParseError::PropertyDeclaration(
-                    PropertyDeclarationParseError::UnknownProperty(property))))) =>
-                ErrorString::Ident(property),
-
-            (_, CssParseError::Custom(SelectorParseError::Custom(
-                StyleParseError::UnexpectedTokenWithinNamespace(token)))) =>
-                ErrorString::UnexpectedToken(token),
-
-            (s, _)  => ErrorString::Snippet(s)
-        }
+    fn error_params(self) -> (ErrorString<'a>, Option<ErrorString<'a>>) {
+        let (s, error) = self.error_data();
+        extract_error_params(error).unwrap_or((ErrorString::Snippet(s), None))
     }
 
-    fn to_gecko_message(&self) -> &'static [u8] {
-        match *self {
+    fn to_gecko_message(&self) -> (Option<&'static [u8]>, &'static [u8], Action) {
+        let (msg, action): (&[u8], Action) = match *self {
             ContextualParseError::UnsupportedPropertyDeclaration(
                 _, CssParseError::Basic(BasicParseError::UnexpectedToken(_))) |
             ContextualParseError::UnsupportedPropertyDeclaration(
                 _, CssParseError::Basic(BasicParseError::AtRuleInvalid(_))) =>
-                b"PEParseDeclarationDeclExpected\0",
+                (b"PEParseDeclarationDeclExpected\0", Action::Skip),
             ContextualParseError::UnsupportedPropertyDeclaration(
                 _, CssParseError::Custom(SelectorParseError::Custom(
                     StyleParseError::PropertyDeclaration(
-                        PropertyDeclarationParseError::InvalidValue(_))))) =>
-                b"PEValueParsingError\0",
+                        PropertyDeclarationParseError::InvalidValue(_, ref err))))) => {
+                let prefix = match *err {
+                    Some(ValueParseError::InvalidColor(_)) => Some(&b"PEColorNotColor\0"[..]),
+                    _ => None,
+                };
+                return (prefix, b"PEValueParsingError\0", Action::Drop);
+            }
             ContextualParseError::UnsupportedPropertyDeclaration(..) =>
-                b"PEUnknownProperty\0",
+                (b"PEUnknownProperty\0", Action::Drop),
             ContextualParseError::UnsupportedFontFaceDescriptor(..) =>
-                b"PEUnknwnFontDesc\0",
+                (b"PEUnknwnFontDesc\0", Action::Skip),
             ContextualParseError::InvalidKeyframeRule(..) =>
-                b"PEKeyframeBadName\0",
+                (b"PEKeyframeBadName\0", Action::Nothing),
             ContextualParseError::UnsupportedKeyframePropertyDeclaration(..) =>
-                b"PEBadSelectorKeyframeRuleIgnored\0",
+                (b"PEBadSelectorKeyframeRuleIgnored\0", Action::Nothing),
             ContextualParseError::InvalidRule(
                 _, CssParseError::Custom(SelectorParseError::ExpectedNamespace(_))) =>
-                b"PEUnknownNamespacePrefix\0",
+                (b"PEUnknownNamespacePrefix\0", Action::Nothing),
             ContextualParseError::InvalidRule(
                 _, CssParseError::Custom(SelectorParseError::Custom(
                 StyleParseError::UnexpectedTokenWithinNamespace(_)))) =>
-                b"PEAtNSUnexpected\0",
+                (b"PEAtNSUnexpected\0", Action::Nothing),
             ContextualParseError::InvalidRule(..) =>
-                b"PEBadSelectorRSIgnored\0",
+                (b"PEBadSelectorRSIgnored\0", Action::Nothing),
             ContextualParseError::UnsupportedRule(..) =>
-                b"PEDeclDropped\0",
+                (b"PEDeclDropped\0", Action::Nothing),
             ContextualParseError::UnsupportedViewportDescriptorDeclaration(..) |
             ContextualParseError::UnsupportedCounterStyleDescriptorDeclaration(..) |
             ContextualParseError::InvalidCounterStyleWithoutSymbols(..) |
             ContextualParseError::InvalidCounterStyleNotEnoughSymbols(..) |
             ContextualParseError::InvalidCounterStyleWithoutAdditiveSymbols |
             ContextualParseError::InvalidCounterStyleExtendsWithSymbols |
-            ContextualParseError::InvalidCounterStyleExtendsWithAdditiveSymbols =>
-                b"PEUnknownAtRule\0",
-        }
+            ContextualParseError::InvalidCounterStyleExtendsWithAdditiveSymbols |
+            ContextualParseError::UnsupportedFontFeatureValuesDescriptor(..) |
+            ContextualParseError::InvalidFontFeatureValuesRule(..) =>
+                (b"PEUnknownAtRule\0", Action::Skip),
+        };
+        (None, msg, action)
     }
 }
 
@@ -293,13 +334,21 @@ impl ParseErrorReporter for ErrorReporter {
                         input: &mut Parser,
                         position: SourcePosition,
                         error: ContextualParseError<'a>,
-                        url: &UrlExtraData,
+                        _url: &UrlExtraData,
                         line_number_offset: u64) {
         let location = input.source_location(position);
         let line_number = location.line + line_number_offset as u32;
 
-        let name = error.to_gecko_message();
-        let param = error.error_param().into_str();
+        let (pre, name, action) = error.to_gecko_message();
+        let suffix = match action {
+            Action::Nothing => ptr::null(),
+            Action::Skip => b"PEDeclSkipped\0".as_ptr(),
+            Action::Drop => b"PEDeclDropped\0".as_ptr(),
+        };
+        let (param, pre_param) = error.error_params();
+        let param = param.into_str();
+        let pre_param = pre_param.map(|p| p.into_str());
+        let pre_param_ptr = pre_param.as_ref().map_or(ptr::null(), |p| p.as_ptr());
         // The CSS source text is unused and will be removed in bug 1381188.
         let source = "";
         unsafe {
@@ -307,11 +356,14 @@ impl ParseErrorReporter for ErrorReporter {
                                            name.as_ptr() as *const _,
                                            param.as_ptr() as *const _,
                                            param.len() as u32,
+                                           pre.map_or(ptr::null(), |p| p.as_ptr()) as *const _,
+                                           pre_param_ptr as *const _,
+                                           pre_param.as_ref().map_or(0, |p| p.len()) as u32,
+                                           suffix as *const _,
                                            source.as_ptr() as *const _,
                                            source.len() as u32,
                                            line_number as u32,
-                                           location.column as u32,
-                                           url.mBaseURI.raw::<nsIURI>());
+                                           location.column as u32);
         }
     }
 }

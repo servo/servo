@@ -39,7 +39,7 @@ ${helpers.predefined_type(
     boxed=True,
     spec="https://www.w3.org/TR/SVG2/painting.html#SpecifyingFillPaint")}
 
-${helpers.predefined_type("fill-opacity", "Opacity", "1.0",
+${helpers.predefined_type("fill-opacity", "SVGOpacity", "Default::default()",
                           products="gecko", animation_value_type="ComputedValue",
                           spec="https://www.w3.org/TR/SVG11/painting.html#FillOpacityProperty")}
 
@@ -64,10 +64,11 @@ ${helpers.predefined_type(
     spec="https://www.w3.org/TR/SVG2/painting.html#SpecifyingStrokePaint")}
 
 ${helpers.predefined_type(
-    "stroke-width", "LengthOrPercentageOrNumber",
-    "Either::First(1.0)",
+    "stroke-width", "SVGLength",
+    "Au::from_px(1).into()",
     "parse_non_negative",
     products="gecko",
+    boxed="True",
     animation_value_type="ComputedValue",
     spec="https://www.w3.org/TR/SVG2/painting.html#StrokeWidth")}
 
@@ -84,26 +85,24 @@ ${helpers.predefined_type("stroke-miterlimit", "Number", "4.0",
                           animation_value_type="ComputedValue",
                           spec="https://www.w3.org/TR/SVG11/painting.html#StrokeMiterlimitProperty")}
 
-${helpers.predefined_type("stroke-opacity", "Opacity", "1.0",
+${helpers.predefined_type("stroke-opacity", "SVGOpacity", "Default::default()",
                           products="gecko", animation_value_type="ComputedValue",
                           spec="https://www.w3.org/TR/SVG11/painting.html#StrokeOpacityProperty")}
 
 ${helpers.predefined_type(
     "stroke-dasharray",
-    "LengthOrPercentageOrNumber",
-    None,
-    "parse_non_negative",
-    vector=True,
+    "SVGStrokeDashArray",
+    "Default::default()",
     products="gecko",
     animation_value_type="ComputedValue",
-    separator="CommaWithSpace",
     spec="https://www.w3.org/TR/SVG2/painting.html#StrokeDashing",
 )}
 
 ${helpers.predefined_type(
-    "stroke-dashoffset", "LengthOrPercentageOrNumber",
-    "Either::First(0.0)",
+    "stroke-dashoffset", "SVGLength",
+    "Au(0).into()",
     products="gecko",
+    boxed="True",
     animation_value_type="ComputedValue",
     spec="https://www.w3.org/TR/SVG2/painting.html#StrokeDashing")}
 

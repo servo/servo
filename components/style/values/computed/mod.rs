@@ -17,7 +17,7 @@ use std::f64;
 use std::f64::consts::PI;
 use std::fmt;
 use style_traits::ToCss;
-use super::{CSSFloat, CSSInteger, RGBA};
+use super::{CSSFloat, CSSInteger};
 use super::generics::grid::{TrackBreadth as GenericTrackBreadth, TrackSize as GenericTrackSize};
 use super::generics::grid::GridTemplateComponent as GenericGridTemplateComponent;
 use super::generics::grid::TrackList as GenericTrackList;
@@ -25,6 +25,8 @@ use super::specified;
 
 pub use app_units::Au;
 pub use properties::animated_properties::TransitionProperty;
+#[cfg(feature = "gecko")]
+pub use self::align::{AlignItems, AlignJustifyContent, AlignJustifySelf, JustifyItems};
 pub use self::background::BackgroundSize;
 pub use self::border::{BorderImageSlice, BorderImageWidth, BorderImageSideWidth};
 pub use self::border::{BorderRadius, BorderCornerRadius};
@@ -36,17 +38,18 @@ pub use self::image::{Gradient, GradientItem, Image, ImageLayer, LineDirection, 
 pub use self::gecko::ScrollSnapPoint;
 pub use self::rect::LengthOrNumberRect;
 pub use super::{Auto, Either, None_};
-#[cfg(feature = "gecko")]
-pub use super::specified::{AlignItems, AlignJustifyContent, AlignJustifySelf, JustifyItems};
 pub use super::specified::{BorderStyle, UrlOrNone};
 pub use super::generics::grid::GridLine;
 pub use super::specified::url::SpecifiedUrl;
 pub use self::length::{CalcLengthOrPercentage, Length, LengthOrNone, LengthOrNumber, LengthOrPercentage};
 pub use self::length::{LengthOrPercentageOrAuto, LengthOrPercentageOrNone, MaxLength, MozLength, Percentage};
 pub use self::position::Position;
+pub use self::svg::{SVGLength, SVGOpacity, SVGPaint, SVGPaintKind, SVGStrokeDashArray};
 pub use self::text::{InitialLetter, LetterSpacing, LineHeight, WordSpacing};
 pub use self::transform::{TimingFunction, TransformOrigin};
 
+#[cfg(feature = "gecko")]
+pub mod align;
 pub mod background;
 pub mod basic_shape;
 pub mod border;
@@ -59,6 +62,7 @@ pub mod gecko;
 pub mod length;
 pub mod position;
 pub mod rect;
+pub mod svg;
 pub mod text;
 pub mod transform;
 
@@ -95,6 +99,12 @@ pub struct Context<'a> {
 
     /// The quirks mode of this context.
     pub quirks_mode: QuirksMode,
+
+    /// Whether this computation is being done for a SMIL animation.
+    ///
+    /// This is used to allow certain properties to generate out-of-range
+    /// values, which SMIL allows.
+    pub for_smil_animation: bool,
 }
 
 impl<'a> Context<'a> {
@@ -113,11 +123,6 @@ impl<'a> Context<'a> {
         self.builder.device.au_viewport_size()
     }
 
-    /// The style we're inheriting from.
-    pub fn inherited_style(&self) -> &ComputedValues {
-        self.builder.inherited_style()
-    }
-
     /// The default computed style we're getting our reset style from.
     pub fn default_style(&self) -> &ComputedValues {
         self.builder.default_style()
@@ -126,6 +131,26 @@ impl<'a> Context<'a> {
     /// The current style.
     pub fn style(&self) -> &StyleBuilder {
         &self.builder
+    }
+
+
+    /// Apply text-zoom if enabled
+    #[cfg(feature = "gecko")]
+    pub fn maybe_zoom_text(&self, size: Au) -> Au {
+        // We disable zoom for <svg:text> by unsetting the
+        // -x-text-zoom property, which leads to a false value
+        // in mAllowZoom
+        if self.style().get_font().gecko.mAllowZoom {
+            self.device().zoom_text(size)
+        } else {
+            size
+        }
+    }
+
+    /// (Servo doesn't do text-zoom)
+    #[cfg(feature = "servo")]
+    pub fn maybe_zoom_text(&self, size: Au) -> Au {
+        size
     }
 }
 
@@ -395,36 +420,6 @@ impl ToCss for Time {
     }
 }
 
-#[cfg(feature = "gecko")]
-impl ToComputedValue for specified::JustifyItems {
-    type ComputedValue = JustifyItems;
-
-    // https://drafts.csswg.org/css-align/#valdef-justify-items-auto
-    fn to_computed_value(&self, context: &Context) -> JustifyItems {
-        use values::specified::align;
-        // If the inherited value of `justify-items` includes the `legacy` keyword, `auto` computes
-        // to the inherited value.
-        if self.0 == align::ALIGN_AUTO {
-            let inherited = context.inherited_style().get_position().clone_justify_items();
-            if inherited.0.contains(align::ALIGN_LEGACY) {
-                return inherited
-            }
-        }
-        return *self
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &JustifyItems) -> Self {
-        *computed
-    }
-}
-
-#[cfg(feature = "gecko")]
-impl ComputedValueAsSpecified for specified::AlignItems {}
-#[cfg(feature = "gecko")]
-impl ComputedValueAsSpecified for specified::AlignJustifyContent {}
-#[cfg(feature = "gecko")]
-impl ComputedValueAsSpecified for specified::AlignJustifySelf {}
 impl ComputedValueAsSpecified for specified::BorderStyle {}
 
 /// A `<number>` value.
@@ -477,31 +472,6 @@ impl IntegerOrAuto {
         match *self {
             Either::First(n) => n,
             Either::Second(Auto) => auto_value,
-        }
-    }
-}
-
-/// Computed SVG Paint value
-pub type SVGPaint = ::values::generics::SVGPaint<RGBA>;
-/// Computed SVG Paint Kind value
-pub type SVGPaintKind = ::values::generics::SVGPaintKind<RGBA>;
-
-impl Default for SVGPaint {
-    fn default() -> Self {
-        SVGPaint {
-            kind: ::values::generics::SVGPaintKind::None,
-            fallback: None,
-        }
-    }
-}
-
-impl SVGPaint {
-    /// Opaque black color
-    pub fn black() -> Self {
-        let rgba = RGBA::from_floats(0., 0., 0., 1.);
-        SVGPaint {
-            kind: ::values::generics::SVGPaintKind::Color(rgba),
-            fallback: None,
         }
     }
 }

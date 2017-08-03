@@ -65,7 +65,7 @@ impl CryptoMethods for Crypto {
 
         self.rng.borrow_mut().fill_bytes(&mut data);
 
-        Ok(NonZero::new(input))
+        Ok(NonZero::new_unchecked(input))
     }
 }
 
