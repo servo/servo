@@ -133,7 +133,7 @@ ${helpers.predefined_type("marker-end", "UrlOrNone", "Either::Second(None_)",
                           spec="https://www.w3.org/TR/SVG2/painting.html#VertexMarkerProperties")}
 
 <%helpers:longhand name="paint-order"
-                   animation_value_type="none"
+                   animation_value_type="discrete"
                    products="gecko"
                    spec="https://www.w3.org/TR/SVG2/painting.html#PaintOrder">
 
