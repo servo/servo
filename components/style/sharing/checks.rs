@@ -19,17 +19,38 @@ use sharing::{StyleSharingCandidate, StyleSharingTarget};
 ///
 /// This is used to know whether we can share style across cousins (if the two
 /// parents have the same style).
+///
+/// We can only prove that they have the same class list, state, etc if they've
+/// been restyled at the same time, otherwise the invalidation pass could make
+/// them keep the same computed values even though now we wouldn't be able to
+/// prove we match the same selectors.
 pub fn same_computed_values<E>(first: Option<E>, second: Option<E>) -> bool
     where E: TElement,
 {
-    let (a, b) = match (first, second) {
+    let (first, second) = match (first, second) {
         (Some(f), Some(s)) => (f, s),
         _ => return false,
     };
 
-    let eq = Arc::ptr_eq(a.borrow_data().unwrap().styles.primary(),
-                         b.borrow_data().unwrap().styles.primary());
-    eq
+    debug_assert_ne!(first, second);
+
+    let first_data = first.borrow_data().unwrap();
+    let second_data = second.borrow_data().unwrap();
+
+    // FIXME(emilio): This check effectively disables cousin style sharing
+    // on the initial style.
+    //
+    // This is pretty bad, se the discussion in bug 1381821 for mor details.
+    //
+    // Bug 1387116 tracks fixing this, and various solutions are listed there.
+    if !first_data.restyle.is_restyle() || !second_data.restyle.is_restyle() {
+        return false;
+    }
+
+    let same_computed_values =
+        Arc::ptr_eq(first_data.styles.primary(), second_data.styles.primary());
+
+    same_computed_values
 }
 
 /// Whether two elements have the same same style attribute (by pointer identity).
