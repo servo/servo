@@ -8,27 +8,19 @@
 //! without bound. Implements the logic specified in http://tools.ietf.org/html/rfc7234
 //! and http://tools.ietf.org/html/rfc7232.
 
-use http_loader::send_error_direct;
-use resource_task::{Metadata, ProgressMsg, LoadResponse, LoadData, Payload, Done, start_sending_opt};
-
-use servo_util::time::parse_http_timestamp;
-
-use http::headers::etag::EntityTag;
-use http::headers::HeaderEnum;
-use http::headers::response::HeaderCollection as ResponseHeaderCollection;
-use http::method::Get;
-use http::status::Ok as StatusOk;
-
+use hyper::header::EntityTag;
+use hyper::header::Headers;
+use hyper::method::Method;
+use hyper::status::StatusCode;
 use std::collections::HashMap;
-use std::comm::Sender;
 use std::iter::Map;
 use std::mem;
-use std::num::{Bounded, FromStrRadix};
-use std::str::CharSplits;
+use std::str::Split;
 use std::sync::{Arc, Mutex};
-use std::time::duration::{MAX, Duration};
+use std::sync::mpsc::Sender;
+use std::u64::{self, MAX, MIN};
 use time;
-use time::{Tm, Timespec};
+use time::{Duration, Tm, Timespec};
 use url::Url;
 
 //TODO: Store an Arc<Vec<u8>> instead?
@@ -44,7 +36,7 @@ use url::Url;
 //TODO: Vary header
 
 /// The key used to differentiate requests in the cache.
-#[deriving(Clone, Hash, PartialEq, Eq)]
+#[derive(Clone, Hash, PartialEq, Eq)]
 pub struct CacheKey {
     url: Url,
     request_headers: Vec<(String, String)>,
@@ -137,12 +129,12 @@ pub enum CacheOperationResult {
 pub enum RevalidationMethod {
     /// The result of a stored Last-Modified or Expires header
     ExpiryDate(Tm),
-    /// The result of a stored Etag header
+    /// The result of a stored RevalidationMethod::Etag header
     Etag(EntityTag),
 }
 
 /// Tokenize a header value.
-fn split_header(header: &str) -> Map<&str, &str, CharSplits<char>> {
+fn split_header(header: &str) -> Map<&str, Split<char>> {
     header.split(',')
           .map(|v| v.trim())
 }
@@ -155,7 +147,7 @@ fn any_token_matches(header: &str, tokens: &[&str]) -> bool {
 /// Determine if a given response is cacheable based on the initial metadata received.
 /// Based on http://tools.ietf.org/html/rfc7234#section-5
 fn response_is_cacheable(metadata: &Metadata) -> bool {
-    if metadata.status != StatusOk {
+    if metadata.status != StatusCode::Ok {
         return false;
     }
 
@@ -166,7 +158,7 @@ fn response_is_cacheable(metadata: &Metadata) -> bool {
     let headers = metadata.headers.as_ref().unwrap();
     match headers.cache_control {
         Some(ref cache_control) => {
-            if any_token_matches(cache_control[], &["no-cache", "no-store", "max-age=0"]) {
+            if any_token_matches("cache_control[]", &["no-cache", "no-store", "max-age=0"]) {
                 return false;
             }
         }
@@ -175,7 +167,7 @@ fn response_is_cacheable(metadata: &Metadata) -> bool {
 
     match headers.pragma {
         Some(ref pragma) => {
-            if any_token_matches(pragma[], &["no-cache"]) {
+            if any_token_matches("pragma[]", &["no-cache"]) {
                 return false;
             }
         }
@@ -187,31 +179,31 @@ fn response_is_cacheable(metadata: &Metadata) -> bool {
 
 /// Determine the expiry date of the given response headers.
 /// Returns a far-future date if the response does not expire.
-fn get_response_expiry_from_headers(headers: &ResponseHeaderCollection) -> Duration {
+fn get_response_expiry_from_headers(headers: &Headers) -> Duration {
     headers.cache_control.as_ref().and_then(|cache_control| {
-        for token in split_header(cache_control[]) {
+        for token in split_header("cache_control[]") {
             let mut parts = token.split('=');
             if parts.next() == Some("max-age") {
                 return parts.next()
-                    .and_then(|val| FromStrRadix::from_str_radix(val, 10))
+                    .and_then(|val| u32::from_str_radix(val, 10))
                     .map(|secs| Duration::seconds(secs));
             }
         }
         None
     }).or_else(|| {
         headers.expires.as_ref().and_then(|expires| {
-            parse_http_timestamp(expires[]).map(|t| {
+            parse_http_timestamp("expires[]").map(|t| {
                 // store the period of time from now until expiry
                 let desired = t.to_timespec();
                 let current = time::now().to_timespec();
                 if desired > current {
                     desired - current
                 } else {
-                    Bounded::min_value()
+                    Duration::min_value()
                 }
             })
         })
-    }).unwrap_or(Bounded::max_value())
+    }).unwrap_or(Duration::max_value())
 }
 
 /// Determine the expiry date of the given response.
@@ -219,7 +211,7 @@ fn get_response_expiry_from_headers(headers: &ResponseHeaderCollection) -> Durat
 fn get_response_expiry(metadata: &Metadata) -> Duration {
     metadata.headers.as_ref().map(|headers| {
         get_response_expiry_from_headers(headers)
-    }).unwrap_or(Bounded::max_value())
+    }).unwrap_or(Duration::max_value())
 }
 
 impl MemoryCache {
@@ -249,12 +241,12 @@ impl MemoryCache {
 
         let resource = self.pending_entries.remove(key).unwrap();
         match resource.consumers {
-            AwaitingHeaders(ref consumers) => {
+            PendingConsumers::AwaitingHeaders(ref consumers) => {
                 for consumer in consumers.iter() {
-                    send_error_direct(key.url.clone(), err.clone(), consumer.clone());
+                    // TODO: send_error_direct(key.url.clone(), err.clone(), consumer.clone());
                 }
             }
-            AwaitingBody(_, _, ref consumers) => {
+            PendingConsumers::AwaitingBody(_, _, ref consumers) => {
                 for consumer in consumers.iter() {
                     let _ = consumer.send_opt(Done(Ok(())));
                 }
@@ -264,7 +256,7 @@ impl MemoryCache {
 
     /// Handle a 304 response to a revalidation request. Updates the cached response
     /// metadata with any new expiration data.
-    pub fn process_not_modified(&mut self, key: &CacheKey, headers: &ResponseHeaderCollection) {
+    pub fn process_not_modified(&mut self, key: &CacheKey, headers: &Headers) {
         debug!("updating metadata for {}", key.url);
         let resource = self.complete_entries.get_mut(key).unwrap();
         resource.expires = get_response_expiry_from_headers(headers);
@@ -283,14 +275,14 @@ impl MemoryCache {
         let resource = self.pending_entries.get_mut(key).unwrap();
         let chans: Vec<Sender<ProgressMsg>>;
         match resource.consumers {
-            AwaitingHeaders(ref consumers) => {
+            PendingConsumers::AwaitingHeaders(ref consumers) => {
                 chans = consumers.iter()
                                  .map(|chan| start_sending_opt(chan.clone(), metadata.clone()))
                                  .take_while(|chan| chan.is_ok())
                                  .map(|chan| chan.unwrap())
                                  .collect();
             }
-            AwaitingBody(..) => panic!("obtained headers for {} but awaiting body?", key.url)
+            PendingConsumers::AwaitingBody(..) => panic!("obtained headers for {} but awaiting body?", key.url)
         }
 
         if !response_is_cacheable(&metadata) {
@@ -299,7 +291,7 @@ impl MemoryCache {
 
         resource.expires = get_response_expiry(&metadata);
         resource.last_validated = time::now();
-        resource.consumers = AwaitingBody(metadata, vec!(), chans);
+        resource.consumers = PendingConsumers::AwaitingBody(metadata, vec!(), chans);
     }
 
     /// Handle a repsonse body payload for an incomplete cached response.
@@ -308,14 +300,14 @@ impl MemoryCache {
         debug!("storing partial response for {}", key.url);
         let resource = self.pending_entries.get_mut(key).unwrap();
         match resource.consumers {
-            AwaitingBody(_, ref mut body, ref consumers) => {
-                body.push_all(payload.as_slice());
+            PendingConsumers::AwaitingBody(_, ref mut body, ref consumers) => {
+                body.extend(payload.as_slice());
                 for consumer in consumers.iter() {
                     //FIXME: maybe remove consumer on failure to avoid extra clones?
                     let _ = consumer.send_opt(Payload(payload.clone()));
                 }
             }
-            AwaitingHeaders(_) => panic!("obtained body for {} but awaiting headers?", key.url)
+            PendingConsumers::AwaitingHeaders(_) => panic!("obtained body for {} but awaiting headers?", key.url)
         }
     }
 
@@ -326,8 +318,8 @@ impl MemoryCache {
         debug!("finished fetching {}", key.url);
         let resource = self.pending_entries.remove(key).unwrap();
         match resource.consumers {
-            AwaitingHeaders(_) => panic!("saw Done for {} but awaiting headers?", key.url),
-            AwaitingBody(_, _, ref consumers) => {
+            PendingConsumers::AwaitingHeaders(_) => panic!("saw Done for {} but awaiting headers?", key.url),
+            PendingConsumers::AwaitingBody(_, _, ref consumers) => {
                 for consumer in consumers.iter() {
                     let _ = consumer.send_opt(Done(Ok(())));
                 }
@@ -340,7 +332,7 @@ impl MemoryCache {
         }
 
         let (metadata, body) = match resource.consumers {
-            AwaitingBody(metadata, body, _) => (metadata, body),
+            PendingConsumers::AwaitingBody(metadata, body, _) => (metadata, body),
             _ => panic!("expected consumer list awaiting bodies"),
         };
 
@@ -371,14 +363,14 @@ impl MemoryCache {
             // cached resource.
             resource.revalidating_consumers.push(start_chan);
             if resource.revalidating_consumers.len() > 1 {
-                CachedContentPending
+                CacheOperationResult::CachedContentPending
             } else {
-                Revalidate(key.clone(), method)
+                CacheOperationResult::Revalidate(key.clone(), method)
             }
         }
 
-        if load_data.method != Get {
-            return Uncacheable("Only GET requests can be cached.");
+        if load_data.method != Method::Get {
+            return CacheOperationResult::Uncacheable("Only GET requests can be cached.");
         }
 
         let key = CacheKey::new(load_data.clone());
@@ -387,31 +379,31 @@ impl MemoryCache {
                 if self.base_time + resource.expires < time::now().to_timespec() {
                     debug!("entry for {} has expired", key.url());
                     let expiry = time::at(self.base_time + resource.expires);
-                    return revalidate(resource, &key, start_chan, ExpiryDate(expiry));
+                    return revalidate(resource, &key, start_chan, RevalidationMethod::ExpiryDate(expiry));
                 }
 
                 let must_revalidate = resource.metadata.headers.as_ref().and_then(|headers| {
                     headers.cache_control.as_ref().map(|header| {
-                        any_token_matches(header[], &["must-revalidate"])
+                        any_token_matches("header[]", &["must-revalidate"])
                     })
                 }).unwrap_or(false);
 
                 if must_revalidate {
                     debug!("entry for {} must be revalidated", key.url());
                     let last_validated = resource.last_validated;
-                    return revalidate(resource, &key, start_chan, ExpiryDate(last_validated));
+                    return revalidate(resource, &key, start_chan, RevalidationMethod::ExpiryDate(last_validated));
                 }
 
                 let etag = resource.metadata.headers.as_ref().and_then(|headers| headers.etag.clone());
                 match etag {
                     Some(etag) => {
-                        debug!("entry for {} has an Etag", key.url());
-                        return revalidate(resource, &key, start_chan, Etag(etag.clone()));
+                        debug!("entry for {} has an RevalidationMethod::Etag", key.url());
+                        return revalidate(resource, &key, start_chan, RevalidationMethod::Etag(etag.clone()));
                     }
                     None => ()
                 }
 
-                //TODO: Revalidate once per session for response with no explicit expiry
+                //TODO: CacheOperationResult::Revalidate once per session for response with no explicit expiry
             }
 
             None => ()
@@ -419,29 +411,29 @@ impl MemoryCache {
 
         if self.complete_entries.contains_key(&key) {
             self.send_complete_entry(key, start_chan);
-            return CachedContentPending;
+            return CacheOperationResult::CachedContentPending;
         }
 
         let new_entry = match self.pending_entries.get(&key) {
-            Some(resource) if resource.doomed => return Uncacheable("Cache entry already doomed"),
+            Some(resource) if resource.doomed => return CacheOperationResult::Uncacheable("Cache entry already doomed"),
             Some(_) => false,
             None => true,
         };
 
         if new_entry {
             self.add_pending_cache_entry(key.clone(), vec!(start_chan));
-            NewCacheEntry(key)
+            CacheOperationResult::NewCacheEntry(key)
         } else {
             self.send_partial_entry(key, start_chan);
-            CachedContentPending
+            CacheOperationResult::CachedContentPending
         }
     }
 
     /// Add a new pending request to the set of incomplete cache entries.
     fn add_pending_cache_entry(&mut self, key: CacheKey, consumers: Vec<Sender<LoadResponse>>) {
         let resource = PendingResource {
-            consumers: AwaitingHeaders(consumers),
-            expires: MAX,
+            consumers: PendingConsumers::AwaitingHeaders(consumers),
+            expires: Duration::max_value(),
             last_validated: time::now(),
             doomed: false,
         };
@@ -476,10 +468,10 @@ impl MemoryCache {
         let resource = self.pending_entries.get_mut(&key).unwrap();
 
         match resource.consumers {
-            AwaitingHeaders(ref mut consumers) => {
+            PendingConsumers::AwaitingHeaders(ref mut consumers) => {
                 consumers.push(start_chan);
             }
-            AwaitingBody(ref metadata, ref body, ref mut consumers) => {
+            PendingConsumers::AwaitingBody(ref metadata, ref body, ref mut consumers) => {
                 debug!("headers available for {}", key.url);
                 let progress_chan = start_sending_opt(start_chan, metadata.clone());
                 match progress_chan {
