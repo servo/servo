@@ -85,6 +85,10 @@ impl ServoUrl {
         scheme == "https" || scheme == "wss"
     }
 
+    pub fn is_chrome(&self) -> bool {
+        self.scheme() == "chrome"
+    }
+
     pub fn as_str(&self) -> &str {
         self.0.as_str()
     }

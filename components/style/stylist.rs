@@ -1147,8 +1147,8 @@ impl Stylist {
         };
         let rule_hash_target = element.rule_hash_target();
 
-        // nsXBLPrototypeResources::ComputeServoStyleSet() added XBL stylesheets under author
-        // (doc) level.
+        // nsXBLPrototypeResources::LoadResources() loads Chrome XBL style
+        // sheets under eAuthorSheetFeatures level.
         map.author.get_all_matching_rules(element,
                                           &rule_hash_target,
                                           applicable_declarations,

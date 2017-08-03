@@ -44,8 +44,8 @@ macro_rules! apply_non_ts_list {
         $apply_macro! {
             bare: [
                 ("unresolved", Unresolved, unresolved, IN_UNRESOLVED_STATE, _),
-                ("-moz-table-border-nonzero", MozTableBorderNonzero, mozTableBorderNonzero, _, PSEUDO_CLASS_INTERNAL),
-                ("-moz-browser-frame", MozBrowserFrame, mozBrowserFrame, _, PSEUDO_CLASS_INTERNAL),
+                ("-moz-table-border-nonzero", MozTableBorderNonzero, mozTableBorderNonzero, _, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS),
+                ("-moz-browser-frame", MozBrowserFrame, mozBrowserFrame, _, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME),
                 ("link", Link, link, IN_UNVISITED_STATE, _),
                 ("any-link", AnyLink, anyLink, IN_VISITED_OR_UNVISITED_STATE, _),
                 ("visited", Visited, visited, IN_VISITED_STATE, _),
@@ -61,29 +61,29 @@ macro_rules! apply_non_ts_list {
                 ("indeterminate", Indeterminate, indeterminate, IN_INDETERMINATE_STATE, _),
                 ("-moz-devtools-highlighted", MozDevtoolsHighlighted, mozDevtoolsHighlighted, IN_DEVTOOLS_HIGHLIGHTED_STATE, _),
                 ("-moz-styleeditor-transitioning", MozStyleeditorTransitioning, mozStyleeditorTransitioning, IN_STYLEEDITOR_TRANSITIONING_STATE, _),
-                // TODO(emilio): Needs pref check for
-                // full-screen-api.unprefix.enabled!
+                // TODO(emilio): Needs pref check for full-screen-api.unprefix.enabled!
+                // TODO(TYLin): Needs to use CSS_PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME?
                 ("fullscreen", Fullscreen, fullscreen, IN_FULLSCREEN_STATE, _),
                 ("-moz-full-screen", MozFullScreen, mozFullScreen, IN_FULLSCREEN_STATE, _),
                 // TODO(emilio): This is inconsistently named (the capital R).
                 ("-moz-focusring", MozFocusRing, mozFocusRing, IN_FOCUSRING_STATE, _),
                 ("-moz-broken", MozBroken, mozBroken, IN_BROKEN_STATE, _),
                 ("-moz-loading", MozLoading, mozLoading, IN_LOADING_STATE, _),
-                ("-moz-suppressed", MozSuppressed, mozSuppressed, IN_SUPPRESSED_STATE, PSEUDO_CLASS_INTERNAL),
-                ("-moz-has-dir-attr", MozHasDirAttr, mozHasDirAttr, IN_HAS_DIR_ATTR_STATE, PSEUDO_CLASS_INTERNAL),
-                ("-moz-dir-attr-ltr", MozDirAttrLTR, mozDirAttrLTR, IN_HAS_DIR_ATTR_LTR_STATE, PSEUDO_CLASS_INTERNAL),
-                ("-moz-dir-attr-rtl", MozDirAttrRTL, mozDirAttrRTL, IN_HAS_DIR_ATTR_RTL_STATE, PSEUDO_CLASS_INTERNAL),
-                ("-moz-dir-attr-like-auto", MozDirAttrLikeAuto, mozDirAttrLikeAuto, IN_HAS_DIR_ATTR_LIKE_AUTO_STATE, PSEUDO_CLASS_INTERNAL),
-                ("-moz-autofill", MozAutofill, mozAutofill, IN_AUTOFILL_STATE, PSEUDO_CLASS_INTERNAL),
-                ("-moz-autofill-preview", MozAutofillPreview, mozAutofillPreview, IN_AUTOFILL_PREVIEW_STATE, PSEUDO_CLASS_INTERNAL),
+                ("-moz-suppressed", MozSuppressed, mozSuppressed, IN_SUPPRESSED_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME),
+                ("-moz-has-dir-attr", MozHasDirAttr, mozHasDirAttr, IN_HAS_DIR_ATTR_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS),
+                ("-moz-dir-attr-ltr", MozDirAttrLTR, mozDirAttrLTR, IN_HAS_DIR_ATTR_LTR_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS),
+                ("-moz-dir-attr-rtl", MozDirAttrRTL, mozDirAttrRTL, IN_HAS_DIR_ATTR_RTL_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS),
+                ("-moz-dir-attr-like-auto", MozDirAttrLikeAuto, mozDirAttrLikeAuto, IN_HAS_DIR_ATTR_LIKE_AUTO_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS),
+                ("-moz-autofill", MozAutofill, mozAutofill, IN_AUTOFILL_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME),
+                ("-moz-autofill-preview", MozAutofillPreview, mozAutofillPreview, IN_AUTOFILL_PREVIEW_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME),
 
-                ("-moz-handler-clicktoplay", MozHandlerClickToPlay, mozHandlerClickToPlay, IN_HANDLER_CLICK_TO_PLAY_STATE, PSEUDO_CLASS_INTERNAL),
-                ("-moz-handler-vulnerable-updatable", MozHandlerVulnerableUpdatable, mozHandlerVulnerableUpdatable, IN_HANDLER_VULNERABLE_UPDATABLE_STATE, PSEUDO_CLASS_INTERNAL),
-                ("-moz-handler-vulnerable-no-update", MozHandlerVulnerableNoUpdate, mozHandlerVulnerableNoUpdate, IN_HANDLER_VULNERABLE_NO_UPDATE_STATE, PSEUDO_CLASS_INTERNAL),
+                ("-moz-handler-clicktoplay", MozHandlerClickToPlay, mozHandlerClickToPlay, IN_HANDLER_CLICK_TO_PLAY_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME),
+                ("-moz-handler-vulnerable-updatable", MozHandlerVulnerableUpdatable, mozHandlerVulnerableUpdatable, IN_HANDLER_VULNERABLE_UPDATABLE_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME),
+                ("-moz-handler-vulnerable-no-update", MozHandlerVulnerableNoUpdate, mozHandlerVulnerableNoUpdate, IN_HANDLER_VULNERABLE_NO_UPDATE_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME),
 
-                ("-moz-handler-disabled", MozHandlerDisabled, mozHandlerDisabled, IN_HANDLER_DISABLED_STATE, PSEUDO_CLASS_INTERNAL),
-                ("-moz-handler-blocked", MozHandlerBlocked, mozHandlerBlocked, IN_HANDLER_BLOCKED_STATE, PSEUDO_CLASS_INTERNAL),
-                ("-moz-handler-crashed", MozHandlerCrashed, mozHandlerCrashed, IN_HANDLER_CRASHED_STATE, PSEUDO_CLASS_INTERNAL),
+                ("-moz-handler-disabled", MozHandlerDisabled, mozHandlerDisabled, IN_HANDLER_DISABLED_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME),
+                ("-moz-handler-blocked", MozHandlerBlocked, mozHandlerBlocked, IN_HANDLER_BLOCKED_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME),
+                ("-moz-handler-crashed", MozHandlerCrashed, mozHandlerCrashed, IN_HANDLER_CRASHED_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME),
                 ("-moz-math-increment-script-level", MozMathIncrementScriptLevel, mozMathIncrementScriptLevel, IN_INCREMENT_SCRIPT_LEVEL_STATE, _),
 
                 ("required", Required, required, IN_REQUIRED_STATE, _),
@@ -103,13 +103,13 @@ macro_rules! apply_non_ts_list {
                 ("-moz-meter-sub-optimum", MozMeterSubOptimum, mozMeterSubOptimum, IN_SUB_OPTIMUM_STATE, _),
                 ("-moz-meter-sub-sub-optimum", MozMeterSubSubOptimum, mozMeterSubSubOptimum, IN_SUB_SUB_OPTIMUM_STATE, _),
 
-                ("-moz-user-disabled", MozUserDisabled, mozUserDisabled, IN_USER_DISABLED_STATE, PSEUDO_CLASS_INTERNAL),
+                ("-moz-user-disabled", MozUserDisabled, mozUserDisabled, IN_USER_DISABLED_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME),
 
                 ("-moz-first-node", MozFirstNode, firstNode, _, _),
                 ("-moz-last-node", MozLastNode, lastNode, _, _),
                 ("-moz-only-whitespace", MozOnlyWhitespace, mozOnlyWhitespace, _, _),
-                ("-moz-native-anonymous", MozNativeAnonymous, mozNativeAnonymous, _, PSEUDO_CLASS_INTERNAL),
-                ("-moz-use-shadow-tree-root", MozUseShadowTreeRoot, mozUseShadowTreeRoot, _, PSEUDO_CLASS_INTERNAL),
+                ("-moz-native-anonymous", MozNativeAnonymous, mozNativeAnonymous, _, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS),
+                ("-moz-use-shadow-tree-root", MozUseShadowTreeRoot, mozUseShadowTreeRoot, _, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS),
                 ("-moz-is-html", MozIsHTML, mozIsHTML, _, _),
                 ("-moz-placeholder", MozPlaceholder, mozPlaceholder, _, _),
                 ("-moz-lwtheme", MozLWTheme, mozLWTheme, _, _),
@@ -118,9 +118,9 @@ macro_rules! apply_non_ts_list {
                 ("-moz-window-inactive", MozWindowInactive, mozWindowInactive, _, _),
             ],
             string: [
-                ("-moz-system-metric", MozSystemMetric, mozSystemMetric, _, PSEUDO_CLASS_INTERNAL),
+                ("-moz-system-metric", MozSystemMetric, mozSystemMetric, _, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS),
                 ("-moz-empty-except-children-with-localname", MozEmptyExceptChildrenWithLocalname,
-                 mozEmptyExceptChildrenWithLocalname, _, PSEUDO_CLASS_INTERNAL),
+                 mozEmptyExceptChildrenWithLocalname, _, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS),
                 ("lang", Lang, lang, _, _),
             ],
             keyword: [

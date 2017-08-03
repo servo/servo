@@ -70,6 +70,11 @@ impl UrlExtraData {
         // TODO
         "(stylo: not supported)"
     }
+
+    /// True if this URL scheme is chrome.
+    pub fn is_chrome(&self) -> bool {
+        self.mIsChrome
+    }
 }
 
 // XXX We probably need to figure out whether we should mark Eq here.

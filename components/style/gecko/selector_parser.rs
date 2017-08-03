@@ -18,9 +18,12 @@ pub use gecko::pseudo_element::{PseudoElement, EAGER_PSEUDOS, EAGER_PSEUDO_COUNT
 pub use gecko::snapshot::SnapshotMap;
 
 bitflags! {
+    // See NonTSPseudoClass::is_enabled_in()
     flags NonTSPseudoClassFlag: u8 {
-        // See NonTSPseudoClass::is_internal()
-        const PSEUDO_CLASS_INTERNAL = 0x01,
+        const PSEUDO_CLASS_ENABLED_IN_UA_SHEETS = 1 << 0,
+        const PSEUDO_CLASS_ENABLED_IN_CHROME = 1 << 1,
+        const PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME =
+            PSEUDO_CLASS_ENABLED_IN_UA_SHEETS.bits | PSEUDO_CLASS_ENABLED_IN_CHROME.bits,
     }
 }
 
@@ -122,14 +125,14 @@ impl SelectorMethods for NonTSPseudoClass {
 
 
 impl NonTSPseudoClass {
-    /// A pseudo-class is internal if it can only be used inside
-    /// user agent style sheets.
-    pub fn is_internal(&self) -> bool {
+    /// Returns true if this pseudo-class is enabled under the context of
+    /// the given flag.
+    fn is_enabled_in(&self, flag: NonTSPseudoClassFlag) -> bool {
         macro_rules! check_flag {
             (_) => (false);
-            ($flags:expr) => ($flags.contains(PSEUDO_CLASS_INTERNAL));
+            ($flags:expr) => ($flags.contains(flag));
         }
-        macro_rules! pseudo_class_check_internal {
+        macro_rules! pseudo_class_check_is_enabled_in {
             (bare: [$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*],
             string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*],
             keyword: [$(($k_css:expr, $k_name:ident, $k_gecko_type:tt, $k_state:tt, $k_flags:tt),)*]) => {
@@ -141,7 +144,7 @@ impl NonTSPseudoClass {
                 }
             }
         }
-        apply_non_ts_list!(pseudo_class_check_internal)
+        apply_non_ts_list!(pseudo_class_check_is_enabled_in)
     }
 
     /// https://drafts.csswg.org/selectors-4/#useraction-pseudos
@@ -263,6 +266,21 @@ impl ::selectors::SelectorImpl for SelectorImpl {
     }
 }
 
+impl<'a> SelectorParser<'a> {
+    fn is_pseudo_class_enabled(&self,
+                               pseudo_class: &NonTSPseudoClass)
+                               -> bool {
+        let enabled_in_ua = pseudo_class.is_enabled_in(PSEUDO_CLASS_ENABLED_IN_UA_SHEETS);
+        let enabled_in_chrome = pseudo_class.is_enabled_in(PSEUDO_CLASS_ENABLED_IN_CHROME);
+        if !enabled_in_ua && !enabled_in_chrome {
+            true
+        } else {
+            (enabled_in_ua && self.in_user_agent_stylesheet()) ||
+            (enabled_in_chrome && self.in_chrome_stylesheet())
+        }
+    }
+}
+
 impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
     type Impl = SelectorImpl;
     type Error = StyleParseError<'i>;
@@ -286,7 +304,7 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
             }
         }
         let pseudo_class = apply_non_ts_list!(pseudo_class_parse);
-        if !pseudo_class.is_internal() || self.in_user_agent_stylesheet() {
+        if self.is_pseudo_class_enabled(&pseudo_class) {
             Ok(pseudo_class)
         } else {
             Err(SelectorParseError::UnexpectedIdent(name).into())
@@ -331,7 +349,7 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
             }
         }
         let pseudo_class = apply_non_ts_list!(pseudo_class_string_parse);
-        if !pseudo_class.is_internal() || self.in_user_agent_stylesheet() {
+        if self.is_pseudo_class_enabled(&pseudo_class) {
             Ok(pseudo_class)
         } else {
             Err(SelectorParseError::UnexpectedIdent(name).into())
