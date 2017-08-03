@@ -51,6 +51,7 @@ extern crate fnv;
 #[cfg(feature = "gecko")] #[macro_use] pub mod gecko_string_cache;
 #[cfg(feature = "servo")] extern crate heapsize;
 #[cfg(feature = "servo")] #[macro_use] extern crate heapsize_derive;
+extern crate itertools;
 extern crate itoa;
 #[cfg(feature = "servo")] #[macro_use] extern crate html5ever;
 #[macro_use]
@@ -135,6 +136,7 @@ pub mod stylesheets;
 pub mod thread_state;
 pub mod timer;
 pub mod traversal;
+pub mod traversal_flags;
 #[macro_use]
 #[allow(non_camel_case_types)]
 pub mod values;

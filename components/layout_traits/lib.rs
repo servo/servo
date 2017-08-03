@@ -50,6 +50,7 @@ pub trait LayoutThreadFactory {
               mem_profiler_chan: mem::ProfilerChan,
               content_process_shutdown_chan: Option<IpcSender<()>>,
               webrender_api_sender: webrender_api::RenderApiSender,
+              webrender_document: webrender_api::DocumentId,
               layout_threads: usize,
               paint_time_metrics: PaintTimeMetrics);
 }

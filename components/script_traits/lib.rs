@@ -66,10 +66,9 @@ use std::fmt;
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender, RecvTimeoutError};
 use style_traits::CSSPixel;
-use style_traits::DevicePixel;
+use style_traits::SpeculativePainter;
 use webdriver_msg::{LoadStatus, WebDriverScriptCommand};
-use webrender_api::ClipId;
-use webrender_api::ImageKey;
+use webrender_api::{ClipId, DevicePixel, ImageKey};
 use webvr_traits::{WebVREvent, WebVRMsg};
 
 pub use script_msg::{LayoutMsg, ScriptMsg, EventResult, LogEntry};
@@ -819,18 +818,19 @@ impl From<RecvTimeoutError> for PaintWorkletError {
 }
 
 /// Execute paint code in the worklet thread pool.
-pub trait Painter: Sync + Send {
+pub trait Painter: SpeculativePainter {
     /// https://drafts.css-houdini.org/css-paint-api/#draw-a-paint-image
     fn draw_a_paint_image(&self,
                           size: TypedSize2D<f32, CSSPixel>,
                           zoom: ScaleFactor<f32, CSSPixel, DevicePixel>,
-                          properties: Vec<(Atom, String)>)
+                          properties: Vec<(Atom, String)>,
+                          arguments: Vec<String>)
                           -> DrawAPaintImageResult;
 }
 
 /// The result of executing paint code: the image together with any image URLs that need to be loaded.
 /// TODO: this should return a WR display list. https://github.com/servo/servo/issues/17497
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, HeapSizeOf)]
 pub struct DrawAPaintImageResult {
     /// The image height
     pub width: u32,

@@ -100,11 +100,11 @@ impl Parse for GridLine {
                 }
 
                 grid_line.line_num = Some(i);
-            } else if let Ok(name) = input.try(|i| i.expect_ident()) {
+            } else if let Ok(name) = input.try(|i| i.expect_ident_cloned()) {
                 if val_before_span || grid_line.ident.is_some() {
                     return Err(StyleParseError::UnspecifiedError.into());
                 }
-                grid_line.ident = Some(CustomIdent::from_ident(name, &[])?);
+                grid_line.ident = Some(CustomIdent::from_ident(&name, &[])?);
             } else {
                 break
             }

@@ -14,6 +14,7 @@ use servo_arc::{Arc, UniqueArc};
 use std::borrow::Cow;
 use std::collections::HashSet;
 use std::{fmt, mem, ops};
+#[cfg(feature = "gecko")] use std::ptr;
 
 use app_units::Au;
 #[cfg(feature = "servo")] use cssparser::RGBA;
@@ -37,7 +38,7 @@ use selectors::parser::SelectorParseError;
 #[cfg(feature = "servo")] use servo_config::prefs::PREFS;
 use shared_lock::StylesheetGuards;
 use style_traits::{PARSING_MODE_DEFAULT, HasViewportPercentage, ToCss, ParseError};
-use style_traits::{PropertyDeclarationParseError, StyleParseError};
+use style_traits::{PropertyDeclarationParseError, StyleParseError, ValueParseError};
 use stylesheets::{CssRuleType, MallocSizeOf, MallocSizeOfFn, Origin, UrlExtraData};
 #[cfg(feature = "servo")] use values::Either;
 use values::generics::text::LineHeight;
@@ -422,7 +423,7 @@ impl CSSWideKeyword {
 
 impl Parse for CSSWideKeyword {
     fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        let ident = input.expect_ident()?;
+        let ident = input.expect_ident()?.clone();
         input.expect_exhausted()?;
         CSSWideKeyword::from_ident(&ident)
             .ok_or(SelectorParseError::UnexpectedIdent(ident).into())
@@ -607,6 +608,7 @@ impl LonghandId {
             LonghandId::AnimationName |
             LonghandId::TransitionProperty |
             LonghandId::XLang |
+            LonghandId::XTextZoom |
             LonghandId::MozScriptLevel |
             LonghandId::MozMinFontSizeRatio |
             % endif
@@ -1183,8 +1185,9 @@ impl PropertyId {
                 }
             % endif
             % if product == "gecko":
+                use gecko_bindings::structs;
                 let id = self.to_nscsspropertyid().unwrap();
-                unsafe { bindings::Gecko_PropertyId_IsPrefEnabled(id) }
+                unsafe { structs::nsCSSProps_gPropertyEnabled[id as usize] }
             % endif
         };
 
@@ -1487,7 +1490,8 @@ impl PropertyDeclaration {
                     Ok(keyword) => DeclaredValueOwned::CSSWideKeyword(keyword),
                     Err(_) => match ::custom_properties::SpecifiedValue::parse(context, input) {
                         Ok(value) => DeclaredValueOwned::Value(value),
-                        Err(_) => return Err(PropertyDeclarationParseError::InvalidValue(name.to_string().into())),
+                        Err(e) => return Err(PropertyDeclarationParseError::InvalidValue(name.to_string().into(),
+                        ValueParseError::from_parse_error(e))),
                     }
                 };
                 declarations.push(PropertyDeclaration::Custom(name, value));
@@ -1500,13 +1504,14 @@ impl PropertyDeclaration {
                     input.look_for_var_functions();
                     let start = input.position();
                     input.parse_entirely(|input| id.parse_value(context, input))
-                    .or_else(|_| {
+                    .or_else(|err| {
                         while let Ok(_) = input.next() {}  // Look for var() after the error.
                         if input.seen_var_functions() {
                             input.reset(start);
                             let (first_token_type, css) =
-                                ::custom_properties::parse_non_custom_with_var(input).map_err(|_| {
-                                    PropertyDeclarationParseError::InvalidValue(id.name().into())
+                                ::custom_properties::parse_non_custom_with_var(input).map_err(|e| {
+                                    PropertyDeclarationParseError::InvalidValue(id.name().into(),
+                                        ValueParseError::from_parse_error(e))
                                 })?;
                             Ok(PropertyDeclaration::WithVariables(id, Arc::new(UnparsedValue {
                                 css: css.into_owned(),
@@ -1515,7 +1520,8 @@ impl PropertyDeclaration {
                                 from_shorthand: None,
                             })))
                         } else {
-                            Err(PropertyDeclarationParseError::InvalidValue(id.name().into()))
+                            Err(PropertyDeclarationParseError::InvalidValue(id.name().into(),
+                                ValueParseError::from_parse_error(err)))
                         }
                     })
                 }).map(|declaration| {
@@ -1537,13 +1543,14 @@ impl PropertyDeclaration {
                     let start = input.position();
                     // Not using parse_entirely here: each ${shorthand.ident}::parse_into function
                     // needs to do so *before* pushing to `declarations`.
-                    id.parse_into(declarations, context, input).or_else(|_| {
+                    id.parse_into(declarations, context, input).or_else(|err| {
                         while let Ok(_) = input.next() {}  // Look for var() after the error.
                         if input.seen_var_functions() {
                             input.reset(start);
                             let (first_token_type, css) =
-                                ::custom_properties::parse_non_custom_with_var(input).map_err(|_| {
-                                    PropertyDeclarationParseError::InvalidValue(id.name().into())
+                                ::custom_properties::parse_non_custom_with_var(input).map_err(|e| {
+                                    PropertyDeclarationParseError::InvalidValue(id.name().into(),
+                                        ValueParseError::from_parse_error(e))
                                 })?;
                             let unparsed = Arc::new(UnparsedValue {
                                 css: css.into_owned(),
@@ -1562,7 +1569,8 @@ impl PropertyDeclaration {
                             }
                             Ok(())
                         } else {
-                            Err(PropertyDeclarationParseError::InvalidValue(id.name().into()))
+                            Err(PropertyDeclarationParseError::InvalidValue(id.name().into(),
+                                ValueParseError::from_parse_error(err)))
                         }
                     })
                 }
@@ -1706,6 +1714,13 @@ pub mod style_structs {
                     #[inline]
                     pub fn copy_${longhand.ident}_from(&mut self, other: &Self) {
                         self.${longhand.ident} = other.${longhand.ident}.clone();
+                    }
+
+                    /// Reset ${longhand.name} from the initial struct.
+                    #[allow(non_snake_case)]
+                    #[inline]
+                    pub fn reset_${longhand.ident}(&mut self, other: &Self) {
+                        self.copy_${longhand.ident}_from(other)
                     }
                     % if longhand.need_clone:
                         /// Get the computed value for ${longhand.name}.
@@ -2470,6 +2485,11 @@ pub struct StyleBuilder<'a> {
     /// `parent_style.unwrap_or(device.default_computed_values())`.
     inherited_style: &'a ComputedValues,
 
+    /// The style we're inheriting from for properties that don't inherit from
+    /// ::first-line.  This is the same as inherited_style, unless
+    /// inherited_style is a ::first-line style.
+    inherited_style_ignoring_first_line: &'a ComputedValues,
+
     /// The style we're getting reset structs from.
     reset_style: &'a ComputedValues,
 
@@ -2507,6 +2527,7 @@ impl<'a> StyleBuilder<'a> {
     fn new(
         device: &'a Device,
         parent_style: Option<<&'a ComputedValues>,
+        parent_style_ignoring_first_line: Option<<&'a ComputedValues>,
         pseudo: Option<<&'a PseudoElement>,
         cascade_flags: CascadeFlags,
         rules: Option<StrongRuleNode>,
@@ -2516,8 +2537,19 @@ impl<'a> StyleBuilder<'a> {
         flags: ComputedValueFlags,
         visited_style: Option<Arc<ComputedValues>>,
     ) -> Self {
+        debug_assert_eq!(parent_style.is_some(), parent_style_ignoring_first_line.is_some());
+        #[cfg(feature = "gecko")]
+        debug_assert!(parent_style.is_none() ||
+                      ptr::eq(parent_style.unwrap(),
+                              parent_style_ignoring_first_line.unwrap()) ||
+                      parent_style.unwrap().pseudo() == Some(PseudoElement::FirstLine));
         let reset_style = device.default_computed_values();
         let inherited_style = parent_style.unwrap_or(reset_style);
+        let inherited_style_ignoring_first_line = parent_style_ignoring_first_line.unwrap_or(reset_style);
+        // FIXME(bz): INHERIT_ALL seems like a fundamentally broken idea.  I'm
+        // 99% sure it should give incorrect behavior for table anonymous box
+        // backgrounds, for example.  This code doesn't attempt to make it play
+        // nice with inherited_style_ignoring_first_line.
         let reset_style = if cascade_flags.contains(INHERIT_ALL) {
             inherited_style
         } else {
@@ -2528,6 +2560,7 @@ impl<'a> StyleBuilder<'a> {
             device,
             parent_style,
             inherited_style,
+            inherited_style_ignoring_first_line,
             reset_style,
             pseudo,
             rules,
@@ -2556,10 +2589,15 @@ impl<'a> StyleBuilder<'a> {
     ) -> Self {
         let reset_style = device.default_computed_values();
         let inherited_style = parent_style.unwrap_or(reset_style);
+        #[cfg(feature = "gecko")]
+        debug_assert!(parent_style.is_none() ||
+                      parent_style.unwrap().pseudo() != Some(PseudoElement::FirstLine));
         StyleBuilder {
             device,
             parent_style,
             inherited_style,
+            // None of our callers pass in ::first-line parent styles.
+            inherited_style_ignoring_first_line: inherited_style,
             reset_style,
             pseudo,
             rules: None, // FIXME(emilio): Dubious...
@@ -2582,7 +2620,12 @@ impl<'a> StyleBuilder<'a> {
     #[allow(non_snake_case)]
     pub fn inherit_${property.ident}(&mut self) {
         let inherited_struct =
+        % if property.style_struct.inherited:
             self.inherited_style.get_${property.style_struct.name_lower}();
+        % else:
+            self.inherited_style_ignoring_first_line.get_${property.style_struct.name_lower}();
+        % endif
+
         self.${property.style_struct.ident}.mutate()
             .copy_${property.ident}_from(
                 inherited_struct,
@@ -2595,9 +2638,11 @@ impl<'a> StyleBuilder<'a> {
     /// Reset `${property.ident}` to the initial value.
     #[allow(non_snake_case)]
     pub fn reset_${property.ident}(&mut self) {
-        let reset_struct = self.reset_style.get_${property.style_struct.name_lower}();
+        let reset_struct =
+            self.reset_style.get_${property.style_struct.name_lower}();
+
         self.${property.style_struct.ident}.mutate()
-            .copy_${property.ident}_from(
+            .reset_${property.ident}(
                 reset_struct,
                 % if property.logical:
                 self.writing_mode,
@@ -2639,6 +2684,7 @@ impl<'a> StyleBuilder<'a> {
         Self::new(
             device,
             Some(parent),
+            Some(parent),
             pseudo,
             CascadeFlags::empty(),
             /* rules = */ None,
@@ -2653,11 +2699,6 @@ impl<'a> StyleBuilder<'a> {
     /// Returns whether we have a visited style.
     pub fn has_visited_style(&self) -> bool {
         self.visited_style.is_some()
-    }
-
-    /// Returns the style we're inheriting from.
-    pub fn inherited_style(&self) -> &'a ComputedValues {
-        self.inherited_style
     }
 
     /// Returns the style we're getting reset properties from.
@@ -2752,6 +2793,42 @@ impl<'a> StyleBuilder<'a> {
     fn custom_properties(&self) -> Option<Arc<::custom_properties::CustomPropertiesMap>> {
         self.custom_properties.clone()
     }
+
+    /// Access to various information about our inherited styles.  We don't
+    /// expose an inherited ComputedValues directly, because in the
+    /// ::first-line case some of the inherited information needs to come from
+    /// one ComputedValues instance and some from a different one.
+
+    /// Inherited font bits.
+    pub fn inherited_font_computation_data(&self) -> &FontComputationData {
+        &self.inherited_style.font_computation_data
+    }
+
+    /// Inherited writing-mode.
+    pub fn inherited_writing_mode(&self) -> &WritingMode {
+        &self.inherited_style.writing_mode
+    }
+
+    /// Inherited style flags.
+    pub fn inherited_flags(&self) -> &ComputedValueFlags {
+        &self.inherited_style.flags
+    }
+
+    /// And access to inherited style structs.
+    % for style_struct in data.active_style_structs():
+        /// Gets our inherited `${style_struct.name}`.  We don't name these
+        /// accessors `inherited_${style_struct.name_lower}` because we already
+        /// have things like "box" vs "inherited_box" as struct names.  Do the
+        /// next-best thing and call them `parent_${style_struct.name_lower}`
+        /// instead.
+        pub fn get_parent_${style_struct.name_lower}(&self) -> &style_structs::${style_struct.name} {
+            % if style_struct.inherited:
+            self.inherited_style.get_${style_struct.name_lower}()
+            % else:
+            self.inherited_style_ignoring_first_line.get_${style_struct.name_lower}()
+            % endif
+        }
+    % endfor
 }
 
 #[cfg(feature = "servo")]
@@ -2867,6 +2944,7 @@ pub fn cascade(
     rule_node: &StrongRuleNode,
     guards: &StylesheetGuards,
     parent_style: Option<<&ComputedValues>,
+    parent_style_ignoring_first_line: Option<<&ComputedValues>,
     layout_parent_style: Option<<&ComputedValues>,
     visited_style: Option<Arc<ComputedValues>>,
     cascade_info: Option<<&mut CascadeInfo>,
@@ -2874,6 +2952,12 @@ pub fn cascade(
     flags: CascadeFlags,
     quirks_mode: QuirksMode
 ) -> Arc<ComputedValues> {
+    debug_assert_eq!(parent_style.is_some(), parent_style_ignoring_first_line.is_some());
+    #[cfg(feature = "gecko")]
+    debug_assert!(parent_style.is_none() ||
+                  ptr::eq(parent_style.unwrap(),
+                          parent_style_ignoring_first_line.unwrap()) ||
+                  parent_style.unwrap().pseudo() == Some(PseudoElement::FirstLine));
     let iter_declarations = || {
         rule_node.self_and_ancestors().flat_map(|node| {
             let cascade_level = node.cascade_level();
@@ -2919,6 +3003,7 @@ pub fn cascade(
         rule_node,
         iter_declarations,
         parent_style,
+        parent_style_ignoring_first_line,
         layout_parent_style,
         visited_style,
         cascade_info,
@@ -2937,6 +3022,7 @@ pub fn apply_declarations<'a, F, I>(
     rules: &StrongRuleNode,
     iter_declarations: F,
     parent_style: Option<<&ComputedValues>,
+    parent_style_ignoring_first_line: Option<<&ComputedValues>,
     layout_parent_style: Option<<&ComputedValues>,
     visited_style: Option<Arc<ComputedValues>>,
     mut cascade_info: Option<<&mut CascadeInfo>,
@@ -2949,6 +3035,12 @@ where
     I: Iterator<Item = (&'a PropertyDeclaration, CascadeLevel)>,
 {
     debug_assert!(layout_parent_style.is_none() || parent_style.is_some());
+    debug_assert_eq!(parent_style.is_some(), parent_style_ignoring_first_line.is_some());
+    #[cfg(feature = "gecko")]
+    debug_assert!(parent_style.is_none() ||
+                  ptr::eq(parent_style.unwrap(),
+                          parent_style_ignoring_first_line.unwrap()) ||
+                  parent_style.unwrap().pseudo() == Some(PseudoElement::FirstLine));
     let (inherited_style, layout_parent_style) = match parent_style {
         Some(parent_style) => {
             (parent_style,
@@ -2983,6 +3075,7 @@ where
         builder: StyleBuilder::new(
             device,
             parent_style,
+            parent_style_ignoring_first_line,
             pseudo,
             flags,
             Some(rules.clone()),
@@ -2996,6 +3089,7 @@ where
         cached_system_font: None,
         in_media_query: false,
         quirks_mode: quirks_mode,
+        for_smil_animation: false,
     };
 
     let ignore_colors = !device.use_document_colors();
@@ -3114,6 +3208,23 @@ where
             let mut _skip_font_family = false;
 
             % if product == "gecko":
+
+                // <svg:text> is not affected by text zoom, and it uses a preshint to
+                // disable it. We fix up the struct when this happens by unzooming
+                // its contained font values, which will have been zoomed in the parent
+                if seen.contains(LonghandId::XTextZoom) {
+                    let zoom = context.builder.get_font().gecko().mAllowZoom;
+                    let parent_zoom = context.style().get_parent_font().gecko().mAllowZoom;
+                    if  zoom != parent_zoom {
+                        debug_assert!(!zoom,
+                                      "We only ever disable text zoom (in svg:text), never enable it");
+                        // can't borrow both device and font, use the take/put machinery
+                        let mut font = context.builder.take_font();
+                        font.unzoom_fonts(context.device());
+                        context.builder.put_font(font);
+                    }
+                }
+
                 // Whenever a single generic value is specified, gecko will do a bunch of
                 // recalculation walking up the rule tree, including handling the font-size stuff.
                 // It basically repopulates the font struct with the default font for a given

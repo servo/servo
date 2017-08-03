@@ -292,6 +292,12 @@ impl JustifyItems {
         JustifyItems(ALIGN_AUTO)
     }
 
+    /// The value 'normal'
+    #[inline]
+    pub fn normal() -> Self {
+        JustifyItems(ALIGN_NORMAL)
+    }
+
     /// Whether this value has extra flags.
     #[inline]
     pub fn has_extra_flags(self) -> bool {
@@ -374,7 +380,8 @@ fn parse_normal_or_baseline<'i, 't>(input: &mut Parser<'i, 't>) -> Result<AlignF
 
 // <baseline-position>
 fn parse_baseline<'i, 't>(input: &mut Parser<'i, 't>) -> Result<AlignFlags, ParseError<'i>> {
-    try_match_ident_ignore_ascii_case! { input.expect_ident()?,
+    // FIXME: remove clone() when lifetimes are non-lexical
+    try_match_ident_ignore_ascii_case! { input.expect_ident()?.clone(),
         "baseline" => Ok(ALIGN_BASELINE),
         "first" => {
             input.expect_ident_matching("baseline")?;
@@ -471,7 +478,7 @@ fn parse_self_position<'i, 't>(input: &mut Parser<'i, 't>) -> Result<AlignFlags,
 
 // [ legacy && [ left | right | center ] ]
 fn parse_legacy<'i, 't>(input: &mut Parser<'i, 't>) -> Result<AlignFlags, ParseError<'i>> {
-    let a = input.expect_ident()?;
+    let a = input.expect_ident()?.clone();
     let b = input.expect_ident()?;
     if a.eq_ignore_ascii_case("legacy") {
         (match_ignore_ascii_case! { &b,
@@ -479,7 +486,7 @@ fn parse_legacy<'i, 't>(input: &mut Parser<'i, 't>) -> Result<AlignFlags, ParseE
             "right" => Ok(ALIGN_LEGACY | ALIGN_RIGHT),
             "center" => Ok(ALIGN_LEGACY | ALIGN_CENTER),
             _ => Err(())
-        }).map_err(|()| SelectorParseError::UnexpectedIdent(b).into())
+        }).map_err(|()| SelectorParseError::UnexpectedIdent(b.clone()).into())
     } else if b.eq_ignore_ascii_case("legacy") {
         (match_ignore_ascii_case! { &a,
             "left" => Ok(ALIGN_LEGACY | ALIGN_LEFT),

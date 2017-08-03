@@ -128,7 +128,7 @@ impl GamepadMethods for Gamepad {
     #[allow(unsafe_code)]
     // https://w3c.github.io/gamepad/#dom-gamepad-axes
     unsafe fn Axes(&self, _cx: *mut JSContext) -> NonZero<*mut JSObject> {
-        NonZero::new(self.axes.get())
+        NonZero::new_unchecked(self.axes.get())
     }
 
     // https://w3c.github.io/gamepad/#dom-gamepad-buttons

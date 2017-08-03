@@ -3498,7 +3498,7 @@ impl DocumentMethods for Document {
                 if elements.peek().is_none() {
                     // TODO: Step 2.
                     // Step 3.
-                    return Some(NonZero::new(first.reflector().get_jsobject().get()));
+                    return Some(NonZero::new_unchecked(first.reflector().get_jsobject().get()));
                 }
             } else {
                 return None;
@@ -3509,7 +3509,7 @@ impl DocumentMethods for Document {
             name: name,
         };
         let collection = HTMLCollection::create(self.window(), root, box filter);
-        Some(NonZero::new(collection.reflector().get_jsobject().get()))
+        Some(NonZero::new_unchecked(collection.reflector().get_jsobject().get()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:supported-property-names
@@ -3875,8 +3875,7 @@ fn update_with_current_time_ms(marker: &Cell<u64>) {
 
 /// https://w3c.github.io/webappsec-referrer-policy/#determine-policy-for-token
 pub fn determine_policy_for_token(token: &str) -> Option<ReferrerPolicy> {
-    let lower = token.to_lowercase();
-    return match lower.as_ref() {
+    match_ignore_ascii_case! { token,
         "never" | "no-referrer" => Some(ReferrerPolicy::NoReferrer),
         "default" | "no-referrer-when-downgrade" => Some(ReferrerPolicy::NoReferrerWhenDowngrade),
         "origin" => Some(ReferrerPolicy::Origin),

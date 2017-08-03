@@ -8,7 +8,7 @@
 
 #![allow(non_snake_case, missing_docs)]
 
-use gecko_bindings::bindings::{RawServoImportRule, RawServoSupportsRule};
+use gecko_bindings::bindings::{RawServoFontFeatureValuesRule, RawServoImportRule, RawServoSupportsRule};
 use gecko_bindings::bindings::{RawServoKeyframe, RawServoKeyframesRule};
 use gecko_bindings::bindings::{RawServoMediaRule, RawServoNamespaceRule, RawServoPageRule};
 use gecko_bindings::bindings::{RawServoRuleNode, RawServoRuleNodeStrong, RawServoDocumentRule};
@@ -24,7 +24,7 @@ use servo_arc::{Arc, ArcBorrow};
 use shared_lock::Locked;
 use std::{mem, ptr};
 use stylesheets::{CssRules, StylesheetContents, StyleRule, ImportRule, KeyframesRule, MediaRule};
-use stylesheets::{NamespaceRule, PageRule, SupportsRule, DocumentRule};
+use stylesheets::{FontFeatureValuesRule, NamespaceRule, PageRule, SupportsRule, DocumentRule};
 use stylesheets::keyframes_rule::Keyframe;
 
 macro_rules! impl_arc_ffi {
@@ -87,6 +87,9 @@ impl_arc_ffi!(Locked<SupportsRule> => RawServoSupportsRule
 
 impl_arc_ffi!(Locked<DocumentRule> => RawServoDocumentRule
               [Servo_DocumentRule_AddRef, Servo_DocumentRule_Release]);
+
+impl_arc_ffi!(Locked<FontFeatureValuesRule> => RawServoFontFeatureValuesRule
+              [Servo_FontFeatureValuesRule_AddRef, Servo_FontFeatureValuesRule_Release]);
 
 // RuleNode is a Arc-like type but it does not use Arc.
 

@@ -421,7 +421,7 @@ lazy_static! {
         hb_font_funcs_set_glyph_h_kerning_func(
             hb_funcs, Some(glyph_h_kerning_func), ptr::null_mut(), None);
 
-        ptr::Unique::new(hb_funcs)
+        ptr::Unique::new_unchecked(hb_funcs)
     };
 }
 

@@ -21,6 +21,7 @@ use net_traits::request::{Referrer, Request, RequestMode, ResponseTainting};
 use net_traits::request::{Type, Origin, Window};
 use net_traits::response::{Response, ResponseBody, ResponseType};
 use servo_url::ServoUrl;
+use std::ascii::AsciiExt;
 use std::borrow::Cow;
 use std::fmt;
 use std::fs::File;
@@ -514,9 +515,10 @@ pub fn should_be_blocked_due_to_nosniff(request_type: Type, response_headers: &H
         fn parse_header(raw: &[Vec<u8>]) -> HyperResult<Self> {
             raw.first()
                 .and_then(|v| str::from_utf8(v).ok())
-                .and_then(|s| match s.trim().to_lowercase().as_str() {
-                    "nosniff" => Some(XContentTypeOptions),
-                    _ => None
+                .and_then(|s| if s.trim().eq_ignore_ascii_case("nosniff") {
+                    Some(XContentTypeOptions)
+                } else {
+                    None
                 })
                 .ok_or(Error::Header)
         }

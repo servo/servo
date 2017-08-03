@@ -80,13 +80,7 @@ struct CanvasPaintState<'a> {
 }
 
 impl<'a> CanvasPaintState<'a> {
-    fn new(antialias: bool) -> CanvasPaintState<'a> {
-        let antialias = if antialias {
-            AntialiasMode::Default
-        } else {
-            AntialiasMode::None
-        };
-
+    fn new(antialias: AntialiasMode) -> CanvasPaintState<'a> {
         CanvasPaintState {
             draw_options: DrawOptions::new(1.0, CompositionOp::Over, antialias),
             fill_style: Pattern::Color(ColorPattern::new(Color::black())),
@@ -104,7 +98,7 @@ impl<'a> CanvasPaintState<'a> {
 impl<'a> CanvasPaintThread<'a> {
     fn new(size: Size2D<i32>,
            webrender_api_sender: webrender_api::RenderApiSender,
-           antialias: bool) -> CanvasPaintThread<'a> {
+           antialias: AntialiasMode) -> CanvasPaintThread<'a> {
         let draw_target = CanvasPaintThread::create(size);
         let path_builder = draw_target.create_path_builder();
         let webrender_api = webrender_api_sender.create_api();
@@ -127,6 +121,11 @@ impl<'a> CanvasPaintThread<'a> {
                  antialias: bool)
                  -> IpcSender<CanvasMsg> {
         let (sender, receiver) = ipc::channel::<CanvasMsg>().unwrap();
+        let antialias = if antialias {
+            AntialiasMode::Default
+        } else {
+            AntialiasMode::None
+        };
         thread::Builder::new().name("CanvasThread".to_owned()).spawn(move || {
             let mut painter = CanvasPaintThread::new(size, webrender_api_sender, antialias);
             loop {
@@ -549,10 +548,15 @@ impl<'a> CanvasPaintThread<'a> {
     }
 
     fn recreate(&mut self, size: Size2D<i32>) {
+        // TODO: clear the thread state. https://github.com/servo/servo/issues/17533
         self.drawtarget = CanvasPaintThread::create(size);
-        self.state = CanvasPaintState::new(self.state.draw_options.antialias == AntialiasMode::Default);
+        self.state = CanvasPaintState::new(self.state.draw_options.antialias);
         self.saved_states.clear();
         // Webrender doesn't let images change size, so we clear the webrender image key.
+        // TODO: there is an annying race condition here: the display list builder
+        // might still be using the old image key. Really, we should be scheduling the image
+        // for later deletion, not deleting it immediately.
+        // https://github.com/servo/servo/issues/17534
         if let Some(image_key) = self.image_key.take() {
             // If this executes, then we are in a new epoch since we last recreated the canvas,
             // so `old_image_key` must be `None`.
@@ -583,6 +587,7 @@ impl<'a> CanvasPaintThread<'a> {
 
             match self.image_key {
                 Some(image_key) => {
+                    debug!("Updating image {:?}.", image_key);
                     self.webrender_api.update_image(image_key,
                                                     descriptor,
                                                     data,
@@ -590,6 +595,7 @@ impl<'a> CanvasPaintThread<'a> {
                 }
                 None => {
                     self.image_key = Some(self.webrender_api.generate_image_key());
+                    debug!("New image {:?}.", self.image_key);
                     self.webrender_api.add_image(self.image_key.unwrap(),
                                                  descriptor,
                                                  data,

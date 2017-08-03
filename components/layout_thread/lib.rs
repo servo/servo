@@ -46,6 +46,7 @@ extern crate servo_config;
 extern crate servo_geometry;
 extern crate servo_url;
 extern crate style;
+extern crate style_traits;
 extern crate webrender_api;
 
 mod dom_wrapper;
@@ -53,7 +54,7 @@ mod dom_wrapper;
 use app_units::Au;
 use dom_wrapper::{ServoLayoutElement, ServoLayoutDocument, ServoLayoutNode};
 use dom_wrapper::drop_style_and_layout_data;
-use euclid::{Point2D, Rect, Size2D, ScaleFactor};
+use euclid::{Point2D, Rect, Size2D, ScaleFactor, TypedSize2D};
 use fnv::FnvHashMap;
 use gfx::display_list::{OpaqueNode, WebRenderImageInfo};
 use gfx::font;
@@ -67,6 +68,7 @@ use layout::animation;
 use layout::construct::ConstructionResult;
 use layout::context::LayoutContext;
 use layout::context::RegisteredPainter;
+use layout::context::RegisteredPainters;
 use layout::context::heap_size_of_persistent_local_context;
 use layout::display_list_builder::ToGfxColor;
 use layout::flow::{self, Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
@@ -99,6 +101,8 @@ use script_layout_interface::rpc::TextIndexResponse;
 use script_layout_interface::wrapper_traits::LayoutNode;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, LayoutMsg as ConstellationMsg};
 use script_traits::{ScrollState, UntrustedNodeAddress};
+use script_traits::DrawAPaintImageResult;
+use script_traits::Painter;
 use selectors::Element;
 use servo_arc::Arc as ServoArc;
 use servo_atoms::Atom;
@@ -122,6 +126,8 @@ use std::thread;
 use style::animation::Animation;
 use style::context::{QuirksMode, ReflowGoal, SharedStyleContext};
 use style::context::{StyleSystemOptions, ThreadLocalStyleContextCreationInfo};
+use style::context::RegisteredSpeculativePainter;
+use style::context::RegisteredSpeculativePainters;
 use style::dom::{ShowSubtree, ShowSubtreeDataAndPrimaryValues, TElement, TNode};
 use style::error_reporting::{NullReporter, RustLogReporter};
 use style::invalidation::element::restyle_hints::RestyleHint;
@@ -135,7 +141,11 @@ use style::stylesheets::{Origin, Stylesheet, StylesheetInDocument, UserAgentStyl
 use style::stylist::{ExtraStyleData, Stylist};
 use style::thread_state;
 use style::timer::Timer;
-use style::traversal::{DomTraversal, TraversalDriver, TraversalFlags};
+use style::traversal::{DomTraversal, TraversalDriver};
+use style::traversal_flags::TraversalFlags;
+use style_traits::CSSPixel;
+use style_traits::DevicePixel;
+use style_traits::SpeculativePainter;
 
 /// Information needed by the layout thread.
 pub struct LayoutThread {
@@ -234,12 +244,15 @@ pub struct LayoutThread {
 
     webrender_image_cache: Arc<RwLock<FnvHashMap<(ServoUrl, UsePlaceholder),
                                                  WebRenderImageInfo>>>,
-    /// The executor for paint worklets.
-    /// Will be None if the script thread hasn't added any paint worklet modules.
-    registered_painters: Arc<RwLock<FnvHashMap<Atom, RegisteredPainter>>>,
+
+    /// The executors for paint worklets.
+    registered_painters: RegisteredPaintersImpl,
 
     /// Webrender interface.
     webrender_api: webrender_api::RenderApi,
+
+    /// Webrender document.
+    webrender_document: webrender_api::DocumentId,
 
     /// The timer object to control the timing of the animations. This should
     /// only be a test-mode timer during testing for animations.
@@ -274,6 +287,7 @@ impl LayoutThreadFactory for LayoutThread {
               mem_profiler_chan: mem::ProfilerChan,
               content_process_shutdown_chan: Option<IpcSender<()>>,
               webrender_api_sender: webrender_api::RenderApiSender,
+              webrender_document: webrender_api::DocumentId,
               layout_threads: usize,
               paint_time_metrics: PaintTimeMetrics) {
         thread::Builder::new().name(format!("LayoutThread {:?}", id)).spawn(move || {
@@ -297,6 +311,7 @@ impl LayoutThreadFactory for LayoutThread {
                                                time_profiler_chan,
                                                mem_profiler_chan.clone(),
                                                webrender_api_sender,
+                                               webrender_document,
                                                layout_threads,
                                                paint_time_metrics);
 
@@ -459,6 +474,7 @@ impl LayoutThread {
            time_profiler_chan: time::ProfilerChan,
            mem_profiler_chan: mem::ProfilerChan,
            webrender_api_sender: webrender_api::RenderApiSender,
+           webrender_document: webrender_api::DocumentId,
            layout_threads: usize,
            paint_time_metrics: PaintTimeMetrics)
            -> LayoutThread {
@@ -513,7 +529,7 @@ impl LayoutThread {
             constellation_chan: constellation_chan.clone(),
             time_profiler_chan: time_profiler_chan,
             mem_profiler_chan: mem_profiler_chan,
-            registered_painters: Arc::new(RwLock::new(FnvHashMap::default())),
+            registered_painters: RegisteredPaintersImpl(FnvHashMap::default()),
             image_cache: image_cache.clone(),
             font_cache_thread: font_cache_thread,
             first_reflow: Cell::new(true),
@@ -532,6 +548,7 @@ impl LayoutThread {
             epoch: Cell::new(Epoch(0)),
             viewport_size: Size2D::new(Au(0), Au(0)),
             webrender_api: webrender_api_sender.create_api(),
+            webrender_document,
             stylist: stylist,
             rw_data: Arc::new(Mutex::new(
                 LayoutThreadData {
@@ -597,6 +614,7 @@ impl LayoutThread {
                 visited_styles_enabled: false,
                 running_animations: self.running_animations.clone(),
                 expired_animations: self.expired_animations.clone(),
+                registered_speculative_painters: &self.registered_painters,
                 local_context_creation_data: Mutex::new(thread_local_style_context_creation_data),
                 timer: self.timer.clone(),
                 quirks_mode: self.quirks_mode.unwrap(),
@@ -608,7 +626,7 @@ impl LayoutThread {
             webrender_image_cache: self.webrender_image_cache.clone(),
             pending_images: if script_initiated_layout { Some(Mutex::new(vec![])) } else { None },
             newly_transitioning_nodes: if script_initiated_layout { Some(Mutex::new(vec![])) } else { None },
-            registered_painters: self.registered_painters.clone(),
+            registered_painters: &self.registered_painters,
         }
     }
 
@@ -730,13 +748,12 @@ impl LayoutThread {
                     .filter_map(|name| PropertyId::parse(&*name).ok().map(|id| (name.clone(), id)))
                     .filter(|&(_, ref id)| id.as_shorthand().is_err())
                     .collect();
-                let registered_painter = RegisteredPainter {
+                let registered_painter = RegisteredPainterImpl {
                     name: name.clone(),
                     properties: properties,
                     painter: painter,
                 };
-                self.registered_painters.write()
-                    .insert(name, registered_painter);
+                self.registered_painters.0.insert(name, registered_painter);
             },
             Msg::PrepareToExit(response_chan) => {
                 self.prepare_to_exit(response_chan);
@@ -801,6 +818,7 @@ impl LayoutThread {
                              self.mem_profiler_chan.clone(),
                              info.content_process_shutdown_chan,
                              self.webrender_api.clone_sender(),
+                             self.webrender_document,
                              info.layout_threads,
                              info.paint_time_metrics);
     }
@@ -1044,12 +1062,13 @@ impl LayoutThread {
             self.paint_time_metrics.maybe_set_first_contentful_paint(self, &display_list);
 
             self.webrender_api.set_display_list(
-                Some(get_root_flow_background_color(layout_root)),
+                self.webrender_document,
                 webrender_api::Epoch(epoch.0),
+                Some(get_root_flow_background_color(layout_root)),
                 viewport_size,
                 builder.finalize(),
                 true);
-            self.webrender_api.generate_frame(None);
+            self.webrender_api.generate_frame(self.webrender_document, None);
         });
     }
 
@@ -1779,4 +1798,53 @@ lazy_static! {
             }
         }
     };
+}
+
+struct RegisteredPainterImpl {
+    painter: Box<Painter>,
+    name: Atom,
+    properties: FnvHashMap<Atom, PropertyId>,
+}
+
+impl SpeculativePainter for RegisteredPainterImpl {
+    fn speculatively_draw_a_paint_image(&self, properties: Vec<(Atom, String)>, arguments: Vec<String>) {
+        self.painter.speculatively_draw_a_paint_image(properties, arguments);
+    }
+}
+
+impl RegisteredSpeculativePainter for RegisteredPainterImpl {
+    fn properties(&self) -> &FnvHashMap<Atom, PropertyId> {
+        &self.properties
+    }
+    fn name(&self) -> Atom {
+        self.name.clone()
+    }
+}
+
+impl Painter for RegisteredPainterImpl {
+    fn draw_a_paint_image(&self,
+                          size: TypedSize2D<f32, CSSPixel>,
+                          device_pixel_ratio: ScaleFactor<f32, CSSPixel, DevicePixel>,
+                          properties: Vec<(Atom, String)>,
+                          arguments: Vec<String>)
+                          -> DrawAPaintImageResult
+    {
+        self.painter.draw_a_paint_image(size, device_pixel_ratio, properties, arguments)
+    }
+}
+
+impl RegisteredPainter for RegisteredPainterImpl {}
+
+struct RegisteredPaintersImpl(FnvHashMap<Atom, RegisteredPainterImpl>);
+
+impl RegisteredSpeculativePainters for RegisteredPaintersImpl  {
+    fn get(&self, name: &Atom) -> Option<&RegisteredSpeculativePainter> {
+        self.0.get(&name).map(|painter| painter as &RegisteredSpeculativePainter)
+    }
+}
+
+impl RegisteredPainters for RegisteredPaintersImpl {
+    fn get(&self, name: &Atom) -> Option<&RegisteredPainter> {
+        self.0.get(&name).map(|painter| painter as &RegisteredPainter)
+    }
 }

@@ -10,6 +10,7 @@ pub use dom::bindings::cell::DOMRefCell;
 pub use dom::bindings::js::JS;
 pub use dom::node::Node;
 pub use dom::bindings::refcounted::TrustedPromise;
+pub use std::string::String;
 
 pub mod area {
     pub use dom::htmlareaelement::{Area, Shape};
@@ -57,4 +58,8 @@ pub mod size_of {
     pub fn Text() -> usize {
         size_of::<Text>()
     }
+}
+
+pub mod srcset {
+    pub use dom::htmlimageelement::{parse_a_srcset_attribute, ImageSource, Descriptor};
 }

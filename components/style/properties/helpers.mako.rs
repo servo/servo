@@ -917,6 +917,15 @@
             </%def>
         </%self:logical_setter_helper>
     }
+
+    /// Copy the appropriate physical property from another struct for ${name}
+    /// given a writing mode.
+    pub fn reset_${to_rust_ident(name)}(&mut self,
+                                        other: &Self,
+                                        wm: WritingMode) {
+        self.copy_${to_rust_ident(name)}_from(other, wm)
+    }
+
     % if need_clone:
         /// Get the computed value for the appropriate physical property for
         /// ${name} given a writing mode.

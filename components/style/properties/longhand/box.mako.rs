@@ -591,6 +591,8 @@ ${helpers.predefined_type("animation-duration",
                           extra_prefixes="moz webkit",
                           spec="https://drafts.csswg.org/css-transitions/#propdef-transition-duration")}
 
+// animation-timing-function is the exception to the rule for allowed_in_keyframe_block:
+// https://drafts.csswg.org/css-animations/#keyframes
 ${helpers.predefined_type("animation-timing-function",
                           "TimingFunction",
                           "computed::TimingFunction::ease()",
@@ -671,8 +673,6 @@ ${helpers.single_keyword("animation-direction",
                          spec="https://drafts.csswg.org/css-animations/#propdef-animation-direction",
                          allowed_in_keyframe_block=False)}
 
-// animation-play-state is the exception to the rule for allowed_in_keyframe_block:
-// https://drafts.csswg.org/css-animations/#keyframes
 ${helpers.single_keyword("animation-play-state",
                          "running paused",
                          need_clone=True,
@@ -681,7 +681,7 @@ ${helpers.single_keyword("animation-play-state",
                          vector=True,
                          extra_prefixes="moz webkit",
                          spec="https://drafts.csswg.org/css-animations/#propdef-animation-play-state",
-                         allowed_in_keyframe_block=True)}
+                         allowed_in_keyframe_block=False)}
 
 ${helpers.single_keyword("animation-fill-mode",
                          "none forwards backwards both",
@@ -979,7 +979,14 @@ ${helpers.predefined_type(
                     dest, "rotate3d({}, {}, {}, {})",
                     Css(x), Css(y), Css(z), Css(theta)),
                 SpecifiedOperation::Perspective(ref length) => write!(dest, "perspective({})", Css(length)),
-                _ => unreachable!(),
+                SpecifiedOperation::InterpolateMatrix { ref from_list, ref to_list, progress } => {
+                    write!(dest, "interpolatematrix({}, {}, {})",
+                           Css(from_list), Css(to_list), Css(progress))
+                },
+                SpecifiedOperation::AccumulateMatrix { ref from_list, ref to_list, count } => {
+                    write!(dest, "accumulatematrix({}, {}, {})",
+                           Css(from_list), Css(to_list), Css(count))
+                }
             }
         }
     }
@@ -1025,7 +1032,7 @@ ${helpers.predefined_type(
         }
 
         Ok(SpecifiedValue(Space::parse(input, |input| {
-            let function = input.expect_function()?;
+            let function = input.expect_function()?.clone();
             input.parse_nested_block(|input| {
                 let result = match_ignore_ascii_case! { &function,
                     "matrix" => {
@@ -1217,7 +1224,7 @@ ${helpers.predefined_type(
                     _ => Err(()),
                 };
                 result
-                    .map_err(|()| StyleParseError::UnexpectedFunction(function).into())
+                    .map_err(|()| StyleParseError::UnexpectedFunction(function.clone()).into())
             })
         })?))
     }
@@ -1764,7 +1771,7 @@ ${helpers.predefined_type("transform-origin",
             return Ok(result)
         }
 
-        while let Ok(name) = input.try(|input| input.expect_ident()) {
+        while let Ok(name) = input.try(|i| i.expect_ident_cloned()) {
             let flag = match_ignore_ascii_case! { &name,
                 "layout" => Some(LAYOUT),
                 "style" => Some(STYLE),
@@ -1773,7 +1780,7 @@ ${helpers.predefined_type("transform-origin",
             };
             let flag = match flag {
                 Some(flag) if !result.contains(flag) => flag,
-                _ => return Err(SelectorParseError::UnexpectedIdent(name).into())
+                _ => return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
             };
             result.insert(flag);
         }
@@ -1960,7 +1967,8 @@ ${helpers.predefined_type("shape-outside", "basic_shape::FloatAreaShape",
 
     pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
                          -> Result<SpecifiedValue, ParseError<'i>> {
-        try_match_ident_ignore_ascii_case! { input.expect_ident()?,
+        // FIXME: remove clone() when lifetimes are non-lexical
+        try_match_ident_ignore_ascii_case! { input.expect_ident()?.clone(),
             "auto" => Ok(TOUCH_ACTION_AUTO),
             "none" => Ok(TOUCH_ACTION_NONE),
             "manipulation" => Ok(TOUCH_ACTION_MANIPULATION),

@@ -64,9 +64,12 @@ environment.
 Running the tests manually
 --------------------------
 
+(See also [the relevant section of the upstream README][upstream-running].)
+
 It can be useful to run a test without the interference of the test runner, for
-example when using a debugger such as `gdb`. In that case, start the server by
-first adding the following to the system's hosts file:
+example when using a debugger such as `gdb`.
+
+To do this, first add the following to the system's hosts file:
 
     127.0.0.1   www.web-platform.test
     127.0.0.1   www1.web-platform.test
@@ -75,8 +78,34 @@ first adding the following to the system's hosts file:
     127.0.0.1   xn--n8j6ds53lwwkrqhv28a.web-platform.test
     127.0.0.1   xn--lve-6lad.web-platform.test
 
-and then running `python serve` from `tests/wpt/web-platform-tests`.
+Then, navigate to `tests/wpt/web-platform-tests`. Next, create a directory,
+e.g. `local-resources/`, to contain a local copy of the
+`resources/testharnessreport.js` file. The version in the repository is
+actually a Python format string that has substitution done on it by
+`harness/wptrunner/environment.py` to configure test output. Then, place a
+modified copy of the `testharnessreport.js` file in that directory, removing
+the format string variable:
+
+    mkdir local-resources
+    cp resources/testharnessreport.js local-resources/
+    $EDITOR local-resources/testharnessreport.js
+    # Replace `output:%(output)d` with `output:1` or `output:0`.
+
+Now create a configuration file at `config.json` for the web-platform-tests
+server (configuration options you don't specify will be loaded from the
+defaults at `config.default.json`) with the following contents:
+
+    {"aliases": [
+      {"url-path": "/resources/testharnessreport.js",
+       "local-dir": "local-resources"
+      }
+     ]
+    }
+
+Finally, you can run `python serve` from `tests/wpt/web-platform-tests`.
 Then navigate Servo to `http://web-platform.test:8000/path/to/test`.
+
+[upstream-running]: https://github.com/w3c/web-platform-tests#running-the-tests
 
 Running the tests in Firefox
 ----------------------------

@@ -151,7 +151,7 @@ fn where_predicate(ty: syn::Ty) -> syn::WherePredicate {
 
 /// Transforms "FooBar" to "foo-bar".
 ///
-/// If the first Camel segment is "Moz"" or "Webkit", the result string
+/// If the first Camel segment is "Moz" or "Webkit", the result string
 /// is prepended with "-".
 fn to_css_identifier(mut camel_case: &str) -> String {
     camel_case = camel_case.trim_right_matches('_');

@@ -228,14 +228,14 @@ impl ToCss for CalcLengthOrPercentage {
     }
 }
 
-impl ToComputedValue for specified::CalcLengthOrPercentage {
-    type ComputedValue = CalcLengthOrPercentage;
-
-    fn to_computed_value(&self, context: &Context) -> CalcLengthOrPercentage {
+impl specified::CalcLengthOrPercentage {
+    /// Compute the value, zooming any absolute units by the zoom function.
+    fn to_computed_value_with_zoom<F>(&self, context: &Context, zoom_fn: F) -> CalcLengthOrPercentage
+        where F: Fn(Au) -> Au {
         let mut length = Au(0);
 
         if let Some(absolute) = self.absolute {
-            length += absolute;
+            length += zoom_fn(absolute);
         }
 
         for val in &[self.vw.map(ViewportPercentageLength::Vw),
@@ -261,6 +261,19 @@ impl ToComputedValue for specified::CalcLengthOrPercentage {
             length: length,
             percentage: self.percentage,
         }
+    }
+
+    /// Compute font-size or line-height taking into account text-zoom if necessary.
+    pub fn to_computed_value_zoomed(&self, context: &Context) -> CalcLengthOrPercentage {
+        self.to_computed_value_with_zoom(context, |abs| context.maybe_zoom_text(abs))
+    }
+}
+
+impl ToComputedValue for specified::CalcLengthOrPercentage {
+    type ComputedValue = CalcLengthOrPercentage;
+
+    fn to_computed_value(&self, context: &Context) -> CalcLengthOrPercentage {
+        self.to_computed_value_with_zoom(context, |abs| abs)
     }
 
     #[inline]

@@ -43,7 +43,7 @@ use dom::bindings::str::{DOMString, USVString};
 use dom::bindings::utils::WindowProxyHandler;
 use dom::document::PendingRestyle;
 use encoding::types::EncodingRef;
-use euclid::{Transform2D, Transform3D, Point2D, Vector2D, Rect, Size2D, ScaleFactor};
+use euclid::{Transform2D, Transform3D, Point2D, Vector2D, Rect, TypedSize2D, ScaleFactor};
 use euclid::Length as EuclidLength;
 use html5ever::{Prefix, LocalName, Namespace, QualName};
 use html5ever::buffer_queue::BufferQueue;
@@ -75,6 +75,7 @@ use script_layout_interface::reporter::CSSErrorReporter;
 use script_layout_interface::rpc::LayoutRPC;
 use script_traits::{DocumentActivity, TimerEventId, TimerSource, TouchpadPressurePhase};
 use script_traits::{UntrustedNodeAddress, WindowSizeData, WindowSizeType};
+use script_traits::DrawAPaintImageResult;
 use selectors::matching::ElementSelectorFlags;
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
@@ -389,6 +390,7 @@ unsafe_no_jsmanaged_fields!(RelativePos);
 unsafe_no_jsmanaged_fields!(OpaqueStyleAndLayoutData);
 unsafe_no_jsmanaged_fields!(PathBuf);
 unsafe_no_jsmanaged_fields!(CSSErrorReporter);
+unsafe_no_jsmanaged_fields!(DrawAPaintImageResult);
 unsafe_no_jsmanaged_fields!(WebGLBufferId);
 unsafe_no_jsmanaged_fields!(WebGLFramebufferId);
 unsafe_no_jsmanaged_fields!(WebGLProgramId);
@@ -519,7 +521,14 @@ unsafe impl JSTraceable for Rect<f32> {
     }
 }
 
-unsafe impl JSTraceable for Size2D<i32> {
+unsafe impl<U> JSTraceable for TypedSize2D<i32, U> {
+    #[inline]
+    unsafe fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+unsafe impl<U> JSTraceable for TypedSize2D<f32, U> {
     #[inline]
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing

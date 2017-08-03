@@ -727,11 +727,6 @@ pub struct cef_settings {
   // of the background color but will be otherwise ignored.
   //
   pub background_color: cef_color_t,
-
-  //
-  // Determines how many rendering threads are used.
-  //
-  pub rendering_threads: c_int,
 }
 
 //

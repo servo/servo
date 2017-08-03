@@ -9,11 +9,11 @@
 
 use Atom;
 use cssparser::{Parser, Token, BasicParseError};
+use custom_properties::SpecifiedValue;
 use parser::{Parse, ParserContext};
 use selectors::parser::SelectorParseError;
 #[cfg(feature = "servo")]
 use servo_url::ServoUrl;
-use std::borrow::Cow;
 use std::cmp::Ordering;
 use std::f32::consts::PI;
 use std::fmt;
@@ -169,9 +169,9 @@ impl Image {
     fn parse_element<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Atom, ParseError<'i>> {
         input.try(|i| i.expect_function_matching("-moz-element"))?;
         input.parse_nested_block(|i| {
-            match i.next()? {
-                Token::IDHash(id) => Ok(Atom::from(Cow::from(id))),
-                t => Err(BasicParseError::UnexpectedToken(t).into()),
+            match *i.next()? {
+                Token::IDHash(ref id) => Ok(Atom::from(id.as_ref())),
+                ref t => Err(BasicParseError::UnexpectedToken(t.clone()).into()),
             }
         })
     }
@@ -184,7 +184,8 @@ impl Parse for Gradient {
             Radial,
         }
 
-        let func = input.expect_function()?;
+        // FIXME: remove clone() when lifetimes are non-lexical
+        let func = input.expect_function()?.clone();
         let result = match_ignore_ascii_case! { &func,
             "linear-gradient" => {
                 Some((Shape::Linear, false, CompatMode::Modern))
@@ -234,7 +235,7 @@ impl Parse for Gradient {
 
         let (shape, repeating, mut compat_mode) = match result {
             Some(result) => result,
-            None => return Err(StyleParseError::UnexpectedFunction(func).into()),
+            None => return Err(StyleParseError::UnexpectedFunction(func.clone()).into()),
         };
 
         let (kind, items) = input.parse_nested_block(|i| {
@@ -389,7 +390,7 @@ impl Gradient {
             }
         }
 
-        let ident = input.expect_ident()?;
+        let ident = input.expect_ident_cloned()?;
         input.expect_comma()?;
 
         let (kind, reverse_stops) = match_ignore_ascii_case! { &ident,
@@ -439,7 +440,7 @@ impl Gradient {
         let mut items = input.try(|i| {
             i.expect_comma()?;
             i.parse_comma_separated(|i| {
-                let function = i.expect_function()?;
+                let function = i.expect_function()?.clone();
                 let (color, mut p) = i.parse_nested_block(|i| {
                     let p = match_ignore_ascii_case! { &function,
                         "color-stop" => {
@@ -685,14 +686,14 @@ impl LineDirection {
         input.try(|i| {
             let to_ident = i.try(|i| i.expect_ident_matching("to"));
             match *compat_mode {
-                /// `to` keyword is mandatory in modern syntax.
+                // `to` keyword is mandatory in modern syntax.
                 CompatMode::Modern => to_ident?,
                 // Fall back to Modern compatibility mode in case there is a `to` keyword.
                 // According to Gecko, `-moz-linear-gradient(to ...)` should serialize like
                 // `linear-gradient(to ...)`.
                 CompatMode::Moz if to_ident.is_ok() => *compat_mode = CompatMode::Modern,
-                /// There is no `to` keyword in webkit prefixed syntax. If it's consumed,
-                /// parsing should throw an error.
+                // There is no `to` keyword in webkit prefixed syntax. If it's consumed,
+                // parsing should throw an error.
                 CompatMode::WebKit if to_ident.is_ok() => {
                     return Err(SelectorParseError::UnexpectedIdent("to".into()).into())
                 },
@@ -874,12 +875,17 @@ impl Parse for ColorStop {
 }
 
 impl Parse for PaintWorklet {
-    fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         input.expect_function_matching("paint")?;
-        input.parse_nested_block(|i| {
-            let name = i.expect_ident()?;
+        input.parse_nested_block(|input| {
+            let name = Atom::from(&**input.expect_ident()?);
+            let arguments = input.try(|input| {
+                input.expect_comma()?;
+                input.parse_comma_separated(|input| Ok(*SpecifiedValue::parse(context, input)?))
+            }).unwrap_or(vec![]);
             Ok(PaintWorklet {
-                name: Atom::from(Cow::from(name)),
+                name: name,
+                arguments: arguments,
             })
         })
     }
@@ -890,7 +896,7 @@ impl Parse for MozImageRect {
         input.try(|i| i.expect_function_matching("-moz-image-rect"))?;
         input.parse_nested_block(|i| {
             let string = i.expect_url_or_string()?;
-            let url = SpecifiedUrl::parse_from_string(string.into_owned(), context)?;
+            let url = SpecifiedUrl::parse_from_string(string.as_ref().to_owned(), context)?;
             i.expect_comma()?;
             let top = NumberOrPercentage::parse_non_negative(context, i)?;
             i.expect_comma()?;

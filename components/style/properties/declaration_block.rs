@@ -7,7 +7,7 @@
 #![deny(missing_docs)]
 
 use context::QuirksMode;
-use cssparser::{DeclarationListParser, parse_important, ParserInput, CompactCowStr};
+use cssparser::{DeclarationListParser, parse_important, ParserInput, CowRcStr};
 use cssparser::{Parser, AtRuleParser, DeclarationParser, Delimiter, ParseError as CssParseError};
 use error_reporting::{ParseErrorReporter, ContextualParseError};
 use parser::{ParserContext, log_css_error};
@@ -945,7 +945,7 @@ impl<'a, 'b, 'i> DeclarationParser<'i> for PropertyDeclarationParser<'a, 'b> {
     type Declaration = Importance;
     type Error = SelectorParseError<'i, StyleParseError<'i>>;
 
-    fn parse_value<'t>(&mut self, name: CompactCowStr<'i>, input: &mut Parser<'i, 't>)
+    fn parse_value<'t>(&mut self, name: CowRcStr<'i>, input: &mut Parser<'i, 't>)
                        -> Result<Importance, ParseError<'i>> {
         let id = match PropertyId::parse(&name) {
             Ok(id) => id,

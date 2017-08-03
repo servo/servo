@@ -4,7 +4,7 @@
 
 //! Keyframes: https://drafts.csswg.org/css-animations/#keyframes
 
-use cssparser::{AtRuleParser, Parser, QualifiedRuleParser, RuleListParser, ParserInput, CompactCowStr};
+use cssparser::{AtRuleParser, Parser, QualifiedRuleParser, RuleListParser, ParserInput, CowRcStr};
 use cssparser::{DeclarationListParser, DeclarationParser, parse_one_rule, SourceLocation};
 use error_reporting::{NullReporter, ContextualParseError};
 use parser::{ParserContext, log_css_error};
@@ -531,7 +531,7 @@ impl<'a, 'b, 'i> DeclarationParser<'i> for KeyframeDeclarationParser<'a, 'b> {
     type Declaration = ();
     type Error = SelectorParseError<'i, StyleParseError<'i>>;
 
-    fn parse_value<'t>(&mut self, name: CompactCowStr<'i>, input: &mut Parser<'i, 't>)
+    fn parse_value<'t>(&mut self, name: CowRcStr<'i>, input: &mut Parser<'i, 't>)
                        -> Result<(), ParseError<'i>> {
         let id = PropertyId::parse(&name)
             .map_err(|()| PropertyDeclarationParseError::UnknownProperty(name))?;

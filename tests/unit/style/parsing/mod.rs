@@ -60,6 +60,7 @@ fn assert_computed_serialization<C, F, T>(f: F, input: &'static str, output: &st
         font_metrics_provider: &ServoMetricsProvider,
         in_media_query: false,
         quirks_mode: QuirksMode::NoQuirks,
+        for_smil_animation: false,
     };
 
     let parsed = parse(f, input).unwrap();

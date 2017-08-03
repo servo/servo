@@ -97,14 +97,14 @@ impl SupportsCondition {
                 // End of input
                 return Ok(in_parens)
             }
-            Ok(Token::Ident(ident)) => {
+            Ok(&Token::Ident(ref ident)) => {
                 match_ignore_ascii_case! { &ident,
                     "and" => ("and", SupportsCondition::And as fn(_) -> _),
                     "or" => ("or", SupportsCondition::Or as fn(_) -> _),
                     _ => return Err(SelectorParseError::UnexpectedIdent(ident.clone()).into())
                 }
             }
-            Ok(t) => return Err(CssParseError::Basic(BasicParseError::UnexpectedToken(t)))
+            Ok(t) => return Err(CssParseError::Basic(BasicParseError::UnexpectedToken(t.clone())))
         };
 
         let mut conditions = Vec::with_capacity(2);
@@ -126,7 +126,8 @@ impl SupportsCondition {
         // but we want to not include it in `pos` for the SupportsCondition::FutureSyntax cases.
         while input.try(Parser::expect_whitespace).is_ok() {}
         let pos = input.position();
-        match input.next()? {
+        // FIXME: remove clone() when lifetimes are non-lexical
+        match input.next()?.clone() {
             Token::ParenthesisBlock => {
                 let nested = input.try(|input| {
                     input.parse_nested_block(|i| parse_condition_or_declaration(i))
@@ -244,7 +245,7 @@ impl Declaration {
         let mut input = ParserInput::new(&self.0);
         let mut input = Parser::new(&mut input);
         input.parse_entirely(|input| {
-            let prop = input.expect_ident().unwrap();
+            let prop = input.expect_ident().unwrap().as_ref().to_owned();
             input.expect_colon().unwrap();
             let id = PropertyId::parse(&prop)
                 .map_err(|_| StyleParseError::UnspecifiedError)?;

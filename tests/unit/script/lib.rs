@@ -12,4 +12,4 @@ extern crate servo_url;
 #[cfg(test)] mod textinput;
 #[cfg(test)] mod headers;
 #[cfg(test)] mod htmlareaelement;
-
+#[cfg(test)] mod htmlimageelement;

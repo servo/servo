@@ -24,10 +24,7 @@ with open(INPUT_FILE, "r") as bindings, open(OUTPUT_FILE, "w+") as tests:
 
     for line in bindings:
         match = pattern.search(line)
-
-        # GetStyleVariables is a Servo_* function, but temporarily defined on
-        # the gecko side
-        if match and match.group(1) != "GetStyleVariables":
+        if match:
             tests.write(TEMPLATE.format(name=match.group(1)))
 
     tests.write("}\n")

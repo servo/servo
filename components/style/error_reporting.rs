@@ -18,8 +18,12 @@ pub enum ContextualParseError<'a> {
     UnsupportedPropertyDeclaration(&'a str, ParseError<'a>),
     /// A font face descriptor was not recognized.
     UnsupportedFontFaceDescriptor(&'a str, ParseError<'a>),
+    /// A font feature values descroptor was not recognized.
+    UnsupportedFontFeatureValuesDescriptor(&'a str, ParseError<'a>),
     /// A keyframe rule was not valid.
     InvalidKeyframeRule(&'a str, ParseError<'a>),
+    /// A font feature values rule was not valid.
+    InvalidFontFeatureValuesRule(&'a str, ParseError<'a>),
     /// A keyframe property declaration was not recognized.
     UnsupportedKeyframePropertyDeclaration(&'a str, ParseError<'a>),
     /// A rule was invalid for some reason.
@@ -108,9 +112,15 @@ impl<'a> ContextualParseError<'a> {
             ContextualParseError::UnsupportedFontFaceDescriptor(decl, ref err) =>
                 format!("Unsupported @font-face descriptor declaration: '{}', {}", decl,
                         parse_error_to_str(err)),
+            ContextualParseError::UnsupportedFontFeatureValuesDescriptor(decl, ref err) =>
+            format!("Unsupported @font-feature-values descriptor declaration: '{}', {}", decl,
+                    parse_error_to_str(err)),
             ContextualParseError::InvalidKeyframeRule(rule, ref err) =>
                 format!("Invalid keyframe rule: '{}', {}", rule,
                         parse_error_to_str(err)),
+            ContextualParseError::InvalidFontFeatureValuesRule(rule, ref err) =>
+            format!("Invalid font feature value rule: '{}', {}", rule,
+                    parse_error_to_str(err)),
             ContextualParseError::UnsupportedKeyframePropertyDeclaration(decl, ref err) =>
                 format!("Unsupported keyframe property declaration: '{}', {}", decl,
                         parse_error_to_str(err)),

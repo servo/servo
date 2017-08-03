@@ -69,6 +69,17 @@ impl ServoRestyleDamage {
         StyleDifference::new(damage, change)
     }
 
+    /// Computes the `StyleDifference` between the two `ComputedValues` objects
+    /// for the case where the old and new style are both `display: none`.
+    ///
+    /// For Servo we never need to generate any damage for such elements.
+    pub fn compute_undisplayed_style_difference(
+        _old_style: &ComputedValues,
+        _new_style: &ComputedValues,
+    ) -> StyleDifference {
+        StyleDifference::new(Self::empty(), StyleChange::Unchanged)
+    }
+
     /// Returns a bitmask that represents a flow that needs to be rebuilt and
     /// reflowed.
     ///
