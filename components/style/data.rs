@@ -15,6 +15,8 @@ use servo_arc::Arc;
 use shared_lock::StylesheetGuards;
 use std::fmt;
 use std::ops::{Deref, DerefMut};
+#[cfg(feature = "gecko")]
+use stylesheets::{MallocSizeOfWithRepeats, SizeOfState};
 
 bitflags! {
     flags RestyleFlags: u8 {
@@ -242,6 +244,20 @@ impl fmt::Debug for ElementStyles {
     }
 }
 
+#[cfg(feature = "gecko")]
+impl MallocSizeOfWithRepeats for ElementStyles {
+    fn malloc_size_of_children(&self, state: &mut SizeOfState) -> usize {
+        let mut n = 0;
+        if let Some(ref primary) = self.primary {
+            n += primary.malloc_size_of_children(state)
+        };
+
+        // We may measure more fields in the future if DMD says it's worth it.
+
+        n
+    }
+}
+
 /// Style system data associated with an Element.
 ///
 /// In Gecko, this hangs directly off the Element. Servo, this is embedded
@@ -390,5 +406,16 @@ impl ElementData {
     /// Drops restyle flags and damage from the element.
     pub fn clear_restyle_flags_and_damage(&mut self) {
         self.restyle.clear_flags_and_damage();
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl MallocSizeOfWithRepeats for ElementData {
+    fn malloc_size_of_children(&self, state: &mut SizeOfState) -> usize {
+        let n = self.styles.malloc_size_of_children(state);
+
+        // We may measure more fields in the future if DMD says it's worth it.
+
+        n
     }
 }
