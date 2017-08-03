@@ -59,6 +59,7 @@ use style::gecko_bindings::bindings::RawGeckoServoStyleRuleListBorrowedMut;
 use style::gecko_bindings::bindings::RawServoAnimationValueBorrowed;
 use style::gecko_bindings::bindings::RawServoAnimationValueMapBorrowedMut;
 use style::gecko_bindings::bindings::RawServoAnimationValueStrong;
+use style::gecko_bindings::bindings::RawServoAnimationValueTableBorrowed;
 use style::gecko_bindings::bindings::RawServoStyleRuleBorrowed;
 use style::gecko_bindings::bindings::ServoStyleContextBorrowedOrNull;
 use style::gecko_bindings::bindings::nsTArrayBorrowed_uintptr_t;
@@ -374,7 +375,7 @@ pub extern "C" fn Servo_AnimationValues_ComputeDistance(from: RawServoAnimationV
 
 #[no_mangle]
 pub extern "C" fn Servo_AnimationCompose(raw_value_map: RawServoAnimationValueMapBorrowedMut,
-                                         base_values: *mut ::std::os::raw::c_void,
+                                         base_values: RawServoAnimationValueTableBorrowed,
                                          css_property: nsCSSPropertyID,
                                          segment: RawGeckoAnimationPropertySegmentBorrowed,
                                          last_segment: RawGeckoAnimationPropertySegmentBorrowed,

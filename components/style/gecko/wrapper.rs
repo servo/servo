@@ -387,7 +387,12 @@ impl<'a> Iterator for GeckoChildrenIterator<'a> {
                 curr
             },
             GeckoChildrenIterator::GeckoIterator(ref mut it) => unsafe {
-                Gecko_GetNextStyleChild(it).map(GeckoNode)
+                // We do this unsafe lengthening of the lifetime here because
+                // structs::StyleChildrenIterator is actually StyleChildrenIterator<'a>,
+                // however we can't express this easily with bindgen, and it would
+                // introduce functions with two input lifetimes into bindgen,
+                // which would be out of scope for elision.
+                Gecko_GetNextStyleChild(&mut * (it as *mut _)).map(GeckoNode)
             }
         }
     }
