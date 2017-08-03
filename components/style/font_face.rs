@@ -210,6 +210,16 @@ impl Parse for Source {
     }
 }
 
+macro_rules! is_descriptor_enabled {
+    ("font-display") => {
+        unsafe {
+            use gecko_bindings::structs::mozilla;
+            mozilla::StylePrefs_sFontDisplayEnabled
+        }
+    };
+    ($name: tt) => { true }
+}
+
 macro_rules! font_face_descriptors_common {
     (
         $( #[$doc: meta] $name: tt $ident: ident / $gecko_ident: ident: $ty: ty, )*
@@ -275,7 +285,7 @@ macro_rules! font_face_descriptors_common {
                               -> Result<(), ParseError<'i>> {
                 match_ignore_ascii_case! { &*name,
                     $(
-                        $name => {
+                        $name if is_descriptor_enabled!($name) => {
                             // DeclarationParser also calls parse_entirely
                             // so we’d normally not need to,
                             // but in this case we do because we set the value as a side effect

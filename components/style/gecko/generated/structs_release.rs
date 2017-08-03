@@ -8892,6 +8892,10 @@ pub mod root {
             pub _address: u8,
         }
         extern "C" {
+            #[link_name = "_ZN7mozilla10StylePrefs19sFontDisplayEnabledE"]
+            pub static mut StylePrefs_sFontDisplayEnabled: bool;
+        }
+        extern "C" {
             #[link_name = "_ZN7mozilla10StylePrefs19sOpentypeSVGEnabledE"]
             pub static mut StylePrefs_sOpentypeSVGEnabled: bool;
         }
