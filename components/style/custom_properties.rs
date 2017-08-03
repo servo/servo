@@ -16,6 +16,7 @@ use std::ascii::AsciiExt;
 use std::borrow::Cow;
 use std::collections::{HashMap, hash_map, HashSet};
 use std::fmt;
+use std::hash::Hash;
 use style_traits::{HasViewportPercentage, ToCss, StyleParseError, ParseError};
 
 /// A custom property name is just an `Atom`.
@@ -97,18 +98,24 @@ impl ToCss for ComputedValue {
 /// DOM. CSSDeclarations expose property names as indexed properties, which
 /// need to be stable. So we keep an array of property names which order is
 /// determined on the order that they are added to the name-value map.
-pub type CustomPropertiesMap = OrderedMap<ComputedValue>;
+pub type CustomPropertiesMap = OrderedMap<Name, ComputedValue>;
 
 /// A map that preserves order for the keys, and that is easily indexable.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct OrderedMap<T> {
+pub struct OrderedMap<K, V>
+where
+    K: Eq + Hash + Clone,
+{
     /// Custom property name index.
-    index: Vec<Name>,
+    index: Vec<K>,
     /// Computed values indexed by custom property name.
-    values: HashMap<Name, T>,
+    values: HashMap<K, V>,
 }
 
-impl<T> OrderedMap<T> {
+impl<K, V> OrderedMap<K, V>
+where
+    K: Eq + Hash + Clone,
+{
     /// Creates a new custom properties map.
     pub fn new() -> Self {
         OrderedMap {
@@ -118,26 +125,26 @@ impl<T> OrderedMap<T> {
     }
 
     /// Insert a computed value if it has not previously been inserted.
-    pub fn insert(&mut self, name: &Name, value: T) {
+    pub fn insert(&mut self, name: &K, value: V) {
         debug_assert!(!self.index.contains(name));
         self.index.push(name.clone());
         self.values.insert(name.clone(), value);
     }
 
     /// Custom property computed value getter by name.
-    pub fn get(&self, name: &Name) -> Option<&T> {
+    pub fn get(&self, name: &K) -> Option<&V> {
         let value = self.values.get(name);
         debug_assert_eq!(value.is_some(), self.index.contains(name));
         value
     }
 
     /// Get the name of a custom property given its list index.
-    pub fn get_name_at(&self, index: u32) -> Option<&Name> {
+    pub fn get_key_at(&self, index: u32) -> Option<&K> {
         self.index.get(index as usize)
     }
 
     /// Get an iterator for custom properties computed values.
-    pub fn iter(&self) -> hash_map::Iter<Name, T> {
+    pub fn iter(&self) -> hash_map::Iter<K, V> {
         self.values.iter()
     }
 
