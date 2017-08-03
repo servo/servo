@@ -307,7 +307,7 @@ impl nsStyleImage {
                     Gecko_CreateGradient(gecko_shape,
                                          gecko_size,
                                          gradient.repeating,
-                                         gradient.compat_mode != CompatMode::Modern,
+                                         gradient.compat_mode == CompatMode::Moz,
                                          gradient.compat_mode == CompatMode::Moz,
                                          stop_count as u32)
                 };
