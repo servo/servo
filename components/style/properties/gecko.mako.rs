@@ -4546,6 +4546,31 @@ fn static_assert() {
     pub fn reset_image_orientation(&mut self, other: &Self) {
         self.copy_image_orientation_from(other)
     }
+
+    pub fn clone_image_orientation(&self) -> longhands::image_orientation::computed_value::T {
+        use gecko_bindings::structs::{nsStyleImageOrientation_Bits, nsStyleImageOrientation_Angles};
+        use properties::longhands::image_orientation::computed_value::{Orientation, T};
+
+        let gecko_orientation = self.gecko.mImageOrientation.mOrientation;
+        if gecko_orientation & nsStyleImageOrientation_Bits::FROM_IMAGE_MASK as u8 != 0 {
+            T::FromImage
+        } else {
+            const ANGLE0: u8 = nsStyleImageOrientation_Angles::ANGLE_0 as u8;
+            const ANGLE90: u8 = nsStyleImageOrientation_Angles::ANGLE_90 as u8;
+            const ANGLE180: u8 = nsStyleImageOrientation_Angles::ANGLE_180 as u8;
+            const ANGLE270: u8 = nsStyleImageOrientation_Angles::ANGLE_270 as u8;
+
+            let flip = gecko_orientation & nsStyleImageOrientation_Bits::FLIP_MASK as u8 != 0;
+            let orientation = match gecko_orientation & nsStyleImageOrientation_Bits::ORIENTATION_MASK as u8 {
+                ANGLE0 => Orientation::Angle0,
+                ANGLE90 => Orientation::Angle90,
+                ANGLE180 => Orientation::Angle180,
+                ANGLE270 => Orientation::Angle270,
+                _ => unreachable!()
+            };
+            T::AngleWithFlipped(orientation, flip)
+        }
+    }
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="InheritedTable"
@@ -5081,6 +5106,30 @@ clip-path
     }
 
     ${impl_simple_copy('paint_order', 'mPaintOrder')}
+
+    pub fn clone_paint_order(&self) -> longhands::paint_order::computed_value::T {
+        use self::longhands::paint_order::{COUNT, FILL, MARKERS, NORMAL, SHIFT, STROKE};
+        use self::longhands::paint_order::computed_value::T;
+
+        if self.gecko.mPaintOrder == structs::NS_STYLE_PAINT_ORDER_NORMAL as u8 {
+            return T(NORMAL);
+        }
+
+        const PAINT_ORDER_BITWIDTH: u8 = structs::NS_STYLE_PAINT_ORDER_BITWIDTH as u8;
+        let mask = (1 << PAINT_ORDER_BITWIDTH) - 1;
+        let mut order = 0;
+        for pos in 0..COUNT {
+            let value =
+                match (self.gecko.mPaintOrder >> pos * PAINT_ORDER_BITWIDTH & mask) as u32 {
+                    structs::NS_STYLE_PAINT_ORDER_FILL => FILL,
+                    structs::NS_STYLE_PAINT_ORDER_STROKE => STROKE,
+                    structs::NS_STYLE_PAINT_ORDER_MARKERS => MARKERS,
+                    _ => unreachable!(),
+                };
+            order |= value << (pos * SHIFT);
+        };
+        T(order)
+    }
 
     pub fn set_stroke_dasharray(&mut self, v: longhands::stroke_dasharray::computed_value::T) {
         use gecko_bindings::structs::nsStyleSVG_STROKE_DASHARRAY_CONTEXT as CONTEXT_VALUE;
