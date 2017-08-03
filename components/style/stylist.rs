@@ -910,8 +910,11 @@ impl Stylist {
         if !declarations.is_empty() {
             let rule_node =
                 self.rule_tree.compute_rule_node(&mut declarations, guards);
-            debug_assert!(rule_node != *self.rule_tree.root());
-            inputs.rules = Some(rule_node);
+            // The rule node could be the root in the case of empty declaration
+            // blocks.
+            if rule_node != *self.rule_tree.root() {
+                inputs.rules = Some(rule_node);
+            }
         }
 
         if is_probe && inputs.rules.is_none() {
