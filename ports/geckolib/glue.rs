@@ -3499,7 +3499,7 @@ pub extern "C" fn Servo_GetCustomPropertyValue(computed_values: ServoStyleContex
     };
 
     let name = unsafe { Atom::from((&*name)) };
-    let computed_value = match custom_properties.get_computed_value(&name) {
+    let computed_value = match custom_properties.get(&name) {
         Some(v) => v,
         None => return false,
     };
@@ -3525,7 +3525,7 @@ pub extern "C" fn Servo_GetCustomPropertyNameAt(computed_values: ServoStyleConte
         None => return false,
     };
 
-    let property_name = match custom_properties.get_name_at(index) {
+    let property_name = match custom_properties.get_key_at(index) {
         Some(n) => n,
         None => return false,
     };
