@@ -12,6 +12,7 @@ use hyper::header::EntityTag;
 use hyper::header::Headers;
 use hyper::method::Method;
 use hyper::status::StatusCode;
+use net_traits::request::Request;
 use std::collections::HashMap;
 use std::iter::Map;
 use std::mem;
@@ -43,10 +44,10 @@ pub struct CacheKey {
 }
 
 impl CacheKey {
-    fn new(load_data: LoadData) -> CacheKey {
+    fn new(request: Request) -> CacheKey {
         CacheKey {
-            url: load_data.url.clone(),
-            request_headers: load_data.headers
+            url: request.url.clone(),
+            request_headers: request.headers
                                       .iter()
                                       .map(|header| (header.header_name(), header.header_value()))
                                       .collect(),
@@ -353,7 +354,7 @@ impl MemoryCache {
     /// notifying the cache of the subsequent HTTP response. If the request does not match
     /// and cannot be cached, the request is responsible for handling its own response and
     /// consumer.
-    pub fn process_pending_request(&mut self, load_data: &LoadData, start_chan: Sender<LoadResponse>)
+    pub fn process_pending_request(&mut self, request: &Request, start_chan: Sender<LoadResponse>)
                                    -> CacheOperationResult {
         fn revalidate(resource: &mut CachedResource,
                       key: &CacheKey,
@@ -369,11 +370,11 @@ impl MemoryCache {
             }
         }
 
-        if load_data.method != Method::Get {
+        if request.method != Method::Get {
             return CacheOperationResult::Uncacheable("Only GET requests can be cached.");
         }
 
-        let key = CacheKey::new(load_data.clone());
+        let key = CacheKey::new(request.clone());
         match self.complete_entries.get_mut(&key) {
             Some(resource) => {
                 if self.base_time + resource.expires < time::now().to_timespec() {
