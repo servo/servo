@@ -14,7 +14,7 @@ use selectors::parser::SelectorParseError;
 use servo_arc::Arc;
 use std::ascii::AsciiExt;
 use std::borrow::{Borrow, Cow};
-use std::collections::{HashMap, hash_map, HashSet};
+use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::hash::Hash;
 use style_traits::{HasViewportPercentage, ToCss, StyleParseError, ParseError};
@@ -106,9 +106,9 @@ pub struct OrderedMap<K, V>
 where
     K: Eq + Hash + Clone,
 {
-    /// Custom property name index.
+    /// Key index.
     index: Vec<K>,
-    /// Computed values indexed by custom property name.
+    /// Key-value map.
     values: HashMap<K, V>,
 }
 
@@ -116,7 +116,7 @@ impl<K, V> OrderedMap<K, V>
 where
     K: Eq + Hash + Clone,
 {
-    /// Creates a new custom properties map.
+    /// Creates a new ordered map.
     pub fn new() -> Self {
         OrderedMap {
             index: Vec::new(),
@@ -124,36 +124,41 @@ where
         }
     }
 
-    /// Insert a computed value if it has not previously been inserted.
-    pub fn insert(&mut self, name: K, value: V) {
-        debug_assert!(!self.index.contains(&name));
-        self.index.push(name.clone());
-        self.values.insert(name, value);
+    /// Insert a new key-value pair.
+    pub fn insert(&mut self, key: K, value: V) {
+        if !self.values.contains_key(&key) {
+            self.index.push(key.clone());
+        }
+        self.values.insert(key, value);
     }
 
-    /// Custom property computed value getter by name.
-    pub fn get(&self, name: &K) -> Option<&V> {
-        let value = self.values.get(name);
-        debug_assert_eq!(value.is_some(), self.index.contains(name));
+    /// Get a value given its key.
+    pub fn get(&self, key: &K) -> Option<&V> {
+        let value = self.values.get(key);
+        debug_assert_eq!(value.is_some(), self.index.contains(key));
         value
     }
 
-    /// Get the name of a custom property given its list index.
+    /// Get the key located at the given index.
     pub fn get_key_at(&self, index: u32) -> Option<&K> {
         self.index.get(index as usize)
     }
 
-    /// Get an iterator for custom properties computed values.
-    pub fn iter(&self) -> hash_map::Iter<K, V> {
-        self.values.iter()
+    /// Get an ordered map iterator.
+    pub fn iter<'a>(&'a self) -> OrderedMapIterator<'a, K, V> {
+        OrderedMapIterator {
+            inner: self,
+            pos: 0,
+        }
     }
 
-    /// Get the count of custom properties computed values.
+    /// Get the count of items in the map.
     pub fn len(&self) -> usize {
         debug_assert_eq!(self.values.len(), self.index.len());
         self.values.len()
     }
 
+    /// Remove an item given its key.
     fn remove<Q: ?Sized>(&mut self, key: &Q) -> Option<V>
     where
         K: Borrow<Q>,
@@ -165,6 +170,39 @@ where
         };
         self.index.remove(index);
         self.values.remove(key)
+    }
+}
+
+/// An iterator for OrderedMap.
+///
+/// The iteration order is determined by the order that the values are
+/// added to the key-value map.
+pub struct OrderedMapIterator<'a, K, V>
+where
+    K: 'a + Eq + Hash + Clone, V: 'a,
+{
+    /// The OrderedMap itself.
+    inner: &'a OrderedMap<K, V>,
+    /// The position of the iterator.
+    pos: usize,
+}
+
+impl<'a, K, V> Iterator for OrderedMapIterator<'a, K, V>
+where
+    K: Eq + Hash + Clone,
+{
+    type Item = (&'a K, &'a V);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let ref index = self.inner.index;
+        if self.pos >= index.len() {
+            return None;
+        }
+
+        let ref key = index[index.len() - self.pos - 1];
+        self.pos += 1;
+        let value = self.inner.values.get(key).unwrap();
+        Some((key, value))
     }
 }
 
