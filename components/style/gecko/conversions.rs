@@ -229,14 +229,18 @@ impl nsStyleImage {
                         }
                     },
                     LineDirection::Vertical(y) => {
-                        // Y::Bottom (to bottom) is ignored because it is the default value.
-                        if y == Y::Top {
-                            unsafe {
-                                (*gecko_gradient).mBgPosX
-                                                 .set_value(CoordDataValue::Percent(0.5));
-                                (*gecko_gradient).mBgPosY
-                                                 .set_value(CoordDataValue::Percent(0.0));
-                            }
+                        // Although bottom is the default value, we can not ignore
+                        // it here, because the rendering code of Gecko relies on
+                        // this to behave correctly for legacy mode.
+                        let y = match y {
+                            Y::Top => 0.0,
+                            Y::Bottom => 1.0,
+                        };
+                        unsafe {
+                            (*gecko_gradient).mBgPosX
+                                                .set_value(CoordDataValue::Percent(0.5));
+                            (*gecko_gradient).mBgPosY
+                                                .set_value(CoordDataValue::Percent(y));
                         }
                     },
                     LineDirection::Corner(horiz, vert) => {
