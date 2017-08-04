@@ -94,9 +94,8 @@ impl Flow for TableColGroupFlow {
 
     fn collect_stacking_contexts(&mut self, state: &mut DisplayListBuildState) {
         self.base.stacking_context_id = state.current_stacking_context_id;
-        self.base.scroll_root_id = Some(state.current_scroll_root_id);
+        self.base.clip_and_scroll_info = Some(state.current_clip_and_scroll_info);
     }
-
 
     fn repair_style(&mut self, _: &::ServoArc<ComputedValues>) {}
 

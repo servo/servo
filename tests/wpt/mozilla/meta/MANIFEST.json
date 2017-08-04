@@ -1583,6 +1583,18 @@
      {}
     ]
    ],
+   "css/fixed_position_css_clip.html": [
+    [
+     "/_mozilla/css/fixed_position_css_clip.html",
+     [
+      [
+       "/_mozilla/css/fixed_position_css_clip_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "css/fixed_width_overrides_child_intrinsic_width_a.html": [
     [
      "/_mozilla/css/fixed_width_overrides_child_intrinsic_width_a.html",
@@ -8175,6 +8187,11 @@
     ]
    ],
    "css/fixed_percent_ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/fixed_position_css_clip_ref.html": [
     [
      {}
     ]
@@ -23062,6 +23079,14 @@
   ],
   "css/fixed_percent_ref.html": [
    "fe23d2dc9a4507b3b632518a53f21900d0e4d1d7",
+   "support"
+  ],
+  "css/fixed_position_css_clip.html": [
+   "2bf1fb572a72fbb4a7a35b8c8b08960b48ccf408",
+   "reftest"
+  ],
+  "css/fixed_position_css_clip_ref.html": [
+   "ad0341fc9f843177ccf53a1667b5016c234b7651",
    "support"
   ],
   "css/fixed_width_overrides_child_intrinsic_width_a.html": [

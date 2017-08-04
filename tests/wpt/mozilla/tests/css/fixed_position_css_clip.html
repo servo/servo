@@ -1,0 +1,40 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Fixed position elements should be clipped by parent CSS clips</title>
+        <link rel="match" href="fixed_position_css_clip_ref.html">
+        <style>
+        body {
+          margin: 0px;
+        }
+
+        #base {
+          position: absolute;
+          left; 0px;
+          top: 0px;
+          background: red;
+          width: 100px;
+          height: 100px;
+          clip: rect(0, auto, auto, 0);
+        }
+
+        #fixed {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: green;
+        }
+        </style>
+    </head>
+    <body>
+        <div id="base">
+          <!-- Even though this fixed position child is positioned and clipped by the
+               containing block, it should also be clipped by the CSS clip of its
+               non-containing block parent. -->
+          <div id="fixed"></div>
+        </div>
+    </body>
+</html>
