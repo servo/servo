@@ -77,7 +77,7 @@ fn escape_css_ident(ident: &str) -> String {
         return ident.into()
     }
 
-    let mut escaped = String::new();
+    let mut escaped = String::with_capacity(ident.len());
 
     // A leading dash does not need to be escaped as long as it is not the
     // *only* character in the identifier.

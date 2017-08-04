@@ -30,7 +30,7 @@ use font_metrics::FontMetricsProvider;
 #[cfg(feature = "servo")] use logical_geometry::{LogicalMargin, PhysicalSide};
 use logical_geometry::WritingMode;
 use media_queries::Device;
-use parser::{Parse, ParserContext};
+use parser::ParserContext;
 use properties::animated_properties::AnimatableLonghand;
 #[cfg(feature = "gecko")] use properties::longhands::system_font::SystemFont;
 use selector_parser::PseudoElement;
@@ -421,12 +421,11 @@ impl CSSWideKeyword {
     }
 }
 
-impl Parse for CSSWideKeyword {
-    fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        let ident = input.expect_ident()?.clone();
-        input.expect_exhausted()?;
-        CSSWideKeyword::from_ident(&ident)
-            .ok_or(SelectorParseError::UnexpectedIdent(ident).into())
+impl CSSWideKeyword {
+    fn parse(input: &mut Parser) -> Result<Self, ()> {
+        let ident = input.expect_ident().map_err(|_| ())?.clone();
+        input.expect_exhausted().map_err(|_| ())?;
+        CSSWideKeyword::from_ident(&ident).ok_or(())
     }
 }
 
@@ -1486,9 +1485,9 @@ impl PropertyDeclaration {
         id.check_allowed_in(rule_type, context.stylesheet_origin)?;
         match id {
             PropertyId::Custom(name) => {
-                let value = match input.try(|i| CSSWideKeyword::parse(context, i)) {
+                let value = match input.try(|i| CSSWideKeyword::parse(i)) {
                     Ok(keyword) => DeclaredValueOwned::CSSWideKeyword(keyword),
-                    Err(_) => match ::custom_properties::SpecifiedValue::parse(context, input) {
+                    Err(()) => match ::custom_properties::SpecifiedValue::parse(context, input) {
                         Ok(value) => DeclaredValueOwned::Value(value),
                         Err(e) => return Err(PropertyDeclarationParseError::InvalidValue(name.to_string().into(),
                         ValueParseError::from_parse_error(e))),
@@ -1498,9 +1497,9 @@ impl PropertyDeclaration {
                 Ok(())
             }
             PropertyId::Longhand(id) => {
-                input.try(|i| CSSWideKeyword::parse(context, i)).map(|keyword| {
+                input.try(|i| CSSWideKeyword::parse(i)).map(|keyword| {
                     PropertyDeclaration::CSSWideKeyword(id, keyword)
-                }).or_else(|_| {
+                }).or_else(|()| {
                     input.look_for_var_functions();
                     let start = input.position();
                     input.parse_entirely(|input| id.parse_value(context, input))
@@ -1529,7 +1528,7 @@ impl PropertyDeclaration {
                 })
             }
             PropertyId::Shorthand(id) => {
-                if let Ok(keyword) = input.try(|i| CSSWideKeyword::parse(context, i)) {
+                if let Ok(keyword) = input.try(|i| CSSWideKeyword::parse(i)) {
                     if id == ShorthandId::All {
                         declarations.all_shorthand = AllShorthand::CSSWideKeyword(keyword)
                     } else {
