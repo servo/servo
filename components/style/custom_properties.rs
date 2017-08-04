@@ -14,7 +14,7 @@ use selectors::parser::SelectorParseError;
 use servo_arc::Arc;
 use std::ascii::AsciiExt;
 use std::borrow::{Borrow, Cow};
-use std::collections::{HashMap, hash_map, HashSet};
+use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::hash::Hash;
 use style_traits::{HasViewportPercentage, ToCss, StyleParseError, ParseError};
@@ -124,14 +124,15 @@ where
         }
     }
 
-    /// Insert a computed value if it has not previously been inserted.
+    /// Insert a custom property value.
     pub fn insert(&mut self, name: K, value: V) {
-        debug_assert!(!self.index.contains(&name));
-        self.index.push(name.clone());
+        if !self.values.contains_key(&name) {
+            self.index.push(name.clone());
+        }
         self.values.insert(name, value);
     }
 
-    /// Custom property computed value getter by name.
+    /// Custom property value getter by name.
     pub fn get(&self, name: &K) -> Option<&V> {
         let value = self.values.get(name);
         debug_assert_eq!(value.is_some(), self.index.contains(name));
@@ -143,12 +144,15 @@ where
         self.index.get(index as usize)
     }
 
-    /// Get an iterator for custom properties computed values.
-    pub fn iter(&self) -> hash_map::Iter<K, V> {
-        self.values.iter()
+    /// Get an iterator for custom properties values.
+    pub fn iter<'a>(&'a self) -> OrderedMapIterator<'a, K, V> {
+        OrderedMapIterator {
+            inner: self,
+            pos: 0,
+        }
     }
 
-    /// Get the count of custom properties computed values.
+    /// Get the count of custom properties values.
     pub fn len(&self) -> usize {
         debug_assert_eq!(self.values.len(), self.index.len());
         self.values.len()
@@ -165,6 +169,56 @@ where
         };
         self.index.remove(index);
         self.values.remove(key)
+    }
+}
+
+trait Iterable<K, V> {
+    fn index(&self) -> &Vec<K>;
+    fn values(&self) -> &HashMap<K, V>;
+}
+
+impl<K, V> Iterable<K, V> for OrderedMap<K, V>
+where
+    K: Eq + Hash + Clone,
+{
+    fn index(&self) -> &Vec<K> {
+        &self.index
+    }
+
+    fn values(&self) -> &HashMap<K, V> {
+        &self.values
+    }
+}
+
+/// An iterator for OrderedMap
+pub struct OrderedMapIterator<'a, K, V>
+where
+    K: 'a + Eq + Hash + Clone, V: 'a,
+{
+    /// The OrderedMap itself.
+    inner: &'a OrderedMap<K, V>,
+    /// The position of the iterator.
+    pos: usize,
+}
+
+impl<'a, K, V> Iterator for OrderedMapIterator<'a, K, V>
+where
+    K: Eq + Hash + Clone,
+{
+    type Item = (&'a K, &'a V);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let ref index = self.inner.index();
+        if self.pos >= index.len() {
+            return None;
+        }
+
+        let ref name = index[index.len() - self.pos - 1];
+        self.pos += 1;
+        match self.inner.values().get(name) {
+            Some(value) => Some((name, value)),
+            None => None,
+        }
     }
 }
 
