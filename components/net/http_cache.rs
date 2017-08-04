@@ -12,6 +12,7 @@ use hyper::header::EntityTag;
 use hyper::header::Headers;
 use hyper::method::Method;
 use hyper::status::StatusCode;
+use net_traits::Metadata;
 use net_traits::request::Request;
 use net_traits::response::{Response, ResponseBody};
 use std::collections::HashMap;
