@@ -9,9 +9,6 @@ name = "style_tests"
 path = "lib.rs"
 doctest = false
 
-[features]
-testing = ["style/testing"]
-
 [dependencies]
 byteorder = "1.0"
 app_units = "0.5"
