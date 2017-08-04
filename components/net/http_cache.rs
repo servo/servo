@@ -12,7 +12,7 @@ use hyper::header::EntityTag;
 use hyper::header::Headers;
 use hyper::method::Method;
 use hyper::status::StatusCode;
-use net_traits::request::Request;
+use net_traits::request::{Request, Response};
 use std::collections::HashMap;
 use std::iter::Map;
 use std::mem;
@@ -63,7 +63,7 @@ impl CacheKey {
 /// The list of consumers waiting on this requests's response.
 enum PendingConsumers {
     /// Consumers awaiting the initial response metadata
-    AwaitingHeaders(Vec<Sender<LoadResponse>>),
+    AwaitingHeaders(Vec<Sender<Response>>),
     /// Consumers awaiting the remaining response body. Incomplete body stored as Vec<u8>.
     AwaitingBody(Metadata, Vec<u8>, Vec<Sender<ProgressMsg>>),
 }
@@ -84,7 +84,7 @@ struct CachedResource {
     body: Vec<u8>,
     expires: Duration,
     last_validated: Tm,
-    revalidating_consumers: Vec<Sender<LoadResponse>>,
+    revalidating_consumers: Vec<Sender<Response>>,
 }
 
 /// A memory cache that tracks incomplete and complete responses, differentiated by
@@ -103,7 +103,7 @@ pub enum ResourceResponseTarget {
     /// A response is being streamed into the cache.
     CachedPendingResource(CacheKey, Arc<Mutex<MemoryCache>>),
     /// A response is being streamed directly to a consumer and skipping the cache.
-    UncachedPendingResource(Sender<LoadResponse>),
+    UncachedPendingResource(Sender<Response>),
 }
 
 /// Abstraction over the concept of a single target for HTTP response payload messages.
@@ -354,11 +354,11 @@ impl MemoryCache {
     /// notifying the cache of the subsequent HTTP response. If the request does not match
     /// and cannot be cached, the request is responsible for handling its own response and
     /// consumer.
-    pub fn process_pending_request(&mut self, request: &Request, start_chan: Sender<LoadResponse>)
+    pub fn process_pending_request(&mut self, request: &Request, start_chan: Sender<Response>)
                                    -> CacheOperationResult {
         fn revalidate(resource: &mut CachedResource,
                       key: &CacheKey,
-                      start_chan: Sender<LoadResponse>,
+                      start_chan: Sender<Response>,
                       method: RevalidationMethod) -> CacheOperationResult {
             // Ensure that at most one revalidation is taking place at a time for a
             // cached resource.
@@ -431,7 +431,7 @@ impl MemoryCache {
     }
 
     /// Add a new pending request to the set of incomplete cache entries.
-    fn add_pending_cache_entry(&mut self, key: CacheKey, consumers: Vec<Sender<LoadResponse>>) {
+    fn add_pending_cache_entry(&mut self, key: CacheKey, consumers: Vec<Sender<Response>>) {
         let resource = PendingResource {
             consumers: PendingConsumers::AwaitingHeaders(consumers),
             expires: Duration::max_value(),
@@ -443,7 +443,7 @@ impl MemoryCache {
     }
 
     /// Synchronously send the entire cached response body to the given consumer.
-    fn send_complete_resource(resource: &CachedResource, start_chan: Sender<LoadResponse>) {
+    fn send_complete_resource(resource: &CachedResource, start_chan: Sender<Response>) {
         let progress_chan = start_sending_opt(start_chan, resource.metadata.clone());
         match progress_chan {
             Ok(chan) => {
@@ -455,7 +455,7 @@ impl MemoryCache {
     }
 
     /// Synchronously send the entire cached response body to the given consumer.
-    fn send_complete_entry(&self, key: CacheKey, start_chan: Sender<LoadResponse>) {
+    fn send_complete_entry(&self, key: CacheKey, start_chan: Sender<Response>) {
         debug!("returning full cache body for {}", key.url);
         let resource = self.complete_entries.get(&key).unwrap();
         MemoryCache::send_complete_resource(resource, start_chan)
@@ -463,7 +463,7 @@ impl MemoryCache {
 
     /// Synchronously send all partial stored response data for a cached request to the
     /// given consumer.
-    fn send_partial_entry(&mut self, key: CacheKey, start_chan: Sender<LoadResponse>) {
+    fn send_partial_entry(&mut self, key: CacheKey, start_chan: Sender<Response>) {
         debug!("returning partial cache data for {}", key.url);
 
         let resource = self.pending_entries.get_mut(&key).unwrap();
