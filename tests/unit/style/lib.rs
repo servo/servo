@@ -19,7 +19,7 @@ extern crate servo_atoms;
 extern crate servo_config;
 extern crate servo_url;
 #[macro_use] extern crate size_of_test;
-extern crate style;
+#[macro_use] extern crate style;
 extern crate style_traits;
 extern crate test;
 
@@ -32,6 +32,8 @@ mod parsing;
 mod properties;
 mod rule_tree;
 mod size_of;
+#[path = "../stylo/specified_values.rs"]
+mod specified_values;
 mod str;
 mod stylesheets;
 mod stylist;
