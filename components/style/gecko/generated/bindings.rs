@@ -2810,7 +2810,8 @@ extern "C" {
                                     rule_inclusion: StyleRuleInclusion,
                                     snapshots:
                                         *const ServoElementSnapshotTable,
-                                    set: RawServoStyleSetBorrowed)
+                                    set: RawServoStyleSetBorrowed,
+                                    ignore_existing_styles: bool)
      -> ServoStyleContextStrong;
 }
 extern "C" {
