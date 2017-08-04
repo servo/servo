@@ -251,7 +251,7 @@ impl MemoryCache {
             }
             PendingConsumers::AwaitingBody(_, _, ref consumers) => {
                 for consumer in consumers.iter() {
-                    let _ = consumer.send_opt(ResponseBody::Done(Ok(())));
+                    let _ = consumer.send_opt(ResponseBody::Empty);
                 }
             }
         }
@@ -324,7 +324,7 @@ impl MemoryCache {
             PendingConsumers::AwaitingHeaders(_) => panic!("saw Done for {} but awaiting headers?", key.url),
             PendingConsumers::AwaitingBody(_, _, ref consumers) => {
                 for consumer in consumers.iter() {
-                    let _ = consumer.send_opt(ResponseBody::Done(Ok(())));
+                    let _ = consumer.send_opt(ResponseBody::Done(resource.body.clone()));
                 }
             }
         }
@@ -450,7 +450,7 @@ impl MemoryCache {
         match progress_chan {
             Ok(chan) => {
                 let _ = chan.send_opt(ResponseBody::Receiving(resource.body.clone()));
-                let _ = chan.send_opt(ResponseBody::Done(Ok(())));
+                let _ = chan.send_opt(ResponseBody::Done(resource.body.clone()));
             }
             Err(_) => ()
         }
