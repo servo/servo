@@ -311,11 +311,22 @@ impl BorderStyle {
     }
 }
 
+/// Time unit.
+#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, Eq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub enum TimeUnit {
+    /// `s`
+    Second,
+    /// `ms`
+    Millisecond,
+}
+
 /// A time in seconds according to CSS-VALUES § 6.2.
-#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct Time {
     seconds: CSSFloat,
+    unit: TimeUnit,
     was_calc: bool,
 }
 
@@ -324,6 +335,7 @@ impl Time {
     pub fn from_seconds(seconds: CSSFloat) -> Self {
         Time {
             seconds: seconds,
+            unit: TimeUnit::Second,
             was_calc: false,
         }
     }
@@ -345,14 +357,15 @@ impl Time {
         from_calc: bool)
         -> Result<Time, ()>
     {
-        let seconds = match_ignore_ascii_case! { unit,
-            "s" => value,
-            "ms" => value / 1000.0,
+        let (seconds, unit) = match_ignore_ascii_case! { unit,
+            "s" => (value, TimeUnit::Second),
+            "ms" => (value / 1000.0, TimeUnit::Millisecond),
             _ => return Err(())
         };
 
         Ok(Time {
             seconds: seconds,
+            unit: unit,
             was_calc: from_calc,
         })
     }
@@ -361,6 +374,7 @@ impl Time {
     pub fn from_calc(seconds: CSSFloat) -> Self {
         Time {
             seconds: seconds,
+            unit: TimeUnit::Second,
             was_calc: true,
         }
     }
@@ -409,6 +423,7 @@ impl ToComputedValue for Time {
     fn from_computed_value(computed: &Self::ComputedValue) -> Self {
         Time {
             seconds: computed.seconds(),
+            unit: TimeUnit::Second,
             was_calc: false,
         }
     }
@@ -425,7 +440,16 @@ impl ToCss for Time {
         if self.was_calc {
             dest.write_str("calc(")?;
         }
-        write!(dest, "{}s", self.seconds)?;
+        match self.unit {
+            TimeUnit::Second => {
+                self.seconds.to_css(dest)?;
+                dest.write_str("s")?;
+            }
+            TimeUnit::Millisecond => {
+                (self.seconds * 1000.).to_css(dest)?;
+                dest.write_str("ms")?;
+            }
+        }
         if self.was_calc {
             dest.write_str(")")?;
         }
