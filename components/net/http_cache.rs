@@ -83,7 +83,7 @@ struct PendingResource {
 /// A complete cached resource.
 struct CachedResource {
     metadata: Metadata,
-    body: Vec<u8>,
+    body: ResponseBody,
     expires: Duration,
     last_validated: Tm,
     revalidating_consumers: Vec<Sender<Response>>,
