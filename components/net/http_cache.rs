@@ -12,7 +12,8 @@ use hyper::header::EntityTag;
 use hyper::header::Headers;
 use hyper::method::Method;
 use hyper::status::StatusCode;
-use net_traits::request::{Request, Response};
+use net_traits::request::Request;
+use net_traits::response::{Response, ResponseBody};
 use std::collections::HashMap;
 use std::iter::Map;
 use std::mem;
@@ -65,7 +66,7 @@ enum PendingConsumers {
     /// Consumers awaiting the initial response metadata
     AwaitingHeaders(Vec<Sender<Response>>),
     /// Consumers awaiting the remaining response body. Incomplete body stored as Vec<u8>.
-    AwaitingBody(Metadata, Vec<u8>, Vec<Sender<ProgressMsg>>),
+    AwaitingBody(Metadata, Vec<u8>, Vec<Sender<ResponseBody>>),
 }
 
 /// An unfulfilled request representing both the consumers waiting for the initial
@@ -111,7 +112,7 @@ pub enum ResourceProgressTarget {
     /// A response is being streamed into the cache.
     CachedInProgressResource(CacheKey, Arc<Mutex<MemoryCache>>),
     /// A response is being streamed directly to a consumer and skipping the cache.
-    UncachedInProgressResource(Sender<ProgressMsg>),
+    UncachedInProgressResource(Sender<ResponseBody>),
 }
 
 /// The result of matching a request against an HTTP cache.
@@ -249,7 +250,7 @@ impl MemoryCache {
             }
             PendingConsumers::AwaitingBody(_, _, ref consumers) => {
                 for consumer in consumers.iter() {
-                    let _ = consumer.send_opt(Done(Ok(())));
+                    let _ = consumer.send_opt(ResponseBody::Done(Ok(())));
                 }
             }
         }
@@ -305,7 +306,7 @@ impl MemoryCache {
                 body.extend(payload.as_slice());
                 for consumer in consumers.iter() {
                     //FIXME: maybe remove consumer on failure to avoid extra clones?
-                    let _ = consumer.send_opt(Payload(payload.clone()));
+                    let _ = consumer.send_opt(ResponseBody::Receiving(payload.clone()));
                 }
             }
             PendingConsumers::AwaitingHeaders(_) => panic!("obtained body for {} but awaiting headers?", key.url)
@@ -322,7 +323,7 @@ impl MemoryCache {
             PendingConsumers::AwaitingHeaders(_) => panic!("saw Done for {} but awaiting headers?", key.url),
             PendingConsumers::AwaitingBody(_, _, ref consumers) => {
                 for consumer in consumers.iter() {
-                    let _ = consumer.send_opt(Done(Ok(())));
+                    let _ = consumer.send_opt(ResponseBody::Done(Ok(())));
                 }
             }
         }
@@ -447,8 +448,8 @@ impl MemoryCache {
         let progress_chan = start_sending_opt(start_chan, resource.metadata.clone());
         match progress_chan {
             Ok(chan) => {
-                let _ = chan.send_opt(Payload(resource.body.clone()));
-                let _ = chan.send_opt(Done(Ok(())));
+                let _ = chan.send_opt(ResponseBody::Receiving(resource.body.clone()));
+                let _ = chan.send_opt(ResponseBody::Done(Ok(())));
             }
             Err(_) => ()
         }
@@ -481,7 +482,7 @@ impl MemoryCache {
 
                         if !body.is_empty() {
                             debug!("partial body available for {}", key.url);
-                            let _ = chan.send_opt(Payload(body.clone()));
+                            let _ = chan.send_opt(ResponseBody::Receiving(body.clone()));
                         }
                     }
 
