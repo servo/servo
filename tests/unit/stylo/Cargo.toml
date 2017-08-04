@@ -11,9 +11,6 @@ name = "stylo_tests"
 path = "lib.rs"
 doctest = false
 
-[features]
-testing = ["style/testing"]
-
 [dependencies]
 atomic_refcell = "0.1"
 cssparser = "0.18"
