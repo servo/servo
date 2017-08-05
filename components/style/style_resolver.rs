@@ -442,7 +442,8 @@ where
         let mut cascade_info = CascadeInfo::new();
         let mut cascade_flags = CascadeFlags::empty();
 
-        if self.element.skip_root_and_item_based_display_fixup() {
+        if self.element.skip_root_and_item_based_display_fixup() ||
+           pseudo.map_or(false, |p| p.skip_item_based_display_fixup()) {
             cascade_flags.insert(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP);
         }
 

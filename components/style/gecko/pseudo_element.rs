@@ -115,6 +115,13 @@ impl PseudoElement {
         (self.flags() & structs::CSS_PSEUDO_ELEMENT_SUPPORTS_USER_ACTION_STATE) != 0
     }
 
+    /// Whether this pseudo-element skips flex/grid container display-based
+    /// fixup.
+    #[inline]
+    pub fn skip_item_based_display_fixup(&self) -> bool {
+        (self.flags() & structs::CSS_PSEUDO_ELEMENT_IS_FLEX_OR_GRID_ITEM) == 0
+    }
+
     /// Whether this pseudo-element is precomputed.
     #[inline]
     pub fn is_precomputed(&self) -> bool {
