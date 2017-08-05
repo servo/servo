@@ -2181,7 +2181,7 @@ fn static_assert() {
     }
 
     pub fn set_font_family(&mut self, v: longhands::font_family::computed_value::T) {
-        use properties::longhands::font_family::computed_value::FontFamily;
+        use properties::longhands::font_family::computed_value::{FontFamily, FamilyNameSyntax};
 
         let list = &mut self.gecko.mFont.fontlist;
         unsafe { Gecko_FontFamilyList_Clear(list); }
@@ -2191,7 +2191,8 @@ fn static_assert() {
         for family in &v.0 {
             match *family {
                 FontFamily::FamilyName(ref f) => {
-                    unsafe { Gecko_FontFamilyList_AppendNamed(list, f.name.as_ptr(), f.quoted); }
+                    let quoted = matches!(f.syntax, FamilyNameSyntax::Quoted);
+                    unsafe { Gecko_FontFamilyList_AppendNamed(list, f.name.as_ptr(), quoted); }
                 }
                 FontFamily::Generic(ref name) => {
                     let (family_type, generic) = FontFamily::generic(name);
@@ -2222,7 +2223,8 @@ fn static_assert() {
     }
 
     pub fn clone_font_family(&self) -> longhands::font_family::computed_value::T {
-        use properties::longhands::font_family::computed_value::{FontFamily, FamilyName};
+        use cssparser::serialize_identifier;
+        use properties::longhands::font_family::computed_value::{FontFamily, FamilyName, FamilyNameSyntax};
         use gecko_bindings::structs::FontFamilyType;
         use gecko_string_cache::Atom;
 
@@ -2235,13 +2237,18 @@ fn static_assert() {
                     FontFamilyType::eFamily_cursive => FontFamily::Generic(atom!("cursive")),
                     FontFamilyType::eFamily_fantasy => FontFamily::Generic(atom!("fantasy")),
                     FontFamilyType::eFamily_moz_fixed => FontFamily::Generic(Atom::from("-moz-fixed")),
-                    FontFamilyType::eFamily_named => FontFamily::FamilyName(FamilyName {
-                        name: (&*gecko_font_family_name.mName).into(),
-                        quoted: false
-                    }),
+                    FontFamilyType::eFamily_named => {
+                        let name = Atom::from(&*gecko_font_family_name.mName);
+                        let mut serialization = String::new();
+                        serialize_identifier(&name.to_string(), &mut serialization).unwrap();
+                        FontFamily::FamilyName(FamilyName {
+                            name: name.clone(),
+                            syntax: FamilyNameSyntax::Identifiers(serialization),
+                        })
+                    },
                     FontFamilyType::eFamily_named_quoted => FontFamily::FamilyName(FamilyName {
                         name: (&*gecko_font_family_name.mName).into(),
-                        quoted: true
+                        syntax: FamilyNameSyntax::Quoted,
                     }),
                     x => panic!("Found unexpected font FontFamilyType: {:?}", x),
                 }
