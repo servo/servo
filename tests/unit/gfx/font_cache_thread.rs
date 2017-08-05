@@ -5,7 +5,7 @@
 use cssparser::SourceLocation;
 use gfx::font_cache_thread::FontCacheThread;
 use ipc_channel::ipc;
-use style::computed_values::font_family::FamilyName;
+use style::computed_values::font_family::{FamilyName, FamilyNameSyntax};
 use style::font_face::{FontFaceRuleData, Source};
 
 #[test]
@@ -15,11 +15,11 @@ fn test_local_web_font() {
     let font_cache_thread = FontCacheThread::new(inp_chan, None);
     let family_name = FamilyName {
         name: From::from("test family"),
-        quoted: true,
+        syntax: FamilyNameSyntax::Quoted,
     };
     let variant_name = FamilyName {
         name: From::from("test font face"),
-        quoted: true,
+        syntax: FamilyNameSyntax::Quoted,
     };
     let font_face_rule = FontFaceRuleData {
         family: Some(family_name.clone()),

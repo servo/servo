@@ -96,7 +96,14 @@ macro_rules! impl_gecko_keyword_conversions {
         #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
         pub struct FamilyName {
             pub name: Atom,
-            pub quoted: bool,
+            pub syntax: FamilyNameSyntax,
+        }
+
+        #[derive(Debug, PartialEq, Eq, Clone, Hash)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
+        pub enum FamilyNameSyntax {
+            Quoted,
+            Identifiers(Vec<Atom>),
         }
 
         impl FontFamily {
@@ -139,7 +146,7 @@ macro_rules! impl_gecko_keyword_conversions {
                 // quoted by default.
                 FontFamily::FamilyName(FamilyName {
                     name: input,
-                    quoted: true,
+                    syntax: FamilyNameSyntax::Quoted,
                 })
             }
 
@@ -148,10 +155,14 @@ macro_rules! impl_gecko_keyword_conversions {
                 if let Ok(value) = input.try(|i| i.expect_string_cloned()) {
                     return Ok(FontFamily::FamilyName(FamilyName {
                         name: Atom::from(&*value),
-                        quoted: true,
+                        syntax: FamilyNameSyntax::Quoted,
                     }))
                 }
+
+                let mut identifiers = vec![];
+
                 let first_ident = input.expect_ident()?.clone();
+                identifiers.push(Atom::from(&*first_ident));
 
                 // FIXME(bholley): The fast thing to do here would be to look up the
                 // string (as lowercase) in the static atoms table. We don't have an
@@ -188,14 +199,16 @@ macro_rules! impl_gecko_keyword_conversions {
                     let ident = input.expect_ident()?;
                     value.push_str(" ");
                     value.push_str(&ident);
+                    identifiers.push(Atom::from(&*ident.clone()));
                 }
                 while let Ok(ident) = input.try(|i| i.expect_ident_cloned()) {
                     value.push_str(" ");
                     value.push_str(&ident);
+                    identifiers.push(Atom::from(&*ident));
                 }
                 Ok(FontFamily::FamilyName(FamilyName {
                     name: Atom::from(value),
-                    quoted: false,
+                    syntax: FamilyNameSyntax::Identifiers(identifiers),
                 }))
             }
 
@@ -229,12 +242,23 @@ macro_rules! impl_gecko_keyword_conversions {
 
         impl ToCss for FamilyName {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                if self.quoted {
-                    dest.write_char('"')?;
-                    write!(CssStringWriter::new(dest), "{}", self.name)?;
-                    dest.write_char('"')
-                } else {
-                    serialize_identifier(&*self.name.to_string(), dest)
+                match self.syntax {
+                    FamilyNameSyntax::Quoted => {
+                        dest.write_char('"')?;
+                        write!(CssStringWriter::new(dest), "{}", self.name)?;
+                        dest.write_char('"')
+                    }
+                    FamilyNameSyntax::Identifiers(ref identifiers) => {
+                        let mut first = true;
+                        for identifier in identifiers {
+                            if !first {
+                                dest.write_char(' ')?;
+                            }
+                            serialize_identifier(&*identifier.to_string(), dest)?;
+                            first = false;
+                        }
+                        Ok(())
+                    }
                 }
             }
         }
@@ -2508,7 +2532,7 @@ ${helpers.single_keyword("-moz-math-variant",
                     use properties::longhands::font_family::computed_value::*;
                     FontFamily::FamilyName(FamilyName {
                         name: (&*font.mName).into(),
-                        quoted: true
+                        syntax: FamilyNameSyntax::Quoted,
                     })
                 }).collect::<Vec<_>>();
                 let weight = longhands::font_weight::computed_value::T::from_gecko_weight(system.weight);
