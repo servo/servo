@@ -171,7 +171,7 @@ pub mod gecko_properties {
 }
 
 macro_rules! reexport_computed_values {
-    ( $( $name: ident )+ ) => {
+    ( $( { $name: ident, $boxed: expr } )+ ) => {
         /// Types for [computed values][computed].
         ///
         /// [computed]: https://drafts.csswg.org/css-cascade/#computed

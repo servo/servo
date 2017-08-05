@@ -3442,49 +3442,13 @@ macro_rules! css_properties_accessors {
     }
 }
 
-
+#[macro_export]
 macro_rules! longhand_properties_idents {
     ($macro_name: ident) => {
         $macro_name! {
             % for property in data.longhands:
-                ${property.ident}
+                { ${property.ident}, ${"true" if property.boxed else "false"} }
             % endfor
         }
-    }
-}
-
-/// Testing function to check the size of all SpecifiedValues.
-#[cfg(feature = "testing")]
-pub fn test_size_of_specified_values() {
-    use std::mem::size_of;
-    let threshold = 24;
-
-    let mut longhands = vec![];
-    % for property in data.longhands:
-        longhands.push(("${property.name}",
-                       size_of::<longhands::${property.ident}::SpecifiedValue>(),
-                       ${"true" if property.boxed else "false"}));
-    % endfor
-
-    let mut failing_messages = vec![];
-
-    for specified_value in longhands {
-        if specified_value.1 > threshold && !specified_value.2 {
-            failing_messages.push(
-                format!("Your changes have increased the size of {} SpecifiedValue to {}. The threshold is \
-                        currently {}. SpecifiedValues affect size of PropertyDeclaration enum and \
-                        increasing the size may negative affect style system performance. Please consider \
-                        using `boxed=\"True\"` in this longhand.",
-                        specified_value.0, specified_value.1, threshold));
-        } else if specified_value.1 <= threshold && specified_value.2 {
-            failing_messages.push(
-                format!("Your changes have decreased the size of {} SpecifiedValue to {}. Good work! \
-                        The threshold is currently {}. Please consider removing `boxed=\"True\"` from this longhand.",
-                        specified_value.0, specified_value.1, threshold));
-        }
-    }
-
-    if !failing_messages.is_empty() {
-        panic!("{}", failing_messages.join("\n\n"));
     }
 }

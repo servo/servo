@@ -14,6 +14,7 @@ extern crate style_traits;
 
 mod sanity_checks;
 mod size_of;
+mod specified_values;
 
 mod servo_function_signatures;
 
