@@ -610,13 +610,14 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
             }
         }
 
-        // Check that we have the same parent, or at least the same pointer
-        // identity for parent computed style. The latter check allows us to
-        // share style between cousins if the parents shared style.
+        // Check that we have the same parent, or at least that the parents
+        // share styles and permit sharing across their children. The latter
+        // check allows us to share style between cousins if the parents
+        // shared style.
         let parent = target.traversal_parent();
         let candidate_parent = candidate.element.traversal_parent();
         if parent != candidate_parent &&
-           !checks::same_computed_values(parent, candidate_parent) {
+           !checks::can_share_style_across_parents(parent, candidate_parent) {
             miss!(Parent)
         }
 

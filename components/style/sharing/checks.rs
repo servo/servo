@@ -13,18 +13,11 @@ use dom::TElement;
 use servo_arc::Arc;
 use sharing::{StyleSharingCandidate, StyleSharingTarget};
 
-/// Whether, given two elements, they have pointer-equal computed values.
+/// Whether styles may be shared across the children of the given parent elements.
+/// This is used to share style across cousins.
 ///
 /// Both elements need to be styled already.
-///
-/// This is used to know whether we can share style across cousins (if the two
-/// parents have the same style).
-///
-/// We can only prove that they have the same class list, state, etc if they've
-/// been restyled at the same time, otherwise the invalidation pass could make
-/// them keep the same computed values even though now we wouldn't be able to
-/// prove we match the same selectors.
-pub fn same_computed_values<E>(first: Option<E>, second: Option<E>) -> bool
+pub fn can_share_style_across_parents<E>(first: Option<E>, second: Option<E>) -> bool
     where E: TElement,
 {
     let (first, second) = match (first, second) {
@@ -37,13 +30,18 @@ pub fn same_computed_values<E>(first: Option<E>, second: Option<E>) -> bool
     let first_data = first.borrow_data().unwrap();
     let second_data = second.borrow_data().unwrap();
 
-    // FIXME(emilio): This check effectively disables cousin style sharing
-    // on the initial style.
+    // If a parent element was already styled and we traversed past it without
+    // restyling it, that may be because our clever invalidation logic was able
+    // to prove that the styles of that element would remain unchanged despite
+    // changes to the id or class attributes. However, style sharing relies in
+    // the strong guarantee that all the classes and ids up the respective parent
+    // chains are identical. As such, if we skipped styling for one (or both) of
+    // the parents on this traversal, we can't share styles across cousins.
     //
-    // This is pretty bad, se the discussion in bug 1381821 for mor details.
-    //
-    // Bug 1387116 tracks fixing this, and various solutions are listed there.
-    if !first_data.restyle.is_restyle() || !second_data.restyle.is_restyle() {
+    // This is a somewhat conservative check. We could tighten it by having the
+    // invalidation logic explicitly flag elements for which it ellided styling.
+    if first_data.restyle.traversed_without_styling() ||
+       second_data.restyle.traversed_without_styling() {
         return false;
     }
 
