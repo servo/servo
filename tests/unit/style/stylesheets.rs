@@ -14,7 +14,7 @@ use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::sync::Mutex;
 use std::sync::atomic::AtomicBool;
-use style::computed_values::font_family::{FamilyName, FamilyNameSyntax};
+use style::computed_values::font_family::FamilyName;
 use style::context::QuirksMode;
 use style::error_reporting::{ParseErrorReporter, ContextualParseError};
 use style::media_queries::MediaList;
@@ -254,7 +254,7 @@ fn test_parse_stylesheet() {
                 CssRule::FontFeatureValues(Arc::new(stylesheet.shared_lock.wrap(FontFeatureValuesRule {
                     family_names: vec![FamilyName {
                         name: Atom::from("test"),
-                        syntax: FamilyNameSyntax::Identifiers(vec![Atom::from("test")]),
+                        quoted: false,
                     }],
                     swash: vec![
                         FFVDeclaration {
