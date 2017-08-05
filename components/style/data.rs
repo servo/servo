@@ -22,8 +22,17 @@ bitflags! {
     flags RestyleFlags: u8 {
         /// Whether the styles changed for this restyle.
         const WAS_RESTYLED = 1 << 0,
+        /// Whether the last traversal of this element did not do
+        /// any style computation. This is not true during the initial
+        /// styling pass, nor is it true when we restyle (in which case
+        /// WAS_RESTYLED is set).
+        ///
+        /// This bit always corresponds to the last time the element was
+        /// traversed, so each traversal simply updates it with the appropriate
+        /// value.
+        const TRAVERSED_WITHOUT_STYLING = 1 << 1,
         /// Whether we reframed/reconstructed any ancestor or self.
-        const ANCESTOR_WAS_RECONSTRUCTED = 1 << 1,
+        const ANCESTOR_WAS_RECONSTRUCTED = 1 << 2,
     }
 }
 
@@ -98,12 +107,23 @@ impl RestyleData {
     /// to do a post-traversal.
     pub fn set_restyled(&mut self) {
         self.flags.insert(WAS_RESTYLED);
+        self.flags.remove(TRAVERSED_WITHOUT_STYLING);
     }
 
-    /// Mark this element as restyled, which is useful to know whether we need
-    /// to do a post-traversal.
+    /// Returns true if this element was restyled.
     pub fn is_restyle(&self) -> bool {
         self.flags.contains(WAS_RESTYLED)
+    }
+
+    /// Mark that we traversed this element without computing any style for it.
+    pub fn set_traversed_without_styling(&mut self) {
+        self.flags.insert(TRAVERSED_WITHOUT_STYLING);
+    }
+
+    /// Returns whether the element was traversed without computing any style for
+    /// it.
+    pub fn traversed_without_styling(&self) -> bool {
+        self.flags.contains(TRAVERSED_WITHOUT_STYLING)
     }
 
     /// Returns whether this element has been part of a restyle.

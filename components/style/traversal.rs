@@ -528,6 +528,9 @@ where
         // evaluate the worklet code. In the case that the size hasn't changed,
         // this will result in increased concurrency between script and layout.
         notify_paint_worklet(context, data);
+    } else {
+        debug_assert!(data.has_styles());
+        data.restyle.set_traversed_without_styling();
     }
 
     // Now that matching and cascading is done, clear the bits corresponding to
