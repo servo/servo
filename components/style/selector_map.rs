@@ -16,7 +16,7 @@ use selector_parser::SelectorImpl;
 use selectors::matching::{matches_selector, MatchingContext, ElementSelectorFlags};
 use selectors::parser::{Component, Combinator, SelectorIter};
 use selectors::parser::LocalName as LocalNameSelector;
-use smallvec::VecLike;
+use smallvec::{SmallVec, VecLike};
 use std::collections::HashMap;
 use std::collections::hash_map;
 use std::hash::Hash;
@@ -49,16 +49,21 @@ pub trait SelectorMapEntry : Sized + Clone {
 /// element name, etc. will contain the Selectors that actually match that
 /// element.
 ///
+/// We use a 1-entry SmallVec to avoid a separate heap allocation in the case
+/// where we only have one entry, which is quite common. See measurements in:
+/// * https://bugzilla.mozilla.org/show_bug.cgi?id=1363789#c5
+/// * https://bugzilla.mozilla.org/show_bug.cgi?id=681755
+///
 /// TODO: Tune the initial capacity of the HashMap
 #[derive(Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct SelectorMap<T> {
     /// A hash from an ID to rules which contain that ID selector.
-    pub id_hash: MaybeCaseInsensitiveHashMap<Atom, Vec<T>>,
+    pub id_hash: MaybeCaseInsensitiveHashMap<Atom, SmallVec<[T; 1]>>,
     /// A hash from a class name to rules which contain that class selector.
-    pub class_hash: MaybeCaseInsensitiveHashMap<Atom, Vec<T>>,
+    pub class_hash: MaybeCaseInsensitiveHashMap<Atom, SmallVec<[T; 1]>>,
     /// A hash from local name to rules which contain that local name selector.
-    pub local_name_hash: FnvHashMap<LocalName, Vec<T>>,
+    pub local_name_hash: FnvHashMap<LocalName, SmallVec<[T; 1]>>,
     /// Rules that don't have ID, class, or element selectors.
     pub other: Vec<T>,
     /// The number of entries in this map.
@@ -213,12 +218,12 @@ impl<T: SelectorMapEntry> SelectorMap<T> {
         self.count += 1;
 
         if let Some(id_name) = get_id_name(entry.selector()) {
-            self.id_hash.entry(id_name, quirks_mode).or_insert_with(Vec::new).push(entry);
+            self.id_hash.entry(id_name, quirks_mode).or_insert_with(SmallVec::new).push(entry);
             return;
         }
 
         if let Some(class_name) = get_class_name(entry.selector()) {
-            self.class_hash.entry(class_name, quirks_mode).or_insert_with(Vec::new).push(entry);
+            self.class_hash.entry(class_name, quirks_mode).or_insert_with(SmallVec::new).push(entry);
             return;
         }
 
@@ -429,10 +434,12 @@ pub fn get_local_name(iter: SelectorIter<SelectorImpl>)
 }
 
 #[inline]
-fn find_push<Str: Eq + Hash, V>(map: &mut FnvHashMap<Str, Vec<V>>,
-                                key: Str,
-                                value: V) {
-    map.entry(key).or_insert_with(Vec::new).push(value)
+fn find_push<Str: Eq + Hash, V, VL>(map: &mut FnvHashMap<Str, VL>,
+                                    key: Str,
+                                    value: V)
+    where VL: VecLike<V> + Default
+{
+    map.entry(key).or_insert_with(VL::default).push(value)
 }
 
 /// Wrapper for FnvHashMap that does ASCII-case-insensitive lookup in quirks mode.
