@@ -359,7 +359,7 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
                 Ok(AtRuleType::WithBlock(AtRulePrelude::FontFace(location)))
             },
             "font-feature-values" => {
-                if !cfg!(feature = "gecko") && !cfg!(feature = "testing") {
+                if !cfg!(feature = "gecko") {
                     // Support for this rule is not fully implemented in Servo yet.
                     return Err(StyleParseError::UnsupportedAtRule(name.clone()).into())
                 }
