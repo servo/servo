@@ -32,7 +32,6 @@ default = ["webdriver", "max_log_level"]
 max_log_level = ["log/release_max_level_info"]
 webdriver = ["libservo/webdriver_server"]
 energy-profiling = ["libservo/energy-profiling"]
-testing = ["libservo/testing"]
 debugmozjs = ["libservo/debugmozjs"]
 
 [dependencies]

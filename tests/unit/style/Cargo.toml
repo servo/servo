@@ -24,5 +24,5 @@ servo_atoms = {path = "../../../components/atoms"}
 servo_config = {path = "../../../components/config"}
 servo_url = {path = "../../../components/url"}
 size_of_test = {path = "../../../components/size_of_test"}
-style = {path = "../../../components/style", features=["testing"]}
+style = {path = "../../../components/style"}
 style_traits = {path = "../../../components/style_traits"}

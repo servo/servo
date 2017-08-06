@@ -26,7 +26,6 @@ servo = ["serde", "heapsize", "heapsize_derive",
          #"arrayvec/use_union"
 
          "servo_url"]
-testing = []
 gecko_debug = ["nsstring_vendor/gecko_debug"]
 
 [dependencies]

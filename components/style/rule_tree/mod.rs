@@ -953,11 +953,10 @@ impl StrongRuleNode {
         // That's... suspicious, but it's fine if it happens for the rule tree
         // case, so just don't crash in the case we're doing the final GC in
         // script.
-        if !cfg!(feature = "testing") {
-            debug_assert!(!thread_state::get().is_worker() &&
-                          (thread_state::get().is_layout() ||
-                           thread_state::get().is_script()));
-        }
+
+        debug_assert!(!thread_state::get().is_worker() &&
+                      (thread_state::get().is_layout() ||
+                       thread_state::get().is_script()));
 
         let current = me.next_free.load(Ordering::Relaxed);
         if current == FREE_LIST_SENTINEL {
