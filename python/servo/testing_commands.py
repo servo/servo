@@ -319,7 +319,7 @@ class MachCommands(CommandBase):
         env["RUST_BACKTRACE"] = "1"
         env["CARGO_TARGET_DIR"] = path.join(self.context.topdir, "target", "geckolib").encode("UTF-8")
 
-        args = (["cargo", "test", "-p", "stylo_tests", "--features", "testing"] +
+        args = (["cargo", "test", "-p", "stylo_tests"] +
                 (["--release"] if release else []) + (test_name or []))
         with cd(path.join("ports", "geckolib")):
             return call(args, env=env)

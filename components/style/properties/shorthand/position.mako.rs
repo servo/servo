@@ -238,7 +238,6 @@
 <%helpers:shorthand name="grid-template"
                     sub_properties="grid-template-rows grid-template-columns grid-template-areas"
                     spec="https://drafts.csswg.org/css-grid/#propdef-grid-template"
-                    disable_when_testing="True"
                     products="gecko">
     use parser::Parse;
     use properties::longhands::grid_template_areas::TemplateAreas;
@@ -451,7 +450,6 @@
                                     grid-auto-rows grid-auto-columns grid-row-gap grid-column-gap
                                     grid-auto-flow"
                     spec="https://drafts.csswg.org/css-grid/#propdef-grid"
-                    disable_when_testing="True"
                     products="gecko">
     use parser::Parse;
     use properties::longhands::{grid_auto_columns, grid_auto_rows, grid_auto_flow};
@@ -611,7 +609,7 @@
 
 <%helpers:shorthand name="place-content" sub_properties="align-content justify-content"
                     spec="https://drafts.csswg.org/css-align/#propdef-place-content"
-                    products="gecko" disable_when_testing="True">
+                    products="gecko">
     use properties::longhands::align_content;
     use properties::longhands::justify_content;
 
@@ -647,7 +645,7 @@
 
 <%helpers:shorthand name="place-self" sub_properties="align-self justify-self"
                     spec="https://drafts.csswg.org/css-align/#place-self-property"
-                    products="gecko" disable_when_testing="True">
+                    products="gecko">
     use values::specified::align::AlignJustifySelf;
     use parser::Parse;
 
@@ -683,7 +681,7 @@
 
 <%helpers:shorthand name="place-items" sub_properties="align-items justify-items"
                     spec="https://drafts.csswg.org/css-align/#place-items-property"
-                    products="gecko" disable_when_testing="True">
+                    products="gecko">
     use values::specified::align::{AlignItems, JustifyItems};
     use parser::Parse;
 

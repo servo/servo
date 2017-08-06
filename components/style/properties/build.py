@@ -21,17 +21,16 @@ RE_PYTHON_ADDR = re.compile(r'<.+? object at 0x[0-9a-fA-F]+>')
 
 
 def main():
-    usage = "Usage: %s [ servo | gecko ] [ style-crate | html ] [ testing | regular ]" % sys.argv[0]
-    if len(sys.argv) < 4:
+    usage = "Usage: %s [ servo | gecko ] [ style-crate | html ]" % sys.argv[0]
+    if len(sys.argv) < 3:
         abort(usage)
     product = sys.argv[1]
     output = sys.argv[2]
-    testing = sys.argv[3] == "testing"
 
     if product not in ["servo", "gecko"] or output not in ["style-crate", "geckolib", "html"]:
         abort(usage)
 
-    properties = data.PropertiesData(product=product, testing=testing)
+    properties = data.PropertiesData(product=product)
     template = os.path.join(BASE, "properties.mako.rs")
     rust = render(template, product=product, data=properties, __file__=template)
     if output == "style-crate":
