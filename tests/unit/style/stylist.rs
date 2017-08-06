@@ -83,13 +83,12 @@ fn test_revalidation_selectors() {
         "div > span",
 
         // ID selectors.
-        "#foo1", // FIXME(bz) This one should not be a revalidation
-                // selector once we fix
-                // https://bugzilla.mozilla.org/show_bug.cgi?id=1369611
+        "#foo1",
         "#foo2::before",
         "#foo3 > span",
-        "#foo1 > span", // FIXME(bz) This one should not be a
-                        // revalidation selector either.
+        "#foo1 > span", // FIXME(bz): This one should not be a
+                        // revalidation selector, since #foo1 should be in the
+                        // rule hash.
 
         // Attribute selectors.
         "div[foo]",
@@ -131,8 +130,6 @@ fn test_revalidation_selectors() {
 
     let reference = parse_selectors(&[
         // ID selectors.
-        "#foo1",
-        "#foo2::before",
         "#foo3 > span",
         "#foo1 > span",
 
