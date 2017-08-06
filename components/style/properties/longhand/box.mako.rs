@@ -711,7 +711,6 @@ ${helpers.predefined_type("animation-delay",
         "computed::ScrollSnapPoint::none()",
         animation_value_type="discrete",
         products="gecko",
-        disable_when_testing=True,
         spec="Nonstandard (https://www.w3.org/TR/2015/WD-css-snappoints-1-20150326/#scroll-snap-points)",
     )}
 % endfor
@@ -1832,8 +1831,7 @@ ${helpers.predefined_type("-moz-binding", "UrlOrNone", "Either::Second(None_)",
                           boxed="True" if product == "gecko" else "False",
                           animation_value_type="none",
                           gecko_ffi_name="mBinding",
-                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-binding)",
-                          disable_when_testing="True")}
+                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-binding)")}
 
 ${helpers.single_keyword("-moz-orient",
                           "inline block horizontal vertical",
@@ -1915,7 +1913,6 @@ ${helpers.predefined_type("shape-outside", "basic_shape::FloatAreaShape",
 <%helpers:longhand name="touch-action"
                    products="gecko"
                    animation_value_type="discrete"
-                   disable_when_testing="True"
                    spec="https://compat.spec.whatwg.org/#touch-action">
     use gecko_bindings::structs;
     use std::fmt;

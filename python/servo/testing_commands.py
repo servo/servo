@@ -257,12 +257,6 @@ class MachCommands(CommandBase):
 
         packages.discard('stylo')
 
-        has_style = True
-        try:
-            packages.remove('style')
-        except KeyError:
-            has_style = False
-
         env = self.build_env()
         env["RUST_BACKTRACE"] = "1"
 
@@ -290,20 +284,6 @@ class MachCommands(CommandBase):
             if err is not 0:
                 return err
 
-        # Run style tests with the testing feature
-        if has_style:
-            args = ["cargo", "bench" if bench else "test", "-p", "style_tests", "--features"]
-            if features:
-                args += ["%s" % ' '.join(features + ["testing"])]
-            else:
-                args += ["testing"]
-
-            args += test_patterns
-
-            if nocapture:
-                args += ["--", "--nocapture"]
-            return call(args, env=env, cwd=self.servo_crate())
-
     @Command('test-stylo',
              description='Run stylo unit tests',
              category='testing')
@@ -319,7 +299,7 @@ class MachCommands(CommandBase):
         env["RUST_BACKTRACE"] = "1"
         env["CARGO_TARGET_DIR"] = path.join(self.context.topdir, "target", "geckolib").encode("UTF-8")
 
-        args = (["cargo", "test", "-p", "stylo_tests", "--features", "testing"] +
+        args = (["cargo", "test", "-p", "stylo_tests"] +
                 (["--release"] if release else []) + (test_name or []))
         with cd(path.join("ports", "geckolib")):
             return call(args, env=env)
