@@ -213,7 +213,6 @@ macro_rules! impl_gecko_keyword_conversions {
                     serialization.push(' ');
                     serialize_identifier(&ident, &mut serialization).unwrap();
                 }
-                println!("serialization: {}", serialization);
                 Ok(FontFamily::FamilyName(FamilyName {
                     name: Atom::from(value),
                     syntax: FamilyNameSyntax::Identifiers(serialization),
