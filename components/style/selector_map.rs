@@ -201,29 +201,6 @@ impl SelectorMap<Rule> {
                     |block| (block.specificity, block.source_order()));
     }
 
-    /// Append to `rule_list` all universal Rules (rules with selector `*|*`) in
-    /// `self` sorted by specificity and source order.
-    pub fn get_universal_rules(&self,
-                               cascade_level: CascadeLevel)
-                               -> Vec<ApplicableDeclarationBlock> {
-        debug_assert!(!cascade_level.is_important());
-        if self.is_empty() {
-            return vec![];
-        }
-
-        let mut rules_list = vec![];
-        for rule in self.other.iter() {
-            if rule.selector.is_universal() {
-                rules_list.push(rule.to_applicable_declaration_block(cascade_level))
-            }
-        }
-
-        sort_by_key(&mut rules_list,
-                    |block| (block.specificity, block.source_order()));
-
-        rules_list
-    }
-
     /// Adds rules in `rules` that match `element` to the `matching_rules` list.
     fn get_matching_rules<E, V, F>(element: &E,
                                    rules: &[Rule],
