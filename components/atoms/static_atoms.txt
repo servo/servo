@@ -70,3 +70,6 @@ gattserverdisconnected
 onchange
 
 reftest-wait
+
+screen
+print

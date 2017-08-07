@@ -13,7 +13,9 @@ use parser::ParserContext;
 use selectors::parser::SelectorParseError;
 use serialize_comma_separated_list;
 use std::fmt;
+use str::string_as_ascii_lowercase;
 use style_traits::{ToCss, ParseError, StyleParseError};
+use values::CustomIdent;
 
 #[cfg(feature = "servo")]
 pub use servo::media_queries::{Device, Expression};
@@ -108,9 +110,7 @@ impl ToCss for MediaQuery {
                     write!(dest, "all")?;
                 }
             },
-            MediaQueryType::Known(MediaType::Screen) => write!(dest, "screen")?,
-            MediaQueryType::Known(MediaType::Print) => write!(dest, "print")?,
-            MediaQueryType::Unknown(ref desc) => write!(dest, "{}", desc)?,
+            MediaQueryType::Concrete(MediaType(ref desc)) => desc.to_css(dest)?,
         }
 
         if self.expressions.is_empty() {
@@ -137,35 +137,25 @@ impl ToCss for MediaQuery {
 pub enum MediaQueryType {
     /// A media type that matches every device.
     All,
-    /// A known media type, that we parse and understand.
-    Known(MediaType),
-    /// An unknown media type.
-    Unknown(Atom),
+    /// A specific media type.
+    Concrete(MediaType),
 }
 
 impl MediaQueryType {
     fn parse(ident: &str) -> Result<Self, ()> {
         match_ignore_ascii_case! { ident,
             "all" => return Ok(MediaQueryType::All),
-            // From https://drafts.csswg.org/mediaqueries/#mq-syntax:
-            //
-            //   The <media-type> production does not include the keywords only,
-            //   not, and, and or.
-            "not" | "or" | "and" | "only" => return Err(()),
             _ => (),
         };
 
-        Ok(match MediaType::parse(ident) {
-            Some(media_type) => MediaQueryType::Known(media_type),
-            None => MediaQueryType::Unknown(Atom::from(ident)),
-        })
+        // If parseable, accept this type as a concrete type.
+        MediaType::parse(ident).map(MediaQueryType::Concrete)
     }
 
     fn matches(&self, other: MediaType) -> bool {
         match *self {
             MediaQueryType::All => true,
-            MediaQueryType::Known(ref known_type) => *known_type == other,
-            MediaQueryType::Unknown(..) => false,
+            MediaQueryType::Concrete(ref known_type) => *known_type == other,
         }
     }
 }
@@ -173,20 +163,30 @@ impl MediaQueryType {
 /// https://drafts.csswg.org/mediaqueries/#media-types
 #[derive(PartialEq, Eq, Clone, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub enum MediaType {
-    /// The "screen" media type.
-    Screen,
-    /// The "print" media type.
-    Print,
-}
+pub struct MediaType(pub CustomIdent);
 
 impl MediaType {
-    fn parse(name: &str) -> Option<Self> {
-        Some(match_ignore_ascii_case! { name,
-            "screen" => MediaType::Screen,
-            "print" => MediaType::Print,
-            _ => return None
-        })
+    /// The `screen` media type.
+    pub fn screen() -> Self {
+        MediaType(CustomIdent(atom!("screen")))
+    }
+
+    /// The `print` media type.
+    pub fn print() -> Self {
+        MediaType(CustomIdent(atom!("print")))
+    }
+
+    fn parse(name: &str) -> Result<Self, ()> {
+        // From https://drafts.csswg.org/mediaqueries/#mq-syntax:
+        //
+        //   The <media-type> production does not include the keywords not, or, and, and only.
+        //
+        // Here we also perform the to-ascii-lowercase part of the serialization
+        // algorithm: https://drafts.csswg.org/cssom/#serializing-media-queries
+        match_ignore_ascii_case! { name,
+            "not" | "or" | "and" | "only" => Err(()),
+            _ => Ok(MediaType(CustomIdent(Atom::from(string_as_ascii_lowercase(name))))),
+        }
     }
 }
 impl MediaQuery {
