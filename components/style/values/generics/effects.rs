@@ -12,9 +12,9 @@ use values::specified::url::SpecifiedUrl;
 /// A generic value for a single `box-shadow`.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, Debug, HasViewportPercentage, PartialEq, ToAnimatedValue)]
-pub struct BoxShadow<Color, SizeLength, ShapeLength> {
+pub struct BoxShadow<Color, SizeLength, BlurShapeLength, ShapeLength> {
     /// The base shadow.
-    pub base: SimpleShadow<Color, SizeLength, ShapeLength>,
+    pub base: SimpleShadow<Color, SizeLength, BlurShapeLength>,
     /// The spread radius.
     pub spread: ShapeLength,
     /// Whether this is an inset box shadow.
@@ -77,10 +77,14 @@ pub struct SimpleShadow<Color, SizeLength, ShapeLength> {
     pub blur: ShapeLength,
 }
 
-impl<Color, SizeLength, ShapeLength> ToCss for BoxShadow<Color, SizeLength, ShapeLength>
+impl<Color, SizeLength, BlurShapeLength, ShapeLength> ToCss for BoxShadow<Color,
+                                                                          SizeLength,
+                                                                          BlurShapeLength,
+                                                                          ShapeLength>
 where
     Color: ToCss,
     SizeLength: ToCss,
+    BlurShapeLength: ToCss,
     ShapeLength: ToCss,
 {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result

@@ -40,11 +40,11 @@
 
     ${helpers.predefined_type("border-%s-width" % side_name,
                               "BorderSideWidth",
-                              "Au::from_px(3)",
-                              computed_type="::app_units::Au",
+                              "::values::computed::NonNegativeAu::from_px(3)",
+                              computed_type="::values::computed::NonNegativeAu",
                               alias=maybe_moz_logical_alias(product, side, "-moz-border-%s-width"),
                               spec=maybe_logical_spec(side, "width"),
-                              animation_value_type="ComputedValue",
+                              animation_value_type="NonNegativeAu",
                               logical=is_logical,
                               flags="APPLIES_TO_FIRST_LETTER",
                               allow_quirks=not is_logical)}
@@ -62,7 +62,7 @@ ${helpers.gecko_keyword_conversion(Keyword('border-style',
                               spec="https://drafts.csswg.org/css-backgrounds/#border-%s-radius" % corner,
                               boxed=True,
                               flags="APPLIES_TO_FIRST_LETTER",
-                              animation_value_type="ComputedValue")}
+                              animation_value_type="BorderCornerRadius")}
 % endfor
 
 /// -moz-border-*-colors: color, string, enum, none, inherit/initial

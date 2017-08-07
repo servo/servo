@@ -9,7 +9,17 @@
 //! module's raison d'être is to ultimately contain all these types.
 
 use app_units::Au;
+use smallvec::SmallVec;
+use std::cmp::max;
 use values::computed::Angle as ComputedAngle;
+use values::computed::BorderCornerRadius as ComputedBorderCornerRadius;
+use values::computed::GreaterThanOrEqualToOneNumber as ComputedGreaterThanOrEqualToOneNumber;
+use values::computed::MaxLength as ComputedMaxLength;
+use values::computed::MozLength as ComputedMozLength;
+use values::computed::NonNegativeAu;
+use values::computed::NonNegativeLengthOrPercentage as ComputedNonNegativeLengthOrPercentage;
+use values::computed::NonNegativeNumber as ComputedNonNegativeNumber;
+use values::computed::PositiveInteger as ComputedPositiveInteger;
 use values::specified::url::SpecifiedUrl;
 
 pub mod effects;
@@ -62,6 +72,23 @@ where
     }
 }
 
+impl<T> ToAnimatedValue for SmallVec<[T; 1]>
+where
+    T: ToAnimatedValue,
+{
+    type AnimatedValue = SmallVec<[T::AnimatedValue; 1]>;
+
+    #[inline]
+    fn to_animated_value(self) -> Self::AnimatedValue {
+        self.into_iter().map(T::to_animated_value).collect()
+    }
+
+    #[inline]
+    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+        animated.into_iter().map(T::from_animated_value).collect()
+    }
+}
+
 /// Marker trait for computed values with the same representation during animations.
 pub trait AnimatedValueAsComputed {}
 
@@ -85,6 +112,149 @@ where
     #[inline]
     fn from_animated_value(animated: Self::AnimatedValue) -> Self {
         animated
+    }
+}
+
+impl ToAnimatedValue for ComputedNonNegativeNumber {
+    type AnimatedValue = Self;
+
+    #[inline]
+    fn to_animated_value(self) -> Self {
+        self
+    }
+
+    #[inline]
+    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+        animated.0.max(0.).into()
+    }
+}
+
+impl ToAnimatedValue for ComputedGreaterThanOrEqualToOneNumber {
+    type AnimatedValue = Self;
+
+    #[inline]
+    fn to_animated_value(self) -> Self {
+        self
+    }
+
+    #[inline]
+    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+        animated.0.max(1.).into()
+    }
+}
+
+impl ToAnimatedValue for NonNegativeAu {
+    type AnimatedValue = Self;
+
+    #[inline]
+    fn to_animated_value(self) -> Self {
+        self
+    }
+
+    #[inline]
+    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+        max(animated.0, Au(0)).into()
+    }
+}
+
+impl ToAnimatedValue for ComputedPositiveInteger {
+    type AnimatedValue = Self;
+
+    #[inline]
+    fn to_animated_value(self) -> Self {
+        self
+    }
+
+    #[inline]
+    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+        max(animated.0, 0).into()
+    }
+}
+
+impl ToAnimatedValue for ComputedNonNegativeLengthOrPercentage {
+    type AnimatedValue = Self;
+
+    #[inline]
+    fn to_animated_value(self) -> Self {
+        self
+    }
+
+    #[inline]
+    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+        animated.0.clamp_to_non_negative().into()
+    }
+}
+
+impl ToAnimatedValue for ComputedBorderCornerRadius {
+    type AnimatedValue = Self;
+
+    #[inline]
+    fn to_animated_value(self) -> Self {
+        self
+    }
+
+    #[inline]
+    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+        ComputedBorderCornerRadius::new(animated.0.width.clamp_to_non_negative(),
+                                        animated.0.height.clamp_to_non_negative())
+    }
+}
+
+impl ToAnimatedValue for ComputedMaxLength {
+    type AnimatedValue = Self;
+
+    #[inline]
+    fn to_animated_value(self) -> Self {
+        self
+    }
+
+    #[inline]
+    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+        use values::computed::{LengthOrPercentageOrNone, Percentage};
+        match animated {
+            ComputedMaxLength::LengthOrPercentageOrNone(lopn) => {
+                let result = match lopn {
+                    LengthOrPercentageOrNone::Length(au) => {
+                        LengthOrPercentageOrNone::Length(max(au, Au(0)))
+                    },
+                    LengthOrPercentageOrNone::Percentage(percentage) => {
+                        LengthOrPercentageOrNone::Percentage(Percentage(percentage.0.max(0.)))
+                    }
+                    _ => lopn
+                };
+                ComputedMaxLength::LengthOrPercentageOrNone(result)
+            },
+            _ => animated
+        }
+    }
+}
+
+impl ToAnimatedValue for ComputedMozLength {
+    type AnimatedValue = Self;
+
+    #[inline]
+    fn to_animated_value(self) -> Self {
+        self
+    }
+
+    #[inline]
+    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+        use values::computed::{LengthOrPercentageOrAuto, Percentage};
+        match animated {
+            ComputedMozLength::LengthOrPercentageOrAuto(lopa) => {
+                let result = match lopa {
+                    LengthOrPercentageOrAuto::Length(au) => {
+                        LengthOrPercentageOrAuto::Length(max(au, Au(0)))
+                    },
+                    LengthOrPercentageOrAuto::Percentage(percentage) => {
+                        LengthOrPercentageOrAuto::Percentage(Percentage(percentage.0.max(0.)))
+                    }
+                    _ => lopa
+                };
+                ComputedMozLength::LengthOrPercentageOrAuto(result)
+            },
+            _ => animated
+        }
     }
 }
 

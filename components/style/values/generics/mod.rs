@@ -252,3 +252,13 @@ impl ToCss for FontSettingTagFloat {
         self.0.to_css(dest)
     }
 }
+
+/// A wrapper of Non-negative values.
+#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, PartialOrd, ToComputedValue, ToCss)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
+pub struct NonNegative<T>(pub T);
+
+/// A wrapper of greater-than-or-equal-to-one values.
+#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, PartialOrd, ToComputedValue, ToCss)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
+pub struct GreaterThanOrEqualToOne<T>(pub T);

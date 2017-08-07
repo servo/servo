@@ -2570,13 +2570,13 @@ impl Fragment {
         // Box shadows cause us to draw outside our border box.
         for box_shadow in &self.style().get_effects().box_shadow.0 {
             let offset = Vector2D::new(box_shadow.base.horizontal, box_shadow.base.vertical);
-            let inflation = box_shadow.spread + box_shadow.base.blur * BLUR_INFLATION_FACTOR;
+            let inflation = box_shadow.spread + box_shadow.base.blur.0 * BLUR_INFLATION_FACTOR;
             overflow.paint = overflow.paint.union(&border_box.translate(&offset)
                                                              .inflate(inflation, inflation))
         }
 
         // Outlines cause us to draw outside our border box.
-        let outline_width = self.style.get_outline().outline_width;
+        let outline_width = self.style.get_outline().outline_width.0;
         if outline_width != Au(0) {
             overflow.paint = overflow.paint.union(&border_box.inflate(outline_width,
                                                                       outline_width))

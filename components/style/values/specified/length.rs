@@ -21,6 +21,8 @@ use super::{AllowQuirks, Number, ToComputedValue};
 use values::{Auto, CSSFloat, Either, FONT_MEDIUM_PX, None_, Normal};
 use values::ExtremumLength;
 use values::computed::{self, Context};
+use values::generics::NonNegative;
+use values::specified::NonNegativeNumber;
 use values::specified::calc::CalcNode;
 
 pub use values::specified::calc::CalcLengthOrPercentage;
@@ -92,8 +94,8 @@ impl FontBaseSize {
     pub fn resolve(&self, context: &Context) -> Au {
         match *self {
             FontBaseSize::Custom(size) => size,
-            FontBaseSize::CurrentStyle => context.style().get_font().clone_font_size(),
-            FontBaseSize::InheritedStyle => context.style().get_parent_font().clone_font_size(),
+            FontBaseSize::CurrentStyle => context.style().get_font().clone_font_size().0,
+            FontBaseSize::InheritedStyle => context.style().get_parent_font().clone_font_size().0,
         }
     }
 }
@@ -703,6 +705,57 @@ impl<T: Parse> Either<Length, T> {
     }
 }
 
+/// A wrapper of Length, whose value must be >= 0.
+pub type NonNegativeLength = NonNegative<Length>;
+
+impl From<NoCalcLength> for NonNegativeLength {
+    #[inline]
+    fn from(len: NoCalcLength) -> Self {
+        NonNegative::<Length>(Length::NoCalc(len))
+    }
+}
+
+impl From<Length> for NonNegativeLength {
+    #[inline]
+    fn from(len: Length) -> Self {
+        NonNegative::<Length>(len)
+    }
+}
+
+impl<T: Parse> Parse for Either<NonNegativeLength, T> {
+    #[inline]
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        if let Ok(v) = input.try(|input| T::parse(context, input)) {
+            return Ok(Either::Second(v));
+        }
+        Length::parse_internal(context, input, AllowedLengthType::NonNegative, AllowQuirks::No)
+            .map(NonNegative::<Length>).map(Either::First)
+    }
+}
+
+impl NonNegativeLength {
+    /// Returns a `zero` length.
+    #[inline]
+    pub fn zero() -> Self {
+        Length::zero().into()
+    }
+
+    /// Get an absolute length from a px value.
+    #[inline]
+    pub fn from_px(px_value: CSSFloat) -> Self {
+        Length::from_px(px_value.max(0.)).into()
+    }
+}
+
+/// Either a NonNegativeLength or the `normal` keyword.
+pub type NonNegativeLengthOrNormal = Either<NonNegativeLength, Normal>;
+
+/// Either a NonNegativeLength or the `auto` keyword.
+pub type NonNegativeLengthOrAuto = Either<NonNegativeLength, Auto>;
+
+/// Either a NonNegativeLength or a NonNegativeNumber value.
+pub type NonNegativeLengthOrNumber = Either<NonNegativeLength, NonNegativeNumber>;
+
 /// A percentage value.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -1182,6 +1235,41 @@ impl Parse for LengthOrPercentageOrNone {
     #[inline]
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         Self::parse_internal(context, input, AllowedLengthType::All, AllowQuirks::No)
+    }
+}
+
+/// A wrapper of LengthOrPercentage, whose value must be >= 0.
+pub type NonNegativeLengthOrPercentage = NonNegative<LengthOrPercentage>;
+
+impl From<NoCalcLength> for NonNegativeLengthOrPercentage {
+    #[inline]
+    fn from(len: NoCalcLength) -> Self {
+        NonNegative::<LengthOrPercentage>(LengthOrPercentage::from(len))
+    }
+}
+
+impl Parse for NonNegativeLengthOrPercentage {
+    #[inline]
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        LengthOrPercentage::parse_non_negative(context, input).map(NonNegative::<LengthOrPercentage>)
+    }
+}
+
+impl NonNegativeLengthOrPercentage {
+    #[inline]
+    /// Returns a `zero` length.
+    pub fn zero() -> Self {
+        NonNegative::<LengthOrPercentage>(LengthOrPercentage::zero())
+    }
+
+    /// Parses a length or a percentage, allowing the unitless length quirk.
+    /// https://quirks.spec.whatwg.org/#the-unitless-length-quirk
+    #[inline]
+    pub fn parse_quirky<'i, 't>(context: &ParserContext,
+                                input: &mut Parser<'i, 't>,
+                                allow_quirks: AllowQuirks) -> Result<Self, ParseError<'i>> {
+        LengthOrPercentage::parse_non_negative_quirky(context, input, allow_quirks)
+            .map(NonNegative::<LengthOrPercentage>)
     }
 }
 

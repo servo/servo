@@ -7,6 +7,7 @@
 use app_units::Au;
 use values::{Either, RGBA};
 use values::computed::{LengthOrPercentageOrNumber, Opacity};
+use values::computed::{NonNegativeAu, NonNegativeLengthOrPercentageOrNumber};
 use values::generics::svg as generic;
 
 /// Computed SVG Paint value
@@ -43,8 +44,17 @@ impl From<Au> for SVGLength {
     }
 }
 
+/// An non-negative wrapper of SVGLength.
+pub type SVGWidth = generic::SVGLength<NonNegativeLengthOrPercentageOrNumber>;
+
+impl From<NonNegativeAu> for SVGWidth {
+    fn from(length: NonNegativeAu) -> Self {
+        generic::SVGLength::Length(Either::Second(length.into()))
+    }
+}
+
 /// [ <length> | <percentage> | <number> ]# | context-value
-pub type SVGStrokeDashArray = generic::SVGStrokeDashArray<LengthOrPercentageOrNumber>;
+pub type SVGStrokeDashArray = generic::SVGStrokeDashArray<NonNegativeLengthOrPercentageOrNumber>;
 
 impl Default for SVGStrokeDashArray {
     fn default() -> Self {

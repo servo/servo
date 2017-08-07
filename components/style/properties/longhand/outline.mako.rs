@@ -64,10 +64,10 @@ ${helpers.predefined_type("outline-color", "Color", "computed_value::T::currentc
 
 ${helpers.predefined_type("outline-width",
                           "BorderSideWidth",
-                          "Au::from_px(3)",
+                          "::values::computed::NonNegativeAu::from_px(3)",
                           initial_specified_value="specified::BorderSideWidth::Medium",
-                          computed_type="::app_units::Au",
-                          animation_value_type="ComputedValue",
+                          computed_type="::values::computed::NonNegativeAu",
+                          animation_value_type="NonNegativeAu",
                           spec="https://drafts.csswg.org/css-ui/#propdef-outline-width")}
 
 // The -moz-outline-radius-* properties are non-standard and not on a standards track.
@@ -76,7 +76,7 @@ ${helpers.predefined_type("outline-width",
         "computed::LengthOrPercentage::zero().into()",
         products="gecko",
         boxed=True,
-        animation_value_type="ComputedValue",
+        animation_value_type="BorderCornerRadius",
         spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-outline-radius)")}
 % endfor
 

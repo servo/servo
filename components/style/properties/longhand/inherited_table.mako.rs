@@ -20,21 +20,21 @@ ${helpers.single_keyword("caption-side", "top bottom",
                          animation_value_type="discrete",
                          spec="https://drafts.csswg.org/css-tables/#propdef-caption-side")}
 
-<%helpers:longhand name="border-spacing" animation_value_type="ComputedValue" boxed="True"
+<%helpers:longhand name="border-spacing" animation_value_type="BorderSpacing" boxed="True"
                    spec="https://drafts.csswg.org/css-tables/#propdef-border-spacing">
-    use app_units::Au;
     use values::specified::{AllowQuirks, Length};
+    use values::specified::length::NonNegativeLength;
 
     pub mod computed_value {
-        use app_units::Au;
         use properties::animated_properties::Animatable;
-        use values::animated::ToAnimatedZero;
+        use values::animated::{ToAnimatedValue, ToAnimatedZero};
+        use values::computed::NonNegativeAu;
 
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         #[derive(Clone, Copy, Debug, PartialEq, ToCss)]
         pub struct T {
-            pub horizontal: Au,
-            pub vertical: Au,
+            pub horizontal: NonNegativeAu,
+            pub vertical: NonNegativeAu,
         }
 
         /// https://drafts.csswg.org/css-transitions/#animtype-simple-list
@@ -66,20 +66,38 @@ ${helpers.single_keyword("caption-side", "top bottom",
             #[inline]
             fn to_animated_zero(&self) -> Result<Self, ()> { Err(()) }
         }
+
+        impl ToAnimatedValue for T {
+            type AnimatedValue = Self;
+
+            #[inline]
+            fn to_animated_value(self) -> Self {
+                self
+            }
+
+            #[inline]
+            fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+                T {
+                    horizontal: ToAnimatedValue::from_animated_value(animated.horizontal),
+                    vertical: ToAnimatedValue::from_animated_value(animated.vertical)
+                }
+            }
+        }
     }
 
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     #[derive(Clone, Debug, HasViewportPercentage, PartialEq, ToCss)]
     pub struct SpecifiedValue {
-        pub horizontal: Length,
-        pub vertical: Option<Length>,
+        pub horizontal: NonNegativeLength,
+        pub vertical: Option<NonNegativeLength>,
     }
 
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
+        use values::computed::NonNegativeAu;
         computed_value::T {
-            horizontal: Au(0),
-            vertical: Au(0),
+            horizontal: NonNegativeAu::zero(),
+            vertical: NonNegativeAu::zero(),
         }
     }
 
@@ -121,14 +139,14 @@ ${helpers.single_keyword("caption-side", "top bottom",
             (None, None) => Err(StyleParseError::UnspecifiedError.into()),
             (Some(length), None) => {
                 Ok(SpecifiedValue {
-                    horizontal: length,
+                    horizontal: length.into(),
                     vertical: None,
                 })
             }
             (Some(horizontal), Some(vertical)) => {
                 Ok(SpecifiedValue {
-                    horizontal: horizontal,
-                    vertical: Some(vertical),
+                    horizontal: horizontal.into(),
+                    vertical: Some(vertical.into()),
                 })
             }
             (None, Some(_)) => unreachable!(),

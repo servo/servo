@@ -4,11 +4,10 @@
 
 //! Specified types for CSS values related to borders.
 
-use app_units::Au;
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use style_traits::ParseError;
-use values::computed::{Context, ToComputedValue};
+use values::computed::{Context, NonNegativeAu, ToComputedValue};
 use values::generics::border::BorderCornerRadius as GenericBorderCornerRadius;
 use values::generics::border::BorderImageSideWidth as GenericBorderImageSideWidth;
 use values::generics::border::BorderImageSlice as GenericBorderImageSlice;
@@ -72,7 +71,7 @@ impl Parse for BorderSideWidth {
 }
 
 impl ToComputedValue for BorderSideWidth {
-    type ComputedValue = Au;
+    type ComputedValue = NonNegativeAu;
 
     #[inline]
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
@@ -84,12 +83,12 @@ impl ToComputedValue for BorderSideWidth {
             BorderSideWidth::Medium => Length::from_px(3.).to_computed_value(context),
             BorderSideWidth::Thick => Length::from_px(5.).to_computed_value(context),
             BorderSideWidth::Length(ref length) => length.to_computed_value(context)
-        }
+        }.into()
     }
 
     #[inline]
     fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        BorderSideWidth::Length(ToComputedValue::from_computed_value(computed))
+        BorderSideWidth::Length(ToComputedValue::from_computed_value(&computed.0))
     }
 }
 

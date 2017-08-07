@@ -19,8 +19,9 @@ use values::{Auto, Either, ExtremumLength, None_, Normal};
 use values::computed::{Angle, LengthOrPercentage, LengthOrPercentageOrAuto};
 use values::computed::{LengthOrPercentageOrNone, Number, NumberOrPercentage};
 use values::computed::{MaxLength, MozLength, Percentage};
+use values::computed::{NonNegativeAu, NonNegativeLengthOrPercentage, NonNegativeNumber};
 use values::computed::basic_shape::ShapeRadius as ComputedShapeRadius;
-use values::generics::CounterStyleOrNone;
+use values::generics::{CounterStyleOrNone, NonNegative};
 use values::generics::basic_shape::ShapeRadius;
 use values::generics::gecko::ScrollSnapPoint;
 use values::generics::grid::{TrackBreadth, TrackKeyword};
@@ -121,6 +122,16 @@ impl GeckoStyleCoordConvertible for LengthOrPercentage {
     }
 }
 
+impl GeckoStyleCoordConvertible for NonNegativeLengthOrPercentage {
+    fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
+        self.0.to_gecko_style_coord(coord);
+    }
+
+    fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
+        LengthOrPercentage::from_gecko_style_coord(coord).map(NonNegative::<LengthOrPercentage>)
+    }
+}
+
 impl GeckoStyleCoordConvertible for Au {
     fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
         coord.set_value(CoordDataValue::Coord(self.0));
@@ -131,6 +142,26 @@ impl GeckoStyleCoordConvertible for Au {
             CoordDataValue::Coord(coord) => Some(Au(coord)),
             _ => None,
         }
+    }
+}
+
+impl GeckoStyleCoordConvertible for NonNegativeAu {
+    fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
+        self.0.to_gecko_style_coord(coord);
+    }
+
+    fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
+        Au::from_gecko_style_coord(coord).map(NonNegative::<Au>)
+    }
+}
+
+impl GeckoStyleCoordConvertible for NonNegativeNumber {
+    fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
+        self.0.to_gecko_style_coord(coord);
+    }
+
+    fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
+        Number::from_gecko_style_coord(coord).map(NonNegative::<Number>)
     }
 }
 

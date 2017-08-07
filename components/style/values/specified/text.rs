@@ -14,8 +14,9 @@ use values::computed::text::LineHeight as ComputedLineHeight;
 use values::generics::text::InitialLetter as GenericInitialLetter;
 use values::generics::text::LineHeight as GenericLineHeight;
 use values::generics::text::Spacing;
-use values::specified::{AllowQuirks, Integer, Number};
+use values::specified::{AllowQuirks, Integer, NonNegativeNumber, Number};
 use values::specified::length::{FontRelativeLength, Length, LengthOrPercentage, NoCalcLength};
+use values::specified::length::NonNegativeLengthOrPercentage;
 
 /// A specified type for the `initial-letter` property.
 pub type InitialLetter = GenericInitialLetter<Number, Integer>;
@@ -27,7 +28,7 @@ pub type LetterSpacing = Spacing<Length>;
 pub type WordSpacing = Spacing<LengthOrPercentage>;
 
 /// A specified value for the `line-height` property.
-pub type LineHeight = GenericLineHeight<Number, LengthOrPercentage>;
+pub type LineHeight = GenericLineHeight<NonNegativeNumber, NonNegativeLengthOrPercentage>;
 
 impl Parse for InitialLetter {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
@@ -58,11 +59,11 @@ impl Parse for WordSpacing {
 
 impl Parse for LineHeight {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        if let Ok(number) = input.try(|i| Number::parse_non_negative(context, i)) {
+        if let Ok(number) = input.try(|i| NonNegativeNumber::parse(context, i)) {
             return Ok(GenericLineHeight::Number(number))
         }
-        if let Ok(lop) = input.try(|i| LengthOrPercentage::parse_non_negative(context, i)) {
-            return Ok(GenericLineHeight::Length(lop))
+        if let Ok(nlop) = input.try(|i| NonNegativeLengthOrPercentage::parse(context, i)) {
+            return Ok(GenericLineHeight::Length(nlop))
         }
         let ident = input.expect_ident()?;
         match ident {
@@ -94,24 +95,29 @@ impl ToComputedValue for LineHeight {
             GenericLineHeight::Number(number) => {
                 GenericLineHeight::Number(number.to_computed_value(context))
             },
-            GenericLineHeight::Length(LengthOrPercentage::Length(ref length)) => {
-                GenericLineHeight::Length(context.maybe_zoom_text(length.to_computed_value(context)))
-            },
-            GenericLineHeight::Length(LengthOrPercentage::Percentage(p)) => {
-                let font_relative_length =
-                    Length::NoCalc(NoCalcLength::FontRelative(FontRelativeLength::Em(p.0)));
-                GenericLineHeight::Length(font_relative_length.to_computed_value(context))
-            },
-            GenericLineHeight::Length(LengthOrPercentage::Calc(ref calc)) => {
-                let computed_calc = calc.to_computed_value_zoomed(context);
-                let font_relative_length =
-                    Length::NoCalc(NoCalcLength::FontRelative(FontRelativeLength::Em(computed_calc.percentage())));
-                let absolute_length = computed_calc.unclamped_length();
-                let computed_length = computed_calc.clamping_mode.clamp(
-                    absolute_length + font_relative_length.to_computed_value(context)
-                );
-                GenericLineHeight::Length(computed_length)
-            },
+            GenericLineHeight::Length(ref non_negative_lop) => {
+                let result = match non_negative_lop.0 {
+                    LengthOrPercentage::Length(ref length) => {
+                        context.maybe_zoom_text(length.to_computed_value(context).into())
+                    },
+                    LengthOrPercentage::Percentage(ref p) => {
+                        let font_relative_length =
+                            Length::NoCalc(NoCalcLength::FontRelative(FontRelativeLength::Em(p.0)));
+                        font_relative_length.to_computed_value(context).into()
+                    }
+                    LengthOrPercentage::Calc(ref calc) => {
+                        let computed_calc = calc.to_computed_value_zoomed(context);
+                        let font_relative_length =
+                            Length::NoCalc(NoCalcLength::FontRelative(
+                                FontRelativeLength::Em(computed_calc.percentage())));
+                        let absolute_length = computed_calc.unclamped_length();
+                        computed_calc.clamping_mode.clamp(
+                            absolute_length + font_relative_length.to_computed_value(context)
+                        ).into()
+                    }
+                };
+                GenericLineHeight::Length(result)
+            }
         }
     }
 
@@ -126,12 +132,10 @@ impl ToComputedValue for LineHeight {
                 GenericLineHeight::MozBlockHeight
             },
             GenericLineHeight::Number(ref number) => {
-                GenericLineHeight::Number(Number::from_computed_value(number))
+                GenericLineHeight::Number(NonNegativeNumber::from_computed_value(number))
             },
             GenericLineHeight::Length(ref length) => {
-                GenericLineHeight::Length(LengthOrPercentage::Length(
-                    NoCalcLength::from_computed_value(length)
-                ))
+                GenericLineHeight::Length(NoCalcLength::from_computed_value(&length.0).into())
             }
         }
     }

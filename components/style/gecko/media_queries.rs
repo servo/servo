@@ -69,7 +69,8 @@ impl Device {
         Device {
             pres_context: pres_context,
             default_values: ComputedValues::default_values(unsafe { &*pres_context }),
-            root_font_size: AtomicIsize::new(font_size::get_initial_value().0 as isize), // FIXME(bz): Seems dubious?
+            // FIXME(bz): Seems dubious?
+            root_font_size: AtomicIsize::new(font_size::get_initial_value().value() as isize),
             used_root_font_size: AtomicBool::new(false),
             used_viewport_size: AtomicBool::new(false),
         }

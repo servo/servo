@@ -18,6 +18,7 @@ use style_traits::{ToCss, ParseError, StyleParseError};
 use style_traits::values::specified::AllowedNumericType;
 use super::{Auto, CSSFloat, CSSInteger, Either, None_};
 use super::computed::{self, Context, ToComputedValue};
+use super::generics::{GreaterThanOrEqualToOne, NonNegative};
 use super::generics::grid::{TrackBreadth as GenericTrackBreadth, TrackSize as GenericTrackSize};
 use super::generics::grid::TrackList as GenericTrackList;
 use values::computed::ComputedValueAsSpecified;
@@ -41,9 +42,10 @@ pub use self::length::{FontRelativeLength, Length, LengthOrNone, LengthOrNumber}
 pub use self::length::{LengthOrPercentage, LengthOrPercentageOrAuto};
 pub use self::length::{LengthOrPercentageOrNone, MaxLength, MozLength};
 pub use self::length::{NoCalcLength, Percentage, ViewportPercentageLength};
+pub use self::length::NonNegativeLengthOrPercentage;
 pub use self::rect::LengthOrNumberRect;
 pub use self::position::{Position, PositionComponent};
-pub use self::svg::{SVGLength, SVGOpacity, SVGPaint, SVGPaintKind, SVGStrokeDashArray};
+pub use self::svg::{SVGLength, SVGOpacity, SVGPaint, SVGPaintKind, SVGStrokeDashArray, SVGWidth};
 pub use self::text::{InitialLetter, LetterSpacing, LineHeight, WordSpacing};
 pub use self::transform::{TimingFunction, TransformOrigin};
 pub use super::generics::grid::GridLine;
@@ -533,6 +535,33 @@ impl ToCss for Number {
     }
 }
 
+/// A Number which is >= 0.0.
+pub type NonNegativeNumber = NonNegative<Number>;
+
+impl Parse for NonNegativeNumber {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        parse_number_with_clamping_mode(context, input, AllowedNumericType::NonNegative)
+            .map(NonNegative::<Number>)
+    }
+}
+
+impl NonNegativeNumber {
+    /// Returns a new non-negative number with the value `val`.
+    pub fn new(val: CSSFloat) -> Self {
+        NonNegative::<Number>(Number::new(val.max(0.)))
+    }
+}
+
+/// A Number which is >= 1.0.
+pub type GreaterThanOrEqualToOneNumber = GreaterThanOrEqualToOne<Number>;
+
+impl Parse for GreaterThanOrEqualToOneNumber {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        parse_number_with_clamping_mode(context, input, AllowedNumericType::AtLeastOne)
+            .map(GreaterThanOrEqualToOne::<Number>)
+    }
+}
+
 /// <number> | <percentage>
 ///
 /// Accepts only non-negative numbers.
@@ -713,6 +742,19 @@ impl IntegerOrAuto {
     }
 }
 
+/// A wrapper of Integer, with value >= 1.
+pub type PositiveInteger = GreaterThanOrEqualToOne<Integer>;
+
+impl Parse for PositiveInteger {
+    #[inline]
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        Integer::parse_positive(context, input).map(GreaterThanOrEqualToOne::<Integer>)
+    }
+}
+
+/// PositiveInteger | auto
+pub type PositiveIntegerOrAuto = Either<PositiveInteger, Auto>;
+
 #[allow(missing_docs)]
 pub type UrlOrNone = Either<SpecifiedUrl, None_>;
 
@@ -732,19 +774,8 @@ pub type GridTemplateComponent = GenericGridTemplateComponent<LengthOrPercentage
 /// <length> | <percentage> | <number>
 pub type LengthOrPercentageOrNumber = Either<Number, LengthOrPercentage>;
 
-impl LengthOrPercentageOrNumber {
-    /// parse a <length-percentage> | <number> enforcing that the contents aren't negative
-    pub fn parse_non_negative<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                                      -> Result<Self, ParseError<'i>> {
-        // NB: Parse numbers before Lengths so we are consistent about how to
-        // recognize and serialize "0".
-        if let Ok(num) = input.try(|i| Number::parse_non_negative(context, i)) {
-            return Ok(Either::First(num))
-        }
-
-        LengthOrPercentage::parse_non_negative(context, input).map(Either::Second)
-    }
-}
+/// NonNegativeLengthOrPercentage | NonNegativeNumber
+pub type NonNegativeLengthOrPercentageOrNumber = Either<NonNegativeNumber, NonNegativeLengthOrPercentage>;
 
 #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]

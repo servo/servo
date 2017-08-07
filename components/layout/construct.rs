@@ -1860,10 +1860,10 @@ impl ComputedValueUtils for ComputedValues {
            !padding.padding_right.is_definitely_zero() ||
            !padding.padding_bottom.is_definitely_zero() ||
            !padding.padding_left.is_definitely_zero() ||
-           border.border_top_width != Au(0) ||
-           border.border_right_width != Au(0) ||
-           border.border_bottom_width != Au(0) ||
-           border.border_left_width != Au(0)
+           border.border_top_width.0 != Au(0) ||
+           border.border_right_width.0 != Au(0) ||
+           border.border_bottom_width.0 != Au(0) ||
+           border.border_left_width.0 != Au(0)
     }
 }
 

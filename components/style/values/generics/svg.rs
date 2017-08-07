@@ -98,7 +98,7 @@ impl<ColorType: Parse> Parse for SVGPaint<ColorType> {
 
 /// An SVG length value supports `context-value` in addition to length.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Copy, Debug, PartialEq, HasViewportPercentage, ToComputedValue, ToCss)]
+#[derive(Clone, Copy, Debug, PartialEq, HasViewportPercentage, ToAnimatedValue, ToComputedValue, ToCss)]
 pub enum SVGLength<LengthType> {
     /// `<length> | <percentage> | <number>`
     Length(LengthType),
@@ -108,7 +108,7 @@ pub enum SVGLength<LengthType> {
 
 /// Generic value for stroke-dasharray.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Debug, PartialEq, HasViewportPercentage, ToComputedValue)]
+#[derive(Clone, Debug, PartialEq, HasViewportPercentage, ToAnimatedValue, ToComputedValue)]
 pub enum SVGStrokeDashArray<LengthType> {
     /// `[ <length> | <percentage> | <number> ]#`
     Values(Vec<LengthType>),

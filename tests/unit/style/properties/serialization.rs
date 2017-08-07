@@ -268,10 +268,12 @@ mod shorthand_serialization {
 
         #[test]
         fn padding_should_serialize_correctly() {
+            use style::values::specified::NonNegativeLengthOrPercentage;
+
             let mut properties = Vec::new();
 
-            let px_10 = LengthOrPercentage::Length(NoCalcLength::from_px(10f32));
-            let px_15 = LengthOrPercentage::Length(NoCalcLength::from_px(15f32));
+            let px_10: NonNegativeLengthOrPercentage = NoCalcLength::from_px(10f32).into();
+            let px_15: NonNegativeLengthOrPercentage = NoCalcLength::from_px(15f32).into();
             properties.push(PropertyDeclaration::PaddingTop(px_10.clone()));
             properties.push(PropertyDeclaration::PaddingRight(px_15.clone()));
             properties.push(PropertyDeclaration::PaddingBottom(px_10));
@@ -556,12 +558,12 @@ mod shorthand_serialization {
 
     #[test]
     fn flex_should_serialize_all_available_properties() {
-        use style::values::specified::{Number, Percentage};
+        use style::values::specified::{NonNegativeNumber, Percentage};
 
         let mut properties = Vec::new();
 
-        let grow = Number::new(2f32);
-        let shrink = Number::new(3f32);
+        let grow = NonNegativeNumber::new(2f32);
+        let shrink = NonNegativeNumber::new(3f32);
         let basis =
             FlexBasis::Length(Percentage::new(0.5f32).into());
 
@@ -1239,13 +1241,15 @@ mod shorthand_serialization {
 
         #[test]
         fn box_shadow_should_serialize_correctly() {
+            use style::values::specified::length::NonNegativeLength;
+
             let mut properties = Vec::new();
             let shadow_val = BoxShadow {
                 base: SimpleShadow {
                     color: None,
                     horizontal: Length::from_px(1f32),
                     vertical: Length::from_px(2f32),
-                    blur: Some(Length::from_px(3f32)),
+                    blur: Some(NonNegativeLength::from_px(3f32)),
                 },
                 spread: Some(Length::from_px(4f32)),
                 inset: false,

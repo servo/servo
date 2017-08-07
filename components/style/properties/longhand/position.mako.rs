@@ -117,17 +117,17 @@ ${helpers.single_keyword("flex-wrap", "nowrap wrap wrap-reverse",
 % endif
 
 // Flex item properties
-${helpers.predefined_type("flex-grow", "Number",
-                          "0.0", "parse_non_negative",
+${helpers.predefined_type("flex-grow", "NonNegativeNumber",
+                          "From::from(0.0)",
                           spec="https://drafts.csswg.org/css-flexbox/#flex-grow-property",
                           extra_prefixes="webkit",
-                          animation_value_type="ComputedValue")}
+                          animation_value_type="NonNegativeNumber")}
 
-${helpers.predefined_type("flex-shrink", "Number",
-                          "1.0", "parse_non_negative",
+${helpers.predefined_type("flex-shrink", "NonNegativeNumber",
+                          "From::from(1.0)",
                           spec="https://drafts.csswg.org/css-flexbox/#flex-shrink-property",
                           extra_prefixes="webkit",
-                          animation_value_type="ComputedValue")}
+                          animation_value_type="NonNegativeNumber")}
 
 // https://drafts.csswg.org/css-align/#align-self-property
 % if product == "servo":
@@ -166,7 +166,7 @@ ${helpers.predefined_type("order", "Integer", "0",
                               logical=False,
                               spec="https://drafts.csswg.org/css-flexbox/#flex-basis-property",
                               extra_prefixes="webkit",
-                              animation_value_type="ComputedValue")}
+                              animation_value_type="MozLength")}
 % else:
     // FIXME: This property should be animatable.
     ${helpers.predefined_type("flex-basis",
@@ -187,17 +187,17 @@ ${helpers.predefined_type("order", "Integer", "0",
         ${helpers.gecko_size_type("%s" % size, "MozLength", "auto()",
                                   logical,
                                   spec=spec % size,
-                                  animation_value_type="ComputedValue")}
+                                  animation_value_type="MozLength")}
         // min-width, min-height, min-block-size, min-inline-size,
         // max-width, max-height, max-block-size, max-inline-size
         ${helpers.gecko_size_type("min-%s" % size, "MozLength", "auto()",
                                   logical,
                                   spec=spec % size,
-                                  animation_value_type="ComputedValue")}
+                                  animation_value_type="MozLength")}
         ${helpers.gecko_size_type("max-%s" % size, "MaxLength", "none()",
                                   logical,
                                   spec=spec % size,
-                                  animation_value_type="ComputedValue")}
+                                  animation_value_type="MaxLength")}
     % else:
         // servo versions (no keyword support)
         ${helpers.predefined_type("%s" % size,
@@ -249,11 +249,10 @@ ${helpers.predefined_type("object-position",
 
 % for kind in ["row", "column"]:
     ${helpers.predefined_type("grid-%s-gap" % kind,
-                              "LengthOrPercentage",
-                              "computed::LengthOrPercentage::Length(Au(0))",
-                              "parse_non_negative",
+                              "NonNegativeLengthOrPercentage",
+                              "computed::NonNegativeLengthOrPercentage::zero()",
                               spec="https://drafts.csswg.org/css-grid/#propdef-grid-%s-gap" % kind,
-                              animation_value_type="ComputedValue",
+                              animation_value_type="NonNegativeLengthOrPercentage",
                               products="gecko")}
 
     % for range in ["start", "end"]:

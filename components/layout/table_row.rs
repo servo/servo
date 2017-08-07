@@ -25,7 +25,7 @@ use style::computed_values::{border_collapse, border_spacing, border_top_style};
 use style::logical_geometry::{LogicalSize, PhysicalSide, WritingMode};
 use style::properties::ComputedValues;
 use style::servo::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW};
-use style::values::computed::{Color, LengthOrPercentageOrAuto};
+use style::values::computed::{Color, LengthOrPercentageOrAuto, NonNegativeAu};
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, InternalTable, VecExt};
 use table_cell::{CollapsedBordersForCell, TableCellFlow};
 
@@ -93,8 +93,8 @@ impl TableRowFlow {
             column_computed_inline_sizes: Vec::new(),
             incoming_rowspan: Vec::new(),
             spacing: border_spacing::T {
-                horizontal: Au(0),
-                vertical: Au(0),
+                horizontal: NonNegativeAu::zero(),
+                vertical: NonNegativeAu::zero(),
             },
             table_writing_mode: writing_mode,
             preliminary_collapsed_borders: CollapsedBordersForRow::new(),
@@ -395,7 +395,7 @@ impl Flow for TableRowFlow {
                         None => break,
                     };
                 column_computed_inline_size.size = column_computed_inline_size.size +
-                    extra_column_computed_inline_size.size + self.spacing.horizontal;
+                    extra_column_computed_inline_size.size + self.spacing.horizontal.0;
                 col += 1;
             }
 
@@ -616,7 +616,7 @@ impl CollapsedBorder {
            -> CollapsedBorder {
         CollapsedBorder {
             style: css_style.get_border().border_top_style,
-            width: css_style.get_border().border_top_width,
+            width: css_style.get_border().border_top_width.0,
             color: css_style.get_border().border_top_color,
             provenance: provenance,
         }
@@ -628,7 +628,7 @@ impl CollapsedBorder {
              -> CollapsedBorder {
         CollapsedBorder {
             style: css_style.get_border().border_right_style,
-            width: css_style.get_border().border_right_width,
+            width: css_style.get_border().border_right_width.0,
             color: css_style.get_border().border_right_color,
             provenance: provenance,
         }
@@ -640,7 +640,7 @@ impl CollapsedBorder {
               -> CollapsedBorder {
         CollapsedBorder {
             style: css_style.get_border().border_bottom_style,
-            width: css_style.get_border().border_bottom_width,
+            width: css_style.get_border().border_bottom_width.0,
             color: css_style.get_border().border_bottom_color,
             provenance: provenance,
         }
@@ -652,7 +652,7 @@ impl CollapsedBorder {
             -> CollapsedBorder {
         CollapsedBorder {
             style: css_style.get_border().border_left_style,
-            width: css_style.get_border().border_left_width,
+            width: css_style.get_border().border_left_width.0,
             color: css_style.get_border().border_left_color,
             provenance: provenance,
         }
@@ -818,7 +818,7 @@ fn set_inline_position_of_child_flow(
         let column_inline_size = column_computed_inline_sizes[*column_index].size;
         let border_inline_size = match *border_collapse_info {
             Some(_) => Au(0), // FIXME: Make collapsed borders account for colspan/rowspan.
-            None => border_spacing.horizontal,
+            None => border_spacing.horizontal.0,
         };
         if reverse_column_order {
             *inline_end_margin_edge += column_inline_size + border_inline_size;
@@ -873,9 +873,9 @@ fn set_inline_position_of_child_flow(
         None => {
             // Take spacing into account.
             if reverse_column_order {
-                *inline_end_margin_edge += border_spacing.horizontal;
+                *inline_end_margin_edge += border_spacing.horizontal.0;
             } else {
-                *inline_start_margin_edge += border_spacing.horizontal;
+                *inline_start_margin_edge += border_spacing.horizontal.0;
             }
         }
     }

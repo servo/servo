@@ -8,7 +8,7 @@ use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use style_traits::{CommaWithSpace, ParseError, Separator, StyleParseError};
 use values::generics::svg as generic;
-use values::specified::{LengthOrPercentageOrNumber, Opacity};
+use values::specified::{LengthOrPercentageOrNumber, NonNegativeLengthOrPercentageOrNumber, Opacity};
 use values::specified::color::RGBAColor;
 
 /// Specified SVG Paint value
@@ -54,30 +54,38 @@ impl Parse for SVGLength {
     }
 }
 
-impl SVGLength {
-    /// parse a non-negative SVG length
-    pub fn parse_non_negative<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                                      -> Result<Self, ParseError<'i>> {
-        input.try(|i| LengthOrPercentageOrNumber::parse_non_negative(context, i))
-             .map(Into::into)
-             .or_else(|_| parse_context_value(input, generic::SVGLength::ContextValue))
-    }
-}
-
 impl From<LengthOrPercentageOrNumber> for SVGLength {
     fn from(length: LengthOrPercentageOrNumber) -> Self {
         generic::SVGLength::Length(length)
     }
 }
 
+/// A non-negative version of SVGLength.
+pub type SVGWidth = generic::SVGLength<NonNegativeLengthOrPercentageOrNumber>;
+
+impl Parse for SVGWidth {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                     -> Result<Self, ParseError<'i>> {
+        input.try(|i| NonNegativeLengthOrPercentageOrNumber::parse(context, i))
+             .map(Into::into)
+             .or_else(|_| parse_context_value(input, generic::SVGLength::ContextValue))
+    }
+}
+
+impl From<NonNegativeLengthOrPercentageOrNumber> for SVGWidth {
+    fn from(length: NonNegativeLengthOrPercentageOrNumber) -> Self {
+        generic::SVGLength::Length(length)
+    }
+}
+
 /// [ <length> | <percentage> | <number> ]# | context-value
-pub type SVGStrokeDashArray = generic::SVGStrokeDashArray<LengthOrPercentageOrNumber>;
+pub type SVGStrokeDashArray = generic::SVGStrokeDashArray<NonNegativeLengthOrPercentageOrNumber>;
 
 impl Parse for SVGStrokeDashArray {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                      -> Result<Self, ParseError<'i>> {
         if let Ok(values) = input.try(|i| CommaWithSpace::parse(i, |i| {
-            LengthOrPercentageOrNumber::parse_non_negative(context, i)
+            NonNegativeLengthOrPercentageOrNumber::parse(context, i)
         })) {
             Ok(generic::SVGStrokeDashArray::Values(values))
         } else if let Ok(_) = input.try(|i| i.expect_ident_matching("none")) {

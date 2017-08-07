@@ -242,7 +242,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     fn adjust_for_outline(&mut self) {
         if self.style.get_outline().clone_outline_style().none_or_hidden() &&
            self.style.get_outline().outline_has_nonzero_width() {
-            self.style.mutate_outline().set_outline_width(Au(0));
+            self.style.mutate_outline().set_outline_width(Au(0).into());
         }
     }
 
