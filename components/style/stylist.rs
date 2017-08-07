@@ -97,9 +97,6 @@ pub struct Stylist {
     /// The rule tree, that stores the results of selector matching.
     rule_tree: RuleTree,
 
-    /// A map with all the animations indexed by name.
-    animations: PrecomputedHashMap<Atom, KeyframesAnimation>,
-
     /// Applicable declarations for a given non-eagerly cascaded pseudo-element.
     /// These are eagerly computed once, and then used to resolve the new
     /// computed values on the fly on layout.
@@ -235,7 +232,6 @@ impl Stylist {
             effective_media_query_results: EffectiveMediaQueryResults::new(),
 
             cascade_data: CascadeData::new(),
-            animations: Default::default(),
             precomputed_pseudo_element_decls: PerPseudoElementMap::default(),
             rules_source_order: 0,
             rule_tree: RuleTree::new(),
@@ -303,7 +299,6 @@ impl Stylist {
         self.is_device_dirty = true;
         // preserve current quirks_mode value
         self.cascade_data.clear();
-        self.animations.clear(); // Or set to Default::default()?
         self.precomputed_pseudo_element_decls.clear();
         self.rules_source_order = 0;
         // We want to keep rule_tree around across stylist rebuilds.
@@ -539,13 +534,13 @@ impl Stylist {
 
                     // Don't let a prefixed keyframes animation override a non-prefixed one.
                     let needs_insertion = keyframes_rule.vendor_prefix.is_none() ||
-                        self.animations.get(keyframes_rule.name.as_atom()).map_or(true, |rule|
+                        origin_cascade_data.animations.get(keyframes_rule.name.as_atom()).map_or(true, |rule|
                             rule.vendor_prefix.is_some());
                     if needs_insertion {
                         let animation = KeyframesAnimation::from_keyframes(
                             &keyframes_rule.keyframes, keyframes_rule.vendor_prefix.clone(), guard);
                         debug!("Found valid keyframe animation: {:?}", animation);
-                        self.animations.insert(keyframes_rule.name.as_atom().clone(), animation);
+                        origin_cascade_data.animations.insert(keyframes_rule.name.as_atom().clone(), animation);
                     }
                 }
                 #[cfg(feature = "gecko")]
@@ -1326,7 +1321,10 @@ impl Stylist {
     /// Returns the registered `@keyframes` animation for the specified name.
     #[inline]
     pub fn get_animation(&self, name: &Atom) -> Option<&KeyframesAnimation> {
-        self.animations.get(name)
+        self.cascade_data
+            .iter_origins()
+            .filter_map(|d| d.animations.get(name))
+            .next()
     }
 
     /// Computes the match results of a given element against the set of
@@ -1664,6 +1662,10 @@ struct PerOriginCascadeData {
     /// Rules from stylesheets at this `CascadeData`'s origin that correspond
     /// to a given pseudo-element.
     pseudos_map: PerPseudoElementMap<SelectorMap<Rule>>,
+
+    /// A map with all the animations at this `CascadeData`'s origin, indexed
+    /// by name.
+    animations: PrecomputedHashMap<Atom, KeyframesAnimation>,
 }
 
 impl PerOriginCascadeData {
@@ -1671,6 +1673,7 @@ impl PerOriginCascadeData {
         Self {
             element_map: SelectorMap::new(),
             pseudos_map: PerPseudoElementMap::default(),
+            animations: Default::default(),
         }
     }
 
@@ -1683,7 +1686,9 @@ impl PerOriginCascadeData {
     }
 
     fn clear(&mut self) {
-        *self = Self::new();
+        self.element_map = SelectorMap::new();
+        self.pseudos_map = Default::default();
+        self.animations = Default::default();
     }
 
     fn has_rules_for_pseudo(&self, pseudo: &PseudoElement) -> bool {
