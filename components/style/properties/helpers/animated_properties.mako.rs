@@ -1364,7 +1364,14 @@ impl Animatable for MozLength {
 
 impl ToAnimatedZero for MozLength {
     #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> { Err(()) }
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        match *self {
+            MozLength::LengthOrPercentageOrAuto(ref length) => {
+                Ok(MozLength::LengthOrPercentageOrAuto(length.to_animated_zero()?))
+            },
+            _ => Err(())
+        }
+    }
 }
 
 /// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
