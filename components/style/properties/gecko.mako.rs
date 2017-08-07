@@ -62,9 +62,8 @@ use std::mem::{forget, uninitialized, transmute, zeroed};
 use std::{cmp, ops, ptr};
 use stylesheets::{MallocSizeOfWithRepeats, SizeOfState};
 use values::{self, Auto, CustomIdent, Either, KeyframesName};
-use values::computed::{NonNegativeAu, ToComputedValue};
+use values::computed::{NonNegativeAu, ToComputedValue, Percentage};
 use values::computed::effects::{BoxShadow, Filter, SimpleShadow};
-use values::computed::length::Percentage;
 use computed_values::border_style;
 
 pub mod style_structs {
