@@ -23,3 +23,6 @@ selectors = {path = "../../../components/selectors", features = ["gecko_like_typ
 size_of_test = {path = "../../../components/size_of_test"}
 style_traits = {path = "../../../components/style_traits"}
 style = {path = "../../../components/style", features = ["gecko"]}
+
+[build-dependencies]
+regex = "0.2"
