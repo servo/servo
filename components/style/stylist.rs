@@ -1646,14 +1646,10 @@ struct PerOriginCascadeData {
 
 impl PerOriginCascadeData {
     fn new() -> Self {
-        let mut data = PerOriginCascadeData {
+        Self {
             element_map: SelectorMap::new(),
             pseudos_map: Default::default(),
-        };
-        SelectorImpl::each_eagerly_cascaded_pseudo_element(|pseudo| {
-            data.pseudos_map.insert(pseudo, SelectorMap::new());
-        });
-        data
+        }
     }
 
     #[inline]
@@ -1677,11 +1673,7 @@ impl PerOriginCascadeData {
     }
 
     fn clear(&mut self) {
-        self.element_map = SelectorMap::new();
-        self.pseudos_map = Default::default();
-        SelectorImpl::each_eagerly_cascaded_pseudo_element(|pseudo| {
-            self.pseudos_map.insert(pseudo, SelectorMap::new());
-        });
+        *self = Self::new();
     }
 
     fn has_rules_for_pseudo(&self, pseudo: &PseudoElement) -> bool {
