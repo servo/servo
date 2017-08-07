@@ -533,7 +533,7 @@ pub fn maybe_start_animations(context: &SharedStyleContext,
             continue
         }
 
-        if let Some(ref anim) = context.stylist.animations().get(name) {
+        if let Some(ref anim) = context.stylist.get_animation(name) {
             debug!("maybe_start_animations: animation {} found", name);
 
             // If this animation doesn't have any keyframe, we can just continue
@@ -637,7 +637,7 @@ pub fn update_style_for_animation(context: &SharedStyleContext,
                 KeyframesRunningState::Paused(progress) => started_at + duration * progress,
             };
 
-            let animation = match context.stylist.animations().get(name) {
+            let animation = match context.stylist.get_animation(name) {
                 None => {
                     warn!("update_style_for_animation: Animation {:?} not found", name);
                     return;

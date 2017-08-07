@@ -1327,10 +1327,10 @@ impl Stylist {
         self.is_device_dirty
     }
 
-    /// Returns the map of registered `@keyframes` animations.
+    /// Returns the registered `@keyframes` animation for the specified name.
     #[inline]
-    pub fn animations(&self) -> &PrecomputedHashMap<Atom, KeyframesAnimation> {
-        &self.animations
+    pub fn get_animation(&self, name: &Atom) -> Option<&KeyframesAnimation> {
+        self.animations.get(name)
     }
 
     /// Computes the match results of a given element against the set of
