@@ -25,12 +25,12 @@ use stylist::Rule;
 /// A hasher implementation that doesn't hash anything, because it expects its
 /// input to be a suitable u32 hash.
 pub struct PrecomputedHasher {
-    hash: u32,
+    hash: Option<u32>,
 }
 
 impl Default for PrecomputedHasher {
     fn default() -> Self {
-        Self { hash: 0 }
+        Self { hash: None }
     }
 }
 
@@ -43,17 +43,19 @@ pub type PrecomputedHashSet<K> = HashSet<K, BuildHasherDefault<PrecomputedHasher
 impl Hasher for PrecomputedHasher {
     #[inline]
     fn write(&mut self, _: &[u8]) {
-        unreachable!()
+        unreachable!("Called into PrecomputedHasher with something that isn't \
+                     a u32")
     }
 
     #[inline]
     fn write_u32(&mut self, i: u32) {
-        self.hash = i;
+        debug_assert!(self.hash.is_none());
+        self.hash = Some(i);
     }
 
     #[inline]
     fn finish(&self) -> u64 {
-        self.hash as u64
+        self.hash.expect("PrecomputedHasher wasn't fed?") as u64
     }
 }
 
