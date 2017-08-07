@@ -339,8 +339,9 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
         mut_base(self).overflow = overflow
     }
 
-    /// Phase 4 of reflow: computes absolute positions.
-    fn compute_absolute_position(&mut self, _: &LayoutContext) {
+    /// Phase 4 of reflow: Compute the stacking-relative position (origin of the content box,
+    /// in coordinates relative to the nearest ancestor stacking context).
+    fn compute_stacking_relative_position(&mut self, _: &LayoutContext) {
         // The default implementation is a no-op.
         mut_base(self).restyle_damage.remove(REPOSITION)
     }

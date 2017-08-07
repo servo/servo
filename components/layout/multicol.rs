@@ -166,8 +166,8 @@ impl Flow for MulticolFlow {
         }
     }
 
-    fn compute_absolute_position(&mut self, layout_context: &LayoutContext) {
-        self.block_flow.compute_absolute_position(layout_context);
+    fn compute_stacking_relative_position(&mut self, layout_context: &LayoutContext) {
+        self.block_flow.compute_stacking_relative_position(layout_context);
         let pitch = LogicalSize::new(self.block_flow.base.writing_mode, self.column_pitch, Au(0));
         let pitch = pitch.to_physical(self.block_flow.base.writing_mode);
         for (i, child) in self.block_flow.base.children.iter_mut().enumerate() {
@@ -254,8 +254,8 @@ impl Flow for MulticolColumnFlow {
         Flow::fragment(&mut self.block_flow, layout_context, fragmentation_context)
     }
 
-    fn compute_absolute_position(&mut self, layout_context: &LayoutContext) {
-        self.block_flow.compute_absolute_position(layout_context)
+    fn compute_stacking_relative_position(&mut self, layout_context: &LayoutContext) {
+        self.block_flow.compute_stacking_relative_position(layout_context)
     }
 
     fn update_late_computed_inline_position_if_necessary(&mut self, inline_position: Au) {

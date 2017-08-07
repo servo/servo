@@ -1534,7 +1534,7 @@ impl Flow for InlineFlow {
         }
     }
 
-    fn compute_absolute_position(&mut self, _: &LayoutContext) {
+    fn compute_stacking_relative_position(&mut self, _: &LayoutContext) {
         // First, gather up the positions of all the containing blocks (if any).
         //
         // FIXME(pcwalton): This will get the absolute containing blocks inside `...` wrong in the

@@ -1944,7 +1944,7 @@ impl Flow for BlockFlow {
         }
     }
 
-    fn compute_absolute_position(&mut self, _layout_context: &LayoutContext) {
+    fn compute_stacking_relative_position(&mut self, _layout_context: &LayoutContext) {
         // FIXME (mbrubeck): Get the real container size, taking the container writing mode into
         // account.  Must handle vertical writing modes.
         let container_size = Size2D::new(self.base.block_container_inline_size, Au(0));

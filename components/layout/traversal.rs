@@ -201,14 +201,14 @@ impl<'a> PostorderFlowTraversal for AssignBSizes<'a> {
 }
 
 #[derive(Copy, Clone)]
-pub struct ComputeAbsolutePositions<'a> {
+pub struct ComputeStackingRelativePositions<'a> {
     pub layout_context: &'a LayoutContext<'a>,
 }
 
-impl<'a> PreorderFlowTraversal for ComputeAbsolutePositions<'a> {
+impl<'a> PreorderFlowTraversal for ComputeStackingRelativePositions<'a> {
     #[inline]
     fn process(&self, flow: &mut Flow) {
-        flow.compute_absolute_position(self.layout_context);
+        flow.compute_stacking_relative_position(self.layout_context);
     }
 }
 

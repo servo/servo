@@ -82,7 +82,7 @@ use layout::query::{process_margin_style_query, process_node_overflow_request, p
 use layout::query::{process_node_geometry_request, process_node_scroll_area_request};
 use layout::query::{process_node_scroll_root_id_request, process_offset_parent_query};
 use layout::sequential;
-use layout::traversal::{ComputeAbsolutePositions, RecalcStyleAndConstructFlows};
+use layout::traversal::{ComputeStackingRelativePositions, RecalcStyleAndConstructFlows};
 use layout::webrender_helpers::WebRenderDisplayListConverter;
 use layout::wrapper::LayoutNodeLayoutData;
 use layout_traits::LayoutThreadFactory;
@@ -975,7 +975,7 @@ impl LayoutThread {
             flow::mut_base(layout_root).clip = data.page_clip_rect;
 
             if flow::base(layout_root).restyle_damage.contains(REPOSITION) {
-                layout_root.traverse_preorder(&ComputeAbsolutePositions {
+                layout_root.traverse_preorder(&ComputeStackingRelativePositions {
                     layout_context: layout_context
                 });
             }
