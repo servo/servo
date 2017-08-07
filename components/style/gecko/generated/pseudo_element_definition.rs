@@ -175,8 +175,13 @@ pub enum PseudoElement {
 
 
 
+
+
 /// The number of eager pseudo-elements.
 pub const EAGER_PSEUDO_COUNT: usize = 4;
+
+/// The number of non-functional pseudo-elements.
+pub const SIMPLE_PSEUDO_COUNT: usize = 71;
 
 /// The list of eager pseudos.
 pub const EAGER_PSEUDOS: [PseudoElement; EAGER_PSEUDO_COUNT] = [
@@ -188,88 +193,7 @@ pub const EAGER_PSEUDOS: [PseudoElement; EAGER_PSEUDO_COUNT] = [
 
 
 
-
-
-
 impl PseudoElement {
-    /// Executes a closure with each simple (not functional)
-    /// pseudo-element as an argument.
-    pub fn each_simple<F>(mut fun: F)
-        where F: FnMut(Self),
-    {
-            fun(PseudoElement::After);
-            fun(PseudoElement::Before);
-            fun(PseudoElement::Backdrop);
-            fun(PseudoElement::Cue);
-            fun(PseudoElement::FirstLetter);
-            fun(PseudoElement::FirstLine);
-            fun(PseudoElement::MozSelection);
-            fun(PseudoElement::MozFocusInner);
-            fun(PseudoElement::MozFocusOuter);
-            fun(PseudoElement::MozListBullet);
-            fun(PseudoElement::MozListNumber);
-            fun(PseudoElement::MozMathAnonymous);
-            fun(PseudoElement::MozNumberWrapper);
-            fun(PseudoElement::MozNumberText);
-            fun(PseudoElement::MozNumberSpinBox);
-            fun(PseudoElement::MozNumberSpinUp);
-            fun(PseudoElement::MozNumberSpinDown);
-            fun(PseudoElement::MozProgressBar);
-            fun(PseudoElement::MozRangeTrack);
-            fun(PseudoElement::MozRangeProgress);
-            fun(PseudoElement::MozRangeThumb);
-            fun(PseudoElement::MozMeterBar);
-            fun(PseudoElement::MozPlaceholder);
-            fun(PseudoElement::Placeholder);
-            fun(PseudoElement::MozColorSwatch);
-            fun(PseudoElement::MozText);
-            fun(PseudoElement::OofPlaceholder);
-            fun(PseudoElement::FirstLetterContinuation);
-            fun(PseudoElement::MozBlockInsideInlineWrapper);
-            fun(PseudoElement::MozMathMLAnonymousBlock);
-            fun(PseudoElement::MozXULAnonymousBlock);
-            fun(PseudoElement::HorizontalFramesetBorder);
-            fun(PseudoElement::VerticalFramesetBorder);
-            fun(PseudoElement::MozLineFrame);
-            fun(PseudoElement::ButtonContent);
-            fun(PseudoElement::CellContent);
-            fun(PseudoElement::DropDownList);
-            fun(PseudoElement::FieldsetContent);
-            fun(PseudoElement::FramesetBlank);
-            fun(PseudoElement::MozDisplayComboboxControlFrame);
-            fun(PseudoElement::HtmlCanvasContent);
-            fun(PseudoElement::InlineTable);
-            fun(PseudoElement::Table);
-            fun(PseudoElement::TableCell);
-            fun(PseudoElement::TableColGroup);
-            fun(PseudoElement::TableCol);
-            fun(PseudoElement::TableWrapper);
-            fun(PseudoElement::TableRowGroup);
-            fun(PseudoElement::TableRow);
-            fun(PseudoElement::Canvas);
-            fun(PseudoElement::PageBreak);
-            fun(PseudoElement::Page);
-            fun(PseudoElement::PageContent);
-            fun(PseudoElement::PageSequence);
-            fun(PseudoElement::ScrolledContent);
-            fun(PseudoElement::ScrolledCanvas);
-            fun(PseudoElement::ScrolledPageSequence);
-            fun(PseudoElement::ColumnContent);
-            fun(PseudoElement::Viewport);
-            fun(PseudoElement::ViewportScroll);
-            fun(PseudoElement::AnonymousFlexItem);
-            fun(PseudoElement::AnonymousGridItem);
-            fun(PseudoElement::Ruby);
-            fun(PseudoElement::RubyBase);
-            fun(PseudoElement::RubyBaseContainer);
-            fun(PseudoElement::RubyText);
-            fun(PseudoElement::RubyTextContainer);
-            fun(PseudoElement::MozSVGMarkerAnonChild);
-            fun(PseudoElement::MozSVGOuterSVGAnonChild);
-            fun(PseudoElement::MozSVGForeignContent);
-            fun(PseudoElement::MozSVGText);
-    }
-
     /// Get the pseudo-element as an atom.
     #[inline]
     pub fn atom(&self) -> Atom {
@@ -358,6 +282,165 @@ impl PseudoElement {
                 PseudoElement::MozSVGForeignContent => atom!(":-moz-svg-foreign-content"),
                 PseudoElement::MozSVGText => atom!(":-moz-svg-text"),
         }
+    }
+
+    /// Returns an index if the pseudo-element is a simple (non-functional)
+    /// pseudo.
+    #[inline]
+    pub fn simple_index(&self) -> Option<usize> {
+        match *self {
+            PseudoElement::After => Some(0),
+            PseudoElement::Before => Some(1),
+            PseudoElement::Backdrop => Some(2),
+            PseudoElement::Cue => Some(3),
+            PseudoElement::FirstLetter => Some(4),
+            PseudoElement::FirstLine => Some(5),
+            PseudoElement::MozSelection => Some(6),
+            PseudoElement::MozFocusInner => Some(7),
+            PseudoElement::MozFocusOuter => Some(8),
+            PseudoElement::MozListBullet => Some(9),
+            PseudoElement::MozListNumber => Some(10),
+            PseudoElement::MozMathAnonymous => Some(11),
+            PseudoElement::MozNumberWrapper => Some(12),
+            PseudoElement::MozNumberText => Some(13),
+            PseudoElement::MozNumberSpinBox => Some(14),
+            PseudoElement::MozNumberSpinUp => Some(15),
+            PseudoElement::MozNumberSpinDown => Some(16),
+            PseudoElement::MozProgressBar => Some(17),
+            PseudoElement::MozRangeTrack => Some(18),
+            PseudoElement::MozRangeProgress => Some(19),
+            PseudoElement::MozRangeThumb => Some(20),
+            PseudoElement::MozMeterBar => Some(21),
+            PseudoElement::MozPlaceholder => Some(22),
+            PseudoElement::Placeholder => Some(23),
+            PseudoElement::MozColorSwatch => Some(24),
+            PseudoElement::MozText => Some(25),
+            PseudoElement::OofPlaceholder => Some(26),
+            PseudoElement::FirstLetterContinuation => Some(27),
+            PseudoElement::MozBlockInsideInlineWrapper => Some(28),
+            PseudoElement::MozMathMLAnonymousBlock => Some(29),
+            PseudoElement::MozXULAnonymousBlock => Some(30),
+            PseudoElement::HorizontalFramesetBorder => Some(31),
+            PseudoElement::VerticalFramesetBorder => Some(32),
+            PseudoElement::MozLineFrame => Some(33),
+            PseudoElement::ButtonContent => Some(34),
+            PseudoElement::CellContent => Some(35),
+            PseudoElement::DropDownList => Some(36),
+            PseudoElement::FieldsetContent => Some(37),
+            PseudoElement::FramesetBlank => Some(38),
+            PseudoElement::MozDisplayComboboxControlFrame => Some(39),
+            PseudoElement::HtmlCanvasContent => Some(40),
+            PseudoElement::InlineTable => Some(41),
+            PseudoElement::Table => Some(42),
+            PseudoElement::TableCell => Some(43),
+            PseudoElement::TableColGroup => Some(44),
+            PseudoElement::TableCol => Some(45),
+            PseudoElement::TableWrapper => Some(46),
+            PseudoElement::TableRowGroup => Some(47),
+            PseudoElement::TableRow => Some(48),
+            PseudoElement::Canvas => Some(49),
+            PseudoElement::PageBreak => Some(50),
+            PseudoElement::Page => Some(51),
+            PseudoElement::PageContent => Some(52),
+            PseudoElement::PageSequence => Some(53),
+            PseudoElement::ScrolledContent => Some(54),
+            PseudoElement::ScrolledCanvas => Some(55),
+            PseudoElement::ScrolledPageSequence => Some(56),
+            PseudoElement::ColumnContent => Some(57),
+            PseudoElement::Viewport => Some(58),
+            PseudoElement::ViewportScroll => Some(59),
+            PseudoElement::AnonymousFlexItem => Some(60),
+            PseudoElement::AnonymousGridItem => Some(61),
+            PseudoElement::Ruby => Some(62),
+            PseudoElement::RubyBase => Some(63),
+            PseudoElement::RubyBaseContainer => Some(64),
+            PseudoElement::RubyText => Some(65),
+            PseudoElement::RubyTextContainer => Some(66),
+            PseudoElement::MozSVGMarkerAnonChild => Some(67),
+            PseudoElement::MozSVGOuterSVGAnonChild => Some(68),
+            PseudoElement::MozSVGForeignContent => Some(69),
+            PseudoElement::MozSVGText => Some(70),
+            _ => None,
+        }
+    }
+
+    /// Returns an array of `None` values.
+    ///
+    /// FIXME(emilio): Integer generics can't come soon enough.
+    pub fn simple_pseudo_none_array<T>() -> [Option<T>; SIMPLE_PSEUDO_COUNT] {
+        [
+            None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None,
+None
+        ]
     }
 
     /// Whether this pseudo-element is an anonymous box.
