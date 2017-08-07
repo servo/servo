@@ -554,12 +554,6 @@ pub trait MutableFlowUtils {
     fn traverse_preorder_absolute_flows<T>(&mut self, traversal: &mut T)
                                            where T: PreorderFlowTraversal;
 
-    /// Traverse the Absolute flow tree in postorder.
-    ///
-    /// Return true if the traversal is to continue or false to stop.
-    fn traverse_postorder_absolute_flows<T>(&mut self, traversal: &mut T)
-                                            where T: PostorderFlowTraversal;
-
     // Mutators
 
     /// Calls `repair_style` and `bubble_inline_sizes`. You should use this method instead of
@@ -1416,18 +1410,6 @@ impl<'a> MutableFlowUtils for &'a mut Flow {
         for ref mut descendant_link in descendant_offset_iter {
             descendant_link.traverse_preorder_absolute_flows(traversal)
         }
-    }
-
-    /// Traverse the Absolute flow tree in postorder.
-    ///
-    /// Return true if the traversal is to continue or false to stop.
-    fn traverse_postorder_absolute_flows<T>(&mut self, traversal: &mut T)
-                                            where T: PostorderFlowTraversal {
-        for mut descendant_link in mut_base(*self).abs_descendants.iter() {
-            descendant_link.traverse_postorder_absolute_flows(traversal);
-        }
-
-        traversal.process(*self)
     }
 }
 
