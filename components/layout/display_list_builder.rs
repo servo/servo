@@ -1177,7 +1177,17 @@ impl FragmentDisplayListBuilding for Fragment {
         // https://github.com/w3c/css-houdini-drafts/issues/417
         let unbordered_box = self.border_box - style.logical_border_width();
         let device_pixel_ratio = state.layout_context.style_context.device_pixel_ratio();
-        let size_in_au = unbordered_box.size.to_physical(style.writing_mode);
+        let unbordered_box_size_in_au = unbordered_box.size.to_physical(style.writing_mode);
+        let background_size = get_cyclic(&style.get_background().background_size.0, index).clone();
+        let size_in_au = match background_size {
+            BackgroundSize::Explicit { width, height } => {
+                Size2D::new(MaybeAuto::from_style(width, unbordered_box_size_in_au.width)
+                                 .specified_or_default(unbordered_box_size_in_au.width),
+                       MaybeAuto::from_style(height, unbordered_box_size_in_au.height)
+                                 .specified_or_default(unbordered_box_size_in_au.height))
+            },
+            _ => unbordered_box_size_in_au,
+        };
         let size_in_px = TypedSize2D::new(size_in_au.width.to_f32_px(), size_in_au.height.to_f32_px());
 
         // TODO: less copying.
