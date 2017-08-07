@@ -403,10 +403,12 @@ impl<T: SelectorMapEntry> SelectorMap<T> {
 ///
 /// The first non-None value returned from |f| is returned.
 #[inline(always)]
-fn find_from_left<F, R>(mut iter: SelectorIter<SelectorImpl>,
-                         mut f: F)
-                         -> Option<R>
-    where F: FnMut(&Component<SelectorImpl>) -> Option<R>,
+fn find_from_left<F, R>(
+    mut iter: SelectorIter<SelectorImpl>,
+    mut f: F
+) -> Option<R>
+where
+    F: FnMut(&Component<SelectorImpl>) -> Option<R>,
 {
     for ss in &mut iter {
         if let Some(r) = f(ss) {
@@ -432,8 +434,6 @@ fn find_from_left<F, R>(mut iter: SelectorIter<SelectorImpl>,
 pub fn get_id_name(iter: SelectorIter<SelectorImpl>)
                    -> Option<Atom> {
     find_from_left(iter, |ss| {
-        // TODO(pradeep): Implement case-sensitivity based on the
-        // document type and quirks mode.
         if let Component::ID(ref id) = *ss {
             return Some(id.clone());
         }
@@ -446,8 +446,6 @@ pub fn get_id_name(iter: SelectorIter<SelectorImpl>)
 pub fn get_class_name(iter: SelectorIter<SelectorImpl>)
                       -> Option<Atom> {
     find_from_left(iter, |ss| {
-        // TODO(pradeep): Implement case-sensitivity based on the
-        // document type and quirks mode.
         if let Component::Class(ref class) = *ss {
             return Some(class.clone());
         }
