@@ -9,7 +9,7 @@ use {Atom, LocalName};
 use applicable_declarations::ApplicableDeclarationBlock;
 use context::QuirksMode;
 use dom::TElement;
-use fnv::FnvHashMap;
+use fxhash::FxHashMap;
 use pdqsort::sort_by;
 use rule_tree::CascadeLevel;
 use selector_parser::SelectorImpl;
@@ -17,7 +17,6 @@ use selectors::matching::{matches_selector, MatchingContext, ElementSelectorFlag
 use selectors::parser::{Component, Combinator, SelectorIter};
 use selectors::parser::LocalName as LocalNameSelector;
 use smallvec::VecLike;
-use std::collections::HashMap;
 use std::collections::hash_map;
 use std::hash::Hash;
 use stylist::Rule;
@@ -58,7 +57,7 @@ pub struct SelectorMap<T> {
     /// A hash from a class name to rules which contain that class selector.
     pub class_hash: MaybeCaseInsensitiveHashMap<Atom, Vec<T>>,
     /// A hash from local name to rules which contain that local name selector.
-    pub local_name_hash: FnvHashMap<LocalName, Vec<T>>,
+    pub local_name_hash: FxHashMap<LocalName, Vec<T>>,
     /// Rules that don't have ID, class, or element selectors.
     pub other: Vec<T>,
     /// The number of entries in this map.
@@ -76,7 +75,7 @@ impl<T> SelectorMap<T> {
         SelectorMap {
             id_hash: MaybeCaseInsensitiveHashMap::new(),
             class_hash: MaybeCaseInsensitiveHashMap::new(),
-            local_name_hash: HashMap::default(),
+            local_name_hash: FxHashMap::default(),
             other: Vec::new(),
             count: 0,
         }
@@ -429,7 +428,7 @@ pub fn get_local_name(iter: SelectorIter<SelectorImpl>)
 }
 
 #[inline]
-fn find_push<Str: Eq + Hash, V>(map: &mut FnvHashMap<Str, Vec<V>>,
+fn find_push<Str: Eq + Hash, V>(map: &mut FxHashMap<Str, Vec<V>>,
                                 key: Str,
                                 value: V) {
     map.entry(key).or_insert_with(Vec::new).push(value)
@@ -438,15 +437,15 @@ fn find_push<Str: Eq + Hash, V>(map: &mut FnvHashMap<Str, Vec<V>>,
 /// Wrapper for FnvHashMap that does ASCII-case-insensitive lookup in quirks mode.
 #[derive(Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub struct MaybeCaseInsensitiveHashMap<K: Hash + Eq, V>(FnvHashMap<K, V>);
+pub struct MaybeCaseInsensitiveHashMap<K: Hash + Eq, V>(FxHashMap<K, V>);
 
 impl<V> MaybeCaseInsensitiveHashMap<Atom, V> {
-    /// Empty map
+    /// Empty map.
     pub fn new() -> Self {
-        MaybeCaseInsensitiveHashMap(FnvHashMap::default())
+        MaybeCaseInsensitiveHashMap(FxHashMap::default())
     }
 
-    /// HashMap::entry
+    /// HashMap::entry.
     pub fn entry(&mut self, mut key: Atom, quirks_mode: QuirksMode) -> hash_map::Entry<Atom, V> {
         if quirks_mode == QuirksMode::Quirks {
             key = key.to_ascii_lowercase()

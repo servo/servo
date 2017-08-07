@@ -1647,7 +1647,7 @@ pub use gecko_properties::style_structs;
 #[cfg(feature = "servo")]
 pub mod style_structs {
     use app_units::Au;
-    use fnv::FnvHasher;
+    use fxhash::FxHasher;
     use super::longhands;
     use std::hash::{Hash, Hasher};
     use logical_geometry::WritingMode;
@@ -1760,7 +1760,7 @@ pub mod style_structs {
                 pub fn compute_font_hash(&mut self) {
                     // Corresponds to the fields in
                     // `gfx::font_template::FontTemplateDescriptor`.
-                    let mut hasher: FnvHasher = Default::default();
+                    let mut hasher: FxHasher = Default::default();
                     hasher.write_u16(self.font_weight.0);
                     self.font_stretch.hash(&mut hasher);
                     self.font_family.hash(&mut hasher);

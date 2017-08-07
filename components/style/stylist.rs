@@ -11,6 +11,7 @@ use context::{CascadeInputs, QuirksMode};
 use dom::TElement;
 use element_state::ElementState;
 use font_metrics::FontMetricsProvider;
+use fxhash::FxHashMap;
 #[cfg(feature = "gecko")]
 use gecko_bindings::structs::{nsIAtom, StyleRuleInclusion};
 use invalidation::element::invalidation_map::InvalidationMap;
@@ -46,8 +47,6 @@ use stylesheets::{StylesheetInDocument, Origin, UserAgentStylesheets};
 use stylesheets::keyframes_rule::KeyframesAnimation;
 use stylesheets::viewport_rule::{self, MaybeNew, ViewportRule};
 use thread_state;
-
-pub use ::fnv::FnvHashMap;
 
 /// This structure holds all the selectors and device characteristics
 /// for a given document. The selectors are converted into `Rule`s
@@ -98,18 +97,20 @@ pub struct Stylist {
     rule_tree: RuleTree,
 
     /// The selector maps corresponding to a given pseudo-element
-    /// (depending on the implementation)
-    pseudos_map: FnvHashMap<PseudoElement, PerPseudoElementSelectorMap>,
+    /// (depending on the implementation).
+    ///
+    /// FIXME(emilio): This could / should probably just be an array.
+    pseudos_map: FxHashMap<PseudoElement, PerPseudoElementSelectorMap>,
 
     /// A map with all the animations indexed by name.
-    animations: FnvHashMap<Atom, KeyframesAnimation>,
+    animations: FxHashMap<Atom, KeyframesAnimation>,
 
     /// Applicable declarations for a given non-eagerly cascaded pseudo-element.
     /// These are eagerly computed once, and then used to resolve the new
     /// computed values on the fly on layout.
     ///
     /// FIXME(emilio): Use the rule tree!
-    precomputed_pseudo_element_decls: FnvHashMap<PseudoElement, Vec<ApplicableDeclarationBlock>>,
+    precomputed_pseudo_element_decls: FxHashMap<PseudoElement, Vec<ApplicableDeclarationBlock>>,
 
     /// A monotonically increasing counter to represent the order on which a
     /// style rule appears in a stylesheet, needed to sort them by source order.
@@ -172,7 +173,7 @@ pub struct ExtraStyleData<'a> {
     /// A list of effective font-face rules and their origin.
     pub font_faces: &'a mut Vec<(Arc<Locked<FontFaceRule>>, Origin)>,
     /// A map of effective counter-style rules.
-    pub counter_styles: &'a mut FnvHashMap<Atom, Arc<Locked<CounterStyleRule>>>,
+    pub counter_styles: &'a mut FxHashMap<Atom, Arc<Locked<CounterStyleRule>>>,
 }
 
 #[cfg(feature = "gecko")]
@@ -1334,7 +1335,7 @@ impl Stylist {
 
     /// Returns the map of registered `@keyframes` animations.
     #[inline]
-    pub fn animations(&self) -> &FnvHashMap<Atom, KeyframesAnimation> {
+    pub fn animations(&self) -> &FxHashMap<Atom, KeyframesAnimation> {
         &self.animations
     }
 

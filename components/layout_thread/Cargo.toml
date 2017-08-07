@@ -13,7 +13,7 @@ path = "lib.rs"
 app_units = "0.5"
 atomic_refcell = "0.1"
 euclid = "0.15"
-fnv = "1.0"
+fxhash = "0.2"
 gfx = {path = "../gfx"}
 gfx_traits = {path = "../gfx_traits"}
 heapsize = "0.4"

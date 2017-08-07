@@ -6,7 +6,7 @@ use {Prefix, Namespace};
 use context::QuirksMode;
 use cssparser::{Parser, RuleListParser, ParserInput};
 use error_reporting::{ParseErrorReporter, ContextualParseError};
-use fnv::FnvHashMap;
+use fxhash::FxHashMap;
 use media_queries::{MediaList, Device};
 use parking_lot::RwLock;
 use parser::{ParserContext, log_css_error};
@@ -39,7 +39,7 @@ pub struct UserAgentStylesheets {
 #[allow(missing_docs)]
 pub struct Namespaces {
     pub default: Option<(Namespace, NamespaceId)>,
-    pub prefixes: FnvHashMap<Prefix, (Namespace, NamespaceId)>,
+    pub prefixes: FxHashMap<Prefix, (Namespace, NamespaceId)>,
 }
 
 /// The contents of a given stylesheet. This effectively maps to a

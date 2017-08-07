@@ -6,7 +6,7 @@
 
 use context::LayoutContext;
 use flow::{self, Flow};
-use fnv::FnvHashMap;
+use fxhash::FxHashMap;
 use gfx::display_list::OpaqueNode;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
@@ -24,8 +24,8 @@ use style::timer::Timer;
 /// `expired_animations`.
 pub fn update_animation_state(constellation_chan: &IpcSender<ConstellationMsg>,
                               script_chan: &IpcSender<ConstellationControlMsg>,
-                              running_animations: &mut FnvHashMap<OpaqueNode, Vec<Animation>>,
-                              expired_animations: &mut FnvHashMap<OpaqueNode, Vec<Animation>>,
+                              running_animations: &mut FxHashMap<OpaqueNode, Vec<Animation>>,
+                              expired_animations: &mut FxHashMap<OpaqueNode, Vec<Animation>>,
                               mut newly_transitioning_nodes: Option<&mut Vec<UntrustedNodeAddress>>,
                               new_animations_receiver: &Receiver<Animation>,
                               pipeline_id: PipelineId,
@@ -149,7 +149,7 @@ pub fn update_animation_state(constellation_chan: &IpcSender<ConstellationMsg>,
 // this should be made generic.
 pub fn recalc_style_for_animations(context: &LayoutContext,
                                    flow: &mut Flow,
-                                   animations: &FnvHashMap<OpaqueNode,
+                                   animations: &FxHashMap<OpaqueNode,
                                                         Vec<Animation>>) {
     let mut damage = RestyleDamage::empty();
     flow.mutate_fragments(&mut |fragment| {

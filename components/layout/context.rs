@@ -4,7 +4,7 @@
 
 //! Data needed by the layout thread.
 
-use fnv::FnvHasher;
+use fxhash::FxHashMap;
 use gfx::display_list::{WebRenderImageInfo, OpaqueNode};
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context::FontContext;
@@ -20,8 +20,6 @@ use script_traits::UntrustedNodeAddress;
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use std::cell::{RefCell, RefMut};
-use std::collections::HashMap;
-use std::hash::BuildHasherDefault;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use style::context::RegisteredSpeculativePainter;
@@ -67,9 +65,8 @@ pub struct LayoutContext<'a> {
     pub font_cache_thread: Mutex<FontCacheThread>,
 
     /// A cache of WebRender image info.
-    pub webrender_image_cache: Arc<RwLock<HashMap<(ServoUrl, UsePlaceholder),
-                                                  WebRenderImageInfo,
-                                                  BuildHasherDefault<FnvHasher>>>>,
+    pub webrender_image_cache: Arc<RwLock<FxHashMap<(ServoUrl, UsePlaceholder),
+                                                    WebRenderImageInfo>>>,
 
     /// Paint worklets
     pub registered_painters: &'a RegisteredPainters,
