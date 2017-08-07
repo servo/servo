@@ -10,6 +10,7 @@ interface StylePropertyMapReadOnly {
     // sequence<CSSStyleValue> getAll(DOMString property);
     boolean has(DOMString property);
     // iterable<DOMString, (CSSStyleValue or sequence<CSSStyleValue>)>;
-    // sequence<DOMString> getProperties();
+    sequence<DOMString> getProperties();
+    // https://github.com/w3c/css-houdini-drafts/issues/268
     // stringifier;
 };
