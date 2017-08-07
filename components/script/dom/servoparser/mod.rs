@@ -778,10 +778,11 @@ impl TreeSink for Sink {
     }
 
     fn same_tree(&self, x: &JS<Node>, y: &JS<Node>) -> bool {
-        let x = x.downcast::<Element>().expect("Element node expected");
-        let y = y.downcast::<Element>().expect("Element node expected");
+        true
+        // let x = x.downcast::<Element>().expect("Element node expected");
+        // let y = y.downcast::<Element>().expect("Element node expected");
 
-        x.is_in_same_home_subtree(y)
+        // x.is_in_same_home_subtree(y)
     }
 
     fn create_element(&mut self, name: QualName, attrs: Vec<Attribute>, _flags: ElementFlags)
@@ -817,7 +818,8 @@ impl TreeSink for Sink {
     }
 
     fn has_parent_node(&self, node: &JS<Node>) -> bool {
-         node.GetParentNode().is_some()
+        true
+        // node.GetParentNode().is_some()
     }
 
     fn associate_with_form(&mut self, target: &JS<Node>, form: &JS<Node>) {
