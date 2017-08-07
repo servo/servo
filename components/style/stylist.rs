@@ -458,6 +458,10 @@ impl Stylist {
         self.effective_media_query_results.saw_effective(stylesheet);
 
         let origin = stylesheet.origin(guard);
+
+        let origin_cascade_data =
+            self.cascade_data.borrow_mut_for_origin(&origin);
+
         for rule in stylesheet.effective_rules(&self.device, guard) {
             match *rule {
                 CssRule::Style(ref locked) => {
@@ -469,8 +473,7 @@ impl Stylist {
                         let hashes =
                             AncestorHashes::new(&selector, self.quirks_mode);
 
-                        self.cascade_data
-                            .borrow_mut_for_origin(&origin)
+                        origin_cascade_data
                             .borrow_mut_for_pseudo_or_insert(selector.pseudo_element())
                             .insert(
                                 Rule::new(selector.clone(),
