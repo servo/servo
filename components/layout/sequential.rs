@@ -9,7 +9,7 @@ use context::LayoutContext;
 use display_list_builder::DisplayListBuildState;
 use euclid::{Point2D, Vector2D};
 use floats::SpeculatedFloatPlacement;
-use flow::{self, Flow, ImmutableFlowUtils, InorderFlowTraversal, MutableFlowUtils};
+use flow::{self, Flow, ImmutableFlowUtils, MutableFlowUtils};
 use flow::{PostorderFlowTraversal, PreorderFlowTraversal};
 use flow::IS_ABSOLUTELY_POSITIONED;
 use fragment::{FragmentBorderBoxIterator, CoordinateSystem};
@@ -22,20 +22,8 @@ use traversal::{AssignBSizes, AssignISizes, BubbleISizes, BuildDisplayList};
 pub use style::sequential::traverse_dom;
 
 pub fn resolve_generated_content(root: &mut Flow, layout_context: &LayoutContext) {
-    fn doit(flow: &mut Flow, level: u32, traversal: &mut ResolveGeneratedContent) {
-        if !traversal.should_process(flow) {
-            return;
-        }
-
-        traversal.process(flow, level);
-
-        for kid in flow::mut_base(flow).children.iter_mut() {
-            doit(kid, level + 1, traversal)
-        }
-    }
-
     let mut traversal = ResolveGeneratedContent::new(&layout_context);
-    doit(root, 0, &mut traversal)
+    root.traverse_inorder(&mut traversal, 0);
 }
 
 pub fn traverse_flow_tree_preorder(root: &mut Flow, layout_context: &LayoutContext, relayout_mode: RelayoutMode) {

@@ -542,6 +542,9 @@ pub trait MutableFlowUtils {
     /// Traverses the tree in postorder.
     fn traverse_postorder<T: PostorderFlowTraversal>(self, traversal: &T);
 
+    /// Traverses the tree in-order.
+    fn traverse_inorder<T: InorderFlowTraversal>(self, traversal: &mut T, level: u32);
+
     /// Traverse the Absolute flow tree in preorder.
     ///
     /// Traverse all your direct absolute descendants, who will then traverse
@@ -643,7 +646,7 @@ pub trait InorderFlowTraversal {
 
     /// Returns true if this node should be processed and false if neither this node nor its
     /// descendants should be processed.
-    fn should_process(&mut self, flow: &mut Flow) -> bool;
+    fn should_process_subtree(&mut self, flow: &mut Flow) -> bool;
 }
 
 bitflags! {
@@ -1378,6 +1381,18 @@ impl<'a> MutableFlowUtils for &'a mut Flow {
         }
     }
 
+    /// Traverses the tree in-order.
+    fn traverse_inorder<T: InorderFlowTraversal>(self, traversal: &mut T, level: u32) {
+        if !traversal.should_process_subtree(self) {
+            return;
+        }
+
+        traversal.process(self, level);
+
+        for kid in child_iter_mut(self) {
+            kid.traverse_inorder(traversal, level + 1);
+        }
+    }
 
     /// Calls `repair_style` and `bubble_inline_sizes`. You should use this method instead of
     /// calling them individually, since there is no reason not to perform both operations.

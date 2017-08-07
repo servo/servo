@@ -130,7 +130,7 @@ impl<'a> InorderFlowTraversal for ResolveGeneratedContent<'a> {
     }
 
     #[inline]
-    fn should_process(&mut self, flow: &mut Flow) -> bool {
+    fn should_process_subtree(&mut self, flow: &mut Flow) -> bool {
         flow::base(flow).restyle_damage.intersects(RESOLVE_GENERATED_CONTENT) ||
             flow::base(flow).flags.intersects(AFFECTS_COUNTERS | HAS_COUNTER_AFFECTING_CHILDREN)
     }
