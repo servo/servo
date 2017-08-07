@@ -15,7 +15,7 @@ use style::context::{SharedStyleContext, StyleContext};
 use style::data::ElementData;
 use style::dom::{NodeInfo, TElement, TNode};
 use style::selector_parser::RestyleDamage;
-use style::servo::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT};
+use style::servo::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, REPOSITION};
 use style::traversal::{DomTraversal, TraversalDriver, recalc_style_at};
 use style::traversal::PerLevelTraversalData;
 use wrapper::{GetRawData, LayoutNodeLayoutData};
@@ -200,18 +200,6 @@ impl<'a> PostorderFlowTraversal for AssignBSizes<'a> {
     }
 }
 
-#[derive(Copy, Clone)]
-pub struct ComputeAbsolutePositions<'a> {
-    pub layout_context: &'a LayoutContext<'a>,
-}
-
-impl<'a> PreorderFlowTraversal for ComputeAbsolutePositions<'a> {
-    #[inline]
-    fn process(&self, flow: &mut Flow) {
-        flow.compute_absolute_position(self.layout_context);
-    }
-}
-
 pub struct BuildDisplayList<'a> {
     pub state: DisplayListBuildState<'a>,
 }
@@ -226,10 +214,12 @@ impl<'a> BuildDisplayList<'a> {
         self.state.current_clip_and_scroll_info =
             flow.clip_and_scroll_info(self.state.layout_context.id);
 
-        if self.should_process() {
-            flow.build_display_list(&mut self.state);
-            flow::mut_base(flow).restyle_damage.remove(REPAINT);
+        if flow::base(flow).restyle_damage.contains(REPOSITION) {
+            flow.compute_stacking_relative_position(self.state.layout_context);
         }
+
+        flow.build_display_list(&mut self.state);
+        flow::mut_base(flow).restyle_damage.remove(REPOSITION|REPAINT);
 
         for kid in flow::child_iter_mut(flow) {
             self.traverse(kid);
@@ -237,10 +227,5 @@ impl<'a> BuildDisplayList<'a> {
 
         self.state.current_stacking_context_id = parent_stacking_context_id;
         self.state.current_clip_and_scroll_info = parent_clip_and_scroll_info;
-    }
-
-    #[inline]
-    fn should_process(&self) -> bool {
-        true
     }
 }

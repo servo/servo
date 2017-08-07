@@ -54,7 +54,7 @@ use style::context::SharedStyleContext;
 use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
 use style::properties::ComputedValues;
 use style::selector_parser::RestyleDamage;
-use style::servo::restyle_damage::{RECONSTRUCT_FLOW, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, REPOSITION};
+use style::servo::restyle_damage::{RECONSTRUCT_FLOW, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT};
 use style::values::computed::LengthOrPercentageOrAuto;
 use table::TableFlow;
 use table_caption::TableCaptionFlow;
@@ -342,7 +342,6 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
     /// Phase 4 of reflow: computes absolute positions.
     fn compute_absolute_position(&mut self, _: &LayoutContext) {
         // The default implementation is a no-op.
-        mut_base(self).restyle_damage.remove(REPOSITION)
     }
 
     /// Phase 5 of reflow: builds display lists.
@@ -551,8 +550,7 @@ pub trait MutableFlowUtils {
     /// their direct absolute descendants.
     ///
     /// Return true if the traversal is to continue or false to stop.
-    fn traverse_preorder_absolute_flows<T>(&mut self, traversal: &mut T)
-                                           where T: PreorderFlowTraversal;
+    fn traverse_preorder_absolute_flows<T: PreorderFlowTraversal>(self, traversal: &mut T);
 
     // Mutators
 
@@ -1402,11 +1400,13 @@ impl<'a> MutableFlowUtils for &'a mut Flow {
     /// their direct absolute descendants.
     ///
     /// Return true if the traversal is to continue or false to stop.
-    fn traverse_preorder_absolute_flows<T>(&mut self, traversal: &mut T)
+    fn traverse_preorder_absolute_flows<T>(self, traversal: &mut T)
                                            where T: PreorderFlowTraversal {
-        traversal.process(*self);
+        if traversal.should_process(self) {
+            traversal.process(self);
+        }
 
-        let descendant_offset_iter = mut_base(*self).abs_descendants.iter();
+        let descendant_offset_iter = mut_base(self).abs_descendants.iter();
         for ref mut descendant_link in descendant_offset_iter {
             descendant_link.traverse_preorder_absolute_flows(traversal)
         }
