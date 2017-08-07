@@ -574,7 +574,7 @@ impl LengthOrNumber {
 pub type LengthOrNormal = Either<Length, Normal>;
 
 /// A value suitable for a `min-width`, `min-height`, `width` or `height` property.
-/// See specified/values/length.rs for more details.
+/// See values/specified/length.rs for more details.
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, Copy, Debug, PartialEq, ToCss)]
@@ -618,7 +618,7 @@ impl ToComputedValue for specified::MozLength {
 }
 
 /// A value suitable for a `max-width` or `max-height` property.
-/// See specified/values/length.rs for more details.
+/// See values/specified/length.rs for more details.
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, Copy, Debug, PartialEq, ToCss)]
