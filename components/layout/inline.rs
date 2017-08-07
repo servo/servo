@@ -12,8 +12,7 @@ use display_list_builder::{DisplayListBuildState, InlineFlowDisplayListBuilding}
 use euclid::{Point2D, Size2D};
 use floats::{FloatKind, Floats, PlacementInfo};
 use flow::{self, BaseFlow, Flow, FlowClass, ForceNonfloatedFlag};
-use flow::{CONTAINS_TEXT_OR_REPLACED_FRAGMENTS, EarlyAbsolutePositionInfo, MutableFlowUtils};
-use flow::OpaqueFlow;
+use flow::{CONTAINS_TEXT_OR_REPLACED_FRAGMENTS, EarlyAbsolutePositionInfo, OpaqueFlow};
 use flow_ref::FlowRef;
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, Overflow};
 use fragment::IS_ELLIPSIS;
@@ -36,6 +35,7 @@ use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
 use style::properties::{longhands, ComputedValues};
 use style::servo::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPOSITION, RESOLVE_GENERATED_CONTENT};
 use text;
+use traversal::PreorderFlowTraversal;
 use unicode_bidi as bidi;
 
 /// `Line`s are represented as offsets into the child list, rather than
@@ -1490,8 +1490,8 @@ impl Flow for InlineFlow {
             // Assign block-sizes for all flows in this absolute flow tree.
             // This is preorder because the block-size of an absolute flow may depend on
             // the block-size of its containing block, which may also be an absolute flow.
-            (&mut *self as &mut Flow).traverse_preorder_absolute_flows(
-                &mut AbsoluteAssignBSizesTraversal(layout_context.shared_context()));
+            let assign_abs_b_sizes = AbsoluteAssignBSizesTraversal(layout_context.shared_context());
+            assign_abs_b_sizes.traverse_absolute_flows(&mut *self);
         }
 
         self.base.position.size.block = match self.last_line_containing_real_fragments() {

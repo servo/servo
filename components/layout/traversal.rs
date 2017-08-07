@@ -7,8 +7,7 @@
 use construct::FlowConstructor;
 use context::LayoutContext;
 use display_list_builder::DisplayListBuildState;
-use flow::{self, PreorderFlowTraversal};
-use flow::{CAN_BE_FRAGMENTED, Flow, ImmutableFlowUtils, PostorderFlowTraversal};
+use flow::{self, CAN_BE_FRAGMENTED, Flow, ImmutableFlowUtils};
 use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
 use servo_config::opts;
 use style::context::{SharedStyleContext, StyleContext};
@@ -89,6 +88,90 @@ impl<'a, E> DomTraversal<E> for RecalcStyleAndConstructFlows<'a>
 
     fn is_parallel(&self) -> bool {
         self.driver.is_parallel()
+    }
+}
+
+/// A top-down traversal.
+pub trait PreorderFlowTraversal {
+    /// The operation to perform. Return true to continue or false to stop.
+    fn process(&self, flow: &mut Flow);
+
+    /// Returns true if this node must be processed in-order. If this returns false,
+    /// we skip the operation for this node, but continue processing the descendants.
+    /// This is called *after* parent nodes are visited.
+    fn should_process(&self, _flow: &mut Flow) -> bool {
+        true
+    }
+
+    /// Traverses the tree in preorder.
+    fn traverse(&self, flow: &mut Flow) {
+        if self.should_process(flow) {
+            self.process(flow);
+        }
+        for kid in flow::child_iter_mut(flow) {
+            self.traverse(kid);
+        }
+    }
+
+    /// Traverse the Absolute flow tree in preorder.
+    ///
+    /// Traverse all your direct absolute descendants, who will then traverse
+    /// their direct absolute descendants.
+    ///
+    /// Return true if the traversal is to continue or false to stop.
+    fn traverse_absolute_flows(&self, flow: &mut Flow) {
+        if self.should_process(flow) {
+            self.process(flow);
+        }
+        for descendant_link in flow::mut_base(flow).abs_descendants.iter() {
+            self.traverse_absolute_flows(descendant_link)
+        }
+    }
+}
+
+/// A bottom-up traversal, with a optional in-order pass.
+pub trait PostorderFlowTraversal {
+    /// The operation to perform. Return true to continue or false to stop.
+    fn process(&self, flow: &mut Flow);
+
+    /// Returns false if this node must be processed in-order. If this returns false, we skip the
+    /// operation for this node, but continue processing the ancestors. This is called *after*
+    /// child nodes are visited.
+    fn should_process(&self, _flow: &mut Flow) -> bool {
+        true
+    }
+
+    /// Traverses the tree in postorder.
+    fn traverse(&self, flow: &mut Flow) {
+        for kid in flow::child_iter_mut(flow) {
+            self.traverse(kid);
+        }
+        if self.should_process(flow) {
+            self.process(flow);
+        }
+    }
+}
+
+/// An in-order (sequential only) traversal.
+pub trait InorderFlowTraversal {
+    /// The operation to perform. Returns the level of the tree we're at.
+    fn process(&mut self, flow: &mut Flow, level: u32);
+
+    /// Returns true if this node should be processed and false if neither this node nor its
+    /// descendants should be processed.
+    fn should_process_subtree(&mut self, _flow: &mut Flow) -> bool {
+        true
+    }
+
+    /// Traverses the tree in-order.
+    fn traverse(&mut self, flow: &mut Flow, level: u32) {
+        if !self.should_process_subtree(flow) {
+            return;
+        }
+        self.process(flow, level);
+        for kid in flow::child_iter_mut(flow) {
+            self.traverse(kid, level + 1);
+        }
     }
 }
 

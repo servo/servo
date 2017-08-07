@@ -9,7 +9,7 @@
 #![allow(unsafe_code)]
 
 use context::LayoutContext;
-use flow::{self, Flow, MutableFlowUtils, PostorderFlowTraversal, PreorderFlowTraversal};
+use flow::{self, Flow};
 use flow_ref::FlowRef;
 use profile_traits::time::{self, TimerMetadata, profile};
 use rayon;
@@ -18,8 +18,8 @@ use smallvec::SmallVec;
 use std::mem;
 use std::sync::atomic::{AtomicIsize, Ordering};
 use style::dom::UnsafeNode;
-use traversal::{AssignISizes, BubbleISizes};
-use traversal::AssignBSizes;
+use traversal::{AssignBSizes, AssignISizes, BubbleISizes};
+use traversal::{PostorderFlowTraversal, PreorderFlowTraversal};
 
 pub use style::parallel::traverse_dom;
 
@@ -195,7 +195,7 @@ pub fn traverse_flow_tree_preorder(
         queue: &rayon::ThreadPool) {
     if opts::get().bubble_inline_sizes_separately {
         let bubble_inline_sizes = BubbleISizes { layout_context: &context };
-        root.traverse_postorder(&bubble_inline_sizes);
+        bubble_inline_sizes.traverse(root);
     }
 
     let assign_isize_traversal = &AssignISizes { layout_context: &context };

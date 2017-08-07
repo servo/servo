@@ -36,9 +36,8 @@ use floats::{ClearType, FloatKind, Floats, PlacementInfo};
 use flow::{self, BaseFlow, EarlyAbsolutePositionInfo, Flow, FlowClass, ForceNonfloatedFlag};
 use flow::{BLOCK_POSITION_IS_STATIC, CLEARS_LEFT, CLEARS_RIGHT};
 use flow::{CONTAINS_TEXT_OR_REPLACED_FRAGMENTS, INLINE_POSITION_IS_STATIC};
-use flow::{FragmentationContext, MARGINS_CANNOT_COLLAPSE, PreorderFlowTraversal};
-use flow::{ImmutableFlowUtils, LateAbsolutePositionInfo, MutableFlowUtils, OpaqueFlow};
-use flow::IS_ABSOLUTELY_POSITIONED;
+use flow::{IS_ABSOLUTELY_POSITIONED, FragmentationContext, MARGINS_CANNOT_COLLAPSE};
+use flow::{ImmutableFlowUtils, LateAbsolutePositionInfo, OpaqueFlow};
 use flow_list::FlowList;
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, Overflow};
 use fragment::{IS_INLINE_FLEX_ITEM, IS_BLOCK_FLEX_ITEM};
@@ -60,6 +59,7 @@ use style::properties::ComputedValues;
 use style::servo::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPOSITION};
 use style::values::computed::{LengthOrPercentageOrNone, LengthOrPercentage};
 use style::values::computed::LengthOrPercentageOrAuto;
+use traversal::PreorderFlowTraversal;
 
 /// Information specific to floated blocks.
 #[derive(Clone, Serialize)]
@@ -1065,8 +1065,8 @@ impl BlockFlow {
             // Assign block-sizes for all flows in this absolute flow tree.
             // This is preorder because the block-size of an absolute flow may depend on
             // the block-size of its containing block, which may also be an absolute flow.
-            (&mut *self as &mut Flow).traverse_preorder_absolute_flows(
-                &mut AbsoluteAssignBSizesTraversal(layout_context.shared_context()));
+            let assign_abs_b_sizes = AbsoluteAssignBSizesTraversal(layout_context.shared_context());
+            assign_abs_b_sizes.traverse_absolute_flows(&mut *self);
         }
 
         // Don't remove the dirty bits yet if we're absolutely-positioned, since our final size

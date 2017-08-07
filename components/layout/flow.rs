@@ -535,28 +535,6 @@ pub trait ImmutableFlowUtils {
 }
 
 pub trait MutableFlowUtils {
-    // Traversals
-
-    /// Traverses the tree in preorder.
-    fn traverse_preorder<T: PreorderFlowTraversal>(self, traversal: &T);
-
-    /// Traverses the tree in postorder.
-    fn traverse_postorder<T: PostorderFlowTraversal>(self, traversal: &T);
-
-    /// Traverses the tree in-order.
-    fn traverse_inorder<T: InorderFlowTraversal>(self, traversal: &mut T, level: u32);
-
-    /// Traverse the Absolute flow tree in preorder.
-    ///
-    /// Traverse all your direct absolute descendants, who will then traverse
-    /// their direct absolute descendants.
-    ///
-    /// Return true if the traversal is to continue or false to stop.
-    fn traverse_preorder_absolute_flows<T>(&mut self, traversal: &mut T)
-                                           where T: PreorderFlowTraversal;
-
-    // Mutators
-
     /// Calls `repair_style` and `bubble_inline_sizes`. You should use this method instead of
     /// calling them individually, since there is no reason not to perform both operations.
     fn repair_style_and_bubble_inline_sizes(self, style: &::ServoArc<ComputedValues>);
@@ -606,42 +584,6 @@ impl FlowClass {
             _ => false,
         }
     }
-}
-
-/// A top-down traversal.
-pub trait PreorderFlowTraversal {
-    /// The operation to perform. Return true to continue or false to stop.
-    fn process(&self, flow: &mut Flow);
-
-    /// Returns true if this node must be processed in-order. If this returns false,
-    /// we skip the operation for this node, but continue processing the descendants.
-    /// This is called *after* parent nodes are visited.
-    fn should_process(&self, _flow: &mut Flow) -> bool {
-        true
-    }
-}
-
-/// A bottom-up traversal, with a optional in-order pass.
-pub trait PostorderFlowTraversal {
-    /// The operation to perform. Return true to continue or false to stop.
-    fn process(&self, flow: &mut Flow);
-
-    /// Returns false if this node must be processed in-order. If this returns false, we skip the
-    /// operation for this node, but continue processing the ancestors. This is called *after*
-    /// child nodes are visited.
-    fn should_process(&self, _flow: &mut Flow) -> bool {
-        true
-    }
-}
-
-/// An in-order (sequential only) traversal.
-pub trait InorderFlowTraversal {
-    /// The operation to perform. Returns the level of the tree we're at.
-    fn process(&mut self, flow: &mut Flow, level: u32);
-
-    /// Returns true if this node should be processed and false if neither this node nor its
-    /// descendants should be processed.
-    fn should_process_subtree(&mut self, flow: &mut Flow) -> bool;
 }
 
 bitflags! {
@@ -1354,63 +1296,12 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
 }
 
 impl<'a> MutableFlowUtils for &'a mut Flow {
-    /// Traverses the tree in preorder.
-    fn traverse_preorder<T: PreorderFlowTraversal>(self, traversal: &T) {
-        if traversal.should_process(self) {
-            traversal.process(self);
-        }
-
-        for kid in child_iter_mut(self) {
-            kid.traverse_preorder(traversal);
-        }
-    }
-
-    /// Traverses the tree in postorder.
-    fn traverse_postorder<T: PostorderFlowTraversal>(self, traversal: &T) {
-        for kid in child_iter_mut(self) {
-            kid.traverse_postorder(traversal);
-        }
-
-        if traversal.should_process(self) {
-            traversal.process(self)
-        }
-    }
-
-    /// Traverses the tree in-order.
-    fn traverse_inorder<T: InorderFlowTraversal>(self, traversal: &mut T, level: u32) {
-        if !traversal.should_process_subtree(self) {
-            return;
-        }
-
-        traversal.process(self, level);
-
-        for kid in child_iter_mut(self) {
-            kid.traverse_inorder(traversal, level + 1);
-        }
-    }
-
     /// Calls `repair_style` and `bubble_inline_sizes`. You should use this method instead of
     /// calling them individually, since there is no reason not to perform both operations.
     fn repair_style_and_bubble_inline_sizes(self, style: &::ServoArc<ComputedValues>) {
         self.repair_style(style);
         mut_base(self).update_flags_if_needed(style);
         self.bubble_inline_sizes();
-    }
-
-    /// Traverse the Absolute flow tree in preorder.
-    ///
-    /// Traverse all your direct absolute descendants, who will then traverse
-    /// their direct absolute descendants.
-    ///
-    /// Return true if the traversal is to continue or false to stop.
-    fn traverse_preorder_absolute_flows<T>(&mut self, traversal: &mut T)
-                                           where T: PreorderFlowTraversal {
-        traversal.process(*self);
-
-        let descendant_offset_iter = mut_base(*self).abs_descendants.iter();
-        for ref mut descendant_link in descendant_offset_iter {
-            descendant_link.traverse_preorder_absolute_flows(traversal)
-        }
     }
 }
 

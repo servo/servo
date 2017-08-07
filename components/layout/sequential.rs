@@ -9,21 +9,19 @@ use context::LayoutContext;
 use display_list_builder::DisplayListBuildState;
 use euclid::{Point2D, Vector2D};
 use floats::SpeculatedFloatPlacement;
-use flow::{self, Flow, ImmutableFlowUtils, MutableFlowUtils};
-use flow::{PostorderFlowTraversal, PreorderFlowTraversal};
-use flow::IS_ABSOLUTELY_POSITIONED;
+use flow::{self, Flow, ImmutableFlowUtils, IS_ABSOLUTELY_POSITIONED};
 use fragment::{FragmentBorderBoxIterator, CoordinateSystem};
 use generated_content::ResolveGeneratedContent;
 use incremental::RelayoutMode;
 use servo_config::opts;
 use style::servo::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW, STORE_OVERFLOW};
 use traversal::{AssignBSizes, AssignISizes, BubbleISizes, BuildDisplayList};
+use traversal::{InorderFlowTraversal, PostorderFlowTraversal, PreorderFlowTraversal};
 
 pub use style::sequential::traverse_dom;
 
 pub fn resolve_generated_content(root: &mut Flow, layout_context: &LayoutContext) {
-    let mut traversal = ResolveGeneratedContent::new(&layout_context);
-    root.traverse_inorder(&mut traversal, 0);
+    ResolveGeneratedContent::new(&layout_context).traverse(root, 0);
 }
 
 pub fn traverse_flow_tree_preorder(root: &mut Flow, layout_context: &LayoutContext, relayout_mode: RelayoutMode) {
@@ -56,10 +54,7 @@ pub fn traverse_flow_tree_preorder(root: &mut Flow, layout_context: &LayoutConte
         let bubble_inline_sizes = BubbleISizes {
             layout_context: &layout_context,
         };
-        {
-            let root: &mut Flow = root;
-            root.traverse_postorder(&bubble_inline_sizes);
-        }
+        bubble_inline_sizes.traverse(root);
     }
 
     let assign_inline_sizes = AssignISizes {
