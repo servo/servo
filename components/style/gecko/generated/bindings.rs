@@ -968,6 +968,31 @@ extern "C" {
                                   src: *const CounterStylePtr);
 }
 extern "C" {
+    pub fn Gecko_CounterStyle_IsNone(ptr: *const CounterStylePtr) -> bool;
+}
+extern "C" {
+    pub fn Gecko_CounterStyle_IsName(ptr: *const CounterStylePtr) -> bool;
+}
+extern "C" {
+    pub fn Gecko_CounterStyle_GetName(ptr: *const CounterStylePtr,
+                                      result: *mut nsAString);
+}
+extern "C" {
+    pub fn Gecko_CounterStyle_GetSymbols(ptr: *const CounterStylePtr)
+     -> *const nsTArray<nsStringRepr>;
+}
+extern "C" {
+    pub fn Gecko_CounterStyle_GetSystem(ptr: *const CounterStylePtr) -> u8;
+}
+extern "C" {
+    pub fn Gecko_CounterStyle_IsSingleString(ptr: *const CounterStylePtr)
+     -> bool;
+}
+extern "C" {
+    pub fn Gecko_CounterStyle_GetSingleString(ptr: *const CounterStylePtr,
+                                              result: *mut nsAString);
+}
+extern "C" {
     pub fn Gecko_SetNullImageValue(image: *mut nsStyleImage);
 }
 extern "C" {
@@ -1864,9 +1889,6 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_Destroy_nsStyleEffects(ptr: *mut nsStyleEffects);
-}
-extern "C" {
-    pub fn Gecko_Construct_nsStyleVariables(ptr: *mut nsStyleVariables);
 }
 extern "C" {
     pub fn Gecko_RegisterProfilerThread(name: *const ::std::os::raw::c_char);
