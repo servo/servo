@@ -156,11 +156,8 @@ impl WeakAtom {
     /// Returns the length of the atom string.
     #[inline]
     pub fn len(&self) -> u32 {
-        // FIXME(emilio): re-introduce bitfield accessors:
-        //
-        // https://github.com/servo/rust-bindgen/issues/519
         unsafe {
-            (*self.as_ptr())._bitfield_1 & 0x7FFFFFFF
+            (*self.as_ptr()).mLength()
         }
     }
 
