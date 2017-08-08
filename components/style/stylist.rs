@@ -464,34 +464,33 @@ impl Stylist {
                         self.num_selectors += 1;
 
                         let map = match selector.pseudo_element() {
+                            Some(pseudo) if pseudo.is_precomputed() => {
+                                if !selector.is_universal() ||
+                                   !matches!(origin, Origin::UserAgent) {
+                                    // ::-moz-tree selectors may appear in
+                                    // non-UA sheets (even though they never
+                                    // match).
+                                    continue;
+                                }
+
+                                self.precomputed_pseudo_element_decls
+                                    .entry(pseudo.canonical())
+                                    .or_insert_with(Vec::new)
+                                    .push(ApplicableDeclarationBlock::new(
+                                        StyleSource::Style(locked.clone()),
+                                        self.rules_source_order,
+                                        CascadeLevel::UANormal,
+                                        selector.specificity()
+                                    ));
+
+                                continue;
+                            }
                             None => &mut origin_cascade_data.element_map,
                             Some(pseudo) => {
-                                if pseudo.is_precomputed() {
-                                    if !selector.is_universal() ||
-                                       !matches!(origin, Origin::UserAgent) {
-                                        // ::-moz-tree selectors may appear in
-                                        // non-UA sheets (even though they never
-                                        // match).
-                                        continue;
-                                    }
-
-                                    self.precomputed_pseudo_element_decls
-                                        .entry(pseudo.canonical())
-                                        .or_insert_with(Vec::new)
-                                        .push(ApplicableDeclarationBlock::new(
-                                            StyleSource::Style(locked.clone()),
-                                            self.rules_source_order,
-                                            CascadeLevel::UANormal,
-                                            selector.specificity()
-                                        ));
-
-                                    continue;
-                                } else {
-                                    origin_cascade_data
-                                        .pseudos_map
-                                        .entry(pseudo.canonical())
-                                        .or_insert_with(SelectorMap::new)
-                                }
+                                origin_cascade_data
+                                    .pseudos_map
+                                    .entry(pseudo.canonical())
+                                    .or_insert_with(SelectorMap::new)
                             }
                         };
 
