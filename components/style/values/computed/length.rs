@@ -9,7 +9,7 @@ use ordered_float::NotNaN;
 use std::fmt;
 use style_traits::ToCss;
 use style_traits::values::specified::AllowedLengthType;
-use super::{Number, ToComputedValue, Context};
+use super::{Number, ToComputedValue, Context, Percentage};
 use values::{Auto, CSSFloat, Either, ExtremumLength, None_, Normal, specified};
 use values::computed::{NonNegativeAu, NonNegativeNumber};
 use values::generics::NonNegative;
@@ -18,47 +18,6 @@ use values::specified::length::ViewportPercentageLength;
 
 pub use super::image::Image;
 pub use values::specified::{Angle, BorderStyle, Time, UrlOrNone};
-
-/// A computed `<percentage>` value.
-///
-/// FIXME(emilio): why is this in length.rs?
-#[derive(Clone, Copy, Debug, Default, PartialEq, HasViewportPercentage)]
-#[cfg_attr(feature = "servo", derive(Deserialize, HeapSizeOf, Serialize))]
-pub struct Percentage(pub CSSFloat);
-
-impl Percentage {
-    /// 0%
-    #[inline]
-    pub fn zero() -> Self {
-        Percentage(0.)
-    }
-
-    /// 100%
-    #[inline]
-    pub fn hundred() -> Self {
-        Percentage(1.)
-    }
-}
-
-impl ToCss for Percentage {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        write!(dest, "{}%", self.0 * 100.)
-    }
-}
-
-impl ToComputedValue for specified::Percentage {
-    type ComputedValue = Percentage;
-
-    #[inline]
-    fn to_computed_value(&self, _: &Context) -> Percentage {
-        Percentage(self.get())
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &Percentage) -> Self {
-        specified::Percentage::new(computed.0)
-    }
-}
 
 impl ToComputedValue for specified::NoCalcLength {
     type ComputedValue = Au;

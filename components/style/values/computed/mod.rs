@@ -43,7 +43,7 @@ pub use super::specified::{BorderStyle, UrlOrNone};
 pub use super::generics::grid::GridLine;
 pub use super::specified::url::SpecifiedUrl;
 pub use self::length::{CalcLengthOrPercentage, Length, LengthOrNone, LengthOrNumber, LengthOrPercentage};
-pub use self::length::{LengthOrPercentageOrAuto, LengthOrPercentageOrNone, MaxLength, MozLength, Percentage};
+pub use self::length::{LengthOrPercentageOrAuto, LengthOrPercentageOrNone, MaxLength, MozLength};
 pub use self::length::NonNegativeLengthOrPercentage;
 pub use self::position::Position;
 pub use self::svg::{SVGLength, SVGOpacity, SVGPaint, SVGPaintKind, SVGStrokeDashArray, SVGWidth};
@@ -643,5 +643,44 @@ impl From<Au> for NonNegativeAu {
     #[inline]
     fn from(au: Au) -> NonNegativeAu {
         NonNegative::<Au>(au)
+    }
+}
+
+/// A computed `<percentage>` value.
+#[derive(Clone, Copy, Debug, Default, PartialEq, HasViewportPercentage)]
+#[cfg_attr(feature = "servo", derive(Deserialize, HeapSizeOf, Serialize))]
+pub struct Percentage(pub CSSFloat);
+
+impl Percentage {
+    /// 0%
+    #[inline]
+    pub fn zero() -> Self {
+        Percentage(0.)
+    }
+
+    /// 100%
+    #[inline]
+    pub fn hundred() -> Self {
+        Percentage(1.)
+    }
+}
+
+impl ToCss for Percentage {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        write!(dest, "{}%", self.0 * 100.)
+    }
+}
+
+impl ToComputedValue for specified::Percentage {
+    type ComputedValue = Percentage;
+
+    #[inline]
+    fn to_computed_value(&self, _: &Context) -> Percentage {
+        Percentage(self.get())
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &Percentage) -> Self {
+        specified::Percentage::new(computed.0)
     }
 }
