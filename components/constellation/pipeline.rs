@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use bluetooth_traits::BluetoothRequest;
+use canvas_traits::webgl::WebGLPipeline;
 use compositing::CompositionPipeline;
 use compositing::CompositorProxy;
 use compositing::compositor_thread::Msg as CompositorMsg;
@@ -171,8 +172,12 @@ pub struct InitialPipelineState {
 
     /// Whether this pipeline is considered private.
     pub is_private: bool,
+
+    /// A channel to the webgl thread.
+    pub webgl_chan: WebGLPipeline,
+
     /// A channel to the webvr thread.
-    pub webvr_thread: Option<IpcSender<WebVRMsg>>,
+    pub webvr_chan: Option<IpcSender<WebVRMsg>>,
 }
 
 impl Pipeline {
@@ -270,7 +275,8 @@ impl Pipeline {
                     script_content_process_shutdown_port: script_content_process_shutdown_port,
                     webrender_api_sender: state.webrender_api_sender,
                     webrender_document: state.webrender_document,
-                    webvr_thread: state.webvr_thread,
+                    webgl_chan: state.webgl_chan,
+                    webvr_chan: state.webvr_chan,
                 };
 
                 // Spawn the child process.
@@ -470,7 +476,8 @@ pub struct UnprivilegedPipelineContent {
     script_content_process_shutdown_port: IpcReceiver<()>,
     webrender_api_sender: webrender_api::RenderApiSender,
     webrender_document: webrender_api::DocumentId,
-    webvr_thread: Option<IpcSender<WebVRMsg>>,
+    webgl_chan: WebGLPipeline,
+    webvr_chan: Option<IpcSender<WebVRMsg>>,
 }
 
 impl UnprivilegedPipelineContent {
@@ -499,7 +506,8 @@ impl UnprivilegedPipelineContent {
             window_size: self.window_size,
             pipeline_namespace_id: self.pipeline_namespace_id,
             content_process_shutdown_chan: self.script_content_process_shutdown_chan,
-            webvr_thread: self.webvr_thread,
+            webgl_chan: self.webgl_chan,
+            webvr_chan: self.webvr_chan,
         }, self.load_data.clone());
 
         LTF::create(self.id,
