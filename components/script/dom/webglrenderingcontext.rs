@@ -1046,6 +1046,29 @@ impl WebGLRenderingContext {
         self.send_command(WebGLCommand::GetExtensions(sender));
         receiver.recv().unwrap()
     }
+
+    fn handle_layout(&self) -> webrender_api::ImageKey {
+        match self.share_mode {
+            WebGLContextShareMode::SharedTexture => {
+                // WR using ExternalTexture requires a single update message.
+                self.webrender_image.get().unwrap_or_else(|| {
+                    let (sender, receiver) = webgl_channel().unwrap();
+                    self.webgl_sender.send_update_wr_image(sender).unwrap();
+                    let image_key = receiver.recv().unwrap();
+                    self.webrender_image.set(Some(image_key));
+
+                    image_key
+                })
+            },
+            WebGLContextShareMode::Readback => {
+                // WR using Readback requires to update WR image every frame
+                // in order to send the new raw pixels.
+                let (sender, receiver) = webgl_channel().unwrap();
+                self.webgl_sender.send_update_wr_image(sender).unwrap();
+                receiver.recv().unwrap()
+            }
+        }
+    }
 }
 
 impl Drop for WebGLRenderingContext {
@@ -3343,13 +3366,13 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
 pub trait LayoutCanvasWebGLRenderingContextHelpers {
     #[allow(unsafe_code)]
-    unsafe fn get_ipc_renderer(&self) -> IpcSender<CanvasMsg>;
+    unsafe fn canvas_data_source(&self) -> HTMLCanvasDataSource;
 }
 
 impl LayoutCanvasWebGLRenderingContextHelpers for LayoutJS<WebGLRenderingContext> {
     #[allow(unsafe_code)]
-    unsafe fn get_ipc_renderer(&self) -> IpcSender<CanvasMsg> {
-        (*self.unsafe_get()).ipc_renderer.clone()
+    unsafe fn canvas_data_source(&self) -> HTMLCanvasDataSource {
+        HTMLCanvasDataSource::WebGL((*self.unsafe_get()).handle_layout())
     }
 }
 
