@@ -403,13 +403,6 @@ impl Stylist {
             self.add_stylesheet(stylesheet, guards.author, extra_data);
         }
 
-        SelectorImpl::each_precomputed_pseudo_element(|pseudo| {
-            if let Some(map) = self.cascade_data.user_agent.pseudos_map.remove(&pseudo) {
-                let declarations = map.get_universal_rules(CascadeLevel::UANormal);
-                self.precomputed_pseudo_element_decls.insert(pseudo, declarations);
-            }
-        });
-
         self.is_device_dirty = false;
         true
     }
@@ -470,17 +463,48 @@ impl Stylist {
                     for selector in &style_rule.selectors.0 {
                         self.num_selectors += 1;
 
+                        let map = match selector.pseudo_element() {
+                            Some(pseudo) if pseudo.is_precomputed() => {
+                                if !selector.is_universal() ||
+                                   !matches!(origin, Origin::UserAgent) {
+                                    // ::-moz-tree selectors may appear in
+                                    // non-UA sheets (even though they never
+                                    // match).
+                                    continue;
+                                }
+
+                                self.precomputed_pseudo_element_decls
+                                    .entry(pseudo.canonical())
+                                    .or_insert_with(Vec::new)
+                                    .push(ApplicableDeclarationBlock::new(
+                                        StyleSource::Style(locked.clone()),
+                                        self.rules_source_order,
+                                        CascadeLevel::UANormal,
+                                        selector.specificity()
+                                    ));
+
+                                continue;
+                            }
+                            None => &mut origin_cascade_data.element_map,
+                            Some(pseudo) => {
+                                origin_cascade_data
+                                    .pseudos_map
+                                    .entry(pseudo.canonical())
+                                    .or_insert_with(SelectorMap::new)
+                            }
+                        };
+
                         let hashes =
                             AncestorHashes::new(&selector, self.quirks_mode);
 
-                        origin_cascade_data
-                            .borrow_mut_for_pseudo_or_insert(selector.pseudo_element())
-                            .insert(
-                                Rule::new(selector.clone(),
-                                          hashes.clone(),
-                                          locked.clone(),
-                                          self.rules_source_order),
-                                self.quirks_mode);
+                        let rule = Rule::new(
+                            selector.clone(),
+                            hashes.clone(),
+                            locked.clone(),
+                            self.rules_source_order
+                        );
+
+                        map.insert(rule, self.quirks_mode);
 
                         self.invalidation_map.note_selector(selector, self.quirks_mode);
                         let mut visitor = StylistSelectorVisitor {
@@ -1660,18 +1684,6 @@ impl PerOriginCascadeData {
         }
     }
 
-    #[inline]
-    fn borrow_mut_for_pseudo_or_insert(&mut self, pseudo: Option<&PseudoElement>) -> &mut SelectorMap<Rule> {
-        match pseudo {
-            Some(pseudo) => {
-                self.pseudos_map
-                    .entry(pseudo.canonical())
-                    .or_insert_with(SelectorMap::new)
-            }
-            None => &mut self.element_map,
-        }
-    }
-
     fn clear(&mut self) {
         *self = Self::new();
     }
@@ -1720,14 +1732,17 @@ impl Rule {
 
     /// Turns this rule into an `ApplicableDeclarationBlock` for the given
     /// cascade level.
-    pub fn to_applicable_declaration_block(&self,
-                                           level: CascadeLevel)
-                                           -> ApplicableDeclarationBlock {
+    pub fn to_applicable_declaration_block(
+        &self,
+        level: CascadeLevel
+    ) -> ApplicableDeclarationBlock {
         let source = StyleSource::Style(self.style_rule.clone());
-        ApplicableDeclarationBlock::new(source,
-                                        self.source_order,
-                                        level,
-                                        self.specificity())
+        ApplicableDeclarationBlock::new(
+            source,
+            self.source_order,
+            level,
+            self.specificity()
+        )
     }
 
     /// Creates a new Rule.
