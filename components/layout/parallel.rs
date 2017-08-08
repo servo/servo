@@ -82,7 +82,7 @@ impl FlowParallelInfo {
 ///
 /// The only communication between siblings is that they both
 /// fetch-and-subtract the parent's children count.
-fn buttom_up_flow(mut unsafe_flow: UnsafeFlow,
+fn bottom_up_flow(mut unsafe_flow: UnsafeFlow,
                   assign_bsize_traversal: &AssignBSizes) {
     loop {
         // Get a real flow.
@@ -156,7 +156,7 @@ fn top_down_flow<'scope>(unsafe_flows: &[UnsafeFlow],
 
         // If there were no more children, start assigning block-sizes.
         if !had_children {
-            buttom_up_flow(*unsafe_flow, &assign_bsize_traversal)
+            bottom_up_flow(*unsafe_flow, &assign_bsize_traversal)
         }
     }
 
