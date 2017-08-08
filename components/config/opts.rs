@@ -93,11 +93,6 @@ pub struct Opts {
     /// True if we should paint borders around flows based on which thread painted them.
     pub show_debug_parallel_layout: bool,
 
-    /// If set with --disable-text-aa, disable antialiasing on fonts. This is primarily useful for reftests
-    /// where pixel perfect results are required when using fonts such as the Ahem
-    /// font for layout tests.
-    pub enable_text_antialiasing: bool,
-
     /// If set with --disable-subpixel, use subpixel antialiasing for glyphs. In the future
     /// this will likely become the default, but for now it's opt-in while we work
     /// out any bugs and improve the implementation.
@@ -508,7 +503,6 @@ pub fn default_opts() -> Opts {
         bubble_inline_sizes_separately: false,
         show_debug_fragment_borders: false,
         show_debug_parallel_layout: false,
-        enable_text_antialiasing: false,
         enable_subpixel_text_antialiasing: false,
         enable_canvas_antialiasing: false,
         trace_layout: false,
@@ -821,7 +815,6 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         random_pipeline_closure_seed: random_pipeline_closure_seed,
         show_debug_fragment_borders: debug_options.show_fragment_borders,
         show_debug_parallel_layout: debug_options.show_parallel_layout,
-        enable_text_antialiasing: !debug_options.disable_text_aa,
         enable_subpixel_text_antialiasing: !debug_options.disable_subpixel_aa,
         enable_canvas_antialiasing: !debug_options.disable_canvas_aa,
         dump_style_tree: debug_options.dump_style_tree,
