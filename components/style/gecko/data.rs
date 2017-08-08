@@ -7,7 +7,6 @@
 use Atom;
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use dom::TElement;
-use fnv::FnvHashMap;
 use gecko::rules::{CounterStyleRule, FontFaceRule};
 use gecko_bindings::bindings::{self, RawServoStyleSet};
 use gecko_bindings::structs::{ServoStyleSheet, StyleSheetInfo, ServoStyleSheetInner};
@@ -17,6 +16,7 @@ use gecko_bindings::sugar::ownership::{HasArcFFI, HasBoxFFI, HasFFI, HasSimpleFF
 use invalidation::media_queries::{MediaListKey, ToMediaListKey};
 use media_queries::{Device, MediaList};
 use properties::ComputedValues;
+use selector_map::PrecomputedHashMap;
 use servo_arc::Arc;
 use shared_lock::{Locked, StylesheetGuards, SharedRwLockReadGuard};
 use stylesheet_set::StylesheetSet;
@@ -124,7 +124,7 @@ pub struct PerDocumentStyleDataImpl {
     pub font_faces: Vec<(Arc<Locked<FontFaceRule>>, Origin)>,
 
     /// Map for effective counter style rules.
-    pub counter_styles: FnvHashMap<Atom, Arc<Locked<CounterStyleRule>>>,
+    pub counter_styles: PrecomputedHashMap<Atom, Arc<Locked<CounterStyleRule>>>,
 }
 
 /// The data itself is an `AtomicRefCell`, which guarantees the proper semantics
@@ -143,7 +143,7 @@ impl PerDocumentStyleData {
             stylist: Stylist::new(device, quirks_mode.into()),
             stylesheets: StylesheetSet::new(),
             font_faces: vec![],
-            counter_styles: FnvHashMap::default(),
+            counter_styles: PrecomputedHashMap::default(),
         }))
     }
 
