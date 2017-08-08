@@ -1421,7 +1421,7 @@ impl Animatable for FontWeight {
         let b = other.0 as f64;
         const NORMAL: f64 = 400.;
         let weight = (a - NORMAL) * self_portion + (b - NORMAL) * other_portion + NORMAL;
-        let weight = (weight.min(100.).max(900.) / 100.).round() * 100.;
+        let weight = (weight.max(100.).min(900.) / 100.).round() * 100.;
         Ok(FontWeight(weight as u16))
     }
 
