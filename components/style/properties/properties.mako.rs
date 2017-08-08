@@ -2314,7 +2314,7 @@ impl ComputedValuesInner {
             PropertyDeclarationId::Custom(name) => {
                 self.custom_properties
                     .as_ref()
-                    .and_then(|map| map.get_computed_value(name))
+                    .and_then(|map| map.get(name))
                     .map(|value| value.to_css_string())
                     .unwrap_or(String::new())
             }
