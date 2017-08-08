@@ -1823,19 +1823,39 @@ pub extern "C" fn Servo_ComputedValues_EqualCustomProperties(
 #[no_mangle]
 pub extern "C" fn Servo_ComputedValues_GetStyleRuleList(values: ServoStyleContextBorrowed,
                                                         rules: RawGeckoServoStyleRuleListBorrowedMut) {
-    if let Some(ref rule_node) = values.rules {
-        let mut result = vec![];
-        for node in rule_node.self_and_ancestors() {
-            if let &StyleSource::Style(ref rule) = node.style_source() {
-                result.push(rule);
+    let rule_node = match values.rules {
+        Some(ref r) => r,
+        None => return,
+    };
+
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
+
+    // TODO(emilio): Will benefit from SmallVec.
+    let mut result = vec![];
+    for node in rule_node.self_and_ancestors() {
+        let style_rule = match *node.style_source() {
+            StyleSource::Style(ref rule) => rule,
+            _ => continue,
+        };
+
+        if node.importance().important() {
+            let block = style_rule.read_with(&guard).block.read_with(&guard);
+            if block.any_normal() {
+                // We'll append it when we find the normal rules in our
+                // parent chain.
+                continue;
             }
         }
-        unsafe { rules.set_len(result.len() as u32) };
-        for (ref src, ref mut dest) in result.into_iter().zip(rules.iter_mut()) {
-            src.with_raw_offset_arc(|arc| {
-                **dest = *Locked::<StyleRule>::arc_as_borrowed(arc);
-            })
-        }
+
+        result.push(style_rule);
+    }
+
+    unsafe { rules.set_len(result.len() as u32) };
+    for (ref src, ref mut dest) in result.into_iter().zip(rules.iter_mut()) {
+        src.with_raw_offset_arc(|arc| {
+            **dest = *Locked::<StyleRule>::arc_as_borrowed(arc);
+        })
     }
 }
 
