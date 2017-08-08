@@ -120,21 +120,3 @@ pub trait ElementExt: Element<Impl=SelectorImpl> + Debug {
     /// We use this for Native Anonymous Content in Gecko.
     fn matches_user_and_author_rules(&self) -> bool;
 }
-
-impl SelectorImpl {
-    /// A helper to traverse each precomputed pseudo-element, executing `fun` on
-    /// it.
-    ///
-    /// The optimization comment in `each_eagerly_cascaded_pseudo_element` also
-    /// applies here.
-    #[inline]
-    pub fn each_precomputed_pseudo_element<F>(mut fun: F)
-        where F: FnMut(PseudoElement),
-    {
-        Self::each_simple_pseudo_element(|pseudo| {
-            if pseudo.is_precomputed() {
-                fun(pseudo)
-            }
-        })
-    }
-}

@@ -412,15 +412,6 @@ impl SelectorImpl {
         }
     }
 
-
-    #[inline]
-    /// Executes a function for each simple (not functional) pseudo-element.
-    pub fn each_simple_pseudo_element<F>(fun: F)
-        where F: FnMut(PseudoElement),
-    {
-        PseudoElement::each_simple(fun)
-    }
-
     #[inline]
     /// Returns the relevant state flag for a given non-tree-structural
     /// pseudo-class.
