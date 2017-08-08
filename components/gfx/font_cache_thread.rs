@@ -347,12 +347,14 @@ impl FontCache {
         if let Some(ref webrender_api) = self.webrender_api {
             let webrender_fonts = &mut self.webrender_fonts;
             font_key = Some(*webrender_fonts.entry(template.identifier.clone()).or_insert_with(|| {
+                let mut resources = webrender_api::ResourceUpdates::new();
                 let font_key = webrender_api.generate_font_key();
                 match (template.bytes_if_in_memory(), template.native_font()) {
-                    (Some(bytes), _) => webrender_api.add_raw_font(font_key, bytes, 0),
-                    (None, Some(native_font)) => webrender_api.add_native_font(font_key, native_font),
-                    (None, None) => webrender_api.add_raw_font(font_key, template.bytes().clone(), 0),
+                    (Some(bytes), _) => resources.add_raw_font(font_key, bytes, 0),
+                    (None, Some(native_font)) => resources.add_native_font(font_key, native_font),
+                    (None, None) => resources.add_raw_font(font_key, template.bytes().clone(), 0),
                 }
+                webrender_api.update_resources(resources);
                 font_key
             }));
         }
