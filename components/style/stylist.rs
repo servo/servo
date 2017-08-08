@@ -23,7 +23,7 @@ use properties::INHERIT_ALL;
 use properties::IS_LINK;
 use rule_tree::{CascadeLevel, RuleTree, StyleSource};
 use selector_map::{SelectorMap, SelectorMapEntry};
-use selector_parser::{SelectorImpl, PseudoElement};
+use selector_parser::{SelectorImpl, PerPseudoElementMap, PseudoElement};
 use selectors::attr::NamespaceConstraint;
 use selectors::bloom::BloomFilter;
 use selectors::matching::{ElementSelectorFlags, matches_selector, MatchingContext, MatchingMode};
@@ -105,7 +105,7 @@ pub struct Stylist {
     /// computed values on the fly on layout.
     ///
     /// FIXME(emilio): Use the rule tree!
-    precomputed_pseudo_element_decls: FnvHashMap<PseudoElement, Vec<ApplicableDeclarationBlock>>,
+    precomputed_pseudo_element_decls: PerPseudoElementMap<Vec<ApplicableDeclarationBlock>>,
 
     /// A monotonically increasing counter to represent the order on which a
     /// style rule appears in a stylesheet, needed to sort them by source order.
@@ -240,7 +240,7 @@ impl Stylist {
 
             cascade_data: CascadeData::new(),
             animations: Default::default(),
-            precomputed_pseudo_element_decls: Default::default(),
+            precomputed_pseudo_element_decls: PerPseudoElementMap::default(),
             rules_source_order: 0,
             rule_tree: RuleTree::new(),
             invalidation_map: InvalidationMap::new(),
@@ -308,7 +308,7 @@ impl Stylist {
         // preserve current quirks_mode value
         self.cascade_data.clear();
         self.animations.clear(); // Or set to Default::default()?
-        self.precomputed_pseudo_element_decls = Default::default();
+        self.precomputed_pseudo_element_decls.clear();
         self.rules_source_order = 0;
         // We want to keep rule_tree around across stylist rebuilds.
         self.invalidation_map.clear();
@@ -474,8 +474,8 @@ impl Stylist {
                                 }
 
                                 self.precomputed_pseudo_element_decls
-                                    .entry(pseudo.canonical())
-                                    .or_insert_with(Vec::new)
+                                    .get_or_insert_with(&pseudo.canonical(), Vec::new)
+                                    .expect("Unexpected tree pseudo-element?")
                                     .push(ApplicableDeclarationBlock::new(
                                         StyleSource::Style(locked.clone()),
                                         self.rules_source_order,
@@ -489,8 +489,8 @@ impl Stylist {
                             Some(pseudo) => {
                                 origin_cascade_data
                                     .pseudos_map
-                                    .entry(pseudo.canonical())
-                                    .or_insert_with(SelectorMap::new)
+                                    .get_or_insert_with(&pseudo.canonical(), SelectorMap::new)
+                                    .expect("Unexpected tree pseudo-element?")
                             }
                         };
 
@@ -1665,14 +1665,14 @@ struct PerOriginCascadeData {
 
     /// Rules from stylesheets at this `CascadeData`'s origin that correspond
     /// to a given pseudo-element.
-    pseudos_map: FnvHashMap<PseudoElement, SelectorMap<Rule>>,
+    pseudos_map: PerPseudoElementMap<SelectorMap<Rule>>,
 }
 
 impl PerOriginCascadeData {
     fn new() -> Self {
         Self {
             element_map: SelectorMap::new(),
-            pseudos_map: Default::default(),
+            pseudos_map: PerPseudoElementMap::default(),
         }
     }
 
@@ -1689,9 +1689,7 @@ impl PerOriginCascadeData {
     }
 
     fn has_rules_for_pseudo(&self, pseudo: &PseudoElement) -> bool {
-        // FIXME(emilio): We should probably make the pseudos map be an
-        // enumerated array.
-        self.pseudos_map.contains_key(pseudo)
+        self.pseudos_map.get(pseudo).is_some()
     }
 }
 
