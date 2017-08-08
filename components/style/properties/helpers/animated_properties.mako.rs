@@ -34,7 +34,7 @@ use std::cmp;
 #[cfg(feature = "gecko")] use fnv::FnvHashMap;
 use style_traits::ParseError;
 use super::ComputedValues;
-#[cfg(any(feature = "gecko", feature = "testing"))]
+#[cfg(feature = "gecko")]
 use values::Auto;
 use values::{CSSFloat, CustomIdent, Either};
 use values::animated::{ToAnimatedValue, ToAnimatedZero};

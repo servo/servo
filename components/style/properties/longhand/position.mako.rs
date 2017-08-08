@@ -416,7 +416,6 @@ ${helpers.predefined_type("object-position",
         spec="https://drafts.csswg.org/css-grid/#propdef-grid-template-areas"
         products="gecko"
         animation_value_type="discrete"
-        disable_when_testing="True"
         boxed="True">
     use std::collections::HashMap;
     use std::fmt;

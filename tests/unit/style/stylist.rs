@@ -229,6 +229,7 @@ fn mock_stylist() -> Stylist {
 
 #[test]
 fn test_stylist_device_accessors() {
+    thread_state::initialize(thread_state::LAYOUT);
     let stylist = mock_stylist();
     assert_eq!(stylist.device().media_type(), MediaType::Screen);
     let mut stylist_mut = mock_stylist();
@@ -237,6 +238,7 @@ fn test_stylist_device_accessors() {
 
 #[test]
 fn test_stylist_rule_tree_accessors() {
+    thread_state::initialize(thread_state::LAYOUT);
     let stylist = mock_stylist();
     stylist.rule_tree();
     stylist.rule_tree().root();

@@ -1507,7 +1507,7 @@ ${helpers.single_keyword_system("font-kerning",
     }
 </%helpers:longhand>
 
-#[cfg(any(feature = "gecko", feature = "testing"))]
+#[cfg(feature = "gecko")]
 macro_rules! exclusive_value {
     (($value:ident, $set:expr) => $ident:ident) => {
         if $value.intersects($set) {
@@ -2256,7 +2256,7 @@ https://drafts.csswg.org/css-fonts-4/#low-level-font-variation-settings-control-
 <%helpers:longhand name="-moz-script-size-multiplier" products="gecko" animation_value_type="none"
                    predefined_type="Number" gecko_ffi_name="mScriptSizeMultiplier"
                    spec="Internal (not web-exposed)"
-                   internal="True" disable_when_testing="True">
+                   internal="True">
     use values::computed::ComputedValueAsSpecified;
     pub use self::computed_value::T as SpecifiedValue;
 
@@ -2281,7 +2281,7 @@ https://drafts.csswg.org/css-fonts-4/#low-level-font-variation-settings-control-
 <%helpers:longhand name="-moz-script-level" products="gecko" animation_value_type="none"
                    predefined_type="Integer" gecko_ffi_name="mScriptLevel"
                    spec="Internal (not web-exposed)"
-                   internal="True" disable_when_testing="True" need_clone="True">
+                   internal="True" need_clone="True">
     use std::fmt;
     use style_traits::ToCss;
 
@@ -2380,7 +2380,7 @@ ${helpers.single_keyword("-moz-math-variant",
 <%helpers:longhand name="-moz-script-min-size" products="gecko" animation_value_type="none"
                    predefined_type="Length" gecko_ffi_name="mScriptMinSize"
                    spec="Internal (not web-exposed)"
-                   internal="True" disable_when_testing="True">
+                   internal="True">
     use app_units::Au;
     use gecko_bindings::structs::NS_MATHML_DEFAULT_SCRIPT_MIN_SIZE_PT;
     use values::specified::length::{AU_PER_PT, FontBaseSize, NoCalcLength};

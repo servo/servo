@@ -75,7 +75,6 @@ fn generate_properties() {
         .arg(&script)
         .arg(product)
         .arg("style-crate")
-        .arg(if cfg!(feature = "testing") { "testing" } else { "regular" })
         .status()
         .unwrap();
     if !status.success() {

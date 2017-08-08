@@ -6,7 +6,6 @@
 #![feature(plugin, test)]
 
 extern crate app_units;
-extern crate byteorder;
 extern crate cssparser;
 extern crate euclid;
 #[macro_use] extern crate html5ever;
