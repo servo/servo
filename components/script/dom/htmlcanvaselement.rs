@@ -34,7 +34,7 @@ use ipc_channel::ipc;
 use js::error::throw_type_error;
 use js::jsapi::{HandleValue, JSContext};
 use offscreen_gl_context::GLContextAttributes;
-use script_layout_interface::HTMLCanvasData;
+use script_layout_interface::{HTMLCanvasData, HTMLCanvasDataSource};
 use std::iter::repeat;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 
@@ -106,21 +106,22 @@ impl LayoutHTMLCanvasElementHelpers for LayoutJS<HTMLCanvasElement> {
     fn data(&self) -> HTMLCanvasData {
         unsafe {
             let canvas = &*self.unsafe_get();
-            let ipc_renderer = canvas.context.borrow_for_layout().as_ref().map(|context| {
-                match *context {
-                    CanvasContext::Context2d(ref context) => {
-                        context.to_layout().get_ipc_renderer()
-                    },
-                    CanvasContext::WebGL(ref context) => {
-                        context.to_layout().get_ipc_renderer()
-                    },
+            let source = match canvas.context.borrow_for_layout().as_ref() {
+                Some(&CanvasContext::Context2d(ref context)) => {
+                    HTMLCanvasDataSource::Image(Some(context.to_layout().get_ipc_renderer()))
+                },
+                Some(&CanvasContext::WebGL(ref context)) => {
+                    context.to_layout().canvas_data_source()
+                },
+                None => {
+                    HTMLCanvasDataSource::Image(None)
                 }
-            });
+            };
 
             let width_attr = canvas.upcast::<Element>().get_attr_for_layout(&ns!(), &local_name!("width"));
             let height_attr = canvas.upcast::<Element>().get_attr_for_layout(&ns!(), &local_name!("height"));
             HTMLCanvasData {
-                ipc_renderer: ipc_renderer,
+                source: source,
                 width: width_attr.map_or(DEFAULT_WIDTH, |val| val.as_uint()),
                 height: height_attr.map_or(DEFAULT_HEIGHT, |val| val.as_uint()),
             }
