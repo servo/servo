@@ -2887,8 +2887,17 @@ impl Fragment {
         for operation in operations {
             let matrix = match *operation {
                 transform::ComputedOperation::Rotate(ax, ay, az, theta) => {
-                    let theta = 2.0f32 * f32::consts::PI - theta.radians();
-                    Transform3D::create_rotation(ax, ay, az, Radians::new(theta))
+                    // https://www.w3.org/TR/css-transforms-1/#funcdef-rotate3d
+                    // A direction vector that cannot be normalized, such as [0, 0, 0], will cause
+                    // the rotation to not be applied, so we use identity matrix in this case.
+                    let len = (ax * ax + ay * ay + az * az).sqrt();
+                    if len > 0. {
+                        let theta = 2.0f32 * f32::consts::PI - theta.radians();
+                        Transform3D::create_rotation(ax / len, ay / len, az / len,
+                                                     Radians::new(theta))
+                    } else {
+                        Transform3D::identity()
+                    }
                 }
                 transform::ComputedOperation::Perspective(d) => {
                     create_perspective_matrix(d)
