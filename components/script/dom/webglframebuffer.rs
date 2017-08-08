@@ -3,7 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
-use canvas_traits::CanvasMsg;
+use canvas_traits::webgl::{WebGLCommand, WebGLFramebufferBindingRequest, WebGLFramebufferId};
+use canvas_traits::webgl::{WebGLMsgSender, WebGLResult, WebGLError};
+use canvas_traits::webgl::webgl_channel;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::WebGLFramebufferBinding;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
@@ -14,10 +16,7 @@ use dom::webglrenderbuffer::WebGLRenderbuffer;
 use dom::webgltexture::WebGLTexture;
 use dom::window::Window;
 use dom_struct::dom_struct;
-use ipc_channel::ipc::IpcSender;
 use std::cell::Cell;
-use webrender_api;
-use webrender_api::{WebGLCommand, WebGLFramebufferBindingRequest, WebGLFramebufferId, WebGLResult, WebGLError};
 
 #[must_root]
 #[derive(JSTraceable, Clone, HeapSizeOf)]
@@ -36,7 +35,7 @@ pub struct WebGLFramebuffer {
     size: Cell<Option<(i32, i32)>>,
     status: Cell<u32>,
     #[ignore_heap_size_of = "Defined in ipc-channel"]
-    renderer: IpcSender<CanvasMsg>,
+    renderer: WebGLMsgSender,
 
     // The attachment points for textures and renderbuffers on this
     // FBO.
@@ -47,7 +46,7 @@ pub struct WebGLFramebuffer {
 }
 
 impl WebGLFramebuffer {
-    fn new_inherited(renderer: IpcSender<CanvasMsg>,
+    fn new_inherited(renderer: WebGLMsgSender,
                      id: WebGLFramebufferId)
                      -> WebGLFramebuffer {
         WebGLFramebuffer {
@@ -65,17 +64,17 @@ impl WebGLFramebuffer {
         }
     }
 
-    pub fn maybe_new(window: &Window, renderer: IpcSender<CanvasMsg>)
+    pub fn maybe_new(window: &Window, renderer: WebGLMsgSender)
                      -> Option<Root<WebGLFramebuffer>> {
-        let (sender, receiver) = webrender_api::channel::msg_channel().unwrap();
-        renderer.send(CanvasMsg::WebGL(WebGLCommand::CreateFramebuffer(sender))).unwrap();
+        let (sender, receiver) = webgl_channel().unwrap();
+        renderer.send(WebGLCommand::CreateFramebuffer(sender)).unwrap();
 
         let result = receiver.recv().unwrap();
         result.map(|fb_id| WebGLFramebuffer::new(window, renderer, fb_id))
     }
 
     pub fn new(window: &Window,
-               renderer: IpcSender<CanvasMsg>,
+               renderer: WebGLMsgSender,
                id: WebGLFramebufferId)
                -> Root<WebGLFramebuffer> {
         reflect_dom_object(box WebGLFramebuffer::new_inherited(renderer, id),
@@ -98,13 +97,13 @@ impl WebGLFramebuffer {
 
         self.target.set(Some(target));
         let cmd = WebGLCommand::BindFramebuffer(target, WebGLFramebufferBindingRequest::Explicit(self.id));
-        self.renderer.send(CanvasMsg::WebGL(cmd)).unwrap();
+        self.renderer.send(cmd).unwrap();
     }
 
     pub fn delete(&self) {
         if !self.is_deleted.get() {
             self.is_deleted.set(true);
-            let _ = self.renderer.send(CanvasMsg::WebGL(WebGLCommand::DeleteFramebuffer(self.id)));
+            let _ = self.renderer.send(WebGLCommand::DeleteFramebuffer(self.id));
         }
     }
 
@@ -205,10 +204,10 @@ impl WebGLFramebuffer {
             }
         };
 
-        self.renderer.send(CanvasMsg::WebGL(WebGLCommand::FramebufferRenderbuffer(constants::FRAMEBUFFER,
-                                                                                  attachment,
-                                                                                  constants::RENDERBUFFER,
-                                                                                  rb_id))).unwrap();
+        self.renderer.send(WebGLCommand::FramebufferRenderbuffer(constants::FRAMEBUFFER,
+                                                                 attachment,
+                                                                 constants::RENDERBUFFER,
+                                                                 rb_id)).unwrap();
 
         self.update_status();
         Ok(())
@@ -281,11 +280,11 @@ impl WebGLFramebuffer {
             }
         };
 
-        self.renderer.send(CanvasMsg::WebGL(WebGLCommand::FramebufferTexture2D(constants::FRAMEBUFFER,
-                                                                               attachment,
-                                                                               textarget,
-                                                                               tex_id,
-                                                                               level))).unwrap();
+        self.renderer.send(WebGLCommand::FramebufferTexture2D(constants::FRAMEBUFFER,
+                                                              attachment,
+                                                              textarget,
+                                                              tex_id,
+                                                              level)).unwrap();
 
         self.update_status();
         Ok(())
