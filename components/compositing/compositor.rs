@@ -819,8 +819,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             }
 
             WindowEvent::ToggleWebRenderProfiler => {
-                let profiler_enabled = self.webrender.get_profiler_enabled();
-                self.webrender.set_profiler_enabled(!profiler_enabled);
+                let mut flags = self.webrender.get_debug_flags();
+                flags.toggle(webrender::renderer::PROFILER_DBG);
+                self.webrender.set_debug_flags(flags);
                 self.webrender_api.generate_frame(self.webrender_document, None);
             }
         }

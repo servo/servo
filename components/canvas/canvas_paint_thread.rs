@@ -585,27 +585,25 @@ impl<'a> CanvasPaintThread<'a> {
             };
             let data = webrender_api::ImageData::Raw(Arc::new(element.into()));
 
+            let mut resources = webrender_api::ResourceUpdates::new();
+
             match self.image_key {
                 Some(image_key) => {
                     debug!("Updating image {:?}.", image_key);
-                    self.webrender_api.update_image(image_key,
-                                                    descriptor,
-                                                    data,
-                                                    None);
+                    resources.update_image(image_key, descriptor, data, None);
                 }
                 None => {
                     self.image_key = Some(self.webrender_api.generate_image_key());
                     debug!("New image {:?}.", self.image_key);
-                    self.webrender_api.add_image(self.image_key.unwrap(),
-                                                 descriptor,
-                                                 data,
-                                                 None);
+                    resources.add_image(self.image_key.unwrap(), descriptor, data, None);
                 }
             }
 
             if let Some(image_key) = mem::replace(&mut self.very_old_image_key, self.old_image_key.take()) {
-                self.webrender_api.delete_image(image_key);
+                resources.delete_image(image_key);
             }
+
+            self.webrender_api.update_resources(resources);
 
             let data = CanvasImageData {
                 image_key: self.image_key.unwrap(),
@@ -764,12 +762,14 @@ impl<'a> CanvasPaintThread<'a> {
 
 impl<'a> Drop for CanvasPaintThread<'a> {
     fn drop(&mut self) {
+        let mut resources = webrender_api::ResourceUpdates::new();
         if let Some(image_key) = self.old_image_key.take() {
-            self.webrender_api.delete_image(image_key);
+            resources.delete_image(image_key);
         }
         if let Some(image_key) = self.very_old_image_key.take() {
-            self.webrender_api.delete_image(image_key);
+            resources.delete_image(image_key);
         }
+        self.webrender_api.update_resources(resources);
     }
 }
 
