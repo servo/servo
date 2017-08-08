@@ -29,8 +29,6 @@ use std::ops::{Deref, DerefMut};
 use style_traits::{ParseError, StyleParseError};
 
 /// A pseudo-element, both public and private.
-///
-/// NB: If you add to this list, be sure to update `each_simple_pseudo_element` too.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
@@ -533,28 +531,6 @@ impl SelectorImpl {
         for i in 0..EAGER_PSEUDO_COUNT {
             fun(PseudoElement::from_eager_index(i));
         }
-    }
-
-    /// Executes `fun` for each pseudo-element.
-    #[inline]
-    pub fn each_simple_pseudo_element<F>(mut fun: F)
-        where F: FnMut(PseudoElement),
-    {
-        fun(PseudoElement::Before);
-        fun(PseudoElement::After);
-        fun(PseudoElement::DetailsContent);
-        fun(PseudoElement::DetailsSummary);
-        fun(PseudoElement::Selection);
-        fun(PseudoElement::ServoText);
-        fun(PseudoElement::ServoInputText);
-        fun(PseudoElement::ServoTableWrapper);
-        fun(PseudoElement::ServoAnonymousTableWrapper);
-        fun(PseudoElement::ServoAnonymousTable);
-        fun(PseudoElement::ServoAnonymousTableRow);
-        fun(PseudoElement::ServoAnonymousTableCell);
-        fun(PseudoElement::ServoAnonymousBlock);
-        fun(PseudoElement::ServoInlineBlockWrapper);
-        fun(PseudoElement::ServoInlineAbsolute);
     }
 
     /// Returns the pseudo-class state flag for selector matching.

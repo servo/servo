@@ -35,16 +35,6 @@ PseudoElement::${pseudo.capitalized()}${"({})".format(tree_arg) if pseudo.is_tre
 </%def>
 
 impl PseudoElement {
-    /// Executes a closure with each simple (not functional)
-    /// pseudo-element as an argument.
-    pub fn each_simple<F>(mut fun: F)
-        where F: FnMut(Self),
-    {
-        % for pseudo in SIMPLE_PSEUDOS:
-            fun(${pseudo_element_variant(pseudo)});
-        % endfor
-    }
-
     /// Get the pseudo-element as an atom.
     #[inline]
     pub fn atom(&self) -> Atom {
