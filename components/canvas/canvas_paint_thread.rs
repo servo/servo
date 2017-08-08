@@ -8,7 +8,7 @@ use azure::azure_hl::{BackendType, DrawOptions, DrawTarget, Pattern, StrokeOptio
 use azure::azure_hl::{Color, ColorPattern, DrawSurfaceOptions, Filter, PathBuilder};
 use azure::azure_hl::{ExtendMode, GradientStop, LinearGradientPattern, RadialGradientPattern};
 use azure::azure_hl::SurfacePattern;
-use canvas_traits::*;
+use canvas_traits::canvas::*;
 use cssparser::RGBA;
 use euclid::{Transform2D, Point2D, Vector2D, Rect, Size2D};
 use ipc_channel::ipc::{self, IpcSender};
@@ -193,12 +193,8 @@ impl<'a> CanvasPaintThread<'a> {
                             Canvas2dMsg::SetShadowColor(ref color) => painter.set_shadow_color(color.to_azure_style()),
                         }
                     },
-                    CanvasMsg::Common(message) => {
-                        match message {
-                            CanvasCommonMsg::Close => break,
-                            CanvasCommonMsg::Recreate(size) => painter.recreate(size),
-                        }
-                    },
+                    CanvasMsg::Close => break,
+                    CanvasMsg::Recreate(size) => painter.recreate(size),
                     CanvasMsg::FromScript(message) => {
                         match message {
                             FromScriptMsg::SendPixels(chan) => {
@@ -213,8 +209,6 @@ impl<'a> CanvasPaintThread<'a> {
                             }
                         }
                     }
-                    CanvasMsg::WebGL(_) => panic!("Wrong WebGL message sent to Canvas2D thread"),
-                    CanvasMsg::WebVR(_) => panic!("Wrong WebVR message sent to Canvas2D thread"),
                 }
             }
         }).expect("Thread spawning failed");
@@ -571,7 +565,7 @@ impl<'a> CanvasPaintThread<'a> {
         })
     }
 
-    fn send_data(&mut self, chan: IpcSender<CanvasData>) {
+    fn send_data(&mut self, chan: IpcSender<CanvasImageData>) {
         self.drawtarget.snapshot().get_data_surface().with_data(|element| {
             let size = self.drawtarget.get_size();
 
@@ -614,7 +608,7 @@ impl<'a> CanvasPaintThread<'a> {
             let data = CanvasImageData {
                 image_key: self.image_key.unwrap(),
             };
-            chan.send(CanvasData::Image(data)).unwrap();
+            chan.send(data).unwrap();
         })
     }
 
