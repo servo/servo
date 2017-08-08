@@ -477,4 +477,34 @@ impl CounterStyleOrNone {
             }
         }
     }
+
+    /// Convert Gecko CounterStylePtr to CounterStyleOrNone.
+    pub fn from_gecko_value(gecko_value: &CounterStylePtr) -> Self {
+        use counter_style::{Symbol, Symbols};
+        use gecko_bindings::bindings::Gecko_CounterStyle_GetName;
+        use gecko_bindings::bindings::Gecko_CounterStyle_GetSymbols;
+        use gecko_bindings::bindings::Gecko_CounterStyle_GetSystem;
+        use gecko_bindings::bindings::Gecko_CounterStyle_IsName;
+        use gecko_bindings::bindings::Gecko_CounterStyle_IsNone;
+        use values::CustomIdent;
+        use values::generics::SymbolsType;
+
+        if unsafe { Gecko_CounterStyle_IsNone(gecko_value) } {
+            CounterStyleOrNone::None
+        } else if unsafe { Gecko_CounterStyle_IsName(gecko_value) } {
+            ns_auto_string!(name);
+            unsafe { Gecko_CounterStyle_GetName(gecko_value, &mut *name) };
+            CounterStyleOrNone::Name(CustomIdent((&*name).into()))
+        } else {
+            let system = unsafe { Gecko_CounterStyle_GetSystem(gecko_value) };
+            let symbol_type = SymbolsType::from_gecko_keyword(system as u32);
+            let symbols = unsafe {
+                let ref gecko_symbols = *Gecko_CounterStyle_GetSymbols(gecko_value);
+                gecko_symbols.iter().map(|gecko_symbol| {
+                    Symbol::String(gecko_symbol.to_string())
+                }).collect()
+            };
+            CounterStyleOrNone::Symbols(symbol_type, Symbols(symbols))
+        }
+    }
 }

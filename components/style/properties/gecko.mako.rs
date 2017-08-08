@@ -4149,6 +4149,23 @@ fn static_assert() {
         self.copy_list_style_type_from(other)
     }
 
+    pub fn clone_list_style_type(&self) -> longhands::list_style_type::computed_value::T {
+        use gecko_bindings::bindings::Gecko_CounterStyle_IsSingleString;
+        use gecko_bindings::bindings::Gecko_CounterStyle_GetSingleString;
+        use self::longhands::list_style_type::computed_value::T;
+        use values::generics::CounterStyleOrNone;
+
+        if unsafe { Gecko_CounterStyle_IsSingleString(&self.gecko.mCounterStyle) } {
+            ns_auto_string!(single_string);
+            unsafe {
+                Gecko_CounterStyle_GetSingleString(&self.gecko.mCounterStyle, &mut *single_string)
+            };
+            T::String(single_string.to_string())
+        } else {
+            T::CounterStyle(CounterStyleOrNone::from_gecko_value(&self.gecko.mCounterStyle))
+        }
+    }
+
     pub fn set_quotes(&mut self, other: longhands::quotes::computed_value::T) {
         use gecko_bindings::bindings::Gecko_NewStyleQuoteValues;
         use gecko_bindings::sugar::refptr::UniqueRefPtr;

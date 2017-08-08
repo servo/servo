@@ -50,6 +50,19 @@ impl SymbolsType {
             SymbolsType::Fixed => structs::NS_STYLE_COUNTER_SYSTEM_FIXED as u8,
         }
     }
+
+    /// Convert Gecko value to symbol type.
+    pub fn from_gecko_keyword(gecko_value: u32) -> SymbolsType {
+        use gecko_bindings::structs;
+        match gecko_value {
+            structs::NS_STYLE_COUNTER_SYSTEM_CYCLIC => SymbolsType::Cyclic,
+            structs::NS_STYLE_COUNTER_SYSTEM_NUMERIC => SymbolsType::Numeric,
+            structs::NS_STYLE_COUNTER_SYSTEM_ALPHABETIC => SymbolsType::Alphabetic,
+            structs::NS_STYLE_COUNTER_SYSTEM_SYMBOLIC => SymbolsType::Symbolic,
+            structs::NS_STYLE_COUNTER_SYSTEM_FIXED => SymbolsType::Fixed,
+            x => panic!("Unexpected value for symbol type {}", x)
+        }
+    }
 }
 
 /// https://drafts.csswg.org/css-counter-styles/#typedef-counter-style
