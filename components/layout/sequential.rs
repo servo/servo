@@ -24,7 +24,8 @@ pub fn resolve_generated_content(root: &mut Flow, layout_context: &LayoutContext
     ResolveGeneratedContent::new(&layout_context).traverse(root, 0);
 }
 
-pub fn traverse_flow_tree_preorder(root: &mut Flow, layout_context: &LayoutContext, relayout_mode: RelayoutMode) {
+/// Run the main layout passes sequentially.
+pub fn reflow(root: &mut Flow, layout_context: &LayoutContext, relayout_mode: RelayoutMode) {
     fn doit(flow: &mut Flow,
             assign_inline_sizes: AssignISizes,
             assign_block_sizes: AssignBSizes,

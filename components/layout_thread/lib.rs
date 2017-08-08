@@ -929,7 +929,7 @@ impl LayoutThread {
     fn solve_constraints(layout_root: &mut Flow,
                          layout_context: &LayoutContext) {
         let _scope = layout_debug_scope!("solve_constraints");
-        sequential::traverse_flow_tree_preorder(layout_root, layout_context, RelayoutMode::Incremental);
+        sequential::reflow(layout_root, layout_context, RelayoutMode::Incremental);
     }
 
     /// Performs layout constraint solving in parallel.
@@ -946,11 +946,11 @@ impl LayoutThread {
 
         // NOTE: this currently computes borders, so any pruning should separate that
         // operation out.
-        parallel::traverse_flow_tree_preorder(layout_root,
-                                              profiler_metadata,
-                                              time_profiler_chan,
-                                              layout_context,
-                                              traversal);
+        parallel::reflow(layout_root,
+                         profiler_metadata,
+                         time_profiler_chan,
+                         layout_context,
+                         traversal);
     }
 
     /// Computes the stacking-relative positions of all flows and, if the painting is dirty and the

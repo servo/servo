@@ -187,7 +187,8 @@ fn top_down_flow<'scope>(unsafe_flows: &[UnsafeFlow],
     }
 }
 
-pub fn traverse_flow_tree_preorder(
+/// Run the main layout passes in parallel.
+pub fn reflow(
         root: &mut Flow,
         profiler_metadata: Option<TimerMetadata>,
         time_profiler_chan: time::ProfilerChan,

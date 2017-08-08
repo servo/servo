@@ -1551,7 +1551,7 @@ impl BlockFlow {
             self.assign_inline_sizes(layout_context);
             // Re-run layout on our children.
             for child in flow::mut_base(self).children.iter_mut() {
-                sequential::traverse_flow_tree_preorder(child, layout_context, RelayoutMode::Force);
+                sequential::reflow(child, layout_context, RelayoutMode::Force);
             }
             // Assign our final-final block size.
             self.assign_block_size(layout_context);
