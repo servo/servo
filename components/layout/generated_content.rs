@@ -10,7 +10,6 @@
 
 use context::{LayoutContext, with_thread_local_font_context};
 use flow::{self, AFFECTS_COUNTERS, Flow, HAS_COUNTER_AFFECTING_CHILDREN, ImmutableFlowUtils};
-use flow::InorderFlowTraversal;
 use fragment::{Fragment, GeneratedContentInfo, SpecificFragmentInfo, UnscannedTextFragmentInfo};
 use gfx::display_list::OpaqueNode;
 use script_layout_interface::wrapper_traits::PseudoElementType;
@@ -22,6 +21,7 @@ use style::properties::ComputedValues;
 use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::RESOLVE_GENERATED_CONTENT;
 use text::TextRunScanner;
+use traversal::InorderFlowTraversal;
 
 // Decimal styles per CSS-COUNTER-STYLES § 6.1:
 static DECIMAL: [char; 10] = [ '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' ];
@@ -130,7 +130,7 @@ impl<'a> InorderFlowTraversal for ResolveGeneratedContent<'a> {
     }
 
     #[inline]
-    fn should_process(&mut self, flow: &mut Flow) -> bool {
+    fn should_process_subtree(&mut self, flow: &mut Flow) -> bool {
         flow::base(flow).restyle_damage.intersects(RESOLVE_GENERATED_CONTENT) ||
             flow::base(flow).flags.intersects(AFFECTS_COUNTERS | HAS_COUNTER_AFFECTING_CHILDREN)
     }

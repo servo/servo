@@ -9,7 +9,7 @@
 #![allow(unsafe_code)]
 
 use context::LayoutContext;
-use flow::{self, Flow, MutableFlowUtils, PostorderFlowTraversal, PreorderFlowTraversal};
+use flow::{self, Flow};
 use flow_ref::FlowRef;
 use profile_traits::time::{self, TimerMetadata, profile};
 use rayon;
@@ -18,8 +18,8 @@ use smallvec::SmallVec;
 use std::mem;
 use std::sync::atomic::{AtomicIsize, Ordering};
 use style::dom::UnsafeNode;
-use traversal::{AssignISizes, BubbleISizes};
-use traversal::AssignBSizes;
+use traversal::{AssignBSizes, AssignISizes, BubbleISizes};
+use traversal::{PostorderFlowTraversal, PreorderFlowTraversal};
 
 pub use style::parallel::traverse_dom;
 
@@ -82,7 +82,7 @@ impl FlowParallelInfo {
 ///
 /// The only communication between siblings is that they both
 /// fetch-and-subtract the parent's children count.
-fn buttom_up_flow(mut unsafe_flow: UnsafeFlow,
+fn bottom_up_flow(mut unsafe_flow: UnsafeFlow,
                   assign_bsize_traversal: &AssignBSizes) {
     loop {
         // Get a real flow.
@@ -156,7 +156,7 @@ fn top_down_flow<'scope>(unsafe_flows: &[UnsafeFlow],
 
         // If there were no more children, start assigning block-sizes.
         if !had_children {
-            buttom_up_flow(*unsafe_flow, &assign_bsize_traversal)
+            bottom_up_flow(*unsafe_flow, &assign_bsize_traversal)
         }
     }
 
@@ -187,7 +187,8 @@ fn top_down_flow<'scope>(unsafe_flows: &[UnsafeFlow],
     }
 }
 
-pub fn traverse_flow_tree_preorder(
+/// Run the main layout passes in parallel.
+pub fn reflow(
         root: &mut Flow,
         profiler_metadata: Option<TimerMetadata>,
         time_profiler_chan: time::ProfilerChan,
@@ -195,7 +196,7 @@ pub fn traverse_flow_tree_preorder(
         queue: &rayon::ThreadPool) {
     if opts::get().bubble_inline_sizes_separately {
         let bubble_inline_sizes = BubbleISizes { layout_context: &context };
-        root.traverse_postorder(&bubble_inline_sizes);
+        bubble_inline_sizes.traverse(root);
     }
 
     let assign_isize_traversal = &AssignISizes { layout_context: &context };

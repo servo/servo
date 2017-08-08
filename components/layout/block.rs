@@ -36,9 +36,8 @@ use floats::{ClearType, FloatKind, Floats, PlacementInfo};
 use flow::{self, BaseFlow, EarlyAbsolutePositionInfo, Flow, FlowClass, ForceNonfloatedFlag};
 use flow::{BLOCK_POSITION_IS_STATIC, CLEARS_LEFT, CLEARS_RIGHT};
 use flow::{CONTAINS_TEXT_OR_REPLACED_FRAGMENTS, INLINE_POSITION_IS_STATIC};
-use flow::{FragmentationContext, MARGINS_CANNOT_COLLAPSE, PreorderFlowTraversal};
-use flow::{ImmutableFlowUtils, LateAbsolutePositionInfo, MutableFlowUtils, OpaqueFlow};
-use flow::IS_ABSOLUTELY_POSITIONED;
+use flow::{IS_ABSOLUTELY_POSITIONED, FragmentationContext, MARGINS_CANNOT_COLLAPSE};
+use flow::{ImmutableFlowUtils, LateAbsolutePositionInfo, OpaqueFlow};
 use flow_list::FlowList;
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, Overflow};
 use fragment::{IS_INLINE_FLEX_ITEM, IS_BLOCK_FLEX_ITEM};
@@ -57,9 +56,10 @@ use style::computed_values::{position, text_align};
 use style::context::SharedStyleContext;
 use style::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMode};
 use style::properties::ComputedValues;
-use style::servo::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPOSITION};
+use style::servo::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW};
 use style::values::computed::{LengthOrPercentageOrNone, LengthOrPercentage};
 use style::values::computed::LengthOrPercentageOrAuto;
+use traversal::PreorderFlowTraversal;
 
 /// Information specific to floated blocks.
 #[derive(Clone, Serialize)]
@@ -1065,8 +1065,8 @@ impl BlockFlow {
             // Assign block-sizes for all flows in this absolute flow tree.
             // This is preorder because the block-size of an absolute flow may depend on
             // the block-size of its containing block, which may also be an absolute flow.
-            (&mut *self as &mut Flow).traverse_preorder_absolute_flows(
-                &mut AbsoluteAssignBSizesTraversal(layout_context.shared_context()));
+            let assign_abs_b_sizes = AbsoluteAssignBSizesTraversal(layout_context.shared_context());
+            assign_abs_b_sizes.traverse_absolute_flows(&mut *self);
         }
 
         // Don't remove the dirty bits yet if we're absolutely-positioned, since our final size
@@ -1551,7 +1551,7 @@ impl BlockFlow {
             self.assign_inline_sizes(layout_context);
             // Re-run layout on our children.
             for child in flow::mut_base(self).children.iter_mut() {
-                sequential::traverse_flow_tree_preorder(child, layout_context, RelayoutMode::Force);
+                sequential::reflow(child, layout_context, RelayoutMode::Force);
             }
             // Assign our final-final block size.
             self.assign_block_size(layout_context);
@@ -1944,7 +1944,7 @@ impl Flow for BlockFlow {
         }
     }
 
-    fn compute_absolute_position(&mut self, _layout_context: &LayoutContext) {
+    fn compute_stacking_relative_position(&mut self, _layout_context: &LayoutContext) {
         // FIXME (mbrubeck): Get the real container size, taking the container writing mode into
         // account.  Must handle vertical writing modes.
         let container_size = Size2D::new(self.base.block_container_inline_size, Au(0));
@@ -2084,8 +2084,6 @@ impl Flow for BlockFlow {
             flow::mut_base(kid).late_absolute_position_info =
                 late_absolute_position_info_for_children;
         }
-
-        self.base.restyle_damage.remove(REPOSITION)
     }
 
     fn mark_as_root(&mut self) {

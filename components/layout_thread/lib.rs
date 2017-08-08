@@ -71,7 +71,7 @@ use layout::context::RegisteredPainter;
 use layout::context::RegisteredPainters;
 use layout::context::heap_size_of_persistent_local_context;
 use layout::display_list_builder::ToGfxColor;
-use layout::flow::{self, Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
+use layout::flow::{self, Flow, ImmutableFlowUtils, MutableOwnedFlowUtils};
 use layout::flow_ref::FlowRef;
 use layout::incremental::{LayoutDamageComputation, REFLOW_ENTIRE_DOCUMENT, RelayoutMode};
 use layout::layout_debug;
@@ -82,7 +82,7 @@ use layout::query::{process_margin_style_query, process_node_overflow_request, p
 use layout::query::{process_node_geometry_request, process_node_scroll_area_request};
 use layout::query::{process_node_scroll_root_id_request, process_offset_parent_query};
 use layout::sequential;
-use layout::traversal::{ComputeAbsolutePositions, RecalcStyleAndConstructFlows};
+use layout::traversal::{ComputeStackingRelativePositions, PreorderFlowTraversal, RecalcStyleAndConstructFlows};
 use layout::webrender_helpers::WebRenderDisplayListConverter;
 use layout::wrapper::LayoutNodeLayoutData;
 use layout_traits::LayoutThreadFactory;
@@ -929,7 +929,7 @@ impl LayoutThread {
     fn solve_constraints(layout_root: &mut Flow,
                          layout_context: &LayoutContext) {
         let _scope = layout_debug_scope!("solve_constraints");
-        sequential::traverse_flow_tree_preorder(layout_root, layout_context, RelayoutMode::Incremental);
+        sequential::reflow(layout_root, layout_context, RelayoutMode::Incremental);
     }
 
     /// Performs layout constraint solving in parallel.
@@ -946,11 +946,11 @@ impl LayoutThread {
 
         // NOTE: this currently computes borders, so any pruning should separate that
         // operation out.
-        parallel::traverse_flow_tree_preorder(layout_root,
-                                              profiler_metadata,
-                                              time_profiler_chan,
-                                              layout_context,
-                                              traversal);
+        parallel::reflow(layout_root,
+                         profiler_metadata,
+                         time_profiler_chan,
+                         layout_context,
+                         traversal);
     }
 
     /// Computes the stacking-relative positions of all flows and, if the painting is dirty and the
@@ -974,11 +974,8 @@ impl LayoutThread {
 
             flow::mut_base(layout_root).clip = data.page_clip_rect;
 
-            if flow::base(layout_root).restyle_damage.contains(REPOSITION) {
-                layout_root.traverse_preorder(&ComputeAbsolutePositions {
-                    layout_context: layout_context
-                });
-            }
+            let traversal = ComputeStackingRelativePositions { layout_context: layout_context };
+            traversal.traverse(layout_root);
 
             if flow::base(layout_root).restyle_damage.contains(REPAINT) ||
                     rw_data.display_list.is_none() {
