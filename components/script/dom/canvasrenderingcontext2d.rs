@@ -173,10 +173,6 @@ impl CanvasRenderingContext2D {
         *self.state.borrow_mut() = CanvasContextState::new();
     }
 
-    pub fn ipc_renderer(&self) -> IpcSender<CanvasMsg> {
-        self.ipc_renderer.clone()
-    }
-
     fn mark_as_dirty(&self) {
         if let Some(ref canvas) = self.canvas {
             canvas.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
