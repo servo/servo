@@ -49,7 +49,7 @@ core-graphics = "0.8"
 core-text = "6.0"
 
 [target.'cfg(any(target_os = "linux", target_os = "android"))'.dependencies]
-freetype = "0.2"
+freetype = "0.3"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 servo-fontconfig = "0.2.1"

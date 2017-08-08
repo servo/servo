@@ -1064,7 +1064,8 @@ impl LayoutThread {
                 Some(get_root_flow_background_color(layout_root)),
                 viewport_size,
                 builder.finalize(),
-                true);
+                true,
+                webrender_api::ResourceUpdates::new());
             self.webrender_api.generate_frame(self.webrender_document, None);
         });
     }

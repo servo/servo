@@ -281,25 +281,29 @@ impl WebGLPaintThread {
                 };
                 let data = webrender_api::ImageData::Raw(Arc::new(pixels));
 
+                let mut updates = webrender_api::ResourceUpdates::new();
+
                 match *image_key {
                     Some(image_key) => {
-                        webrender_api.update_image(image_key,
-                                                   descriptor,
-                                                   data,
-                                                   None);
+                        updates.update_image(image_key,
+                                             descriptor,
+                                             data,
+                                             None);
                     }
                     None => {
                         *image_key = Some(webrender_api.generate_image_key());
-                        webrender_api.add_image(image_key.unwrap(),
-                                                descriptor,
-                                                data,
-                                                None);
+                        updates.add_image(image_key.unwrap(),
+                                          descriptor,
+                                          data,
+                                          None);
                     }
                 }
 
                 if let Some(image_key) = mem::replace(very_old_image_key, old_image_key.take()) {
-                    webrender_api.delete_image(image_key);
+                    updates.delete_image(image_key);
                 }
+
+                webrender_api.update_resources(updates);
 
                 let image_data = CanvasImageData {
                     image_key: image_key.unwrap(),
@@ -357,15 +361,19 @@ impl Drop for WebGLPaintThread {
             very_old_image_key,
             ..
         } = self.data {
+            let mut updates = webrender_api::ResourceUpdates::new();
+
             if let Some(image_key) = image_key {
-                webrender_api.delete_image(image_key);
+                updates.delete_image(image_key);
             }
             if let Some(image_key) = old_image_key {
-                webrender_api.delete_image(image_key);
+                updates.delete_image(image_key);
             }
             if let Some(image_key) = very_old_image_key {
-                webrender_api.delete_image(image_key);
+                updates.delete_image(image_key);
             }
+
+            webrender_api.update_resources(updates);
         }
     }
 }

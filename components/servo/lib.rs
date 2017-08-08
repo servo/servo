@@ -174,11 +174,14 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
                 None
             };
 
+            let mut debug_flags = webrender::renderer::DebugFlags::empty();
+            debug_flags.set(webrender::renderer::PROFILER_DBG, opts.webrender_stats);
+
             webrender::Renderer::new(window.gl(), webrender::RendererOptions {
                 device_pixel_ratio: device_pixel_ratio,
                 resource_override_path: Some(resource_path),
                 enable_aa: opts.enable_text_antialiasing,
-                enable_profiler: opts.webrender_stats,
+                debug_flags: debug_flags,
                 enable_batcher: opts.webrender_batch,
                 debug: opts.webrender_debug,
                 recorder: recorder,
