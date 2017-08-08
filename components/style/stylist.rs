@@ -22,7 +22,7 @@ use properties::{AnimationRules, PropertyDeclarationBlock};
 use properties::INHERIT_ALL;
 use properties::IS_LINK;
 use rule_tree::{CascadeLevel, RuleTree, StyleSource};
-use selector_map::{SelectorMap, SelectorMapEntry};
+use selector_map::{PrecomputedHashMap, SelectorMap, SelectorMapEntry};
 use selector_parser::{SelectorImpl, PerPseudoElementMap, PseudoElement};
 use selectors::attr::NamespaceConstraint;
 use selectors::bloom::BloomFilter;
@@ -98,7 +98,7 @@ pub struct Stylist {
     rule_tree: RuleTree,
 
     /// A map with all the animations indexed by name.
-    animations: FnvHashMap<Atom, KeyframesAnimation>,
+    animations: PrecomputedHashMap<Atom, KeyframesAnimation>,
 
     /// Applicable declarations for a given non-eagerly cascaded pseudo-element.
     /// These are eagerly computed once, and then used to resolve the new
@@ -168,7 +168,7 @@ pub struct ExtraStyleData<'a> {
     /// A list of effective font-face rules and their origin.
     pub font_faces: &'a mut Vec<(Arc<Locked<FontFaceRule>>, Origin)>,
     /// A map of effective counter-style rules.
-    pub counter_styles: &'a mut FnvHashMap<Atom, Arc<Locked<CounterStyleRule>>>,
+    pub counter_styles: &'a mut PrecomputedHashMap<Atom, Arc<Locked<CounterStyleRule>>>,
 }
 
 #[cfg(feature = "gecko")]
@@ -1329,7 +1329,7 @@ impl Stylist {
 
     /// Returns the map of registered `@keyframes` animations.
     #[inline]
-    pub fn animations(&self) -> &FnvHashMap<Atom, KeyframesAnimation> {
+    pub fn animations(&self) -> &PrecomputedHashMap<Atom, KeyframesAnimation> {
         &self.animations
     }
 
