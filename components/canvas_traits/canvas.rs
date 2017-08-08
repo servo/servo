@@ -2,25 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![crate_name = "canvas_traits"]
-#![crate_type = "rlib"]
-
-#![deny(unsafe_code)]
-
-extern crate cssparser;
-extern crate euclid;
-extern crate heapsize;
-#[macro_use] extern crate heapsize_derive;
-extern crate ipc_channel;
-#[macro_use] extern crate serde;
-extern crate webrender_api;
-
 use cssparser::RGBA;
 use euclid::{Transform2D, Point2D, Vector2D, Rect, Size2D};
 use ipc_channel::ipc::IpcSender;
 use std::default::Default;
 use std::str::FromStr;
-use webrender_api::{WebGLCommand, WebGLContextId, VRCompositorCommand};
+use webrender_api;
 
 #[derive(Clone, Deserialize, Serialize)]
 pub enum FillRule {
@@ -31,38 +18,15 @@ pub enum FillRule {
 #[derive(Clone, Deserialize, Serialize)]
 pub enum CanvasMsg {
     Canvas2d(Canvas2dMsg),
-    Common(CanvasCommonMsg),
     FromLayout(FromLayoutMsg),
     FromScript(FromScriptMsg),
-    WebGL(WebGLCommand),
-    WebVR(VRCompositorCommand)
-}
-
-#[derive(Clone, Deserialize, Serialize)]
-pub enum CanvasCommonMsg {
-    Close,
     Recreate(Size2D<i32>),
-}
-
-#[derive(Clone, Deserialize, Serialize)]
-pub enum CanvasData {
-    Image(CanvasImageData),
-    WebGL(WebGLContextId),
+    Close,
 }
 
 #[derive(Clone, Deserialize, Serialize)]
 pub struct CanvasImageData {
     pub image_key: webrender_api::ImageKey,
-}
-
-#[derive(Clone, Deserialize, Serialize)]
-pub enum FromLayoutMsg {
-    SendData(IpcSender<CanvasData>),
-}
-
-#[derive(Clone, Deserialize, Serialize)]
-pub enum FromScriptMsg {
-    SendPixels(IpcSender<Option<Vec<u8>>>),
 }
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -104,6 +68,16 @@ pub enum Canvas2dMsg {
     SetShadowOffsetY(f64),
     SetShadowBlur(f64),
     SetShadowColor(RGBA),
+}
+
+#[derive(Clone, Deserialize, Serialize)]
+pub enum FromLayoutMsg {
+    SendData(IpcSender<CanvasImageData>),
+}
+
+#[derive(Clone, Deserialize, Serialize)]
+pub enum FromScriptMsg {
+    SendPixels(IpcSender<Option<Vec<u8>>>),
 }
 
 #[derive(Clone, Deserialize, Serialize, HeapSizeOf)]
