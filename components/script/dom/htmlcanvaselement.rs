@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use base64;
-use canvas_traits::{CanvasMsg, FromScriptMsg};
+use canvas_traits::canvas::{CanvasMsg, FromScriptMsg};
 use dom::attr::Attr;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasRenderingContext2DMethods;
