@@ -306,6 +306,9 @@ class MachCommands(CommandBase):
                 "-I" + cxx_include,
                 "-I" + cxxabi_include])
             env["NDK_ANDROID_VERSION"] = android_platform.replace("android-", "")
+            env['CPPFLAGS'] = ' '.join(["--sysroot", env['ANDROID_SYSROOT']])
+            env["CMAKE_ANDROID_ARCH_ABI"] = self.config["android"]["lib"]
+            env["CMAKE_TOOLCHAIN_FILE"] = path.join(self.android_support_dir(), "toolchain.cmake")
 
         cargo_binary = "cargo" + BIN_SUFFIX
 
