@@ -974,10 +974,8 @@ impl LayoutThread {
 
             flow::mut_base(layout_root).clip = data.page_clip_rect;
 
-            if flow::base(layout_root).restyle_damage.contains(REPOSITION) {
-                let traversal = ComputeStackingRelativePositions { layout_context: layout_context };
-                traversal.traverse(layout_root);
-            }
+            let traversal = ComputeStackingRelativePositions { layout_context: layout_context };
+            traversal.traverse(layout_root);
 
             if flow::base(layout_root).restyle_damage.contains(REPAINT) ||
                     rw_data.display_list.is_none() {

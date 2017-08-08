@@ -33,7 +33,7 @@ use style::computed_values::{display, overflow_x, position, text_align, text_jus
 use style::computed_values::{vertical_align, white_space};
 use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
 use style::properties::{longhands, ComputedValues};
-use style::servo::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPOSITION, RESOLVE_GENERATED_CONTENT};
+use style::servo::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, RESOLVE_GENERATED_CONTENT};
 use text;
 use traversal::PreorderFlowTraversal;
 use unicode_bidi as bidi;
@@ -1649,8 +1649,6 @@ impl Flow for InlineFlow {
                 _ => {}
             }
         }
-
-        self.base.restyle_damage.remove(REPOSITION)
     }
 
     fn update_late_computed_inline_position_if_necessary(&mut self, _: Au) {}

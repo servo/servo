@@ -14,7 +14,7 @@ use style::context::{SharedStyleContext, StyleContext};
 use style::data::ElementData;
 use style::dom::{NodeInfo, TElement, TNode};
 use style::selector_parser::RestyleDamage;
-use style::servo::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT};
+use style::servo::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, REPOSITION};
 use style::traversal::{DomTraversal, TraversalDriver, recalc_style_at};
 use style::traversal::PerLevelTraversalData;
 use wrapper::{GetRawData, LayoutNodeLayoutData};
@@ -96,6 +96,12 @@ pub trait PreorderFlowTraversal {
     /// The operation to perform. Return true to continue or false to stop.
     fn process(&self, flow: &mut Flow);
 
+    /// Returns true if this node should be processed and false if neither this node nor its
+    /// descendants should be processed.
+    fn should_process_subtree(&self, _flow: &mut Flow) -> bool {
+        true
+    }
+
     /// Returns true if this node must be processed in-order. If this returns false,
     /// we skip the operation for this node, but continue processing the descendants.
     /// This is called *after* parent nodes are visited.
@@ -105,6 +111,9 @@ pub trait PreorderFlowTraversal {
 
     /// Traverses the tree in preorder.
     fn traverse(&self, flow: &mut Flow) {
+        if !self.should_process_subtree(flow) {
+            return;
+        }
         if self.should_process(flow) {
             self.process(flow);
         }
@@ -283,15 +292,20 @@ impl<'a> PostorderFlowTraversal for AssignBSizes<'a> {
     }
 }
 
-#[derive(Copy, Clone)]
 pub struct ComputeStackingRelativePositions<'a> {
     pub layout_context: &'a LayoutContext<'a>,
 }
 
 impl<'a> PreorderFlowTraversal for ComputeStackingRelativePositions<'a> {
     #[inline]
+    fn should_process_subtree(&self, flow: &mut Flow) -> bool {
+        flow::base(flow).restyle_damage.contains(REPOSITION)
+    }
+
+    #[inline]
     fn process(&self, flow: &mut Flow) {
         flow.compute_stacking_relative_position(self.layout_context);
+        flow::mut_base(flow).restyle_damage.remove(REPOSITION)
     }
 }
 
@@ -309,10 +323,8 @@ impl<'a> BuildDisplayList<'a> {
         self.state.current_clip_and_scroll_info =
             flow.clip_and_scroll_info(self.state.layout_context.id);
 
-        if self.should_process() {
-            flow.build_display_list(&mut self.state);
-            flow::mut_base(flow).restyle_damage.remove(REPAINT);
-        }
+        flow.build_display_list(&mut self.state);
+        flow::mut_base(flow).restyle_damage.remove(REPAINT);
 
         for kid in flow::child_iter_mut(flow) {
             self.traverse(kid);
@@ -320,10 +332,5 @@ impl<'a> BuildDisplayList<'a> {
 
         self.state.current_stacking_context_id = parent_stacking_context_id;
         self.state.current_clip_and_scroll_info = parent_clip_and_scroll_info;
-    }
-
-    #[inline]
-    fn should_process(&self) -> bool {
-        true
     }
 }
