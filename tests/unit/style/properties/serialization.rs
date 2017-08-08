@@ -314,8 +314,7 @@ mod shorthand_serialization {
             assert_eq!(serialization, "border-style: solid dotted;");
         }
 
-        use style::values::specified::BorderCornerRadius;
-        use style::values::specified::length::Percentage;
+        use style::values::specified::{BorderCornerRadius, Percentage};
 
         #[test]
         fn border_radius_should_serialize_correctly() {
