@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::{self, Parser as CssParser, SourcePosition, SourceLocation};
+use cssparser::{self, SourceLocation};
 use html5ever::{Namespace as NsAtom};
 use media_queries::CSSErrorReporterTest;
 use parking_lot::RwLock;
@@ -270,21 +270,15 @@ impl CSSInvalidErrorReporterTest {
 }
 
 impl ParseErrorReporter for CSSInvalidErrorReporterTest {
-    fn report_error<'a>(&self,
-                        input: &mut CssParser,
-                        position: SourcePosition,
-                        error: ContextualParseError<'a>,
-                        url: &ServoUrl,
-                        line_number_offset: u64) {
-
-        let location = input.source_location(position);
-        let line_offset = location.line + line_number_offset as u32;
-
+    fn report_error(&self,
+                    url: &ServoUrl,
+                    location: SourceLocation,
+                    error: ContextualParseError) {
         let mut errors = self.errors.lock().unwrap();
         errors.push(
             CSSError{
                 url: url.clone(),
-                line: line_offset,
+                line: location.line,
                 column: location.column,
                 message: error.to_string()
             }

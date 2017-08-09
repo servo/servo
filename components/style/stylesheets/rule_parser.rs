@@ -12,7 +12,7 @@ use cssparser::{CowRcStr, SourceLocation, BasicParseError};
 use error_reporting::ContextualParseError;
 use font_face::parse_font_face_block;
 use media_queries::{parse_media_query_list, MediaList};
-use parser::{Parse, ParserContext, log_css_error};
+use parser::{Parse, ParserContext};
 use properties::parse_property_declaration_list;
 use selector_parser::{SelectorImpl, SelectorParser};
 use selectors::SelectorList;
@@ -318,10 +318,8 @@ impl<'a, 'b> NestedRuleParser<'a, 'b> {
             match result {
                 Ok(rule) => rules.push(rule),
                 Err(err) => {
-                    let pos = err.span.start;
-                    let error = ContextualParseError::UnsupportedRule(
-                        iter.input.slice(err.span), err.error);
-                    log_css_error(iter.input, pos, error, self.context);
+                    let error = ContextualParseError::UnsupportedRule(err.slice, err.error);
+                    self.context.log_css_error(err.location, error);
                 }
             }
         }

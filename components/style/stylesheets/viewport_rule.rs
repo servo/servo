@@ -15,7 +15,7 @@ use error_reporting::ContextualParseError;
 use euclid::TypedSize2D;
 use font_metrics::get_metrics_provider_for_product;
 use media_queries::Device;
-use parser::{Parse, ParserContext, log_css_error};
+use parser::{Parse, ParserContext};
 use properties::StyleBuilder;
 use selectors::parser::SelectorParseError;
 use shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
@@ -360,10 +360,8 @@ impl Parse for ViewportRule {
                     }
                 }
                 Err(err) => {
-                    let pos = err.span.start;
-                    let error = ContextualParseError::UnsupportedViewportDescriptorDeclaration(
-                        parser.input.slice(err.span), err.error);
-                    log_css_error(parser.input, pos, error, &context);
+                    let error = ContextualParseError::UnsupportedViewportDescriptorDeclaration(err.slice, err.error);
+                    context.log_css_error(err.location, error);
                 }
             }
         }

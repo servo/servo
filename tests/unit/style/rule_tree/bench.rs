@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::{Parser, SourcePosition};
+use cssparser::SourceLocation;
 use rayon;
 use servo_arc::Arc;
 use servo_url::ServoUrl;
@@ -18,15 +18,11 @@ use test::{self, Bencher};
 
 struct ErrorringErrorReporter;
 impl ParseErrorReporter for ErrorringErrorReporter {
-    fn report_error<'a>(&self,
-                        input: &mut Parser,
-                        position: SourcePosition,
-                        error: ContextualParseError<'a>,
-                        url: &ServoUrl,
-                        line_number_offset: u64) {
-        let location = input.source_location(position);
-        let line_offset = location.line + line_number_offset as u32;
-        panic!("CSS error: {}\t\n{}:{} {}", url.as_str(), line_offset, location.column, error.to_string());
+    fn report_error(&self,
+                    url: &ServoUrl,
+                    location: SourceLocation,
+                    error: ContextualParseError) {
+        panic!("CSS error: {}\t\n{}:{} {}", url.as_str(), location.line, location.column, error.to_string());
     }
 }
 

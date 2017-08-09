@@ -10,7 +10,7 @@ use context::QuirksMode;
 use cssparser::{DeclarationListParser, parse_important, ParserInput, CowRcStr};
 use cssparser::{Parser, AtRuleParser, DeclarationParser, Delimiter, ParseError as CssParseError};
 use error_reporting::{ParseErrorReporter, ContextualParseError};
-use parser::{ParserContext, log_css_error};
+use parser::ParserContext;
 use properties::animated_properties::AnimationValue;
 use selectors::parser::SelectorParseError;
 use shared_lock::Locked;
@@ -909,15 +909,15 @@ pub fn parse_one_declaration_into(declarations: &mut SourcePropertyDeclaration,
                                      quirks_mode);
     let mut input = ParserInput::new(input);
     let mut parser = Parser::new(&mut input);
-    let start = parser.position();
+    let start_position = parser.position();
+    let start_location = parser.current_source_location();
     parser.parse_entirely(|parser| {
         PropertyDeclaration::parse_into(declarations, id, &context, parser)
             .map_err(|e| e.into())
     }).map_err(|err| {
-        let end = parser.position();
         let error = ContextualParseError::UnsupportedPropertyDeclaration(
-            parser.slice(start..end), err);
-        log_css_error(&mut parser, start, error, &context);
+            parser.slice_from(start_position), err);
+        context.log_css_error(start_location, error);
     })
 }
 
@@ -1000,10 +1000,8 @@ pub fn parse_property_declaration_list(context: &ParserContext,
                     continue;
                 }
 
-                let pos = err.span.start;
-                let error = ContextualParseError::UnsupportedPropertyDeclaration(
-                    iter.input.slice(err.span), err.error);
-                log_css_error(iter.input, pos, error, &context);
+                let error = ContextualParseError::UnsupportedPropertyDeclaration(err.slice, err.error);
+                context.log_css_error(err.location, error);
             }
         }
     }

@@ -1050,7 +1050,7 @@ fn parse_selector<'i, 't, P, E, Impl>(
         let combinator;
         let mut any_whitespace = false;
         loop {
-            let position = input.position();
+            let before_this_token = input.state();
             match input.next_including_whitespace() {
                 Err(_e) => break 'outer_loop,
                 Ok(&Token::WhiteSpace(_)) => any_whitespace = true,
@@ -1067,7 +1067,7 @@ fn parse_selector<'i, 't, P, E, Impl>(
                     break
                 }
                 Ok(_) => {
-                    input.reset(position);
+                    input.reset(&before_this_token);
                     if any_whitespace {
                         combinator = Combinator::Descendant;
                         break
@@ -1207,11 +1207,11 @@ fn parse_qualified_name<'i, 't, P, E, Impl>
         }
     };
 
-    let position = input.position();
+    let start = input.state();
     // FIXME: remove clone() when lifetimes are non-lexical
     match input.next_including_whitespace().map(|t| t.clone()) {
         Ok(Token::Ident(value)) => {
-            let position = input.position();
+            let after_ident = input.state();
             match input.next_including_whitespace() {
                 Ok(&Token::Delim('|')) => {
                     let prefix = value.as_ref().into();
@@ -1221,7 +1221,7 @@ fn parse_qualified_name<'i, 't, P, E, Impl>
                     explicit_namespace(input, QNamePrefix::ExplicitNamespace(prefix, url))
                 },
                 _ => {
-                    input.reset(position);
+                    input.reset(&after_ident);
                     if in_attr_selector {
                         Ok(Some((QNamePrefix::ImplicitNoNamespace, Some(value))))
                     } else {
@@ -1231,14 +1231,14 @@ fn parse_qualified_name<'i, 't, P, E, Impl>
             }
         },
         Ok(Token::Delim('*')) => {
-            let position = input.position();
+            let after_star = input.state();
             // FIXME: remove clone() when lifetimes are non-lexical
             match input.next_including_whitespace().map(|t| t.clone()) {
                 Ok(Token::Delim('|')) => {
                     explicit_namespace(input, QNamePrefix::ExplicitAnyNamespace)
                 }
                 result => {
-                    input.reset(position);
+                    input.reset(&after_star);
                     if in_attr_selector {
                         match result {
                             Ok(t) => Err(ParseError::Basic(BasicParseError::UnexpectedToken(t))),
@@ -1254,7 +1254,7 @@ fn parse_qualified_name<'i, 't, P, E, Impl>
             explicit_namespace(input, QNamePrefix::ExplicitNoNamespace)
         }
         _ => {
-            input.reset(position);
+            input.reset(&start);
             Ok(None)
         }
     }
@@ -1427,9 +1427,9 @@ fn parse_negation<'i, 't, P, E, Impl>(parser: &P,
 
     // Consume any leading whitespace.
     loop {
-        let position = input.position();
+        let before_this_token = input.state();
         if !matches!(input.next_including_whitespace(), Ok(&Token::WhiteSpace(_))) {
-            input.reset(position);
+            input.reset(&before_this_token);
             break
         }
     }
@@ -1470,9 +1470,9 @@ fn parse_compound_selector<'i, 't, P, E, Impl>(
 {
     // Consume any leading whitespace.
     loop {
-        let position = input.position();
+        let before_this_token = input.state();
         if !matches!(input.next_including_whitespace(), Ok(&Token::WhiteSpace(_))) {
-            input.reset(position);
+            input.reset(&before_this_token);
             break
         }
     }
@@ -1604,7 +1604,7 @@ fn parse_one_simple_selector<'i, 't, P, E, Impl>(parser: &P,
                                                            ParseError<'i, SelectorParseError<'i, E>>>
     where P: Parser<'i, Impl=Impl, Error=E>, Impl: SelectorImpl
 {
-    let start_position = input.position();
+    let start = input.state();
     // FIXME: remove clone() when lifetimes are non-lexical
     match input.next_including_whitespace().map(|t| t.clone()) {
         Ok(Token::IDHash(id)) => {
@@ -1657,7 +1657,7 @@ fn parse_one_simple_selector<'i, 't, P, E, Impl>(parser: &P,
             }
         }
         _ => {
-            input.reset(start_position);
+            input.reset(&start);
             Ok(None)
         }
     }

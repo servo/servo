@@ -6,7 +6,7 @@
 
 #![allow(unsafe_code)]
 
-use cssparser::{Parser, SourcePosition, ParseError as CssParseError, Token, BasicParseError};
+use cssparser::{SourceLocation, ParseError as CssParseError, Token, BasicParseError};
 use cssparser::CowRcStr;
 use selectors::parser::SelectorParseError;
 use std::ptr;
@@ -330,15 +330,10 @@ impl<'a> ErrorHelpers<'a> for ContextualParseError<'a> {
 }
 
 impl ParseErrorReporter for ErrorReporter {
-    fn report_error<'a>(&self,
-                        input: &mut Parser,
-                        position: SourcePosition,
-                        error: ContextualParseError<'a>,
-                        _url: &UrlExtraData,
-                        line_number_offset: u64) {
-        let location = input.source_location(position);
-        let line_number = location.line + line_number_offset as u32;
-
+    fn report_error(&self,
+                    _url: &UrlExtraData,
+                    location: SourceLocation,
+                    error: ContextualParseError) {
         let (pre, name, action) = error.to_gecko_message();
         let suffix = match action {
             Action::Nothing => ptr::null(),
@@ -362,8 +357,8 @@ impl ParseErrorReporter for ErrorReporter {
                                            suffix as *const _,
                                            source.as_ptr() as *const _,
                                            source.len() as u32,
-                                           line_number as u32,
-                                           location.column as u32);
+                                           location.line,
+                                           location.column);
         }
     }
 }

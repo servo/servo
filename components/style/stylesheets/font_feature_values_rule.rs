@@ -11,7 +11,7 @@ use computed_values::font_family::FamilyName;
 use cssparser::{AtRuleParser, AtRuleType, BasicParseError, DeclarationListParser, DeclarationParser, Parser};
 use cssparser::{CowRcStr, RuleListParser, SourceLocation, QualifiedRuleParser, Token, serialize_identifier};
 use error_reporting::ContextualParseError;
-use parser::{ParserContext, log_css_error, Parse};
+use parser::{ParserContext, Parse};
 use selectors::parser::SelectorParseError;
 use shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt;
@@ -222,10 +222,8 @@ macro_rules! font_feature_values_blocks {
                     });
                     while let Some(result) = iter.next() {
                         if let Err(err) = result {
-                            let pos = err.span.start;
-                            let error = ContextualParseError::UnsupportedRule(
-                                iter.input.slice(err.span), err.error);
-                            log_css_error(iter.input, pos, error, context);
+                            let error = ContextualParseError::UnsupportedRule(err.slice, err.error);
+                            context.log_css_error(err.location, error);
                         }
                     }
                 }
@@ -338,10 +336,9 @@ macro_rules! font_feature_values_blocks {
                             let mut iter = DeclarationListParser::new(input, parser);
                             while let Some(declaration) = iter.next() {
                                 if let Err(err) = declaration {
-                                    let pos = err.span.start;
                                     let error = ContextualParseError::UnsupportedKeyframePropertyDeclaration(
-                                        iter.input.slice(err.span), err.error);
-                                    log_css_error(iter.input, pos, error, &context);
+                                        err.slice, err.error);
+                                    context.log_css_error(err.location, error);
                                 }
                             }
                         },

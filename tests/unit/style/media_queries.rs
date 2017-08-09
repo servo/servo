@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::{Parser, SourcePosition};
+use cssparser::SourceLocation;
 use euclid::ScaleFactor;
 use euclid::TypedSize2D;
 use servo_arc::Arc;
@@ -21,12 +21,10 @@ use style_traits::ToCss;
 pub struct CSSErrorReporterTest;
 
 impl ParseErrorReporter for CSSErrorReporterTest {
-    fn report_error<'a>(&self,
-                        _input: &mut Parser,
-                        _position: SourcePosition,
-                        _error: ContextualParseError<'a>,
-                        _url: &ServoUrl,
-                        _line_number_offset: u64) {
+    fn report_error(&self,
+                    _url: &ServoUrl,
+                    _location: SourceLocation,
+                    _error: ContextualParseError) {
     }
 }
 

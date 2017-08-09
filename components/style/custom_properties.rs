@@ -295,9 +295,9 @@ fn parse_declaration_value<'i, 't>
                           -> Result<(TokenSerializationType, TokenSerializationType), ParseError<'i>> {
     input.parse_until_before(Delimiter::Bang | Delimiter::Semicolon, |input| {
         // Need at least one token
-        let start_position = input.position();
+        let start = input.state();
         input.next_including_whitespace()?;
-        input.reset(start_position);
+        input.reset(&start);
 
         parse_declaration_value_block(input, references, missing_closing_characters)
     })
@@ -354,11 +354,11 @@ fn parse_declaration_value_block<'i, 't>
                 return Err(StyleParseError::UnbalancedCloseCurlyBracketInDeclarationValueBlock.into()),
             Token::Function(ref name) => {
                 if name.eq_ignore_ascii_case("var") {
-                    let position = input.position();
+                    let args_start = input.state();
                     input.parse_nested_block(|input| {
                         parse_var_function(input, references)
                     })?;
-                    input.reset(position);
+                    input.reset(&args_start);
                 }
                 nested!();
                 check_closed!(")");
@@ -694,13 +694,13 @@ fn substitute_block<'i, 't, F>(input: &mut Parser<'i, 't>,
                         while let Ok(_) = input.next() {}
                     } else {
                         input.expect_comma()?;
-                        let position = input.position();
+                        let after_comma = input.state();
                         let first_token_type = input.next_including_whitespace_and_comments()
                             // parse_var_function() ensures that .unwrap() will not fail.
                             .unwrap()
                             .serialization_type();
-                        input.reset(position);
-                        let mut position = (position, first_token_type);
+                        input.reset(&after_comma);
+                        let mut position = (after_comma.position(), first_token_type);
                         last_token_type = substitute_block(
                             input, &mut position, partial_computed_value, substitute_one)?;
                         partial_computed_value.push_from(position, input, last_token_type);

@@ -194,7 +194,7 @@ impl CalcNode {
         let mut root = Self::parse_product(context, input, expected_unit)?;
 
         loop {
-            let position = input.position();
+            let start = input.state();
             match input.next_including_whitespace() {
                 Ok(&Token::WhiteSpace(_)) => {
                     if input.is_exhausted() {
@@ -220,7 +220,7 @@ impl CalcNode {
                     }
                 }
                 _ => {
-                    input.reset(position);
+                    input.reset(&start);
                     break
                 }
             }
@@ -247,7 +247,7 @@ impl CalcNode {
         let mut root = Self::parse_one(context, input, expected_unit)?;
 
         loop {
-            let position = input.position();
+            let start = input.state();
             match input.next() {
                 Ok(&Token::Delim('*')) => {
                     let rhs = Self::parse_one(context, input, expected_unit)?;
@@ -261,7 +261,7 @@ impl CalcNode {
                     root = new_root;
                 }
                 _ => {
-                    input.reset(position);
+                    input.reset(&start);
                     break
                 }
             }
