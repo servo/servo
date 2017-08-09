@@ -1635,6 +1635,11 @@ impl CascadeData {
     }
 }
 
+/// Iterator over `PerOriginCascadeData`, from highest level (user) to lowest
+/// (user agent).
+///
+/// We rely on this specific order for correctly looking up animations
+/// (prioritizing rules at higher cascade levels), among other things.
 struct CascadeDataIter<'a> {
     cascade_data: &'a CascadeData,
     cur: usize,
@@ -1645,9 +1650,9 @@ impl<'a> Iterator for CascadeDataIter<'a> {
 
     fn next(&mut self) -> Option<&'a PerOriginCascadeData> {
         let result = match self.cur {
-            0 => &self.cascade_data.user_agent,
+            0 => &self.cascade_data.user,
             1 => &self.cascade_data.author,
-            2 => &self.cascade_data.user,
+            2 => &self.cascade_data.user_agent,
             _ => return None,
         };
         self.cur += 1;
