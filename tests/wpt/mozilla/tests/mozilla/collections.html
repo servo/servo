@@ -63,7 +63,7 @@
   <track></track>
 </video>
 
-<foo-á>hi</foo-á>
+<fooá>hi</fooá>
 
 <script>
 test(function() {
@@ -142,7 +142,7 @@ test(function() {
 
   // Test non-ASCII tag names.  Uppercasing is ASCII-only per spec:
   // http://dom.spec.whatwg.org/#dom-element-tagname
-  check_tag("foo-á", 1, [HTMLUnknownElement], "FOO-á");
+  check_tag("fooá", 1, [HTMLUnknownElement], "FOOá");
 });
 </script>
 </body>

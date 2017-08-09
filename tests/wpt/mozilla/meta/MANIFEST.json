@@ -26534,7 +26534,7 @@
    "testharness"
   ],
   "mozilla/collections.html": [
-   "f1029d519aa7017a1a3d18a891a0774b9a39f847",
+   "aa060d1e5d1364224f2c2151e5f8b9580ac4427e",
    "testharness"
   ],
   "mozilla/createEvent-storageevent.html": [
@@ -27534,7 +27534,7 @@
    "testharness"
   ],
   "mozilla/prototypes.html": [
-   "bb4824ae242ed89485a272f6ef74631d6fea62be",
+   "e19d75682a83f4d2de1cbdf053aadfda181d6725",
    "testharness"
   ],
   "mozilla/proxy_setter.html": [
