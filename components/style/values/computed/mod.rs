@@ -135,8 +135,7 @@ impl<'a> Context<'a> {
         &self.builder
     }
 
-
-    /// Apply text-zoom if enabled
+    /// Apply text-zoom if enabled.
     #[cfg(feature = "gecko")]
     pub fn maybe_zoom_text(&self, size: NonNegativeAu) -> NonNegativeAu {
         // We disable zoom for <svg:text> by unsetting the
