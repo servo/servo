@@ -193,6 +193,19 @@ impl fmt::Debug for EagerPseudoArray {
     }
 }
 
+#[cfg(feature = "gecko")]
+impl MallocSizeOfWithRepeats for EagerPseudoArray {
+    fn malloc_size_of_children(&self, state: &mut SizeOfState) -> usize {
+        let mut n = 0;
+        for i in 0..EAGER_PSEUDO_COUNT {
+            if let Some(ref values) = self.0[i] {
+                n += values.malloc_size_of_children(state)
+            }
+        }
+        n
+    }
+}
+
 // Can't use [None; EAGER_PSEUDO_COUNT] here because it complains
 // about Copy not being implemented for our Arc type.
 #[cfg(feature = "gecko")]
@@ -281,7 +294,9 @@ impl MallocSizeOfWithRepeats for ElementStyles {
             n += primary.malloc_size_of_children(state)
         };
 
-        // We may measure more fields in the future if DMD says it's worth it.
+        if let Some(ref array) = self.pseudos.0 {
+            n += array.malloc_size_of_children(state)
+        }
 
         n
     }
