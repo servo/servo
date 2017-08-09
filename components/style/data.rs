@@ -69,14 +69,23 @@ impl RestyleData {
     }
 
     /// Clear all the restyle state associated with this element.
-    fn clear(&mut self) {
-        *self = Self::new();
+    ///
+    /// FIXME(bholley): The only caller of this should probably just assert that
+    /// the hint is empty and call clear_flags_and_damage().
+    fn clear_restyle_state(&mut self) {
+        self.clear_restyle_flags_and_damage();
+        self.hint = RestyleHint::empty();
     }
 
     /// Clear restyle flags and damage.
-    fn clear_flags_and_damage(&mut self) {
+    ///
+    /// Note that we don't touch the TRAVERSED_WITHOUT_STYLING bit, which gets
+    /// set to the correct value on each traversal. There's no reason anyone
+    /// needs to clear it, and clearing it accidentally mid-traversal could
+    /// cause incorrect style sharing behavior.
+    fn clear_restyle_flags_and_damage(&mut self) {
         self.damage = RestyleDamage::empty();
-        self.flags = RestyleFlags::empty();
+        self.flags = self.flags & TRAVERSED_WITHOUT_STYLING;
     }
 
     /// Returns whether this element or any ancestor is going to be
@@ -420,12 +429,12 @@ impl ElementData {
 
     /// Drops any restyle state from the element.
     pub fn clear_restyle_state(&mut self) {
-        self.restyle.clear();
+        self.restyle.clear_restyle_state();
     }
 
     /// Drops restyle flags and damage from the element.
     pub fn clear_restyle_flags_and_damage(&mut self) {
-        self.restyle.clear_flags_and_damage();
+        self.restyle.clear_restyle_flags_and_damage();
     }
 }
 
