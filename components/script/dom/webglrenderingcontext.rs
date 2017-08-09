@@ -717,10 +717,7 @@ impl WebGLRenderingContext {
             // but we need to refactor it moving it to `HTMLCanvasElement` and support
             // WebGLContext (probably via GetPixels()).
             ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement::HTMLCanvasElement(canvas) => {
-                if let Some((mut data, size)) = canvas.fetch_all_data() {
-                    if !canvas.is_webgl() {
-                        byte_swap(&mut data);
-                    }
+                if let Some((data, size)) = canvas.fetch_all_data() {
                     // Pixels got from Canvas have already alpha premultiplied
                     (data, size, true)
                 } else {

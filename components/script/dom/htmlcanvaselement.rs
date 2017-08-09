@@ -237,17 +237,6 @@ impl HTMLCanvasElement {
 
         Some((data, size))
     }
-
-    pub fn is_webgl(&self) -> bool {
-        if let Some(ref context) = *self.context.borrow() {
-            match *context {
-                CanvasContext::Context2d(_) => false,
-                CanvasContext::WebGL(_) => true,
-            }
-        } else {
-            false
-        }
-    }
 }
 
 impl HTMLCanvasElementMethods for HTMLCanvasElement {
