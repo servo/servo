@@ -44,6 +44,7 @@ use std::ops::Deref;
 use std::ptr;
 use std::rc::Rc;
 use style::thread_state;
+use mitochondria::OnceCell;
 
 /// A traced reference to a DOM object
 ///
@@ -295,9 +296,8 @@ impl<T: DomObject + PartialEq> PartialEq<T> for MutJS<T> {
 /// This should only be used as a field in other DOM objects; see warning
 /// on `JS<T>`.
 #[must_root]
-#[derive(JSTraceable)]
 pub struct MutNullableJS<T: DomObject> {
-    ptr: UnsafeCell<Option<JS<T>>>,
+    ptr: OnceCell<Option<JS<T>>>,
 }
 
 impl<T: DomObject> MutNullableJS<T> {
@@ -305,7 +305,7 @@ impl<T: DomObject> MutNullableJS<T> {
     pub fn new(initial: Option<&T>) -> MutNullableJS<T> {
         debug_assert!(thread_state::get().is_script());
         MutNullableJS {
-            ptr: UnsafeCell::new(initial.map(JS::from_ref)),
+            ptr: OnceCell::new_with_value(initial.map(JS::from_ref)),
         }
     }
 
@@ -330,7 +330,13 @@ impl<T: DomObject> MutNullableJS<T> {
     #[allow(unrooted_must_root)]
     pub unsafe fn get_inner_as_layout(&self) -> Option<LayoutJS<T>> {
         debug_assert!(thread_state::get().is_layout());
-        ptr::read(self.ptr.get()).map(|js| js.to_layout())
+        match self.ptr.as_ref() {
+            Some(ptr_ref) => {
+                ptr::read(ptr_ref).map(|js| js.to_layout())
+            },
+            None => None
+        }
+        
     }
 
     /// Get a rooted value out of this object
@@ -338,16 +344,19 @@ impl<T: DomObject> MutNullableJS<T> {
     pub fn get(&self) -> Option<Root<T>> {
         debug_assert!(thread_state::get().is_script());
         unsafe {
-            ptr::read(self.ptr.get()).map(|o| Root::from_ref(&*o))
+            match self.ptr.as_ref() {
+                Some(ptr_ref) => {
+                    ptr::read(ptr_ref).map(|o| Root::from_ref(&*o))
+                },
+                None => None
+            }
         }
     }
 
     /// Set this `MutNullableJS` to the given value.
     pub fn set(&self, val: Option<&T>) {
         debug_assert!(thread_state::get().is_script());
-        unsafe {
-            *self.ptr.get() = val.map(|p| JS::from_ref(p));
-        }
+        self.ptr.init_once( || val.map(|p| JS::from_ref(p)));        
     }
 
     /// Gets the current value out of this object and sets it to `None`.
@@ -360,17 +369,34 @@ impl<T: DomObject> MutNullableJS<T> {
 
 impl<T: DomObject> PartialEq for MutNullableJS<T> {
     fn eq(&self, other: &Self) -> bool {
-        unsafe {
-            *self.ptr.get() == *other.ptr.get()
+        if let Some(ptr_ref) = self.ptr.as_ref().clone() {
+            if let Some(other_ref) = other.ptr.as_ref().clone() {
+                *ptr_ref == *other_ref
+            } else {
+                false
+            }
+        } else {
+            if let Some(other_ref) = other.ptr.as_ref().clone() {
+                false
+            } else {
+                true
+            }
         }
+        // *self.ptr.as_ref().unwrap() == *other.ptr.as_ref().unwrap()
     }
 }
 
 impl<'a, T: DomObject> PartialEq<Option<&'a T>> for MutNullableJS<T> {
     fn eq(&self, other: &Option<&T>) -> bool {
-        unsafe {
-            *self.ptr.get() == other.map(JS::from_ref)
+        match self.ptr.as_ref().clone() {
+            Some(ptr_ref) => {
+                *ptr_ref == other.map(JS::from_ref)
+            }, 
+            None => {
+                false
+            }
         }
+        // *self.ptr.as_ref().unwrap() == other.map(JS::from_ref)
     }
 }
 
@@ -379,7 +405,7 @@ impl<T: DomObject> Default for MutNullableJS<T> {
     fn default() -> MutNullableJS<T> {
         debug_assert!(thread_state::get().is_script());
         MutNullableJS {
-            ptr: UnsafeCell::new(None),
+            ptr: OnceCell::new(),
         }
     }
 }
@@ -388,6 +414,34 @@ impl<T: DomObject> HeapSizeOf for MutNullableJS<T> {
     fn heap_size_of_children(&self) -> usize {
         // See comment on HeapSizeOf for JS<T>.
         0
+    }
+}
+
+#[allow(unrooted_must_root)]   
+unsafe impl<T: DomObject> JSTraceable for MutNullableJS<T> {
+    unsafe fn trace(&self, trc: *mut JSTracer) {
+        #[cfg(debug_assertions)]
+        let trace_str = format!("for {} on heap", type_name::<T>());
+        #[cfg(debug_assertions)]
+        let trace_info = &trace_str[..];
+        #[cfg(not(debug_assertions))]
+        let trace_info = "for DOM object on heap";        
+        // let ptr = self.ptr.as_ref().clone().unwrap().clone();
+
+        match self.ptr.as_ref().clone() {
+            Some(ptr) => {
+                match ptr.clone() {
+                    Some(p) => {
+                        trace_reflector(trc,
+                                trace_info,
+                                (*p).reflector());
+                    },
+                    None => {}
+                };
+            },
+            None => {}
+        };
+        // let ptr2 = ptr1.unwrap();        
     }
 }
 
