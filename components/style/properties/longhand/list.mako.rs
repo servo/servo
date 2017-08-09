@@ -30,7 +30,7 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
         animation_value_type="discrete",
         spec="https://drafts.csswg.org/css-lists/#propdef-list-style-type")}
 % else:
-    <%helpers:longhand name="list-style-type" animation_value_type="none" boxed="True"
+    <%helpers:longhand name="list-style-type" animation_value_type="discrete" boxed="True"
                        spec="https://drafts.csswg.org/css-lists/#propdef-list-style-type">
         use values::CustomIdent;
         use values::computed::ComputedValueAsSpecified;
