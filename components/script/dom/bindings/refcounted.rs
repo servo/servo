@@ -11,7 +11,7 @@
 //! To guarantee the lifetime of a DOM object when performing asynchronous operations,
 //! obtain a `Trusted<T>` from that object and pass it along with each operation.
 //! A usable pointer to the original DOM object can be obtained on the script thread
-//! from a `Trusted<T>` via the `to_temporary` method.
+//! from a `Trusted<T>` via the `root` method.
 //!
 //! The implementation of `Trusted<T>` is as follows:
 //! The `Trusted<T>` object contains an atomic reference counted pointer to the Rust DOM object.
