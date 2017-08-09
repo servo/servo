@@ -258,6 +258,8 @@ pub extern "C" fn Servo_TraverseSubtree(root: RawGeckoElementBorrowed,
 
     let element = GeckoElement(root);
 
+    debug!("Servo_TraverseSubtree (flags={:?})", traversal_flags);
+
     // It makes no sense to do an animation restyle when we're restyling
     // newly-inserted content.
     if !traversal_flags.contains(traversal_flags::UnstyledChildrenOnly) {
@@ -266,6 +268,8 @@ pub extern "C" fn Servo_TraverseSubtree(root: RawGeckoElementBorrowed,
             element.has_animation_restyle_hints();
 
         if needs_animation_only_restyle {
+            debug!("Servo_TraverseSubtree doing animation-only restyle (aodd={})",
+                   element.has_animation_only_dirty_descendants());
             traverse_subtree(element,
                              raw_data,
                              traversal_flags | traversal_flags::AnimationOnly,
@@ -274,6 +278,8 @@ pub extern "C" fn Servo_TraverseSubtree(root: RawGeckoElementBorrowed,
     }
 
     if traversal_flags.for_animation_only() {
+        debug!("Servo_TraverseSubtree complete (animation-only, aodd={})",
+               element.has_animation_only_dirty_descendants());
         return element.has_animation_only_dirty_descendants() ||
                element.borrow_data().unwrap().restyle.is_restyle();
     }
@@ -282,6 +288,11 @@ pub extern "C" fn Servo_TraverseSubtree(root: RawGeckoElementBorrowed,
                      raw_data,
                      traversal_flags,
                      unsafe { &*snapshots });
+
+    debug!("Servo_TraverseSubtree complete (dd={}, aodd={}, restyle={:?})",
+           element.has_dirty_descendants(),
+           element.has_animation_only_dirty_descendants(),
+           element.borrow_data().unwrap().restyle);
 
     element.has_dirty_descendants() ||
     element.has_animation_only_dirty_descendants() ||

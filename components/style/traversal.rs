@@ -603,7 +603,7 @@ where
     // data here, since we won't need to perform a post-traversal to pick up
     // any change hints.
     if flags.contains(traversal_flags::Forgetful) {
-        data.clear_restyle_state();
+        data.clear_restyle_flags_and_damage();
     }
 
     // There are two cases when we want to clear the dity descendants bit here
