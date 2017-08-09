@@ -37,9 +37,8 @@ impl WebGLThreads {
         WebGLPipeline(WebGLChan(self.0.clone()))
     }
 
-    /// Sends a exit message to close all the existing `WebGLThread`s.
+    /// Sends a exit message to close the WebGLThreads and release all WebGLContexts.
     pub fn exit(&self) -> Result<(), &'static str> {
-        // sends a exit message to close the single `WebGLThread`
         self.0.send(WebGLMsg::Exit).map_err(|_| "Failed to send Exit message")
     }
 }

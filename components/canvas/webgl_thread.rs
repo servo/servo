@@ -52,7 +52,7 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
             cached_context_info: HashMap::new(),
             current_bound_webgl_context_id: None,
             next_webgl_id: 0,
-            webvr_compositor: webvr_compositor,
+            webvr_compositor,
             observer: observer,
         }
     }
@@ -167,7 +167,7 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
         sender.send((info.texture_id, info.size)).unwrap();
     }
 
-    /// Handles a unlock external callback received from webrender::ExternalImageHandler
+    /// Handles an unlock external callback received from webrender::ExternalImageHandler
     fn handle_unlock(&mut self, context_id: WebGLContextId) {
         let ctx = &self.contexts[&context_id];
         if Some(context_id) != self.current_bound_webgl_context_id {
@@ -178,7 +178,7 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
         if let Some(gl_sync) = info.gl_sync.take() {
             // glFlush must be called before glWaitSync.
             ctx.gl().flush();
-            // Waint until the GLSync object is signaled.
+            // Wait until the GLSync object is signaled.
             ctx.gl().wait_sync(gl_sync, 0, gl::TIMEOUT_IGNORED);
             // Release the GLSync object.
             ctx.gl().delete_sync(gl_sync);
@@ -206,21 +206,21 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
         match result {
             Ok((ctx, share_mode)) => {
                 let id = WebGLContextId(self.next_webgl_id);
-                let (real_size, texture_id, limits) = ctx.get_info();
+                let (size, texture_id, limits) = ctx.get_info();
                 self.next_webgl_id += 1;
                 self.contexts.insert(id, ctx);
                 self.cached_context_info.insert(id, WebGLContextInfo {
-                    texture_id: texture_id,
-                    size: real_size,
+                    texture_id,
+                    size,
                     alpha: attributes.alpha,
                     image_key: None,
-                    share_mode: share_mode,
+                    share_mode,
                     gl_sync: None,
                     old_image_key: None,
                     very_old_image_key: None,
                 });
 
-                self.observer.on_context_create(id, texture_id, real_size);
+                self.observer.on_context_create(id, texture_id, size);
 
                 Ok((id, limits, share_mode))
             },
@@ -383,7 +383,7 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
         image_key
     }
 
-    /// Creates a `webrender_api::ImageKey` that uses raw pixels.
+    /// Updates a `webrender_api::ImageKey` that uses raw pixels.
     fn update_wr_readback_image(webrender_api: &webrender_api::RenderApi,
                                 size: Size2D<i32>,
                                 alpha: bool,
@@ -404,7 +404,7 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
             width: size.width as u32,
             height: size.height as u32,
             stride: None,
-            format: if alpha { webrender_api::ImageFormat::RGB8 } else { webrender_api::ImageFormat::BGRA8 },
+            format: if alpha { webrender_api::ImageFormat::BGRA8 } else { webrender_api::ImageFormat::RGB8 },
             offset: 0,
             is_opaque: !alpha,
         }

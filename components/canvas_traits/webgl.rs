@@ -12,7 +12,7 @@ use webrender_api;
 pub use ::webgl_channel::WebGLSender;
 /// Receiver type used in WebGLCommands.
 pub use ::webgl_channel::WebGLReceiver;
-/// Result type for rend()/recv() calls in in WebGLCommands.
+/// Result type for send()/recv() calls in in WebGLCommands.
 pub use ::webgl_channel::WebGLSendResult;
 /// Helper function that creates a WebGL channel (WebGLSender, WebGLReceiver) to be used in WebGLCommands.
 pub use ::webgl_channel::webgl_channel;
@@ -34,13 +34,20 @@ pub enum WebGLMsg {
     WebGLCommand(WebGLContextId, WebGLCommand),
     /// Runs a WebVRCommand in a specific WebGLContext.
     WebVRCommand(WebGLContextId, WebVRCommand),
-    /// Locks a specific WebGLContext.
+    /// Locks a specific WebGLContext. Lock messages are used for a correct synchronization
+    /// with WebRender external image API.
+    /// WR locks a external texture when it wants to use the shared texture contents.
+    /// The WR client should not change the shared texture content until the Unlock call.
+    /// Currently OpenGL Sync Objects are used to implement the synchronization mechanism.
     Lock(WebGLContextId, WebGLSender<(u32, Size2D<i32>)>),
-    /// Unlocks a specific WebGLContext.
+    /// Unlocks a specific WebGLContext. Unlock messages are used for a correct synchronization
+    /// with WebRender external image API.
+    /// The WR unlocks a context when it finished reading the shared texture contents.
+    /// Unlock messages are always sent after a Lock message.
     Unlock(WebGLContextId),
     /// Creates or updates the image keys required for WebRender.
     UpdateWebRenderImage(WebGLContextId, WebGLSender<webrender_api::ImageKey>),
-    /// Fress al resources and closes the thread.
+    /// Frees all resources and closes the thread.
     Exit,
 }
 
