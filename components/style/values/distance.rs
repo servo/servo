@@ -7,7 +7,7 @@
 use app_units::Au;
 use euclid::Size2D;
 use std::iter::Sum;
-use std::ops::Add;
+use std::ops::{Add, AddAssign};
 
 /// A trait to compute squared distances between two animatable values.
 pub trait ComputeSquaredDistance {
@@ -107,6 +107,12 @@ impl Add for SquaredDistance {
     #[inline]
     fn add(self, rhs: Self) -> Self {
         SquaredDistance::Value(f64::from(self) + f64::from(rhs))
+    }
+}
+
+impl AddAssign for SquaredDistance {
+    fn add_assign(&mut self, rhs: Self) {
+        *self = *self + rhs;
     }
 }
 
