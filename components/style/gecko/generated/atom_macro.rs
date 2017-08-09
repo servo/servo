@@ -1812,16 +1812,10 @@ cfg_if! {
             pub static nsGkAtoms_onmozpointerlockchange: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms21onmozpointerlockerrorE"]
             pub static nsGkAtoms_onmozpointerlockerror: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms15onmoztimechangeE"]
-            pub static nsGkAtoms_onmoztimechange: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms21onMozMousePixelScrollE"]
             pub static nsGkAtoms_onMozMousePixelScroll: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms24onMozScrolledAreaChangedE"]
             pub static nsGkAtoms_onMozScrolledAreaChanged: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms18onmoznetworkuploadE"]
-            pub static nsGkAtoms_onmoznetworkupload: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms20onmoznetworkdownloadE"]
-            pub static nsGkAtoms_onmoznetworkdownload: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms21onmapfolderlistingreqE"]
             pub static nsGkAtoms_onmapfolderlistingreq: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms23onmapmessageslistingreqE"]
@@ -6943,16 +6937,10 @@ cfg_if! {
             pub static nsGkAtoms_onmozpointerlockchange: *mut nsIAtom;
             #[link_name = "?onmozpointerlockerror@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_onmozpointerlockerror: *mut nsIAtom;
-            #[link_name = "?onmoztimechange@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_onmoztimechange: *mut nsIAtom;
             #[link_name = "?onMozMousePixelScroll@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_onMozMousePixelScroll: *mut nsIAtom;
             #[link_name = "?onMozScrolledAreaChanged@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_onMozScrolledAreaChanged: *mut nsIAtom;
-            #[link_name = "?onmoznetworkupload@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_onmoznetworkupload: *mut nsIAtom;
-            #[link_name = "?onmoznetworkdownload@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_onmoznetworkdownload: *mut nsIAtom;
             #[link_name = "?onmapfolderlistingreq@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_onmapfolderlistingreq: *mut nsIAtom;
             #[link_name = "?onmapmessageslistingreq@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -12074,16 +12062,10 @@ cfg_if! {
             pub static nsGkAtoms_onmozpointerlockchange: *mut nsIAtom;
             #[link_name = "\x01?onmozpointerlockerror@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_onmozpointerlockerror: *mut nsIAtom;
-            #[link_name = "\x01?onmoztimechange@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_onmoztimechange: *mut nsIAtom;
             #[link_name = "\x01?onMozMousePixelScroll@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_onMozMousePixelScroll: *mut nsIAtom;
             #[link_name = "\x01?onMozScrolledAreaChanged@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_onMozScrolledAreaChanged: *mut nsIAtom;
-            #[link_name = "\x01?onmoznetworkupload@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_onmoznetworkupload: *mut nsIAtom;
-            #[link_name = "\x01?onmoznetworkdownload@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_onmoznetworkdownload: *mut nsIAtom;
             #[link_name = "\x01?onmapfolderlistingreq@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_onmapfolderlistingreq: *mut nsIAtom;
             #[link_name = "\x01?onmapmessageslistingreq@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -17208,16 +17190,10 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmozpointerlockchange as *mut _) } };
 ("onmozpointerlockerror") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmozpointerlockerror as *mut _) } };
-("onmoztimechange") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmoztimechange as *mut _) } };
 ("onMozMousePixelScroll") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onMozMousePixelScroll as *mut _) } };
 ("onMozScrolledAreaChanged") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onMozScrolledAreaChanged as *mut _) } };
-("onmoznetworkupload") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmoznetworkupload as *mut _) } };
-("onmoznetworkdownload") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmoznetworkdownload as *mut _) } };
 ("onmapfolderlistingreq") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmapfolderlistingreq as *mut _) } };
 ("onmapmessageslistingreq") =>
