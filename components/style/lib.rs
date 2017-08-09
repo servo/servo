@@ -92,7 +92,7 @@ extern crate unicode_segmentation;
 #[macro_use]
 mod macros;
 
-pub mod animation;
+#[cfg(feature = "servo")] pub mod animation;
 pub mod applicable_declarations;
 #[allow(missing_docs)] // TODO.
 #[cfg(feature = "servo")] pub mod attr;

@@ -387,6 +387,7 @@ pub fn nscsspropertyid_is_transitionable(property: nsCSSPropertyID) -> bool {
 
 /// An animated property interpolation between two computed values for that
 /// property.
+#[cfg(feature = "servo")]
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum AnimatedProperty {
@@ -404,6 +405,7 @@ pub enum AnimatedProperty {
     % endfor
 }
 
+#[cfg(feature = "servo")]
 impl AnimatedProperty {
     /// Get the name of this property.
     pub fn name(&self) -> &'static str {
