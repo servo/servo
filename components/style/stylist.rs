@@ -25,7 +25,7 @@ use rule_tree::{CascadeLevel, RuleTree, StyleSource};
 use selector_map::{PrecomputedHashMap, SelectorMap, SelectorMapEntry};
 use selector_parser::{SelectorImpl, PerPseudoElementMap, PseudoElement};
 use selectors::attr::NamespaceConstraint;
-use selectors::bloom::BloomFilter;
+use selectors::bloom::{BloomFilter, NonCountingBloomFilter};
 use selectors::matching::{ElementSelectorFlags, matches_selector, MatchingContext, MatchingMode};
 use selectors::matching::VisitedHandlingMode;
 use selectors::parser::{AncestorHashes, Combinator, Component, Selector};
@@ -118,10 +118,8 @@ pub struct Stylist {
     /// to avoid taking element snapshots when an irrelevant attribute changes.
     /// (We don't bother storing the namespace, since namespaced attributes
     /// are rare.)
-    ///
-    /// FIXME(heycam): This doesn't really need to be a counting Bloom filter.
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "just an array")]
-    attribute_dependencies: BloomFilter,
+    attribute_dependencies: NonCountingBloomFilter,
 
     /// Whether `"style"` appears in an attribute selector.  This is not common,
     /// and by tracking this explicitly, we can avoid taking an element snapshot
@@ -140,10 +138,8 @@ pub struct Stylist {
     /// hence in our selector maps).  Used to determine when sharing styles is
     /// safe: we disallow style sharing for elements whose id matches this
     /// filter, and hence might be in one of our selector maps.
-    ///
-    /// FIXME(bz): This doesn't really need to be a counting Blooom filter.
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "just an array")]
-    mapped_ids: BloomFilter,
+    mapped_ids: NonCountingBloomFilter,
 
     /// Selectors that require explicit cache revalidation (i.e. which depend
     /// on state that is not otherwise visible to the cache, like attributes or
@@ -244,10 +240,10 @@ impl Stylist {
             rules_source_order: 0,
             rule_tree: RuleTree::new(),
             invalidation_map: InvalidationMap::new(),
-            attribute_dependencies: BloomFilter::new(),
+            attribute_dependencies: NonCountingBloomFilter::new(),
             style_attribute_dependency: false,
             state_dependencies: ElementState::empty(),
-            mapped_ids: BloomFilter::new(),
+            mapped_ids: NonCountingBloomFilter::new(),
             selectors_for_cache_revalidation: SelectorMap::new(),
             num_selectors: 0,
             num_declarations: 0,
@@ -1470,9 +1466,9 @@ struct StylistSelectorVisitor<'a> {
     passed_rightmost_selector: bool,
     /// The filter with all the id's getting referenced from rightmost
     /// selectors.
-    mapped_ids: &'a mut BloomFilter,
+    mapped_ids: &'a mut NonCountingBloomFilter,
     /// The filter with the local names of attributes there are selectors for.
-    attribute_dependencies: &'a mut BloomFilter,
+    attribute_dependencies: &'a mut NonCountingBloomFilter,
     /// Whether there's any attribute selector for the [style] attribute.
     style_attribute_dependency: &'a mut bool,
     /// All the states selectors in the page reference.
@@ -1766,8 +1762,8 @@ impl Rule {
 
 /// A function to be able to test the revalidation stuff.
 pub fn needs_revalidation_for_testing(s: &Selector<SelectorImpl>) -> bool {
-    let mut attribute_dependencies = BloomFilter::new();
-    let mut mapped_ids = BloomFilter::new();
+    let mut attribute_dependencies = NonCountingBloomFilter::new();
+    let mut mapped_ids = NonCountingBloomFilter::new();
     let mut style_attribute_dependency = false;
     let mut state_dependencies = ElementState::empty();
     let mut visitor = StylistSelectorVisitor {
