@@ -270,15 +270,19 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
     fn remove_webgl_context(&mut self, context_id: WebGLContextId) {
         // Release webrender image keys.
         if let Some(info) = self.cached_context_info.remove(&context_id) {
+            let mut updates = webrender_api::ResourceUpdates::new();
+
             if let Some(image_key) = info.image_key {
-                self.webrender_api.delete_image(image_key);
+                updates.delete_image(image_key);
             }
             if let Some(image_key) = info.old_image_key {
-                self.webrender_api.delete_image(image_key);
+                updates.delete_image(image_key);
             }
             if let Some(image_key) = info.very_old_image_key {
-                self.webrender_api.delete_image(image_key);
+                updates.delete_image(image_key);
             }
+
+            self.webrender_api.update_resources(updates)
         }
 
         // Release GL context.
@@ -338,7 +342,9 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
 
         // Delete old image
         if let Some(image_key) = mem::replace(&mut info.very_old_image_key, info.old_image_key.take()) {
-            webrender_api.delete_image(image_key);
+            let mut updates = webrender_api::ResourceUpdates::new();
+            updates.delete_image(image_key);
+            self.webrender_api.update_resources(updates);
         }
 
         // Send the ImageKey to the Layout thread.
@@ -360,10 +366,13 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
         let data = webrender_api::ImageData::External(data);
 
         let image_key = webrender_api.generate_image_key();
-        webrender_api.add_image(image_key,
-                                descriptor,
-                                data,
-                                None);
+        let mut updates = webrender_api::ResourceUpdates::new();
+        updates.add_image(image_key,
+                          descriptor,
+                          data,
+                          None);
+        webrender_api.update_resources(updates);
+
         image_key
     }
 
@@ -376,10 +385,13 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
         let data = webrender_api::ImageData::new(data);
 
         let image_key = webrender_api.generate_image_key();
-        webrender_api.add_image(image_key,
-                                descriptor,
-                                data,
-                                None);
+        let mut updates = webrender_api::ResourceUpdates::new();
+        updates.add_image(image_key,
+                          descriptor,
+                          data,
+                          None);
+        webrender_api.update_resources(updates);
+
         image_key
     }
 
@@ -392,10 +404,12 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
         let descriptor = Self::image_descriptor(size, alpha);
         let data = webrender_api::ImageData::new(data);
 
-        webrender_api.update_image(image_key,
-                                   descriptor,
-                                   data,
-                                   None);
+        let mut updates = webrender_api::ResourceUpdates::new();
+        updates.update_image(image_key,
+                             descriptor,
+                             data,
+                             None);
+        webrender_api.update_resources(updates);
     }
 
     /// Helper function to create a `webrender_api::ImageDescriptor`.
