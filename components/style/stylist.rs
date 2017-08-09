@@ -108,12 +108,6 @@ pub struct Stylist {
     /// style rule appears in a stylesheet, needed to sort them by source order.
     rules_source_order: u32,
 
-    /// Selectors that require explicit cache revalidation (i.e. which depend
-    /// on state that is not otherwise visible to the cache, like attributes or
-    /// tree-structural state like child index and pseudos).
-    #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
-    selectors_for_cache_revalidation: SelectorMap<RevalidationSelectorAndHashes>,
-
     /// The total number of selectors.
     num_selectors: usize,
 
@@ -205,7 +199,6 @@ impl Stylist {
             precomputed_pseudo_element_decls: PerPseudoElementMap::default(),
             rules_source_order: 0,
             rule_tree: RuleTree::new(),
-            selectors_for_cache_revalidation: SelectorMap::new(),
             num_selectors: 0,
             num_declarations: 0,
             num_rebuilds: 0,
@@ -231,7 +224,8 @@ impl Stylist {
 
     /// Returns the number of revalidation_selectors.
     pub fn num_revalidation_selectors(&self) -> usize {
-        self.selectors_for_cache_revalidation.len()
+        self.cascade_data.iter_origins()
+            .map(|d| d.selectors_for_cache_revalidation.len()).sum()
     }
 
     /// Returns the number of entries in invalidation maps.
@@ -281,7 +275,6 @@ impl Stylist {
         self.precomputed_pseudo_element_decls.clear();
         self.rules_source_order = 0;
         // We want to keep rule_tree around across stylist rebuilds.
-        self.selectors_for_cache_revalidation = SelectorMap::new();
         self.num_selectors = 0;
         self.num_declarations = 0;
         // preserve num_rebuilds value, since it should stay across
@@ -486,7 +479,7 @@ impl Stylist {
                         selector.visit(&mut visitor);
 
                         if visitor.needs_revalidation {
-                            self.selectors_for_cache_revalidation.insert(
+                            origin_cascade_data.selectors_for_cache_revalidation.insert(
                                 RevalidationSelectorAndHashes::new(selector.clone(), hashes),
                                 self.quirks_mode);
                         }
@@ -1336,17 +1329,19 @@ impl Stylist {
         // the lookups, which means that the bitvecs are comparable. We verify
         // this in the caller by asserting that the bitvecs are same-length.
         let mut results = BitVec::new();
-        self.selectors_for_cache_revalidation.lookup(
-            *element, self.quirks_mode, &mut |selector_and_hashes| {
-                results.push(matches_selector(&selector_and_hashes.selector,
-                                              selector_and_hashes.selector_offset,
-                                              Some(&selector_and_hashes.hashes),
-                                              element,
-                                              &mut matching_context,
-                                              flags_setter));
-                true
-            }
-        );
+        for origin_cascade_data in self.cascade_data.iter_origins() {
+            origin_cascade_data.selectors_for_cache_revalidation.lookup(
+                *element, self.quirks_mode, &mut |selector_and_hashes| {
+                    results.push(matches_selector(&selector_and_hashes.selector,
+                                                  selector_and_hashes.selector_offset,
+                                                  Some(&selector_and_hashes.hashes),
+                                                  element,
+                                                  &mut matching_context,
+                                                  flags_setter));
+                    true
+                }
+            );
+        }
 
         results
     }
@@ -1687,6 +1682,12 @@ struct PerOriginCascadeData {
     /// filter, and hence might be in one of our selector maps.
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "just an array")]
     mapped_ids: NonCountingBloomFilter,
+
+    /// Selectors that require explicit cache revalidation (i.e. which depend
+    /// on state that is not otherwise visible to the cache, like attributes or
+    /// tree-structural state like child index and pseudos).
+    #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
+    selectors_for_cache_revalidation: SelectorMap<RevalidationSelectorAndHashes>,
 }
 
 impl PerOriginCascadeData {
@@ -1700,6 +1701,7 @@ impl PerOriginCascadeData {
             style_attribute_dependency: false,
             state_dependencies: ElementState::empty(),
             mapped_ids: NonCountingBloomFilter::new(),
+            selectors_for_cache_revalidation: SelectorMap::new(),
         }
     }
 
@@ -1720,6 +1722,7 @@ impl PerOriginCascadeData {
         self.style_attribute_dependency = false;
         self.state_dependencies = ElementState::empty();
         self.mapped_ids.clear();
+        self.selectors_for_cache_revalidation = SelectorMap::new();
     }
 
     fn has_rules_for_pseudo(&self, pseudo: &PseudoElement) -> bool {
