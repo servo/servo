@@ -6,6 +6,7 @@
 //! for selector matching.
 
 use fnv::FnvHasher;
+use std::fmt::{self, Debug};
 use std::hash::{Hash, Hasher};
 
 // The top 8 bits of the 32-bit hash value are not used by the bloom filter.
@@ -138,6 +139,18 @@ impl<S> CountingBloomFilter<S> where S: BloomStorage {
     #[inline]
     pub fn might_contain<T: Hash>(&self, elem: &T) -> bool {
         self.might_contain_hash(hash(elem))
+    }
+}
+
+impl<S> Debug for CountingBloomFilter<S> where S: BloomStorage {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut slots_used = 0;
+        for i in 0..ARRAY_SIZE {
+            if !self.storage.slot_is_empty(i) {
+                slots_used += 1;
+            }
+        }
+        write!(f, "BloomFilter({}/{})", slots_used, ARRAY_SIZE)
     }
 }
 
