@@ -16,7 +16,7 @@ use cssparser::{SourceLocation, CowRcStr};
 use error_reporting::ContextualParseError;
 #[cfg(feature = "gecko")] use gecko_bindings::structs::CSSFontFaceDescriptors;
 #[cfg(feature = "gecko")] use cssparser::UnicodeRange;
-use parser::{ParserContext, log_css_error, Parse};
+use parser::{ParserContext, Parse};
 #[cfg(feature = "gecko")]
 use properties::longhands::font_language_override;
 use selectors::parser::SelectorParseError;
@@ -119,10 +119,8 @@ pub fn parse_font_face_block(context: &ParserContext, input: &mut Parser, locati
         let mut iter = DeclarationListParser::new(input, parser);
         while let Some(declaration) = iter.next() {
             if let Err(err) = declaration {
-                let pos = err.span.start;
-                let error = ContextualParseError::UnsupportedFontFaceDescriptor(
-                    iter.input.slice(err.span), err.error);
-                log_css_error(iter.input, pos, error, context);
+                let error = ContextualParseError::UnsupportedFontFaceDescriptor(err.slice, err.error);
+                context.log_css_error(err.location, error)
             }
         }
     }

@@ -1502,12 +1502,12 @@ impl PropertyDeclaration {
                     PropertyDeclaration::CSSWideKeyword(id, keyword)
                 }).or_else(|()| {
                     input.look_for_var_functions();
-                    let start = input.position();
+                    let start = input.state();
                     input.parse_entirely(|input| id.parse_value(context, input))
                     .or_else(|err| {
                         while let Ok(_) = input.next() {}  // Look for var() after the error.
                         if input.seen_var_functions() {
-                            input.reset(start);
+                            input.reset(&start);
                             let (first_token_type, css) =
                                 ::custom_properties::parse_non_custom_with_var(input).map_err(|e| {
                                     PropertyDeclarationParseError::InvalidValue(id.name().into(),
@@ -1540,13 +1540,13 @@ impl PropertyDeclaration {
                     Ok(())
                 } else {
                     input.look_for_var_functions();
-                    let start = input.position();
+                    let start = input.state();
                     // Not using parse_entirely here: each ${shorthand.ident}::parse_into function
                     // needs to do so *before* pushing to `declarations`.
                     id.parse_into(declarations, context, input).or_else(|err| {
                         while let Ok(_) = input.next() {}  // Look for var() after the error.
                         if input.seen_var_functions() {
-                            input.reset(start);
+                            input.reset(&start);
                             let (first_token_type, css) =
                                 ::custom_properties::parse_non_custom_with_var(input).map_err(|e| {
                                     PropertyDeclarationParseError::InvalidValue(id.name().into(),

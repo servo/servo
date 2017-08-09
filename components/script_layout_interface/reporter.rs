@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::{Parser, SourcePosition};
+use cssparser::SourceLocation;
 use ipc_channel::ipc::IpcSender;
 use log;
 use msg::constellation_msg::PipelineId;
@@ -22,18 +22,14 @@ pub struct CSSErrorReporter {
 }
 
 impl ParseErrorReporter for CSSErrorReporter {
-    fn report_error<'a>(&self,
-                        input: &mut Parser,
-                        position: SourcePosition,
-                        error: ContextualParseError<'a>,
-                        url: &ServoUrl,
-                        line_number_offset: u64) {
-        let location = input.source_location(position);
-        let line_offset = location.line + line_number_offset as u32;
+    fn report_error(&self,
+                    url: &ServoUrl,
+                    location: SourceLocation,
+                    error: ContextualParseError) {
         if log_enabled!(log::LogLevel::Info) {
             info!("Url:\t{}\n{}:{} {}",
                   url.as_str(),
-                  line_offset,
+                  location.line,
                   location.column,
                   error.to_string())
         }

@@ -6,7 +6,7 @@
 
 #![deny(missing_docs)]
 
-use cssparser::{Parser, SourcePosition, BasicParseError, Token};
+use cssparser::{BasicParseError, Token, SourceLocation};
 use cssparser::ParseError as CssParseError;
 use log;
 use style_traits::ParseError;
@@ -152,14 +152,12 @@ impl<'a> ContextualParseError<'a> {
 pub trait ParseErrorReporter {
     /// Called when the style engine detects an error.
     ///
-    /// Returns the current input being parsed, the source position it was
+    /// Returns the current input being parsed, the source location it was
     /// reported from, and a message.
-    fn report_error<'a>(&self,
-                        input: &mut Parser,
-                        position: SourcePosition,
-                        error: ContextualParseError<'a>,
-                        url: &UrlExtraData,
-                        line_number_offset: u64);
+    fn report_error(&self,
+                    url: &UrlExtraData,
+                    location: SourceLocation,
+                    error: ContextualParseError);
 }
 
 /// An error reporter that uses [the `log` crate](https://github.com/rust-lang-nursery/log)
@@ -171,16 +169,12 @@ pub trait ParseErrorReporter {
 pub struct RustLogReporter;
 
 impl ParseErrorReporter for RustLogReporter {
-    fn report_error<'a>(&self,
-                        input: &mut Parser,
-                        position: SourcePosition,
-                        error: ContextualParseError<'a>,
-                        url: &UrlExtraData,
-                        line_number_offset: u64) {
+    fn report_error(&self,
+                    url: &UrlExtraData,
+                    location: SourceLocation,
+                    error: ContextualParseError) {
         if log_enabled!(log::LogLevel::Info) {
-            let location = input.source_location(position);
-            let line_offset = location.line + line_number_offset as u32;
-            info!("Url:\t{}\n{}:{} {}", url.as_str(), line_offset, location.column, error.to_string())
+            info!("Url:\t{}\n{}:{} {}", url.as_str(), location.line, location.column, error.to_string())
         }
     }
 }
@@ -189,12 +183,10 @@ impl ParseErrorReporter for RustLogReporter {
 pub struct NullReporter;
 
 impl ParseErrorReporter for NullReporter {
-    fn report_error<'a>(&self,
-            _: &mut Parser,
-            _: SourcePosition,
-            _: ContextualParseError<'a>,
-            _: &UrlExtraData,
-            _: u64) {
+    fn report_error(&self,
+                    _url: &UrlExtraData,
+                    _location: SourceLocation,
+                    _error: ContextualParseError) {
         // do nothing
     }
 }

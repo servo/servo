@@ -9,7 +9,7 @@ use error_reporting::{ParseErrorReporter, ContextualParseError};
 use fnv::FnvHashMap;
 use media_queries::{MediaList, Device};
 use parking_lot::RwLock;
-use parser::{ParserContext, log_css_error};
+use parser::ParserContext;
 use servo_arc::Arc;
 use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard};
 use std::mem;
@@ -351,10 +351,8 @@ impl Stylesheet {
                 match result {
                     Ok(rule) => rules.push(rule),
                     Err(err) => {
-                        let pos = err.span.start;
-                        let error = ContextualParseError::InvalidRule(
-                            iter.input.slice(err.span), err.error);
-                        log_css_error(iter.input, pos, error, iter.parser.context());
+                        let error = ContextualParseError::InvalidRule(err.slice, err.error);
+                        iter.parser.context().log_css_error(err.location, error);
                     }
                 }
             }

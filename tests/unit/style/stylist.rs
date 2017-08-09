@@ -14,7 +14,6 @@ use style::context::QuirksMode;
 use style::media_queries::{Device, MediaType};
 use style::properties::{PropertyDeclarationBlock, PropertyDeclaration};
 use style::properties::{longhands, Importance};
-use style::rule_tree::CascadeLevel;
 use style::selector_map::{self, SelectorMap};
 use style::selector_parser::{SelectorImpl, SelectorParser};
 use style::shared_lock::SharedRwLock;
