@@ -108,9 +108,6 @@ pub struct Stylist {
     /// style rule appears in a stylesheet, needed to sort them by source order.
     rules_source_order: u32,
 
-    /// The invalidation map for this document.
-    invalidation_map: InvalidationMap,
-
     /// The attribute local names that appear in attribute selectors.  Used
     /// to avoid taking element snapshots when an irrelevant attribute changes.
     /// (We don't bother storing the namespace, since namespaced attributes
@@ -235,7 +232,6 @@ impl Stylist {
             precomputed_pseudo_element_decls: PerPseudoElementMap::default(),
             rules_source_order: 0,
             rule_tree: RuleTree::new(),
-            invalidation_map: InvalidationMap::new(),
             attribute_dependencies: NonCountingBloomFilter::new(),
             style_attribute_dependency: false,
             state_dependencies: ElementState::empty(),
@@ -269,9 +265,23 @@ impl Stylist {
         self.selectors_for_cache_revalidation.len()
     }
 
-    /// Gets a reference to the invalidation map.
-    pub fn invalidation_map(&self) -> &InvalidationMap {
-        &self.invalidation_map
+    /// Returns the number of entries in invalidation maps.
+    pub fn num_invalidations(&self) -> usize {
+        self.cascade_data.iter_origins()
+            .map(|d| d.invalidation_map.len()).sum()
+    }
+
+    /// Invokes `f` with the `InvalidationMap` for each origin.
+    ///
+    /// NOTE(heycam) This might be better as an `iter_invalidation_maps`, once
+    /// we have `impl trait` and can return that easily without bothering to
+    /// create a whole new iterator type.
+    pub fn each_invalidation_map<F>(&self, mut f: F)
+        where F: FnMut(&InvalidationMap)
+    {
+        for origin_cascade_data in self.cascade_data.iter_origins() {
+            f(&origin_cascade_data.invalidation_map)
+        }
     }
 
     /// Clear the stylist's state, effectively resetting it to more or less
@@ -302,7 +312,6 @@ impl Stylist {
         self.precomputed_pseudo_element_decls.clear();
         self.rules_source_order = 0;
         // We want to keep rule_tree around across stylist rebuilds.
-        self.invalidation_map.clear();
         self.attribute_dependencies.clear();
         self.style_attribute_dependency = false;
         self.state_dependencies = ElementState::empty();
@@ -497,7 +506,9 @@ impl Stylist {
 
                         map.insert(rule, self.quirks_mode);
 
-                        self.invalidation_map.note_selector(selector, self.quirks_mode);
+                        origin_cascade_data
+                            .invalidation_map
+                            .note_selector(selector, self.quirks_mode);
                         let mut visitor = StylistSelectorVisitor {
                             needs_revalidation: false,
                             passed_rightmost_selector: false,
@@ -1670,6 +1681,9 @@ struct PerOriginCascadeData {
     /// A map with all the animations at this `CascadeData`'s origin, indexed
     /// by name.
     animations: PrecomputedHashMap<Atom, KeyframesAnimation>,
+
+    /// The invalidation map for the rules at this origin.
+    invalidation_map: InvalidationMap,
 }
 
 impl PerOriginCascadeData {
@@ -1678,6 +1692,7 @@ impl PerOriginCascadeData {
             element_map: SelectorMap::new(),
             pseudos_map: PerPseudoElementMap::default(),
             animations: Default::default(),
+            invalidation_map: InvalidationMap::new(),
         }
     }
 
@@ -1693,6 +1708,7 @@ impl PerOriginCascadeData {
         self.element_map = SelectorMap::new();
         self.pseudos_map = Default::default();
         self.animations = Default::default();
+        self.invalidation_map.clear();
     }
 
     fn has_rules_for_pseudo(&self, pseudo: &PseudoElement) -> bool {
