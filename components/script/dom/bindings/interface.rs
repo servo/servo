@@ -80,7 +80,8 @@ use dom::bindings::guard::Guard;
 use dom::bindings::js::Root;
 use dom::bindings::utils::{DOM_PROTOTYPE_SLOT, ProtoOrIfaceArray, get_proto_or_iface_array};
 use dom::create::create_native_html_element;
-use dom::element::{Element, ElementCreator};
+use dom::customelementregistry::ConstructionStackEntry;
+use dom::element::{CustomElementState, Element, ElementCreator};
 use dom::htmlelement::HTMLElement;
 use dom::window::Window;
 use html5ever::LocalName;
@@ -281,24 +282,44 @@ pub unsafe fn html_constructor<T>(window: &Window, call_args: &CallArgs) -> Fall
         }
     }
 
-    // Step 8.1
-    let name = QualName::new(None, ns!(html), definition.local_name.clone());
-    let element = if definition.is_autonomous() {
-        Root::upcast(HTMLElement::new(name.local, None, &*document))
-    } else {
-        create_native_html_element(name, None, &*document, ElementCreator::ScriptCreated)
-    };
+    let entry = definition.construction_stack.borrow().last().cloned();
+    match entry {
+        // Step 8
+        None => {
+            // Step 8.1
+            let name = QualName::new(None, ns!(html), definition.local_name.clone());
+            let element = if definition.is_autonomous() {
+                Root::upcast(HTMLElement::new(name.local, None, &*document))
+            } else {
+                create_native_html_element(name, None, &*document, ElementCreator::ScriptCreated)
+            };
 
-    // Step 8.2 is performed in the generated caller code.
+            // Step 8.2 is performed in the generated caller code.
 
-    // TODO: Step 8.3 - 8.4
-    // Set the element's custom element state and definition.
+            // Step 8.3
+            element.set_custom_element_state(CustomElementState::Custom);
 
-    // Step 8.5
-    Root::downcast(element).ok_or(Error::InvalidState)
+            // Step 8.4
+            element.set_custom_element_definition(definition.clone());
 
-    // TODO: Steps 9-13
-    // Custom element upgrades are not implemented yet, so these steps are unnecessary.
+            // Step 8.5
+            Root::downcast(element).ok_or(Error::InvalidState)
+        },
+        // Step 9
+        Some(ConstructionStackEntry::Element(element)) => {
+            // Step 11 is performed in the generated caller code.
+
+            // Step 12
+            let mut construction_stack = definition.construction_stack.borrow_mut();
+            construction_stack.pop();
+            construction_stack.push(ConstructionStackEntry::AlreadyConstructedMarker);
+
+            // Step 13
+            Root::downcast(element).ok_or(Error::InvalidState)
+        },
+        // Step 10
+        Some(ConstructionStackEntry::AlreadyConstructedMarker) => Err(Error::InvalidState),
+    }
 }
 
 pub fn push_new_element_queue() {

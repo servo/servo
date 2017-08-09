@@ -39,7 +39,7 @@ use dom::bindings::str::DOMString;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::WRAP_CALLBACKS;
-use dom::customelementregistry::{CallbackReaction, CustomElementReactionStack};
+use dom::customelementregistry::{CallbackReaction, CustomElementDefinition, CustomElementReactionStack};
 use dom::document::{Document, DocumentSource, FocusType, HasBrowsingContext, IsHTMLDocument, TouchEventResult};
 use dom::element::Element;
 use dom::event::{Event, EventBubbles, EventCancelable};
@@ -774,11 +774,22 @@ impl ScriptThread {
         })
     }
 
-    pub fn enqueue_callback_reaction(element:&Element, reaction: CallbackReaction) {
+    pub fn enqueue_callback_reaction(element: &Element,
+                                     reaction: CallbackReaction,
+                                     definition: Option<Rc<CustomElementDefinition>>) {
         SCRIPT_THREAD_ROOT.with(|root| {
             if let Some(script_thread) = root.get() {
                 let script_thread = unsafe { &*script_thread };
-                script_thread.custom_element_reaction_stack.enqueue_callback_reaction(element, reaction);
+                script_thread.custom_element_reaction_stack.enqueue_callback_reaction(element, reaction, definition);
+            }
+        })
+    }
+
+    pub fn enqueue_upgrade_reaction(element: &Element, definition: Rc<CustomElementDefinition>) {
+        SCRIPT_THREAD_ROOT.with(|root| {
+            if let Some(script_thread) = root.get() {
+                let script_thread = unsafe { &*script_thread };
+                script_thread.custom_element_reaction_stack.enqueue_upgrade_reaction(element, definition);
             }
         })
     }

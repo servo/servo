@@ -30,7 +30,7 @@ use dom::bindings::str::{DOMString, USVString};
 use dom::bindings::xmlname::namespace_from_domstring;
 use dom::characterdata::{CharacterData, LayoutCharacterDataHelpers};
 use dom::cssstylesheet::CSSStyleSheet;
-use dom::customelementregistry::CallbackReaction;
+use dom::customelementregistry::{CallbackReaction, try_upgrade_element};
 use dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
 use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
@@ -317,7 +317,7 @@ impl Node {
             node.style_and_layout_data.get().map(|d| node.dispose(d));
             // https://dom.spec.whatwg.org/#concept-node-remove step 14
             if let Some(element) = node.as_custom_element() {
-                ScriptThread::enqueue_callback_reaction(&*element, CallbackReaction::Disconnected);
+                ScriptThread::enqueue_callback_reaction(&*element, CallbackReaction::Disconnected, None);
             }
         }
 
@@ -1425,7 +1425,7 @@ impl Node {
             for descendant in node.traverse_preorder().filter_map(|d| d.as_custom_element()) {
                 // Step 3.2.
                 ScriptThread::enqueue_callback_reaction(&*descendant,
-                    CallbackReaction::Adopted(old_doc.clone(), Root::from_ref(document)));
+                    CallbackReaction::Adopted(old_doc.clone(), Root::from_ref(document)), None);
             }
             for descendant in node.traverse_preorder() {
                 // Step 3.3.
@@ -1639,12 +1639,13 @@ impl Node {
             for descendant in kid.traverse_preorder().filter_map(Root::downcast::<Element>) {
                 // Step 7.7.2.
                 if descendant.is_connected() {
-                    // Step 7.7.2.1.
                     if descendant.get_custom_element_definition().is_some() {
-                        ScriptThread::enqueue_callback_reaction(&*descendant, CallbackReaction::Connected);
+                        // Step 7.7.2.1.
+                        ScriptThread::enqueue_callback_reaction(&*descendant, CallbackReaction::Connected, None);
+                    } else {
+                        // Step 7.7.2.2.
+                        try_upgrade_element(&*descendant);
                     }
-                    // TODO: Step 7.7.2.2.
-                    // Try to upgrade descendant.
                 }
             }
         }

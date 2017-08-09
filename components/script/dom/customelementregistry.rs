@@ -9,25 +9,26 @@ use dom::bindings::codegen::Bindings::CustomElementRegistryBinding::CustomElemen
 use dom::bindings::codegen::Bindings::CustomElementRegistryBinding::ElementDefinitionOptions;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
+use dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use dom::bindings::conversions::{ConversionResult, FromJSValConvertible, StringificationBehavior};
-use dom::bindings::error::{Error, ErrorResult, Fallible};
+use dom::bindings::error::{Error, ErrorResult, Fallible, report_pending_exception, throw_dom_exception};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::domexception::{DOMErrorName, DOMException};
-use dom::element::Element;
+use dom::element::{CustomElementState, Element};
 use dom::globalscope::GlobalScope;
 use dom::htmlelement::HTMLElement;
-use dom::node::Node;
+use dom::node::{document_from_node, Node, window_from_node};
 use dom::promise::Promise;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Namespace, Prefix};
 use js::conversions::ToJSValConvertible;
 use js::jsapi::{Construct1, IsCallable, IsConstructor, HandleValueArray, HandleObject, MutableHandleValue};
-use js::jsapi::{Heap, JS_GetProperty, JSAutoCompartment, JSContext};
+use js::jsapi::{Heap, JS_GetProperty, JS_SameValue, JSAutoCompartment, JSContext};
 use js::jsval::{JSVal, NullValue, ObjectValue, UndefinedValue};
 use microtask::Microtask;
 use script_thread::ScriptThread;
@@ -79,13 +80,13 @@ impl CustomElementRegistry {
 
     /// https://html.spec.whatwg.org/multipage/#look-up-a-custom-element-definition
     pub fn lookup_definition(&self,
-                             local_name: LocalName,
-                             is: Option<LocalName>)
+                             local_name: &LocalName,
+                             is: Option<&LocalName>)
                              -> Option<Rc<CustomElementDefinition>> {
         self.definitions.borrow().values().find(|definition| {
             // Step 4-5
-            definition.local_name == local_name &&
-                (definition.name == local_name || Some(&definition.name) == is.as_ref())
+            definition.local_name == *local_name &&
+                (definition.name == *local_name || Some(&definition.name) == is)
         }).cloned()
     }
 
@@ -281,17 +282,28 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
         self.element_definition_is_running.set(false);
 
         // Step 11
-        let definition = CustomElementDefinition::new(name.clone(),
-                                                      local_name,
-                                                      constructor_,
-                                                      observed_attributes,
-                                                      callbacks);
+        let definition = Rc::new(CustomElementDefinition::new(name.clone(),
+                                                              local_name.clone(),
+                                                              constructor_,
+                                                              observed_attributes,
+                                                              callbacks));
 
         // Step 12
-        self.definitions.borrow_mut().insert(name.clone(), Rc::new(definition));
+        self.definitions.borrow_mut().insert(name.clone(), definition.clone());
 
-        // TODO: Step 13, 14, 15
-        // Handle custom element upgrades
+        // Step 13
+        let document = self.window.Document();
+
+        // Steps 14-15
+        for candidate in document.upcast::<Node>().traverse_preorder().filter_map(Root::downcast::<Element>) {
+            let is = candidate.get_is();
+            if *candidate.local_name() == local_name &&
+                *candidate.namespace() == ns!(html) &&
+                (extends.is_none() || is.as_ref() == Some(&name))
+            {
+                ScriptThread::enqueue_upgrade_reaction(&*candidate, definition.clone());
+            }
+        }
 
         // Step 16, 16.3
         if let Some(promise) = self.when_defined.borrow_mut().remove(&name) {
@@ -366,6 +378,12 @@ pub struct LifecycleCallbacks {
     attribute_changed_callback: Option<Rc<Function>>,
 }
 
+#[derive(HeapSizeOf, JSTraceable, Clone)]
+pub enum ConstructionStackEntry {
+    Element(Root<Element>),
+    AlreadyConstructedMarker,
+}
+
 /// https://html.spec.whatwg.org/multipage/#custom-element-definition
 #[derive(HeapSizeOf, JSTraceable, Clone)]
 pub struct CustomElementDefinition {
@@ -379,6 +397,8 @@ pub struct CustomElementDefinition {
     pub observed_attributes: Vec<DOMString>,
 
     pub callbacks: LifecycleCallbacks,
+
+    pub construction_stack: DOMRefCell<Vec<ConstructionStackEntry>>,
 }
 
 impl CustomElementDefinition {
@@ -394,6 +414,7 @@ impl CustomElementDefinition {
             constructor: constructor,
             observed_attributes: observed_attributes,
             callbacks: callbacks,
+            construction_stack: Default::default(),
         }
     }
 
@@ -453,10 +474,113 @@ impl CustomElementDefinition {
     }
 }
 
+/// https://html.spec.whatwg.org/multipage/#concept-upgrade-an-element
+#[allow(unsafe_code)]
+pub fn upgrade_element(definition: Rc<CustomElementDefinition>, element: &Element) {
+    // Steps 1-2
+    let state = element.get_custom_element_state();
+    if state == CustomElementState::Custom || state == CustomElementState::Failed {
+        return;
+    }
+
+    // Step 3
+    for attr in element.attrs().iter() {
+        let local_name = attr.local_name().clone();
+        let value = DOMString::from(&**attr.value());
+        let namespace = attr.namespace().clone();
+        ScriptThread::enqueue_callback_reaction(element,
+            CallbackReaction::AttributeChanged(local_name, None, Some(value), namespace), Some(definition.clone()));
+    }
+
+    // Step 4
+    if element.is_connected() {
+        ScriptThread::enqueue_callback_reaction(element, CallbackReaction::Connected, Some(definition.clone()));
+    }
+
+    // Step 5
+    definition.construction_stack.borrow_mut().push(ConstructionStackEntry::Element(Root::from_ref(element)));
+
+    // Step 7
+    let result = run_upgrade_constructor(&definition.constructor, element);
+
+    definition.construction_stack.borrow_mut().pop();
+
+    // Step 7 exception handling
+    if let Err(error) = result {
+        // Step 7.1
+        element.set_custom_element_state(CustomElementState::Failed);
+
+        // Step 7.2
+        element.clear_reaction_queue();
+
+        // Step 7.3
+        let global = GlobalScope::current().expect("No current global");
+        let cx = global.get_cx();
+        unsafe {
+            throw_dom_exception(cx, &global, error);
+            report_pending_exception(cx, true);
+        }
+        return;
+    }
+
+    // Step 8
+    element.set_custom_element_state(CustomElementState::Custom);
+
+    // Step 9
+    element.set_custom_element_definition(definition);
+}
+
+/// https://html.spec.whatwg.org/multipage/#concept-upgrade-an-element
+/// Steps 7.1-7.2
+#[allow(unsafe_code)]
+fn run_upgrade_constructor(constructor: &Rc<Function>, element: &Element) -> ErrorResult {
+    let window = window_from_node(element);
+    let cx = window.get_cx();
+    rooted!(in(cx) let constructor_val = ObjectValue(constructor.callback()));
+    rooted!(in(cx) let mut element_val = UndefinedValue());
+    unsafe { element.to_jsval(cx, element_val.handle_mut()); }
+    rooted!(in(cx) let mut construct_result = ptr::null_mut());
+    {
+        // Go into the constructor's compartment
+        let _ac = JSAutoCompartment::new(cx, constructor.callback());
+        let args = HandleValueArray::new();
+        // Step 7.1
+        if unsafe { !Construct1(cx, constructor_val.handle(), &args, construct_result.handle_mut()) } {
+            return Err(Error::JSFailed);
+        }
+        // Step 7.2
+        let mut same = false;
+        rooted!(in(cx) let construct_result_val = ObjectValue(construct_result.get()));
+        if unsafe { !JS_SameValue(cx, construct_result_val.handle(), element_val.handle(), &mut same) } {
+            return Err(Error::JSFailed);
+        }
+        if !same {
+            return Err(Error::InvalidState);
+        }
+    }
+    Ok(())
+}
+
+/// https://html.spec.whatwg.org/multipage/#concept-try-upgrade
+pub fn try_upgrade_element(element: &Element) {
+    // Step 1
+    let document = document_from_node(element);
+    let namespace = element.namespace();
+    let local_name = element.local_name();
+    let is = element.get_is();
+    if let Some(definition) = document.lookup_custom_element_definition(namespace, local_name, is.as_ref()) {
+        // Step 2
+        ScriptThread::enqueue_upgrade_reaction(element, definition);
+    }
+}
+
 #[derive(HeapSizeOf, JSTraceable)]
 #[must_root]
 pub enum CustomElementReaction {
-    // TODO: Support upgrade reactions
+    Upgrade(
+        #[ignore_heap_size_of = "Rc"]
+        Rc<CustomElementDefinition>
+    ),
     Callback(
         #[ignore_heap_size_of = "Rc"]
         Rc<Function>,
@@ -470,6 +594,7 @@ impl CustomElementReaction {
     pub fn invoke(&self, element: &Element) {
         // Step 2.1
         match *self {
+            CustomElementReaction::Upgrade(ref definition) => upgrade_element(definition.clone(), element),
             CustomElementReaction::Callback(ref callback, ref arguments) => {
                 let arguments = arguments.iter().map(|arg| arg.handle()).collect();
                 let _ = callback.Call_(&*element, arguments, ExceptionHandling::Report);
@@ -561,9 +686,12 @@ impl CustomElementReactionStack {
 
     /// https://html.spec.whatwg.org/multipage/#enqueue-a-custom-element-callback-reaction
     #[allow(unsafe_code)]
-    pub fn enqueue_callback_reaction(&self, element: &Element, reaction: CallbackReaction) {
+    pub fn enqueue_callback_reaction(&self,
+                                     element: &Element,
+                                     reaction: CallbackReaction,
+                                     definition: Option<Rc<CustomElementDefinition>>) {
         // Step 1
-        let definition = match element.get_custom_element_definition() {
+        let definition = match definition.or_else(|| element.get_custom_element_definition()) {
             Some(definition) => definition,
             None => return,
         };
@@ -628,6 +756,14 @@ impl CustomElementReactionStack {
         // Step 6
         self.enqueue_element(element);
     }
+
+    /// https://html.spec.whatwg.org/multipage/#enqueue-a-custom-element-upgrade-reaction
+    pub fn enqueue_upgrade_reaction(&self, element: &Element, definition: Rc<CustomElementDefinition>) {
+        // Step 1
+        element.push_upgrade_reaction(definition);
+        // Step 2
+        self.enqueue_element(element);
+    }
 }
 
 /// https://html.spec.whatwg.org/multipage/#element-queue
@@ -663,7 +799,7 @@ impl ElementQueue {
 }
 
 /// https://html.spec.whatwg.org/multipage/#valid-custom-element-name
-fn is_valid_custom_element_name(name: &str) -> bool {
+pub fn is_valid_custom_element_name(name: &str) -> bool {
     // Custom elment names must match:
     // PotentialCustomElementName ::= [a-z] (PCENChar)* '-' (PCENChar)*
 
