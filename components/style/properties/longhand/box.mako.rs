@@ -1415,8 +1415,7 @@ ${helpers.predefined_type(
                         let ay = ay.to_computed_value(context);
                         let az = az.to_computed_value(context);
                         let theta = theta.to_computed_value(context);
-                        let len = (ax * ax + ay * ay + az * az).sqrt();
-                        result.push(computed_value::ComputedOperation::Rotate(ax / len, ay / len, az / len, theta));
+                        result.push(computed_value::ComputedOperation::Rotate(ax, ay, az, theta));
                     }
                     SpecifiedOperation::Skew(theta_x, None) => {
                         let theta_x = theta_x.to_computed_value(context);
