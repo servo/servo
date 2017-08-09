@@ -222,7 +222,7 @@ fn test_insert() {
 }
 
 fn mock_stylist() -> Stylist {
-    let device = Device::new(MediaType::Screen, TypedSize2D::new(0f32, 0f32), ScaleFactor::new(1.0));
+    let device = Device::new(MediaType::screen(), TypedSize2D::new(0f32, 0f32), ScaleFactor::new(1.0));
     Stylist::new(device, QuirksMode::NoQuirks)
 }
 
@@ -230,9 +230,9 @@ fn mock_stylist() -> Stylist {
 fn test_stylist_device_accessors() {
     thread_state::initialize(thread_state::LAYOUT);
     let stylist = mock_stylist();
-    assert_eq!(stylist.device().media_type(), MediaType::Screen);
+    assert_eq!(stylist.device().media_type(), MediaType::screen());
     let mut stylist_mut = mock_stylist();
-    assert_eq!(stylist_mut.device_mut().media_type(), MediaType::Screen);
+    assert_eq!(stylist_mut.device_mut().media_type(), MediaType::screen());
 }
 
 #[test]
