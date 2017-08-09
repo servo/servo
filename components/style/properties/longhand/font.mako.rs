@@ -844,8 +844,11 @@ ${helpers.single_keyword_system("font-variant-caps",
         }
 
         /// Compute it against a given base font size
-        pub fn to_computed_value_against(&self, context: &Context, base_size: FontBaseSize)
-                                         -> NonNegativeAu {
+        pub fn to_computed_value_against(
+            &self,
+            context: &Context,
+            base_size: FontBaseSize,
+        ) -> NonNegativeAu {
             use values::specified::length::FontRelativeLength;
             match *self {
                 SpecifiedValue::Length(LengthOrPercentage::Length(
@@ -856,8 +859,12 @@ ${helpers.single_keyword_system("font-variant-caps",
                         NoCalcLength::ServoCharacterWidth(value))) => {
                     value.to_computed_value(base_size.resolve(context)).into()
                 }
-                SpecifiedValue::Length(LengthOrPercentage::Length(ref l)) => {
+                SpecifiedValue::Length(LengthOrPercentage::Length(
+                        NoCalcLength::Absolute(ref l))) => {
                     context.maybe_zoom_text(l.to_computed_value(context).into())
+                }
+                SpecifiedValue::Length(LengthOrPercentage::Length(ref l)) => {
+                    l.to_computed_value(context).into()
                 }
                 SpecifiedValue::Length(LengthOrPercentage::Percentage(pc)) => {
                     base_size.resolve(context).scale_by(pc.0).into()
