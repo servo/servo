@@ -108,12 +108,6 @@ pub struct Stylist {
     /// style rule appears in a stylesheet, needed to sort them by source order.
     rules_source_order: u32,
 
-    /// The total number of selectors.
-    num_selectors: usize,
-
-    /// The total number of declarations.
-    num_declarations: usize,
-
     /// The total number of times the stylist has been rebuilt.
     num_rebuilds: usize,
 }
@@ -199,8 +193,6 @@ impl Stylist {
             precomputed_pseudo_element_decls: PerPseudoElementMap::default(),
             rules_source_order: 0,
             rule_tree: RuleTree::new(),
-            num_selectors: 0,
-            num_declarations: 0,
             num_rebuilds: 0,
         }
 
@@ -209,12 +201,12 @@ impl Stylist {
 
     /// Returns the number of selectors.
     pub fn num_selectors(&self) -> usize {
-        self.num_selectors
+        self.cascade_data.iter_origins().map(|d| d.num_selectors).sum()
     }
 
     /// Returns the number of declarations.
     pub fn num_declarations(&self) -> usize {
-        self.num_declarations
+        self.cascade_data.iter_origins().map(|d| d.num_declarations).sum()
     }
 
     /// Returns the number of times the stylist has been rebuilt.
@@ -275,8 +267,6 @@ impl Stylist {
         self.precomputed_pseudo_element_decls.clear();
         self.rules_source_order = 0;
         // We want to keep rule_tree around across stylist rebuilds.
-        self.num_selectors = 0;
-        self.num_declarations = 0;
         // preserve num_rebuilds value, since it should stay across
         // clear()/rebuild() cycles.
     }
@@ -417,9 +407,10 @@ impl Stylist {
             match *rule {
                 CssRule::Style(ref locked) => {
                     let style_rule = locked.read_with(&guard);
-                    self.num_declarations += style_rule.block.read_with(&guard).len();
+                    origin_cascade_data.num_declarations +=
+                        style_rule.block.read_with(&guard).len();
                     for selector in &style_rule.selectors.0 {
-                        self.num_selectors += 1;
+                        origin_cascade_data.num_selectors += 1;
 
                         let map = match selector.pseudo_element() {
                             Some(pseudo) if pseudo.is_precomputed() => {
@@ -1688,6 +1679,12 @@ struct PerOriginCascadeData {
     /// tree-structural state like child index and pseudos).
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
     selectors_for_cache_revalidation: SelectorMap<RevalidationSelectorAndHashes>,
+
+    /// The total number of selectors.
+    num_selectors: usize,
+
+    /// The total number of declarations.
+    num_declarations: usize,
 }
 
 impl PerOriginCascadeData {
@@ -1702,6 +1699,8 @@ impl PerOriginCascadeData {
             state_dependencies: ElementState::empty(),
             mapped_ids: NonCountingBloomFilter::new(),
             selectors_for_cache_revalidation: SelectorMap::new(),
+            num_selectors: 0,
+            num_declarations: 0,
         }
     }
 
@@ -1723,6 +1722,8 @@ impl PerOriginCascadeData {
         self.state_dependencies = ElementState::empty();
         self.mapped_ids.clear();
         self.selectors_for_cache_revalidation = SelectorMap::new();
+        self.num_selectors = 0;
+        self.num_declarations = 0;
     }
 
     fn has_rules_for_pseudo(&self, pseudo: &PseudoElement) -> bool {
