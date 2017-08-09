@@ -108,33 +108,6 @@ pub struct Stylist {
     /// style rule appears in a stylesheet, needed to sort them by source order.
     rules_source_order: u32,
 
-    /// The attribute local names that appear in attribute selectors.  Used
-    /// to avoid taking element snapshots when an irrelevant attribute changes.
-    /// (We don't bother storing the namespace, since namespaced attributes
-    /// are rare.)
-    #[cfg_attr(feature = "servo", ignore_heap_size_of = "just an array")]
-    attribute_dependencies: NonCountingBloomFilter,
-
-    /// Whether `"style"` appears in an attribute selector.  This is not common,
-    /// and by tracking this explicitly, we can avoid taking an element snapshot
-    /// in the common case of style=""` changing due to modifying
-    /// `element.style`.  (We could track this in `attribute_dependencies`, like
-    /// all other attributes, but we should probably not risk incorrectly
-    /// returning `true` for `"style"` just due to a hash collision.)
-    style_attribute_dependency: bool,
-
-    /// The element state bits that are relied on by selectors.  Like
-    /// `attribute_dependencies`, this is used to avoid taking element snapshots
-    /// when an irrelevant element state bit changes.
-    state_dependencies: ElementState,
-
-    /// The ids that appear in the rightmost complex selector of selectors (and
-    /// hence in our selector maps).  Used to determine when sharing styles is
-    /// safe: we disallow style sharing for elements whose id matches this
-    /// filter, and hence might be in one of our selector maps.
-    #[cfg_attr(feature = "servo", ignore_heap_size_of = "just an array")]
-    mapped_ids: NonCountingBloomFilter,
-
     /// Selectors that require explicit cache revalidation (i.e. which depend
     /// on state that is not otherwise visible to the cache, like attributes or
     /// tree-structural state like child index and pseudos).
@@ -232,10 +205,6 @@ impl Stylist {
             precomputed_pseudo_element_decls: PerPseudoElementMap::default(),
             rules_source_order: 0,
             rule_tree: RuleTree::new(),
-            attribute_dependencies: NonCountingBloomFilter::new(),
-            style_attribute_dependency: false,
-            state_dependencies: ElementState::empty(),
-            mapped_ids: NonCountingBloomFilter::new(),
             selectors_for_cache_revalidation: SelectorMap::new(),
             num_selectors: 0,
             num_declarations: 0,
@@ -312,10 +281,6 @@ impl Stylist {
         self.precomputed_pseudo_element_decls.clear();
         self.rules_source_order = 0;
         // We want to keep rule_tree around across stylist rebuilds.
-        self.attribute_dependencies.clear();
-        self.style_attribute_dependency = false;
-        self.state_dependencies = ElementState::empty();
-        self.mapped_ids.clear();
         self.selectors_for_cache_revalidation = SelectorMap::new();
         self.num_selectors = 0;
         self.num_declarations = 0;
@@ -512,10 +477,10 @@ impl Stylist {
                         let mut visitor = StylistSelectorVisitor {
                             needs_revalidation: false,
                             passed_rightmost_selector: false,
-                            attribute_dependencies: &mut self.attribute_dependencies,
-                            style_attribute_dependency: &mut self.style_attribute_dependency,
-                            state_dependencies: &mut self.state_dependencies,
-                            mapped_ids: &mut self.mapped_ids,
+                            attribute_dependencies: &mut origin_cascade_data.attribute_dependencies,
+                            style_attribute_dependency: &mut origin_cascade_data.style_attribute_dependency,
+                            state_dependencies: &mut origin_cascade_data.state_dependencies,
+                            mapped_ids: &mut origin_cascade_data.mapped_ids,
                         };
 
                         selector.visit(&mut visitor);
@@ -579,9 +544,16 @@ impl Stylist {
             // we rebuild.
             true
         } else if *local_name == local_name!("style") {
-            self.style_attribute_dependency
+            self.cascade_data
+                .iter_origins()
+                .any(|d| d.style_attribute_dependency)
         } else {
-            self.attribute_dependencies.might_contain_hash(local_name.get_hash())
+            self.cascade_data
+                .iter_origins()
+                .any(|d| {
+                    d.attribute_dependencies
+                        .might_contain_hash(local_name.get_hash())
+                })
         }
     }
 
@@ -593,14 +565,16 @@ impl Stylist {
             // rules rely on until we rebuild.
             true
         } else {
-            self.state_dependencies.intersects(state)
+            self.has_state_dependency(state)
         }
     }
 
     /// Returns whether the given ElementState bit is relied upon by a selector
     /// of some rule in the stylist.
     pub fn has_state_dependency(&self, state: ElementState) -> bool {
-        self.state_dependencies.intersects(state)
+        self.cascade_data
+            .iter_origins()
+            .any(|d| d.state_dependencies.intersects(state))
     }
 
     /// Computes the style for a given "precomputed" pseudo-element, taking the
@@ -1320,7 +1294,9 @@ impl Stylist {
     /// of our rule maps.
     #[inline]
     pub fn may_have_rules_for_id(&self, id: &Atom) -> bool {
-        self.mapped_ids.might_contain_hash(id.get_hash())
+        self.cascade_data
+            .iter_origins()
+            .any(|d| d.mapped_ids.might_contain_hash(id.get_hash()))
     }
 
     /// Return whether the device is dirty, that is, whether the screen size or
@@ -1684,6 +1660,33 @@ struct PerOriginCascadeData {
 
     /// The invalidation map for the rules at this origin.
     invalidation_map: InvalidationMap,
+
+    /// The attribute local names that appear in attribute selectors.  Used
+    /// to avoid taking element snapshots when an irrelevant attribute changes.
+    /// (We don't bother storing the namespace, since namespaced attributes
+    /// are rare.)
+    #[cfg_attr(feature = "servo", ignore_heap_size_of = "just an array")]
+    attribute_dependencies: NonCountingBloomFilter,
+
+    /// Whether `"style"` appears in an attribute selector.  This is not common,
+    /// and by tracking this explicitly, we can avoid taking an element snapshot
+    /// in the common case of style=""` changing due to modifying
+    /// `element.style`.  (We could track this in `attribute_dependencies`, like
+    /// all other attributes, but we should probably not risk incorrectly
+    /// returning `true` for `"style"` just due to a hash collision.)
+    style_attribute_dependency: bool,
+
+    /// The element state bits that are relied on by selectors.  Like
+    /// `attribute_dependencies`, this is used to avoid taking element snapshots
+    /// when an irrelevant element state bit changes.
+    state_dependencies: ElementState,
+
+    /// The ids that appear in the rightmost complex selector of selectors (and
+    /// hence in our selector maps).  Used to determine when sharing styles is
+    /// safe: we disallow style sharing for elements whose id matches this
+    /// filter, and hence might be in one of our selector maps.
+    #[cfg_attr(feature = "servo", ignore_heap_size_of = "just an array")]
+    mapped_ids: NonCountingBloomFilter,
 }
 
 impl PerOriginCascadeData {
@@ -1693,6 +1696,10 @@ impl PerOriginCascadeData {
             pseudos_map: PerPseudoElementMap::default(),
             animations: Default::default(),
             invalidation_map: InvalidationMap::new(),
+            attribute_dependencies: NonCountingBloomFilter::new(),
+            style_attribute_dependency: false,
+            state_dependencies: ElementState::empty(),
+            mapped_ids: NonCountingBloomFilter::new(),
         }
     }
 
@@ -1709,6 +1716,10 @@ impl PerOriginCascadeData {
         self.pseudos_map = Default::default();
         self.animations = Default::default();
         self.invalidation_map.clear();
+        self.attribute_dependencies.clear();
+        self.style_attribute_dependency = false;
+        self.state_dependencies = ElementState::empty();
+        self.mapped_ids.clear();
     }
 
     fn has_rules_for_pseudo(&self, pseudo: &PseudoElement) -> bool {
