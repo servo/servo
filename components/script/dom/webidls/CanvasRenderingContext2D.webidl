@@ -153,8 +153,9 @@ interface CanvasUserInterface {
 [NoInterfaceObject]
 interface CanvasText {
   // text (see also the CanvasDrawingStyles interface)
-  //void fillText(DOMString text, unrestricted double x, unrestricted double y,
-  //              optional unrestricted double maxWidth);
+  [Pref="dom.canvas-text.enabled"]
+  void fillText(DOMString text, unrestricted double x, unrestricted double y,
+                optional unrestricted double maxWidth);
   //void strokeText(DOMString text, unrestricted double x, unrestricted double y,
   //                optional unrestricted double maxWidth);
   //TextMetrics measureText(DOMString text);
@@ -264,4 +265,3 @@ interface CanvasPath {
   //                             double rotation, double startAngle, double endAngle,
   //                             boolean anticlockwise);
 };
-

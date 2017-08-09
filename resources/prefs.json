@@ -1,6 +1,7 @@
 {
   "dom.bluetooth.enabled": false,
   "dom.bluetooth.testing.enabled": false,
+  "dom.canvas-text.enabled": false,
   "dom.compositionevent.enabled": false,
   "dom.customelements.enabled": false,
   "dom.forcetouch.enabled": false,
