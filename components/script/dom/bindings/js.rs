@@ -32,6 +32,7 @@ use dom::bindings::trace::trace_reflector;
 use dom::node::Node;
 use heapsize::HeapSizeOf;
 use js::jsapi::{JSObject, JSTracer};
+use mitochondria::OnceCell;
 use script_layout_interface::TrustedNodeAddress;
 use script_thread::STACK_ROOTS;
 use std::cell::UnsafeCell;
@@ -388,6 +389,55 @@ impl<T: DomObject> HeapSizeOf for MutNullableJS<T> {
     fn heap_size_of_children(&self) -> usize {
         // See comment on HeapSizeOf for JS<T>.
         0
+    }
+}
+
+/// A holder that allows to lazily initialize the value only once
+/// `JS<T>`, using OnceCell
+/// Essentially a `OnceCell<JS<T>>`.
+///
+/// This should only be used as a field in other DOM objects; see warning
+/// on `JS<T>`.
+#[must_root]
+pub struct OnceCellJS<T: DomObject> {
+    ptr: OnceCell<JS<T>>,
+}
+
+impl<T: DomObject> OnceCellJS<T> {
+    /// Retrieve a copy of the current inner value. If it is `None`, it is
+    /// initialized with the result of `cb` first.
+    #[allow(unrooted_must_root)]
+    pub fn init_once<F>(&self, cb: F) -> &T
+        where F: FnOnce() -> Root<T>
+    {
+        debug_assert!(thread_state::get().is_script());
+        &self.ptr.init_once(|| JS::from_ref(&cb()))
+    }
+}
+
+impl<T: DomObject> Default for OnceCellJS<T> {
+    #[allow(unrooted_must_root)]
+    fn default() -> OnceCellJS<T> {
+        debug_assert!(thread_state::get().is_script());
+        OnceCellJS {
+            ptr: OnceCell::new(),
+        }
+    }
+}
+
+impl<T: DomObject> HeapSizeOf for OnceCellJS<T> {
+    fn heap_size_of_children(&self) -> usize {
+        // See comment on HeapSizeOf for JS<T>.
+        0
+    }
+}
+
+#[allow(unrooted_must_root)]
+unsafe impl<T: DomObject> JSTraceable for OnceCellJS<T> {
+    unsafe fn trace(&self, trc: *mut JSTracer) {
+        if let Some(ptr) = self.ptr.as_ref() {
+            ptr.trace(trc);
+        }
     }
 }
 
