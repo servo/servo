@@ -1880,13 +1880,31 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         if webdriver_reset {
             self.webdriver.load_channel = None;
         }
+
+        // Notify the embedder that the TopLevelBrowsingContext current document
+        // has finished loading.
+        // We need to make sure the pipeline that has finished loading is the current
+        // pipeline and that no pending pipeline will replace the current one.
         let pipeline_is_top_level_pipeline = self.browsing_contexts
             .get(&BrowsingContextId::from(top_level_browsing_context_id))
             .map(|ctx| ctx.pipeline_id == pipeline_id)
             .unwrap_or(false);
         if pipeline_is_top_level_pipeline {
-            // Notify embedder top level document finished loading.
-            self.compositor_proxy.send(ToCompositorMsg::LoadComplete(top_level_browsing_context_id));
+            // Is there any pending pipeline that will replace the current top level pipeline
+            let current_top_level_pipeline_will_be_replaced = self.pending_changes.iter()
+                .filter(|change| change.browsing_context_id == top_level_browsing_context_id)
+                .any(|change| match self.pipelines.get(&change.new_pipeline_id) {
+                        Some(pipeline) => pipeline.parent_info.is_none(),
+                        None => {
+                            warn!("No pipeline associated with pipeline_id {:?}", change.new_pipeline_id);
+                            false
+                        }
+                });
+
+            if !current_top_level_pipeline_will_be_replaced {
+                // Notify embedder top level document finished loading.
+                self.compositor_proxy.send(ToCompositorMsg::LoadComplete(top_level_browsing_context_id));
+            }
         }
         self.handle_subframe_loaded(pipeline_id);
     }
