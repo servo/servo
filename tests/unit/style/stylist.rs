@@ -92,13 +92,13 @@ fn test_revalidation_selectors() {
         // Attribute selectors.
         "div[foo]",
         "div:not([foo])",
-        "div[foo = \"bar\"]",
-        "div[foo ~= \"bar\"]",
-        "div[foo |= \"bar\"]",
-        "div[foo ^= \"bar\"]",
-        "div[foo $= \"bar\"]",
-        "div[foo *= \"bar\"]",
-        "*|div[foo][bar = \"baz\"]",
+        "div[foo=\"bar\"]",
+        "div[foo~=\"bar\"]",
+        "div[foo|=\"bar\"]",
+        "div[foo^=\"bar\"]",
+        "div[foo$=\"bar\"]",
+        "div[foo*=\"bar\"]",
+        "*|div[foo][bar=\"baz\"]",
 
         // Non-state-based pseudo-classes.
         "div:empty",
@@ -135,13 +135,13 @@ fn test_revalidation_selectors() {
         // Attribute selectors.
         "div[foo]",
         "div:not([foo])",
-        "div[foo = \"bar\"]",
-        "div[foo ~= \"bar\"]",
-        "div[foo |= \"bar\"]",
-        "div[foo ^= \"bar\"]",
-        "div[foo $= \"bar\"]",
-        "div[foo *= \"bar\"]",
-        "*|div[foo][bar = \"baz\"]",
+        "div[foo=\"bar\"]",
+        "div[foo~=\"bar\"]",
+        "div[foo|=\"bar\"]",
+        "div[foo^=\"bar\"]",
+        "div[foo$=\"bar\"]",
+        "div[foo*=\"bar\"]",
+        "*|div[foo][bar=\"baz\"]",
 
         // Non-state-based pseudo-classes.
         "div:empty",
