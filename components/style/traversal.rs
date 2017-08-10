@@ -484,14 +484,15 @@ where
     D: DomTraversal<E>,
     F: FnMut(E::ConcreteNode),
 {
+    use traversal_flags::*;
+    let flags = context.shared.traversal_flags;
     context.thread_local.begin_element(element, data);
     context.thread_local.statistics.elements_traversed += 1;
-    debug_assert!(context.shared.traversal_flags.for_animation_only() ||
+    debug_assert!(flags.for_animation_only() ||
                   !element.has_snapshot() || element.handled_snapshot(),
                   "Should've handled snapshots here already");
 
-    let compute_self =
-        !element.has_current_styles_for_traversal(data, context.shared.traversal_flags);
+    let compute_self = !element.has_current_styles_for_traversal(data, flags);
     let mut hint = RestyleHint::empty();
 
     debug!("recalc_style_at: {:?} (compute_self={:?}, \
@@ -536,11 +537,11 @@ where
     // Now that matching and cascading is done, clear the bits corresponding to
     // those operations and compute the propagated restyle hint.
     let mut propagated_hint = {
-        debug_assert!(context.shared.traversal_flags.for_animation_only() ||
+        debug_assert!(flags.for_animation_only() ||
                       !data.restyle.hint.has_animation_hint(),
                       "animation restyle hint should be handled during \
                        animation-only restyles");
-        data.restyle.hint.propagate(&context.shared.traversal_flags)
+        data.restyle.hint.propagate(&flags)
     };
 
     // FIXME(bholley): Need to handle explicitly-inherited reset properties
@@ -552,11 +553,10 @@ where
            propagated_hint,
            data.styles.is_display_none(),
            element.implemented_pseudo_element());
-    debug_assert!(element.has_current_styles_for_traversal(data, context.shared.traversal_flags),
+    debug_assert!(element.has_current_styles_for_traversal(data, flags),
                   "Should have computed style or haven't yet valid computed \
                    style in case of animation-only restyle");
 
-    let flags = context.shared.traversal_flags;
     let has_dirty_descendants_for_this_restyle =
         if flags.for_animation_only() {
             element.has_animation_only_dirty_descendants()
@@ -602,13 +602,13 @@ where
     // If we are in a forgetful traversal, drop the existing restyle
     // data here, since we won't need to perform a post-traversal to pick up
     // any change hints.
-    if flags.contains(traversal_flags::Forgetful) {
+    if flags.contains(Forgetful) {
         data.clear_restyle_flags_and_damage();
     }
 
     // Optionally clear the descendants bit for the traversal type we're in.
     if flags.for_animation_only() {
-        if flags.contains(traversal_flags::ClearAnimationOnlyDirtyDescendants) {
+        if flags.contains(ClearAnimationOnlyDirtyDescendants) {
             unsafe { element.unset_animation_only_dirty_descendants(); }
         }
     } else {
@@ -625,7 +625,7 @@ where
         // moderately expensive). Instead, DOM implementations can unconditionally
         // set the dirty descendants bit on any styled parent, and let the traversal
         // sort it out.
-        if flags.contains(traversal_flags::ClearDirtyDescendants) ||
+        if flags.contains(ClearDirtyDescendants) ||
            data.styles.is_display_none() {
             unsafe { element.unset_dirty_descendants(); }
         }
