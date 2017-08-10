@@ -2643,12 +2643,13 @@ fn static_assert() {
 
     #[allow(non_snake_case)]
     pub fn set__moz_min_font_size_ratio(&mut self, v: longhands::_moz_min_font_size_ratio::computed_value::T) {
-        let percentage = if v.0 > 255. {
+        let scaled = v.0 * 100.;
+        let percentage = if scaled > 255. {
             255.
-        } else if v.0 < 0. {
+        } else if scaled < 0. {
             0.
         } else {
-            v.0
+            scaled
         };
 
         self.gecko.mMinFontSizeRatio = percentage as u8;
