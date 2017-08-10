@@ -3297,7 +3297,7 @@ pub extern "C" fn Servo_StyleSet_GetKeyframesForName(raw_data: RawServoStyleSetB
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
     let name = unsafe { Atom::from(name.as_ref().unwrap().as_str_unchecked()) };
 
-    let animation = match data.stylist.animations().get(&name) {
+    let animation = match data.stylist.get_animation(&name) {
         Some(animation) => animation,
         None => return false,
     };

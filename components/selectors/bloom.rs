@@ -2,9 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-//! Simple counting bloom filters.
+//! Counting and non-counting Bloom filters tuned for use as ancestor filters
+//! for selector matching.
 
 use fnv::FnvHasher;
+use std::fmt::{self, Debug};
 use std::hash::{Hash, Hasher};
 
 // The top 8 bits of the 32-bit hash value are not used by the bloom filter.
@@ -15,9 +17,17 @@ const KEY_SIZE: usize = 12;
 const ARRAY_SIZE: usize = 1 << KEY_SIZE;
 const KEY_MASK: u32 = (1 << KEY_SIZE) - 1;
 
-/// A counting Bloom filter with 8-bit counters.  For now we assume
-/// that having two hash functions is enough, but we may revisit that
-/// decision later.
+/// A counting Bloom filter with 8-bit counters.
+pub type BloomFilter = CountingBloomFilter<BloomStorageU8>;
+
+/// A non-counting Bloom filter.
+///
+/// Effectively a counting Bloom filter with 1-bit counters.
+pub type NonCountingBloomFilter = CountingBloomFilter<BloomStorageBool>;
+
+/// A counting Bloom filter with parameterized storage to handle
+/// counters of different sizes.  For now we assume that having two hash
+/// functions is enough, but we may revisit that decision later.
 ///
 /// The filter uses an array with 2**KeySize entries.
 ///
@@ -61,58 +71,30 @@ const KEY_MASK: u32 = (1 << KEY_SIZE) - 1;
 /// Similarly, using a KeySize of 10 would lead to a 4% false
 /// positive rate for N == 100 and to quite bad false positive
 /// rates for larger N.
-pub struct BloomFilter {
-    counters: [u8; ARRAY_SIZE],
+#[derive(Clone)]
+pub struct CountingBloomFilter<S> where S: BloomStorage {
+    storage: S,
 }
 
-impl Clone for BloomFilter {
-    #[inline]
-    fn clone(&self) -> BloomFilter {
-        BloomFilter {
-            counters: self.counters,
-        }
-    }
-}
-
-impl BloomFilter {
+impl<S> CountingBloomFilter<S> where S: BloomStorage {
     /// Creates a new bloom filter.
     #[inline]
-    pub fn new() -> BloomFilter {
-        BloomFilter {
-            counters: [0; ARRAY_SIZE],
+    pub fn new() -> Self {
+        CountingBloomFilter {
+            storage: Default::default(),
         }
-    }
-
-    #[inline]
-    fn first_slot(&self, hash: u32) -> &u8 {
-        &self.counters[hash1(hash) as usize]
-    }
-
-    #[inline]
-    fn first_mut_slot(&mut self, hash: u32) -> &mut u8 {
-        &mut self.counters[hash1(hash) as usize]
-    }
-
-    #[inline]
-    fn second_slot(&self, hash: u32) -> &u8 {
-        &self.counters[hash2(hash) as usize]
-    }
-
-    #[inline]
-    fn second_mut_slot(&mut self, hash: u32) -> &mut u8 {
-        &mut self.counters[hash2(hash) as usize]
     }
 
     #[inline]
     pub fn clear(&mut self) {
-        self.counters = [0; ARRAY_SIZE]
+        self.storage = Default::default();
     }
 
     // Slow linear accessor to make sure the bloom filter is zeroed. This should
     // never be used in release builds.
     #[cfg(debug_assertions)]
     pub fn is_zeroed(&self) -> bool {
-        self.counters.iter().all(|x| *x == 0)
+        self.storage.is_zeroed()
     }
 
     #[cfg(not(debug_assertions))]
@@ -122,18 +104,8 @@ impl BloomFilter {
 
     #[inline]
     pub fn insert_hash(&mut self, hash: u32) {
-        {
-            let slot1 = self.first_mut_slot(hash);
-            if !full(slot1) {
-                *slot1 += 1
-            }
-        }
-        {
-            let slot2 = self.second_mut_slot(hash);
-            if !full(slot2) {
-                *slot2 += 1
-            }
-        }
+        self.storage.adjust_first_slot(hash, true);
+        self.storage.adjust_second_slot(hash, true);
     }
 
     /// Inserts an item into the bloom filter.
@@ -144,18 +116,8 @@ impl BloomFilter {
 
     #[inline]
     pub fn remove_hash(&mut self, hash: u32) {
-        {
-            let slot1 = self.first_mut_slot(hash);
-            if !full(slot1) {
-                *slot1 -= 1
-            }
-        }
-        {
-            let slot2 = self.second_mut_slot(hash);
-            if !full(slot2) {
-                *slot2 -= 1
-            }
-        }
+        self.storage.adjust_first_slot(hash, false);
+        self.storage.adjust_second_slot(hash, false);
     }
 
     /// Removes an item from the bloom filter.
@@ -166,7 +128,8 @@ impl BloomFilter {
 
     #[inline]
     pub fn might_contain_hash(&self, hash: u32) -> bool {
-        *self.first_slot(hash) != 0 && *self.second_slot(hash) != 0
+        !self.storage.first_slot_is_empty(hash) &&
+            !self.storage.second_slot_is_empty(hash)
     }
 
     /// Check whether the filter might contain an item.  This can
@@ -179,9 +142,147 @@ impl BloomFilter {
     }
 }
 
-#[inline]
-fn full(slot: &u8) -> bool {
-    *slot == 0xff
+impl<S> Debug for CountingBloomFilter<S> where S: BloomStorage {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut slots_used = 0;
+        for i in 0..ARRAY_SIZE {
+            if !self.storage.slot_is_empty(i) {
+                slots_used += 1;
+            }
+        }
+        write!(f, "BloomFilter({}/{})", slots_used, ARRAY_SIZE)
+    }
+}
+
+pub trait BloomStorage : Clone + Default {
+    fn slot_is_empty(&self, index: usize) -> bool;
+    fn adjust_slot(&mut self, index: usize, increment: bool);
+    fn is_zeroed(&self) -> bool;
+
+    #[inline]
+    fn first_slot_is_empty(&self, hash: u32) -> bool {
+        self.slot_is_empty(Self::first_slot_index(hash))
+    }
+
+    #[inline]
+    fn second_slot_is_empty(&self, hash: u32) -> bool {
+        self.slot_is_empty(Self::second_slot_index(hash))
+    }
+
+    #[inline]
+    fn adjust_first_slot(&mut self, hash: u32, increment: bool) {
+        self.adjust_slot(Self::first_slot_index(hash), increment)
+    }
+
+    #[inline]
+    fn adjust_second_slot(&mut self, hash: u32, increment: bool) {
+        self.adjust_slot(Self::second_slot_index(hash), increment)
+    }
+
+    #[inline]
+    fn first_slot_index(hash: u32) -> usize {
+        hash1(hash) as usize
+    }
+
+    #[inline]
+    fn second_slot_index(hash: u32) -> usize {
+        hash2(hash) as usize
+    }
+}
+
+/// Storage class for a CountingBloomFilter that has 8-bit counters.
+pub struct BloomStorageU8 {
+    counters: [u8; ARRAY_SIZE],
+}
+
+impl BloomStorage for BloomStorageU8 {
+    #[inline]
+    fn adjust_slot(&mut self, index: usize, increment: bool) {
+        let slot = &mut self.counters[index];
+        if *slot != 0xff {  // full
+            if increment {
+                *slot += 1;
+            } else {
+                *slot -= 1;
+            }
+        }
+    }
+
+    #[inline]
+    fn slot_is_empty(&self, index: usize) -> bool {
+        self.counters[index] == 0
+    }
+
+    #[inline]
+    fn is_zeroed(&self) -> bool {
+        self.counters.iter().all(|x| *x == 0)
+    }
+}
+
+impl Default for BloomStorageU8 {
+    fn default() -> Self {
+        BloomStorageU8 {
+            counters: [0; ARRAY_SIZE],
+        }
+    }
+}
+
+impl Clone for BloomStorageU8 {
+    fn clone(&self) -> Self {
+        BloomStorageU8 {
+            counters: self.counters,
+        }
+    }
+}
+
+/// Storage class for a CountingBloomFilter that has 1-bit counters.
+pub struct BloomStorageBool {
+    counters: [u8; ARRAY_SIZE / 8],
+}
+
+impl BloomStorage for BloomStorageBool {
+    #[inline]
+    fn adjust_slot(&mut self, index: usize, increment: bool) {
+        let bit = 1 << (index % 8);
+        let byte = &mut self.counters[index / 8];
+
+        // Since we have only one bit for storage, decrementing it
+        // should never do anything.  Assert against an accidental
+        // decrementing of a bit that was never set.
+        assert!(increment || (*byte & bit) != 0,
+                "should not decrement if slot is already false");
+
+        if increment {
+            *byte |= bit;
+        }
+    }
+
+    #[inline]
+    fn slot_is_empty(&self, index: usize) -> bool {
+        let bit = 1 << (index % 8);
+        (self.counters[index / 8] & bit) == 0
+    }
+
+    #[inline]
+    fn is_zeroed(&self) -> bool {
+        self.counters.iter().all(|x| *x == 0)
+    }
+}
+
+impl Default for BloomStorageBool {
+    fn default() -> Self {
+        BloomStorageBool {
+            counters: [0; ARRAY_SIZE / 8],
+        }
+    }
+}
+
+impl Clone for BloomStorageBool {
+    fn clone(&self) -> Self {
+        BloomStorageBool {
+            counters: self.counters,
+        }
+    }
 }
 
 fn hash<T: Hash>(elem: &T) -> u32 {
@@ -203,7 +304,15 @@ fn hash2(hash: u32) -> u32 {
 
 #[test]
 fn create_and_insert_some_stuff() {
+    use std::mem::transmute;
+
     let mut bf = BloomFilter::new();
+
+    // Statically assert that ARRAY_SIZE is a multiple of 8, which
+    // BloomStorageBool relies on.
+    unsafe {
+        transmute::<[u8; ARRAY_SIZE % 8], [u8; 0]>([]);
+    }
 
     for i in 0_usize .. 1000 {
         bf.insert(&i);

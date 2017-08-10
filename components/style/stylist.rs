@@ -25,7 +25,7 @@ use rule_tree::{CascadeLevel, RuleTree, StyleSource};
 use selector_map::{PrecomputedHashMap, SelectorMap, SelectorMapEntry};
 use selector_parser::{SelectorImpl, PerPseudoElementMap, PseudoElement};
 use selectors::attr::NamespaceConstraint;
-use selectors::bloom::BloomFilter;
+use selectors::bloom::{BloomFilter, NonCountingBloomFilter};
 use selectors::matching::{ElementSelectorFlags, matches_selector, MatchingContext, MatchingMode};
 use selectors::matching::VisitedHandlingMode;
 use selectors::parser::{AncestorHashes, Combinator, Component, Selector};
@@ -97,9 +97,6 @@ pub struct Stylist {
     /// The rule tree, that stores the results of selector matching.
     rule_tree: RuleTree,
 
-    /// A map with all the animations indexed by name.
-    animations: PrecomputedHashMap<Atom, KeyframesAnimation>,
-
     /// Applicable declarations for a given non-eagerly cascaded pseudo-element.
     /// These are eagerly computed once, and then used to resolve the new
     /// computed values on the fly on layout.
@@ -110,52 +107,6 @@ pub struct Stylist {
     /// A monotonically increasing counter to represent the order on which a
     /// style rule appears in a stylesheet, needed to sort them by source order.
     rules_source_order: u32,
-
-    /// The invalidation map for this document.
-    invalidation_map: InvalidationMap,
-
-    /// The attribute local names that appear in attribute selectors.  Used
-    /// to avoid taking element snapshots when an irrelevant attribute changes.
-    /// (We don't bother storing the namespace, since namespaced attributes
-    /// are rare.)
-    ///
-    /// FIXME(heycam): This doesn't really need to be a counting Bloom filter.
-    #[cfg_attr(feature = "servo", ignore_heap_size_of = "just an array")]
-    attribute_dependencies: BloomFilter,
-
-    /// Whether `"style"` appears in an attribute selector.  This is not common,
-    /// and by tracking this explicitly, we can avoid taking an element snapshot
-    /// in the common case of style=""` changing due to modifying
-    /// `element.style`.  (We could track this in `attribute_dependencies`, like
-    /// all other attributes, but we should probably not risk incorrectly
-    /// returning `true` for `"style"` just due to a hash collision.)
-    style_attribute_dependency: bool,
-
-    /// The element state bits that are relied on by selectors.  Like
-    /// `attribute_dependencies`, this is used to avoid taking element snapshots
-    /// when an irrelevant element state bit changes.
-    state_dependencies: ElementState,
-
-    /// The ids that appear in the rightmost complex selector of selectors (and
-    /// hence in our selector maps).  Used to determine when sharing styles is
-    /// safe: we disallow style sharing for elements whose id matches this
-    /// filter, and hence might be in one of our selector maps.
-    ///
-    /// FIXME(bz): This doesn't really need to be a counting Blooom filter.
-    #[cfg_attr(feature = "servo", ignore_heap_size_of = "just an array")]
-    mapped_ids: BloomFilter,
-
-    /// Selectors that require explicit cache revalidation (i.e. which depend
-    /// on state that is not otherwise visible to the cache, like attributes or
-    /// tree-structural state like child index and pseudos).
-    #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
-    selectors_for_cache_revalidation: SelectorMap<RevalidationSelectorAndHashes>,
-
-    /// The total number of selectors.
-    num_selectors: usize,
-
-    /// The total number of declarations.
-    num_declarations: usize,
 
     /// The total number of times the stylist has been rebuilt.
     num_rebuilds: usize,
@@ -239,18 +190,9 @@ impl Stylist {
             effective_media_query_results: EffectiveMediaQueryResults::new(),
 
             cascade_data: CascadeData::new(),
-            animations: Default::default(),
             precomputed_pseudo_element_decls: PerPseudoElementMap::default(),
             rules_source_order: 0,
             rule_tree: RuleTree::new(),
-            invalidation_map: InvalidationMap::new(),
-            attribute_dependencies: BloomFilter::new(),
-            style_attribute_dependency: false,
-            state_dependencies: ElementState::empty(),
-            mapped_ids: BloomFilter::new(),
-            selectors_for_cache_revalidation: SelectorMap::new(),
-            num_selectors: 0,
-            num_declarations: 0,
             num_rebuilds: 0,
         }
 
@@ -259,12 +201,12 @@ impl Stylist {
 
     /// Returns the number of selectors.
     pub fn num_selectors(&self) -> usize {
-        self.num_selectors
+        self.cascade_data.iter_origins().map(|d| d.num_selectors).sum()
     }
 
     /// Returns the number of declarations.
     pub fn num_declarations(&self) -> usize {
-        self.num_declarations
+        self.cascade_data.iter_origins().map(|d| d.num_declarations).sum()
     }
 
     /// Returns the number of times the stylist has been rebuilt.
@@ -274,12 +216,27 @@ impl Stylist {
 
     /// Returns the number of revalidation_selectors.
     pub fn num_revalidation_selectors(&self) -> usize {
-        self.selectors_for_cache_revalidation.len()
+        self.cascade_data.iter_origins()
+            .map(|d| d.selectors_for_cache_revalidation.len()).sum()
     }
 
-    /// Gets a reference to the invalidation map.
-    pub fn invalidation_map(&self) -> &InvalidationMap {
-        &self.invalidation_map
+    /// Returns the number of entries in invalidation maps.
+    pub fn num_invalidations(&self) -> usize {
+        self.cascade_data.iter_origins()
+            .map(|d| d.invalidation_map.len()).sum()
+    }
+
+    /// Invokes `f` with the `InvalidationMap` for each origin.
+    ///
+    /// NOTE(heycam) This might be better as an `iter_invalidation_maps`, once
+    /// we have `impl trait` and can return that easily without bothering to
+    /// create a whole new iterator type.
+    pub fn each_invalidation_map<F>(&self, mut f: F)
+        where F: FnMut(&InvalidationMap)
+    {
+        for origin_cascade_data in self.cascade_data.iter_origins() {
+            f(&origin_cascade_data.invalidation_map)
+        }
     }
 
     /// Clear the stylist's state, effectively resetting it to more or less
@@ -307,18 +264,9 @@ impl Stylist {
         self.is_device_dirty = true;
         // preserve current quirks_mode value
         self.cascade_data.clear();
-        self.animations.clear(); // Or set to Default::default()?
         self.precomputed_pseudo_element_decls.clear();
         self.rules_source_order = 0;
         // We want to keep rule_tree around across stylist rebuilds.
-        self.invalidation_map.clear();
-        self.attribute_dependencies.clear();
-        self.style_attribute_dependency = false;
-        self.state_dependencies = ElementState::empty();
-        self.mapped_ids.clear();
-        self.selectors_for_cache_revalidation = SelectorMap::new();
-        self.num_selectors = 0;
-        self.num_declarations = 0;
         // preserve num_rebuilds value, since it should stay across
         // clear()/rebuild() cycles.
     }
@@ -459,9 +407,10 @@ impl Stylist {
             match *rule {
                 CssRule::Style(ref locked) => {
                     let style_rule = locked.read_with(&guard);
-                    self.num_declarations += style_rule.block.read_with(&guard).len();
+                    origin_cascade_data.num_declarations +=
+                        style_rule.block.read_with(&guard).len();
                     for selector in &style_rule.selectors.0 {
-                        self.num_selectors += 1;
+                        origin_cascade_data.num_selectors += 1;
 
                         let map = match selector.pseudo_element() {
                             Some(pseudo) if pseudo.is_precomputed() => {
@@ -506,20 +455,22 @@ impl Stylist {
 
                         map.insert(rule, self.quirks_mode);
 
-                        self.invalidation_map.note_selector(selector, self.quirks_mode);
+                        origin_cascade_data
+                            .invalidation_map
+                            .note_selector(selector, self.quirks_mode);
                         let mut visitor = StylistSelectorVisitor {
                             needs_revalidation: false,
                             passed_rightmost_selector: false,
-                            attribute_dependencies: &mut self.attribute_dependencies,
-                            style_attribute_dependency: &mut self.style_attribute_dependency,
-                            state_dependencies: &mut self.state_dependencies,
-                            mapped_ids: &mut self.mapped_ids,
+                            attribute_dependencies: &mut origin_cascade_data.attribute_dependencies,
+                            style_attribute_dependency: &mut origin_cascade_data.style_attribute_dependency,
+                            state_dependencies: &mut origin_cascade_data.state_dependencies,
+                            mapped_ids: &mut origin_cascade_data.mapped_ids,
                         };
 
                         selector.visit(&mut visitor);
 
                         if visitor.needs_revalidation {
-                            self.selectors_for_cache_revalidation.insert(
+                            origin_cascade_data.selectors_for_cache_revalidation.insert(
                                 RevalidationSelectorAndHashes::new(selector.clone(), hashes),
                                 self.quirks_mode);
                         }
@@ -542,14 +493,15 @@ impl Stylist {
                     debug!("Found valid keyframes rule: {:?}", *keyframes_rule);
 
                     // Don't let a prefixed keyframes animation override a non-prefixed one.
-                    let needs_insertion = keyframes_rule.vendor_prefix.is_none() ||
-                        self.animations.get(keyframes_rule.name.as_atom()).map_or(true, |rule|
-                            rule.vendor_prefix.is_some());
+                    let needs_insertion =
+                        keyframes_rule.vendor_prefix.is_none() ||
+                        origin_cascade_data.animations.get(keyframes_rule.name.as_atom())
+                            .map_or(true, |rule| rule.vendor_prefix.is_some());
                     if needs_insertion {
                         let animation = KeyframesAnimation::from_keyframes(
                             &keyframes_rule.keyframes, keyframes_rule.vendor_prefix.clone(), guard);
                         debug!("Found valid keyframe animation: {:?}", animation);
-                        self.animations.insert(keyframes_rule.name.as_atom().clone(), animation);
+                        origin_cascade_data.animations.insert(keyframes_rule.name.as_atom().clone(), animation);
                     }
                 }
                 #[cfg(feature = "gecko")]
@@ -576,9 +528,16 @@ impl Stylist {
             // we rebuild.
             true
         } else if *local_name == local_name!("style") {
-            self.style_attribute_dependency
+            self.cascade_data
+                .iter_origins()
+                .any(|d| d.style_attribute_dependency)
         } else {
-            self.attribute_dependencies.might_contain_hash(local_name.get_hash())
+            self.cascade_data
+                .iter_origins()
+                .any(|d| {
+                    d.attribute_dependencies
+                        .might_contain_hash(local_name.get_hash())
+                })
         }
     }
 
@@ -590,14 +549,16 @@ impl Stylist {
             // rules rely on until we rebuild.
             true
         } else {
-            self.state_dependencies.intersects(state)
+            self.has_state_dependency(state)
         }
     }
 
     /// Returns whether the given ElementState bit is relied upon by a selector
     /// of some rule in the stylist.
     pub fn has_state_dependency(&self, state: ElementState) -> bool {
-        self.state_dependencies.intersects(state)
+        self.cascade_data
+            .iter_origins()
+            .any(|d| d.state_dependencies.intersects(state))
     }
 
     /// Computes the style for a given "precomputed" pseudo-element, taking the
@@ -1317,7 +1278,9 @@ impl Stylist {
     /// of our rule maps.
     #[inline]
     pub fn may_have_rules_for_id(&self, id: &Atom) -> bool {
-        self.mapped_ids.might_contain_hash(id.get_hash())
+        self.cascade_data
+            .iter_origins()
+            .any(|d| d.mapped_ids.might_contain_hash(id.get_hash()))
     }
 
     /// Return whether the device is dirty, that is, whether the screen size or
@@ -1327,10 +1290,13 @@ impl Stylist {
         self.is_device_dirty
     }
 
-    /// Returns the map of registered `@keyframes` animations.
+    /// Returns the registered `@keyframes` animation for the specified name.
     #[inline]
-    pub fn animations(&self) -> &PrecomputedHashMap<Atom, KeyframesAnimation> {
-        &self.animations
+    pub fn get_animation(&self, name: &Atom) -> Option<&KeyframesAnimation> {
+        self.cascade_data
+            .iter_origins()
+            .filter_map(|d| d.animations.get(name))
+            .next()
     }
 
     /// Computes the match results of a given element against the set of
@@ -1354,17 +1320,19 @@ impl Stylist {
         // the lookups, which means that the bitvecs are comparable. We verify
         // this in the caller by asserting that the bitvecs are same-length.
         let mut results = BitVec::new();
-        self.selectors_for_cache_revalidation.lookup(
-            *element, self.quirks_mode, &mut |selector_and_hashes| {
-                results.push(matches_selector(&selector_and_hashes.selector,
-                                              selector_and_hashes.selector_offset,
-                                              Some(&selector_and_hashes.hashes),
-                                              element,
-                                              &mut matching_context,
-                                              flags_setter));
-                true
-            }
-        );
+        for origin_cascade_data in self.cascade_data.iter_origins() {
+            origin_cascade_data.selectors_for_cache_revalidation.lookup(
+                *element, self.quirks_mode, &mut |selector_and_hashes| {
+                    results.push(matches_selector(&selector_and_hashes.selector,
+                                                  selector_and_hashes.selector_offset,
+                                                  Some(&selector_and_hashes.hashes),
+                                                  element,
+                                                  &mut matching_context,
+                                                  flags_setter));
+                    true
+                }
+            );
+        }
 
         results
     }
@@ -1470,9 +1438,9 @@ struct StylistSelectorVisitor<'a> {
     passed_rightmost_selector: bool,
     /// The filter with all the id's getting referenced from rightmost
     /// selectors.
-    mapped_ids: &'a mut BloomFilter,
+    mapped_ids: &'a mut NonCountingBloomFilter,
     /// The filter with the local names of attributes there are selectors for.
-    attribute_dependencies: &'a mut BloomFilter,
+    attribute_dependencies: &'a mut NonCountingBloomFilter,
     /// Whether there's any attribute selector for the [style] attribute.
     style_attribute_dependency: &'a mut bool,
     /// All the states selectors in the page reference.
@@ -1635,6 +1603,11 @@ impl CascadeData {
     }
 }
 
+/// Iterator over `PerOriginCascadeData`, from highest level (user) to lowest
+/// (user agent).
+///
+/// We rely on this specific order for correctly looking up animations
+/// (prioritizing rules at higher cascade levels), among other things.
 struct CascadeDataIter<'a> {
     cascade_data: &'a CascadeData,
     cur: usize,
@@ -1645,9 +1618,9 @@ impl<'a> Iterator for CascadeDataIter<'a> {
 
     fn next(&mut self) -> Option<&'a PerOriginCascadeData> {
         let result = match self.cur {
-            0 => &self.cascade_data.user_agent,
+            0 => &self.cascade_data.user,
             1 => &self.cascade_data.author,
-            2 => &self.cascade_data.user,
+            2 => &self.cascade_data.user_agent,
             _ => return None,
         };
         self.cur += 1;
@@ -1666,6 +1639,52 @@ struct PerOriginCascadeData {
     /// Rules from stylesheets at this `CascadeData`'s origin that correspond
     /// to a given pseudo-element.
     pseudos_map: PerPseudoElementMap<SelectorMap<Rule>>,
+
+    /// A map with all the animations at this `CascadeData`'s origin, indexed
+    /// by name.
+    animations: PrecomputedHashMap<Atom, KeyframesAnimation>,
+
+    /// The invalidation map for the rules at this origin.
+    invalidation_map: InvalidationMap,
+
+    /// The attribute local names that appear in attribute selectors.  Used
+    /// to avoid taking element snapshots when an irrelevant attribute changes.
+    /// (We don't bother storing the namespace, since namespaced attributes
+    /// are rare.)
+    #[cfg_attr(feature = "servo", ignore_heap_size_of = "just an array")]
+    attribute_dependencies: NonCountingBloomFilter,
+
+    /// Whether `"style"` appears in an attribute selector.  This is not common,
+    /// and by tracking this explicitly, we can avoid taking an element snapshot
+    /// in the common case of style=""` changing due to modifying
+    /// `element.style`.  (We could track this in `attribute_dependencies`, like
+    /// all other attributes, but we should probably not risk incorrectly
+    /// returning `true` for `"style"` just due to a hash collision.)
+    style_attribute_dependency: bool,
+
+    /// The element state bits that are relied on by selectors.  Like
+    /// `attribute_dependencies`, this is used to avoid taking element snapshots
+    /// when an irrelevant element state bit changes.
+    state_dependencies: ElementState,
+
+    /// The ids that appear in the rightmost complex selector of selectors (and
+    /// hence in our selector maps).  Used to determine when sharing styles is
+    /// safe: we disallow style sharing for elements whose id matches this
+    /// filter, and hence might be in one of our selector maps.
+    #[cfg_attr(feature = "servo", ignore_heap_size_of = "just an array")]
+    mapped_ids: NonCountingBloomFilter,
+
+    /// Selectors that require explicit cache revalidation (i.e. which depend
+    /// on state that is not otherwise visible to the cache, like attributes or
+    /// tree-structural state like child index and pseudos).
+    #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
+    selectors_for_cache_revalidation: SelectorMap<RevalidationSelectorAndHashes>,
+
+    /// The total number of selectors.
+    num_selectors: usize,
+
+    /// The total number of declarations.
+    num_declarations: usize,
 }
 
 impl PerOriginCascadeData {
@@ -1673,6 +1692,15 @@ impl PerOriginCascadeData {
         Self {
             element_map: SelectorMap::new(),
             pseudos_map: PerPseudoElementMap::default(),
+            animations: Default::default(),
+            invalidation_map: InvalidationMap::new(),
+            attribute_dependencies: NonCountingBloomFilter::new(),
+            style_attribute_dependency: false,
+            state_dependencies: ElementState::empty(),
+            mapped_ids: NonCountingBloomFilter::new(),
+            selectors_for_cache_revalidation: SelectorMap::new(),
+            num_selectors: 0,
+            num_declarations: 0,
         }
     }
 
@@ -1685,7 +1713,17 @@ impl PerOriginCascadeData {
     }
 
     fn clear(&mut self) {
-        *self = Self::new();
+        self.element_map = SelectorMap::new();
+        self.pseudos_map = Default::default();
+        self.animations = Default::default();
+        self.invalidation_map.clear();
+        self.attribute_dependencies.clear();
+        self.style_attribute_dependency = false;
+        self.state_dependencies = ElementState::empty();
+        self.mapped_ids.clear();
+        self.selectors_for_cache_revalidation = SelectorMap::new();
+        self.num_selectors = 0;
+        self.num_declarations = 0;
     }
 
     fn has_rules_for_pseudo(&self, pseudo: &PseudoElement) -> bool {
@@ -1761,8 +1799,8 @@ impl Rule {
 
 /// A function to be able to test the revalidation stuff.
 pub fn needs_revalidation_for_testing(s: &Selector<SelectorImpl>) -> bool {
-    let mut attribute_dependencies = BloomFilter::new();
-    let mut mapped_ids = BloomFilter::new();
+    let mut attribute_dependencies = NonCountingBloomFilter::new();
+    let mut mapped_ids = NonCountingBloomFilter::new();
     let mut style_attribute_dependency = false;
     let mut state_dependencies = ElementState::empty();
     let mut visitor = StylistSelectorVisitor {
