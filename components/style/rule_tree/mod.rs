@@ -1080,6 +1080,19 @@ impl StrongRuleNode {
             LonghandId::BorderTopRightRadius,
             LonghandId::BorderBottomRightRadius,
             LonghandId::BorderBottomLeftRadius,
+
+            LonghandId::BorderInlineStartColor,
+            LonghandId::BorderInlineStartStyle,
+            LonghandId::BorderInlineStartWidth,
+            LonghandId::BorderInlineEndColor,
+            LonghandId::BorderInlineEndStyle,
+            LonghandId::BorderInlineEndWidth,
+            LonghandId::BorderBlockStartColor,
+            LonghandId::BorderBlockStartStyle,
+            LonghandId::BorderBlockStartWidth,
+            LonghandId::BorderBlockEndColor,
+            LonghandId::BorderBlockEndStyle,
+            LonghandId::BorderBlockEndWidth,
         ];
 
         const PADDING_PROPS: &'static [LonghandId] = &[
@@ -1087,6 +1100,11 @@ impl StrongRuleNode {
             LonghandId::PaddingRight,
             LonghandId::PaddingBottom,
             LonghandId::PaddingLeft,
+
+            LonghandId::PaddingInlineStart,
+            LonghandId::PaddingInlineEnd,
+            LonghandId::PaddingBlockStart,
+            LonghandId::PaddingBlockEnd,
         ];
 
         // Inherited properties:
@@ -1131,6 +1149,10 @@ impl StrongRuleNode {
             LonghandId::BorderRightColor,
             LonghandId::BorderBottomColor,
             LonghandId::BorderLeftColor,
+            LonghandId::BorderInlineStartColor,
+            LonghandId::BorderInlineEndColor,
+            LonghandId::BorderBlockStartColor,
+            LonghandId::BorderBlockEndColor,
             LonghandId::TextShadow,
         ];
 
