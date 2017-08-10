@@ -114,7 +114,6 @@ use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
-use std::marker::PhantomData;
 use std::mem as std_mem;
 use std::ops::{Deref, DerefMut};
 use std::process;
@@ -1207,9 +1206,7 @@ impl LayoutThread {
             author: &author_guard,
             ua_or_user: &ua_or_user_guard,
         };
-        let mut extra_data = ExtraStyleData {
-            marker: PhantomData,
-        };
+        let mut extra_data = ExtraStyleData;
         let needs_dirtying = self.stylist.update(
             StylesheetIterator(data.document_stylesheets.iter()),
             &guards,
