@@ -1975,7 +1975,8 @@ pub extern "C" fn Servo_ParseEasing(easing: *const nsAString,
     let easing = unsafe { (*easing).to_string() };
     let mut input = ParserInput::new(&easing);
     let mut parser = Parser::new(&mut input);
-    let result = transition_timing_function::single_value::parse(&context, &mut parser);
+    let result =
+        parser.parse_entirely(|p| transition_timing_function::single_value::parse(&context, p));
     match result {
         Ok(parsed_easing) => {
             *output = parsed_easing.into();
