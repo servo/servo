@@ -1797,7 +1797,7 @@ pub struct Perspective(f32, f32, f32, f32);
 /// A quaternion used to represent a rotation.
 #[derive(Clone, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub struct Quaternion(f32, f32, f32, f32);
+pub struct Quaternion(f64, f64, f64, f64);
 
 /// A decomposed 3d matrix.
 #[derive(Clone, Copy, Debug)]
@@ -1935,10 +1935,10 @@ fn decompose_3d_matrix(mut matrix: ComputedMatrix) -> Result<MatrixDecomposed3D,
 
     // Now, get the rotations out
     let mut quaternion = Quaternion (
-        0.5 * ((1.0 + row[0][0] - row[1][1] - row[2][2]).max(0.0)).sqrt(),
-        0.5 * ((1.0 - row[0][0] + row[1][1] - row[2][2]).max(0.0)).sqrt(),
-        0.5 * ((1.0 - row[0][0] - row[1][1] + row[2][2]).max(0.0)).sqrt(),
-        0.5 * ((1.0 + row[0][0] + row[1][1] + row[2][2]).max(0.0)).sqrt()
+        0.5 * ((1.0 + row[0][0] - row[1][1] - row[2][2]).max(0.0) as f64).sqrt(),
+        0.5 * ((1.0 - row[0][0] + row[1][1] - row[2][2]).max(0.0) as f64).sqrt(),
+        0.5 * ((1.0 - row[0][0] - row[1][1] + row[2][2]).max(0.0) as f64).sqrt(),
+        0.5 * ((1.0 + row[0][0] + row[1][1] + row[2][2]).max(0.0) as f64).sqrt()
     );
 
     if row[2][1] > row[1][2] {
@@ -2055,7 +2055,7 @@ impl Animatable for MatrixDecomposed3D {
             // Determine the scale factor.
             let mut theta = clamped_w.acos();
             let mut scale = if theta == 0.0 { 0.0 } else { 1.0 / theta.sin() };
-            theta *= self_portion as f32;
+            theta *= self_portion;
             scale *= theta.sin();
 
             // Scale the self matrix by self_portion.
@@ -2089,12 +2089,12 @@ impl Animatable for MatrixDecomposed3D {
             }
 
             let theta = product.acos();
-            let w = (other_portion as f32 * theta).sin() * 1.0 / (1.0 - product * product).sqrt();
+            let w = (other_portion * theta).sin() * 1.0 / (1.0 - product * product).sqrt();
 
             let mut a = *self;
             let mut b = *other;
             % for i in range(4):
-                a.quaternion.${i} *= (other_portion as f32 * theta).cos() - product * w;
+                a.quaternion.${i} *= (other_portion * theta).cos() - product * w;
                 b.quaternion.${i} *= w;
                 sum.quaternion.${i} = a.quaternion.${i} + b.quaternion.${i};
             % endfor
@@ -2131,15 +2131,15 @@ impl From<MatrixDecomposed3D> for ComputedMatrix {
         // Construct a composite rotation matrix from the quaternion values
         // rotationMatrix is a identity 4x4 matrix initially
         let mut rotation_matrix = ComputedMatrix::identity();
-        rotation_matrix.m11 = 1.0 - 2.0 * (y * y + z * z);
-        rotation_matrix.m12 = 2.0 * (x * y + z * w);
-        rotation_matrix.m13 = 2.0 * (x * z - y * w);
-        rotation_matrix.m21 = 2.0 * (x * y - z * w);
-        rotation_matrix.m22 = 1.0 - 2.0 * (x * x + z * z);
-        rotation_matrix.m23 = 2.0 * (y * z + x * w);
-        rotation_matrix.m31 = 2.0 * (x * z + y * w);
-        rotation_matrix.m32 = 2.0 * (y * z - x * w);
-        rotation_matrix.m33 = 1.0 - 2.0 * (x * x + y * y);
+        rotation_matrix.m11 = 1.0 - 2.0 * (y * y + z * z) as f32;
+        rotation_matrix.m12 = 2.0 * (x * y + z * w) as f32;
+        rotation_matrix.m13 = 2.0 * (x * z - y * w) as f32;
+        rotation_matrix.m21 = 2.0 * (x * y - z * w) as f32;
+        rotation_matrix.m22 = 1.0 - 2.0 * (x * x + z * z) as f32;
+        rotation_matrix.m23 = 2.0 * (y * z + x * w) as f32;
+        rotation_matrix.m31 = 2.0 * (x * z + y * w) as f32;
+        rotation_matrix.m32 = 2.0 * (y * z - x * w) as f32;
+        rotation_matrix.m33 = 1.0 - 2.0 * (x * x + y * y) as f32;
 
         matrix = multiply(rotation_matrix, matrix);
 
