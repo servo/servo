@@ -1474,11 +1474,17 @@ fn add_weighted_transform_lists(from_list: &[TransformOperation],
                     }
                 }
                 (&TransformOperation::Perspective(fd),
-                 &TransformOperation::Perspective(_td)) => {
+                 &TransformOperation::Perspective(td)) => {
                     let mut fd_matrix = ComputedMatrix::identity();
                     let mut td_matrix = ComputedMatrix::identity();
-                    fd_matrix.m43 = -1. / fd.to_f32_px();
-                    td_matrix.m43 = -1. / _td.to_f32_px();
+                    if fd.0 > 0 {
+                        fd_matrix.m34 = -1. / fd.to_f32_px();
+                    }
+
+                    if td.0 > 0 {
+                        td_matrix.m34 = -1. / td.to_f32_px();
+                    }
+
                     let sum = fd_matrix.add_weighted(&td_matrix, self_portion, other_portion)
                                        .unwrap();
                     result.push(TransformOperation::Matrix(sum));
