@@ -606,27 +606,29 @@ where
         data.clear_restyle_flags_and_damage();
     }
 
-    // There are two cases when we want to clear the dity descendants bit here
-    // after styling this element. The first case is when we were explicitly
-    // asked to clear the bit by the caller.
-    //
-    // The second case is when this element is the root of a display:none
-    // subtree, even if the style didn't change (since, if the style did change,
-    // we'd have already cleared it above).
-    //
-    // This keeps the tree in a valid state without requiring the DOM to check
-    // display:none on the parent when inserting new children (which can be
-    // moderately expensive). Instead, DOM implementations can unconditionally
-    // set the dirty descendants bit on any styled parent, and let the traversal
-    // sort it out.
-    if flags.contains(traversal_flags::ClearDirtyDescendants) ||
-       data.styles.is_display_none() {
-        unsafe { element.unset_dirty_descendants(); }
-    }
-
-    // Similarly, check if we're supposed to clear the animation bit.
-    if flags.contains(traversal_flags::ClearAnimationOnlyDirtyDescendants) {
-        unsafe { element.unset_animation_only_dirty_descendants(); }
+    // Optionally clear the descendants bit for the traversal type we're in.
+    if flags.for_animation_only() {
+        if flags.contains(traversal_flags::ClearAnimationOnlyDirtyDescendants) {
+            unsafe { element.unset_animation_only_dirty_descendants(); }
+        }
+    } else {
+        // There are two cases when we want to clear the dity descendants bit here
+        // after styling this element. The first case is when we were explicitly
+        // asked to clear the bit by the caller.
+        //
+        // The second case is when this element is the root of a display:none
+        // subtree, even if the style didn't change (since, if the style did change,
+        // we'd have already cleared it above).
+        //
+        // This keeps the tree in a valid state without requiring the DOM to check
+        // display:none on the parent when inserting new children (which can be
+        // moderately expensive). Instead, DOM implementations can unconditionally
+        // set the dirty descendants bit on any styled parent, and let the traversal
+        // sort it out.
+        if flags.contains(traversal_flags::ClearDirtyDescendants) ||
+           data.styles.is_display_none() {
+            unsafe { element.unset_dirty_descendants(); }
+        }
     }
 
     context.thread_local.end_element(element);
