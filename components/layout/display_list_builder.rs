@@ -72,7 +72,7 @@ use style_traits::ToCss;
 use style_traits::cursor::Cursor;
 use table_cell::CollapsedBordersForCell;
 use webrender_api::{ClipAndScrollInfo, ClipId, ColorF, ComplexClipRegion, GradientStop, LineStyle};
-use webrender_api::{LocalClip, RepeatMode, ScrollPolicy, ScrollSensitivity, TransformStyle};
+use webrender_api::{LocalClip, RepeatMode, ScrollPolicy, ScrollSensitivity};
 use webrender_helpers::{ToBorderRadius, ToMixBlendMode, ToRectF, ToTransformStyle};
 
 trait ResolvePercentage {
@@ -189,9 +189,6 @@ pub struct DisplayListBuildState<'a> {
     /// A stack of clips used to cull display list entries that are outside the
     /// rendered region, but only collected at containing block boundaries.
     pub containing_block_clip_stack: Vec<Rect<Au>>,
-
-    /// The current transform style of the stacking context.
-    current_transform_style: TransformStyle,
 }
 
 impl<'a> DisplayListBuildState<'a> {
@@ -210,7 +207,6 @@ impl<'a> DisplayListBuildState<'a> {
             iframe_sizes: Vec::new(),
             clip_stack: Vec::new(),
             containing_block_clip_stack: Vec::new(),
-            current_transform_style: TransformStyle::Flat,
         }
     }
 
@@ -222,7 +218,6 @@ impl<'a> DisplayListBuildState<'a> {
     fn add_stacking_context(&mut self,
                             parent_id: StackingContextId,
                             stacking_context: StackingContext) {
-        self.current_transform_style = stacking_context.transform_style;
         let info = self.stacking_context_info
                        .entry(parent_id)
                        .or_insert(StackingContextInfo::new());
@@ -2302,7 +2297,6 @@ pub struct PreservedDisplayListState {
     containing_block_clip_and_scroll_info: ClipAndScrollInfo,
     clips_pushed: usize,
     containing_block_clips_pushed: usize,
-    transform_style: TransformStyle,
 }
 
 impl PreservedDisplayListState {
@@ -2313,7 +2307,6 @@ impl PreservedDisplayListState {
             containing_block_clip_and_scroll_info: state.containing_block_clip_and_scroll_info,
             clips_pushed: 0,
             containing_block_clips_pushed: 0,
-            transform_style: state.current_transform_style,
         }
     }
 
@@ -2334,8 +2327,6 @@ impl PreservedDisplayListState {
         let truncate_length = state.containing_block_clip_stack.len() -
                               self.containing_block_clips_pushed;
         state.containing_block_clip_stack.truncate(truncate_length);
-
-        state.current_transform_style = self.transform_style;
     }
 
     fn push_clip(&mut self,
