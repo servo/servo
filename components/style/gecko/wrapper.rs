@@ -1534,9 +1534,9 @@ impl<'le> PresentationalHintsSynthesizer for GeckoElement<'le> {
             };
         };
 
-        let ns = self.get_namespace();
+        let ns = self.namespace_id();
         // <th> elements get a default MozCenterOrInherit which may get overridden
-        if ns == &*Namespace(atom!("http://www.w3.org/1999/xhtml")) {
+        if ns == structs::kNameSpaceID_XHTML as i32 {
             if self.get_local_name().as_ptr() == atom!("th").as_ptr() {
                 hints.push(TH_RULE.clone());
             } else if self.get_local_name().as_ptr() == atom!("table").as_ptr() &&
@@ -1544,7 +1544,7 @@ impl<'le> PresentationalHintsSynthesizer for GeckoElement<'le> {
                 hints.push(TABLE_COLOR_RULE.clone());
             }
         }
-        if ns == &*Namespace(atom!("http://www.w3.org/2000/svg")) {
+        if ns == structs::kNameSpaceID_SVG as i32 {
             if self.get_local_name().as_ptr() == atom!("text").as_ptr() {
                 hints.push(SVG_TEXT_DISABLE_ZOOM_RULE.clone());
             }
@@ -1621,7 +1621,7 @@ impl<'le> PresentationalHintsSynthesizer for GeckoElement<'le> {
             hints.push(ApplicableDeclarationBlock::from_declarations(arc, ServoCascadeLevel::PresHints))
         }
         // MathML's default lang has precedence over both `lang` and `xml:lang`
-        if ns == &*Namespace(atom!("http://www.w3.org/1998/Math/MathML")) {
+        if ns == structs::kNameSpaceID_MathML as i32 {
             if self.get_local_name().as_ptr() == atom!("math").as_ptr() {
                 hints.push(MATHML_LANG_RULE.clone());
             }
