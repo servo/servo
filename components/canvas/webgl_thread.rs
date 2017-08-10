@@ -31,7 +31,7 @@ pub struct WebGLThread<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver
     /// Cached information for WebGLContexts.
     cached_context_info: HashMap<WebGLContextId, WebGLContextInfo>,
     /// Current bound context.
-    current_bound_webgl_context_id: Option<WebGLContextId>,
+    bound_context_id: Option<WebGLContextId>,
     /// Id generator for new WebGLContexts.
     next_webgl_id: usize,
     /// Handler user to send WebVR commands.
@@ -50,7 +50,7 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
             webrender_api: webrender_api_sender.create_api(),
             contexts: HashMap::new(),
             cached_context_info: HashMap::new(),
-            current_bound_webgl_context_id: None,
+            bound_context_id: None,
             next_webgl_id: 0,
             webvr_compositor,
             observer: observer,
@@ -129,21 +129,13 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
 
     /// Handles a WebGLCommand for a specific WebGLContext
     fn handle_webgl_command(&mut self, context_id: WebGLContextId, command: WebGLCommand) {
-        let ctx = &self.contexts[&context_id];
-        if Some(context_id) != self.current_bound_webgl_context_id {
-            ctx.make_current();
-            self.current_bound_webgl_context_id = Some(context_id);
-        }
+        let ctx = Self::make_current_if_needed(context_id, &self.contexts, &mut self.bound_context_id);
         ctx.apply_command(command);
     }
 
     /// Handles a WebVRCommand for a specific WebGLContext
     fn handle_webvr_command(&mut self, context_id: WebGLContextId, command: WebVRCommand) {
-        if Some(context_id) != self.current_bound_webgl_context_id {
-            self.contexts[&context_id].make_current();
-            self.current_bound_webgl_context_id = Some(context_id);
-        }
-
+        Self::make_current_if_needed(context_id, &self.contexts, &mut self.bound_context_id);
         let texture = match command {
             WebVRCommand::SubmitFrame(..) => {
                 self.cached_context_info.get(&context_id)
@@ -155,11 +147,7 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
 
     /// Handles a lock external callback received from webrender::ExternalImageHandler
     fn handle_lock(&mut self, context_id: WebGLContextId, sender: WebGLSender<(u32, Size2D<i32>)>) {
-        let ctx = &self.contexts[&context_id];
-        if Some(context_id) != self.current_bound_webgl_context_id {
-            ctx.make_current();
-            self.current_bound_webgl_context_id = Some(context_id);
-        }
+        let ctx = Self::make_current_if_needed(context_id, &self.contexts, &mut self.bound_context_id);
         let info = self.cached_context_info.get_mut(&context_id).unwrap();
         // Use a OpenGL Fence to perform the lock.
         info.gl_sync = Some(ctx.gl().fence_sync(gl::SYNC_GPU_COMMANDS_COMPLETE, 0));
@@ -169,11 +157,7 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
 
     /// Handles an unlock external callback received from webrender::ExternalImageHandler
     fn handle_unlock(&mut self, context_id: WebGLContextId) {
-        let ctx = &self.contexts[&context_id];
-        if Some(context_id) != self.current_bound_webgl_context_id {
-            ctx.make_current();
-            self.current_bound_webgl_context_id = Some(context_id);
-        }
+        let ctx = Self::make_current_if_needed(context_id, &self.contexts, &mut self.bound_context_id);
         let info = self.cached_context_info.get_mut(&context_id).unwrap();
         if let Some(gl_sync) = info.gl_sync.take() {
             // glFlush must be called before glWaitSync.
@@ -201,7 +185,7 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
 
         // Creating a new GLContext may make the current bound context_id dirty.
         // Clear it to ensure that  make_current() is called in subsequent commands.
-        self.current_bound_webgl_context_id = None;
+        self.bound_context_id = None;
 
         match result {
             Ok((ctx, share_mode)) => {
@@ -235,11 +219,7 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
                             context_id: WebGLContextId,
                             size: Size2D<i32>,
                             sender: WebGLSender<Result<(), String>>) {
-        let ctx = self.contexts.get_mut(&context_id).unwrap();
-        if Some(context_id) != self.current_bound_webgl_context_id {
-            ctx.make_current();
-            self.current_bound_webgl_context_id = Some(context_id);
-        }
+        let ctx = Self::make_current_if_needed_mut(context_id, &mut self.contexts, &mut self.bound_context_id);
         match ctx.resize(size) {
             Ok(_) => {
                 let (real_size, texture_id, _) = ctx.get_info();
@@ -291,7 +271,7 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
         }
 
         // Removing a GLContext may make the current bound context_id dirty.
-        self.current_bound_webgl_context_id = None;
+        self.bound_context_id = None;
     }
 
     /// Handles the creation/update of webrender_api::ImageKeys fpr a specific WebGLContext.
@@ -349,6 +329,30 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
 
         // Send the ImageKey to the Layout thread.
         sender.send(image_key).unwrap();
+    }
+
+    /// Gets a reference to a GLContextWrapper for a given WebGLContextId and makes it current if required.
+    fn make_current_if_needed<'a>(context_id: WebGLContextId,
+                                  contexts: &'a HashMap<WebGLContextId, GLContextWrapper>,
+                                  bound_id: &mut Option<WebGLContextId>) -> &'a GLContextWrapper {
+        let ctx = &contexts[&context_id];
+        if Some(context_id) != *bound_id {
+            ctx.make_current();
+            *bound_id = Some(context_id);
+        }
+        ctx
+    }
+
+    /// Gets a mutable reference to a GLContextWrapper for a WebGLContextId and makes it current if required.
+    fn make_current_if_needed_mut<'a>(context_id: WebGLContextId,
+                                      contexts: &'a mut HashMap<WebGLContextId, GLContextWrapper>,
+                                      bound_id: &mut Option<WebGLContextId>) -> &'a mut GLContextWrapper {
+        let ctx = contexts.get_mut(&context_id).expect("WebGLContext not found!");
+        if Some(context_id) != *bound_id {
+            ctx.make_current();
+            *bound_id = Some(context_id);
+        }
+        ctx
     }
 
     /// Creates a `webrender_api::ImageKey` that uses shared textures.
