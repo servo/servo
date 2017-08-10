@@ -1497,21 +1497,25 @@ fn rotate_to_matrix(x: f32, y: f32, z: f32, a: Angle) -> ComputedMatrix {
 }
 
 /// A 2d matrix for interpolation.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, ComputeSquaredDistance, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
+// FIXME: We use custom derive for ComputeSquaredDistance. However, If possible, we should convert
+// the InnerMatrix2D into types with physical meaning. This custom derive computes the squared
+// distance from each matrix item, and this makes the result different from that in Gecko if we
+// have skew factor in the ComputedMatrix.
 pub struct InnerMatrix2D {
     pub m11: CSSFloat, pub m12: CSSFloat,
     pub m21: CSSFloat, pub m22: CSSFloat,
 }
 
 /// A 2d translation function.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, ComputeSquaredDistance, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct Translate2D(f32, f32);
 
 /// A 2d scale function.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, ComputeSquaredDistance, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct Scale2D(f32, f32);
 
@@ -1606,6 +1610,20 @@ impl Animatable for MatrixDecomposed2D {
     }
 }
 
+impl ComputeSquaredDistance for MatrixDecomposed2D {
+    #[inline]
+    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
+        // Use Radian to compute the distance.
+        const RAD_PER_DEG: f64 = ::std::f64::consts::PI / 180.0;
+        let angle1 = self.angle as f64 * RAD_PER_DEG;
+        let angle2 = other.angle as f64 * RAD_PER_DEG;
+        Ok(self.translate.compute_squared_distance(&other.translate)? +
+           self.scale.compute_squared_distance(&other.scale)? +
+           angle1.compute_squared_distance(&angle2)? +
+           self.matrix.compute_squared_distance(&other.matrix)?)
+    }
+}
+
 impl Animatable for ComputedMatrix {
     fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
         if self.is_3d() || other.is_3d() {
@@ -1626,6 +1644,21 @@ impl Animatable for ComputedMatrix {
             let decomposed_to = MatrixDecomposed2D::from(*other);
             let sum = decomposed_from.add_weighted(&decomposed_to, self_portion, other_portion)?;
             Ok(ComputedMatrix::from(sum))
+        }
+    }
+}
+
+impl ComputeSquaredDistance for ComputedMatrix {
+    #[inline]
+    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
+        if self.is_3d() || other.is_3d() {
+            let from = decompose_3d_matrix(*self)?;
+            let to = decompose_3d_matrix(*other)?;
+            from.compute_squared_distance(&to)
+        } else {
+            let from = MatrixDecomposed2D::from(*self);
+            let to = MatrixDecomposed2D::from(*other);
+            from.compute_squared_distance(&to)
         }
     }
 }
@@ -1754,12 +1787,12 @@ impl From<ComputedMatrix> for RawGeckoGfxMatrix4x4 {
 }
 
 /// A 3d translation.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, ComputeSquaredDistance, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct Translate3D(f32, f32, f32);
 
 /// A 3d scale function.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, ComputeSquaredDistance, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct Scale3D(f32, f32, f32);
 
@@ -1769,7 +1802,7 @@ pub struct Scale3D(f32, f32, f32);
 pub struct Skew(f32, f32, f32);
 
 /// A 3d perspective transformation.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, ComputeSquaredDistance, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct Perspective(f32, f32, f32, f32);
 
@@ -1779,7 +1812,7 @@ pub struct Perspective(f32, f32, f32, f32);
 pub struct Quaternion(f64, f64, f64, f64);
 
 /// A decomposed 3d matrix.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, ComputeSquaredDistance, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct MatrixDecomposed3D {
     /// A translation function.
@@ -1824,6 +1857,17 @@ impl Quaternion {
     #[inline]
     fn dot(&self, other: &Self) -> f64 {
         self.0 * other.0 + self.1 * other.1 + self.2 * other.2 + self.3 * other.3
+    }
+}
+
+impl ComputeSquaredDistance for Quaternion {
+    #[inline]
+    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
+        // Use quaternion vectors to get the angle difference. Both q1 and q2 are unit vectors,
+        // so we can get their angle difference by:
+        // cos(theta/2) = (q1 dot q2) / (|q1| * |q2|) = q1 dot q2.
+        let distance = self.dot(other).max(-1.0).min(1.0).acos() * 2.0;
+        Ok(SquaredDistance::Value(distance * distance))
     }
 }
 
@@ -2050,6 +2094,17 @@ impl Animatable for Skew {
             self.1.add_weighted(&other.1, self_portion, other_portion)?,
             self.2.add_weighted(&other.2, self_portion, other_portion)?,
         ))
+    }
+}
+
+impl ComputeSquaredDistance for Skew {
+    // We have to use atan() to convert the skew factors into skew angles, so implement
+    // ComputeSquaredDistance manually.
+    #[inline]
+    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
+        Ok(self.0.atan().compute_squared_distance(&other.0.atan())? +
+           self.1.atan().compute_squared_distance(&other.1.atan())? +
+           self.2.atan().compute_squared_distance(&other.2.atan())?)
     }
 }
 
@@ -2443,10 +2498,9 @@ fn compute_transform_lists_squared_distance(from_list: &[TransformOperation],
     let zero_distance = SquaredDistance::Value(0.);
     let squared_distance = from_list.iter().zip(to_list.iter()).map(|(from, to)| {
         match (from, to) {
-            (&TransformOperation::Matrix(_from),
-             &TransformOperation::Matrix(_to)) => {
-                // TODO: decompose matrix.
-                zero_distance
+            (&TransformOperation::Matrix(from),
+             &TransformOperation::Matrix(to)) => {
+                from.compute_squared_distance(&to).unwrap_or(zero_distance)
             }
             (&TransformOperation::Skew(fx, fy),
              &TransformOperation::Skew(tx, ty)) => {
@@ -2494,19 +2548,31 @@ fn compute_transform_lists_squared_distance(from_list: &[TransformOperation],
                 if vector1 == vector2 {
                     angle1.compute_squared_distance(&angle2).unwrap_or(zero_distance)
                 } else {
-                    // Use quaternion vectors to get the angle difference. Both q1 and q2
-                    // are unit vectors, so we can get their angle difference by
-                    // cos(theta/2) = (q1 dot q2) / (|q1| * |q2|) = q1 dot q2.
                     let q1 = Quaternion::from_direction_and_angle(&vector1, angle1.radians64());
                     let q2 = Quaternion::from_direction_and_angle(&vector2, angle2.radians64());
-                    let dist = q1.dot(&q2).max(-1.).min(1.).acos() * 2.0;
-                    SquaredDistance::Value(dist * dist)
+                    q1.compute_squared_distance(&q2).unwrap_or(zero_distance)
                 }
             }
-            (&TransformOperation::Perspective(_fd),
-             &TransformOperation::Perspective(_td)) => {
-                // TODO: decompose matrix.
-                zero_distance
+            (&TransformOperation::Perspective(fd),
+             &TransformOperation::Perspective(td)) => {
+                let mut fd_matrix = ComputedMatrix::identity();
+                let mut td_matrix = ComputedMatrix::identity();
+                if fd.0 > 0 {
+                    fd_matrix.m34 = -1. / fd.to_f32_px();
+                }
+
+                if td.0 > 0 {
+                    td_matrix.m34 = -1. / td.to_f32_px();
+                }
+                fd_matrix.compute_squared_distance(&td_matrix).unwrap_or(zero_distance)
+            }
+            (&TransformOperation::Perspective(p), &TransformOperation::Matrix(m)) |
+            (&TransformOperation::Matrix(m), &TransformOperation::Perspective(p)) => {
+                let mut p_matrix = ComputedMatrix::identity();
+                if p.0 > 0 {
+                    p_matrix.m34 = -1. / p.to_f32_px();
+                }
+                p_matrix.compute_squared_distance(&m).unwrap_or(zero_distance)
             }
             _ => {
                 // We don't support computation of distance for InterpolateMatrix and
