@@ -50,7 +50,6 @@ use values::computed::{NonNegativeAu, NonNegativeNumber, PositiveIntegerOrAuto};
 use values::computed::length::{NonNegativeLengthOrAuto, NonNegativeLengthOrNormal};
 use values::computed::length::NonNegativeLengthOrPercentage;
 use values::generics::{GreaterThanOrEqualToOne, NonNegative};
-use values::generics::border::BorderCornerRadius as GenericBorderCornerRadius;
 use values::generics::effects::Filter;
 use values::generics::position as generic_position;
 use values::generics::svg::{SVGLength, SVGOpacity, SVGPaint, SVGPaintKind, SVGStrokeDashArray};
@@ -1013,24 +1012,6 @@ impl<T: Animatable + Copy> Animatable for Point2D<T> {
         let y = self.y.add_weighted(&other.y, self_portion, other_portion)?;
 
         Ok(Point2D::new(x, y))
-    }
-}
-
-impl Animatable for BorderCornerRadius {
-    #[inline]
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
-        self.0.add_weighted(&other.0, self_portion, other_portion).map(GenericBorderCornerRadius)
-    }
-
-    #[inline]
-    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
-        self.compute_squared_distance(other).map(|sd| sd.sqrt())
-    }
-
-    #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
-        Ok(self.0.width.compute_squared_distance(&other.0.width)? +
-           self.0.height.compute_squared_distance(&other.0.height)?)
     }
 }
 
