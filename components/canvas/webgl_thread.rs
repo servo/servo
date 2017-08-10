@@ -9,7 +9,6 @@ use gleam::gl;
 use offscreen_gl_context::{GLContext, GLContextAttributes, GLLimits, NativeGLContextMethods};
 use std::collections::HashMap;
 use std::mem;
-use std::sync::Arc;
 use std::thread;
 use super::gl_context::{GLContextFactory, GLContextWrapper};
 use webrender;
@@ -23,7 +22,7 @@ pub use ::webgl_mode::WebGLThreads;
 /// a set of WebGLContexts living in the same thread.
 pub struct WebGLThread<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> {
     /// Factory used to create a new GLContext shared with the WR/Main thread.
-    gl_factory: Arc<GLContextFactory>,
+    gl_factory: GLContextFactory,
     /// Channel used to generate/update or delete `webrender_api::ImageKey`s.
     webrender_api: webrender_api::RenderApi,
     /// Map of live WebGLContexts.
@@ -41,12 +40,12 @@ pub struct WebGLThread<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver
 }
 
 impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, OB> {
-    pub fn new(gl_factory: Arc<GLContextFactory>,
+    pub fn new(gl_factory: GLContextFactory,
                webrender_api_sender: webrender_api::RenderApiSender,
                webvr_compositor: Option<VR>,
                observer: OB) -> Self {
         WebGLThread {
-            gl_factory: gl_factory,
+            gl_factory,
             webrender_api: webrender_api_sender.create_api(),
             contexts: HashMap::new(),
             cached_context_info: HashMap::new(),
@@ -59,7 +58,7 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
 
     /// Creates a new `WebGLThread` and returns a Sender to
     /// communicate with it.
-    pub fn start(gl_factory: Arc<GLContextFactory>,
+    pub fn start(gl_factory: GLContextFactory,
                  webrender_api_sender: webrender_api::RenderApiSender,
                  webvr_compositor: Option<VR>,
                  observer: OB)
@@ -86,7 +85,7 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
 
     /// Handles a generic WebGLMsg message
     #[inline]
-    pub fn handle_msg(&mut self, msg: WebGLMsg, webgl_chan: &WebGLChan) -> bool {
+    fn handle_msg(&mut self, msg: WebGLMsg, webgl_chan: &WebGLChan) -> bool {
         match msg {
             WebGLMsg::CreateContext(size, attributes, result_sender) => {
                 let result = self.create_webgl_context(size, attributes);
@@ -489,7 +488,12 @@ pub trait WebGLThreadObserver: Send + 'static {
     fn on_context_delete(&mut self, ctx_id: WebGLContextId);
 }
 
-/// Trait used by the generic WebGLExternalImageHandler implementation
+/// This trait is used as a bridge between the `WebGLThreads` implementation and
+/// the WR ExternalImageHandler API implemented in the `WebGLExternalImageHandler` struct.
+/// `WebGLExternalImageHandler<T>` takes care of type conversions between WR and WebGL info (e.g keys, uvs).
+/// It uses this trait to notify lock/unlock messages and get the required info that WR needs.
+/// `WebGLThreads` receives lock/unlock message notifications and takes care of sending
+/// the unlock/lock messages to the appropiate `WebGLThread`.
 pub trait WebGLExternalImageApi {
     fn lock(&mut self, ctx_id: WebGLContextId) -> (u32, Size2D<i32>);
     fn unlock(&mut self, ctx_id: WebGLContextId);

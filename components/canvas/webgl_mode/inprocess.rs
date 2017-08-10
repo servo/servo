@@ -9,7 +9,6 @@ use canvas_traits::webgl::{WebGLSender, WebVRCommand, WebVRRenderHandler};
 use canvas_traits::webgl::webgl_channel;
 use euclid::Size2D;
 use std::marker::PhantomData;
-use std::sync::Arc;
 use webrender;
 use webrender_api;
 
@@ -23,7 +22,7 @@ impl WebGLThreads {
                webvr_compositor: Option<Box<WebVRRenderHandler>>)
                -> (WebGLThreads, Box<webrender::ExternalImageHandler>) {
         // This implementation creates a single `WebGLThread` for all the pipelines.
-        let channel = WebGLThread::start(Arc::new(gl_factory),
+        let channel = WebGLThread::start(gl_factory,
                                          webrender_api_sender,
                                          webvr_compositor.map(|c| WebVRRenderWrapper(c)),
                                          PhantomData);

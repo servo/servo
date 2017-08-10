@@ -1044,7 +1044,7 @@ impl WebGLRenderingContext {
         receiver.recv().unwrap()
     }
 
-    fn handle_layout(&self) -> webrender_api::ImageKey {
+    fn layout_handle(&self) -> webrender_api::ImageKey {
         match self.share_mode {
             WebGLContextShareMode::SharedTexture => {
                 // WR using ExternalTexture requires a single update message.
@@ -3369,7 +3369,7 @@ pub trait LayoutCanvasWebGLRenderingContextHelpers {
 impl LayoutCanvasWebGLRenderingContextHelpers for LayoutJS<WebGLRenderingContext> {
     #[allow(unsafe_code)]
     unsafe fn canvas_data_source(&self) -> HTMLCanvasDataSource {
-        HTMLCanvasDataSource::WebGL((*self.unsafe_get()).handle_layout())
+        HTMLCanvasDataSource::WebGL((*self.unsafe_get()).layout_handle())
     }
 }
 

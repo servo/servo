@@ -12,17 +12,16 @@ use offscreen_gl_context::{OSMesaContext, OSMesaContextHandle};
 use std::sync::{Arc, Mutex};
 use super::webgl_thread::WebGLImpl;
 
+/// The GLContextFactory is used to create shared GL contexts with the main thread GL context.
+/// Currently, shared textures are used to render WebGL textures into the WR compositor.
+/// In order to create a shared context, the GLContextFactory stores the handle of the main GL context.
 pub enum GLContextFactory {
     Native(NativeGLContextHandle, Option<MainThreadDispatcher>),
     OSMesa(OSMesaContextHandle),
 }
 
-#[allow(unsafe_code)]
-unsafe impl Send for GLContextFactory {}
-#[allow(unsafe_code)]
-unsafe impl Sync for GLContextFactory {}
-
 impl GLContextFactory {
+    /// Creates a new GLContextFactory that uses the currently bound GL context to create shared contexts.
     pub fn current_native_handle(proxy: &CompositorProxy) -> Option<GLContextFactory> {
         NativeGLContext::current_handle().map(|handle| {
             if cfg!(target_os = "windows") {
@@ -35,6 +34,7 @@ impl GLContextFactory {
         })
     }
 
+    /// Creates a new GLContextFactory that uses the currently bound OSMesa context to create shared contexts.
     pub fn current_osmesa_handle() -> Option<GLContextFactory> {
         OSMesaContext::current_handle().map(GLContextFactory::OSMesa)
     }
@@ -94,7 +94,7 @@ impl GLContextFactory {
 }
 
 
-// GLContextWrapper used to abstract NativeGLContext and OSMesaContext types
+/// GLContextWrapper used to abstract NativeGLContext and OSMesaContext types
 pub enum GLContextWrapper {
     Native(GLContext<NativeGLContext>),
     OSMesa(GLContext<OSMesaContext>),
