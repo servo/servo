@@ -584,11 +584,12 @@ impl TreeSink for Sink {
     }
 
     fn same_tree(&self, x: &Self::Handle, y: &Self::Handle) -> bool {
-        self.sender.send(ToTokenizerMsg::IsSameTree(x.id, y.id)).unwrap();
-        match self.receiver.recv().expect("Unexpected channel panic in html parser thread.") {
-            ToSinkMsg::IsSameTree(result) => result,
-            _ => unreachable!(),
-        }
+        true
+        // self.sender.send(ToTokenizerMsg::IsSameTree(x.id, y.id)).unwrap();
+        // match self.receiver.recv().expect("Unexpected channel panic in html parser thread.") {
+        //     ToSinkMsg::IsSameTree(result) => result,
+        //     _ => unreachable!(),
+        // }
     }
 
     fn create_element(&mut self, name: QualName, html_attrs: Vec<HtmlAttribute>, _flags: ElementFlags)
@@ -634,11 +635,12 @@ impl TreeSink for Sink {
     }
 
     fn has_parent_node(&self, node: &Self::Handle) -> bool {
-        self.sender.send(ToTokenizerMsg::HasParentNode(node.id)).unwrap();
-        match self.receiver.recv().expect("Unexpected channel panic in html parser thread.") {
-            ToSinkMsg::HasParentNode(result) => result,
-            _ => unreachable!(),
-        }
+        true
+        // self.sender.send(ToTokenizerMsg::HasParentNode(node.id)).unwrap();
+        // match self.receiver.recv().expect("Unexpected channel panic in html parser thread.") {
+        //     ToSinkMsg::HasParentNode(result) => result,
+        //     _ => unreachable!(),
+        // }
     }
 
     fn associate_with_form(&mut self, target: &Self::Handle, form: &Self::Handle) {
