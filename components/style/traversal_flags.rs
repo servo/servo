@@ -31,6 +31,10 @@ bitflags! {
         const ClearDirtyDescendants = 1 << 5,
         /// Clears the animation-only dirty descendants bit in the subtree.
         const ClearAnimationOnlyDirtyDescendants = 1 << 6,
+        /// Allows the traversal to run in parallel if there are sufficient cores on
+        /// the machine.
+        const ParallelTraversal = 1 << 7,
+
     }
 }
 
@@ -62,6 +66,7 @@ pub fn assert_traversal_flags_match() {
         ServoTraversalFlags_ClearDirtyDescendants => ClearDirtyDescendants,
         ServoTraversalFlags_ClearAnimationOnlyDirtyDescendants =>
             ClearAnimationOnlyDirtyDescendants,
+        ServoTraversalFlags_ParallelTraversal => ParallelTraversal,
     }
 }
 
