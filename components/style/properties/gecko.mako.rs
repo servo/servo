@@ -5086,6 +5086,10 @@ fn static_assert() {
 
     }
 
+    pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
+        (&self.gecko.${gecko_ffi_name}).into()
+    }
+
     pub fn copy_${ident}_from(&mut self, other: &Self) {
         use gecko_bindings::bindings::Gecko_CopyShapeSourceFrom;
         unsafe {

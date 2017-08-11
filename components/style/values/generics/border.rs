@@ -5,6 +5,7 @@
 //! Generic types for CSS values related to borders.
 
 use euclid::Size2D;
+use properties::animated_properties::Animatable;
 use std::fmt;
 use style_traits::ToCss;
 use values::generics::rect::Rect;
@@ -112,6 +113,37 @@ impl<L> BorderRadius<L>
     }
 }
 
+impl<L> Animatable for BorderRadius<L>
+where
+    L: Animatable + Copy,
+{
+    fn add_weighted(
+        &self,
+        other: &Self,
+        self_portion: f64,
+        other_portion: f64,
+    ) -> Result<Self, ()> {
+        let tl = self.top_left.add_weighted(&other.top_left, self_portion, other_portion)?;
+        let tr = self.top_right.add_weighted(&other.top_right, self_portion, other_portion)?;
+        let br = self.bottom_right.add_weighted(&other.bottom_right, self_portion, other_portion)?;
+        let bl = self.bottom_left.add_weighted(&other.bottom_left, self_portion, other_portion)?;
+        Ok(BorderRadius::new(tl, tr, br, bl))
+    }
+
+    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
+        Ok(self.compute_squared_distance(other)?.sqrt())
+    }
+
+    fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
+        Ok(
+            self.top_left.compute_squared_distance(&other.top_left)? +
+            self.top_right.compute_squared_distance(&other.top_right)? +
+            self.bottom_right.compute_squared_distance(&other.bottom_right)? +
+            self.bottom_left.compute_squared_distance(&other.bottom_left)?,
+        )
+    }
+}
+
 impl<L> ToCss for BorderRadius<L>
     where L: PartialEq + ToCss
 {
@@ -141,6 +173,31 @@ impl<L> BorderCornerRadius<L> {
 impl<L: Clone> From<L> for BorderCornerRadius<L> {
     fn from(radius: L) -> Self {
         Self::new(radius.clone(), radius)
+    }
+}
+
+impl<L> Animatable for BorderCornerRadius<L>
+where
+    L: Animatable + Copy,
+{
+    #[inline]
+    fn add_weighted(
+        &self,
+        other: &Self,
+        self_portion: f64,
+        other_portion: f64,
+    ) -> Result<Self, ()> {
+        Ok(BorderCornerRadius(self.0.add_weighted(&other.0, self_portion, other_portion)?))
+    }
+
+    #[inline]
+    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
+        self.0.compute_distance(&other.0)
+    }
+
+    #[inline]
+    fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
+        self.0.compute_squared_distance(&other.0)
     }
 }
 

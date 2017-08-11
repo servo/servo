@@ -590,8 +590,8 @@ pub mod basic_shape {
     use gecko::values::GeckoStyleCoordConvertible;
     use gecko_bindings::structs;
     use gecko_bindings::structs::{StyleBasicShape, StyleBasicShapeType, StyleFillRule};
+    use gecko_bindings::structs::{StyleGeometryBox, StyleShapeSource, StyleShapeSourceType};
     use gecko_bindings::structs::{nsStyleCoord, nsStyleCorners};
-    use gecko_bindings::structs::StyleGeometryBox;
     use gecko_bindings::sugar::ns_style_coord::{CoordDataMut, CoordDataValue};
     use std::borrow::Borrow;
     use values::computed::basic_shape::{BasicShape, ShapeRadius};
@@ -600,14 +600,42 @@ pub mod basic_shape {
     use values::computed::position;
     use values::generics::basic_shape::{BasicShape as GenericBasicShape, InsetRect, Polygon};
     use values::generics::basic_shape::{Circle, Ellipse, FillRule};
-    use values::generics::basic_shape::{GeometryBox, ShapeBox};
+    use values::generics::basic_shape::{GeometryBox, ShapeBox, ShapeSource};
     use values::generics::border::BorderRadius as GenericBorderRadius;
     use values::generics::rect::Rect;
+    use values::specified::url::SpecifiedUrl;
 
-    // using Borrow so that we can have a non-moving .into()
-    impl<T: Borrow<StyleBasicShape>> From<T> for BasicShape {
-        fn from(other: T) -> Self {
-            let other = other.borrow();
+    impl<'a, ReferenceBox> From<&'a StyleShapeSource> for ShapeSource<BasicShape, ReferenceBox, SpecifiedUrl>
+    where
+        ReferenceBox: From<StyleGeometryBox>,
+    {
+        fn from(other: &'a StyleShapeSource) -> Self {
+            match other.mType {
+                StyleShapeSourceType::None => ShapeSource::None,
+                StyleShapeSourceType::Box => ShapeSource::Box(other.mReferenceBox.into()),
+                StyleShapeSourceType::URL => {
+                    unsafe {
+                        let other_url = &(**other.__bindgen_anon_1.mURL.as_ref());
+                        let url = SpecifiedUrl::from_url_value_data(&other_url._base).unwrap();
+                        ShapeSource::Url(url)
+                    }
+                },
+                StyleShapeSourceType::Shape => {
+                    let other_shape = unsafe { &(**other.__bindgen_anon_1.mBasicShape.as_ref()) };
+                    let shape = other_shape.into();
+                    let reference_box = if other.mReferenceBox == StyleGeometryBox::NoBox {
+                        None
+                    } else {
+                        Some(other.mReferenceBox.into())
+                    };
+                    ShapeSource::Shape(shape, reference_box)
+                }
+            }
+        }
+    }
+
+    impl<'a> From<&'a StyleBasicShape> for BasicShape {
+        fn from(other: &'a StyleBasicShape) -> Self {
             match other.mType {
                 StyleBasicShapeType::Inset => {
                     let t = LengthOrPercentage::from_gecko_style_coord(&other.mCoordinates[0]);
@@ -664,9 +692,8 @@ pub mod basic_shape {
         }
     }
 
-    impl<T: Borrow<nsStyleCorners>> From<T> for BorderRadius {
-        fn from(other: T) -> Self {
-            let other = other.borrow();
+    impl<'a> From<&'a nsStyleCorners> for BorderRadius {
+        fn from(other: &'a nsStyleCorners) -> Self {
             let get_corner = |index| {
                 BorderCornerRadius::new(
                     LengthOrPercentage::from_gecko_style_coord(&other.data_at(index))
@@ -722,17 +749,16 @@ pub mod basic_shape {
         }
     }
 
-    impl<T: Borrow<nsStyleCoord>> From<T> for ShapeRadius {
-        fn from(other: T) -> Self {
+    impl<'a> From<&'a nsStyleCoord> for ShapeRadius {
+        fn from(other: &'a nsStyleCoord) -> Self {
             let other = other.borrow();
             ShapeRadius::from_gecko_style_coord(other)
                 .expect("<shape-radius> should be a length, percentage, calc, or keyword value")
         }
     }
 
-    impl<T: Borrow<structs::Position>> From<T> for position::Position {
-        fn from(other: T) -> Self {
-            let other = other.borrow();
+    impl<'a> From<&'a structs::Position> for position::Position {
+        fn from(other: &'a structs::Position) -> Self {
             position::Position {
                 horizontal: other.mXPosition.into(),
                 vertical: other.mYPosition.into(),
@@ -779,6 +805,19 @@ pub mod basic_shape {
                 StrokeBox => GeometryBox::StrokeBox,
                 ViewBox => GeometryBox::ViewBox,
                 other => panic!("Unexpected StyleGeometryBox::{:?} while converting to GeometryBox", other),
+            }
+        }
+    }
+
+    impl From<StyleGeometryBox> for ShapeBox {
+        fn from(reference: StyleGeometryBox) -> Self {
+            use gecko_bindings::structs::StyleGeometryBox::*;
+            match reference {
+                ContentBox => ShapeBox::ContentBox,
+                PaddingBox => ShapeBox::PaddingBox,
+                BorderBox => ShapeBox::BorderBox,
+                MarginBox => ShapeBox::MarginBox,
+                other => panic!("Unexpected StyleGeometryBox::{:?} while converting to ShapeBox", other),
             }
         }
     }

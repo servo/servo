@@ -1902,12 +1902,16 @@ ${helpers.single_keyword("-moz-orient",
     }
 </%helpers:longhand>
 
-${helpers.predefined_type("shape-outside", "basic_shape::FloatAreaShape",
-                          "generics::basic_shape::ShapeSource::None",
-                          products="gecko", boxed="True",
-                          animation_value_type="none",
-                          flags="APPLIES_TO_FIRST_LETTER",
-                          spec="https://drafts.csswg.org/css-shapes/#shape-outside-property")}
+${helpers.predefined_type(
+    "shape-outside",
+    "basic_shape::FloatAreaShape",
+    "generics::basic_shape::ShapeSource::None",
+    products="gecko",
+    boxed=True,
+    animation_value_type="discrete",
+    flags="APPLIES_TO_FIRST_LETTER",
+    spec="https://drafts.csswg.org/css-shapes/#shape-outside-property",
+)}
 
 <%helpers:longhand name="touch-action"
                    products="gecko"
