@@ -16,8 +16,9 @@ bitflags! {
         /// Traverse and update all elements with CSS animations since
         /// @keyframes rules may have changed. Triggered by CSS rule changes.
         const ForCSSRuleChanges = 1 << 1,
-        /// Traverse only unstyled children of the root and their descendants.
-        const UnstyledChildrenOnly = 1 << 2,
+        /// Styles unstyled elements, but does not handle invalidations on
+        /// already-styled elements.
+        const UnstyledOnly = 1 << 2,
         /// A forgetful traversal ignores the previous state of the frame tree, and
         /// thus does not compute damage or maintain other state describing the styles
         /// pre-traversal. A forgetful traversal is usually the right thing if you
@@ -30,6 +31,10 @@ bitflags! {
         const ClearDirtyDescendants = 1 << 5,
         /// Clears the animation-only dirty descendants bit in the subtree.
         const ClearAnimationOnlyDirtyDescendants = 1 << 6,
+        /// Allows the traversal to run in parallel if there are sufficient cores on
+        /// the machine.
+        const ParallelTraversal = 1 << 7,
+
     }
 }
 
@@ -55,12 +60,13 @@ pub fn assert_traversal_flags_match() {
     check_traversal_flags! {
         ServoTraversalFlags_AnimationOnly => AnimationOnly,
         ServoTraversalFlags_ForCSSRuleChanges => ForCSSRuleChanges,
-        ServoTraversalFlags_UnstyledChildrenOnly => UnstyledChildrenOnly,
+        ServoTraversalFlags_UnstyledOnly => UnstyledOnly,
         ServoTraversalFlags_Forgetful => Forgetful,
         ServoTraversalFlags_AggressivelyForgetful => AggressivelyForgetful,
         ServoTraversalFlags_ClearDirtyDescendants => ClearDirtyDescendants,
         ServoTraversalFlags_ClearAnimationOnlyDirtyDescendants =>
             ClearAnimationOnlyDirtyDescendants,
+        ServoTraversalFlags_ParallelTraversal => ParallelTraversal,
     }
 }
 

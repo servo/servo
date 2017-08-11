@@ -229,7 +229,8 @@ fn traverse_subtree(element: GeckoElement,
     debug!("{:?}", ShowSubtreeData(element.as_node()));
 
     let style_thread_pool = &*STYLE_THREAD_POOL;
-    let traversal_driver = if style_thread_pool.style_thread_pool.is_none() || !element.is_root() {
+    let traversal_driver = if !traversal_flags.contains(traversal_flags::ParallelTraversal) ||
+                              style_thread_pool.style_thread_pool.is_none() {
         TraversalDriver::Sequential
     } else {
         TraversalDriver::Parallel
@@ -260,10 +261,9 @@ pub extern "C" fn Servo_TraverseSubtree(root: RawGeckoElementBorrowed,
     let element = GeckoElement(root);
 
     debug!("Servo_TraverseSubtree (flags={:?})", traversal_flags);
-
-    // It makes no sense to do an animation restyle when we're restyling
+    // It makes no sense to do an animation restyle when we're styling
     // newly-inserted content.
-    if !traversal_flags.contains(traversal_flags::UnstyledChildrenOnly) {
+    if !traversal_flags.contains(traversal_flags::UnstyledOnly) {
         let needs_animation_only_restyle =
             element.has_animation_only_dirty_descendants() ||
             element.has_animation_restyle_hints();

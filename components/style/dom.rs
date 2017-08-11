@@ -34,7 +34,7 @@ use std::hash::Hash;
 use std::ops::Deref;
 use stylist::Stylist;
 use thread_state;
-use traversal_flags::TraversalFlags;
+use traversal_flags::{TraversalFlags, self};
 
 pub use style_traits::UnsafeNode;
 
@@ -487,6 +487,11 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
             // traversal in that we had elements that handled snapshot.
             return data.has_styles() &&
                    !data.restyle.hint.has_animation_hint_or_recascade();
+        }
+
+        if traversal_flags.contains(traversal_flags::UnstyledOnly) {
+            // We don't process invalidations in UnstyledOnly mode.
+            return data.has_styles();
         }
 
         if self.has_snapshot() && !self.handled_snapshot() {
