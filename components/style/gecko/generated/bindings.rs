@@ -16,6 +16,7 @@ use gecko_bindings::structs::mozilla::css::URLValue;
 use gecko_bindings::structs::mozilla::css::URLValueData;
 use gecko_bindings::structs::mozilla::MallocSizeOf;
 use gecko_bindings::structs::mozilla::Side;
+use gecko_bindings::structs::mozilla::UniquePtr;
 use gecko_bindings::structs::nsIContent;
 use gecko_bindings::structs::nsIDocument;
 use gecko_bindings::structs::nsIDocument_DocumentTheme;
@@ -1121,18 +1122,17 @@ extern "C" {
                                         length: u32);
 }
 extern "C" {
-    pub fn Gecko_SetStyleGridTemplateArrayLengths(grid_template:
-                                                      *mut nsStyleGridTemplate,
-                                                  track_sizes: u32);
+    pub fn Gecko_SetStyleGridTemplate(grid_template:
+                                          *mut UniquePtr<nsStyleGridTemplate>,
+                                      value: *mut nsStyleGridTemplate);
 }
 extern "C" {
-    pub fn Gecko_SetGridTemplateLineNamesLength(grid_template:
-                                                    *mut nsStyleGridTemplate,
-                                                track_sizes: u32);
+    pub fn Gecko_CreateStyleGridTemplate(track_sizes: u32, name_size: u32)
+     -> *mut nsStyleGridTemplate;
 }
 extern "C" {
     pub fn Gecko_CopyStyleGridTemplateValues(grid_template:
-                                                 *mut nsStyleGridTemplate,
+                                                 *mut UniquePtr<nsStyleGridTemplate>,
                                              other:
                                                  *const nsStyleGridTemplate);
 }

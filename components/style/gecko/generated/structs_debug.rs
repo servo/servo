@@ -5195,7 +5195,7 @@ pub mod root {
         }
         #[test]
         fn bindgen_test_layout_GeckoPosition() {
-            assert_eq!(::std::mem::size_of::<GeckoPosition>() , 520usize ,
+            assert_eq!(::std::mem::size_of::<GeckoPosition>() , 440usize ,
                        concat ! ( "Size of: " , stringify ! ( GeckoPosition )
                        ));
             assert_eq! (::std::mem::align_of::<GeckoPosition>() , 8usize ,
@@ -14055,8 +14055,8 @@ pub mod root {
         pub mFlexGrow: f32,
         pub mFlexShrink: f32,
         pub mZIndex: root::nsStyleCoord,
-        pub mGridTemplateColumns: root::nsStyleGridTemplate,
-        pub mGridTemplateRows: root::nsStyleGridTemplate,
+        pub mGridTemplateColumns: root::mozilla::UniquePtr<root::nsStyleGridTemplate>,
+        pub mGridTemplateRows: root::mozilla::UniquePtr<root::nsStyleGridTemplate>,
         pub mGridTemplateAreas: root::RefPtr<root::mozilla::css::GridTemplateAreasValue>,
         pub mGridColumnStart: root::nsStyleGridLine,
         pub mGridColumnEnd: root::nsStyleGridLine,
@@ -14068,7 +14068,7 @@ pub mod root {
     pub const nsStylePosition_kHasFinishStyle: bool = false;
     #[test]
     fn bindgen_test_layout_nsStylePosition() {
-        assert_eq!(::std::mem::size_of::<nsStylePosition>() , 520usize ,
+        assert_eq!(::std::mem::size_of::<nsStylePosition>() , 440usize ,
                    concat ! ( "Size of: " , stringify ! ( nsStylePosition )
                    ));
         assert_eq! (::std::mem::align_of::<nsStylePosition>() , 8usize ,
@@ -14232,45 +14232,45 @@ pub mod root {
                     "::" , stringify ! ( mGridTemplateColumns ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStylePosition ) ) .
-                    mGridTemplateRows as * const _ as usize } , 336usize ,
+                    mGridTemplateRows as * const _ as usize } , 296usize ,
                     concat ! (
                     "Alignment of field: " , stringify ! ( nsStylePosition ) ,
                     "::" , stringify ! ( mGridTemplateRows ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStylePosition ) ) .
-                    mGridTemplateAreas as * const _ as usize } , 384usize ,
+                    mGridTemplateAreas as * const _ as usize } , 304usize ,
                     concat ! (
                     "Alignment of field: " , stringify ! ( nsStylePosition ) ,
                     "::" , stringify ! ( mGridTemplateAreas ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStylePosition ) ) .
-                    mGridColumnStart as * const _ as usize } , 392usize ,
+                    mGridColumnStart as * const _ as usize } , 312usize ,
                     concat ! (
                     "Alignment of field: " , stringify ! ( nsStylePosition ) ,
                     "::" , stringify ! ( mGridColumnStart ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStylePosition ) ) . mGridColumnEnd
-                    as * const _ as usize } , 416usize , concat ! (
+                    as * const _ as usize } , 336usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStylePosition ) ,
                     "::" , stringify ! ( mGridColumnEnd ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStylePosition ) ) . mGridRowStart
-                    as * const _ as usize } , 440usize , concat ! (
+                    as * const _ as usize } , 360usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStylePosition ) ,
                     "::" , stringify ! ( mGridRowStart ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStylePosition ) ) . mGridRowEnd as
-                    * const _ as usize } , 464usize , concat ! (
+                    * const _ as usize } , 384usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStylePosition ) ,
                     "::" , stringify ! ( mGridRowEnd ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStylePosition ) ) . mGridColumnGap
-                    as * const _ as usize } , 488usize , concat ! (
+                    as * const _ as usize } , 408usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStylePosition ) ,
                     "::" , stringify ! ( mGridColumnGap ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStylePosition ) ) . mGridRowGap as
-                    * const _ as usize } , 504usize , concat ! (
+                    * const _ as usize } , 424usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStylePosition ) ,
                     "::" , stringify ! ( mGridRowGap ) ));
     }
@@ -33750,6 +33750,50 @@ pub mod root {
                    root::nsCOMPtr<root::nsIAtom> ) ));
     }
     #[test]
+    fn __bindgen_test_layout_UniquePtr_open0_nsStyleGridTemplate_DefaultDelete_open1_nsStyleGridTemplate_close1_close0_instantiation() {
+        assert_eq!(::std::mem::size_of::<root::mozilla::UniquePtr<root::nsStyleGridTemplate>>()
+                   , 8usize , concat ! (
+                   "Size of template specialization: " , stringify ! (
+                   root::mozilla::UniquePtr<root::nsStyleGridTemplate> ) ));
+        assert_eq!(::std::mem::align_of::<root::mozilla::UniquePtr<root::nsStyleGridTemplate>>()
+                   , 8usize , concat ! (
+                   "Alignment of template specialization: " , stringify ! (
+                   root::mozilla::UniquePtr<root::nsStyleGridTemplate> ) ));
+    }
+    #[test]
+    fn __bindgen_test_layout_DefaultDelete_open0_nsStyleGridTemplate_close0_instantiation() {
+        assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete>() ,
+                   1usize , concat ! (
+                   "Size of template specialization: " , stringify ! (
+                   root::mozilla::DefaultDelete ) ));
+        assert_eq!(::std::mem::align_of::<root::mozilla::DefaultDelete>() ,
+                   1usize , concat ! (
+                   "Alignment of template specialization: " , stringify ! (
+                   root::mozilla::DefaultDelete ) ));
+    }
+    #[test]
+    fn __bindgen_test_layout_UniquePtr_open0_nsStyleGridTemplate_DefaultDelete_open1_nsStyleGridTemplate_close1_close0_instantiation_1() {
+        assert_eq!(::std::mem::size_of::<root::mozilla::UniquePtr<root::nsStyleGridTemplate>>()
+                   , 8usize , concat ! (
+                   "Size of template specialization: " , stringify ! (
+                   root::mozilla::UniquePtr<root::nsStyleGridTemplate> ) ));
+        assert_eq!(::std::mem::align_of::<root::mozilla::UniquePtr<root::nsStyleGridTemplate>>()
+                   , 8usize , concat ! (
+                   "Alignment of template specialization: " , stringify ! (
+                   root::mozilla::UniquePtr<root::nsStyleGridTemplate> ) ));
+    }
+    #[test]
+    fn __bindgen_test_layout_DefaultDelete_open0_nsStyleGridTemplate_close0_instantiation_1() {
+        assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete>() ,
+                   1usize , concat ! (
+                   "Size of template specialization: " , stringify ! (
+                   root::mozilla::DefaultDelete ) ));
+        assert_eq!(::std::mem::align_of::<root::mozilla::DefaultDelete>() ,
+                   1usize , concat ! (
+                   "Alignment of template specialization: " , stringify ! (
+                   root::mozilla::DefaultDelete ) ));
+    }
+    #[test]
     fn __bindgen_test_layout_RefPtr_open0_GridTemplateAreasValue_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::RefPtr<root::mozilla::css::GridTemplateAreasValue>>()
                    , 8usize , concat ! (
@@ -37767,6 +37811,50 @@ pub mod root {
                    8usize , concat ! (
                    "Alignment of template specialization: " , stringify ! (
                    root::nsTArray<::nsstring::nsStringRepr> ) ));
+    }
+    #[test]
+    fn __bindgen_test_layout_UniquePtr_open0_nsStyleGridTemplate_DefaultDelete_open1_nsStyleGridTemplate_close1_close0_instantiation_2() {
+        assert_eq!(::std::mem::size_of::<root::mozilla::UniquePtr<root::nsStyleGridTemplate>>()
+                   , 8usize , concat ! (
+                   "Size of template specialization: " , stringify ! (
+                   root::mozilla::UniquePtr<root::nsStyleGridTemplate> ) ));
+        assert_eq!(::std::mem::align_of::<root::mozilla::UniquePtr<root::nsStyleGridTemplate>>()
+                   , 8usize , concat ! (
+                   "Alignment of template specialization: " , stringify ! (
+                   root::mozilla::UniquePtr<root::nsStyleGridTemplate> ) ));
+    }
+    #[test]
+    fn __bindgen_test_layout_DefaultDelete_open0_nsStyleGridTemplate_close0_instantiation_2() {
+        assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete>() ,
+                   1usize , concat ! (
+                   "Size of template specialization: " , stringify ! (
+                   root::mozilla::DefaultDelete ) ));
+        assert_eq!(::std::mem::align_of::<root::mozilla::DefaultDelete>() ,
+                   1usize , concat ! (
+                   "Alignment of template specialization: " , stringify ! (
+                   root::mozilla::DefaultDelete ) ));
+    }
+    #[test]
+    fn __bindgen_test_layout_UniquePtr_open0_nsStyleGridTemplate_DefaultDelete_open1_nsStyleGridTemplate_close1_close0_instantiation_3() {
+        assert_eq!(::std::mem::size_of::<root::mozilla::UniquePtr<root::nsStyleGridTemplate>>()
+                   , 8usize , concat ! (
+                   "Size of template specialization: " , stringify ! (
+                   root::mozilla::UniquePtr<root::nsStyleGridTemplate> ) ));
+        assert_eq!(::std::mem::align_of::<root::mozilla::UniquePtr<root::nsStyleGridTemplate>>()
+                   , 8usize , concat ! (
+                   "Alignment of template specialization: " , stringify ! (
+                   root::mozilla::UniquePtr<root::nsStyleGridTemplate> ) ));
+    }
+    #[test]
+    fn __bindgen_test_layout_DefaultDelete_open0_nsStyleGridTemplate_close0_instantiation_3() {
+        assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete>() ,
+                   1usize , concat ! (
+                   "Size of template specialization: " , stringify ! (
+                   root::mozilla::DefaultDelete ) ));
+        assert_eq!(::std::mem::align_of::<root::mozilla::DefaultDelete>() ,
+                   1usize , concat ! (
+                   "Alignment of template specialization: " , stringify ! (
+                   root::mozilla::DefaultDelete ) ));
     }
     #[test]
     fn __bindgen_test_layout_RefPtr_open0_RawServoMediaList_close0_instantiation() {
