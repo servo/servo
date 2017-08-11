@@ -173,6 +173,8 @@ pub enum PseudoElement {
         MozSVGText,
 }
 
+/// Important: If you change this, you should also update Gecko's
+/// nsCSSPseudoElements::IsEagerlyCascadedInServo.
 
 
 
