@@ -1712,15 +1712,22 @@ fn static_assert() {
             }
         }
 
-        // Set defaults
-        ${self_grid}.mRepeatAutoIndex = -1;
-        ${self_grid}.set_mIsAutoFill(false);
-        ${self_grid}.set_mIsSubgrid(false);
-
         let max_lines = nsStyleGridLine_kMaxLine as usize - 1;      // for accounting the final <line-names>
 
-        match v {
+        let result = match v {
+            GridTemplateComponent::None => ptr::null_mut(),
             GridTemplateComponent::TrackList(track) => {
+                let mut num_values = track.values.len();
+                if let Auto(_) = track.list_type {
+                    num_values += 1;
+                }
+
+                num_values = cmp::min(num_values, max_lines);
+                let value = unsafe {
+                    bindings::Gecko_CreateStyleGridTemplate(num_values as u32,
+                                                            (num_values + 1) as u32).as_mut().unwrap()
+                };
+
                 let mut auto_idx = usize::MAX;
                 let mut auto_track_size = None;
                 if let Auto(idx) = track.list_type {
@@ -1728,100 +1735,83 @@ fn static_assert() {
                     let auto_repeat = track.auto_repeat.as_ref().expect("expected <auto-track-repeat> value");
 
                     if auto_repeat.count == RepeatCount::AutoFill {
-                        ${self_grid}.set_mIsAutoFill(true);
+                        value.set_mIsAutoFill(true);
                     }
 
-                    ${self_grid}.mRepeatAutoIndex = idx as i16;
+                    value.mRepeatAutoIndex = idx as i16;
                     // NOTE: Gecko supports only one set of values in <auto-repeat>
                     // i.e., it can only take repeat(auto-fill, [a] 10px [b]), and no more.
-                    set_line_names(&auto_repeat.line_names[0], &mut ${self_grid}.mRepeatAutoLineNameListBefore);
-                    set_line_names(&auto_repeat.line_names[1], &mut ${self_grid}.mRepeatAutoLineNameListAfter);
+                    set_line_names(&auto_repeat.line_names[0], &mut value.mRepeatAutoLineNameListBefore);
+                    set_line_names(&auto_repeat.line_names[1], &mut value.mRepeatAutoLineNameListAfter);
                     auto_track_size = Some(auto_repeat.track_sizes.get(0).unwrap().clone());
                 } else {
                     unsafe {
                         bindings::Gecko_ResizeTArrayForStrings(
-                            &mut ${self_grid}.mRepeatAutoLineNameListBefore, 0);
+                            &mut value.mRepeatAutoLineNameListBefore, 0);
                         bindings::Gecko_ResizeTArrayForStrings(
-                            &mut ${self_grid}.mRepeatAutoLineNameListAfter, 0);
+                            &mut value.mRepeatAutoLineNameListAfter, 0);
                     }
-                }
-
-                let mut num_values = track.values.len();
-                if auto_track_size.is_some() {
-                    num_values += 1;
-                }
-
-                num_values = cmp::min(num_values, max_lines);
-                unsafe {
-                    bindings::Gecko_SetStyleGridTemplateArrayLengths(&mut ${self_grid}, num_values as u32);
                 }
 
                 let mut line_names = track.line_names.into_iter();
                 let mut values_iter = track.values.into_iter();
-                let min_max_iter = ${self_grid}.mMinTrackSizingFunctions.iter_mut()
-                                               .zip(${self_grid}.mMaxTrackSizingFunctions.iter_mut());
+                {
+                    let min_max_iter = value.mMinTrackSizingFunctions.iter_mut()
+                                            .zip(value.mMaxTrackSizingFunctions.iter_mut());
+                    for (i, (gecko_min, gecko_max)) in min_max_iter.enumerate().take(max_lines) {
+                        let name_list = line_names.next().expect("expected line-names");
+                        set_line_names(&name_list, &mut value.mLineNameLists[i]);
+                        if i == auto_idx {
+                            let track_size = auto_track_size.take()
+                                .expect("expected <track-size> for <auto-track-repeat>");
+                            track_size.to_gecko_style_coords(gecko_min, gecko_max);
+                            continue
+                        }
 
-                for (i, (gecko_min, gecko_max)) in min_max_iter.enumerate().take(max_lines) {
-                    let name_list = line_names.next().expect("expected line-names");
-                    set_line_names(&name_list, &mut ${self_grid}.mLineNameLists[i]);
-                    if i == auto_idx {
-                        let track_size = auto_track_size.take().expect("expected <track-size> for <auto-track-repeat>");
+                        let track_size = values_iter.next().expect("expected <track-size> value");
                         track_size.to_gecko_style_coords(gecko_min, gecko_max);
-                        continue
                     }
-
-                    let track_size = values_iter.next().expect("expected <track-size> value");
-                    track_size.to_gecko_style_coords(gecko_min, gecko_max);
                 }
 
                 let final_names = line_names.next().unwrap();
-                set_line_names(&final_names, ${self_grid}.mLineNameLists.last_mut().unwrap());
-            },
-            GridTemplateComponent::None => {
-                unsafe {
-                    bindings::Gecko_SetStyleGridTemplateArrayLengths(&mut ${self_grid}, 0);
-                    bindings::Gecko_ResizeTArrayForStrings(
-                        &mut ${self_grid}.mRepeatAutoLineNameListBefore, 0);
-                    bindings::Gecko_ResizeTArrayForStrings(
-                        &mut ${self_grid}.mRepeatAutoLineNameListAfter, 0);
-                }
+                set_line_names(&final_names, value.mLineNameLists.last_mut().unwrap());
+
+                value
             },
             GridTemplateComponent::Subgrid(list) => {
-                ${self_grid}.set_mIsSubgrid(true);
                 let names_length = match list.fill_idx {
                     Some(_) => list.names.len() - 1,
                     None => list.names.len(),
                 };
                 let num_values = cmp::min(names_length, max_lines + 1);
-
-                unsafe {
-                    bindings::Gecko_SetStyleGridTemplateArrayLengths(&mut ${self_grid}, 0);
-                    bindings::Gecko_SetGridTemplateLineNamesLength(&mut ${self_grid}, num_values as u32);
-                    bindings::Gecko_ResizeTArrayForStrings(
-                        &mut ${self_grid}.mRepeatAutoLineNameListBefore, 0);
-                    bindings::Gecko_ResizeTArrayForStrings(
-                        &mut ${self_grid}.mRepeatAutoLineNameListAfter, 0);
-                }
+                let value = unsafe {
+                    bindings::Gecko_CreateStyleGridTemplate(0, num_values as u32).as_mut().unwrap()
+                };
+                value.set_mIsSubgrid(true);
 
                 let mut names = list.names.into_vec();
                 if let Some(idx) = list.fill_idx {
-                    ${self_grid}.set_mIsAutoFill(true);
-                    ${self_grid}.mRepeatAutoIndex = idx as i16;
+                    value.set_mIsAutoFill(true);
+                    value.mRepeatAutoIndex = idx as i16;
                     set_line_names(&names.swap_remove(idx as usize),
-                                   &mut ${self_grid}.mRepeatAutoLineNameListBefore);
+                                   &mut value.mRepeatAutoLineNameListBefore);
                 }
 
-                for (servo_names, gecko_names) in names.iter().zip(${self_grid}.mLineNameLists.iter_mut()) {
+                for (servo_names, gecko_names) in names.iter().zip(value.mLineNameLists.iter_mut()) {
                     set_line_names(servo_names, gecko_names);
                 }
+
+                value
             },
-        }
+        };
+
+        unsafe { bindings::Gecko_SetStyleGridTemplate(&mut ${self_grid}, result); }
     }
 
     pub fn copy_grid_template_${kind}_from(&mut self, other: &Self) {
         unsafe {
             bindings::Gecko_CopyStyleGridTemplateValues(&mut ${self_grid},
-                                                        &other.gecko.mGridTemplate${kind.title()});
+                                                        other.gecko.mGridTemplate${kind.title()}.mPtr);
         }
     }
 
@@ -1838,16 +1828,10 @@ fn static_assert() {
         use values::generics::grid::{GridTemplateComponent, LineNameList, RepeatCount};
         use values::generics::grid::{TrackList, TrackListType, TrackRepeat, TrackSize};
 
-        if ${self_grid}.mRepeatAutoLineNameListBefore.len() == 0 &&
-           ${self_grid}.mRepeatAutoLineNameListAfter.len() == 0 &&
-           ${self_grid}.mMinTrackSizingFunctions.len() == 0 &&
-           ${self_grid}.mMaxTrackSizingFunctions.len() == 0 &&
-           ${self_grid}.mLineNameLists.len() == 0 &&
-           ${self_grid}.mRepeatAutoIndex == -1 &&
-           !${self_grid}.mIsAutoFill() &&
-           !${self_grid}.mIsSubgrid() {
-           return GridTemplateComponent::None;
-        }
+        let value = match unsafe { ${self_grid}.mPtr.as_ref() } {
+            None => return GridTemplateComponent::None,
+            Some(value) => value,
+        };
 
         #[inline]
         fn to_boxed_customident_slice(gecko_names: &nsTArray<nsStringRepr>) -> Box<[CustomIdent]> {
@@ -1865,13 +1849,13 @@ fn static_assert() {
             }).collect()
         }
 
-        let repeat_auto_index = ${self_grid}.mRepeatAutoIndex as usize;
-        if ${self_grid}.mIsSubgrid() {
-            let mut names_vec = to_line_names_vec(&${self_grid}.mLineNameLists);
-            let fill_idx = if ${self_grid}.mIsAutoFill() {
+        let repeat_auto_index = value.mRepeatAutoIndex as usize;
+        if value.mIsSubgrid() {
+            let mut names_vec = to_line_names_vec(&value.mLineNameLists);
+            let fill_idx = if value.mIsAutoFill() {
                 names_vec.insert(
                     repeat_auto_index,
-                    to_boxed_customident_slice(&${self_grid}.mRepeatAutoLineNameListBefore));
+                    to_boxed_customident_slice(&value.mRepeatAutoLineNameListBefore));
                 Some(repeat_auto_index as u32)
             } else {
                 None
@@ -1882,18 +1866,18 @@ fn static_assert() {
         } else {
             let mut auto_repeat = None;
             let mut list_type = TrackListType::Normal;
-            let line_names = to_line_names_vec(&${self_grid}.mLineNameLists).into_boxed_slice();
-            let mut values = Vec::with_capacity(${self_grid}.mMinTrackSizingFunctions.len());
+            let line_names = to_line_names_vec(&value.mLineNameLists).into_boxed_slice();
+            let mut values = Vec::with_capacity(value.mMinTrackSizingFunctions.len());
 
-            let min_max_iter = ${self_grid}.mMinTrackSizingFunctions.iter()
-                .zip(${self_grid}.mMaxTrackSizingFunctions.iter());
+            let min_max_iter = value.mMinTrackSizingFunctions.iter()
+                .zip(value.mMaxTrackSizingFunctions.iter());
             for (i, (gecko_min, gecko_max)) in min_max_iter.enumerate() {
                 let track_size = TrackSize::from_gecko_style_coords(gecko_min, gecko_max);
 
                 if i == repeat_auto_index {
                     list_type = TrackListType::Auto(repeat_auto_index as u16);
 
-                    let count = if ${self_grid}.mIsAutoFill() {
+                    let count = if value.mIsAutoFill() {
                         RepeatCount::AutoFill
                     } else {
                         RepeatCount::AutoFit
@@ -1902,9 +1886,9 @@ fn static_assert() {
                     let line_names = {
                         let mut vec: Vec<Box<[CustomIdent]>> = Vec::with_capacity(2);
                         vec.push(to_boxed_customident_slice(
-                            &${self_grid}.mRepeatAutoLineNameListBefore));
+                            &value.mRepeatAutoLineNameListBefore));
                         vec.push(to_boxed_customident_slice(
-                            &${self_grid}.mRepeatAutoLineNameListAfter));
+                            &value.mRepeatAutoLineNameListAfter));
                         vec.into_boxed_slice()
                     };
 
