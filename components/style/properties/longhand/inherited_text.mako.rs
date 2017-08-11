@@ -747,7 +747,7 @@ ${helpers.predefined_type("-webkit-text-stroke-width",
                           products="gecko",
                           flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
                           spec="https://compat.spec.whatwg.org/#the-webkit-text-stroke-width",
-                          animation_value_type="none")}
+                          animation_value_type="discrete")}
 
 // CSS Ruby Layout Module Level 1
 // https://drafts.csswg.org/css-ruby/
