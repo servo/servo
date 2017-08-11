@@ -2165,9 +2165,15 @@ fn static_assert() {
     }
 
     pub fn fixup_none_generic(&mut self, device: &Device) {
+        self.gecko.mFont.systemFont = false;
         unsafe {
             bindings::Gecko_nsStyleFont_FixupNoneGeneric(&mut self.gecko, device.pres_context())
         }
+    }
+
+    pub fn fixup_system(&mut self) {
+        self.gecko.mFont.systemFont = true;
+        self.gecko.mGenericID = structs::kGenericFont_NONE;
     }
 
     pub fn set_font_family(&mut self, v: longhands::font_family::computed_value::T) {
@@ -2206,6 +2212,7 @@ fn static_assert() {
     pub fn copy_font_family_from(&mut self, other: &Self) {
         unsafe { Gecko_CopyFontFamilyFrom(&mut self.gecko.mFont, &other.gecko.mFont); }
         self.gecko.mGenericID = other.gecko.mGenericID;
+        self.gecko.mFont.systemFont = other.gecko.mFont.systemFont;
     }
 
     pub fn reset_font_family(&mut self, other: &Self) {
