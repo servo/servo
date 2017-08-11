@@ -55,7 +55,7 @@ class CSSPseudoElementsAtomSource:
 
 
 class CSSAnonBoxesAtomSource:
-    PATTERN = re.compile('^(CSS_ANON_BOX|CSS_NON_INHERITING_ANON_BOX)\((.+),\s*"(.*)"\)')
+    PATTERN = re.compile('^(CSS_ANON_BOX|CSS_NON_INHERITING_ANON_BOX|CSS_WRAPPER_ANON_BOX)\((.+),\s*"(.*)"\)')
     FILE = "include/nsCSSAnonBoxList.h"
     CLASS = "nsCSSAnonBoxes"
     TYPE = "nsICSSAnonBoxPseudo"
@@ -110,7 +110,8 @@ class Atom:
         return self.macro == "CSS_NON_INHERITING_ANON_BOX"
 
     def is_inheriting_anon_box(self):
-        return self.macro == "CSS_ANON_BOX"
+        return (self.macro == "CSS_ANON_BOX" or
+                self.macro == "CSS_WRAPPER_ANON_BOX")
 
     def is_tree_pseudo_element(self):
         return self.value.startswith(":-moz-tree-")
