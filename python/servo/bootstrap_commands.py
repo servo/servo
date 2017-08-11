@@ -331,7 +331,10 @@ class MachCommands(CommandBase):
                     full_path = path.join(base, name)
                     if force:
                         print("Removing {}".format(full_path))
-                        delete(full_path)
+                        try:
+                            delete(full_path)
+                        except OSError as e:
+                            print("Removal failed with error {}".format(e))
                     else:
                         print("Would remove {}".format(full_path))
         if not removing_anything:
