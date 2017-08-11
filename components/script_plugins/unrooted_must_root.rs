@@ -182,7 +182,7 @@ impl<'a, 'b, 'tcx> visit::Visitor<'tcx> for FnDefVisitor<'a, 'b, 'tcx> {
         }
 
         match expr.node {
-            /// Trait casts from #[must_root] types are not allowed
+            // Trait casts from #[must_root] types are not allowed
             hir::ExprCast(ref subexpr, _) => require_rooted(cx, self.in_new_function, &*subexpr),
             // This catches assignments... the main point of this would be to catch mutable
             // references to `JS<T>`.
@@ -206,7 +206,7 @@ impl<'a, 'b, 'tcx> visit::Visitor<'tcx> for FnDefVisitor<'a, 'b, 'tcx> {
     fn visit_pat(&mut self, pat: &'tcx hir::Pat) {
         let cx = self.cx;
 
-        if let hir::PatKind::Binding(hir::BindingMode::BindByValue(_), _, _, _) = pat.node {
+        if let hir::PatKind::Binding(hir::BindingAnnotation::Unannotated, _, _, _) = pat.node {
             let ty = cx.tables.pat_ty(pat);
             if is_unrooted_ty(cx, ty, self.in_new_function) {
                 cx.span_lint(UNROOTED_MUST_ROOT,

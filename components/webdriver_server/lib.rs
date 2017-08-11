@@ -702,7 +702,7 @@ impl Handler {
     fn handle_set_timeouts(&mut self,
                            parameters: &TimeoutsParameters)
                            -> WebDriverResult<WebDriverResponse> {
-        let mut session = self.session
+        let session = self.session
             .as_mut()
             .ok_or(WebDriverError::new(ErrorStatus::SessionNotCreated, ""))?;
 

@@ -482,7 +482,7 @@ pub trait MatchMethods : TElement {
     fn finish_restyle(
         &self,
         context: &mut StyleContext<Self>,
-        mut data: &mut ElementData,
+        data: &mut ElementData,
         mut new_styles: ElementStyles,
         important_rules_changed: bool,
     ) -> ChildCascadeRequirement {

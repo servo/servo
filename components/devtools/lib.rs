@@ -306,7 +306,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                 columnNumber: console_message.columnNumber,
             },
         };
-        for mut stream in &mut *console_actor.streams.borrow_mut() {
+        for stream in &mut *console_actor.streams.borrow_mut() {
             stream.write_json_packet(&msg);
         }
     }

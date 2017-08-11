@@ -627,7 +627,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
                 if !content_type_set {
                     let ct = request.headers.get_mut::<ContentType>();
-                    if let Some(mut ct) = ct {
+                    if let Some(ct) = ct {
                         if let Some(encoding) = encoding {
                             for param in &mut (ct.0).2 {
                                 if param.0 == MimeAttr::Charset {

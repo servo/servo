@@ -150,7 +150,7 @@ impl CssRulesHelpers for RawOffsetArc<Locked<CssRules>> {
 
         {
             let mut write_guard = lock.write();
-            let mut rules = self.write_with(&mut write_guard);
+            let rules = self.write_with(&mut write_guard);
             // Step 5
             // Computes the maximum allowed parser state at a given index.
             let rev_state = rules.0.get(index).map_or(State::Body, CssRule::rule_state);

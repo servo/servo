@@ -247,7 +247,7 @@ where
                         Some(&*primary_style.style)
                     };
 
-                for (i, mut inputs) in pseudo_array.iter_mut().enumerate() {
+                for (i, inputs) in pseudo_array.iter_mut().enumerate() {
                     if let Some(inputs) = inputs.take() {
                         let pseudo = PseudoElement::from_eager_index(i);
                         pseudo_styles.set(
