@@ -292,6 +292,7 @@ impl<'a> StyleStylesheetLoader for StylesheetLoader<'a> {
                 dirty_on_viewport_size_change: AtomicBool::new(false),
                 quirks_mode: context.quirks_mode,
                 namespaces: RwLock::new(Namespaces::default()),
+                source_map_url: RwLock::new(None),
             },
             media: media,
             shared_lock: lock.clone(),

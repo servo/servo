@@ -113,6 +113,7 @@ impl HTMLMetaElement {
                             // resize; they don't need to force all styles to be
                             // recomputed.
                             dirty_on_viewport_size_change: AtomicBool::new(false),
+                            source_map_url: RwLock::new(None),
                         },
                         media: Arc::new(shared_lock.wrap(MediaList::empty())),
                         shared_lock: shared_lock.clone(),

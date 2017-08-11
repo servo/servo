@@ -59,6 +59,8 @@ pub struct StylesheetContents {
     pub quirks_mode: QuirksMode,
     /// Whether this stylesheet would be dirty when the viewport size changes.
     pub dirty_on_viewport_size_change: AtomicBool,
+    /// This stylesheet's source map URL.
+    pub source_map_url: RwLock<Option<String>>,
 }
 
 impl StylesheetContents {
@@ -75,7 +77,7 @@ impl StylesheetContents {
         line_number_offset: u64
     ) -> Self {
         let namespaces = RwLock::new(Namespaces::default());
-        let (rules, dirty_on_viewport_size_change) = Stylesheet::parse_rules(
+        let (rules, dirty_on_viewport_size_change, source_map_url) = Stylesheet::parse_rules(
             css,
             &url_data,
             origin,
@@ -94,6 +96,7 @@ impl StylesheetContents {
             namespaces: namespaces,
             dirty_on_viewport_size_change: AtomicBool::new(dirty_on_viewport_size_change),
             quirks_mode: quirks_mode,
+            source_map_url: RwLock::new(source_map_url),
         }
     }
 
@@ -138,6 +141,7 @@ impl DeepCloneWithLock for StylesheetContents {
             origin: self.origin,
             url_data: RwLock::new((*self.url_data.read()).clone()),
             namespaces: RwLock::new((*self.namespaces.read()).clone()),
+            source_map_url: RwLock::new((*self.source_map_url.read()).clone()),
         }
     }
 }
@@ -280,7 +284,7 @@ impl Stylesheet {
                            error_reporter: &ParseErrorReporter,
                            line_number_offset: u64) {
         let namespaces = RwLock::new(Namespaces::default());
-        let (rules, dirty_on_viewport_size_change) =
+        let (rules, dirty_on_viewport_size_change, source_map_url) =
             Stylesheet::parse_rules(
                 css,
                 &url_data,
@@ -304,6 +308,7 @@ impl Stylesheet {
         // Acquire the lock *after* parsing, to minimize the exclusive section.
         let mut guard = existing.shared_lock.write();
         *existing.contents.rules.write_with(&mut guard) = CssRules(rules);
+        *existing.contents.source_map_url.write() = source_map_url;
     }
 
     fn parse_rules(
@@ -316,7 +321,7 @@ impl Stylesheet {
         error_reporter: &ParseErrorReporter,
         quirks_mode: QuirksMode,
         line_number_offset: u64
-    ) -> (Vec<CssRule>, bool) {
+    ) -> (Vec<CssRule>, bool, Option<String>) {
         let mut rules = Vec::new();
         let mut input = ParserInput::new(css);
         let mut input = Parser::new(&mut input);
@@ -358,7 +363,8 @@ impl Stylesheet {
             }
         }
 
-        (rules, input.seen_viewport_percentages())
+        let source_map_url = input.current_source_map_url().map(String::from);
+        (rules, input.seen_viewport_percentages(), source_map_url)
     }
 
     /// Creates an empty stylesheet and parses it with a given base url, origin
