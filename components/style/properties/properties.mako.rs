@@ -3297,7 +3297,13 @@ where
                                                      &mut cascade_info);
                     % if product == "gecko":
                         let device = context.builder.device;
-                        context.builder.mutate_font().fixup_none_generic(device);
+                        if let PropertyDeclaration::FontFamily(ref val) = **declaration {
+                            if val.get_system().is_some() {
+                                context.builder.mutate_font().fixup_system();
+                            } else {
+                                context.builder.mutate_font().fixup_none_generic(device);
+                            }
+                        }
                     % endif
                 }
             }
