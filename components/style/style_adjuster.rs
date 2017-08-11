@@ -300,7 +300,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
 
         if overflow_x != original_overflow_x ||
            overflow_y != original_overflow_y {
-            let mut box_style = self.style.mutate_box();
+            let box_style = self.style.mutate_box();
             box_style.set_overflow_x(overflow_x);
             box_style.set_overflow_y(overflow_y);
         }

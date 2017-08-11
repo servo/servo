@@ -460,7 +460,7 @@ fn split_first_fragment_at_newline_if_necessary(fragments: &mut LinkedList<Fragm
     }
 
     let new_fragment = {
-        let mut first_fragment = fragments.front_mut().unwrap();
+        let first_fragment = fragments.front_mut().unwrap();
         let string_before;
         let selection_before;
         {

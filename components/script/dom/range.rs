@@ -1049,7 +1049,7 @@ impl WeakRangeVec {
         let offset = context.index();
         let parent = context.parent;
         unsafe {
-            let mut ranges = &mut *self.cell.get();
+            let ranges = &mut *self.cell.get();
 
             ranges.update(|entry| {
                 let range = entry.root().unwrap();
@@ -1076,7 +1076,7 @@ impl WeakRangeVec {
         }
 
         unsafe {
-            let mut ranges = &mut *self.cell.get();
+            let ranges = &mut *self.cell.get();
 
             ranges.update(|entry| {
                 let range = entry.root().unwrap();

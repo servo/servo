@@ -3587,7 +3587,7 @@ version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "error-chain 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "xcb 0.7.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "xcb 0.7.7 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -3602,7 +3602,7 @@ dependencies = [
 
 [[package]]
 name = "xcb"
-version = "0.7.6"
+version = "0.7.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "libc 0.2.23 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3929,7 +3929,7 @@ dependencies = [
 "checksum x11 2.14.0 (registry+https://github.com/rust-lang/crates.io-index)" = "db27c597c187da52194a4b8232e7d869503911aab9ff726fefb76d7a830f78ed"
 "checksum x11-clipboard 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)" = "731230b8edcbb9d99247105e4c9ec0a538594d50ad68d2afa8662195f9db2973"
 "checksum x11-dl 2.14.0 (registry+https://github.com/rust-lang/crates.io-index)" = "326c500cdc166fd7c70dd8c8a829cd5c0ce7be5a5d98c25817de2b9bdc67faf8"
-"checksum xcb 0.7.6 (registry+https://github.com/rust-lang/crates.io-index)" = "63e3a849b73e4e1905e4f4d48f1750429bc86ea9f473632ab382a6f69ecb6b33"
+"checksum xcb 0.7.7 (registry+https://github.com/rust-lang/crates.io-index)" = "7cede38417fcdf2f0a9d8abf1cea1c1b066320a8a316e9583a0d717c334fafb2"
 "checksum xdg 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "a66b7c2281ebde13cf4391d70d4c7e5946c3c25e72a7b859ca8f677dcd0b0c61"
 "checksum xi-unicode 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "12ea8eda4b1eb72f02d148402e23832d56a33f55d8c1b2d5bcdde91d79d47cb1"
 "checksum xml-rs 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)" = "7ec6c39eaa68382c8e31e35239402c0a9489d4141a8ceb0c716099a0b515b562"

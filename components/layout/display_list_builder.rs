@@ -2731,7 +2731,7 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
         self.base.clip_and_scroll_info = Some(state.current_clip_and_scroll_info);
         self.base.clip = state.clip_stack.last().cloned().unwrap_or_else(max_rect);
 
-        for mut fragment in self.fragments.fragments.iter_mut() {
+        for fragment in self.fragments.fragments.iter_mut() {
             let previous_cb_clip_scroll_info = state.containing_block_clip_and_scroll_info;
             if establishes_containing_block_for_absolute(fragment.style.get_box().position) {
                 state.containing_block_clip_and_scroll_info = state.current_clip_and_scroll_info;

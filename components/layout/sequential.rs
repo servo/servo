@@ -117,7 +117,7 @@ pub fn store_overflow(layout_context: &LayoutContext, flow: &mut Flow) {
         return;
     }
 
-    for mut kid in flow::mut_base(flow).child_iter_mut() {
+    for kid in flow::mut_base(flow).child_iter_mut() {
         store_overflow(layout_context, kid);
     }
 

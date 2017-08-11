@@ -1921,7 +1921,7 @@ impl Legalizer {
     /// true for anonymous block children of flex flows.
     fn try_to_add_child(&mut self, context: &SharedStyleContext, parent: &mut FlowRef, child: &mut FlowRef)
                         -> bool {
-        let mut parent = self.stack.last_mut().unwrap_or(parent);
+        let parent = self.stack.last_mut().unwrap_or(parent);
         let (parent_class, child_class) = (parent.class(), child.class());
         match (parent_class, child_class) {
             (FlowClass::TableWrapper, FlowClass::Table) |
@@ -1962,7 +1962,7 @@ impl Legalizer {
                     } else {
                         IS_BLOCK_FLEX_ITEM
                     };
-                    let mut block = FlowRef::deref_mut(&mut block_wrapper).as_mut_block();
+                    let block = FlowRef::deref_mut(&mut block_wrapper).as_mut_block();
                     block.base.flags.insert(MARGINS_CANNOT_COLLAPSE);
                     block.fragment.flags.insert(flag);
                 }
@@ -1979,7 +1979,7 @@ impl Legalizer {
                     } else {
                         IS_BLOCK_FLEX_ITEM
                     };
-                    let mut block = FlowRef::deref_mut(child).as_mut_block();
+                    let block = FlowRef::deref_mut(child).as_mut_block();
                     block.base.flags.insert(MARGINS_CANNOT_COLLAPSE);
                     block.fragment.flags.insert(flag);
                 }

@@ -2434,7 +2434,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         }
 
         typedarray!(in(cx) let mut pixels_data: ArrayBufferView = pixels);
-        let (array_type, mut data) = match { pixels_data.as_mut() } {
+        let (array_type, data) = match { pixels_data.as_mut() } {
             Ok(data) => (data.get_array_type(), data.as_mut_slice()),
             Err(_) => return Err(Error::Type("Not an ArrayBufferView".to_owned())),
         };

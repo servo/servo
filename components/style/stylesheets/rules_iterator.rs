@@ -70,7 +70,7 @@ impl<'a, 'b, C> Iterator for RulesIterator<'a, 'b, C>
 
             let rule;
             let sub_iter = {
-                let mut nested_iter = self.stack.last_mut().unwrap();
+                let nested_iter = self.stack.last_mut().unwrap();
                 rule = match nested_iter.next() {
                     Some(r) => r,
                     None => {

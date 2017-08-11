@@ -3395,7 +3395,7 @@ pub fn modify_border_style_for_inline_sides(style: &mut Arc<ComputedValues>,
                 return;
             }
         }
-        let mut style = Arc::make_mut(style);
+        let style = Arc::make_mut(style);
         let border = Arc::make_mut(&mut style.border);
         match side {
             PhysicalSide::Left => {
