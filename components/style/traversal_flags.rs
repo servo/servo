@@ -34,6 +34,10 @@ bitflags! {
         /// Allows the traversal to run in parallel if there are sufficient cores on
         /// the machine.
         const ParallelTraversal = 1 << 7,
+        /// Flush throttled animations. By default, we only update throttled animations
+        /// when we have other non-throttled work to do. With this flag, we
+        /// unconditionally tick and process them.
+        const FlushThrottledAnimations = 1 << 8,
 
     }
 }
@@ -67,6 +71,7 @@ pub fn assert_traversal_flags_match() {
         ServoTraversalFlags_ClearAnimationOnlyDirtyDescendants =>
             ClearAnimationOnlyDirtyDescendants,
         ServoTraversalFlags_ParallelTraversal => ParallelTraversal,
+        ServoTraversalFlags_FlushThrottledAnimations => FlushThrottledAnimations,
     }
 }
 

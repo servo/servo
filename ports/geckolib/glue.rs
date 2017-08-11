@@ -278,13 +278,6 @@ pub extern "C" fn Servo_TraverseSubtree(root: RawGeckoElementBorrowed,
         }
     }
 
-    if traversal_flags.for_animation_only() {
-        debug!("Servo_TraverseSubtree complete (animation-only, aodd={})",
-               element.has_animation_only_dirty_descendants());
-        return element.has_animation_only_dirty_descendants() ||
-               element.borrow_data().unwrap().restyle.is_restyle();
-    }
-
     traverse_subtree(element,
                      raw_data,
                      traversal_flags,
