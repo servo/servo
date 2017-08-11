@@ -10,6 +10,7 @@ use selectors::matching::{MatchingContext, MatchingMode, matches_selector};
 use servo_arc::{Arc, ArcBorrow, RawOffsetArc};
 use std::env;
 use std::fmt::Write;
+use std::iter;
 use std::ptr;
 use style::context::{CascadeInputs, QuirksMode, SharedStyleContext, StyleContext};
 use style::context::ThreadLocalStyleContext;
@@ -3423,8 +3424,17 @@ pub extern "C" fn Servo_StyleSet_GetFontFaceRules(raw_data: RawServoStyleSetBorr
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
 
-    unsafe { rules.set_len(data.font_faces.len() as u32) };
-    for (src, dest) in data.font_faces.iter().zip(rules.iter_mut()) {
+    let len: u32 = data.extra_style_data
+        .iter_origins()
+        .map(|(d, _)| d.font_faces.len() as u32)
+        .sum();
+
+    let font_face_iter = data.extra_style_data
+        .iter_origins()
+        .flat_map(|(d, o)| d.font_faces.iter().zip(iter::repeat(o)));
+
+    unsafe { rules.set_len(len) };
+    for (src, dest) in font_face_iter.zip(rules.iter_mut()) {
         dest.mRule = src.0.read_with(&guard).clone().forget();
         dest.mSheetType = src.1.into();
     }
@@ -3434,8 +3444,15 @@ pub extern "C" fn Servo_StyleSet_GetFontFaceRules(raw_data: RawServoStyleSetBorr
 pub extern "C" fn Servo_StyleSet_GetCounterStyleRule(raw_data: RawServoStyleSetBorrowed,
                                                      name: *mut nsIAtom) -> *mut nsCSSCounterStyleRule {
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
+    let extra_data = &data.extra_style_data;
+
     unsafe {
-        Atom::with(name, |name| data.counter_styles.get(name))
+        Atom::with(name, |name| {
+            extra_data
+                .iter_origins()
+                .filter_map(|(d, _)| d.counter_styles.get(name))
+                .next()
+        })
     }.map(|rule| {
         let global_style_data = &*GLOBAL_STYLE_DATA;
         let guard = global_style_data.shared_lock.read();
