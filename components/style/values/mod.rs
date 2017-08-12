@@ -16,9 +16,11 @@ use std::ascii::AsciiExt;
 use std::fmt::{self, Debug};
 use std::hash;
 use style_traits::{ToCss, ParseError, StyleParseError};
+use values::distance::{ComputeSquaredDistance, SquaredDistance};
 
 pub mod animated;
 pub mod computed;
+pub mod distance;
 pub mod generics;
 pub mod specified;
 
@@ -57,6 +59,25 @@ pub enum Either<A, B> {
     First(A),
     /// The second kind of value.
     Second(B),
+}
+
+impl<A, B> ComputeSquaredDistance for Either<A, B>
+where
+    A: ComputeSquaredDistance,
+    B: ComputeSquaredDistance,
+{
+    #[inline]
+    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
+        match (self, other) {
+            (&Either::First(ref this), &Either::First(ref other)) => {
+                this.compute_squared_distance(other)
+            },
+            (&Either::Second(ref this), &Either::Second(ref other)) => {
+                this.compute_squared_distance(other)
+            },
+            _ => Err(())
+        }
+    }
 }
 
 impl<A: Debug, B: Debug> Debug for Either<A, B> {

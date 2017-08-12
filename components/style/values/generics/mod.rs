@@ -11,6 +11,7 @@ use parser::{Parse, ParserContext};
 use std::fmt;
 use style_traits::{Comma, OneOrMoreSeparated, ParseError, StyleParseError, ToCss};
 use super::CustomIdent;
+use values::distance::{ComputeSquaredDistance, SquaredDistance};
 
 pub mod background;
 pub mod basic_shape;
@@ -271,7 +272,27 @@ impl ToCss for FontSettingTagFloat {
 #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
 pub struct NonNegative<T>(pub T);
 
+impl<T> ComputeSquaredDistance for NonNegative<T>
+where
+    T: ComputeSquaredDistance,
+{
+    #[inline]
+    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
+        self.0.compute_squared_distance(&other.0)
+    }
+}
+
 /// A wrapper of greater-than-or-equal-to-one values.
 #[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, PartialOrd, ToComputedValue, ToCss)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
 pub struct GreaterThanOrEqualToOne<T>(pub T);
+
+impl<T> ComputeSquaredDistance for GreaterThanOrEqualToOne<T>
+where
+    T: ComputeSquaredDistance,
+{
+    #[inline]
+    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
+        self.0.compute_squared_distance(&other.0)
+    }
+}

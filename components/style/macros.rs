@@ -117,5 +117,15 @@ macro_rules! define_keyword_type {
             #[inline]
             fn to_animated_zero(&self) -> Result<Self, ()> { Ok($name) }
         }
+
+        impl $crate::values::distance::ComputeSquaredDistance for $name {
+            #[inline]
+            fn compute_squared_distance(
+                &self,
+                _other: &Self
+            ) -> Result<$crate::values::distance::SquaredDistance, ()> {
+                Ok($crate::values::distance::SquaredDistance::Value(0.))
+            }
+        }
     };
 }

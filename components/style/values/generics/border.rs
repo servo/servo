@@ -8,6 +8,7 @@ use euclid::Size2D;
 use properties::animated_properties::Animatable;
 use std::fmt;
 use style_traits::ToCss;
+use values::distance::{ComputeSquaredDistance, SquaredDistance};
 use values::generics::rect::Rect;
 
 /// A generic value for a single side of a `border-image-width` property.
@@ -129,12 +130,13 @@ where
         let bl = self.bottom_left.add_weighted(&other.bottom_left, self_portion, other_portion)?;
         Ok(BorderRadius::new(tl, tr, br, bl))
     }
+}
 
-    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
-        Ok(self.compute_squared_distance(other)?.sqrt())
-    }
-
-    fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
+impl<L> ComputeSquaredDistance for BorderRadius<L>
+where
+    L: ComputeSquaredDistance + Copy,
+{
+    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
         Ok(
             self.top_left.compute_squared_distance(&other.top_left)? +
             self.top_right.compute_squared_distance(&other.top_right)? +
@@ -189,14 +191,14 @@ where
     ) -> Result<Self, ()> {
         Ok(BorderCornerRadius(self.0.add_weighted(&other.0, self_portion, other_portion)?))
     }
+}
 
+impl<L> ComputeSquaredDistance for BorderCornerRadius<L>
+where
+    L: ComputeSquaredDistance + Copy,
+{
     #[inline]
-    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
-        self.0.compute_distance(&other.0)
-    }
-
-    #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
+    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
         self.0.compute_squared_distance(&other.0)
     }
 }

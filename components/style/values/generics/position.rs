@@ -5,6 +5,8 @@
 //! Generic types for CSS handling of specified and computed values of
 //! [`position`](https://drafts.csswg.org/css-backgrounds-3/#position)
 
+use values::distance::{ComputeSquaredDistance, SquaredDistance};
+
 #[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, ToComputedValue)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 /// A generic type for representing a CSS [position](https://drafts.csswg.org/css-values/#position).
@@ -22,5 +24,19 @@ impl<H, V> Position<H, V> {
             horizontal: horizontal,
             vertical: vertical,
         }
+    }
+}
+
+impl<H, V> ComputeSquaredDistance for Position<H, V>
+where
+    H: ComputeSquaredDistance,
+    V: ComputeSquaredDistance,
+{
+    #[inline]
+    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
+        Ok(
+            self.horizontal.compute_squared_distance(&other.horizontal)? +
+            self.vertical.compute_squared_distance(&other.vertical)?,
+        )
     }
 }

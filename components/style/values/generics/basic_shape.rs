@@ -10,6 +10,7 @@ use std::fmt;
 use style_traits::{HasViewportPercentage, ToCss};
 use values::animated::ToAnimatedZero;
 use values::computed::ComputedValueAsSpecified;
+use values::distance::{ComputeSquaredDistance, SquaredDistance};
 use values::generics::border::BorderRadius;
 use values::generics::position::Position;
 use values::generics::rect::Rect;
@@ -144,20 +145,16 @@ where
             _ => Err(()),
         }
     }
+}
 
-    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
-        match (self, other) {
-            (
-                &ShapeSource::Shape(ref this, ref this_box),
-                &ShapeSource::Shape(ref other, ref other_box),
-            ) if this_box == other_box => {
-                this.compute_distance(other)
-            },
-            _ => Err(()),
-        }
-    }
-
-    fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
+// FIXME(nox): Implement ComputeSquaredDistance for T types and stop
+// using PartialEq here.
+impl<B, T, U> ComputeSquaredDistance for ShapeSource<B, T, U>
+where
+    B: ComputeSquaredDistance,
+    T: PartialEq,
+{
+    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
         match (self, other) {
             (
                 &ShapeSource::Shape(ref this, ref this_box),
@@ -209,26 +206,15 @@ where
             _ => Err(()),
         }
     }
+}
 
-    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
-        match (self, other) {
-            (&BasicShape::Circle(ref this), &BasicShape::Circle(ref other)) => {
-                this.compute_distance(other)
-            },
-            (&BasicShape::Ellipse(ref this), &BasicShape::Ellipse(ref other)) => {
-                this.compute_distance(other)
-            },
-            (&BasicShape::Inset(ref this), &BasicShape::Inset(ref other)) => {
-                this.compute_distance(other)
-            },
-            (&BasicShape::Polygon(ref this), &BasicShape::Polygon(ref other)) => {
-                this.compute_distance(other)
-            },
-            _ => Err(()),
-        }
-    }
-
-    fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
+impl<H, V, L> ComputeSquaredDistance for BasicShape<H, V, L>
+where
+    H: ComputeSquaredDistance,
+    V: ComputeSquaredDistance,
+    L: ComputeSquaredDistance + Copy,
+{
+    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
         match (self, other) {
             (&BasicShape::Circle(ref this), &BasicShape::Circle(ref other)) => {
                 this.compute_squared_distance(other)
@@ -261,12 +247,13 @@ where
         let round = self.round.add_weighted(&other.round, self_portion, other_portion)?;
         Ok(InsetRect { rect, round })
     }
+}
 
-    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
-        Ok(self.compute_squared_distance(other)?.sqrt())
-    }
-
-    fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
+impl<L> ComputeSquaredDistance for InsetRect<L>
+where
+    L: ComputeSquaredDistance + Copy,
+{
+    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
         Ok(
             self.rect.compute_squared_distance(&other.rect)? +
             self.round.compute_squared_distance(&other.round)?,
@@ -304,12 +291,15 @@ where
         let radius = self.radius.add_weighted(&other.radius, self_portion, other_portion)?;
         Ok(Circle { position, radius })
     }
+}
 
-    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
-        Ok(self.compute_squared_distance(other)?.sqrt())
-    }
-
-    fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
+impl<H, V, L> ComputeSquaredDistance for Circle<H, V, L>
+where
+    H: ComputeSquaredDistance,
+    V: ComputeSquaredDistance,
+    L: ComputeSquaredDistance,
+{
+    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
         Ok(
             self.position.compute_squared_distance(&other.position)? +
             self.radius.compute_squared_distance(&other.radius)?,
@@ -334,12 +324,15 @@ where
         let semiaxis_y = self.semiaxis_y.add_weighted(&other.semiaxis_y, self_portion, other_portion)?;
         Ok(Ellipse { position, semiaxis_x, semiaxis_y })
     }
+}
 
-    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
-        Ok(self.compute_squared_distance(other)?.sqrt())
-    }
-
-    fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
+impl<H, V, L> ComputeSquaredDistance for Ellipse<H, V, L>
+where
+    H: ComputeSquaredDistance,
+    V: ComputeSquaredDistance,
+    L: ComputeSquaredDistance,
+{
+    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
         Ok(
             self.position.compute_squared_distance(&other.position)? +
             self.semiaxis_x.compute_squared_distance(&other.semiaxis_x)? +
@@ -365,17 +358,13 @@ where
             _ => Err(()),
         }
     }
+}
 
-    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
-        match (self, other) {
-            (&ShapeRadius::Length(ref this), &ShapeRadius::Length(ref other)) => {
-                this.compute_distance(other)
-            },
-            _ => Err(()),
-        }
-    }
-
-    fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
+impl<L> ComputeSquaredDistance for ShapeRadius<L>
+where
+    L: ComputeSquaredDistance,
+{
+    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
         match (self, other) {
             (&ShapeRadius::Length(ref this), &ShapeRadius::Length(ref other)) => {
                 this.compute_squared_distance(other)
@@ -413,12 +402,13 @@ where
         }).collect::<Result<Vec<_>, _>>()?;
         Ok(Polygon { fill: self.fill, coordinates })
     }
+}
 
-    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
-        Ok(self.compute_squared_distance(other)?.sqrt())
-    }
-
-    fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
+impl<L> ComputeSquaredDistance for Polygon<L>
+where
+    L: ComputeSquaredDistance,
+{
+    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
         if self.fill != other.fill {
             return Err(());
         }
@@ -426,9 +416,10 @@ where
             return Err(());
         }
         self.coordinates.iter().zip(other.coordinates.iter()).map(|(this, other)| {
-            let x = this.0.compute_squared_distance(&other.0)?;
-            let y = this.1.compute_squared_distance(&other.1)?;
-            Ok(x + y)
+            Ok(
+                this.0.compute_squared_distance(&other.0)? +
+                this.1.compute_squared_distance(&other.1)?,
+            )
         }).sum()
     }
 }

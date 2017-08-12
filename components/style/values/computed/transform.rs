@@ -7,6 +7,7 @@
 use properties::animated_properties::Animatable;
 use values::animated::ToAnimatedZero;
 use values::computed::{Length, LengthOrPercentage, Number, Percentage};
+use values::distance::{ComputeSquaredDistance, SquaredDistance};
 use values::generics::transform::TimingFunction as GenericTimingFunction;
 use values::generics::transform::TransformOrigin as GenericTransformOrigin;
 
@@ -37,14 +38,11 @@ impl Animatable for TransformOrigin {
             self.depth.add_weighted(&other.depth, self_portion, other_portion)?,
         ))
     }
+}
 
+impl ComputeSquaredDistance for TransformOrigin {
     #[inline]
-    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
-        self.compute_squared_distance(other).map(f64::sqrt)
-    }
-
-    #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
+    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
         Ok(
             self.horizontal.compute_squared_distance(&other.horizontal)? +
             self.vertical.compute_squared_distance(&other.vertical)? +

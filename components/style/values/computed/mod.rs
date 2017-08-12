@@ -22,6 +22,7 @@ use std::fmt;
 use std::sync::Arc;
 use style_traits::ToCss;
 use super::{CSSFloat, CSSInteger};
+use super::distance::{ComputeSquaredDistance, SquaredDistance};
 use super::generics::{GreaterThanOrEqualToOne, NonNegative};
 use super::generics::grid::{TrackBreadth as GenericTrackBreadth, TrackSize as GenericTrackSize};
 use super::generics::grid::GridTemplateComponent as GenericGridTemplateComponent;
@@ -338,6 +339,15 @@ pub enum Angle {
     Turn(CSSFloat),
 }
 
+impl ComputeSquaredDistance for Angle {
+    #[inline]
+    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
+        // Use the formula for calculating the distance between angles defined in SVG:
+        // https://www.w3.org/TR/SVG/animate.html#complexDistances
+        self.radians64().compute_squared_distance(&other.radians64())
+    }
+}
+
 impl Angle {
     /// Construct a computed `Angle` value from a radian amount.
     pub fn from_radians(radians: CSSFloat) -> Self {
@@ -544,6 +554,18 @@ pub struct ClipRect {
     pub left: Option<Au>,
 }
 
+impl ComputeSquaredDistance for ClipRect {
+    #[inline]
+    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
+        Ok(
+            self.top.compute_squared_distance(&other.top)? +
+            self.right.compute_squared_distance(&other.right)? +
+            self.bottom.compute_squared_distance(&other.bottom)? +
+            self.left.compute_squared_distance(&other.left)?,
+        )
+    }
+}
+
 impl ToCss for ClipRect {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         dest.write_str("rect(")?;
@@ -652,6 +674,13 @@ impl From<Au> for NonNegativeAu {
 #[derive(Clone, Copy, Debug, Default, PartialEq, HasViewportPercentage)]
 #[cfg_attr(feature = "servo", derive(Deserialize, HeapSizeOf, Serialize))]
 pub struct Percentage(pub CSSFloat);
+
+impl ComputeSquaredDistance for Percentage {
+    #[inline]
+    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
+        self.0.compute_squared_distance(&other.0)
+    }
+}
 
 impl Percentage {
     /// 0%

@@ -28,6 +28,7 @@ ${helpers.single_keyword("caption-side", "top bottom",
     pub mod computed_value {
         use properties::animated_properties::Animatable;
         use values::animated::{ToAnimatedValue, ToAnimatedZero};
+        use values::distance::{ComputeSquaredDistance, SquaredDistance};
         use values::computed::NonNegativeAu;
 
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -49,16 +50,15 @@ ${helpers.single_keyword("caption-side", "top bottom",
                                                          self_portion, other_portion)?,
                 })
             }
+        }
 
+        impl ComputeSquaredDistance for T {
             #[inline]
-            fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
-                self.compute_squared_distance(other).map(|sd| sd.sqrt())
-            }
-
-            #[inline]
-            fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
-                Ok(self.horizontal.compute_squared_distance(&other.horizontal)? +
-                   self.vertical.compute_squared_distance(&other.vertical)?)
+            fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
+                Ok(
+                    self.horizontal.compute_squared_distance(&other.horizontal)? +
+                    self.vertical.compute_squared_distance(&other.vertical)?,
+                )
             }
         }
 
