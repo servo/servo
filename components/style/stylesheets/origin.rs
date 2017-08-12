@@ -16,11 +16,11 @@ pub enum Origin {
     /// https://drafts.csswg.org/css-cascade/#cascade-origin-us
     UserAgent,
 
-    /// https://drafts.csswg.org/css-cascade/#cascade-origin-author
-    Author,
-
     /// https://drafts.csswg.org/css-cascade/#cascade-origin-user
     User,
+
+    /// https://drafts.csswg.org/css-cascade/#cascade-origin-author
+    Author,
 }
 
 /// An object that stores a `T` for each origin of the CSS cascade.
@@ -30,11 +30,11 @@ pub struct PerOrigin<T> {
     /// Data for `Origin::UserAgent`.
     pub user_agent: T,
 
-    /// Data for `Origin::Author`.
-    pub author: T,
-
     /// Data for `Origin::User`.
     pub user: T,
+
+    /// Data for `Origin::Author`.
+    pub author: T,
 }
 
 impl<T> PerOrigin<T> {
@@ -43,8 +43,8 @@ impl<T> PerOrigin<T> {
     pub fn borrow_for_origin(&self, origin: &Origin) -> &T {
         match *origin {
             Origin::UserAgent => &self.user_agent,
-            Origin::Author => &self.author,
             Origin::User => &self.user,
+            Origin::Author => &self.author,
         }
     }
 
@@ -54,13 +54,13 @@ impl<T> PerOrigin<T> {
     pub fn borrow_mut_for_origin(&mut self, origin: &Origin) -> &mut T {
         match *origin {
             Origin::UserAgent => &mut self.user_agent,
-            Origin::Author => &mut self.author,
             Origin::User => &mut self.user,
+            Origin::Author => &mut self.author,
         }
     }
 
     /// Iterates over references to per-origin extra style data, from highest
-    /// level (user) to lowest (user agent).
+    /// level (author) to lowest (user agent).
     pub fn iter_origins(&self) -> PerOriginIter<T> {
         PerOriginIter {
             data: &self,
@@ -69,7 +69,7 @@ impl<T> PerOrigin<T> {
     }
 
     /// Iterates over mutable references to per-origin extra style data, from
-    /// highest level (user) to lowest (user agent).
+    /// highest level (author) to lowest (user agent).
     pub fn iter_mut_origins(&mut self) -> PerOriginIterMut<T> {
         PerOriginIterMut {
             data: self,
@@ -88,12 +88,12 @@ pub trait PerOriginClear {
 impl<T> PerOriginClear for PerOrigin<T> where T: PerOriginClear {
     fn clear(&mut self) {
         self.user_agent.clear();
-        self.author.clear();
         self.user.clear();
+        self.author.clear();
     }
 }
 
-/// Iterator over `PerOrigin<T>`, from highest level (user) to lowest
+/// Iterator over `PerOrigin<T>`, from highest level (author) to lowest
 /// (user agent).
 ///
 /// We rely on this specific order for correctly looking up @font-face,
@@ -108,8 +108,8 @@ impl<'a, T> Iterator for PerOriginIter<'a, T> where T: 'a {
 
     fn next(&mut self) -> Option<Self::Item> {
         let result = match self.cur {
-            0 => (&self.data.user, Origin::User),
-            1 => (&self.data.author, Origin::Author),
+            0 => (&self.data.author, Origin::Author),
+            1 => (&self.data.user, Origin::User),
             2 => (&self.data.user_agent, Origin::UserAgent),
             _ => return None,
         };
@@ -135,8 +135,8 @@ impl<'a, T> Iterator for PerOriginIterMut<'a, T> where T: 'a {
 
     fn next(&mut self) -> Option<Self::Item> {
         let result = match self.cur {
-            0 => (unsafe { transmute(&mut (*self.data).user) }, Origin::User),
-            1 => (unsafe { transmute(&mut (*self.data).author) }, Origin::Author),
+            0 => (unsafe { transmute(&mut (*self.data).author) }, Origin::Author),
+            1 => (unsafe { transmute(&mut (*self.data).user) }, Origin::User),
             2 => (unsafe { transmute(&mut (*self.data).user_agent) }, Origin::UserAgent),
             _ => return None,
         };
