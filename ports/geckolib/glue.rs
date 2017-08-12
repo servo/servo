@@ -74,6 +74,7 @@ use style::gecko_bindings::structs::{nsCSSFontFaceRule, nsCSSCounterStyleRule};
 use style::gecko_bindings::structs::{nsRestyleHint, nsChangeHint, PropertyValuePair};
 use style::gecko_bindings::structs::IterationCompositeOperation;
 use style::gecko_bindings::structs::MallocSizeOf;
+use style::gecko_bindings::structs::OriginFlags;
 use style::gecko_bindings::structs::RawGeckoGfxMatrix4x4;
 use style::gecko_bindings::structs::RawGeckoPresContextOwned;
 use style::gecko_bindings::structs::SeenPtrs;
@@ -954,11 +955,14 @@ pub extern "C" fn Servo_StyleSet_FlushStyleSheets(
 pub extern "C" fn Servo_StyleSet_NoteStyleSheetsChanged(
     raw_data: RawServoStyleSetBorrowed,
     author_style_disabled: bool,
+    changed_origins: OriginFlags,
 ) {
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
-    data.stylesheets.force_dirty();
+    for origin in changed_origins.iter() {
+        data.stylesheets.force_dirty_origin(&origin);
+        data.clear_stylist_origin(&origin);
+    }
     data.stylesheets.set_author_style_disabled(author_style_disabled);
-    data.clear_stylist();
 }
 
 #[no_mangle]
