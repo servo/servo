@@ -74,9 +74,6 @@ pub struct Stylist {
     /// Viewport constraints based on the current device.
     viewport_constraints: Option<ViewportConstraints>,
 
-    /// Effective media query results cached from the last rebuild.
-    effective_media_query_results: EffectiveMediaQueryResults,
-
     /// If true, the quirks-mode stylesheet is applied.
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "defined in selectors")]
     quirks_mode: QuirksMode,
@@ -144,7 +141,6 @@ impl Stylist {
             is_device_dirty: true,
             is_cleared: true,
             quirks_mode: quirks_mode,
-            effective_media_query_results: EffectiveMediaQueryResults::new(),
 
             cascade_data: Default::default(),
             precomputed_pseudo_element_decls: PerPseudoElementMap::default(),
@@ -215,7 +211,6 @@ impl Stylist {
 
         self.is_cleared = true;
 
-        self.effective_media_query_results.clear();
         self.viewport_constraints = None;
         // preserve current device
         self.is_device_dirty = true;
@@ -353,12 +348,13 @@ impl Stylist {
             return;
         }
 
-        self.effective_media_query_results.saw_effective(stylesheet);
-
         let origin = stylesheet.origin(guard);
-
         let origin_cascade_data =
             self.cascade_data.borrow_mut_for_origin(&origin);
+
+        origin_cascade_data
+            .effective_media_query_results
+            .saw_effective(stylesheet);
 
         for rule in stylesheet.effective_rules(&self.device, guard) {
             match *rule {
@@ -436,14 +432,18 @@ impl Stylist {
                 }
                 CssRule::Import(ref lock) => {
                     let import_rule = lock.read_with(guard);
-                    self.effective_media_query_results.saw_effective(import_rule);
+                    origin_cascade_data
+                        .effective_media_query_results
+                        .saw_effective(import_rule);
 
                     // NOTE: effective_rules visits the inner stylesheet if
                     // appropriate.
                 }
                 CssRule::Media(ref lock) => {
                     let media_rule = lock.read_with(guard);
-                    self.effective_media_query_results.saw_effective(media_rule);
+                    origin_cascade_data
+                        .effective_media_query_results
+                        .saw_effective(media_rule);
                 }
                 CssRule::Keyframes(ref keyframes_rule) => {
                     let keyframes_rule = keyframes_rule.read_with(guard);
@@ -954,8 +954,14 @@ impl Stylist {
             let effective_now =
                 stylesheet.is_effective_for_device(&self.device, guard);
 
+            let origin = stylesheet.origin(guard);
+            let origin_cascade_data =
+                self.cascade_data.borrow_for_origin(&origin);
+
             let effective_then =
-                self.effective_media_query_results.was_effective(stylesheet);
+                origin_cascade_data
+                    .effective_media_query_results
+                    .was_effective(stylesheet);
 
             if effective_now != effective_then {
                 debug!(" > Stylesheet changed -> {}, {}",
@@ -994,7 +1000,9 @@ impl Stylist {
                             import_rule.stylesheet
                                 .is_effective_for_device(&self.device, guard);
                         let effective_then =
-                            self.effective_media_query_results.was_effective(import_rule);
+                            origin_cascade_data
+                                .effective_media_query_results
+                                .was_effective(import_rule);
                         if effective_now != effective_then {
                             debug!(" > @import rule changed {} -> {}",
                                    effective_then, effective_now);
@@ -1011,7 +1019,9 @@ impl Stylist {
                         let effective_now =
                             mq.evaluate(&self.device, self.quirks_mode);
                         let effective_then =
-                            self.effective_media_query_results.was_effective(media_rule);
+                            origin_cascade_data
+                                .effective_media_query_results
+                                .was_effective(media_rule);
                         if effective_now != effective_then {
                             debug!(" > @media rule changed {} -> {}",
                                    effective_then, effective_now);
@@ -1612,6 +1622,9 @@ struct CascadeData {
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
     selectors_for_cache_revalidation: SelectorMap<RevalidationSelectorAndHashes>,
 
+    /// Effective media query results cached from the last rebuild.
+    effective_media_query_results: EffectiveMediaQueryResults,
+
     /// The total number of selectors.
     num_selectors: usize,
 
@@ -1631,6 +1644,7 @@ impl CascadeData {
             state_dependencies: ElementState::empty(),
             mapped_ids: NonCountingBloomFilter::new(),
             selectors_for_cache_revalidation: SelectorMap::new(),
+            effective_media_query_results: EffectiveMediaQueryResults::new(),
             num_selectors: 0,
             num_declarations: 0,
         }
@@ -1660,6 +1674,7 @@ impl PerOriginClear for CascadeData {
         self.state_dependencies = ElementState::empty();
         self.mapped_ids.clear();
         self.selectors_for_cache_revalidation = SelectorMap::new();
+        self.effective_media_query_results.clear();
         self.num_selectors = 0;
         self.num_declarations = 0;
     }
