@@ -19,3 +19,5 @@ opt-level = 3
 # crate, add that here. Use the form:
 #
 #     <crate> = { path = "/path/to/local/checkout" }
+html5ever = { git = "https://github.com/cynicaldevil/html5ever", branch="remove-dep-on-sync-methods" }
+xml5ever = { git = "https://github.com/cynicaldevil/html5ever", branch="remove-dep-on-sync-methods" }
