@@ -81,10 +81,6 @@ pub struct Stylist {
     /// If true, the device has changed, and the stylist needs to be updated.
     is_device_dirty: bool,
 
-    /// If true, the stylist is in a cleared state (e.g. just-constructed, or
-    /// had clear() called on it with no following rebuild()).
-    is_cleared: bool,
-
     /// Selector maps for all of the style sheets in the stylist, after
     /// evalutaing media rules against the current device, split out per
     /// cascade level.
@@ -135,7 +131,6 @@ impl Stylist {
             viewport_constraints: None,
             device: device,
             is_device_dirty: true,
-            is_cleared: true,
             quirks_mode: quirks_mode,
 
             cascade_data: Default::default(),
@@ -194,27 +189,26 @@ impl Stylist {
     ///   device: Someone might have set this on us.
     ///   quirks_mode: Again, someone might have set this on us.
     ///   num_rebuilds: clear() followed by rebuild() should just increment this
+    ///   rule_tree: So we can re-use rule nodes across rebuilds.
     ///
     /// We don't just use struct update syntax with Stylist::new(self.device)
     /// beause for some of our members we can clear them instead of creating new
     /// objects.  This does cause unfortunate code duplication with
     /// Stylist::new.
     pub fn clear(&mut self) {
-        if self.is_cleared {
-            return
-        }
-
-        self.is_cleared = true;
-
-        self.viewport_constraints = None;
-        // preserve current device
-        self.is_device_dirty = true;
-        // preserve current quirks_mode value
         self.cascade_data.clear();
         self.precomputed_pseudo_element_decls.clear();
-        // We want to keep rule_tree around across stylist rebuilds.
-        // preserve num_rebuilds value, since it should stay across
-        // clear()/rebuild() cycles.
+        self.viewport_constraints = None;
+
+        // XXX(heycam) Why do this, if we are preserving the Device?
+        self.is_device_dirty = true;
+    }
+
+    /// Returns whether any origin's `CascadeData` has been cleared.
+    fn any_origin_cleared(&self) -> bool {
+        self.cascade_data
+            .iter_origins()
+            .any(|(d, _)| d.is_cleared)
     }
 
     /// rebuild the stylist for the given document stylesheets, and optionally
@@ -236,9 +230,11 @@ impl Stylist {
         I: Iterator<Item = &'a S> + Clone,
         S: StylesheetInDocument + ToMediaListKey + 'static,
     {
-        debug_assert!(!self.is_cleared || self.is_device_dirty);
+        debug_assert!(!self.any_origin_cleared() || self.is_device_dirty);
 
-        self.is_cleared = false;
+        for (data, _) in self.cascade_data.iter_mut_origins() {
+            data.is_cleared = false;
+        }
 
         if !(self.is_device_dirty || stylesheets_changed) {
             return false;
@@ -316,7 +312,7 @@ impl Stylist {
         I: Iterator<Item = &'a S> + Clone,
         S: StylesheetInDocument + ToMediaListKey + 'static,
     {
-        debug_assert!(!self.is_cleared || self.is_device_dirty);
+        debug_assert!(!self.any_origin_cleared() || self.is_device_dirty);
 
         // We have to do a dirtiness check before clearing, because if
         // we're not actually dirty we need to no-op here.
@@ -478,7 +474,7 @@ impl Stylist {
     pub fn might_have_attribute_dependency(&self,
                                            local_name: &LocalName)
                                            -> bool {
-        if self.is_cleared || self.is_device_dirty {
+        if self.any_origin_cleared() || self.is_device_dirty {
             // We can't tell what attributes are in our style rules until
             // we rebuild.
             true
@@ -499,9 +495,9 @@ impl Stylist {
     /// Returns whether the given ElementState bit might be relied upon by a
     /// selector of some rule in the stylist.
     pub fn might_have_state_dependency(&self, state: ElementState) -> bool {
-        if self.is_cleared || self.is_device_dirty {
-            // If self.is_cleared is true, we can't tell what states our style
-            // rules rely on until we rebuild.
+        if self.any_origin_cleared() || self.is_device_dirty {
+            // We can't tell what states our style rules rely on until
+            // we rebuild.
             true
         } else {
             self.has_state_dependency(state)
@@ -1628,6 +1624,11 @@ struct CascadeData {
 
     /// The total number of declarations.
     num_declarations: usize,
+
+    /// If true, the `CascadeData` is in a cleared state (e.g. just-constructed,
+    /// or had `clear()` called on it with no following `rebuild()` on the
+    /// `Stylist`).
+    is_cleared: bool,
 }
 
 impl CascadeData {
@@ -1646,6 +1647,7 @@ impl CascadeData {
             rules_source_order: 0,
             num_selectors: 0,
             num_declarations: 0,
+            is_cleared: true,
         }
     }
 
@@ -1664,6 +1666,10 @@ impl CascadeData {
 
 impl PerOriginClear for CascadeData {
     fn clear(&mut self) {
+        if self.is_cleared {
+            return;
+        }
+
         self.element_map = SelectorMap::new();
         self.pseudos_map = Default::default();
         self.animations = Default::default();
@@ -1677,6 +1683,7 @@ impl PerOriginClear for CascadeData {
         self.rules_source_order = 0;
         self.num_selectors = 0;
         self.num_declarations = 0;
+        self.is_cleared = true;
     }
 }
 
