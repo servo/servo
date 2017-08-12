@@ -204,6 +204,23 @@ impl Stylist {
         self.is_device_dirty = true;
     }
 
+    /// Clear the stylist's state for the specified origin.
+    pub fn clear_origin(&mut self, origin: &Origin) {
+        self.cascade_data.borrow_mut_for_origin(origin).clear();
+
+        if *origin == Origin::UserAgent {
+            // We only collect these declarations from UA sheets.
+            self.precomputed_pseudo_element_decls.clear();
+        }
+
+        // The stored `ViewportConstraints` contains data from rules across
+        // all origins.
+        self.viewport_constraints = None;
+
+        // XXX(heycam) Why do this, if we are preserving the Device?
+        self.is_device_dirty = true;
+    }
+
     /// Returns whether any origin's `CascadeData` has been cleared.
     fn any_origin_cleared(&self) -> bool {
         self.cascade_data
@@ -211,7 +228,7 @@ impl Stylist {
             .any(|(d, _)| d.is_cleared)
     }
 
-    /// rebuild the stylist for the given document stylesheets, and optionally
+    /// Rebuild the stylist for the given document stylesheets, and optionally
     /// with a set of user agent stylesheets.
     ///
     /// This method resets all the style data each time the stylesheets change
@@ -232,8 +249,26 @@ impl Stylist {
     {
         debug_assert!(!self.any_origin_cleared() || self.is_device_dirty);
 
-        for (data, _) in self.cascade_data.iter_mut_origins() {
-            data.is_cleared = false;
+        // Determine the origins that actually need updating.
+        //
+        // XXX(heycam): What is the relationship between `stylesheets_changed`
+        // and the `is_cleared` fields on each origin's `CascadeData`?  Can
+        // we avoid passing in `stylesheets_changed`?
+        let mut to_update: PerOrigin<bool> = Default::default();
+
+        // If we're provided with a list of UA and user style sheets, then
+        // we must update those cascade levels. (Servo does this, but Gecko
+        // just includes the UA and User sheets in `doc_stylesheets`.)
+        if ua_stylesheets.is_some() {
+            to_update.user_agent = true;
+            to_update.user = true;
+        }
+
+        for (data, origin) in self.cascade_data.iter_mut_origins() {
+            if data.is_cleared {
+                data.is_cleared = false;
+                *to_update.borrow_mut_for_origin(&origin) = true;
+            }
         }
 
         if !(self.is_device_dirty || stylesheets_changed) {
@@ -242,8 +277,9 @@ impl Stylist {
 
         self.num_rebuilds += 1;
 
+        // Update viewport_constraints regardless of which origins'
+        // `CascadeData` we're updating.
         self.viewport_constraints = None;
-
         if viewport_rule::enabled() {
             // TODO(emilio): This doesn't look so efficient.
             //
@@ -264,29 +300,48 @@ impl Stylist {
             self.viewport_constraints =
                 ViewportConstraints::maybe_new(&self.device,
                                                &cascaded_rule,
-                                               self.quirks_mode)
+                                               self.quirks_mode);
+
+            if let Some(ref constraints) = self.viewport_constraints {
+                self.device.account_for_viewport_rule(constraints);
+            }
         }
 
-        if let Some(ref constraints) = self.viewport_constraints {
-            self.device.account_for_viewport_rule(constraints);
+        // XXX(heycam): We should probably just move the `extra_data` to be
+        // stored on the `Stylist` instead of Gecko's `PerDocumentStyleData`.
+        // That would let us clear it inside `clear()` and `clear_origin()`.
+        for (update, origin) in to_update.iter_origins() {
+            if *update {
+                extra_data.borrow_mut_for_origin(&origin).clear();
+            }
         }
-
-        extra_data.clear();
 
         if let Some(ua_stylesheets) = ua_stylesheets {
             for stylesheet in &ua_stylesheets.user_or_user_agent_stylesheets {
+                debug_assert!(matches!(
+                    stylesheet.contents(guards.ua_or_user).origin,
+                    Origin::UserAgent | Origin::User));
                 self.add_stylesheet(stylesheet, guards.ua_or_user, extra_data);
             }
 
             if self.quirks_mode != QuirksMode::NoQuirks {
+                let stylesheet = &ua_stylesheets.quirks_mode_stylesheet;
+                debug_assert!(matches!(
+                    stylesheet.contents(guards.ua_or_user).origin,
+                    Origin::UserAgent | Origin::User));
                 self.add_stylesheet(&ua_stylesheets.quirks_mode_stylesheet,
                                     guards.ua_or_user, extra_data);
             }
         }
 
-        // Only use author stylesheets if author styles are enabled.
+        // Only add stylesheets for origins we are updating, and only add
+        // Author level sheets if author style is not disabled.
         let sheets_to_add = doc_stylesheets.filter(|s| {
-            !author_style_disabled || s.origin(guards.author) != Origin::Author
+            match s.contents(guards.author).origin {
+                Origin::UserAgent => to_update.user_agent,
+                Origin::Author => to_update.author && !author_style_disabled,
+                Origin::User => to_update.user,
+            }
         });
 
         for stylesheet in sheets_to_add {

@@ -17,7 +17,7 @@ use properties::ComputedValues;
 use servo_arc::Arc;
 use shared_lock::{Locked, StylesheetGuards, SharedRwLockReadGuard};
 use stylesheet_set::StylesheetSet;
-use stylesheets::{PerOrigin, StylesheetContents, StylesheetInDocument};
+use stylesheets::{Origin, PerOrigin, StylesheetContents, StylesheetInDocument};
 use stylist::{ExtraStyleData, Stylist};
 
 /// Little wrapper to a Gecko style sheet.
@@ -191,6 +191,11 @@ impl PerDocumentStyleDataImpl {
     /// already cleared; the stylist handles that.
     pub fn clear_stylist(&mut self) {
         self.stylist.clear();
+    }
+
+    /// Clear the stylist's data for the specified origin.
+    pub fn clear_stylist_origin(&mut self, origin: &Origin) {
+        self.stylist.clear_origin(origin);
     }
 
     /// Returns whether visited links are enabled.
