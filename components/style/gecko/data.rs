@@ -17,7 +17,7 @@ use properties::ComputedValues;
 use servo_arc::Arc;
 use shared_lock::{Locked, StylesheetGuards, SharedRwLockReadGuard};
 use stylesheet_set::StylesheetSet;
-use stylesheets::{StylesheetContents, StylesheetInDocument};
+use stylesheets::{PerOrigin, StylesheetContents, StylesheetInDocument};
 use stylist::{ExtraStyleData, Stylist};
 
 /// Little wrapper to a Gecko style sheet.
@@ -118,7 +118,7 @@ pub struct PerDocumentStyleDataImpl {
     pub stylesheets: StylesheetSet<GeckoStyleSheet>,
 
     /// List of effective @font-face and @counter-style rules.
-    pub extra_style_data: ExtraStyleData,
+    pub extra_style_data: PerOrigin<ExtraStyleData>,
 }
 
 /// The data itself is an `AtomicRefCell`, which guarantees the proper semantics

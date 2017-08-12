@@ -137,7 +137,7 @@ use style::selector_parser::SnapshotMap;
 use style::servo::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, REPOSITION, STORE_OVERFLOW};
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, StylesheetGuards};
 use style::stylesheets::{Origin, Stylesheet, StylesheetInDocument, UserAgentStylesheets};
-use style::stylist::{ExtraStyleData, Stylist};
+use style::stylist::Stylist;
 use style::thread_state;
 use style::timer::Timer;
 use style::traversal::{DomTraversal, TraversalDriver};
@@ -1206,7 +1206,7 @@ impl LayoutThread {
             author: &author_guard,
             ua_or_user: &ua_or_user_guard,
         };
-        let mut extra_data = ExtraStyleData;
+        let mut extra_data = Default::default();
         let needs_dirtying = self.stylist.update(
             StylesheetIterator(data.document_stylesheets.iter()),
             &guards,

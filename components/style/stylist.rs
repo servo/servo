@@ -40,7 +40,8 @@ use style_traits::viewport::ViewportConstraints;
 #[cfg(feature = "gecko")]
 use stylesheets::{CounterStyleRule, FontFaceRule};
 use stylesheets::{CssRule, StyleRule};
-use stylesheets::{StylesheetInDocument, Origin, UserAgentStylesheets};
+use stylesheets::{StylesheetInDocument, Origin, PerOrigin, PerOriginClear};
+use stylesheets::UserAgentStylesheets;
 use stylesheets::keyframes_rule::KeyframesAnimation;
 use stylesheets::viewport_rule::{self, MaybeNew, ViewportRule};
 use thread_state;
@@ -90,7 +91,7 @@ pub struct Stylist {
     /// Selector maps for all of the style sheets in the stylist, after
     /// evalutaing media rules against the current device, split out per
     /// cascade level.
-    cascade_data: CascadeData,
+    cascade_data: PerOrigin<CascadeData>,
 
     /// The rule tree, that stores the results of selector matching.
     rule_tree: RuleTree,
@@ -108,90 +109,6 @@ pub struct Stylist {
 
     /// The total number of times the stylist has been rebuilt.
     num_rebuilds: usize,
-}
-
-/// This struct holds data which users of Stylist may want to extract
-/// from stylesheets which can be done at the same time as updating.
-#[cfg(feature = "gecko")]
-#[derive(Default)]
-pub struct ExtraStyleData {
-    /// Extra data from user agent stylesheets
-    user_agent: PerOriginExtraStyleData,
-    /// Extra data from author stylesheets
-    author: PerOriginExtraStyleData,
-    /// Extra data from user stylesheets
-    user: PerOriginExtraStyleData,
-}
-
-/// This struct holds data which users of Stylist may want to extract
-/// from stylesheets which can be done at the same time as updating.
-#[cfg(feature = "gecko")]
-#[derive(Default)]
-pub struct PerOriginExtraStyleData {
-    /// A list of effective font-face rules and their origin.
-    pub font_faces: Vec<Arc<Locked<FontFaceRule>>>,
-    /// A map of effective counter-style rules.
-    pub counter_styles: PrecomputedHashMap<Atom, Arc<Locked<CounterStyleRule>>>,
-}
-
-#[cfg(feature = "gecko")]
-impl ExtraStyleData {
-    /// Clear the internal data.
-    pub fn clear(&mut self) {
-        self.user_agent.clear();
-        self.author.clear();
-        self.user.clear();
-    }
-
-    /// Returns a reference to the per-origin extra style data for
-    /// the specified origin.
-    #[inline]
-    pub fn borrow_mut_for_origin(&mut self, origin: &Origin) -> &mut PerOriginExtraStyleData {
-        match *origin {
-            Origin::UserAgent => &mut self.user_agent,
-            Origin::Author => &mut self.author,
-            Origin::User => &mut self.user,
-        }
-    }
-
-    /// Iterates over the per-origin extra style data, from highest level (user)
-    /// to lowest (user agent).
-    pub fn iter_origins(&self) -> ExtraStyleDataIter {
-        ExtraStyleDataIter {
-            extra_style_data: &self,
-            cur: 0,
-        }
-    }
-}
-
-#[cfg(feature = "gecko")]
-impl PerOriginExtraStyleData {
-    /// Clears the stored @font-face and @counter-style rules.
-    fn clear(&mut self) {
-        self.font_faces.clear();
-        self.counter_styles.clear();
-    }
-
-    /// Add the given @font-face rule.
-    fn add_font_face(&mut self, rule: &Arc<Locked<FontFaceRule>>) {
-        self.font_faces.push(rule.clone());
-    }
-
-    /// Add the given @counter-style rule.
-    fn add_counter_style(&mut self, guard: &SharedRwLockReadGuard,
-                         rule: &Arc<Locked<CounterStyleRule>>) {
-        let name = rule.read_with(guard).mName.raw::<nsIAtom>().into();
-        self.counter_styles.insert(name, rule.clone());
-    }
-}
-
-#[allow(missing_docs)]
-#[cfg(feature = "servo")]
-pub struct ExtraStyleData;
-
-#[cfg(feature = "servo")]
-impl ExtraStyleData {
-    fn clear(&mut self) {}
 }
 
 /// What cascade levels to include when styling elements.
@@ -229,7 +146,7 @@ impl Stylist {
             quirks_mode: quirks_mode,
             effective_media_query_results: EffectiveMediaQueryResults::new(),
 
-            cascade_data: CascadeData::new(),
+            cascade_data: Default::default(),
             precomputed_pseudo_element_decls: PerPseudoElementMap::default(),
             rules_source_order: 0,
             rule_tree: RuleTree::new(),
@@ -241,12 +158,12 @@ impl Stylist {
 
     /// Returns the number of selectors.
     pub fn num_selectors(&self) -> usize {
-        self.cascade_data.iter_origins().map(|d| d.num_selectors).sum()
+        self.cascade_data.iter_origins().map(|(d, _)| d.num_selectors).sum()
     }
 
     /// Returns the number of declarations.
     pub fn num_declarations(&self) -> usize {
-        self.cascade_data.iter_origins().map(|d| d.num_declarations).sum()
+        self.cascade_data.iter_origins().map(|(d, _)| d.num_declarations).sum()
     }
 
     /// Returns the number of times the stylist has been rebuilt.
@@ -257,13 +174,13 @@ impl Stylist {
     /// Returns the number of revalidation_selectors.
     pub fn num_revalidation_selectors(&self) -> usize {
         self.cascade_data.iter_origins()
-            .map(|d| d.selectors_for_cache_revalidation.len()).sum()
+            .map(|(d, _)| d.selectors_for_cache_revalidation.len()).sum()
     }
 
     /// Returns the number of entries in invalidation maps.
     pub fn num_invalidations(&self) -> usize {
         self.cascade_data.iter_origins()
-            .map(|d| d.invalidation_map.len()).sum()
+            .map(|(d, _)| d.invalidation_map.len()).sum()
     }
 
     /// Invokes `f` with the `InvalidationMap` for each origin.
@@ -274,8 +191,8 @@ impl Stylist {
     pub fn each_invalidation_map<F>(&self, mut f: F)
         where F: FnMut(&InvalidationMap)
     {
-        for origin_cascade_data in self.cascade_data.iter_origins() {
-            f(&origin_cascade_data.invalidation_map)
+        for (data, _) in self.cascade_data.iter_origins() {
+            f(&data.invalidation_map)
         }
     }
 
@@ -324,7 +241,7 @@ impl Stylist {
         ua_stylesheets: Option<&UserAgentStylesheets>,
         stylesheets_changed: bool,
         author_style_disabled: bool,
-        extra_data: &mut ExtraStyleData
+        extra_data: &mut PerOrigin<ExtraStyleData>
     ) -> bool
     where
         I: Iterator<Item = &'a S> + Clone,
@@ -404,7 +321,7 @@ impl Stylist {
         ua_stylesheets: Option<&UserAgentStylesheets>,
         stylesheets_changed: bool,
         author_style_disabled: bool,
-        extra_data: &mut ExtraStyleData
+        extra_data: &mut PerOrigin<ExtraStyleData>
     ) -> bool
     where
         I: Iterator<Item = &'a S> + Clone,
@@ -426,7 +343,7 @@ impl Stylist {
         &mut self,
         stylesheet: &S,
         guard: &SharedRwLockReadGuard,
-        _extra_data: &mut ExtraStyleData
+        _extra_data: &mut PerOrigin<ExtraStyleData>
     )
     where
         S: StylesheetInDocument + ToMediaListKey + 'static,
@@ -574,11 +491,11 @@ impl Stylist {
         } else if *local_name == local_name!("style") {
             self.cascade_data
                 .iter_origins()
-                .any(|d| d.style_attribute_dependency)
+                .any(|(d, _)| d.style_attribute_dependency)
         } else {
             self.cascade_data
                 .iter_origins()
-                .any(|d| {
+                .any(|(d, _)| {
                     d.attribute_dependencies
                         .might_contain_hash(local_name.get_hash())
                 })
@@ -602,7 +519,7 @@ impl Stylist {
     pub fn has_state_dependency(&self, state: ElementState) -> bool {
         self.cascade_data
             .iter_origins()
-            .any(|d| d.state_dependencies.intersects(state))
+            .any(|(d, _)| d.state_dependencies.intersects(state))
     }
 
     /// Computes the style for a given "precomputed" pseudo-element, taking the
@@ -852,6 +769,12 @@ impl Stylist {
                             self.quirks_mode)
     }
 
+    fn has_rules_for_pseudo(&self, pseudo: &PseudoElement) -> bool {
+        self.cascade_data
+            .iter_origins()
+            .any(|(d, _)| d.has_rules_for_pseudo(pseudo))
+    }
+
     /// Computes the cascade inputs for a lazily-cascaded pseudo-element.
     ///
     /// See the documentation on lazy pseudo-elements in
@@ -868,7 +791,7 @@ impl Stylist {
         let pseudo = pseudo.canonical();
         debug_assert!(pseudo.is_lazy());
 
-        if !self.cascade_data.has_rules_for_pseudo(&pseudo) {
+        if !self.has_rules_for_pseudo(&pseudo) {
             return CascadeInputs::default()
         }
 
@@ -1324,7 +1247,7 @@ impl Stylist {
     pub fn may_have_rules_for_id(&self, id: &Atom) -> bool {
         self.cascade_data
             .iter_origins()
-            .any(|d| d.mapped_ids.might_contain_hash(id.get_hash()))
+            .any(|(d, _)| d.mapped_ids.might_contain_hash(id.get_hash()))
     }
 
     /// Return whether the device is dirty, that is, whether the screen size or
@@ -1339,7 +1262,7 @@ impl Stylist {
     pub fn get_animation(&self, name: &Atom) -> Option<&KeyframesAnimation> {
         self.cascade_data
             .iter_origins()
-            .filter_map(|d| d.animations.get(name))
+            .filter_map(|(d, _)| d.animations.get(name))
             .next()
     }
 
@@ -1364,8 +1287,8 @@ impl Stylist {
         // the lookups, which means that the bitvecs are comparable. We verify
         // this in the caller by asserting that the bitvecs are same-length.
         let mut results = BitVec::new();
-        for origin_cascade_data in self.cascade_data.iter_origins() {
-            origin_cascade_data.selectors_for_cache_revalidation.lookup(
+        for (data, _) in self.cascade_data.iter_origins() {
+            data.selectors_for_cache_revalidation.lookup(
                 *element, self.quirks_mode, &mut |selector_and_hashes| {
                     results.push(matches_selector(&selector_and_hashes.selector,
                                                   selector_and_hashes.selector_offset,
@@ -1428,6 +1351,44 @@ impl Stylist {
     /// Accessor for a shared reference to the rule tree.
     pub fn rule_tree(&self) -> &RuleTree {
         &self.rule_tree
+    }
+}
+
+/// This struct holds data which users of Stylist may want to extract
+/// from stylesheets which can be done at the same time as updating.
+#[derive(Default)]
+pub struct ExtraStyleData {
+    /// A list of effective font-face rules and their origin.
+    #[cfg(feature = "gecko")]
+    pub font_faces: Vec<Arc<Locked<FontFaceRule>>>,
+
+    /// A map of effective counter-style rules.
+    #[cfg(feature = "gecko")]
+    pub counter_styles: PrecomputedHashMap<Atom, Arc<Locked<CounterStyleRule>>>,
+}
+
+#[cfg(feature = "gecko")]
+impl ExtraStyleData {
+    /// Add the given @font-face rule.
+    fn add_font_face(&mut self, rule: &Arc<Locked<FontFaceRule>>) {
+        self.font_faces.push(rule.clone());
+    }
+
+    /// Add the given @counter-style rule.
+    fn add_counter_style(&mut self, guard: &SharedRwLockReadGuard,
+                         rule: &Arc<Locked<CounterStyleRule>>) {
+        let name = rule.read_with(guard).mName.raw::<nsIAtom>().into();
+        self.counter_styles.insert(name, rule.clone());
+    }
+}
+
+impl PerOriginClear for ExtraStyleData {
+    fn clear(&mut self) {
+        #[cfg(feature = "gecko")]
+        {
+            self.font_faces.clear();
+            self.counter_styles.clear();
+        }
     }
 }
 
@@ -1599,111 +1560,11 @@ impl<'a> SelectorVisitor for StylistSelectorVisitor<'a> {
     }
 }
 
-/// Data resulting from performing the CSS cascade.
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Debug)]
-struct CascadeData {
-    /// Rules from user agent stylesheets
-    user_agent: PerOriginCascadeData,
-    /// Rules from author stylesheets
-    author: PerOriginCascadeData,
-    /// Rules from user stylesheets
-    user: PerOriginCascadeData,
-}
-
-impl CascadeData {
-    fn new() -> Self {
-        CascadeData {
-            user_agent: PerOriginCascadeData::new(),
-            author: PerOriginCascadeData::new(),
-            user: PerOriginCascadeData::new(),
-        }
-    }
-
-    #[inline]
-    fn borrow_mut_for_origin(&mut self, origin: &Origin) -> &mut PerOriginCascadeData {
-        match *origin {
-            Origin::UserAgent => &mut self.user_agent,
-            Origin::Author => &mut self.author,
-            Origin::User => &mut self.user,
-        }
-    }
-
-    fn clear(&mut self) {
-        self.user_agent.clear();
-        self.author.clear();
-        self.user.clear();
-    }
-
-    fn has_rules_for_pseudo(&self, pseudo: &PseudoElement) -> bool {
-        self.iter_origins().any(|d| d.has_rules_for_pseudo(pseudo))
-    }
-
-    fn iter_origins(&self) -> CascadeDataIter {
-        CascadeDataIter {
-            cascade_data: &self,
-            cur: 0,
-        }
-    }
-}
-
-/// Iterator over `PerOriginCascadeData`, from highest level (user) to lowest
-/// (user agent).
-///
-/// We rely on this specific order for correctly looking up animations
-/// (prioritizing rules at higher cascade levels), among other things.
-struct CascadeDataIter<'a> {
-    cascade_data: &'a CascadeData,
-    cur: usize,
-}
-
-impl<'a> Iterator for CascadeDataIter<'a> {
-    type Item = &'a PerOriginCascadeData;
-
-    fn next(&mut self) -> Option<&'a PerOriginCascadeData> {
-        let result = match self.cur {
-            0 => &self.cascade_data.user,
-            1 => &self.cascade_data.author,
-            2 => &self.cascade_data.user_agent,
-            _ => return None,
-        };
-        self.cur += 1;
-        Some(result)
-    }
-}
-
-/// Iterator over `PerOriginExtraStyleData`, from highest level (user) to lowest
-/// (user agent).
-///
-/// We rely on this specific order for correctly looking up the @font-face
-/// and @counter-style rules.
-#[cfg(feature = "gecko")]
-pub struct ExtraStyleDataIter<'a> {
-    extra_style_data: &'a ExtraStyleData,
-    cur: usize,
-}
-
-#[cfg(feature = "gecko")]
-impl<'a> Iterator for ExtraStyleDataIter<'a> {
-    type Item = (&'a PerOriginExtraStyleData, Origin);
-
-    fn next(&mut self) -> Option<(&'a PerOriginExtraStyleData, Origin)> {
-        let result = match self.cur {
-            0 => (&self.extra_style_data.user, Origin::User),
-            1 => (&self.extra_style_data.author, Origin::Author),
-            2 => (&self.extra_style_data.user_agent, Origin::UserAgent),
-            _ => return None,
-        };
-        self.cur += 1;
-        Some(result)
-    }
-}
-
 /// Data resulting from performing the CSS cascade that is specific to a given
 /// origin.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Debug)]
-struct PerOriginCascadeData {
+struct CascadeData {
     /// Rules from stylesheets at this `CascadeData`'s origin.
     element_map: SelectorMap<Rule>,
 
@@ -1758,7 +1619,7 @@ struct PerOriginCascadeData {
     num_declarations: usize,
 }
 
-impl PerOriginCascadeData {
+impl CascadeData {
     fn new() -> Self {
         Self {
             element_map: SelectorMap::new(),
@@ -1783,6 +1644,12 @@ impl PerOriginCascadeData {
         }
     }
 
+    fn has_rules_for_pseudo(&self, pseudo: &PseudoElement) -> bool {
+        self.pseudos_map.get(pseudo).is_some()
+    }
+}
+
+impl PerOriginClear for CascadeData {
     fn clear(&mut self) {
         self.element_map = SelectorMap::new();
         self.pseudos_map = Default::default();
@@ -1796,9 +1663,11 @@ impl PerOriginCascadeData {
         self.num_selectors = 0;
         self.num_declarations = 0;
     }
+}
 
-    fn has_rules_for_pseudo(&self, pseudo: &PseudoElement) -> bool {
-        self.pseudos_map.get(pseudo).is_some()
+impl Default for CascadeData {
+    fn default() -> Self {
+        CascadeData::new()
     }
 }
 
