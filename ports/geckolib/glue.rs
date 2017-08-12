@@ -75,6 +75,9 @@ use style::gecko_bindings::structs::{nsRestyleHint, nsChangeHint, PropertyValueP
 use style::gecko_bindings::structs::IterationCompositeOperation;
 use style::gecko_bindings::structs::MallocSizeOf;
 use style::gecko_bindings::structs::OriginFlags;
+use style::gecko_bindings::structs::OriginFlags_Author;
+use style::gecko_bindings::structs::OriginFlags_User;
+use style::gecko_bindings::structs::OriginFlags_UserAgent;
 use style::gecko_bindings::structs::RawGeckoGfxMatrix4x4;
 use style::gecko_bindings::structs::RawGeckoPresContextOwned;
 use style::gecko_bindings::structs::SeenPtrs;
@@ -1010,6 +1013,17 @@ pub extern "C" fn Servo_StyleSheet_SizeOfIncludingThis(
     let malloc_size_of = malloc_size_of.unwrap();
     StylesheetContents::as_arc(&sheet)
         .malloc_size_of_children(&guard, malloc_size_of)
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_StyleSheet_GetOrigin(
+    sheet: RawServoStyleSheetContentsBorrowed
+) -> OriginFlags {
+    match StylesheetContents::as_arc(&sheet).origin {
+        Origin::UserAgent => OriginFlags_UserAgent,
+        Origin::User => OriginFlags_User,
+        Origin::Author => OriginFlags_Author,
+    }
 }
 
 fn read_locked_arc<T, R, F>(raw: &<Locked<T> as HasFFI>::FFIType, func: F) -> R
