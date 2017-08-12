@@ -100,10 +100,6 @@ pub struct Stylist {
     /// FIXME(emilio): Use the rule tree!
     precomputed_pseudo_element_decls: PerPseudoElementMap<Vec<ApplicableDeclarationBlock>>,
 
-    /// A monotonically increasing counter to represent the order on which a
-    /// style rule appears in a stylesheet, needed to sort them by source order.
-    rules_source_order: u32,
-
     /// The total number of times the stylist has been rebuilt.
     num_rebuilds: usize,
 }
@@ -144,7 +140,6 @@ impl Stylist {
 
             cascade_data: Default::default(),
             precomputed_pseudo_element_decls: PerPseudoElementMap::default(),
-            rules_source_order: 0,
             rule_tree: RuleTree::new(),
             num_rebuilds: 0,
         }
@@ -217,7 +212,6 @@ impl Stylist {
         // preserve current quirks_mode value
         self.cascade_data.clear();
         self.precomputed_pseudo_element_decls.clear();
-        self.rules_source_order = 0;
         // We want to keep rule_tree around across stylist rebuilds.
         // preserve num_rebuilds value, since it should stay across
         // clear()/rebuild() cycles.
@@ -380,7 +374,7 @@ impl Stylist {
                                     .expect("Unexpected tree pseudo-element?")
                                     .push(ApplicableDeclarationBlock::new(
                                         StyleSource::Style(locked.clone()),
-                                        self.rules_source_order,
+                                        origin_cascade_data.rules_source_order,
                                         CascadeLevel::UANormal,
                                         selector.specificity()
                                     ));
@@ -403,7 +397,7 @@ impl Stylist {
                             selector.clone(),
                             hashes.clone(),
                             locked.clone(),
-                            self.rules_source_order
+                            origin_cascade_data.rules_source_order
                         );
 
                         map.insert(rule, self.quirks_mode);
@@ -428,7 +422,7 @@ impl Stylist {
                                 self.quirks_mode);
                         }
                     }
-                    self.rules_source_order += 1;
+                    origin_cascade_data.rules_source_order += 1;
                 }
                 CssRule::Import(ref lock) => {
                     let import_rule = lock.read_with(guard);
@@ -1625,6 +1619,10 @@ struct CascadeData {
     /// Effective media query results cached from the last rebuild.
     effective_media_query_results: EffectiveMediaQueryResults,
 
+    /// A monotonically increasing counter to represent the order on which a
+    /// style rule appears in a stylesheet, needed to sort them by source order.
+    rules_source_order: u32,
+
     /// The total number of selectors.
     num_selectors: usize,
 
@@ -1645,6 +1643,7 @@ impl CascadeData {
             mapped_ids: NonCountingBloomFilter::new(),
             selectors_for_cache_revalidation: SelectorMap::new(),
             effective_media_query_results: EffectiveMediaQueryResults::new(),
+            rules_source_order: 0,
             num_selectors: 0,
             num_declarations: 0,
         }
@@ -1675,6 +1674,7 @@ impl PerOriginClear for CascadeData {
         self.mapped_ids.clear();
         self.selectors_for_cache_revalidation = SelectorMap::new();
         self.effective_media_query_results.clear();
+        self.rules_source_order = 0;
         self.num_selectors = 0;
         self.num_declarations = 0;
     }
