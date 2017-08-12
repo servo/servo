@@ -8,7 +8,6 @@ use properties::animated_properties::{Animatable, RepeatableListAnimatable};
 use properties::longhands::background_size::computed_value::T as BackgroundSizeList;
 use values::animated::{ToAnimatedValue, ToAnimatedZero};
 use values::computed::length::LengthOrPercentageOrAuto;
-use values::distance::{ComputeSquaredDistance, SquaredDistance};
 use values::generics::background::BackgroundSize as GenericBackgroundSize;
 
 /// A computed value for the `background-size` property.
@@ -27,24 +26,6 @@ impl Animatable for BackgroundSize {
                     width: self_width.add_weighted(&other_width, self_portion, other_portion)?,
                     height: self_height.add_weighted(&other_height, self_portion, other_portion)?,
                 })
-            }
-            _ => Err(()),
-        }
-    }
-}
-
-impl ComputeSquaredDistance for BackgroundSize {
-    #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        match (self, other) {
-            (
-                &GenericBackgroundSize::Explicit { width: self_width, height: self_height },
-                &GenericBackgroundSize::Explicit { width: other_width, height: other_height },
-            ) => {
-                Ok(
-                    self_width.compute_squared_distance(&other_width)? +
-                    self_height.compute_squared_distance(&other_height)?
-                )
             }
             _ => Err(()),
         }

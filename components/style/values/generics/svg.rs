@@ -6,10 +6,8 @@
 
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
-use properties::animated_properties::RepeatableListAnimatable;
 use std::fmt;
 use style_traits::{ParseError, StyleParseError, ToCss};
-use values::distance::{ComputeSquaredDistance, SquaredDistance};
 
 /// An SVG paint value
 ///
@@ -99,7 +97,8 @@ impl<ColorType: Parse, UrlPaintServer: Parse> Parse for SVGPaint<ColorType, UrlP
 
 /// An SVG length value supports `context-value` in addition to length.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Copy, Debug, PartialEq, HasViewportPercentage, ToAnimatedValue, ToComputedValue, ToCss)]
+#[derive(Clone, ComputeSquaredDistance, Copy, Debug, PartialEq)]
+#[derive(HasViewportPercentage, ToAnimatedValue, ToComputedValue, ToCss)]
 pub enum SVGLength<LengthType> {
     /// `<length> | <percentage> | <number>`
     Length(LengthType),
@@ -107,52 +106,14 @@ pub enum SVGLength<LengthType> {
     ContextValue,
 }
 
-impl<L> ComputeSquaredDistance for SVGLength<L>
-where
-    L: ComputeSquaredDistance,
-{
-    #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        match (self, other) {
-            (&SVGLength::Length(ref this), &SVGLength::Length(ref other)) => {
-                this.compute_squared_distance(other)
-            },
-            _ => {
-                // FIXME(nox): Should this return `Ok(SquaredDistance::Value(0.))`
-                // if `self` and `other` are the same keyword value?
-                Err(())
-            },
-        }
-    }
-}
-
 /// Generic value for stroke-dasharray.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Debug, PartialEq, HasViewportPercentage, ToAnimatedValue, ToComputedValue)]
+#[derive(Clone, ComputeSquaredDistance, Debug, PartialEq, HasViewportPercentage, ToAnimatedValue, ToComputedValue)]
 pub enum SVGStrokeDashArray<LengthType> {
     /// `[ <length> | <percentage> | <number> ]#`
     Values(Vec<LengthType>),
     /// `context-value`
     ContextValue,
-}
-
-impl<L> ComputeSquaredDistance for SVGStrokeDashArray<L>
-where
-    L: ComputeSquaredDistance + RepeatableListAnimatable,
-{
-    #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        match (self, other) {
-            (&SVGStrokeDashArray::Values(ref this), &SVGStrokeDashArray::Values(ref other)) => {
-                this.compute_squared_distance(other)
-            },
-            _ => {
-                // FIXME(nox): Should this return `Ok(SquaredDistance::Value(0.))`
-                // if `self` and `other` are the same keyword value?
-                Err(())
-            },
-        }
-    }
 }
 
 impl<LengthType> ToCss for SVGStrokeDashArray<LengthType> where LengthType: ToCss {
@@ -181,7 +142,7 @@ impl<LengthType> ToCss for SVGStrokeDashArray<LengthType> where LengthType: ToCs
 /// An SVG opacity value accepts `context-{fill,stroke}-opacity` in
 /// addition to opacity value.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Copy, Debug, PartialEq, HasViewportPercentage, ToComputedValue, ToCss)]
+#[derive(Clone, ComputeSquaredDistance, Copy, Debug, PartialEq, HasViewportPercentage, ToComputedValue, ToCss)]
 pub enum SVGOpacity<OpacityType> {
     /// `<opacity-value>`
     Opacity(OpacityType),
@@ -189,23 +150,4 @@ pub enum SVGOpacity<OpacityType> {
     ContextFillOpacity,
     /// `context-stroke-opacity`
     ContextStrokeOpacity,
-}
-
-impl<L> ComputeSquaredDistance for SVGOpacity<L>
-where
-    L: ComputeSquaredDistance,
-{
-    #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        match (self, other) {
-            (&SVGOpacity::Opacity(ref this), &SVGOpacity::Opacity(ref other)) => {
-                this.compute_squared_distance(other)
-            }
-            _ => {
-                // FIXME(nox): Should this return `Ok(SquaredDistance::Value(0.))`
-                // if `self` and `other` are the same keyword value?
-                Err(())
-            },
-        }
-    }
 }

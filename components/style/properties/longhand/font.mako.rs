@@ -480,23 +480,14 @@ ${helpers.single_keyword_system("font-variant-caps",
     }
 
     pub mod computed_value {
-        use values::distance::{ComputeSquaredDistance, SquaredDistance};
-
         /// As of CSS Fonts Module Level 3, only the following values are
         /// valid: 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900
         ///
         /// However, system fonts may provide other values. Pango
         /// may provide 350, 380, and 1000 (on top of the existing values), for example.
-        #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, ToCss)]
+        #[derive(Clone, ComputeSquaredDistance, Copy, Debug, PartialEq, Eq, Hash, ToCss)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
         pub struct T(pub u16);
-
-        impl ComputeSquaredDistance for T {
-            #[inline]
-            fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-                self.0.compute_squared_distance(&other.0)
-            }
-        }
 
         impl T {
             /// Value for normal

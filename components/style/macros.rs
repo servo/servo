@@ -84,7 +84,7 @@ macro_rules! define_keyword_type {
     ($name: ident, $css: expr) => {
         #[allow(missing_docs)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        #[derive(Clone, Copy, PartialEq, ToCss)]
+        #[derive(Clone, ComputeSquaredDistance, Copy, PartialEq, ToCss)]
         pub struct $name;
 
         impl $crate::properties::animated_properties::Animatable for $name {
@@ -116,16 +116,6 @@ macro_rules! define_keyword_type {
         impl $crate::values::animated::ToAnimatedZero for $name {
             #[inline]
             fn to_animated_zero(&self) -> Result<Self, ()> { Ok($name) }
-        }
-
-        impl $crate::values::distance::ComputeSquaredDistance for $name {
-            #[inline]
-            fn compute_squared_distance(
-                &self,
-                _other: &Self
-            ) -> Result<$crate::values::distance::SquaredDistance, ()> {
-                Ok($crate::values::distance::SquaredDistance::Value(0.))
-            }
         }
     };
 }

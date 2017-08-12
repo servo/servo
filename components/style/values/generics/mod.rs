@@ -11,7 +11,6 @@ use parser::{Parse, ParserContext};
 use std::fmt;
 use style_traits::{Comma, OneOrMoreSeparated, ParseError, StyleParseError, ToCss};
 use super::CustomIdent;
-use values::distance::{ComputeSquaredDistance, SquaredDistance};
 
 pub mod background;
 pub mod basic_shape;
@@ -268,31 +267,13 @@ impl ToCss for FontSettingTagFloat {
 }
 
 /// A wrapper of Non-negative values.
-#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, PartialOrd, ToComputedValue, ToCss)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
+#[cfg_attr(feature = "servo", derive(Deserialize, HeapSizeOf, Serialize))]
+#[derive(Clone, ComputeSquaredDistance, Copy, Debug, HasViewportPercentage)]
+#[derive(PartialEq, PartialOrd, ToComputedValue, ToCss)]
 pub struct NonNegative<T>(pub T);
 
-impl<T> ComputeSquaredDistance for NonNegative<T>
-where
-    T: ComputeSquaredDistance,
-{
-    #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        self.0.compute_squared_distance(&other.0)
-    }
-}
-
 /// A wrapper of greater-than-or-equal-to-one values.
-#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, PartialOrd, ToComputedValue, ToCss)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
+#[cfg_attr(feature = "servo", derive(Deserialize, HeapSizeOf, Serialize))]
+#[derive(Clone, ComputeSquaredDistance, Copy, Debug, HasViewportPercentage)]
+#[derive(PartialEq, PartialOrd, ToComputedValue, ToCss)]
 pub struct GreaterThanOrEqualToOne<T>(pub T);
-
-impl<T> ComputeSquaredDistance for GreaterThanOrEqualToOne<T>
-where
-    T: ComputeSquaredDistance,
-{
-    #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        self.0.compute_squared_distance(&other.0)
-    }
-}

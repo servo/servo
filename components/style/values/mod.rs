@@ -16,7 +16,6 @@ use std::ascii::AsciiExt;
 use std::fmt::{self, Debug};
 use std::hash;
 use style_traits::{ToCss, ParseError, StyleParseError};
-use values::distance::{ComputeSquaredDistance, SquaredDistance};
 
 pub mod animated;
 pub mod computed;
@@ -53,31 +52,13 @@ impl Parse for Impossible {
 
 /// A struct representing one of two kinds of values.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Copy, HasViewportPercentage, PartialEq, ToAnimatedValue, ToComputedValue, ToCss)]
+#[derive(Clone, ComputeSquaredDistance, Copy, HasViewportPercentage, PartialEq)]
+#[derive(ToAnimatedValue, ToComputedValue, ToCss)]
 pub enum Either<A, B> {
     /// The first value.
     First(A),
     /// The second kind of value.
     Second(B),
-}
-
-impl<A, B> ComputeSquaredDistance for Either<A, B>
-where
-    A: ComputeSquaredDistance,
-    B: ComputeSquaredDistance,
-{
-    #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        match (self, other) {
-            (&Either::First(ref this), &Either::First(ref other)) => {
-                this.compute_squared_distance(other)
-            },
-            (&Either::Second(ref this), &Either::Second(ref other)) => {
-                this.compute_squared_distance(other)
-            },
-            _ => Err(())
-        }
-    }
 }
 
 impl<A: Debug, B: Debug> Debug for Either<A, B> {

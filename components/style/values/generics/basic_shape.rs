@@ -55,7 +55,7 @@ pub enum ShapeSource<BasicShape, ReferenceBox, Url> {
 
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Debug, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, ComputeSquaredDistance, Debug, PartialEq, ToComputedValue, ToCss)]
 pub enum BasicShape<H, V, LengthOrPercentage> {
     Inset(InsetRect<LengthOrPercentage>),
     Circle(Circle<H, V, LengthOrPercentage>),
@@ -66,7 +66,7 @@ pub enum BasicShape<H, V, LengthOrPercentage> {
 /// https://drafts.csswg.org/css-shapes/#funcdef-inset
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Debug, PartialEq, ToComputedValue)]
+#[derive(Clone, ComputeSquaredDistance, Debug, PartialEq, ToComputedValue)]
 pub struct InsetRect<LengthOrPercentage> {
     pub rect: Rect<LengthOrPercentage>,
     pub round: Option<BorderRadius<LengthOrPercentage>>,
@@ -75,7 +75,7 @@ pub struct InsetRect<LengthOrPercentage> {
 /// https://drafts.csswg.org/css-shapes/#funcdef-circle
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Copy, Debug, PartialEq, ToComputedValue)]
+#[derive(Clone, ComputeSquaredDistance, Copy, Debug, PartialEq, ToComputedValue)]
 pub struct Circle<H, V, LengthOrPercentage> {
     pub position: Position<H, V>,
     pub radius: ShapeRadius<LengthOrPercentage>,
@@ -84,7 +84,7 @@ pub struct Circle<H, V, LengthOrPercentage> {
 /// https://drafts.csswg.org/css-shapes/#funcdef-ellipse
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Copy, Debug, PartialEq, ToComputedValue)]
+#[derive(Clone, ComputeSquaredDistance, Copy, Debug, PartialEq, ToComputedValue)]
 pub struct Ellipse<H, V, LengthOrPercentage> {
     pub position: Position<H, V>,
     pub semiaxis_x: ShapeRadius<LengthOrPercentage>,
@@ -94,7 +94,7 @@ pub struct Ellipse<H, V, LengthOrPercentage> {
 /// https://drafts.csswg.org/css-shapes/#typedef-shape-radius
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Copy, Debug, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, ComputeSquaredDistance, Copy, Debug, PartialEq, ToComputedValue, ToCss)]
 pub enum ShapeRadius<LengthOrPercentage> {
     Length(LengthOrPercentage),
     ClosestSide,
@@ -148,7 +148,7 @@ where
 }
 
 // FIXME(nox): Implement ComputeSquaredDistance for T types and stop
-// using PartialEq here.
+// using PartialEq here, this will let us derive this impl.
 impl<B, T, U> ComputeSquaredDistance for ShapeSource<B, T, U>
 where
     B: ComputeSquaredDistance,
@@ -208,31 +208,6 @@ where
     }
 }
 
-impl<H, V, L> ComputeSquaredDistance for BasicShape<H, V, L>
-where
-    H: ComputeSquaredDistance,
-    V: ComputeSquaredDistance,
-    L: ComputeSquaredDistance + Copy,
-{
-    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        match (self, other) {
-            (&BasicShape::Circle(ref this), &BasicShape::Circle(ref other)) => {
-                this.compute_squared_distance(other)
-            },
-            (&BasicShape::Ellipse(ref this), &BasicShape::Ellipse(ref other)) => {
-                this.compute_squared_distance(other)
-            },
-            (&BasicShape::Inset(ref this), &BasicShape::Inset(ref other)) => {
-                this.compute_squared_distance(other)
-            },
-            (&BasicShape::Polygon(ref this), &BasicShape::Polygon(ref other)) => {
-                this.compute_squared_distance(other)
-            },
-            _ => Err(()),
-        }
-    }
-}
-
 impl<L> Animatable for InsetRect<L>
 where
     L: Animatable + Copy,
@@ -246,18 +221,6 @@ where
         let rect = self.rect.add_weighted(&other.rect, self_portion, other_portion)?;
         let round = self.round.add_weighted(&other.round, self_portion, other_portion)?;
         Ok(InsetRect { rect, round })
-    }
-}
-
-impl<L> ComputeSquaredDistance for InsetRect<L>
-where
-    L: ComputeSquaredDistance + Copy,
-{
-    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        Ok(
-            self.rect.compute_squared_distance(&other.rect)? +
-            self.round.compute_squared_distance(&other.round)?,
-        )
     }
 }
 
@@ -293,20 +256,6 @@ where
     }
 }
 
-impl<H, V, L> ComputeSquaredDistance for Circle<H, V, L>
-where
-    H: ComputeSquaredDistance,
-    V: ComputeSquaredDistance,
-    L: ComputeSquaredDistance,
-{
-    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        Ok(
-            self.position.compute_squared_distance(&other.position)? +
-            self.radius.compute_squared_distance(&other.radius)?,
-        )
-    }
-}
-
 impl<H, V, L> Animatable for Ellipse<H, V, L>
 where
     H: Animatable,
@@ -326,21 +275,6 @@ where
     }
 }
 
-impl<H, V, L> ComputeSquaredDistance for Ellipse<H, V, L>
-where
-    H: ComputeSquaredDistance,
-    V: ComputeSquaredDistance,
-    L: ComputeSquaredDistance,
-{
-    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        Ok(
-            self.position.compute_squared_distance(&other.position)? +
-            self.semiaxis_x.compute_squared_distance(&other.semiaxis_x)? +
-            self.semiaxis_y.compute_squared_distance(&other.semiaxis_y)?,
-        )
-    }
-}
-
 impl<L> Animatable for ShapeRadius<L>
 where
     L: Animatable,
@@ -354,20 +288,6 @@ where
         match (self, other) {
             (&ShapeRadius::Length(ref this), &ShapeRadius::Length(ref other)) => {
                 Ok(ShapeRadius::Length(this.add_weighted(other, self_portion, other_portion)?))
-            },
-            _ => Err(()),
-        }
-    }
-}
-
-impl<L> ComputeSquaredDistance for ShapeRadius<L>
-where
-    L: ComputeSquaredDistance,
-{
-    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        match (self, other) {
-            (&ShapeRadius::Length(ref this), &ShapeRadius::Length(ref other)) => {
-                this.compute_squared_distance(other)
             },
             _ => Err(()),
         }

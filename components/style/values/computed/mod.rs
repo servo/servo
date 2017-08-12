@@ -543,27 +543,15 @@ pub type LengthOrPercentageOrNumber = Either<Number, LengthOrPercentage>;
 /// NonNegativeLengthOrPercentage | NonNegativeNumber
 pub type NonNegativeLengthOrPercentageOrNumber = Either<NonNegativeNumber, NonNegativeLengthOrPercentage>;
 
-#[derive(Clone, PartialEq, Eq, Copy, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, ComputeSquaredDistance, Copy, Debug, Eq, PartialEq)]
 /// A computed cliprect for clip and image-region
 pub struct ClipRect {
     pub top: Option<Au>,
     pub right: Option<Au>,
     pub bottom: Option<Au>,
     pub left: Option<Au>,
-}
-
-impl ComputeSquaredDistance for ClipRect {
-    #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        Ok(
-            self.top.compute_squared_distance(&other.top)? +
-            self.right.compute_squared_distance(&other.right)? +
-            self.bottom.compute_squared_distance(&other.bottom)? +
-            self.left.compute_squared_distance(&other.left)?,
-        )
-    }
 }
 
 impl ToCss for ClipRect {
@@ -671,16 +659,9 @@ impl From<Au> for NonNegativeAu {
 }
 
 /// A computed `<percentage>` value.
-#[derive(Clone, Copy, Debug, Default, PartialEq, HasViewportPercentage)]
+#[derive(Clone, ComputeSquaredDistance, Copy, Debug, Default, HasViewportPercentage, PartialEq)]
 #[cfg_attr(feature = "servo", derive(Deserialize, HeapSizeOf, Serialize))]
 pub struct Percentage(pub CSSFloat);
-
-impl ComputeSquaredDistance for Percentage {
-    #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        self.0.compute_squared_distance(&other.0)
-    }
-}
 
 impl Percentage {
     /// 0%

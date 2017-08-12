@@ -227,18 +227,6 @@ impl Animatable for SimpleShadow {
     }
 }
 
-impl ComputeSquaredDistance for SimpleShadow {
-    #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        Ok(
-            self.color.compute_squared_distance(&other.color)? +
-            self.horizontal.compute_squared_distance(&other.horizontal)? +
-            self.vertical.compute_squared_distance(&other.vertical)? +
-            self.blur.compute_squared_distance(&other.blur)?
-        )
-    }
-}
-
 impl ToAnimatedZero for SimpleShadow {
     #[inline]
     fn to_animated_zero(&self) -> Result<Self, ()> {

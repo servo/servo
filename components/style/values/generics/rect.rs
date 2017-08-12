@@ -9,11 +9,10 @@ use parser::{Parse, ParserContext};
 use properties::animated_properties::Animatable;
 use std::fmt;
 use style_traits::{ToCss, ParseError};
-use values::distance::{ComputeSquaredDistance, SquaredDistance};
 
 /// A CSS value made of four components, where its `ToCss` impl will try to
 /// serialize as few components as possible, like for example in `border-width`.
-#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, ToComputedValue)]
+#[derive(Clone, ComputeSquaredDistance, Copy, Debug, HasViewportPercentage, PartialEq, ToComputedValue)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct Rect<T>(pub T, pub T, pub T, pub T);
 
@@ -68,21 +67,6 @@ where
         let third = self.2.add_weighted(&other.2, self_portion, other_portion)?;
         let fourth = self.3.add_weighted(&other.3, self_portion, other_portion)?;
         Ok(Rect(first, second, third, fourth))
-    }
-}
-
-impl<L> ComputeSquaredDistance for Rect<L>
-where
-    L: ComputeSquaredDistance,
-{
-    #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        Ok(
-            self.0.compute_squared_distance(&other.0)? +
-            self.1.compute_squared_distance(&other.1)? +
-            self.2.compute_squared_distance(&other.2)? +
-            self.3.compute_squared_distance(&other.3)?,
-        )
     }
 }
 

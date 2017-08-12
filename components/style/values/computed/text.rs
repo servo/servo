@@ -9,7 +9,6 @@ use values::{CSSInteger, CSSFloat};
 use values::animated::ToAnimatedZero;
 use values::computed::{NonNegativeAu, NonNegativeNumber};
 use values::computed::length::{Length, LengthOrPercentage};
-use values::distance::{ComputeSquaredDistance, SquaredDistance};
 use values::generics::text::InitialLetter as GenericInitialLetter;
 use values::generics::text::LineHeight as GenericLineHeight;
 use values::generics::text::Spacing;
@@ -42,28 +41,6 @@ impl Animatable for LineHeight {
             #[cfg(feature = "gecko")]
             (GenericLineHeight::MozBlockHeight, GenericLineHeight::MozBlockHeight) => {
                 Ok(GenericLineHeight::MozBlockHeight)
-            },
-            _ => Err(()),
-        }
-    }
-}
-
-impl ComputeSquaredDistance for LineHeight {
-    #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        match (self, other) {
-            (&GenericLineHeight::Length(ref this), &GenericLineHeight::Length(ref other)) => {
-                this.compute_squared_distance(other)
-            },
-            (&GenericLineHeight::Number(ref this), &GenericLineHeight::Number(ref other)) => {
-                this.compute_squared_distance(other)
-            },
-            (&GenericLineHeight::Normal, &GenericLineHeight::Normal) => {
-                Ok(SquaredDistance::Value(0.))
-            },
-            #[cfg(feature = "gecko")]
-            (&GenericLineHeight::MozBlockHeight, &GenericLineHeight::MozBlockHeight) => {
-                Ok(SquaredDistance::Value(0.))
             },
             _ => Err(()),
         }

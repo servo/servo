@@ -119,8 +119,11 @@
             use values::computed::ComputedVecIter;
 
             /// The computed value, effectively a list of single values.
-            #[derive(Debug, Clone, PartialEq)]
             #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+            #[derive(Clone, Debug, PartialEq)]
+            % if need_animatable or animation_value_type == "ComputedValue":
+            #[derive(ComputeSquaredDistance)]
+            % endif
             pub struct T(
                 % if allow_empty and allow_empty != "NotInitial":
                 pub Vec<single_value::T>,
@@ -132,7 +135,6 @@
             % if need_animatable or animation_value_type == "ComputedValue":
                 use properties::animated_properties::Animatable;
                 use values::animated::ToAnimatedZero;
-                use values::distance::{ComputeSquaredDistance, SquaredDistance};
 
                 impl Animatable for T {
                     fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64)
@@ -142,13 +144,6 @@
 
                     fn add(&self, other: &Self) -> Result<Self, ()> {
                         self.0.add(&other.0).map(T)
-                    }
-                }
-
-                impl ComputeSquaredDistance for T {
-                    #[inline]
-                    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-                        self.0.compute_squared_distance(&other.0)
                     }
                 }
 
