@@ -8,7 +8,7 @@ use dom::TElement;
 use invalidation::stylesheets::StylesheetInvalidationSet;
 use shared_lock::SharedRwLockReadGuard;
 use std::slice;
-use stylesheets::{PerOrigin, StylesheetInDocument};
+use stylesheets::{Origin, PerOrigin, StylesheetInDocument};
 use stylist::Stylist;
 
 /// Entry for a StylesheetSet. We don't bother creating a constructor, because
@@ -168,7 +168,7 @@ where
     /// over the new stylesheet list.
     pub fn flush<E>(
         &mut self,
-        document_element: Option<E>
+        document_element: Option<E>,
     ) -> StylesheetIterator<S>
     where
         E: TElement,
@@ -176,9 +176,11 @@ where
         debug!("StylesheetSet::flush");
         debug_assert!(self.has_changed());
 
-        for data in self.invalidation_data.iter_mut_origins() {
-            data.0.invalidations.flush(document_element);
-            data.0.dirty = false;
+        for (data, _) in self.invalidation_data.iter_mut_origins() {
+            if data.dirty {
+                data.invalidations.flush(document_element);
+                data.dirty = false;
+            }
         }
 
         self.iter()
@@ -194,10 +196,18 @@ where
     ///
     /// FIXME(emilio): Make this more granular.
     pub fn force_dirty(&mut self) {
-        for data in self.invalidation_data.iter_mut_origins() {
-            data.0.invalidations.invalidate_fully();
-            data.0.dirty = true;
+        for (data, _) in self.invalidation_data.iter_mut_origins() {
+            data.invalidations.invalidate_fully();
+            data.dirty = true;
         }
+    }
+
+    /// Mark the stylesheets for the specified origin as dirty, because
+    /// something external may have invalidated it.
+    pub fn force_dirty_origin(&mut self, origin: &Origin) {
+        let data = self.invalidation_data.borrow_mut_for_origin(origin);
+        data.invalidations.invalidate_fully();
+        data.dirty = true;
     }
 }
 

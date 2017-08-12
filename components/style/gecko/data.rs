@@ -163,7 +163,7 @@ impl PerDocumentStyleDataImpl {
         }
 
         let author_style_disabled = self.stylesheets.author_style_disabled();
-        self.stylist.clear();
+
         let iter = self.stylesheets.flush(document_element);
         self.stylist.rebuild(
             iter,
