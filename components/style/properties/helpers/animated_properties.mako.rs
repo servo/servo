@@ -953,11 +953,6 @@ impl<T: Animatable + Copy> Animatable for Point2D<T> {
     }
 }
 
-impl ToAnimatedZero for BorderCornerRadius {
-    #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> { Err(()) }
-}
-
 /// https://drafts.csswg.org/css-transitions/#animtype-length
 impl Animatable for VerticalAlign {
     #[inline]
