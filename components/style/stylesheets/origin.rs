@@ -5,7 +5,6 @@
 ///! [CSS cascade origins](https://drafts.csswg.org/css-cascade/#cascading-origins).
 
 use std::marker::PhantomData;
-use std::mem::transmute;
 
 /// Each style rule has an origin, which determines where it enters the cascade.
 ///
@@ -135,9 +134,9 @@ impl<'a, T> Iterator for PerOriginIterMut<'a, T> where T: 'a {
 
     fn next(&mut self) -> Option<Self::Item> {
         let result = match self.cur {
-            0 => (unsafe { transmute(&mut (*self.data).author) }, Origin::Author),
-            1 => (unsafe { transmute(&mut (*self.data).user) }, Origin::User),
-            2 => (unsafe { transmute(&mut (*self.data).user_agent) }, Origin::UserAgent),
+            0 => (unsafe { &mut (*self.data).author }, Origin::Author),
+            1 => (unsafe { &mut (*self.data).user }, Origin::User),
+            2 => (unsafe { &mut (*self.data).user_agent }, Origin::UserAgent),
             _ => return None,
         };
         self.cur += 1;
