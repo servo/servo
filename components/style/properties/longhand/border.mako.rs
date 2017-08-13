@@ -20,15 +20,17 @@
         side_name = side[0]
         is_logical = side[1]
     %>
-    ${helpers.predefined_type("border-%s-color" % side_name, "Color",
-                              "computed_value::T::currentcolor()",
-                              alias=maybe_moz_logical_alias(product, side, "-moz-border-%s-color"),
-                              spec=maybe_logical_spec(side, "color"),
-                              animation_value_type="IntermediateColor",
-                              logical=is_logical,
-                              allow_quirks=not is_logical,
-                              flags="APPLIES_TO_FIRST_LETTER",
-                              ignored_when_colors_disabled=True)}
+    ${helpers.predefined_type(
+        "border-%s-color" % side_name, "Color",
+        "computed_value::T::currentcolor()",
+        alias=maybe_moz_logical_alias(product, side, "-moz-border-%s-color"),
+        spec=maybe_logical_spec(side, "color"),
+        animation_value_type="AnimatedColor",
+        logical=is_logical,
+        allow_quirks=not is_logical,
+        flags="APPLIES_TO_FIRST_LETTER",
+        ignored_when_colors_disabled=True,
+    )}
 
     ${helpers.predefined_type("border-%s-style" % side_name, "BorderStyle",
                               "specified::BorderStyle::none",

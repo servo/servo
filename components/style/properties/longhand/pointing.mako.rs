@@ -178,11 +178,13 @@ ${helpers.single_keyword("-moz-user-focus",
                          animation_value_type="discrete",
                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-user-focus)")}
 
-${helpers.predefined_type("caret-color",
-                          "ColorOrAuto",
-                          "Either::Second(Auto)",
-                          spec="https://drafts.csswg.org/css-ui/#caret-color",
-                          animation_value_type="Either<IntermediateColor, Auto>",
-                          boxed=True,
-                          ignored_when_colors_disabled=True,
-                          products="gecko")}
+${helpers.predefined_type(
+    "caret-color",
+    "ColorOrAuto",
+    "Either::Second(Auto)",
+    spec="https://drafts.csswg.org/css-ui/#caret-color",
+    animation_value_type="Either<AnimatedColor, Auto>",
+    boxed=True,
+    ignored_when_colors_disabled=True,
+    products="gecko",
+)}

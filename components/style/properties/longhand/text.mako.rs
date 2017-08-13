@@ -268,14 +268,16 @@ ${helpers.single_keyword("text-decoration-style",
                          spec="https://drafts.csswg.org/css-text-decor/#propdef-text-decoration-style")}
 
 ${helpers.predefined_type(
-    "text-decoration-color", "Color",
+    "text-decoration-color",
+    "Color",
     "computed_value::T::currentcolor()",
     initial_specified_value="specified::Color::currentcolor()",
     products="gecko",
-    animation_value_type="IntermediateColor",
+    animation_value_type="AnimatedColor",
     ignored_when_colors_disabled=True,
     flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
-    spec="https://drafts.csswg.org/css-text-decor/#propdef-text-decoration-color")}
+    spec="https://drafts.csswg.org/css-text-decor/#propdef-text-decoration-color",
+)}
 
 ${helpers.predefined_type(
     "initial-letter",

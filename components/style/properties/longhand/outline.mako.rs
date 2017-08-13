@@ -10,11 +10,16 @@
                          additional_methods=[Method("outline_has_nonzero_width", "bool")]) %>
 
 // TODO(pcwalton): `invert`
-${helpers.predefined_type("outline-color", "Color", "computed_value::T::currentcolor()",
-                          initial_specified_value="specified::Color::currentcolor()",
-                          animation_value_type="IntermediateColor", need_clone=True,
-                          ignored_when_colors_disabled=True,
-                          spec="https://drafts.csswg.org/css-ui/#propdef-outline-color")}
+${helpers.predefined_type(
+    "outline-color",
+    "Color",
+    "computed_value::T::currentcolor()",
+    initial_specified_value="specified::Color::currentcolor()",
+    animation_value_type="AnimatedColor",
+    need_clone=True,
+    ignored_when_colors_disabled=True,
+    spec="https://drafts.csswg.org/css-ui/#propdef-outline-color",
+)}
 
 <%helpers:longhand name="outline-style" animation_value_type="discrete"
                    spec="https://drafts.csswg.org/css-ui/#propdef-outline-style">

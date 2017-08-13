@@ -705,13 +705,17 @@ ${helpers.predefined_type(
     % endif
 </%helpers:longhand>
 
-${helpers.predefined_type("text-emphasis-color", "Color",
-                          "computed_value::T::currentcolor()",
-                          initial_specified_value="specified::Color::currentcolor()",
-                          products="gecko", animation_value_type="IntermediateColor",
-                          need_clone=True, ignored_when_colors_disabled=True,
-                          spec="https://drafts.csswg.org/css-text-decor/#propdef-text-emphasis-color")}
-
+${helpers.predefined_type(
+    "text-emphasis-color",
+    "Color",
+    "computed_value::T::currentcolor()",
+    initial_specified_value="specified::Color::currentcolor()",
+    products="gecko",
+    animation_value_type="AnimatedColor",
+    need_clone=True,
+    ignored_when_colors_disabled=True,
+    spec="https://drafts.csswg.org/css-text-decor/#propdef-text-emphasis-color",
+)}
 
 ${helpers.predefined_type(
     "-moz-tab-size", "length::NonNegativeLengthOrNumber",
@@ -723,21 +727,28 @@ ${helpers.predefined_type(
 // CSS Compatibility
 // https://compat.spec.whatwg.org
 ${helpers.predefined_type(
-    "-webkit-text-fill-color", "Color",
+    "-webkit-text-fill-color",
+    "Color",
     "computed_value::T::currentcolor()",
-    products="gecko", animation_value_type="IntermediateColor",
-    need_clone=True, ignored_when_colors_disabled=True,
+    products="gecko",
+    animation_value_type="AnimatedColor",
+    need_clone=True,
+    ignored_when_colors_disabled=True,
     flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
-    spec="https://compat.spec.whatwg.org/#the-webkit-text-fill-color")}
+    spec="https://compat.spec.whatwg.org/#the-webkit-text-fill-color",
+)}
 
 ${helpers.predefined_type(
-    "-webkit-text-stroke-color", "Color",
+    "-webkit-text-stroke-color",
+    "Color",
     "computed_value::T::currentcolor()",
     initial_specified_value="specified::Color::currentcolor()",
-    products="gecko", animation_value_type="IntermediateColor",
+    products="gecko",
+    animation_value_type="AnimatedColor",
     need_clone=True, ignored_when_colors_disabled=True,
     flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
-    spec="https://compat.spec.whatwg.org/#the-webkit-text-stroke-color")}
+    spec="https://compat.spec.whatwg.org/#the-webkit-text-stroke-color",
+)}
 
 ${helpers.predefined_type("-webkit-text-stroke-width",
                           "BorderSideWidth",
