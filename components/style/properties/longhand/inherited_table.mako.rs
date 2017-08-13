@@ -31,7 +31,7 @@ ${helpers.single_keyword("caption-side", "top bottom",
         use values::computed::NonNegativeAu;
 
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        #[derive(Clone, Copy, Debug, PartialEq, ToCss)]
+        #[derive(Clone, ComputeSquaredDistance, Copy, Debug, PartialEq, ToCss)]
         pub struct T {
             pub horizontal: NonNegativeAu,
             pub vertical: NonNegativeAu,
@@ -48,17 +48,6 @@ ${helpers.single_keyword("caption-side", "top bottom",
                     vertical: self.vertical.add_weighted(&other.vertical,
                                                          self_portion, other_portion)?,
                 })
-            }
-
-            #[inline]
-            fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
-                self.compute_squared_distance(other).map(|sd| sd.sqrt())
-            }
-
-            #[inline]
-            fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
-                Ok(self.horizontal.compute_squared_distance(&other.horizontal)? +
-                   self.vertical.compute_squared_distance(&other.vertical)?)
             }
         }
 

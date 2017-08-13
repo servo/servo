@@ -45,22 +45,6 @@ impl Animatable for LineHeight {
             _ => Err(()),
         }
     }
-
-    #[inline]
-    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
-        match (*self, *other) {
-            (GenericLineHeight::Length(ref this), GenericLineHeight::Length(ref other)) => {
-                this.compute_distance(other)
-            },
-            (GenericLineHeight::Number(ref this), GenericLineHeight::Number(ref other)) => {
-                this.compute_distance(other)
-            },
-            (GenericLineHeight::Normal, GenericLineHeight::Normal) => Ok(0.),
-            #[cfg(feature = "gecko")]
-            (GenericLineHeight::MozBlockHeight, GenericLineHeight::MozBlockHeight) => Ok(0.),
-            _ => Err(()),
-        }
-    }
 }
 
 impl ToAnimatedZero for LineHeight {

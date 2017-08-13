@@ -30,27 +30,6 @@ impl Animatable for BackgroundSize {
             _ => Err(()),
         }
     }
-
-    #[inline]
-    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
-        self.compute_squared_distance(other).map(|sd| sd.sqrt())
-    }
-
-    #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
-        match (self, other) {
-            (
-                &GenericBackgroundSize::Explicit { width: self_width, height: self_height },
-                &GenericBackgroundSize::Explicit { width: other_width, height: other_height },
-            ) => {
-                Ok(
-                    self_width.compute_squared_distance(&other_width)? +
-                    self_height.compute_squared_distance(&other_height)?
-                )
-            }
-            _ => Err(()),
-        }
-    }
 }
 
 impl ToAnimatedZero for BackgroundSize {

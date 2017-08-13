@@ -22,6 +22,7 @@ use std::fmt;
 use std::sync::Arc;
 use style_traits::ToCss;
 use super::{CSSFloat, CSSInteger};
+use super::distance::{ComputeSquaredDistance, SquaredDistance};
 use super::generics::{GreaterThanOrEqualToOne, NonNegative};
 use super::generics::grid::{TrackBreadth as GenericTrackBreadth, TrackSize as GenericTrackSize};
 use super::generics::grid::GridTemplateComponent as GenericGridTemplateComponent;
@@ -338,6 +339,15 @@ pub enum Angle {
     Turn(CSSFloat),
 }
 
+impl ComputeSquaredDistance for Angle {
+    #[inline]
+    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
+        // Use the formula for calculating the distance between angles defined in SVG:
+        // https://www.w3.org/TR/SVG/animate.html#complexDistances
+        self.radians64().compute_squared_distance(&other.radians64())
+    }
+}
+
 impl Angle {
     /// Construct a computed `Angle` value from a radian amount.
     pub fn from_radians(radians: CSSFloat) -> Self {
@@ -533,9 +543,9 @@ pub type LengthOrPercentageOrNumber = Either<Number, LengthOrPercentage>;
 /// NonNegativeLengthOrPercentage | NonNegativeNumber
 pub type NonNegativeLengthOrPercentageOrNumber = Either<NonNegativeNumber, NonNegativeLengthOrPercentage>;
 
-#[derive(Clone, PartialEq, Eq, Copy, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, ComputeSquaredDistance, Copy, Debug, Eq, PartialEq)]
 /// A computed cliprect for clip and image-region
 pub struct ClipRect {
     pub top: Option<Au>,
@@ -649,7 +659,7 @@ impl From<Au> for NonNegativeAu {
 }
 
 /// A computed `<percentage>` value.
-#[derive(Clone, Copy, Debug, Default, PartialEq, HasViewportPercentage)]
+#[derive(Clone, ComputeSquaredDistance, Copy, Debug, Default, HasViewportPercentage, PartialEq)]
 #[cfg_attr(feature = "servo", derive(Deserialize, HeapSizeOf, Serialize))]
 pub struct Percentage(pub CSSFloat);
 

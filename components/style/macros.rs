@@ -84,7 +84,7 @@ macro_rules! define_keyword_type {
     ($name: ident, $css: expr) => {
         #[allow(missing_docs)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        #[derive(Clone, Copy, PartialEq, ToCss)]
+        #[derive(Clone, ComputeSquaredDistance, Copy, PartialEq, ToCss)]
         pub struct $name;
 
         impl $crate::properties::animated_properties::Animatable for $name {

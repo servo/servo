@@ -97,7 +97,8 @@ impl<ColorType: Parse, UrlPaintServer: Parse> Parse for SVGPaint<ColorType, UrlP
 
 /// An SVG length value supports `context-value` in addition to length.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Copy, Debug, PartialEq, HasViewportPercentage, ToAnimatedValue, ToComputedValue, ToCss)]
+#[derive(Clone, ComputeSquaredDistance, Copy, Debug, PartialEq)]
+#[derive(HasViewportPercentage, ToAnimatedValue, ToComputedValue, ToCss)]
 pub enum SVGLength<LengthType> {
     /// `<length> | <percentage> | <number>`
     Length(LengthType),
@@ -107,7 +108,7 @@ pub enum SVGLength<LengthType> {
 
 /// Generic value for stroke-dasharray.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Debug, PartialEq, HasViewportPercentage, ToAnimatedValue, ToComputedValue)]
+#[derive(Clone, ComputeSquaredDistance, Debug, PartialEq, HasViewportPercentage, ToAnimatedValue, ToComputedValue)]
 pub enum SVGStrokeDashArray<LengthType> {
     /// `[ <length> | <percentage> | <number> ]#`
     Values(Vec<LengthType>),
@@ -141,7 +142,7 @@ impl<LengthType> ToCss for SVGStrokeDashArray<LengthType> where LengthType: ToCs
 /// An SVG opacity value accepts `context-{fill,stroke}-opacity` in
 /// addition to opacity value.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Copy, Debug, PartialEq, HasViewportPercentage, ToComputedValue, ToCss)]
+#[derive(Clone, ComputeSquaredDistance, Copy, Debug, PartialEq, HasViewportPercentage, ToComputedValue, ToCss)]
 pub enum SVGOpacity<OpacityType> {
     /// `<opacity-value>`
     Opacity(OpacityType),

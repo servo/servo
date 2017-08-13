@@ -37,20 +37,6 @@ impl Animatable for TransformOrigin {
             self.depth.add_weighted(&other.depth, self_portion, other_portion)?,
         ))
     }
-
-    #[inline]
-    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
-        self.compute_squared_distance(other).map(f64::sqrt)
-    }
-
-    #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
-        Ok(
-            self.horizontal.compute_squared_distance(&other.horizontal)? +
-            self.vertical.compute_squared_distance(&other.vertical)? +
-            self.depth.compute_squared_distance(&other.depth)?
-        )
-    }
 }
 
 impl ToAnimatedZero for TransformOrigin {

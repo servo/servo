@@ -65,7 +65,7 @@ pub enum Filter<Angle, Factor, Length, DropShadow> {
 /// Contrary to the canonical order from the spec, the color is serialised
 /// first, like in Gecko and Webkit.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Debug, HasViewportPercentage, PartialEq, ToAnimatedValue, ToCss)]
+#[derive(Clone, ComputeSquaredDistance, Debug, HasViewportPercentage, PartialEq, ToAnimatedValue, ToCss)]
 pub struct SimpleShadow<Color, SizeLength, ShapeLength> {
     /// Color.
     pub color: Color,

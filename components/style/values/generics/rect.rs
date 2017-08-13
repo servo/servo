@@ -12,7 +12,7 @@ use style_traits::{ToCss, ParseError};
 
 /// A CSS value made of four components, where its `ToCss` impl will try to
 /// serialize as few components as possible, like for example in `border-width`.
-#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, ToComputedValue)]
+#[derive(Clone, ComputeSquaredDistance, Copy, Debug, HasViewportPercentage, PartialEq, ToComputedValue)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct Rect<T>(pub T, pub T, pub T, pub T);
 

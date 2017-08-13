@@ -119,8 +119,11 @@
             use values::computed::ComputedVecIter;
 
             /// The computed value, effectively a list of single values.
-            #[derive(Debug, Clone, PartialEq)]
             #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+            #[derive(Clone, Debug, PartialEq)]
+            % if need_animatable or animation_value_type == "ComputedValue":
+            #[derive(ComputeSquaredDistance)]
+            % endif
             pub struct T(
                 % if allow_empty and allow_empty != "NotInitial":
                 pub Vec<single_value::T>,
@@ -141,16 +144,6 @@
 
                     fn add(&self, other: &Self) -> Result<Self, ()> {
                         self.0.add(&other.0).map(T)
-                    }
-
-                    #[inline]
-                    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
-                        self.0.compute_distance(&other.0)
-                    }
-
-                    #[inline]
-                    fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
-                        self.0.compute_squared_distance(&other.0)
                     }
                 }
 
@@ -954,63 +947,6 @@
             ident = "float_"
         return "nsCSSPropertyID::eCSSProperty_%s" % ident
     %>
-</%def>
-
-/// Macro for defining Animatable trait for tuple struct which has Option<T>,
-/// e.g. struct T(pub Option<Au>).
-<%def name="impl_animatable_for_option_tuple(value_for_none)">
-    impl Animatable for T {
-        #[inline]
-        fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64)
-            -> Result<Self, ()> {
-            match (self, other) {
-                (&T(Some(ref this)), &T(Some(ref other))) => {
-                    Ok(T(this.add_weighted(other, self_portion, other_portion).ok()))
-                },
-                (&T(Some(ref this)), &T(None)) => {
-                    Ok(T(this.add_weighted(&${value_for_none}, self_portion, other_portion).ok()))
-                },
-                (&T(None), &T(Some(ref other))) => {
-                    Ok(T(${value_for_none}.add_weighted(other, self_portion, other_portion).ok()))
-                },
-                (&T(None), &T(None)) => {
-                    Ok(T(None))
-                },
-            }
-        }
-
-        #[inline]
-        fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
-            match (self, other) {
-                (&T(Some(ref this)), &T(Some(ref other))) => {
-                    this.compute_distance(other)
-                },
-                (&T(Some(ref value)), &T(None)) |
-                (&T(None), &T(Some(ref value)))=> {
-                    value.compute_distance(&${value_for_none})
-                },
-                (&T(None), &T(None)) => {
-                    Ok(0.0)
-                },
-            }
-        }
-
-        #[inline]
-        fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
-            match (self, other) {
-                (&T(Some(ref this)), &T(Some(ref other))) => {
-                    this.compute_squared_distance(other)
-                },
-                (&T(Some(ref value)), &T(None)) |
-                (&T(None), &T(Some(ref value))) => {
-                    value.compute_squared_distance(&${value_for_none})
-                },
-                (&T(None), &T(None)) => {
-                    Ok(0.0)
-                },
-            }
-        }
-    }
 </%def>
 
 // Define property that supports prefixed intrinsic size keyword values for gecko.

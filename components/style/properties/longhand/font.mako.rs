@@ -485,7 +485,7 @@ ${helpers.single_keyword_system("font-variant-caps",
         ///
         /// However, system fonts may provide other values. Pango
         /// may provide 350, 380, and 1000 (on top of the existing values), for example.
-        #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, ToCss)]
+        #[derive(Clone, ComputeSquaredDistance, Copy, Debug, PartialEq, Eq, Hash, ToCss)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
         pub struct T(pub u16);
 
@@ -1118,6 +1118,7 @@ ${helpers.single_keyword_system("font-variant-caps",
         use properties::animated_properties::Animatable;
         use values::CSSFloat;
         use values::animated::{ToAnimatedValue, ToAnimatedZero};
+        use values::distance::{ComputeSquaredDistance, SquaredDistance};
 
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         #[derive(Copy, Clone, Debug, PartialEq, ToCss)]
@@ -1145,12 +1146,13 @@ ${helpers.single_keyword_system("font-variant-caps",
                     _ => Err(()),
                 }
             }
+        }
 
+        impl ComputeSquaredDistance for T {
             #[inline]
-            fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
-                match (*self, *other) {
-                    (T::Number(ref number), T::Number(ref other)) =>
-                        number.compute_distance(other),
+            fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
+                match (self, other) {
+                    (&T::Number(ref this), &T::Number(ref other)) => this.compute_squared_distance(other),
                     _ => Err(()),
                 }
             }

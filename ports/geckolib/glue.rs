@@ -131,6 +131,7 @@ use style::traversal_flags::{TraversalFlags, self};
 use style::values::{CustomIdent, KeyframesName};
 use style::values::animated::ToAnimatedZero;
 use style::values::computed::Context;
+use style::values::distance::ComputeSquaredDistance;
 use style_traits::{PARSING_MODE_DEFAULT, ToCss};
 use super::error_reporter::ErrorReporter;
 use super::stylesheet_loader::StylesheetLoader;
@@ -380,7 +381,7 @@ pub extern "C" fn Servo_AnimationValues_ComputeDistance(from: RawServoAnimationV
                                                         -> f64 {
     let from_value = AnimationValue::as_arc(&from);
     let to_value = AnimationValue::as_arc(&to);
-    from_value.compute_distance(to_value).unwrap_or(0.0)
+    from_value.compute_squared_distance(to_value).map(|d| d.sqrt()).unwrap_or(0.0)
 }
 
 #[no_mangle]

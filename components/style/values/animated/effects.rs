@@ -14,6 +14,7 @@ use values::Impossible;
 use values::animated::{ToAnimatedValue, ToAnimatedZero};
 use values::computed::{Angle, NonNegativeNumber};
 use values::computed::length::{Length, NonNegativeLength};
+use values::distance::{ComputeSquaredDistance, SquaredDistance};
 use values::generics::effects::BoxShadow as GenericBoxShadow;
 use values::generics::effects::Filter as GenericFilter;
 use values::generics::effects::SimpleShadow as GenericSimpleShadow;
@@ -102,6 +103,14 @@ where
     }
 }
 
+impl<S> ComputeSquaredDistance for ShadowList<S> {
+    #[inline]
+    fn compute_squared_distance(&self, _other: &Self) -> Result<SquaredDistance, ()> {
+        // FIXME: This should be implemented.
+        Err(())
+    }
+}
+
 impl<S> ToAnimatedZero for ShadowList<S> {
     #[inline]
     fn to_animated_zero(&self) -> Result<Self, ()> {
@@ -140,14 +149,11 @@ impl Animatable for BoxShadow {
             inset: self.inset,
         })
     }
+}
 
+impl ComputeSquaredDistance for BoxShadow {
     #[inline]
-    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
-        self.compute_squared_distance(other).map(|sd| sd.sqrt())
-    }
-
-    #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
+    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
         if self.inset != other.inset {
             return Err(());
         }
@@ -218,21 +224,6 @@ impl Animatable for SimpleShadow {
             vertical: vertical,
             blur: blur,
         })
-    }
-
-    #[inline]
-    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
-        self.compute_squared_distance(other).map(|sd| sd.sqrt())
-    }
-
-    #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
-        Ok(
-            self.color.compute_squared_distance(&other.color)? +
-            self.horizontal.compute_squared_distance(&other.horizontal)? +
-            self.vertical.compute_squared_distance(&other.vertical)? +
-            self.blur.compute_squared_distance(&other.blur)?
-        )
     }
 }
 

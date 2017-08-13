@@ -10,6 +10,7 @@ use parser::ParserContext;
 use properties::animated_properties::Animatable;
 use style_traits::ParseError;
 use values::animated::ToAnimatedZero;
+use values::distance::{ComputeSquaredDistance, SquaredDistance};
 
 /// A generic value for the `initial-letter` property.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -84,13 +85,18 @@ impl<Value> Animatable for Spacing<Value>
         let other = other.value().unwrap_or(&zero);
         this.add_weighted(other, self_portion, other_portion).map(Spacing::Value)
     }
+}
 
+impl<V> ComputeSquaredDistance for Spacing<V>
+where
+    V: ComputeSquaredDistance + From<Au>,
+{
     #[inline]
-    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
-        let zero = Value::from(Au(0));
+    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
+        let zero = V::from(Au(0));
         let this = self.value().unwrap_or(&zero);
         let other = other.value().unwrap_or(&zero);
-        this.compute_distance(other)
+        this.compute_squared_distance(other)
     }
 }
 
@@ -104,7 +110,7 @@ where
 
 /// A generic value for the `line-height` property.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, ToAnimatedValue, ToCss)]
+#[derive(Clone, ComputeSquaredDistance, Copy, Debug, HasViewportPercentage, PartialEq, ToAnimatedValue, ToCss)]
 pub enum LineHeight<Number, LengthOrPercentage> {
     /// `normal`
     Normal,

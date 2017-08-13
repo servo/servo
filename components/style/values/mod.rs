@@ -19,6 +19,7 @@ use style_traits::{ToCss, ParseError, StyleParseError};
 
 pub mod animated;
 pub mod computed;
+pub mod distance;
 pub mod generics;
 pub mod specified;
 
@@ -51,7 +52,8 @@ impl Parse for Impossible {
 
 /// A struct representing one of two kinds of values.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Copy, HasViewportPercentage, PartialEq, ToAnimatedValue, ToComputedValue, ToCss)]
+#[derive(Clone, ComputeSquaredDistance, Copy, HasViewportPercentage, PartialEq)]
+#[derive(ToAnimatedValue, ToComputedValue, ToCss)]
 pub enum Either<A, B> {
     /// The first value.
     First(A),

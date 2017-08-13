@@ -36,7 +36,7 @@ pub struct BorderImageSlice<NumberOrPercentage> {
 ///
 /// https://drafts.csswg.org/css-backgrounds-3/#border-radius
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, ToComputedValue)]
+#[derive(Clone, ComputeSquaredDistance, Copy, Debug, HasViewportPercentage, PartialEq, ToComputedValue)]
 pub struct BorderRadius<LengthOrPercentage> {
     /// The top left radius.
     pub top_left: BorderCornerRadius<LengthOrPercentage>,
@@ -48,9 +48,9 @@ pub struct BorderRadius<LengthOrPercentage> {
     pub bottom_left: BorderCornerRadius<LengthOrPercentage>,
 }
 
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, ToComputedValue)]
 /// A generic value for `border-*-radius` longhand properties.
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, ComputeSquaredDistance, Copy, Debug, HasViewportPercentage, PartialEq, ToComputedValue)]
 pub struct BorderCornerRadius<L>(pub Size2D<L>);
 
 impl<N> From<N> for BorderImageSlice<N>
@@ -129,19 +129,6 @@ where
         let bl = self.bottom_left.add_weighted(&other.bottom_left, self_portion, other_portion)?;
         Ok(BorderRadius::new(tl, tr, br, bl))
     }
-
-    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
-        Ok(self.compute_squared_distance(other)?.sqrt())
-    }
-
-    fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
-        Ok(
-            self.top_left.compute_squared_distance(&other.top_left)? +
-            self.top_right.compute_squared_distance(&other.top_right)? +
-            self.bottom_right.compute_squared_distance(&other.bottom_right)? +
-            self.bottom_left.compute_squared_distance(&other.bottom_left)?,
-        )
-    }
 }
 
 impl<L> ToCss for BorderRadius<L>
@@ -188,16 +175,6 @@ where
         other_portion: f64,
     ) -> Result<Self, ()> {
         Ok(BorderCornerRadius(self.0.add_weighted(&other.0, self_portion, other_portion)?))
-    }
-
-    #[inline]
-    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
-        self.0.compute_distance(&other.0)
-    }
-
-    #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
-        self.0.compute_squared_distance(&other.0)
     }
 }
 

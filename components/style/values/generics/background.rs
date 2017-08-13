@@ -5,7 +5,7 @@
 //! Generic types for CSS values related to backgrounds.
 
 /// A generic value for the `background-size` property.
-#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, ComputeSquaredDistance, Copy, Debug, HasViewportPercentage, PartialEq, ToComputedValue, ToCss)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum BackgroundSize<LengthOrPercentageOrAuto> {
     /// `<width> <height>`
