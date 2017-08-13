@@ -74,6 +74,10 @@ use style::gecko_bindings::structs::{nsCSSFontFaceRule, nsCSSCounterStyleRule};
 use style::gecko_bindings::structs::{nsRestyleHint, nsChangeHint, PropertyValuePair};
 use style::gecko_bindings::structs::IterationCompositeOperation;
 use style::gecko_bindings::structs::MallocSizeOf;
+use style::gecko_bindings::structs::OriginFlags;
+use style::gecko_bindings::structs::OriginFlags_Author;
+use style::gecko_bindings::structs::OriginFlags_User;
+use style::gecko_bindings::structs::OriginFlags_UserAgent;
 use style::gecko_bindings::structs::RawGeckoGfxMatrix4x4;
 use style::gecko_bindings::structs::RawGeckoPresContextOwned;
 use style::gecko_bindings::structs::SeenPtrs;
@@ -114,6 +118,7 @@ use style::stylesheets::{FontFeatureValuesRule, ImportRule, KeyframesRule, Mallo
 use style::stylesheets::{MallocSizeOfWithRepeats, MediaRule};
 use style::stylesheets::{NamespaceRule, Origin, PageRule, SizeOfState, StyleRule, SupportsRule};
 use style::stylesheets::StylesheetContents;
+use style::stylesheets::StylesheetInDocument;
 use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
 use style::stylesheets::keyframes_rule::{Keyframe, KeyframeSelector, KeyframesStepValue};
 use style::stylesheets::supports_rule::parse_condition_or_declaration;
@@ -845,12 +850,10 @@ pub extern "C" fn Servo_StyleSet_AppendStyleSheet(
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
     let mut data = &mut *data;
     let guard = global_style_data.shared_lock.read();
-    data.stylesheets.append_stylesheet(
-        &data.stylist,
-        unsafe { GeckoStyleSheet::new(sheet) },
-        &guard
-    );
-    data.clear_stylist();
+    let sheet = unsafe { GeckoStyleSheet::new(sheet) };
+    let origin = sheet.contents(&guard).origin;
+    data.stylesheets.append_stylesheet(&data.stylist, sheet, &guard);
+    data.clear_stylist_origin(&origin);
 }
 
 #[no_mangle]
@@ -894,12 +897,10 @@ pub extern "C" fn Servo_StyleSet_PrependStyleSheet(
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
     let mut data = &mut *data;
     let guard = global_style_data.shared_lock.read();
-    data.stylesheets.prepend_stylesheet(
-        &data.stylist,
-        unsafe { GeckoStyleSheet::new(sheet) },
-        &guard,
-    );
-    data.clear_stylist();
+    let sheet = unsafe { GeckoStyleSheet::new(sheet) };
+    let origin = sheet.contents(&guard).origin;
+    data.stylesheets.prepend_stylesheet(&data.stylist, sheet, &guard);
+    data.clear_stylist_origin(&origin);
 }
 
 #[no_mangle]
@@ -912,13 +913,15 @@ pub extern "C" fn Servo_StyleSet_InsertStyleSheetBefore(
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
     let mut data = &mut *data;
     let guard = global_style_data.shared_lock.read();
+    let sheet = unsafe { GeckoStyleSheet::new(sheet) };
+    let origin = sheet.contents(&guard).origin;
     data.stylesheets.insert_stylesheet_before(
         &data.stylist,
-        unsafe { GeckoStyleSheet::new(sheet) },
+        sheet,
         unsafe { GeckoStyleSheet::new(before_sheet) },
         &guard,
     );
-    data.clear_stylist();
+    data.clear_stylist_origin(&origin);
 }
 
 #[no_mangle]
@@ -930,12 +933,10 @@ pub extern "C" fn Servo_StyleSet_RemoveStyleSheet(
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
     let mut data = &mut *data;
     let guard = global_style_data.shared_lock.read();
-    data.stylesheets.remove_stylesheet(
-        &data.stylist,
-        unsafe { GeckoStyleSheet::new(sheet) },
-        &guard,
-    );
-    data.clear_stylist();
+    let sheet = unsafe { GeckoStyleSheet::new(sheet) };
+    let origin = sheet.contents(&guard).origin;
+    data.stylesheets.remove_stylesheet(&data.stylist, sheet, &guard);
+    data.clear_stylist_origin(&origin);
 }
 
 #[no_mangle]
@@ -954,11 +955,14 @@ pub extern "C" fn Servo_StyleSet_FlushStyleSheets(
 pub extern "C" fn Servo_StyleSet_NoteStyleSheetsChanged(
     raw_data: RawServoStyleSetBorrowed,
     author_style_disabled: bool,
+    changed_origins: OriginFlags,
 ) {
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
-    data.stylesheets.force_dirty();
+    for origin in changed_origins.iter() {
+        data.stylesheets.force_dirty_origin(&origin);
+        data.clear_stylist_origin(&origin);
+    }
     data.stylesheets.set_author_style_disabled(author_style_disabled);
-    data.clear_stylist();
 }
 
 #[no_mangle]
@@ -1006,6 +1010,17 @@ pub extern "C" fn Servo_StyleSheet_SizeOfIncludingThis(
     let malloc_size_of = malloc_size_of.unwrap();
     StylesheetContents::as_arc(&sheet)
         .malloc_size_of_children(&guard, malloc_size_of)
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_StyleSheet_GetOrigin(
+    sheet: RawServoStyleSheetContentsBorrowed
+) -> OriginFlags {
+    match StylesheetContents::as_arc(&sheet).origin {
+        Origin::UserAgent => OriginFlags_UserAgent,
+        Origin::User => OriginFlags_User,
+        Origin::Author => OriginFlags_Author,
+    }
 }
 
 fn read_locked_arc<T, R, F>(raw: &<Locked<T> as HasFFI>::FFIType, func: F) -> R

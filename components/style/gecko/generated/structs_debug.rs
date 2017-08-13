@@ -1052,8 +1052,6 @@ pub mod root {
         }
         pub type pair_first_type<_T1> = _T1;
         pub type pair_second_type<_T2> = _T2;
-        pub type pair__PCCP = u8;
-        pub type pair__PCCFP = u8;
         #[repr(C)]
         #[derive(Debug, Copy)]
         pub struct input_iterator_tag {
@@ -8285,6 +8283,51 @@ pub mod root {
                         PropertyStyleAnimationValuePair ) , "::" , stringify !
                         ( mValue ) ));
         }
+        pub const OriginFlags_UserAgent: root::mozilla::OriginFlags =
+            OriginFlags(1);
+        pub const OriginFlags_User: root::mozilla::OriginFlags =
+            OriginFlags(2);
+        pub const OriginFlags_Author: root::mozilla::OriginFlags =
+            OriginFlags(4);
+        pub const OriginFlags_All: root::mozilla::OriginFlags =
+            OriginFlags(7);
+        impl ::std::ops::BitOr<root::mozilla::OriginFlags> for
+         root::mozilla::OriginFlags {
+            type
+            Output
+            =
+            Self;
+            #[inline]
+            fn bitor(self, other: Self) -> Self {
+                OriginFlags(self.0 | other.0)
+            }
+        }
+        impl ::std::ops::BitOrAssign for root::mozilla::OriginFlags {
+            #[inline]
+            fn bitor_assign(&mut self, rhs: root::mozilla::OriginFlags) {
+                self.0 |= rhs.0;
+            }
+        }
+        impl ::std::ops::BitAnd<root::mozilla::OriginFlags> for
+         root::mozilla::OriginFlags {
+            type
+            Output
+            =
+            Self;
+            #[inline]
+            fn bitand(self, other: Self) -> Self {
+                OriginFlags(self.0 & other.0)
+            }
+        }
+        impl ::std::ops::BitAndAssign for root::mozilla::OriginFlags {
+            #[inline]
+            fn bitand_assign(&mut self, rhs: root::mozilla::OriginFlags) {
+                self.0 &= rhs.0;
+            }
+        }
+        #[repr(C)]
+        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        pub struct OriginFlags(pub u8);
         #[test]
         fn __bindgen_test_layout_DefaultDelete_open0_RawServoStyleSet_close0_instantiation() {
             assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete>() ,
@@ -16919,6 +16962,7 @@ pub mod root {
         pub mPageUnloadingEventTimeStamp: root::mozilla::TimeStamp,
         pub mDocGroup: root::RefPtr<root::mozilla::dom::DocGroup>,
         pub mTrackingScripts: [u64; 6usize],
+        pub mBufferedCSPViolations: root::nsTArray<root::nsCOMPtr<root::nsIRunnable>>,
     }
     pub type nsIDocument_GlobalObject = root::mozilla::dom::GlobalObject;
     pub type nsIDocument_Encoding = root::mozilla::Encoding;
@@ -17213,7 +17257,7 @@ pub mod root {
     pub const nsIDocument_kSegmentSize: usize = 128;
     #[test]
     fn bindgen_test_layout_nsIDocument() {
-        assert_eq!(::std::mem::size_of::<nsIDocument>() , 880usize , concat !
+        assert_eq!(::std::mem::size_of::<nsIDocument>() , 888usize , concat !
                    ( "Size of: " , stringify ! ( nsIDocument ) ));
         assert_eq! (::std::mem::align_of::<nsIDocument>() , 8usize , concat !
                     ( "Alignment of " , stringify ! ( nsIDocument ) ));
@@ -19082,7 +19126,7 @@ pub mod root {
             }
         }
         #[inline]
-        pub fn mIsScopedStyleEnabled(&self) -> ::std::os::raw::c_uint {
+        pub fn mBufferingCSPViolations(&self) -> bool {
             let mut unit_field_val: u64 =
                 unsafe { ::std::mem::uninitialized() };
             unsafe {
@@ -19092,15 +19136,14 @@ pub mod root {
                                                     *mut u64 as *mut u8,
                                                 ::std::mem::size_of::<u64>())
             };
-            let mask = 1688849860263936u64 as u64;
+            let mask = 562949953421312u64 as u64;
             let val = (unit_field_val & mask) >> 49usize;
-            unsafe { ::std::mem::transmute(val as u32) }
+            unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
-        pub fn set_mIsScopedStyleEnabled(&mut self,
-                                         val: ::std::os::raw::c_uint) {
-            let mask = 1688849860263936u64 as u64;
-            let val = val as u32 as u64;
+        pub fn set_mBufferingCSPViolations(&mut self, val: bool) {
+            let mask = 562949953421312u64 as u64;
+            let val = val as u8 as u64;
             let mut unit_field_val: u64 =
                 unsafe { ::std::mem::uninitialized() };
             unsafe {
@@ -19112,6 +19155,45 @@ pub mod root {
             };
             unit_field_val &= !mask;
             unit_field_val |= (val << 49usize) & mask;
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
+        }
+        #[inline]
+        pub fn mIsScopedStyleEnabled(&self) -> ::std::os::raw::c_uint {
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 3377699720527872u64 as u64;
+            let val = (unit_field_val & mask) >> 50usize;
+            unsafe { ::std::mem::transmute(val as u32) }
+        }
+        #[inline]
+        pub fn set_mIsScopedStyleEnabled(&mut self,
+                                         val: ::std::os::raw::c_uint) {
+            let mask = 3377699720527872u64 as u64;
+            let val = val as u32 as u64;
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            unit_field_val &= !mask;
+            unit_field_val |= (val << 50usize) & mask;
             unsafe {
                 ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
                                                     *const u8,
@@ -19165,6 +19247,7 @@ pub mod root {
                               mIsContentDocument: bool,
                               mMightHaveStaleServoData: bool,
                               mDidCallBeginLoad: bool,
+                              mBufferingCSPViolations: bool,
                               mIsScopedStyleEnabled: ::std::os::raw::c_uint)
          -> u64 {
             ({
@@ -19217,567 +19300,582 @@ pub mod root {
                                                                                                                                                                                                                                                        ({
                                                                                                                                                                                                                                                             ({
                                                                                                                                                                                                                                                                  ({
-                                                                                                                                                                                                                                                                      0
+                                                                                                                                                                                                                                                                      ({
+                                                                                                                                                                                                                                                                           0
+                                                                                                                                                                                                                                                                       }
+                                                                                                                                                                                                                                                                           |
+                                                                                                                                                                                                                                                                           ((mBidiEnabled
+                                                                                                                                                                                                                                                                                 as
+                                                                                                                                                                                                                                                                                 u8
+                                                                                                                                                                                                                                                                                 as
+                                                                                                                                                                                                                                                                                 u64)
+                                                                                                                                                                                                                                                                                <<
+                                                                                                                                                                                                                                                                                0usize)
+                                                                                                                                                                                                                                                                               &
+                                                                                                                                                                                                                                                                               (1u64
+                                                                                                                                                                                                                                                                                    as
+                                                                                                                                                                                                                                                                                    u64))
                                                                                                                                                                                                                                                                   }
                                                                                                                                                                                                                                                                       |
-                                                                                                                                                                                                                                                                      ((mBidiEnabled
+                                                                                                                                                                                                                                                                      ((mMathMLEnabled
                                                                                                                                                                                                                                                                             as
                                                                                                                                                                                                                                                                             u8
                                                                                                                                                                                                                                                                             as
                                                                                                                                                                                                                                                                             u64)
                                                                                                                                                                                                                                                                            <<
-                                                                                                                                                                                                                                                                           0usize)
+                                                                                                                                                                                                                                                                           1usize)
                                                                                                                                                                                                                                                                           &
-                                                                                                                                                                                                                                                                          (1u64
+                                                                                                                                                                                                                                                                          (2u64
                                                                                                                                                                                                                                                                                as
                                                                                                                                                                                                                                                                                u64))
                                                                                                                                                                                                                                                              }
                                                                                                                                                                                                                                                                  |
-                                                                                                                                                                                                                                                                 ((mMathMLEnabled
+                                                                                                                                                                                                                                                                 ((mIsInitialDocumentInWindow
                                                                                                                                                                                                                                                                        as
                                                                                                                                                                                                                                                                        u8
                                                                                                                                                                                                                                                                        as
                                                                                                                                                                                                                                                                        u64)
                                                                                                                                                                                                                                                                       <<
-                                                                                                                                                                                                                                                                      1usize)
+                                                                                                                                                                                                                                                                      2usize)
                                                                                                                                                                                                                                                                      &
-                                                                                                                                                                                                                                                                     (2u64
+                                                                                                                                                                                                                                                                     (4u64
                                                                                                                                                                                                                                                                           as
                                                                                                                                                                                                                                                                           u64))
                                                                                                                                                                                                                                                         }
                                                                                                                                                                                                                                                             |
-                                                                                                                                                                                                                                                            ((mIsInitialDocumentInWindow
+                                                                                                                                                                                                                                                            ((mIgnoreDocGroupMismatches
                                                                                                                                                                                                                                                                   as
                                                                                                                                                                                                                                                                   u8
                                                                                                                                                                                                                                                                   as
                                                                                                                                                                                                                                                                   u64)
                                                                                                                                                                                                                                                                  <<
-                                                                                                                                                                                                                                                                 2usize)
+                                                                                                                                                                                                                                                                 3usize)
                                                                                                                                                                                                                                                                 &
-                                                                                                                                                                                                                                                                (4u64
+                                                                                                                                                                                                                                                                (8u64
                                                                                                                                                                                                                                                                      as
                                                                                                                                                                                                                                                                      u64))
                                                                                                                                                                                                                                                    }
                                                                                                                                                                                                                                                        |
-                                                                                                                                                                                                                                                       ((mIgnoreDocGroupMismatches
+                                                                                                                                                                                                                                                       ((mLoadedAsData
                                                                                                                                                                                                                                                              as
                                                                                                                                                                                                                                                              u8
                                                                                                                                                                                                                                                              as
                                                                                                                                                                                                                                                              u64)
                                                                                                                                                                                                                                                             <<
-                                                                                                                                                                                                                                                            3usize)
+                                                                                                                                                                                                                                                            4usize)
                                                                                                                                                                                                                                                            &
-                                                                                                                                                                                                                                                           (8u64
+                                                                                                                                                                                                                                                           (16u64
                                                                                                                                                                                                                                                                 as
                                                                                                                                                                                                                                                                 u64))
                                                                                                                                                                                                                                               }
                                                                                                                                                                                                                                                   |
-                                                                                                                                                                                                                                                  ((mLoadedAsData
+                                                                                                                                                                                                                                                  ((mLoadedAsInteractiveData
                                                                                                                                                                                                                                                         as
                                                                                                                                                                                                                                                         u8
                                                                                                                                                                                                                                                         as
                                                                                                                                                                                                                                                         u64)
                                                                                                                                                                                                                                                        <<
-                                                                                                                                                                                                                                                       4usize)
+                                                                                                                                                                                                                                                       5usize)
                                                                                                                                                                                                                                                       &
-                                                                                                                                                                                                                                                      (16u64
+                                                                                                                                                                                                                                                      (32u64
                                                                                                                                                                                                                                                            as
                                                                                                                                                                                                                                                            u64))
                                                                                                                                                                                                                                          }
                                                                                                                                                                                                                                              |
-                                                                                                                                                                                                                                             ((mLoadedAsInteractiveData
+                                                                                                                                                                                                                                             ((mMayStartLayout
                                                                                                                                                                                                                                                    as
                                                                                                                                                                                                                                                    u8
                                                                                                                                                                                                                                                    as
                                                                                                                                                                                                                                                    u64)
                                                                                                                                                                                                                                                   <<
-                                                                                                                                                                                                                                                  5usize)
+                                                                                                                                                                                                                                                  6usize)
                                                                                                                                                                                                                                                  &
-                                                                                                                                                                                                                                                 (32u64
+                                                                                                                                                                                                                                                 (64u64
                                                                                                                                                                                                                                                       as
                                                                                                                                                                                                                                                       u64))
                                                                                                                                                                                                                                     }
                                                                                                                                                                                                                                         |
-                                                                                                                                                                                                                                        ((mMayStartLayout
+                                                                                                                                                                                                                                        ((mHaveFiredTitleChange
                                                                                                                                                                                                                                               as
                                                                                                                                                                                                                                               u8
                                                                                                                                                                                                                                               as
                                                                                                                                                                                                                                               u64)
                                                                                                                                                                                                                                              <<
-                                                                                                                                                                                                                                             6usize)
+                                                                                                                                                                                                                                             7usize)
                                                                                                                                                                                                                                             &
-                                                                                                                                                                                                                                            (64u64
+                                                                                                                                                                                                                                            (128u64
                                                                                                                                                                                                                                                  as
                                                                                                                                                                                                                                                  u64))
                                                                                                                                                                                                                                }
                                                                                                                                                                                                                                    |
-                                                                                                                                                                                                                                   ((mHaveFiredTitleChange
+                                                                                                                                                                                                                                   ((mIsShowing
                                                                                                                                                                                                                                          as
                                                                                                                                                                                                                                          u8
                                                                                                                                                                                                                                          as
                                                                                                                                                                                                                                          u64)
                                                                                                                                                                                                                                         <<
-                                                                                                                                                                                                                                        7usize)
+                                                                                                                                                                                                                                        8usize)
                                                                                                                                                                                                                                        &
-                                                                                                                                                                                                                                       (128u64
+                                                                                                                                                                                                                                       (256u64
                                                                                                                                                                                                                                             as
                                                                                                                                                                                                                                             u64))
                                                                                                                                                                                                                           }
                                                                                                                                                                                                                               |
-                                                                                                                                                                                                                              ((mIsShowing
+                                                                                                                                                                                                                              ((mVisible
                                                                                                                                                                                                                                     as
                                                                                                                                                                                                                                     u8
                                                                                                                                                                                                                                     as
                                                                                                                                                                                                                                     u64)
                                                                                                                                                                                                                                    <<
-                                                                                                                                                                                                                                   8usize)
+                                                                                                                                                                                                                                   9usize)
                                                                                                                                                                                                                                   &
-                                                                                                                                                                                                                                  (256u64
+                                                                                                                                                                                                                                  (512u64
                                                                                                                                                                                                                                        as
                                                                                                                                                                                                                                        u64))
                                                                                                                                                                                                                      }
                                                                                                                                                                                                                          |
-                                                                                                                                                                                                                         ((mVisible
+                                                                                                                                                                                                                         ((mHasReferrerPolicyCSP
                                                                                                                                                                                                                                as
                                                                                                                                                                                                                                u8
                                                                                                                                                                                                                                as
                                                                                                                                                                                                                                u64)
                                                                                                                                                                                                                               <<
-                                                                                                                                                                                                                              9usize)
+                                                                                                                                                                                                                              10usize)
                                                                                                                                                                                                                              &
-                                                                                                                                                                                                                             (512u64
+                                                                                                                                                                                                                             (1024u64
                                                                                                                                                                                                                                   as
                                                                                                                                                                                                                                   u64))
                                                                                                                                                                                                                 }
                                                                                                                                                                                                                     |
-                                                                                                                                                                                                                    ((mHasReferrerPolicyCSP
+                                                                                                                                                                                                                    ((mRemovedFromDocShell
                                                                                                                                                                                                                           as
                                                                                                                                                                                                                           u8
                                                                                                                                                                                                                           as
                                                                                                                                                                                                                           u64)
                                                                                                                                                                                                                          <<
-                                                                                                                                                                                                                         10usize)
+                                                                                                                                                                                                                         11usize)
                                                                                                                                                                                                                         &
-                                                                                                                                                                                                                        (1024u64
+                                                                                                                                                                                                                        (2048u64
                                                                                                                                                                                                                              as
                                                                                                                                                                                                                              u64))
                                                                                                                                                                                                            }
                                                                                                                                                                                                                |
-                                                                                                                                                                                                               ((mRemovedFromDocShell
+                                                                                                                                                                                                               ((mAllowDNSPrefetch
                                                                                                                                                                                                                      as
                                                                                                                                                                                                                      u8
                                                                                                                                                                                                                      as
                                                                                                                                                                                                                      u64)
                                                                                                                                                                                                                     <<
-                                                                                                                                                                                                                    11usize)
+                                                                                                                                                                                                                    12usize)
                                                                                                                                                                                                                    &
-                                                                                                                                                                                                                   (2048u64
+                                                                                                                                                                                                                   (4096u64
                                                                                                                                                                                                                         as
                                                                                                                                                                                                                         u64))
                                                                                                                                                                                                       }
                                                                                                                                                                                                           |
-                                                                                                                                                                                                          ((mAllowDNSPrefetch
+                                                                                                                                                                                                          ((mIsStaticDocument
                                                                                                                                                                                                                 as
                                                                                                                                                                                                                 u8
                                                                                                                                                                                                                 as
                                                                                                                                                                                                                 u64)
                                                                                                                                                                                                                <<
-                                                                                                                                                                                                               12usize)
+                                                                                                                                                                                                               13usize)
                                                                                                                                                                                                               &
-                                                                                                                                                                                                              (4096u64
+                                                                                                                                                                                                              (8192u64
                                                                                                                                                                                                                    as
                                                                                                                                                                                                                    u64))
                                                                                                                                                                                                  }
                                                                                                                                                                                                      |
-                                                                                                                                                                                                     ((mIsStaticDocument
+                                                                                                                                                                                                     ((mCreatingStaticClone
                                                                                                                                                                                                            as
                                                                                                                                                                                                            u8
                                                                                                                                                                                                            as
                                                                                                                                                                                                            u64)
                                                                                                                                                                                                           <<
-                                                                                                                                                                                                          13usize)
+                                                                                                                                                                                                          14usize)
                                                                                                                                                                                                          &
-                                                                                                                                                                                                         (8192u64
+                                                                                                                                                                                                         (16384u64
                                                                                                                                                                                                               as
                                                                                                                                                                                                               u64))
                                                                                                                                                                                             }
                                                                                                                                                                                                 |
-                                                                                                                                                                                                ((mCreatingStaticClone
+                                                                                                                                                                                                ((mInUnlinkOrDeletion
                                                                                                                                                                                                       as
                                                                                                                                                                                                       u8
                                                                                                                                                                                                       as
                                                                                                                                                                                                       u64)
                                                                                                                                                                                                      <<
-                                                                                                                                                                                                     14usize)
+                                                                                                                                                                                                     15usize)
                                                                                                                                                                                                     &
-                                                                                                                                                                                                    (16384u64
+                                                                                                                                                                                                    (32768u64
                                                                                                                                                                                                          as
                                                                                                                                                                                                          u64))
                                                                                                                                                                                        }
                                                                                                                                                                                            |
-                                                                                                                                                                                           ((mInUnlinkOrDeletion
+                                                                                                                                                                                           ((mHasHadScriptHandlingObject
                                                                                                                                                                                                  as
                                                                                                                                                                                                  u8
                                                                                                                                                                                                  as
                                                                                                                                                                                                  u64)
                                                                                                                                                                                                 <<
-                                                                                                                                                                                                15usize)
+                                                                                                                                                                                                16usize)
                                                                                                                                                                                                &
-                                                                                                                                                                                               (32768u64
+                                                                                                                                                                                               (65536u64
                                                                                                                                                                                                     as
                                                                                                                                                                                                     u64))
                                                                                                                                                                                   }
                                                                                                                                                                                       |
-                                                                                                                                                                                      ((mHasHadScriptHandlingObject
+                                                                                                                                                                                      ((mIsBeingUsedAsImage
                                                                                                                                                                                             as
                                                                                                                                                                                             u8
                                                                                                                                                                                             as
                                                                                                                                                                                             u64)
                                                                                                                                                                                            <<
-                                                                                                                                                                                           16usize)
+                                                                                                                                                                                           17usize)
                                                                                                                                                                                           &
-                                                                                                                                                                                          (65536u64
+                                                                                                                                                                                          (131072u64
                                                                                                                                                                                                as
                                                                                                                                                                                                u64))
                                                                                                                                                                              }
                                                                                                                                                                                  |
-                                                                                                                                                                                 ((mIsBeingUsedAsImage
+                                                                                                                                                                                 ((mIsSyntheticDocument
                                                                                                                                                                                        as
                                                                                                                                                                                        u8
                                                                                                                                                                                        as
                                                                                                                                                                                        u64)
                                                                                                                                                                                       <<
-                                                                                                                                                                                      17usize)
+                                                                                                                                                                                      18usize)
                                                                                                                                                                                      &
-                                                                                                                                                                                     (131072u64
+                                                                                                                                                                                     (262144u64
                                                                                                                                                                                           as
                                                                                                                                                                                           u64))
                                                                                                                                                                         }
                                                                                                                                                                             |
-                                                                                                                                                                            ((mIsSyntheticDocument
+                                                                                                                                                                            ((mHasLinksToUpdate
                                                                                                                                                                                   as
                                                                                                                                                                                   u8
                                                                                                                                                                                   as
                                                                                                                                                                                   u64)
                                                                                                                                                                                  <<
-                                                                                                                                                                                 18usize)
+                                                                                                                                                                                 19usize)
                                                                                                                                                                                 &
-                                                                                                                                                                                (262144u64
+                                                                                                                                                                                (524288u64
                                                                                                                                                                                      as
                                                                                                                                                                                      u64))
                                                                                                                                                                    }
                                                                                                                                                                        |
-                                                                                                                                                                       ((mHasLinksToUpdate
+                                                                                                                                                                       ((mHasLinksToUpdateRunnable
                                                                                                                                                                              as
                                                                                                                                                                              u8
                                                                                                                                                                              as
                                                                                                                                                                              u64)
                                                                                                                                                                             <<
-                                                                                                                                                                            19usize)
+                                                                                                                                                                            20usize)
                                                                                                                                                                            &
-                                                                                                                                                                           (524288u64
+                                                                                                                                                                           (1048576u64
                                                                                                                                                                                 as
                                                                                                                                                                                 u64))
                                                                                                                                                               }
                                                                                                                                                                   |
-                                                                                                                                                                  ((mHasLinksToUpdateRunnable
+                                                                                                                                                                  ((mMayHaveDOMMutationObservers
                                                                                                                                                                         as
                                                                                                                                                                         u8
                                                                                                                                                                         as
                                                                                                                                                                         u64)
                                                                                                                                                                        <<
-                                                                                                                                                                       20usize)
+                                                                                                                                                                       21usize)
                                                                                                                                                                       &
-                                                                                                                                                                      (1048576u64
+                                                                                                                                                                      (2097152u64
                                                                                                                                                                            as
                                                                                                                                                                            u64))
                                                                                                                                                          }
                                                                                                                                                              |
-                                                                                                                                                             ((mMayHaveDOMMutationObservers
+                                                                                                                                                             ((mMayHaveAnimationObservers
                                                                                                                                                                    as
                                                                                                                                                                    u8
                                                                                                                                                                    as
                                                                                                                                                                    u64)
                                                                                                                                                                   <<
-                                                                                                                                                                  21usize)
+                                                                                                                                                                  22usize)
                                                                                                                                                                  &
-                                                                                                                                                                 (2097152u64
+                                                                                                                                                                 (4194304u64
                                                                                                                                                                       as
                                                                                                                                                                       u64))
                                                                                                                                                     }
                                                                                                                                                         |
-                                                                                                                                                        ((mMayHaveAnimationObservers
+                                                                                                                                                        ((mHasMixedActiveContentLoaded
                                                                                                                                                               as
                                                                                                                                                               u8
                                                                                                                                                               as
                                                                                                                                                               u64)
                                                                                                                                                              <<
-                                                                                                                                                             22usize)
+                                                                                                                                                             23usize)
                                                                                                                                                             &
-                                                                                                                                                            (4194304u64
+                                                                                                                                                            (8388608u64
                                                                                                                                                                  as
                                                                                                                                                                  u64))
                                                                                                                                                }
                                                                                                                                                    |
-                                                                                                                                                   ((mHasMixedActiveContentLoaded
+                                                                                                                                                   ((mHasMixedActiveContentBlocked
                                                                                                                                                          as
                                                                                                                                                          u8
                                                                                                                                                          as
                                                                                                                                                          u64)
                                                                                                                                                         <<
-                                                                                                                                                        23usize)
+                                                                                                                                                        24usize)
                                                                                                                                                        &
-                                                                                                                                                       (8388608u64
+                                                                                                                                                       (16777216u64
                                                                                                                                                             as
                                                                                                                                                             u64))
                                                                                                                                           }
                                                                                                                                               |
-                                                                                                                                              ((mHasMixedActiveContentBlocked
+                                                                                                                                              ((mHasMixedDisplayContentLoaded
                                                                                                                                                     as
                                                                                                                                                     u8
                                                                                                                                                     as
                                                                                                                                                     u64)
                                                                                                                                                    <<
-                                                                                                                                                   24usize)
+                                                                                                                                                   25usize)
                                                                                                                                                   &
-                                                                                                                                                  (16777216u64
+                                                                                                                                                  (33554432u64
                                                                                                                                                        as
                                                                                                                                                        u64))
                                                                                                                                      }
                                                                                                                                          |
-                                                                                                                                         ((mHasMixedDisplayContentLoaded
+                                                                                                                                         ((mHasMixedDisplayContentBlocked
                                                                                                                                                as
                                                                                                                                                u8
                                                                                                                                                as
                                                                                                                                                u64)
                                                                                                                                               <<
-                                                                                                                                              25usize)
+                                                                                                                                              26usize)
                                                                                                                                              &
-                                                                                                                                             (33554432u64
+                                                                                                                                             (67108864u64
                                                                                                                                                   as
                                                                                                                                                   u64))
                                                                                                                                 }
                                                                                                                                     |
-                                                                                                                                    ((mHasMixedDisplayContentBlocked
+                                                                                                                                    ((mHasMixedContentObjectSubrequest
                                                                                                                                           as
                                                                                                                                           u8
                                                                                                                                           as
                                                                                                                                           u64)
                                                                                                                                          <<
-                                                                                                                                         26usize)
+                                                                                                                                         27usize)
                                                                                                                                         &
-                                                                                                                                        (67108864u64
+                                                                                                                                        (134217728u64
                                                                                                                                              as
                                                                                                                                              u64))
                                                                                                                            }
                                                                                                                                |
-                                                                                                                               ((mHasMixedContentObjectSubrequest
+                                                                                                                               ((mHasCSP
                                                                                                                                      as
                                                                                                                                      u8
                                                                                                                                      as
                                                                                                                                      u64)
                                                                                                                                     <<
-                                                                                                                                    27usize)
+                                                                                                                                    28usize)
                                                                                                                                    &
-                                                                                                                                   (134217728u64
+                                                                                                                                   (268435456u64
                                                                                                                                         as
                                                                                                                                         u64))
                                                                                                                       }
                                                                                                                           |
-                                                                                                                          ((mHasCSP
+                                                                                                                          ((mHasUnsafeEvalCSP
                                                                                                                                 as
                                                                                                                                 u8
                                                                                                                                 as
                                                                                                                                 u64)
                                                                                                                                <<
-                                                                                                                               28usize)
+                                                                                                                               29usize)
                                                                                                                               &
-                                                                                                                              (268435456u64
+                                                                                                                              (536870912u64
                                                                                                                                    as
                                                                                                                                    u64))
                                                                                                                  }
                                                                                                                      |
-                                                                                                                     ((mHasUnsafeEvalCSP
+                                                                                                                     ((mHasUnsafeInlineCSP
                                                                                                                            as
                                                                                                                            u8
                                                                                                                            as
                                                                                                                            u64)
                                                                                                                           <<
-                                                                                                                          29usize)
+                                                                                                                          30usize)
                                                                                                                          &
-                                                                                                                         (536870912u64
+                                                                                                                         (1073741824u64
                                                                                                                               as
                                                                                                                               u64))
                                                                                                             }
                                                                                                                 |
-                                                                                                                ((mHasUnsafeInlineCSP
+                                                                                                                ((mHasTrackingContentBlocked
                                                                                                                       as
                                                                                                                       u8
                                                                                                                       as
                                                                                                                       u64)
                                                                                                                      <<
-                                                                                                                     30usize)
+                                                                                                                     31usize)
                                                                                                                     &
-                                                                                                                    (1073741824u64
+                                                                                                                    (2147483648u64
                                                                                                                          as
                                                                                                                          u64))
                                                                                                        }
                                                                                                            |
-                                                                                                           ((mHasTrackingContentBlocked
+                                                                                                           ((mHasTrackingContentLoaded
                                                                                                                  as
                                                                                                                  u8
                                                                                                                  as
                                                                                                                  u64)
                                                                                                                 <<
-                                                                                                                31usize)
+                                                                                                                32usize)
                                                                                                                &
-                                                                                                               (2147483648u64
+                                                                                                               (4294967296u64
                                                                                                                     as
                                                                                                                     u64))
                                                                                                   }
                                                                                                       |
-                                                                                                      ((mHasTrackingContentLoaded
+                                                                                                      ((mBFCacheDisallowed
                                                                                                             as
                                                                                                             u8
                                                                                                             as
                                                                                                             u64)
                                                                                                            <<
-                                                                                                           32usize)
+                                                                                                           33usize)
                                                                                                           &
-                                                                                                          (4294967296u64
+                                                                                                          (8589934592u64
                                                                                                                as
                                                                                                                u64))
                                                                                              }
                                                                                                  |
-                                                                                                 ((mBFCacheDisallowed
+                                                                                                 ((mHasHadDefaultView
                                                                                                        as
                                                                                                        u8
                                                                                                        as
                                                                                                        u64)
                                                                                                       <<
-                                                                                                      33usize)
+                                                                                                      34usize)
                                                                                                      &
-                                                                                                     (8589934592u64
+                                                                                                     (17179869184u64
                                                                                                           as
                                                                                                           u64))
                                                                                         }
                                                                                             |
-                                                                                            ((mHasHadDefaultView
+                                                                                            ((mStyleSheetChangeEventsEnabled
                                                                                                   as
                                                                                                   u8
                                                                                                   as
                                                                                                   u64)
                                                                                                  <<
-                                                                                                 34usize)
+                                                                                                 35usize)
                                                                                                 &
-                                                                                                (17179869184u64
+                                                                                                (34359738368u64
                                                                                                      as
                                                                                                      u64))
                                                                                    }
                                                                                        |
-                                                                                       ((mStyleSheetChangeEventsEnabled
+                                                                                       ((mIsSrcdocDocument
                                                                                              as
                                                                                              u8
                                                                                              as
                                                                                              u64)
                                                                                             <<
-                                                                                            35usize)
+                                                                                            36usize)
                                                                                            &
-                                                                                           (34359738368u64
+                                                                                           (68719476736u64
                                                                                                 as
                                                                                                 u64))
                                                                               }
                                                                                   |
-                                                                                  ((mIsSrcdocDocument
+                                                                                  ((mDidDocumentOpen
                                                                                         as
                                                                                         u8
                                                                                         as
                                                                                         u64)
                                                                                        <<
-                                                                                       36usize)
+                                                                                       37usize)
                                                                                       &
-                                                                                      (68719476736u64
+                                                                                      (137438953472u64
                                                                                            as
                                                                                            u64))
                                                                          } |
-                                                                             ((mDidDocumentOpen
+                                                                             ((mHasDisplayDocument
                                                                                    as
                                                                                    u8
                                                                                    as
                                                                                    u64)
                                                                                   <<
-                                                                                  37usize)
+                                                                                  38usize)
                                                                                  &
-                                                                                 (137438953472u64
+                                                                                 (274877906944u64
                                                                                       as
                                                                                       u64))
                                                                     } |
-                                                                        ((mHasDisplayDocument
+                                                                        ((mFontFaceSetDirty
                                                                               as
                                                                               u8
                                                                               as
                                                                               u64)
                                                                              <<
-                                                                             38usize)
+                                                                             39usize)
                                                                             &
-                                                                            (274877906944u64
+                                                                            (549755813888u64
                                                                                  as
                                                                                  u64))
                                                                } |
-                                                                   ((mFontFaceSetDirty
+                                                                   ((mGetUserFontSetCalled
                                                                          as u8
                                                                          as
                                                                          u64)
                                                                         <<
-                                                                        39usize)
+                                                                        40usize)
                                                                        &
-                                                                       (549755813888u64
+                                                                       (1099511627776u64
                                                                             as
                                                                             u64))
                                                           } |
-                                                              ((mGetUserFontSetCalled
+                                                              ((mPostedFlushUserFontSet
                                                                     as u8 as
                                                                     u64) <<
-                                                                   40usize) &
-                                                                  (1099511627776u64
+                                                                   41usize) &
+                                                                  (2199023255552u64
                                                                        as
                                                                        u64))
                                                      } |
-                                                         ((mPostedFlushUserFontSet
+                                                         ((mDidFireDOMContentLoaded
                                                                as u8 as u64)
-                                                              << 41usize) &
-                                                             (2199023255552u64
+                                                              << 42usize) &
+                                                             (4398046511104u64
                                                                   as u64))
                                                 } |
-                                                    ((mDidFireDOMContentLoaded
+                                                    ((mHasScrollLinkedEffect
                                                           as u8 as u64) <<
-                                                         42usize) &
-                                                        (4398046511104u64 as
+                                                         43usize) &
+                                                        (8796093022208u64 as
                                                              u64))
                                            } |
-                                               ((mHasScrollLinkedEffect as u8
-                                                     as u64) << 43usize) &
-                                                   (8796093022208u64 as u64))
+                                               ((mFrameRequestCallbacksScheduled
+                                                     as u8 as u64) << 44usize)
+                                                   &
+                                                   (17592186044416u64 as u64))
                                       } |
-                                          ((mFrameRequestCallbacksScheduled as
-                                                u8 as u64) << 44usize) &
-                                              (17592186044416u64 as u64))
+                                          ((mIsTopLevelContentDocument as u8
+                                                as u64) << 45usize) &
+                                              (35184372088832u64 as u64))
                                  } |
-                                     ((mIsTopLevelContentDocument as u8 as
-                                           u64) << 45usize) &
-                                         (35184372088832u64 as u64))
+                                     ((mIsContentDocument as u8 as u64) <<
+                                          46usize) &
+                                         (70368744177664u64 as u64))
                             } |
-                                ((mIsContentDocument as u8 as u64) << 46usize)
-                                    & (70368744177664u64 as u64))
+                                ((mMightHaveStaleServoData as u8 as u64) <<
+                                     47usize) & (140737488355328u64 as u64))
                        } |
-                           ((mMightHaveStaleServoData as u8 as u64) <<
-                                47usize) & (140737488355328u64 as u64))
+                           ((mDidCallBeginLoad as u8 as u64) << 48usize) &
+                               (281474976710656u64 as u64))
                   } |
-                      ((mDidCallBeginLoad as u8 as u64) << 48usize) &
-                          (281474976710656u64 as u64))
+                      ((mBufferingCSPViolations as u8 as u64) << 49usize) &
+                          (562949953421312u64 as u64))
              } |
-                 ((mIsScopedStyleEnabled as u32 as u64) << 49usize) &
-                     (1688849860263936u64 as u64))
+                 ((mIsScopedStyleEnabled as u32 as u64) << 50usize) &
+                     (3377699720527872u64 as u64))
         }
     }
     #[repr(C)]
@@ -25014,57 +25112,57 @@ pub mod root {
     pub struct nsRange {
         _unused: [u8; 0],
     }
-    pub const NODE_HAS_LISTENERMANAGER: root::_bindgen_ty_72 =
-        _bindgen_ty_72::NODE_HAS_LISTENERMANAGER;
-    pub const NODE_HAS_PROPERTIES: root::_bindgen_ty_72 =
-        _bindgen_ty_72::NODE_HAS_PROPERTIES;
-    pub const NODE_IS_ANONYMOUS_ROOT: root::_bindgen_ty_72 =
-        _bindgen_ty_72::NODE_IS_ANONYMOUS_ROOT;
-    pub const NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE: root::_bindgen_ty_72 =
-        _bindgen_ty_72::NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE;
-    pub const NODE_IS_NATIVE_ANONYMOUS_ROOT: root::_bindgen_ty_72 =
-        _bindgen_ty_72::NODE_IS_NATIVE_ANONYMOUS_ROOT;
-    pub const NODE_FORCE_XBL_BINDINGS: root::_bindgen_ty_72 =
-        _bindgen_ty_72::NODE_FORCE_XBL_BINDINGS;
-    pub const NODE_MAY_BE_IN_BINDING_MNGR: root::_bindgen_ty_72 =
-        _bindgen_ty_72::NODE_MAY_BE_IN_BINDING_MNGR;
-    pub const NODE_IS_EDITABLE: root::_bindgen_ty_72 =
-        _bindgen_ty_72::NODE_IS_EDITABLE;
-    pub const NODE_IS_NATIVE_ANONYMOUS: root::_bindgen_ty_72 =
-        _bindgen_ty_72::NODE_IS_NATIVE_ANONYMOUS;
-    pub const NODE_IS_IN_SHADOW_TREE: root::_bindgen_ty_72 =
-        _bindgen_ty_72::NODE_IS_IN_SHADOW_TREE;
-    pub const NODE_HAS_EMPTY_SELECTOR: root::_bindgen_ty_72 =
-        _bindgen_ty_72::NODE_HAS_EMPTY_SELECTOR;
-    pub const NODE_HAS_SLOW_SELECTOR: root::_bindgen_ty_72 =
-        _bindgen_ty_72::NODE_HAS_SLOW_SELECTOR;
-    pub const NODE_HAS_EDGE_CHILD_SELECTOR: root::_bindgen_ty_72 =
-        _bindgen_ty_72::NODE_HAS_EDGE_CHILD_SELECTOR;
-    pub const NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS: root::_bindgen_ty_72 =
-        _bindgen_ty_72::NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS;
-    pub const NODE_ALL_SELECTOR_FLAGS: root::_bindgen_ty_72 =
-        _bindgen_ty_72::NODE_ALL_SELECTOR_FLAGS;
-    pub const NODE_NEEDS_FRAME: root::_bindgen_ty_72 =
-        _bindgen_ty_72::NODE_NEEDS_FRAME;
-    pub const NODE_DESCENDANTS_NEED_FRAMES: root::_bindgen_ty_72 =
-        _bindgen_ty_72::NODE_DESCENDANTS_NEED_FRAMES;
-    pub const NODE_HAS_ACCESSKEY: root::_bindgen_ty_72 =
-        _bindgen_ty_72::NODE_HAS_ACCESSKEY;
-    pub const NODE_HAS_DIRECTION_RTL: root::_bindgen_ty_72 =
-        _bindgen_ty_72::NODE_HAS_DIRECTION_RTL;
-    pub const NODE_HAS_DIRECTION_LTR: root::_bindgen_ty_72 =
-        _bindgen_ty_72::NODE_HAS_DIRECTION_LTR;
-    pub const NODE_ALL_DIRECTION_FLAGS: root::_bindgen_ty_72 =
-        _bindgen_ty_72::NODE_ALL_DIRECTION_FLAGS;
-    pub const NODE_CHROME_ONLY_ACCESS: root::_bindgen_ty_72 =
-        _bindgen_ty_72::NODE_CHROME_ONLY_ACCESS;
-    pub const NODE_IS_ROOT_OF_CHROME_ONLY_ACCESS: root::_bindgen_ty_72 =
-        _bindgen_ty_72::NODE_IS_ROOT_OF_CHROME_ONLY_ACCESS;
-    pub const NODE_TYPE_SPECIFIC_BITS_OFFSET: root::_bindgen_ty_72 =
-        _bindgen_ty_72::NODE_TYPE_SPECIFIC_BITS_OFFSET;
+    pub const NODE_HAS_LISTENERMANAGER: root::_bindgen_ty_84 =
+        _bindgen_ty_84::NODE_HAS_LISTENERMANAGER;
+    pub const NODE_HAS_PROPERTIES: root::_bindgen_ty_84 =
+        _bindgen_ty_84::NODE_HAS_PROPERTIES;
+    pub const NODE_IS_ANONYMOUS_ROOT: root::_bindgen_ty_84 =
+        _bindgen_ty_84::NODE_IS_ANONYMOUS_ROOT;
+    pub const NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE: root::_bindgen_ty_84 =
+        _bindgen_ty_84::NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE;
+    pub const NODE_IS_NATIVE_ANONYMOUS_ROOT: root::_bindgen_ty_84 =
+        _bindgen_ty_84::NODE_IS_NATIVE_ANONYMOUS_ROOT;
+    pub const NODE_FORCE_XBL_BINDINGS: root::_bindgen_ty_84 =
+        _bindgen_ty_84::NODE_FORCE_XBL_BINDINGS;
+    pub const NODE_MAY_BE_IN_BINDING_MNGR: root::_bindgen_ty_84 =
+        _bindgen_ty_84::NODE_MAY_BE_IN_BINDING_MNGR;
+    pub const NODE_IS_EDITABLE: root::_bindgen_ty_84 =
+        _bindgen_ty_84::NODE_IS_EDITABLE;
+    pub const NODE_IS_NATIVE_ANONYMOUS: root::_bindgen_ty_84 =
+        _bindgen_ty_84::NODE_IS_NATIVE_ANONYMOUS;
+    pub const NODE_IS_IN_SHADOW_TREE: root::_bindgen_ty_84 =
+        _bindgen_ty_84::NODE_IS_IN_SHADOW_TREE;
+    pub const NODE_HAS_EMPTY_SELECTOR: root::_bindgen_ty_84 =
+        _bindgen_ty_84::NODE_HAS_EMPTY_SELECTOR;
+    pub const NODE_HAS_SLOW_SELECTOR: root::_bindgen_ty_84 =
+        _bindgen_ty_84::NODE_HAS_SLOW_SELECTOR;
+    pub const NODE_HAS_EDGE_CHILD_SELECTOR: root::_bindgen_ty_84 =
+        _bindgen_ty_84::NODE_HAS_EDGE_CHILD_SELECTOR;
+    pub const NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS: root::_bindgen_ty_84 =
+        _bindgen_ty_84::NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS;
+    pub const NODE_ALL_SELECTOR_FLAGS: root::_bindgen_ty_84 =
+        _bindgen_ty_84::NODE_ALL_SELECTOR_FLAGS;
+    pub const NODE_NEEDS_FRAME: root::_bindgen_ty_84 =
+        _bindgen_ty_84::NODE_NEEDS_FRAME;
+    pub const NODE_DESCENDANTS_NEED_FRAMES: root::_bindgen_ty_84 =
+        _bindgen_ty_84::NODE_DESCENDANTS_NEED_FRAMES;
+    pub const NODE_HAS_ACCESSKEY: root::_bindgen_ty_84 =
+        _bindgen_ty_84::NODE_HAS_ACCESSKEY;
+    pub const NODE_HAS_DIRECTION_RTL: root::_bindgen_ty_84 =
+        _bindgen_ty_84::NODE_HAS_DIRECTION_RTL;
+    pub const NODE_HAS_DIRECTION_LTR: root::_bindgen_ty_84 =
+        _bindgen_ty_84::NODE_HAS_DIRECTION_LTR;
+    pub const NODE_ALL_DIRECTION_FLAGS: root::_bindgen_ty_84 =
+        _bindgen_ty_84::NODE_ALL_DIRECTION_FLAGS;
+    pub const NODE_CHROME_ONLY_ACCESS: root::_bindgen_ty_84 =
+        _bindgen_ty_84::NODE_CHROME_ONLY_ACCESS;
+    pub const NODE_IS_ROOT_OF_CHROME_ONLY_ACCESS: root::_bindgen_ty_84 =
+        _bindgen_ty_84::NODE_IS_ROOT_OF_CHROME_ONLY_ACCESS;
+    pub const NODE_TYPE_SPECIFIC_BITS_OFFSET: root::_bindgen_ty_84 =
+        _bindgen_ty_84::NODE_TYPE_SPECIFIC_BITS_OFFSET;
     #[repr(u32)]
     #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-    pub enum _bindgen_ty_72 {
+    pub enum _bindgen_ty_84 {
         NODE_HAS_LISTENERMANAGER = 4,
         NODE_HAS_PROPERTIES = 8,
         NODE_IS_ANONYMOUS_ROOT = 16,
@@ -32642,46 +32740,46 @@ pub mod root {
         assert_eq! (::std::mem::align_of::<nsISMILAttr>() , 8usize , concat !
                     ( "Alignment of " , stringify ! ( nsISMILAttr ) ));
     }
-    pub const ELEMENT_SHARED_RESTYLE_BIT_1: root::_bindgen_ty_74 =
-        _bindgen_ty_74::ELEMENT_SHARED_RESTYLE_BIT_1;
-    pub const ELEMENT_SHARED_RESTYLE_BIT_2: root::_bindgen_ty_74 =
-        _bindgen_ty_74::ELEMENT_SHARED_RESTYLE_BIT_2;
-    pub const ELEMENT_SHARED_RESTYLE_BIT_3: root::_bindgen_ty_74 =
-        _bindgen_ty_74::ELEMENT_SHARED_RESTYLE_BIT_3;
-    pub const ELEMENT_SHARED_RESTYLE_BIT_4: root::_bindgen_ty_74 =
-        _bindgen_ty_74::ELEMENT_SHARED_RESTYLE_BIT_4;
-    pub const ELEMENT_HAS_DIRTY_DESCENDANTS_FOR_SERVO: root::_bindgen_ty_74 =
-        _bindgen_ty_74::ELEMENT_SHARED_RESTYLE_BIT_1;
+    pub const ELEMENT_SHARED_RESTYLE_BIT_1: root::_bindgen_ty_86 =
+        _bindgen_ty_86::ELEMENT_SHARED_RESTYLE_BIT_1;
+    pub const ELEMENT_SHARED_RESTYLE_BIT_2: root::_bindgen_ty_86 =
+        _bindgen_ty_86::ELEMENT_SHARED_RESTYLE_BIT_2;
+    pub const ELEMENT_SHARED_RESTYLE_BIT_3: root::_bindgen_ty_86 =
+        _bindgen_ty_86::ELEMENT_SHARED_RESTYLE_BIT_3;
+    pub const ELEMENT_SHARED_RESTYLE_BIT_4: root::_bindgen_ty_86 =
+        _bindgen_ty_86::ELEMENT_SHARED_RESTYLE_BIT_4;
+    pub const ELEMENT_HAS_DIRTY_DESCENDANTS_FOR_SERVO: root::_bindgen_ty_86 =
+        _bindgen_ty_86::ELEMENT_SHARED_RESTYLE_BIT_1;
     pub const ELEMENT_HAS_ANIMATION_ONLY_DIRTY_DESCENDANTS_FOR_SERVO:
-              root::_bindgen_ty_74 =
-        _bindgen_ty_74::ELEMENT_SHARED_RESTYLE_BIT_2;
-    pub const ELEMENT_HAS_SNAPSHOT: root::_bindgen_ty_74 =
-        _bindgen_ty_74::ELEMENT_SHARED_RESTYLE_BIT_3;
-    pub const ELEMENT_HANDLED_SNAPSHOT: root::_bindgen_ty_74 =
-        _bindgen_ty_74::ELEMENT_SHARED_RESTYLE_BIT_4;
-    pub const ELEMENT_HAS_PENDING_RESTYLE: root::_bindgen_ty_74 =
-        _bindgen_ty_74::ELEMENT_SHARED_RESTYLE_BIT_1;
-    pub const ELEMENT_IS_POTENTIAL_RESTYLE_ROOT: root::_bindgen_ty_74 =
-        _bindgen_ty_74::ELEMENT_SHARED_RESTYLE_BIT_2;
-    pub const ELEMENT_HAS_PENDING_ANIMATION_ONLY_RESTYLE: root::_bindgen_ty_74
+              root::_bindgen_ty_86 =
+        _bindgen_ty_86::ELEMENT_SHARED_RESTYLE_BIT_2;
+    pub const ELEMENT_HAS_SNAPSHOT: root::_bindgen_ty_86 =
+        _bindgen_ty_86::ELEMENT_SHARED_RESTYLE_BIT_3;
+    pub const ELEMENT_HANDLED_SNAPSHOT: root::_bindgen_ty_86 =
+        _bindgen_ty_86::ELEMENT_SHARED_RESTYLE_BIT_4;
+    pub const ELEMENT_HAS_PENDING_RESTYLE: root::_bindgen_ty_86 =
+        _bindgen_ty_86::ELEMENT_SHARED_RESTYLE_BIT_1;
+    pub const ELEMENT_IS_POTENTIAL_RESTYLE_ROOT: root::_bindgen_ty_86 =
+        _bindgen_ty_86::ELEMENT_SHARED_RESTYLE_BIT_2;
+    pub const ELEMENT_HAS_PENDING_ANIMATION_ONLY_RESTYLE: root::_bindgen_ty_86
               =
-        _bindgen_ty_74::ELEMENT_SHARED_RESTYLE_BIT_3;
+        _bindgen_ty_86::ELEMENT_SHARED_RESTYLE_BIT_3;
     pub const ELEMENT_IS_POTENTIAL_ANIMATION_ONLY_RESTYLE_ROOT:
-              root::_bindgen_ty_74 =
-        _bindgen_ty_74::ELEMENT_SHARED_RESTYLE_BIT_4;
-    pub const ELEMENT_IS_CONDITIONAL_RESTYLE_ANCESTOR: root::_bindgen_ty_74 =
-        _bindgen_ty_74::ELEMENT_IS_CONDITIONAL_RESTYLE_ANCESTOR;
-    pub const ELEMENT_PENDING_RESTYLE_FLAGS: root::_bindgen_ty_74 =
-        _bindgen_ty_74::ELEMENT_PENDING_RESTYLE_FLAGS;
-    pub const ELEMENT_POTENTIAL_RESTYLE_ROOT_FLAGS: root::_bindgen_ty_74 =
-        _bindgen_ty_74::ELEMENT_POTENTIAL_RESTYLE_ROOT_FLAGS;
-    pub const ELEMENT_ALL_RESTYLE_FLAGS: root::_bindgen_ty_74 =
-        _bindgen_ty_74::ELEMENT_ALL_RESTYLE_FLAGS;
-    pub const ELEMENT_TYPE_SPECIFIC_BITS_OFFSET: root::_bindgen_ty_74 =
-        _bindgen_ty_74::ELEMENT_TYPE_SPECIFIC_BITS_OFFSET;
+              root::_bindgen_ty_86 =
+        _bindgen_ty_86::ELEMENT_SHARED_RESTYLE_BIT_4;
+    pub const ELEMENT_IS_CONDITIONAL_RESTYLE_ANCESTOR: root::_bindgen_ty_86 =
+        _bindgen_ty_86::ELEMENT_IS_CONDITIONAL_RESTYLE_ANCESTOR;
+    pub const ELEMENT_PENDING_RESTYLE_FLAGS: root::_bindgen_ty_86 =
+        _bindgen_ty_86::ELEMENT_PENDING_RESTYLE_FLAGS;
+    pub const ELEMENT_POTENTIAL_RESTYLE_ROOT_FLAGS: root::_bindgen_ty_86 =
+        _bindgen_ty_86::ELEMENT_POTENTIAL_RESTYLE_ROOT_FLAGS;
+    pub const ELEMENT_ALL_RESTYLE_FLAGS: root::_bindgen_ty_86 =
+        _bindgen_ty_86::ELEMENT_ALL_RESTYLE_FLAGS;
+    pub const ELEMENT_TYPE_SPECIFIC_BITS_OFFSET: root::_bindgen_ty_86 =
+        _bindgen_ty_86::ELEMENT_TYPE_SPECIFIC_BITS_OFFSET;
     #[repr(u32)]
     #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-    pub enum _bindgen_ty_74 {
+    pub enum _bindgen_ty_86 {
         ELEMENT_SHARED_RESTYLE_BIT_1 = 8388608,
         ELEMENT_SHARED_RESTYLE_BIT_2 = 16777216,
         ELEMENT_SHARED_RESTYLE_BIT_3 = 33554432,
@@ -33557,7 +33655,7 @@ pub mod root {
                    root::nsTArray<root::mozilla::gfx::FontVariation> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_200542_close0_instantiation() {
+    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_226841_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::nsCSSSelector>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -33913,7 +34011,7 @@ pub mod root {
                    root::mozilla::binding_danger::TErrorResult ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_202359_close0_instantiation() {
+    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_228658_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::mozilla::StyleSheet>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -34074,7 +34172,7 @@ pub mod root {
                    root::JS::DeletePolicy ) ));
     }
     #[test]
-    fn __bindgen_test_layout_iterator_open0_input_iterator_tag_UniquePtr_open1_JSErrorNotes_Note_DeletePolicy_open2_JSErrorNotes_Note_close2_close1_long__bindgen_ty_id_207978__bindgen_ty_id_207985_close0_instantiation() {
+    fn __bindgen_test_layout_iterator_open0_input_iterator_tag_UniquePtr_open1_JSErrorNotes_Note_DeletePolicy_open2_JSErrorNotes_Note_close2_close1_long__bindgen_ty_id_234269__bindgen_ty_id_234276_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::std::iterator>() , 1usize ,
                    concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -34239,6 +34337,28 @@ pub mod root {
                    root::nsCOMPtr<root::nsIDocument> ) ));
     }
     #[test]
+    fn __bindgen_test_layout_nsTArray_open0_nsCOMPtr_open1_nsIRunnable_close1_close0_instantiation() {
+        assert_eq!(::std::mem::size_of::<root::nsTArray<root::nsCOMPtr<root::nsIRunnable>>>()
+                   , 8usize , concat ! (
+                   "Size of template specialization: " , stringify ! (
+                   root::nsTArray<root::nsCOMPtr<root::nsIRunnable>> ) ));
+        assert_eq!(::std::mem::align_of::<root::nsTArray<root::nsCOMPtr<root::nsIRunnable>>>()
+                   , 8usize , concat ! (
+                   "Alignment of template specialization: " , stringify ! (
+                   root::nsTArray<root::nsCOMPtr<root::nsIRunnable>> ) ));
+    }
+    #[test]
+    fn __bindgen_test_layout_nsCOMPtr_open0_nsIRunnable_close0_instantiation() {
+        assert_eq!(::std::mem::size_of::<root::nsCOMPtr<root::nsIRunnable>>()
+                   , 8usize , concat ! (
+                   "Size of template specialization: " , stringify ! (
+                   root::nsCOMPtr<root::nsIRunnable> ) ));
+        assert_eq!(::std::mem::align_of::<root::nsCOMPtr<root::nsIRunnable>>()
+                   , 8usize , concat ! (
+                   "Alignment of template specialization: " , stringify ! (
+                   root::nsCOMPtr<root::nsIRunnable> ) ));
+    }
+    #[test]
     fn __bindgen_test_layout_nsTArray_open0_RefPtr_open1_AnonymousContent_close1_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<root::RefPtr<root::mozilla::dom::AnonymousContent>>>()
                    , 8usize , concat ! (
@@ -34300,7 +34420,7 @@ pub mod root {
                    root::RefPtr<root::mozilla::StyleSheet> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_210463_close0_instantiation() {
+    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_236754_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::mozilla::dom::Element>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -34368,7 +34488,7 @@ pub mod root {
                    root::nsCOMPtr<root::nsIObserver> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_210765_close0_instantiation() {
+    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_237056_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::mozilla::dom::Element>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -34480,7 +34600,7 @@ pub mod root {
                    root::RefPtr<root::mozilla::URLExtraData> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_NotNull_open0__bindgen_ty_id_211307_close0_instantiation() {
+    fn __bindgen_test_layout_NotNull_open0__bindgen_ty_id_237598_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::mozilla::NotNull<*const root::mozilla::Encoding>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -34805,6 +34925,28 @@ pub mod root {
                    root::RefPtr<root::mozilla::dom::DocGroup> ) ));
     }
     #[test]
+    fn __bindgen_test_layout_nsTArray_open0_nsCOMPtr_open1_nsIRunnable_close1_close0_instantiation_1() {
+        assert_eq!(::std::mem::size_of::<root::nsTArray<root::nsCOMPtr<root::nsIRunnable>>>()
+                   , 8usize , concat ! (
+                   "Size of template specialization: " , stringify ! (
+                   root::nsTArray<root::nsCOMPtr<root::nsIRunnable>> ) ));
+        assert_eq!(::std::mem::align_of::<root::nsTArray<root::nsCOMPtr<root::nsIRunnable>>>()
+                   , 8usize , concat ! (
+                   "Alignment of template specialization: " , stringify ! (
+                   root::nsTArray<root::nsCOMPtr<root::nsIRunnable>> ) ));
+    }
+    #[test]
+    fn __bindgen_test_layout_nsCOMPtr_open0_nsIRunnable_close0_instantiation_1() {
+        assert_eq!(::std::mem::size_of::<root::nsCOMPtr<root::nsIRunnable>>()
+                   , 8usize , concat ! (
+                   "Size of template specialization: " , stringify ! (
+                   root::nsCOMPtr<root::nsIRunnable> ) ));
+        assert_eq!(::std::mem::align_of::<root::nsCOMPtr<root::nsIRunnable>>()
+                   , 8usize , concat ! (
+                   "Alignment of template specialization: " , stringify ! (
+                   root::nsCOMPtr<root::nsIRunnable> ) ));
+    }
+    #[test]
     fn __bindgen_test_layout_RefPtr_open0_CSSRuleListImpl_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::RefPtr<root::CSSRuleListImpl>>()
                    , 8usize , concat ! (
@@ -34862,7 +35004,7 @@ pub mod root {
                    root::RefPtr<root::mozilla::StyleSheet> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_211722_close0_instantiation() {
+    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_238019_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::mozilla::StyleSheet>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -34952,7 +35094,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_212121_close0_instantiation() {
+    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_238418_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::mozilla::StyleSheet>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -35053,7 +35195,7 @@ pub mod root {
                    root::nsTArray<::nsstring::nsStringRepr> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_213085_close0_instantiation() {
+    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_239383_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::mozilla::StyleSheet>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -35142,7 +35284,7 @@ pub mod root {
                    root::RefPtr<root::nsCSSFontFaceRule> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_213390_close0_instantiation() {
+    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_239688_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::nsIContent>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -35153,7 +35295,7 @@ pub mod root {
                    root::nsTArray<*mut root::nsIContent> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_213395_close0_instantiation() {
+    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_239693_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::nsIContent>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -35210,7 +35352,7 @@ pub mod root {
                    root::RefPtr<root::mozilla::CSSStyleSheet> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_213886_close0_instantiation() {
+    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_240184_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::mozilla::StyleSheet>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -35858,7 +36000,7 @@ pub mod root {
                    root::nsCOMPtr<root::nsIWeakReference> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_216747_close0_instantiation() {
+    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_243035_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut ::std::os::raw::c_void>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -35937,7 +36079,7 @@ pub mod root {
                    root::mozilla::DefaultDelete ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_223009_close0_instantiation() {
+    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_249305_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::mozilla::dom::AudioContext>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -35970,7 +36112,7 @@ pub mod root {
                    root::RefPtr<root::mozilla::dom::CallbackObject> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_Heap_open0__bindgen_ty_id_224170_close0_instantiation() {
+    fn __bindgen_test_layout_Heap_open0__bindgen_ty_id_250466_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::JS::Heap<*mut root::JSObject>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -35981,7 +36123,7 @@ pub mod root {
                    root::JS::Heap<*mut root::JSObject> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_Heap_open0__bindgen_ty_id_224174_close0_instantiation() {
+    fn __bindgen_test_layout_Heap_open0__bindgen_ty_id_250470_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::JS::Heap<*mut root::JSObject>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -36003,7 +36145,7 @@ pub mod root {
                    root::nsCOMPtr<root::nsIGlobalObject> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_TenuredHeap_open0__bindgen_ty_id_224181_close0_instantiation() {
+    fn __bindgen_test_layout_TenuredHeap_open0__bindgen_ty_id_250477_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::JS::TenuredHeap>() , 8usize ,
                    concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -36036,7 +36178,7 @@ pub mod root {
                    root::nsCOMPtr<root::nsISupports> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsCOMPtr_open0_nsIRunnable_close0_instantiation() {
+    fn __bindgen_test_layout_nsCOMPtr_open0_nsIRunnable_close0_instantiation_2() {
         assert_eq!(::std::mem::size_of::<root::nsCOMPtr<root::nsIRunnable>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -36047,7 +36189,7 @@ pub mod root {
                    root::nsCOMPtr<root::nsIRunnable> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_open0_nsCOMPtr_open1_nsIRunnable_close1_close0_instantiation() {
+    fn __bindgen_test_layout_nsTArray_open0_nsCOMPtr_open1_nsIRunnable_close1_close0_instantiation_2() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<root::nsCOMPtr<root::nsIRunnable>>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -36058,7 +36200,7 @@ pub mod root {
                    root::nsTArray<root::nsCOMPtr<root::nsIRunnable>> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsCOMPtr_open0_nsIRunnable_close0_instantiation_1() {
+    fn __bindgen_test_layout_nsCOMPtr_open0_nsIRunnable_close0_instantiation_3() {
         assert_eq!(::std::mem::size_of::<root::nsCOMPtr<root::nsIRunnable>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -36082,7 +36224,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_225354_close0_instantiation() {
+    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_251547_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::nsISupports>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -36277,7 +36419,7 @@ pub mod root {
                    root::nsTArray<f64> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_226802_close0_instantiation() {
+    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_252995_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::mozilla::dom::Element>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -36382,7 +36524,7 @@ pub mod root {
                    root::nsRefPtrHashKey<root::nsIAtom> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_229225_close0_instantiation() {
+    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_255418_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::mozilla::CounterStyle>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -36393,7 +36535,7 @@ pub mod root {
                    root::nsTArray<*mut root::mozilla::CounterStyle> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_open0_nsCOMPtr_open1_nsIRunnable_close1_close0_instantiation_1() {
+    fn __bindgen_test_layout_nsTArray_open0_nsCOMPtr_open1_nsIRunnable_close1_close0_instantiation_3() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<root::nsCOMPtr<root::nsIRunnable>>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -36404,7 +36546,7 @@ pub mod root {
                    root::nsTArray<root::nsCOMPtr<root::nsIRunnable>> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsCOMPtr_open0_nsIRunnable_close0_instantiation_2() {
+    fn __bindgen_test_layout_nsCOMPtr_open0_nsIRunnable_close0_instantiation_4() {
         assert_eq!(::std::mem::size_of::<root::nsCOMPtr<root::nsIRunnable>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37083,7 +37225,7 @@ pub mod root {
                    root::RefPtr<root::nsStyleImageRequest> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_231778_close0_instantiation() {
+    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_257971_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::nsISupports>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37320,7 +37462,7 @@ pub mod root {
                    root::nsCOMPtr<root::nsIURI> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_239586_close0_instantiation() {
+    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_265779_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::nsIContent>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37331,7 +37473,7 @@ pub mod root {
                    root::nsTArray<*mut root::nsIContent> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_239591_close0_instantiation() {
+    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_265784_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::nsIContent>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37419,7 +37561,7 @@ pub mod root {
                    root::RefPtr<root::mozilla::dom::ShadowRoot> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_239704_close0_instantiation() {
+    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_265897_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::nsIContent>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37706,7 +37848,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_241290_close0_instantiation() {
+    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_267483_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::nsIContent>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37728,7 +37870,7 @@ pub mod root {
                    root::RefPtr<root::mozilla::dom::Element> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_241452_close0_instantiation() {
+    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_267645_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::nsIContent>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37739,7 +37881,7 @@ pub mod root {
                    root::nsTArray<*mut root::nsIContent> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_241457_close0_instantiation() {
+    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_267650_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::nsIContent>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37871,7 +38013,7 @@ pub mod root {
                    root::nsTArray<root::mozilla::gfx::FontVariation> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_243541_close0_instantiation() {
+    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_269734_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::mozilla::css::DocumentRule>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37882,7 +38024,7 @@ pub mod root {
                    root::nsTArray<*mut root::mozilla::css::DocumentRule> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_243549_close0_instantiation() {
+    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_269742_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::mozilla::css::DocumentRule>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (

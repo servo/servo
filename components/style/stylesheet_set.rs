@@ -8,7 +8,7 @@ use dom::TElement;
 use invalidation::stylesheets::StylesheetInvalidationSet;
 use shared_lock::SharedRwLockReadGuard;
 use std::slice;
-use stylesheets::StylesheetInDocument;
+use stylesheets::{Origin, PerOrigin, StylesheetInDocument};
 use stylist::Stylist;
 
 /// Entry for a StylesheetSet. We don't bother creating a constructor, because
@@ -49,14 +49,11 @@ where
     /// include recursive `@import` rules.
     entries: Vec<StylesheetSetEntry<S>>,
 
-    /// Whether the entries list above has changed since the last restyle.
-    dirty: bool,
+    /// Per-origin stylesheet invalidation data.
+    invalidation_data: PerOrigin<InvalidationData>,
 
     /// Has author style been disabled?
     author_style_disabled: bool,
-
-    /// The style invalidations that we still haven't processed.
-    invalidations: StylesheetInvalidationSet,
 }
 
 impl<S> StylesheetSet<S>
@@ -67,9 +64,8 @@ where
     pub fn new() -> Self {
         StylesheetSet {
             entries: vec![],
-            dirty: false,
+            invalidation_data: Default::default(),
             author_style_disabled: false,
-            invalidations: StylesheetInvalidationSet::new(),
         }
     }
 
@@ -83,6 +79,18 @@ where
         self.entries.retain(|entry| entry.sheet != *sheet);
     }
 
+    fn collect_invalidations_for(
+        &mut self,
+        stylist: &Stylist,
+        sheet: &S,
+        guard: &SharedRwLockReadGuard,
+    ) {
+        let origin = sheet.contents(guard).origin;
+        let data = self.invalidation_data.borrow_mut_for_origin(&origin);
+        data.invalidations.collect_invalidations_for(stylist, sheet, guard);
+        data.dirty = true;
+    }
+
     /// Appends a new stylesheet to the current set.
     pub fn append_stylesheet(
         &mut self,
@@ -92,12 +100,7 @@ where
     ) {
         debug!("StylesheetSet::append_stylesheet");
         self.remove_stylesheet_if_present(&sheet);
-        self.invalidations.collect_invalidations_for(
-            stylist,
-            &sheet,
-            guard
-        );
-        self.dirty = true;
+        self.collect_invalidations_for(stylist, &sheet, guard);
         self.entries.push(StylesheetSetEntry { sheet });
     }
 
@@ -110,13 +113,8 @@ where
     ) {
         debug!("StylesheetSet::prepend_stylesheet");
         self.remove_stylesheet_if_present(&sheet);
-        self.invalidations.collect_invalidations_for(
-            stylist,
-            &sheet,
-            guard
-        );
+        self.collect_invalidations_for(stylist, &sheet, guard);
         self.entries.insert(0, StylesheetSetEntry { sheet });
-        self.dirty = true;
     }
 
     /// Insert a given stylesheet before another stylesheet in the document.
@@ -132,13 +130,8 @@ where
         let index = self.entries.iter().position(|entry| {
             entry.sheet == before_sheet
         }).expect("`before_sheet` stylesheet not found");
-        self.invalidations.collect_invalidations_for(
-            stylist,
-            &sheet,
-            guard
-        );
+        self.collect_invalidations_for(stylist, &sheet, guard);
         self.entries.insert(index, StylesheetSetEntry { sheet });
-        self.dirty = true;
     }
 
     /// Remove a given stylesheet from the set.
@@ -150,12 +143,7 @@ where
     ) {
         debug!("StylesheetSet::remove_stylesheet");
         self.remove_stylesheet_if_present(&sheet);
-        self.dirty = true;
-        self.invalidations.collect_invalidations_for(
-            stylist,
-            &sheet,
-            guard
-        );
+        self.collect_invalidations_for(stylist, &sheet, guard);
     }
 
     /// Notes that the author style has been disabled for this document.
@@ -165,29 +153,35 @@ where
             return;
         }
         self.author_style_disabled = disabled;
-        self.dirty = true;
-        self.invalidations.invalidate_fully();
+        self.invalidation_data.author.invalidations.invalidate_fully();
+        self.invalidation_data.author.dirty = true;
     }
 
     /// Returns whether the given set has changed from the last flush.
     pub fn has_changed(&self) -> bool {
-        self.dirty
+        self.invalidation_data
+            .iter_origins()
+            .any(|(d, _)| d.dirty)
     }
 
     /// Flush the current set, unmarking it as dirty, and returns an iterator
     /// over the new stylesheet list.
     pub fn flush<E>(
         &mut self,
-        document_element: Option<E>
+        document_element: Option<E>,
     ) -> StylesheetIterator<S>
     where
         E: TElement,
     {
         debug!("StylesheetSet::flush");
-        debug_assert!(self.dirty);
+        debug_assert!(self.has_changed());
 
-        self.dirty = false;
-        self.invalidations.flush(document_element);
+        for (data, _) in self.invalidation_data.iter_mut_origins() {
+            if data.dirty {
+                data.invalidations.flush(document_element);
+                data.dirty = false;
+            }
+        }
 
         self.iter()
     }
@@ -202,7 +196,36 @@ where
     ///
     /// FIXME(emilio): Make this more granular.
     pub fn force_dirty(&mut self) {
-        self.dirty = true;
-        self.invalidations.invalidate_fully();
+        for (data, _) in self.invalidation_data.iter_mut_origins() {
+            data.invalidations.invalidate_fully();
+            data.dirty = true;
+        }
+    }
+
+    /// Mark the stylesheets for the specified origin as dirty, because
+    /// something external may have invalidated it.
+    pub fn force_dirty_origin(&mut self, origin: &Origin) {
+        let data = self.invalidation_data.borrow_mut_for_origin(origin);
+        data.invalidations.invalidate_fully();
+        data.dirty = true;
+    }
+}
+
+struct InvalidationData {
+    /// The stylesheet invalidations for this origin that we still haven't
+    /// processed.
+    invalidations: StylesheetInvalidationSet,
+
+    /// Whether the sheets for this origin in the `StylesheetSet`'s entry list
+    /// has changed since the last restyle.
+    dirty: bool,
+}
+
+impl Default for InvalidationData {
+    fn default() -> Self {
+        InvalidationData {
+            invalidations: StylesheetInvalidationSet::new(),
+            dirty: false,
+        }
     }
 }
