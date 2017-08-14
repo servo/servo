@@ -1990,7 +1990,7 @@ extern "C" {
 extern "C" {
     pub fn Servo_StyleSet_MediumFeaturesChanged(set: RawServoStyleSetBorrowed,
                                                 viewport_units_used:
-                                                    *mut bool) -> bool;
+                                                    *mut bool) -> OriginFlags;
 }
 extern "C" {
     pub fn Servo_StyleSet_CompatModeChanged(raw_data:
