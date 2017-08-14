@@ -6,7 +6,7 @@
 
 <% data.new_style_struct("Counters", inherited=False, gecko_name="Content") %>
 
-<%helpers:longhand name="content" boxed="True" animation_value_type="none"
+<%helpers:longhand name="content" boxed="True" animation_value_type="discrete"
                    spec="https://drafts.csswg.org/css-content/#propdef-content">
     use values::computed::ComputedValueAsSpecified;
     #[cfg(feature = "gecko")]
