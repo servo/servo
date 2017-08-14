@@ -401,6 +401,7 @@ pub mod performance;
 pub mod performanceentry;
 pub mod performanceobserver;
 pub mod performanceobserverentrylist;
+pub mod performancepainttiming;
 pub mod performancetiming;
 pub mod permissions;
 pub mod permissionstatus;

@@ -49,6 +49,8 @@ use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmliframeelement::{HTMLIFrameElement, NavigationType};
 use dom::mutationobserver::MutationObserver;
 use dom::node::{Node, NodeDamage, window_from_node, from_untrusted_node_address};
+use dom::performanceentry::PerformanceEntry;
+use dom::performancepainttiming::PerformancePaintTiming;
 use dom::serviceworker::TrustedServiceWorkerAddress;
 use dom::serviceworkerregistration::ServiceWorkerRegistration;
 use dom::servoparser::{ParserContext, ServoParser};
@@ -85,7 +87,7 @@ use profile_traits::time::{self, ProfilerCategory, profile};
 use script_layout_interface::message::{self, Msg, NewLayoutThreadInfo, ReflowQueryType};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
 use script_runtime::{ScriptPort, StackRootTLS, get_reports, new_rt_and_cx};
-use script_traits::{CompositorEvent, ConstellationControlMsg};
+use script_traits::{CompositorEvent, ConstellationControlMsg, PaintMetricType};
 use script_traits::{DocumentActivity, DiscardBrowsingContext, EventResult};
 use script_traits::{InitialScriptState, LayoutMsg, LoadData, MouseButton, MouseEventType, MozBrowserEvent};
 use script_traits::{NewLayoutInfo, ScriptToConstellationChan, ScriptMsg, UpdatePipelineIdReason};
@@ -1261,6 +1263,8 @@ impl ScriptThread {
                 self.handle_exit_pipeline_msg(pipeline_id, discard_browsing_context),
             ConstellationControlMsg::WebVREvents(pipeline_id, events) =>
                 self.handle_webvr_events(pipeline_id, events),
+            ConstellationControlMsg::PaintMetric(pipeline_id, metric_type, metric_value) =>
+                self.handle_paint_metric(pipeline_id, metric_type, metric_value),
             msg @ ConstellationControlMsg::AttachLayout(..) |
             msg @ ConstellationControlMsg::Viewport(..) |
             msg @ ConstellationControlMsg::SetScrollState(..) |
@@ -1482,7 +1486,8 @@ impl ScriptThread {
             layout_threads: layout_threads,
             paint_time_metrics: PaintTimeMetrics::new(new_pipeline_id,
                                                       self.time_profiler_chan.clone(),
-                                                      self.layout_to_constellation_chan.clone()),
+                                                      self.layout_to_constellation_chan.clone(),
+                                                      self.control_chan.clone()),
         });
 
         // Pick a layout thread, any layout thread
@@ -2482,6 +2487,19 @@ impl ScriptThread {
         if let Some(window) = window {
             let vr = window.Navigator().Vr();
             vr.handle_webvr_events(events);
+        }
+    }
+
+    fn handle_paint_metric(&self,
+                           pipeline_id: PipelineId,
+                           metric_type: PaintMetricType,
+                           metric_value: f64) {
+        let window = self.documents.borrow().find_window(pipeline_id);
+        if let Some(window) = window {
+            let entry = PerformancePaintTiming::new(&window.upcast::<GlobalScope>(),
+                                                    metric_type, metric_value);
+            window.Performance().queue_entry(&entry.upcast::<PerformanceEntry>(),
+                                             true /* buffer performance entry */);
         }
     }
 

@@ -220,6 +220,15 @@ pub enum DocumentActivity {
     FullyActive,
 }
 
+/// The type of recorded paint metric.
+#[derive(Deserialize, Serialize)]
+pub enum PaintMetricType {
+    /// Time to First Paint type.
+    FirstPaint,
+    /// Time to First Contentful Paint type.
+    FirstContentfulPaint,
+}
+
 /// The reason why the pipeline id of an iframe is being updated.
 #[derive(Copy, Clone, PartialEq, Eq, Hash, HeapSizeOf, Debug, Deserialize, Serialize)]
 pub enum UpdatePipelineIdReason {
@@ -300,7 +309,9 @@ pub enum ConstellationControlMsg {
     /// Reload the given page.
     Reload(PipelineId),
     /// Notifies the script thread of WebVR events.
-    WebVREvents(PipelineId, Vec<WebVREvent>)
+    WebVREvents(PipelineId, Vec<WebVREvent>),
+    /// Notifies the script thread about a new recorded paint metric.
+    PaintMetric(PipelineId, PaintMetricType, f64),
 }
 
 impl fmt::Debug for ConstellationControlMsg {
@@ -334,6 +345,7 @@ impl fmt::Debug for ConstellationControlMsg {
             ReportCSSError(..) => "ReportCSSError",
             Reload(..) => "Reload",
             WebVREvents(..) => "WebVREvents",
+            PaintMetric(..) => "PaintMetric",
         };
         write!(formatter, "ConstellationMsg::{}", variant)
     }

@@ -488,7 +488,8 @@ impl UnprivilegedPipelineContent {
         let image_cache = Arc::new(ImageCacheImpl::new(self.webrender_api_sender.create_api()));
         let paint_time_metrics = PaintTimeMetrics::new(self.id,
                                                        self.time_profiler_chan.clone(),
-                                                       self.layout_to_constellation_chan.clone());
+                                                       self.layout_to_constellation_chan.clone(),
+                                                       self.script_chan.clone());
         let layout_pair = STF::create(InitialScriptState {
             id: self.id,
             browsing_context_id: self.browsing_context_id,

@@ -18,7 +18,7 @@ use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
 use profile_traits::time::{ProfilerChan, ProfilerCategory, send_profile_data};
 use profile_traits::time::TimerMetadata;
-use script_traits::LayoutMsg;
+use script_traits::{ConstellationControlMsg, LayoutMsg, PaintMetricType};
 use servo_config::opts;
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
@@ -28,8 +28,10 @@ pub trait ProfilerMetadataFactory {
 }
 
 macro_rules! make_time_setter(
-    ( $attr:ident, $func:ident, $category:ident, $label:expr ) => (
-        fn $func(&self, profiler_metadata: Option<TimerMetadata>, paint_time: f64) {
+    ( $attr:ident, $func:ident, $category:ident, $label:expr, $metric_type:path ) => (
+        fn $func(&self,
+                 profiler_metadata: Option<TimerMetadata>,
+                 paint_time: f64) {
             if self.$attr.get().is_some() {
                 return;
             }
@@ -44,6 +46,14 @@ macro_rules! make_time_setter(
 
             let time = paint_time - navigation_start;
             self.$attr.set(Some(time));
+
+            // Queue performance observer notification.
+            let msg = ConstellationControlMsg::PaintMetric(self.pipeline_id,
+                                                           $metric_type,
+                                                           time);
+            if let Err(e) = self.script_chan.send(msg) {
+                warn!("Sending paint metric to script thread failed ({}).", e);
+            }
 
             // Send the metric to the time profiler.
             send_profile_data(ProfilerCategory::$category,
@@ -67,12 +77,14 @@ pub struct PaintTimeMetrics {
     pipeline_id: PipelineId,
     time_profiler_chan: ProfilerChan,
     constellation_chan: IpcSender<LayoutMsg>,
+    script_chan: IpcSender<ConstellationControlMsg>,
 }
 
 impl PaintTimeMetrics {
     pub fn new(pipeline_id: PipelineId,
                time_profiler_chan: ProfilerChan,
-               constellation_chan: IpcSender<LayoutMsg>)
+               constellation_chan: IpcSender<LayoutMsg>,
+               script_chan: IpcSender<ConstellationControlMsg>)
         -> PaintTimeMetrics {
         PaintTimeMetrics {
             pending_metrics: RefCell::new(HashMap::new()),
@@ -82,6 +94,7 @@ impl PaintTimeMetrics {
             pipeline_id,
             time_profiler_chan,
             constellation_chan,
+            script_chan,
         }
     }
 
@@ -91,10 +104,12 @@ impl PaintTimeMetrics {
 
     make_time_setter!(first_paint, set_first_paint,
                       TimeToFirstPaint,
-                      "first-paint");
+                      "first-paint",
+                      PaintMetricType::FirstPaint);
     make_time_setter!(first_contentful_paint, set_first_contentful_paint,
                       TimeToFirstContentfulPaint,
-                      "first-contentful-paint");
+                      "first-contentful-paint",
+                      PaintMetricType::FirstContentfulPaint);
 
     pub fn maybe_observe_paint_time<T>(&self,
                                        profiler_metadata_factory: &T,
