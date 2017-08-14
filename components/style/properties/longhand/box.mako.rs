@@ -1823,7 +1823,7 @@ ${helpers.single_keyword("-moz-appearance",
                          gecko_constant_prefix="ThemeWidgetType_NS_THEME",
                          products="gecko",
                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-appearance)",
-                         animation_value_type="none")}
+                         animation_value_type="discrete")}
 
 ${helpers.predefined_type("-moz-binding", "UrlOrNone", "Either::Second(None_)",
                           products="gecko",
