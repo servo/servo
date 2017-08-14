@@ -60,7 +60,6 @@ use selector_parser::PseudoElement;
 use servo_arc::{Arc, RawOffsetArc};
 use std::mem::{forget, uninitialized, transmute, zeroed};
 use std::{cmp, ops, ptr};
-use stylesheets::{MallocSizeOfWithRepeats, SizeOfState};
 use values::{self, Auto, CustomIdent, Either, KeyframesName};
 use values::computed::{NonNegativeAu, ToComputedValue, Percentage};
 use values::computed::effects::{BoxShadow, Filter, SimpleShadow};
@@ -366,18 +365,6 @@ impl ComputedValuesInner {
             PropertyDeclarationId::Custom(_name) => unimplemented!(),
             _ => unimplemented!()
         }
-    }
-}
-
-impl MallocSizeOfWithRepeats for ComputedValues {
-    fn malloc_size_of_children(&self, state: &mut SizeOfState) -> usize {
-        let mut n = 0;
-        if let Some(ref raw_offset_arc) = *self.get_raw_visited_style() {
-            n += raw_offset_arc.with_arc(|a: &Arc<ComputedValues>| {
-                a.malloc_size_of_children(state)
-            })
-        }
-        n
     }
 }
 

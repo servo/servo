@@ -1915,10 +1915,25 @@ extern "C" {
     pub fn Servo_Element_ClearData(node: RawGeckoElementBorrowed);
 }
 extern "C" {
-    pub fn Servo_Element_SizeOfExcludingThis(arg1: MallocSizeOf,
-                                             seen_ptrs: *mut SeenPtrs,
-                                             node: RawGeckoElementBorrowed)
+    pub fn Servo_Element_SizeOfExcludingThisAndCVs(malloc_size_of: MallocSizeOf,
+                                                   seen_ptrs: *mut SeenPtrs,
+                                                   node: RawGeckoElementBorrowed)
      -> usize;
+}
+extern "C" {
+    pub fn Servo_Element_HasPrimaryComputedValues(element: RawGeckoElementBorrowed) -> bool;
+}
+extern "C" {
+    pub fn Servo_Element_GetPrimaryComputedValues(element: RawGeckoElementBorrowed)
+     -> ServoStyleContextStrong;
+}
+extern "C" {
+    pub fn Servo_Element_HasPseudoComputedValues(element: RawGeckoElementBorrowed, index: usize)
+     -> bool;
+}
+extern "C" {
+    pub fn Servo_Element_GetPseudoComputedValues(element: RawGeckoElementBorrowed, index: usize)
+     -> ServoStyleContextStrong;
 }
 extern "C" {
     pub fn Servo_StyleSheet_FromUTF8Bytes(loader: *mut Loader,
