@@ -5579,6 +5579,80 @@ clip-path
         self.copy_content_from(other)
     }
 
+    pub fn clone_content(&self) -> longhands::content::computed_value::T {
+        use gecko::conversions::string_from_chars_pointer;
+        use gecko_bindings::structs::nsStyleContentType::*;
+        use properties::longhands::content::computed_value::{T, ContentItem};
+        use values::generics::CounterStyleOrNone;
+        use values::specified::url::SpecifiedUrl;
+        use values::specified::Attr;
+
+        if self.gecko.mContents.is_empty() {
+            return T::Normal;
+        }
+
+        if self.gecko.mContents.len() == 1 &&
+           self.gecko.mContents[0].mType == eStyleContentType_AltContent {
+            return T::MozAltContent;
+        }
+
+        T::Items(
+            self.gecko.mContents.iter().map(|gecko_content| {
+                match gecko_content.mType {
+                    eStyleContentType_OpenQuote => ContentItem::OpenQuote,
+                    eStyleContentType_CloseQuote => ContentItem::CloseQuote,
+                    eStyleContentType_NoOpenQuote => ContentItem::NoOpenQuote,
+                    eStyleContentType_NoCloseQuote => ContentItem::NoCloseQuote,
+                    eStyleContentType_String => {
+                        let gecko_chars = unsafe { gecko_content.mContent.mString.as_ref() };
+                        let string = unsafe { string_from_chars_pointer(*gecko_chars) };
+                        ContentItem::String(string)
+                    },
+                    eStyleContentType_Attr => {
+                        let gecko_chars = unsafe { gecko_content.mContent.mString.as_ref() };
+                        let string = unsafe { string_from_chars_pointer(*gecko_chars) };
+                        let (namespace, attribute) =
+                            match string.find('|') {
+                                None => (None, string),
+                                Some(index) => {
+                                    let (_, val) = string.split_at(index);
+                                    // FIXME: We should give NamespaceId as well to make Attr
+                                    // struct. However, there is no field for it in Gecko.
+                                    debug_assert!(false, "Attr with namespace does not support yet");
+                                    (None, val.to_string())
+                                }
+                            };
+                        ContentItem::Attr(Attr { namespace, attribute })
+                    },
+                    eStyleContentType_Counter | eStyleContentType_Counters => {
+                        let gecko_function =
+                            unsafe { &**gecko_content.mContent.mCounters.as_ref() };
+                        let ident = gecko_function.mIdent.to_string();
+                        let style =
+                            CounterStyleOrNone::from_gecko_value(&gecko_function.mCounterStyle);
+                        if gecko_content.mType == eStyleContentType_Counter {
+                            ContentItem::Counter(ident, style)
+                        } else {
+                            let separator = gecko_function.mSeparator.to_string();
+                            ContentItem::Counters(ident, separator, style)
+                        }
+                    },
+                    eStyleContentType_Image => {
+                        unsafe {
+                            let gecko_image_request =
+                                unsafe { &**gecko_content.mContent.mImage.as_ref() };
+                            ContentItem::Url(
+                                SpecifiedUrl::from_image_request(gecko_image_request)
+                                    .expect("mContent could not convert to SpecifiedUrl")
+                            )
+                        }
+                    },
+                    x => panic!("Found unexpected value in style struct for content property: {:?}", x),
+                }
+            }).collect()
+        )
+    }
+
     % for counter_property in ["Increment", "Reset"]:
         pub fn set_counter_${counter_property.lower()}(&mut self, v: longhands::counter_increment::computed_value::T) {
             unsafe {
