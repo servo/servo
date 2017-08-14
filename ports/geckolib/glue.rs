@@ -1821,7 +1821,7 @@ pub extern "C" fn Servo_ComputedValues_Inherit(
 
         if for_text {
             StyleAdjuster::new(&mut style)
-                .adjust_for_text();
+                .adjust_for_text(reference);
         }
 
         style.build()

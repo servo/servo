@@ -108,8 +108,9 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     ///
     /// Note that this, for Gecko, comes through Servo_ComputedValues_Inherit.
     #[cfg(feature = "gecko")]
-    pub fn adjust_for_text(&mut self) {
+    pub fn adjust_for_text(&mut self, parent_style: &ComputedValues) {
         self.adjust_for_text_combine_upright();
+        self.adjust_for_text_in_ruby(parent_style);
         self.set_bits();
     }
 
@@ -135,6 +136,19 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
            text_combine_upright == text_combine_upright::all {
             self.style.flags.insert(IS_TEXT_COMBINED);
             self.style.mutate_inheritedbox().set_writing_mode(writing_mode::horizontal_tb);
+        }
+    }
+
+    /// Applies the line break suppression flag to text if it is in any ruby
+    /// box. This is necessary because its parent may not itself have the flag
+    /// set (e.g. ruby or ruby containers), thus we may not inherit the flag
+    /// from them.
+    #[cfg(feature = "gecko")]
+    fn adjust_for_text_in_ruby(&mut self, parent_style: &ComputedValues) {
+        use properties::computed_value_flags::SHOULD_SUPPRESS_LINEBREAK;
+        let parent_display = parent_style.get_box().clone_display();
+        if parent_display.is_ruby_type() {
+            self.style.flags.insert(SHOULD_SUPPRESS_LINEBREAK);
         }
     }
 
