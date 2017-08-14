@@ -17,7 +17,7 @@ use properties::ComputedValues;
 use servo_arc::Arc;
 use shared_lock::{Locked, StylesheetGuards, SharedRwLockReadGuard};
 use stylesheet_set::StylesheetSet;
-use stylesheets::{Origin, PerOrigin, StylesheetContents, StylesheetInDocument};
+use stylesheets::{PerOrigin, StylesheetContents, StylesheetInDocument};
 use stylist::{ExtraStyleData, Stylist};
 
 /// Little wrapper to a Gecko style sheet.
@@ -164,14 +164,14 @@ impl PerDocumentStyleDataImpl {
 
         let author_style_disabled = self.stylesheets.author_style_disabled();
 
-        let iter = self.stylesheets.flush(document_element);
+        let (iter, dirty_origins) = self.stylesheets.flush(document_element);
         self.stylist.rebuild(
             iter,
             &StylesheetGuards::same(guard),
             /* ua_sheets = */ None,
-            /* stylesheets_changed = */ true,
             author_style_disabled,
             &mut self.extra_style_data,
+            dirty_origins,
         );
     }
 
@@ -185,17 +185,6 @@ impl PerDocumentStyleDataImpl {
     /// Get the default computed values for this document.
     pub fn default_computed_values(&self) -> &Arc<ComputedValues> {
         self.stylist.device().default_computed_values_arc()
-    }
-
-    /// Clear the stylist.  This will be a no-op if the stylist is
-    /// already cleared; the stylist handles that.
-    pub fn clear_stylist(&mut self) {
-        self.stylist.clear();
-    }
-
-    /// Clear the stylist's data for the specified origin.
-    pub fn clear_stylist_origin(&mut self, origin: &Origin) {
-        self.stylist.clear_origin(origin);
     }
 
     /// Returns whether visited links are enabled.

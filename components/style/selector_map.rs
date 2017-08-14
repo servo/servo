@@ -123,6 +123,15 @@ impl<T> SelectorMap<T> {
         }
     }
 
+    /// Clears the hashmap retaining storage.
+    pub fn clear(&mut self) {
+        self.id_hash.clear();
+        self.class_hash.clear();
+        self.local_name_hash.clear();
+        self.other.clear();
+        self.count = 0;
+    }
+
     /// Returns whether there are any entries in the map.
     pub fn is_empty(&self) -> bool {
         self.count == 0

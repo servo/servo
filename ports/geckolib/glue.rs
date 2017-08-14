@@ -117,7 +117,7 @@ use style::style_adjuster::StyleAdjuster;
 use style::stylesheets::{CssRule, CssRules, CssRuleType, CssRulesHelpers, DocumentRule};
 use style::stylesheets::{FontFeatureValuesRule, ImportRule, KeyframesRule, MallocSizeOfWithGuard};
 use style::stylesheets::{MediaRule, NamespaceRule, Origin, OriginSet, PageRule, SizeOfState, StyleRule};
-use style::stylesheets::{StylesheetContents, StylesheetInDocument, SupportsRule};
+use style::stylesheets::{StylesheetContents, SupportsRule};
 use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
 use style::stylesheets::keyframes_rule::{Keyframe, KeyframeSelector, KeyframesStepValue};
 use style::stylesheets::supports_rule::parse_condition_or_declaration;
@@ -891,9 +891,7 @@ pub extern "C" fn Servo_StyleSet_AppendStyleSheet(
     let mut data = &mut *data;
     let guard = global_style_data.shared_lock.read();
     let sheet = unsafe { GeckoStyleSheet::new(sheet) };
-    let origin = sheet.contents(&guard).origin;
     data.stylesheets.append_stylesheet(&data.stylist, sheet, &guard);
-    data.clear_stylist_origin(&origin);
 }
 
 #[no_mangle]
@@ -942,9 +940,7 @@ pub extern "C" fn Servo_StyleSet_PrependStyleSheet(
     let mut data = &mut *data;
     let guard = global_style_data.shared_lock.read();
     let sheet = unsafe { GeckoStyleSheet::new(sheet) };
-    let origin = sheet.contents(&guard).origin;
     data.stylesheets.prepend_stylesheet(&data.stylist, sheet, &guard);
-    data.clear_stylist_origin(&origin);
 }
 
 #[no_mangle]
@@ -958,14 +954,12 @@ pub extern "C" fn Servo_StyleSet_InsertStyleSheetBefore(
     let mut data = &mut *data;
     let guard = global_style_data.shared_lock.read();
     let sheet = unsafe { GeckoStyleSheet::new(sheet) };
-    let origin = sheet.contents(&guard).origin;
     data.stylesheets.insert_stylesheet_before(
         &data.stylist,
         sheet,
         unsafe { GeckoStyleSheet::new(before_sheet) },
         &guard,
     );
-    data.clear_stylist_origin(&origin);
 }
 
 #[no_mangle]
@@ -978,9 +972,7 @@ pub extern "C" fn Servo_StyleSet_RemoveStyleSheet(
     let mut data = &mut *data;
     let guard = global_style_data.shared_lock.read();
     let sheet = unsafe { GeckoStyleSheet::new(sheet) };
-    let origin = sheet.contents(&guard).origin;
     data.stylesheets.remove_stylesheet(&data.stylist, sheet, &guard);
-    data.clear_stylist_origin(&origin);
 }
 
 #[no_mangle]
@@ -1002,10 +994,7 @@ pub extern "C" fn Servo_StyleSet_NoteStyleSheetsChanged(
     changed_origins: OriginFlags,
 ) {
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
-    for origin in OriginSet::from(changed_origins).iter() {
-        data.stylesheets.force_dirty_origin(&origin);
-        data.clear_stylist_origin(&origin);
-    }
+    data.stylesheets.force_dirty(OriginSet::from(changed_origins));
     data.stylesheets.set_author_style_disabled(author_style_disabled);
 }
 
@@ -1937,12 +1926,6 @@ pub extern "C" fn Servo_StyleSet_Init(pres_context: RawGeckoPresContextOwned)
 pub extern "C" fn Servo_StyleSet_RebuildCachedData(raw_data: RawServoStyleSetBorrowed) {
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
     data.stylist.device_mut().rebuild_cached_data();
-}
-
-#[no_mangle]
-pub extern "C" fn Servo_StyleSet_Clear(raw_data: RawServoStyleSetBorrowed) {
-    let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
-    data.clear_stylist();
 }
 
 #[no_mangle]

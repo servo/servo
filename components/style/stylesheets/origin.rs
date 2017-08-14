@@ -168,20 +168,6 @@ impl<T> PerOrigin<T> {
     }
 }
 
-/// An object that can be cleared.
-pub trait PerOriginClear {
-    /// Clears the object.
-    fn clear(&mut self);
-}
-
-impl<T> PerOriginClear for PerOrigin<T> where T: PerOriginClear {
-    fn clear(&mut self) {
-        self.user_agent.clear();
-        self.user.clear();
-        self.author.clear();
-    }
-}
-
 /// Iterator over `PerOrigin<T>`, from highest level (author) to lowest
 /// (user agent).
 ///
