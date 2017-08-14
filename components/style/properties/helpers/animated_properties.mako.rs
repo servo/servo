@@ -888,21 +888,6 @@ impl Animatable for Angle {
     }
 }
 
-/// https://drafts.csswg.org/css-transitions/#animtype-percentage
-impl Animatable for Percentage {
-    #[inline]
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
-        Ok(Percentage((self.0 as f64 * self_portion + other.0 as f64 * other_portion) as f32))
-    }
-}
-
-impl ToAnimatedZero for Percentage {
-    #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> {
-        Ok(Percentage(0.))
-    }
-}
-
 /// https://drafts.csswg.org/css-transitions/#animtype-visibility
 impl Animatable for Visibility {
     #[inline]

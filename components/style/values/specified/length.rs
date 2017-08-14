@@ -785,7 +785,7 @@ impl From<NoCalcLength> for LengthOrPercentage {
 impl From<Percentage> for LengthOrPercentage {
     #[inline]
     fn from(pc: Percentage) -> Self {
-        if pc.calc_clamping_mode.is_some() {
+        if pc.is_calc() {
             LengthOrPercentage::Calc(Box::new(CalcLengthOrPercentage {
                 percentage: Some(computed::Percentage(pc.get())),
                 .. Default::default()
