@@ -210,7 +210,10 @@ impl RuleTree {
                     _ => {},
                 };
             }
-            if any_normal {
+            // We really want to ensure empty rule nodes appear in the rule tree for
+            // devtools, this condition ensures that if we find an empty rule node, we
+            // insert it at the normal level.
+            if any_normal || !any_important {
                 if matches!(level, Transitions) && found_important {
                     // There can be at most one transition, and it will come at
                     // the end of the iterator. Stash it and apply it after
