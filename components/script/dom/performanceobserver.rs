@@ -27,7 +27,7 @@ const VALID_ENTRY_TYPES: &'static [&'static str] = &[
     // "measure", XXX User Timing API
     // "resource", XXX Resource Timing API
     // "server", XXX Server Timing API
-    // "paint", XXX Paint Timing API
+    "paint", // Paint Timing API
 ];
 
 #[dom_struct]

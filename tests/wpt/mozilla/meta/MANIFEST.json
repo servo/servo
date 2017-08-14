@@ -14444,6 +14444,12 @@
      {}
     ]
    ],
+   "mozilla/paint_timing.html": [
+    [
+     "/_mozilla/mozilla/paint_timing.html",
+     {}
+    ]
+   ],
    "mozilla/parentNode_querySelector.html": [
     [
      "/_mozilla/mozilla/parentNode_querySelector.html",
@@ -27523,6 +27529,10 @@
   ],
   "mozilla/out-of-order-stylesheet-loads.html": [
    "1e0066636c757e68b13a4a5271d4184232c51e34",
+   "testharness"
+  ],
+  "mozilla/paint_timing.html": [
+   "6e137a76d214e9380f17c61cca297298e3657fa8",
    "testharness"
   ],
   "mozilla/parentNode_querySelector.html": [

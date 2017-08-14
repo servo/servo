@@ -30,7 +30,8 @@ fn test_paint_metrics_construction() {
     let (sender, _) = ipc::channel().unwrap();
     let profiler_chan = ProfilerChan(sender);
     let (layout_sender, _) = ipc::channel().unwrap();
-    let paint_time_metrics = PaintTimeMetrics::new(pipeline_id, profiler_chan, layout_sender);
+    let (script_sender, _) = ipc::channel().unwrap();
+    let paint_time_metrics = PaintTimeMetrics::new(pipeline_id, profiler_chan, layout_sender, script_sender);
     assert_eq!(paint_time_metrics.get_navigation_start(), None, "navigation start is None");
     assert_eq!(paint_time_metrics.get_first_paint(), None, "first paint is None");
     assert_eq!(paint_time_metrics.get_first_contentful_paint(), None, "first contentful paint is None");
@@ -44,7 +45,8 @@ fn test_common(display_list: &DisplayList, epoch: Epoch) -> PaintTimeMetrics {
     let (sender, _) = ipc::channel().unwrap();
     let profiler_chan = ProfilerChan(sender);
     let (layout_sender, _) = ipc::channel().unwrap();
-    let mut paint_time_metrics = PaintTimeMetrics::new(pipeline_id, profiler_chan, layout_sender);
+    let (script_sender, _) = ipc::channel().unwrap();
+    let mut paint_time_metrics = PaintTimeMetrics::new(pipeline_id, profiler_chan, layout_sender, script_sender);
     let dummy_profiler_metadata_factory = DummyProfilerMetadataFactory {};
 
     paint_time_metrics.maybe_observe_paint_time(&dummy_profiler_metadata_factory,
