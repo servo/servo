@@ -8,43 +8,24 @@ use gecko_bindings::structs::OriginFlags;
 use gecko_bindings::structs::OriginFlags_Author;
 use gecko_bindings::structs::OriginFlags_User;
 use gecko_bindings::structs::OriginFlags_UserAgent;
-use stylesheets::Origin;
+use stylesheets::OriginSet;
 
-impl OriginFlags {
-    /// Returns an iterator over the origins present in the `OriginFlags`,
-    /// in order from highest priority (author) to lower (user agent).
-    pub fn iter(self) -> OriginFlagsIter {
-        OriginFlagsIter {
-            origin_flags: self,
-            cur: 0,
-        }
+/// Checks that the values for OriginFlags are the ones we expect.
+pub fn assert_flags_match() {
+    use stylesheets::origin::*;
+    debug_assert_eq!(OriginFlags_UserAgent.0, ORIGIN_USER_AGENT.bits());
+    debug_assert_eq!(OriginFlags_Author.0, ORIGIN_AUTHOR.bits());
+    debug_assert_eq!(OriginFlags_User.0, ORIGIN_USER.bits());
+}
+
+impl From<OriginFlags> for OriginSet {
+    fn from(flags: OriginFlags) -> Self {
+        Self::from_bits_truncate(flags.0)
     }
 }
 
-/// Iterates over the origins present in an `OriginFlags`, in order from
-/// highest priority (author) to lower (user agent).
-pub struct OriginFlagsIter {
-    origin_flags: OriginFlags,
-    cur: usize,
-}
-
-impl Iterator for OriginFlagsIter {
-    type Item = Origin;
-
-    fn next(&mut self) -> Option<Origin> {
-        loop {
-            let (bit, origin) = match self.cur {
-                0 => (OriginFlags_Author, Origin::Author),
-                1 => (OriginFlags_User, Origin::User),
-                2 => (OriginFlags_UserAgent, Origin::UserAgent),
-                _ => return None,
-            };
-
-            self.cur += 1;
-
-            if (self.origin_flags & bit).0 != 0 {
-                return Some(origin);
-            }
-        }
+impl From<OriginSet> for OriginFlags {
+    fn from(set: OriginSet) -> Self {
+        OriginFlags(set.bits())
     }
 }
