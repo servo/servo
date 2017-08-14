@@ -62,6 +62,7 @@ use style::gecko_bindings::bindings::RawServoAnimationValueMapBorrowedMut;
 use style::gecko_bindings::bindings::RawServoAnimationValueStrong;
 use style::gecko_bindings::bindings::RawServoAnimationValueTableBorrowed;
 use style::gecko_bindings::bindings::RawServoStyleRuleBorrowed;
+use style::gecko_bindings::bindings::RawServoStyleSet;
 use style::gecko_bindings::bindings::ServoStyleContextBorrowedOrNull;
 use style::gecko_bindings::bindings::nsTArrayBorrowed_uintptr_t;
 use style::gecko_bindings::bindings::nsTimingFunctionBorrowed;
@@ -91,7 +92,7 @@ use style::gecko_bindings::structs::nsIDocument;
 use style::gecko_bindings::structs::nsStyleTransformMatrix::MatrixTransformOperator;
 use style::gecko_bindings::structs::nsTArray;
 use style::gecko_bindings::structs::nsresult;
-use style::gecko_bindings::sugar::ownership::{FFIArcHelpers, HasFFI, HasArcFFI, HasBoxFFI};
+use style::gecko_bindings::sugar::ownership::{FFIArcHelpers, HasFFI, HasArcFFI};
 use style::gecko_bindings::sugar::ownership::{HasSimpleFFI, Strong};
 use style::gecko_bindings::sugar::refptr::RefPtr;
 use style::gecko_properties::style_structs;
@@ -1924,9 +1925,9 @@ pub extern "C" fn Servo_ComputedValues_GetStyleRuleList(values: ServoStyleContex
 /// device alive).
 #[no_mangle]
 pub extern "C" fn Servo_StyleSet_Init(pres_context: RawGeckoPresContextOwned)
-  -> RawServoStyleSetOwned {
+  -> *mut RawServoStyleSet {
     let data = Box::new(PerDocumentStyleData::new(pres_context));
-    data.into_ffi()
+    Box::into_raw(data) as *mut RawServoStyleSet
 }
 
 #[no_mangle]
