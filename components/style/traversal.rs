@@ -170,6 +170,12 @@ pub trait DomTraversal<E: TElement> : Sync {
             // Invalidate our style, and the one of our siblings and descendants
             // as needed.
             data.invalidate_style_if_needed(root, shared_context);
+
+            // Make sure we don't have any stale RECONSTRUCTED_ANCESTOR bits from
+            // the last traversal (at a potentially-higher root). From the
+            // perspective of this traversal, the root cannot have reconstructed
+            // ancestors.
+            data.restyle.set_reconstructed_ancestor(false);
         };
 
         let parent = root.traversal_parent();
@@ -793,9 +799,7 @@ where
         if let Some(ref mut child_data) = child_data {
             // Propagate the parent restyle hint, that may make us restyle the whole
             // subtree.
-            if reconstructed_ancestor {
-                child_data.restyle.set_reconstructed_ancestor();
-            }
+            child_data.restyle.set_reconstructed_ancestor(reconstructed_ancestor);
 
             child_data.restyle.hint.insert(propagated_hint);
 
