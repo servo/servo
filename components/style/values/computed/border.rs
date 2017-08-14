@@ -4,6 +4,7 @@
 
 //! Computed types for CSS values related to borders.
 
+use values::animated::ToAnimatedZero;
 use values::computed::{Number, NumberOrPercentage};
 use values::computed::length::LengthOrPercentage;
 use values::generics::border::BorderCornerRadius as GenericBorderCornerRadius;
@@ -32,5 +33,13 @@ impl BorderImageSideWidth {
     #[inline]
     pub fn one() -> Self {
         GenericBorderImageSideWidth::Number(1.)
+    }
+}
+
+impl ToAnimatedZero for BorderCornerRadius {
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        /// FIXME(nox): Why?
+        Err(())
     }
 }

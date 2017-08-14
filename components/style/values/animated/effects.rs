@@ -4,7 +4,7 @@
 
 //! Animated types for CSS values related to effects.
 
-use properties::animated_properties::{Animatable, IntermediateColor};
+use properties::animated_properties::Animatable;
 use properties::longhands::box_shadow::computed_value::T as ComputedBoxShadowList;
 use properties::longhands::filter::computed_value::T as ComputedFilterList;
 use properties::longhands::text_shadow::computed_value::T as ComputedTextShadowList;
@@ -12,6 +12,7 @@ use std::cmp;
 #[cfg(not(feature = "gecko"))]
 use values::Impossible;
 use values::animated::{ToAnimatedValue, ToAnimatedZero};
+use values::animated::color::Color;
 use values::computed::{Angle, NonNegativeNumber};
 use values::computed::length::{Length, NonNegativeLength};
 use values::distance::{ComputeSquaredDistance, SquaredDistance};
@@ -33,7 +34,7 @@ pub type TextShadowList = ShadowList<SimpleShadow>;
 pub struct ShadowList<Shadow>(Vec<Shadow>);
 
 /// An animated value for a single `box-shadow`.
-pub type BoxShadow = GenericBoxShadow<IntermediateColor, Length, NonNegativeLength, Length>;
+pub type BoxShadow = GenericBoxShadow<Color, Length, NonNegativeLength, Length>;
 
 /// An animated value for the `filter` property.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -49,7 +50,7 @@ pub type Filter = GenericFilter<Angle, NonNegativeNumber, NonNegativeLength, Sim
 pub type Filter = GenericFilter<Angle, NonNegativeNumber, NonNegativeLength, Impossible>;
 
 /// An animated value for the `drop-shadow()` filter.
-pub type SimpleShadow = GenericSimpleShadow<IntermediateColor, Length, NonNegativeLength>;
+pub type SimpleShadow = GenericSimpleShadow<Color, Length, NonNegativeLength>;
 
 impl ToAnimatedValue for ComputedBoxShadowList {
     type AnimatedValue = BoxShadowList;
@@ -231,7 +232,7 @@ impl ToAnimatedZero for SimpleShadow {
     #[inline]
     fn to_animated_zero(&self) -> Result<Self, ()> {
         Ok(SimpleShadow {
-            color: IntermediateColor::transparent(),
+            color: Color::transparent(),
             horizontal: self.horizontal.to_animated_zero()?,
             vertical: self.vertical.to_animated_zero()?,
             blur: self.blur.to_animated_zero()?,

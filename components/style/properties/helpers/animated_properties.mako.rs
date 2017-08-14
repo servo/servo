@@ -7,7 +7,7 @@
 <% from data import to_idl_name, SYSTEM_FONT_LONGHANDS %>
 
 use app_units::Au;
-use cssparser::{Parser, RGBA};
+use cssparser::Parser;
 use euclid::{Point2D, Size2D};
 #[cfg(feature = "gecko")] use gecko_bindings::bindings::RawServoAnimationValueMap;
 #[cfg(feature = "gecko")] use gecko_bindings::structs::RawGeckoGfxMatrix4x4;
@@ -38,13 +38,14 @@ use super::ComputedValues;
 use values::Auto;
 use values::{CSSFloat, CustomIdent, Either};
 use values::animated::{ToAnimatedValue, ToAnimatedZero};
+use values::animated::color::{Color as AnimatedColor, RGBA as AnimatedRGBA};
 use values::animated::effects::BoxShadowList as AnimatedBoxShadowList;
 use values::animated::effects::Filter as AnimatedFilter;
 use values::animated::effects::FilterList as AnimatedFilterList;
 use values::animated::effects::TextShadowList as AnimatedTextShadowList;
 use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 use values::computed::{BorderCornerRadius, ClipRect};
-use values::computed::{CalcLengthOrPercentage, Color, Context, ComputedValueAsSpecified, ComputedUrl};
+use values::computed::{CalcLengthOrPercentage, Context, ComputedValueAsSpecified, ComputedUrl};
 use values::computed::{LengthOrPercentage, MaxLength, MozLength, Percentage, ToComputedValue};
 use values::computed::{NonNegativeAu, NonNegativeNumber, PositiveIntegerOrAuto};
 use values::computed::length::{NonNegativeLengthOrAuto, NonNegativeLengthOrNormal};
@@ -887,21 +888,6 @@ impl Animatable for Angle {
     }
 }
 
-/// https://drafts.csswg.org/css-transitions/#animtype-percentage
-impl Animatable for Percentage {
-    #[inline]
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
-        Ok(Percentage((self.0 as f64 * self_portion + other.0 as f64 * other_portion) as f32))
-    }
-}
-
-impl ToAnimatedZero for Percentage {
-    #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> {
-        Ok(Percentage(0.))
-    }
-}
-
 /// https://drafts.csswg.org/css-transitions/#animtype-visibility
 impl Animatable for Visibility {
     #[inline]
@@ -950,11 +936,6 @@ impl<T: Animatable + Copy> Animatable for Point2D<T> {
 
         Ok(Point2D::new(x, y))
     }
-}
-
-impl ToAnimatedZero for BorderCornerRadius {
-    #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> { Err(()) }
 }
 
 /// https://drafts.csswg.org/css-transitions/#animtype-length
@@ -2455,253 +2436,11 @@ where
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-/// Unlike RGBA, each component value may exceed the range [0.0, 1.0].
-pub struct IntermediateRGBA {
-    /// The red component.
-    pub red: f32,
-    /// The green component.
-    pub green: f32,
-    /// The blue component.
-    pub blue: f32,
-    /// The alpha component.
-    pub alpha: f32,
-}
-
-impl IntermediateRGBA {
-    /// Returns a transparent color.
-    #[inline]
-    pub fn transparent() -> Self {
-        Self::new(0., 0., 0., 0.)
-    }
-
-    /// Returns a new color.
-    #[inline]
-    pub fn new(red: f32, green: f32, blue: f32, alpha: f32) -> Self {
-        IntermediateRGBA { red: red, green: green, blue: blue, alpha: alpha }
-    }
-}
-
-impl ToAnimatedValue for RGBA {
-    type AnimatedValue = IntermediateRGBA;
-
-    #[inline]
-    fn to_animated_value(self) -> Self::AnimatedValue {
-        IntermediateRGBA::new(
-            self.red_f32(),
-            self.green_f32(),
-            self.blue_f32(),
-            self.alpha_f32(),
-        )
-    }
-
-    #[inline]
-    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
-        // RGBA::from_floats clamps each component values.
-        RGBA::from_floats(
-            animated.red,
-            animated.green,
-            animated.blue,
-            animated.alpha,
-        )
-    }
-}
-
-/// Unlike Animatable for RGBA we don't clamp any component values.
-impl Animatable for IntermediateRGBA {
-    #[inline]
-    fn add_weighted(&self, other: &IntermediateRGBA, self_portion: f64, other_portion: f64)
-        -> Result<Self, ()> {
-        let mut alpha = self.alpha.add_weighted(&other.alpha, self_portion, other_portion)?;
-        if alpha <= 0. {
-            // Ideally we should return color value that only alpha component is
-            // 0, but this is what current gecko does.
-            Ok(IntermediateRGBA::transparent())
-        } else {
-            alpha = alpha.min(1.);
-            let red = (self.red * self.alpha).add_weighted(
-                &(other.red * other.alpha), self_portion, other_portion
-            )? * 1. / alpha;
-            let green = (self.green * self.alpha).add_weighted(
-                &(other.green * other.alpha), self_portion, other_portion
-            )? * 1. / alpha;
-            let blue = (self.blue * self.alpha).add_weighted(
-                &(other.blue * other.alpha), self_portion, other_portion
-            )? * 1. / alpha;
-            Ok(IntermediateRGBA::new(red, green, blue, alpha))
-        }
-    }
-}
-
-impl ComputeSquaredDistance for IntermediateRGBA {
-    #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        let start = [ self.alpha, self.red * self.alpha, self.green * self.alpha, self.blue * self.alpha ];
-        let end = [ other.alpha, other.red * other.alpha, other.green * other.alpha, other.blue * other.alpha ];
-        start.iter().zip(&end).map(|(this, other)| this.compute_squared_distance(other)).sum()
-    }
-}
-
-impl ToAnimatedZero for IntermediateRGBA {
-    #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> {
-        Ok(IntermediateRGBA::transparent())
-    }
-}
-
-#[derive(Copy, Clone, Debug, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[allow(missing_docs)]
-pub struct IntermediateColor {
-    color: IntermediateRGBA,
-    foreground_ratio: f32,
-}
-
-impl IntermediateColor {
-    fn currentcolor() -> Self {
-        IntermediateColor {
-            color: IntermediateRGBA::transparent(),
-            foreground_ratio: 1.,
-        }
-    }
-
-    /// Returns a transparent intermediate color.
-    pub fn transparent() -> Self {
-        IntermediateColor {
-            color: IntermediateRGBA::transparent(),
-            foreground_ratio: 0.,
-        }
-    }
-
-    fn is_currentcolor(&self) -> bool {
-        self.foreground_ratio >= 1.
-    }
-
-    fn is_numeric(&self) -> bool {
-        self.foreground_ratio <= 0.
-    }
-
-    fn effective_intermediate_rgba(&self) -> IntermediateRGBA {
-        IntermediateRGBA {
-            alpha: self.color.alpha * (1. - self.foreground_ratio),
-            .. self.color
-        }
-    }
-}
-
-impl ToAnimatedValue for Color {
-    type AnimatedValue = IntermediateColor;
-
-    #[inline]
-    fn to_animated_value(self) -> Self::AnimatedValue {
-        IntermediateColor {
-            color: self.color.to_animated_value(),
-            foreground_ratio: self.foreground_ratio as f32 * (1. / 255.),
-        }
-    }
-
-    #[inline]
-    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
-        Color {
-            color: RGBA::from_animated_value(animated.color),
-            foreground_ratio: (animated.foreground_ratio * 255.).round() as u8,
-        }
-    }
-}
-
-impl Animatable for IntermediateColor {
-    #[inline]
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
-        // Common cases are interpolating between two numeric colors,
-        // two currentcolors, and a numeric color and a currentcolor.
-        //
-        // Note: this algorithm assumes self_portion + other_portion
-        // equals to one, so it may be broken for additive operation.
-        // To properly support additive color interpolation, we would
-        // need two ratio fields in computed color types.
-        if self.foreground_ratio == other.foreground_ratio {
-            if self.is_currentcolor() {
-                Ok(IntermediateColor::currentcolor())
-            } else {
-                Ok(IntermediateColor {
-                    color: self.color.add_weighted(&other.color, self_portion, other_portion)?,
-                    foreground_ratio: self.foreground_ratio,
-                })
-            }
-        } else if self.is_currentcolor() && other.is_numeric() {
-            Ok(IntermediateColor {
-                color: other.color,
-                foreground_ratio: self_portion as f32,
-            })
-        } else if self.is_numeric() && other.is_currentcolor() {
-            Ok(IntermediateColor {
-                color: self.color,
-                foreground_ratio: other_portion as f32,
-            })
-        } else {
-            // For interpolating between two complex colors, we need to
-            // generate colors with effective alpha value.
-            let self_color = self.effective_intermediate_rgba();
-            let other_color = other.effective_intermediate_rgba();
-            let color = self_color.add_weighted(&other_color, self_portion, other_portion)?;
-            // Then we compute the final foreground ratio, and derive
-            // the final alpha value from the effective alpha value.
-            let foreground_ratio = self.foreground_ratio
-                .add_weighted(&other.foreground_ratio, self_portion, other_portion)?;
-            let alpha = color.alpha / (1. - foreground_ratio);
-            Ok(IntermediateColor {
-                color: IntermediateRGBA {
-                    alpha: alpha,
-                    .. color
-                },
-                foreground_ratio: foreground_ratio,
-            })
-        }
-    }
-}
-
-impl ComputeSquaredDistance for IntermediateColor {
-    #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        // All comments in add_weighted also applies here.
-        if self.foreground_ratio == other.foreground_ratio {
-            if self.is_currentcolor() {
-                Ok(SquaredDistance::Value(0.))
-            } else {
-                self.color.compute_squared_distance(&other.color)
-            }
-        } else if self.is_currentcolor() && other.is_numeric() {
-            Ok(
-                IntermediateRGBA::transparent().compute_squared_distance(&other.color)? +
-                SquaredDistance::Value(1.),
-            )
-        } else if self.is_numeric() && other.is_currentcolor() {
-            Ok(
-                self.color.compute_squared_distance(&IntermediateRGBA::transparent())? +
-                SquaredDistance::Value(1.),
-            )
-        } else {
-            let self_color = self.effective_intermediate_rgba();
-            let other_color = other.effective_intermediate_rgba();
-            Ok(
-                self_color.compute_squared_distance(&other_color)? +
-                self.foreground_ratio.compute_squared_distance(&other.foreground_ratio)?,
-            )
-        }
-    }
-}
-
-impl ToAnimatedZero for IntermediateColor {
-    #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> { Err(()) }
-}
-
 /// Animatable SVGPaint
-pub type IntermediateSVGPaint = SVGPaint<IntermediateRGBA, ComputedUrl>;
+pub type IntermediateSVGPaint = SVGPaint<AnimatedRGBA, ComputedUrl>;
 
 /// Animatable SVGPaintKind
-pub type IntermediateSVGPaintKind = SVGPaintKind<IntermediateRGBA, ComputedUrl>;
+pub type IntermediateSVGPaintKind = SVGPaintKind<AnimatedRGBA, ComputedUrl>;
 
 impl Animatable for IntermediateSVGPaint {
     #[inline]

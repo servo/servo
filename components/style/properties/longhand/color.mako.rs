@@ -9,7 +9,7 @@
 <% from data import to_rust_ident %>
 
 <%helpers:longhand name="color" need_clone="True"
-                   animation_value_type="IntermediateRGBA"
+                   animation_value_type="AnimatedRGBA"
                    ignored_when_colors_disabled="True"
                    flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER"
                    spec="https://drafts.csswg.org/css-color/#color">

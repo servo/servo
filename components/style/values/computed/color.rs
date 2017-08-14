@@ -7,6 +7,8 @@
 use cssparser::{Color as CSSParserColor, RGBA};
 use std::fmt;
 use style_traits::ToCss;
+use values::animated::ToAnimatedValue;
+use values::animated::color::{Color as AnimatedColor, RGBA as AnimatedRGBA};
 
 /// This struct represents a combined color from a numeric color and
 /// the current foreground color (currentcolor keyword).
@@ -21,13 +23,8 @@ pub struct Color {
     pub foreground_ratio: u8,
 }
 
-fn blend_color_component(bg: u8, fg: u8, fg_alpha: u8) -> u8 {
-    let bg_ratio = (u8::max_value() - fg_alpha) as u32;
-    let fg_ratio = fg_alpha as u32;
-    let color = bg as u32 * bg_ratio + fg as u32 * fg_ratio;
-    // Rounding divide the number by 255
-    ((color + 127) / 255) as u8
-}
+/// Computed value type for the specified RGBAColor.
+pub type RGBAColor = RGBA;
 
 impl Color {
     /// Returns a numeric color representing the given RGBA value.
@@ -72,6 +69,15 @@ impl Color {
         if self.is_currentcolor() {
             return fg_color.clone();
         }
+
+        fn blend_color_component(bg: u8, fg: u8, fg_alpha: u8) -> u8 {
+            let bg_ratio = (u8::max_value() - fg_alpha) as u32;
+            let fg_ratio = fg_alpha as u32;
+            let color = bg as u32 * bg_ratio + fg as u32 * fg_ratio;
+            // Rounding divide the number by 255
+            ((color + 127) / 255) as u8
+        }
+
         // Common case that alpha channel is equal (usually both are opaque).
         let fg_ratio = self.foreground_ratio;
         if self.color.alpha == fg_color.alpha {
@@ -140,5 +146,47 @@ impl ToCss for Color {
     }
 }
 
-/// Computed value type for the specified RGBAColor.
-pub type RGBAColor = RGBA;
+impl ToAnimatedValue for Color {
+    type AnimatedValue = AnimatedColor;
+
+    #[inline]
+    fn to_animated_value(self) -> Self::AnimatedValue {
+        AnimatedColor {
+            color: self.color.to_animated_value(),
+            foreground_ratio: self.foreground_ratio as f32 * (1. / 255.),
+        }
+    }
+
+    #[inline]
+    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+        Color {
+            color: RGBA::from_animated_value(animated.color),
+            foreground_ratio: (animated.foreground_ratio * 255.).round() as u8,
+        }
+    }
+}
+
+impl ToAnimatedValue for RGBA {
+    type AnimatedValue = AnimatedRGBA;
+
+    #[inline]
+    fn to_animated_value(self) -> Self::AnimatedValue {
+        AnimatedRGBA::new(
+            self.red_f32(),
+            self.green_f32(),
+            self.blue_f32(),
+            self.alpha_f32(),
+        )
+    }
+
+    #[inline]
+    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+        // RGBA::from_floats clamps each component values.
+        RGBA::from_floats(
+            animated.red,
+            animated.green,
+            animated.blue,
+            animated.alpha,
+        )
+    }
+}

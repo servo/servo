@@ -1,0 +1,152 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+//! Specified percentages.
+
+use cssparser::{BasicParseError, Parser, Token};
+use parser::{Parse, ParserContext};
+use std::ascii::AsciiExt;
+use std::fmt;
+use style_traits::{ParseError, ToCss};
+use style_traits::values::specified::AllowedNumericType;
+use values::CSSFloat;
+use values::computed::{Context, ToComputedValue};
+use values::computed::percentage::Percentage as ComputedPercentage;
+use values::specified::calc::CalcNode;
+
+/// A percentage value.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub struct Percentage {
+    /// The percentage value as a float.
+    ///
+    /// [0 .. 100%] maps to [0.0 .. 1.0]
+    value: CSSFloat,
+    /// If this percentage came from a calc() expression, this tells how
+    /// clamping should be done on the value.
+    calc_clamping_mode: Option<AllowedNumericType>,
+}
+
+no_viewport_percentage!(Percentage);
+
+impl ToCss for Percentage {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+        where W: fmt::Write,
+    {
+        if self.calc_clamping_mode.is_some() {
+            dest.write_str("calc(")?;
+        }
+
+        write!(dest, "{}%", self.value * 100.)?;
+
+        if self.calc_clamping_mode.is_some() {
+            dest.write_str(")")?;
+        }
+        Ok(())
+    }
+}
+
+impl Percentage {
+    /// Creates a percentage from a numeric value.
+    pub fn new(value: CSSFloat) -> Self {
+        Self {
+            value,
+            calc_clamping_mode: None,
+        }
+    }
+
+    /// `0%`
+    #[inline]
+    pub fn zero() -> Self {
+        Percentage {
+            value: 0.,
+            calc_clamping_mode: None,
+        }
+    }
+
+    /// `100%`
+    #[inline]
+    pub fn hundred() -> Self {
+        Percentage {
+            value: 1.,
+            calc_clamping_mode: None,
+        }
+    }
+    /// Gets the underlying value for this float.
+    pub fn get(&self) -> CSSFloat {
+        self.calc_clamping_mode.map_or(self.value, |mode| mode.clamp(self.value))
+    }
+
+    /// Returns whether this percentage is a `calc()` value.
+    pub fn is_calc(&self) -> bool {
+        self.calc_clamping_mode.is_some()
+    }
+
+    /// Reverses this percentage, preserving calc-ness.
+    ///
+    /// For example: If it was 20%, convert it into 80%.
+    pub fn reverse(&mut self) {
+        let new_value = 1. - self.value;
+        self.value = new_value;
+    }
+
+    /// Parses a specific kind of percentage.
+    pub fn parse_with_clamping_mode<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        num_context: AllowedNumericType,
+    ) -> Result<Self, ParseError<'i>> {
+        // FIXME: remove early returns when lifetimes are non-lexical
+        match *input.next()? {
+            Token::Percentage { unit_value, .. } if num_context.is_ok(context.parsing_mode, unit_value) => {
+                return Ok(Percentage::new(unit_value));
+            }
+            Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {},
+            ref t => return Err(BasicParseError::UnexpectedToken(t.clone()).into()),
+        }
+
+        let result = input.parse_nested_block(|i| {
+            CalcNode::parse_percentage(context, i)
+        })?;
+
+        // TODO(emilio): -moz-image-rect is the only thing that uses
+        // the clamping mode... I guess we could disallow it...
+        Ok(Percentage {
+            value: result,
+            calc_clamping_mode: Some(num_context),
+        })
+    }
+
+    /// Parses a percentage token, but rejects it if it's negative.
+    pub fn parse_non_negative<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        Self::parse_with_clamping_mode(context, input, AllowedNumericType::NonNegative)
+    }
+}
+
+impl Parse for Percentage {
+    #[inline]
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>
+    ) -> Result<Self, ParseError<'i>> {
+        Self::parse_with_clamping_mode(context, input, AllowedNumericType::All)
+    }
+}
+
+impl ToComputedValue for Percentage {
+    type ComputedValue = ComputedPercentage;
+
+    #[inline]
+    fn to_computed_value(&self, _: &Context) -> Self::ComputedValue {
+        ComputedPercentage(self.get())
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        Percentage::new(computed.0)
+    }
+}

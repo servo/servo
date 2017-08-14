@@ -24,6 +24,7 @@ use values::computed::NonNegativeNumber as ComputedNonNegativeNumber;
 use values::computed::PositiveInteger as ComputedPositiveInteger;
 use values::specified::url::SpecifiedUrl;
 
+pub mod color;
 pub mod effects;
 
 /// Conversion between computed values and intermediate values for animations.
