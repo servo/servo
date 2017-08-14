@@ -2,24 +2,103 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-///! [CSS cascade origins](https://drafts.csswg.org/css-cascade/#cascading-origins).
+//! [CSS cascade origins](https://drafts.csswg.org/css-cascade/#cascading-origins).
 
 use std::marker::PhantomData;
+use std::ops::BitOrAssign;
 
 /// Each style rule has an origin, which determines where it enters the cascade.
 ///
 /// https://drafts.csswg.org/css-cascade/#cascading-origins
 #[derive(Clone, PartialEq, Eq, Copy, Debug)]
+#[repr(u8)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum Origin {
-    /// https://drafts.csswg.org/css-cascade/#cascade-origin-us
-    UserAgent,
+    /// https://drafts.csswg.org/css-cascade/#cascade-origin-user-agent
+    UserAgent = 1 << 0,
 
     /// https://drafts.csswg.org/css-cascade/#cascade-origin-user
-    User,
+    User = 1 << 1,
 
     /// https://drafts.csswg.org/css-cascade/#cascade-origin-author
-    Author,
+    Author = 1 << 2,
+}
+
+impl Origin {
+    /// Returns an origin that goes in order for `index`.
+    ///
+    /// This is used for iterating across origins.
+    fn from_index(index: i8) -> Option<Self> {
+        Some(match index {
+            0 => Origin::Author,
+            1 => Origin::User,
+            2 => Origin::UserAgent,
+            _ => return None,
+        })
+    }
+}
+
+bitflags! {
+    /// A set of origins. This is equivalent to Gecko's OriginFlags.
+    pub flags OriginSet: u8 {
+        /// https://drafts.csswg.org/css-cascade/#cascade-origin-user-agent
+        const ORIGIN_USER_AGENT = Origin::UserAgent as u8,
+        /// https://drafts.csswg.org/css-cascade/#cascade-origin-user
+        const ORIGIN_USER = Origin::User as u8,
+        /// https://drafts.csswg.org/css-cascade/#cascade-origin-author
+        const ORIGIN_AUTHOR = Origin::Author as u8,
+    }
+}
+
+impl OriginSet {
+    /// Returns an iterator over the origins present in this `OriginSet`.
+    ///
+    /// See the `OriginSet` documentation for information about the order
+    /// origins are iterated.
+    pub fn iter(&self) -> OriginSetIterator {
+        OriginSetIterator {
+            set: *self,
+            cur: 0,
+        }
+    }
+}
+
+impl From<Origin> for OriginSet {
+    fn from(origin: Origin) -> Self {
+        Self::from_bits_truncate(origin as u8)
+    }
+}
+
+impl BitOrAssign<Origin> for OriginSet {
+    fn bitor_assign(&mut self, origin: Origin) {
+        *self |= OriginSet::from(origin);
+    }
+}
+
+/// Iterates over the origins present in an `OriginSet`, in order from
+/// highest priority (author) to lower (user agent).
+pub struct OriginSetIterator {
+    set: OriginSet,
+    cur: i8,
+}
+
+impl Iterator for OriginSetIterator {
+    type Item = Origin;
+
+    fn next(&mut self) -> Option<Origin> {
+        loop {
+            let origin = match Origin::from_index(self.cur) {
+                Some(origin) => origin,
+                None => return None,
+            };
+
+            self.cur += 1;
+
+            if self.set.contains(origin.into()) {
+                return Some(origin)
+            }
+        }
+    }
 }
 
 /// An object that stores a `T` for each origin of the CSS cascade.
@@ -118,14 +197,14 @@ impl<'a, T> Iterator for PerOriginIter<'a, T> where T: 'a {
     type Item = (&'a T, Origin);
 
     fn next(&mut self) -> Option<Self::Item> {
-        let result = match self.cur {
-            0 => (&self.data.author, Origin::Author),
-            1 => (&self.data.user, Origin::User),
-            2 => (&self.data.user_agent, Origin::UserAgent),
-            _ => return None,
+        let origin = match Origin::from_index(self.cur) {
+            Some(origin) => origin,
+            None => return None,
         };
+
         self.cur += if self.rev { -1 } else { 1 };
-        Some(result)
+
+        Some((self.data.borrow_for_origin(&origin), origin))
     }
 }
 
@@ -145,13 +224,13 @@ impl<'a, T> Iterator for PerOriginIterMut<'a, T> where T: 'a {
     type Item = (&'a mut T, Origin);
 
     fn next(&mut self) -> Option<Self::Item> {
-        let result = match self.cur {
-            0 => (unsafe { &mut (*self.data).author }, Origin::Author),
-            1 => (unsafe { &mut (*self.data).user }, Origin::User),
-            2 => (unsafe { &mut (*self.data).user_agent }, Origin::UserAgent),
-            _ => return None,
+        let origin = match Origin::from_index(self.cur) {
+            Some(origin) => origin,
+            None => return None,
         };
+
         self.cur += 1;
-        Some(result)
+
+        Some((unsafe { (*self.data).borrow_mut_for_origin(&origin) }, origin))
     }
 }

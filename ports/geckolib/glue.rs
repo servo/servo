@@ -115,7 +115,7 @@ use style::string_cache::Atom;
 use style::style_adjuster::StyleAdjuster;
 use style::stylesheets::{CssRule, CssRules, CssRuleType, CssRulesHelpers, DocumentRule};
 use style::stylesheets::{FontFeatureValuesRule, ImportRule, KeyframesRule, MallocSizeOfWithGuard};
-use style::stylesheets::{MediaRule, NamespaceRule, Origin, PageRule, SizeOfState, StyleRule};
+use style::stylesheets::{MediaRule, NamespaceRule, Origin, OriginSet, PageRule, SizeOfState, StyleRule};
 use style::stylesheets::{StylesheetContents, StylesheetInDocument, SupportsRule};
 use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
 use style::stylesheets::keyframes_rule::{Keyframe, KeyframeSelector, KeyframesStepValue};
@@ -148,6 +148,8 @@ static mut DUMMY_URL_DATA: *mut URLExtraData = 0 as *mut URLExtraData;
 
 #[no_mangle]
 pub extern "C" fn Servo_Initialize(dummy_url_data: *mut URLExtraData) {
+    use style::gecko_bindings::sugar::origin_flags;
+
     // Initialize logging.
     let mut builder = LogBuilder::new();
     let default_level = if cfg!(debug_assertions) { "warn" } else { "error" };
@@ -161,6 +163,7 @@ pub extern "C" fn Servo_Initialize(dummy_url_data: *mut URLExtraData) {
 
     // Perform some debug-only runtime assertions.
     restyle_hints::assert_restyle_hints_match();
+    origin_flags::assert_flags_match();
     parser::assert_parsing_mode_match();
     traversal_flags::assert_traversal_flags_match();
 
@@ -896,7 +899,7 @@ pub extern "C" fn Servo_StyleSet_AppendStyleSheet(
 pub extern "C" fn Servo_StyleSet_MediumFeaturesChanged(
     raw_data: RawServoStyleSetBorrowed,
     viewport_units_used: *mut bool,
-) -> bool {
+) -> OriginFlags {
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
 
@@ -916,12 +919,13 @@ pub extern "C" fn Servo_StyleSet_MediumFeaturesChanged(
         *viewport_units_used = data.stylist.device().used_viewport_size();
     }
     data.stylist.device_mut().reset_computed_values();
-    let rules_changed = data.stylist.media_features_change_changed_style(
-        data.stylesheets.iter(),
-        &guard,
-    );
+    let origins_in_which_rules_changed =
+        data.stylist.media_features_change_changed_style(
+            data.stylesheets.iter(),
+            &guard,
+        );
 
-    rules_changed
+    OriginFlags::from(origins_in_which_rules_changed)
 }
 
 #[no_mangle]
@@ -994,7 +998,7 @@ pub extern "C" fn Servo_StyleSet_NoteStyleSheetsChanged(
     changed_origins: OriginFlags,
 ) {
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
-    for origin in changed_origins.iter() {
+    for origin in OriginSet::from(changed_origins).iter() {
         data.stylesheets.force_dirty_origin(&origin);
         data.clear_stylist_origin(&origin);
     }
