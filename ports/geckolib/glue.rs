@@ -899,7 +899,7 @@ pub extern "C" fn Servo_StyleSet_AppendStyleSheet(
 pub extern "C" fn Servo_StyleSet_MediumFeaturesChanged(
     raw_data: RawServoStyleSetBorrowed,
     viewport_units_used: *mut bool,
-) -> bool {
+) -> OriginFlags {
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
 
@@ -919,12 +919,13 @@ pub extern "C" fn Servo_StyleSet_MediumFeaturesChanged(
         *viewport_units_used = data.stylist.device().used_viewport_size();
     }
     data.stylist.device_mut().reset_computed_values();
-    let rules_changed = data.stylist.media_features_change_changed_style(
-        data.stylesheets.iter(),
-        &guard,
-    );
+    let origins_in_which_rules_changed =
+        data.stylist.media_features_change_changed_style(
+            data.stylesheets.iter(),
+            &guard,
+        );
 
-    rules_changed
+    OriginFlags::from(origins_in_which_rules_changed)
 }
 
 #[no_mangle]

@@ -40,7 +40,7 @@ use style_traits::viewport::ViewportConstraints;
 #[cfg(feature = "gecko")]
 use stylesheets::{CounterStyleRule, FontFaceRule};
 use stylesheets::{CssRule, StyleRule};
-use stylesheets::{StylesheetInDocument, Origin, PerOrigin, PerOriginClear};
+use stylesheets::{StylesheetInDocument, Origin, OriginSet, PerOrigin, PerOriginClear};
 use stylesheets::UserAgentStylesheets;
 use stylesheets::keyframes_rule::KeyframesAnimation;
 use stylesheets::viewport_rule::{self, MaybeNew, ViewportRule};
@@ -977,16 +977,16 @@ impl Stylist {
             stylesheets.iter().map(|s| &**s),
             guard
         );
-        self.is_device_dirty |= features_changed;
+        self.is_device_dirty |= !features_changed.is_empty();
     }
 
     /// Returns whether, given a media feature change, any previously-applicable
-    /// style has become non-applicable, or vice-versa.
+    /// style has become non-applicable, or vice-versa for each origin.
     pub fn media_features_change_changed_style<'a, I, S>(
         &self,
         stylesheets: I,
         guard: &SharedRwLockReadGuard,
-    ) -> bool
+    ) -> OriginSet
     where
         I: Iterator<Item = &'a S>,
         S: StylesheetInDocument + ToMediaListKey + 'static,
@@ -995,11 +995,18 @@ impl Stylist {
 
         debug!("Stylist::media_features_change_changed_style");
 
-        for stylesheet in stylesheets {
+        let mut origins = OriginSet::empty();
+
+        'stylesheets_loop: for stylesheet in stylesheets {
             let effective_now =
                 stylesheet.is_effective_for_device(&self.device, guard);
 
             let origin = stylesheet.origin(guard);
+
+            if origins.contains(origin.into()) {
+                continue;
+            }
+
             let origin_cascade_data =
                 self.cascade_data.borrow_for_origin(&origin);
 
@@ -1011,7 +1018,8 @@ impl Stylist {
             if effective_now != effective_then {
                 debug!(" > Stylesheet changed -> {}, {}",
                        effective_then, effective_now);
-                return true
+                origins |= origin;
+                continue;
             }
 
             if !effective_now {
@@ -1051,7 +1059,8 @@ impl Stylist {
                         if effective_now != effective_then {
                             debug!(" > @import rule changed {} -> {}",
                                    effective_then, effective_now);
-                            return true;
+                            origins |= origin;
+                            continue 'stylesheets_loop;
                         }
 
                         if !effective_now {
@@ -1070,7 +1079,8 @@ impl Stylist {
                         if effective_now != effective_then {
                             debug!(" > @media rule changed {} -> {}",
                                    effective_then, effective_now);
-                            return true;
+                            origins |= origin;
+                            continue 'stylesheets_loop;
                         }
 
                         if !effective_now {
@@ -1081,7 +1091,7 @@ impl Stylist {
             }
         }
 
-        return false;
+        return origins
     }
 
     /// Returns the viewport constraints that apply to this document because of
