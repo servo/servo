@@ -3449,8 +3449,10 @@ pub extern "C" fn Servo_StyleSet_GetFontFaceRules(raw_data: RawServoStyleSetBorr
         .map(|(d, _)| d.font_faces.len() as u32)
         .sum();
 
+    // Reversed iterator because Gecko expects rules to appear sorted
+    // UserAgent first, Author last.
     let font_face_iter = data.extra_style_data
-        .iter_origins()
+        .iter_origins_rev()
         .flat_map(|(d, o)| d.font_faces.iter().zip(iter::repeat(o)));
 
     unsafe { rules.set_len(len) };

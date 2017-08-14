@@ -64,6 +64,17 @@ impl<T> PerOrigin<T> {
         PerOriginIter {
             data: &self,
             cur: 0,
+            rev: false,
+        }
+    }
+
+    /// Iterates over references to per-origin extra style data, from lowest
+    /// level (user agent) to highest (author).
+    pub fn iter_origins_rev(&self) -> PerOriginIter<T> {
+        PerOriginIter {
+            data: &self,
+            cur: 2,
+            rev: true,
         }
     }
 
@@ -99,7 +110,8 @@ impl<T> PerOriginClear for PerOrigin<T> where T: PerOriginClear {
 /// @counter-style and @keyframes rules.
 pub struct PerOriginIter<'a, T: 'a> {
     data: &'a PerOrigin<T>,
-    cur: usize,
+    cur: i8,
+    rev: bool,
 }
 
 impl<'a, T> Iterator for PerOriginIter<'a, T> where T: 'a {
@@ -112,7 +124,7 @@ impl<'a, T> Iterator for PerOriginIter<'a, T> where T: 'a {
             2 => (&self.data.user_agent, Origin::UserAgent),
             _ => return None,
         };
-        self.cur += 1;
+        self.cur += if self.rev { -1 } else { 1 };
         Some(result)
     }
 }
@@ -125,7 +137,7 @@ impl<'a, T> Iterator for PerOriginIter<'a, T> where T: 'a {
 /// each time from `next()`.
 pub struct PerOriginIterMut<'a, T: 'a> {
     data: *mut PerOrigin<T>,
-    cur: usize,
+    cur: i8,
     _marker: PhantomData<&'a mut PerOrigin<T>>,
 }
 
