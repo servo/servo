@@ -456,7 +456,10 @@ def set_gecko_property(ffi_name, expr):
 </%def>
 
 <%def name="impl_keyword_clone(ident, gecko_ffi_name, keyword, cast_type='u8')">
-    #[allow(non_snake_case)]
+    // FIXME: We introduced non_upper_case_globals for -moz-appearance only
+    //        since the prefix of Gecko value starts with ThemeWidgetType_NS_THEME.
+    //        We should remove this after fix bug 1371809.
+    #[allow(non_snake_case, non_upper_case_globals)]
     pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
         use properties::longhands::${ident}::computed_value::T as Keyword;
         // FIXME(bholley): Align binary representations and ditch |match| for cast + static_asserts
