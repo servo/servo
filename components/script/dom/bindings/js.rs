@@ -414,16 +414,17 @@ impl<T: DomObject> OnceCellJS<T> {
 
     /// Retrieve a copy of the current inner value. If it is `None`, it is
     /// initialized with the result of `cb` first.
-    pub unsafe fn or_init<F>(&self, cb: F) -> Root<T>
-        where F: FnOnce() -> Root<T>
+    #[allow(unrooted_must_root)]
+    pub unsafe fn or_init<F>(&self, cb: F) -> &JS<T>
+        where F: FnOnce() -> JS<T>
     {
         debug_assert!(thread_state::get().is_script());
         match self.get() {
             Some(inner) => inner,
             None => {
                 let inner = cb();
-                self.ptr.init_once(|| JS::from_ref(&inner));
-                inner
+                self.ptr.init_once(|| inner);
+                self.ptr.as_ref().unwrap()
             },
         }
     }
@@ -438,11 +439,9 @@ impl<T: DomObject> OnceCellJS<T> {
 
     /// Get a rooted value out of this object
     #[allow(unrooted_must_root)]
-    pub fn get(&self) -> Option<Root<T>> {
+    pub fn get(&self) -> Option<&JS<T>> {
         debug_assert!(thread_state::get().is_script());
-        unsafe {
-            self.ptr.as_ref().map(|o| Root::from_ref(o))
-        }
+        self.ptr.as_ref()
     }
 }
 
@@ -466,14 +465,7 @@ impl<T: DomObject> HeapSizeOf for OnceCellJS<T> {
 #[allow(unrooted_must_root)]
 unsafe impl<T: DomObject> JSTraceable for OnceCellJS<T> {
     unsafe fn trace(&self, trc: *mut JSTracer) {
-        #[cfg(debug_assertions)]
-        let trace_str = format!("for {} on heap", type_name::<T>());
-        #[cfg(debug_assertions)]
-        let trace_info = &trace_str[..];
-        #[cfg(not(debug_assertions))]
-        let trace_info = "for DOM object on heap";
-
-        match self.ptr.as_ref().clone() {
+        match self.ptr.as_ref() {
             Some(ptr) => ptr.trace(trc),
             None => {}
         };
