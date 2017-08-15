@@ -1464,9 +1464,11 @@ fn parse_negation<'i, 't, P, E, Impl>(parser: &P,
 fn parse_compound_selector<'i, 't, P, E, Impl>(
     parser: &P,
     input: &mut CssParser<'i, 't>,
-    mut builder: &mut SelectorBuilder<Impl>)
-    -> Result<bool, ParseError<'i, SelectorParseError<'i, E>>>
-    where P: Parser<'i, Impl=Impl, Error=E>, Impl: SelectorImpl
+    builder: &mut SelectorBuilder<Impl>,
+) -> Result<bool, ParseError<'i, SelectorParseError<'i, E>>>
+where
+    P: Parser<'i, Impl=Impl, Error=E>,
+    Impl: SelectorImpl,
 {
     // Consume any leading whitespace.
     loop {

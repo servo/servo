@@ -456,11 +456,12 @@ where
 }
 
 /// Matches a complex selector.
-pub fn matches_complex_selector<E, F>(mut iter: SelectorIter<E::Impl>,
-                                      element: &E,
-                                      mut context: &mut LocalMatchingContext<E::Impl>,
-                                      flags_setter: &mut F)
-                                      -> bool
+pub fn matches_complex_selector<E, F>(
+    mut iter: SelectorIter<E::Impl>,
+    element: &E,
+    context: &mut LocalMatchingContext<E::Impl>,
+    flags_setter: &mut F,
+) -> bool
     where E: Element,
           F: FnMut(&E, ElementSelectorFlags),
 {
