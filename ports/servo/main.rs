@@ -35,11 +35,13 @@ use servo::Browser;
 use servo::compositing::windowing::WindowEvent;
 #[cfg(target_os = "android")]
 use servo::config;
+use servo::config::{resource_files, servo_version};
 use servo::config::opts::{self, ArgumentParsingResult, parse_url_or_filename};
-use servo::config::servo_version;
 use servo::servo_config::prefs::PREFS;
 use servo::servo_url::ServoUrl;
 use std::env;
+#[cfg(target_os = "android")]
+use std::ffi::CStr;
 use std::panic;
 use std::process;
 use std::rc::Rc;
@@ -85,8 +87,47 @@ fn install_crash_handler() {
 #[cfg(target_os = "android")]
 fn install_crash_handler() {}
 
+#[cfg(target_os = "android")]
+#[allow(unsafe_code)]
+pub fn set_resources_path() {
+    let dir = unsafe {
+        CStr::from_ptr((*android_injected_glue::get_app().activity).externalDataPath)
+    };
+    // FIXME
+    servo::set_resources_path(dir.to_str().unwrap());
+}
+
+#[cfg(not(target_os = "android"))]
+fn set_resources_path() {
+    // FIXME: Find a way to not rely on the executable being
+    // under `<servo source>[/$target_triple]/target/debug`
+    // or `<servo source>[/$target_triple]/target/release`.
+    let mut path = env::current_exe().unwrap();
+
+    // Follow symlinks
+    path = path.canonicalize().unwrap();
+
+    while path.pop() {
+        path.push("resources");
+        if path.is_dir() {
+            break;
+        }
+        path.pop();
+        // Check for Resources on mac when using a case sensitive filesystem.
+        path.push("Resources");
+        if path.is_dir() {
+            break;
+        }
+        path.pop();
+    }
+    let path = path.to_str().unwrap().to_owned();
+    resource_files::set_resources_path(path);
+}
+
 fn main() {
     install_crash_handler();
+
+    set_resources_path();
 
     // Parse the command line options and store them globally
     let opts_result = opts::from_cmdline_args(&*args());
@@ -94,8 +135,8 @@ fn main() {
     let content_process_token = if let ArgumentParsingResult::ContentProcess(token) = opts_result {
         Some(token)
     } else {
-        if opts::get().is_running_problem_test && ::std::env::var("RUST_LOG").is_err() {
-            ::std::env::set_var("RUST_LOG", "compositing::constellation");
+        if opts::get().is_running_problem_test && env::var("RUST_LOG").is_err() {
+            env::set_var("RUST_LOG", "compositing::constellation");
         }
 
         None
@@ -214,7 +255,7 @@ impl app::NestedEventLoopListener for BrowserWrapper {
 #[cfg(target_os = "android")]
 fn setup_logging() {
     // Piping logs from stdout/stderr to logcat happens in android_injected_glue.
-    ::std::env::set_var("RUST_LOG", "error");
+    env::set_var("RUST_LOG", "error");
 
     unsafe { android_injected_glue::ffi::app_dummy() };
 }

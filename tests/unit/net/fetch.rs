@@ -34,8 +34,8 @@ use net_traits::NetworkError;
 use net_traits::ReferrerPolicy;
 use net_traits::request::{Origin, RedirectMode, Referrer, Request, RequestMode, Type};
 use net_traits::response::{CacheState, Response, ResponseBody, ResponseType};
-use servo_config::resource_files::resources_dir_path;
 use servo_url::{ImmutableOrigin, ServoUrl};
+use std::env;
 use std::fs::File;
 use std::io::Read;
 use std::sync::{Arc, Mutex};
@@ -155,8 +155,7 @@ fn test_fetch_blob() {
 
 #[test]
 fn test_fetch_file() {
-    let mut path = resources_dir_path().expect("Cannot find resource dir");
-    path.push("servo.css");
+    let path = env::current_exe().unwrap().join("tests").join("resources").join("servo.css");
 
     let url = ServoUrl::from_file_path(path.clone()).unwrap();
     let origin = Origin::Origin(url.origin());
@@ -517,11 +516,12 @@ fn test_fetch_with_hsts() {
         response.send(MESSAGE).unwrap();
     };
 
-    let path = resources_dir_path().expect("Cannot find resource dir");
-    let mut cert_path = path.clone();
+    let test_resources = env::current_exe().unwrap().join("tests").join("resources");
+
+    let mut cert_path = test_resources.clone();
     cert_path.push("self_signed_certificate_for_testing.crt");
 
-    let mut key_path = path.clone();
+    let mut key_path = test_resources.clone();
     key_path.push("privatekey_for_testing.key");
 
     let ssl = hyper_openssl::OpensslServer::from_files(key_path, cert_path)
@@ -530,7 +530,8 @@ fn test_fetch_with_hsts() {
     //takes an address and something that implements hyper::net::Ssl
     let mut server = Server::https("0.0.0.0:0", ssl).unwrap().handle_threads(handler, 1).unwrap();
 
-    let ca_file = resources_dir_path().unwrap().join("self_signed_certificate_for_testing.crt");
+    let mut ca_file = test_resources.clone();
+    ca_file.push("self_signed_certificate_for_testing.crt");
     let ssl_client = create_ssl_client(&ca_file);
 
     let context =  FetchContext {
