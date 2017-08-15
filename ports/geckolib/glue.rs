@@ -900,7 +900,7 @@ pub extern "C" fn Servo_StyleSet_AppendStyleSheet(
 pub extern "C" fn Servo_StyleSet_MediumFeaturesChanged(
     raw_data: RawServoStyleSetBorrowed,
     viewport_units_used: *mut bool,
-) -> OriginFlags {
+) -> u8 {
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
 
@@ -926,7 +926,10 @@ pub extern "C" fn Servo_StyleSet_MediumFeaturesChanged(
             &guard,
         );
 
-    OriginFlags::from(origins_in_which_rules_changed)
+    // We'd like to return `OriginFlags` here, but bindgen bitfield enums don't
+    // work as return values with the Linux 32-bit ABI at the moment because
+    // they wrap the value in a struct, so for now just unwrap it.
+    OriginFlags::from(origins_in_which_rules_changed).0
 }
 
 #[no_mangle]
