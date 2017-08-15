@@ -158,9 +158,9 @@ impl DOMTokenListMethods for DOMTokenList {
             } else {
                 atoms.remove(pos);
             }
+            // Step 5.
+            self.element.set_atomic_tokenlist_attribute(&self.local_name, atoms);
         }
-        // Step 5.
-        self.element.set_atomic_tokenlist_attribute(&self.local_name, atoms);
         Ok(())
     }
 
