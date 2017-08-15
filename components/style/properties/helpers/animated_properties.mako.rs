@@ -943,10 +943,10 @@ impl Animatable for VerticalAlign {
     #[inline]
     fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
         match (*self, *other) {
-            (VerticalAlign::LengthOrPercentage(LengthOrPercentage::Length(ref this)),
-             VerticalAlign::LengthOrPercentage(LengthOrPercentage::Length(ref other))) => {
+            (VerticalAlign::LengthOrPercentage(ref this),
+             VerticalAlign::LengthOrPercentage(ref other)) => {
                 this.add_weighted(other, self_portion, other_portion).map(|value| {
-                    VerticalAlign::LengthOrPercentage(LengthOrPercentage::Length(value))
+                    VerticalAlign::LengthOrPercentage(value)
                 })
             }
             _ => Err(()),
