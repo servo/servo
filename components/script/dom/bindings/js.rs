@@ -392,15 +392,15 @@ impl<T: DomObject> HeapSizeOf for MutNullableJS<T> {
     }
 }
 
-/// A holder that allows to lazily initialize the value only once 
+/// A holder that allows to lazily initialize the value only once
 /// `JS<T>`, using OnceCell
-/// Essentially a `OnceCell<Option<JS<T>>>`.
+/// Essentially a `OnceCell<JS<T>>`.
 ///
 /// This should only be used as a field in other DOM objects; see warning
 /// on `JS<T>`.
 #[must_root]
 pub struct OnceCellJS<T: DomObject> {
-    ptr: OnceCell<Option<JS<T>>>,
+    ptr: OnceCell<JS<T>>,
 }
 
 impl<T: DomObject> OnceCellJS<T> {
@@ -408,13 +408,13 @@ impl<T: DomObject> OnceCellJS<T> {
     pub fn new(initial: Option<&T>) -> OnceCellJS<T> {
         debug_assert!(thread_state::get().is_script());
         OnceCellJS {
-            ptr: OnceCell::new_with_value(initial.map(JS::from_ref)),
+            ptr: OnceCell::new_with_value(initial.map(JS::from_ref).unwrap()),
         }
     }
 
     /// Retrieve a copy of the current inner value. If it is `None`, it is
     /// initialized with the result of `cb` first.
-    pub fn or_init<F>(&self, cb: F) -> Root<T>
+    pub unsafe fn or_init<F>(&self, cb: F) -> Root<T>
         where F: FnOnce() -> Root<T>
     {
         debug_assert!(thread_state::get().is_script());
@@ -422,7 +422,7 @@ impl<T: DomObject> OnceCellJS<T> {
             Some(inner) => inner,
             None => {
                 let inner = cb();
-                self.set(Some(&inner));
+                self.ptr.init_once(|| JS::from_ref(&inner));
                 inner
             },
         }
@@ -433,13 +433,7 @@ impl<T: DomObject> OnceCellJS<T> {
     #[allow(unrooted_must_root)]
     pub unsafe fn get_inner_as_layout(&self) -> Option<LayoutJS<T>> {
         debug_assert!(thread_state::get().is_layout());
-        match self.ptr.as_ref() {
-            Some(ptr_ref) => {
-                ptr::read(ptr_ref).map(|js| js.to_layout())
-            },
-            None => None
-        }
-        
+        self.ptr.as_ref().map(|js| js.to_layout())
     }
 
     /// Get a rooted value out of this object
@@ -447,56 +441,7 @@ impl<T: DomObject> OnceCellJS<T> {
     pub fn get(&self) -> Option<Root<T>> {
         debug_assert!(thread_state::get().is_script());
         unsafe {
-            match self.ptr.as_ref() {
-                Some(ptr_ref) => {
-                    ptr::read(ptr_ref).map(|o| Root::from_ref(&*o))
-                },
-                None => None
-            }
-        }
-    }
-
-    /// Set this `OnceCellJS` to the given value. If it is not already set
-    pub fn set(&self, val: Option<&T>) {
-        debug_assert!(thread_state::get().is_script());
-        self.ptr.init_once( || val.map(|p| JS::from_ref(p)));        
-    }
-
-    /// Gets the current value out of this object and sets it to `None`.
-    pub fn take(&self) -> Option<Root<T>> {
-        let value = self.get();
-        self.set(None);
-        value
-    }
-}
-
-impl<T: DomObject> PartialEq for OnceCellJS<T> {
-    fn eq(&self, other: &Self) -> bool {
-        if let Some(ptr_ref) = self.ptr.as_ref().clone() {
-            if let Some(other_ref) = other.ptr.as_ref().clone() {
-                *ptr_ref == *other_ref
-            } else {
-                false
-            }
-        } else {
-            if let Some(other_ref) = other.ptr.as_ref().clone() {
-                false
-            } else {
-                true
-            }
-        }
-    }
-}
-
-impl<'a, T: DomObject> PartialEq<Option<&'a T>> for OnceCellJS<T> {
-    fn eq(&self, other: &Option<&T>) -> bool {
-        match self.ptr.as_ref().clone() {
-            Some(ptr_ref) => {
-                *ptr_ref == other.map(JS::from_ref)
-            }, 
-            None => {
-                false
-            }
+            self.ptr.as_ref().map(|o| Root::from_ref(o))
         }
     }
 }
@@ -518,7 +463,7 @@ impl<T: DomObject> HeapSizeOf for OnceCellJS<T> {
     }
 }
 
-#[allow(unrooted_must_root)]   
+#[allow(unrooted_must_root)]
 unsafe impl<T: DomObject> JSTraceable for OnceCellJS<T> {
     unsafe fn trace(&self, trc: *mut JSTracer) {
         #[cfg(debug_assertions)]
@@ -529,16 +474,7 @@ unsafe impl<T: DomObject> JSTraceable for OnceCellJS<T> {
         let trace_info = "for DOM object on heap";
 
         match self.ptr.as_ref().clone() {
-            Some(ptr) => {
-                match ptr.clone() {
-                    Some(p) => {
-                        trace_reflector(trc,
-                                trace_info,
-                                (*p).reflector());
-                    },
-                    None => {}
-                };
-            },
+            Some(ptr) => ptr.trace(trc),
             None => {}
         };
     }
