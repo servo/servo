@@ -415,11 +415,11 @@ impl<T: DomObject> OnceCellJS<T> {
     /// Retrieve a copy of the current inner value. If it is `None`, it is
     /// initialized with the result of `cb` first.
     #[allow(unrooted_must_root)]
-    pub unsafe fn or_init<F>(&self, cb: F) -> &JS<T>
+    pub unsafe fn or_init<F>(&self, cb: F) -> &T
         where F: FnOnce() -> JS<T>
     {
         debug_assert!(thread_state::get().is_script());
-        match self.get() {
+        match self.ptr.as_ref() {
             Some(inner) => inner,
             None => {
                 let inner = cb();
@@ -435,13 +435,6 @@ impl<T: DomObject> OnceCellJS<T> {
     pub unsafe fn get_inner_as_layout(&self) -> Option<LayoutJS<T>> {
         debug_assert!(thread_state::get().is_layout());
         self.ptr.as_ref().map(|js| js.to_layout())
-    }
-
-    /// Get a rooted value out of this object
-    #[allow(unrooted_must_root)]
-    pub fn get(&self) -> Option<&JS<T>> {
-        debug_assert!(thread_state::get().is_script());
-        self.ptr.as_ref()
     }
 }
 
