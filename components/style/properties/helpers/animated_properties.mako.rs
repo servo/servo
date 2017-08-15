@@ -2410,10 +2410,7 @@ impl<T, U> Animatable for Either<T, U>
             (Either::Second(ref this), Either::Second(ref other)) => {
                 this.add_weighted(&other, self_portion, other_portion).map(Either::Second)
             },
-            _ => {
-                let result = if self_portion > other_portion {*self} else {*other};
-                Ok(result)
-            }
+            _ => Err(()),
         }
     }
 }
