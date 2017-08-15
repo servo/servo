@@ -512,12 +512,6 @@ extern "C" {
     pub fn Servo_StyleSet_Drop(ptr: RawServoStyleSetOwned);
 }
 extern "C" {
-    pub fn Gecko_ChildrenCount(node: RawGeckoNodeBorrowed) -> u32;
-}
-extern "C" {
-    pub fn Gecko_NodeIsElement(node: RawGeckoNodeBorrowed) -> bool;
-}
-extern "C" {
     pub fn Gecko_IsInDocument(node: RawGeckoNodeBorrowed) -> bool;
 }
 extern "C" {
@@ -596,9 +590,6 @@ extern "C" {
     pub fn Gecko_DocumentState(aDocument: *const nsIDocument) -> u64;
 }
 extern "C" {
-    pub fn Gecko_IsTextNode(node: RawGeckoNodeBorrowed) -> bool;
-}
-extern "C" {
     pub fn Gecko_IsRootElement(element: RawGeckoElementBorrowed) -> bool;
 }
 extern "C" {
@@ -606,14 +597,7 @@ extern "C" {
                                 element: RawGeckoElementBorrowed) -> bool;
 }
 extern "C" {
-    pub fn Gecko_LocalName(element: RawGeckoElementBorrowed) -> *mut nsIAtom;
-}
-extern "C" {
     pub fn Gecko_Namespace(element: RawGeckoElementBorrowed) -> *mut nsIAtom;
-}
-extern "C" {
-    pub fn Gecko_GetElementId(element: RawGeckoElementBorrowed)
-     -> *mut nsIAtom;
 }
 extern "C" {
     pub fn Gecko_MatchLang(element: RawGeckoElementBorrowed,
@@ -1074,9 +1058,6 @@ extern "C" {
      -> *mut nsStyleContentData_CounterFunction;
 }
 extern "C" {
-    pub fn Gecko_GetNodeFlags(node: RawGeckoNodeBorrowed) -> u32;
-}
-extern "C" {
     pub fn Gecko_SetNodeFlags(node: RawGeckoNodeBorrowed, flags: u32);
 }
 extern "C" {
@@ -1103,10 +1084,6 @@ extern "C" {
                                      new_style: ServoStyleContextBorrowed,
                                      old_style_bits: u64,
                                      any_style_changed: *mut bool)
-     -> nsChangeHint;
-}
-extern "C" {
-    pub fn Gecko_HintsHandledForDescendants(aHint: nsChangeHint)
      -> nsChangeHint;
 }
 extern "C" {

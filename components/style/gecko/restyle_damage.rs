@@ -100,15 +100,6 @@ impl GeckoRestyleDamage {
     pub fn reconstruct() -> Self {
         GeckoRestyleDamage(structs::nsChangeHint_nsChangeHint_ReconstructFrame)
     }
-
-    /// Assuming |self| is applied to an element, returns the set of damage that
-    /// would be superfluous to apply for descendants.
-    pub fn handled_for_descendants(self) -> Self {
-        let hint = unsafe {
-            bindings::Gecko_HintsHandledForDescendants(self.0)
-        };
-        GeckoRestyleDamage(hint)
-    }
 }
 
 impl Default for GeckoRestyleDamage {

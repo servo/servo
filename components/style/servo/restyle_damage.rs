@@ -135,11 +135,6 @@ impl ServoRestyleDamage {
             }
         }
     }
-
-    /// Servo doesn't implement this optimization.
-    pub fn handled_for_descendants(self) -> Self {
-        Self::empty()
-    }
 }
 
 impl Default for ServoRestyleDamage {
