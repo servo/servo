@@ -4222,21 +4222,11 @@ fn static_assert() {
            return Either::Second(Auto);
         }
 
-        let get_clip_rect_component = |value: structs::nscoord| -> Option<Au> {
-            if value == 0 {
-                None
-            } else {
-                Some(Au(value))
-            }
-        };
-
         Either::First(ClipRect {
-            top: get_clip_rect_component(self.gecko.mImageRegion.y),
-            right: get_clip_rect_component(self.gecko.mImageRegion.width).map(
-                |v| v + Au(self.gecko.mImageRegion.x)),
-            bottom: get_clip_rect_component(self.gecko.mImageRegion.height).map(
-                |v| v + Au(self.gecko.mImageRegion.y)),
-            left: get_clip_rect_component(self.gecko.mImageRegion.x),
+            top: Some(Au(self.gecko.mImageRegion.y)),
+            right: Some(Au(self.gecko.mImageRegion.width) + Au(self.gecko.mImageRegion.x)),
+            bottom: Some(Au(self.gecko.mImageRegion.height) + Au(self.gecko.mImageRegion.y)),
+            left: Some(Au(self.gecko.mImageRegion.x)),
         })
     }
 
