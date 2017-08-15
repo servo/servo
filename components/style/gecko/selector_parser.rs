@@ -125,12 +125,11 @@ impl SelectorMethods for NonTSPseudoClass {
 
 
 impl NonTSPseudoClass {
-    /// Returns true if this pseudo-class is enabled under the context of
-    /// the given flag.
-    fn is_enabled_in(&self, flag: NonTSPseudoClassFlag) -> bool {
+    /// Returns true if this pseudo-class has any of the given flags set.
+    fn has_any_flag(&self, flags: NonTSPseudoClassFlag) -> bool {
         macro_rules! check_flag {
             (_) => (false);
-            ($flags:expr) => ($flags.contains(flag));
+            ($flags:expr) => ($flags.intersects(flags));
         }
         macro_rules! pseudo_class_check_is_enabled_in {
             (bare: [$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*],
@@ -145,6 +144,20 @@ impl NonTSPseudoClass {
             }
         }
         apply_non_ts_list!(pseudo_class_check_is_enabled_in)
+    }
+
+    /// Returns whether the pseudo-class is enabled in content sheets.
+    fn is_enabled_in_content(&self) -> bool {
+        use gecko_bindings::structs::mozilla;
+        match self {
+            // For pseudo-classes with pref, the availability in content
+            // depends on the pref.
+            &NonTSPseudoClass::Fullscreen =>
+                unsafe { mozilla::StylePrefs_sUnprefixedFullscreenApiEnabled },
+            // Otherwise, a pseudo-class is enabled in content when it
+            // doesn't have any enabled flag.
+            _ => !self.has_any_flag(PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME),
+        }
     }
 
     /// https://drafts.csswg.org/selectors-4/#useraction-pseudos
@@ -270,14 +283,11 @@ impl<'a> SelectorParser<'a> {
     fn is_pseudo_class_enabled(&self,
                                pseudo_class: &NonTSPseudoClass)
                                -> bool {
-        let enabled_in_ua = pseudo_class.is_enabled_in(PSEUDO_CLASS_ENABLED_IN_UA_SHEETS);
-        let enabled_in_chrome = pseudo_class.is_enabled_in(PSEUDO_CLASS_ENABLED_IN_CHROME);
-        if !enabled_in_ua && !enabled_in_chrome {
-            true
-        } else {
-            (enabled_in_ua && self.in_user_agent_stylesheet()) ||
-            (enabled_in_chrome && self.in_chrome_stylesheet())
-        }
+        pseudo_class.is_enabled_in_content() ||
+            (self.in_user_agent_stylesheet() &&
+             pseudo_class.has_any_flag(PSEUDO_CLASS_ENABLED_IN_UA_SHEETS)) ||
+            (self.in_chrome_stylesheet() &&
+             pseudo_class.has_any_flag(PSEUDO_CLASS_ENABLED_IN_CHROME))
     }
 }
 
