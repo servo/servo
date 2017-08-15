@@ -172,7 +172,7 @@ impl ToAnimatedValue for ComputedPositiveInteger {
 
     #[inline]
     fn from_animated_value(animated: Self::AnimatedValue) -> Self {
-        max(animated.0, 0).into()
+        max(animated.0, 1).into()
     }
 }
 
