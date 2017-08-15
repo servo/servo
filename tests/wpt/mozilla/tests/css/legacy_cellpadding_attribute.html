@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+<!-- Tests that the legacy `cellpadding` attribute works. -->
+<style>
+body, html {
+    margin: 0;
+}
+table {
+    border-spacing: 0;
+}
+td {
+    width: 30px;
+    height: 30px;
+    background-color: red;
+}
+</style>
+</head>
+<body>
+<table cellpadding="5">
+    <tr><td></td></tr>
+    <tr><td></td></tr>
+</table>
+</body>
+</html>

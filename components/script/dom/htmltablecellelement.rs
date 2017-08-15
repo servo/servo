@@ -11,7 +11,11 @@ use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{Element, RawLayoutElementHelpers};
 use dom::htmlelement::HTMLElement;
+use dom::htmltableelement::HTMLTableElement;
+use dom::htmltableelement::HTMLTableElementLayoutHelpers;
 use dom::htmltablerowelement::HTMLTableRowElement;
+use dom::htmltablesectionelement::HTMLTableSectionElement;
+use dom::node::LayoutNodeHelpers;
 use dom::node::Node;
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
@@ -85,6 +89,7 @@ pub trait HTMLTableCellElementLayoutHelpers {
     fn get_colspan(&self) -> Option<u32>;
     fn get_rowspan(&self) -> Option<u32>;
     fn get_width(&self) -> LengthOrPercentageOrAuto;
+    fn get_inherited_cellpadding(&self) -> Option<u32>;
 }
 
 #[allow(unsafe_code)]
@@ -121,6 +126,20 @@ impl HTMLTableCellElementLayoutHelpers for LayoutJS<HTMLTableCellElement> {
                 .map(AttrValue::as_dimension)
                 .cloned()
                 .unwrap_or(LengthOrPercentageOrAuto::Auto)
+        }
+    }
+
+    fn get_inherited_cellpadding(&self) -> Option<u32>
+    {
+        unsafe {
+            // Follow chain: Cell -> Row -> Section -> Table
+            self.upcast::<Node>().parent_node_ref()
+                .and_then(|cellparent| cellparent.downcast::<HTMLTableRowElement>())
+                .and_then(|row| row.upcast::<Node>().parent_node_ref())
+                .and_then(|rowparent| rowparent.downcast::<HTMLTableSectionElement>())
+                .and_then(|section| section.upcast::<Node>().parent_node_ref())
+                .and_then(|sectionparent| sectionparent.downcast::<HTMLTableElement>())
+                .and_then(|table| table.get_legacy_cellpadding())
         }
     }
 }

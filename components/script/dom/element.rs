@@ -746,6 +746,30 @@ impl LayoutElementHelpers for LayoutJS<Element> {
                 shared_lock,
                 PropertyDeclaration::BorderRightWidth(width_value)));
         }
+
+        let cellpadding = if let Some(this) = self.downcast::<HTMLTableCellElement>() {
+            this.get_inherited_cellpadding()
+        } else {
+            None
+        };
+
+        if let Some(cellpadding) = cellpadding {
+            let length: specified::NonNegativeLengthOrPercentage =
+                specified::NoCalcLength::from_px(cellpadding as f32).into();
+
+            hints.push(from_declaration(
+                shared_lock,
+                PropertyDeclaration::PaddingTop(length.clone())));
+            hints.push(from_declaration(
+                shared_lock,
+                PropertyDeclaration::PaddingLeft(length.clone())));
+            hints.push(from_declaration(
+                shared_lock,
+                PropertyDeclaration::PaddingBottom(length.clone())));
+            hints.push(from_declaration(
+                shared_lock,
+                PropertyDeclaration::PaddingRight(length.clone())));
+        };
     }
 
     #[allow(unsafe_code)]

@@ -3287,6 +3287,18 @@
      {}
     ]
    ],
+   "css/legacy_cellpadding_attribute.html": [
+    [
+     "/_mozilla/css/legacy_cellpadding_attribute.html",
+     [
+      [
+       "/_mozilla/css/legacy_cellpadding_attribute_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "css/legacy_cellspacing_attribute_a.html": [
     [
      "/_mozilla/css/legacy_cellspacing_attribute_a.html",

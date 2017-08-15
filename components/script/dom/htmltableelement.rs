@@ -32,6 +32,7 @@ pub struct HTMLTableElement {
     htmlelement: HTMLElement,
     border: Cell<Option<u32>>,
     cellspacing: Cell<Option<u32>>,
+    cellpadding: Cell<Option<u32>>,
     tbodies: MutNullableJS<HTMLCollection>,
 }
 
@@ -56,6 +57,7 @@ impl HTMLTableElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             border: Cell::new(None),
             cellspacing: Cell::new(None),
+            cellpadding: Cell::new(None),
             tbodies: Default::default(),
         }
     }
@@ -377,6 +379,7 @@ pub trait HTMLTableElementLayoutHelpers {
     fn get_border(&self) -> Option<u32>;
     fn get_cellspacing(&self) -> Option<u32>;
     fn get_width(&self) -> LengthOrPercentageOrAuto;
+    fn get_legacy_cellpadding(&self) -> Option<u32>;
 }
 
 impl HTMLTableElementLayoutHelpers for LayoutJS<HTMLTableElement> {
@@ -401,6 +404,13 @@ impl HTMLTableElementLayoutHelpers for LayoutJS<HTMLTableElement> {
     fn get_cellspacing(&self) -> Option<u32> {
         unsafe {
             (*self.unsafe_get()).cellspacing.get()
+        }
+    }
+
+    #[allow(unsafe_code)]
+    fn get_legacy_cellpadding(&self) -> Option<u32> {
+        unsafe {
+            (*self.unsafe_get()).cellpadding.get()
         }
     }
 
@@ -432,6 +442,11 @@ impl VirtualMethods for HTMLTableElement {
             }
             local_name!("cellspacing") => {
                 self.cellspacing.set(mutation.new_value(attr).and_then(|value| {
+                    parse_unsigned_integer(value.chars()).ok()
+                }));
+            },
+            local_name!("cellpadding") => {
+                self.cellpadding.set(mutation.new_value(attr).and_then(|value| {
                     parse_unsigned_integer(value.chars()).ok()
                 }));
             },
