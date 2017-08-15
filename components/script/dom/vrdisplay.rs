@@ -268,7 +268,7 @@ impl VRDisplayMethods for VRDisplay {
     fn CancelAnimationFrame(&self, handle: u32) {
         if self.presenting.get() {
             let mut list = self.raf_callback_list.borrow_mut();
-            if let Some(mut pair) = list.iter_mut().find(|pair| pair.0 == handle) {
+            if let Some(pair) = list.iter_mut().find(|pair| pair.0 == handle) {
                 pair.1 = None;
             }
         } else {

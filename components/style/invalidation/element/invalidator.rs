@@ -154,7 +154,7 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
             trace!(" > visitedness change, force subtree restyle");
             // We can't just return here because there may also be attribute
             // changes as well that imply additional hints.
-            let mut data = self.data.as_mut().unwrap();
+            let data = self.data.as_mut().unwrap();
             data.restyle.hint.insert(RestyleHint::restyle_subtree());
         }
 

@@ -209,7 +209,7 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
                 let id = register_namespace(&url)
                     .map_err(|()| StyleParseError::UnspecifiedError)?;
 
-                let mut namespaces = self.namespaces.as_mut().unwrap();
+                let namespaces = self.namespaces.as_mut().unwrap();
 
                 let opt_prefix = if let Ok(prefix) = prefix_result {
                     let prefix = Prefix::from(prefix.as_ref());
