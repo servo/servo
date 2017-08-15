@@ -108,9 +108,9 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     ///
     /// Note that this, for Gecko, comes through Servo_ComputedValues_Inherit.
     #[cfg(feature = "gecko")]
-    pub fn adjust_for_text(&mut self, parent_style: &ComputedValues) {
+    pub fn adjust_for_text(&mut self) {
         self.adjust_for_text_combine_upright();
-        self.adjust_for_text_in_ruby(parent_style);
+        self.adjust_for_text_in_ruby();
         self.set_bits();
     }
 
@@ -144,9 +144,9 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     /// set (e.g. ruby or ruby containers), thus we may not inherit the flag
     /// from them.
     #[cfg(feature = "gecko")]
-    fn adjust_for_text_in_ruby(&mut self, parent_style: &ComputedValues) {
+    fn adjust_for_text_in_ruby(&mut self) {
         use properties::computed_value_flags::SHOULD_SUPPRESS_LINEBREAK;
-        let parent_display = parent_style.get_box().clone_display();
+        let parent_display = self.style.get_parent_box().clone_display();
         if parent_display.is_ruby_type() {
             self.style.flags.insert(SHOULD_SUPPRESS_LINEBREAK);
         }
