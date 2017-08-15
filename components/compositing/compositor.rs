@@ -340,6 +340,7 @@ impl webrender_api::RenderDispatcher for CompositorThreadDispatcher {
     }
 }
 
+
 impl<Window: WindowMethods> IOCompositor<Window> {
     fn new(window: Rc<Window>, state: InitialCompositorState)
            -> IOCompositor<Window> {
@@ -412,6 +413,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         compositor.send_window_size(WindowSizeType::Initial);
 
         compositor
+    }
+
+    pub fn deinit(self) {
+        self.webrender.deinit();
     }
 
     fn start_shutting_down(&mut self) {
@@ -1645,7 +1650,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         1.0
     }
 }
-
 
 /// Why we performed a composite. This is used for debugging.
 #[derive(Copy, Clone, PartialEq, Debug)]
