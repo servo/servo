@@ -23,12 +23,7 @@ impl nsCSSShadowItem {
     #[inline]
     pub fn to_box_shadow(&self) -> BoxShadow {
         BoxShadow {
-            base: SimpleShadow {
-                color: Color::rgba(convert_nscolor_to_rgba(self.mColor)),
-                horizontal: Au(self.mXOffset),
-                vertical: Au(self.mYOffset),
-                blur: Au(self.mRadius).into(),
-            },
+            base: self.extract_simple_shadow(),
             spread: Au(self.mSpread),
             inset: self.mInset,
         }
@@ -53,16 +48,22 @@ impl nsCSSShadowItem {
         }
     }
 
-    /// Returns this item as a simple shadow.
+    /// Gets a simple shadow from this item.
     #[inline]
-    pub fn to_simple_shadow(&self) -> SimpleShadow {
-        debug_assert_eq!(self.mSpread, 0);
-        debug_assert_eq!(self.mInset, false);
+    fn extract_simple_shadow(&self) -> SimpleShadow {
         SimpleShadow {
             color: Color::rgba(convert_nscolor_to_rgba(self.mColor)),
             horizontal: Au(self.mXOffset),
             vertical: Au(self.mYOffset),
             blur: Au(self.mRadius).into(),
         }
+    }
+
+    /// Returns this item as a simple shadow.
+    #[inline]
+    pub fn to_simple_shadow(&self) -> SimpleShadow {
+        debug_assert_eq!(self.mSpread, 0);
+        debug_assert_eq!(self.mInset, false);
+        self.extract_simple_shadow()
     }
 }
