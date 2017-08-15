@@ -1396,6 +1396,8 @@ impl<'le> TElement for GeckoElement<'le> {
                                              existing_transitions: &HashMap<TransitionProperty,
                                                                             Arc<AnimationValue>>)
                                              -> bool {
+        use properties::animated_properties::Animatable;
+
         // |property| should be an animatable longhand
         let animatable_longhand = AnimatableLonghand::from_transition_property(property).unwrap();
 
@@ -1414,7 +1416,9 @@ impl<'le> TElement for GeckoElement<'le> {
         let to = AnimationValue::from_computed_values(&animatable_longhand,
                                                       after_change_style);
 
-        combined_duration > 0.0f32 && from != to
+        combined_duration > 0.0f32 &&
+        from != to &&
+        from.interpolate(&to, 0.5).is_ok()
     }
 
     #[inline]
