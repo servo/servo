@@ -27,6 +27,14 @@ pub enum MouseWindowEvent {
     MouseUp(MouseButton, TypedPoint2D<f32, DevicePixel>),
 }
 
+/// Various debug and profiling flags that WebRender supports.
+#[derive(Clone)]
+pub enum WebRenderDebugOption {
+    Profiler,
+    TextureCacheDebug,
+    RenderTargetDebug,
+}
+
 /// Events that the windowing system sends to Servo.
 #[derive(Clone)]
 pub enum WindowEvent {
@@ -68,14 +76,14 @@ pub enum WindowEvent {
     /// Sent when a key input state changes
     KeyEvent(Option<char>, Key, KeyState, KeyModifiers),
     /// Sent when Ctr+R/Apple+R is called to reload the current page.
-    /// Toggles the Web renderer profiler on and off
-    ToggleWebRenderProfiler,
     Reload(TopLevelBrowsingContextId),
     /// Create a new top level browsing context
     NewBrowser(ServoUrl, IpcSender<TopLevelBrowsingContextId>),
     /// Make a top level browsing context visible, hiding the previous
     /// visible one.
     SelectBrowser(TopLevelBrowsingContextId),
+    /// Toggles a debug flag in WebRender
+    ToggleWebRenderDebug(WebRenderDebugOption),
 }
 
 impl Debug for WindowEvent {
@@ -96,10 +104,10 @@ impl Debug for WindowEvent {
             WindowEvent::ResetZoom => write!(f, "ResetZoom"),
             WindowEvent::Navigation(..) => write!(f, "Navigation"),
             WindowEvent::Quit => write!(f, "Quit"),
-            WindowEvent::ToggleWebRenderProfiler => write!(f, "ToggleWebRenderProfiler"),
             WindowEvent::Reload(..) => write!(f, "Reload"),
             WindowEvent::NewBrowser(..) => write!(f, "NewBrowser"),
             WindowEvent::SelectBrowser(..) => write!(f, "SelectBrowser"),
+            WindowEvent::ToggleWebRenderDebug(..) => write!(f, "ToggleWebRenderDebug"),
         }
     }
 }
