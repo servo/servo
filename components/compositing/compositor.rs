@@ -412,6 +412,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         compositor
     }
 
+    pub fn deinit(self) {
+        self.webrender.deinit();
+    }
+
     fn start_shutting_down(&mut self) {
         debug!("Compositor sending Exit message to Constellation");
         if let Err(e) = self.constellation_chan.send(ConstellationMsg::Exit) {
@@ -1615,7 +1619,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         1.0
     }
 }
-
 
 /// Why we performed a composite. This is used for debugging.
 #[derive(Copy, Clone, PartialEq, Debug)]

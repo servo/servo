@@ -268,6 +268,10 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
             Box::new(logger)
         }).expect("Failed to set logger.")
     }
+
+    pub fn deinit(self) {
+        self.compositor.deinit();
+    }
 }
 
 fn create_compositor_channel(event_loop_waker: Box<compositor_thread::EventLoopWaker>)
