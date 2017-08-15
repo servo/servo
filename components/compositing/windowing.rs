@@ -9,7 +9,7 @@ use euclid::{Point2D, Size2D};
 use euclid::{ScaleFactor, TypedPoint2D, TypedSize2D};
 use gleam::gl;
 use ipc_channel::ipc::IpcSender;
-use msg::constellation_msg::{Key, KeyModifiers, KeyState, TraversalDirection};
+use msg::constellation_msg::{Key, KeyModifiers, KeyState, TopLevelBrowsingContextId, TraversalDirection};
 use net_traits::net_error_list::NetError;
 use script_traits::{LoadData, MouseButton, TouchEventType, TouchId, TouchpadPressurePhase};
 use servo_geometry::DeviceIndependentPixel;
@@ -45,7 +45,7 @@ pub enum WindowEvent {
     /// Touchpad Pressure
     TouchpadPressure(TypedPoint2D<f32, DevicePixel>, f32, TouchpadPressurePhase),
     /// Sent when a new URL is to be loaded.
-    LoadUrl(String),
+    LoadUrl(TopLevelBrowsingContextId, ServoUrl),
     /// Sent when a mouse hit test is to be performed.
     MouseWindowEventClass(MouseWindowEvent),
     /// Sent when a mouse move.
@@ -62,15 +62,20 @@ pub enum WindowEvent {
     /// Sent when the user resets zoom to default.
     ResetZoom,
     /// Sent when the user uses chrome navigation (i.e. backspace or shift-backspace).
-    Navigation(TraversalDirection),
+    Navigation(TopLevelBrowsingContextId, TraversalDirection),
     /// Sent when the user quits the application
     Quit,
     /// Sent when a key input state changes
     KeyEvent(Option<char>, Key, KeyState, KeyModifiers),
     /// Sent when Ctr+R/Apple+R is called to reload the current page.
-    Reload,
     /// Toggles the Web renderer profiler on and off
     ToggleWebRenderProfiler,
+    Reload(TopLevelBrowsingContextId),
+    /// Create a new top level browsing context
+    NewBrowser(ServoUrl, IpcSender<TopLevelBrowsingContextId>),
+    /// Make a top level browsing context visible, hiding the previous
+    /// visible one.
+    SelectBrowser(TopLevelBrowsingContextId),
 }
 
 impl Debug for WindowEvent {
@@ -91,8 +96,10 @@ impl Debug for WindowEvent {
             WindowEvent::ResetZoom => write!(f, "ResetZoom"),
             WindowEvent::Navigation(..) => write!(f, "Navigation"),
             WindowEvent::Quit => write!(f, "Quit"),
-            WindowEvent::Reload => write!(f, "Reload"),
             WindowEvent::ToggleWebRenderProfiler => write!(f, "ToggleWebRenderProfiler"),
+            WindowEvent::Reload(..) => write!(f, "Reload"),
+            WindowEvent::NewBrowser(..) => write!(f, "NewBrowser"),
+            WindowEvent::SelectBrowser(..) => write!(f, "SelectBrowser"),
         }
     }
 }
@@ -114,30 +121,30 @@ pub trait WindowMethods {
     fn present(&self);
 
     /// Return the size of the window with head and borders and position of the window values
-    fn client_window(&self) -> (Size2D<u32>, Point2D<i32>);
+    fn client_window(&self, ctx: TopLevelBrowsingContextId) -> (Size2D<u32>, Point2D<i32>);
     /// Set the size inside of borders and head
-    fn set_inner_size(&self, size: Size2D<u32>);
+    fn set_inner_size(&self, ctx: TopLevelBrowsingContextId, size: Size2D<u32>);
     /// Set the window position
-    fn set_position(&self, point: Point2D<i32>);
+    fn set_position(&self, ctx: TopLevelBrowsingContextId, point: Point2D<i32>);
     /// Set fullscreen state
-    fn set_fullscreen_state(&self, state: bool);
+    fn set_fullscreen_state(&self, ctx: TopLevelBrowsingContextId, state: bool);
 
     /// Sets the page title for the current page.
-    fn set_page_title(&self, title: Option<String>);
+    fn set_page_title(&self, ctx: TopLevelBrowsingContextId, title: Option<String>);
     /// Called when the browser chrome should display a status message.
-    fn status(&self, Option<String>);
+    fn status(&self, ctx: TopLevelBrowsingContextId, Option<String>);
     /// Called when the browser has started loading a frame.
-    fn load_start(&self);
+    fn load_start(&self, ctx: TopLevelBrowsingContextId);
     /// Called when the browser is done loading a frame.
-    fn load_end(&self);
+    fn load_end(&self, ctx: TopLevelBrowsingContextId);
     /// Called when the browser encounters an error while loading a URL
-    fn load_error(&self, code: NetError, url: String);
+    fn load_error(&self, ctx: TopLevelBrowsingContextId, code: NetError, url: String);
     /// Wether or not to follow a link
-    fn allow_navigation(&self, url: ServoUrl, IpcSender<bool>);
+    fn allow_navigation(&self, ctx: TopLevelBrowsingContextId, url: ServoUrl, IpcSender<bool>);
     /// Called when the <head> tag has finished parsing
-    fn head_parsed(&self);
+    fn head_parsed(&self, ctx: TopLevelBrowsingContextId);
     /// Called when the history state has changed.
-    fn history_changed(&self, Vec<LoadData>, usize);
+    fn history_changed(&self, ctx: TopLevelBrowsingContextId, Vec<LoadData>, usize);
 
     /// Returns the scale factor of the system (device pixels / device independent pixels).
     fn hidpi_factor(&self) -> ScaleFactor<f32, DeviceIndependentPixel, DevicePixel>;
@@ -154,13 +161,13 @@ pub trait WindowMethods {
     fn set_cursor(&self, cursor: Cursor);
 
     /// Process a key event.
-    fn handle_key(&self, ch: Option<char>, key: Key, mods: KeyModifiers);
+    fn handle_key(&self, ctx: Option<TopLevelBrowsingContextId>, ch: Option<char>, key: Key, mods: KeyModifiers);
 
     /// Does this window support a clipboard
     fn supports_clipboard(&self) -> bool;
 
     /// Add a favicon
-    fn set_favicon(&self, url: ServoUrl);
+    fn set_favicon(&self, ctx: TopLevelBrowsingContextId, url: ServoUrl);
 
     /// Return the GL function pointer trait.
     fn gl(&self) -> Rc<gl::Gl>;

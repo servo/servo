@@ -5,16 +5,16 @@
 //! Servo, the mighty web browser engine from the future.
 //!
 //! This is a very simple library that wires all of Servo's components
-//! together as type `Browser`, along with a generic client
+//! together as type `Servo`, along with a generic client
 //! implementing the `WindowMethods` trait, to create a working web
 //! browser.
 //!
-//! The `Browser` type is responsible for configuring a
+//! The `Servo` type is responsible for configuring a
 //! `Constellation`, which does the heavy lifting of coordinating all
 //! of Servo's internal subsystems, including the `ScriptThread` and the
 //! `LayoutThread`, as well maintains the navigation context.
 //!
-//! The `Browser` is fed events from a generic type that implements the
+//! `Servo` is fed events from a generic type that implements the
 //! `WindowMethods` trait.
 
 extern crate env_logger;
@@ -88,11 +88,10 @@ use profile::mem as profile_mem;
 use profile::time as profile_time;
 use profile_traits::mem;
 use profile_traits::time;
-use script_traits::{ConstellationMsg, SWManagerSenders, ScriptMsg};
+use script_traits::{ConstellationMsg, SWManagerSenders, ScriptToConstellationChan};
 use servo_config::opts;
 use servo_config::prefs::PREFS;
 use servo_config::resource_files::resources_dir_path;
-use servo_url::ServoUrl;
 use std::borrow::Cow;
 use std::cmp::max;
 use std::path::PathBuf;
@@ -104,6 +103,7 @@ use webvr::{WebVRThread, WebVRCompositorHandler};
 pub use gleam::gl;
 pub use servo_config as config;
 pub use servo_url as url;
+pub use msg::constellation_msg::TopLevelBrowsingContextId as BrowserId;
 
 /// The in-process interface to Servo.
 ///
@@ -111,18 +111,18 @@ pub use servo_url as url;
 /// orchestrating the interaction between JavaScript, CSS layout,
 /// rendering, and the client window.
 ///
-/// Clients create a `Browser` for a given reference-counted type
+/// Clients create a `Servo` instance for a given reference-counted type
 /// implementing `WindowMethods`, which is the bridge to whatever
 /// application Servo is embedded in. Clients then create an event
 /// loop to pump messages between the embedding application and
 /// various browser components.
-pub struct Browser<Window: WindowMethods + 'static> {
+pub struct Servo<Window: WindowMethods + 'static> {
     compositor: IOCompositor<Window>,
     constellation_chan: Sender<ConstellationMsg>,
 }
 
-impl<Window> Browser<Window> where Window: WindowMethods + 'static {
-    pub fn new(window: Rc<Window>, target_url: ServoUrl) -> Browser<Window> {
+impl<Window> Servo<Window> where Window: WindowMethods + 'static {
+    pub fn new(window: Rc<Window>) -> Servo<Window> {
         // Global configuration options, parsed from the command line.
         let opts = opts::get();
 
@@ -205,7 +205,6 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
         // as the navigation context.
         let (constellation_chan, sw_senders) = create_constellation(opts.user_agent.clone(),
                                                                     opts.config_dir.clone(),
-                                                                    target_url,
                                                                     compositor_proxy.clone_compositor_proxy(),
                                                                     time_profiler_chan.clone(),
                                                                     mem_profiler_chan.clone(),
@@ -238,7 +237,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
             webrender_api,
         });
 
-        Browser {
+        Servo {
             compositor: compositor,
             constellation_chan: constellation_chan,
         }
@@ -283,7 +282,6 @@ fn create_compositor_channel(event_loop_waker: Box<compositor_thread::EventLoopW
 
 fn create_constellation(user_agent: Cow<'static, str>,
                         config_dir: Option<PathBuf>,
-                        url: ServoUrl,
                         compositor_proxy: CompositorProxy,
                         time_profiler_chan: time::ProfilerChan,
                         mem_profiler_chan: mem::ProfilerChan,
@@ -335,8 +333,6 @@ fn create_constellation(user_agent: Cow<'static, str>,
         constellation_chan.send(ConstellationMsg::SetWebVRThread(webvr_thread)).unwrap();
     }
 
-    constellation_chan.send(ConstellationMsg::InitLoadUrl(url)).unwrap();
-
     // channels to communicate with Service Worker Manager
     let sw_senders = SWManagerSenders {
         swmanager_sender: from_swmanager_sender,
@@ -361,10 +357,10 @@ impl<Log1, Log2> Log for BothLogger<Log1, Log2> where Log1: Log, Log2: Log {
     }
 }
 
-pub fn set_logger(constellation_chan: IpcSender<ScriptMsg>) {
+pub fn set_logger(script_to_constellation_chan: ScriptToConstellationChan) {
     log::set_logger(|max_log_level| {
         let env_logger = EnvLogger::new();
-        let con_logger = FromScriptLogger::new(constellation_chan);
+        let con_logger = FromScriptLogger::new(script_to_constellation_chan);
         let filter = max(env_logger.filter(), con_logger.filter());
         let logger = BothLogger(env_logger, con_logger);
         max_log_level.set(filter);
@@ -383,7 +379,7 @@ pub fn run_content_process(token: String) {
     let unprivileged_content = unprivileged_content_receiver.recv().unwrap();
     opts::set_defaults(unprivileged_content.opts());
     PREFS.extend(unprivileged_content.prefs());
-    set_logger(unprivileged_content.constellation_chan());
+    set_logger(unprivileged_content.script_to_constellation_chan().clone());
 
     // Enter the sandbox if necessary.
     if opts::get().sandbox {
