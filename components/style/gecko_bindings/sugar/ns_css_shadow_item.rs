@@ -48,11 +48,20 @@ impl nsCSSShadowItem {
         }
     }
 
+    #[inline]
+    fn extract_color(&self) -> Color {
+        if self.mHasColor {
+            Color::rgba(convert_nscolor_to_rgba(self.mColor))
+        } else {
+            Color::currentcolor()
+        }
+    }
+
     /// Gets a simple shadow from this item.
     #[inline]
     fn extract_simple_shadow(&self) -> SimpleShadow {
         SimpleShadow {
-            color: Color::rgba(convert_nscolor_to_rgba(self.mColor)),
+            color: self.extract_color(),
             horizontal: Au(self.mXOffset),
             vertical: Au(self.mYOffset),
             blur: Au(self.mRadius).into(),
