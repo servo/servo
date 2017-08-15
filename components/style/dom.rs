@@ -513,6 +513,13 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
     unsafe fn unset_animation_only_dirty_descendants(&self) {
     }
 
+    /// Clear all bits related to dirty descendant.
+    ///
+    /// In Gecko, this corresponds to the regular dirty descendants bit, the
+    /// animation-only dirty descendants bit, and the lazy frame construction
+    /// descendants bit.
+    unsafe fn clear_descendants_bits(&self) { self.unset_dirty_descendants(); }
+
     /// Returns true if this element is a visited link.
     ///
     /// Servo doesn't support visited styles yet.
