@@ -2831,7 +2831,7 @@ pub extern "C" fn Servo_NoteExplicitHints(element: RawGeckoElementBorrowed,
 
 #[no_mangle]
 pub extern "C" fn Servo_TakeChangeHint(element: RawGeckoElementBorrowed,
-                                       was_restyled: *mut bool) -> nsChangeHint
+                                       was_restyled: *mut bool) -> u32
 {
     let mut was_restyled =  unsafe { was_restyled.as_mut().unwrap() };
     let element = GeckoElement(element);
@@ -2852,7 +2852,10 @@ pub extern "C" fn Servo_TakeChangeHint(element: RawGeckoElementBorrowed,
     };
 
     debug!("Servo_TakeChangeHint: {:?}, damage={:?}", element, damage);
-    damage.as_change_hint()
+    // We'd like to return `nsChangeHint` here, but bindgen bitfield enums don't
+    // work as return values with the Linux 32-bit ABI at the moment because
+    // they wrap the value in a struct, so for now just unwrap it.
+    damage.as_change_hint().0
 }
 
 #[no_mangle]
