@@ -106,10 +106,14 @@ impl RestyleData {
     }
 
     /// Sets the flag that tells us whether we've reconstructed an ancestor.
-    pub fn set_reconstructed_ancestor(&mut self) {
-        // If it weren't for animation-only traversals, we could assert
-        // `!self.reconstructed_ancestor()` here.
-        self.flags.insert(ANCESTOR_WAS_RECONSTRUCTED);
+    pub fn set_reconstructed_ancestor(&mut self, reconstructed: bool) {
+        if reconstructed {
+            // If it weren't for animation-only traversals, we could assert
+            // `!self.reconstructed_ancestor()` here.
+            self.flags.insert(ANCESTOR_WAS_RECONSTRUCTED);
+        } else {
+            self.flags.remove(ANCESTOR_WAS_RECONSTRUCTED);
+        }
     }
 
     /// Mark this element as restyled, which is useful to know whether we need
