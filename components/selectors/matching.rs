@@ -776,6 +776,10 @@ fn matches_generic_nth_child<E, F>(element: &E,
     where E: Element,
           F: FnMut(&E, ElementSelectorFlags),
 {
+    if element.ignores_nth_child_selectors() {
+        return false;
+    }
+
     flags_setter(element, if is_from_end {
         HAS_SLOW_SELECTOR
     } else {

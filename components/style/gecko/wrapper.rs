@@ -729,6 +729,12 @@ impl<'le> GeckoElement<'le> {
             debug!("(Element not styled, discarding hints)");
         }
     }
+
+    /// This logic is duplicated in Gecko's nsIContent::IsRootOfAnonymousSubtree.
+    fn is_root_of_anonymous_subtree(&self) -> bool {
+        use gecko_bindings::structs::NODE_IS_ANONYMOUS_ROOT;
+        self.flags() & (NODE_IS_ANONYMOUS_ROOT as u32) != 0
+    }
 }
 
 /// Converts flags from the layout used by rust-selectors to the layout used
@@ -1970,9 +1976,12 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
         node.owner_doc().mType == structs::root::nsIDocument_Type::eHTML
     }
 
+    fn ignores_nth_child_selectors(&self) -> bool {
+        self.is_root_of_anonymous_subtree()
+    }
+
     fn blocks_ancestor_combinators(&self) -> bool {
-        use gecko_bindings::structs::NODE_IS_ANONYMOUS_ROOT;
-        if self.flags() & (NODE_IS_ANONYMOUS_ROOT as u32) == 0 {
+        if !self.is_root_of_anonymous_subtree() {
             return false
         }
 
