@@ -9062,6 +9062,11 @@ pub mod root {
                   "_ZN7mozilla10StylePrefs28sFramesTimingFunctionEnabledE"]
             pub static mut StylePrefs_sFramesTimingFunctionEnabled: bool;
         }
+        extern "C" {
+            #[link_name =
+                  "_ZN7mozilla10StylePrefs31sUnprefixedFullscreenApiEnabledE"]
+            pub static mut StylePrefs_sUnprefixedFullscreenApiEnabled: bool;
+        }
         #[test]
         fn bindgen_test_layout_StylePrefs() {
             assert_eq!(::std::mem::size_of::<StylePrefs>() , 1usize , concat !
