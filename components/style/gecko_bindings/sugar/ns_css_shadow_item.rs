@@ -23,12 +23,7 @@ impl nsCSSShadowItem {
     #[inline]
     pub fn to_box_shadow(&self) -> BoxShadow {
         BoxShadow {
-            base: SimpleShadow {
-                color: Color::rgba(convert_nscolor_to_rgba(self.mColor)),
-                horizontal: Au(self.mXOffset),
-                vertical: Au(self.mYOffset),
-                blur: Au(self.mRadius).into(),
-            },
+            base: self.extract_simple_shadow(),
             spread: Au(self.mSpread),
             inset: self.mInset,
         }
@@ -53,16 +48,31 @@ impl nsCSSShadowItem {
         }
     }
 
+    #[inline]
+    fn extract_color(&self) -> Color {
+        if self.mHasColor {
+            Color::rgba(convert_nscolor_to_rgba(self.mColor))
+        } else {
+            Color::currentcolor()
+        }
+    }
+
+    /// Gets a simple shadow from this item.
+    #[inline]
+    fn extract_simple_shadow(&self) -> SimpleShadow {
+        SimpleShadow {
+            color: self.extract_color(),
+            horizontal: Au(self.mXOffset),
+            vertical: Au(self.mYOffset),
+            blur: Au(self.mRadius).into(),
+        }
+    }
+
     /// Returns this item as a simple shadow.
     #[inline]
     pub fn to_simple_shadow(&self) -> SimpleShadow {
         debug_assert_eq!(self.mSpread, 0);
         debug_assert_eq!(self.mInset, false);
-        SimpleShadow {
-            color: Color::rgba(convert_nscolor_to_rgba(self.mColor)),
-            horizontal: Au(self.mXOffset),
-            vertical: Au(self.mYOffset),
-            blur: Au(self.mRadius).into(),
-        }
+        self.extract_simple_shadow()
     }
 }
