@@ -208,7 +208,7 @@ impl ComputeSquaredDistance for Color {
 impl ToAnimatedZero for Color {
     #[inline]
     fn to_animated_zero(&self) -> Result<Self, ()> {
-        /// FIXME(nox): This does not look correct to me.
+        // FIXME(nox): This does not look correct to me.
         Err(())
     }
 }

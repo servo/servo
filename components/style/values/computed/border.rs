@@ -39,7 +39,7 @@ impl BorderImageSideWidth {
 impl ToAnimatedZero for BorderCornerRadius {
     #[inline]
     fn to_animated_zero(&self) -> Result<Self, ()> {
-        /// FIXME(nox): Why?
+        // FIXME(nox): Why?
         Err(())
     }
 }
