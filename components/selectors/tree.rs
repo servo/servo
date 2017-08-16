@@ -86,6 +86,12 @@ pub trait Element: Sized + Debug {
     /// if the parent node is a `DocumentFragment`.
     fn is_root(&self) -> bool;
 
+    /// Returns whether this element should ignore matching nth child
+    /// selector.
+    fn ignores_nth_child_selectors(&self) -> bool {
+        false
+    }
+
     /// Return true if we want to stop lookup ancestor of the current
     /// element while matching complex selectors with descendant/child
     /// combinator.
