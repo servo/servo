@@ -102,7 +102,8 @@ use style::media_queries::MediaList;
 use style::properties::PropertyDeclarationBlock;
 use style::selector_parser::{PseudoElement, Snapshot};
 use style::shared_lock::{SharedRwLock as StyleSharedRwLock, Locked as StyleLocked};
-use style::stylesheets::{CssRules, FontFaceRule, KeyframesRule, MediaRule};
+use style::stylesheet_set::StylesheetSet;
+use style::stylesheets::{CssRules, FontFaceRule, KeyframesRule, MediaRule, Stylesheet};
 use style::stylesheets::{NamespaceRule, StyleRule, ImportRule, SupportsRule, ViewportRule};
 use style::stylesheets::keyframes_rule::Keyframe;
 use style::values::specified::Length;
@@ -374,6 +375,7 @@ unsafe_no_jsmanaged_fields!(AttrIdentifier);
 unsafe_no_jsmanaged_fields!(AttrValue);
 unsafe_no_jsmanaged_fields!(Snapshot);
 unsafe_no_jsmanaged_fields!(PendingRestyle);
+unsafe_no_jsmanaged_fields!(Stylesheet);
 unsafe_no_jsmanaged_fields!(HttpsState);
 unsafe_no_jsmanaged_fields!(Request);
 unsafe_no_jsmanaged_fields!(RequestInit);
@@ -640,6 +642,18 @@ unsafe impl JSTraceable for StyleLocked<MediaList> {
         // Do nothing.
     }
 }
+
+unsafe impl<S> JSTraceable for StylesheetSet<S>
+where
+    S: JSTraceable + ::style::stylesheets::StylesheetInDocument + PartialEq + 'static,
+{
+    unsafe fn trace(&self, tracer: *mut JSTracer) {
+        for s in self.iter() {
+            s.trace(tracer)
+        }
+    }
+}
+
 
 /// Holds a set of JSTraceables that need to be rooted
 struct RootedTraceableSet {

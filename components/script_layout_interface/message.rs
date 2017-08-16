@@ -27,8 +27,13 @@ use style::stylesheets::Stylesheet;
 
 /// Asynchronous messages that script can send to layout.
 pub enum Msg {
-    /// Adds the given stylesheet to the document.
-    AddStylesheet(ServoArc<Stylesheet>),
+    /// Adds the given stylesheet to the document. The second stylesheet is the
+    /// insertion point (if it exists, the sheet needs to be inserted before
+    /// it).
+    AddStylesheet(ServoArc<Stylesheet>, Option<ServoArc<Stylesheet>>),
+
+    /// Removes a stylesheet from the document.
+    RemoveStylesheet(ServoArc<Stylesheet>),
 
     /// Change the quirks mode.
     SetQuirksMode(QuirksMode),
@@ -137,8 +142,6 @@ pub struct ScriptReflow {
     pub reflow_info: Reflow,
     /// The document node.
     pub document: TrustedNodeAddress,
-    /// The document's list of stylesheets.
-    pub document_stylesheets: Vec<ServoArc<Stylesheet>>,
     /// Whether the document's stylesheets have changed since the last script reflow.
     pub stylesheets_changed: bool,
     /// The current window size.

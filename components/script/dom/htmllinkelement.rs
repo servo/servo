@@ -24,7 +24,6 @@ use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use net_traits::ReferrerPolicy;
-use script_layout_interface::message::Msg;
 use script_traits::{MozBrowserEvent, ScriptMsg};
 use servo_arc::Arc;
 use std::ascii::AsciiExt;
@@ -38,8 +37,6 @@ use style::str::HTML_SPACE_CHARACTERS;
 use style::stylesheets::{CssRuleType, Stylesheet};
 use style_traits::PARSING_MODE_DEFAULT;
 use stylesheet_loader::{StylesheetLoader, StylesheetContextSource, StylesheetOwner};
-
-unsafe_no_jsmanaged_fields!(Stylesheet);
 
 #[derive(JSTraceable, PartialEq, Clone, Copy, HeapSizeOf)]
 pub struct RequestGenerationId(u32);
@@ -98,10 +95,16 @@ impl HTMLLinkElement {
         self.request_generation_id.get()
     }
 
+    // FIXME(emilio): These methods are duplicated with
+    // HTMLStyleElement::set_stylesheet.
     pub fn set_stylesheet(&self, s: Arc<Stylesheet>) {
+        let doc = document_from_node(self);
+        if let Some(ref s) = *self.stylesheet.borrow() {
+            doc.remove_stylesheet(self.upcast(), s)
+        }
         *self.stylesheet.borrow_mut() = Some(s.clone());
-        window_from_node(self).layout_chan().send(Msg::AddStylesheet(s)).unwrap();
-        document_from_node(self).invalidate_stylesheets();
+        self.cssom_stylesheet.set(None);
+        doc.add_stylesheet(self.upcast(), s);
     }
 
     pub fn get_stylesheet(&self) -> Option<Arc<Stylesheet>> {
@@ -239,8 +242,9 @@ impl VirtualMethods for HTMLLinkElement {
             s.unbind_from_tree(context);
         }
 
-        let document = document_from_node(self);
-        document.invalidate_stylesheets();
+        if let Some(ref s) = *self.stylesheet.borrow() {
+            document_from_node(self).remove_stylesheet(self.upcast(), s);
+        }
     }
 }
 

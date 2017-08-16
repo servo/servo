@@ -11,16 +11,17 @@ use Atom;
 use dom::{TElement, TNode};
 use fnv::FnvHashSet;
 use invalidation::element::restyle_hints::RestyleHint;
+use media_queries::Device;
 use selector_parser::SelectorImpl;
 use selectors::attr::CaseSensitivity;
 use selectors::parser::{Component, Selector};
 use shared_lock::SharedRwLockReadGuard;
 use stylesheets::{CssRule, StylesheetInDocument};
-use stylist::Stylist;
 
 /// An invalidation scope represents a kind of subtree that may need to be
 /// restyled.
 #[derive(Debug, Hash, Eq, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 enum InvalidationScope {
     /// All the descendants of an element with a given id.
     ID(Atom),
@@ -54,6 +55,7 @@ impl InvalidationScope {
 ///
 /// TODO(emilio): We might be able to do the same analysis for removals and
 /// media query changes too?
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct StylesheetInvalidationSet {
     /// The style scopes we know we have to restyle so far.
     invalid_scopes: FnvHashSet<InvalidationScope>,
@@ -82,7 +84,7 @@ impl StylesheetInvalidationSet {
     /// next time.
     pub fn collect_invalidations_for<S>(
         &mut self,
-        stylist: &Stylist,
+        device: &Device,
         stylesheet: &S,
         guard: &SharedRwLockReadGuard
     )
@@ -96,12 +98,12 @@ impl StylesheetInvalidationSet {
         }
 
         if !stylesheet.enabled() ||
-           !stylesheet.is_effective_for_device(stylist.device(), guard) {
+           !stylesheet.is_effective_for_device(device, guard) {
             debug!(" > Stylesheet was not effective");
             return; // Nothing to do here.
         }
 
-        for rule in stylesheet.effective_rules(stylist.device(), guard) {
+        for rule in stylesheet.effective_rules(device, guard) {
             self.collect_invalidations_for_rule(rule, guard);
             if self.fully_invalid {
                 self.invalid_scopes.clear();
@@ -121,6 +123,11 @@ impl StylesheetInvalidationSet {
         if let Some(e) = document_element {
             self.process_invalidations(e);
         }
+        self.clear();
+    }
+
+    /// Clears the invalidation set without processing.
+    pub fn clear(&mut self) {
         self.invalid_scopes.clear();
         self.fully_invalid = false;
     }

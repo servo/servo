@@ -196,14 +196,17 @@ impl Stylist {
         author_style_disabled: bool,
         extra_data: &mut PerOrigin<ExtraStyleData>,
         mut origins_to_rebuild: OriginSet,
-    ) -> bool
+    ) -> OriginSet
     where
         I: Iterator<Item = &'a S> + Clone,
         S: StylesheetInDocument + ToMediaListKey + 'static,
     {
-        debug_assert!(!origins_to_rebuild.is_empty() || self.is_device_dirty);
         if self.is_device_dirty {
             origins_to_rebuild = OriginSet::all();
+        }
+
+        if origins_to_rebuild.is_empty() {
+            return origins_to_rebuild;
         }
 
         self.num_rebuilds += 1;
@@ -279,37 +282,7 @@ impl Stylist {
         }
 
         self.is_device_dirty = false;
-        true
-    }
-
-    /// clear the stylist and then rebuild it.  Chances are, you want to use
-    /// either clear() or rebuild(), with the latter done lazily, instead.
-    pub fn update<'a, I, S>(
-        &mut self,
-        doc_stylesheets: I,
-        guards: &StylesheetGuards,
-        ua_stylesheets: Option<&UserAgentStylesheets>,
-        stylesheets_changed: bool,
-        author_style_disabled: bool,
-        extra_data: &mut PerOrigin<ExtraStyleData>
-    ) -> bool
-    where
-        I: Iterator<Item = &'a S> + Clone,
-        S: StylesheetInDocument + ToMediaListKey + 'static,
-    {
-        // We have to do a dirtiness check before clearing, because if
-        // we're not actually dirty we need to no-op here.
-        if !(self.is_device_dirty || stylesheets_changed) {
-            return false;
-        }
-        self.rebuild(
-            doc_stylesheets,
-            guards,
-            ua_stylesheets,
-            author_style_disabled,
-            extra_data,
-            OriginSet::all(),
-        )
+        origins_to_rebuild
     }
 
     fn add_stylesheet<S>(
@@ -876,13 +849,19 @@ impl Stylist {
     /// FIXME(emilio): The semantics of the device for Servo and Gecko are
     /// different enough we may want to unify them.
     #[cfg(feature = "servo")]
-    pub fn set_device(&mut self,
-                      mut device: Device,
-                      guard: &SharedRwLockReadGuard,
-                      stylesheets: &[Arc<::stylesheets::Stylesheet>]) {
+    pub fn set_device<'a, I, S>(
+        &mut self,
+        mut device: Device,
+        guard: &SharedRwLockReadGuard,
+        stylesheets: I,
+    )
+    where
+        I: Iterator<Item = &'a S> + Clone,
+        S: StylesheetInDocument + ToMediaListKey + 'static,
+    {
         let cascaded_rule = ViewportRule {
             declarations: viewport_rule::Cascade::from_stylesheets(
-                stylesheets.iter().map(|s| &**s),
+                stylesheets.clone(),
                 guard,
                 &device
             ).finish(),
@@ -897,7 +876,7 @@ impl Stylist {
 
         self.device = device;
         let features_changed = self.media_features_change_changed_style(
-            stylesheets.iter().map(|s| &**s),
+            stylesheets,
             guard
         );
         self.is_device_dirty |= !features_changed.is_empty();
