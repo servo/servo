@@ -1340,8 +1340,9 @@ fn build_identity_transform_list(list: &[TransformOperation]) -> Vec<TransformOp
             TransformOperation::Scale(..) => {
                 result.push(TransformOperation::Scale(1.0, 1.0, 1.0));
             }
-            TransformOperation::Rotate(..) => {
-                result.push(TransformOperation::Rotate(0.0, 0.0, 1.0, Angle::zero()));
+            TransformOperation::Rotate(x, y, z, a) => {
+                let (x, y, z, _) = get_normalized_vector_and_angle(x, y, z, a);
+                result.push(TransformOperation::Rotate(x, y, z, Angle::zero()));
             }
             TransformOperation::Perspective(..) |
             TransformOperation::AccumulateMatrix { .. } |
