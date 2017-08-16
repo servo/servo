@@ -7,7 +7,7 @@
 use cssparser::{BasicParseError, ParseError as CssParseError, ParserInput};
 use cssparser::{Delimiter, parse_important, Parser, SourceLocation, Token};
 use parser::ParserContext;
-use properties::{PropertyId, PropertyDeclaration, SourcePropertyDeclaration};
+use properties::{PropertyId, PropertyDeclaration, PropertyParserContext, SourcePropertyDeclaration};
 use selectors::parser::SelectorParseError;
 use servo_arc::Arc;
 use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
@@ -247,10 +247,11 @@ impl Declaration {
         input.parse_entirely(|input| {
             let prop = input.expect_ident().unwrap().as_ref().to_owned();
             input.expect_colon().unwrap();
-            let id = PropertyId::parse(&prop)
-                .map_err(|_| StyleParseError::UnspecifiedError)?;
-            let mut declarations = SourcePropertyDeclaration::new();
             let context = ParserContext::new_with_rule_type(cx, Some(CssRuleType::Style));
+            let property_context = PropertyParserContext::new(&context);
+            let id = PropertyId::parse(&prop, Some(&property_context))
+                    .map_err(|_| StyleParseError::UnspecifiedError)?;
+            let mut declarations = SourcePropertyDeclaration::new();
             input.parse_until_before(Delimiter::Bang, |input| {
                 PropertyDeclaration::parse_into(&mut declarations, id, &context, input)
                     .map_err(|e| StyleParseError::PropertyDeclaration(e).into())

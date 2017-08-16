@@ -744,7 +744,8 @@ impl LayoutThread {
             Msg::RegisterPaint(name, mut properties, painter) => {
                 debug!("Registering the painter");
                 let properties = properties.drain(..)
-                    .filter_map(|name| PropertyId::parse(&*name).ok().map(|id| (name.clone(), id)))
+                    .filter_map(|name| PropertyId::parse(&*name, None)
+                        .ok().map(|id| (name.clone(), id)))
                     .filter(|&(_, ref id)| id.as_shorthand().is_err())
                     .collect();
                 let registered_painter = RegisteredPainterImpl {
