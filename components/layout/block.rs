@@ -1989,12 +1989,12 @@ impl Flow for BlockFlow {
 
         // For relatively-positioned descendants, the containing block formed by a block is just
         // the content box. The containing block for absolutely-positioned descendants, on the
-        // other hand, is only established if we are positioned.
+        // other hand, is established in other circumstances (see `is_absolute_containing_block').
         let relative_offset =
             self.fragment.relative_position(&self.base
                                                  .early_absolute_position_info
                                                  .relative_containing_block_size);
-        if self.contains_positioned_fragments() {
+        if self.is_absolute_containing_block() {
             let border_box_origin = (self.fragment.border_box -
                 self.fragment.style.logical_border_width()).start;
             self.base
@@ -2013,14 +2013,15 @@ impl Flow for BlockFlow {
                                                  logical_border_width.inline_start,
                                                  logical_border_width.block_start);
                 let position = position.to_physical(self.base.writing_mode, container_size);
-                if self.contains_positioned_fragments() {
+
+                // Some blocks establish a stacking context, but not a containing block for
+                // absolutely positioned elements. An example of this might be a block that has
+                // `position: static` and `opacity` set. In these cases, absolutely-positioned
+                // children will not be positioned relative to us but will instead be positioned
+                // relative to our containing block.
+                if self.is_absolute_containing_block() {
                     position
                 } else {
-                    // We establish a stacking context but are not positioned. (This will happen
-                    // if, for example, the element has `position: static` but has `opacity` or
-                    // `transform` set.) In this case, absolutely-positioned children will not be
-                    // positioned relative to us but will instead be positioned relative to our
-                    // containing block.
                     position - self.base.stacking_relative_position
                 }
             } else {
@@ -2103,10 +2104,6 @@ impl Flow for BlockFlow {
     /// positioned descendants. For block flows, this is the padding box.
     fn generated_containing_block_size(&self, _: OpaqueFlow) -> LogicalSize<Au> {
         (self.fragment.border_box - self.fragment.style().logical_border_width()).size
-    }
-
-    fn is_absolute_containing_block(&self) -> bool {
-        self.contains_positioned_fragments()
     }
 
     fn update_late_computed_inline_position_if_necessary(&mut self, inline_position: Au) {

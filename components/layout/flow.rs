@@ -404,7 +404,7 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
 
     /// Returns true if this is an absolute containing block.
     fn is_absolute_containing_block(&self) -> bool {
-        false
+        self.contains_positioned_fragments()
     }
 
     /// Updates the inline position of a child flow during the assign-height traversal. At present,

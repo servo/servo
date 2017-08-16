@@ -1486,7 +1486,7 @@ impl Flow for InlineFlow {
             indentation = Au(0)
         }
 
-        if self.contains_positioned_fragments() {
+        if self.is_absolute_containing_block() {
             // Assign block-sizes for all flows in this absolute flow tree.
             // This is preorder because the block-size of an absolute flow may depend on
             // the block-size of its containing block, which may also be an absolute flow.
