@@ -117,7 +117,6 @@ use std::collections::HashMap;
 use std::mem as std_mem;
 use std::ops::{Deref, DerefMut};
 use std::process;
-use std::slice;
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{Receiver, Sender, channel};
@@ -130,13 +129,15 @@ use style::context::RegisteredSpeculativePainters;
 use style::dom::{ShowSubtree, ShowSubtreeDataAndPrimaryValues, TElement, TNode};
 use style::error_reporting::{NullReporter, RustLogReporter};
 use style::invalidation::element::restyle_hints::RestyleHint;
+use style::invalidation::media_queries::{MediaListKey, ToMediaListKey};
 use style::logical_geometry::LogicalPoint;
 use style::media_queries::{Device, MediaList, MediaType};
 use style::properties::PropertyId;
 use style::selector_parser::SnapshotMap;
 use style::servo::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, REPOSITION, STORE_OVERFLOW};
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, StylesheetGuards};
-use style::stylesheets::{Origin, Stylesheet, StylesheetInDocument, UserAgentStylesheets};
+use style::stylesheet_set::StylesheetSet;
+use style::stylesheets::{Origin, OriginSet, Stylesheet, StylesheetContents, StylesheetInDocument, UserAgentStylesheets};
 use style::stylist::Stylist;
 use style::thread_state;
 use style::timer::Timer;
@@ -145,6 +146,35 @@ use style::traversal_flags::TraversalFlags;
 use style_traits::CSSPixel;
 use style_traits::DevicePixel;
 use style_traits::SpeculativePainter;
+
+#[derive(Clone)]
+struct DocumentStyleSheet(ServoArc<Stylesheet>);
+
+impl PartialEq for DocumentStyleSheet {
+    fn eq(&self, other: &Self) -> bool {
+        ServoArc::ptr_eq(&self.0, &other.0)
+    }
+}
+
+impl ToMediaListKey for DocumentStyleSheet {
+    fn to_media_list_key(&self) -> MediaListKey {
+        self.0.to_media_list_key()
+    }
+}
+
+impl StylesheetInDocument for DocumentStyleSheet {
+    fn contents(&self, guard: &SharedRwLockReadGuard) -> &StylesheetContents {
+        self.0.contents(guard)
+    }
+
+    fn media<'a>(&'a self, guard: &'a SharedRwLockReadGuard) -> Option<&'a MediaList> {
+        self.0.media(guard)
+    }
+
+    fn enabled(&self) -> bool {
+        self.0.enabled()
+    }
+}
 
 /// Information needed by the layout thread.
 pub struct LayoutThread {
@@ -159,6 +189,9 @@ pub struct LayoutThread {
 
     /// Performs CSS selector matching and style resolution.
     stylist: Stylist,
+
+    /// The list of stylesheets synchronized with the document.
+    stylesheets: StylesheetSet<DocumentStyleSheet>,
 
     /// Is the current reflow of an iframe, as opposed to a root window?
     is_iframe: bool,
@@ -447,17 +480,6 @@ fn add_font_face_rules(stylesheet: &Stylesheet,
     }
 }
 
-#[derive(Clone)]
-struct StylesheetIterator<'a>(slice::Iter<'a, ServoArc<Stylesheet>>);
-
-impl<'a> Iterator for StylesheetIterator<'a> {
-    type Item = &'a Stylesheet;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.0.next().map(|s| &**s)
-    }
-}
-
 impl LayoutThread {
     /// Creates a new `LayoutThread` structure.
     fn new(id: PipelineId,
@@ -548,7 +570,8 @@ impl LayoutThread {
             viewport_size: Size2D::new(Au(0), Au(0)),
             webrender_api: webrender_api_sender.create_api(),
             webrender_document,
-            stylist: stylist,
+            stylist,
+            stylesheets: StylesheetSet::new(),
             rw_data: Arc::new(Mutex::new(
                 LayoutThreadData {
                     constellation_chan: constellation_chan,
@@ -687,13 +710,46 @@ impl LayoutThread {
     }
 
     /// Receives and dispatches messages from other threads.
-    fn handle_request_helper<'a, 'b>(&mut self,
-                                     request: Msg,
-                                     possibly_locked_rw_data: &mut RwData<'a, 'b>)
-                                     -> bool {
+    fn handle_request_helper<'a, 'b>(
+        &mut self,
+        request: Msg,
+        possibly_locked_rw_data: &mut RwData<'a, 'b>,
+    ) -> bool {
         match request {
-            Msg::AddStylesheet(style_info) => {
-                self.handle_add_stylesheet(style_info, possibly_locked_rw_data)
+            Msg::AddStylesheet(stylesheet, before_stylesheet) => {
+                let guard = stylesheet.shared_lock.read();
+
+                self.handle_add_stylesheet(
+                    &stylesheet,
+                    &guard,
+                    possibly_locked_rw_data,
+                );
+
+                match before_stylesheet {
+                    Some(insertion_point) => {
+                        self.stylesheets.insert_stylesheet_before(
+                            Some(self.stylist.device()),
+                            DocumentStyleSheet(stylesheet.clone()),
+                            DocumentStyleSheet(insertion_point),
+                            &guard,
+                        )
+                    }
+                    None => {
+                        self.stylesheets.append_stylesheet(
+                            Some(self.stylist.device()),
+                            DocumentStyleSheet(stylesheet.clone()),
+                            &guard,
+                        )
+                    }
+                }
+            }
+            Msg::RemoveStylesheet(stylesheet) => {
+                let guard = stylesheet.shared_lock.read();
+                self.stylesheets.remove_stylesheet(
+                    Some(self.stylist.device()),
+                    DocumentStyleSheet(stylesheet.clone()),
+                    &guard,
+                );
             }
             Msg::SetQuirksMode(mode) => self.handle_set_quirks_mode(mode),
             Msg::GetRPC(response_chan) => {
@@ -860,14 +916,16 @@ impl LayoutThread {
         let _ = self.parallel_traversal.take();
     }
 
-    fn handle_add_stylesheet<'a, 'b>(&self,
-                                     stylesheet: ServoArc<Stylesheet>,
-                                     possibly_locked_rw_data: &mut RwData<'a, 'b>) {
+    fn handle_add_stylesheet<'a, 'b>(
+        &self,
+        stylesheet: &ServoArc<Stylesheet>,
+        guard: &SharedRwLockReadGuard,
+        possibly_locked_rw_data: &mut RwData<'a, 'b>,
+    ) {
         // Find all font-face rules and notify the font cache of them.
         // GWTODO: Need to handle unloading web fonts.
 
         let rw_data = possibly_locked_rw_data.lock();
-        let guard = stylesheet.shared_lock.read();
         if stylesheet.is_effective_for_device(self.stylist.device(), &guard) {
             add_font_face_rules(&*stylesheet,
                                 &guard,
@@ -1157,7 +1215,7 @@ impl LayoutThread {
         self.document_shared_lock = Some(document_shared_lock.clone());
         let author_guard = document_shared_lock.read();
         let device = Device::new(MediaType::screen(), initial_viewport, device_pixel_ratio);
-        self.stylist.set_device(device, &author_guard, &data.document_stylesheets);
+        self.stylist.set_device(device, &author_guard, self.stylesheets.iter());
 
         self.viewport_size =
             self.stylist.viewport_constraints().map_or(current_screen_size, |constraints| {
@@ -1176,7 +1234,7 @@ impl LayoutThread {
                        .send(ConstellationMsg::ViewportConstrained(self.id, constraints.clone()))
                        .unwrap();
             }
-            if data.document_stylesheets.iter().any(|sheet| sheet.dirty_on_viewport_size_change()) {
+            if self.stylesheets.iter().any(|sheet| sheet.0.dirty_on_viewport_size_change()) {
                 let mut iter = element.as_node().traverse_preorder();
 
                 let mut next = iter.next();
@@ -1185,6 +1243,8 @@ impl LayoutThread {
                         let el = node.as_element().unwrap();
                         if let Some(mut d) = element.mutate_data() {
                             if d.has_styles() {
+                                // FIXME(emilio): This only needs to recascade,
+                                // afaict.
                                 d.restyle.hint.insert(RestyleHint::restyle_subtree());
                             }
                         }
@@ -1207,14 +1267,24 @@ impl LayoutThread {
             author: &author_guard,
             ua_or_user: &ua_or_user_guard,
         };
-        let mut extra_data = Default::default();
-        let needs_dirtying = self.stylist.update(
-            StylesheetIterator(data.document_stylesheets.iter()),
-            &guards,
-            Some(ua_stylesheets),
-            data.stylesheets_changed,
-            /* author_styles_disabled = */ false,
-            &mut extra_data);
+
+        let needs_dirtying = {
+            let mut extra_data = Default::default();
+            let (iter, mut origins_dirty) = self.stylesheets.flush(Some(element));
+            if data.stylesheets_changed {
+                origins_dirty = OriginSet::all();
+            }
+            let origins_rebuilt = self.stylist.rebuild(
+                iter,
+                &guards,
+                Some(ua_stylesheets),
+                /* author_style_disabled = */ false,
+                &mut extra_data,
+                origins_dirty,
+            );
+            !origins_rebuilt.is_empty()
+        };
+
         let needs_reflow = viewport_size_changed && !needs_dirtying;
         if needs_dirtying {
             if let Some(mut d) = element.mutate_data() {

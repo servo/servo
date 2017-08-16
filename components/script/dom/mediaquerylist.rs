@@ -22,7 +22,7 @@ use dom_struct::dom_struct;
 use js::jsapi::JSTracer;
 use std::cell::Cell;
 use std::rc::Rc;
-use style::media_queries::{Device, MediaList, MediaType};
+use style::media_queries::MediaList;
 use style_traits::ToCss;
 
 pub enum MediaQueryListMatchState {
@@ -74,14 +74,9 @@ impl MediaQueryList {
     }
 
     pub fn evaluate(&self) -> bool {
-        if let Some(window_size) = self.document.window().window_size() {
-            let viewport_size = window_size.initial_viewport;
-            let device_pixel_ratio = window_size.device_pixel_ratio;
-            let device = Device::new(MediaType::screen(), viewport_size, device_pixel_ratio);
+        self.document.device().map_or(false, |device| {
             self.media_query_list.evaluate(&device, self.document.quirks_mode())
-        } else {
-            false
-        }
+        })
     }
 }
 
