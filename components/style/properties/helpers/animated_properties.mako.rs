@@ -2478,7 +2478,6 @@ impl Animatable for IntermediateSVGPaintKind {
             }
             // FIXME context values should be interpolable with colors
             // Gecko doesn't implement this behavior either.
-            (&SVGPaintKind::None, &SVGPaintKind::None) => Ok(SVGPaintKind::None),
             (&SVGPaintKind::ContextFill, &SVGPaintKind::ContextFill) => Ok(SVGPaintKind::ContextFill),
             (&SVGPaintKind::ContextStroke, &SVGPaintKind::ContextStroke) => Ok(SVGPaintKind::ContextStroke),
             _ => Err(())
