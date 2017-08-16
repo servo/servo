@@ -43,7 +43,7 @@ pub mod rpc;
 pub mod wrapper_traits;
 
 use atomic_refcell::AtomicRefCell;
-use canvas_traits::canvas::CanvasMsg;
+use canvas_traits::CanvasMsg;
 use core::nonzero::NonZero;
 use ipc_channel::ipc::IpcSender;
 use libc::c_void;
@@ -124,13 +124,8 @@ pub enum LayoutElementType {
     SVGSVGElement,
 }
 
-pub enum HTMLCanvasDataSource {
-    WebGL(webrender_api::ImageKey),
-    Image(Option<IpcSender<CanvasMsg>>)
-}
-
 pub struct HTMLCanvasData {
-    pub source: HTMLCanvasDataSource,
+    pub ipc_renderer: Option<IpcSender<CanvasMsg>>,
     pub width: u32,
     pub height: u32,
 }

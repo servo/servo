@@ -12,13 +12,13 @@
 
 use app_units::{AU_PER_PX, Au};
 use block::{BlockFlow, BlockStackingContextType};
-use canvas_traits::canvas::{CanvasMsg, FromLayoutMsg};
+use canvas_traits::{CanvasData, CanvasMsg, FromLayoutMsg};
 use context::LayoutContext;
 use euclid::{Transform3D, Point2D, Vector2D, Rect, SideOffsets2D, Size2D, TypedSize2D};
 use flex::FlexFlow;
 use flow::{BaseFlow, Flow, IS_ABSOLUTELY_POSITIONED};
 use flow_ref::FlowRef;
-use fragment::{CanvasFragmentSource, CoordinateSystem, Fragment, ImageFragmentInfo, ScannedTextFragmentInfo};
+use fragment::{CoordinateSystem, Fragment, ImageFragmentInfo, ScannedTextFragmentInfo};
 use fragment::{SpecificFragmentInfo, TruncatedFragmentInfo};
 use gfx::display_list;
 use gfx::display_list::{BLUR_INFLATION_FACTOR, BaseDisplayItem, BorderDetails, BorderDisplayItem};
@@ -28,7 +28,7 @@ use gfx::display_list::{GradientDisplayItem, IframeDisplayItem, ImageBorder, Ima
 use gfx::display_list::{LineDisplayItem, NormalBorder, OpaqueNode, PushTextShadowDisplayItem};
 use gfx::display_list::{PopTextShadowDisplayItem, RadialGradientDisplayItem, ScrollRoot};
 use gfx::display_list::{ScrollRootType, SolidColorDisplayItem, StackingContext, StackingContextType};
-use gfx::display_list::{TextDisplayItem, TextOrientation, WebRenderImageInfo};
+use gfx::display_list::{TextDisplayItem, TextOrientation, WebGLDisplayItem, WebRenderImageInfo};
 use gfx_traits::{combine_id_with_fragment_type, FragmentType, StackingContextId};
 use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFlow, LAST_FRAGMENT_OF_ELEMENT};
 use ipc_channel::ipc;
@@ -1978,22 +1978,15 @@ impl FragmentDisplayListBuilding for Fragment {
                 let computed_width = canvas_fragment_info.dom_width.to_px();
                 let computed_height = canvas_fragment_info.dom_height.to_px();
 
-                let (image_key, format) = match canvas_fragment_info.source {
-                    CanvasFragmentSource::WebGL(image_key) => {
-                        (image_key, PixelFormat::BGRA8)
+                let canvas_data = match canvas_fragment_info.ipc_renderer {
+                    Some(ref ipc_renderer) => {
+                        let ipc_renderer = ipc_renderer.lock().unwrap();
+                        let (sender, receiver) = ipc::channel().unwrap();
+                        ipc_renderer.send(CanvasMsg::FromLayout(
+                            FromLayoutMsg::SendData(sender))).unwrap();
+                        receiver.recv().unwrap()
                     },
-                    CanvasFragmentSource::Image(ref ipc_renderer) => {
-                        match *ipc_renderer {
-                            Some(ref ipc_renderer) => {
-                                let ipc_renderer = ipc_renderer.lock().unwrap();
-                                let (sender, receiver) = ipc::channel().unwrap();
-                                ipc_renderer.send(CanvasMsg::FromLayout(
-                                    FromLayoutMsg::SendData(sender))).unwrap();
-                                (receiver.recv().unwrap().image_key, PixelFormat::BGRA8)
-                            },
-                            None => return,
-                        }
-                    }
+                    None => return,
                 };
 
                 let base = state.create_base_display_item(
@@ -2002,19 +1995,29 @@ impl FragmentDisplayListBuilding for Fragment {
                     self.node,
                     self.style.get_cursor(Cursor::Default),
                     DisplayListSection::Content);
-                let display_item = DisplayItem::Image(box ImageDisplayItem {
-                    base: base,
-                    webrender_image: WebRenderImageInfo {
-                        width: computed_width as u32,
-                        height: computed_height as u32,
-                        format: format,
-                        key: Some(image_key),
-                    },
-                    image_data: None,
-                    stretch_size: stacking_relative_content_box.size,
-                    tile_spacing: Size2D::zero(),
-                    image_rendering: image_rendering::T::auto,
-                });
+                let display_item = match canvas_data {
+                    CanvasData::Image(canvas_data) => {
+                        DisplayItem::Image(box ImageDisplayItem {
+                            base: base,
+                            webrender_image: WebRenderImageInfo {
+                                width: computed_width as u32,
+                                height: computed_height as u32,
+                                format: PixelFormat::BGRA8,
+                                key: Some(canvas_data.image_key),
+                            },
+                            image_data: None,
+                            stretch_size: stacking_relative_content_box.size,
+                            tile_spacing: Size2D::zero(),
+                            image_rendering: image_rendering::T::auto,
+                        })
+                    }
+                    CanvasData::WebGL(context_id) => {
+                        DisplayItem::WebGL(box WebGLDisplayItem {
+                            base: base,
+                            context_id: context_id,
+                        })
+                    }
+                };
 
                 state.add_display_item(display_item);
             }

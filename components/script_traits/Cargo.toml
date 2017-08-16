@@ -25,6 +25,7 @@ libc = "0.2"
 metrics = {path = "../metrics"}
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
+offscreen_gl_context = { version = "0.11", features = ["serde"] }
 profile_traits = {path = "../profile_traits"}
 rustc-serialize = "0.3.4"
 serde = "1.0"

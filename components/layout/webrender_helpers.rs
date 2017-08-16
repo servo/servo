@@ -305,6 +305,11 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                     }
                 }
             }
+            DisplayItem::WebGL(ref item) => {
+                builder.push_webgl_canvas(item.base.bounds.to_rectf(),
+                                          Some(item.base.local_clip),
+                                          item.context_id);
+            }
             DisplayItem::Border(ref item) => {
                 let rect = item.base.bounds.to_rectf();
                 let widths = item.border_widths.to_border_widths();

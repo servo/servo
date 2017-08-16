@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use canvas_traits::CanvasData;
 use dom::bindings::callback::CallbackContainer;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::PaintWorkletGlobalScopeBinding;
@@ -297,7 +298,7 @@ impl PaintWorkletGlobalScope {
         let (sender, receiver) = ipc::channel().expect("IPC channel creation.");
         rendering_context.send_data(sender);
         let image_key = match receiver.recv() {
-            Ok(data) => Some(data.image_key),
+            Ok(CanvasData::Image(data)) => Some(data.image_key),
             _ => None,
         };
 

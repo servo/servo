@@ -30,6 +30,7 @@ metrics = {path = "../metrics"}
 msg = {path = "../msg"}
 net = {path = "../net"}
 net_traits = {path = "../net_traits"}
+offscreen_gl_context = { version = "0.11", features = ["serde"] }
 profile_traits = {path = "../profile_traits"}
 script_traits = {path = "../script_traits"}
 serde = "1.0"

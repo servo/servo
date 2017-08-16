@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use canvas_traits::canvas::CanvasImageData;
-use canvas_traits::canvas::CanvasMsg;
-use canvas_traits::canvas::FromLayoutMsg;
+use canvas_traits::CanvasData;
+use canvas_traits::CanvasMsg;
+use canvas_traits::FromLayoutMsg;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasFillRule;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasLineCap;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasLineJoin;
@@ -58,9 +58,9 @@ impl PaintRenderingContext2D {
                            PaintRenderingContext2DBinding::Wrap)
     }
 
-    pub fn send_data(&self, sender: IpcSender<CanvasImageData>) {
+    pub fn send_data(&self, sender: IpcSender<CanvasData>) {
         let msg = CanvasMsg::FromLayout(FromLayoutMsg::SendData(sender));
-        let _ = self.context.get_ipc_renderer().send(msg);
+        let _ = self.context.ipc_renderer().send(msg);
     }
 
     pub fn take_missing_image_urls(&self) -> Vec<ServoUrl> {

@@ -70,8 +70,8 @@ use bluetooth_traits::BluetoothRequest;
 use browsingcontext::{BrowsingContext, SessionHistoryChange, SessionHistoryEntry};
 use browsingcontext::{FullyActiveBrowsingContextsIterator, AllBrowsingContextsIterator};
 use canvas::canvas_paint_thread::CanvasPaintThread;
-use canvas::webgl_thread::WebGLThreads;
-use canvas_traits::canvas::CanvasMsg;
+use canvas::webgl_paint_thread::WebGLPaintThread;
+use canvas_traits::CanvasMsg;
 use clipboard::{ClipboardContext, ClipboardProvider};
 use compositing::SendableFrameTree;
 use compositing::compositor_thread::CompositorProxy;
@@ -96,6 +96,7 @@ use net_traits::pub_domains::reg_host;
 use net_traits::request::RequestInit;
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
 use network_listener::NetworkListener;
+use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use pipeline::{InitialPipelineState, Pipeline};
 use profile_traits::mem;
 use profile_traits::time;
@@ -297,11 +298,8 @@ pub struct Constellation<Message, LTF, STF> {
     /// Phantom data that keeps the Rust type system happy.
     phantom: PhantomData<(Message, LTF, STF)>,
 
-    /// Entry point to create and get channels to a WebGLThread.
-    webgl_threads: WebGLThreads,
-
     /// A channel through which messages can be sent to the webvr thread.
-    webvr_chan: Option<IpcSender<WebVRMsg>>,
+    webvr_thread: Option<IpcSender<WebVRMsg>>,
 }
 
 /// State needed to construct a constellation.
@@ -338,12 +336,6 @@ pub struct InitialConstellationState {
 
     /// Webrender API.
     pub webrender_api_sender: webrender_api::RenderApiSender,
-
-    /// Entry point to create and get channels to a WebGLThread.
-    pub webgl_threads: WebGLThreads,
-
-    /// A channel to the webgl thread.
-    pub webvr_chan: Option<IpcSender<WebVRMsg>>,
 
     /// Whether the constellation supports the clipboard.
     /// TODO: this field is not used, remove it?
@@ -589,8 +581,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     info!("Using seed {} for random pipeline closure.", seed);
                     (rng, prob)
                 }),
-                webgl_threads: state.webgl_threads,
-                webvr_chan: state.webvr_chan,
+                webvr_thread: None
             };
 
             constellation.run();
@@ -709,8 +700,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             webrender_api_sender: self.webrender_api_sender.clone(),
             webrender_document: self.webrender_document,
             is_private,
-            webgl_chan: self.webgl_threads.pipeline(),
-            webvr_chan: self.webvr_chan.clone()
+            webvr_thread: self.webvr_thread.clone()
         });
 
         let pipeline = match result {
@@ -1004,6 +994,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             FromCompositorMsg::LogEntry(top_level_browsing_context_id, thread_name, entry) => {
                 self.handle_log_entry(top_level_browsing_context_id, thread_name, entry);
             }
+            FromCompositorMsg::SetWebVRThread(webvr_thread) => {
+                assert!(self.webvr_thread.is_none());
+                self.webvr_thread = Some(webvr_thread)
+            }
             FromCompositorMsg::WebVREvents(pipeline_ids, events) => {
                 debug!("constellation got {:?} WebVR events", events.len());
                 self.handle_webvr_events(pipeline_ids, events);
@@ -1159,6 +1153,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             FromScriptMsg::CreateCanvasPaintThread(size, sender) => {
                 debug!("constellation got create-canvas-paint-thread message");
                 self.handle_create_canvas_paint_thread_msg(&size, sender)
+            }
+            FromScriptMsg::CreateWebGLPaintThread(size, attributes, sender) => {
+                debug!("constellation got create-WebGL-paint-thread message");
+                self.handle_create_webgl_paint_thread_msg(&size, attributes, sender)
             }
             FromScriptMsg::NodeStatus(message) => {
                 debug!("constellation got NodeStatus message");
@@ -1369,12 +1367,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             }
         }
 
-        debug!("Exiting WebGL thread.");
-        if let Err(e) = self.webgl_threads.exit() {
-            warn!("Exit WebGL Thread failed ({})", e);
-        }
-
-        if let Some(chan) = self.webvr_chan.as_ref() {
+        if let Some(chan) = self.webvr_thread.as_ref() {
             debug!("Exiting WebVR thread.");
             if let Err(e) = chan.send(WebVRMsg::Exit) {
                 warn!("Exit WebVR thread failed ({})", e);
@@ -2139,6 +2132,19 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                                               opts::get().enable_canvas_antialiasing);
         if let Err(e) = response_sender.send(sender) {
             warn!("Create canvas paint thread response failed ({})", e);
+        }
+    }
+
+    fn handle_create_webgl_paint_thread_msg(
+            &mut self,
+            size: &Size2D<i32>,
+            attributes: GLContextAttributes,
+            response_sender: IpcSender<Result<(IpcSender<CanvasMsg>, GLLimits), String>>) {
+        let webrender_api = self.webrender_api_sender.clone();
+        let response = WebGLPaintThread::start(*size, attributes, webrender_api);
+
+        if let Err(e) = response_sender.send(response) {
+            warn!("Create WebGL paint thread response failed ({})", e);
         }
     }
 

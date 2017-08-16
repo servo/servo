@@ -24,6 +24,7 @@ extern crate ipc_channel;
 extern crate libc;
 extern crate msg;
 extern crate net_traits;
+extern crate offscreen_gl_context;
 extern crate profile_traits;
 extern crate rustc_serialize;
 #[macro_use] extern crate serde;
@@ -38,7 +39,6 @@ mod script_msg;
 pub mod webdriver_msg;
 
 use bluetooth_traits::BluetoothRequest;
-use canvas_traits::webgl::WebGLPipeline;
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
 use euclid::{Size2D, Length, Point2D, Vector2D, Rect, ScaleFactor, TypedSize2D};
 use gfx_traits::Epoch;
@@ -524,10 +524,8 @@ pub struct InitialScriptState {
     pub pipeline_namespace_id: PipelineNamespaceId,
     /// A ping will be sent on this channel once the script thread shuts down.
     pub content_process_shutdown_chan: IpcSender<()>,
-    /// A channel to the webgl thread used in this pipeline.
-    pub webgl_chan: WebGLPipeline,
     /// A channel to the webvr thread, if available.
-    pub webvr_chan: Option<IpcSender<WebVRMsg>>
+    pub webvr_thread: Option<IpcSender<WebVRMsg>>
 }
 
 /// This trait allows creating a `ScriptThread` without depending on the `script`
@@ -761,6 +759,8 @@ pub enum ConstellationMsg {
     Reload(TopLevelBrowsingContextId),
     /// A log entry, with the top-level browsing context id and thread name
     LogEntry(Option<TopLevelBrowsingContextId>, Option<String>, LogEntry),
+    /// Set the WebVR thread channel.
+    SetWebVRThread(IpcSender<WebVRMsg>),
     /// Dispatch WebVR events to the subscribed script threads.
     WebVREvents(Vec<PipelineId>, Vec<WebVREvent>),
     /// Create a new top level browsing context.

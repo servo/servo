@@ -68,8 +68,6 @@ fn webdriver(_port: u16, _constellation: Sender<ConstellationMsg>) { }
 
 use bluetooth::BluetoothThreadFactory;
 use bluetooth_traits::BluetoothRequest;
-use canvas::gl_context::GLContextFactory;
-use canvas::webgl_thread::WebGLThreads;
 use compositing::IOCompositor;
 use compositing::compositor_thread::{self, CompositorProxy, CompositorReceiver, InitialCompositorState};
 use compositing::windowing::WindowEvent;
@@ -151,7 +149,7 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
         let mut resource_path = resources_dir_path().unwrap();
         resource_path.push("shaders");
 
-        let (mut webrender, webrender_api_sender) = {
+        let (webrender, webrender_api_sender) = {
             // TODO(gw): Duplicates device_pixels_per_screen_px from compositor. Tidy up!
             let scale_factor = window.hidpi_factor().get();
             let device_pixel_ratio = match opts.device_pixels_per_px {
@@ -213,7 +211,7 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
                                                                     debugger_chan,
                                                                     devtools_chan,
                                                                     supports_clipboard,
-                                                                    &mut webrender,
+                                                                    &webrender,
                                                                     webrender_document,
                                                                     webrender_api_sender);
 
@@ -290,7 +288,7 @@ fn create_constellation(user_agent: Cow<'static, str>,
                         debugger_chan: Option<debugger::Sender>,
                         devtools_chan: Option<Sender<devtools_traits::DevtoolsControlMsg>>,
                         supports_clipboard: bool,
-                        webrender: &mut webrender::Renderer,
+                        webrender: &webrender::Renderer,
                         webrender_document: webrender_api::DocumentId,
                         webrender_api_sender: webrender_api::RenderApiSender)
                         -> (Sender<ConstellationMsg>, SWManagerSenders) {
@@ -306,30 +304,6 @@ fn create_constellation(user_agent: Cow<'static, str>,
 
     let resource_sender = public_resource_threads.sender();
 
-    let (webvr_chan, webvr_constellation_sender, webvr_compositor) = if PREFS.is_webvr_enabled() {
-        // WebVR initialization
-        let (mut handler, sender) = WebVRCompositorHandler::new();
-        let (webvr_thread, constellation_sender) = WebVRThread::spawn(sender);
-        handler.set_webvr_thread_sender(webvr_thread.clone());
-        (Some(webvr_thread), Some(constellation_sender), Some(handler))
-    } else {
-        (None, None, None)
-    };
-
-    // GLContext factory used to create WebGL Contexts
-    let gl_factory = if opts::get().should_use_osmesa() {
-        GLContextFactory::current_osmesa_handle().unwrap()
-    } else {
-        GLContextFactory::current_native_handle(&compositor_proxy).unwrap()
-    };
-
-    // Initialize WebGL Thread entry point.
-    let (webgl_threads, image_handler) = WebGLThreads::new(gl_factory,
-                                                           webrender_api_sender.clone(),
-                                                           webvr_compositor.map(|c| c as Box<_>));
-    // Set webrender external image handler for WebGL textures
-    webrender.set_external_image_handler(image_handler);
-
     let initial_state = InitialConstellationState {
         compositor_proxy,
         debugger_chan,
@@ -343,17 +317,20 @@ fn create_constellation(user_agent: Cow<'static, str>,
         supports_clipboard,
         webrender_document,
         webrender_api_sender,
-        webgl_threads,
-        webvr_chan,
     };
     let (constellation_chan, from_swmanager_sender) =
         Constellation::<script_layout_interface::message::Msg,
                         layout_thread::LayoutThread,
                         script::script_thread::ScriptThread>::start(initial_state);
 
-    if let Some(webvr_constellation_sender) = webvr_constellation_sender {
-        // Set constellation channel used by WebVR thread to broadcast events
-        webvr_constellation_sender.send(constellation_chan.clone()).unwrap();
+    if PREFS.is_webvr_enabled() {
+        // WebVR initialization
+        let (mut handler, sender) = WebVRCompositorHandler::new();
+        let webvr_thread = WebVRThread::spawn(constellation_chan.clone(), sender);
+        handler.set_webvr_thread_sender(webvr_thread.clone());
+
+        webrender.set_vr_compositor_handler(handler);
+        constellation_chan.send(ConstellationMsg::SetWebVRThread(webvr_thread)).unwrap();
     }
 
     // channels to communicate with Service Worker Manager
