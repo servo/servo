@@ -51,6 +51,7 @@ pub use self::percentage::Percentage;
 pub use self::position::Position;
 pub use self::svg::{SVGLength, SVGOpacity, SVGPaint, SVGPaintKind, SVGStrokeDashArray, SVGWidth};
 pub use self::text::{InitialLetter, LetterSpacing, LineHeight, WordSpacing};
+pub use self::time::Time;
 pub use self::transform::{TimingFunction, TransformOrigin};
 
 #[cfg(feature = "gecko")]
@@ -71,6 +72,7 @@ pub mod position;
 pub mod rect;
 pub mod svg;
 pub mod text;
+pub mod time;
 pub mod transform;
 
 /// A `Context` is all the data a specified value could ever need to compute
@@ -325,41 +327,6 @@ impl<T> ToComputedValue for T
 
 impl ComputedValueAsSpecified for Atom {}
 impl ComputedValueAsSpecified for bool {}
-
-/// A computed `<time>` value.
-#[derive(Clone, PartialEq, PartialOrd, Copy, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
-pub struct Time {
-    seconds: CSSFloat,
-}
-
-impl Time {
-    /// Construct a computed `Time` value from a seconds amount.
-    pub fn from_seconds(seconds: CSSFloat) -> Self {
-        Time {
-            seconds: seconds,
-        }
-    }
-
-    /// Construct a computed `Time` value that represents zero seconds.
-    pub fn zero() -> Self {
-        Self::from_seconds(0.0)
-    }
-
-    /// Return the amount of seconds this time represents.
-    #[inline]
-    pub fn seconds(&self) -> CSSFloat {
-        self.seconds
-    }
-}
-
-impl ToCss for Time {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-        where W: fmt::Write,
-    {
-        write!(dest, "{}s", self.seconds())
-    }
-}
 
 impl ComputedValueAsSpecified for specified::BorderStyle {}
 
