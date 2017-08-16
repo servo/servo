@@ -167,36 +167,6 @@ fn test_rule_ordering_same_specificity() {
             "The rule that comes later should win.");
 }
 
-
-#[test]
-fn test_get_id_name() {
-    let (rules_list, _) = get_mock_rules(&[".intro", "#top"]);
-    assert_eq!(selector_map::get_id_name(rules_list[0][0].selector.iter()), None);
-    assert_eq!(selector_map::get_id_name(rules_list[1][0].selector.iter()), Some(Atom::from("top")));
-}
-
-#[test]
-fn test_get_class_name() {
-    let (rules_list, _) = get_mock_rules(&[".intro.foo", "#top"]);
-    assert_eq!(selector_map::get_class_name(rules_list[0][0].selector.iter()), Some(Atom::from("intro")));
-    assert_eq!(selector_map::get_class_name(rules_list[1][0].selector.iter()), None);
-}
-
-#[test]
-fn test_get_local_name() {
-    let (rules_list, _) = get_mock_rules(&["img.foo", "#top", "IMG", "ImG"]);
-    let check = |i: usize, names: Option<(&str, &str)>| {
-        assert!(selector_map::get_local_name(rules_list[i][0].selector.iter())
-                == names.map(|(name, lower_name)| LocalNameSelector {
-                        name: LocalName::from(name),
-                        lower_name: LocalName::from(lower_name) }))
-    };
-    check(0, Some(("img", "img")));
-    check(1, None);
-    check(2, Some(("IMG", "img")));
-    check(3, Some(("ImG", "img")));
-}
-
 #[test]
 fn test_insert() {
     let (rules_list, _) = get_mock_rules(&[".intro.foo", "#top"]);
@@ -204,8 +174,8 @@ fn test_insert() {
     selector_map.insert(rules_list[1][0].clone(), QuirksMode::NoQuirks);
     assert_eq!(1, selector_map.id_hash.get(&Atom::from("top"), QuirksMode::NoQuirks).unwrap()[0].source_order);
     selector_map.insert(rules_list[0][0].clone(), QuirksMode::NoQuirks);
-    assert_eq!(0, selector_map.class_hash.get(&Atom::from("intro"), QuirksMode::NoQuirks).unwrap()[0].source_order);
-    assert!(selector_map.class_hash.get(&Atom::from("foo"), QuirksMode::NoQuirks).is_none());
+    assert_eq!(0, selector_map.class_hash.get(&Atom::from("foo"), QuirksMode::NoQuirks).unwrap()[0].source_order);
+    assert!(selector_map.class_hash.get(&Atom::from("intro"), QuirksMode::NoQuirks).is_none());
 }
 
 fn mock_stylist() -> Stylist {

@@ -195,8 +195,8 @@ impl InvalidationMap {
     pub fn clear(&mut self) {
         self.class_to_selector.clear();
         self.id_to_selector.clear();
-        self.state_affecting_selectors = SelectorMap::new();
-        self.other_attribute_affecting_selectors = SelectorMap::new();
+        self.state_affecting_selectors.clear();
+        self.other_attribute_affecting_selectors.clear();
         self.has_id_attribute_selectors = false;
         self.has_class_attribute_selectors = false;
     }

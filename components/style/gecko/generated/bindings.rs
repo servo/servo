@@ -1988,9 +1988,6 @@ extern "C" {
      -> *mut RawServoStyleSet;
 }
 extern "C" {
-    pub fn Servo_StyleSet_Clear(set: RawServoStyleSetBorrowed);
-}
-extern "C" {
     pub fn Servo_StyleSet_RebuildCachedData(set: RawServoStyleSetBorrowed);
 }
 extern "C" {

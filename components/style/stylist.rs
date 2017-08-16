@@ -40,7 +40,7 @@ use style_traits::viewport::ViewportConstraints;
 #[cfg(feature = "gecko")]
 use stylesheets::{CounterStyleRule, FontFaceRule};
 use stylesheets::{CssRule, StyleRule};
-use stylesheets::{StylesheetInDocument, Origin, OriginSet, PerOrigin, PerOriginClear};
+use stylesheets::{StylesheetInDocument, Origin, OriginSet, PerOrigin};
 use stylesheets::UserAgentStylesheets;
 use stylesheets::keyframes_rule::KeyframesAnimation;
 use stylesheets::viewport_rule::{self, MaybeNew, ViewportRule};
@@ -182,52 +182,6 @@ impl Stylist {
         }
     }
 
-    /// Clear the stylist's state, effectively resetting it to more or less
-    /// the state Stylist::new creates.
-    ///
-    /// We preserve the state of the following members:
-    ///   device: Someone might have set this on us.
-    ///   quirks_mode: Again, someone might have set this on us.
-    ///   num_rebuilds: clear() followed by rebuild() should just increment this
-    ///   rule_tree: So we can re-use rule nodes across rebuilds.
-    ///
-    /// We don't just use struct update syntax with Stylist::new(self.device)
-    /// beause for some of our members we can clear them instead of creating new
-    /// objects.  This does cause unfortunate code duplication with
-    /// Stylist::new.
-    pub fn clear(&mut self) {
-        self.cascade_data.clear();
-        self.precomputed_pseudo_element_decls.clear();
-        self.viewport_constraints = None;
-
-        // XXX(heycam) Why do this, if we are preserving the Device?
-        self.is_device_dirty = true;
-    }
-
-    /// Clear the stylist's state for the specified origin.
-    pub fn clear_origin(&mut self, origin: &Origin) {
-        self.cascade_data.borrow_mut_for_origin(origin).clear();
-
-        if *origin == Origin::UserAgent {
-            // We only collect these declarations from UA sheets.
-            self.precomputed_pseudo_element_decls.clear();
-        }
-
-        // The stored `ViewportConstraints` contains data from rules across
-        // all origins.
-        self.viewport_constraints = None;
-
-        // XXX(heycam) Why do this, if we are preserving the Device?
-        self.is_device_dirty = true;
-    }
-
-    /// Returns whether any origin's `CascadeData` has been cleared.
-    fn any_origin_cleared(&self) -> bool {
-        self.cascade_data
-            .iter_origins()
-            .any(|(d, _)| d.is_cleared)
-    }
-
     /// Rebuild the stylist for the given document stylesheets, and optionally
     /// with a set of user agent stylesheets.
     ///
@@ -239,40 +193,17 @@ impl Stylist {
         doc_stylesheets: I,
         guards: &StylesheetGuards,
         ua_stylesheets: Option<&UserAgentStylesheets>,
-        stylesheets_changed: bool,
         author_style_disabled: bool,
-        extra_data: &mut PerOrigin<ExtraStyleData>
+        extra_data: &mut PerOrigin<ExtraStyleData>,
+        mut origins_to_rebuild: OriginSet,
     ) -> bool
     where
         I: Iterator<Item = &'a S> + Clone,
         S: StylesheetInDocument + ToMediaListKey + 'static,
     {
-        debug_assert!(!self.any_origin_cleared() || self.is_device_dirty);
-
-        // Determine the origins that actually need updating.
-        //
-        // XXX(heycam): What is the relationship between `stylesheets_changed`
-        // and the `is_cleared` fields on each origin's `CascadeData`?  Can
-        // we avoid passing in `stylesheets_changed`?
-        let mut to_update: PerOrigin<bool> = Default::default();
-
-        // If we're provided with a list of UA and user style sheets, then
-        // we must update those cascade levels. (Servo does this, but Gecko
-        // just includes the UA and User sheets in `doc_stylesheets`.)
-        if ua_stylesheets.is_some() {
-            to_update.user_agent = true;
-            to_update.user = true;
-        }
-
-        for (data, origin) in self.cascade_data.iter_mut_origins() {
-            if data.is_cleared {
-                data.is_cleared = false;
-                *to_update.borrow_mut_for_origin(&origin) = true;
-            }
-        }
-
-        if !(self.is_device_dirty || stylesheets_changed) {
-            return false;
+        debug_assert!(!origins_to_rebuild.is_empty() || self.is_device_dirty);
+        if self.is_device_dirty {
+            origins_to_rebuild = OriginSet::all();
         }
 
         self.num_rebuilds += 1;
@@ -307,13 +238,13 @@ impl Stylist {
             }
         }
 
-        // XXX(heycam): We should probably just move the `extra_data` to be
-        // stored on the `Stylist` instead of Gecko's `PerDocumentStyleData`.
-        // That would let us clear it inside `clear()` and `clear_origin()`.
-        for (update, origin) in to_update.iter_origins() {
-            if *update {
-                extra_data.borrow_mut_for_origin(&origin).clear();
-            }
+        for origin in origins_to_rebuild.iter() {
+            extra_data.borrow_mut_for_origin(&origin).clear();
+            self.cascade_data.borrow_mut_for_origin(&origin).clear();
+        }
+
+        if origins_to_rebuild.contains(Origin::UserAgent.into()) {
+            self.precomputed_pseudo_element_decls.clear();
         }
 
         if let Some(ua_stylesheets) = ua_stylesheets {
@@ -337,11 +268,10 @@ impl Stylist {
         // Only add stylesheets for origins we are updating, and only add
         // Author level sheets if author style is not disabled.
         let sheets_to_add = doc_stylesheets.filter(|s| {
-            match s.contents(guards.author).origin {
-                Origin::UserAgent => to_update.user_agent,
-                Origin::Author => to_update.author && !author_style_disabled,
-                Origin::User => to_update.user,
-            }
+            let sheet_origin = s.contents(guards.author).origin;
+
+            origins_to_rebuild.contains(sheet_origin.into()) &&
+                (!matches!(sheet_origin, Origin::Author) || !author_style_disabled)
         });
 
         for stylesheet in sheets_to_add {
@@ -367,16 +297,19 @@ impl Stylist {
         I: Iterator<Item = &'a S> + Clone,
         S: StylesheetInDocument + ToMediaListKey + 'static,
     {
-        debug_assert!(!self.any_origin_cleared() || self.is_device_dirty);
-
         // We have to do a dirtiness check before clearing, because if
         // we're not actually dirty we need to no-op here.
         if !(self.is_device_dirty || stylesheets_changed) {
             return false;
         }
-        self.clear();
-        self.rebuild(doc_stylesheets, guards, ua_stylesheets, stylesheets_changed,
-                     author_style_disabled, extra_data)
+        self.rebuild(
+            doc_stylesheets,
+            guards,
+            ua_stylesheets,
+            author_style_disabled,
+            extra_data,
+            OriginSet::all(),
+        )
     }
 
     fn add_stylesheet<S>(
@@ -529,11 +462,7 @@ impl Stylist {
     pub fn might_have_attribute_dependency(&self,
                                            local_name: &LocalName)
                                            -> bool {
-        if self.any_origin_cleared() || self.is_device_dirty {
-            // We can't tell what attributes are in our style rules until
-            // we rebuild.
-            true
-        } else if *local_name == local_name!("style") {
+        if *local_name == local_name!("style") {
             self.cascade_data
                 .iter_origins()
                 .any(|(d, _)| d.style_attribute_dependency)
@@ -550,13 +479,7 @@ impl Stylist {
     /// Returns whether the given ElementState bit might be relied upon by a
     /// selector of some rule in the stylist.
     pub fn might_have_state_dependency(&self, state: ElementState) -> bool {
-        if self.any_origin_cleared() || self.is_device_dirty {
-            // We can't tell what states our style rules rely on until
-            // we rebuild.
-            true
-        } else {
-            self.has_state_dependency(state)
-        }
+        self.has_state_dependency(state)
     }
 
     /// Returns whether the given ElementState bit is relied upon by a selector
@@ -1440,14 +1363,17 @@ impl ExtraStyleData {
     }
 
     /// Add the given @counter-style rule.
-    fn add_counter_style(&mut self, guard: &SharedRwLockReadGuard,
-                         rule: &Arc<Locked<CounterStyleRule>>) {
+    fn add_counter_style(
+        &mut self,
+        guard: &SharedRwLockReadGuard,
+        rule: &Arc<Locked<CounterStyleRule>>,
+    ) {
         let name = rule.read_with(guard).mName.raw::<nsIAtom>().into();
         self.counter_styles.insert(name, rule.clone());
     }
 }
 
-impl PerOriginClear for ExtraStyleData {
+impl ExtraStyleData {
     fn clear(&mut self) {
         #[cfg(feature = "gecko")]
         {
@@ -1689,11 +1615,6 @@ struct CascadeData {
 
     /// The total number of declarations.
     num_declarations: usize,
-
-    /// If true, the `CascadeData` is in a cleared state (e.g. just-constructed,
-    /// or had `clear()` called on it with no following `rebuild()` on the
-    /// `Stylist`).
-    is_cleared: bool,
 }
 
 impl CascadeData {
@@ -1712,7 +1633,6 @@ impl CascadeData {
             rules_source_order: 0,
             num_selectors: 0,
             num_declarations: 0,
-            is_cleared: true,
         }
     }
 
@@ -1727,28 +1647,21 @@ impl CascadeData {
     fn has_rules_for_pseudo(&self, pseudo: &PseudoElement) -> bool {
         self.pseudos_map.get(pseudo).is_some()
     }
-}
 
-impl PerOriginClear for CascadeData {
     fn clear(&mut self) {
-        if self.is_cleared {
-            return;
-        }
-
-        self.element_map = SelectorMap::new();
-        self.pseudos_map = Default::default();
-        self.animations = Default::default();
+        self.element_map.clear();
+        self.pseudos_map.clear();
+        self.animations.clear();
         self.invalidation_map.clear();
         self.attribute_dependencies.clear();
         self.style_attribute_dependency = false;
         self.state_dependencies = ElementState::empty();
         self.mapped_ids.clear();
-        self.selectors_for_cache_revalidation = SelectorMap::new();
+        self.selectors_for_cache_revalidation.clear();
         self.effective_media_query_results.clear();
         self.rules_source_order = 0;
         self.num_selectors = 0;
         self.num_declarations = 0;
-        self.is_cleared = true;
     }
 }
 

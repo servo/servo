@@ -8,7 +8,7 @@ use dom::TElement;
 use invalidation::stylesheets::StylesheetInvalidationSet;
 use shared_lock::SharedRwLockReadGuard;
 use std::slice;
-use stylesheets::{Origin, PerOrigin, StylesheetInDocument};
+use stylesheets::{OriginSet, PerOrigin, StylesheetInDocument};
 use stylist::Stylist;
 
 /// Entry for a StylesheetSet. We don't bother creating a constructor, because
@@ -169,21 +169,23 @@ where
     pub fn flush<E>(
         &mut self,
         document_element: Option<E>,
-    ) -> StylesheetIterator<S>
+    ) -> (StylesheetIterator<S>, OriginSet)
     where
         E: TElement,
     {
         debug!("StylesheetSet::flush");
         debug_assert!(self.has_changed());
 
-        for (data, _) in self.invalidation_data.iter_mut_origins() {
+        let mut origins = OriginSet::empty();
+        for (data, origin) in self.invalidation_data.iter_mut_origins() {
             if data.dirty {
                 data.invalidations.flush(document_element);
                 data.dirty = false;
+                origins |= origin;
             }
         }
 
-        self.iter()
+        (self.iter(), origins)
     }
 
     /// Returns an iterator over the current list of stylesheets.
@@ -191,23 +193,14 @@ where
         StylesheetIterator(self.entries.iter())
     }
 
-    /// Mark the stylesheets as dirty, because something external may have
-    /// invalidated it.
-    ///
-    /// FIXME(emilio): Make this more granular.
-    pub fn force_dirty(&mut self) {
-        for (data, _) in self.invalidation_data.iter_mut_origins() {
+    /// Mark the stylesheets for the specified origin as dirty, because
+    /// something external may have invalidated it.
+    pub fn force_dirty(&mut self, origins: OriginSet) {
+        for origin in origins.iter() {
+            let data = self.invalidation_data.borrow_mut_for_origin(&origin);
             data.invalidations.invalidate_fully();
             data.dirty = true;
         }
-    }
-
-    /// Mark the stylesheets for the specified origin as dirty, because
-    /// something external may have invalidated it.
-    pub fn force_dirty_origin(&mut self, origin: &Origin) {
-        let data = self.invalidation_data.borrow_mut_for_origin(origin);
-        data.invalidations.invalidate_fully();
-        data.dirty = true;
     }
 }
 

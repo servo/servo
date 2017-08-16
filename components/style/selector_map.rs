@@ -15,7 +15,6 @@ use rule_tree::CascadeLevel;
 use selector_parser::SelectorImpl;
 use selectors::matching::{matches_selector, MatchingContext, ElementSelectorFlags};
 use selectors::parser::{Component, Combinator, SelectorIter};
-use selectors::parser::LocalName as LocalNameSelector;
 use smallvec::{SmallVec, VecLike};
 use std::collections::{HashMap, HashSet};
 use std::collections::hash_map;
@@ -102,7 +101,7 @@ pub struct SelectorMap<T> {
     /// A hash from local name to rules which contain that local name selector.
     pub local_name_hash: PrecomputedHashMap<LocalName, SmallVec<[T; 1]>>,
     /// Rules that don't have ID, class, or element selectors.
-    pub other: Vec<T>,
+    pub other: SmallVec<[T; 1]>,
     /// The number of entries in this map.
     pub count: usize,
 }
@@ -119,9 +118,18 @@ impl<T> SelectorMap<T> {
             id_hash: MaybeCaseInsensitiveHashMap::new(),
             class_hash: MaybeCaseInsensitiveHashMap::new(),
             local_name_hash: HashMap::default(),
-            other: Vec::new(),
+            other: SmallVec::new(),
             count: 0,
         }
+    }
+
+    /// Clears the hashmap retaining storage.
+    pub fn clear(&mut self) {
+        self.id_hash.clear();
+        self.class_hash.clear();
+        self.local_name_hash.clear();
+        self.other.clear();
+        self.count = 0;
     }
 
     /// Returns whether there are any entries in the map.
@@ -231,37 +239,42 @@ impl<T: SelectorMapEntry> SelectorMap<T> {
     pub fn insert(&mut self, entry: T, quirks_mode: QuirksMode) {
         self.count += 1;
 
-        if let Some(id_name) = get_id_name(entry.selector()) {
-            self.id_hash.entry(id_name, quirks_mode).or_insert_with(SmallVec::new).push(entry);
-            return;
-        }
-
-        if let Some(class_name) = get_class_name(entry.selector()) {
-            self.class_hash.entry(class_name, quirks_mode).or_insert_with(SmallVec::new).push(entry);
-            return;
-        }
-
-        if let Some(LocalNameSelector { name, lower_name }) = get_local_name(entry.selector()) {
-            // If the local name in the selector isn't lowercase, insert it into
-            // the rule hash twice. This means that, during lookup, we can always
-            // find the rules based on the local name of the element, regardless
-            // of whether it's an html element in an html document (in which case
-            // we match against lower_name) or not (in which case we match against
-            // name).
-            //
-            // In the case of a non-html-element-in-html-document with a
-            // lowercase localname and a non-lowercase selector, the rulehash
-            // lookup may produce superfluous selectors, but the subsequent
-            // selector matching work will filter them out.
-            if name != lower_name {
-                find_push(&mut self.local_name_hash, lower_name, entry.clone());
+        let vector = match find_bucket(entry.selector()) {
+            Bucket::ID(id) => {
+                self.id_hash
+                    .entry(id.clone(), quirks_mode)
+                    .or_insert_with(SmallVec::new)
             }
-            find_push(&mut self.local_name_hash, name, entry);
+            Bucket::Class(class) => {
+                self.class_hash
+                    .entry(class.clone(), quirks_mode)
+                    .or_insert_with(SmallVec::new)
+            }
+            Bucket::LocalName { name, lower_name } => {
+                // If the local name in the selector isn't lowercase, insert it
+                // into the rule hash twice. This means that, during lookup, we
+                // can always find the rules based on the local name of the
+                // element, regardless of whether it's an html element in an
+                // html document (in which case we match against lower_name) or
+                // not (in which case we match against name).
+                //
+                // In the case of a non-html-element-in-html-document with a
+                // lowercase localname and a non-lowercase selector, the
+                // rulehash lookup may produce superfluous selectors, but the
+                // subsequent selector matching work will filter them out.
+                if name != lower_name {
+                    find_push(&mut self.local_name_hash, lower_name.clone(), entry.clone());
+                }
+                self.local_name_hash
+                    .entry(name.clone())
+                    .or_insert_with(SmallVec::new)
+            }
+            Bucket::Universal => {
+                &mut self.other
+            }
+        };
 
-            return;
-        }
-
-        self.other.push(entry);
+        vector.push(entry);
     }
 
     /// Looks up entries by id, class, local name, and other (in order).
@@ -375,74 +388,65 @@ impl<T: SelectorMapEntry> SelectorMap<T> {
     }
 }
 
-/// Searches a compound selector from left to right. If the compound selector
-/// is a pseudo-element, it's ignored.
-///
-/// The first non-None value returned from |f| is returned.
-#[inline(always)]
-fn find_from_left<F, R>(
-    mut iter: SelectorIter<SelectorImpl>,
-    mut f: F
-) -> Option<R>
-where
-    F: FnMut(&Component<SelectorImpl>) -> Option<R>,
-{
-    for ss in &mut iter {
-        if let Some(r) = f(ss) {
-            return Some(r)
-        }
-    }
+enum Bucket<'a> {
+    ID(&'a Atom),
+    Class(&'a Atom),
+    LocalName { name: &'a LocalName, lower_name: &'a LocalName, },
+    Universal,
+}
 
-    // Effectively, pseudo-elements are ignored, given only state pseudo-classes
-    // may appear before them.
-    if iter.next_sequence() == Some(Combinator::PseudoElement) {
-        for ss in &mut iter {
-            if let Some(r) = f(ss) {
-                return Some(r)
+fn specific_bucket_for<'a>(
+    component: &'a Component<SelectorImpl>
+) -> Bucket<'a> {
+    match *component {
+        Component::ID(ref id) => Bucket::ID(id),
+        Component::Class(ref class) => Bucket::Class(class),
+        Component::LocalName(ref selector) => {
+            Bucket::LocalName {
+                name: &selector.name,
+                lower_name: &selector.lower_name,
             }
         }
+        _ => Bucket::Universal
+    }
+}
+
+/// Searches a compound selector from left to right, and returns the appropriate
+/// bucket for it.
+#[inline(always)]
+fn find_bucket<'a>(mut iter: SelectorIter<'a, SelectorImpl>) -> Bucket<'a> {
+    let mut current_bucket = Bucket::Universal;
+
+    loop {
+        // We basically want to find the most specific bucket,
+        // where:
+        //
+        //   id > class > local name > universal.
+        //
+        for ss in &mut iter {
+            let new_bucket = specific_bucket_for(ss);
+            match new_bucket {
+                Bucket::ID(..) => return new_bucket,
+                Bucket::Class(..) => {
+                    current_bucket = new_bucket;
+                }
+                Bucket::LocalName { .. } => {
+                    if matches!(current_bucket, Bucket::Universal) {
+                        current_bucket = new_bucket;
+                    }
+                }
+                Bucket::Universal => {},
+            }
+        }
+
+        // Effectively, pseudo-elements are ignored, given only state
+        // pseudo-classes may appear before them.
+        if iter.next_sequence() != Some(Combinator::PseudoElement) {
+            break;
+        }
     }
 
-    None
-}
-
-/// Retrieve the first ID name in the selector, or None otherwise.
-#[inline(always)]
-pub fn get_id_name(iter: SelectorIter<SelectorImpl>)
-                   -> Option<Atom> {
-    find_from_left(iter, |ss| {
-        if let Component::ID(ref id) = *ss {
-            return Some(id.clone());
-        }
-        None
-    })
-}
-
-/// Retrieve the FIRST class name in the selector, or None otherwise.
-#[inline(always)]
-pub fn get_class_name(iter: SelectorIter<SelectorImpl>)
-                      -> Option<Atom> {
-    find_from_left(iter, |ss| {
-        if let Component::Class(ref class) = *ss {
-            return Some(class.clone());
-        }
-        None
-    })
-}
-
-/// Retrieve the name if it is a type selector, or None otherwise.
-#[inline(always)]
-pub fn get_local_name(iter: SelectorIter<SelectorImpl>)
-                      -> Option<LocalNameSelector<SelectorImpl>> {
-    find_from_left(iter, |ss| {
-        if let Component::LocalName(ref n) = *ss {
-            return Some(LocalNameSelector {
-                name: n.name.clone(),
-                lower_name: n.lower_name.clone(),
-            })
-        }
-        None
-    })
+    return current_bucket
 }
 
 #[inline]
