@@ -12,7 +12,7 @@ use LoadData;
 use MozBrowserEvent;
 use WorkerGlobalScopeInit;
 use WorkerScriptLoadOrigin;
-use canvas_traits::canvas::CanvasMsg;
+use canvas_traits::CanvasMsg;
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use euclid::{Point2D, Size2D, TypedSize2D};
 use ipc_channel::ipc::IpcSender;
@@ -21,6 +21,7 @@ use msg::constellation_msg::{Key, KeyModifiers, KeyState};
 use net_traits::CoreResourceMsg;
 use net_traits::request::RequestInit;
 use net_traits::storage_thread::StorageType;
+use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use servo_url::ImmutableOrigin;
 use servo_url::ServoUrl;
 use style_traits::CSSPixel;
@@ -77,6 +78,11 @@ pub enum ScriptMsg {
     /// Requests that a new 2D canvas thread be created. (This is done in the constellation because
     /// 2D canvases may use the GPU and we don't want to give untrusted content access to the GPU.)
     CreateCanvasPaintThread(Size2D<i32>, IpcSender<IpcSender<CanvasMsg>>),
+    /// Requests that a new WebGL thread be created. (This is done in the constellation because
+    /// WebGL uses the GPU and we don't want to give untrusted content access to the GPU.)
+    CreateWebGLPaintThread(Size2D<i32>,
+                           GLContextAttributes,
+                           IpcSender<Result<(IpcSender<CanvasMsg>, GLLimits), String>>),
     /// Notifies the constellation that this frame has received focus.
     Focus,
     /// Forward an event that was sent to the parent window.

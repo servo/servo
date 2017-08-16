@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use canvas_traits::canvas::{Canvas2dMsg, CanvasMsg};
-use canvas_traits::canvas::{CompositionOrBlending, FillOrStrokeStyle, FillRule};
-use canvas_traits::canvas::{LineCapStyle, LineJoinStyle, LinearGradientStyle};
-use canvas_traits::canvas::{RadialGradientStyle, RepetitionStyle, byte_swap_and_premultiply};
+use canvas_traits::{Canvas2dMsg, CanvasCommonMsg, CanvasMsg};
+use canvas_traits::{CompositionOrBlending, FillOrStrokeStyle, FillRule};
+use canvas_traits::{LineCapStyle, LineJoinStyle, LinearGradientStyle};
+use canvas_traits::{RadialGradientStyle, RepetitionStyle, byte_swap_and_premultiply};
 use cssparser::{Parser, ParserInput, RGBA};
 use cssparser::Color as CSSColor;
 use dom::bindings::cell::DOMRefCell;
@@ -163,7 +163,7 @@ impl CanvasRenderingContext2D {
     pub fn set_bitmap_dimensions(&self, size: Size2D<i32>) {
         self.reset_to_initial_state();
         self.ipc_renderer
-            .send(CanvasMsg::Recreate(size))
+            .send(CanvasMsg::Common(CanvasCommonMsg::Recreate(size)))
             .unwrap();
     }
 
@@ -171,6 +171,10 @@ impl CanvasRenderingContext2D {
     fn reset_to_initial_state(&self) {
         self.saved_states.borrow_mut().clear();
         *self.state.borrow_mut() = CanvasContextState::new();
+    }
+
+    pub fn ipc_renderer(&self) -> IpcSender<CanvasMsg> {
+        self.ipc_renderer.clone()
     }
 
     fn mark_as_dirty(&self) {
@@ -1388,7 +1392,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
 
 impl Drop for CanvasRenderingContext2D {
     fn drop(&mut self) {
-        if let Err(err) = self.ipc_renderer.send(CanvasMsg::Close) {
+        if let Err(err) = self.ipc_renderer.send(CanvasMsg::Common(CanvasCommonMsg::Close)) {
             warn!("Could not close canvas: {}", err)
         }
     }

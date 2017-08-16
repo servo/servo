@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use canvas_traits::webgl;
-use euclid::Size2D;
 use ipc_channel::ipc;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use msg::constellation_msg::PipelineId;
@@ -13,6 +11,8 @@ use std::{thread, time};
 use std::collections::{HashMap, HashSet};
 use std::sync::mpsc;
 use std::sync::mpsc::{Receiver, Sender};
+use webrender_api;
+use webrender_api::DeviceIntSize;
 use webvr_traits::{WebVRMsg, WebVRResult};
 use webvr_traits::webvr::*;
 
@@ -34,7 +34,7 @@ use webvr_traits::webvr::*;
 ///      ids using the WebVR APIs. These ids are used to implement privacy guidelines defined in the WebVR Spec.
 ///    * When a JavaScript thread gains access to present to a headset, WebVRThread is not used as a intermediary in
 ///      the VRDisplay.requestAnimationFrame loop in order to minimize latency. A direct communication with WebRender
-///      is used instead. See WebVRCompositorHandler and the WebVRCommands for more details.
+///      is used instead. See WebVRCompositorHandler and the VRCompositorCommanda for more details.
 pub struct WebVRThread {
     receiver: IpcReceiver<WebVRMsg>,
     sender: IpcSender<WebVRMsg>,
@@ -66,17 +66,15 @@ impl WebVRThread {
         }
     }
 
-    pub fn spawn(vr_compositor_chan: WebVRCompositorSender)
-                 -> (IpcSender<WebVRMsg>, Sender<Sender<ConstellationMsg>>) {
+    pub fn spawn(constellation_chan: Sender<ConstellationMsg>,
+                 vr_compositor_chan: WebVRCompositorSender)
+                 -> IpcSender<WebVRMsg> {
         let (sender, receiver) = ipc::channel().unwrap();
-        let (constellation_sender, constellation_receiver) = mpsc::channel();
         let sender_clone = sender.clone();
         thread::Builder::new().name("WebVRThread".into()).spawn(move || {
-            let constellation_chan = constellation_receiver.recv().unwrap();
             WebVRThread::new(receiver, sender_clone, constellation_chan, vr_compositor_chan).start();
         }).expect("Thread spawning failed");
-
-        (sender, constellation_sender)
+        sender
     }
 
     fn start(&mut self) {
@@ -307,7 +305,7 @@ impl WebVRThread {
 
 pub struct WebVRCompositor(*mut VRDisplay);
 pub struct WebVRCompositorHandler {
-    compositors: HashMap<webgl::WebVRDeviceId, WebVRCompositor>,
+    compositors: HashMap<webrender_api::VRCompositorId, WebVRCompositor>,
     webvr_thread_receiver: Receiver<Option<WebVRCompositor>>,
     webvr_thread_sender: Option<IpcSender<WebVRMsg>>
 }
@@ -330,14 +328,14 @@ impl WebVRCompositorHandler {
     }
 }
 
-impl webgl::WebVRRenderHandler for WebVRCompositorHandler {
+impl webrender_api::VRCompositorHandler for WebVRCompositorHandler {
     #[allow(unsafe_code)]
-    fn handle(&mut self, cmd: webgl::WebVRCommand, texture: Option<(u32, Size2D<i32>)>) {
+    fn handle(&mut self, cmd: webrender_api::VRCompositorCommand, texture: Option<(u32, DeviceIntSize)>) {
         match cmd {
-            webgl::WebVRCommand::Create(compositor_id) => {
+            webrender_api::VRCompositorCommand::Create(compositor_id) => {
                 self.create_compositor(compositor_id);
             }
-            webgl::WebVRCommand::SyncPoses(compositor_id, near, far, sender) => {
+            webrender_api::VRCompositorCommand::SyncPoses(compositor_id, near, far, sender) => {
                 if let Some(compositor) = self.compositors.get(&compositor_id) {
                     let pose = unsafe {
                         (*compositor.0).sync_poses();
@@ -348,7 +346,7 @@ impl webgl::WebVRRenderHandler for WebVRCompositorHandler {
                     let _ = sender.send(Err(()));
                 }
             }
-            webgl::WebVRCommand::SubmitFrame(compositor_id, left_bounds, right_bounds) => {
+            webrender_api::VRCompositorCommand::SubmitFrame(compositor_id, left_bounds, right_bounds) => {
                 if let Some(compositor) = self.compositors.get(&compositor_id) {
                     if let Some((texture_id, size)) = texture {
                         let layer = VRLayer {
@@ -363,7 +361,7 @@ impl webgl::WebVRRenderHandler for WebVRCompositorHandler {
                     }
                 }
             }
-            webgl::WebVRCommand::Release(compositor_id) => {
+            webrender_api::VRCompositorCommand::Release(compositor_id) => {
                 self.compositors.remove(&compositor_id);
             }
         }
@@ -372,7 +370,7 @@ impl webgl::WebVRRenderHandler for WebVRCompositorHandler {
 
 impl WebVRCompositorHandler {
     #[allow(unsafe_code)]
-    fn create_compositor(&mut self, display_id: webgl::WebVRDeviceId) {
+    fn create_compositor(&mut self, display_id: webrender_api::VRCompositorId) {
         let sender = match self.webvr_thread_sender {
             Some(ref s) => s,
             None => return,

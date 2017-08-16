@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use canvas_traits::canvas::{FillOrStrokeStyle, RepetitionStyle, SurfaceStyle};
+use canvas_traits::{FillOrStrokeStyle, RepetitionStyle, SurfaceStyle};
 use dom::bindings::codegen::Bindings::CanvasPatternBinding;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};

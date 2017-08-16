@@ -10,11 +10,10 @@ name = "webvr"
 path = "lib.rs"
 
 [dependencies]
-canvas_traits = {path = "../canvas_traits"}
-euclid = "0.15"
 ipc-channel = "0.8"
 log = "0.3"
 msg = {path = "../msg"}
 script_traits = {path = "../script_traits"}
 servo_config = {path = "../config"}
 webvr_traits = {path = "../webvr_traits" }
+webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}

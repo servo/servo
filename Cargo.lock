@@ -325,7 +325,6 @@ version = "0.0.1"
 dependencies = [
  "azure 0.20.1 (git+https://github.com/servo/rust-azure)",
  "canvas_traits 0.0.1",
- "compositing 0.0.1",
  "cssparser 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.15.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "gleam 0.4.7 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -333,7 +332,7 @@ dependencies = [
  "log 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "num-traits 0.1.37 (registry+https://github.com/rust-lang/crates.io-index)",
  "offscreen_gl_context 0.11.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "webrender 0.48.0 (git+https://github.com/servo/webrender)",
+ "servo_config 0.0.1",
  "webrender_api 0.48.0 (git+https://github.com/servo/webrender)",
 ]
 
@@ -346,10 +345,7 @@ dependencies = [
  "heapsize 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_derive 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "lazy_static 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
- "offscreen_gl_context 0.11.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.8 (registry+https://github.com/rust-lang/crates.io-index)",
- "servo_config 0.0.1",
  "webrender_api 0.48.0 (git+https://github.com/servo/webrender)",
 ]
 
@@ -530,6 +526,7 @@ dependencies = [
  "msg 0.0.1",
  "net 0.0.1",
  "net_traits 0.0.1",
+ "offscreen_gl_context 0.11.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "profile_traits 0.0.1",
  "script_traits 0.0.1",
  "serde 1.0.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2599,6 +2596,7 @@ dependencies = [
  "metrics 0.0.1",
  "msg 0.0.1",
  "net_traits 0.0.1",
+ "offscreen_gl_context 0.11.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "profile_traits 0.0.1",
  "rustc-serialize 0.3.24 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3531,13 +3529,12 @@ dependencies = [
 name = "webvr"
 version = "0.0.1"
 dependencies = [
- "canvas_traits 0.0.1",
- "euclid 0.15.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
  "script_traits 0.0.1",
  "servo_config 0.0.1",
+ "webrender_api 0.48.0 (git+https://github.com/servo/webrender)",
  "webvr_traits 0.0.1",
 ]
 

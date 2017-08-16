@@ -3,12 +3,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
-use canvas_traits::webgl::WebGLProgramId;
 use dom::bindings::codegen::Bindings::WebGLUniformLocationBinding;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::window::Window;
 use dom_struct::dom_struct;
+use webrender_api::WebGLProgramId;
 
 #[dom_struct]
 pub struct WebGLUniformLocation {

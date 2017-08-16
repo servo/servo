@@ -18,7 +18,6 @@
 //! loop.
 
 use bluetooth_traits::BluetoothRequest;
-use canvas_traits::webgl::WebGLPipeline;
 use devtools;
 use devtools_traits::{DevtoolScriptControlMsg, DevtoolsPageInfo};
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
@@ -509,11 +508,8 @@ pub struct ScriptThread {
     /// The unit of related similar-origin browsing contexts' list of MutationObserver objects
     mutation_observers: DOMRefCell<Vec<JS<MutationObserver>>>,
 
-    /// A handle to the webgl thread
-    webgl_chan: WebGLPipeline,
-
     /// A handle to the webvr thread, if available
-    webvr_chan: Option<IpcSender<WebVRMsg>>,
+    webvr_thread: Option<IpcSender<WebVRMsg>>,
 
     /// The worklet thread pool
     worklet_thread_pool: DOMRefCell<Option<Rc<WorkletThreadPool>>>,
@@ -885,8 +881,7 @@ impl ScriptThread {
 
             layout_to_constellation_chan: state.layout_to_constellation_chan,
 
-            webgl_chan: state.webgl_chan,
-            webvr_chan: state.webvr_chan,
+            webvr_thread: state.webvr_thread,
 
             worklet_thread_pool: Default::default(),
 
@@ -2033,8 +2028,7 @@ impl ScriptThread {
                                  origin,
                                  incomplete.navigation_start,
                                  incomplete.navigation_start_precise,
-                                 self.webgl_chan.channel(),
-                                 self.webvr_chan.clone());
+                                 self.webvr_thread.clone());
 
         // Initialize the browsing context for the window.
         let window_proxy = self.local_window_proxy(&window,
