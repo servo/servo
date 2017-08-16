@@ -62,6 +62,7 @@ use style::gecko_bindings::bindings::RawServoAnimationValueMapBorrowedMut;
 use style::gecko_bindings::bindings::RawServoAnimationValueStrong;
 use style::gecko_bindings::bindings::RawServoAnimationValueTableBorrowed;
 use style::gecko_bindings::bindings::RawServoStyleRuleBorrowed;
+use style::gecko_bindings::bindings::RawServoStyleSet;
 use style::gecko_bindings::bindings::ServoStyleContextBorrowedOrNull;
 use style::gecko_bindings::bindings::nsTArrayBorrowed_uintptr_t;
 use style::gecko_bindings::bindings::nsTimingFunctionBorrowed;
@@ -91,7 +92,7 @@ use style::gecko_bindings::structs::nsIDocument;
 use style::gecko_bindings::structs::nsStyleTransformMatrix::MatrixTransformOperator;
 use style::gecko_bindings::structs::nsTArray;
 use style::gecko_bindings::structs::nsresult;
-use style::gecko_bindings::sugar::ownership::{FFIArcHelpers, HasFFI, HasArcFFI, HasBoxFFI};
+use style::gecko_bindings::sugar::ownership::{FFIArcHelpers, HasFFI, HasArcFFI};
 use style::gecko_bindings::sugar::ownership::{HasSimpleFFI, Strong};
 use style::gecko_bindings::sugar::refptr::RefPtr;
 use style::gecko_properties::style_structs;
@@ -899,7 +900,7 @@ pub extern "C" fn Servo_StyleSet_AppendStyleSheet(
 pub extern "C" fn Servo_StyleSet_MediumFeaturesChanged(
     raw_data: RawServoStyleSetBorrowed,
     viewport_units_used: *mut bool,
-) -> OriginFlags {
+) -> u8 {
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
 
@@ -925,7 +926,10 @@ pub extern "C" fn Servo_StyleSet_MediumFeaturesChanged(
             &guard,
         );
 
-    OriginFlags::from(origins_in_which_rules_changed)
+    // We'd like to return `OriginFlags` here, but bindgen bitfield enums don't
+    // work as return values with the Linux 32-bit ABI at the moment because
+    // they wrap the value in a struct, so for now just unwrap it.
+    OriginFlags::from(origins_in_which_rules_changed).0
 }
 
 #[no_mangle]
@@ -1924,9 +1928,9 @@ pub extern "C" fn Servo_ComputedValues_GetStyleRuleList(values: ServoStyleContex
 /// device alive).
 #[no_mangle]
 pub extern "C" fn Servo_StyleSet_Init(pres_context: RawGeckoPresContextOwned)
-  -> RawServoStyleSetOwned {
+  -> *mut RawServoStyleSet {
     let data = Box::new(PerDocumentStyleData::new(pres_context));
-    data.into_ffi()
+    Box::into_raw(data) as *mut RawServoStyleSet
 }
 
 #[no_mangle]
@@ -2830,7 +2834,7 @@ pub extern "C" fn Servo_NoteExplicitHints(element: RawGeckoElementBorrowed,
 
 #[no_mangle]
 pub extern "C" fn Servo_TakeChangeHint(element: RawGeckoElementBorrowed,
-                                       was_restyled: *mut bool) -> nsChangeHint
+                                       was_restyled: *mut bool) -> u32
 {
     let mut was_restyled =  unsafe { was_restyled.as_mut().unwrap() };
     let element = GeckoElement(element);
@@ -2851,7 +2855,10 @@ pub extern "C" fn Servo_TakeChangeHint(element: RawGeckoElementBorrowed,
     };
 
     debug!("Servo_TakeChangeHint: {:?}, damage={:?}", element, damage);
-    damage.as_change_hint()
+    // We'd like to return `nsChangeHint` here, but bindgen bitfield enums don't
+    // work as return values with the Linux 32-bit ABI at the moment because
+    // they wrap the value in a struct, so for now just unwrap it.
+    damage.as_change_hint().0
 }
 
 #[no_mangle]

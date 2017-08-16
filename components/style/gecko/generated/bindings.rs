@@ -512,6 +512,12 @@ extern "C" {
     pub fn Servo_StyleSet_Drop(ptr: RawServoStyleSetOwned);
 }
 extern "C" {
+    pub fn Gecko_ChildrenCount(node: RawGeckoNodeBorrowed) -> u32;
+}
+extern "C" {
+    pub fn Gecko_NodeIsElement(node: RawGeckoNodeBorrowed) -> bool;
+}
+extern "C" {
     pub fn Gecko_IsInDocument(node: RawGeckoNodeBorrowed) -> bool;
 }
 extern "C" {
@@ -590,6 +596,9 @@ extern "C" {
     pub fn Gecko_DocumentState(aDocument: *const nsIDocument) -> u64;
 }
 extern "C" {
+    pub fn Gecko_IsTextNode(node: RawGeckoNodeBorrowed) -> bool;
+}
+extern "C" {
     pub fn Gecko_IsRootElement(element: RawGeckoElementBorrowed) -> bool;
 }
 extern "C" {
@@ -597,7 +606,14 @@ extern "C" {
                                 element: RawGeckoElementBorrowed) -> bool;
 }
 extern "C" {
+    pub fn Gecko_LocalName(element: RawGeckoElementBorrowed) -> *mut nsIAtom;
+}
+extern "C" {
     pub fn Gecko_Namespace(element: RawGeckoElementBorrowed) -> *mut nsIAtom;
+}
+extern "C" {
+    pub fn Gecko_GetElementId(element: RawGeckoElementBorrowed)
+     -> *mut nsIAtom;
 }
 extern "C" {
     pub fn Gecko_MatchLang(element: RawGeckoElementBorrowed,
@@ -1058,6 +1074,9 @@ extern "C" {
      -> *mut nsStyleContentData_CounterFunction;
 }
 extern "C" {
+    pub fn Gecko_GetNodeFlags(node: RawGeckoNodeBorrowed) -> u32;
+}
+extern "C" {
     pub fn Gecko_SetNodeFlags(node: RawGeckoNodeBorrowed, flags: u32);
 }
 extern "C" {
@@ -1083,7 +1102,10 @@ extern "C" {
     pub fn Gecko_CalcStyleDifference(old_style: ServoStyleContextBorrowed,
                                      new_style: ServoStyleContextBorrowed,
                                      old_style_bits: u64,
-                                     any_style_changed: *mut bool)
+                                     any_style_changed: *mut bool) -> u32;
+}
+extern "C" {
+    pub fn Gecko_HintsHandledForDescendants(aHint: nsChangeHint)
      -> nsChangeHint;
 }
 extern "C" {
@@ -1892,24 +1914,31 @@ extern "C" {
     pub fn Servo_Element_ClearData(node: RawGeckoElementBorrowed);
 }
 extern "C" {
-    pub fn Servo_Element_SizeOfExcludingThisAndCVs(malloc_size_of: MallocSizeOf,
+    pub fn Servo_Element_SizeOfExcludingThisAndCVs(arg1: MallocSizeOf,
                                                    seen_ptrs: *mut SeenPtrs,
-                                                   node: RawGeckoElementBorrowed)
+                                                   node:
+                                                       RawGeckoElementBorrowed)
      -> usize;
 }
 extern "C" {
-    pub fn Servo_Element_HasPrimaryComputedValues(element: RawGeckoElementBorrowed) -> bool;
-}
-extern "C" {
-    pub fn Servo_Element_GetPrimaryComputedValues(element: RawGeckoElementBorrowed)
-     -> ServoStyleContextStrong;
-}
-extern "C" {
-    pub fn Servo_Element_HasPseudoComputedValues(element: RawGeckoElementBorrowed, index: usize)
+    pub fn Servo_Element_HasPrimaryComputedValues(node:
+                                                      RawGeckoElementBorrowed)
      -> bool;
 }
 extern "C" {
-    pub fn Servo_Element_GetPseudoComputedValues(element: RawGeckoElementBorrowed, index: usize)
+    pub fn Servo_Element_GetPrimaryComputedValues(node:
+                                                      RawGeckoElementBorrowed)
+     -> ServoStyleContextStrong;
+}
+extern "C" {
+    pub fn Servo_Element_HasPseudoComputedValues(node:
+                                                     RawGeckoElementBorrowed,
+                                                 index: usize) -> bool;
+}
+extern "C" {
+    pub fn Servo_Element_GetPseudoComputedValues(node:
+                                                     RawGeckoElementBorrowed,
+                                                 index: usize)
      -> ServoStyleContextStrong;
 }
 extern "C" {
@@ -1956,7 +1985,7 @@ extern "C" {
 }
 extern "C" {
     pub fn Servo_StyleSet_Init(pres_context: RawGeckoPresContextOwned)
-     -> RawServoStyleSetOwned;
+     -> *mut RawServoStyleSet;
 }
 extern "C" {
     pub fn Servo_StyleSet_Clear(set: RawServoStyleSetBorrowed);
@@ -1967,7 +1996,7 @@ extern "C" {
 extern "C" {
     pub fn Servo_StyleSet_MediumFeaturesChanged(set: RawServoStyleSetBorrowed,
                                                 viewport_units_used:
-                                                    *mut bool) -> OriginFlags;
+                                                    *mut bool) -> u8;
 }
 extern "C" {
     pub fn Servo_StyleSet_CompatModeChanged(raw_data:
@@ -2815,7 +2844,7 @@ extern "C" {
 }
 extern "C" {
     pub fn Servo_TakeChangeHint(element: RawGeckoElementBorrowed,
-                                was_restyled: *mut bool) -> nsChangeHint;
+                                was_restyled: *mut bool) -> u32;
 }
 extern "C" {
     pub fn Servo_ResolveStyle(element: RawGeckoElementBorrowed,
