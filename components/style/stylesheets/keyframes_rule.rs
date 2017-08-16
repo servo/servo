@@ -8,7 +8,7 @@ use cssparser::{AtRuleParser, Parser, QualifiedRuleParser, RuleListParser, Parse
 use cssparser::{DeclarationListParser, DeclarationParser, parse_one_rule, SourceLocation};
 use error_reporting::{NullReporter, ContextualParseError};
 use parser::ParserContext;
-use properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock, PropertyId};
+use properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock, PropertyId, PropertyParserContext};
 use properties::{PropertyDeclarationId, LonghandId, SourcePropertyDeclaration};
 use properties::LonghandIdSet;
 use properties::animated_properties::AnimatableLonghand;
@@ -532,7 +532,9 @@ impl<'a, 'b, 'i> DeclarationParser<'i> for KeyframeDeclarationParser<'a, 'b> {
 
     fn parse_value<'t>(&mut self, name: CowRcStr<'i>, input: &mut Parser<'i, 't>)
                        -> Result<(), ParseError<'i>> {
-        let id = PropertyId::parse(&name)
+        let property_context = PropertyParserContext::new(self.context);
+
+        let id = PropertyId::parse(&name, Some(&property_context))
             .map_err(|()| PropertyDeclarationParseError::UnknownProperty(name))?;
         match PropertyDeclaration::parse_into(self.declarations, id, self.context, input) {
             Ok(()) => {

@@ -265,6 +265,18 @@ class Shorthand(object):
     transitionable = property(get_transitionable)
 
 
+class Alias(object):
+    def __init__(self, name, original):
+        self.name = name
+        self.ident = to_rust_ident(name)
+        self.camel_case = to_camel_case(self.ident)
+        self.gecko_pref_ident = to_rust_ident(name)
+        self.internal = original.internal
+        self.experimental = original.experimental
+        self.allowed_in_page_rule = original.allowed_in_page_rule
+        self.allowed_in_keyframe_block = original.allowed_in_keyframe_block
+
+
 class Method(object):
     def __init__(self, name, return_type=None, arg_types=None, is_mut=False):
         self.name = name
@@ -311,7 +323,9 @@ class PropertiesData(object):
         self.longhands = []
         self.longhands_by_name = {}
         self.derived_longhands = {}
+        self.longhand_aliases = []
         self.shorthands = []
+        self.shorthand_aliases = []
 
     def new_style_struct(self, *args, **kwargs):
         style_struct = StyleStruct(*args, **kwargs)
@@ -335,6 +349,7 @@ class PropertiesData(object):
 
         longhand = Longhand(self.current_style_struct, name, **kwargs)
         self.add_prefixed_aliases(longhand)
+        self.longhand_aliases += list(map(lambda x: Alias(x, longhand), longhand.alias))
         self.current_style_struct.longhands.append(longhand)
         self.longhands.append(longhand)
         self.longhands_by_name[name] = longhand
@@ -352,8 +367,12 @@ class PropertiesData(object):
         sub_properties = [self.longhands_by_name[s] for s in sub_properties]
         shorthand = Shorthand(name, sub_properties, *args, **kwargs)
         self.add_prefixed_aliases(shorthand)
+        self.shorthand_aliases += list(map(lambda x: Alias(x, shorthand), shorthand.alias))
         self.shorthands.append(shorthand)
         return shorthand
 
     def shorthands_except_all(self):
         return [s for s in self.shorthands if s.name != "all"]
+
+    def all_aliases(self):
+        return self.longhand_aliases + self.shorthand_aliases
