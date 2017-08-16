@@ -399,7 +399,6 @@ pub enum StackingContextType {
     Real,
     PseudoPositioned,
     PseudoFloat,
-    PseudoScrollingArea,
 }
 
 #[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
