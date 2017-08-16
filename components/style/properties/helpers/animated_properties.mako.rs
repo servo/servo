@@ -867,27 +867,6 @@ impl Animatable for i32 {
     }
 }
 
-/// https://drafts.csswg.org/css-transitions/#animtype-number
-impl Animatable for Angle {
-    #[inline]
-    fn add_weighted(&self, other: &Angle, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
-        match (*self, *other) {
-            % for angle_type in [ 'Degree', 'Gradian', 'Turn' ]:
-            (Angle::${angle_type}(val1), Angle::${angle_type}(val2)) => {
-                Ok(Angle::${angle_type}(
-                    try!(val1.add_weighted(&val2, self_portion, other_portion))
-                ))
-            }
-            % endfor
-            _ => {
-                self.radians()
-                    .add_weighted(&other.radians(), self_portion, other_portion)
-                    .map(Angle::from_radians)
-            }
-        }
-    }
-}
-
 /// https://drafts.csswg.org/css-transitions/#animtype-visibility
 impl Animatable for Visibility {
     #[inline]
