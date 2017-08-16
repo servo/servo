@@ -2190,7 +2190,7 @@ pub extern "C" fn Servo_DeclarationBlock_GetNthProperty(declarations: RawServoDe
 macro_rules! get_property_id_from_property {
     ($property: ident, $ret: expr) => {{
         let property = unsafe { $property.as_ref().unwrap().as_str_unchecked() };
-        match PropertyId::parse(property.into()) {
+        match PropertyId::parse(property.into(), None) {
             Ok(property_id) => property_id,
             Err(_) => { return $ret; }
         }

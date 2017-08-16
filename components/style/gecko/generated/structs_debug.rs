@@ -299,11 +299,6 @@ pub mod root {
     pub const NS_STYLE_BORDER_IMAGE_REPEAT_SPACE: ::std::os::raw::c_uint = 3;
     pub const NS_STYLE_BORDER_IMAGE_SLICE_NOFILL: ::std::os::raw::c_uint = 0;
     pub const NS_STYLE_BORDER_IMAGE_SLICE_FILL: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_CONTENT_OPEN_QUOTE: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_CONTENT_CLOSE_QUOTE: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_CONTENT_NO_OPEN_QUOTE: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_CONTENT_NO_CLOSE_QUOTE: ::std::os::raw::c_uint = 3;
-    pub const NS_STYLE_CONTENT_ALT_CONTENT: ::std::os::raw::c_uint = 4;
     pub const NS_STYLE_CURSOR_AUTO: ::std::os::raw::c_uint = 1;
     pub const NS_STYLE_CURSOR_CROSSHAIR: ::std::os::raw::c_uint = 2;
     pub const NS_STYLE_CURSOR_DEFAULT: ::std::os::raw::c_uint = 3;
@@ -6310,91 +6305,96 @@ pub mod root {
             eUseCounter_property_FillOpacity = 4,
             eUseCounter_XMLDocument_async_getter = 5,
             eUseCounter_XMLDocument_async_setter = 6,
-            eUseCounter_PushManager_subscribe = 7,
-            eUseCounter_PushSubscription_unsubscribe = 8,
-            eUseCounter_Window_sidebar_getter = 9,
-            eUseCounter_Window_sidebar_setter = 10,
-            eUseCounter_External_addSearchEngine = 11,
-            eUseCounter_OfflineResourceList_swapCache = 12,
-            eUseCounter_OfflineResourceList_update = 13,
-            eUseCounter_OfflineResourceList_status_getter = 14,
-            eUseCounter_OfflineResourceList_status_setter = 15,
-            eUseCounter_OfflineResourceList_onchecking_getter = 16,
-            eUseCounter_OfflineResourceList_onchecking_setter = 17,
-            eUseCounter_OfflineResourceList_onerror_getter = 18,
-            eUseCounter_OfflineResourceList_onerror_setter = 19,
-            eUseCounter_OfflineResourceList_onnoupdate_getter = 20,
-            eUseCounter_OfflineResourceList_onnoupdate_setter = 21,
-            eUseCounter_OfflineResourceList_ondownloading_getter = 22,
-            eUseCounter_OfflineResourceList_ondownloading_setter = 23,
-            eUseCounter_OfflineResourceList_onprogress_getter = 24,
-            eUseCounter_OfflineResourceList_onprogress_setter = 25,
-            eUseCounter_OfflineResourceList_onupdateready_getter = 26,
-            eUseCounter_OfflineResourceList_onupdateready_setter = 27,
-            eUseCounter_OfflineResourceList_oncached_getter = 28,
-            eUseCounter_OfflineResourceList_oncached_setter = 29,
-            eUseCounter_OfflineResourceList_onobsolete_getter = 30,
-            eUseCounter_OfflineResourceList_onobsolete_setter = 31,
-            eUseCounter_IDBDatabase_createMutableFile = 32,
-            eUseCounter_IDBDatabase_mozCreateFileHandle = 33,
-            eUseCounter_IDBMutableFile_open = 34,
-            eUseCounter_IDBMutableFile_getFile = 35,
-            eUseCounter_DataTransfer_addElement = 36,
-            eUseCounter_DataTransfer_mozItemCount_getter = 37,
-            eUseCounter_DataTransfer_mozItemCount_setter = 38,
-            eUseCounter_DataTransfer_mozCursor_getter = 39,
-            eUseCounter_DataTransfer_mozCursor_setter = 40,
-            eUseCounter_DataTransfer_mozTypesAt = 41,
-            eUseCounter_DataTransfer_mozClearDataAt = 42,
-            eUseCounter_DataTransfer_mozSetDataAt = 43,
-            eUseCounter_DataTransfer_mozGetDataAt = 44,
-            eUseCounter_DataTransfer_mozUserCancelled_getter = 45,
-            eUseCounter_DataTransfer_mozUserCancelled_setter = 46,
-            eUseCounter_DataTransfer_mozSourceNode_getter = 47,
-            eUseCounter_DataTransfer_mozSourceNode_setter = 48,
-            eUseCounter_GetAttributeNode = 49,
-            eUseCounter_SetAttributeNode = 50,
-            eUseCounter_GetAttributeNodeNS = 51,
-            eUseCounter_SetAttributeNodeNS = 52,
-            eUseCounter_RemoveAttributeNode = 53,
-            eUseCounter_CreateAttribute = 54,
-            eUseCounter_CreateAttributeNS = 55,
-            eUseCounter_NodeValue = 56,
-            eUseCounter_TextContent = 57,
-            eUseCounter_EnablePrivilege = 58,
-            eUseCounter_DOMExceptionCode = 59,
-            eUseCounter_NoExposedProps = 60,
-            eUseCounter_MutationEvent = 61,
-            eUseCounter_Components = 62,
-            eUseCounter_PrefixedVisibilityAPI = 63,
-            eUseCounter_NodeIteratorDetach = 64,
-            eUseCounter_LenientThis = 65,
-            eUseCounter_GetPreventDefault = 66,
-            eUseCounter_GetSetUserData = 67,
-            eUseCounter_MozGetAsFile = 68,
-            eUseCounter_UseOfCaptureEvents = 69,
-            eUseCounter_UseOfReleaseEvents = 70,
-            eUseCounter_UseOfDOM3LoadMethod = 71,
-            eUseCounter_ChromeUseOfDOM3LoadMethod = 72,
-            eUseCounter_ShowModalDialog = 73,
-            eUseCounter_Window_Content = 74,
-            eUseCounter_SyncXMLHttpRequest = 75,
-            eUseCounter_Window_Cc_ontrollers = 76,
-            eUseCounter_ImportXULIntoContent = 77,
-            eUseCounter_PannerNodeDoppler = 78,
-            eUseCounter_NavigatorGetUserMedia = 79,
-            eUseCounter_WebrtcDeprecatedPrefix = 80,
-            eUseCounter_RTCPeerConnectionGetStreams = 81,
-            eUseCounter_AppCache = 82,
-            eUseCounter_PrefixedImageSmoothingEnabled = 83,
-            eUseCounter_PrefixedFullscreenAPI = 84,
-            eUseCounter_LenientSetter = 85,
-            eUseCounter_FileLastModifiedDate = 86,
-            eUseCounter_ImageBitmapRenderingContext_TransferImageBitmap = 87,
-            eUseCounter_URLCreateObjectURL_MediaStream = 88,
-            eUseCounter_XMLBaseAttribute = 89,
-            eUseCounter_XMLBaseAttributeForStyleAttr = 90,
-            eUseCounter_Count = 91,
+            eUseCounter_DOMError_name_getter = 7,
+            eUseCounter_DOMError_name_setter = 8,
+            eUseCounter_DOMError_message_getter = 9,
+            eUseCounter_DOMError_message_setter = 10,
+            eUseCounter_custom_DOMErrorConstructor = 11,
+            eUseCounter_PushManager_subscribe = 12,
+            eUseCounter_PushSubscription_unsubscribe = 13,
+            eUseCounter_Window_sidebar_getter = 14,
+            eUseCounter_Window_sidebar_setter = 15,
+            eUseCounter_External_addSearchEngine = 16,
+            eUseCounter_OfflineResourceList_swapCache = 17,
+            eUseCounter_OfflineResourceList_update = 18,
+            eUseCounter_OfflineResourceList_status_getter = 19,
+            eUseCounter_OfflineResourceList_status_setter = 20,
+            eUseCounter_OfflineResourceList_onchecking_getter = 21,
+            eUseCounter_OfflineResourceList_onchecking_setter = 22,
+            eUseCounter_OfflineResourceList_onerror_getter = 23,
+            eUseCounter_OfflineResourceList_onerror_setter = 24,
+            eUseCounter_OfflineResourceList_onnoupdate_getter = 25,
+            eUseCounter_OfflineResourceList_onnoupdate_setter = 26,
+            eUseCounter_OfflineResourceList_ondownloading_getter = 27,
+            eUseCounter_OfflineResourceList_ondownloading_setter = 28,
+            eUseCounter_OfflineResourceList_onprogress_getter = 29,
+            eUseCounter_OfflineResourceList_onprogress_setter = 30,
+            eUseCounter_OfflineResourceList_onupdateready_getter = 31,
+            eUseCounter_OfflineResourceList_onupdateready_setter = 32,
+            eUseCounter_OfflineResourceList_oncached_getter = 33,
+            eUseCounter_OfflineResourceList_oncached_setter = 34,
+            eUseCounter_OfflineResourceList_onobsolete_getter = 35,
+            eUseCounter_OfflineResourceList_onobsolete_setter = 36,
+            eUseCounter_IDBDatabase_createMutableFile = 37,
+            eUseCounter_IDBDatabase_mozCreateFileHandle = 38,
+            eUseCounter_IDBMutableFile_open = 39,
+            eUseCounter_IDBMutableFile_getFile = 40,
+            eUseCounter_DataTransfer_addElement = 41,
+            eUseCounter_DataTransfer_mozItemCount_getter = 42,
+            eUseCounter_DataTransfer_mozItemCount_setter = 43,
+            eUseCounter_DataTransfer_mozCursor_getter = 44,
+            eUseCounter_DataTransfer_mozCursor_setter = 45,
+            eUseCounter_DataTransfer_mozTypesAt = 46,
+            eUseCounter_DataTransfer_mozClearDataAt = 47,
+            eUseCounter_DataTransfer_mozSetDataAt = 48,
+            eUseCounter_DataTransfer_mozGetDataAt = 49,
+            eUseCounter_DataTransfer_mozUserCancelled_getter = 50,
+            eUseCounter_DataTransfer_mozUserCancelled_setter = 51,
+            eUseCounter_DataTransfer_mozSourceNode_getter = 52,
+            eUseCounter_DataTransfer_mozSourceNode_setter = 53,
+            eUseCounter_GetAttributeNode = 54,
+            eUseCounter_SetAttributeNode = 55,
+            eUseCounter_GetAttributeNodeNS = 56,
+            eUseCounter_SetAttributeNodeNS = 57,
+            eUseCounter_RemoveAttributeNode = 58,
+            eUseCounter_CreateAttribute = 59,
+            eUseCounter_CreateAttributeNS = 60,
+            eUseCounter_NodeValue = 61,
+            eUseCounter_TextContent = 62,
+            eUseCounter_EnablePrivilege = 63,
+            eUseCounter_DOMExceptionCode = 64,
+            eUseCounter_NoExposedProps = 65,
+            eUseCounter_MutationEvent = 66,
+            eUseCounter_Components = 67,
+            eUseCounter_PrefixedVisibilityAPI = 68,
+            eUseCounter_NodeIteratorDetach = 69,
+            eUseCounter_LenientThis = 70,
+            eUseCounter_GetPreventDefault = 71,
+            eUseCounter_GetSetUserData = 72,
+            eUseCounter_MozGetAsFile = 73,
+            eUseCounter_UseOfCaptureEvents = 74,
+            eUseCounter_UseOfReleaseEvents = 75,
+            eUseCounter_UseOfDOM3LoadMethod = 76,
+            eUseCounter_ChromeUseOfDOM3LoadMethod = 77,
+            eUseCounter_ShowModalDialog = 78,
+            eUseCounter_Window_Content = 79,
+            eUseCounter_SyncXMLHttpRequest = 80,
+            eUseCounter_Window_Cc_ontrollers = 81,
+            eUseCounter_ImportXULIntoContent = 82,
+            eUseCounter_PannerNodeDoppler = 83,
+            eUseCounter_NavigatorGetUserMedia = 84,
+            eUseCounter_WebrtcDeprecatedPrefix = 85,
+            eUseCounter_RTCPeerConnectionGetStreams = 86,
+            eUseCounter_AppCache = 87,
+            eUseCounter_PrefixedImageSmoothingEnabled = 88,
+            eUseCounter_PrefixedFullscreenAPI = 89,
+            eUseCounter_LenientSetter = 90,
+            eUseCounter_FileLastModifiedDate = 91,
+            eUseCounter_ImageBitmapRenderingContext_TransferImageBitmap = 92,
+            eUseCounter_URLCreateObjectURL_MediaStream = 93,
+            eUseCounter_XMLBaseAttribute = 94,
+            eUseCounter_XMLBaseAttributeForStyleAttr = 95,
+            eUseCounter_Count = 96,
         }
         #[repr(C)]
         #[derive(Debug)]
@@ -7583,6 +7583,127 @@ pub mod root {
         pub const SERVO_PREF_ENABLED_overflow_wrap: bool = false;
         pub const SERVO_PREF_ENABLED_writing_mode: bool = false;
         pub const SERVO_PREF_ENABLED_z_index: bool = false;
+        pub const SERVO_PREF_ENABLED_word_wrap: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_transform_origin: bool = true;
+        pub const SERVO_PREF_ENABLED__moz_perspective_origin: bool = true;
+        pub const SERVO_PREF_ENABLED__moz_perspective: bool = true;
+        pub const SERVO_PREF_ENABLED__moz_transform_style: bool = true;
+        pub const SERVO_PREF_ENABLED__moz_backface_visibility: bool = true;
+        pub const SERVO_PREF_ENABLED__moz_border_image: bool = true;
+        pub const SERVO_PREF_ENABLED__moz_transition: bool = true;
+        pub const SERVO_PREF_ENABLED__moz_transition_delay: bool = true;
+        pub const SERVO_PREF_ENABLED__moz_transition_duration: bool = true;
+        pub const SERVO_PREF_ENABLED__moz_transition_property: bool = true;
+        pub const SERVO_PREF_ENABLED__moz_transition_timing_function: bool =
+            true;
+        pub const SERVO_PREF_ENABLED__moz_animation: bool = true;
+        pub const SERVO_PREF_ENABLED__moz_animation_delay: bool = true;
+        pub const SERVO_PREF_ENABLED__moz_animation_direction: bool = true;
+        pub const SERVO_PREF_ENABLED__moz_animation_duration: bool = true;
+        pub const SERVO_PREF_ENABLED__moz_animation_fill_mode: bool = true;
+        pub const SERVO_PREF_ENABLED__moz_animation_iteration_count: bool =
+            true;
+        pub const SERVO_PREF_ENABLED__moz_animation_name: bool = true;
+        pub const SERVO_PREF_ENABLED__moz_animation_play_state: bool = true;
+        pub const SERVO_PREF_ENABLED__moz_animation_timing_function: bool =
+            true;
+        pub const SERVO_PREF_ENABLED__moz_box_sizing: bool = true;
+        pub const SERVO_PREF_ENABLED__moz_font_feature_settings: bool = true;
+        pub const SERVO_PREF_ENABLED__moz_font_language_override: bool = true;
+        pub const SERVO_PREF_ENABLED__moz_padding_end: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_padding_start: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_margin_end: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_margin_start: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_border_end: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_border_end_color: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_border_end_style: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_border_end_width: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_border_start: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_border_start_color: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_border_start_style: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_border_start_width: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_hyphens: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_column_count: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_column_fill: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_column_gap: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_column_rule: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_column_rule_color: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_column_rule_style: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_column_rule_width: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_column_width: bool = false;
+        pub const SERVO_PREF_ENABLED__moz_columns: bool = false;
+        pub const SERVO_PREF_ENABLED__webkit_animation: bool = true;
+        pub const SERVO_PREF_ENABLED__webkit_animation_delay: bool = true;
+        pub const SERVO_PREF_ENABLED__webkit_animation_direction: bool = true;
+        pub const SERVO_PREF_ENABLED__webkit_animation_duration: bool = true;
+        pub const SERVO_PREF_ENABLED__webkit_animation_fill_mode: bool = true;
+        pub const SERVO_PREF_ENABLED__webkit_animation_iteration_count: bool =
+            true;
+        pub const SERVO_PREF_ENABLED__webkit_animation_name: bool = true;
+        pub const SERVO_PREF_ENABLED__webkit_animation_play_state: bool =
+            true;
+        pub const SERVO_PREF_ENABLED__webkit_animation_timing_function: bool =
+            true;
+        pub const SERVO_PREF_ENABLED__webkit_filter: bool = true;
+        pub const SERVO_PREF_ENABLED__webkit_text_size_adjust: bool = true;
+        pub const SERVO_PREF_ENABLED__webkit_transform: bool = true;
+        pub const SERVO_PREF_ENABLED__webkit_transform_origin: bool = true;
+        pub const SERVO_PREF_ENABLED__webkit_transform_style: bool = true;
+        pub const SERVO_PREF_ENABLED__webkit_backface_visibility: bool = true;
+        pub const SERVO_PREF_ENABLED__webkit_perspective: bool = true;
+        pub const SERVO_PREF_ENABLED__webkit_perspective_origin: bool = true;
+        pub const SERVO_PREF_ENABLED__webkit_transition: bool = true;
+        pub const SERVO_PREF_ENABLED__webkit_transition_delay: bool = true;
+        pub const SERVO_PREF_ENABLED__webkit_transition_duration: bool = true;
+        pub const SERVO_PREF_ENABLED__webkit_transition_property: bool = true;
+        pub const SERVO_PREF_ENABLED__webkit_transition_timing_function: bool
+                  =
+            true;
+        pub const SERVO_PREF_ENABLED__webkit_border_radius: bool = true;
+        pub const SERVO_PREF_ENABLED__webkit_border_top_left_radius: bool =
+            true;
+        pub const SERVO_PREF_ENABLED__webkit_border_top_right_radius: bool =
+            true;
+        pub const SERVO_PREF_ENABLED__webkit_border_bottom_left_radius: bool =
+            true;
+        pub const SERVO_PREF_ENABLED__webkit_border_bottom_right_radius: bool
+                  =
+            true;
+        pub const SERVO_PREF_ENABLED__webkit_background_clip: bool = true;
+        pub const SERVO_PREF_ENABLED__webkit_background_origin: bool = true;
+        pub const SERVO_PREF_ENABLED__webkit_background_size: bool = true;
+        pub const SERVO_PREF_ENABLED__webkit_border_image: bool = true;
+        pub const SERVO_PREF_ENABLED__webkit_box_shadow: bool = true;
+        pub const SERVO_PREF_ENABLED__webkit_box_sizing: bool = true;
+        pub const SERVO_PREF_ENABLED__webkit_box_flex: bool = true;
+        pub const SERVO_PREF_ENABLED__webkit_box_ordinal_group: bool = true;
+        pub const SERVO_PREF_ENABLED__webkit_box_orient: bool = true;
+        pub const SERVO_PREF_ENABLED__webkit_box_direction: bool = true;
+        pub const SERVO_PREF_ENABLED__webkit_box_align: bool = true;
+        pub const SERVO_PREF_ENABLED__webkit_box_pack: bool = true;
+        pub const SERVO_PREF_ENABLED__webkit_flex_direction: bool = true;
+        pub const SERVO_PREF_ENABLED__webkit_flex_wrap: bool = true;
+        pub const SERVO_PREF_ENABLED__webkit_flex_flow: bool = true;
+        pub const SERVO_PREF_ENABLED__webkit_order: bool = true;
+        pub const SERVO_PREF_ENABLED__webkit_flex: bool = true;
+        pub const SERVO_PREF_ENABLED__webkit_flex_grow: bool = true;
+        pub const SERVO_PREF_ENABLED__webkit_flex_shrink: bool = true;
+        pub const SERVO_PREF_ENABLED__webkit_flex_basis: bool = true;
+        pub const SERVO_PREF_ENABLED__webkit_justify_content: bool = true;
+        pub const SERVO_PREF_ENABLED__webkit_align_items: bool = true;
+        pub const SERVO_PREF_ENABLED__webkit_align_self: bool = true;
+        pub const SERVO_PREF_ENABLED__webkit_align_content: bool = true;
+        pub const SERVO_PREF_ENABLED__webkit_user_select: bool = true;
+        pub const SERVO_PREF_ENABLED__webkit_mask: bool = true;
+        pub const SERVO_PREF_ENABLED__webkit_mask_clip: bool = true;
+        pub const SERVO_PREF_ENABLED__webkit_mask_composite: bool = true;
+        pub const SERVO_PREF_ENABLED__webkit_mask_image: bool = true;
+        pub const SERVO_PREF_ENABLED__webkit_mask_origin: bool = true;
+        pub const SERVO_PREF_ENABLED__webkit_mask_position: bool = true;
+        pub const SERVO_PREF_ENABLED__webkit_mask_position_x: bool = true;
+        pub const SERVO_PREF_ENABLED__webkit_mask_position_y: bool = true;
+        pub const SERVO_PREF_ENABLED__webkit_mask_repeat: bool = true;
+        pub const SERVO_PREF_ENABLED__webkit_mask_size: bool = true;
         /// This class holds all non-tree-structural state of an element that might be
         /// used for selector matching eventually.
         ///
@@ -16139,7 +16260,8 @@ pub mod root {
         ParserHasNotified = 28,
         MayBeApzAware = 29,
         ElementMayHaveAnonymousChildren = 30,
-        BooleanFlagCount = 31,
+        NodeMayHaveChildrenWithLayoutBoxesDisabled = 31,
+        BooleanFlagCount = 32,
     }
     #[repr(C)]
     #[derive(Debug, Copy)]
@@ -33669,7 +33791,7 @@ pub mod root {
                    root::nsTArray<root::mozilla::gfx::FontVariation> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_228218_close0_instantiation() {
+    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_228717_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::nsCSSSelector>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -34025,7 +34147,7 @@ pub mod root {
                    root::mozilla::binding_danger::TErrorResult ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_230049_close0_instantiation() {
+    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_230548_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::mozilla::StyleSheet>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -34186,7 +34308,7 @@ pub mod root {
                    root::JS::DeletePolicy ) ));
     }
     #[test]
-    fn __bindgen_test_layout_iterator_open0_input_iterator_tag_UniquePtr_open1_JSErrorNotes_Note_DeletePolicy_open2_JSErrorNotes_Note_close2_close1_long__bindgen_ty_id_235668__bindgen_ty_id_235675_close0_instantiation() {
+    fn __bindgen_test_layout_iterator_open0_input_iterator_tag_UniquePtr_open1_JSErrorNotes_Note_DeletePolicy_open2_JSErrorNotes_Note_close2_close1_long__bindgen_ty_id_236167__bindgen_ty_id_236174_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::std::iterator>() , 1usize ,
                    concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -34434,7 +34556,7 @@ pub mod root {
                    root::RefPtr<root::mozilla::StyleSheet> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_238167_close0_instantiation() {
+    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_238666_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::mozilla::dom::Element>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -34502,7 +34624,7 @@ pub mod root {
                    root::nsCOMPtr<root::nsIObserver> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_238469_close0_instantiation() {
+    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_238968_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::mozilla::dom::Element>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -34614,7 +34736,7 @@ pub mod root {
                    root::RefPtr<root::mozilla::URLExtraData> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_NotNull_open0__bindgen_ty_id_239011_close0_instantiation() {
+    fn __bindgen_test_layout_NotNull_open0__bindgen_ty_id_239510_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::mozilla::NotNull<*const root::mozilla::Encoding>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -35018,7 +35140,7 @@ pub mod root {
                    root::RefPtr<root::mozilla::StyleSheet> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_239432_close0_instantiation() {
+    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_239931_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::mozilla::StyleSheet>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -35108,7 +35230,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_239831_close0_instantiation() {
+    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_240330_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::mozilla::StyleSheet>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -35209,7 +35331,7 @@ pub mod root {
                    root::nsTArray<::nsstring::nsStringRepr> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_240802_close0_instantiation() {
+    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_241301_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::mozilla::StyleSheet>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -35298,7 +35420,7 @@ pub mod root {
                    root::RefPtr<root::nsCSSFontFaceRule> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_241107_close0_instantiation() {
+    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_241606_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::nsIContent>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -35309,7 +35431,7 @@ pub mod root {
                    root::nsTArray<*mut root::nsIContent> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_241112_close0_instantiation() {
+    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_241611_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::nsIContent>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -35366,7 +35488,7 @@ pub mod root {
                    root::RefPtr<root::mozilla::CSSStyleSheet> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_241603_close0_instantiation() {
+    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_242102_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::mozilla::StyleSheet>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -36014,7 +36136,7 @@ pub mod root {
                    root::nsCOMPtr<root::nsIWeakReference> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_244459_close0_instantiation() {
+    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_244958_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut ::std::os::raw::c_void>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -36093,7 +36215,7 @@ pub mod root {
                    root::mozilla::DefaultDelete ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_250749_close0_instantiation() {
+    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_251248_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::mozilla::dom::AudioContext>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -36126,7 +36248,7 @@ pub mod root {
                    root::RefPtr<root::mozilla::dom::CallbackObject> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_Heap_open0__bindgen_ty_id_251918_close0_instantiation() {
+    fn __bindgen_test_layout_Heap_open0__bindgen_ty_id_252417_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::JS::Heap<*mut root::JSObject>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -36137,7 +36259,7 @@ pub mod root {
                    root::JS::Heap<*mut root::JSObject> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_Heap_open0__bindgen_ty_id_251922_close0_instantiation() {
+    fn __bindgen_test_layout_Heap_open0__bindgen_ty_id_252421_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::JS::Heap<*mut root::JSObject>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -36159,7 +36281,7 @@ pub mod root {
                    root::nsCOMPtr<root::nsIGlobalObject> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_TenuredHeap_open0__bindgen_ty_id_251929_close0_instantiation() {
+    fn __bindgen_test_layout_TenuredHeap_open0__bindgen_ty_id_252428_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::JS::TenuredHeap>() , 8usize ,
                    concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -36238,7 +36360,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_253034_close0_instantiation() {
+    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_253533_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::nsISupports>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -36433,7 +36555,7 @@ pub mod root {
                    root::nsTArray<f64> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_254482_close0_instantiation() {
+    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_254981_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::mozilla::dom::Element>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -36538,7 +36660,7 @@ pub mod root {
                    root::nsRefPtrHashKey<root::nsIAtom> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_256911_close0_instantiation() {
+    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_257410_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::mozilla::CounterStyle>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37239,7 +37361,7 @@ pub mod root {
                    root::RefPtr<root::nsStyleImageRequest> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_259466_close0_instantiation() {
+    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_259968_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::nsISupports>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37476,7 +37598,7 @@ pub mod root {
                    root::nsCOMPtr<root::nsIURI> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_267278_close0_instantiation() {
+    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_267780_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::nsIContent>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37487,7 +37609,7 @@ pub mod root {
                    root::nsTArray<*mut root::nsIContent> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_267283_close0_instantiation() {
+    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_267785_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::nsIContent>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37575,7 +37697,7 @@ pub mod root {
                    root::RefPtr<root::mozilla::dom::ShadowRoot> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_267396_close0_instantiation() {
+    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_267898_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::nsIContent>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37862,7 +37984,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_268982_close0_instantiation() {
+    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_269484_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::nsIContent>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37884,7 +38006,7 @@ pub mod root {
                    root::RefPtr<root::mozilla::dom::Element> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_269144_close0_instantiation() {
+    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_269646_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::nsIContent>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37895,7 +38017,7 @@ pub mod root {
                    root::nsTArray<*mut root::nsIContent> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_269149_close0_instantiation() {
+    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_269651_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::nsIContent>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -38027,7 +38149,7 @@ pub mod root {
                    root::nsTArray<root::mozilla::gfx::FontVariation> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_271684_close0_instantiation() {
+    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_272182_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::mozilla::css::DocumentRule>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -38038,7 +38160,7 @@ pub mod root {
                    root::nsTArray<*mut root::mozilla::css::DocumentRule> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_271692_close0_instantiation() {
+    fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_272190_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::mozilla::css::DocumentRule>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (

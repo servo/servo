@@ -947,7 +947,8 @@ impl<'a, 'b, 'i> DeclarationParser<'i> for PropertyDeclarationParser<'a, 'b> {
 
     fn parse_value<'t>(&mut self, name: CowRcStr<'i>, input: &mut Parser<'i, 't>)
                        -> Result<Importance, ParseError<'i>> {
-        let id = match PropertyId::parse(&name) {
+        let prop_context = PropertyParserContext::new(self.context);
+        let id = match PropertyId::parse(&name, Some(&prop_context)) {
             Ok(id) => id,
             Err(()) => {
                 return Err(if is_non_mozilla_vendor_identifier(&name) {
