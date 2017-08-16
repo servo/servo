@@ -104,11 +104,24 @@ where
     }
 }
 
-impl<S> ComputeSquaredDistance for ShadowList<S> {
+impl<S> ComputeSquaredDistance for ShadowList<S>
+where
+    S: ComputeSquaredDistance + ToAnimatedZero,
+{
     #[inline]
-    fn compute_squared_distance(&self, _other: &Self) -> Result<SquaredDistance, ()> {
-        // FIXME: This should be implemented.
-        Err(())
+    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
+        use itertools::{EitherOrBoth, Itertools};
+
+        self.0.iter().zip_longest(other.0.iter()).map(|it| {
+            match it {
+                EitherOrBoth::Both(from, to) => {
+                    from.compute_squared_distance(to)
+                },
+                EitherOrBoth::Left(list) | EitherOrBoth::Right(list) => {
+                    list.compute_squared_distance(&list.to_animated_zero()?)
+                },
+            }
+        }).sum()
     }
 }
 
