@@ -1,0 +1,159 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+//! Specified time values.
+
+use cssparser::{Parser, Token, BasicParseError};
+use parser::{ParserContext, Parse};
+use std::ascii::AsciiExt;
+use std::fmt;
+use style_traits::{ToCss, ParseError, StyleParseError};
+use style_traits::values::specified::AllowedNumericType;
+use values::CSSFloat;
+use values::computed::{Context, ToComputedValue};
+use values::computed::time::Time as ComputedTime;
+use values::specified::calc::CalcNode;
+
+/// A time value according to CSS-VALUES § 6.2.
+#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub struct Time {
+    seconds: CSSFloat,
+    unit: TimeUnit,
+    was_calc: bool,
+}
+
+/// A time unit.
+#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, Eq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub enum TimeUnit {
+    /// `s`
+    Second,
+    /// `ms`
+    Millisecond,
+}
+
+impl Time {
+    /// Returns a time value that represents `seconds` seconds.
+    pub fn from_seconds(seconds: CSSFloat) -> Self {
+        Time { seconds, unit: TimeUnit::Second, was_calc: false }
+    }
+
+    /// Returns `0s`.
+    pub fn zero() -> Self {
+        Self::from_seconds(0.0)
+    }
+
+    /// Returns the time in fractional seconds.
+    pub fn seconds(self) -> CSSFloat {
+        self.seconds
+    }
+
+    /// Parses a time according to CSS-VALUES § 6.2.
+    pub fn parse_dimension(
+        value: CSSFloat,
+        unit: &str,
+        was_calc: bool
+    ) -> Result<Time, ()> {
+        let (seconds, unit) = match_ignore_ascii_case! { unit,
+            "s" => (value, TimeUnit::Second),
+            "ms" => (value / 1000.0, TimeUnit::Millisecond),
+            _ => return Err(())
+        };
+
+        Ok(Time { seconds, unit, was_calc })
+    }
+
+    /// Returns a `Time` value from a CSS `calc()` expression.
+    pub fn from_calc(seconds: CSSFloat) -> Self {
+        Time {
+            seconds: seconds,
+            unit: TimeUnit::Second,
+            was_calc: true,
+        }
+    }
+
+    fn parse_with_clamping_mode<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        clamping_mode: AllowedNumericType
+    ) -> Result<Self, ParseError<'i>> {
+        use style_traits::PARSING_MODE_DEFAULT;
+
+        // FIXME: remove early returns when lifetimes are non-lexical
+        match input.next() {
+            // Note that we generally pass ParserContext to is_ok() to check
+            // that the ParserMode of the ParserContext allows all numeric
+            // values for SMIL regardless of clamping_mode, but in this Time
+            // value case, the value does not animate for SMIL at all, so we use
+            // PARSING_MODE_DEFAULT directly.
+            Ok(&Token::Dimension { value, ref unit, .. }) if clamping_mode.is_ok(PARSING_MODE_DEFAULT, value) => {
+                return Time::parse_dimension(value, unit, /* from_calc = */ false)
+                    .map_err(|()| StyleParseError::UnspecifiedError.into())
+            }
+            Ok(&Token::Function(ref name)) if name.eq_ignore_ascii_case("calc") => {}
+            Ok(t) => return Err(BasicParseError::UnexpectedToken(t.clone()).into()),
+            Err(e) => return Err(e.into())
+        }
+        match input.parse_nested_block(|i| CalcNode::parse_time(context, i)) {
+            Ok(time) if clamping_mode.is_ok(PARSING_MODE_DEFAULT, time.seconds) => Ok(time),
+            _ => Err(StyleParseError::UnspecifiedError.into()),
+        }
+    }
+
+    /// Parses a non-negative time value.
+    pub fn parse_non_negative<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>
+    ) -> Result<Self, ParseError<'i>> {
+        Self::parse_with_clamping_mode(context, input, AllowedNumericType::NonNegative)
+    }
+}
+
+impl ToComputedValue for Time {
+    type ComputedValue = ComputedTime;
+
+    fn to_computed_value(&self, _context: &Context) -> Self::ComputedValue {
+        ComputedTime::from_seconds(self.seconds())
+    }
+
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        Time {
+            seconds: computed.seconds(),
+            unit: TimeUnit::Second,
+            was_calc: false,
+        }
+    }
+}
+
+impl Parse for Time {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        Self::parse_with_clamping_mode(context, input, AllowedNumericType::All)
+    }
+}
+
+impl ToCss for Time {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+    where
+        W: fmt::Write,
+    {
+        if self.was_calc {
+            dest.write_str("calc(")?;
+        }
+        match self.unit {
+            TimeUnit::Second => {
+                self.seconds.to_css(dest)?;
+                dest.write_str("s")?;
+            }
+            TimeUnit::Millisecond => {
+                (self.seconds * 1000.).to_css(dest)?;
+                dest.write_str("ms")?;
+            }
+        }
+        if self.was_calc {
+            dest.write_str(")")?;
+        }
+        Ok(())
+    }
+}
