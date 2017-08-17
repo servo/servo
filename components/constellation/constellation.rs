@@ -108,6 +108,7 @@ use script_traits::{LogEntry, ScriptToConstellationChan, ServiceWorkerMsg, webdr
 use script_traits::{MozBrowserErrorType, MozBrowserEvent, WebDriverCommandMsg, WindowSizeData};
 use script_traits::{SWManagerMsg, ScopeThings, UpdatePipelineIdReason, WindowSizeType};
 use serde::{Deserialize, Serialize};
+use servo_cdp;
 use servo_config::opts;
 use servo_config::prefs::PREFS;
 use servo_rand::{Rng, SeedableRng, ServoRng, random};
@@ -197,8 +198,12 @@ pub struct Constellation<Message, LTF, STF> {
     debugger_chan: Option<debugger::Sender>,
 
     /// A channel for the constellation to send messages to the
-    /// devtools thread.
+    /// Firefox devtools thread.
     devtools_chan: Option<Sender<DevtoolsControlMsg>>,
+
+    /// A channel for the constellation to send messages to the
+    /// Chrome devtools thread.
+    cdp_chan: Option<servo_cdp::MsgSender>,
 
     /// An IPC channel for the constellation to send messages to the
     /// bluetooth thread.
@@ -312,8 +317,11 @@ pub struct InitialConstellationState {
     /// A channel to the debugger, if applicable.
     pub debugger_chan: Option<debugger::Sender>,
 
-    /// A channel to the developer tools, if applicable.
+    /// A channel to the Firefox developer tools server, if applicable.
     pub devtools_chan: Option<Sender<DevtoolsControlMsg>>,
+
+    /// A channel to the Chrome developer tools server, if applicable.
+    pub cdp_chan: Option<servo_cdp::MsgSender>,
 
     /// A channel to the bluetooth thread.
     pub bluetooth_thread: IpcSender<BluetoothRequest>,
@@ -541,6 +549,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 active_browser_id: None,
                 debugger_chan: state.debugger_chan,
                 devtools_chan: state.devtools_chan,
+                cdp_chan: state.cdp_chan,
                 bluetooth_thread: state.bluetooth_thread,
                 public_resource_threads: state.public_resource_threads,
                 private_resource_threads: state.private_resource_threads,
@@ -1345,12 +1354,16 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
 
         if let Some(ref chan) = self.devtools_chan {
-            debug!("Exiting devtools.");
+            debug!("Exiting Firefox devtools server.");
             let msg = DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::ServerExitMsg);
             if let Err(e) = chan.send(msg) {
-                warn!("Exit devtools failed ({})", e);
+                warn!("Exit Firefox devtools server failed ({})", e);
             }
         }
+
+        // Closing the channel (by dropping the send half) will cause the CDP
+        // server to shut down.
+        self.cdp_chan.take();
 
         debug!("Exiting storage resource threads.");
         if let Err(e) = self.public_resource_threads.send(StorageThreadMsg::Exit(storage_sender)) {

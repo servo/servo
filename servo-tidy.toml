@@ -25,7 +25,9 @@ rand = [
   "servo-websocket",
   "tempdir",
   "tempfile",
+  "tokio-proto", # only used in a test, see https://github.com/tokio-rs/tokio-proto/pull/179
   "uuid",
+  "websocket",
   "ws",
 ]
 num = []
