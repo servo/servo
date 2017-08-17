@@ -9,6 +9,7 @@
 //! module's raison d'être is to ultimately contain all these types.
 
 use app_units::Au;
+use euclid::{Point2D, Size2D};
 use smallvec::SmallVec;
 use std::cmp::max;
 use values::computed::Angle as ComputedAngle;
@@ -27,6 +28,26 @@ use values::specified::url::SpecifiedUrl;
 pub mod color;
 pub mod effects;
 
+/// Animating from one value to another.
+pub trait Animate: Sized {
+    /// Animate a value towards another one, given an animation procedure.
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()>;
+}
+
+/// An animation procedure.
+///
+/// https://w3c.github.io/web-animations/#procedures-for-animating-properties
+#[allow(missing_docs)]
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Procedure {
+    /// https://w3c.github.io/web-animations/#animation-interpolation
+    Interpolate { progress: f64 },
+    /// https://w3c.github.io/web-animations/#animation-addition
+    Add,
+    /// https://w3c.github.io/web-animations/#animation-accumulation
+    Accumulate { count: u64 },
+}
+
 /// Conversion between computed values and intermediate values for animations.
 ///
 /// Notably, colors are represented as four floats during animations.
@@ -39,6 +60,108 @@ pub trait ToAnimatedValue {
 
     /// Converts back an animated value into a computed value.
     fn from_animated_value(animated: Self::AnimatedValue) -> Self;
+}
+
+/// Marker trait for computed values with the same representation during animations.
+pub trait AnimatedValueAsComputed {}
+
+/// Returns a value similar to `self` that represents zero.
+pub trait ToAnimatedZero: Sized {
+    /// Returns a value that, when added with an underlying value, will produce the underlying
+    /// value. This is used for SMIL animation's "by-animation" where SMIL first interpolates from
+    /// the zero value to the 'by' value, and then adds the result to the underlying value.
+    ///
+    /// This is not the necessarily the same as the initial value of a property. For example, the
+    /// initial value of 'stroke-width' is 1, but the zero value is 0, since adding 1 to the
+    /// underlying value will not produce the underlying value.
+    fn to_animated_zero(&self) -> Result<Self, ()>;
+}
+
+impl Procedure {
+    /// Returns this procedure as a pair of weights.
+    ///
+    /// This is useful for animations that don't animate differently
+    /// depending on the used procedure.
+    #[inline]
+    pub fn weights(self) -> (f64, f64) {
+        match self {
+            Procedure::Interpolate { progress } => (1. - progress, progress),
+            Procedure::Add => (1., 1.),
+            Procedure::Accumulate { count } => (count as f64, 1.),
+        }
+    }
+}
+
+/// https://drafts.csswg.org/css-transitions/#animtype-number
+impl Animate for i32 {
+    #[inline]
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
+        Ok(((*self as f64).animate(&(*other as f64), procedure)? + 0.5).floor() as i32)
+    }
+}
+
+/// https://drafts.csswg.org/css-transitions/#animtype-number
+impl Animate for f32 {
+    #[inline]
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
+        Ok((*self as f64).animate(&(*other as f64), procedure)? as f32)
+    }
+}
+
+/// https://drafts.csswg.org/css-transitions/#animtype-number
+impl Animate for f64 {
+    #[inline]
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
+        let (self_weight, other_weight) = procedure.weights();
+        Ok(*self * self_weight + *other * other_weight)
+    }
+}
+
+impl<T> Animate for Option<T>
+where
+    T: Animate,
+{
+    #[inline]
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
+        match (self.as_ref(), other.as_ref()) {
+            (Some(ref this), Some(ref other)) => Ok(Some(this.animate(other, procedure)?)),
+            (None, None) => Ok(None),
+            _ => Err(()),
+        }
+    }
+}
+
+impl Animate for Au {
+    #[inline]
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
+        Ok(Au(self.0.animate(&other.0, procedure)?))
+    }
+}
+
+impl<T> Animate for Size2D<T>
+where
+    T: Animate + Copy,
+{
+    #[inline]
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
+        Ok(Size2D::new(
+            self.width.animate(&other.width, procedure)?,
+            self.height.animate(&other.height, procedure)?,
+        ))
+    }
+}
+
+impl<T> Animate for Point2D<T>
+where
+    T: Animate + Copy,
+{
+    #[inline]
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
+        Ok(Point2D::new(
+            self.x.animate(&other.x, procedure)?,
+            self.y.animate(&other.y, procedure)?,
+        ))
+    }
 }
 
 impl<T> ToAnimatedValue for Option<T>
@@ -91,9 +214,6 @@ where
         animated.into_iter().map(T::from_animated_value).collect()
     }
 }
-
-/// Marker trait for computed values with the same representation during animations.
-pub trait AnimatedValueAsComputed {}
 
 impl AnimatedValueAsComputed for Au {}
 impl AnimatedValueAsComputed for ComputedAngle {}
@@ -263,18 +383,6 @@ impl ToAnimatedValue for ComputedMozLength {
     }
 }
 
-/// Returns a value similar to `self` that represents zero.
-pub trait ToAnimatedZero: Sized {
-    /// Returns a value that, when added with an underlying value, will produce the underlying
-    /// value. This is used for SMIL animation's "by-animation" where SMIL first interpolates from
-    /// the zero value to the 'by' value, and then adds the result to the underlying value.
-    ///
-    /// This is not the necessarily the same as the initial value of a property. For example, the
-    /// initial value of 'stroke-width' is 1, but the zero value is 0, since adding 1 to the
-    /// underlying value will not produce the underlying value.
-    fn to_animated_zero(&self) -> Result<Self, ()>;
-}
-
 impl ToAnimatedZero for Au {
     #[inline]
     fn to_animated_zero(&self) -> Result<Self, ()> { Ok(Au(0)) }
@@ -293,4 +401,17 @@ impl ToAnimatedZero for f64 {
 impl ToAnimatedZero for i32 {
     #[inline]
     fn to_animated_zero(&self) -> Result<Self, ()> { Ok(0) }
+}
+
+impl<T> ToAnimatedZero for Option<T>
+where
+    T: ToAnimatedZero,
+{
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        match *self {
+            Some(ref value) => Ok(Some(value.to_animated_zero()?)),
+            None => Ok(None),
+        }
+    }
 }

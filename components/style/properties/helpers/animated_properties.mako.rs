@@ -8,7 +8,7 @@
 
 use app_units::Au;
 use cssparser::Parser;
-use euclid::{Point2D, Point3D, Size2D};
+use euclid::Point3D;
 #[cfg(feature = "gecko")] use gecko_bindings::bindings::RawServoAnimationValueMap;
 #[cfg(feature = "gecko")] use gecko_bindings::structs::RawGeckoGfxMatrix4x4;
 #[cfg(feature = "gecko")] use gecko_bindings::structs::nsCSSPropertyID;
@@ -39,7 +39,7 @@ use super::ComputedValues;
 #[cfg(feature = "gecko")]
 use values::Auto;
 use values::{CSSFloat, CustomIdent, Either};
-use values::animated::{ToAnimatedValue, ToAnimatedZero};
+use values::animated::{Animate, Procedure, ToAnimatedValue, ToAnimatedZero};
 use values::animated::color::{Color as AnimatedColor, RGBA as AnimatedRGBA};
 use values::animated::effects::BoxShadowList as AnimatedBoxShadowList;
 use values::animated::effects::Filter as AnimatedFilter;
@@ -60,39 +60,8 @@ use values::generics::position as generic_position;
 use values::generics::svg::{SVGLength,  SvgLengthOrPercentageOrNumber, SVGPaint};
 use values::generics::svg::{SVGPaintKind, SVGStrokeDashArray, SVGOpacity};
 
-/// A trait used to implement various procedures used during animation.
-pub trait Animatable: Sized {
-    /// Performs a weighted sum of this value and |other|. This is used for
-    /// interpolation and addition of animation values.
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64)
-        -> Result<Self, ()>;
-
-    /// [Interpolates][interpolation] a value with another for a given property.
-    ///
-    /// [interpolation]: https://w3c.github.io/web-animations/#animation-interpolation
-    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
-        self.add_weighted(other, 1.0 - progress, progress)
-    }
-
-    /// Returns the [sum][animation-addition] of this value and |other|.
-    ///
-    /// [animation-addition]: https://w3c.github.io/web-animations/#animation-addition
-    fn add(&self, other: &Self) -> Result<Self, ()> {
-        self.add_weighted(other, 1.0, 1.0)
-    }
-
-    /// [Accumulates][animation-accumulation] this value onto itself (|count| - 1) times then
-    /// accumulates |other| onto the result.
-    /// If |count| is zero, the result will be |other|.
-    ///
-    /// [animation-accumulation]: https://w3c.github.io/web-animations/#animation-accumulation
-    fn accumulate(&self, other: &Self, count: u64) -> Result<Self, ()> {
-        self.add_weighted(other, count as f64, 1.0)
-    }
-}
-
 /// https://drafts.csswg.org/css-transitions/#animtype-repeatable-list
-pub trait RepeatableListAnimatable: Animatable {}
+pub trait RepeatableListAnimatable: Animate {}
 
 /// A longhand property whose animation type is not "none".
 ///
@@ -451,7 +420,7 @@ impl AnimatedProperty {
                         % if prop.animation_value_type == "discrete":
                             let value = if progress < 0.5 { from.clone() } else { to.clone() };
                         % else:
-                            let value = match from.interpolate(to, progress) {
+                            let value = match from.animate(to, Procedure::Interpolate { progress }) {
                                 Ok(value) => value,
                                 Err(()) => return,
                             };
@@ -662,78 +631,38 @@ impl AnimationValue {
     }
 }
 
-impl Animatable for AnimationValue {
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64)
-        -> Result<Self, ()> {
+impl Animate for AnimationValue {
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         match (self, other) {
             % for prop in data.longhands:
-                % if prop.animatable:
-                    (&AnimationValue::${prop.camel_case}(ref from),
-                     &AnimationValue::${prop.camel_case}(ref to)) => {
-                        % if prop.animation_value_type == "discrete":
-                            if self_portion > other_portion {
-                                Ok(AnimationValue::${prop.camel_case}(from.clone()))
-                            } else {
-                                Ok(AnimationValue::${prop.camel_case}(to.clone()))
-                            }
-                        % else:
-                            from.add_weighted(to, self_portion, other_portion)
-                                .map(AnimationValue::${prop.camel_case})
-                        % endif
-                    }
-                % endif
+            % if prop.animatable:
+            % if prop.animation_value_type != "discrete":
+            (
+                &AnimationValue::${prop.camel_case}(ref this),
+                &AnimationValue::${prop.camel_case}(ref other),
+            ) => {
+                Ok(AnimationValue::${prop.camel_case}(
+                    this.animate(other, procedure)?,
+                ))
+            },
+            % else:
+            (
+                &AnimationValue::${prop.camel_case}(ref this),
+                &AnimationValue::${prop.camel_case}(ref other),
+            ) => {
+                if let Procedure::Interpolate { progress } = procedure {
+                    Ok(AnimationValue::${prop.camel_case}(
+                        if progress < 0.5 { this.clone() } else { other.clone() },
+                    ))
+                } else {
+                    Err(())
+                }
+            },
+            % endif
+            % endif
             % endfor
             _ => {
-                panic!("Expected weighted addition of computed values of the same \
-                        property, got: {:?}, {:?}", self, other);
-            }
-        }
-    }
-
-    fn add(&self, other: &Self) -> Result<Self, ()> {
-        match (self, other) {
-            % for prop in data.longhands:
-                % if prop.animatable:
-                    % if prop.animation_value_type == "discrete":
-                        (&AnimationValue::${prop.camel_case}(_),
-                         &AnimationValue::${prop.camel_case}(_)) => {
-                            Err(())
-                        }
-                    % else:
-                        (&AnimationValue::${prop.camel_case}(ref from),
-                         &AnimationValue::${prop.camel_case}(ref to)) => {
-                            from.add(to).map(AnimationValue::${prop.camel_case})
-                        }
-                    % endif
-                % endif
-            % endfor
-            _ => {
-                panic!("Expected addition of computed values of the same \
-                        property, got: {:?}, {:?}", self, other);
-            }
-        }
-    }
-
-    fn accumulate(&self, other: &Self, count: u64) -> Result<Self, ()> {
-        match (self, other) {
-            % for prop in data.longhands:
-                % if prop.animatable:
-                    % if prop.animation_value_type == "discrete":
-                        (&AnimationValue::${prop.camel_case}(_),
-                         &AnimationValue::${prop.camel_case}(_)) => {
-                            Err(())
-                        }
-                    % else:
-                        (&AnimationValue::${prop.camel_case}(ref from),
-                         &AnimationValue::${prop.camel_case}(ref to)) => {
-                            from.accumulate(to, count).map(AnimationValue::${prop.camel_case})
-                        }
-                    % endif
-                % endif
-            % endfor
-            _ => {
-                panic!("Expected accumulation of computed values of the same \
-                        property, got: {:?}, {:?}", self, other);
+                panic!("Unexpected AnimationValue::animate call, got: {:?}, {:?}", self, other);
             }
         }
     }
@@ -789,17 +718,19 @@ impl RepeatableListAnimatable for SvgLengthOrPercentageOrNumber<NonNegativeLengt
 
 macro_rules! repeated_vec_impl {
     ($($ty:ty),*) => {
-        $(impl<T: RepeatableListAnimatable> Animatable for $ty {
-            fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64)
-                -> Result<Self, ()> {
+        $(impl<T> Animate for $ty
+        where
+            T: RepeatableListAnimatable,
+        {
+            fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
                 // If the length of either list is zero, the least common multiple is undefined.
                 if self.is_empty() || other.is_empty() {
                     return Err(());
                 }
                 use num_integer::lcm;
                 let len = lcm(self.len(), other.len());
-                self.iter().cycle().zip(other.iter().cycle()).take(len).map(|(me, you)| {
-                    me.add_weighted(you, self_portion, other_portion)
+                self.iter().cycle().zip(other.iter().cycle()).take(len).map(|(this, other)| {
+                    this.animate(other, procedure)
                 }).collect()
             }
         }
@@ -825,63 +756,17 @@ macro_rules! repeated_vec_impl {
 
 repeated_vec_impl!(SmallVec<[T; 1]>, Vec<T>);
 
-/// https://drafts.csswg.org/css-transitions/#animtype-number
-impl Animatable for Au {
-    #[inline]
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
-        Ok(Au((self.0 as f64 * self_portion + other.0 as f64 * other_portion).round() as i32))
-    }
-}
-
-impl <T> Animatable for Option<T>
-    where T: Animatable,
-{
-    #[inline]
-    fn add_weighted(&self, other: &Option<T>, self_portion: f64, other_portion: f64) -> Result<Option<T>, ()> {
-        match (self, other) {
-            (&Some(ref this), &Some(ref other)) => {
-                Ok(this.add_weighted(other, self_portion, other_portion).ok())
-            }
-            (&None, &None) => Ok(None),
-            _ => Err(()),
-        }
-    }
-}
-
-/// https://drafts.csswg.org/css-transitions/#animtype-number
-impl Animatable for f32 {
-    #[inline]
-    fn add_weighted(&self, other: &f32, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
-        Ok((*self as f64 * self_portion + *other as f64 * other_portion) as f32)
-    }
-}
-
-/// https://drafts.csswg.org/css-transitions/#animtype-number
-impl Animatable for f64 {
-    #[inline]
-    fn add_weighted(&self, other: &f64, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
-        Ok(*self * self_portion + *other * other_portion)
-    }
-}
-
-/// https://drafts.csswg.org/css-transitions/#animtype-integer
-impl Animatable for i32 {
-    #[inline]
-    fn add_weighted(&self, other: &i32, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
-        Ok((*self as f64 * self_portion + *other as f64 * other_portion + 0.5).floor() as i32)
-    }
-}
-
 /// https://drafts.csswg.org/css-transitions/#animtype-visibility
-impl Animatable for Visibility {
+impl Animate for Visibility {
     #[inline]
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
+        let (this_weight, other_weight) = procedure.weights();
         match (*self, *other) {
             (Visibility::visible, _) => {
-                Ok(if self_portion > 0.0 { *self } else { *other })
+                Ok(if this_weight > 0.0 { *self } else { *other })
             },
             (_, Visibility::visible) => {
-                Ok(if other_portion > 0.0 { *other } else { *self })
+                Ok(if other_weight > 0.0 { *other } else { *self })
             },
             _ => Err(()),
         }
@@ -902,37 +787,19 @@ impl ToAnimatedZero for Visibility {
     }
 }
 
-impl<T: Animatable + Copy> Animatable for Size2D<T> {
-    #[inline]
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
-        let width = self.width.add_weighted(&other.width, self_portion, other_portion)?;
-        let height = self.height.add_weighted(&other.height, self_portion, other_portion)?;
-
-        Ok(Size2D::new(width, height))
-    }
-}
-
-impl<T: Animatable + Copy> Animatable for Point2D<T> {
-    #[inline]
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
-        let x = self.x.add_weighted(&other.x, self_portion, other_portion)?;
-        let y = self.y.add_weighted(&other.y, self_portion, other_portion)?;
-
-        Ok(Point2D::new(x, y))
-    }
-}
-
 /// https://drafts.csswg.org/css-transitions/#animtype-length
-impl Animatable for VerticalAlign {
+impl Animate for VerticalAlign {
     #[inline]
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
-        match (*self, *other) {
-            (VerticalAlign::LengthOrPercentage(ref this),
-             VerticalAlign::LengthOrPercentage(ref other)) => {
-                this.add_weighted(other, self_portion, other_portion).map(|value| {
-                    VerticalAlign::LengthOrPercentage(value)
-                })
-            }
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
+        match (self, other) {
+            (
+                &VerticalAlign::LengthOrPercentage(ref this),
+                &VerticalAlign::LengthOrPercentage(ref other),
+            ) => {
+                Ok(VerticalAlign::LengthOrPercentage(
+                    this.animate(other, procedure)?
+                ))
+            },
             _ => Err(()),
         }
     }
@@ -960,59 +827,53 @@ impl ToAnimatedZero for VerticalAlign {
 }
 
 /// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
-impl Animatable for CalcLengthOrPercentage {
+impl Animate for CalcLengthOrPercentage {
     #[inline]
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
-        fn add_weighted_half<T>(this: Option<T>,
-                                other: Option<T>,
-                                self_portion: f64,
-                                other_portion: f64)
-                                -> Result<Option<T>, ()>
-            where T: Default + Animatable,
-        {
-            match (this, other) {
-                (None, None) => Ok(None),
-                (this, other) => {
-                    let this = this.unwrap_or(T::default());
-                    let other = other.unwrap_or(T::default());
-                    this.add_weighted(&other, self_portion, other_portion).map(Some)
-                }
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
+        let animate_percentage_half = |this: Option<Percentage>, other: Option<Percentage>| {
+            if this.is_none() && other.is_none() {
+                return Ok(None);
             }
-        }
+            let this = this.unwrap_or_default();
+            let other = other.unwrap_or_default();
+            Ok(Some(this.animate(&other, procedure)?))
+        };
 
-        let length = self.unclamped_length().add_weighted(&other.unclamped_length(), self_portion, other_portion)?;
-        let percentage = add_weighted_half(self.percentage, other.percentage, self_portion, other_portion)?;
+        let length = self.unclamped_length().animate(&other.unclamped_length(), procedure)?;
+        let percentage = animate_percentage_half(self.percentage, other.percentage)?;
         Ok(CalcLengthOrPercentage::with_clamping_mode(length, percentage, self.clamping_mode))
     }
 }
 
 /// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
-impl Animatable for LengthOrPercentage {
+impl Animate for LengthOrPercentage {
     #[inline]
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
-        match (*self, *other) {
-            (LengthOrPercentage::Length(ref this),
-             LengthOrPercentage::Length(ref other)) => {
-                this.add_weighted(other, self_portion, other_portion)
-                    .map(LengthOrPercentage::Length)
-            }
-            (LengthOrPercentage::Percentage(ref this),
-             LengthOrPercentage::Percentage(ref other)) => {
-                this.add_weighted(other, self_portion, other_portion)
-                    .map(LengthOrPercentage::Percentage)
-            }
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
+        match (self, other) {
+            (
+                &LengthOrPercentage::Length(ref this),
+                &LengthOrPercentage::Length(ref other),
+            ) => {
+                Ok(LengthOrPercentage::Length(this.animate(other, procedure)?))
+            },
+            (
+                &LengthOrPercentage::Percentage(ref this),
+                &LengthOrPercentage::Percentage(ref other),
+            ) => {
+                Ok(LengthOrPercentage::Percentage(this.animate(other, procedure)?))
+            },
             (this, other) => {
                 // Special handling for zero values since these should not require calc().
                 if this.is_definitely_zero() {
-                    return other.add_weighted(&other, 0., other_portion)
-                } else if other.is_definitely_zero() {
-                    return this.add_weighted(self, self_portion, 0.)
+                    return other.to_animated_zero()?.animate(other, procedure);
+                }
+                if other.is_definitely_zero() {
+                    return this.animate(&this.to_animated_zero()?, procedure);
                 }
 
-                let this: CalcLengthOrPercentage = From::from(this);
-                let other: CalcLengthOrPercentage = From::from(other);
-                this.add_weighted(&other, self_portion, other_portion)
-                    .map(LengthOrPercentage::Calc)
+                let this = CalcLengthOrPercentage::from(*this);
+                let other = CalcLengthOrPercentage::from(*other);
+                Ok(LengthOrPercentage::Calc(this.animate(&other, procedure)?))
             }
         }
     }
@@ -1021,41 +882,49 @@ impl Animatable for LengthOrPercentage {
 impl ToAnimatedZero for LengthOrPercentage {
     #[inline]
     fn to_animated_zero(&self) -> Result<Self, ()> {
-        match self {
-            &LengthOrPercentage::Length(_) | &LengthOrPercentage::Calc(_) =>
-                Ok(LengthOrPercentage::zero()),
-            &LengthOrPercentage::Percentage(_) =>
-                Ok(LengthOrPercentage::Percentage(Percentage::zero())),
-        }
+         match *self {
+             LengthOrPercentage::Length(ref length) => {
+                 Ok(LengthOrPercentage::Length(length.to_animated_zero()?))
+             },
+             LengthOrPercentage::Percentage(ref percentage) => {
+                 Ok(LengthOrPercentage::Percentage(percentage.to_animated_zero()?))
+             },
+             LengthOrPercentage::Calc(ref calc) => {
+                 Ok(LengthOrPercentage::Calc(calc.to_animated_zero()?))
+             },
+         }
     }
 }
 
 /// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
-impl Animatable for LengthOrPercentageOrAuto {
+impl Animate for LengthOrPercentageOrAuto {
     #[inline]
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
-        match (*self, *other) {
-            (LengthOrPercentageOrAuto::Length(ref this),
-             LengthOrPercentageOrAuto::Length(ref other)) => {
-                this.add_weighted(other, self_portion, other_portion)
-                    .map(LengthOrPercentageOrAuto::Length)
-            }
-            (LengthOrPercentageOrAuto::Percentage(ref this),
-             LengthOrPercentageOrAuto::Percentage(ref other)) => {
-                this.add_weighted(other, self_portion, other_portion)
-                    .map(LengthOrPercentageOrAuto::Percentage)
-            }
-            (LengthOrPercentageOrAuto::Auto, LengthOrPercentageOrAuto::Auto) => {
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
+        match (self, other) {
+            (
+                &LengthOrPercentageOrAuto::Length(ref this),
+                &LengthOrPercentageOrAuto::Length(ref other),
+            ) => {
+                Ok(LengthOrPercentageOrAuto::Length(this.animate(other, procedure)?))
+            },
+            (
+                &LengthOrPercentageOrAuto::Percentage(ref this),
+                &LengthOrPercentageOrAuto::Percentage(ref other),
+            ) => {
+                Ok(LengthOrPercentageOrAuto::Percentage(
+                    this.animate(other, procedure)?,
+                ))
+            },
+            (&LengthOrPercentageOrAuto::Auto, &LengthOrPercentageOrAuto::Auto) => {
                 Ok(LengthOrPercentageOrAuto::Auto)
-            }
+            },
             (this, other) => {
-                let this: Option<CalcLengthOrPercentage> = From::from(this);
-                let other: Option<CalcLengthOrPercentage> = From::from(other);
-                match this.add_weighted(&other, self_portion, other_portion) {
-                    Ok(Some(result)) => Ok(LengthOrPercentageOrAuto::Calc(result)),
-                    _ => Err(()),
-                }
-            }
+                let this: Option<CalcLengthOrPercentage> = From::from(*this);
+                let other: Option<CalcLengthOrPercentage> = From::from(*other);
+                Ok(LengthOrPercentageOrAuto::Calc(
+                    this.animate(&other, procedure)?.ok_or(())?,
+                ))
+            },
         }
     }
 }
@@ -1075,30 +944,33 @@ impl ToAnimatedZero for LengthOrPercentageOrAuto {
 }
 
 /// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
-impl Animatable for LengthOrPercentageOrNone {
+impl Animate for LengthOrPercentageOrNone {
     #[inline]
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
-        match (*self, *other) {
-            (LengthOrPercentageOrNone::Length(ref this),
-             LengthOrPercentageOrNone::Length(ref other)) => {
-                this.add_weighted(other, self_portion, other_portion)
-                    .map(LengthOrPercentageOrNone::Length)
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
+        match (self, other) {
+            (
+                &LengthOrPercentageOrNone::Length(ref this),
+                &LengthOrPercentageOrNone::Length(ref other),
+            ) => {
+                Ok(LengthOrPercentageOrNone::Length(this.animate(other, procedure)?))
+            },
+            (
+                &LengthOrPercentageOrNone::Percentage(ref this),
+                &LengthOrPercentageOrNone::Percentage(ref other),
+            ) => {
+                Ok(LengthOrPercentageOrNone::Percentage(
+                    this.animate(other, procedure)?,
+                ))
             }
-            (LengthOrPercentageOrNone::Percentage(ref this),
-             LengthOrPercentageOrNone::Percentage(ref other)) => {
-                this.add_weighted(other, self_portion, other_portion)
-                    .map(LengthOrPercentageOrNone::Percentage)
-            }
-            (LengthOrPercentageOrNone::None, LengthOrPercentageOrNone::None) => {
+            (&LengthOrPercentageOrNone::None, &LengthOrPercentageOrNone::None) => {
                 Ok(LengthOrPercentageOrNone::None)
-            }
+            },
             (this, other) => {
-                let this = <Option<CalcLengthOrPercentage>>::from(this);
-                let other = <Option<CalcLengthOrPercentage>>::from(other);
-                match this.add_weighted(&other, self_portion, other_portion) {
-                    Ok(Some(result)) => Ok(LengthOrPercentageOrNone::Calc(result)),
-                    _ => Err(()),
-                }
+                let this = <Option<CalcLengthOrPercentage>>::from(*this);
+                let other = <Option<CalcLengthOrPercentage>>::from(*other);
+                Ok(LengthOrPercentageOrNone::Calc(
+                    this.animate(&other, procedure)?.ok_or(())?,
+                ))
             },
         }
     }
@@ -1119,14 +991,17 @@ impl ToAnimatedZero for LengthOrPercentageOrNone {
 }
 
 /// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
-impl Animatable for MozLength {
+impl Animate for MozLength {
     #[inline]
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
-        match (*self, *other) {
-            (MozLength::LengthOrPercentageOrAuto(ref this),
-             MozLength::LengthOrPercentageOrAuto(ref other)) => {
-                this.add_weighted(other, self_portion, other_portion)
-                    .map(MozLength::LengthOrPercentageOrAuto)
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
+        match (self, other) {
+            (
+                &MozLength::LengthOrPercentageOrAuto(ref this),
+                &MozLength::LengthOrPercentageOrAuto(ref other),
+            ) => {
+                Ok(MozLength::LengthOrPercentageOrAuto(
+                    this.animate(other, procedure)?,
+                ))
             }
             _ => Err(()),
         }
@@ -1146,15 +1021,18 @@ impl ToAnimatedZero for MozLength {
 }
 
 /// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
-impl Animatable for MaxLength {
+impl Animate for MaxLength {
     #[inline]
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
-        match (*self, *other) {
-            (MaxLength::LengthOrPercentageOrNone(ref this),
-             MaxLength::LengthOrPercentageOrNone(ref other)) => {
-                this.add_weighted(other, self_portion, other_portion)
-                    .map(MaxLength::LengthOrPercentageOrNone)
-            }
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
+        match (self, other) {
+            (
+                &MaxLength::LengthOrPercentageOrNone(ref this),
+                &MaxLength::LengthOrPercentageOrNone(ref other),
+            ) => {
+                Ok(MaxLength::LengthOrPercentageOrNone(
+                    this.animate(other, procedure)?,
+                ))
+            },
             _ => Err(()),
         }
     }
@@ -1166,13 +1044,14 @@ impl ToAnimatedZero for MaxLength {
 }
 
 /// http://dev.w3.org/csswg/css-transitions/#animtype-font-weight
-impl Animatable for FontWeight {
+impl Animate for FontWeight {
     #[inline]
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         let a = self.0 as f64;
         let b = other.0 as f64;
         const NORMAL: f64 = 400.;
-        let weight = (a - NORMAL) * self_portion + (b - NORMAL) * other_portion + NORMAL;
+        let (this_weight, other_weight) = procedure.weights();
+        let weight = (a - NORMAL) * this_weight + (b - NORMAL) * other_weight + NORMAL;
         let weight = (weight.max(100.).min(900.) / 100.).round() * 100.;
         Ok(FontWeight(weight as u16))
     }
@@ -1186,17 +1065,15 @@ impl ToAnimatedZero for FontWeight {
 }
 
 /// https://drafts.csswg.org/css-fonts/#font-stretch-prop
-impl Animatable for FontStretch {
+impl Animate for FontStretch {
     #[inline]
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64)
-        -> Result<Self, ()>
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()>
     {
         let from = f64::from(*self);
         let to = f64::from(*other);
-        // FIXME: When `const fn` is available in release rust, make |normal|, below, const.
         let normal = f64::from(FontStretch::normal);
-        let result = (from - normal) * self_portion + (to - normal) * other_portion + normal;
-
+        let (this_weight, other_weight) = procedure.weights();
+        let result = (from - normal) * this_weight + (to - normal) * other_weight + normal;
         Ok(result.into())
     }
 }
@@ -1243,13 +1120,16 @@ impl Into<FontStretch> for f64 {
     }
 }
 
-/// https://drafts.csswg.org/css-transitions/#animtype-simple-list
-impl<H: Animatable, V: Animatable> Animatable for generic_position::Position<H, V> {
+impl<H, V> Animate for generic_position::Position<H, V>
+where
+    H: Animate,
+    V: Animate,
+{
     #[inline]
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         Ok(generic_position::Position {
-            horizontal: self.horizontal.add_weighted(&other.horizontal, self_portion, other_portion)?,
-            vertical: self.vertical.add_weighted(&other.vertical, self_portion, other_portion)?,
+            horizontal: self.horizontal.animate(&other.horizontal, procedure)?,
+            vertical: self.vertical.animate(&other.vertical, procedure)?,
         })
     }
 }
@@ -1272,15 +1152,14 @@ impl<H, V> RepeatableListAnimatable for generic_position::Position<H, V>
     where H: RepeatableListAnimatable, V: RepeatableListAnimatable {}
 
 /// https://drafts.csswg.org/css-transitions/#animtype-rect
-impl Animatable for ClipRect {
+impl Animate for ClipRect {
     #[inline]
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64)
-        -> Result<Self, ()> {
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         Ok(ClipRect {
-            top: self.top.add_weighted(&other.top, self_portion, other_portion)?,
-            right: self.right.add_weighted(&other.right, self_portion, other_portion)?,
-            bottom: self.bottom.add_weighted(&other.bottom, self_portion, other_portion)?,
-            left: self.left.add_weighted(&other.left, self_portion, other_portion)?,
+            top: self.top.animate(&other.top, procedure)?,
+            right: self.right.animate(&other.right, procedure)?,
+            bottom: self.bottom.animate(&other.bottom, procedure)?,
+            left: self.left.animate(&other.left, procedure)?,
         })
     }
 }
@@ -1334,36 +1213,34 @@ impl ToAnimatedZero for TransformOperation {
                 //
                 // Therefore, we use an identity matrix to represent the identity transform list.
                 // http://dev.w3.org/csswg/css-transforms/#identity-transform-function
+                //
+                // FIXME(nox): This does not actually work, given the impl of
+                // Animate for TransformOperation bails out if the two given
+                // values are dissimilar.
                 Ok(TransformOperation::Matrix(ComputedMatrix::identity()))
             },
         }
     }
 }
 
-fn add_weighted_multiplicative_factor(
+fn animate_multiplicative_factor(
     this: CSSFloat,
     other: CSSFloat,
-    self_portion: f64,
-    other_portion: f64,
+    procedure: Procedure,
 ) -> Result<CSSFloat, ()> {
-    Ok((this - 1.).add_weighted(&(other - 1.), self_portion, other_portion)? + 1.)
+    Ok((this - 1.).animate(&(other - 1.), procedure)? + 1.)
 }
 
 /// http://dev.w3.org/csswg/css-transforms/#interpolation-of-transforms
-impl Animatable for TransformOperation {
-    fn add_weighted(
-        &self,
-        other: &Self,
-        self_portion: f64,
-        other_portion: f64,
-    ) -> Result<Self, ()> {
+impl Animate for TransformOperation {
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         match (self, other) {
             (
                 &TransformOperation::Matrix(ref this),
                 &TransformOperation::Matrix(ref other),
             ) => {
                 Ok(TransformOperation::Matrix(
-                    this.add_weighted(other, self_portion, other_portion)?,
+                    this.animate(other, procedure)?,
                 ))
             },
             (
@@ -1371,8 +1248,8 @@ impl Animatable for TransformOperation {
                 &TransformOperation::Skew(ref tx, ref ty),
             ) => {
                 Ok(TransformOperation::Skew(
-                    fx.add_weighted(tx, self_portion, other_portion)?,
-                    fy.add_weighted(ty, self_portion, other_portion)?,
+                    fx.animate(tx, procedure)?,
+                    fy.animate(ty, procedure)?,
                 ))
             },
             (
@@ -1380,9 +1257,9 @@ impl Animatable for TransformOperation {
                 &TransformOperation::Translate(ref tx, ref ty, ref tz),
             ) => {
                 Ok(TransformOperation::Translate(
-                    fx.add_weighted(tx, self_portion, other_portion)?,
-                    fy.add_weighted(ty, self_portion, other_portion)?,
-                    fz.add_weighted(tz, self_portion, other_portion)?,
+                    fx.animate(tx, procedure)?,
+                    fy.animate(ty, procedure)?,
+                    fz.animate(tz, procedure)?,
                 ))
             },
             (
@@ -1390,9 +1267,9 @@ impl Animatable for TransformOperation {
                 &TransformOperation::Scale(ref tx, ref ty, ref tz),
             ) => {
                 Ok(TransformOperation::Scale(
-                    add_weighted_multiplicative_factor(*fx, *tx, self_portion, other_portion)?,
-                    add_weighted_multiplicative_factor(*fy, *ty, self_portion, other_portion)?,
-                    add_weighted_multiplicative_factor(*fz, *tz, self_portion, other_portion)?,
+                    animate_multiplicative_factor(*fx, *tx, procedure)?,
+                    animate_multiplicative_factor(*fy, *ty, procedure)?,
+                    animate_multiplicative_factor(*fz, *tz, procedure)?,
                 ))
             },
             (
@@ -1402,13 +1279,13 @@ impl Animatable for TransformOperation {
                 let (fx, fy, fz, fa) = get_normalized_vector_and_angle(fx, fy, fz, fa);
                 let (tx, ty, tz, ta) = get_normalized_vector_and_angle(tx, ty, tz, ta);
                 if (fx, fy, fz) == (tx, ty, tz) {
-                    let ia = fa.add_weighted(&ta, self_portion, other_portion)?;
+                    let ia = fa.animate(&ta, procedure)?;
                     Ok(TransformOperation::Rotate(fx, fy, fz, ia))
                 } else {
                     let matrix_f = rotate_to_matrix(fx, fy, fz, fa);
                     let matrix_t = rotate_to_matrix(tx, ty, tz, ta);
                     Ok(TransformOperation::Matrix(
-                        matrix_f.add_weighted(&matrix_t, self_portion, other_portion)?
+                        matrix_f.animate(&matrix_t, procedure)?,
                     ))
                 }
             },
@@ -1425,7 +1302,7 @@ impl Animatable for TransformOperation {
                     td_matrix.m34 = -1. / td.to_f32_px();
                 }
                 Ok(TransformOperation::Matrix(
-                    fd_matrix.add_weighted(&td_matrix, self_portion, other_portion)?,
+                    fd_matrix.animate(&td_matrix, procedure)?,
                 ))
             },
             _ => Err(()),
@@ -1499,38 +1376,38 @@ pub struct MatrixDecomposed2D {
     pub matrix: InnerMatrix2D,
 }
 
-impl Animatable for InnerMatrix2D {
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
+impl Animate for InnerMatrix2D {
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         Ok(InnerMatrix2D {
-            m11: add_weighted_multiplicative_factor(self.m11, other.m11, self_portion, other_portion)?,
-            m12: self.m12.add_weighted(&other.m12, self_portion, other_portion)?,
-            m21: self.m21.add_weighted(&other.m21, self_portion, other_portion)?,
-            m22: add_weighted_multiplicative_factor(self.m22, other.m22, self_portion, other_portion)?,
+            m11: animate_multiplicative_factor(self.m11, other.m11, procedure)?,
+            m12: self.m12.animate(&other.m12, procedure)?,
+            m21: self.m21.animate(&other.m21, procedure)?,
+            m22: animate_multiplicative_factor(self.m22, other.m22, procedure)?,
         })
     }
 }
 
-impl Animatable for Translate2D {
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
+impl Animate for Translate2D {
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         Ok(Translate2D(
-            self.0.add_weighted(&other.0, self_portion, other_portion)?,
-            self.1.add_weighted(&other.1, self_portion, other_portion)?,
+            self.0.animate(&other.0, procedure)?,
+            self.1.animate(&other.1, procedure)?,
         ))
     }
 }
 
-impl Animatable for Scale2D {
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
+impl Animate for Scale2D {
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         Ok(Scale2D(
-            add_weighted_multiplicative_factor(self.0, other.0, self_portion, other_portion)?,
-            add_weighted_multiplicative_factor(self.1, other.1, self_portion, other_portion)?,
+            animate_multiplicative_factor(self.0, other.0, procedure)?,
+            animate_multiplicative_factor(self.1, other.1, procedure)?,
         ))
     }
 }
 
-impl Animatable for MatrixDecomposed2D {
+impl Animate for MatrixDecomposed2D {
     /// https://drafts.csswg.org/css-transforms/#interpolation-of-decomposed-2d-matrix-values
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         // If x-axis of one is flipped, and y-axis of the other,
         // convert to an unflipped rotation.
         let mut scale = self.scale;
@@ -1560,10 +1437,10 @@ impl Animatable for MatrixDecomposed2D {
         }
 
         // Interpolate all values.
-        let translate = self.translate.add_weighted(&other.translate, self_portion, other_portion)?;
-        let scale = scale.add_weighted(&other.scale, self_portion, other_portion)?;
-        let angle = angle.add_weighted(&other_angle, self_portion, other_portion)?;
-        let matrix = self.matrix.add_weighted(&other.matrix, self_portion, other_portion)?;
+        let translate = self.translate.animate(&other.translate, procedure)?;
+        let scale = scale.animate(&other.scale, procedure)?;
+        let angle = angle.animate(&other_angle, procedure)?;
+        let matrix = self.matrix.animate(&other.matrix, procedure)?;
 
         Ok(MatrixDecomposed2D {
             translate: translate,
@@ -1588,26 +1465,25 @@ impl ComputeSquaredDistance for MatrixDecomposed2D {
     }
 }
 
-impl Animatable for ComputedMatrix {
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
+impl Animate for ComputedMatrix {
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         if self.is_3d() || other.is_3d() {
             let decomposed_from = decompose_3d_matrix(*self);
             let decomposed_to = decompose_3d_matrix(*other);
             match (decomposed_from, decomposed_to) {
-                (Ok(from), Ok(to)) => {
-                    let sum = from.add_weighted(&to, self_portion, other_portion)?;
-                    Ok(ComputedMatrix::from(sum))
+                (Ok(this), Ok(other)) => {
+                    Ok(ComputedMatrix::from(this.animate(&other, procedure)?))
                 },
                 _ => {
-                    let result = if self_portion > other_portion {*self} else {*other};
+                    let (this_weight, other_weight) = procedure.weights();
+                    let result = if this_weight > other_weight { *self } else { *other };
                     Ok(result)
-                }
+                },
             }
         } else {
-            let decomposed_from = MatrixDecomposed2D::from(*self);
-            let decomposed_to = MatrixDecomposed2D::from(*other);
-            let sum = decomposed_from.add_weighted(&decomposed_to, self_portion, other_portion)?;
-            Ok(ComputedMatrix::from(sum))
+            let this = MatrixDecomposed2D::from(*self);
+            let other = MatrixDecomposed2D::from(*other);
+            Ok(ComputedMatrix::from(this.animate(&other, procedure)?))
         }
     }
 }
@@ -2044,32 +1920,32 @@ fn cross(row1: [f32; 3], row2: [f32; 3]) -> [f32; 3] {
     ]
 }
 
-impl Animatable for Translate3D {
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
+impl Animate for Translate3D {
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         Ok(Translate3D(
-            self.0.add_weighted(&other.0, self_portion, other_portion)?,
-            self.1.add_weighted(&other.1, self_portion, other_portion)?,
-            self.2.add_weighted(&other.2, self_portion, other_portion)?,
+            self.0.animate(&other.0, procedure)?,
+            self.1.animate(&other.1, procedure)?,
+            self.2.animate(&other.2, procedure)?,
         ))
     }
 }
 
-impl Animatable for Scale3D {
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
+impl Animate for Scale3D {
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         Ok(Scale3D(
-            add_weighted_multiplicative_factor(self.0, other.0, self_portion, other_portion)?,
-            add_weighted_multiplicative_factor(self.1, other.1, self_portion, other_portion)?,
-            add_weighted_multiplicative_factor(self.2, other.2, self_portion, other_portion)?,
+            animate_multiplicative_factor(self.0, other.0, procedure)?,
+            animate_multiplicative_factor(self.1, other.1, procedure)?,
+            animate_multiplicative_factor(self.2, other.2, procedure)?,
         ))
     }
 }
 
-impl Animatable for Skew {
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
+impl Animate for Skew {
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         Ok(Skew(
-            self.0.add_weighted(&other.0, self_portion, other_portion)?,
-            self.1.add_weighted(&other.1, self_portion, other_portion)?,
-            self.2.add_weighted(&other.2, self_portion, other_portion)?,
+            self.0.animate(&other.0, procedure)?,
+            self.1.animate(&other.1, procedure)?,
+            self.2.animate(&other.2, procedure)?,
         ))
     }
 }
@@ -2085,40 +1961,41 @@ impl ComputeSquaredDistance for Skew {
     }
 }
 
-impl Animatable for Perspective {
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
+impl Animate for Perspective {
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         Ok(Perspective(
-            self.0.add_weighted(&other.0, self_portion, other_portion)?,
-            self.1.add_weighted(&other.1, self_portion, other_portion)?,
-            self.2.add_weighted(&other.2, self_portion, other_portion)?,
-            add_weighted_multiplicative_factor(self.3, other.3, self_portion, other_portion)?,
+            self.0.animate(&other.0, procedure)?,
+            self.1.animate(&other.1, procedure)?,
+            self.2.animate(&other.2, procedure)?,
+            animate_multiplicative_factor(self.3, other.3, procedure)?,
         ))
     }
 }
 
-impl Animatable for MatrixDecomposed3D {
+impl Animate for MatrixDecomposed3D {
     /// https://drafts.csswg.org/css-transforms/#interpolation-of-decomposed-3d-matrix-values
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64)
-        -> Result<Self, ()> {
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         use std::f64;
 
-        debug_assert!((self_portion + other_portion - 1.0f64).abs() <= f64::EPSILON ||
-                      other_portion == 1.0f64 || other_portion == 0.0f64,
-                      "add_weighted should only be used for interpolating or accumulating transforms");
+        let (this_weight, other_weight) = procedure.weights();
+
+        debug_assert!((this_weight + other_weight - 1.0f64).abs() <= f64::EPSILON ||
+                      other_weight == 1.0f64 || other_weight == 0.0f64,
+                      "animate should only be used for interpolating or accumulating transforms");
 
         let mut sum = *self;
 
         // Add translate, scale, skew and perspective components.
-        sum.translate = self.translate.add_weighted(&other.translate, self_portion, other_portion)?;
-        sum.scale = self.scale.add_weighted(&other.scale, self_portion, other_portion)?;
-        sum.skew = self.skew.add_weighted(&other.skew, self_portion, other_portion)?;
-        sum.perspective = self.perspective.add_weighted(&other.perspective, self_portion, other_portion)?;
+        sum.translate = self.translate.animate(&other.translate, procedure)?;
+        sum.scale = self.scale.animate(&other.scale, procedure)?;
+        sum.skew = self.skew.animate(&other.skew, procedure)?;
+        sum.perspective = self.perspective.animate(&other.perspective, procedure)?;
 
         // Add quaternions using spherical linear interpolation (Slerp).
         //
-        // We take a specialized code path for accumulation (where other_portion is 1)
-        if other_portion == 1.0 {
-            if self_portion == 0.0 {
+        // We take a specialized code path for accumulation (where other_weight is 1)
+        if other_weight == 1.0 {
+            if this_weight == 0.0 {
                 return Ok(*other)
             }
 
@@ -2127,10 +2004,10 @@ impl Animatable for MatrixDecomposed3D {
             // Determine the scale factor.
             let mut theta = clamped_w.acos();
             let mut scale = if theta == 0.0 { 0.0 } else { 1.0 / theta.sin() };
-            theta *= self_portion;
+            theta *= this_weight;
             scale *= theta.sin();
 
-            // Scale the self matrix by self_portion.
+            // Scale the self matrix by this_weight.
             let mut scaled_self = *self;
             % for i in range(3):
                 scaled_self.quaternion.${i} *= scale;
@@ -2161,12 +2038,12 @@ impl Animatable for MatrixDecomposed3D {
             }
 
             let theta = product.acos();
-            let w = (other_portion * theta).sin() * 1.0 / (1.0 - product * product).sqrt();
+            let w = (other_weight * theta).sin() * 1.0 / (1.0 - product * product).sqrt();
 
             let mut a = *self;
             let mut b = *other;
             % for i in range(4):
-                a.quaternion.${i} *= (other_portion * theta).cos() - product * w;
+                a.quaternion.${i} *= (other_weight * theta).cos() - product * w;
                 b.quaternion.${i} *= w;
                 sum.quaternion.${i} = a.quaternion.${i} + b.quaternion.${i};
             % endfor
@@ -2374,77 +2251,37 @@ impl ComputedMatrix {
 }
 
 /// https://drafts.csswg.org/css-transforms/#interpolation-of-transforms
-impl Animatable for TransformList {
+impl Animate for TransformList {
     #[inline]
-    fn add_weighted(&self, other: &TransformList, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
-        let result = self.animate_with_similar_list(
-            other,
-            |this, other| this.add_weighted(other, self_portion, other_portion),
-        );
-        let (this, other) = match result {
-            Ok(list) => return Ok(list),
-            Err(None) => return Err(()),
-            Err(Some(pair)) => pair,
-        };
-        Ok(TransformList(Some(vec![TransformOperation::InterpolateMatrix {
-            from_list: this,
-            to_list: other,
-            progress: Percentage(other_portion as f32),
-        }])))
-    }
-
-    fn add(&self, other: &Self) -> Result<Self, ()> {
-        let this = self.0.as_ref().map_or(&[][..], |l| l);
-        let other = other.0.as_ref().map_or(&[][..], |l| l);
-        let result = this.iter().chain(other).cloned().collect::<Vec<_>>();
-        Ok(TransformList(if result.is_empty() {
-            None
-        } else {
-            Some(result)
-        }))
-    }
-
-    #[inline]
-    fn accumulate(&self, other: &Self, count: u64) -> Result<Self, ()> {
-        let result = self.animate_with_similar_list(
-            other,
-            |this, other| this.accumulate(other, count),
-        );
-        let (this, other) = match result {
-            Ok(list) => return Ok(list),
-            Err(None) => return Err(()),
-            Err(Some(pair)) => pair,
-        };
-
-        Ok(TransformList(Some(vec![TransformOperation::AccumulateMatrix {
-            from_list: this,
-            to_list: other,
-            count: cmp::min(count, i32::max_value() as u64) as i32,
-        }])))
-    }
-}
-
-impl TransformList {
-    fn animate_with_similar_list<F>(
+    fn animate(
         &self,
         other: &Self,
-        animate: F,
-    ) -> Result<Self, Option<(TransformList, TransformList)>>
-    where
-        F: Fn(&TransformOperation, &TransformOperation) -> Result<TransformOperation, ()>,
-    {
+        procedure: Procedure,
+    ) -> Result<Self, ()> {
         if self.0.is_none() && other.0.is_none() {
             return Ok(TransformList(None));
         }
+
+        if procedure == Procedure::Add {
+            let this = self.0.as_ref().map_or(&[][..], |l| l);
+            let other = other.0.as_ref().map_or(&[][..], |l| l);
+            let result = this.iter().chain(other).cloned().collect::<Vec<_>>();
+            return Ok(TransformList(if result.is_empty() {
+                None
+            } else {
+                Some(result)
+            }));
+        }
+
         let this = if self.0.is_some() {
             Cow::Borrowed(self)
         } else {
-            Cow::Owned(other.to_animated_zero().map_err(|_| None)?)
+            Cow::Owned(other.to_animated_zero()?)
         };
         let other = if other.0.is_some() {
             Cow::Borrowed(other)
         } else {
-            Cow::Owned(self.to_animated_zero().map_err(|_| None)?)
+            Cow::Owned(self.to_animated_zero()?)
         };
 
         {
@@ -2452,7 +2289,7 @@ impl TransformList {
             let other = (*other).0.as_ref().map_or(&[][..], |l| l);
             if this.len() == other.len() {
                 let result = this.iter().zip(other).map(|(this, other)| {
-                    animate(this, other)
+                    this.animate(other, procedure)
                 }).collect::<Result<Vec<_>, _>>();
                 if let Ok(list) = result {
                     return Ok(TransformList(if list.is_empty() {
@@ -2464,7 +2301,23 @@ impl TransformList {
             }
         }
 
-        Err(Some((this.into_owned(), other.into_owned())))
+        match procedure {
+            Procedure::Add => Err(()),
+            Procedure::Interpolate { progress } => {
+                Ok(TransformList(Some(vec![TransformOperation::InterpolateMatrix {
+                    from_list: this.into_owned(),
+                    to_list: other.into_owned(),
+                    progress: Percentage(progress as f32),
+                }])))
+            },
+            Procedure::Accumulate { count } => {
+                Ok(TransformList(Some(vec![TransformOperation::AccumulateMatrix {
+                    from_list: this.into_owned(),
+                    to_list: other.into_owned(),
+                    count: cmp::min(count, i32::max_value() as u64) as i32,
+                }])))
+            },
+        }
     }
 }
 
@@ -2611,17 +2464,19 @@ impl ToAnimatedZero for TransformList {
     }
 }
 
-impl<T, U> Animatable for Either<T, U>
-        where T: Animatable + Copy, U: Animatable + Copy,
+impl<T, U> Animate for Either<T, U>
+where
+    T: Animate,
+    U: Animate,
 {
     #[inline]
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
-        match (*self, *other) {
-            (Either::First(ref this), Either::First(ref other)) => {
-                this.add_weighted(&other, self_portion, other_portion).map(Either::First)
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
+        match (self, other) {
+            (&Either::First(ref this), &Either::First(ref other)) => {
+                Ok(Either::First(this.animate(other, procedure)?))
             },
-            (Either::Second(ref this), Either::Second(ref other)) => {
-                this.add_weighted(&other, self_portion, other_portion).map(Either::Second)
+            (&Either::Second(ref this), &Either::Second(ref other)) => {
+                Ok(Either::Second(this.animate(other, procedure)?))
             },
             _ => Err(()),
         }
@@ -2646,18 +2501,18 @@ where
     }
 }
 
-/// Animatable SVGPaint
+/// Animated SVGPaint
 pub type IntermediateSVGPaint = SVGPaint<AnimatedRGBA, ComputedUrl>;
 
-/// Animatable SVGPaintKind
+/// Animated SVGPaintKind
 pub type IntermediateSVGPaintKind = SVGPaintKind<AnimatedRGBA, ComputedUrl>;
 
-impl Animatable for IntermediateSVGPaint {
+impl Animate for IntermediateSVGPaint {
     #[inline]
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         Ok(IntermediateSVGPaint {
-            kind: self.kind.add_weighted(&other.kind, self_portion, other_portion)?,
-            fallback: self.fallback.add_weighted(&other.fallback, self_portion, other_portion)?,
+            kind: self.kind.animate(&other.kind, procedure)?,
+            fallback: self.fallback.animate(&other.fallback, procedure)?,
         })
     }
 }
@@ -2665,6 +2520,7 @@ impl Animatable for IntermediateSVGPaint {
 impl ComputeSquaredDistance for IntermediateSVGPaint {
     #[inline]
     fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
+        // FIXME(nox): This should be derived.
         Ok(
             self.kind.compute_squared_distance(&other.kind)? +
             self.fallback.compute_squared_distance(&other.fallback)?,
@@ -2682,18 +2538,20 @@ impl ToAnimatedZero for IntermediateSVGPaint {
     }
 }
 
-impl Animatable for IntermediateSVGPaintKind {
+impl Animate for IntermediateSVGPaintKind {
     #[inline]
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         match (self, other) {
-            (&SVGPaintKind::Color(ref self_color), &SVGPaintKind::Color(ref other_color)) => {
-                Ok(SVGPaintKind::Color(self_color.add_weighted(other_color, self_portion, other_portion)?))
-            }
-            // FIXME context values should be interpolable with colors
-            // Gecko doesn't implement this behavior either.
+            (&SVGPaintKind::Color(ref this), &SVGPaintKind::Color(ref other)) => {
+                Ok(SVGPaintKind::Color(this.animate(other, procedure)?))
+            },
             (&SVGPaintKind::ContextFill, &SVGPaintKind::ContextFill) => Ok(SVGPaintKind::ContextFill),
             (&SVGPaintKind::ContextStroke, &SVGPaintKind::ContextStroke) => Ok(SVGPaintKind::ContextStroke),
-            _ => Err(())
+            _ => {
+                // FIXME: Context values should be interpolable with colors,
+                // Gecko doesn't implement this behavior either.
+                Err(())
+            }
         }
     }
 }
@@ -2791,142 +2649,161 @@ fn convert_from_number_or_percentage<LengthOrPercentageType, NumberType>(
     }
 }
 
-impl <LengthOrPercentageType, NumberType> Animatable for
-    SvgLengthOrPercentageOrNumber<LengthOrPercentageType, NumberType>
-    where LengthOrPercentageType: Animatable + Into<NumberOrPercentage> + From<LengthOrPercentage> + Copy,
-          NumberType: Animatable + Into<NumberOrPercentage> + From<Number>,
-          SvgLengthOrPercentageOrNumber<LengthOrPercentageType, NumberType>: Copy,
-          LengthOrPercentage: From<LengthOrPercentageType>
+impl <L, N> Animate for SvgLengthOrPercentageOrNumber<L, N>
+where
+    L: Animate + From<LengthOrPercentage> + Into<NumberOrPercentage> + Copy,
+    N: Animate + From<Number> + Into<NumberOrPercentage>,
+    LengthOrPercentage: From<L>,
+    Self: Copy,
 {
     #[inline]
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         if self.has_calc() || other.has_calc() {
             // TODO: We need to treat calc value.
             // https://bugzilla.mozilla.org/show_bug.cgi?id=1386967
             return Err(());
         }
 
-        let from_value = convert_to_number_or_percentage(*self);
-        let to_value = convert_to_number_or_percentage(*other);
+        let this = convert_to_number_or_percentage(*self);
+        let other = convert_to_number_or_percentage(*other);
 
-        match (from_value, to_value) {
-            (NumberOrPercentage::Number(from),
-             NumberOrPercentage::Number(to)) => {
-                from.add_weighted(&to, self_portion, other_portion)
-                    .map(|num| NumberOrPercentage::Number(num))
-                    .map(|nop| convert_from_number_or_percentage(nop))
+        match (this, other) {
+            (
+                NumberOrPercentage::Number(ref this),
+                NumberOrPercentage::Number(ref other),
+            ) => {
+                Ok(convert_from_number_or_percentage(
+                    NumberOrPercentage::Number(this.animate(other, procedure)?)
+                ))
             },
-            (NumberOrPercentage::Percentage(from),
-             NumberOrPercentage::Percentage(to)) => {
-                from.add_weighted(&to, self_portion, other_portion)
-                    .map(|p| NumberOrPercentage::Percentage(p))
-                    .map(|nop| convert_from_number_or_percentage(nop))
+            (
+                NumberOrPercentage::Percentage(ref this),
+                NumberOrPercentage::Percentage(ref other),
+            ) => {
+                Ok(convert_from_number_or_percentage(
+                    NumberOrPercentage::Percentage(this.animate(other, procedure)?)
+                ))
             },
             _ => Err(()),
         }
     }
 }
 
-impl <LengthOrPercentageType, NumberType> ToAnimatedZero for
-    SvgLengthOrPercentageOrNumber<LengthOrPercentageType, NumberType>
-    where LengthOrPercentageType: ToAnimatedZero, NumberType: ToAnimatedZero
+impl<L, N> ToAnimatedZero for SvgLengthOrPercentageOrNumber<L, N>
+where
+    L: ToAnimatedZero,
+    N: ToAnimatedZero,
 {
     #[inline]
     fn to_animated_zero(&self) -> Result<Self, ()> {
-        match self {
-            &SvgLengthOrPercentageOrNumber::LengthOrPercentage(ref lop) =>
-                lop.to_animated_zero()
-                    .map(SvgLengthOrPercentageOrNumber::LengthOrPercentage),
-            &SvgLengthOrPercentageOrNumber::Number(ref num) =>
-                num.to_animated_zero()
-                    .map(SvgLengthOrPercentageOrNumber::Number),
+        match *self {
+            SvgLengthOrPercentageOrNumber::LengthOrPercentage(ref lop) => {
+                Ok(SvgLengthOrPercentageOrNumber::LengthOrPercentage(
+                    lop.to_animated_zero()?,
+                ))
+            },
+            SvgLengthOrPercentageOrNumber::Number(ref num) => {
+                Ok(SvgLengthOrPercentageOrNumber::Number(
+                    num.to_animated_zero()?,
+                ))
+            },
         }
     }
 }
 
-impl<LengthType> Animatable for SVGLength<LengthType>
-        where LengthType: Animatable + Clone
+impl<L> Animate for SVGLength<L>
+where
+    L: Animate + Clone,
 {
     #[inline]
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         match (self, other) {
             (&SVGLength::Length(ref this), &SVGLength::Length(ref other)) => {
-                this.add_weighted(&other, self_portion, other_portion).map(SVGLength::Length)
-            }
+                Ok(SVGLength::Length(this.animate(other, procedure)?))
+            },
             _ => {
-                Ok(if self_portion > other_portion { self.clone() } else { other.clone() })
-            }
+                // FIXME(nox): Is this correct for addition and accumulation?
+                // I think an error should be returned if it's not
+                // an interpolation.
+                let (this_weight, other_weight) = procedure.weights();
+                Ok(if this_weight > other_weight { self.clone() } else { other.clone() })
+            },
         }
     }
 }
 
-impl<LengthType> ToAnimatedZero for SVGLength<LengthType> where LengthType : ToAnimatedZero {
+impl<L> ToAnimatedZero for SVGLength<L>
+where
+    L: ToAnimatedZero,
+{
     #[inline]
     fn to_animated_zero(&self) -> Result<Self, ()> {
-        match self {
-            &SVGLength::Length(ref length) => length.to_animated_zero().map(SVGLength::Length),
-            &SVGLength::ContextValue => Ok(SVGLength::ContextValue),
+        match *self {
+            SVGLength::Length(ref length) => {
+                Ok(SVGLength::Length(length.to_animated_zero()?))
+            },
+            SVGLength::ContextValue => Ok(SVGLength::ContextValue),
         }
     }
 }
 
 /// https://www.w3.org/TR/SVG11/painting.html#StrokeDasharrayProperty
-impl<LengthType> Animatable for SVGStrokeDashArray<LengthType>
-    where LengthType : RepeatableListAnimatable + Clone
+impl<L> Animate for SVGStrokeDashArray<L>
+where
+    L: Clone + RepeatableListAnimatable,
 {
     #[inline]
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
-        match (self, other) {
-            (&SVGStrokeDashArray::Values(ref this), &SVGStrokeDashArray::Values(ref other))=> {
-                this.add_weighted(other, self_portion, other_portion)
-                    .map(SVGStrokeDashArray::Values)
-            }
-            _ => {
-                Ok(if self_portion > other_portion { self.clone() } else { other.clone() })
-            }
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
+        if matches!(procedure, Procedure::Add | Procedure::Accumulate { .. }) {
+            // Non-additive.
+            return Err(());
         }
-    }
-
-    /// stroke-dasharray is non-additive
-    #[inline]
-    fn add(&self, _other: &Self) -> Result<Self, ()> {
-        Err(())
-    }
-
-    /// stroke-dasharray is non-additive
-    #[inline]
-    fn accumulate(&self, _other: &Self, _count: u64) -> Result<Self, ()> {
-        Err(())
+        match (self, other) {
+            (&SVGStrokeDashArray::Values(ref this), &SVGStrokeDashArray::Values(ref other)) => {
+                Ok(SVGStrokeDashArray::Values(this.animate(other, procedure)?))
+            },
+            _ => {
+                let (this_weight, other_weight) = procedure.weights();
+                Ok(if this_weight > other_weight { self.clone() } else { other.clone() })
+            },
+        }
     }
 }
 
-impl<LengthType> ToAnimatedZero for SVGStrokeDashArray<LengthType>
-    where LengthType : ToAnimatedZero + Clone
+impl<L> ToAnimatedZero for SVGStrokeDashArray<L>
+where
+    L: Clone + ToAnimatedZero
 {
     #[inline]
     fn to_animated_zero(&self) -> Result<Self, ()> {
-        match self {
-            &SVGStrokeDashArray::Values(ref values) => {
-                values.iter().map(ToAnimatedZero::to_animated_zero)
-                      .collect::<Result<Vec<_>, ()>>().map(SVGStrokeDashArray::Values)
+        match *self {
+            SVGStrokeDashArray::Values(ref values) => {
+                Ok(SVGStrokeDashArray::Values(
+                    values.iter().map(ToAnimatedZero::to_animated_zero).collect::<Result<Vec<_>, _>>()?,
+                ))
             }
-            &SVGStrokeDashArray::ContextValue => Ok(SVGStrokeDashArray::ContextValue),
+            SVGStrokeDashArray::ContextValue => Ok(SVGStrokeDashArray::ContextValue),
         }
     }
 }
 
-impl<OpacityType> Animatable for SVGOpacity<OpacityType>
-    where OpacityType: Animatable + Clone
+impl<O> Animate for SVGOpacity<O>
+where
+    O: Animate + Clone,
 {
     #[inline]
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         match (self, other) {
             (&SVGOpacity::Opacity(ref this), &SVGOpacity::Opacity(ref other)) => {
-                this.add_weighted(other, self_portion, other_portion).map(SVGOpacity::Opacity)
-            }
+                Ok(SVGOpacity::Opacity(this.animate(other, procedure)?))
+            },
             _ => {
-                Ok(if self_portion > other_portion { self.clone() } else { other.clone() })
-            }
+                // FIXME(nox): Is this correct for addition and accumulation?
+                // I think an error should be returned if it's not
+                // an interpolation.
+                let (this_weight, other_weight) = procedure.weights();
+                Ok(if this_weight > other_weight { self.clone() } else { other.clone() })
+            },
         }
     }
 }
@@ -2951,40 +2828,30 @@ impl<OpacityType> ToAnimatedZero for SVGOpacity<OpacityType>
 %>
 
 /// https://drafts.fxtf.org/filters/#animation-of-filters
-impl Animatable for AnimatedFilter {
-    fn add_weighted(
+impl Animate for AnimatedFilter {
+    fn animate(
         &self,
         other: &Self,
-        self_portion: f64,
-        other_portion: f64,
+        procedure: Procedure,
     ) -> Result<Self, ()> {
         match (self, other) {
             % for func in ['Blur', 'Grayscale', 'HueRotate', 'Invert', 'Sepia']:
             (&Filter::${func}(ref this), &Filter::${func}(ref other)) => {
-                Ok(Filter::${func}(this.add_weighted(
-                    other,
-                    self_portion,
-                    other_portion,
-                )?))
+                Ok(Filter::${func}(this.animate(other, procedure)?))
             },
             % endfor
             % for func in ['Brightness', 'Contrast', 'Opacity', 'Saturate']:
             (&Filter::${func}(ref this), &Filter::${func}(ref other)) => {
-                Ok(Filter::${func}(NonNegative(add_weighted_multiplicative_factor(
+                Ok(Filter::${func}(NonNegative(animate_multiplicative_factor(
                     this.0,
                     other.0,
-                    self_portion,
-                    other_portion,
+                    procedure,
                 )?)))
             },
             % endfor
             % if product == "gecko":
             (&Filter::DropShadow(ref this), &Filter::DropShadow(ref other)) => {
-                Ok(Filter::DropShadow(this.add_weighted(
-                    other,
-                    self_portion,
-                    other_portion,
-                )?))
+                Ok(Filter::DropShadow(this.animate(other, procedure)?))
             },
             % endif
             _ => Err(()),
@@ -2992,7 +2859,7 @@ impl Animatable for AnimatedFilter {
     }
 }
 
-
+/// http://dev.w3.org/csswg/css-transforms/#none-transform-animation
 impl ToAnimatedZero for AnimatedFilter {
     fn to_animated_zero(&self) -> Result<Self, ()> {
         match *self {
@@ -3030,31 +2897,31 @@ impl ComputeSquaredDistance for AnimatedFilter {
     }
 }
 
-impl Animatable for AnimatedFilterList {
+impl Animate for AnimatedFilterList {
     #[inline]
-    fn add_weighted(
+    fn animate(
         &self,
         other: &Self,
-        self_portion: f64,
-        other_portion: f64,
+        procedure: Procedure,
     ) -> Result<Self, ()> {
+        if procedure == Procedure::Add {
+            return Ok(AnimatedFilterList(
+                self.0.iter().chain(other.0.iter()).cloned().collect(),
+            ));
+        }
         Ok(AnimatedFilterList(self.0.iter().zip_longest(other.0.iter()).map(|it| {
             match it {
                 EitherOrBoth::Both(this, other) => {
-                    this.add_weighted(other, self_portion, other_portion)
+                    this.animate(other, procedure)
                 },
                 EitherOrBoth::Left(this) => {
-                    this.add_weighted(&this.to_animated_zero()?, self_portion, other_portion)
+                    this.animate(&this.to_animated_zero()?, procedure)
                 },
                 EitherOrBoth::Right(other) => {
-                    other.to_animated_zero()?.add_weighted(other, self_portion, other_portion)
+                    other.to_animated_zero()?.animate(other, procedure)
                 },
             }
         }).collect::<Result<Vec<_>, _>>()?))
-    }
-
-    fn add(&self, other: &Self) -> Result<Self, ()> {
-        Ok(AnimatedFilterList(self.0.iter().chain(other.0.iter()).cloned().collect()))
     }
 }
 
@@ -3127,12 +2994,13 @@ sorted_shorthands = [(p, position) for position, p in enumerate(sorted_shorthand
     }
 }
 
-impl<T> Animatable for NonNegative<T>
-    where T: Animatable + Clone
+impl<T> Animate for NonNegative<T>
+where
+    T: Animate,
 {
     #[inline]
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
-        self.0.add_weighted(&other.0, self_portion, other_portion).map(NonNegative::<T>)
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
+        Ok(NonNegative(self.0.animate(&other.0, procedure)?))
     }
 }
 
@@ -3145,12 +3013,13 @@ impl<T> ToAnimatedZero for NonNegative<T>
     }
 }
 
-impl<T> Animatable for GreaterThanOrEqualToOne<T>
-    where T: Animatable + Clone
+impl<T> Animate for GreaterThanOrEqualToOne<T>
+where
+    T: Animate,
 {
     #[inline]
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
-        self.0.add_weighted(&other.0, self_portion, other_portion).map(GreaterThanOrEqualToOne::<T>)
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
+        Ok(GreaterThanOrEqualToOne(self.0.animate(&other.0, procedure)?))
     }
 }
 

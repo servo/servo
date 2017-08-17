@@ -87,10 +87,13 @@ macro_rules! define_keyword_type {
         #[derive(Clone, ComputeSquaredDistance, Copy, PartialEq, ToCss)]
         pub struct $name;
 
-        impl $crate::properties::animated_properties::Animatable for $name {
+        impl $crate::values::animated::Animate for $name {
             #[inline]
-            fn add_weighted(&self, _other: &Self, _self_progress: f64, _other_progress: f64)
-                -> Result<Self, ()> {
+            fn animate(
+                &self,
+                _other: &Self,
+                _procedure: $crate::values::animated::Procedure,
+            ) -> Result<Self, ()> {
                 Ok($name)
             }
         }

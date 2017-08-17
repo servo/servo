@@ -26,8 +26,7 @@ ${helpers.single_keyword("caption-side", "top bottom",
     use values::specified::length::NonNegativeLength;
 
     pub mod computed_value {
-        use properties::animated_properties::Animatable;
-        use values::animated::{ToAnimatedValue, ToAnimatedZero};
+        use values::animated::{Animate, Procedure, ToAnimatedValue, ToAnimatedZero};
         use values::computed::NonNegativeAu;
 
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -38,15 +37,12 @@ ${helpers.single_keyword("caption-side", "top bottom",
         }
 
         /// https://drafts.csswg.org/css-transitions/#animtype-simple-list
-        impl Animatable for T {
+        impl Animate for T {
             #[inline]
-            fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64)
-                -> Result<Self, ()> {
+            fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
                 Ok(T {
-                    horizontal: self.horizontal.add_weighted(&other.horizontal,
-                                                             self_portion, other_portion)?,
-                    vertical: self.vertical.add_weighted(&other.vertical,
-                                                         self_portion, other_portion)?,
+                    horizontal: self.horizontal.animate(&other.horizontal, procedure)?,
+                    vertical: self.vertical.animate(&other.vertical, procedure)?,
                 })
             }
         }

@@ -4,9 +4,8 @@
 
 //! Computed types for text properties.
 
-use properties::animated_properties::Animatable;
 use values::{CSSInteger, CSSFloat};
-use values::animated::ToAnimatedZero;
+use values::animated::{Animate, Procedure, ToAnimatedZero};
 use values::computed::{NonNegativeAu, NonNegativeNumber};
 use values::computed::length::{Length, LengthOrPercentage};
 use values::generics::text::InitialLetter as GenericInitialLetter;
@@ -25,21 +24,21 @@ pub type WordSpacing = Spacing<LengthOrPercentage>;
 /// A computed value for the `line-height` property.
 pub type LineHeight = GenericLineHeight<NonNegativeNumber, NonNegativeAu>;
 
-impl Animatable for LineHeight {
+impl Animate for LineHeight {
     #[inline]
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
-        match (*self, *other) {
-            (GenericLineHeight::Length(ref this), GenericLineHeight::Length(ref other)) => {
-                this.add_weighted(other, self_portion, other_portion).map(GenericLineHeight::Length)
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
+        match (self, other) {
+            (&GenericLineHeight::Length(ref this), &GenericLineHeight::Length(ref other)) => {
+                Ok(GenericLineHeight::Length(this.animate(other, procedure)?))
             },
-            (GenericLineHeight::Number(ref this), GenericLineHeight::Number(ref other)) => {
-                this.add_weighted(other, self_portion, other_portion).map(GenericLineHeight::Number)
+            (&GenericLineHeight::Number(ref this), &GenericLineHeight::Number(ref other)) => {
+                Ok(GenericLineHeight::Number(this.animate(other, procedure)?))
             },
-            (GenericLineHeight::Normal, GenericLineHeight::Normal) => {
+            (&GenericLineHeight::Normal, &GenericLineHeight::Normal) => {
                 Ok(GenericLineHeight::Normal)
             },
             #[cfg(feature = "gecko")]
-            (GenericLineHeight::MozBlockHeight, GenericLineHeight::MozBlockHeight) => {
+            (&GenericLineHeight::MozBlockHeight, &GenericLineHeight::MozBlockHeight) => {
                 Ok(GenericLineHeight::MozBlockHeight)
             },
             _ => Err(()),
