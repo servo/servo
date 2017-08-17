@@ -2365,54 +2365,54 @@ impl NodeMethods for Node {
     fn CompareDocumentPosition(&self, other: &Node) -> u16 {
         if self == other {
             // step 2.
-            0
-        } else {
-            let mut lastself = Root::from_ref(self);
-            let mut lastother = Root::from_ref(other);
-            for ancestor in self.ancestors() {
-                if &*ancestor == other {
-                    // step 4.
-                    return NodeConstants::DOCUMENT_POSITION_CONTAINS +
-                           NodeConstants::DOCUMENT_POSITION_PRECEDING;
-                }
-                lastself = ancestor;
-            }
-            for ancestor in other.ancestors() {
-                if &*ancestor == self {
-                    // step 5.
-                    return NodeConstants::DOCUMENT_POSITION_CONTAINED_BY +
-                           NodeConstants::DOCUMENT_POSITION_FOLLOWING;
-                }
-                lastother = ancestor;
-            }
-
-            if lastself != lastother {
-                let abstract_uint: uintptr_t = as_uintptr(&self);
-                let other_uint: uintptr_t = as_uintptr(&*other);
-
-                let random = if abstract_uint < other_uint {
-                    NodeConstants::DOCUMENT_POSITION_FOLLOWING
-                } else {
-                    NodeConstants::DOCUMENT_POSITION_PRECEDING
-                };
-                // step 3.
-                return random +
-                    NodeConstants::DOCUMENT_POSITION_DISCONNECTED +
-                    NodeConstants::DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC;
-            }
-
-            for child in lastself.traverse_preorder() {
-                if &*child == other {
-                    // step 6.
-                    return NodeConstants::DOCUMENT_POSITION_PRECEDING;
-                }
-                if &*child == self {
-                    // step 7.
-                    return NodeConstants::DOCUMENT_POSITION_FOLLOWING;
-                }
-            }
-            unreachable!()
+            return 0
         }
+
+        let mut lastself = Root::from_ref(self);
+        let mut lastother = Root::from_ref(other);
+        for ancestor in self.ancestors() {
+            if &*ancestor == other {
+                // step 4.
+                return NodeConstants::DOCUMENT_POSITION_CONTAINS +
+                       NodeConstants::DOCUMENT_POSITION_PRECEDING;
+            }
+            lastself = ancestor;
+        }
+        for ancestor in other.ancestors() {
+            if &*ancestor == self {
+                // step 5.
+                return NodeConstants::DOCUMENT_POSITION_CONTAINED_BY +
+                       NodeConstants::DOCUMENT_POSITION_FOLLOWING;
+            }
+            lastother = ancestor;
+        }
+
+        if lastself != lastother {
+            let abstract_uint: uintptr_t = as_uintptr(&self);
+            let other_uint: uintptr_t = as_uintptr(&*other);
+
+            let random = if abstract_uint < other_uint {
+                NodeConstants::DOCUMENT_POSITION_FOLLOWING
+            } else {
+                NodeConstants::DOCUMENT_POSITION_PRECEDING
+            };
+            // step 3.
+            return random +
+                NodeConstants::DOCUMENT_POSITION_DISCONNECTED +
+                NodeConstants::DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC;
+        }
+
+        for child in lastself.traverse_preorder() {
+            if &*child == other {
+                // step 6.
+                return NodeConstants::DOCUMENT_POSITION_PRECEDING;
+            }
+            if &*child == self {
+                // step 7.
+                return NodeConstants::DOCUMENT_POSITION_FOLLOWING;
+            }
+        }
+        unreachable!()
     }
 
     // https://dom.spec.whatwg.org/#dom-node-contains
