@@ -74,9 +74,10 @@ use selectors::matching::{matches_selector_list, MatchingContext, MatchingMode};
 use selectors::parser::SelectorList;
 use servo_arc::Arc;
 use servo_url::ServoUrl;
+use smallvec::SmallVec;
 use std::borrow::ToOwned;
 use std::cell::{Cell, UnsafeCell, RefMut};
-use std::cmp::max;
+use std::cmp;
 use std::default::Default;
 use std::iter;
 use std::mem;
@@ -487,7 +488,7 @@ impl Node {
         // the document's version, but we do have to deal with the case where the node has moved
         // document, so may have a higher version count than its owning document.
         let doc: Root<Node> = Root::upcast(self.owner_doc());
-        let version = max(self.inclusive_descendants_version(), doc.inclusive_descendants_version()) + 1;
+        let version = cmp::max(self.inclusive_descendants_version(), doc.inclusive_descendants_version()) + 1;
         for ancestor in self.inclusive_ancestors() {
             ancestor.inclusive_descendants_version.set(version);
         }
@@ -627,8 +628,8 @@ impl Node {
             // Step 6 && Step 7
             (false, false, _, true) | (false, true, QuirksMode::Quirks, _) => {
                 Rect::new(Point2D::new(window.ScrollX(), window.ScrollY()),
-                                       Size2D::new(max(window.InnerWidth(), scroll_area.size.width),
-                                                   max(window.InnerHeight(), scroll_area.size.height)))
+                                       Size2D::new(cmp::max(window.InnerWidth(), scroll_area.size.width),
+                                                   cmp::max(window.InnerHeight(), scroll_area.size.height)))
             },
             // Step 9
             _ => scroll_area
@@ -2363,56 +2364,71 @@ impl NodeMethods for Node {
 
     // https://dom.spec.whatwg.org/#dom-node-comparedocumentposition
     fn CompareDocumentPosition(&self, other: &Node) -> u16 {
+        // step 1.
         if self == other {
-            // step 2.
             return 0
         }
 
-        let mut lastself = Root::from_ref(self);
-        let mut lastother = Root::from_ref(other);
-        for ancestor in self.ancestors() {
-            if &*ancestor == other {
-                // step 4.
-                return NodeConstants::DOCUMENT_POSITION_CONTAINS +
-                       NodeConstants::DOCUMENT_POSITION_PRECEDING;
-            }
-            lastself = ancestor;
-        }
-        for ancestor in other.ancestors() {
-            if &*ancestor == self {
-                // step 5.
-                return NodeConstants::DOCUMENT_POSITION_CONTAINED_BY +
-                       NodeConstants::DOCUMENT_POSITION_FOLLOWING;
-            }
-            lastother = ancestor;
-        }
+        // FIXME(emilio): This will eventually need to handle attribute nodes.
 
-        if lastself != lastother {
-            let abstract_uint: uintptr_t = as_uintptr(&self);
-            let other_uint: uintptr_t = as_uintptr(&*other);
+        let mut self_and_ancestors =
+            self.inclusive_ancestors().collect::<SmallVec<[_; 20]>>();
+        let mut other_and_ancestors =
+            other.inclusive_ancestors().collect::<SmallVec<[_; 20]>>();
 
-            let random = if abstract_uint < other_uint {
+        if self_and_ancestors.last() != other_and_ancestors.last() {
+            let random =
+                as_uintptr(self_and_ancestors.last().unwrap())
+                    < as_uintptr(other_and_ancestors.last().unwrap());
+            let random = if random {
                 NodeConstants::DOCUMENT_POSITION_FOLLOWING
             } else {
                 NodeConstants::DOCUMENT_POSITION_PRECEDING
             };
-            // step 3.
+
+            // Disconnected.
             return random +
                 NodeConstants::DOCUMENT_POSITION_DISCONNECTED +
                 NodeConstants::DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC;
         }
 
-        for child in lastself.traverse_preorder() {
-            if &*child == other {
-                // step 6.
-                return NodeConstants::DOCUMENT_POSITION_PRECEDING;
+        let mut parent = self_and_ancestors.pop().unwrap();
+        other_and_ancestors.pop().unwrap();
+
+        let mut current_position = cmp::min(self_and_ancestors.len(), other_and_ancestors.len());
+
+        while current_position > 0 {
+            current_position -= 1;
+            let child_1 = self_and_ancestors.pop().unwrap();
+            let child_2 = other_and_ancestors.pop().unwrap();
+
+            if child_1 != child_2 {
+                let is_before =
+                    parent.children().position(|c| c == child_1).unwrap()
+                     < parent.children().position(|c| c == child_2).unwrap();
+                // If I am before, `other` is following, and the other way
+                // around.
+                return if is_before {
+                    NodeConstants::DOCUMENT_POSITION_FOLLOWING
+                } else {
+                    NodeConstants::DOCUMENT_POSITION_PRECEDING
+                };
             }
-            if &*child == self {
-                // step 7.
-                return NodeConstants::DOCUMENT_POSITION_FOLLOWING;
-            }
+
+            parent = child_1;
         }
-        unreachable!()
+
+        // We hit the end of one of the parent chains, so one node needs to be
+        // contained in the other.
+        //
+        // If we're the container, return that `other` is contained by us.
+        return if self_and_ancestors.len() < other_and_ancestors.len() {
+            NodeConstants::DOCUMENT_POSITION_FOLLOWING +
+            NodeConstants::DOCUMENT_POSITION_CONTAINED_BY
+        } else {
+            NodeConstants::DOCUMENT_POSITION_PRECEDING +
+            NodeConstants::DOCUMENT_POSITION_CONTAINS
+        }
     }
 
     // https://dom.spec.whatwg.org/#dom-node-contains
