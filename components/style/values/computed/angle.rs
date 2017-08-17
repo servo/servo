@@ -4,11 +4,11 @@
 
 //! Computed angles.
 
-use properties::animated_properties::Animatable;
 use std::{f32, f64, fmt};
 use std::f64::consts::PI;
 use style_traits::ToCss;
 use values::CSSFloat;
+use values::animated::{Animate, Procedure, ToAnimatedZero};
 use values::distance::{ComputeSquaredDistance, SquaredDistance};
 
 /// A computed angle.
@@ -65,24 +65,34 @@ impl Angle {
 }
 
 /// https://drafts.csswg.org/css-transitions/#animtype-number
-impl Animatable for Angle {
+impl Animate for Angle {
     #[inline]
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         match (self, other) {
             (&Angle::Degree(ref this), &Angle::Degree(ref other)) => {
-                Ok(Angle::Degree(this.add_weighted(other, self_portion, other_portion)?))
+                Ok(Angle::Degree(this.animate(other, procedure)?))
             },
             (&Angle::Gradian(ref this), &Angle::Gradian(ref other)) => {
-                Ok(Angle::Gradian(this.add_weighted(other, self_portion, other_portion)?))
+                Ok(Angle::Gradian(this.animate(other, procedure)?))
             },
             (&Angle::Turn(ref this), &Angle::Turn(ref other)) => {
-                Ok(Angle::Turn(this.add_weighted(other, self_portion, other_portion)?))
+                Ok(Angle::Turn(this.animate(other, procedure)?))
             },
             _ => {
-                self.radians()
-                    .add_weighted(&other.radians(), self_portion, other_portion)
-                    .map(Angle::from_radians)
-            }
+                Ok(Angle::from_radians(self.radians().animate(&other.radians(), procedure)?))
+            },
+        }
+    }
+}
+
+impl ToAnimatedZero for Angle {
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Angle, ()> {
+        match *self {
+            Angle::Degree(ref this) => Ok(Angle::Degree(this.to_animated_zero()?)),
+            Angle::Gradian(ref this) => Ok(Angle::Gradian(this.to_animated_zero()?)),
+            Angle::Radian(ref this) => Ok(Angle::Radian(this.to_animated_zero()?)),
+            Angle::Turn(ref this) => Ok(Angle::Turn(this.to_animated_zero()?)),
         }
     }
 }
