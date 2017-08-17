@@ -105,7 +105,7 @@ use style::properties::{IS_FIELDSET_CONTENT, IS_LINK, IS_VISITED_LINK, LonghandI
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, PropertyId, ShorthandId};
 use style::properties::{SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP, SourcePropertyDeclaration, StyleBuilder};
 use style::properties::PROHIBIT_DISPLAY_CONTENTS;
-use style::properties::animated_properties::{Animatable, AnimatableLonghand, AnimationValue};
+use style::properties::animated_properties::{AnimatableLonghand, AnimationValue};
 use style::properties::animated_properties::compare_property_priority;
 use style::properties::parse_one_declaration_into;
 use style::rule_tree::StyleSource;
@@ -128,7 +128,7 @@ use style::traversal::{DomTraversal, TraversalDriver};
 use style::traversal::resolve_style;
 use style::traversal_flags::{TraversalFlags, self};
 use style::values::{CustomIdent, KeyframesName};
-use style::values::animated::ToAnimatedZero;
+use style::values::animated::{Animate, Procedure, ToAnimatedZero};
 use style::values::computed::Context;
 use style::values::distance::ComputeSquaredDistance;
 use style_traits::{PARSING_MODE_DEFAULT, ToCss};
@@ -319,7 +319,7 @@ pub extern "C" fn Servo_AnimationValues_Interpolate(from: RawServoAnimationValue
 {
     let from_value = AnimationValue::as_arc(&from);
     let to_value = AnimationValue::as_arc(&to);
-    if let Ok(value) = from_value.interpolate(to_value, progress) {
+    if let Ok(value) = from_value.animate(to_value, Procedure::Interpolate { progress }) {
         Arc::new(value).into_strong()
     } else {
         RawServoAnimationValueStrong::null()
@@ -332,7 +332,7 @@ pub extern "C" fn Servo_AnimationValues_IsInterpolable(from: RawServoAnimationVa
                                                        -> bool {
     let from_value = AnimationValue::as_arc(&from);
     let to_value = AnimationValue::as_arc(&to);
-    from_value.interpolate(to_value, 0.5).is_ok()
+    from_value.animate(to_value, Procedure::Interpolate { progress: 0.5 }).is_ok()
 }
 
 #[no_mangle]
@@ -342,7 +342,7 @@ pub extern "C" fn Servo_AnimationValues_Add(a: RawServoAnimationValueBorrowed,
 {
     let a_value = AnimationValue::as_arc(&a);
     let b_value = AnimationValue::as_arc(&b);
-    if let Ok(value) = a_value.add(b_value) {
+    if let Ok(value) = a_value.animate(b_value, Procedure::Add) {
         Arc::new(value).into_strong()
     } else {
         RawServoAnimationValueStrong::null()
@@ -357,7 +357,7 @@ pub extern "C" fn Servo_AnimationValues_Accumulate(a: RawServoAnimationValueBorr
 {
     let a_value = AnimationValue::as_arc(&a);
     let b_value = AnimationValue::as_arc(&b);
-    if let Ok(value) = a_value.accumulate(b_value, count) {
+    if let Ok(value) = a_value.animate(b_value, Procedure::Accumulate { count }) {
         Arc::new(value).into_strong()
     } else {
         RawServoAnimationValueStrong::null()
@@ -463,12 +463,16 @@ pub extern "C" fn Servo_AnimationCompose(raw_value_map: RawServoAnimationValueMa
                     CompositeOperation::Add => {
                         debug_assert!(need_underlying_value,
                                       "Should have detected we need an underlying value");
-                        underlying_value.as_ref().unwrap().add(keyframe_value).ok()
+                        underlying_value.as_ref().unwrap().animate(keyframe_value, Procedure::Add).ok()
                     },
                     CompositeOperation::Accumulate => {
                         debug_assert!(need_underlying_value,
                                       "Should have detected we need an underlying value");
-                        underlying_value.as_ref().unwrap().accumulate(keyframe_value, 1).ok()
+                        underlying_value
+                            .as_ref()
+                            .unwrap()
+                            .animate(keyframe_value, Procedure::Accumulate { count: 1 })
+                            .ok()
                     },
                     _ => None,
                 }
@@ -507,11 +511,17 @@ pub extern "C" fn Servo_AnimationCompose(raw_value_map: RawServoAnimationValueMa
                                         -> Option<AnimationValue> {
             let count = computed_timing.mCurrentIteration;
             match composited_value {
-                Some(endpoint) => last_value.accumulate(&endpoint, count)
-                                            .ok()
-                                            .or(Some(endpoint)),
-                None => last_value.accumulate(keyframe_value.unwrap(), count)
-                                  .ok(),
+                Some(endpoint) => {
+                    last_value
+                        .animate(&endpoint, Procedure::Accumulate { count })
+                        .ok()
+                        .or(Some(endpoint))
+                },
+                None => {
+                    last_value
+                        .animate(keyframe_value.unwrap(), Procedure::Accumulate { count })
+                        .ok()
+                },
             }
         };
 
@@ -535,12 +545,12 @@ pub extern "C" fn Servo_AnimationCompose(raw_value_map: RawServoAnimationValueMa
         return;
     }
 
-    let position = unsafe {
+    let progress = unsafe {
         Gecko_GetPositionInSegment(segment, progress, computed_timing.mBeforeFlag)
     };
-    if let Ok(value) = from_value.interpolate(to_value, position) {
+    if let Ok(value) = from_value.animate(to_value, Procedure::Interpolate { progress }) {
         value_map.insert(property, value);
-    } else if position < 0.5 {
+    } else if progress < 0.5 {
         value_map.insert(property, from_value.clone());
     } else {
         value_map.insert(property, to_value.clone());
@@ -2078,8 +2088,8 @@ pub extern "C" fn Servo_MatrixTransform_Operate(matrix_operator: MatrixTransform
     let from = ComputedMatrix::from(unsafe { from.as_ref() }.expect("not a valid 'from' matrix"));
     let to = ComputedMatrix::from(unsafe { to.as_ref() }.expect("not a valid 'to' matrix"));
     let result = match matrix_operator {
-        Interpolate => from.interpolate(&to, progress),
-        Accumulate => from.accumulate(&to, progress as u64),
+        Interpolate => from.animate(&to, Procedure::Interpolate { progress }),
+        Accumulate => from.animate(&to, Procedure::Accumulate { count: progress as u64 }),
     };
 
     let output = unsafe { output.as_mut() }.expect("not a valid 'output' matrix");

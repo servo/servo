@@ -211,7 +211,7 @@ class Longhand(object):
             self.animatable = False
             self.transitionable = False
             self.animation_type = None
-        # NB: Animatable implies clone because a property animation requires a
+        # NB: Animate implies clone because a property animation requires a
         # copy of the computed value.
         #
         # See components/style/helpers/animated_properties.mako.rs.
