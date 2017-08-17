@@ -1414,7 +1414,7 @@ pub trait SimpleMatrixDetection {
 impl SimpleMatrixDetection for Transform3D<f32> {
     #[inline]
     fn is_identity_or_simple_translation(&self) -> bool {
-        let (_0, _1) = (Zero::zero(), One::one());
+        let (_0, _1): (f32, f32) = (Zero::zero(), One::one());
         self.m11 == _1 && self.m12 == _0 && self.m13 == _0 && self.m14 == _0 &&
         self.m21 == _0 && self.m22 == _1 && self.m23 == _0 && self.m24 == _0 &&
         self.m31 == _0 && self.m32 == _0 && self.m33 == _1 && self.m34 == _0 &&
