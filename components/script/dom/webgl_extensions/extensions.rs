@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use canvas_traits::webgl::WebGLError;
 use core::iter::FromIterator;
 use core::nonzero::NonZero;
 use dom::bindings::cell::DOMRefCell;
@@ -19,7 +20,6 @@ use std::cell::Ref;
 use std::collections::{HashMap, HashSet};
 use super::{ext, WebGLExtension};
 use super::wrapper::{WebGLExtensionWrapper, TypedWebGLExtensionWrapper};
-use webrender_api::WebGLError;
 
 // Data types that are implemented for texImage2D and texSubImage2D in WebGLRenderingContext
 // but must trigger a InvalidValue error until the related WebGL Extensions are enabled.

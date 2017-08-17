@@ -5,6 +5,7 @@
 use app_units::Au;
 use base64;
 use bluetooth_traits::BluetoothRequest;
+use canvas_traits::webgl::WebGLChan;
 use cssparser::{Parser, ParserInput};
 use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
 use dom::bindings::cell::DOMRefCell;
@@ -264,7 +265,11 @@ pub struct Window {
 
     /// A handle for communicating messages to the webvr thread, if available.
     #[ignore_heap_size_of = "channels are hard"]
-    webvr_thread: Option<IpcSender<WebVRMsg>>,
+    webgl_chan: WebGLChan,
+
+    /// A handle for communicating messages to the webvr thread, if available.
+    #[ignore_heap_size_of = "channels are hard"]
+    webvr_chan: Option<IpcSender<WebVRMsg>>,
 
     /// A map for storing the previous permission state read results.
     permission_state_invocation_results: DOMRefCell<HashMap<String, PermissionState>>,
@@ -380,8 +385,12 @@ impl Window {
         self.current_viewport.clone().get()
     }
 
+    pub fn webgl_chan(&self) -> WebGLChan {
+        self.webgl_chan.clone()
+    }
+
     pub fn webvr_thread(&self) -> Option<IpcSender<WebVRMsg>> {
-        self.webvr_thread.clone()
+        self.webvr_chan.clone()
     }
 
     fn new_paint_worklet(&self) -> Root<Worklet> {
@@ -1800,7 +1809,8 @@ impl Window {
                origin: MutableOrigin,
                navigation_start: u64,
                navigation_start_precise: f64,
-               webvr_thread: Option<IpcSender<WebVRMsg>>)
+               webgl_chan: WebGLChan,
+               webvr_chan: Option<IpcSender<WebVRMsg>>)
                -> Root<Window> {
         let layout_rpc: Box<LayoutRPC + Send> = {
             let (rpc_send, rpc_recv) = channel();
@@ -1866,7 +1876,8 @@ impl Window {
             scroll_offsets: DOMRefCell::new(HashMap::new()),
             media_query_lists: WeakMediaQueryListVec::new(),
             test_runner: Default::default(),
-            webvr_thread: webvr_thread,
+            webgl_chan: webgl_chan,
+            webvr_chan: webvr_chan,
             permission_state_invocation_results: DOMRefCell::new(HashMap::new()),
             pending_layout_images: DOMRefCell::new(HashMap::new()),
             unminified_js_dir: DOMRefCell::new(None),
