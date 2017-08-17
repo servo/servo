@@ -13512,6 +13512,12 @@
      {}
     ]
    ],
+   "css/calc-serialization.html": [
+    [
+     "/_mozilla/css/calc-serialization.html",
+     {}
+    ]
+   ],
    "css/empty-keyframes.html": [
     [
      "/_mozilla/css/empty-keyframes.html",
@@ -22847,6 +22853,10 @@
    "b9e77c824d0c96e51d51fb8f1e923d3ab67be027",
    "testharness"
   ],
+  "css/calc-serialization.html": [
+   "628597eb36bf21a1ec982c7f6935ee7949c62044",
+   "testharness"
+  ],
   "css/canvas_as_block_element_a.html": [
    "668d93da2dab9722998cc7c5785c20e2ab9a1ced",
    "reftest"
@@ -26508,7 +26518,7 @@
    "testharness"
   ],
   "mozilla/calc.html": [
-   "5d59d5b367a023e778ce6968acdeca6b8b7c3197",
+   "5b3ea33205a9f2404bd6976a2c7f6fc451be8e96",
    "testharness"
   ],
   "mozilla/canvas.initial.reset.2dstate.html": [
