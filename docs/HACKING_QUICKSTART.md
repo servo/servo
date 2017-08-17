@@ -60,7 +60,7 @@ This guide only covers the most important options. Be sure to look at all the av
 
 Even if you have never seen any Rust code, it's not too hard to read Servo's code. But there are some basics things one must know:
 
-- [Match](https://doc.rust-lang.org/book/match.html) and [Patterns](https://doc.rust-lang.org/book/patterns.html)
+- [Match](https://doc.rust-lang.org/book/first-edition/match.html) and [Patterns](https://doc.rust-lang.org/book/first-edition/patterns.html)
 - [Options](http://rustbyexample.com/std/option.html)
 - [Expression](http://rustbyexample.com/expression.html)
 - [Traits](http://rustbyexample.com/trait.html)
