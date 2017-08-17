@@ -194,6 +194,18 @@ impl From<LengthOrPercentageOrNone> for Option<CalcLengthOrPercentage> {
 
 impl ToCss for CalcLengthOrPercentage {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        // FIXME(emilio): This should be consistent with specified calc().
+        //
+        // Also, serialisation here is kinda weird with negative percentages,
+        // for example, as of right now:
+        //
+        //  calc(10px - 5%)
+        //
+        // would serialize as:
+        //
+        //  calc(10px + -5%)
+        //
+        // Need to update and run through try.
         match (self.length, self.percentage) {
             (l, Some(p)) if l == Au(0) => p.to_css(dest),
             (l, Some(p)) => write!(dest, "calc({}px + {}%)", Au::to_px(l), p.0 * 100.),
