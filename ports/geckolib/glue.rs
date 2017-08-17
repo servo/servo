@@ -888,7 +888,7 @@ pub extern "C" fn Servo_StyleSet_AppendStyleSheet(
 ) {
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
-    let mut data = &mut *data;
+    let data = &mut *data;
     let guard = global_style_data.shared_lock.read();
     let sheet = unsafe { GeckoStyleSheet::new(sheet) };
     data.stylesheets.append_stylesheet(&data.stylist, sheet, &guard);
@@ -937,7 +937,7 @@ pub extern "C" fn Servo_StyleSet_PrependStyleSheet(
 ) {
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
-    let mut data = &mut *data;
+    let data = &mut *data;
     let guard = global_style_data.shared_lock.read();
     let sheet = unsafe { GeckoStyleSheet::new(sheet) };
     data.stylesheets.prepend_stylesheet(&data.stylist, sheet, &guard);
@@ -951,7 +951,7 @@ pub extern "C" fn Servo_StyleSet_InsertStyleSheetBefore(
 ) {
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
-    let mut data = &mut *data;
+    let data = &mut *data;
     let guard = global_style_data.shared_lock.read();
     let sheet = unsafe { GeckoStyleSheet::new(sheet) };
     data.stylesheets.insert_stylesheet_before(
@@ -969,7 +969,7 @@ pub extern "C" fn Servo_StyleSet_RemoveStyleSheet(
 ) {
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
-    let mut data = &mut *data;
+    let data = &mut *data;
     let guard = global_style_data.shared_lock.read();
     let sheet = unsafe { GeckoStyleSheet::new(sheet) };
     data.stylesheets.remove_stylesheet(&data.stylist, sheet, &guard);
@@ -1359,7 +1359,7 @@ pub extern "C" fn Servo_StyleRule_GetSpecificityAtIndex(
     specificity: *mut u64
 ) {
     read_locked_arc(rule, |rule: &StyleRule| {
-        let mut specificity =  unsafe { specificity.as_mut().unwrap() };
+        let specificity =  unsafe { specificity.as_mut().unwrap() };
         let index = index as usize;
         if index >= rule.selectors.0.len() {
             *specificity = 0;
@@ -2831,7 +2831,7 @@ pub extern "C" fn Servo_NoteExplicitHints(element: RawGeckoElementBorrowed,
 pub extern "C" fn Servo_TakeChangeHint(element: RawGeckoElementBorrowed,
                                        was_restyled: *mut bool) -> u32
 {
-    let mut was_restyled =  unsafe { was_restyled.as_mut().unwrap() };
+    let was_restyled =  unsafe { was_restyled.as_mut().unwrap() };
     let element = GeckoElement(element);
 
     let damage = match element.mutate_data() {

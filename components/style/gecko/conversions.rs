@@ -352,7 +352,7 @@ impl nsStyleImage {
             // NB: stops are guaranteed to be none in the gecko side by
             // default.
 
-            let mut gecko_stop = unsafe {
+            let gecko_stop = unsafe {
                 &mut (*gecko_gradient).mStops[index]
             };
             let mut coord = nsStyleCoord::null();
