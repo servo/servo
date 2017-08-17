@@ -12,8 +12,8 @@ extern crate cookie as cookie_rs;
 extern crate devtools_traits;
 extern crate flate2;
 extern crate hyper;
-extern crate hyper_openssl;
 extern crate hyper_serde;
+extern crate hyper_sync_rustls;
 extern crate immeta;
 extern crate ipc_channel;
 #[macro_use]
@@ -28,6 +28,7 @@ extern crate net_traits;
 extern crate openssl;
 extern crate parse_hosts;
 extern crate profile_traits;
+extern crate rustls;
 #[macro_use] extern crate serde;
 extern crate serde_json;
 extern crate servo_config;
