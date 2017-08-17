@@ -1569,6 +1569,9 @@ extern "C" {
     pub fn Gecko_RegisterNamespace(ns: *mut nsIAtom) -> i32;
 }
 extern "C" {
+    pub fn Gecko_ShouldCreateStyleThreadPool() -> bool;
+}
+extern "C" {
     pub fn Gecko_Construct_Default_nsStyleFont(ptr: *mut nsStyleFont,
                                                pres_context:
                                                    RawGeckoPresContextBorrowed);
