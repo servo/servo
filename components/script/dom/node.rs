@@ -385,6 +385,17 @@ impl Node {
         }
     }
 
+    /// Returns true if this node is before `other` in the same connected DOM
+    /// tree.
+    pub fn is_before(&self, other: &Node) -> bool {
+        let cmp = other.CompareDocumentPosition(self);
+        if cmp & NodeConstants::DOCUMENT_POSITION_DISCONNECTED != 0 {
+            return false;
+        }
+
+        cmp & NodeConstants::DOCUMENT_POSITION_PRECEDING != 0
+    }
+
     /// Return all registered mutation observers for this node.
     pub fn registered_mutation_observers(&self) -> RefMut<Vec<RegisteredObserver>> {
          self.mutation_observers.borrow_mut()
