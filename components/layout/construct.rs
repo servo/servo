@@ -616,14 +616,12 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         flow.finish();
 
         // Set up the absolute descendants.
-        let contains_positioned_fragments = flow.contains_positioned_fragments();
-        let is_absolutely_positioned = flow::base(&*flow).flags.contains(IS_ABSOLUTELY_POSITIONED);
-        if contains_positioned_fragments {
+        if flow.is_absolute_containing_block() {
             // This is the containing block for all the absolute descendants.
             flow.set_absolute_descendants(abs_descendants);
 
             abs_descendants = AbsoluteDescendants::new();
-            if is_absolutely_positioned {
+            if flow::base(&*flow).flags.contains(IS_ABSOLUTELY_POSITIONED) {
                 // This is now the only absolute flow in the subtree which hasn't yet
                 // reached its CB.
                 abs_descendants.push(flow.clone());
@@ -1060,16 +1058,13 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
 
         // The flow is done.
         flow.finish();
-        let contains_positioned_fragments = flow.contains_positioned_fragments();
-        if contains_positioned_fragments {
+        if flow.is_absolute_containing_block() {
             // This is the containing block for all the absolute descendants.
             flow.set_absolute_descendants(abs_descendants);
 
             abs_descendants = AbsoluteDescendants::new();
 
-            let is_absolutely_positioned =
-                flow::base(&*flow).flags.contains(IS_ABSOLUTELY_POSITIONED);
-            if is_absolutely_positioned {
+            if flow::base(&*flow).flags.contains(IS_ABSOLUTELY_POSITIONED) {
                 // This is now the only absolute flow in the subtree which hasn't yet
                 // reached its containing block.
                 abs_descendants.push(flow.clone());
@@ -1134,16 +1129,13 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         legalizer.finish(&mut wrapper_flow);
         wrapper_flow.finish();
 
-        let contains_positioned_fragments = wrapper_flow.contains_positioned_fragments();
-        if contains_positioned_fragments {
+        if wrapper_flow.is_absolute_containing_block() {
             // This is the containing block for all the absolute descendants.
             wrapper_flow.set_absolute_descendants(abs_descendants);
 
             abs_descendants = AbsoluteDescendants::new();
 
-            let is_absolutely_positioned =
-                flow::base(&*wrapper_flow).flags.contains(IS_ABSOLUTELY_POSITIONED);
-            if is_absolutely_positioned {
+            if flow::base(&*wrapper_flow).flags.contains(IS_ABSOLUTELY_POSITIONED) {
                 // This is now the only absolute flow in the subtree which hasn't yet
                 // reached its containing block.
                 abs_descendants.push(wrapper_flow.clone());
