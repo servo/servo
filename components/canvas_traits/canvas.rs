@@ -42,6 +42,7 @@ pub enum Canvas2dMsg {
     ClearRect(Rect<f32>),
     Clip,
     ClosePath,
+    Ellipse(Point2D<f32>, f32, f32, f32, f32, f32, bool),
     Fill,
     FillText(String, f64, f64, Option<f64>),
     FillRect(Rect<f32>),
