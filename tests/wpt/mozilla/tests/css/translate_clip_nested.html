@@ -10,7 +10,14 @@
 <div style="position: relative; overflow: hidden; background: red;">
   <div style="transform: translateX(-100px);">
     <div style="position: absolute; right: -100px; background: green;">
-      1 2 3 4 5 6 7 8 9 10 11 12 13
+    </div>
+  </div>
+</div>
+
+<!-- Repeat the same test, but this time make the outer div a stacking context. -->
+<div style="position: relative; z-index: 1; overflow: hidden; background: red;">
+  <div style="transform: translateX(-100px);">
+    <div style="position: absolute; right: -100px; background: green;">
     </div>
   </div>
 </div>

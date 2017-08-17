@@ -127,6 +127,10 @@ impl Flow for ListItemFlow {
         self.block_flow.place_float_if_applicable()
     }
 
+    fn contains_roots_of_absolute_flow_tree(&self) -> bool {
+        self.block_flow.contains_roots_of_absolute_flow_tree()
+    }
+
     fn is_absolute_containing_block(&self) -> bool {
         self.block_flow.is_absolute_containing_block()
     }
