@@ -1961,6 +1961,10 @@ extern "C" {
      -> OriginFlags;
 }
 extern "C" {
+    pub fn Servo_StyleSheet_GetSourceMapURL(sheet: RawServoStyleSheetContentsBorrowed,
+                                            result: *mut nsAString);
+}
+extern "C" {
     pub fn Servo_StyleSet_Init(pres_context: RawGeckoPresContextOwned)
      -> *mut RawServoStyleSet;
 }
