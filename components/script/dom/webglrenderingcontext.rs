@@ -279,6 +279,22 @@ impl WebGLRenderingContext {
         // default scissor when the canvas was created or the last scissor that the user set.
         let rect = self.current_scissor.get();
         self.send_command(WebGLCommand::Scissor(rect.0, rect.1, rect.2, rect.3));
+
+        // Bound texture must not change when the canvas is resized.
+        // Right now offscreen_gl_context generates a new FBO and the bound texture is changed
+        // in order to create a new render to texture attachment.
+        // Send a command to re-bind the TEXTURE_2D, if any.
+        if let Some(texture) = self.bound_texture_2d.get() {
+            self.send_command(WebGLCommand::BindTexture(constants::TEXTURE_2D, Some(texture.id())));
+        }
+
+        // Bound framebuffer must not change when the canvas is resized.
+        // Right now offscreen_gl_context generates a new FBO on resize.
+        // Send a command to re-bind the framebuffer, if any.
+        if let Some(fbo) = self.bound_framebuffer.get() {
+            let id = WebGLFramebufferBindingRequest::Explicit(fbo.id());
+            self.send_command(WebGLCommand::BindFramebuffer(constants::FRAMEBUFFER, id));
+        }
     }
 
     pub fn webgl_sender(&self) -> WebGLMsgSender {
