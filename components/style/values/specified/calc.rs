@@ -125,6 +125,13 @@ impl ToCss for CalcLengthOrPercentage {
 
         dest.write_str("calc(")?;
 
+        // NOTE(emilio): Percentages first because of web-compat problems, see:
+        // https://github.com/w3c/csswg-drafts/issues/1731
+        if let Some(val) = self.percentage {
+            first_value_check!(val.0);
+            val.abs().to_css(dest)?;
+        }
+
         // NOTE(emilio): The order here it's very intentional, and alphabetic
         // per the spec linked above.
         serialize!(ch, em, ex);
@@ -142,11 +149,6 @@ impl ToCss for CalcLengthOrPercentage {
         }
 
         serialize!(rem, vh, vmax, vmin, vw);
-
-        if let Some(val) = self.percentage {
-            first_value_check!(val.0);
-            val.abs().to_css(dest)?;
-        }
 
         dest.write_str(")")
     }
