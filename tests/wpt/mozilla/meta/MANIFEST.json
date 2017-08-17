@@ -13512,6 +13512,12 @@
      {}
     ]
    ],
+   "css/calc-serialization.html": [
+    [
+     "/_mozilla/css/calc-serialization.html",
+     {}
+    ]
+   ],
    "css/empty-keyframes.html": [
     [
      "/_mozilla/css/empty-keyframes.html",
@@ -22845,6 +22851,10 @@
   ],
   "css/calc-number-serialization.html": [
    "b9e77c824d0c96e51d51fb8f1e923d3ab67be027",
+   "testharness"
+  ],
+  "css/calc-serialization.html": [
+   "628597eb36bf21a1ec982c7f6935ee7949c62044",
    "testharness"
   ],
   "css/canvas_as_block_element_a.html": [

@@ -11,7 +11,7 @@ use values::CSSFloat;
 use values::animated::ToAnimatedZero;
 
 /// A computed percentage.
-#[derive(Clone, ComputeSquaredDistance, Copy, Debug, Default, HasViewportPercentage, PartialEq)]
+#[derive(Clone, ComputeSquaredDistance, Copy, Debug, Default, HasViewportPercentage, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "servo", derive(Deserialize, HeapSizeOf, Serialize))]
 pub struct Percentage(pub CSSFloat);
 
@@ -26,6 +26,12 @@ impl Percentage {
     #[inline]
     pub fn hundred() -> Self {
         Percentage(1.)
+    }
+
+    /// Returns the absolute value for this percentage.
+    #[inline]
+    pub fn abs(&self) -> Self {
+        Percentage(self.0.abs())
     }
 }
 
