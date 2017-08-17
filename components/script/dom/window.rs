@@ -118,6 +118,7 @@ use task_source::dom_manipulation::DOMManipulationTaskSource;
 use task_source::file_reading::FileReadingTaskSource;
 use task_source::history_traversal::HistoryTraversalTaskSource;
 use task_source::networking::NetworkingTaskSource;
+use task_source::performance_timeline::PerformanceTimelineTaskSource;
 use task_source::user_interaction::UserInteractionTaskSource;
 use time;
 use timers::{IsInterval, TimerCallback};
@@ -175,6 +176,8 @@ pub struct Window {
     history_traversal_task_source: HistoryTraversalTaskSource,
     #[ignore_heap_size_of = "task sources are hard"]
     file_reading_task_source: FileReadingTaskSource,
+    #[ignore_heap_size_of = "task sources are hard"]
+    performance_timeline_task_source: PerformanceTimelineTaskSource,
     navigator: MutNullableJS<Navigator>,
     #[ignore_heap_size_of = "Arc"]
     image_cache: Arc<ImageCache>,
@@ -327,6 +330,10 @@ impl Window {
 
     pub fn file_reading_task_source(&self) -> FileReadingTaskSource {
         self.file_reading_task_source.clone()
+    }
+
+    pub fn performance_timeline_task_source(&self) -> PerformanceTimelineTaskSource {
+        self.performance_timeline_task_source.clone()
     }
 
     pub fn main_thread_script_chan(&self) -> &Sender<MainThreadScriptMsg> {
@@ -1791,6 +1798,7 @@ impl Window {
                network_task_source: NetworkingTaskSource,
                history_task_source: HistoryTraversalTaskSource,
                file_task_source: FileReadingTaskSource,
+               performance_timeline_task_source: PerformanceTimelineTaskSource,
                image_cache_chan: Sender<ImageCacheMsg>,
                image_cache: Arc<ImageCache>,
                resource_threads: ResourceThreads,
@@ -1839,6 +1847,7 @@ impl Window {
             networking_task_source: network_task_source,
             history_traversal_task_source: history_task_source,
             file_reading_task_source: file_task_source,
+            performance_timeline_task_source,
             image_cache_chan: image_cache_chan,
             image_cache: image_cache.clone(),
             navigator: Default::default(),
