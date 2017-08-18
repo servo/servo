@@ -36,6 +36,7 @@ use dom::bindings::xmlname::{namespace_from_domstring, validate_and_extract, xml
 use dom::bindings::xmlname::XMLName::InvalidXMLName;
 use dom::closeevent::CloseEvent;
 use dom::comment::Comment;
+use dom::cssstylesheet::CSSStyleSheet;
 use dom::customelementregistry::CustomElementDefinition;
 use dom::customevent::CustomEvent;
 use dom::documentfragment::DocumentFragment;
@@ -63,6 +64,7 @@ use dom::htmlheadelement::HTMLHeadElement;
 use dom::htmlhtmlelement::HTMLHtmlElement;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlimageelement::HTMLImageElement;
+use dom::htmlmetaelement::HTMLMetaElement;
 use dom::htmlscriptelement::{HTMLScriptElement, ScriptResult};
 use dom::htmltitleelement::HTMLTitleElement;
 use dom::keyboardevent::KeyboardEvent;
@@ -135,10 +137,12 @@ use std::time::{Duration, Instant};
 use style::attr::AttrValue;
 use style::context::{QuirksMode, ReflowGoal};
 use style::invalidation::element::restyle_hints::{RestyleHint, RESTYLE_SELF, RESTYLE_STYLE_ATTRIBUTE};
+use style::media_queries::{Device, MediaList, MediaType};
 use style::selector_parser::{RestyleDamage, Snapshot};
-use style::shared_lock::SharedRwLock as StyleSharedRwLock;
+use style::shared_lock::{SharedRwLock as StyleSharedRwLock, SharedRwLockReadGuard};
 use style::str::{HTML_SPACE_CHARACTERS, split_html_space_chars, str_join};
-use style::stylesheets::Stylesheet;
+use style::stylesheet_set::StylesheetSet;
+use style::stylesheets::{Stylesheet, StylesheetContents, OriginSet};
 use task_source::TaskSource;
 use time;
 use timers::OneshotTimerCallback;
@@ -166,14 +170,6 @@ pub enum IsHTMLDocument {
     NonHTMLDocument,
 }
 
-#[derive(JSTraceable, HeapSizeOf)]
-#[must_root]
-pub struct StylesheetInDocument {
-    pub node: JS<Node>,
-    #[ignore_heap_size_of = "Arc"]
-    pub stylesheet: Arc<Stylesheet>,
-}
-
 #[derive(Debug, HeapSizeOf)]
 pub struct PendingRestyle {
     /// If this element had a state or attribute change since the last restyle, track
@@ -194,6 +190,34 @@ impl PendingRestyle {
             hint: RestyleHint::empty(),
             damage: RestyleDamage::empty(),
         }
+    }
+}
+
+#[derive(Clone, JSTraceable, HeapSizeOf)]
+#[must_root]
+struct StyleSheetInDocument {
+    #[ignore_heap_size_of = "Arc"]
+    sheet: Arc<Stylesheet>,
+    owner: JS<Element>,
+}
+
+impl PartialEq for StyleSheetInDocument {
+    fn eq(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.sheet, &other.sheet)
+    }
+}
+
+impl ::style::stylesheets::StylesheetInDocument for StyleSheetInDocument {
+    fn contents(&self, guard: &SharedRwLockReadGuard) -> &StylesheetContents {
+        self.sheet.contents(guard)
+    }
+
+    fn media<'a>(&'a self, guard: &'a SharedRwLockReadGuard) -> Option<&'a MediaList> {
+        self.sheet.media(guard)
+    }
+
+    fn enabled(&self) -> bool {
+        self.sheet.enabled()
     }
 }
 
@@ -229,9 +253,7 @@ pub struct Document {
     /// Can be acquired once for accessing many objects.
     style_shared_lock: StyleSharedRwLock,
     /// List of stylesheets associated with nodes in this document. |None| if the list needs to be refreshed.
-    stylesheets: DOMRefCell<Option<Vec<StylesheetInDocument>>>,
-    /// Whether the list of stylesheets has changed since the last reflow was triggered.
-    stylesheets_changed_since_reflow: Cell<bool>,
+    stylesheets: DOMRefCell<StylesheetSet<StyleSheetInDocument>>,
     stylesheet_list: MutNullableJS<StyleSheetList>,
     ready_state: Cell<DocumentReadyState>,
     /// Whether the DOMContentLoaded event has already been dispatched.
@@ -495,15 +517,12 @@ impl Document {
         // FIXME: This should check the dirty bit on the document,
         // not the document element. Needs some layout changes to make
         // that workable.
-        self.stylesheets_changed_since_reflow.get() ||
-        match self.GetDocumentElement() {
-            Some(root) => {
-                root.upcast::<Node>().has_dirty_descendants() ||
-                !self.pending_restyles.borrow().is_empty() ||
-                self.needs_paint()
-            }
-            None => false,
-        }
+        self.stylesheets.borrow().has_changed() ||
+        self.GetDocumentElement().map_or(false, |root| {
+            root.upcast::<Node>().has_dirty_descendants() ||
+            !self.pending_restyles.borrow().is_empty() ||
+            self.needs_paint()
+        })
     }
 
     /// Returns the first `base` element in the DOM that has an `href` attribute.
@@ -1501,18 +1520,14 @@ impl Document {
     }
 
     pub fn invalidate_stylesheets(&self) {
-        self.stylesheets_changed_since_reflow.set(true);
-        *self.stylesheets.borrow_mut() = None;
+        self.stylesheets.borrow_mut().force_dirty(OriginSet::all());
+
         // Mark the document element dirty so a reflow will be performed.
+        //
+        // FIXME(emilio): Use the StylesheetSet invalidation stuff.
         if let Some(element) = self.GetDocumentElement() {
             element.upcast::<Node>().dirty(NodeDamage::NodeStyleDamaged);
         }
-    }
-
-    pub fn get_and_reset_stylesheets_changed_since_reflow(&self) -> bool {
-        let changed = self.stylesheets_changed_since_reflow.get();
-        self.stylesheets_changed_since_reflow.set(false);
-        changed
     }
 
     pub fn trigger_mozbrowser_event(&self, event: MozBrowserEvent) {
@@ -2203,8 +2218,7 @@ impl Document {
                 PER_PROCESS_AUTHOR_SHARED_LOCK.clone()
                 //StyleSharedRwLock::new()
             },
-            stylesheets: DOMRefCell::new(None),
-            stylesheets_changed_since_reflow: Cell::new(false),
+            stylesheets: DOMRefCell::new(StylesheetSet::new()),
             stylesheet_list: MutNullableJS::new(None),
             ready_state: Cell::new(ready_state),
             domcontentloaded_dispatched: Cell::new(domcontentloaded_dispatched),
@@ -2315,40 +2329,113 @@ impl Document {
         self.GetDocumentElement().and_then(Root::downcast)
     }
 
-    // Ensure that the stylesheets vector is populated
-    fn ensure_stylesheets(&self) {
-        let mut stylesheets = self.stylesheets.borrow_mut();
-        if stylesheets.is_none() {
-            *stylesheets = Some(self.upcast::<Node>()
-                .traverse_preorder()
-                .filter_map(|node| {
-                    node.get_stylesheet()
-                        .map(|stylesheet| StylesheetInDocument {
-                        node: JS::from_ref(&*node),
-                        stylesheet: stylesheet,
-                    })
-                })
-                .collect());
-        };
-    }
-
     /// Return a reference to the per-document shared lock used in stylesheets.
     pub fn style_shared_lock(&self) -> &StyleSharedRwLock {
         &self.style_shared_lock
     }
 
-    /// Returns the list of stylesheets associated with nodes in the document.
-    pub fn stylesheets(&self) -> Vec<Arc<Stylesheet>> {
-        self.ensure_stylesheets();
-        self.stylesheets.borrow().as_ref().unwrap().iter()
-                        .map(|s| s.stylesheet.clone())
-                        .collect()
+    /// Flushes the stylesheet list, and returns whether any stylesheet changed.
+    pub fn flush_stylesheets_for_reflow(&self) -> bool {
+        // NOTE(emilio): The invalidation machinery is used on the replicated
+        // list on the layout thread.
+        let mut stylesheets = self.stylesheets.borrow_mut();
+        let have_changed = stylesheets.has_changed();
+        stylesheets.flush_without_invalidation();
+        have_changed
     }
 
-    pub fn with_style_sheets_in_document<F, T>(&self, mut f: F) -> T
-            where F: FnMut(&[StylesheetInDocument]) -> T {
-        self.ensure_stylesheets();
-        f(&self.stylesheets.borrow().as_ref().unwrap())
+    /// Returns a `Device` suitable for media query evaluation.
+    ///
+    /// FIXME(emilio): This really needs to be somehow more in sync with layout.
+    /// Feels like a hack.
+    ///
+    /// Also, shouldn't return an option, I'm quite sure.
+    pub fn device(&self) -> Option<Device> {
+        let window_size = match self.window().window_size() {
+            Some(ws) => ws,
+            None => return None,
+        };
+
+        let viewport_size = window_size.initial_viewport;
+        let device_pixel_ratio = window_size.device_pixel_ratio;
+        Some(Device::new(MediaType::screen(), viewport_size, device_pixel_ratio))
+    }
+
+    /// Remove a stylesheet owned by `owner` from the list of document sheets.
+    #[allow(unrooted_must_root)] // Owner needs to be rooted already necessarily.
+    pub fn remove_stylesheet(&self, owner: &Element, s: &Arc<Stylesheet>) {
+        self.window()
+            .layout_chan()
+            .send(Msg::RemoveStylesheet(s.clone()))
+            .unwrap();
+
+        let guard = s.shared_lock.read();
+        let device = self.device();
+
+        // FIXME(emilio): Would be nice to remove the clone, etc.
+        self.stylesheets.borrow_mut().remove_stylesheet(
+            device.as_ref(),
+            StyleSheetInDocument {
+                sheet: s.clone(),
+                owner: JS::from_ref(owner),
+            },
+            &guard,
+        );
+    }
+
+    /// Add a stylesheet owned by `owner` to the list of document sheets, in the
+    /// correct tree position.
+    #[allow(unrooted_must_root)] // Owner needs to be rooted already necessarily.
+    pub fn add_stylesheet(&self, owner: &Element, sheet: Arc<Stylesheet>) {
+        // FIXME(emilio): It'd be nice to unify more code between the elements
+        // that own stylesheets, but StylesheetOwner is more about loading
+        // them...
+        debug_assert!(owner.as_stylesheet_owner().is_some() ||
+                      owner.is::<HTMLMetaElement>(), "Wat");
+
+        let mut stylesheets = self.stylesheets.borrow_mut();
+        let insertion_point = stylesheets.iter().find(|sheet_in_doc| {
+            owner.upcast::<Node>().is_before(sheet_in_doc.owner.upcast())
+        }).cloned();
+
+        self.window()
+            .layout_chan()
+            .send(Msg::AddStylesheet(
+                sheet.clone(),
+                insertion_point.as_ref().map(|s| s.sheet.clone())
+            ))
+            .unwrap();
+
+        let sheet = StyleSheetInDocument {
+            sheet,
+            owner: JS::from_ref(owner),
+        };
+
+        let lock = self.style_shared_lock();
+        let guard = lock.read();
+
+        let device = self.device();
+        match insertion_point {
+            Some(ip) => {
+                stylesheets.insert_stylesheet_before(device.as_ref(), sheet, ip, &guard);
+            }
+            None => {
+                stylesheets.append_stylesheet(device.as_ref(), sheet, &guard);
+            }
+        }
+    }
+
+    /// Returns the number of document stylesheets.
+    pub fn stylesheet_count(&self) -> usize {
+        self.stylesheets.borrow().len()
+    }
+
+    pub fn stylesheet_at(&self, index: usize) -> Option<Root<CSSStyleSheet>> {
+        let stylesheets = self.stylesheets.borrow();
+
+        stylesheets.get(index).and_then(|s| {
+            s.owner.upcast::<Node>().get_cssom_stylesheet()
+        })
     }
 
     /// https://html.spec.whatwg.org/multipage/#appropriate-template-contents-owner-document
@@ -3684,8 +3771,7 @@ impl DocumentMethods for Document {
         self.scripts.set(None);
         self.anchors.set(None);
         self.applets.set(None);
-        *self.stylesheets.borrow_mut() = None;
-        self.stylesheets_changed_since_reflow.set(true);
+        *self.stylesheets.borrow_mut() = StylesheetSet::new();
         self.animation_frame_ident.set(0);
         self.animation_frame_list.borrow_mut().clear();
         self.pending_restyles.borrow_mut().clear();

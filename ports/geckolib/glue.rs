@@ -891,7 +891,7 @@ pub extern "C" fn Servo_StyleSet_AppendStyleSheet(
     let data = &mut *data;
     let guard = global_style_data.shared_lock.read();
     let sheet = unsafe { GeckoStyleSheet::new(sheet) };
-    data.stylesheets.append_stylesheet(&data.stylist, sheet, &guard);
+    data.stylesheets.append_stylesheet(Some(data.stylist.device()), sheet, &guard);
 }
 
 #[no_mangle]
@@ -940,7 +940,7 @@ pub extern "C" fn Servo_StyleSet_PrependStyleSheet(
     let data = &mut *data;
     let guard = global_style_data.shared_lock.read();
     let sheet = unsafe { GeckoStyleSheet::new(sheet) };
-    data.stylesheets.prepend_stylesheet(&data.stylist, sheet, &guard);
+    data.stylesheets.prepend_stylesheet(Some(data.stylist.device()), sheet, &guard);
 }
 
 #[no_mangle]
@@ -955,7 +955,7 @@ pub extern "C" fn Servo_StyleSet_InsertStyleSheetBefore(
     let guard = global_style_data.shared_lock.read();
     let sheet = unsafe { GeckoStyleSheet::new(sheet) };
     data.stylesheets.insert_stylesheet_before(
-        &data.stylist,
+        Some(data.stylist.device()),
         sheet,
         unsafe { GeckoStyleSheet::new(before_sheet) },
         &guard,
@@ -972,7 +972,7 @@ pub extern "C" fn Servo_StyleSet_RemoveStyleSheet(
     let data = &mut *data;
     let guard = global_style_data.shared_lock.read();
     let sheet = unsafe { GeckoStyleSheet::new(sheet) };
-    data.stylesheets.remove_stylesheet(&data.stylist, sheet, &guard);
+    data.stylesheets.remove_stylesheet(Some(data.stylist.device()), sheet, &guard);
 }
 
 #[no_mangle]

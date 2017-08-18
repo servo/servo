@@ -99,10 +99,10 @@ impl HTMLMetaElement {
             let content = content.value();
             if !content.is_empty() {
                 if let Some(translated_rule) = ViewportRule::from_meta(&**content) {
-                    let document = self.upcast::<Node>().owner_doc();
+                    let document = document_from_node(self);
                     let shared_lock = document.style_shared_lock();
                     let rule = CssRule::Viewport(Arc::new(shared_lock.wrap(translated_rule)));
-                    *self.stylesheet.borrow_mut() = Some(Arc::new(Stylesheet {
+                    let sheet = Arc::new(Stylesheet {
                         contents: StylesheetContents {
                             rules: CssRules::new(vec![rule], shared_lock),
                             origin: Origin::Author,
@@ -118,9 +118,9 @@ impl HTMLMetaElement {
                         media: Arc::new(shared_lock.wrap(MediaList::empty())),
                         shared_lock: shared_lock.clone(),
                         disabled: AtomicBool::new(false),
-                    }));
-                    let doc = document_from_node(self);
-                    doc.invalidate_stylesheets();
+                    });
+                    *self.stylesheet.borrow_mut() = Some(sheet.clone());
+                    document.add_stylesheet(self.upcast(), sheet);
                 }
             }
         }
@@ -199,6 +199,10 @@ impl VirtualMethods for HTMLMetaElement {
 
         if context.tree_in_doc {
             self.process_referrer_attribute();
+
+            if let Some(ref s) = *self.stylesheet.borrow() {
+                document_from_node(self).remove_stylesheet(self.upcast(), s);
+            }
         }
     }
 }

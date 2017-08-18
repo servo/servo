@@ -20,7 +20,6 @@ use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use net_traits::ReferrerPolicy;
-use script_layout_interface::message::Msg;
 use servo_arc::Arc;
 use std::cell::Cell;
 use style::media_queries::parse_media_query_list;
@@ -109,10 +108,18 @@ impl HTMLStyleElement {
             self.upcast::<EventTarget>().fire_event(atom!("load"));
         }
 
-        win.layout_chan().send(Msg::AddStylesheet(sheet.clone())).unwrap();
-        *self.stylesheet.borrow_mut() = Some(sheet);
+        self.set_stylesheet(sheet);
+    }
+
+    // FIXME(emilio): This is duplicated with HTMLLinkElement::set_stylesheet.
+    pub fn set_stylesheet(&self, s: Arc<Stylesheet>) {
+        let doc = document_from_node(self);
+        if let Some(ref s) = *self.stylesheet.borrow() {
+            doc.remove_stylesheet(self.upcast(), s)
+        }
+        *self.stylesheet.borrow_mut() = Some(s.clone());
         self.cssom_stylesheet.set(None);
-        doc.invalidate_stylesheets();
+        doc.add_stylesheet(self.upcast(), s);
     }
 
     pub fn get_stylesheet(&self) -> Option<Arc<Stylesheet>> {
@@ -180,8 +187,12 @@ impl VirtualMethods for HTMLStyleElement {
             s.unbind_from_tree(context);
         }
 
-        let doc = document_from_node(self);
-        doc.invalidate_stylesheets();
+        if context.tree_in_doc {
+            if let Some(ref s) = *self.stylesheet.borrow() {
+                let doc = document_from_node(self);
+                doc.remove_stylesheet(self.upcast(), s)
+            }
+        }
     }
 }
 
