@@ -295,10 +295,8 @@ impl<'a, 'b> NestedRuleParser<'a, 'b> {
         input: &mut Parser,
         rule_type: CssRuleType
     ) -> Arc<Locked<CssRules>> {
-        let context = ParserContext::new_with_rule_type(
-            self.context,
-            Some(rule_type),
-        );
+        let context =
+            ParserContext::new_with_rule_type(self.context, rule_type, self.namespaces);
 
         let nested_parser = NestedRuleParser {
             stylesheet_origin: self.stylesheet_origin,
@@ -423,17 +421,33 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
     ) -> Result<CssRule, ParseError<'i>> {
         match prelude {
             AtRulePrelude::FontFace(location) => {
-                let context = ParserContext::new_with_rule_type(self.context, Some(CssRuleType::FontFace));
+                let context =
+                    ParserContext::new_with_rule_type(
+                        self.context,
+                        CssRuleType::FontFace,
+                        self.namespaces,
+                    );
+
                 Ok(CssRule::FontFace(Arc::new(self.shared_lock.wrap(
                    parse_font_face_block(&context, input, location).into()))))
             }
             AtRulePrelude::FontFeatureValues(family_names, location) => {
-                let context = ParserContext::new_with_rule_type(self.context, Some(CssRuleType::FontFeatureValues));
+                let context =
+                    ParserContext::new_with_rule_type(
+                        self.context,
+                        CssRuleType::FontFeatureValues,
+                        self.namespaces,
+                    );
                 Ok(CssRule::FontFeatureValues(Arc::new(self.shared_lock.wrap(
                     FontFeatureValuesRule::parse(&context, input, family_names, location)))))
             }
             AtRulePrelude::CounterStyle(name) => {
-                let context = ParserContext::new_with_rule_type(self.context, Some(CssRuleType::CounterStyle));
+                let context =
+                    ParserContext::new_with_rule_type(
+                        self.context,
+                        CssRuleType::CounterStyle,
+                        self.namespaces,
+                    );
                 Ok(CssRule::CounterStyle(Arc::new(self.shared_lock.wrap(
                    parse_counter_style_body(name, &context, input)?.into()))))
             }
@@ -445,7 +459,13 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
                 }))))
             }
             AtRulePrelude::Supports(cond, location) => {
-                let enabled = cond.eval(self.context);
+                let eval_context =
+                    ParserContext::new_with_rule_type(
+                        self.context,
+                        CssRuleType::Style,
+                        self.namespaces,
+                    );
+                let enabled = cond.eval(&eval_context);
                 Ok(CssRule::Supports(Arc::new(self.shared_lock.wrap(SupportsRule {
                     condition: cond,
                     rules: self.parse_nested_rules(input, CssRuleType::Supports),
@@ -454,12 +474,23 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
                 }))))
             }
             AtRulePrelude::Viewport => {
-                let context = ParserContext::new_with_rule_type(self.context, Some(CssRuleType::Viewport));
+                let context =
+                    ParserContext::new_with_rule_type(
+                        self.context,
+                        CssRuleType::Viewport,
+                        self.namespaces,
+                    );
                 Ok(CssRule::Viewport(Arc::new(self.shared_lock.wrap(
                    ViewportRule::parse(&context, input)?))))
             }
             AtRulePrelude::Keyframes(name, prefix, location) => {
-                let context = ParserContext::new_with_rule_type(self.context, Some(CssRuleType::Keyframes));
+                let context =
+                    ParserContext::new_with_rule_type(
+                        self.context,
+                        CssRuleType::Keyframes,
+                        self.namespaces,
+                    );
+
                 Ok(CssRule::Keyframes(Arc::new(self.shared_lock.wrap(KeyframesRule {
                     name: name,
                     keyframes: parse_keyframe_list(&context, input, self.shared_lock),
@@ -468,7 +499,12 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
                 }))))
             }
             AtRulePrelude::Page(location) => {
-                let context = ParserContext::new_with_rule_type(self.context, Some(CssRuleType::Page));
+                let context =
+                    ParserContext::new_with_rule_type(
+                        self.context,
+                        CssRuleType::Page,
+                        self.namespaces,
+                    );
                 let declarations = parse_property_declaration_list(&context, input);
                 Ok(CssRule::Page(Arc::new(self.shared_lock.wrap(PageRule {
                     block: Arc::new(self.shared_lock.wrap(declarations)),
@@ -520,8 +556,12 @@ impl<'a, 'b, 'i> QualifiedRuleParser<'i> for NestedRuleParser<'a, 'b> {
         prelude: QualifiedRuleParserPrelude,
         input: &mut Parser<'i, 't>
     ) -> Result<CssRule, ParseError<'i>> {
-        let mut context = ParserContext::new_with_rule_type(self.context, Some(CssRuleType::Style));
-        context.namespaces = Some(self.namespaces);
+        let context =
+            ParserContext::new_with_rule_type(
+                self.context,
+                CssRuleType::Style,
+                self.namespaces,
+            );
         let declarations = parse_property_declaration_list(&context, input);
         Ok(CssRule::Style(Arc::new(self.shared_lock.wrap(StyleRule {
             selectors: prelude.selectors,

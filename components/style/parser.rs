@@ -102,17 +102,18 @@ impl<'a> ParserContext<'a> {
     /// Create a parser context based on a previous context, but with a modified rule type.
     pub fn new_with_rule_type(
         context: &'a ParserContext,
-        rule_type: Option<CssRuleType>
+        rule_type: CssRuleType,
+        namespaces: &'a Namespaces,
     ) -> ParserContext<'a> {
         ParserContext {
             stylesheet_origin: context.stylesheet_origin,
             url_data: context.url_data,
             error_reporter: context.error_reporter,
-            rule_type: rule_type,
+            rule_type: Some(rule_type),
             line_number_offset: context.line_number_offset,
             parsing_mode: context.parsing_mode,
             quirks_mode: context.quirks_mode,
-            namespaces: context.namespaces,
+            namespaces: Some(namespaces),
         }
     }
 
