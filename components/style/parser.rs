@@ -61,13 +61,14 @@ pub struct ParserContext<'a> {
 
 impl<'a> ParserContext<'a> {
     /// Create a parser context.
-    pub fn new(stylesheet_origin: Origin,
-               url_data: &'a UrlExtraData,
-               error_reporter: &'a ParseErrorReporter,
-               rule_type: Option<CssRuleType>,
-               parsing_mode: ParsingMode,
-               quirks_mode: QuirksMode)
-               -> ParserContext<'a> {
+    pub fn new(
+        stylesheet_origin: Origin,
+        url_data: &'a UrlExtraData,
+        error_reporter: &'a ParseErrorReporter,
+        rule_type: Option<CssRuleType>,
+        parsing_mode: ParsingMode,
+        quirks_mode: QuirksMode,
+    ) -> ParserContext<'a> {
         ParserContext {
             stylesheet_origin: stylesheet_origin,
             url_data: url_data,
@@ -88,23 +89,31 @@ impl<'a> ParserContext<'a> {
         parsing_mode: ParsingMode,
         quirks_mode: QuirksMode
     ) -> ParserContext<'a> {
-        Self::new(Origin::Author, url_data, error_reporter, rule_type, parsing_mode, quirks_mode)
+        Self::new(
+            Origin::Author,
+            url_data,
+            error_reporter,
+            rule_type,
+            parsing_mode,
+            quirks_mode,
+        )
     }
 
     /// Create a parser context based on a previous context, but with a modified rule type.
     pub fn new_with_rule_type(
         context: &'a ParserContext,
-        rule_type: Option<CssRuleType>
+        rule_type: CssRuleType,
+        namespaces: &'a Namespaces,
     ) -> ParserContext<'a> {
         ParserContext {
             stylesheet_origin: context.stylesheet_origin,
             url_data: context.url_data,
             error_reporter: context.error_reporter,
-            rule_type: rule_type,
+            rule_type: Some(rule_type),
             line_number_offset: context.line_number_offset,
             parsing_mode: context.parsing_mode,
             quirks_mode: context.quirks_mode,
-            namespaces: context.namespaces,
+            namespaces: Some(namespaces),
         }
     }
 
@@ -115,7 +124,7 @@ impl<'a> ParserContext<'a> {
         error_reporter: &'a ParseErrorReporter,
         line_number_offset: u64,
         parsing_mode: ParsingMode,
-        quirks_mode: QuirksMode
+        quirks_mode: QuirksMode,
     ) -> ParserContext<'a> {
         ParserContext {
             stylesheet_origin: stylesheet_origin,

@@ -134,7 +134,7 @@ impl MallocSizeOfWithGuard for CssRule {
 }
 
 #[allow(missing_docs)]
-#[derive(PartialEq, Eq, Copy, Clone)]
+#[derive(PartialEq, Eq, Copy, Clone, Debug)]
 pub enum CssRuleType {
     // https://drafts.csswg.org/cssom/#the-cssrule-interface
     Style               = 1,
@@ -249,7 +249,7 @@ impl CssRule {
             loader: loader,
             state: state,
             had_hierarchy_error: false,
-            namespaces: Some(&mut *guard),
+            namespaces: &mut *guard,
         };
 
         parse_one_rule(&mut input, &mut rule_parser)
