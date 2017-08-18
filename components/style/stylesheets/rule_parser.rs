@@ -158,8 +158,10 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
         name: CowRcStr<'i>,
         input: &mut Parser<'i, 't>
     ) -> Result<AtRuleType<AtRulePrelude, CssRule>, ParseError<'i>> {
-        let location = get_location_with_offset(input.current_source_location(),
-                                                self.context.line_number_offset);
+        let location = get_location_with_offset(
+            input.current_source_location(),
+            self.context.line_number_offset,
+        );
         match_ignore_ascii_case! { &*name,
             "import" => {
                 if self.state > State::Imports {
@@ -237,18 +239,15 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
         }
         self.state = State::Body;
 
-        // "Freeze" the namespace map (no more namespace rules can be parsed
-        // after this point), and stick it in the context.
-        if self.namespaces.is_some() {
-            let namespaces = &*self.namespaces.take().unwrap();
-            self.context.namespaces = Some(namespaces);
-        }
         AtRuleParser::parse_prelude(&mut self.nested(), name, input)
     }
 
     #[inline]
-    fn parse_block<'t>(&mut self, prelude: AtRulePrelude, input: &mut Parser<'i, 't>)
-                       -> Result<CssRule, ParseError<'i>> {
+    fn parse_block<'t>(
+        &mut self,
+        prelude: AtRulePrelude,
+        input: &mut Parser<'i, 't>
+    ) -> Result<CssRule, ParseError<'i>> {
         AtRuleParser::parse_block(&mut self.nested(), prelude, input)
     }
 }
@@ -264,8 +263,10 @@ impl<'a, 'i> QualifiedRuleParser<'i> for TopLevelRuleParser<'a> {
     type Error = SelectorParseError<'i, StyleParseError<'i>>;
 
     #[inline]
-    fn parse_prelude<'t>(&mut self, input: &mut Parser<'i, 't>)
-                         -> Result<QualifiedRuleParserPrelude, ParseError<'i>> {
+    fn parse_prelude<'t>(
+        &mut self,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<QualifiedRuleParserPrelude, ParseError<'i>> {
         self.state = State::Body;
         QualifiedRuleParser::parse_prelude(&mut self.nested(), input)
     }
