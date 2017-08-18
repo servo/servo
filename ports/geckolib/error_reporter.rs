@@ -50,11 +50,11 @@ enum ErrorString<'a> {
 }
 
 impl<'a> ErrorString<'a> {
-    fn into_str(self) -> String {
+    fn into_str(self) -> CowRcStr<'a> {
         match self {
-            ErrorString::Snippet(s) => s.as_ref().to_owned(),
-            ErrorString::Ident(i) => escape_css_ident(&i),
-            ErrorString::UnexpectedToken(t) => token_to_str(t),
+            ErrorString::Snippet(s) => s,
+            ErrorString::Ident(i) => escape_css_ident(&i).into(),
+            ErrorString::UnexpectedToken(t) => token_to_str(t).into(),
         }
     }
 }
@@ -158,9 +158,9 @@ fn token_to_str<'a>(t: Token<'a>) -> String {
         Token::Percentage { int_value: Some(i), .. } => i.to_string(),
         Token::Percentage { unit_value, .. } => unit_value.to_string(),
         Token::Dimension { int_value: Some(i), ref unit, .. } =>
-            format!("{}{}", i.to_string(), escape_css_ident(&unit.to_string())),
+            format!("{}{}", i, escape_css_ident(&*unit)),
         Token::Dimension { value, ref unit, .. } =>
-            format!("{}{}", value.to_string(), escape_css_ident(&unit.to_string())),
+            format!("{}{}", value, escape_css_ident(&*unit)),
         Token::WhiteSpace(_) => "whitespace".into(),
         Token::Comment(_) => "comment".into(),
         Token::Colon => ":".into(),
