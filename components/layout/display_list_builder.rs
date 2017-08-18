@@ -1411,7 +1411,7 @@ impl FragmentDisplayListBuilding for Fragment {
             state.add_display_item(DisplayItem::BoxShadow(box BoxShadowDisplayItem {
                 base: base,
                 box_bounds: *absolute_bounds,
-                color: style.resolve_color(box_shadow.base.color).to_gfx_color(),
+                color: box_shadow.base.color.unwrap_or(style.get_color().color).to_gfx_color(),
                 offset: Vector2D::new(box_shadow.base.horizontal, box_shadow.base.vertical),
                 blur_radius: box_shadow.base.blur.0,
                 spread_radius: box_shadow.spread,
@@ -2133,7 +2133,7 @@ impl FragmentDisplayListBuilding for Fragment {
                 base: base.clone(),
                 blur_radius: shadow.blur.0,
                 offset: Vector2D::new(shadow.horizontal, shadow.vertical),
-                color: self.style().resolve_color(shadow.color).to_gfx_color(),
+                color: shadow.color.unwrap_or(self.style().get_color().color).to_gfx_color(),
             }));
         }
 

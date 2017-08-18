@@ -12,7 +12,7 @@ use std::cmp;
 #[cfg(not(feature = "gecko"))]
 use values::Impossible;
 use values::animated::{ToAnimatedValue, ToAnimatedZero};
-use values::animated::color::Color;
+use values::animated::color::RGBA;
 use values::computed::{Angle, NonNegativeNumber};
 use values::computed::length::{Length, NonNegativeLength};
 use values::distance::{ComputeSquaredDistance, SquaredDistance};
@@ -34,7 +34,7 @@ pub type TextShadowList = ShadowList<SimpleShadow>;
 pub struct ShadowList<Shadow>(Vec<Shadow>);
 
 /// An animated value for a single `box-shadow`.
-pub type BoxShadow = GenericBoxShadow<Color, Length, NonNegativeLength, Length>;
+pub type BoxShadow = GenericBoxShadow<Option<RGBA>, Length, NonNegativeLength, Length>;
 
 /// An animated value for the `filter` property.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -50,7 +50,7 @@ pub type Filter = GenericFilter<Angle, NonNegativeNumber, NonNegativeLength, Sim
 pub type Filter = GenericFilter<Angle, NonNegativeNumber, NonNegativeLength, Impossible>;
 
 /// An animated value for the `drop-shadow()` filter.
-pub type SimpleShadow = GenericSimpleShadow<Color, Length, NonNegativeLength>;
+pub type SimpleShadow = GenericSimpleShadow<Option<RGBA>, Length, NonNegativeLength>;
 
 impl ToAnimatedValue for ComputedBoxShadowList {
     type AnimatedValue = BoxShadowList;
@@ -245,7 +245,7 @@ impl ToAnimatedZero for SimpleShadow {
     #[inline]
     fn to_animated_zero(&self) -> Result<Self, ()> {
         Ok(SimpleShadow {
-            color: Color::transparent(),
+            color: Some(RGBA::transparent()),
             horizontal: self.horizontal.to_animated_zero()?,
             vertical: self.vertical.to_animated_zero()?,
             blur: self.blur.to_animated_zero()?,
