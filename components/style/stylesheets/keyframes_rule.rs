@@ -214,12 +214,16 @@ impl Keyframe {
     ) -> Result<Arc<Locked<Self>>, ParseError<'i>> {
         let url_data = parent_stylesheet_contents.url_data.read();
         let error_reporter = NullReporter;
-        let context = ParserContext::new(parent_stylesheet_contents.origin,
-                                         &url_data,
-                                         &error_reporter,
-                                         Some(CssRuleType::Keyframe),
-                                         PARSING_MODE_DEFAULT,
-                                         parent_stylesheet_contents.quirks_mode);
+        let namespaces = parent_stylesheet_contents.namespaces.read();
+        let mut context = ParserContext::new(
+            parent_stylesheet_contents.origin,
+            &url_data,
+            &error_reporter,
+            Some(CssRuleType::Keyframe),
+            PARSING_MODE_DEFAULT,
+            parent_stylesheet_contents.quirks_mode
+        );
+        context.namespaces = Some(&*namespaces);
         let mut input = ParserInput::new(css);
         let mut input = Parser::new(&mut input);
 
