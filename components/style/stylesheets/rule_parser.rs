@@ -42,8 +42,11 @@ pub struct TopLevelRuleParser<'a> {
     pub shared_lock: &'a SharedRwLock,
     /// A reference to a stylesheet loader if applicable, for `@import` rules.
     pub loader: Option<&'a StylesheetLoader>,
-    /// The parser context. This initially won't contain any namespaces, but
-    /// will be populated after parsing namespace rules, if any.
+    /// The top-level parser context.
+    ///
+    /// This won't contain any namespaces, and will only be filled right because
+    /// parsing style rules, on the assumption that they're the only rules that
+    /// need them.
     pub context: ParserContext<'a>,
     /// The current state of the parser.
     pub state: State,
@@ -54,7 +57,7 @@ pub struct TopLevelRuleParser<'a> {
     /// The namespace map we use for parsing. Needs to start as `Some()`, and
     /// will be taken out after parsing namespace rules, and that reference will
     /// be moved to `ParserContext`.
-    pub namespaces: Option<&'a mut Namespaces>,
+    pub namespaces: &'a mut Namespaces,
 }
 
 impl<'b> TopLevelRuleParser<'b> {
@@ -63,12 +66,8 @@ impl<'b> TopLevelRuleParser<'b> {
             stylesheet_origin: self.stylesheet_origin,
             shared_lock: self.shared_lock,
             context: &self.context,
+            namespaces: &self.namespaces,
         }
-    }
-
-    /// Returns the associated parser context with this rule parser.
-    pub fn context(&self) -> &ParserContext {
-        &self.context
     }
 
     /// Returns the current state of the parser.
@@ -209,16 +208,14 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
                 let id = register_namespace(&url)
                     .map_err(|()| StyleParseError::UnspecifiedError)?;
 
-                let namespaces = self.namespaces.as_mut().unwrap();
-
                 let opt_prefix = if let Ok(prefix) = prefix_result {
                     let prefix = Prefix::from(prefix.as_ref());
-                    namespaces
+                    self.namespaces
                         .prefixes
                         .insert(prefix.clone(), (url.clone(), id));
                     Some(prefix)
                 } else {
-                    namespaces.default = Some((url.clone(), id));
+                    self.namespaces.default = Some((url.clone(), id));
                     None
                 };
 
@@ -270,14 +267,6 @@ impl<'a, 'i> QualifiedRuleParser<'i> for TopLevelRuleParser<'a> {
     fn parse_prelude<'t>(&mut self, input: &mut Parser<'i, 't>)
                          -> Result<QualifiedRuleParserPrelude, ParseError<'i>> {
         self.state = State::Body;
-
-        // "Freeze" the namespace map (no more namespace rules can be parsed
-        // after this point), and stick it in the context.
-        if self.namespaces.is_some() {
-            let namespaces = &*self.namespaces.take().unwrap();
-            self.context.namespaces = Some(namespaces);
-        }
-
         QualifiedRuleParser::parse_prelude(&mut self.nested(), input)
     }
 
@@ -296,6 +285,7 @@ struct NestedRuleParser<'a, 'b: 'a> {
     stylesheet_origin: Origin,
     shared_lock: &'a SharedRwLock,
     context: &'a ParserContext<'b>,
+    namespaces: &'a Namespaces,
 }
 
 impl<'a, 'b> NestedRuleParser<'a, 'b> {
@@ -304,12 +294,16 @@ impl<'a, 'b> NestedRuleParser<'a, 'b> {
         input: &mut Parser,
         rule_type: CssRuleType
     ) -> Arc<Locked<CssRules>> {
-        let context = ParserContext::new_with_rule_type(self.context, Some(rule_type));
+        let context = ParserContext::new_with_rule_type(
+            self.context,
+            Some(rule_type),
+        );
 
         let nested_parser = NestedRuleParser {
             stylesheet_origin: self.stylesheet_origin,
             shared_lock: self.shared_lock,
             context: &context,
+            namespaces: self.namespaces,
         };
 
         let mut iter = RuleListParser::new_for_nested_rule(input, nested_parser);
@@ -500,11 +494,13 @@ impl<'a, 'b, 'i> QualifiedRuleParser<'i> for NestedRuleParser<'a, 'b> {
     type QualifiedRule = CssRule;
     type Error = SelectorParseError<'i, StyleParseError<'i>>;
 
-    fn parse_prelude<'t>(&mut self, input: &mut Parser<'i, 't>)
-                         -> Result<QualifiedRuleParserPrelude, ParseError<'i>> {
+    fn parse_prelude<'t>(
+        &mut self,
+        input: &mut Parser<'i, 't>
+    ) -> Result<QualifiedRuleParserPrelude, ParseError<'i>> {
         let selector_parser = SelectorParser {
             stylesheet_origin: self.stylesheet_origin,
-            namespaces: self.context.namespaces.unwrap(),
+            namespaces: self.namespaces,
             url_data: Some(self.context.url_data),
         };
 
@@ -523,7 +519,8 @@ impl<'a, 'b, 'i> QualifiedRuleParser<'i> for NestedRuleParser<'a, 'b> {
         prelude: QualifiedRuleParserPrelude,
         input: &mut Parser<'i, 't>
     ) -> Result<CssRule, ParseError<'i>> {
-        let context = ParserContext::new_with_rule_type(self.context, Some(CssRuleType::Style));
+        let mut context = ParserContext::new_with_rule_type(self.context, Some(CssRuleType::Style));
+        context.namespaces = Some(self.namespaces);
         let declarations = parse_property_declaration_list(&context, input);
         Ok(CssRule::Style(Arc::new(self.shared_lock.wrap(StyleRule {
             selectors: prelude.selectors,

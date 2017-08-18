@@ -249,7 +249,7 @@ impl CssRule {
             loader: loader,
             state: state,
             had_hierarchy_error: false,
-            namespaces: Some(&mut *guard),
+            namespaces: &mut *guard,
         };
 
         parse_one_rule(&mut input, &mut rule_parser)
