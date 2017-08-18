@@ -5,6 +5,7 @@
 //! Global style data
 
 use context::StyleSystemOptions;
+use gecko_bindings::bindings;
 use gecko_bindings::bindings::{Gecko_RegisterProfilerThread, Gecko_UnregisterProfilerThread};
 use gecko_bindings::bindings::Gecko_SetJemallocThreadLocalArena;
 use num_cpus;
@@ -78,7 +79,7 @@ lazy_static! {
             }
         }
 
-        let pool = if num_threads < 1 {
+        let pool = if num_threads < 1 || unsafe { !bindings::Gecko_ShouldCreateStyleThreadPool() } {
             None
         } else {
             let configuration = rayon::Configuration::new()
