@@ -169,7 +169,6 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
                     return Err(StyleParseError::UnexpectedImportRule.into())
                 }
 
-                self.state = State::Imports;
                 let url_string = input.expect_url_or_string()?.as_ref().to_owned();
                 let specified_url = SpecifiedUrl::parse_from_string(url_string, &self.context)?;
 
@@ -187,6 +186,7 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
                     media,
                 );
 
+                self.state = State::Imports;
                 return Ok(AtRuleType::WithoutBlock(CssRule::Import(import_rule)))
             },
             "namespace" => {
@@ -195,7 +195,6 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
                     self.had_hierarchy_error = true;
                     return Err(StyleParseError::UnexpectedNamespaceRule.into())
                 }
-                self.state = State::Namespaces;
 
                 let prefix_result = input.try(|i| i.expect_ident_cloned());
                 let maybe_namespace = match input.expect_url_or_string() {
@@ -220,6 +219,7 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
                     None
                 };
 
+                self.state = State::Namespaces;
                 return Ok(AtRuleType::WithoutBlock(CssRule::Namespace(Arc::new(
                     self.shared_lock.wrap(NamespaceRule {
                         prefix: opt_prefix,
@@ -236,7 +236,6 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
             }
             _ => {}
         }
-        self.state = State::Body;
 
         AtRuleParser::parse_prelude(&mut self.nested(), name, input)
     }
@@ -248,6 +247,7 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
         input: &mut Parser<'i, 't>
     ) -> Result<CssRule, ParseError<'i>> {
         AtRuleParser::parse_block(&mut self.nested(), prelude, input)
+            .map(|rule| { self.state = State::Body; rule })
     }
 }
 
@@ -266,7 +266,6 @@ impl<'a, 'i> QualifiedRuleParser<'i> for TopLevelRuleParser<'a> {
         &mut self,
         input: &mut Parser<'i, 't>,
     ) -> Result<QualifiedRuleParserPrelude, ParseError<'i>> {
-        self.state = State::Body;
         QualifiedRuleParser::parse_prelude(&mut self.nested(), input)
     }
 
@@ -277,6 +276,7 @@ impl<'a, 'i> QualifiedRuleParser<'i> for TopLevelRuleParser<'a> {
         input: &mut Parser<'i, 't>
     ) -> Result<CssRule, ParseError<'i>> {
         QualifiedRuleParser::parse_block(&mut self.nested(), prelude, input)
+            .map(|result| { self.state = State::Body; result })
     }
 }
 
