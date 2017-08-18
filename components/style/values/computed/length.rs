@@ -206,11 +206,8 @@ impl ToCss for CalcLengthOrPercentage {
         percentage.to_css(dest)?;
 
         dest.write_str(if length < Zero::zero() { " - " } else { " + " })?;
+        length.abs().to_css(dest)?;
 
-        // FIXME(emilio): Au::abs would be nice.
-        let length = if length < Zero::zero() { -length } else { length };
-
-        length.to_css(dest)?;
         dest.write_str(")")
     }
 }
