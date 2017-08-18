@@ -320,11 +320,6 @@ impl LegacyPosition {
                 return Ok(Self::new(x_pos, y_pos));
             },
             Ok(OriginComponent::Side(x_keyword)) => {
-                if input.try(|i| i.expect_ident_matching("center")).is_ok() {
-                    let x_pos = OriginComponent::Side(x_keyword);
-                    let y_pos = OriginComponent::Center;
-                    return Ok(Self::new(x_pos, y_pos));
-                }
                 if let Ok(y_keyword) = input.try(Y::parse) {
                     let x_pos = OriginComponent::Side(x_keyword);
                     let y_pos = OriginComponent::Side(y_keyword);
@@ -334,6 +329,8 @@ impl LegacyPosition {
                 if let Ok(y_lop) = input.try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks)) {
                     return Ok(Self::new(x_pos, OriginComponent::Length(y_lop)))
                 }
+                let _ = input.try(|i| i.expect_ident_matching("center"));
+                return Ok(Self::new(x_pos, OriginComponent::Center));
             },
             Ok(x_pos @ OriginComponent::Length(_)) => {
                 if let Ok(y_keyword) = input.try(Y::parse) {
@@ -344,9 +341,8 @@ impl LegacyPosition {
                     let y_pos = OriginComponent::Length(y_lop);
                     return Ok(Self::new(x_pos, y_pos));
                 }
-                let y_pos = OriginComponent::Center;
                 let _ = input.try(|i| i.expect_ident_matching("center"));
-                return Ok(Self::new(x_pos, y_pos));
+                return Ok(Self::new(x_pos, OriginComponent::Center));
             },
             Err(_) => {},
         }
