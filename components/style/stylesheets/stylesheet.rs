@@ -343,7 +343,7 @@ impl Stylesheet {
             context: context,
             state: State::Start,
             had_hierarchy_error: false,
-            namespaces: Some(namespaces),
+            namespaces: namespaces,
         };
 
         input.look_for_viewport_percentages();
@@ -357,7 +357,7 @@ impl Stylesheet {
                     Ok(rule) => rules.push(rule),
                     Err(err) => {
                         let error = ContextualParseError::InvalidRule(err.slice, err.error);
-                        iter.parser.context().log_css_error(err.location, error);
+                        iter.parser.context.log_css_error(err.location, error);
                     }
                 }
             }
