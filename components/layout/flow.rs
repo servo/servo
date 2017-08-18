@@ -407,6 +407,11 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
         self.contains_positioned_fragments()
     }
 
+    /// Returns true if this flow contains fragments that are roots of an absolute flow tree.
+    fn contains_roots_of_absolute_flow_tree(&self) -> bool {
+        self.contains_relatively_positioned_fragments() || self.is_root()
+    }
+
     /// Updates the inline position of a child flow during the assign-height traversal. At present,
     /// this is only used for absolutely-positioned inline-blocks.
     fn update_late_computed_inline_position_if_necessary(&mut self, inline_position: Au);
@@ -501,9 +506,6 @@ pub trait ImmutableFlowUtils {
 
     /// Returns true if this flow is one of table-related flows.
     fn is_table_kind(self) -> bool;
-
-    /// Returns true if this flow contains fragments that are roots of an absolute flow tree.
-    fn contains_roots_of_absolute_flow_tree(&self) -> bool;
 
     /// Returns true if this flow has no children.
     fn is_leaf(self) -> bool;
@@ -1196,11 +1198,6 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
                 FlowClass::TableRow | FlowClass::TableCaption | FlowClass::TableCell => true,
             _ => false,
         }
-    }
-
-    /// Returns true if this flow contains fragments that are roots of an absolute flow tree.
-    fn contains_roots_of_absolute_flow_tree(&self) -> bool {
-        self.contains_relatively_positioned_fragments() || self.is_root()
     }
 
     /// Returns true if this flow has no children.

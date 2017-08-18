@@ -2487,6 +2487,13 @@ impl Fragment {
                               stacking_relative_border_box.size.height - border_padding.vertical()))
     }
 
+    /// Returns true if this fragment has a filter, transform, or perspective property set.
+    pub fn has_filter_transform_or_perspective(&self) -> bool {
+           self.style().get_box().transform.0.is_some() ||
+           !self.style().get_effects().filter.0.is_empty() ||
+           self.style().get_box().perspective != Either::Second(values::None_)
+    }
+
     /// Returns true if this fragment establishes a new stacking context and false otherwise.
     pub fn establishes_stacking_context(&self) -> bool {
         // Text fragments shouldn't create stacking contexts.
@@ -2500,22 +2507,17 @@ impl Fragment {
         if self.style().get_effects().opacity != 1.0 {
             return true
         }
-        if !self.style().get_effects().filter.0.is_empty() {
-            return true
-        }
+
         if self.style().get_effects().mix_blend_mode != mix_blend_mode::T::normal {
             return true
         }
 
-        if self.style().get_box().transform.0.is_some() ||
-           self.style().get_box().transform_style == transform_style::T::preserve_3d ||
-           self.style().overrides_transform_style() {
-            return true
+        if self.has_filter_transform_or_perspective() {
+            return true;
         }
 
-        // TODO(mrobinson): Determine if this is necessary, since blocks with
-        // transformations already create stacking contexts.
-        if let Either::First(ref _length) = self.style().get_box().perspective {
+        if self.style().get_box().transform_style == transform_style::T::preserve_3d ||
+           self.style().overrides_transform_style() {
             return true
         }
 

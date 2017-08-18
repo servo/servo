@@ -448,20 +448,16 @@ pub struct AbsoluteAssignBSizesTraversal<'a>(pub &'a SharedStyleContext<'a>);
 impl<'a> PreorderFlowTraversal for AbsoluteAssignBSizesTraversal<'a> {
     #[inline]
     fn process(&self, flow: &mut Flow) {
-        {
-            // The root of the absolute flow tree is definitely not absolutely
-            // positioned. Nothing to process here.
-            let flow: &Flow = flow;
-            if flow.contains_roots_of_absolute_flow_tree() {
-                return;
-            }
-            if !flow.is_block_like() {
-                return
-            }
+        if !flow.is_block_like() {
+            return
         }
 
+        // This flow might not be an absolutely positioned flow if it is the root of the tree.
         let block = flow.as_mut_block();
-        debug_assert!(block.base.flags.contains(IS_ABSOLUTELY_POSITIONED));
+        if !block.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
+            return;
+        }
+
         if !block.base.restyle_damage.intersects(REFLOW_OUT_OF_FLOW | REFLOW) {
             return
         }
@@ -2104,6 +2100,17 @@ impl Flow for BlockFlow {
     /// positioned descendants. For block flows, this is the padding box.
     fn generated_containing_block_size(&self, _: OpaqueFlow) -> LogicalSize<Au> {
         (self.fragment.border_box - self.fragment.style().logical_border_width()).size
+    }
+
+    /// Returns true if this flow contains fragments that are roots of an absolute flow tree.
+    fn contains_roots_of_absolute_flow_tree(&self) -> bool {
+        self.contains_relatively_positioned_fragments() || self.is_root() ||
+        self.fragment.has_filter_transform_or_perspective()
+    }
+
+    /// Returns true if this is an absolute containing block.
+    fn is_absolute_containing_block(&self) -> bool {
+        self.contains_positioned_fragments() || self.fragment.has_filter_transform_or_perspective()
     }
 
     fn update_late_computed_inline_position_if_necessary(&mut self, inline_position: Au) {

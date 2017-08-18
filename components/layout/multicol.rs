@@ -201,6 +201,14 @@ impl Flow for MulticolFlow {
         self.block_flow.compute_overflow()
     }
 
+    fn contains_roots_of_absolute_flow_tree(&self) -> bool {
+        self.block_flow.contains_roots_of_absolute_flow_tree()
+    }
+
+    fn is_absolute_containing_block(&self) -> bool {
+        self.block_flow.is_absolute_containing_block()
+    }
+
     fn generated_containing_block_size(&self, flow: OpaqueFlow) -> LogicalSize<Au> {
         self.block_flow.generated_containing_block_size(flow)
     }
@@ -281,6 +289,14 @@ impl Flow for MulticolColumnFlow {
 
     fn compute_overflow(&self) -> Overflow {
         self.block_flow.compute_overflow()
+    }
+
+    fn contains_roots_of_absolute_flow_tree(&self) -> bool {
+        self.block_flow.contains_roots_of_absolute_flow_tree()
+    }
+
+    fn is_absolute_containing_block(&self) -> bool {
+        self.block_flow.is_absolute_containing_block()
     }
 
     fn generated_containing_block_size(&self, flow: OpaqueFlow) -> LogicalSize<Au> {
