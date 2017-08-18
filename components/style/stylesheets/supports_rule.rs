@@ -241,16 +241,19 @@ impl Declaration {
     /// Determine if a declaration parses
     ///
     /// https://drafts.csswg.org/css-conditional-3/#support-definition
-    pub fn eval(&self, cx: &ParserContext) -> bool {
+    pub fn eval(&self, context: &ParserContext) -> bool {
+        debug_assert_eq!(context.rule_type(), CssRuleType::Style);
+
         let mut input = ParserInput::new(&self.0);
         let mut input = Parser::new(&mut input);
         input.parse_entirely(|input| {
             let prop = input.expect_ident().unwrap().as_ref().to_owned();
             input.expect_colon().unwrap();
-            let context = ParserContext::new_with_rule_type(cx, Some(CssRuleType::Style));
+
             let property_context = PropertyParserContext::new(&context);
             let id = PropertyId::parse(&prop, Some(&property_context))
-                    .map_err(|_| StyleParseError::UnspecifiedError)?;
+                        .map_err(|_| StyleParseError::UnspecifiedError)?;
+
             let mut declarations = SourcePropertyDeclaration::new();
             input.parse_until_before(Delimiter::Bang, |input| {
                 PropertyDeclaration::parse_into(&mut declarations, id, &context, input)

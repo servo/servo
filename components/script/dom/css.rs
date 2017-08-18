@@ -36,9 +36,13 @@ impl CSS {
         decl.push_str(&value);
         let decl = Declaration(decl);
         let url = win.Document().url();
-        let context = ParserContext::new_for_cssom(&url, win.css_error_reporter(), Some(CssRuleType::Supports),
-                                                   PARSING_MODE_DEFAULT,
-                                                   QuirksMode::NoQuirks);
+        let context = ParserContext::new_for_cssom(
+            &url,
+            win.css_error_reporter(),
+            Some(CssRuleType::Style),
+            PARSING_MODE_DEFAULT,
+            QuirksMode::NoQuirks
+        );
         decl.eval(&context)
     }
 
@@ -49,9 +53,13 @@ impl CSS {
         let cond = parse_condition_or_declaration(&mut input);
         if let Ok(cond) = cond {
             let url = win.Document().url();
-            let context = ParserContext::new_for_cssom(&url, win.css_error_reporter(), Some(CssRuleType::Supports),
-                                                       PARSING_MODE_DEFAULT,
-                                                       QuirksMode::NoQuirks);
+            let context = ParserContext::new_for_cssom(
+                &url,
+                win.css_error_reporter(),
+                Some(CssRuleType::Style),
+                PARSING_MODE_DEFAULT,
+                QuirksMode::NoQuirks
+            );
             cond.eval(&context)
         } else {
             false
