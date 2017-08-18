@@ -1509,10 +1509,6 @@ pub extern "C" fn Servo_KeyframesRule_AppendRule(
     let contents = StylesheetContents::as_arc(&contents);
     let global_style_data = &*GLOBAL_STYLE_DATA;
 
-    // FIXME(emilio): What happens with namespaces here?
-    //
-    // We seem to ignore it, but someone could still set content: attr(..) from
-    // a declaration inside the keyframe block.
     match Keyframe::parse(css, &contents, &global_style_data.shared_lock) {
         Ok(keyframe) => {
             write_locked_arc(rule, |rule: &mut KeyframesRule| {
