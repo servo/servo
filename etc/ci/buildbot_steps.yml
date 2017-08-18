@@ -1,6 +1,6 @@
 mac-rel-wpt1:
   - ./mach clean-nightlies --keep 3 --force
-  - ./mach build --release
+  - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
   - ./mach test-wpt-failure
   - ./mach test-wpt --release --processes 4 --total-chunks 4 --this-chunk 1 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
   - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --use-tracker
@@ -11,26 +11,26 @@ mac-rel-wpt1:
 
 mac-rel-wpt2:
   - ./mach clean-nightlies --keep 3 --force
-  - ./mach build --release
+  - ./mach env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig build --release
   - ./mach test-wpt --release --processes 4 --total-chunks 4 --this-chunk 2 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
   - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --use-tracker
-  - ./mach build-geckolib --release
+  - ./mach env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig build-geckolib --release
 
 mac-rel-wpt3:
   - ./mach clean-nightlies --keep 3 --force
-  - ./mach build --release
+  - ./mach env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig build --release
   - ./mach test-wpt --release --processes 4 --total-chunks 4 --this-chunk 3 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
   - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --use-tracker
 
 mac-rel-wpt4:
   - ./mach clean-nightlies --keep 3 --force
-  - ./mach build --release
+  - ./mach env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig build --release
   - ./mach test-wpt --release --processes 4 --total-chunks 4 --this-chunk 4 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
   - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --use-tracker
 
 mac-dev-unit:
   - ./mach clean-nightlies --keep 3 --force
-  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach build --dev
+  - env env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach build --dev
   - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach test-unit
   - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach package --dev
   - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach build-cef
@@ -40,7 +40,7 @@ mac-dev-unit:
 
 mac-rel-css1:
   - ./mach clean-nightlies --keep 3 --force
-  - ./mach build --release
+  - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
   - ./mach test-css --release --processes 4 --total-chunks 2 --this-chunk 1 --log-raw test-css.log --log-errorsummary css-errorsummary.log --always-succeed
   - ./mach filter-intermittents css-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-css-errorsummary.log --use-tracker
   - bash ./etc/ci/lockfile_changed.sh
@@ -48,13 +48,13 @@ mac-rel-css1:
 
 mac-rel-css2:
   - ./mach clean-nightlies --keep 3 --force
-  - ./mach build --release
+  - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
   - ./mach test-css --release --processes 4 --total-chunks 2 --this-chunk 2 --log-raw test-css.log --log-errorsummary css-errorsummary.log --always-succeed
   - ./mach filter-intermittents css-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-css-errorsummary.log --use-tracker
 
 mac-nightly:
   - ./mach clean-nightlies --keep 3 --force
-  - ./mach build --release
+  - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
   - ./mach package --release
   - ./mach upload-nightly mac
 
@@ -65,7 +65,7 @@ linux-rel-intermittent:
 
 mac-rel-intermittent:
   - ./mach clean-nightlies --keep 3 --force
-  - ./mach build --release
+  - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
   - ./etc/ci/check_intermittents.sh --log-raw intermittents.log
 
 linux-dev:
