@@ -69,6 +69,7 @@ enum ParseOperation {
 
     CreateComment { text: String, node: ParseNodeId },
     AppendBeforeSibling { sibling: ParseNodeId, node: NodeOrText },
+    AppendBasedOnParentNode { element: ParseNodeId, prev_element: ParseNodeId, node: NodeOrText },
     Append { parent: ParseNodeId, node: NodeOrText },
 
     AppendDoctypeToDocument {
@@ -81,7 +82,13 @@ enum ParseOperation {
     RemoveFromParent { target: ParseNodeId },
     MarkScriptAlreadyStarted { node: ParseNodeId },
     ReparentChildren { parent: ParseNodeId, new_parent: ParseNodeId },
-    AssociateWithForm { target: ParseNodeId, form: ParseNodeId },
+
+    AssociateWithForm {
+        target: ParseNodeId,
+        form: ParseNodeId,
+        element: ParseNodeId,
+        prev_element: Option<ParseNodeId>
+    },
 
     CreatePI {
         node: ParseNodeId,
@@ -113,8 +120,6 @@ enum ToTokenizerMsg {
 
     // From Sink
     ProcessOperation(ParseOperation),
-    IsSameTree(ParseNodeId, ParseNodeId),
-    HasParentNode(ParseNodeId),
 }
 
 #[derive(HeapSizeOf)]
@@ -125,14 +130,6 @@ enum ToHtmlTokenizerMsg {
     },
     End,
     SetPlainTextState,
-}
-
-// Responses to the queries asked by the the Sink to the Tokenizer,
-// using the messages types in FromSinkMsg.
-#[derive(HeapSizeOf)]
-enum ToSinkMsg {
-    IsSameTree(bool),
-    HasParentNode(bool),
 }
 
 fn create_buffer_queue(mut buffers: VecDeque<SendTendril<UTF8>>) -> BufferQueue {
@@ -155,17 +152,17 @@ fn create_buffer_queue(mut buffers: VecDeque<SendTendril<UTF8>>) -> BufferQueue 
 //    then executes the received actions.
 //
 //    _____________                           _______________
-//   |             |    ToHtmlTokenizerMsg   |               |
-//   |             |------------------------>|               |
 //   |             |                         |               |
-//   |             |      ToTokenizerMsg     | HtmlTokenizer |
-//   |             |<------------------------|               |
-//   |  Tokenizer  |                         |               |
-//   |             |      ToTokenizerMsg     |    ________   |
+//   |             |                         |               |
+//   |             |   ToHtmlTokenizerMsg    |               |
+//   |             |------------------------>| HtmlTokenizer |
+//   |             |                         |               |
+//   |  Tokenizer  |     ToTokenizerMsg      |               |
+//   |             |<------------------------|    ________   |
+//   |             |                         |   |        |  |
+//   |             |     ToTokenizerMsg      |   |  Sink  |  |
 //   |             |<------------------------|---|        |  |
-//   |             |                         |   |  Sink  |  |
-//   |             |        ToSinkMsg        |   |        |  |
-//   |             |-------------------------|-->|________|  |
+//   |             |                         |   |________|  |
 //   |_____________|                         |_______________|
 //
 #[derive(HeapSizeOf, JSTraceable)]
@@ -177,7 +174,6 @@ pub struct Tokenizer {
     #[ignore_heap_size_of = "Defined in std"]
     html_tokenizer_sender: Sender<ToHtmlTokenizerMsg>,
     #[ignore_heap_size_of = "Defined in std"]
-    sink_sender: Sender<ToSinkMsg>,
     nodes: HashMap<ParseNodeId, JS<Node>>,
     url: ServoUrl,
 }
@@ -190,8 +186,6 @@ impl Tokenizer {
             -> Self {
         // Messages from the Tokenizer (main thread) to HtmlTokenizer (parser thread)
         let (to_html_tokenizer_sender, html_tokenizer_receiver) = channel();
-        // Messages from the Tokenizer (main thread) to Sink (parser thread)
-        let (to_sink_sender, sink_receiver) = channel();
         // Messages from HtmlTokenizer and Sink (parser thread) to Tokenizer (main thread)
         let (to_tokenizer_sender, tokenizer_receiver) = channel();
 
@@ -199,13 +193,12 @@ impl Tokenizer {
             document: JS::from_ref(document),
             receiver: tokenizer_receiver,
             html_tokenizer_sender: to_html_tokenizer_sender,
-            sink_sender: to_sink_sender,
             nodes: HashMap::new(),
             url: url
         };
         tokenizer.insert_node(0, JS::from_ref(document.upcast()));
 
-        let mut sink = Sink::new(to_tokenizer_sender.clone(), sink_receiver);
+        let mut sink = Sink::new(to_tokenizer_sender.clone());
         let mut ctxt_parse_node = None;
         let mut form_parse_node = None;
         let mut fragment_context_is_some = false;
@@ -250,18 +243,6 @@ impl Tokenizer {
         loop {
             match self.receiver.recv().expect("Unexpected channel panic in main thread.") {
                 ToTokenizerMsg::ProcessOperation(parse_op) => self.process_operation(parse_op),
-                ToTokenizerMsg::IsSameTree(ref x_id, ref y_id) => {
-                    let x = self.get_node(x_id);
-                    let y = self.get_node(y_id);
-
-                    let x = x.downcast::<Element>().expect("Element node expected");
-                    let y = y.downcast::<Element>().expect("Element node expected");
-                    self.sink_sender.send(ToSinkMsg::IsSameTree(x.is_in_same_home_subtree(y))).unwrap();
-                },
-                ToTokenizerMsg::HasParentNode(ref id) => {
-                    let res = self.get_node(id).GetParentNode().is_some();
-                    self.sink_sender.send(ToSinkMsg::HasParentNode(res)).unwrap();
-                },
                 ToTokenizerMsg::TokenizerResultDone { updated_input } => {
                     let buffer_queue = create_buffer_queue(updated_input);
                     *input = buffer_queue;
@@ -283,18 +264,6 @@ impl Tokenizer {
         loop {
             match self.receiver.recv().expect("Unexpected channel panic in main thread.") {
                 ToTokenizerMsg::ProcessOperation(parse_op) => self.process_operation(parse_op),
-                ToTokenizerMsg::IsSameTree(ref x_id, ref y_id) => {
-                    let x = self.get_node(x_id);
-                    let y = self.get_node(y_id);
-
-                    let x = x.downcast::<Element>().expect("Element node expected");
-                    let y = y.downcast::<Element>().expect("Element node expected");
-                    self.sink_sender.send(ToSinkMsg::IsSameTree(x.is_in_same_home_subtree(y))).unwrap();
-                },
-                ToTokenizerMsg::HasParentNode(ref id) => {
-                    let res = self.get_node(id).GetParentNode().is_some();
-                    self.sink_sender.send(ToSinkMsg::HasParentNode(res)).unwrap();
-                },
                 ToTokenizerMsg::End => return,
                 _ => unreachable!(),
             };
@@ -315,6 +284,45 @@ impl Tokenizer {
 
     fn get_node<'a>(&'a self, id: &ParseNodeId) -> &'a JS<Node> {
         self.nodes.get(id).expect("Node not found!")
+    }
+
+
+    fn append_before_sibling(&mut self, sibling: ParseNodeId, node: NodeOrText) {
+        let node = match node {
+            NodeOrText::Node(n) => HtmlNodeOrText::AppendNode(JS::from_ref(&**self.get_node(&n.id))),
+            NodeOrText::Text(text) => HtmlNodeOrText::AppendText(
+                Tendril::from(text)
+            )
+        };
+        let sibling = &**self.get_node(&sibling);
+        let parent = &*sibling.GetParentNode().expect("append_before_sibling called on node without parent");
+
+        super::insert(parent, Some(sibling), node);
+    }
+
+    fn append(&mut self, parent: ParseNodeId, node: NodeOrText) {
+        let node = match node {
+            NodeOrText::Node(n) => HtmlNodeOrText::AppendNode(JS::from_ref(&**self.get_node(&n.id))),
+            NodeOrText::Text(text) => HtmlNodeOrText::AppendText(
+                Tendril::from(text)
+            )
+        };
+
+        let parent = &**self.get_node(&parent);
+        super::insert(parent, None, node);
+    }
+
+    fn has_parent_node(&self, node: ParseNodeId) -> bool {
+        self.get_node(&node).GetParentNode().is_some()
+    }
+
+    fn same_tree(&self, x: ParseNodeId, y: ParseNodeId) -> bool {
+        let x = self.get_node(&x);
+        let y = self.get_node(&y);
+
+        let x = x.downcast::<Element>().expect("Element node expected");
+        let y = y.downcast::<Element>().expect("Element node expected");
+        x.is_in_same_home_subtree(y)
     }
 
     fn process_operation(&mut self, op: ParseOperation) {
@@ -348,27 +356,17 @@ impl Tokenizer {
                 self.insert_node(node, JS::from_ref(&comment.upcast()));
             }
             ParseOperation::AppendBeforeSibling { sibling, node } => {
-                let node = match node {
-                    NodeOrText::Node(n) => HtmlNodeOrText::AppendNode(JS::from_ref(&**self.get_node(&n.id))),
-                    NodeOrText::Text(text) => HtmlNodeOrText::AppendText(
-                        Tendril::from(text)
-                    )
-                };
-                let sibling = &**self.get_node(&sibling);
-                let parent = &*sibling.GetParentNode().expect("append_before_sibling called on node without parent");
-
-                super::insert(parent, Some(sibling), node);
+                self.append_before_sibling(sibling, node);
             }
             ParseOperation::Append { parent, node } => {
-                let node = match node {
-                    NodeOrText::Node(n) => HtmlNodeOrText::AppendNode(JS::from_ref(&**self.get_node(&n.id))),
-                    NodeOrText::Text(text) => HtmlNodeOrText::AppendText(
-                        Tendril::from(text)
-                    )
-                };
-
-                let parent = &**self.get_node(&parent);
-                super::insert(parent, None, node);
+                self.append(parent, node);
+            }
+            ParseOperation::AppendBasedOnParentNode { element, prev_element, node } => {
+                if self.has_parent_node(element) {
+                    self.append_before_sibling(element, node);
+                } else {
+                    self.append(prev_element, node);
+                }
             }
             ParseOperation::AppendDoctypeToDocument { name, public_id, system_id } => {
                 let doctype = DocumentType::new(
@@ -400,7 +398,14 @@ impl Tokenizer {
                     new_parent.AppendChild(&child).unwrap();
                 }
             }
-            ParseOperation::AssociateWithForm { target, form } => {
+            ParseOperation::AssociateWithForm { target, form, element, prev_element } => {
+                let tree_node = prev_element.map_or(element, |prev| {
+                    if self.has_parent_node(element) { element } else { prev }
+                });
+
+                if !self.same_tree(tree_node, form) {
+                    return;
+                }
                 let form = self.get_node(&form);
                 let form = Root::downcast::<HTMLFormElement>(Root::from_ref(&**form))
                     .expect("Owner must be a form element");
@@ -502,11 +507,10 @@ pub struct Sink {
     next_parse_node_id: Cell<ParseNodeId>,
     document_node: ParseNode,
     sender: Sender<ToTokenizerMsg>,
-    receiver: Receiver<ToSinkMsg>,
 }
 
 impl Sink {
-    fn new(sender: Sender<ToTokenizerMsg>, receiver: Receiver<ToSinkMsg>) -> Sink {
+    fn new(sender: Sender<ToTokenizerMsg>) -> Sink {
         let mut sink = Sink {
             current_line: 1,
             parse_node_data: HashMap::new(),
@@ -515,8 +519,7 @@ impl Sink {
                 id: 0,
                 qual_name: None,
             },
-            sender: sender,
-            receiver: receiver,
+            sender: sender
         };
         let data = ParseNodeData::default();
         sink.insert_parse_node_data(0, data);
@@ -583,12 +586,8 @@ impl TreeSink for Sink {
         target.qual_name.as_ref().expect("Expected qual name of node!").expanded()
     }
 
-    fn same_tree(&self, x: &Self::Handle, y: &Self::Handle) -> bool {
-        self.sender.send(ToTokenizerMsg::IsSameTree(x.id, y.id)).unwrap();
-        match self.receiver.recv().expect("Unexpected channel panic in html parser thread.") {
-            ToSinkMsg::IsSameTree(result) => result,
-            _ => unreachable!(),
-        }
+    fn same_tree(&self, _: &Self::Handle, _: &Self::Handle) -> bool {
+        unreachable!();
     }
 
     fn create_element(&mut self, name: QualName, html_attrs: Vec<HtmlAttribute>, _flags: ElementFlags)
@@ -633,18 +632,22 @@ impl TreeSink for Sink {
         node
     }
 
-    fn has_parent_node(&self, node: &Self::Handle) -> bool {
-        self.sender.send(ToTokenizerMsg::HasParentNode(node.id)).unwrap();
-        match self.receiver.recv().expect("Unexpected channel panic in html parser thread.") {
-            ToSinkMsg::HasParentNode(result) => result,
-            _ => unreachable!(),
-        }
+    fn has_parent_node(&self, _: &Self::Handle) -> bool {
+        unreachable!();
     }
 
-    fn associate_with_form(&mut self, target: &Self::Handle, form: &Self::Handle) {
+    fn associate_with_form(
+        &mut self,
+        target: &Self::Handle,
+        form: &Self::Handle,
+        nodes: (&Self::Handle, Option<&Self::Handle>),
+    ) {
+        let (element, prev_element) = nodes;
         self.send_op(ParseOperation::AssociateWithForm {
             target: target.id,
-            form: form.id
+            form: form.id,
+            element: element.id,
+            prev_element: prev_element.map(|p| p.id),
         });
     }
 
@@ -656,6 +659,23 @@ impl TreeSink for Sink {
             HtmlNodeOrText::AppendText(text) => NodeOrText::Text(String::from(text))
         };
         self.send_op(ParseOperation::AppendBeforeSibling { sibling: sibling.id, node: new_node });
+    }
+
+    fn append_based_on_parent_node(
+        &mut self,
+        elem: &Self::Handle,
+        prev_elem: &Self::Handle,
+        child: HtmlNodeOrText<Self::Handle>,
+    ) {
+        let child = match child {
+            HtmlNodeOrText::AppendNode(node) => NodeOrText::Node(node),
+            HtmlNodeOrText::AppendText(text) => NodeOrText::Text(String::from(text))
+        };
+        self.send_op(ParseOperation::AppendBasedOnParentNode {
+            element: elem.id,
+            prev_element: prev_elem.id,
+            node: child
+        });
     }
 
     fn parse_error(&mut self, msg: Cow<'static, str>) {

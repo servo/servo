@@ -820,7 +820,15 @@ impl TreeSink for Sink {
          node.GetParentNode().is_some()
     }
 
-    fn associate_with_form(&mut self, target: &JS<Node>, form: &JS<Node>) {
+    fn associate_with_form(&mut self, target: &JS<Node>, form: &JS<Node>, nodes: (&JS<Node>, Option<&JS<Node>>)) {
+        let (element, prev_element) = nodes;
+        let tree_node = prev_element.map_or(element, |prev| {
+            if self.has_parent_node(element) { element } else { prev }
+        });
+        if !self.same_tree(tree_node, form) {
+            return;
+        }
+
         let node = target;
         let form = Root::downcast::<HTMLFormElement>(Root::from_ref(&**form))
             .expect("Owner must be a form element");
@@ -860,6 +868,19 @@ impl TreeSink for Sink {
 
     fn append(&mut self, parent: &JS<Node>, child: NodeOrText<JS<Node>>) {
         insert(&parent, None, child);
+    }
+
+    fn append_based_on_parent_node(
+        &mut self,
+        elem: &JS<Node>,
+        prev_elem: &JS<Node>,
+        child: NodeOrText<JS<Node>>,
+    ) {
+        if self.has_parent_node(elem) {
+            self.append_before_sibling(elem, child);
+        } else {
+            self.append(prev_elem, child);
+        }
     }
 
     fn append_doctype_to_document(&mut self, name: StrTendril, public_id: StrTendril,
