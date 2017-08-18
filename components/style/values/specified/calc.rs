@@ -91,6 +91,8 @@ impl HasViewportPercentage for CalcLengthOrPercentage {
 
 impl ToCss for CalcLengthOrPercentage {
     /// https://drafts.csswg.org/css-values/#calc-serialize
+    ///
+    /// FIXME(emilio): Should this simplify away zeros?
     #[allow(unused_assignments)]
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         use num_traits::Zero;
@@ -143,9 +145,7 @@ impl ToCss for CalcLengthOrPercentage {
 
         if let Some(val) = self.absolute {
             first_value_check!(val);
-            // FIXME(emilio): Au::abs() would be nice.
-            let abs = if val < Zero::zero() { -val } else { val };
-            abs.to_css(dest)?;
+            val.abs().to_css(dest)?;
         }
 
         serialize!(rem, vh, vmax, vmin, vw);
