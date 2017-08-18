@@ -450,8 +450,14 @@ struct KeyframeListParser<'a> {
 }
 
 /// Parses a keyframe list from CSS input.
-pub fn parse_keyframe_list(context: &ParserContext, input: &mut Parser, shared_lock: &SharedRwLock)
-                           -> Vec<Arc<Locked<Keyframe>>> {
+pub fn parse_keyframe_list(
+    context: &ParserContext,
+    input: &mut Parser,
+    shared_lock: &SharedRwLock
+) -> Vec<Arc<Locked<Keyframe>>> {
+    debug_assert!(context.namespaces.is_some(),
+                  "Parsing a keyframe list from a context without namespaces?");
+
     let mut declarations = SourcePropertyDeclaration::new();
     RuleListParser::new_for_nested_rule(input, KeyframeListParser {
         context: context,
@@ -487,7 +493,13 @@ impl<'a, 'i> QualifiedRuleParser<'i> for KeyframeListParser<'a> {
 
     fn parse_block<'t>(&mut self, prelude: Self::Prelude, input: &mut Parser<'i, 't>)
                        -> Result<Self::QualifiedRule, ParseError<'i>> {
-        let context = ParserContext::new_with_rule_type(self.context, Some(CssRuleType::Keyframe));
+        let context =
+            ParserContext::new_with_rule_type(
+                self.context,
+                CssRuleType::Keyframe,
+                self.context.namespaces.unwrap(),
+            );
+
         let parser = KeyframeDeclarationParser {
             context: &context,
             declarations: self.declarations,

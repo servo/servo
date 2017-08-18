@@ -322,14 +322,17 @@ macro_rules! font_feature_values_blocks {
                 }
             }
 
-            fn parse_block<'t>(&mut self, prelude: Self::Prelude, input: &mut Parser<'i, 't>)
-                               -> Result<Self::AtRule, ParseError<'i>> {
-                let context = ParserContext::new_with_rule_type(self.context, Some(CssRuleType::FontFeatureValues));
+            fn parse_block<'t>(
+                &mut self,
+                prelude: Self::Prelude,
+                input: &mut Parser<'i, 't>
+            ) -> Result<Self::AtRule, ParseError<'i>> {
+                debug_assert_eq!(self.context.rule_type(), CssRuleType::FontFeatureValues);
                 match prelude {
                     $(
                         BlockType::$ident_camel => {
                             let parser = FFVDeclarationsParser {
-                                context: &context,
+                                context: &self.context,
                                 declarations: &mut self.rule.$ident,
                             };
 
@@ -338,7 +341,7 @@ macro_rules! font_feature_values_blocks {
                                 if let Err(err) = declaration {
                                     let error = ContextualParseError::UnsupportedKeyframePropertyDeclaration(
                                         err.slice, err.error);
-                                    context.log_css_error(err.location, error);
+                                    self.context.log_css_error(err.location, error);
                                 }
                             }
                         },
