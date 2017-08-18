@@ -208,7 +208,7 @@ fn test_cors_preflight_fetch() {
     let handler = move |request: HyperRequest, mut response: HyperResponse| {
         if request.method == Method::Options && state.clone().fetch_add(1, Ordering::SeqCst) == 0 {
             assert!(request.headers.has::<AccessControlRequestMethod>());
-            assert!(request.headers.has::<AccessControlRequestHeaders>());
+            assert!(!request.headers.has::<AccessControlRequestHeaders>());
             assert!(!request.headers.get::<HyperReferer>().unwrap().contains("a.html"));
             response.headers_mut().set(AccessControlAllowOrigin::Any);
             response.headers_mut().set(AccessControlAllowCredentials);
@@ -247,7 +247,7 @@ fn test_cors_preflight_cache_fetch() {
     let handler = move |request: HyperRequest, mut response: HyperResponse| {
         if request.method == Method::Options && state.clone().fetch_add(1, Ordering::SeqCst) == 0 {
             assert!(request.headers.has::<AccessControlRequestMethod>());
-            assert!(request.headers.has::<AccessControlRequestHeaders>());
+            assert!(!request.headers.has::<AccessControlRequestHeaders>());
             response.headers_mut().set(AccessControlAllowOrigin::Any);
             response.headers_mut().set(AccessControlAllowCredentials);
             response.headers_mut().set(AccessControlAllowMethods(vec![Method::Get]));
@@ -297,7 +297,7 @@ fn test_cors_preflight_fetch_network_error() {
     let handler = move |request: HyperRequest, mut response: HyperResponse| {
         if request.method == Method::Options && state.clone().fetch_add(1, Ordering::SeqCst) == 0 {
             assert!(request.headers.has::<AccessControlRequestMethod>());
-            assert!(request.headers.has::<AccessControlRequestHeaders>());
+            assert!(!request.headers.has::<AccessControlRequestHeaders>());
             response.headers_mut().set(AccessControlAllowOrigin::Any);
             response.headers_mut().set(AccessControlAllowCredentials);
             response.headers_mut().set(AccessControlAllowMethods(vec![Method::Get]));

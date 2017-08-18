@@ -82,6 +82,7 @@ pub struct ResponseInit {
     #[ignore_heap_size_of = "Defined in hyper"]
     pub headers: Headers,
     pub referrer: Option<ServoUrl>,
+    pub location_url: Option<Result<ServoUrl, String>>,
 }
 
 /// A [Response](https://fetch.spec.whatwg.org/#concept-response) as defined by the Fetch spec
@@ -102,12 +103,16 @@ pub struct Response {
     pub cache_state: CacheState,
     pub https_state: HttpsState,
     pub referrer: Option<ServoUrl>,
+    pub referrer_policy: Option<ReferrerPolicy>,
+    /// [CORS-exposed header-name list](https://fetch.spec.whatwg.org/#concept-response-cors-exposed-header-name-list)
+    pub cors_exposed_header_name_list: Vec<String>,
+    /// [Location URL](https://fetch.spec.whatwg.org/#concept-response-location-url)
+    pub location_url: Option<Result<ServoUrl, String>>,
     /// [Internal response](https://fetch.spec.whatwg.org/#concept-internal-response), only used if the Response
     /// is a filtered response
     pub internal_response: Option<Box<Response>>,
     /// whether or not to try to return the internal_response when asked for actual_response
     pub return_internal: bool,
-    pub referrer_policy: Option<ReferrerPolicy>,
 }
 
 impl Response {
@@ -125,6 +130,8 @@ impl Response {
             https_state: HttpsState::None,
             referrer: None,
             referrer_policy: None,
+            cors_exposed_header_name_list: vec![],
+            location_url: None,
             internal_response: None,
             return_internal: true,
         }
@@ -132,6 +139,7 @@ impl Response {
 
     pub fn from_init(init: ResponseInit) -> Response {
         let mut res = Response::new(init.url);
+        res.location_url = init.location_url;
         res.headers = init.headers;
         res.referrer = init.referrer;
         res
@@ -151,6 +159,8 @@ impl Response {
             https_state: HttpsState::None,
             referrer: None,
             referrer_policy: None,
+            cors_exposed_header_name_list: vec![],
+            location_url: None,
             internal_response: None,
             return_internal: true,
         }
@@ -279,6 +289,7 @@ impl Response {
                 Some(&ContentType(ref mime)) => Some(mime),
                 None => None,
             });
+            metadata.location_url = response.location_url.clone();
             metadata.headers = Some(Serde(response.headers.clone()));
             metadata.status = response.raw_status.clone();
             metadata.https_state = response.https_state;

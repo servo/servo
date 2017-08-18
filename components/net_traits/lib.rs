@@ -411,6 +411,9 @@ pub struct Metadata {
     /// Final URL after redirects.
     pub final_url: ServoUrl,
 
+    /// Location URL from the response headers.
+    pub location_url: Option<Result<ServoUrl, String>>,
+
     #[ignore_heap_size_of = "Defined in hyper"]
     /// MIME type / subtype.
     pub content_type: Option<Serde<ContentType>>,
@@ -440,6 +443,7 @@ impl Metadata {
     pub fn default(url: ServoUrl) -> Self {
         Metadata {
             final_url: url,
+            location_url: None,
             content_type: None,
             charset: None,
             headers: None,

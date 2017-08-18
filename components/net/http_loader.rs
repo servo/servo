@@ -9,7 +9,8 @@ use cookie_storage::CookieStorage;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest};
 use devtools_traits::{HttpResponse as DevtoolsHttpResponse, NetworkEvent};
 use fetch::cors_cache::CorsCache;
-use fetch::methods::{Data, DoneChannel, FetchContext, Target, is_simple_header, is_simple_method, main_fetch};
+use fetch::methods::{Data, DoneChannel, FetchContext, Target};
+use fetch::methods::{is_cors_safelisted_request_header, is_cors_safelisted_method, main_fetch};
 use flate2::read::{DeflateDecoder, GzDecoder};
 use hsts::HstsList;
 use hyper::Error as HttpError;
@@ -38,6 +39,7 @@ use net_traits::request::{ResponseTainting, ServiceWorkersMode, Type};
 use net_traits::response::{HttpsState, Response, ResponseBody, ResponseType};
 use resource_thread::AuthCache;
 use servo_url::{ImmutableOrigin, ServoUrl};
+use std::ascii::AsciiExt;
 use std::collections::HashSet;
 use std::error::Error;
 use std::io::{self, Read, Write};
@@ -529,7 +531,7 @@ pub fn http_fetch(request: &mut Request,
 
         // Substep 2
         if response.is_none() && request.is_subresource_request() && match request.origin {
-            Origin::Origin(ref origin) if *origin == request.url().origin() => true,
+            Origin::Origin(ref origin) => *origin == request.url().origin(),
             _ => false,
         } {
             // TODO (handle foreign fetch unimplemented)
@@ -559,24 +561,16 @@ pub fn http_fetch(request: &mut Request,
     }
 
     // Step 4
-    let credentials = match request.credentials_mode {
-        CredentialsMode::Include => true,
-        CredentialsMode::CredentialsSameOrigin if request.response_tainting == ResponseTainting::Basic
-            => true,
-        _ => false
-    };
-
-    // Step 5
     if response.is_none() {
         // Substep 1
         if cors_preflight_flag {
             let method_cache_match = cache.match_method(&*request,
                                                         request.method.clone());
 
-            let method_mismatch = !method_cache_match && (!is_simple_method(&request.method) ||
+            let method_mismatch = !method_cache_match && (!is_cors_safelisted_method(&request.method) ||
                                                           request.use_cors_preflight);
             let header_mismatch = request.headers.iter().any(|view|
-                !cache.match_header(&*request, view.name()) && !is_simple_header(&view)
+                !cache.match_header(&*request, view.name()) && !is_cors_safelisted_request_header(&view)
             );
 
             // Sub-substep 1
@@ -611,81 +605,37 @@ pub fn http_fetch(request: &mut Request,
     let mut response = response.unwrap();
 
     // Step 5
-    match response.actual_response().status {
-        // Code 301, 302, 303, 307, 308
-        status if status.map_or(false, is_redirect_status) => {
-            response = match request.redirect_mode {
-                RedirectMode::Error => Response::network_error(NetworkError::Internal("Redirect mode error".into())),
-                RedirectMode::Manual => {
-                    response.to_filtered(ResponseType::OpaqueRedirect)
-                },
-                RedirectMode::Follow => {
-                    // set back to default
-                    response.return_internal = true;
-                    http_redirect_fetch(request, cache, response,
-                                        cors_flag, target, done_chan, context)
-                }
-            }
-        },
-
-        // Code 401
-        Some(StatusCode::Unauthorized) => {
-            // Step 1
-            // FIXME: Figure out what to do with request window objects
-            if cors_flag || !credentials {
-                return response;
-            }
-
-            // Step 2
-            // TODO: Spec says requires testing on multiple WWW-Authenticate headers
-
-            // Step 3
-            if !request.use_url_credentials || authentication_fetch_flag {
-                // TODO: Prompt the user for username and password from the window
-                // Wrong, but will have to do until we are able to prompt the user
-                // otherwise this creates an infinite loop
-                // We basically pretend that the user declined to enter credentials
-                return response;
-            }
-
-            // Step 4
-            return http_fetch(request, cache, cors_flag, cors_preflight_flag,
-                              true, target, done_chan, context);
+    if response.actual_response().status.map_or(false, is_redirect_status) {
+        // Substep 1.
+        if response.actual_response().status.map_or(true, |s| s != StatusCode::SeeOther) {
+            // TODO: send RST_STREAM frame
         }
 
-        // Code 407
-        Some(StatusCode::ProxyAuthenticationRequired) => {
-            // Step 1
-            // TODO: Figure out what to do with request window objects
+        // Substep 2-3.
+        let location = response.actual_response().headers.get::<Location>().map(
+            |l| ServoUrl::parse_with_base(response.actual_response().url(), l)
+                .map_err(|err| err.description().into()));
 
-            // Step 2
-            // TODO: Spec says requires testing on Proxy-Authenticate headers
+        // Substep 4.
+        response.actual_response_mut().location_url = location;
 
-            // Step 3
-            // TODO: Prompt the user for proxy authentication credentials
-            // Wrong, but will have to do until we are able to prompt the user
-            // otherwise this creates an infinite loop
-            // We basically pretend that the user declined to enter credentials
-            return response;
-
-            // Step 4
-            // return http_fetch(request, cache,
-            //                   cors_flag, cors_preflight_flag,
-            //                   authentication_fetch_flag, target,
-            //                   done_chan, context);
-        }
-
-        _ => { }
+        // Substep 5.
+        response = match request.redirect_mode {
+            RedirectMode::Error => Response::network_error(NetworkError::Internal("Redirect mode error".into())),
+            RedirectMode::Manual => {
+                response.to_filtered(ResponseType::OpaqueRedirect)
+            },
+            RedirectMode::Follow => {
+                // set back to default
+                response.return_internal = true;
+                http_redirect_fetch(request, cache, response,
+                                    cors_flag, target, done_chan, context)
+            }
+        };
     }
-
-    // Step 6
-    if authentication_fetch_flag {
-        // TODO: Create authentication entry for this request
-    }
-
     // set back to default
     response.return_internal = true;
-    // Step 7
+    // Step 6
     response
 }
 
@@ -701,28 +651,19 @@ pub fn http_redirect_fetch(request: &mut Request,
     // Step 1
     assert!(response.return_internal);
 
-    // Step 2
-    if !response.actual_response().headers.has::<Location>() {
-        return response;
-    }
-
-    // Step 3
-    let location = match response.actual_response().headers.get::<Location>() {
-        Some(&Location(ref location)) => location.clone(),
-        _ => return Response::network_error(NetworkError::Internal("Location header parsing failure".into()))
-    };
-    let response_url = response.actual_response().url().unwrap();
-    let location_url = response_url.join(&*location);
+    let location_url = response.actual_response().location_url.clone();
     let location_url = match location_url {
-        Ok(url) => url,
-        _ => return Response::network_error(NetworkError::Internal("Location URL parsing failure".into()))
+        // Step 2
+        None => return response,
+        // Step 3
+        Some(Err(err)) =>
+            return Response::network_error(
+                NetworkError::Internal("Location URL parse failure: ".to_owned() + &err)),
+        // Step 4
+        Some(Ok(ref url)) if !matches!(url.scheme(), "http" | "https") =>
+            return Response::network_error(NetworkError::Internal("Location URL not an HTTP(S) scheme".into())),
+        Some(Ok(url)) => url,
     };
-
-    // Step 4
-    match location_url.scheme() {
-        "http" | "https" => { },
-        _ => return Response::network_error(NetworkError::Internal("Not an HTTP(S) Scheme".into()))
-    }
 
     // Step 5
     if request.redirect_count >= 20 {
@@ -733,7 +674,8 @@ pub fn http_redirect_fetch(request: &mut Request,
     request.redirect_count += 1;
 
     // Step 7
-    let same_origin = location_url.origin()== request.current_url().origin();
+    // FIXME: Correctly use request's origin
+    let same_origin = location_url.origin() == request.current_url().origin();
     let has_credentials = has_credentials(&location_url);
 
     if request.mode == RequestMode::CorsMode && !same_origin && has_credentials {
@@ -746,28 +688,38 @@ pub fn http_redirect_fetch(request: &mut Request,
     }
 
     // Step 9
+    if response.actual_response().status.map_or(true, |s| s != StatusCode::SeeOther) &&
+       request.body.as_ref().map_or(false, |b| b.is_empty()) {
+        return Response::network_error(NetworkError::Internal("Request body is not done".into()));
+    }
+
+    // Step 10
     if cors_flag && !same_origin {
         request.origin = Origin::Origin(ImmutableOrigin::new_opaque());
     }
 
-    // Step 10
-    let status_code = response.actual_response().status.unwrap();
-    if ((status_code == StatusCode::MovedPermanently || status_code == StatusCode::Found) &&
-        request.method == Method::Post) ||
-        status_code == StatusCode::SeeOther {
+    // Step 11
+    if response.actual_response().status.map_or(false, |code|
+        ((code == StatusCode::MovedPermanently || code == StatusCode::Found) && request.method == Method::Post) ||
+        code == StatusCode::SeeOther) {
         request.method = Method::Get;
         request.body = None;
     }
 
-    // Step 11
-    request.url_list.push(location_url);
-
     // Step 12
-    // TODO implement referrer policy
-
-    let recursive_flag = request.redirect_mode != RedirectMode::Manual;
+    if let Some(_) = request.body {
+        // TODO: extract request's body's source
+    }
 
     // Step 13
+    request.url_list.push(location_url);
+
+    // Step 14
+    // TODO implement referrer policy
+
+    // Step 15
+    let recursive_flag = request.redirect_mode != RedirectMode::Manual;
+
     main_fetch(request, cache, cors_flag, recursive_flag, target, done_chan, context)
 }
 
@@ -826,9 +778,11 @@ fn http_network_or_cache_fetch(request: &mut Request,
     // Step 8
     if let Some(content_length_value) = content_length_value {
         http_request.headers.set(ContentLength(content_length_value));
+        if http_request.keep_alive {
+            // Step 9 TODO: needs request's client object
+        }
     }
 
-    // Step 9 TODO: needs request's client object
 
     // Step 10
     match http_request.referrer {
@@ -940,7 +894,7 @@ fn http_network_or_cache_fetch(request: &mut Request,
     let mut response: Option<Response> = None;
 
     // Step 20
-    let mut revalidation_needed = false;
+    let mut revalidating_flag = false;
 
     // Step 21
     // TODO have a HTTP cache to check for a completed response
@@ -952,7 +906,7 @@ fn http_network_or_cache_fetch(request: &mut Request,
 
         // Substep 3
         if let Some(ref response) = response {
-            revalidation_needed = response_needs_revalidation(&response);
+            revalidating_flag = response_needs_revalidation(&response);
         };
 
         // Substep 4
@@ -962,7 +916,7 @@ fn http_network_or_cache_fetch(request: &mut Request,
             // response = http_request
         }
 
-        if revalidation_needed {
+        if revalidating_flag {
             // Substep 5
             // TODO set If-None-Match and If-Modified-Since according to cached
             //      response headers.
@@ -984,82 +938,76 @@ fn http_network_or_cache_fetch(request: &mut Request,
         // Substep 2
         let forward_response = http_network_fetch(http_request, credentials_flag,
                                                   done_chan, context);
-        match forward_response.raw_status {
-            // Substep 3
-            Some((200...303, _)) |
-            Some((305...399, _)) => {
-                if !http_request.method.safe() {
-                    // TODO Invalidate HTTP cache response
-                }
-            },
-            // Substep 4
-            Some((304, _)) => {
-                if revalidation_needed {
-                    // TODO update forward_response headers with cached response
-                    //      headers
-                }
-            },
-            _ => {}
+        // Substep 3
+        if let Some((200...399, _)) = forward_response.raw_status {
+            if !http_request.method.safe() {
+                // TODO Invalidate HTTP cache response
+            }
+        }
+        // Substep 4
+        if revalidating_flag && forward_response.status.map_or(false, |s| s == StatusCode::NotModified) {
+            // TODO update forward_response headers with cached response headers
         }
 
         // Substep 5
         if response.is_none() {
+            // Subsubstep 1
             response = Some(forward_response);
+            // Subsubstep 2
+            // TODO: store http_request and forward_response in cache
         }
     }
 
-    let response = response.unwrap();
+    let mut response = response.unwrap();
 
-    match response.status {
-        Some(StatusCode::Unauthorized) => {
-            // Step 23
-            // FIXME: Figure out what to do with request window objects
-            if cors_flag && !credentials_flag {
-                return response;
-            }
+    // Step 23
+    // FIXME: Figure out what to do with request window objects
+    if let (Some(StatusCode::Unauthorized), false, true) = (response.status, cors_flag, credentials_flag) {
+        // Substep 1
+        // TODO: Spec says requires testing on multiple WWW-Authenticate headers
 
-            // Substep 1
-            // TODO: Spec says requires testing on multiple WWW-Authenticate headers
+        // Substep 2
+        if http_request.body.is_some() {
+            // TODO Implement body source
+        }
 
-            // Substep 2
-            if http_request.body.is_some() {
-                // TODO Implement body source
-            }
+        // Substep 3
+        if !http_request.use_url_credentials || authentication_fetch_flag {
+            // FIXME: Prompt the user for username and password from the window
 
-            // Substep 3
-            if !http_request.use_url_credentials || authentication_fetch_flag {
-                // TODO: Prompt the user for username and password from the window
-                // Wrong, but will have to do until we are able to prompt the user
-                // otherwise this creates an infinite loop
-                // We basically pretend that the user declined to enter credentials
-                return response;
-            }
-
-            // Substep 4
-            return http_network_or_cache_fetch(http_request,
-                                               true /* authentication flag */,
-                                               cors_flag, done_chan, context);
-        },
-        Some(StatusCode::ProxyAuthenticationRequired) => {
-            // Step 24
-            // Step 1
-            // TODO: Figure out what to do with request window objects
-
-            // Step 2
-            // TODO: Spec says requires testing on Proxy-Authenticate headers
-
-            // Step 3
-            // TODO: Prompt the user for proxy authentication credentials
             // Wrong, but will have to do until we are able to prompt the user
             // otherwise this creates an infinite loop
             // We basically pretend that the user declined to enter credentials
             return response;
+        }
 
-            // Step 4
-            // return http_network_or_cache_fetch(request, authentication_fetch_flag,
-            //                                    cors_flag, done_chan, context);
-        },
-        _ => {}
+        // Substep 4
+        response = http_network_or_cache_fetch(http_request,
+                                               true /* authentication flag */,
+                                               cors_flag, done_chan, context);
+    }
+
+    // Step 24
+    if let Some(StatusCode::ProxyAuthenticationRequired) = response.status {
+        // Step 1
+        if request_has_no_window {
+            return Response::network_error(NetworkError::Internal("Can't find Window object".into()));
+        }
+
+        // Step 2
+        // TODO: Spec says requires testing on Proxy-Authenticate headers
+
+        // Step 3
+        // FIXME: Prompt the user for proxy authentication credentials
+
+        // Wrong, but will have to do until we are able to prompt the user
+        // otherwise this creates an infinite loop
+        // We basically pretend that the user declined to enter credentials
+        return response;
+
+        // Step 4
+        // return http_network_or_cache_fetch(request, authentication_fetch_flag,
+        //                                    cors_flag, done_chan, context);
     }
 
     // Step 25
@@ -1077,8 +1025,6 @@ fn http_network_fetch(request: &Request,
                       done_chan: &mut DoneChannel,
                       context: &FetchContext)
                       -> Response {
-    // TODO: Implement HTTP network fetch spec
-
     // Step 1
     // nothing to do here, since credentials_flag is already a boolean
 
@@ -1089,6 +1035,9 @@ fn http_network_fetch(request: &Request,
     // TODO be able to tell if the connection is a failure
 
     // Step 4
+    // TODO: check whether the connection is HTTP/2
+
+    // Step 5
     let url = request.current_url();
 
     let request_id = context.devtools_chan.as_ref().map(|_| {
@@ -1203,10 +1152,10 @@ fn http_network_fetch(request: &Request,
 
     // TODO Read request
 
-    // Step 5-9
+    // Step 6-11
     // (needs stream bodies)
 
-    // Step 10
+    // Step 12
     // TODO when https://bugzilla.mozilla.org/show_bug.cgi?id=1030660
     // is resolved, this step will become uneccesary
     // TODO this step
@@ -1218,24 +1167,22 @@ fn http_network_fetch(request: &Request,
         }
     };
 
-    // Step 11
+    // Step 13
     // TODO this step isn't possible yet (CSP)
 
-    // Step 12
-    if response.is_network_error() && request.cache_mode == CacheMode::NoStore {
+    // Step 14
+    if !response.is_network_error() && request.cache_mode != CacheMode::NoStore {
         // TODO update response in the HTTP cache for request
     }
 
     // TODO this step isn't possible yet
-    // Step 13
-
-    // Step 14.
+    // Step 15
     if credentials_flag {
         set_cookies_from_headers(&url, &response.headers, &context.state.cookie_jar);
     }
 
     // TODO these steps
-    // Step 15
+    // Step 16
         // Substep 1
         // Substep 2
             // Sub-substep 1
@@ -1259,6 +1206,7 @@ fn cors_preflight_fetch(request: &Request,
     preflight.initiator = request.initiator.clone();
     preflight.type_ = request.type_.clone();
     preflight.destination = request.destination.clone();
+    preflight.origin = request.origin.clone();
     preflight.referrer = request.referrer.clone();
     preflight.referrer_policy = request.referrer_policy;
 
@@ -1266,86 +1214,107 @@ fn cors_preflight_fetch(request: &Request,
     preflight.headers.set::<AccessControlRequestMethod>(
         AccessControlRequestMethod(request.method.clone()));
 
-    // Step 3, 4
-    let mut value = request.headers
+    // Step 3
+    let mut headers = request.headers
         .iter()
-        .filter(|view| !is_simple_header(view))
-        .map(|view| UniCase(view.name().to_owned()))
+        .filter(|view| !is_cors_safelisted_request_header(view))
+        .map(|view| UniCase(view.name().to_ascii_lowercase().to_owned()))
         .collect::<Vec<UniCase<String>>>();
-    value.sort();
+    headers.sort();
+
+    // Step 4
+    if !headers.is_empty() {
+        preflight.headers.set::<AccessControlRequestHeaders>(AccessControlRequestHeaders(headers));
+    }
 
     // Step 5
-    preflight.headers.set::<AccessControlRequestHeaders>(
-        AccessControlRequestHeaders(value));
-
-    // Step 6
     let response = http_network_or_cache_fetch(&mut preflight, false, false, &mut None, context);
 
-    // Step 7
+    // Step 6
     if cors_check(&request, &response).is_ok() &&
        response.status.map_or(false, |status| status.is_success()) {
-        // Substep 1
+        // Substep 1, 2
         let mut methods = if response.headers.has::<AccessControlAllowMethods>() {
             match response.headers.get::<AccessControlAllowMethods>() {
                 Some(&AccessControlAllowMethods(ref m)) => m.clone(),
-                // Substep 3
+                // Substep 4
                 None => return Response::network_error(NetworkError::Internal("CORS ACAM check failed".into()))
             }
         } else {
             vec![]
         };
 
-        // Substep 2
+        // Substep 3
         let header_names = if response.headers.has::<AccessControlAllowHeaders>() {
             match response.headers.get::<AccessControlAllowHeaders>() {
                 Some(&AccessControlAllowHeaders(ref hn)) => hn.clone(),
-                // Substep 3
+                // Substep 4
                 None => return Response::network_error(NetworkError::Internal("CORS ACAH check failed".into()))
             }
         } else {
             vec![]
         };
 
-        // Substep 4
+        // Substep 5
+        if (methods.iter().any(|m| m.as_ref() == "*") ||
+            header_names.iter().any(|hn| &**hn == "*")) &&
+           request.credentials_mode == CredentialsMode::Include {
+            return Response::network_error(
+                NetworkError::Internal("CORS ACAH/ACAM and request credentials mode mismatch".into()));
+        }
+
+        // Substep 6
         if methods.is_empty() && request.use_cors_preflight {
             methods = vec![request.method.clone()];
         }
 
-        // Substep 5
+        // Substep 7
         debug!("CORS check: Allowed methods: {:?}, current method: {:?}",
                 methods, request.method);
         if methods.iter().all(|method| *method != request.method) &&
-            !is_simple_method(&request.method) {
+            !is_cors_safelisted_method(&request.method) &&
+            methods.iter().all(|m| m.as_ref() != "*") {
             return Response::network_error(NetworkError::Internal("CORS method check failed".into()));
         }
 
-        // Substep 6
+        // Substep 8
+        if request.headers.iter().any(
+            |header| header.name() == "authorization" &&
+                     header_names.iter().all(|hn| *hn != UniCase(header.name()))) {
+            return Response::network_error(NetworkError::Internal("CORS authorization check failed".into()));
+        }
+
+        // Substep 9
         debug!("CORS check: Allowed headers: {:?}, current headers: {:?}", header_names, request.headers);
         let set: HashSet<&UniCase<String>> = HashSet::from_iter(header_names.iter());
-        if request.headers.iter().any(|ref hv| !set.contains(&UniCase(hv.name().to_owned())) && !is_simple_header(hv)) {
+        if request.headers.iter().any(
+            |ref hv| !set.contains(&UniCase(hv.name().to_owned())) && !is_cors_safelisted_request_header(hv)) {
             return Response::network_error(NetworkError::Internal("CORS headers check failed".into()));
         }
 
-        // Substep 7, 8
+        // Substep 10, 11
         let max_age = response.headers.get::<AccessControlMaxAge>().map(|acma| acma.0).unwrap_or(0);
 
-        // TODO: Substep 9 - Need to define what an imposed limit on max-age is
+        // Substep 12
+        // TODO: Need to define what an imposed limit on max-age is
 
-        // Substep 11, 12
+        // Substep 13 ignored, we do have a CORS cache
+
+        // Substep 14, 15
         for method in &methods {
             cache.match_method_and_update(&*request, method.clone(), max_age);
         }
 
-        // Substep 13, 14
+        // Substep 16, 17
         for header_name in &header_names {
             cache.match_header_and_update(&*request, &*header_name, max_age);
         }
 
-        // Substep 15
+        // Substep 18
         return response;
     }
 
-    // Step 8
+    // Step 7
     Response::network_error(NetworkError::Internal("CORS check failed".into()))
 }
 
