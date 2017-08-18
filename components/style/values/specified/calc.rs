@@ -90,16 +90,26 @@ impl HasViewportPercentage for CalcLengthOrPercentage {
 }
 
 impl ToCss for CalcLengthOrPercentage {
+    /// https://drafts.csswg.org/css-values/#calc-serialize
+    ///
+    /// FIXME(emilio): Should this simplify away zeros?
     #[allow(unused_assignments)]
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        use num_traits::Zero;
+
         let mut first_value = true;
         macro_rules! first_value_check {
-            () => {
+            ($val:expr) => {
                 if !first_value {
-                    dest.write_str(" + ")?;
-                } else {
-                    first_value = false;
+                    dest.write_str(if $val < Zero::zero() {
+                        " - "
+                    } else {
+                        " + "
+                    })?;
+                } else if $val < Zero::zero() {
+                    dest.write_str("-")?;
                 }
+                first_value = false;
             };
         }
 
@@ -107,8 +117,8 @@ impl ToCss for CalcLengthOrPercentage {
             ( $( $val:ident ),* ) => {
                 $(
                     if let Some(val) = self.$val {
-                        first_value_check!();
-                        val.to_css(dest)?;
+                        first_value_check!(val);
+                        val.abs().to_css(dest)?;
                         dest.write_str(stringify!($val))?;
                     }
                 )*
@@ -117,7 +127,16 @@ impl ToCss for CalcLengthOrPercentage {
 
         dest.write_str("calc(")?;
 
-        serialize!(ch, em, ex, rem, vh, vmax, vmin, vw);
+        // NOTE(emilio): Percentages first because of web-compat problems, see:
+        // https://github.com/w3c/csswg-drafts/issues/1731
+        if let Some(val) = self.percentage {
+            first_value_check!(val.0);
+            val.abs().to_css(dest)?;
+        }
+
+        // NOTE(emilio): The order here it's very intentional, and alphabetic
+        // per the spec linked above.
+        serialize!(ch, em, ex);
 
         #[cfg(feature = "gecko")]
         {
@@ -125,16 +144,13 @@ impl ToCss for CalcLengthOrPercentage {
         }
 
         if let Some(val) = self.absolute {
-            first_value_check!();
-            val.to_css(dest)?;
+            first_value_check!(val);
+            val.abs().to_css(dest)?;
         }
 
-        if let Some(val) = self.percentage {
-            first_value_check!();
-            val.to_css(dest)?;
-        }
+        serialize!(rem, vh, vmax, vmin, vw);
 
-        write!(dest, ")")
+        dest.write_str(")")
     }
 }
 
