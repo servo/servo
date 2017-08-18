@@ -8,6 +8,8 @@ use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use std::fmt;
 use style_traits::{ParseError, StyleParseError, ToCss};
+use values::computed::length::LengthOrPercentage;
+
 
 /// An SVG paint value
 ///
@@ -92,6 +94,53 @@ impl<ColorType: Parse, UrlPaintServer: Parse> Parse for SVGPaint<ColorType, UrlP
         } else {
             Err(StyleParseError::UnspecifiedError.into())
         }
+    }
+}
+
+/// A value of <length> | <percentage> | <number> for svg which allow unitless length.
+/// https://www.w3.org/TR/SVG11/painting.html#StrokeProperties
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Copy, Debug, PartialEq, ToCss, HasViewportPercentage)]
+#[derive(ToComputedValue, ToAnimatedValue, ComputeSquaredDistance)]
+pub enum SvgLengthOrPercentageOrNumber<LengthOrPercentageType, NumberType> {
+    /// <length> | <percentage>
+    LengthOrPercentage(LengthOrPercentageType),
+    /// <number>
+    Number(NumberType),
+}
+
+impl<LengthOrPercentageType, NumberType> SvgLengthOrPercentageOrNumber<LengthOrPercentageType, NumberType>
+    where LengthOrPercentage: From<LengthOrPercentageType>,
+          LengthOrPercentageType: Copy
+{
+    /// return true if this struct has calc value.
+    pub fn has_calc(&self) -> bool {
+        match self {
+            &SvgLengthOrPercentageOrNumber::LengthOrPercentage(lop) => {
+                match LengthOrPercentage::from(lop) {
+                    LengthOrPercentage::Calc(_) => true,
+                    _ => false,
+                }
+            },
+            _ => false,
+        }
+    }
+}
+
+/// Parsing the SvgLengthOrPercentageOrNumber. At first, we need to parse number
+/// since prevent converting to the length.
+impl <LengthOrPercentageType: Parse, NumberType: Parse> Parse for
+    SvgLengthOrPercentageOrNumber<LengthOrPercentageType, NumberType> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                     -> Result<Self, ParseError<'i>> {
+        if let Ok(num) = input.try(|i| NumberType::parse(context, i)) {
+            return Ok(SvgLengthOrPercentageOrNumber::Number(num));
+        }
+
+        if let Ok(lop) = input.try(|i| LengthOrPercentageType::parse(context, i)) {
+            return Ok(SvgLengthOrPercentageOrNumber::LengthOrPercentage(lop));
+        }
+        Err(StyleParseError::UnspecifiedError.into())
     }
 }
 
