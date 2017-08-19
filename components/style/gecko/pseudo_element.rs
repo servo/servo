@@ -75,10 +75,22 @@ impl PseudoElement {
         EAGER_PSEUDOS[i].clone()
     }
 
-    /// Whether this pseudo-element is ::before or ::after.
+    /// Whether the current pseudo element is ::before or ::after.
     #[inline]
     pub fn is_before_or_after(&self) -> bool {
-        matches!(*self, PseudoElement::Before | PseudoElement::After)
+        self.is_before() || self.is_after()
+    }
+
+    /// Whether this pseudo-element is the ::before pseudo.
+    #[inline]
+    pub fn is_before(&self) -> bool {
+        *self == PseudoElement::Before
+    }
+
+    /// Whether this pseudo-element is the ::after pseudo.
+    #[inline]
+    pub fn is_after(&self) -> bool {
+        *self == PseudoElement::After
     }
 
     /// Whether this pseudo-element is ::first-letter.

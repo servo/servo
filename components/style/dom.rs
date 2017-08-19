@@ -20,7 +20,7 @@ use properties::{AnimationRules, ComputedValues, PropertyDeclarationBlock};
 #[cfg(feature = "gecko")] use properties::animated_properties::AnimationValue;
 #[cfg(feature = "gecko")] use properties::animated_properties::TransitionProperty;
 use rule_tree::CascadeLevel;
-use selector_parser::{AttrValue, ElementExt, PreExistingComputedValues};
+use selector_parser::{AttrValue, ElementExt};
 use selector_parser::{PseudoClassStringArg, PseudoElement};
 use selectors::matching::{ElementSelectorFlags, VisitedHandlingMode};
 use selectors::sink::Push;
@@ -377,18 +377,6 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
 
     /// Internal iterator for the classes of this element.
     fn each_class<F>(&self, callback: F) where F: FnMut(&Atom);
-
-    /// Get the pre-existing style to calculate restyle damage (change hints).
-    ///
-    /// This needs to be generic since it varies between Servo and Gecko.
-    ///
-    /// XXX(emilio): It's a bit unfortunate we need to pass the current computed
-    /// values as an argument here, but otherwise Servo would crash due to
-    /// double borrows to return it.
-    fn existing_style_for_restyle_damage<'a>(&'a self,
-                                             current_computed_values: &'a ComputedValues,
-                                             pseudo: Option<&PseudoElement>)
-                                             -> Option<&'a PreExistingComputedValues>;
 
     /// Whether a given element may generate a pseudo-element.
     ///
