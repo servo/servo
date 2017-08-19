@@ -9,6 +9,7 @@ use std::{f32, f64, fmt};
 use std::f64::consts::PI;
 use style_traits::ToCss;
 use values::CSSFloat;
+use values::animated::ToAnimatedZero;
 use values::distance::{ComputeSquaredDistance, SquaredDistance};
 
 /// A computed angle.
@@ -83,6 +84,18 @@ impl Animatable for Angle {
                     .add_weighted(&other.radians(), self_portion, other_portion)
                     .map(Angle::from_radians)
             }
+        }
+    }
+}
+
+impl ToAnimatedZero for Angle {
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        match *self {
+            Angle::Degree(value) => Ok(Angle::Degree(value.to_animated_zero()?)),
+            Angle::Gradian(value) => Ok(Angle::Gradian(value.to_animated_zero()?)),
+            Angle::Radian(value) => Ok(Angle::Radian(value.to_animated_zero()?)),
+            Angle::Turn(value) => Ok(Angle::Turn(value.to_animated_zero()?)),
         }
     }
 }

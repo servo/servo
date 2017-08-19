@@ -14,6 +14,7 @@ use euclid::{Point2D, Point3D, Size2D};
 #[cfg(feature = "gecko")] use gecko_bindings::structs::nsCSSPropertyID;
 #[cfg(feature = "gecko")] use gecko_bindings::sugar::ownership::{HasFFI, HasSimpleFFI};
 #[cfg(feature = "gecko")] use gecko_string_cache::Atom;
+use itertools::{EitherOrBoth, Itertools};
 use properties::{CSSWideKeyword, PropertyDeclaration};
 use properties::longhands;
 use properties::longhands::background_size::computed_value::T as BackgroundSizeList;
@@ -30,6 +31,7 @@ use properties::longhands::visibility::computed_value::T as Visibility;
 #[cfg(feature = "gecko")] use properties::{ShorthandId};
 use selectors::parser::SelectorParseError;
 use smallvec::SmallVec;
+use std::borrow::Cow;
 use std::cmp;
 #[cfg(feature = "gecko")] use fnv::FnvHashMap;
 use style_traits::ParseError;
@@ -1288,62 +1290,39 @@ impl ToAnimatedZero for ClipRect {
     fn to_animated_zero(&self) -> Result<Self, ()> { Err(()) }
 }
 
-/// Check if it's possible to do a direct numerical interpolation
-/// between these two transform lists.
-/// http://dev.w3.org/csswg/css-transforms/#transform-transform-animation
-fn can_interpolate_list(from_list: &[TransformOperation],
-                        to_list: &[TransformOperation]) -> bool {
-    // Lists must be equal length
-    if from_list.len() != to_list.len() {
-        return false;
-    }
-
-    // Each transform operation must match primitive type in other list
-    for (from, to) in from_list.iter().zip(to_list) {
-        match (from, to) {
-            (&TransformOperation::Matrix(..), &TransformOperation::Matrix(..)) |
-            (&TransformOperation::Skew(..), &TransformOperation::Skew(..)) |
-            (&TransformOperation::Translate(..), &TransformOperation::Translate(..)) |
-            (&TransformOperation::Scale(..), &TransformOperation::Scale(..)) |
-            (&TransformOperation::Rotate(..), &TransformOperation::Rotate(..)) |
-            (&TransformOperation::Perspective(..), &TransformOperation::Perspective(..)) => {}
-            _ => {
-                return false;
-            }
-        }
-    }
-
-    true
-}
-
 /// Build an equivalent 'identity transform function list' based
 /// on an existing transform list.
 /// http://dev.w3.org/csswg/css-transforms/#none-transform-animation
-fn build_identity_transform_list(list: &[TransformOperation]) -> Vec<TransformOperation> {
-    let mut result = vec!();
-
-    for operation in list {
-        match *operation {
+impl ToAnimatedZero for TransformOperation {
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        match *self {
             TransformOperation::Matrix(..) => {
-                let identity = ComputedMatrix::identity();
-                result.push(TransformOperation::Matrix(identity));
-            }
-            TransformOperation::MatrixWithPercents(..) => {}
-            TransformOperation::Skew(..) => {
-                result.push(TransformOperation::Skew(Angle::zero(), Angle::zero()))
-            }
-            TransformOperation::Translate(..) => {
-                result.push(TransformOperation::Translate(LengthOrPercentage::zero(),
-                                                          LengthOrPercentage::zero(),
-                                                          Au(0)));
-            }
+                Ok(TransformOperation::Matrix(ComputedMatrix::identity()))
+            },
+            TransformOperation::MatrixWithPercents(..) => {
+                // FIXME(nox): Should be MatrixWithPercents value.
+                Ok(TransformOperation::Matrix(ComputedMatrix::identity()))
+            },
+            TransformOperation::Skew(sx, sy) => {
+                Ok(TransformOperation::Skew(
+                    sx.to_animated_zero()?,
+                    sy.to_animated_zero()?,
+                ))
+            },
+            TransformOperation::Translate(ref tx, ref ty, ref tz) => {
+                Ok(TransformOperation::Translate(
+                    tx.to_animated_zero()?,
+                    ty.to_animated_zero()?,
+                    tz.to_animated_zero()?,
+                ))
+            },
             TransformOperation::Scale(..) => {
-                result.push(TransformOperation::Scale(1.0, 1.0, 1.0));
-            }
+                Ok(TransformOperation::Scale(1.0, 1.0, 1.0))
+            },
             TransformOperation::Rotate(x, y, z, a) => {
                 let (x, y, z, _) = get_normalized_vector_and_angle(x, y, z, a);
-                result.push(TransformOperation::Rotate(x, y, z, Angle::zero()));
-            }
+                Ok(TransformOperation::Rotate(x, y, z, Angle::zero()))
+            },
             TransformOperation::Perspective(..) |
             TransformOperation::AccumulateMatrix { .. } |
             TransformOperation::InterpolateMatrix { .. } => {
@@ -1355,13 +1334,10 @@ fn build_identity_transform_list(list: &[TransformOperation]) -> Vec<TransformOp
                 //
                 // Therefore, we use an identity matrix to represent the identity transform list.
                 // http://dev.w3.org/csswg/css-transforms/#identity-transform-function
-                let identity = ComputedMatrix::identity();
-                result.push(TransformOperation::Matrix(identity));
-            }
+                Ok(TransformOperation::Matrix(ComputedMatrix::identity()))
+            },
         }
     }
-
-    result
 }
 
 /// A wrapper for calling add_weighted that interpolates the distance of the two values from
@@ -1379,99 +1355,88 @@ fn add_weighted_with_initial_val<T: Animatable>(a: &T,
     result.add_weighted(&initial_val, 1.0, 1.0)
 }
 
-/// Add two transform lists.
 /// http://dev.w3.org/csswg/css-transforms/#interpolation-of-transforms
-fn add_weighted_transform_lists(from_list: &[TransformOperation],
-                                to_list: &[TransformOperation],
-                                self_portion: f64,
-                                other_portion: f64) -> TransformList {
-    let mut result = vec![];
-
-    if can_interpolate_list(from_list, to_list) {
-        for (from, to) in from_list.iter().zip(to_list) {
-            match (from, to) {
-                (&TransformOperation::Matrix(from),
-                 &TransformOperation::Matrix(_to)) => {
-                    let sum = from.add_weighted(&_to, self_portion, other_portion).unwrap();
-                    result.push(TransformOperation::Matrix(sum));
+impl Animatable for TransformOperation {
+    fn add_weighted(
+        &self,
+        other: &Self,
+        self_portion: f64,
+        other_portion: f64,
+    ) -> Result<Self, ()> {
+        match (self, other) {
+            (
+                &TransformOperation::Matrix(ref this),
+                &TransformOperation::Matrix(ref other),
+            ) => {
+                Ok(TransformOperation::Matrix(
+                    this.add_weighted(other, self_portion, other_portion)?,
+                ))
+            },
+            (
+                &TransformOperation::Skew(ref fx, ref fy),
+                &TransformOperation::Skew(ref tx, ref ty),
+            ) => {
+                Ok(TransformOperation::Skew(
+                    fx.add_weighted(tx, self_portion, other_portion)?,
+                    fy.add_weighted(ty, self_portion, other_portion)?,
+                ))
+            },
+            (
+                &TransformOperation::Translate(ref fx, ref fy, ref fz),
+                &TransformOperation::Translate(ref tx, ref ty, ref tz),
+            ) => {
+                Ok(TransformOperation::Translate(
+                    fx.add_weighted(tx, self_portion, other_portion)?,
+                    fy.add_weighted(ty, self_portion, other_portion)?,
+                    fz.add_weighted(tz, self_portion, other_portion)?,
+                ))
+            },
+            (
+                &TransformOperation::Scale(ref fx, ref fy, ref fz),
+                &TransformOperation::Scale(ref tx, ref ty, ref tz),
+            ) => {
+                Ok(TransformOperation::Scale(
+                    add_weighted_with_initial_val(fx, tx, self_portion, other_portion, &1.0)?,
+                    add_weighted_with_initial_val(fy, ty, self_portion, other_portion, &1.0)?,
+                    add_weighted_with_initial_val(fz, tz, self_portion, other_portion, &1.0)?,
+                ))
+            },
+            (
+                &TransformOperation::Rotate(fx, fy, fz, fa),
+                &TransformOperation::Rotate(tx, ty, tz, ta),
+            ) => {
+                let (fx, fy, fz, fa) = get_normalized_vector_and_angle(fx, fy, fz, fa);
+                let (tx, ty, tz, ta) = get_normalized_vector_and_angle(tx, ty, tz, ta);
+                if (fx, fy, fz) == (tx, ty, tz) {
+                    let ia = fa.add_weighted(&ta, self_portion, other_portion)?;
+                    Ok(TransformOperation::Rotate(fx, fy, fz, ia))
+                } else {
+                    let matrix_f = rotate_to_matrix(fx, fy, fz, fa);
+                    let matrix_t = rotate_to_matrix(tx, ty, tz, ta);
+                    Ok(TransformOperation::Matrix(
+                        matrix_f.add_weighted(&matrix_t, self_portion, other_portion)?
+                    ))
                 }
-                (&TransformOperation::MatrixWithPercents(_),
-                 &TransformOperation::MatrixWithPercents(_)) => {
-                    // We don't add_weighted `-moz-transform` matrices yet.
-                    // They contain percentage values.
-                    {}
+            },
+            (
+                &TransformOperation::Perspective(ref fd),
+                &TransformOperation::Perspective(ref td),
+            ) => {
+                let mut fd_matrix = ComputedMatrix::identity();
+                let mut td_matrix = ComputedMatrix::identity();
+                if fd.0 > 0 {
+                    fd_matrix.m34 = -1. / fd.to_f32_px();
                 }
-                (&TransformOperation::Skew(fx, fy),
-                 &TransformOperation::Skew(tx, ty)) => {
-                    let ix = fx.add_weighted(&tx, self_portion, other_portion).unwrap();
-                    let iy = fy.add_weighted(&ty, self_portion, other_portion).unwrap();
-                    result.push(TransformOperation::Skew(ix, iy));
+                if td.0 > 0 {
+                    td_matrix.m34 = -1. / td.to_f32_px();
                 }
-                (&TransformOperation::Translate(fx, fy, fz),
-                 &TransformOperation::Translate(tx, ty, tz)) => {
-                    let ix = fx.add_weighted(&tx, self_portion, other_portion).unwrap();
-                    let iy = fy.add_weighted(&ty, self_portion, other_portion).unwrap();
-                    let iz = fz.add_weighted(&tz, self_portion, other_portion).unwrap();
-                    result.push(TransformOperation::Translate(ix, iy, iz));
-                }
-                (&TransformOperation::Scale(fx, fy, fz),
-                 &TransformOperation::Scale(tx, ty, tz)) => {
-                    let ix = add_weighted_with_initial_val(&fx, &tx, self_portion,
-                                                           other_portion, &1.0).unwrap();
-                    let iy = add_weighted_with_initial_val(&fy, &ty, self_portion,
-                                                           other_portion, &1.0).unwrap();
-                    let iz = add_weighted_with_initial_val(&fz, &tz, self_portion,
-                                                           other_portion, &1.0).unwrap();
-                    result.push(TransformOperation::Scale(ix, iy, iz));
-                }
-                (&TransformOperation::Rotate(fx, fy, fz, fa),
-                 &TransformOperation::Rotate(tx, ty, tz, ta)) => {
-                    let (fx, fy, fz, fa) = get_normalized_vector_and_angle(fx, fy, fz, fa);
-                    let (tx, ty, tz, ta) = get_normalized_vector_and_angle(tx, ty, tz, ta);
-                    if (fx, fy, fz) == (tx, ty, tz) {
-                        let ia = fa.add_weighted(&ta, self_portion, other_portion).unwrap();
-                        result.push(TransformOperation::Rotate(fx, fy, fz, ia));
-                    } else {
-                        let matrix_f = rotate_to_matrix(fx, fy, fz, fa);
-                        let matrix_t = rotate_to_matrix(tx, ty, tz, ta);
-                        let sum = matrix_f.add_weighted(&matrix_t, self_portion, other_portion)
-                                          .unwrap();
-
-                        result.push(TransformOperation::Matrix(sum));
-                    }
-                }
-                (&TransformOperation::Perspective(fd),
-                 &TransformOperation::Perspective(td)) => {
-                    let mut fd_matrix = ComputedMatrix::identity();
-                    let mut td_matrix = ComputedMatrix::identity();
-                    if fd.0 > 0 {
-                        fd_matrix.m34 = -1. / fd.to_f32_px();
-                    }
-
-                    if td.0 > 0 {
-                        td_matrix.m34 = -1. / td.to_f32_px();
-                    }
-
-                    let sum = fd_matrix.add_weighted(&td_matrix, self_portion, other_portion)
-                                       .unwrap();
-                    result.push(TransformOperation::Matrix(sum));
-                }
-                _ => {
-                    // This should be unreachable due to the can_interpolate_list() call.
-                    unreachable!();
-                }
-            }
+                Ok(TransformOperation::Matrix(
+                    fd_matrix.add_weighted(&td_matrix, self_portion, other_portion)?,
+                ))
+            },
+            _ => Err(()),
         }
-    } else {
-        let from_transform_list = TransformList(Some(from_list.to_vec()));
-        let to_transform_list = TransformList(Some(to_list.to_vec()));
-        result.push(
-            TransformOperation::InterpolateMatrix { from_list: from_transform_list,
-                                                    to_list: to_transform_list,
-                                                    progress: Percentage(other_portion as f32) });
     }
-
-    TransformList(Some(result))
 }
 
 /// https://www.w3.org/TR/css-transforms-1/#Rotate3dDefined
@@ -2420,151 +2385,178 @@ impl ComputedMatrix {
 impl Animatable for TransformList {
     #[inline]
     fn add_weighted(&self, other: &TransformList, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
-        // http://dev.w3.org/csswg/css-transforms/#interpolation-of-transforms
-        let result = match (&self.0, &other.0) {
-            (&Some(ref from_list), &Some(ref to_list)) => {
-                // Two lists of transforms
-                add_weighted_transform_lists(from_list, &to_list, self_portion, other_portion)
-            }
-            (&Some(ref from_list), &None) => {
-                // http://dev.w3.org/csswg/css-transforms/#none-transform-animation
-                let to_list = build_identity_transform_list(from_list);
-                add_weighted_transform_lists(from_list, &to_list, self_portion, other_portion)
-            }
-            (&None, &Some(ref to_list)) => {
-                // http://dev.w3.org/csswg/css-transforms/#none-transform-animation
-                let from_list = build_identity_transform_list(to_list);
-                add_weighted_transform_lists(&from_list, to_list, self_portion, other_portion)
-            }
-            _ => {
-                // http://dev.w3.org/csswg/css-transforms/#none-none-animation
-                TransformList(None)
-            }
+        let result = self.animate_with_similar_list(
+            other,
+            |this, other| this.add_weighted(other, self_portion, other_portion),
+        );
+        let (this, other) = match result {
+            Ok(list) => return Ok(list),
+            Err(None) => return Err(()),
+            Err(Some(pair)) => pair,
         };
-
-        Ok(result)
+        Ok(TransformList(Some(vec![TransformOperation::InterpolateMatrix {
+            from_list: this,
+            to_list: other,
+            progress: Percentage(other_portion as f32),
+        }])))
     }
 
     fn add(&self, other: &Self) -> Result<Self, ()> {
-        match (&self.0, &other.0) {
-            (&Some(ref from_list), &Some(ref to_list)) => {
-                Ok(TransformList(Some([&from_list[..], &to_list[..]].concat())))
-            }
-            (&Some(_), &None) => {
-                Ok(self.clone())
-            }
-            (&None, &Some(_)) => {
-                Ok(other.clone())
-            }
-            _ => {
-                Ok(TransformList(None))
-            }
-        }
+        let this = self.0.as_ref().map_or(&[][..], |l| l);
+        let other = other.0.as_ref().map_or(&[][..], |l| l);
+        let result = this.iter().chain(other).cloned().collect::<Vec<_>>();
+        Ok(TransformList(if result.is_empty() {
+            None
+        } else {
+            Some(result)
+        }))
     }
 
     #[inline]
     fn accumulate(&self, other: &Self, count: u64) -> Result<Self, ()> {
-        match (&self.0, &other.0) {
-            (&Some(ref from_list), &Some(ref to_list)) => {
-                if can_interpolate_list(from_list, to_list) {
-                    Ok(add_weighted_transform_lists(from_list, &to_list, count as f64, 1.0))
-                } else {
-                    use std::i32;
-                    let result = vec![TransformOperation::AccumulateMatrix {
-                        from_list: self.clone(),
-                        to_list: other.clone(),
-                        count: cmp::min(count, i32::MAX as u64) as i32
-                    }];
-                    Ok(TransformList(Some(result)))
+        let result = self.animate_with_similar_list(
+            other,
+            |this, other| this.accumulate(other, count),
+        );
+        let (this, other) = match result {
+            Ok(list) => return Ok(list),
+            Err(None) => return Err(()),
+            Err(Some(pair)) => pair,
+        };
+
+        Ok(TransformList(Some(vec![TransformOperation::AccumulateMatrix {
+            from_list: this,
+            to_list: other,
+            count: cmp::min(count, i32::max_value() as u64) as i32,
+        }])))
+    }
+}
+
+impl TransformList {
+    fn animate_with_similar_list<F>(
+        &self,
+        other: &Self,
+        animate: F,
+    ) -> Result<Self, Option<(TransformList, TransformList)>>
+    where
+        F: Fn(&TransformOperation, &TransformOperation) -> Result<TransformOperation, ()>,
+    {
+        if self.0.is_none() && other.0.is_none() {
+            return Ok(TransformList(None));
+        }
+        let this = if self.0.is_some() {
+            Cow::Borrowed(self)
+        } else {
+            Cow::Owned(other.to_animated_zero().map_err(|_| None)?)
+        };
+        let other = if other.0.is_some() {
+            Cow::Borrowed(other)
+        } else {
+            Cow::Owned(self.to_animated_zero().map_err(|_| None)?)
+        };
+
+        {
+            let this = (*this).0.as_ref().map_or(&[][..], |l| l);
+            let other = (*other).0.as_ref().map_or(&[][..], |l| l);
+            if this.len() == other.len() {
+                let result = this.iter().zip(other).map(|(this, other)| {
+                    animate(this, other)
+                }).collect::<Result<Vec<_>, _>>();
+                if let Ok(list) = result {
+                    return Ok(TransformList(if list.is_empty() {
+                        None
+                    } else {
+                        Some(list)
+                    }));
                 }
             }
-            (&Some(ref from_list), &None) => {
-                Ok(add_weighted_transform_lists(from_list, from_list, count as f64, 0.0))
-            }
-            (&None, &Some(_)) => {
-                // If |self| is 'none' then we are calculating:
-                //
-                //    none * |count| + |other|
-                //    = none + |other|
-                //    = |other|
-                //
-                // Hence the result is just |other|.
-                Ok(other.clone())
-            }
-            _ => {
-                Ok(TransformList(None))
-            }
         }
+
+        Err(Some((this.into_owned(), other.into_owned())))
     }
 }
 
-/// A helper function to retrieve the pixel length and percentage value.
-fn extract_pixel_calc_value(lop: &LengthOrPercentage) -> (f64, CSSFloat) {
-    match lop {
-        &LengthOrPercentage::Length(au) => (au.to_f64_px(), 0.),
-        &LengthOrPercentage::Percentage(percent) => (0., percent.0),
-        &LengthOrPercentage::Calc(calc) => (calc.length().to_f64_px(), calc.percentage())
-    }
-}
-
-/// Compute the squared distance of two transform lists.
 // This might not be the most useful definition of distance. It might be better, for example,
 // to trace the distance travelled by a point as its transform is interpolated between the two
 // lists. That, however, proves to be quite complicated so we take a simple approach for now.
 // See https://bugzilla.mozilla.org/show_bug.cgi?id=1318591#c0.
-fn compute_transform_lists_squared_distance(from_list: &[TransformOperation],
-                                            to_list: &[TransformOperation])
-                                            -> Result<SquaredDistance, ()> {
-    let zero_distance = SquaredDistance::Value(0.);
-    let squared_distance = from_list.iter().zip(to_list.iter()).map(|(from, to)| {
-        match (from, to) {
-            (&TransformOperation::Matrix(from),
-             &TransformOperation::Matrix(to)) => {
-                from.compute_squared_distance(&to).unwrap_or(zero_distance)
-            }
-            (&TransformOperation::Skew(fx, fy),
-             &TransformOperation::Skew(tx, ty)) => {
-                fx.compute_squared_distance(&tx).unwrap_or(zero_distance) +
-                    fy.compute_squared_distance(&ty).unwrap_or(zero_distance)
-            }
-            (&TransformOperation::Translate(fx, fy, fz),
-             &TransformOperation::Translate(tx, ty, tz)) => {
+impl ComputeSquaredDistance for TransformOperation {
+    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
+        match (self, other) {
+            (
+                &TransformOperation::Matrix(ref this),
+                &TransformOperation::Matrix(ref other),
+            ) => {
+                this.compute_squared_distance(other)
+            },
+            (
+                &TransformOperation::Skew(ref fx, ref fy),
+                &TransformOperation::Skew(ref tx, ref ty),
+            ) => {
+                Ok(
+                    fx.compute_squared_distance(&tx)? +
+                    fy.compute_squared_distance(&ty)?,
+                )
+            },
+            (
+                &TransformOperation::Translate(ref fx, ref fy, ref fz),
+                &TransformOperation::Translate(ref tx, ref ty, ref tz),
+            ) => {
                 // We don't want to require doing layout in order to calculate the result, so
                 // drop the percentage part. However, dropping percentage makes us impossible to
                 // compute the distance for the percentage-percentage case, but Gecko uses the
                 // same formula, so it's fine for now.
                 // Note: We use pixel value to compute the distance for translate, so we have to
                 // convert Au into px.
-                let diff_x = fx.add_weighted(&tx, 1., -1.).unwrap_or(LengthOrPercentage::zero());
-                let diff_y = fy.add_weighted(&ty, 1., -1.).unwrap_or(LengthOrPercentage::zero());
-                let (diff_x_length, _) = extract_pixel_calc_value(&diff_x);
-                let (diff_y_length, _) = extract_pixel_calc_value(&diff_y);
-                SquaredDistance::Value(diff_x_length * diff_x_length) +
-                    SquaredDistance::Value(diff_y_length * diff_y_length) +
-                    fz.to_f64_px().compute_squared_distance(&tz.to_f64_px()).unwrap_or(zero_distance)
-            }
-            (&TransformOperation::Scale(fx, fy, fz),
-             &TransformOperation::Scale(tx, ty, tz)) => {
-                fx.compute_squared_distance(&tx).unwrap_or(zero_distance) +
-                    fy.compute_squared_distance(&ty).unwrap_or(zero_distance) +
-                    fz.compute_squared_distance(&tz).unwrap_or(zero_distance)
-            }
-            (&TransformOperation::Rotate(fx, fy, fz, fa),
-             &TransformOperation::Rotate(tx, ty, tz, ta)) => {
+                let extract_pixel_length = |lop: &LengthOrPercentage| {
+                    match *lop {
+                        LengthOrPercentage::Length(au) => au.to_f64_px(),
+                        LengthOrPercentage::Percentage(_) => 0.,
+                        LengthOrPercentage::Calc(calc) => calc.length().to_f64_px(),
+                    }
+                };
+
+                let fx = extract_pixel_length(&fx);
+                let fy = extract_pixel_length(&fy);
+                let tx = extract_pixel_length(&tx);
+                let ty = extract_pixel_length(&ty);
+
+                Ok(
+                    fx.compute_squared_distance(&tx)? +
+                    fy.compute_squared_distance(&ty)? +
+                    fz.to_f64_px().compute_squared_distance(&tz.to_f64_px())?,
+                )
+            },
+            (
+                &TransformOperation::Scale(ref fx, ref fy, ref fz),
+                &TransformOperation::Scale(ref tx, ref ty, ref tz),
+            ) => {
+                Ok(
+                    fx.compute_squared_distance(&tx)? +
+                    fy.compute_squared_distance(&ty)? +
+                    fz.compute_squared_distance(&tz)?,
+                )
+            },
+            (
+                &TransformOperation::Rotate(fx, fy, fz, fa),
+                &TransformOperation::Rotate(tx, ty, tz, ta),
+            ) => {
                 let (fx, fy, fz, angle1) = get_normalized_vector_and_angle(fx, fy, fz, fa);
                 let (tx, ty, tz, angle2) = get_normalized_vector_and_angle(tx, ty, tz, ta);
                 if (fx, fy, fz) == (tx, ty, tz) {
-                    angle1.compute_squared_distance(&angle2).unwrap_or(zero_distance)
+                    angle1.compute_squared_distance(&angle2)
                 } else {
                     let v1 = DirectionVector::new(fx, fy, fz);
                     let v2 = DirectionVector::new(tx, ty, tz);
                     let q1 = Quaternion::from_direction_and_angle(&v1, angle1.radians64());
                     let q2 = Quaternion::from_direction_and_angle(&v2, angle2.radians64());
-                    q1.compute_squared_distance(&q2).unwrap_or(zero_distance)
+                    q1.compute_squared_distance(&q2)
                 }
             }
-            (&TransformOperation::Perspective(fd),
-             &TransformOperation::Perspective(td)) => {
+            (
+                &TransformOperation::Perspective(ref fd),
+                &TransformOperation::Perspective(ref td),
+            ) => {
                 let mut fd_matrix = ComputedMatrix::identity();
                 let mut td_matrix = ComputedMatrix::identity();
                 if fd.0 > 0 {
@@ -2574,52 +2566,56 @@ fn compute_transform_lists_squared_distance(from_list: &[TransformOperation],
                 if td.0 > 0 {
                     td_matrix.m34 = -1. / td.to_f32_px();
                 }
-                fd_matrix.compute_squared_distance(&td_matrix).unwrap_or(zero_distance)
+                fd_matrix.compute_squared_distance(&td_matrix)
             }
-            (&TransformOperation::Perspective(p), &TransformOperation::Matrix(m)) |
-            (&TransformOperation::Matrix(m), &TransformOperation::Perspective(p)) => {
+            (
+                &TransformOperation::Perspective(ref p),
+                &TransformOperation::Matrix(ref m),
+            ) | (
+                &TransformOperation::Matrix(ref m),
+                &TransformOperation::Perspective(ref p),
+            ) => {
                 let mut p_matrix = ComputedMatrix::identity();
                 if p.0 > 0 {
                     p_matrix.m34 = -1. / p.to_f32_px();
                 }
-                p_matrix.compute_squared_distance(&m).unwrap_or(zero_distance)
+                p_matrix.compute_squared_distance(&m)
             }
-            _ => {
-                // We don't support computation of distance for InterpolateMatrix and
-                // AccumulateMatrix.
-                zero_distance
-            }
+            _ => Err(()),
         }
-    }).sum();
-
-    Ok(squared_distance)
+    }
 }
 
 impl ComputeSquaredDistance for TransformList {
     #[inline]
     fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        match (self.0.as_ref(), other.0.as_ref()) {
-            (Some(from_list), Some(to_list)) => {
-                if can_interpolate_list(from_list, to_list) {
-                    compute_transform_lists_squared_distance(from_list, to_list)
-                } else {
-                    // Bug 1390039: we don't handle mismatch transform lists for now.
-                    Err(())
-                }
-            },
-            (Some(list), None) | (None, Some(list)) => {
-                let none = build_identity_transform_list(list);
-                compute_transform_lists_squared_distance(list, &none)
+        let this = self.0.as_ref().map_or(&[][..], |l| l);
+        let other = other.0.as_ref().map_or(&[][..], |l| l);
+
+        this.iter().zip_longest(other).map(|it| {
+            match it {
+                EitherOrBoth::Both(this, other) => {
+                    this.compute_squared_distance(other)
+                },
+                EitherOrBoth::Left(list) | EitherOrBoth::Right(list) => {
+                    list.to_animated_zero()?.compute_squared_distance(list)
+                },
             }
-            _ => Ok(SquaredDistance::Value(0.))
-        }
+        }).sum()
     }
 }
 
 impl ToAnimatedZero for TransformList {
     #[inline]
     fn to_animated_zero(&self) -> Result<Self, ()> {
-        Ok(TransformList(None))
+        match self.0 {
+            None => Ok(TransformList(None)),
+            Some(ref list) => {
+                Ok(TransformList(Some(
+                    list.iter().map(|op| op.to_animated_zero()).collect::<Result<Vec<_>, _>>()?
+                )))
+            },
+        }
     }
 }
 
@@ -3092,8 +3088,6 @@ impl Animatable for AnimatedFilterList {
 impl ComputeSquaredDistance for AnimatedFilterList {
     #[inline]
     fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        use itertools::{EitherOrBoth, Itertools};
-
         self.0.iter().zip_longest(other.0.iter()).map(|it| {
             match it {
                 EitherOrBoth::Both(from, to) => {
