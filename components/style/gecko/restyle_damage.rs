@@ -9,7 +9,6 @@ use gecko_bindings::structs;
 use gecko_bindings::structs::{nsChangeHint, nsStyleContext, nsStyleStructID};
 use matching::{StyleChange, StyleDifference};
 use properties::ComputedValues;
-use servo_arc::Arc;
 use std::ops::{BitAnd, BitOr, BitOrAssign, Not};
 
 /// The representation of Gecko's restyle damage is just a wrapper over
@@ -49,7 +48,7 @@ impl GeckoRestyleDamage {
     pub fn compute_style_difference(
         source: &nsStyleContext,
         old_style: &ComputedValues,
-        new_style: &Arc<ComputedValues>,
+        new_style: &ComputedValues,
     ) -> StyleDifference {
         let mut any_style_changed: bool = false;
         let hint = unsafe {
