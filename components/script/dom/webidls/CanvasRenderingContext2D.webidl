@@ -150,9 +150,10 @@ interface CanvasUserInterface {
   // TODO?
 };
 
-[Pref="dom.canvas-text.enabled"]
+[NoInterfaceObject]
 interface CanvasText {
   // text (see also the CanvasDrawingStyles interface)
+  [Pref="dom.canvas-text.enabled"]
   void fillText(DOMString text, unrestricted double x, unrestricted double y,
                 optional unrestricted double maxWidth);
   //void strokeText(DOMString text, unrestricted double x, unrestricted double y,
