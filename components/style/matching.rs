@@ -341,7 +341,7 @@ trait PrivateMatchMethods: TElement {
                              shared_context: &SharedStyleContext,
                              restyle: &mut RestyleData,
                              old_values: &ComputedValues,
-                             new_values: &Arc<ComputedValues>,
+                             new_values: &ComputedValues,
                              pseudo: Option<&PseudoElement>)
                              -> ChildCascadeRequirement {
         // Don't accumulate damage if we're in a forgetful traversal.
@@ -360,7 +360,7 @@ trait PrivateMatchMethods: TElement {
             restyle.reconstructed_self_or_ancestor();
 
         let difference =
-            self.compute_style_difference(&old_values, &new_values, pseudo);
+            self.compute_style_difference(old_values, new_values, pseudo);
 
         if !skip_applying_damage {
             restyle.damage |= difference.damage;
@@ -389,10 +389,10 @@ trait PrivateMatchMethods: TElement {
                              _shared_context: &SharedStyleContext,
                              restyle: &mut RestyleData,
                              old_values: &ComputedValues,
-                             new_values: &Arc<ComputedValues>,
+                             new_values: &ComputedValues,
                              pseudo: Option<&PseudoElement>)
                              -> ChildCascadeRequirement {
-        let difference = self.compute_style_difference(&old_values, &new_values, pseudo);
+        let difference = self.compute_style_difference(old_values, new_values, pseudo);
         restyle.damage |= difference.damage;
         match difference.change {
             StyleChange::Changed => ChildCascadeRequirement::MustCascadeChildren,
@@ -657,7 +657,7 @@ pub trait MatchMethods : TElement {
                          shared_context: &SharedStyleContext,
                          restyle: &mut RestyleData,
                          old_values: Option<&ComputedValues>,
-                         new_values: &Arc<ComputedValues>,
+                         new_values: &ComputedValues,
                          pseudo: Option<&PseudoElement>)
                          -> ChildCascadeRequirement {
         let old_values = match old_values {
@@ -817,7 +817,7 @@ pub trait MatchMethods : TElement {
     fn compute_style_difference(
         &self,
         old_values: &ComputedValues,
-        new_values: &Arc<ComputedValues>,
+        new_values: &ComputedValues,
         pseudo: Option<&PseudoElement>
     ) -> StyleDifference {
         debug_assert!(pseudo.map_or(true, |p| p.is_eager()));
