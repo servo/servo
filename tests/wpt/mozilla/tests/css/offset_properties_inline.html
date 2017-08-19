@@ -30,6 +30,7 @@
   -->
 </div>
 <script>
+window.onload = function() {
   var realOffsetParent = document.getElementById('real-offset-parent');
   var inline1 = document.getElementById('inline-1');
   var inline2 = document.getElementById('inline-2');
@@ -79,5 +80,6 @@
     assert_equals(inline3.offsetHeight, 10,
       "offsetHeight of #inline-3 should be 10.");
   }, "offsetHeight");
+}
 </script>
 </body>
