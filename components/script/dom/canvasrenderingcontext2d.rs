@@ -802,7 +802,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-filltext
     fn FillText(&self, text: DOMString, x: f64, y: f64, max_width: Option<f64>) {
-        let parsed_text: String = text.parse().unwrap();
+        let parsed_text: String = text.into();
         self.ipc_renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::FillText(parsed_text, x, y, max_width))).unwrap();
         self.mark_as_dirty();
     }
