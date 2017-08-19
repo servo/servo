@@ -2307,12 +2307,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         self.update_activity(pipeline_id);
         self.notify_history_changed(top_level_id);
 
-        // Set paint permissions correctly for the compositor layers.
-        if let Some(id) = self.active_browser_id {
-            if id == top_level_id {
-                self.send_frame_tree(top_level_id);
-            }
-        }
+        self.update_frame_tree_if_active(top_level_id);
 
         // Update the owning iframe to point to the new pipeline id.
         // This makes things like contentDocument work correctly.
@@ -2470,12 +2465,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             self.trigger_mozbrowserlocationchange(change.top_level_browsing_context_id);
         }
 
-        // Build frame tree
-        if let Some(id) = self.active_browser_id {
-            if id == change.top_level_browsing_context_id {
-                self.send_frame_tree(change.top_level_browsing_context_id );
-            }
-        }
+        self.update_frame_tree_if_active(change.top_level_browsing_context_id);
     }
 
     fn handle_activate_document_msg(&mut self, pipeline_id: PipelineId) {
@@ -2908,12 +2898,12 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         })
     }
 
-    // Send the current frame tree to compositor
-    fn send_frame_tree(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId) {
+    /// Re-send the frame tree to the compositor.
+    fn update_frame_tree_if_active(&mut self, mut top_level_browsing_context_id: TopLevelBrowsingContextId) {
         // This might be a mozbrowser iframe, so we need to climb the parent hierarchy,
         // even though it's a top-level browsing context.
-        self.active_browser_id = Some(top_level_browsing_context_id);
-        let mut browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
+        // FIXME(paul): to remove once mozbrowser API is removed.
+        let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
         let mut pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
             Some(browsing_context) => browsing_context.pipeline_id,
             None => return warn!("Sending frame tree for discarded browsing context {}.", browsing_context_id),
@@ -2923,11 +2913,24 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             match pipeline.parent_info {
                 Some((parent_id, _)) => pipeline_id = parent_id,
                 None => {
-                    browsing_context_id = pipeline.browsing_context_id;
+                    top_level_browsing_context_id = pipeline.top_level_browsing_context_id;
                     break;
                 },
             }
         }
+
+        // Only send the frame tree if it's the active one or if no frame tree
+        // has been sent yet.
+        if self.active_browser_id.is_none() || Some(top_level_browsing_context_id) == self.active_browser_id {
+            self.send_frame_tree(top_level_browsing_context_id);
+        }
+
+    }
+
+    /// Send the current frame tree to compositor
+    fn send_frame_tree(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId) {
+        self.active_browser_id = Some(top_level_browsing_context_id);
+        let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
 
         // Note that this function can panic, due to ipc-channel creation failure.
         // avoiding this panic would require a mechanism for dealing
