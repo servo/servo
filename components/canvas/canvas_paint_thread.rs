@@ -230,12 +230,7 @@ impl<'a> CanvasPaintThread<'a> {
     }
 
     fn fill_text(&self, text: String, x: f64, y: f64, max_width: Option<f64>) {
-        println!("Trying to fill text. Values sent: {}, {}, {}", text, x, y);
-
-        match max_width {
-            Some(max_width) => println!("Got max width: {:?}", max_width),
-            None => println!("Got no max width."),
-        }
+        error!("Unimplemented canvas2d.fillText. Values received: {}, {}, {}, {:?}.", text, x, y, max_width);
     }
 
     fn fill_rect(&self, rect: &Rect<f32>) {

@@ -36,6 +36,7 @@ CanvasRenderingContext2D implements CanvasShadowStyles;
 CanvasRenderingContext2D implements CanvasRect;
 CanvasRenderingContext2D implements CanvasDrawPath;
 CanvasRenderingContext2D implements CanvasUserInterface;
+[Pref="dom.canvas-text.enabled"]
 CanvasRenderingContext2D implements CanvasText;
 CanvasRenderingContext2D implements CanvasDrawImage;
 CanvasRenderingContext2D implements CanvasHitRegion;
