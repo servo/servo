@@ -7,7 +7,7 @@
 use app_units::Au;
 use gecko::values::{convert_rgba_to_nscolor, convert_nscolor_to_rgba};
 use gecko_bindings::structs::nsCSSShadowItem;
-use values::computed::Color;
+use values::computed::RGBAColor;
 use values::computed::effects::{BoxShadow, SimpleShadow};
 
 impl nsCSSShadowItem {
@@ -37,23 +37,23 @@ impl nsCSSShadowItem {
         self.mRadius = shadow.blur.value();
         self.mSpread = 0;
         self.mInset = false;
-        if shadow.color.is_currentcolor() {
+        if let Some(color) = shadow.color {
+            self.mHasColor = true;
+            self.mColor = convert_rgba_to_nscolor(&color);
+        } else {
             // TODO handle currentColor
             // https://bugzilla.mozilla.org/show_bug.cgi?id=760345
             self.mHasColor = false;
             self.mColor = 0;
-        } else {
-            self.mHasColor = true;
-            self.mColor = convert_rgba_to_nscolor(&shadow.color.color);
         }
     }
 
     #[inline]
-    fn extract_color(&self) -> Color {
+    fn extract_color(&self) -> Option<RGBAColor> {
         if self.mHasColor {
-            Color::rgba(convert_nscolor_to_rgba(self.mColor))
+            Some(convert_nscolor_to_rgba(self.mColor))
         } else {
-            Color::currentcolor()
+            None
         }
     }
 
