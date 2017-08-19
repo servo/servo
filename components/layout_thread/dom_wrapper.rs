@@ -444,14 +444,6 @@ impl<'le> TElement for ServoLayoutElement<'le> {
         }
     }
 
-    #[inline]
-    fn existing_style_for_restyle_damage<'a>(&'a self,
-                                             current_cv: &'a ComputedValues,
-                                             _pseudo_element: Option<&PseudoElement>)
-                                             -> Option<&'a ComputedValues> {
-        Some(current_cv)
-    }
-
     fn has_dirty_descendants(&self) -> bool {
         unsafe { self.as_node().node.get_flag(HAS_DIRTY_DESCENDANTS) }
     }
