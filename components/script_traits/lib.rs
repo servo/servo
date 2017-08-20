@@ -146,10 +146,22 @@ pub struct LoadData {
     pub headers: Headers,
     /// The data.
     pub data: Option<Vec<u8>>,
+    /// The result of evaluating a javascript scheme url.
+    pub js_eval_result: Option<JsEvalResult>,
     /// The referrer policy.
     pub referrer_policy: Option<ReferrerPolicy>,
     /// The referrer URL.
     pub referrer_url: Option<ServoUrl>,
+}
+
+/// The result of evaluating a javascript scheme url.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum JsEvalResult {
+    /// The js evaluation had a non-string result, 204 status code.
+    /// https://html.spec.whatwg.org/multipage/#navigate 12.11
+    NoContent,
+    /// The js evaluation had a string result.
+    Ok(Vec<u8>)
 }
 
 impl LoadData {
@@ -165,6 +177,7 @@ impl LoadData {
             method: Method::Get,
             headers: Headers::new(),
             data: None,
+            js_eval_result: None,
             referrer_policy: referrer_policy,
             referrer_url: referrer_url,
         }
