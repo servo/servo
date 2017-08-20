@@ -28,10 +28,17 @@ pub type Name = Atom;
 ///
 /// https://drafts.csswg.org/css-variables/#typedef-custom-property-name
 pub fn parse_name(s: &str) -> Result<&str, ()> {
-    if s.starts_with("--") {
-        Ok(&s[2..])
-    } else {
-        Err(())
+    let mut input = ParserInput::new(s);
+    let mut input = Parser::new(&mut input);
+
+    match input.expect_ident() {
+        Ok(_) if s.starts_with("--") => {
+            match input.expect_exhausted() {
+                Ok(()) => Ok(&s[2..]),
+                Err(_) => Err(()),
+            }
+        },
+        _ => Err(())
     }
 }
 
