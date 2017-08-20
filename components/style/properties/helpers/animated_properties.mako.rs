@@ -627,9 +627,13 @@ impl AnimationValue {
                 }
             },
             PropertyDeclaration::WithVariables(id, ref unparsed) => {
-                let custom_props = context.style().custom_properties();
-                let substituted = unparsed.substitute_variables(id, &custom_props, context.quirks_mode);
-                AnimationValue::from_declaration(&substituted, context, initial)
+                let substituted = {
+                    let custom_props = context.style().get_custom_properties();
+                    unparsed.substitute_variables(id, custom_props, context.quirks_mode)
+                };
+                AnimationValue::from_declaration(
+                    &substituted, context, initial
+                )
             },
             _ => None // non animatable properties will get included because of shorthands. ignore.
         }

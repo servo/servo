@@ -19,6 +19,7 @@ use rule_tree::StrongRuleNode;
 use selector_parser::{PseudoElement, SelectorImpl};
 use selectors::matching::{ElementSelectorFlags, MatchingContext, MatchingMode, VisitedHandlingMode};
 use servo_arc::Arc;
+use std::borrow::Borrow;
 use stylist::RuleInclusion;
 
 /// A struct that takes care of resolving the style of a given element.
@@ -486,7 +487,8 @@ where
                 Some(&mut cascade_info),
                 &self.context.thread_local.font_metrics_provider,
                 cascade_flags,
-                self.context.shared.quirks_mode
+                self.context.shared.quirks_mode,
+                self.context.shared.stylist.registered_property_set().borrow(),
             );
 
         cascade_info.finish(&self.element.as_node());
