@@ -1137,6 +1137,18 @@ impl LayoutThread {
                element, self.url, data.query_type);
         trace!("{:?}", ShowSubtree(element.as_node()));
 
+        let document_shared_lock = document.style_shared_lock();
+        self.document_shared_lock = Some(document_shared_lock.clone());
+        let document_guard = document_shared_lock.read();
+
+        // Set the registered property set (if it isn't already set), and mark
+        // stylesheet origins dirty if they've changed, analogously to the check
+        // regarding device changes below.
+        self.stylist.set_registered_property_set(document.registered_property_set());
+        if self.stylist.registered_property_set_updated(&document_guard) {
+            self.stylist.force_stylesheet_origins_dirty(OriginSet::all());
+        }
+
         let initial_viewport = data.window_size.initial_viewport;
         let device_pixel_ratio = data.window_size.device_pixel_ratio;
         let old_viewport_size = self.viewport_size;
@@ -1145,12 +1157,9 @@ impl LayoutThread {
 
         // Calculate the actual viewport as per DEVICE-ADAPT § 6
 
-        let document_shared_lock = document.style_shared_lock();
-        self.document_shared_lock = Some(document_shared_lock.clone());
-        let document_guard = document_shared_lock.read();
         let device = Device::new(MediaType::screen(), initial_viewport, device_pixel_ratio);
         let sheet_origins_affected_by_device_change =
-            self.stylist.set_device(device, &author_guard);
+            self.stylist.set_device(device, &document_guard);
 
         self.stylist.force_stylesheet_origins_dirty(sheet_origins_affected_by_device_change);
         self.viewport_size =
