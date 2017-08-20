@@ -130,10 +130,22 @@ impl PseudoElement {
         result
     }
 
-    /// Whether the current pseudo element is :before or :after.
+    /// Whether the current pseudo element is ::before or ::after.
     #[inline]
     pub fn is_before_or_after(&self) -> bool {
-        matches!(*self, PseudoElement::After | PseudoElement::Before)
+        self.is_before() || self.is_after()
+    }
+
+    /// Whether this pseudo-element is the ::before pseudo.
+    #[inline]
+    pub fn is_before(&self) -> bool {
+        *self == PseudoElement::Before
+    }
+
+    /// Whether this pseudo-element is the ::after pseudo.
+    #[inline]
+    pub fn is_after(&self) -> bool {
+        *self == PseudoElement::After
     }
 
     /// Whether the current pseudo element is :first-letter
