@@ -74,6 +74,7 @@ use style::dom::{PresentationalHintsSynthesizer, TElement, TNode, UnsafeNode};
 use style::element_state::*;
 use style::font_metrics::ServoMetricsProvider;
 use style::properties::{ComputedValues, PropertyDeclarationBlock};
+use style::properties_and_values::RegisteredPropertySet;
 use style::selector_parser::{AttrValue as SelectorAttrValue, NonTSPseudoClass, PseudoClassStringArg};
 use style::selector_parser::{PseudoElement, SelectorImpl, extended_filtering};
 use style::shared_lock::{SharedRwLock as StyleSharedRwLock, Locked as StyleLocked};
@@ -363,6 +364,10 @@ impl<'ld> ServoLayoutDocument<'ld> {
 
     pub fn style_shared_lock(&self) -> &StyleSharedRwLock {
         unsafe { self.document.style_shared_lock() }
+    }
+
+    pub fn registered_property_set(&self) -> Arc<StyleLocked<RegisteredPropertySet>> {
+        unsafe { self.document.registered_property_set() }
     }
 
     pub fn from_layout_js(doc: LayoutJS<Document>) -> ServoLayoutDocument<'ld> {
