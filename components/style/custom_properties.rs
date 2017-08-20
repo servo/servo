@@ -10,6 +10,7 @@ use Atom;
 use cssparser::{Delimiter, Parser, ParserInput, SourcePosition, Token, TokenSerializationType};
 use parser::ParserContext;
 use properties::{CSSWideKeyword, DeclaredValue};
+use properties_and_values;
 use selectors::parser::SelectorParseError;
 use servo_arc::Arc;
 use std::ascii::AsciiExt;
@@ -17,7 +18,9 @@ use std::borrow::{Borrow, Cow};
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::hash::Hash;
+use std::ops::Deref;
 use style_traits::{HasViewportPercentage, ToCss, StyleParseError, ParseError};
+use stylesheets::UrlExtraData;
 
 /// A custom property name is just an `Atom`.
 ///
@@ -42,6 +45,79 @@ pub fn parse_name(s: &str) -> Result<&str, ()> {
     }
 }
 
+/// Extra data that we need to pass along with a custom property's specified
+/// value in order to compute it, if it ends up being registered as being able
+/// to contain URLs through Properties & Values.
+/// When the specified value comes from a declaration, we keep track of the
+/// associated UrlExtraData. However, specified values can also come from
+/// animations: in that case we are able to carry along a copy of the computed
+/// value so that we can skip computation altogether (and hopefully avoid bugs
+/// with resolving URLs wrong).
+#[derive(Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub enum ExtraData {
+    /// The specified value comes from a declaration (whence we get
+    /// the UrlExtraData).
+    Specified(UrlExtraData),
+}
+
+impl<'a> Into<BorrowedExtraData<'a>> for &'a ExtraData {
+    fn into(self) -> BorrowedExtraData<'a> {
+        match *self {
+            ExtraData::Specified(ref x) => BorrowedExtraData::Specified(x),
+        }
+    }
+}
+
+/// A borrowed version of an ExtraData. Used for BorrowedSpecifiedValue. Has an
+/// extra variant, InheritedUntyped, for when the specified value is really
+/// borrowed from an inherited value and the property is unregistered. In that
+/// case the token stream value is already the computed value.
+#[derive(Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub enum BorrowedExtraData<'a> {
+    /// The specified value comes from a declaration (whence we get the
+    /// UrlExtraData).
+    Specified(&'a UrlExtraData),
+
+    /// The specified value comes from an inherited value for an untyped custom
+    /// property, and we should just use the token stream value as the computed
+    /// value.
+    InheritedUntyped,
+}
+
+/// A token stream, represented as a string and boundary tokens.
+/// Custom properties' specified values are token streams.
+#[derive(Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub struct TokenStream {
+    /// The specified text.
+    pub css: String,
+
+    /// The first token in the serialization.
+    /// Used when resolving variable references, because we would like to
+    /// substitute token streams rather than variables; in particular, if
+    /// `foo: 5` and we write `width: var(--foo) em`, width's should not be
+    /// declared to be `5em`, a dimension token with value , but rather the
+    /// integer token `5` followed by the identifier `em`, which is invalid.
+    /// We implement this by adding /**/ when necessary (see
+    /// ComputedValue::push).
+    pub first_token_type: TokenSerializationType,
+
+    /// The last token in the serialization.
+    pub last_token_type: TokenSerializationType,
+}
+
+impl Default for TokenStream {
+    fn default() -> Self {
+        TokenStream {
+            css: "".to_owned(),
+            first_token_type: TokenSerializationType::nothing(),
+            last_token_type: TokenSerializationType::nothing(),
+        }
+    }
+}
+
 /// A specified value for a custom property is just a set of tokens.
 ///
 /// We preserve the original CSS for serialization, and also the variable
@@ -49,13 +125,26 @@ pub fn parse_name(s: &str) -> Result<&str, ()> {
 #[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct SpecifiedValue {
-    css: String,
-
-    first_token_type: TokenSerializationType,
-    last_token_type: TokenSerializationType,
+    /// The specified token stream.
+    pub token_stream: TokenStream,
 
     /// Custom property names in var() functions.
-    references: HashSet<Name>,
+    /// This being None should be treated exactly the same as it being an empty
+    /// HashSet; it exists so we don't have to create a new HashSet every time
+    /// we are applying an interpolated custom property.
+    references: Option<HashSet<Name>>,
+
+    /// Extra data needed to compute the specified value. See the comment on
+    /// ExtraData.
+    pub extra: ExtraData,
+}
+
+impl Deref for SpecifiedValue {
+    type Target = TokenStream;
+
+    fn deref(&self) -> &TokenStream {
+        &self.token_stream
+    }
 }
 
 impl HasViewportPercentage for SpecifiedValue {
@@ -64,23 +153,36 @@ impl HasViewportPercentage for SpecifiedValue {
     }
 }
 
+impl<'a> From<&'a properties_and_values::ComputedValue> for SpecifiedValue {
+    fn from(other: &'a properties_and_values::ComputedValue) -> Self {
+        SpecifiedValue {
+            token_stream: other.into(),
+            references: None,
+            extra: ExtraData::Precomputed(other.clone()),
+        }
+    }
+}
+
 /// This struct is a cheap borrowed version of a `SpecifiedValue`.
 pub struct BorrowedSpecifiedValue<'a> {
-    css: &'a str,
-    first_token_type: TokenSerializationType,
-    last_token_type: TokenSerializationType,
+    token_stream: &'a TokenStream,
     references: Option<&'a HashSet<Name>>,
+    /// Extra data needed to compute the specified value. See the comment on
+    /// ExtraData.
+    pub extra: BorrowedExtraData<'a>,
+}
+
+impl<'a> Deref for BorrowedSpecifiedValue<'a> {
+    type Target = TokenStream;
+
+    fn deref(&self) -> &TokenStream {
+        &self.token_stream
+    }
 }
 
 /// A computed value is just a set of tokens as well, until we resolve variables
 /// properly.
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub struct ComputedValue {
-    css: String,
-    first_token_type: TokenSerializationType,
-    last_token_type: TokenSerializationType,
-}
+pub type ComputedValue = TokenStream;
 
 impl ToCss for SpecifiedValue {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result
@@ -98,6 +200,30 @@ impl ToCss for ComputedValue {
     }
 }
 
+impl<'a> From<&'a properties_and_values::ComputedValue> for TokenStream {
+    fn from(other: &'a properties_and_values::ComputedValue) -> Self {
+        let mut css = String::new();
+        other.to_css::<String>(&mut css).unwrap();
+        let (first, last) = {
+            let mut missing_closing_characters = String::new();
+            let mut input = ParserInput::new(&css);
+            let mut input = Parser::new(&mut input);
+            // XXX agh! why do we need to parse again just to get
+            // these guys.
+            parse_declaration_value_block(
+                &mut input,
+                &mut None,
+                &mut missing_closing_characters
+            ).unwrap()
+        };
+        TokenStream {
+            css: css,
+            first_token_type: first,
+            last_token_type: last,
+        }
+    }
+}
+
 /// A map from CSS variable names to CSS variable computed values, used for
 /// resolving.
 ///
@@ -105,6 +231,10 @@ impl ToCss for ComputedValue {
 /// DOM. CSSDeclarations expose property names as indexed properties, which
 /// need to be stable. So we keep an array of property names which order is
 /// determined on the order that they are added to the name-value map.
+///
+/// Outside of this module, this map will normally be accessed through a
+/// `properties_and_values::CustomPropertiesMap`, which composes it and stores
+/// computed values for typed custom properties as well.
 pub type CustomPropertiesMap = OrderedMap<Name, ComputedValue>;
 
 /// A map that preserves order for the keys, and that is easily indexable.
@@ -251,16 +381,25 @@ impl ComputedValue {
 
 impl SpecifiedValue {
     /// Parse a custom property SpecifiedValue.
-    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
+    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                          -> Result<Box<Self>, ParseError<'i>> {
         let mut references = Some(HashSet::new());
         let (first, css, last) = parse_self_contained_declaration_value(input, &mut references)?;
         Ok(Box::new(SpecifiedValue {
-            css: css.into_owned(),
-            first_token_type: first,
-            last_token_type: last,
-            references: references.unwrap(),
+            token_stream: TokenStream {
+                css: css.into_owned(),
+                first_token_type: first,
+                last_token_type: last,
+            },
+            references: references,
+            extra: ExtraData::Specified(context.url_data.clone()),
         }))
+    }
+
+    /// Returns whether or not this specified value contains any variable
+    /// references.
+    pub fn has_references(&self) -> bool {
+        !self.references.as_ref().map(|x| x.is_empty()).unwrap_or(true)
     }
 }
 
@@ -473,10 +612,9 @@ pub fn cascade<'a>(custom_properties: &mut Option<OrderedMap<&'a Name, BorrowedS
                 for name in &inherited.index {
                     let inherited_value = inherited.get(name).unwrap();
                     map.insert(name, BorrowedSpecifiedValue {
-                        css: &inherited_value.css,
-                        first_token_type: inherited_value.first_token_type,
-                        last_token_type: inherited_value.last_token_type,
-                        references: None
+                        token_stream: inherited_value,
+                        references: None,
+                        extra: BorrowedExtraData::InheritedUntyped,
                     })
                 }
             }
@@ -487,10 +625,9 @@ pub fn cascade<'a>(custom_properties: &mut Option<OrderedMap<&'a Name, BorrowedS
     match specified_value {
         DeclaredValue::Value(ref specified_value) => {
             map.insert(name, BorrowedSpecifiedValue {
-                css: &specified_value.css,
-                first_token_type: specified_value.first_token_type,
-                last_token_type: specified_value.last_token_type,
-                references: Some(&specified_value.references),
+                token_stream: &specified_value.token_stream,
+                references: specified_value.references.as_ref(),
+                extra: (&specified_value.extra).into(),
             });
         },
         DeclaredValue::WithVariables(_) => unreachable!(),
