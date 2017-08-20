@@ -992,7 +992,7 @@ ${helpers.predefined_type(
 
     #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub struct SpecifiedValue(Vec<SpecifiedOperation>);
+    pub struct SpecifiedValue(pub Vec<SpecifiedOperation>);
 
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
