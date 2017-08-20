@@ -100,6 +100,7 @@ use style::context::QuirksMode;
 use style::element_state::*;
 use style::media_queries::MediaList;
 use style::properties::PropertyDeclarationBlock;
+use style::properties_and_values;
 use style::selector_parser::{PseudoElement, Snapshot};
 use style::shared_lock::{SharedRwLock as StyleSharedRwLock, Locked as StyleLocked};
 use style::stylesheet_set::StylesheetSet;
@@ -410,6 +411,7 @@ unsafe_no_jsmanaged_fields!(WebGLVertexArrayId);
 unsafe_no_jsmanaged_fields!(MediaList);
 unsafe_no_jsmanaged_fields!(WebVRGamepadHand);
 unsafe_no_jsmanaged_fields!(ScriptToConstellationChan);
+unsafe_no_jsmanaged_fields!(RwLock<properties_and_values::RegisteredPropertySet>);
 
 unsafe impl<'a> JSTraceable for &'a str {
     #[inline]

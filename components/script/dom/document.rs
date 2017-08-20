@@ -112,6 +112,7 @@ use net_traits::pub_domains::is_pub_domain;
 use net_traits::request::RequestInit;
 use net_traits::response::HttpsState;
 use num_traits::ToPrimitive;
+use parking_lot::RwLock;
 use script_layout_interface::message::{Msg, ReflowQueryType};
 use script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
 use script_thread::{MainThreadScriptMsg, Runnable, ScriptThread};
@@ -138,6 +139,7 @@ use style::attr::AttrValue;
 use style::context::{QuirksMode, ReflowGoal};
 use style::invalidation::element::restyle_hints::{RestyleHint, RESTYLE_SELF, RESTYLE_STYLE_ATTRIBUTE};
 use style::media_queries::{Device, MediaList, MediaType};
+use style::properties_and_values::RegisteredPropertySet;
 use style::selector_parser::{RestyleDamage, Snapshot};
 use style::shared_lock::{SharedRwLock as StyleSharedRwLock, SharedRwLockReadGuard};
 use style::str::{HTML_SPACE_CHARACTERS, split_html_space_chars, str_join};
@@ -351,6 +353,10 @@ pub struct Document {
     /// is inserted or removed from the document.
     /// See https://html.spec.whatwg.org/multipage/#form-owner
     form_id_listener_map: DOMRefCell<HashMap<Atom, HashSet<JS<Element>>>>,
+
+    /// The set of registered custom properties.
+    #[ignore_heap_size_of = "Arc"]
+    registered_property_set: Arc<RwLock<RegisteredPropertySet>>,
 }
 
 #[derive(JSTraceable, HeapSizeOf)]
@@ -2041,6 +2047,7 @@ pub trait LayoutDocumentHelpers {
     unsafe fn will_paint(&self);
     unsafe fn quirks_mode(&self) -> QuirksMode;
     unsafe fn style_shared_lock(&self) -> &StyleSharedRwLock;
+    unsafe fn registered_property_set(&self) -> Arc<RwLock<RegisteredPropertySet>>;
 }
 
 #[allow(unsafe_code)]
@@ -2081,6 +2088,11 @@ impl LayoutDocumentHelpers for LayoutJS<Document> {
     #[inline]
     unsafe fn style_shared_lock(&self) -> &StyleSharedRwLock {
         (*self.unsafe_get()).style_shared_lock()
+    }
+
+    #[inline]
+    unsafe fn registered_property_set(&self) -> Arc<RwLock<RegisteredPropertySet>> {
+        (*self.unsafe_get()).registered_property_set()
     }
 }
 
@@ -2261,6 +2273,7 @@ impl Document {
             dom_count: Cell::new(1),
             fullscreen_element: MutNullableJS::new(None),
             form_id_listener_map: Default::default(),
+            registered_property_set: Default::default(),
         }
     }
 
@@ -2676,6 +2689,10 @@ impl Document {
                         .reset_form_owner();
             }
         }
+    }
+
+    pub fn registered_property_set(&self) -> Arc<RwLock<RegisteredPropertySet>> {
+        self.registered_property_set.clone()
     }
 }
 
