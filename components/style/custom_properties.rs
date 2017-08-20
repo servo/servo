@@ -59,12 +59,17 @@ pub enum ExtraData {
     /// The specified value comes from a declaration (whence we get
     /// the UrlExtraData).
     Specified(UrlExtraData),
+
+    /// The specified value comes from an animation or an inherited typed custom
+    /// property (whence we get the properties_and_values::ComputedValue).
+    Precomputed(properties_and_values::ComputedValue),
 }
 
 impl<'a> Into<BorrowedExtraData<'a>> for &'a ExtraData {
     fn into(self) -> BorrowedExtraData<'a> {
         match *self {
             ExtraData::Specified(ref x) => BorrowedExtraData::Specified(x),
+            ExtraData::Precomputed(ref x) => BorrowedExtraData::Precomputed(x),
         }
     }
 }
@@ -79,6 +84,10 @@ pub enum BorrowedExtraData<'a> {
     /// The specified value comes from a declaration (whence we get the
     /// UrlExtraData).
     Specified(&'a UrlExtraData),
+
+    /// The specified value comes from an animation or an inherited typed custom
+    /// property (whence we get the properties_and_values::ComputedValue).
+    Precomputed(&'a properties_and_values::ComputedValue),
 
     /// The specified value comes from an inherited value for an untyped custom
     /// property, and we should just use the token stream value as the computed
