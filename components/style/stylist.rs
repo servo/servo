@@ -16,11 +16,13 @@ use gecko_bindings::structs::{nsIAtom, StyleRuleInclusion};
 use invalidation::element::invalidation_map::InvalidationMap;
 use invalidation::media_queries::{EffectiveMediaQueryResults, ToMediaListKey};
 use media_queries::Device;
+use parking_lot::RwLock;
 use properties::{self, CascadeFlags, ComputedValues};
 use properties::{AnimationRules, PropertyDeclarationBlock};
 #[cfg(feature = "servo")]
 use properties::INHERIT_ALL;
 use properties::IS_LINK;
+use properties_and_values::RegisteredPropertySet;
 use rule_tree::{CascadeLevel, RuleTree, StyleSource};
 use selector_map::{PrecomputedHashMap, SelectorMap, SelectorMapEntry};
 use selector_parser::{SelectorImpl, PerPseudoElementMap, PseudoElement};
@@ -35,6 +37,7 @@ use selectors::visitor::SelectorVisitor;
 use servo_arc::{Arc, ArcBorrow};
 use shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
 use smallvec::VecLike;
+use std::borrow::Borrow;
 use std::fmt::Debug;
 use style_traits::viewport::ViewportConstraints;
 #[cfg(feature = "gecko")]
@@ -98,6 +101,16 @@ pub struct Stylist {
 
     /// The total number of times the stylist has been rebuilt.
     num_rebuilds: usize,
+
+    /// The set of registered custom property associated with the document.
+    /// Should be initialized as soon as possible.
+    #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
+    registered_property_set: Option<Arc<RwLock<RegisteredPropertySet>>>,
+
+    /// The registered property set generation at the time that rebuild was last
+    /// called. Used to keep track of whether or not we need to actually
+    /// rebuild, similar to is_device_dirty.
+    last_used_registered_property_set_generation: Option<u32>,
 }
 
 /// What cascade levels to include when styling elements.
@@ -137,6 +150,9 @@ impl Stylist {
             precomputed_pseudo_element_decls: PerPseudoElementMap::default(),
             rule_tree: RuleTree::new(),
             num_rebuilds: 0,
+
+            registered_property_set: None,
+            last_used_registered_property_set_generation: None,
         }
 
         // FIXME: Add iso-8859-9.css when the document’s encoding is ISO-8859-8.
@@ -169,6 +185,38 @@ impl Stylist {
             .map(|(d, _)| d.invalidation_map.len()).sum()
     }
 
+    /// Set the registered property set associated with the document this
+    /// Stylist is styling.
+    pub fn set_registered_property_set(
+        &mut self,
+        registered_property_set: Arc<RwLock<RegisteredPropertySet>>
+    ) {
+        debug_assert!(if let Some(ref old) = self.registered_property_set {
+            Arc::ptr_eq(old, &registered_property_set)
+        } else { true });
+        self.registered_property_set = Some(registered_property_set);
+    }
+
+    /// Get the registered property set associated with the document this
+    /// Stylist is styling. Panics if there is none set.
+    pub fn registered_property_set(&self) -> Arc<RwLock<RegisteredPropertySet>> {
+        self.registered_property_set
+            .as_ref()
+            .expect("set_registered_property_set should have been called.")
+            .clone()
+    }
+
+    fn registered_property_set_updated(&self) -> Option<u32> {
+        let registered_property_set = self.registered_property_set.as_ref().unwrap();
+        let registered_property_set = registered_property_set.read();
+        if self.last_used_registered_property_set_generation !=
+           Some(registered_property_set.generation()) {
+            Some(registered_property_set.generation())
+        } else {
+            None
+        }
+    }
+
     /// Invokes `f` with the `InvalidationMap` for each origin.
     ///
     /// NOTE(heycam) This might be better as an `iter_invalidation_maps`, once
@@ -185,9 +233,12 @@ impl Stylist {
     /// Rebuild the stylist for the given document stylesheets, and optionally
     /// with a set of user agent stylesheets.
     ///
-    /// This method resets all the style data each time the stylesheets change
-    /// (which is indicated by the `stylesheets_changed` parameter), or the
-    /// device is dirty, which means we need to re-evaluate media queries.
+    /// This method resets all the style data when instructed to via
+    /// origins_to_rebuild; when the device is dirty, which means we need to
+    /// re-evaluate media queries; or when the registered property set
+    /// generation changes.
+    ///
+    /// The registered property set must have been previously set.
     pub fn rebuild<'a, I, S>(
         &mut self,
         doc_stylesheets: I,
@@ -201,8 +252,13 @@ impl Stylist {
         I: Iterator<Item = &'a S> + Clone,
         S: StylesheetInDocument + ToMediaListKey + 'static,
     {
-        if self.is_device_dirty {
+        debug_assert!(self.registered_property_set.is_some(),
+                      "set_registered_property_set must be called.");
+
+        let new_registered_property_set_generation = self.registered_property_set_updated();
+        if self.is_device_dirty || new_registered_property_set_generation.is_some() {
             origins_to_rebuild = OriginSet::all();
+            self.last_used_registered_property_set_generation = new_registered_property_set_generation;
         }
 
         if origins_to_rebuild.is_empty() {
@@ -514,7 +570,11 @@ impl Stylist {
                             None,
                             font_metrics,
                             cascade_flags,
-                            self.quirks_mode)
+                            self.quirks_mode,
+                            self.registered_property_set
+                                .as_ref()
+                                .expect("set_registered_property_set should have been called")
+                                .borrow())
     }
 
     /// Returns the style for an anonymous box of the given type.
@@ -681,7 +741,11 @@ impl Stylist {
                                     None,
                                     font_metrics,
                                     cascade_flags,
-                                    self.quirks_mode);
+                                    self.quirks_mode,
+                                    self.registered_property_set
+                                        .as_ref()
+                                        .expect("The registered property set must be set beforehand.")
+                                        .borrow());
 
             Some(computed)
         } else {
@@ -707,7 +771,11 @@ impl Stylist {
                             None,
                             font_metrics,
                             cascade_flags,
-                            self.quirks_mode)
+                            self.quirks_mode,
+                            self.registered_property_set
+                                .as_ref()
+                                .expect("The registered property set must be set beforehand.")
+                                .borrow())
     }
 
     fn has_rules_for_pseudo(&self, pseudo: &PseudoElement) -> bool {
@@ -1302,7 +1370,12 @@ impl Stylist {
                             None,
                             &metrics,
                             CascadeFlags::empty(),
-                            self.quirks_mode)
+                            self.quirks_mode,
+                            self.registered_property_set
+                                .as_ref()
+                                .expect("set_registered_property_set should \
+                                         have been called.")
+                                .borrow())
     }
 
     /// Accessor for a shared reference to the device.

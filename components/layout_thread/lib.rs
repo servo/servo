@@ -1274,6 +1274,7 @@ impl LayoutThread {
             if data.stylesheets_changed {
                 origins_dirty = OriginSet::all();
             }
+            self.stylist.set_registered_property_set(document.registered_property_set());
             let origins_rebuilt = self.stylist.rebuild(
                 iter,
                 &guards,
