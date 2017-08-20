@@ -16,7 +16,30 @@ pub mod area {
 }
 
 pub mod sizes {
-    pub use dom::htmlimageelement::parse_a_sizes_attribute;
+    use app_units::Au;
+    use style::media_queries::{MediaQuery, MediaQueryType};
+    use style::media_queries::Expression;
+    use style::servo::media_queries::{ExpressionKind, Range};
+    use style::values::specified::{Length, NoCalcLength, AbsoluteLength};
+
+    pub use dom::htmlimageelement::{parse_a_sizes_attribute, Size};
+
+    pub fn test_media_query(len: f32) -> MediaQuery {
+        let length = Length::NoCalc(NoCalcLength::Absolute(AbsoluteLength::Px(len)));
+        let expr = Expression(ExpressionKind::Width(Range::Max(length)));
+        let media_query = MediaQuery {
+            qualifier: None,
+            media_type: MediaQueryType::All,
+            expressions: vec![expr]
+        };
+        media_query
+    }
+
+    pub fn test_length(len: f32) -> Length {
+        let length = Length::NoCalc(NoCalcLength::Absolute(AbsoluteLength::Px(len)));
+        return length;
+    }
+
 }
 
 pub mod size_of {
