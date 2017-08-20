@@ -1340,8 +1340,9 @@ fn build_identity_transform_list(list: &[TransformOperation]) -> Vec<TransformOp
             TransformOperation::Scale(..) => {
                 result.push(TransformOperation::Scale(1.0, 1.0, 1.0));
             }
-            TransformOperation::Rotate(..) => {
-                result.push(TransformOperation::Rotate(0.0, 0.0, 1.0, Angle::zero()));
+            TransformOperation::Rotate(x, y, z, a) => {
+                let (x, y, z, _) = get_normalized_vector_and_angle(x, y, z, a);
+                result.push(TransformOperation::Rotate(x, y, z, Angle::zero()));
             }
             TransformOperation::Perspective(..) |
             TransformOperation::AccumulateMatrix { .. } |
@@ -1425,11 +1426,9 @@ fn add_weighted_transform_lists(from_list: &[TransformOperation],
                 }
                 (&TransformOperation::Rotate(fx, fy, fz, fa),
                  &TransformOperation::Rotate(tx, ty, tz, ta)) => {
-                    let norm_f = ((fx * fx) + (fy * fy) + (fz * fz)).sqrt();
-                    let norm_t = ((tx * tx) + (ty * ty) + (tz * tz)).sqrt();
-                    let (fx, fy, fz) = (fx / norm_f, fy / norm_f, fz / norm_f);
-                    let (tx, ty, tz) = (tx / norm_t, ty / norm_t, tz / norm_t);
-                    if fx == tx && fy == ty && fz == tz {
+                    let (fx, fy, fz, fa) = get_normalized_vector_and_angle(fx, fy, fz, fa);
+                    let (tx, ty, tz, ta) = get_normalized_vector_and_angle(tx, ty, tz, ta);
+                    if (fx, fy, fz) == (tx, ty, tz) {
                         let ia = fa.add_weighted(&ta, self_portion, other_portion).unwrap();
                         result.push(TransformOperation::Rotate(fx, fy, fz, ia));
                     } else {
@@ -1882,8 +1881,8 @@ impl ComputeSquaredDistance for Quaternion {
 impl DirectionVector {
     /// Create a DirectionVector.
     #[inline]
-    fn new(x: f64, y: f64, z: f64) -> Self {
-        DirectionVector(Point3D::new(x, y, z))
+    fn new(x: f32, y: f32, z: f32) -> Self {
+        DirectionVector(Point3D::new(x as f64, y as f64, z as f64))
     }
 
     /// Return the normalized direction vector.
@@ -1904,6 +1903,19 @@ impl DirectionVector {
     #[inline]
     fn length(&self) -> f64 {
         self.0.to_array().iter().fold(0f64, |sum, v| sum + v * v).sqrt()
+    }
+}
+
+/// Return the normalized direction vector and its angle.
+// A direction vector that cannot be normalized, such as [0,0,0], will cause the
+// rotation to not be applied. i.e. Use an identity matrix or rotate3d(0, 0, 1, 0).
+fn get_normalized_vector_and_angle(x: f32, y: f32, z: f32, angle: Angle)
+                                   -> (f32, f32, f32, Angle) {
+    let mut vector = DirectionVector::new(x, y, z);
+    if vector.normalize() {
+        (vector.0.x as f32, vector.0.y as f32, vector.0.z as f32, angle)
+    } else {
+        (0., 0., 1., Angle::zero())
     }
 }
 
@@ -2539,25 +2551,15 @@ fn compute_transform_lists_squared_distance(from_list: &[TransformOperation],
             }
             (&TransformOperation::Rotate(fx, fy, fz, fa),
              &TransformOperation::Rotate(tx, ty, tz, ta)) => {
-                // A direction vector that cannot be normalized, such as [0,0,0], will cause the
-                // rotation to not be applied. i.e. Use an identity matrix or rotate3d(0, 0, 1, 0).
-                let get_normalized_vector_and_angle = |x: f32, y: f32, z: f32, angle: Angle|
-                                                      -> (DirectionVector, Angle) {
-                    let mut vector = DirectionVector::new(x as f64, y as f64, z as f64);
-                    if vector.normalize() {
-                        (vector, angle)
-                    } else {
-                        (DirectionVector::new(0., 0., 1.), Angle::zero())
-                    }
-                };
-
-                let (vector1, angle1) = get_normalized_vector_and_angle(fx, fy, fz, fa);
-                let (vector2, angle2) = get_normalized_vector_and_angle(tx, ty, tz, ta);
-                if vector1 == vector2 {
+                let (fx, fy, fz, angle1) = get_normalized_vector_and_angle(fx, fy, fz, fa);
+                let (tx, ty, tz, angle2) = get_normalized_vector_and_angle(tx, ty, tz, ta);
+                if (fx, fy, fz) == (tx, ty, tz) {
                     angle1.compute_squared_distance(&angle2).unwrap_or(zero_distance)
                 } else {
-                    let q1 = Quaternion::from_direction_and_angle(&vector1, angle1.radians64());
-                    let q2 = Quaternion::from_direction_and_angle(&vector2, angle2.radians64());
+                    let v1 = DirectionVector::new(fx, fy, fz);
+                    let v2 = DirectionVector::new(tx, ty, tz);
+                    let q1 = Quaternion::from_direction_and_angle(&v1, angle1.radians64());
+                    let q2 = Quaternion::from_direction_and_angle(&v2, angle2.radians64());
                     q1.compute_squared_distance(&q2).unwrap_or(zero_distance)
                 }
             }
