@@ -791,7 +791,7 @@ pub enum DeclaredValueOwned<T> {
     Value(T),
     /// An unparsed value that contains `var()` functions.
     WithVariables(Arc<UnparsedValue>),
-    /// An CSS-wide keyword.
+    /// A CSS-wide keyword.
     CSSWideKeyword(CSSWideKeyword),
 }
 
@@ -1299,7 +1299,9 @@ pub enum PropertyDeclaration {
     /// An unparsed value that contains `var()` functions.
     WithVariables(LonghandId, Arc<UnparsedValue>),
     /// A custom property declaration, with the property name and the declared
-    /// value.
+    /// value. Custom properties should not use the
+    /// DeclaredValueOwned::WithVariables variant (see the assert in
+    /// ::custom_properties::cascade).
     Custom(::custom_properties::Name, DeclaredValueOwned<Box<::custom_properties::SpecifiedValue>>),
 }
 
