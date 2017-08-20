@@ -129,8 +129,7 @@ impl HTMLTableCellElementLayoutHelpers for LayoutJS<HTMLTableCellElement> {
         }
     }
 
-    fn get_inherited_cellpadding(&self) -> Option<u32>
-    {
+    fn get_inherited_cellpadding(&self) -> Option<u32> {
         unsafe {
             // Follow chain: Cell -> Row -> Section -> Table
             self.upcast::<Node>().parent_node_ref()
