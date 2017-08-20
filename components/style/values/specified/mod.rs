@@ -440,7 +440,7 @@ impl ToCss for Integer {
         if self.was_calc {
             dest.write_str("calc(")?;
         }
-        write!(dest, "{}", self.value)?;
+        self.value.to_css(dest)?;
         if self.was_calc {
             dest.write_str(")")?;
         }

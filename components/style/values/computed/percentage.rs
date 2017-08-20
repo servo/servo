@@ -7,7 +7,7 @@
 use properties::animated_properties::Animatable;
 use std::fmt;
 use style_traits::ToCss;
-use values::CSSFloat;
+use values::{CSSFloat, serialize_percentage};
 use values::animated::ToAnimatedZero;
 
 /// A computed percentage.
@@ -55,6 +55,6 @@ impl ToCss for Percentage {
     where
         W: fmt::Write,
     {
-        write!(dest, "{}%", self.0 * 100.)
+        serialize_percentage(self.0, dest)
     }
 }
