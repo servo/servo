@@ -5,6 +5,7 @@
 use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceEntryList as DOMPerformanceEntryList;
+use dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceMethods;
 use dom::bindings::codegen::Bindings::PerformanceObserverBinding;
 use dom::bindings::codegen::Bindings::PerformanceObserverBinding::PerformanceObserverCallback;
 use dom::bindings::codegen::Bindings::PerformanceObserverBinding::PerformanceObserverInit;
@@ -95,16 +96,28 @@ impl PerformanceObserverMethods for PerformanceObserver {
     // https://w3c.github.io/performance-timeline/#dom-performanceobserver-observe()
     fn Observe(&self, options: &PerformanceObserverInit) -> Fallible<()> {
         // Make sure the client is asking to observe events from allowed entry types.
+        // step 1
         let entry_types = options.entryTypes.iter()
                                             .filter(|e| VALID_ENTRY_TYPES.contains(&e.as_ref()))
                                             .map(|e| e.clone())
                                             .collect::<Vec<DOMString>>();
         // There must be at least one valid entry type.
+        // step 2
         if entry_types.is_empty() {
             return Err((Error::Type("entryTypes cannot be empty".to_string())));
         }
 
         let performance = self.global().as_window().Performance();
+
+        // step 5
+        if options.buffered {
+            let pel = PerformanceEntryList::new(performance.GetEntries());
+            let mut entries = entry_types.iter()
+                                         .flat_map(|e| pel.get_entries_by_name_and_type(None, Some(e.clone())))
+                                         .collect::<DOMPerformanceEntryList>();
+            self.entries.borrow_mut().append(&mut entries);
+        }
+        // step 3-4
         performance.add_observer(self, entry_types);
         Ok(())
     }
