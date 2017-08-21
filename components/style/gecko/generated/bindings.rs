@@ -2562,7 +2562,9 @@ extern "C" {
     pub fn Servo_DeclarationBlock_SerializeOneValue(declarations:
                                                         RawServoDeclarationBlockBorrowed,
                                                     property: nsCSSPropertyID,
-                                                    buffer: *mut nsAString);
+                                                    buffer: *mut nsAString,
+                                                    computed_values:
+                                                        ServoStyleContextBorrowedOrNull);
 }
 extern "C" {
     pub fn Servo_DeclarationBlock_Count(declarations:
