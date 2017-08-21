@@ -122,6 +122,8 @@ pub trait WindowMethods {
 
     /// Return the size of the window with head and borders and position of the window values
     fn client_window(&self, ctx: TopLevelBrowsingContextId) -> (Size2D<u32>, Point2D<i32>);
+    /// Return the size of the screen (in pixels)
+    fn screen_size(&self, ctx: TopLevelBrowsingContextId) -> Size2D<u32>;
     /// Set the size inside of borders and head
     fn set_inner_size(&self, ctx: TopLevelBrowsingContextId, size: Size2D<u32>);
     /// Set the window position

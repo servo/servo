@@ -122,6 +122,8 @@ pub enum Msg {
     Status(TopLevelBrowsingContextId, Option<String>),
     /// Get Window Informations size and position
     GetClientWindow(TopLevelBrowsingContextId, IpcSender<(Size2D<u32>, Point2D<i32>)>),
+    /// Get the screen size
+    GetScreenSize(TopLevelBrowsingContextId, IpcSender<(Size2D<u32>)>),
     /// Move the window to a point
     MoveTo(TopLevelBrowsingContextId, Point2D<i32>),
     /// Resize the window to size
@@ -169,6 +171,7 @@ impl Debug for Msg {
             Msg::HeadParsed(..) => write!(f, "HeadParsed"),
             Msg::Status(..) => write!(f, "Status"),
             Msg::GetClientWindow(..) => write!(f, "GetClientWindow"),
+            Msg::GetScreenSize(..) => write!(f, "GetScreenSize"),
             Msg::MoveTo(..) => write!(f, "MoveTo"),
             Msg::ResizeTo(..) => write!(f, "ResizeTo"),
             Msg::PipelineVisibilityChanged(..) => write!(f, "PipelineVisibilityChanged"),

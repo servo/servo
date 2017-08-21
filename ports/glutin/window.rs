@@ -1026,6 +1026,11 @@ impl WindowMethods for Window {
 
     }
 
+    fn screen_size(&self, _: BrowserId) -> Size2D<u32> {
+        let (width, height) = glutin::get_primary_monitor().get_dimensions();
+        Size2D::new(width, height)
+    }
+
     fn set_animation_state(&self, state: AnimationState) {
         self.animation_state.set(state);
     }
