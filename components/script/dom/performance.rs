@@ -55,10 +55,10 @@ impl PerformanceEntryList {
 
     pub fn get_entries_by_name_and_type(&self, name: Option<DOMString>, entry_type: Option<DOMString>)
         -> Vec<Root<PerformanceEntry>> {
-        let mut res : Vec<Root<PerformanceEntry>> = self.entries.iter().filter(|e|
+        let mut res = self.entries.iter().filter(|e|
             name.as_ref().map_or(true, |name_| *e.name() == *name_) &&
             entry_type.as_ref().map_or(true, |type_| *e.entry_type() == *type_)
-        ).map(|e| e.clone()).collect();
+        ).map(|e| e.clone()).collect::<Vec<Root<PerformanceEntry>>>();
         res.sort_by(|a, b| a.start_time().partial_cmp(&b.start_time()).unwrap_or(Ordering::Equal));
         res
     }

@@ -95,14 +95,14 @@ impl PerformanceObserver {
 impl PerformanceObserverMethods for PerformanceObserver {
     // https://w3c.github.io/performance-timeline/#dom-performanceobserver-observe()
     fn Observe(&self, options: &PerformanceObserverInit) -> Fallible<()> {
-        // Make sure the client is asking to observe events from allowed entry types.
         // step 1
+        // Make sure the client is asking to observe events from allowed entry types.
         let entry_types = options.entryTypes.iter()
                                             .filter(|e| VALID_ENTRY_TYPES.contains(&e.as_ref()))
                                             .map(|e| e.clone())
                                             .collect::<Vec<DOMString>>();
-        // There must be at least one valid entry type.
         // step 2
+        // There must be at least one valid entry type.
         if entry_types.is_empty() {
             return Err((Error::Type("entryTypes cannot be empty".to_string())));
         }
