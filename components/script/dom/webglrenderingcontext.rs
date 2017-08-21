@@ -1222,7 +1222,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                     return Int32Value(constants::UNSIGNED_BYTE as i32);
                 }
             }
-            _ => {}
+            _ => {
+                if !self.extension_manager.is_get_parameter_name_enabled(parameter) {
+                    self.webgl_error(WebGLError::InvalidEnum);
+                    return NullValue();
+                }
+            }
         }
 
         // Handle GetParameter getters injected via WebGL extensions
@@ -1832,7 +1837,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn CompileShader(&self, shader: Option<&WebGLShader>) {
         if let Some(shader) = shader {
-            shader.compile()
+            shader.compile(&self.extension_manager)
         }
     }
 
@@ -2284,7 +2289,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn Hint(&self, target: u32, mode: u32) {
-        if target != constants::GENERATE_MIPMAP_HINT {
+        if target != constants::GENERATE_MIPMAP_HINT && !self.extension_manager.is_hint_target_enabled(target) {
             return self.webgl_error(InvalidEnum);
         }
 
