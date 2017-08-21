@@ -245,7 +245,11 @@ impl ToAnimatedZero for SimpleShadow {
     #[inline]
     fn to_animated_zero(&self) -> Result<Self, ()> {
         Ok(SimpleShadow {
-            color: Some(RGBA::transparent()),
+            color: if let Some(color) = self.color.as_ref() {
+                Some(color.to_animated_zero()?)
+            } else {
+                None
+            },
             horizontal: self.horizontal.to_animated_zero()?,
             vertical: self.vertical.to_animated_zero()?,
             blur: self.blur.to_animated_zero()?,

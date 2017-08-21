@@ -2959,125 +2959,107 @@ impl<OpacityType> ToAnimatedZero for SVGOpacity<OpacityType>
 %>
 
 /// https://drafts.fxtf.org/filters/#animation-of-filters
-fn add_weighted_filter_function_impl(from: &AnimatedFilter,
-                                     to: &AnimatedFilter,
-                                     self_portion: f64,
-                                     other_portion: f64)
-                                     -> Result<AnimatedFilter, ()> {
-    match (from, to) {
-        % for func in [ 'Blur', 'HueRotate' ]:
-            (&Filter::${func}(from_value), &Filter::${func}(to_value)) => {
-                Ok(Filter::${func}(from_value.add_weighted(
-                    &to_value,
+impl Animatable for AnimatedFilter {
+    fn add_weighted(
+        &self,
+        other: &Self,
+        self_portion: f64,
+        other_portion: f64,
+    ) -> Result<Self, ()> {
+        match (self, other) {
+            % for func in ['Blur', 'Grayscale', 'HueRotate', 'Invert', 'Sepia']:
+            (&Filter::${func}(ref this), &Filter::${func}(ref other)) => {
+                Ok(Filter::${func}(this.add_weighted(
+                    other,
                     self_portion,
                     other_portion,
-                )?))
-           },
-        % endfor
-        % for func in [ 'Grayscale', 'Invert', 'Sepia' ]:
-            (&Filter::${func}(from_value), &Filter::${func}(to_value)) => {
-                Ok(Filter::${func}(add_weighted_with_initial_val(
-                    &from_value,
-                    &to_value,
-                    self_portion,
-                    other_portion,
-                    &NonNegative::<CSSFloat>(0.0),
                 )?))
             },
-        % endfor
-        % for func in [ 'Brightness', 'Contrast', 'Opacity', 'Saturate' ]:
-            (&Filter::${func}(from_value), &Filter::${func}(to_value)) => {
+            % endfor
+            % for func in ['Brightness', 'Contrast', 'Opacity', 'Saturate']:
+            (&Filter::${func}(ref this), &Filter::${func}(ref other)) => {
                 Ok(Filter::${func}(add_weighted_with_initial_val(
-                    &from_value,
-                    &to_value,
+                    this,
+                    other,
                     self_portion,
                     other_portion,
                     &NonNegative::<CSSFloat>(1.0),
                 )?))
-                },
-        % endfor
-        % if product == "gecko":
-        (&Filter::DropShadow(ref from_value), &Filter::DropShadow(ref to_value)) => {
-            Ok(Filter::DropShadow(from_value.add_weighted(
-                &to_value,
-                self_portion,
-                other_portion,
-            )?))
-        },
-        (&Filter::Url(_), &Filter::Url(_)) => {
-            Err(())
-        },
-        % endif
-        _ => {
-            // If specified the different filter functions,
-            // we will need to interpolate as discreate.
-            Err(())
-        },
+            },
+            % endfor
+            % if product == "gecko":
+            (&Filter::DropShadow(ref this), &Filter::DropShadow(ref other)) => {
+                Ok(Filter::DropShadow(this.add_weighted(
+                    other,
+                    self_portion,
+                    other_portion,
+                )?))
+            },
+            % endif
+            _ => Err(()),
+        }
     }
 }
 
-/// https://drafts.fxtf.org/filters/#animation-of-filters
-fn add_weighted_filter_function(from: Option<<&AnimatedFilter>,
-                                to: Option<<&AnimatedFilter>,
-                                self_portion: f64,
-                                other_portion: f64) -> Result<AnimatedFilter, ()> {
-    match (from, to) {
-        (Some(f), Some(t)) => {
-            add_weighted_filter_function_impl(f, t, self_portion, other_portion)
-        },
-        (Some(f), None) => {
-            add_weighted_filter_function_impl(f, f, self_portion, 0.0)
-        },
-        (None, Some(t)) => {
-            add_weighted_filter_function_impl(t, t, other_portion, 0.0)
-        },
-        _ => { Err(()) }
+
+impl ToAnimatedZero for AnimatedFilter {
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        match *self {
+            % for func in ['Blur', 'Grayscale', 'HueRotate', 'Invert', 'Sepia']:
+            Filter::${func}(ref this) => Ok(Filter::${func}(this.to_animated_zero()?)),
+            % endfor
+            % for func in ['Brightness', 'Contrast', 'Opacity', 'Saturate']:
+            Filter::${func}(_) => Ok(Filter::${func}(NonNegative(1.))),
+            % endfor
+            % if product == "gecko":
+            Filter::DropShadow(ref this) => Ok(Filter::DropShadow(this.to_animated_zero()?)),
+            % endif
+            _ => Err(()),
+        }
     }
 }
 
-fn compute_filter_square_distance(from: &AnimatedFilter, to: &AnimatedFilter) -> Result<SquaredDistance, ()> {
-    match (from, to) {
-        % for func in FILTER_FUNCTIONS :
-            (&Filter::${func}(f),
-             &Filter::${func}(t)) => {
-                Ok(try!(f.compute_squared_distance(&t)))
+
+// FIXME(nox): This should be derived.
+impl ComputeSquaredDistance for AnimatedFilter {
+    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
+        match (self, other) {
+            % for func in FILTER_FUNCTIONS:
+            (&Filter::${func}(ref this), &Filter::${func}(ref other)) => {
+                this.compute_squared_distance(other)
             },
-        % endfor
-        % if product == "gecko":
-            (&Filter::DropShadow(ref f), &Filter::DropShadow(ref t)) => {
-                Ok(try!(f.compute_squared_distance(&t)))
+            % endfor
+            % if product == "gecko":
+            (&Filter::DropShadow(ref this), &Filter::DropShadow(ref other)) => {
+                this.compute_squared_distance(other)
             },
-        % endif
-        _ => {
-            Err(())
+            % endif
+            _ => Err(()),
         }
     }
 }
 
 impl Animatable for AnimatedFilterList {
     #[inline]
-    fn add_weighted(&self, other: &Self,
-                    self_portion: f64, other_portion: f64) -> Result<Self, ()> {
-        let mut filters = vec![];
-        let mut from_iter = self.0.iter();
-        let mut to_iter = other.0.iter();
-
-        let mut from = from_iter.next();
-        let mut to = to_iter.next();
-        while from.is_some() || to.is_some() {
-            filters.push(try!(add_weighted_filter_function(from,
-                                                           to,
-                                                           self_portion,
-                                                           other_portion)));
-            if from.is_some() {
-                from = from_iter.next();
+    fn add_weighted(
+        &self,
+        other: &Self,
+        self_portion: f64,
+        other_portion: f64,
+    ) -> Result<Self, ()> {
+        Ok(AnimatedFilterList(self.0.iter().zip_longest(other.0.iter()).map(|it| {
+            match it {
+                EitherOrBoth::Both(this, other) => {
+                    this.add_weighted(other, self_portion, other_portion)
+                },
+                EitherOrBoth::Left(this) => {
+                    this.add_weighted(&this.to_animated_zero()?, self_portion, other_portion)
+                },
+                EitherOrBoth::Right(other) => {
+                    other.to_animated_zero()?.add_weighted(other, self_portion, other_portion)
+                },
             }
-            if to.is_some() {
-                to = to_iter.next();
-            }
-        }
-
-        Ok(AnimatedFilterList(filters))
+        }).collect::<Result<Vec<_>, _>>()?))
     }
 
     fn add(&self, other: &Self) -> Result<Self, ()> {
@@ -3090,12 +3072,11 @@ impl ComputeSquaredDistance for AnimatedFilterList {
     fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
         self.0.iter().zip_longest(other.0.iter()).map(|it| {
             match it {
-                EitherOrBoth::Both(from, to) => {
-                    compute_filter_square_distance(&from, &to)
+                EitherOrBoth::Both(this, other) => {
+                    this.compute_squared_distance(other)
                 },
-                EitherOrBoth::Left(list) | EitherOrBoth::Right(list)=> {
-                    let none = add_weighted_filter_function(Some(list), Some(list), 0.0, 0.0)?;
-                    compute_filter_square_distance(&none, &list)
+                EitherOrBoth::Left(list) | EitherOrBoth::Right(list) => {
+                    list.to_animated_zero()?.compute_squared_distance(list)
                 },
             }
         }).sum()
