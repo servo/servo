@@ -29,6 +29,15 @@ pub struct TreeStyleInvalidator<'a, 'b: 'a, E>
     where E: TElement,
 {
     element: E,
+    // TODO(emilio): It's tempting enough to just avoid running invalidation for
+    // elements without data.
+    //
+    // But that's be wrong for sibling invalidations when a new element has been
+    // inserted in the tree and still has no data (though I _think_ the slow
+    // selector bits save us, it'd be nice not to depend on them).
+    //
+    // Seems like we could at least avoid running invalidation for the
+    // descendants if an element has no data, though.
     data: Option<&'a mut ElementData>,
     shared_context: &'a SharedStyleContext<'b>,
 }
@@ -353,7 +362,7 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
         //
         // Since we keep the traversal flags in terms of the flattened tree,
         // we need to propagate it as appropriate.
-        if invalidated_child {
+        if invalidated_child && child.get_data().is_some() {
             let mut current = child.traversal_parent();
             while let Some(parent) = current.take() {
                 if parent == self.element {
@@ -470,7 +479,7 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
 
         any_descendant |= self.invalidate_nac(invalidations);
 
-        if any_descendant {
+        if any_descendant && self.data.as_ref().map_or(false, |d| !d.styles.is_display_none()) {
             unsafe { self.element.set_dirty_descendants() };
         }
 
