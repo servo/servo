@@ -129,7 +129,6 @@ use style::context::RegisteredSpeculativePainters;
 use style::dom::{ShowSubtree, ShowSubtreeDataAndPrimaryValues, TElement, TNode};
 use style::error_reporting::{NullReporter, RustLogReporter};
 use style::invalidation::element::restyle_hints::RestyleHint;
-use style::invalidation::media_queries::{MediaListKey, ToMediaListKey};
 use style::logical_geometry::LogicalPoint;
 use style::media_queries::{Device, MediaList, MediaType};
 use style::properties::PropertyId;
@@ -137,7 +136,7 @@ use style::selector_parser::SnapshotMap;
 use style::servo::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, REPOSITION, STORE_OVERFLOW};
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, StylesheetGuards};
 use style::stylesheet_set::StylesheetSet;
-use style::stylesheets::{Origin, Stylesheet, StylesheetContents, StylesheetInDocument, UserAgentStylesheets};
+use style::stylesheets::{Origin, Stylesheet, DocumentStyleSheet, StylesheetInDocument, UserAgentStylesheets};
 use style::stylist::Stylist;
 use style::thread_state;
 use style::timer::Timer;
@@ -146,35 +145,6 @@ use style::traversal_flags::TraversalFlags;
 use style_traits::CSSPixel;
 use style_traits::DevicePixel;
 use style_traits::SpeculativePainter;
-
-#[derive(Clone)]
-struct DocumentStyleSheet(ServoArc<Stylesheet>);
-
-impl PartialEq for DocumentStyleSheet {
-    fn eq(&self, other: &Self) -> bool {
-        ServoArc::ptr_eq(&self.0, &other.0)
-    }
-}
-
-impl ToMediaListKey for DocumentStyleSheet {
-    fn to_media_list_key(&self) -> MediaListKey {
-        self.0.to_media_list_key()
-    }
-}
-
-impl StylesheetInDocument for DocumentStyleSheet {
-    fn contents(&self, guard: &SharedRwLockReadGuard) -> &StylesheetContents {
-        self.0.contents(guard)
-    }
-
-    fn media<'a>(&'a self, guard: &'a SharedRwLockReadGuard) -> Option<&'a MediaList> {
-        self.0.media(guard)
-    }
-
-    fn enabled(&self) -> bool {
-        self.0.enabled()
-    }
-}
 
 /// Information needed by the layout thread.
 pub struct LayoutThread {
