@@ -1443,6 +1443,7 @@ impl Animate for ComputedMatrix {
 
 impl ComputeSquaredDistance for ComputedMatrix {
     #[inline]
+    #[cfg(feature = "servo")]
     fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
         if self.is_3d() || other.is_3d() {
             let from = decompose_3d_matrix(*self)?;
@@ -1453,6 +1454,17 @@ impl ComputeSquaredDistance for ComputedMatrix {
             let to = MatrixDecomposed2D::from(*other);
             from.compute_squared_distance(&to)
         }
+    }
+
+    #[inline]
+    #[cfg(feature = "gecko")]
+    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
+        let (from, to) = if self.is_3d() || other.is_3d() {
+            (decompose_3d_matrix(*self)?, decompose_3d_matrix(*other)?)
+        } else {
+            (decompose_2d_matrix(self)?, decompose_2d_matrix(other)?)
+        };
+        from.compute_squared_distance(&to)
     }
 }
 
