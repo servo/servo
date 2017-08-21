@@ -1429,6 +1429,9 @@ impl BlockFlow {
     /// Determines the type of formatting context this is. See the definition of
     /// `FormattingContextType`.
     pub fn formatting_context_type(&self) -> FormattingContextType {
+        if self.is_inline_flex_item() || self.is_block_flex_item() {
+            return FormattingContextType::Other
+        }
         let style = self.fragment.style();
         if style.get_box().float != float::T::none {
             return FormattingContextType::Other
