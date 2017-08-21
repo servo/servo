@@ -58,6 +58,7 @@ impl ToCss for GridLine {
         }
 
         if let Some(i) = self.line_num {
+            dest.write_str(" ")?;
             i.value().to_css(dest)?;
         }
 
