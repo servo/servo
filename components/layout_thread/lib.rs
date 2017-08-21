@@ -135,8 +135,7 @@ use style::properties::PropertyId;
 use style::selector_parser::SnapshotMap;
 use style::servo::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, REPOSITION, STORE_OVERFLOW};
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, StylesheetGuards};
-use style::stylesheet_set::StylesheetSet;
-use style::stylesheets::{Origin, Stylesheet, DocumentStyleSheet, StylesheetInDocument, UserAgentStylesheets};
+use style::stylesheets::{Origin, OriginSet, Stylesheet, DocumentStyleSheet, StylesheetInDocument, UserAgentStylesheets};
 use style::stylist::Stylist;
 use style::thread_state;
 use style::timer::Timer;
@@ -159,9 +158,6 @@ pub struct LayoutThread {
 
     /// Performs CSS selector matching and style resolution.
     stylist: Stylist,
-
-    /// The list of stylesheets synchronized with the document.
-    stylesheets: StylesheetSet<DocumentStyleSheet>,
 
     /// Is the current reflow of an iframe, as opposed to a root window?
     is_iframe: bool,
@@ -519,7 +515,6 @@ impl LayoutThread {
             webrender_api: webrender_api_sender.create_api(),
             webrender_document,
             stylist: Stylist::new(device, QuirksMode::NoQuirks),
-            stylesheets: StylesheetSet::new(),
             rw_data: Arc::new(Mutex::new(
                 LayoutThreadData {
                     constellation_chan: constellation_chan,
@@ -670,16 +665,14 @@ impl LayoutThread {
 
                 match before_stylesheet {
                     Some(insertion_point) => {
-                        self.stylesheets.insert_stylesheet_before(
-                            Some(self.stylist.device()),
+                        self.stylist.insert_stylesheet_before(
                             DocumentStyleSheet(stylesheet.clone()),
                             DocumentStyleSheet(insertion_point),
                             &guard,
                         )
                     }
                     None => {
-                        self.stylesheets.append_stylesheet(
-                            Some(self.stylist.device()),
+                        self.stylist.append_stylesheet(
                             DocumentStyleSheet(stylesheet.clone()),
                             &guard,
                         )
@@ -688,8 +681,7 @@ impl LayoutThread {
             }
             Msg::RemoveStylesheet(stylesheet) => {
                 let guard = stylesheet.shared_lock.read();
-                self.stylesheets.remove_stylesheet(
-                    Some(self.stylist.device()),
+                self.stylist.remove_stylesheet(
                     DocumentStyleSheet(stylesheet.clone()),
                     &guard,
                 );
@@ -1154,8 +1146,9 @@ impl LayoutThread {
         let author_guard = document_shared_lock.read();
         let device = Device::new(MediaType::screen(), initial_viewport, device_pixel_ratio);
         let sheet_origins_affected_by_device_change =
-            self.stylist.set_device(device, &author_guard, self.stylesheets.iter());
+            self.stylist.set_device(device, &author_guard);
 
+        self.stylist.force_stylesheet_origins_dirty(sheet_origins_affected_by_device_change);
         self.viewport_size =
             self.stylist.viewport_constraints().map_or(current_screen_size, |constraints| {
                 debug!("Viewport constraints: {:?}", constraints);
@@ -1173,7 +1166,7 @@ impl LayoutThread {
                        .send(ConstellationMsg::ViewportConstrained(self.id, constraints.clone()))
                        .unwrap();
             }
-            if self.stylesheets.iter().any(|sheet| sheet.0.dirty_on_viewport_size_change()) {
+            if self.stylist.iter_stylesheets().any(|sheet| sheet.0.dirty_on_viewport_size_change()) {
                 let mut iter = element.as_node().traverse_preorder();
 
                 let mut next = iter.next();
@@ -1207,65 +1200,41 @@ impl LayoutThread {
             ua_or_user: &ua_or_user_guard,
         };
 
-        let needs_dirtying = {
-            debug!("Flushing stylist");
-
-            let mut origins_dirty = sheet_origins_affected_by_device_change;
-
-            debug!("Device changes: {:?}", origins_dirty);
-
+        {
             if self.first_reflow.get() {
                 debug!("First reflow, rebuilding user and UA rules");
-
-                origins_dirty |= Origin::User;
-                origins_dirty |= Origin::UserAgent;
+                let mut ua_and_user = OriginSet::empty();
+                ua_and_user |= Origin::User;
+                ua_and_user |= Origin::UserAgent;
+                self.stylist.force_stylesheet_origins_dirty(ua_and_user);
                 for stylesheet in &ua_stylesheets.user_or_user_agent_stylesheets {
                     self.handle_add_stylesheet(stylesheet, &ua_or_user_guard);
                 }
             }
 
-            let (iter, invalidation_origins_dirty) = self.stylesheets.flush(Some(element));
-            debug!("invalidation: {:?}", invalidation_origins_dirty);
-
-            origins_dirty |= invalidation_origins_dirty;
-
             if data.stylesheets_changed {
                 debug!("Doc sheets changed, flushing author sheets too");
-                origins_dirty |= Origin::Author;
+                self.stylist.force_stylesheet_origins_dirty(Origin::Author.into());
             }
 
-            if !origins_dirty.is_empty() {
-                let mut extra_data = Default::default();
-                self.stylist.rebuild(
-                    iter,
-                    &guards,
-                    Some(ua_stylesheets),
-                    /* author_style_disabled = */ false,
-                    &mut extra_data,
-                    origins_dirty,
-                );
-            }
-
-            !origins_dirty.is_empty()
-        };
-
-        let needs_reflow = viewport_size_changed && !needs_dirtying;
-        if needs_dirtying {
-            if let Some(mut d) = element.mutate_data() {
-                if d.has_styles() {
-                    d.restyle.hint.insert(RestyleHint::restyle_subtree());
-                }
-            }
+            let mut extra_data = Default::default();
+            self.stylist.flush(
+                &guards,
+                Some(ua_stylesheets),
+                &mut extra_data,
+                Some(element),
+            );
         }
-        if needs_reflow {
+
+        if viewport_size_changed {
             if let Some(mut flow) = self.try_get_layout_root(element.as_node()) {
                 LayoutThread::reflow_all_nodes(FlowRef::deref_mut(&mut flow));
             }
         }
 
         let restyles = document.drain_pending_restyles();
-        debug!("Draining restyles: {} (needs dirtying? {:?})",
-               restyles.len(), needs_dirtying);
+        debug!("Draining restyles: {}", restyles.len());
+
         let mut map = SnapshotMap::new();
         let elements_with_snapshot: Vec<_> =
             restyles
