@@ -19,7 +19,7 @@ use style_traits::values::specified::AllowedLengthType;
 use stylesheets::CssRuleType;
 use super::{AllowQuirks, Number, ToComputedValue, Percentage};
 use values::{Auto, CSSFloat, Either, FONT_MEDIUM_PX, None_, Normal};
-use values::ExtremumLength;
+use values::{ExtremumLength, serialize_dimension};
 use values::computed::{self, Context};
 use values::generics::NonNegative;
 use values::specified::NonNegativeNumber;
@@ -71,10 +71,10 @@ impl ToCss for FontRelativeLength {
         where W: fmt::Write
     {
         match *self {
-            FontRelativeLength::Em(length) => write!(dest, "{}em", length),
-            FontRelativeLength::Ex(length) => write!(dest, "{}ex", length),
-            FontRelativeLength::Ch(length) => write!(dest, "{}ch", length),
-            FontRelativeLength::Rem(length) => write!(dest, "{}rem", length)
+            FontRelativeLength::Em(length) => serialize_dimension(length, "em", dest),
+            FontRelativeLength::Ex(length) => serialize_dimension(length, "ex", dest),
+            FontRelativeLength::Ch(length) => serialize_dimension(length, "ch", dest),
+            FontRelativeLength::Rem(length) => serialize_dimension(length, "rem", dest)
         }
     }
 }
@@ -192,10 +192,10 @@ impl HasViewportPercentage for ViewportPercentageLength {
 impl ToCss for ViewportPercentageLength {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
-            ViewportPercentageLength::Vw(length) => write!(dest, "{}vw", length),
-            ViewportPercentageLength::Vh(length) => write!(dest, "{}vh", length),
-            ViewportPercentageLength::Vmin(length) => write!(dest, "{}vmin", length),
-            ViewportPercentageLength::Vmax(length) => write!(dest, "{}vmax", length)
+            ViewportPercentageLength::Vw(length) => serialize_dimension(length, "vw", dest),
+            ViewportPercentageLength::Vh(length) => serialize_dimension(length, "vh", dest),
+            ViewportPercentageLength::Vmin(length) => serialize_dimension(length, "vmin", dest),
+            ViewportPercentageLength::Vmax(length) => serialize_dimension(length, "vmax", dest)
         }
     }
 }
@@ -318,13 +318,13 @@ impl From<AbsoluteLength> for Au {
 impl ToCss for AbsoluteLength {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
-            AbsoluteLength::Px(length) => write!(dest, "{}px", length),
-            AbsoluteLength::In(length) => write!(dest, "{}in", length),
-            AbsoluteLength::Cm(length) => write!(dest, "{}cm", length),
-            AbsoluteLength::Mm(length) => write!(dest, "{}mm", length),
-            AbsoluteLength::Q(length) => write!(dest, "{}q", length),
-            AbsoluteLength::Pt(length) => write!(dest, "{}pt", length),
-            AbsoluteLength::Pc(length) => write!(dest, "{}pc", length),
+            AbsoluteLength::Px(length) => serialize_dimension(length, "px", dest),
+            AbsoluteLength::In(length) => serialize_dimension(length, "in", dest),
+            AbsoluteLength::Cm(length) => serialize_dimension(length, "cm", dest),
+            AbsoluteLength::Mm(length) => serialize_dimension(length, "mm", dest),
+            AbsoluteLength::Q(length) => serialize_dimension(length, "q", dest),
+            AbsoluteLength::Pt(length) => serialize_dimension(length, "pt", dest),
+            AbsoluteLength::Pc(length) => serialize_dimension(length, "pc", dest),
         }
     }
 }
@@ -376,7 +376,7 @@ impl PhysicalLength {
 #[cfg(feature = "gecko")]
 impl ToCss for PhysicalLength {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        write!(dest, "{}mozmm", self.0)
+        serialize_dimension(self.0, "mozmm", dest)
     }
 }
 

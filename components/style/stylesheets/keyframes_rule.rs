@@ -21,7 +21,7 @@ use style_traits::{PARSING_MODE_DEFAULT, ToCss, ParseError, StyleParseError};
 use style_traits::PropertyDeclarationParseError;
 use stylesheets::{CssRuleType, StylesheetContents};
 use stylesheets::rule_parser::VendorPrefix;
-use values::KeyframesName;
+use values::{KeyframesName, serialize_percentage};
 
 /// A [`@keyframes`][keyframes] rule.
 ///
@@ -115,7 +115,7 @@ impl ::std::cmp::Eq for KeyframePercentage { }
 
 impl ToCss for KeyframePercentage {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        write!(dest, "{}%", self.0 * 100.0)
+        serialize_percentage(self.0, dest)
     }
 }
 

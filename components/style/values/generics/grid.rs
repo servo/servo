@@ -9,7 +9,7 @@ use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use std::{fmt, mem, usize};
 use style_traits::{ToCss, ParseError, StyleParseError};
-use values::{CSSFloat, CustomIdent};
+use values::{CSSFloat, CustomIdent, serialize_dimension};
 use values::computed::{ComputedValueAsSpecified, Context, ToComputedValue};
 use values::specified::Integer;
 use values::specified::grid::parse_line_names;
@@ -58,7 +58,7 @@ impl ToCss for GridLine {
         }
 
         if let Some(i) = self.line_num {
-            write!(dest, " {}", i.value())?;
+            i.value().to_css(dest)?;
         }
 
         if let Some(ref s) = self.ident {
@@ -169,7 +169,7 @@ impl<L: ToCss> ToCss for TrackBreadth<L> {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
             TrackBreadth::Breadth(ref lop) => lop.to_css(dest),
-            TrackBreadth::Flex(ref value) => write!(dest, "{}fr", value),
+            TrackBreadth::Flex(ref value) => serialize_dimension(*value, "fr", dest),
             TrackBreadth::Keyword(ref k) => k.to_css(dest),
         }
     }

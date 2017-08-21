@@ -148,36 +148,36 @@
                 % endfor
 
                 if i != 0 {
-                    write!(dest, ", ")?;
+                    dest.write_str(", ")?;
                 }
 
                 if i == len - 1 {
                     self.background_color.to_css(dest)?;
-                    write!(dest, " ")?;
+                    dest.write_str(" ")?;
                 }
 
                 image.to_css(dest)?;
                 % for name in "repeat attachment".split():
-                    write!(dest, " ")?;
+                    dest.write_str(" ")?;
                     ${name}.to_css(dest)?;
                 % endfor
 
-                write!(dest, " ")?;
+                dest.write_str(" ")?;
                 Position {
                     horizontal: position_x.clone(),
                     vertical: position_y.clone()
                 }.to_css(dest)?;
 
                 if *size != background_size::single_value::get_initial_specified_value() {
-                    write!(dest, " / ")?;
+                    dest.write_str(" / ")?;
                     size.to_css(dest)?;
                 }
 
                 if *origin != Origin::padding_box || *clip != Clip::border_box {
-                    write!(dest, " ")?;
+                    dest.write_str(" ")?;
                     origin.to_css(dest)?;
                     if *clip != From::from(*origin) {
-                        write!(dest, " ")?;
+                        dest.write_str(" ")?;
                         clip.to_css(dest)?;
                     }
                 }

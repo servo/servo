@@ -2316,7 +2316,7 @@ https://drafts.csswg.org/css-fonts-4/#low-level-font-variation-settings-control-
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             match *self {
                 SpecifiedValue::Auto => dest.write_str("auto"),
-                SpecifiedValue::Relative(rel) => write!(dest, "{}", rel),
+                SpecifiedValue::Relative(rel) => rel.to_css(dest),
                 // can only be specified by pres attrs; should not
                 // serialize to anything else
                 SpecifiedValue::Absolute(_) => Ok(()),
