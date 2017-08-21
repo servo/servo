@@ -331,10 +331,7 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
             }
 
             WindowEvent::Quit => {
-                if self.compositor.shutdown_state == ShutdownState::NotShuttingDown {
-                    debug!("Shutting down the constellation for WindowEvent::Quit");
-                    self.compositor.start_shutting_down();
-                }
+                self.compositor.maybe_start_shutting_down();
             }
 
             WindowEvent::Reload(top_level_browsing_context_id) => {

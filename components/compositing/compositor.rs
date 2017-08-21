@@ -412,7 +412,14 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         compositor
     }
 
-    pub fn start_shutting_down(&mut self) {
+    pub fn maybe_start_shutting_down(&mut self) {
+        if self.shutdown_state == ShutdownState::NotShuttingDown {
+            debug!("Shutting down the constellation for WindowEvent::Quit");
+            self.start_shutting_down();
+        }
+    }
+
+    fn start_shutting_down(&mut self) {
         debug!("Compositor sending Exit message to Constellation");
         if let Err(e) = self.constellation_chan.send(ConstellationMsg::Exit) {
             warn!("Sending exit message to constellation failed ({}).", e);
