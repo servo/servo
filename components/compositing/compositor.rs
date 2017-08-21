@@ -1431,6 +1431,13 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         // TODO(gw): Access via WR.
         1.0
     }
+
+    pub fn toggle_webrender_profiler(&mut self) {
+        let mut flags = self.webrender.get_debug_flags();
+        flags.toggle(webrender::renderer::PROFILER_DBG);
+        self.webrender.set_debug_flags(flags);
+        self.webrender_api.generate_frame(self.webrender_document, None);
+    }
 }
 
 

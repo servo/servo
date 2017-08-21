@@ -345,10 +345,7 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
             }
 
             WindowEvent::ToggleWebRenderProfiler => {
-                let mut flags = self.compositor.webrender.get_debug_flags();
-                flags.toggle(webrender::renderer::PROFILER_DBG);
-                self.compositor.webrender.set_debug_flags(flags);
-                self.compositor.webrender_api.generate_frame(self.compositor.webrender_document, None);
+                self.compositor.toggle_webrender_profiler();
             }
 
             WindowEvent::NewBrowser(url, response_chan) => {
