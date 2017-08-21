@@ -279,7 +279,11 @@ impl StylesheetInDocument for Stylesheet {
 /// A simple wrapper over an `Arc<Stylesheet>`, with pointer comparison, and
 /// suitable for its use in a `StylesheetSet`.
 #[derive(Clone)]
-pub struct DocumentStyleSheet(pub Arc<Stylesheet>);
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub struct DocumentStyleSheet(
+    #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
+    pub Arc<Stylesheet>
+);
 
 impl PartialEq for DocumentStyleSheet {
     fn eq(&self, other: &Self) -> bool {
