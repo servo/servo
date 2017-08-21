@@ -892,7 +892,8 @@ impl WebGLImpl {
             gl::STENCIL_VALUE_MASK |
             gl::STENCIL_WRITEMASK |
             gl::SUBPIXEL_BITS |
-            gl::UNPACK_ALIGNMENT =>
+            gl::UNPACK_ALIGNMENT |
+            gl::FRAGMENT_SHADER_DERIVATIVE_HINT =>
             //gl::UNPACK_COLORSPACE_CONVERSION_WEBGL =>
                 Ok(WebGLParameter::Int(gl.get_integer_v(param_id))),
 
