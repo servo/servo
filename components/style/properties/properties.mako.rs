@@ -1547,8 +1547,12 @@ impl PropertyDeclaration {
                               id: PropertyId, context: &ParserContext, input: &mut Parser<'i, 't>)
                               -> Result<(), PropertyDeclarationParseError<'i>> {
         assert!(declarations.is_empty());
+        let start = input.state();
         match id {
             PropertyId::Custom(name) => {
+                // FIXME: fully implement https://github.com/w3c/csswg-drafts/issues/774
+                // before adding skip_whitespace here.
+                // This probably affects some test results.
                 let value = match input.try(|i| CSSWideKeyword::parse(i)) {
                     Ok(keyword) => DeclaredValueOwned::CSSWideKeyword(keyword),
                     Err(()) => match ::custom_properties::SpecifiedValue::parse(context, input) {
@@ -1561,11 +1565,11 @@ impl PropertyDeclaration {
                 Ok(())
             }
             PropertyId::Longhand(id) => {
+                input.skip_whitespace();  // Unnecessary for correctness, but may help try() rewind less.
                 input.try(|i| CSSWideKeyword::parse(i)).map(|keyword| {
                     PropertyDeclaration::CSSWideKeyword(id, keyword)
                 }).or_else(|()| {
                     input.look_for_var_functions();
-                    let start = input.state();
                     input.parse_entirely(|input| id.parse_value(context, input))
                     .or_else(|err| {
                         while let Ok(_) = input.next() {}  // Look for var() after the error.
@@ -1592,6 +1596,7 @@ impl PropertyDeclaration {
                 })
             }
             PropertyId::Shorthand(id) => {
+                input.skip_whitespace();  // Unnecessary for correctness, but may help try() rewind less.
                 if let Ok(keyword) = input.try(|i| CSSWideKeyword::parse(i)) {
                     if id == ShorthandId::All {
                         declarations.all_shorthand = AllShorthand::CSSWideKeyword(keyword)
@@ -1603,7 +1608,6 @@ impl PropertyDeclaration {
                     Ok(())
                 } else {
                     input.look_for_var_functions();
-                    let start = input.state();
                     // Not using parse_entirely here: each ${shorthand.ident}::parse_into function
                     // needs to do so *before* pushing to `declarations`.
                     id.parse_into(declarations, context, input).or_else(|err| {
