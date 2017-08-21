@@ -36,6 +36,7 @@ use servo_arc::{Arc, ArcBorrow};
 use shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
 use smallvec::VecLike;
 use std::fmt::Debug;
+use std::ops;
 use style_traits::viewport::ViewportConstraints;
 use stylesheet_set::{StylesheetSet, StylesheetIterator};
 #[cfg(feature = "gecko")]
@@ -320,6 +321,33 @@ impl DocumentCascadeData {
     }
 }
 
+/// A wrapper over a StylesheetSet that can be `Sync`, since it's only used and
+/// exposed via mutable methods in the `Stylist`.
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+struct StylistStylesheetSet(StylesheetSet<StylistSheet>);
+// Read above to see why this is fine.
+unsafe impl Sync for StylistStylesheetSet {}
+
+impl StylistStylesheetSet {
+    fn new() -> Self {
+        StylistStylesheetSet(StylesheetSet::new())
+    }
+}
+
+impl ops::Deref for StylistStylesheetSet {
+    type Target = StylesheetSet<StylistSheet>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl ops::DerefMut for StylistStylesheetSet {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
 /// This structure holds all the selectors and device characteristics
 /// for a given document. The selectors are converted into `Rule`s
 /// and sorted into `SelectorMap`s keyed off stylesheet origin and
@@ -347,7 +375,7 @@ pub struct Stylist {
     viewport_constraints: Option<ViewportConstraints>,
 
     /// The list of stylesheets.
-    stylesheets: StylesheetSet<StylistSheet>,
+    stylesheets: StylistStylesheetSet,
 
     /// If true, the quirks-mode stylesheet is applied.
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "defined in selectors")]
@@ -396,7 +424,7 @@ impl Stylist {
             viewport_constraints: None,
             device,
             quirks_mode,
-            stylesheets: StylesheetSet::new(),
+            stylesheets: StylistStylesheetSet::new(),
             cascade_data: Default::default(),
             rule_tree: RuleTree::new(),
             num_rebuilds: 0,
