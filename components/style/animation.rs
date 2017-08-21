@@ -437,20 +437,22 @@ pub fn start_transitions_if_applicable(new_animations_sender: &Sender<Animation>
                                                                      old_style,
                                                                      Arc::make_mut(new_style));
         for property_animation in property_animations {
-            // Per [1], don't trigger a new transition if the end state for that transition is
-            // the same as that of a transition that's already running on the same node.
-            //
-            // [1]: https://drafts.csswg.org/css-transitions/#starting
-            if possibly_expired_animations.iter().any(|animation| {
-                    animation.has_the_same_end_value_as(&property_animation)
-                }) {
-                continue
-            }
-
             // Set the property to the initial value.
+            //
             // NB: get_mut is guaranteed to succeed since we called make_mut()
             // above.
             property_animation.update(Arc::get_mut(new_style).unwrap(), 0.0);
+
+            // Per [1], don't trigger a new transition if the end state for that
+            // transition is the same as that of a transition that's already
+            // running on the same node.
+            //
+            // [1]: https://drafts.csswg.org/css-transitions/#starting
+            if possibly_expired_animations.iter().any(|animation| {
+                animation.has_the_same_end_value_as(&property_animation)
+            }) {
+                continue
+            }
 
             // Kick off the animation.
             let box_style = new_style.get_box();

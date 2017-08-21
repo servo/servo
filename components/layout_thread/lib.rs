@@ -137,7 +137,7 @@ use style::selector_parser::SnapshotMap;
 use style::servo::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, REPOSITION, STORE_OVERFLOW};
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, StylesheetGuards};
 use style::stylesheet_set::StylesheetSet;
-use style::stylesheets::{Origin, OriginSet, Stylesheet, StylesheetContents, StylesheetInDocument, UserAgentStylesheets};
+use style::stylesheets::{Origin, Stylesheet, StylesheetContents, StylesheetInDocument, UserAgentStylesheets};
 use style::stylist::Stylist;
 use style::thread_state;
 use style::timer::Timer;
@@ -434,18 +434,8 @@ impl<'a, 'b: 'a> RwData<'a, 'b> {
     /// use `block`.
     fn lock(&mut self) -> RWGuard<'b> {
         match self.possibly_locked_rw_data.take() {
-            None    => RWGuard::Used(self.rw_data.lock().unwrap()),
+            None => RWGuard::Used(self.rw_data.lock().unwrap()),
             Some(x) => RWGuard::Held(x),
-        }
-    }
-
-    /// If no reflow has ever been triggered, this will keep the lock, locked
-    /// (and saved in `possibly_locked_rw_data`). If it has been, the lock will
-    /// be unlocked.
-    fn block(&mut self, rw_data: RWGuard<'b>) {
-        match rw_data {
-            RWGuard::Used(x) => drop(x),
-            RWGuard::Held(x) => *self.possibly_locked_rw_data = Some(x),
         }
     }
 }
@@ -526,18 +516,6 @@ impl LayoutThread {
         let font_cache_receiver =
             ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_font_cache_receiver);
 
-        let stylist = Stylist::new(device, QuirksMode::NoQuirks);
-        let outstanding_web_fonts_counter = Arc::new(AtomicUsize::new(0));
-        let ua_stylesheets = &*UA_STYLESHEETS;
-        let guard = ua_stylesheets.shared_lock.read();
-        for stylesheet in &ua_stylesheets.user_or_user_agent_stylesheets {
-            add_font_face_rules(stylesheet,
-                                &guard,
-                                stylist.device(),
-                                &font_cache_thread,
-                                &ipc_font_cache_sender,
-                                &outstanding_web_fonts_counter);
-        }
 
         LayoutThread {
             id: id,
@@ -561,7 +539,7 @@ impl LayoutThread {
             generation: Cell::new(0),
             new_animations_sender: new_animations_sender,
             new_animations_receiver: new_animations_receiver,
-            outstanding_web_fonts: outstanding_web_fonts_counter,
+            outstanding_web_fonts: Arc::new(AtomicUsize::new(0)),
             root_flow: RefCell::new(None),
             document_shared_lock: None,
             running_animations: ServoArc::new(RwLock::new(FnvHashMap::default())),
@@ -570,7 +548,7 @@ impl LayoutThread {
             viewport_size: Size2D::new(Au(0), Au(0)),
             webrender_api: webrender_api_sender.create_api(),
             webrender_document,
-            stylist,
+            stylist: Stylist::new(device, QuirksMode::NoQuirks),
             stylesheets: StylesheetSet::new(),
             rw_data: Arc::new(Mutex::new(
                 LayoutThreadData {
@@ -718,12 +696,7 @@ impl LayoutThread {
         match request {
             Msg::AddStylesheet(stylesheet, before_stylesheet) => {
                 let guard = stylesheet.shared_lock.read();
-
-                self.handle_add_stylesheet(
-                    &stylesheet,
-                    &guard,
-                    possibly_locked_rw_data,
-                );
+                self.handle_add_stylesheet(&stylesheet, &guard);
 
                 match before_stylesheet {
                     Some(insertion_point) => {
@@ -916,16 +889,13 @@ impl LayoutThread {
         let _ = self.parallel_traversal.take();
     }
 
-    fn handle_add_stylesheet<'a, 'b>(
+    fn handle_add_stylesheet(
         &self,
-        stylesheet: &ServoArc<Stylesheet>,
+        stylesheet: &Stylesheet,
         guard: &SharedRwLockReadGuard,
-        possibly_locked_rw_data: &mut RwData<'a, 'b>,
     ) {
         // Find all font-face rules and notify the font cache of them.
         // GWTODO: Need to handle unloading web fonts.
-
-        let rw_data = possibly_locked_rw_data.lock();
         if stylesheet.is_effective_for_device(self.stylist.device(), &guard) {
             add_font_face_rules(&*stylesheet,
                                 &guard,
@@ -934,8 +904,6 @@ impl LayoutThread {
                                 &self.font_cache_sender,
                                 &self.outstanding_web_fonts);
         }
-
-        possibly_locked_rw_data.block(rw_data);
     }
 
     /// Advances the animation clock of the document.
@@ -1215,7 +1183,8 @@ impl LayoutThread {
         self.document_shared_lock = Some(document_shared_lock.clone());
         let author_guard = document_shared_lock.read();
         let device = Device::new(MediaType::screen(), initial_viewport, device_pixel_ratio);
-        self.stylist.set_device(device, &author_guard, self.stylesheets.iter());
+        let sheet_origins_affected_by_device_change =
+            self.stylist.set_device(device, &author_guard, self.stylesheets.iter());
 
         self.viewport_size =
             self.stylist.viewport_constraints().map_or(current_screen_size, |constraints| {
@@ -1269,20 +1238,45 @@ impl LayoutThread {
         };
 
         let needs_dirtying = {
-            let mut extra_data = Default::default();
-            let (iter, mut origins_dirty) = self.stylesheets.flush(Some(element));
-            if data.stylesheets_changed {
-                origins_dirty = OriginSet::all();
+            debug!("Flushing stylist");
+
+            let mut origins_dirty = sheet_origins_affected_by_device_change;
+
+            debug!("Device changes: {:?}", origins_dirty);
+
+            if self.first_reflow.get() {
+                debug!("First reflow, rebuilding user and UA rules");
+
+                origins_dirty |= Origin::User;
+                origins_dirty |= Origin::UserAgent;
+                for stylesheet in &ua_stylesheets.user_or_user_agent_stylesheets {
+                    self.handle_add_stylesheet(stylesheet, &ua_or_user_guard);
+                }
             }
-            let origins_rebuilt = self.stylist.rebuild(
-                iter,
-                &guards,
-                Some(ua_stylesheets),
-                /* author_style_disabled = */ false,
-                &mut extra_data,
-                origins_dirty,
-            );
-            !origins_rebuilt.is_empty()
+
+            let (iter, invalidation_origins_dirty) = self.stylesheets.flush(Some(element));
+            debug!("invalidation: {:?}", invalidation_origins_dirty);
+
+            origins_dirty |= invalidation_origins_dirty;
+
+            if data.stylesheets_changed {
+                debug!("Doc sheets changed, flushing author sheets too");
+                origins_dirty |= Origin::Author;
+            }
+
+            if !origins_dirty.is_empty() {
+                let mut extra_data = Default::default();
+                self.stylist.rebuild(
+                    iter,
+                    &guards,
+                    Some(ua_stylesheets),
+                    /* author_style_disabled = */ false,
+                    &mut extra_data,
+                    origins_dirty,
+                );
+            }
+
+            !origins_dirty.is_empty()
         };
 
         let needs_reflow = viewport_size_changed && !needs_dirtying;

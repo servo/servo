@@ -78,9 +78,6 @@ pub struct Stylist {
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "defined in selectors")]
     quirks_mode: QuirksMode,
 
-    /// If true, the device has changed, and the stylist needs to be updated.
-    is_device_dirty: bool,
-
     /// Selector maps for all of the style sheets in the stylist, after
     /// evalutaing media rules against the current device, split out per
     /// cascade level.
@@ -130,7 +127,6 @@ impl Stylist {
         Stylist {
             viewport_constraints: None,
             device: device,
-            is_device_dirty: true,
             quirks_mode: quirks_mode,
 
             cascade_data: Default::default(),
@@ -184,10 +180,6 @@ impl Stylist {
 
     /// Rebuild the stylist for the given document stylesheets, and optionally
     /// with a set of user agent stylesheets.
-    ///
-    /// This method resets all the style data each time the stylesheets change
-    /// (which is indicated by the `stylesheets_changed` parameter), or the
-    /// device is dirty, which means we need to re-evaluate media queries.
     pub fn rebuild<'a, I, S>(
         &mut self,
         doc_stylesheets: I,
@@ -195,19 +187,13 @@ impl Stylist {
         ua_stylesheets: Option<&UserAgentStylesheets>,
         author_style_disabled: bool,
         extra_data: &mut PerOrigin<ExtraStyleData>,
-        mut origins_to_rebuild: OriginSet,
-    ) -> OriginSet
+        origins_to_rebuild: OriginSet,
+    )
     where
         I: Iterator<Item = &'a S> + Clone,
         S: StylesheetInDocument + ToMediaListKey + 'static,
     {
-        if self.is_device_dirty {
-            origins_to_rebuild = OriginSet::all();
-        }
-
-        if origins_to_rebuild.is_empty() {
-            return origins_to_rebuild;
-        }
+        debug_assert!(!origins_to_rebuild.is_empty());
 
         self.num_rebuilds += 1;
 
@@ -252,19 +238,40 @@ impl Stylist {
 
         if let Some(ua_stylesheets) = ua_stylesheets {
             for stylesheet in &ua_stylesheets.user_or_user_agent_stylesheets {
+                let sheet_origin =
+                    stylesheet.contents(guards.ua_or_user).origin;
+
                 debug_assert!(matches!(
-                    stylesheet.contents(guards.ua_or_user).origin,
-                    Origin::UserAgent | Origin::User));
-                self.add_stylesheet(stylesheet, guards.ua_or_user, extra_data);
+                    sheet_origin,
+                    Origin::UserAgent | Origin::User
+                ));
+
+                if origins_to_rebuild.contains(sheet_origin.into()) {
+                    self.add_stylesheet(
+                        stylesheet,
+                        guards.ua_or_user,
+                        extra_data
+                    );
+                }
             }
 
             if self.quirks_mode != QuirksMode::NoQuirks {
                 let stylesheet = &ua_stylesheets.quirks_mode_stylesheet;
+                let sheet_origin =
+                    stylesheet.contents(guards.ua_or_user).origin;
+
                 debug_assert!(matches!(
-                    stylesheet.contents(guards.ua_or_user).origin,
-                    Origin::UserAgent | Origin::User));
-                self.add_stylesheet(&ua_stylesheets.quirks_mode_stylesheet,
-                                    guards.ua_or_user, extra_data);
+                    sheet_origin,
+                    Origin::UserAgent | Origin::User
+                ));
+
+                if origins_to_rebuild.contains(sheet_origin.into()) {
+                    self.add_stylesheet(
+                        &ua_stylesheets.quirks_mode_stylesheet,
+                        guards.ua_or_user,
+                        extra_data
+                    );
+                }
             }
         }
 
@@ -280,9 +287,6 @@ impl Stylist {
         for stylesheet in sheets_to_add {
             self.add_stylesheet(stylesheet, guards.author, extra_data);
         }
-
-        self.is_device_dirty = false;
-        origins_to_rebuild
     }
 
     fn add_stylesheet<S>(
@@ -831,17 +835,13 @@ impl Stylist {
     /// Set a given device, which may change the styles that apply to the
     /// document.
     ///
+    /// Returns the sheet origins that were actually affected.
+    ///
     /// This means that we may need to rebuild style data even if the
     /// stylesheets haven't changed.
     ///
     /// Also, the device that arrives here may need to take the viewport rules
     /// into account.
-    ///
-    /// TODO(emilio): Probably should be unified with `update`, right now I
-    /// don't think we take into account dynamic updates to viewport rules.
-    ///
-    /// Probably worth to make the stylist own a single `Device`, and have a
-    /// `update_device` function?
     ///
     /// feature = "servo" because gecko only has one device, and manually tracks
     /// when the device is dirty.
@@ -854,7 +854,7 @@ impl Stylist {
         mut device: Device,
         guard: &SharedRwLockReadGuard,
         stylesheets: I,
-    )
+    ) -> OriginSet
     where
         I: Iterator<Item = &'a S> + Clone,
         S: StylesheetInDocument + ToMediaListKey + 'static,
@@ -875,11 +875,10 @@ impl Stylist {
         }
 
         self.device = device;
-        let features_changed = self.media_features_change_changed_style(
+        self.media_features_change_changed_style(
             stylesheets,
-            guard
-        );
-        self.is_device_dirty |= !features_changed.is_empty();
+            guard,
+        )
     }
 
     /// Returns whether, given a media feature change, any previously-applicable
@@ -1067,7 +1066,6 @@ impl Stylist {
               V: Push<ApplicableDeclarationBlock> + VecLike<ApplicableDeclarationBlock> + Debug,
               F: FnMut(&E, ElementSelectorFlags),
     {
-        debug_assert!(!self.is_device_dirty);
         // Gecko definitely has pseudo-elements with style attributes, like
         // ::-moz-color-swatch.
         debug_assert!(cfg!(feature = "gecko") ||
@@ -1215,13 +1213,6 @@ impl Stylist {
         self.cascade_data
             .iter_origins()
             .any(|(d, _)| d.mapped_ids.might_contain_hash(id.get_hash()))
-    }
-
-    /// Return whether the device is dirty, that is, whether the screen size or
-    /// media type have changed (for now).
-    #[inline]
-    pub fn is_device_dirty(&self) -> bool {
-        self.is_device_dirty
     }
 
     /// Returns the registered `@keyframes` animation for the specified name.
