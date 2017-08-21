@@ -246,11 +246,16 @@ impl Separator for Space {
     where
         F: for<'tt> FnMut(&mut Parser<'i, 'tt>) -> Result<T, ParseError<'i, E>>
     {
+        input.skip_whitespace();  // Unnecessary for correctness, but may help try() rewind less.
         let mut results = vec![parse_one(input)?];
-        while let Ok(item) = input.try(&mut parse_one) {
-            results.push(item);
+        loop {
+            input.skip_whitespace();  // Unnecessary for correctness, but may help try() rewind less.
+            if let Ok(item) = input.try(&mut parse_one) {
+                results.push(item);
+            } else {
+                return Ok(results)
+            }
         }
-        Ok(results)
     }
 }
 
@@ -266,9 +271,12 @@ impl Separator for CommaWithSpace {
     where
         F: for<'tt> FnMut(&mut Parser<'i, 'tt>) -> Result<T, ParseError<'i, E>>
     {
+        input.skip_whitespace();  // Unnecessary for correctness, but may help try() rewind less.
         let mut results = vec![parse_one(input)?];
         loop {
+            input.skip_whitespace();  // Unnecessary for correctness, but may help try() rewind less.
             let comma = input.try(|i| i.expect_comma()).is_ok();
+            input.skip_whitespace();  // Unnecessary for correctness, but may help try() rewind less.
             if let Ok(item) = input.try(&mut parse_one) {
                 results.push(item);
             } else if comma {
