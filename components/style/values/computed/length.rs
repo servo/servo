@@ -194,21 +194,31 @@ impl From<LengthOrPercentageOrNone> for Option<CalcLengthOrPercentage> {
 }
 
 impl ToCss for CalcLengthOrPercentage {
+    /// https://drafts.csswg.org/css-values/#calc-serialize
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        use num_traits::Zero;
+        // 1. Simplify the expression by ...
+        // (We have already done this while computing.)
 
+        // 2. If this simplification process results in only a single value (one
+        //    <number>, one <dimension>, or one <percentage>), and the value
+        //    being serialized is a computed value or later, serialize it just
+        //    as that one value, without the calc() wrapper. If this value is
+        //    outside the allowed range for the context, it must be clamped to
+        //    the nearest allowed value.
         let (length, percentage) = match (self.length, self.percentage) {
             (l, None) => return l.to_css(dest),
             (l, Some(p)) if l == Au(0) => return p.to_css(dest),
             (l, Some(p)) => (l, p),
         };
 
+        // 3. Otherwise, serialize as a calc() containing the summation, with
+        //    the units ordered ASCII case-insensitive alphabetically, the
+        //    number (if present) coming before all units, and the percentage
+        //    (if present) coming after all units.
         dest.write_str("calc(")?;
-        percentage.to_css(dest)?;
-
-        dest.write_str(if length < Zero::zero() { " - " } else { " + " })?;
         length.abs().to_css(dest)?;
-
+        dest.write_str(if percentage < Percentage::zero() { " - " } else { " + " })?;
+        percentage.to_css(dest)?;
         dest.write_str(")")
     }
 }
