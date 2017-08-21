@@ -100,7 +100,7 @@ pub struct IOCompositor<Window: WindowMethods> {
     port: CompositorReceiver,
 
     /// The root pipeline.
-    pub root_pipeline: Option<CompositionPipeline>,
+    root_pipeline: Option<CompositionPipeline>,
 
     /// Tracks details about each active pipeline that the compositor knows about.
     pipeline_details: HashMap<PipelineId, PipelineDetails>,
@@ -176,13 +176,13 @@ pub struct IOCompositor<Window: WindowMethods> {
     in_scroll_transaction: Option<Instant>,
 
     /// The webrender renderer.
-    pub webrender: webrender::Renderer,
+    webrender: webrender::Renderer,
 
     /// The active webrender document.
-    pub webrender_document: webrender_api::DocumentId,
+    webrender_document: webrender_api::DocumentId,
 
     /// The webrender interface, if enabled.
-    pub webrender_api: webrender_api::RenderApi,
+    webrender_api: webrender_api::RenderApi,
 
     /// GL functions interface (may be GL or GLES)
     gl: Rc<gl::Gl>,
