@@ -493,18 +493,6 @@ def check_rust(file_name, lines):
             line = merged_lines + line
             merged_lines = ''
 
-        # derive traits should be alphabetically ordered
-        if line.startswith("#[derive"):
-            # strip "#[derive(" from the begin and ")]" from the end and split
-            derives = re.split(r' *, *', line[9:-2])
-            # sort, compare and report
-            sorted_derives = sorted(derives)
-            if sorted_derives != derives:
-                yield(idx + 1, decl_message.format("derive attribute list")
-                          + decl_expected.format(sorted_derives)
-                          + decl_found.format(derives))
-
-
         # Ignore attributes, comments, and imports
         # Keep track of whitespace to enable checking for a merged import block
         if import_block:
@@ -702,6 +690,17 @@ def check_rust(file_name, lines):
         else:
             # we now erase previous entries
             prev_mod = {}
+
+        # derive traits should be alphabetically ordered
+        if line.startswith("#[derive"):
+            # strip "#[derive(" from the begin and ")]" from the end and split
+            derives = re.split(r' *, *', line[9:-2])
+            # sort, compare and report
+            sorted_derives = sorted(derives)
+            if sorted_derives != derives:
+                yield(idx + 1, decl_message.format("derive attribute list")
+                          + decl_expected.format(sorted_derives)
+                          + decl_found.format(derives))
 
 
 # Avoid flagging <Item=Foo> constructs
