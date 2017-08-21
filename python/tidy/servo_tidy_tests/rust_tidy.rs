@@ -21,6 +21,7 @@ extern crate webrender_api;
 extern crate style_traits;
 
 #[foo = "bar,baz"]
+#[derive(Copy,Debug, ComputeSquaredDistance)]
 impl test {
 
     fn test_fun(y:f32)->f32{
