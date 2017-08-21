@@ -18,6 +18,7 @@ use dom::window::Window;
 use dom_struct::dom_struct;
 use script_thread::{Runnable, ScriptThread};
 use std::cell::Cell;
+use std::cmp::Ordering;
 use time;
 
 /// Implementation of a list of PerformanceEntry items shared by the
@@ -50,6 +51,16 @@ impl PerformanceEntryList {
             *e.name() == name &&
             entry_type.as_ref().map_or(true, |type_| *e.entry_type() == *type_)
         ).map(|e| e.clone()).collect()
+    }
+
+    pub fn get_entries_by_name_and_type(&self, name: Option<DOMString>, entry_type: Option<DOMString>)
+        -> Vec<Root<PerformanceEntry>> {
+        let mut res : Vec<Root<PerformanceEntry>> = self.entries.iter().filter(|e|
+            name.as_ref().map_or(true, |name_| *e.name() == *name_) &&
+            entry_type.as_ref().map_or(true, |type_| *e.entry_type() == *type_)
+        ).map(|e| e.clone()).collect();
+        res.sort_by(|a, b| a.start_time().partial_cmp(&b.start_time()).unwrap_or(Ordering::Equal));
+        res
     }
 }
 
