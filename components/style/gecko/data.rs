@@ -23,8 +23,6 @@ use stylist::{ExtraStyleData, Stylist};
 #[derive(PartialEq, Eq, Debug)]
 pub struct GeckoStyleSheet(*const ServoStyleSheet);
 
-unsafe impl Sync for GeckoStyleSheet {}
-
 impl ToMediaListKey for ::gecko::data::GeckoStyleSheet {
     fn to_media_list_key(&self) -> MediaListKey {
         use std::mem;
