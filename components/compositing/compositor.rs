@@ -34,7 +34,7 @@ use touch::{TouchHandler, TouchAction};
 use webrender;
 use webrender_api::{self, ClipId, DeviceUintRect, DeviceUintSize, LayoutPoint, LayoutVector2D};
 use webrender_api::{ScrollEventPhase, ScrollLocation, ScrollClamping};
-use windowing::{self, MouseWindowEvent, WindowEvent, WindowMethods};
+use windowing::{self, MouseWindowEvent, WebRenderDebugOption, WindowEvent, WindowMethods};
 
 #[derive(Debug, PartialEq)]
 enum UnableToComposite {
@@ -797,9 +797,14 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 }
             }
 
-            WindowEvent::ToggleWebRenderProfiler => {
+            WindowEvent::ToggleWebRenderDebug(option) => {
                 let mut flags = self.webrender.get_debug_flags();
-                flags.toggle(webrender::renderer::PROFILER_DBG);
+                let flag = match option {
+                    WebRenderDebugOption::Profiler => webrender::renderer::PROFILER_DBG,
+                    WebRenderDebugOption::TextureCacheDebug => webrender::renderer::TEXTURE_CACHE_DBG,
+                    WebRenderDebugOption::RenderTargetDebug => webrender::renderer::RENDER_TARGET_DBG,
+                };
+                flags.toggle(flag);
                 self.webrender.set_debug_flags(flags);
                 self.webrender_api.generate_frame(self.webrender_document, None);
             }

@@ -7,7 +7,7 @@
 use NestedEventLoopListener;
 use compositing::compositor_thread::EventLoopWaker;
 use compositing::windowing::{AnimationState, MouseWindowEvent};
-use compositing::windowing::{WindowEvent, WindowMethods};
+use compositing::windowing::{WebRenderDebugOption, WindowEvent, WindowMethods};
 use euclid::{Point2D, Size2D, TypedPoint2D, TypedVector2D, ScaleFactor, TypedSize2D};
 #[cfg(target_os = "windows")]
 use gdi32;
@@ -1312,8 +1312,17 @@ impl WindowMethods for Window {
                     self.event_queue.borrow_mut().push(WindowEvent::Quit);
                 }
             }
+            (CONTROL, None, Key::F10) => {
+                let event = WindowEvent::ToggleWebRenderDebug(WebRenderDebugOption::RenderTargetDebug);
+                self.event_queue.borrow_mut().push(event);
+            }
+            (CONTROL, None, Key::F11) => {
+                let event = WindowEvent::ToggleWebRenderDebug(WebRenderDebugOption::TextureCacheDebug);
+                self.event_queue.borrow_mut().push(event);
+            }
             (CONTROL, None, Key::F12) => {
-                self.event_queue.borrow_mut().push(WindowEvent::ToggleWebRenderProfiler);
+                let event = WindowEvent::ToggleWebRenderDebug(WebRenderDebugOption::Profiler);
+                self.event_queue.borrow_mut().push(event);
             }
 
             _ => {
