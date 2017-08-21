@@ -518,13 +518,35 @@ impl PropertyDeclarationBlock {
     }
 
     /// Take a declaration block known to contain a single property and serialize it.
-    pub fn single_value_to_css<W>(&self, property: &PropertyId, dest: &mut W) -> fmt::Result
-        where W: fmt::Write,
+    pub fn single_value_to_css<W>(
+        &self,
+        property: &PropertyId,
+        dest: &mut W,
+        computed_values: Option<&ComputedValues>,
+    ) -> fmt::Result
+    where
+        W: fmt::Write,
     {
         match property.as_shorthand() {
             Err(_longhand_or_custom) => {
                 if self.declarations.len() == 1 {
-                    self.declarations[0].0.to_css(dest)
+                    let declaration = &self.declarations[0].0;
+                    // If we have a longhand declaration with variables, those variables will be
+                    // stored as unparsed values. As a temporary measure to produce sensible results
+                    // in Gecko's getKeyframes() implementation for CSS animations, if
+                    // |computed_values| is supplied, we use it to expand such variable
+                    // declarations. This will be fixed properly in Gecko bug 1391537.
+                    match (declaration, computed_values) {
+                        (&PropertyDeclaration::WithVariables(id, ref unparsed),
+                         Some(ref computed_values)) => unparsed
+                            .substitute_variables(
+                                id,
+                                &computed_values.custom_properties(),
+                                QuirksMode::NoQuirks,
+                            )
+                            .to_css(dest),
+                        (ref d, _) => d.to_css(dest),
+                    }
                 } else {
                     Err(fmt::Error)
                 }

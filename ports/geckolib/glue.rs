@@ -564,7 +564,8 @@ pub extern "C" fn Servo_AnimationValue_Serialize(value: RawServoAnimationValueBo
     let uncomputed_value = AnimationValue::as_arc(&value).uncompute();
     let mut string = String::new();
     let rv = PropertyDeclarationBlock::with_one(uncomputed_value, Importance::Normal)
-        .single_value_to_css(&get_property_id_from_nscsspropertyid!(property, ()), &mut string);
+        .single_value_to_css(&get_property_id_from_nscsspropertyid!(property, ()), &mut string,
+                             None);
     debug_assert!(rv.is_ok());
 
     let buffer = unsafe { buffer.as_mut().unwrap() };
@@ -2142,12 +2143,13 @@ pub extern "C" fn Servo_DeclarationBlock_GetCssText(declarations: RawServoDeclar
 #[no_mangle]
 pub extern "C" fn Servo_DeclarationBlock_SerializeOneValue(
     declarations: RawServoDeclarationBlockBorrowed,
-    property_id: nsCSSPropertyID, buffer: *mut nsAString)
+    property_id: nsCSSPropertyID, buffer: *mut nsAString,
+    computed_values: ServoStyleContextBorrowedOrNull)
 {
     let property_id = get_property_id_from_nscsspropertyid!(property_id, ());
     read_locked_arc(declarations, |decls: &PropertyDeclarationBlock| {
         let mut string = String::new();
-        let rv = decls.single_value_to_css(&property_id, &mut string);
+        let rv = decls.single_value_to_css(&property_id, &mut string, computed_values);
         debug_assert!(rv.is_ok());
 
         let buffer = unsafe { buffer.as_mut().unwrap() };
