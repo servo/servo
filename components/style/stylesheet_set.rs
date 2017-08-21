@@ -106,6 +106,8 @@ where
     }
 
     /// Appends a new stylesheet to the current set.
+    ///
+    /// No device implies not computing invalidations.
     pub fn append_stylesheet(
         &mut self,
         device: Option<&Device>,
