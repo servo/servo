@@ -369,7 +369,7 @@ impl From<GreaterThanOrEqualToOneNumber> for CSSFloat {
 
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Copy, Debug, PartialEq, ToCss)]
+#[derive(Clone, Copy, Debug, PartialEq, ToCss, ComputeSquaredDistance)]
 pub enum NumberOrPercentage {
     Percentage(Percentage),
     Number(Number),

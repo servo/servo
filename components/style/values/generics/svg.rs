@@ -8,8 +8,9 @@ use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use std::fmt;
 use style_traits::{ParseError, StyleParseError, ToCss};
+use values::computed::NumberOrPercentage;
 use values::computed::length::LengthOrPercentage;
-
+use values::distance::{ComputeSquaredDistance, SquaredDistance};
 
 /// An SVG paint value
 ///
@@ -101,12 +102,42 @@ impl<ColorType: Parse, UrlPaintServer: Parse> Parse for SVGPaint<ColorType, UrlP
 /// https://www.w3.org/TR/SVG11/painting.html#StrokeProperties
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, Copy, Debug, PartialEq, ToCss, HasViewportPercentage)]
-#[derive(ToComputedValue, ToAnimatedValue, ComputeSquaredDistance)]
+#[derive(ToComputedValue, ToAnimatedValue)]
 pub enum SvgLengthOrPercentageOrNumber<LengthOrPercentageType, NumberType> {
     /// <length> | <percentage>
     LengthOrPercentage(LengthOrPercentageType),
     /// <number>
     Number(NumberType),
+}
+
+impl<L, N> ComputeSquaredDistance for SvgLengthOrPercentageOrNumber<L, N>
+    where NumberOrPercentage: From<L> + From<N> + ComputeSquaredDistance,
+          L: ComputeSquaredDistance + Copy,
+          N: ComputeSquaredDistance + Copy
+{
+    #[inline]
+    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
+        match (self, other) {
+            (&SvgLengthOrPercentageOrNumber::LengthOrPercentage(ref from),
+             &SvgLengthOrPercentageOrNumber::LengthOrPercentage(ref to)) =>
+                from.compute_squared_distance(to),
+            (&SvgLengthOrPercentageOrNumber::Number(ref from),
+             &SvgLengthOrPercentageOrNumber::Number(ref to)) =>
+                from.compute_squared_distance(to),
+            (&SvgLengthOrPercentageOrNumber::LengthOrPercentage(ref from),
+             &SvgLengthOrPercentageOrNumber::Number(ref to)) => {
+                let conv_from = NumberOrPercentage::from(*from);
+                let conv_to   = NumberOrPercentage::from(*to);
+                conv_from.compute_squared_distance(&conv_to)
+            },
+            (&SvgLengthOrPercentageOrNumber::Number(ref from),
+             &SvgLengthOrPercentageOrNumber::LengthOrPercentage(ref to)) => {
+                let conv_from = NumberOrPercentage::from(*from);
+                let conv_to   = NumberOrPercentage::from(*to);
+                conv_from.compute_squared_distance(&conv_to)
+            },
+        }
+    }
 }
 
 impl<LengthOrPercentageType, NumberType> SvgLengthOrPercentageOrNumber<LengthOrPercentageType, NumberType>
