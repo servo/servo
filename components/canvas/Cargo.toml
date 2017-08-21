@@ -15,6 +15,7 @@ canvas_traits = {path = "../canvas_traits"}
 compositing = {path = "../compositing"}
 cssparser = "0.19"
 euclid = "0.15"
+fnv = "1.0"
 gleam = "0.4"
 ipc-channel = "0.8"
 log = "0.3.5"

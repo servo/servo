@@ -5,9 +5,9 @@
 use canvas_traits::canvas::byte_swap;
 use canvas_traits::webgl::*;
 use euclid::Size2D;
+use fnv::FnvHashMap;
 use gleam::gl;
 use offscreen_gl_context::{GLContext, GLContextAttributes, GLLimits, NativeGLContextMethods};
-use std::collections::HashMap;
 use std::mem;
 use std::thread;
 use super::gl_context::{GLContextFactory, GLContextWrapper};
@@ -26,9 +26,9 @@ pub struct WebGLThread<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver
     /// Channel used to generate/update or delete `webrender_api::ImageKey`s.
     webrender_api: webrender_api::RenderApi,
     /// Map of live WebGLContexts.
-    contexts: HashMap<WebGLContextId, GLContextWrapper>,
+    contexts: FnvHashMap<WebGLContextId, GLContextWrapper>,
     /// Cached information for WebGLContexts.
-    cached_context_info: HashMap<WebGLContextId, WebGLContextInfo>,
+    cached_context_info: FnvHashMap<WebGLContextId, WebGLContextInfo>,
     /// Current bound context.
     bound_context_id: Option<WebGLContextId>,
     /// Id generator for new WebGLContexts.
@@ -47,8 +47,8 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
         WebGLThread {
             gl_factory,
             webrender_api: webrender_api_sender.create_api(),
-            contexts: HashMap::new(),
-            cached_context_info: HashMap::new(),
+            contexts: Default::default(),
+            cached_context_info: Default::default(),
             bound_context_id: None,
             next_webgl_id: 0,
             webvr_compositor,
@@ -335,7 +335,7 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
 
     /// Gets a reference to a GLContextWrapper for a given WebGLContextId and makes it current if required.
     fn make_current_if_needed<'a>(context_id: WebGLContextId,
-                                  contexts: &'a HashMap<WebGLContextId, GLContextWrapper>,
+                                  contexts: &'a FnvHashMap<WebGLContextId, GLContextWrapper>,
                                   bound_id: &mut Option<WebGLContextId>) -> Option<&'a GLContextWrapper> {
         contexts.get(&context_id).and_then(|ctx| {
             if Some(context_id) != *bound_id {
@@ -349,7 +349,7 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
 
     /// Gets a mutable reference to a GLContextWrapper for a WebGLContextId and makes it current if required.
     fn make_current_if_needed_mut<'a>(context_id: WebGLContextId,
-                                      contexts: &'a mut HashMap<WebGLContextId, GLContextWrapper>,
+                                      contexts: &'a mut FnvHashMap<WebGLContextId, GLContextWrapper>,
                                       bound_id: &mut Option<WebGLContextId>) -> &'a mut GLContextWrapper {
         let ctx = contexts.get_mut(&context_id).expect("WebGLContext not found!");
         if Some(context_id) != *bound_id {
