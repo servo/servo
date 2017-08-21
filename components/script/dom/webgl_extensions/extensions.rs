@@ -6,6 +6,7 @@ use canvas_traits::webgl::WebGLError;
 use core::iter::FromIterator;
 use core::nonzero::NonZero;
 use dom::bindings::cell::DOMRefCell;
+use dom::bindings::codegen::Bindings::OESStandardDerivativesBinding::OESStandardDerivativesConstants;
 use dom::bindings::codegen::Bindings::OESTextureHalfFloatBinding::OESTextureHalfFloatConstants;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::js::Root;
@@ -35,6 +36,13 @@ const DEFAULT_NOT_FILTERABLE_TEX_TYPES: [GLenum; 2] = [
     constants::FLOAT, OESTextureHalfFloatConstants::HALF_FLOAT_OES
 ];
 
+// Param names that are implemented for getParameter WebGL function
+// but must trigger a InvalidEnum error until the related WebGL Extensions are enabled.
+// Example: https://www.khronos.org/registry/webgl/extensions/OES_standard_derivatives/
+const DEFAULT_DISABLED_GET_PARAMETER_NAMES: [GLenum; 1] = [
+    OESStandardDerivativesConstants::FRAGMENT_SHADER_DERIVATIVE_HINT_OES
+];
+
 /// WebGL features that are enabled/disabled by WebGL Extensions.
 #[derive(JSTraceable, HeapSizeOf)]
 struct WebGLExtensionFeatures {
@@ -42,7 +50,11 @@ struct WebGLExtensionFeatures {
     disabled_tex_types: HashSet<GLenum>,
     not_filterable_tex_types: HashSet<GLenum>,
     effective_tex_internal_formats: HashMap<TexFormatType, u32>,
-    query_parameter_handlers: HashMap<GLenum, WebGLQueryParameterHandler>
+    query_parameter_handlers: HashMap<GLenum, WebGLQueryParameterHandler>,
+    /// WebGL Hint() targets enabled by extensions.
+    hint_targets: HashSet<GLenum>,
+    /// WebGL GetParameter() names enabled by extensions.
+    disabled_get_parameter_names: HashSet<GLenum>,
 }
 
 impl Default for WebGLExtensionFeatures {
@@ -52,7 +64,9 @@ impl Default for WebGLExtensionFeatures {
             disabled_tex_types: DEFAULT_DISABLED_TEX_TYPES.iter().cloned().collect(),
             not_filterable_tex_types: DEFAULT_NOT_FILTERABLE_TEX_TYPES.iter().cloned().collect(),
             effective_tex_internal_formats: HashMap::new(),
-            query_parameter_handlers: HashMap::new()
+            query_parameter_handlers: HashMap::new(),
+            hint_targets: HashSet::new(),
+            disabled_get_parameter_names: DEFAULT_DISABLED_GET_PARAMETER_NAMES.iter().cloned().collect(),
         }
     }
 }
@@ -105,8 +119,18 @@ impl WebGLExtensions {
         })
     }
 
+    pub fn is_enabled<T>(&self) -> bool
+    where
+        T: 'static + WebGLExtension + JSTraceable + HeapSizeOf
+    {
+        let name = T::name().to_uppercase();
+        self.extensions.borrow().get(&name).map_or(false, |ext| { ext.is_enabled() })
+    }
+
     pub fn get_dom_object<T>(&self) -> Option<Root<T::Extension>>
-           where T: 'static + WebGLExtension + JSTraceable + HeapSizeOf {
+    where
+        T: 'static + WebGLExtension + JSTraceable + HeapSizeOf
+    {
         let name = T::name().to_uppercase();
         self.extensions.borrow().get(&name).and_then(|extension| {
             extension.as_any().downcast_ref::<TypedWebGLExtensionWrapper<T>>().and_then(|extension| {
@@ -172,7 +196,24 @@ impl WebGLExtensions {
         })
     }
 
+    pub fn enable_hint_target(&self, name: GLenum) {
+        self.features.borrow_mut().hint_targets.insert(name);
+    }
+
+    pub fn is_hint_target_enabled(&self, name: GLenum) -> bool {
+        self.features.borrow().hint_targets.contains(&name)
+    }
+
+    pub fn enable_get_parameter_name(&self, name: GLenum) {
+        self.features.borrow_mut().disabled_get_parameter_names.remove(&name);
+    }
+
+    pub fn is_get_parameter_name_enabled(&self, name: GLenum) -> bool {
+        !self.features.borrow().disabled_get_parameter_names.contains(&name)
+    }
+
     fn register_all_extensions(&self) {
+        self.register::<ext::oesstandardderivatives::OESStandardDerivatives>();
         self.register::<ext::oestexturefloat::OESTextureFloat>();
         self.register::<ext::oestexturefloatlinear::OESTextureFloatLinear>();
         self.register::<ext::oestexturehalffloat::OESTextureHalfFloat>();
