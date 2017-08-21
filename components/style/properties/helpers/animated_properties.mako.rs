@@ -1340,19 +1340,13 @@ impl ToAnimatedZero for TransformOperation {
     }
 }
 
-/// A wrapper for calling add_weighted that interpolates the distance of the two values from
-/// an initial_value and uses that to produce an interpolated value.
-/// This is used for values such as 'scale' where the initial value is 1 and where if we interpolate
-/// the absolute values, we will produce odd results for accumulation.
-fn add_weighted_with_initial_val<T: Animatable>(a: &T,
-                                                b: &T,
-                                                a_portion: f64,
-                                                b_portion: f64,
-                                                initial_val: &T) -> Result<T, ()> {
-    let a = a.add_weighted(&initial_val, 1.0, -1.0)?;
-    let b = b.add_weighted(&initial_val, 1.0, -1.0)?;
-    let result = a.add_weighted(&b, a_portion, b_portion)?;
-    result.add_weighted(&initial_val, 1.0, 1.0)
+fn add_weighted_multiplicative_factor(
+    this: CSSFloat,
+    other: CSSFloat,
+    self_portion: f64,
+    other_portion: f64,
+) -> Result<CSSFloat, ()> {
+    Ok((this - 1.).add_weighted(&(other - 1.), self_portion, other_portion)? + 1.)
 }
 
 /// http://dev.w3.org/csswg/css-transforms/#interpolation-of-transforms
@@ -1396,9 +1390,9 @@ impl Animatable for TransformOperation {
                 &TransformOperation::Scale(ref tx, ref ty, ref tz),
             ) => {
                 Ok(TransformOperation::Scale(
-                    add_weighted_with_initial_val(fx, tx, self_portion, other_portion, &1.0)?,
-                    add_weighted_with_initial_val(fy, ty, self_portion, other_portion, &1.0)?,
-                    add_weighted_with_initial_val(fz, tz, self_portion, other_portion, &1.0)?,
+                    add_weighted_multiplicative_factor(*fx, *tx, self_portion, other_portion)?,
+                    add_weighted_multiplicative_factor(*fy, *ty, self_portion, other_portion)?,
+                    add_weighted_multiplicative_factor(*fz, *tz, self_portion, other_portion)?,
                 ))
             },
             (
@@ -1508,12 +1502,10 @@ pub struct MatrixDecomposed2D {
 impl Animatable for InnerMatrix2D {
     fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
         Ok(InnerMatrix2D {
-            m11: add_weighted_with_initial_val(&self.m11, &other.m11,
-                                               self_portion, other_portion, &1.0)?,
+            m11: add_weighted_multiplicative_factor(self.m11, other.m11, self_portion, other_portion)?,
             m12: self.m12.add_weighted(&other.m12, self_portion, other_portion)?,
             m21: self.m21.add_weighted(&other.m21, self_portion, other_portion)?,
-            m22: add_weighted_with_initial_val(&self.m22, &other.m22,
-                                               self_portion, other_portion, &1.0)?,
+            m22: add_weighted_multiplicative_factor(self.m22, other.m22, self_portion, other_portion)?,
         })
     }
 }
@@ -1530,8 +1522,8 @@ impl Animatable for Translate2D {
 impl Animatable for Scale2D {
     fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
         Ok(Scale2D(
-            add_weighted_with_initial_val(&self.0, &other.0, self_portion, other_portion, &1.0)?,
-            add_weighted_with_initial_val(&self.1, &other.1, self_portion, other_portion, &1.0)?,
+            add_weighted_multiplicative_factor(self.0, other.0, self_portion, other_portion)?,
+            add_weighted_multiplicative_factor(self.1, other.1, self_portion, other_portion)?,
         ))
     }
 }
@@ -2065,9 +2057,9 @@ impl Animatable for Translate3D {
 impl Animatable for Scale3D {
     fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
         Ok(Scale3D(
-            add_weighted_with_initial_val(&self.0, &other.0, self_portion, other_portion, &1.0)?,
-            add_weighted_with_initial_val(&self.1, &other.1, self_portion, other_portion, &1.0)?,
-            add_weighted_with_initial_val(&self.2, &other.2, self_portion, other_portion, &1.0)?,
+            add_weighted_multiplicative_factor(self.0, other.0, self_portion, other_portion)?,
+            add_weighted_multiplicative_factor(self.1, other.1, self_portion, other_portion)?,
+            add_weighted_multiplicative_factor(self.2, other.2, self_portion, other_portion)?,
         ))
     }
 }
@@ -2099,7 +2091,7 @@ impl Animatable for Perspective {
             self.0.add_weighted(&other.0, self_portion, other_portion)?,
             self.1.add_weighted(&other.1, self_portion, other_portion)?,
             self.2.add_weighted(&other.2, self_portion, other_portion)?,
-            add_weighted_with_initial_val(&self.3, &other.3, self_portion, other_portion, &1.0)?,
+            add_weighted_multiplicative_factor(self.3, other.3, self_portion, other_portion)?,
         ))
     }
 }
@@ -2978,13 +2970,12 @@ impl Animatable for AnimatedFilter {
             % endfor
             % for func in ['Brightness', 'Contrast', 'Opacity', 'Saturate']:
             (&Filter::${func}(ref this), &Filter::${func}(ref other)) => {
-                Ok(Filter::${func}(add_weighted_with_initial_val(
-                    this,
-                    other,
+                Ok(Filter::${func}(NonNegative(add_weighted_multiplicative_factor(
+                    this.0,
+                    other.0,
                     self_portion,
                     other_portion,
-                    &NonNegative::<CSSFloat>(1.0),
-                )?))
+                )?)))
             },
             % endfor
             % if product == "gecko":
