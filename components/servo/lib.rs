@@ -91,7 +91,7 @@ use profile::mem as profile_mem;
 use profile::time as profile_time;
 use profile_traits::mem;
 use profile_traits::time;
-use script_traits::{ConstellationMsg, SWManagerSenders, ScriptToConstellationChan, TouchEventType};
+use script_traits::{ConstellationMsg, SWManagerSenders, ScriptToConstellationChan};
 use servo_config::opts;
 use servo_config::prefs::PREFS;
 use servo_config::resource_files::resources_dir_path;
@@ -280,24 +280,11 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
             }
 
             WindowEvent::Touch(event_type, identifier, location) => {
-                match event_type {
-                    TouchEventType::Down => self.compositor.on_touch_down(identifier, location),
-                    TouchEventType::Move => self.compositor.on_touch_move(identifier, location),
-                    TouchEventType::Up => self.compositor.on_touch_up(identifier, location),
-                    TouchEventType::Cancel => self.compositor.on_touch_cancel(identifier, location),
-                }
+                self.compositor.on_touch_event(event_type, identifier, location);
             }
 
             WindowEvent::Scroll(delta, cursor, phase) => {
-                match phase {
-                    TouchEventType::Move => self.compositor.on_scroll_window_event(delta, cursor),
-                    TouchEventType::Up | TouchEventType::Cancel => {
-                        self.compositor.on_scroll_end_window_event(delta, cursor);
-                    }
-                    TouchEventType::Down => {
-                        self.compositor.on_scroll_start_window_event(delta, cursor);
-                    }
-                }
+                self.compositor.on_scroll_event(delta, cursor, phase);
             }
 
             WindowEvent::Zoom(magnification) => {

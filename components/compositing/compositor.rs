@@ -775,7 +775,19 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    pub fn on_touch_down(&mut self, identifier: TouchId, point: TypedPoint2D<f32, DevicePixel>) {
+    pub fn on_touch_event(&mut self,
+                          event_type: TouchEventType,
+                          identifier: TouchId,
+                          location: TypedPoint2D<f32, DevicePixel>) {
+        match event_type {
+            TouchEventType::Down => self.on_touch_down(identifier, location),
+            TouchEventType::Move => self.on_touch_move(identifier, location),
+            TouchEventType::Up => self.on_touch_up(identifier, location),
+            TouchEventType::Cancel => self.on_touch_cancel(identifier, location),
+        }
+    }
+
+    fn on_touch_down(&mut self, identifier: TouchId, point: TypedPoint2D<f32, DevicePixel>) {
         self.touch_handler.on_touch_down(identifier, point);
         let dppx = self.page_zoom * self.hidpi_factor();
         let translated_point = (point / dppx).to_untyped();
@@ -784,7 +796,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                                                     translated_point));
     }
 
-    pub fn on_touch_move(&mut self, identifier: TouchId, point: TypedPoint2D<f32, DevicePixel>) {
+    fn on_touch_move(&mut self, identifier: TouchId, point: TypedPoint2D<f32, DevicePixel>) {
         match self.touch_handler.on_touch_move(identifier, point) {
             TouchAction::Scroll(delta) => {
                 match point.cast() {
@@ -819,7 +831,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    pub fn on_touch_up(&mut self, identifier: TouchId, point: TypedPoint2D<f32, DevicePixel>) {
+    fn on_touch_up(&mut self, identifier: TouchId, point: TypedPoint2D<f32, DevicePixel>) {
         let dppx = self.page_zoom * self.hidpi_factor();
         let translated_point = (point / dppx).to_untyped();
         self.send_event_to_root_pipeline(TouchEvent(TouchEventType::Up,
@@ -830,7 +842,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    pub fn on_touch_cancel(&mut self, identifier: TouchId, point: TypedPoint2D<f32, DevicePixel>) {
+    fn on_touch_cancel(&mut self, identifier: TouchId, point: TypedPoint2D<f32, DevicePixel>) {
         // Send the event to script.
         self.touch_handler.on_touch_cancel(identifier, point);
         let dppx = self.page_zoom * self.hidpi_factor();
@@ -862,7 +874,22 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.dispatch_mouse_window_event_class(MouseWindowEvent::Click(button, p));
     }
 
-    pub fn on_scroll_window_event(&mut self,
+    pub fn on_scroll_event(&mut self,
+                           delta: ScrollLocation,
+                           cursor: TypedPoint2D<i32, DevicePixel>,
+                           phase: TouchEventType) {
+        match phase {
+            TouchEventType::Move => self.on_scroll_window_event(delta, cursor),
+            TouchEventType::Up | TouchEventType::Cancel => {
+                self.on_scroll_end_window_event(delta, cursor);
+            }
+            TouchEventType::Down => {
+                self.on_scroll_start_window_event(delta, cursor);
+            }
+        }
+    }
+
+    fn on_scroll_window_event(&mut self,
                               scroll_location: ScrollLocation,
                               cursor: TypedPoint2D<i32, DevicePixel>) {
         let event_phase = match (self.scroll_in_progress, self.in_scroll_transaction) {
@@ -881,7 +908,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         });
     }
 
-    pub fn on_scroll_start_window_event(&mut self,
+    fn on_scroll_start_window_event(&mut self,
                                     scroll_location: ScrollLocation,
                                     cursor: TypedPoint2D<i32, DevicePixel>) {
         self.scroll_in_progress = true;
@@ -894,7 +921,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         });
     }
 
-    pub fn on_scroll_end_window_event(&mut self,
+    fn on_scroll_end_window_event(&mut self,
                                   scroll_location: ScrollLocation,
                                   cursor: TypedPoint2D<i32, DevicePixel>) {
         self.scroll_in_progress = false;
