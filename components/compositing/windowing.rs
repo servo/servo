@@ -4,7 +4,7 @@
 
 //! Abstract windowing methods. The concrete implementations of these can be found in `platform/`.
 
-use compositor_thread::EventLoopWaker;
+use compositor_thread::{EmbedderMsg, EventLoopWaker};
 use euclid::{Point2D, Size2D};
 use euclid::{ScaleFactor, TypedPoint2D, TypedSize2D};
 use gleam::gl;
@@ -111,6 +111,8 @@ pub enum AnimationState {
 }
 
 pub trait WindowMethods {
+    /// Receive messages from servo
+    fn handle_servo_messages(&self, messages: Vec<EmbedderMsg>);
     /// Returns the rendering area size in hardware pixels.
     fn framebuffer_size(&self) -> DeviceUintSize;
     /// Returns the position and size of the window within the rendering area.

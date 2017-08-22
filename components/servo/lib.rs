@@ -84,7 +84,6 @@ use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
 use gfx::font_cache_thread::FontCacheThread;
 use ipc_channel::ipc::{self, IpcSender};
 use log::{Log, LogMetadata, LogRecord};
-use msg::constellation_msg::KeyState;
 use net::resource_thread::new_resource_threads;
 use net_traits::IpcSend;
 use profile::mem as profile_mem;
@@ -96,6 +95,7 @@ use servo_config::opts;
 use servo_config::prefs::PREFS;
 use servo_config::resource_files::resources_dir_path;
 use std::borrow::Cow;
+use std::cell::RefCell;
 use std::cmp::max;
 use std::path::PathBuf;
 use std::rc::Rc;
@@ -122,7 +122,8 @@ pub use msg::constellation_msg::TopLevelBrowsingContextId as BrowserId;
 pub struct Servo<Window: WindowMethods + 'static> {
     compositor: IOCompositor<Window>,
     constellation_chan: Sender<ConstellationMsg>,
-    embedder_receiver: EmbedderReceiver
+    embedder_receiver: EmbedderReceiver,
+    embedder_messages: RefCell<Vec<EmbedderMsg>>,
 }
 
 impl<Window> Servo<Window> where Window: WindowMethods + 'static {
@@ -248,6 +249,7 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
             compositor: compositor,
             constellation_chan: constellation_chan,
             embedder_receiver: embedder_receiver,
+            embedder_messages: RefCell::new(vec!()),
         }
     }
 
@@ -348,99 +350,33 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
         }
     }
 
-    fn receive_messages(&mut self) {
+    fn receive_embedder_messages(&mut self) {
         while let Some(msg) = self.embedder_receiver.try_recv_embedder_msg() {
-            match (msg, self.compositor.shutdown_state) {
-                (_, ShutdownState::FinishedShuttingDown) => {
+            match self.compositor.shutdown_state {
+                ShutdownState::FinishedShuttingDown => {
                     error!("embedder shouldn't be handling messages after compositor has shut down");
                 },
 
-                (_, ShutdownState::ShuttingDown) => {},
+                ShutdownState::ShuttingDown => {},
 
-                (EmbedderMsg::Status(top_level_browsing_context, message), ShutdownState::NotShuttingDown) => {
-                    self.compositor.window.status(top_level_browsing_context, message);
-                },
-
-                (EmbedderMsg::ChangePageTitle(top_level_browsing_context, title), ShutdownState::NotShuttingDown) => {
-                    self.compositor.window.set_page_title(top_level_browsing_context, title);
-                },
-
-                (EmbedderMsg::MoveTo(top_level_browsing_context, point),
-                 ShutdownState::NotShuttingDown) => {
-                    self.compositor.window.set_position(top_level_browsing_context, point);
-                },
-
-                (EmbedderMsg::ResizeTo(top_level_browsing_context, size),
-                 ShutdownState::NotShuttingDown) => {
-                    self.compositor.window.set_inner_size(top_level_browsing_context, size);
-                },
-
-                (EmbedderMsg::GetClientWindow(top_level_browsing_context, send),
-                 ShutdownState::NotShuttingDown) => {
-                    let rect = self.compositor.window.client_window(top_level_browsing_context);
-                    if let Err(e) = send.send(rect) {
-                        warn!("Sending response to get client window failed ({}).", e);
-                    }
-                },
-
-                (EmbedderMsg::AllowNavigation(top_level_browsing_context,
-                                              url,
-                                              response_chan),
-                 ShutdownState::NotShuttingDown) => {
-                    self.compositor.window.allow_navigation(top_level_browsing_context, url, response_chan);
-                },
-
-                (EmbedderMsg::KeyEvent(top_level_browsing_context,
-                                       ch,
-                                       key,
-                                       state,
-                                       modified),
-                 ShutdownState::NotShuttingDown) => {
-                    if state == KeyState::Pressed {
-                        self.compositor.window.handle_key(top_level_browsing_context, ch, key, modified);
-                    }
-                },
-
-                (EmbedderMsg::SetCursor(cursor), ShutdownState::NotShuttingDown) => {
-                    self.compositor.window.set_cursor(cursor)
-                },
-
-                (EmbedderMsg::NewFavicon(top_level_browsing_context, url), ShutdownState::NotShuttingDown) => {
-                    self.compositor.window.set_favicon(top_level_browsing_context, url);
-                },
-
-                (EmbedderMsg::HeadParsed(top_level_browsing_context, ), ShutdownState::NotShuttingDown) => {
-                    self.compositor.window.head_parsed(top_level_browsing_context, );
-                },
-
-                (EmbedderMsg::HistoryChanged(top_level_browsing_context, entries, current),
-                 ShutdownState::NotShuttingDown) => {
-                    self.compositor.window.history_changed(top_level_browsing_context, entries, current);
-                },
-
-                (EmbedderMsg::SetFullscreenState(top_level_browsing_context, state),
-                 ShutdownState::NotShuttingDown) => {
-                    self.compositor.window.set_fullscreen_state(top_level_browsing_context, state);
-                },
-
-                (EmbedderMsg::LoadStart(top_level_browsing_context), ShutdownState::NotShuttingDown) => {
-                    self.compositor.window.load_start(top_level_browsing_context);
-                },
-
-                (EmbedderMsg::LoadComplete(top_level_browsing_context), ShutdownState::NotShuttingDown) => {
-                    // Inform the embedder that the load has finished.
-                    //
-                    // TODO(pcwalton): Specify which frame's load completed.
-                    self.compositor.window.load_end(top_level_browsing_context);
-                },
+                ShutdownState::NotShuttingDown => {
+                    self.embedder_messages.borrow_mut().push(msg);
+                }
             }
         }
     }
 
+    fn drain_embedder_messages(&self) -> Vec<EmbedderMsg> {
+        let mut messages = self.embedder_messages.borrow_mut();
+        let copy = messages.drain(..).collect();
+        copy
+    }
+
     pub fn handle_events(&mut self, events: Vec<WindowEvent>) -> bool {
         if self.compositor.receive_messages() {
-            self.receive_messages();
+            self.receive_embedder_messages();
         }
+        self.compositor.window.handle_servo_messages(self.drain_embedder_messages());
         for event in events {
             self.handle_window_event(event);
         }

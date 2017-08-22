@@ -5,7 +5,7 @@
 //! A windowing implementation using glutin.
 
 use NestedEventLoopListener;
-use compositing::compositor_thread::EventLoopWaker;
+use compositing::compositor_thread::{EmbedderMsg, EventLoopWaker};
 use compositing::windowing::{AnimationState, MouseWindowEvent};
 use compositing::windowing::{WindowEvent, WindowMethods};
 use euclid::{Point2D, Size2D, TypedPoint2D, TypedVector2D, ScaleFactor, TypedSize2D};
@@ -972,6 +972,82 @@ fn create_window_proxy(window: &Window) -> Option<glutin::WindowProxy> {
 impl WindowMethods for Window {
     fn gl(&self) -> Rc<gl::Gl> {
         self.gl.clone()
+    }
+
+    fn handle_servo_messages(&self, messages: Vec<EmbedderMsg>) {
+        for msg in messages {
+            match msg {
+                EmbedderMsg::Status(top_level_browsing_context, message) => {
+                    self.status(top_level_browsing_context, message);
+                },
+
+                EmbedderMsg::ChangePageTitle(top_level_browsing_context, title) => {
+                    self.set_page_title(top_level_browsing_context, title);
+                },
+
+                EmbedderMsg::MoveTo(top_level_browsing_context, point) => {
+                    self.set_position(top_level_browsing_context, point);
+                },
+
+                EmbedderMsg::ResizeTo(top_level_browsing_context, size) => {
+                    self.set_inner_size(top_level_browsing_context, size);
+                },
+
+                EmbedderMsg::GetClientWindow(top_level_browsing_context, send) => {
+                    let rect = self.client_window(top_level_browsing_context);
+                    if let Err(e) = send.send(rect) {
+                        warn!("Sending response to get client window failed ({}).", e);
+                    }
+                },
+
+                EmbedderMsg::AllowNavigation(top_level_browsing_context,
+                                              url,
+                                              response_chan) => {
+                    self.allow_navigation(top_level_browsing_context, url, response_chan);
+                },
+
+                EmbedderMsg::KeyEvent(top_level_browsing_context,
+                                       ch,
+                                       key,
+                                       state,
+                                       modified) => {
+                    if state == KeyState::Pressed {
+                        self.handle_key(top_level_browsing_context, ch, key, modified);
+                    }
+                },
+
+                EmbedderMsg::SetCursor(cursor) => {
+                    self.set_cursor(cursor)
+                },
+
+                EmbedderMsg::NewFavicon(top_level_browsing_context, url) => {
+                    self.set_favicon(top_level_browsing_context, url);
+                },
+
+                EmbedderMsg::HeadParsed(top_level_browsing_context) => {
+                    self.head_parsed(top_level_browsing_context);
+                },
+
+                EmbedderMsg::HistoryChanged(top_level_browsing_context, entries, current) => {
+                    self.history_changed(top_level_browsing_context, entries, current);
+                },
+
+                EmbedderMsg::SetFullscreenState(top_level_browsing_context, state) => {
+                    self.set_fullscreen_state(top_level_browsing_context, state);
+                },
+
+                EmbedderMsg::LoadStart(top_level_browsing_context) => {
+                    self.load_start(top_level_browsing_context);
+                },
+
+                EmbedderMsg::LoadComplete(top_level_browsing_context) => {
+                    // Inform the embedder that the load has finished.
+                    //
+                    // TODO(pcwalton): Specify which frame's load completed.
+                    self.load_end(top_level_browsing_context);
+                },
+            }
+        }
     }
 
     fn framebuffer_size(&self) -> DeviceUintSize {
