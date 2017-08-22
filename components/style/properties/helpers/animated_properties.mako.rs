@@ -879,23 +879,6 @@ impl Animate for LengthOrPercentage {
     }
 }
 
-impl ToAnimatedZero for LengthOrPercentage {
-    #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> {
-         match *self {
-             LengthOrPercentage::Length(ref length) => {
-                 Ok(LengthOrPercentage::Length(length.to_animated_zero()?))
-             },
-             LengthOrPercentage::Percentage(ref percentage) => {
-                 Ok(LengthOrPercentage::Percentage(percentage.to_animated_zero()?))
-             },
-             LengthOrPercentage::Calc(ref calc) => {
-                 Ok(LengthOrPercentage::Calc(calc.to_animated_zero()?))
-             },
-         }
-    }
-}
-
 /// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
 impl Animate for LengthOrPercentageOrAuto {
     #[inline]
@@ -1130,20 +1113,6 @@ where
         Ok(generic_position::Position {
             horizontal: self.horizontal.animate(&other.horizontal, procedure)?,
             vertical: self.vertical.animate(&other.vertical, procedure)?,
-        })
-    }
-}
-
-impl<H, V> ToAnimatedZero for generic_position::Position<H, V>
-where
-    H: ToAnimatedZero,
-    V: ToAnimatedZero,
-{
-    #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> {
-        Ok(generic_position::Position {
-            horizontal: self.horizontal.to_animated_zero()?,
-            vertical: self.vertical.to_animated_zero()?,
         })
     }
 }
@@ -2689,28 +2658,6 @@ where
     }
 }
 
-impl<L, N> ToAnimatedZero for SvgLengthOrPercentageOrNumber<L, N>
-where
-    L: ToAnimatedZero,
-    N: ToAnimatedZero,
-{
-    #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> {
-        match *self {
-            SvgLengthOrPercentageOrNumber::LengthOrPercentage(ref lop) => {
-                Ok(SvgLengthOrPercentageOrNumber::LengthOrPercentage(
-                    lop.to_animated_zero()?,
-                ))
-            },
-            SvgLengthOrPercentageOrNumber::Number(ref num) => {
-                Ok(SvgLengthOrPercentageOrNumber::Number(
-                    num.to_animated_zero()?,
-                ))
-            },
-        }
-    }
-}
-
 impl<L> Animate for SVGLength<L>
 where
     L: Animate + Clone,
@@ -2728,21 +2675,6 @@ where
                 let (this_weight, other_weight) = procedure.weights();
                 Ok(if this_weight > other_weight { self.clone() } else { other.clone() })
             },
-        }
-    }
-}
-
-impl<L> ToAnimatedZero for SVGLength<L>
-where
-    L: ToAnimatedZero,
-{
-    #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> {
-        match *self {
-            SVGLength::Length(ref length) => {
-                Ok(SVGLength::Length(length.to_animated_zero()?))
-            },
-            SVGLength::ContextValue => Ok(SVGLength::ContextValue),
         }
     }
 }
@@ -2772,7 +2704,7 @@ where
 
 impl<L> ToAnimatedZero for SVGStrokeDashArray<L>
 where
-    L: Clone + ToAnimatedZero
+    L: ToAnimatedZero,
 {
     #[inline]
     fn to_animated_zero(&self) -> Result<Self, ()> {
@@ -2804,19 +2736,6 @@ where
                 let (this_weight, other_weight) = procedure.weights();
                 Ok(if this_weight > other_weight { self.clone() } else { other.clone() })
             },
-        }
-    }
-}
-
-impl<OpacityType> ToAnimatedZero for SVGOpacity<OpacityType>
-    where OpacityType: ToAnimatedZero + Clone
-{
-    #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> {
-        match self {
-            &SVGOpacity::Opacity(ref opacity) =>
-                opacity.to_animated_zero().map(SVGOpacity::Opacity),
-            other => Ok(other.clone()),
         }
     }
 }
@@ -2876,7 +2795,6 @@ impl ToAnimatedZero for AnimatedFilter {
         }
     }
 }
-
 
 // FIXME(nox): This should be derived.
 impl ComputeSquaredDistance for AnimatedFilter {
@@ -3004,15 +2922,6 @@ where
     }
 }
 
-impl<T> ToAnimatedZero for NonNegative<T>
-    where T: ToAnimatedZero
-{
-    #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> {
-        self.0.to_animated_zero().map(NonNegative::<T>)
-    }
-}
-
 impl<T> Animate for GreaterThanOrEqualToOne<T>
 where
     T: Animate,
@@ -3020,14 +2929,5 @@ where
     #[inline]
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         Ok(GreaterThanOrEqualToOne(self.0.animate(&other.0, procedure)?))
-    }
-}
-
-impl<T> ToAnimatedZero for GreaterThanOrEqualToOne<T>
-    where T: ToAnimatedZero
-{
-    #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> {
-        self.0.to_animated_zero().map(GreaterThanOrEqualToOne::<T>)
     }
 }

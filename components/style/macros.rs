@@ -84,7 +84,7 @@ macro_rules! define_keyword_type {
     ($name: ident, $css: expr) => {
         #[allow(missing_docs)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        #[derive(Clone, ComputeSquaredDistance, Copy, PartialEq, ToCss)]
+        #[derive(Clone, ComputeSquaredDistance, Copy, PartialEq, ToAnimatedZero, ToCss)]
         pub struct $name;
 
         impl $crate::values::animated::Animate for $name {
@@ -115,10 +115,5 @@ macro_rules! define_keyword_type {
         impl $crate::values::computed::ComputedValueAsSpecified for $name {}
         impl $crate::values::animated::AnimatedValueAsComputed for $name {}
         no_viewport_percentage!($name);
-
-        impl $crate::values::animated::ToAnimatedZero for $name {
-            #[inline]
-            fn to_animated_zero(&self) -> Result<Self, ()> { Ok($name) }
-        }
     };
 }

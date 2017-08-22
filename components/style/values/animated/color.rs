@@ -12,7 +12,7 @@ use values::distance::{ComputeSquaredDistance, SquaredDistance};
 /// Unlike in computed values, each component value may exceed the
 /// range `[0.0, 1.0]`.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, ToAnimatedZero)]
 pub struct RGBA {
     /// The red component.
     pub red: f32,
@@ -66,13 +66,6 @@ impl ComputeSquaredDistance for RGBA {
         let start = [ self.alpha, self.red * self.alpha, self.green * self.alpha, self.blue * self.alpha ];
         let end = [ other.alpha, other.red * other.alpha, other.green * other.alpha, other.blue * other.alpha ];
         start.iter().zip(&end).map(|(this, other)| this.compute_squared_distance(other)).sum()
-    }
-}
-
-impl ToAnimatedZero for RGBA {
-    #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> {
-        Ok(RGBA::transparent())
     }
 }
 
