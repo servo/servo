@@ -439,7 +439,7 @@ fn create_sandbox() {
         .expect("Failed to activate sandbox!");
 }
 
-#[cfg(any(target_os = "windows", target_os = "ios")]
+#[cfg(any(target_os = "windows", target_os = "ios"))]
 fn create_sandbox() {
     panic!("Sandboxing is not supported on Windows or iOS.");
 }
