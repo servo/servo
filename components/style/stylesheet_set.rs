@@ -9,7 +9,7 @@ use invalidation::stylesheets::StylesheetInvalidationSet;
 use media_queries::Device;
 use shared_lock::SharedRwLockReadGuard;
 use std::slice;
-use stylesheets::{OriginSet, PerOrigin, StylesheetInDocument};
+use stylesheets::{Origin, OriginSet, StylesheetInDocument};
 
 /// Entry for a StylesheetSet. We don't bother creating a constructor, because
 /// there's no sensible defaults for the member variables.
@@ -51,8 +51,11 @@ where
     /// include recursive `@import` rules.
     entries: Vec<StylesheetSetEntry<S>>,
 
-    /// Per-origin stylesheet invalidation data.
-    invalidation_data: PerOrigin<InvalidationData>,
+    /// The invalidations for stylesheets added or removed from this document.
+    invalidations: StylesheetInvalidationSet,
+
+    /// The origins whose stylesheets have changed so far.
+    origins_dirty: OriginSet,
 
     /// Has author style been disabled?
     author_style_disabled: bool,
@@ -66,7 +69,8 @@ where
     pub fn new() -> Self {
         StylesheetSet {
             entries: vec![],
-            invalidation_data: Default::default(),
+            invalidations: StylesheetInvalidationSet::new(),
+            origins_dirty: OriginSet::empty(),
             author_style_disabled: false,
         }
     }
@@ -97,12 +101,10 @@ where
         sheet: &S,
         guard: &SharedRwLockReadGuard,
     ) {
-        let origin = sheet.contents(guard).origin;
-        let data = self.invalidation_data.borrow_mut_for_origin(&origin);
         if let Some(device) = device {
-            data.invalidations.collect_invalidations_for(device, sheet, guard);
+            self.invalidations.collect_invalidations_for(device, sheet, guard);
         }
-        data.dirty = true;
+        self.origins_dirty |= sheet.contents(guard).origin;
     }
 
     /// Appends a new stylesheet to the current set.
@@ -169,15 +171,13 @@ where
             return;
         }
         self.author_style_disabled = disabled;
-        self.invalidation_data.author.invalidations.invalidate_fully();
-        self.invalidation_data.author.dirty = true;
+        self.invalidations.invalidate_fully();
+        self.origins_dirty |= Origin::Author;
     }
 
     /// Returns whether the given set has changed from the last flush.
     pub fn has_changed(&self) -> bool {
-        self.invalidation_data
-            .iter_origins()
-            .any(|(d, _)| d.dirty)
+        !self.origins_dirty.is_empty()
     }
 
     /// Flush the current set, unmarking it as dirty, and returns the damaged
@@ -189,39 +189,23 @@ where
     where
         E: TElement,
     {
+        use std::mem;
+
         debug!("StylesheetSet::flush");
 
-        let mut origins = OriginSet::empty();
-
-        for (data, origin) in self.invalidation_data.iter_mut_origins() {
-            if data.dirty {
-                data.invalidations.flush(document_element);
-                data.dirty = false;
-                origins |= origin;
-            }
-        }
-
-        origins
+        self.invalidations.flush(document_element);
+        mem::replace(&mut self.origins_dirty, OriginSet::empty())
     }
 
     /// Flush stylesheets, but without running any of the invalidation passes.
-    ///
-    /// FIXME(emilio): This should eventually disappear. Please keep this
-    /// Servo-only.
     #[cfg(feature = "servo")]
-    pub fn flush_without_invalidation(&mut self) -> (StylesheetIterator<S>, OriginSet) {
+    pub fn flush_without_invalidation(&mut self) -> OriginSet {
+        use std::mem;
+
         debug!("StylesheetSet::flush_without_invalidation");
 
-        let mut origins = OriginSet::empty();
-        for (data, origin) in self.invalidation_data.iter_mut_origins() {
-            if data.dirty {
-                data.invalidations.clear();
-                data.dirty = false;
-                origins |= origin;
-            }
-        }
-
-        (self.iter(), origins)
+        self.invalidations.clear();
+        mem::replace(&mut self.origins_dirty, OriginSet::empty())
     }
 
     /// Returns an iterator over the current list of stylesheets.
@@ -232,30 +216,7 @@ where
     /// Mark the stylesheets for the specified origin as dirty, because
     /// something external may have invalidated it.
     pub fn force_dirty(&mut self, origins: OriginSet) {
-        for origin in origins.iter() {
-            let data = self.invalidation_data.borrow_mut_for_origin(&origin);
-            data.invalidations.invalidate_fully();
-            data.dirty = true;
-        }
-    }
-}
-
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-struct InvalidationData {
-    /// The stylesheet invalidations for this origin that we still haven't
-    /// processed.
-    invalidations: StylesheetInvalidationSet,
-
-    /// Whether the sheets for this origin in the `StylesheetSet`'s entry list
-    /// has changed since the last restyle.
-    dirty: bool,
-}
-
-impl Default for InvalidationData {
-    fn default() -> Self {
-        InvalidationData {
-            invalidations: StylesheetInvalidationSet::new(),
-            dirty: false,
-        }
+        self.invalidations.invalidate_fully();
+        self.origins_dirty |= origins;
     }
 }
