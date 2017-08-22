@@ -38,7 +38,7 @@ use smallvec::VecLike;
 use std::fmt::Debug;
 use std::ops;
 use style_traits::viewport::ViewportConstraints;
-use stylesheet_set::{StylesheetSet, StylesheetIterator, StylesheetFlusher};
+use stylesheet_set::{OriginValidity, SheetRebuildKind, StylesheetSet, StylesheetIterator, StylesheetFlusher};
 #[cfg(feature = "gecko")]
 use stylesheets::{CounterStyleRule, FontFaceRule};
 use stylesheets::{CssRule, StyleRule};
@@ -98,15 +98,24 @@ impl DocumentCascadeData {
     {
         debug_assert!(!flusher.nothing_to_do());
 
-        let origins_to_rebuild = flusher.origins_to_fully_rebuild();
+        for (cascade_data, origin) in self.per_origin.iter_mut_origins() {
+            let validity = flusher.origin_validity(origin);
 
-        for origin in origins_to_rebuild.iter() {
+            if validity == OriginValidity::Valid {
+                continue;
+            }
+
+            if origin == Origin::UserAgent {
+                self.precomputed_pseudo_element_decls.clear();
+            }
+
             extra_data.borrow_mut_for_origin(&origin).clear();
-            self.per_origin.borrow_mut_for_origin(&origin).clear();
-        }
-
-        if origins_to_rebuild.contains(Origin::UserAgent.into()) {
-            self.precomputed_pseudo_element_decls.clear();
+            if validity == OriginValidity::CascadeInvalid {
+                cascade_data.clear_cascade_data()
+            } else {
+                debug_assert_eq!(validity, OriginValidity::FullyInvalid);
+                cascade_data.clear();
+            }
         }
 
         if let Some(ua_stylesheets) = ua_stylesheets {
@@ -119,15 +128,26 @@ impl DocumentCascadeData {
                     Origin::UserAgent | Origin::User
                 ));
 
-                if origins_to_rebuild.contains(sheet_origin.into()) {
-                    self.add_stylesheet(
-                        device,
-                        quirks_mode,
-                        stylesheet,
-                        guards.ua_or_user,
-                        extra_data,
-                    );
+                let validity = flusher.origin_validity(sheet_origin);
+
+                // Servo doesn't support to incrementally mutate UA sheets.
+                debug_assert!(matches!(
+                    validity,
+                    OriginValidity::Valid | OriginValidity::FullyInvalid
+                ));
+
+                if validity == OriginValidity::Valid {
+                    continue;
                 }
+
+                self.add_stylesheet(
+                    device,
+                    quirks_mode,
+                    stylesheet,
+                    guards.ua_or_user,
+                    extra_data,
+                    SheetRebuildKind::Full,
+                );
             }
 
             if quirks_mode != QuirksMode::NoQuirks {
@@ -140,25 +160,35 @@ impl DocumentCascadeData {
                     Origin::UserAgent | Origin::User
                 ));
 
-                if origins_to_rebuild.contains(sheet_origin.into()) {
+                let validity = flusher.origin_validity(sheet_origin);
+
+                // Servo doesn't support to incrementally mutate UA sheets.
+                debug_assert!(matches!(
+                    validity,
+                    OriginValidity::Valid | OriginValidity::FullyInvalid
+                ));
+
+                if validity != OriginValidity::Valid {
                     self.add_stylesheet(
                         device,
                         quirks_mode,
                         &ua_stylesheets.quirks_mode_stylesheet,
                         guards.ua_or_user,
                         extra_data,
+                        SheetRebuildKind::Full,
                     );
                 }
             }
         }
 
-        for (stylesheet, _rebuild_kind) in flusher {
+        for (stylesheet, rebuild_kind) in flusher {
             self.add_stylesheet(
                 device,
                 quirks_mode,
                 stylesheet,
                 guards.author,
-                extra_data
+                extra_data,
+                rebuild_kind,
             );
         }
     }
@@ -169,7 +199,8 @@ impl DocumentCascadeData {
         quirks_mode: QuirksMode,
         stylesheet: &S,
         guard: &SharedRwLockReadGuard,
-        _extra_data: &mut PerOrigin<ExtraStyleData>
+        _extra_data: &mut PerOrigin<ExtraStyleData>,
+        rebuild_kind: SheetRebuildKind,
     )
     where
         S: StylesheetInDocument + ToMediaListKey + 'static,
@@ -183,9 +214,11 @@ impl DocumentCascadeData {
         let origin_cascade_data =
             self.per_origin.borrow_mut_for_origin(&origin);
 
-        origin_cascade_data
-            .effective_media_query_results
-            .saw_effective(stylesheet);
+        if rebuild_kind.rebuild_invalidation() {
+            origin_cascade_data
+                .effective_media_query_results
+                .saw_effective(stylesheet);
+        }
 
         for rule in stylesheet.effective_rules(device, guard) {
             match *rule {
@@ -239,30 +272,32 @@ impl DocumentCascadeData {
 
                         map.insert(rule, quirks_mode);
 
-                        origin_cascade_data
-                            .invalidation_map
-                            .note_selector(selector, quirks_mode);
-                        let mut visitor = StylistSelectorVisitor {
-                            needs_revalidation: false,
-                            passed_rightmost_selector: false,
-                            attribute_dependencies: &mut origin_cascade_data.attribute_dependencies,
-                            style_attribute_dependency: &mut origin_cascade_data.style_attribute_dependency,
-                            state_dependencies: &mut origin_cascade_data.state_dependencies,
-                            mapped_ids: &mut origin_cascade_data.mapped_ids,
-                        };
+                        if rebuild_kind.rebuild_invalidation() {
+                            origin_cascade_data
+                                .invalidation_map
+                                .note_selector(selector, quirks_mode);
+                            let mut visitor = StylistSelectorVisitor {
+                                needs_revalidation: false,
+                                passed_rightmost_selector: false,
+                                attribute_dependencies: &mut origin_cascade_data.attribute_dependencies,
+                                style_attribute_dependency: &mut origin_cascade_data.style_attribute_dependency,
+                                state_dependencies: &mut origin_cascade_data.state_dependencies,
+                                mapped_ids: &mut origin_cascade_data.mapped_ids,
+                            };
 
-                        selector.visit(&mut visitor);
+                            selector.visit(&mut visitor);
 
-                        if visitor.needs_revalidation {
-                            origin_cascade_data.selectors_for_cache_revalidation.insert(
-                                RevalidationSelectorAndHashes::new(selector.clone(), hashes),
-                                quirks_mode
-                            );
+                            if visitor.needs_revalidation {
+                                origin_cascade_data.selectors_for_cache_revalidation.insert(
+                                    RevalidationSelectorAndHashes::new(selector.clone(), hashes),
+                                    quirks_mode
+                                );
+                            }
                         }
                     }
                     origin_cascade_data.rules_source_order += 1;
                 }
-                CssRule::Import(ref lock) => {
+                CssRule::Import(ref lock) if rebuild_kind.rebuild_invalidation() => {
                     let import_rule = lock.read_with(guard);
                     origin_cascade_data
                         .effective_media_query_results
@@ -271,7 +306,7 @@ impl DocumentCascadeData {
                     // NOTE: effective_rules visits the inner stylesheet if
                     // appropriate.
                 }
-                CssRule::Media(ref lock) => {
+                CssRule::Media(ref lock) if rebuild_kind.rebuild_invalidation() => {
                     let media_rule = lock.read_with(guard);
                     origin_cascade_data
                         .effective_media_query_results
@@ -1773,20 +1808,25 @@ impl CascadeData {
         self.pseudos_map.get(pseudo).is_some()
     }
 
-    fn clear(&mut self) {
+    /// Clears the cascade data, but not the invalidation data.
+    fn clear_cascade_data(&mut self) {
         self.element_map.clear();
         self.pseudos_map.clear();
         self.animations.clear();
+        self.rules_source_order = 0;
+        self.num_selectors = 0;
+        self.num_declarations = 0;
+    }
+
+    fn clear(&mut self) {
+        self.clear_cascade_data();
+        self.effective_media_query_results.clear();
         self.invalidation_map.clear();
         self.attribute_dependencies.clear();
         self.style_attribute_dependency = false;
         self.state_dependencies = ElementState::empty();
         self.mapped_ids.clear();
         self.selectors_for_cache_revalidation.clear();
-        self.effective_media_query_results.clear();
-        self.rules_source_order = 0;
-        self.num_selectors = 0;
-        self.num_declarations = 0;
     }
 }
 
