@@ -4322,6 +4322,8 @@ cfg_if! {
             pub static nsGkAtoms_AsyncScrollLayerCreationFailed: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms19forcemessagemanagerE"]
             pub static nsGkAtoms_forcemessagemanager: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms16isPreloadBrowserE"]
+            pub static nsGkAtoms_isPreloadBrowser: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms22color_picker_availableE"]
             pub static nsGkAtoms_color_picker_available: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms24scrollbar_start_backwardE"]
@@ -9447,6 +9449,8 @@ cfg_if! {
             pub static nsGkAtoms_AsyncScrollLayerCreationFailed: *mut nsIAtom;
             #[link_name = "?forcemessagemanager@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_forcemessagemanager: *mut nsIAtom;
+            #[link_name = "?isPreloadBrowser@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_isPreloadBrowser: *mut nsIAtom;
             #[link_name = "?color_picker_available@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_color_picker_available: *mut nsIAtom;
             #[link_name = "?scrollbar_start_backward@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -14572,6 +14576,8 @@ cfg_if! {
             pub static nsGkAtoms_AsyncScrollLayerCreationFailed: *mut nsIAtom;
             #[link_name = "\x01?forcemessagemanager@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_forcemessagemanager: *mut nsIAtom;
+            #[link_name = "\x01?isPreloadBrowser@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_isPreloadBrowser: *mut nsIAtom;
             #[link_name = "\x01?color_picker_available@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_color_picker_available: *mut nsIAtom;
             #[link_name = "\x01?scrollbar_start_backward@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -19700,6 +19706,8 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_AsyncScrollLayerCreationFailed as *mut _) } };
 ("forcemessagemanager") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_forcemessagemanager as *mut _) } };
+("isPreloadBrowser") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_isPreloadBrowser as *mut _) } };
 ("color-picker-available") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_color_picker_available as *mut _) } };
 ("scrollbar-start-backward") =>
