@@ -405,6 +405,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "cdp_traits"
+version = "0.0.1"
+dependencies = [
+ "futures 0.1.14 (registry+https://github.com/rust-lang/crates.io-index)",
+ "script_traits 0.0.1",
+]
+
+[[package]]
 name = "cexpr"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -555,6 +563,7 @@ dependencies = [
  "bluetooth_traits 0.0.1",
  "canvas 0.0.1",
  "canvas_traits 0.0.1",
+ "cdp_traits 0.0.1",
  "clipboard 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "compositing 0.0.1",
  "debugger 0.0.1",
@@ -575,7 +584,6 @@ dependencies = [
  "profile_traits 0.0.1",
  "script_traits 0.0.1",
  "serde 1.0.8 (registry+https://github.com/rust-lang/crates.io-index)",
- "servo_cdp 0.0.1",
  "servo_config 0.0.1",
  "servo_rand 0.0.1",
  "servo_remutex 0.0.1",
@@ -1690,6 +1698,7 @@ dependencies = [
  "bluetooth_traits 0.0.1",
  "canvas 0.0.1",
  "canvas_traits 0.0.1",
+ "cdp_traits 0.0.1",
  "compositing 0.0.1",
  "constellation 0.0.1",
  "debugger 0.0.1",
@@ -2955,6 +2964,7 @@ version = "0.0.1"
 dependencies = [
  "bincode 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "cdp 0.1.0 (git+https://github.com/devtools-html/cdp?rev=0b3a0ba2a71b36324a8f465cc47eaaa2762b8d59)",
+ "cdp_traits 0.0.1",
  "futures 0.1.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",

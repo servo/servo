@@ -72,6 +72,7 @@ use browsingcontext::{FullyActiveBrowsingContextsIterator, AllBrowsingContextsIt
 use canvas::canvas_paint_thread::CanvasPaintThread;
 use canvas::webgl_thread::WebGLThreads;
 use canvas_traits::canvas::CanvasMsg;
+use cdp_traits::CdpControlSender;
 use clipboard::{ClipboardContext, ClipboardProvider};
 use compositing::SendableFrameTree;
 use compositing::compositor_thread::CompositorProxy;
@@ -108,7 +109,6 @@ use script_traits::{LogEntry, ScriptToConstellationChan, ServiceWorkerMsg, webdr
 use script_traits::{MozBrowserErrorType, MozBrowserEvent, WebDriverCommandMsg, WindowSizeData};
 use script_traits::{SWManagerMsg, ScopeThings, UpdatePipelineIdReason, WindowSizeType};
 use serde::{Deserialize, Serialize};
-use servo_cdp;
 use servo_config::opts;
 use servo_config::prefs::PREFS;
 use servo_rand::{Rng, SeedableRng, ServoRng, random};
@@ -203,7 +203,7 @@ pub struct Constellation<Message, LTF, STF> {
 
     /// A channel for the constellation to send messages to the
     /// Chrome devtools thread.
-    cdp_chan: Option<servo_cdp::MsgSender>,
+    cdp_chan: Option<CdpControlSender>,
 
     /// An IPC channel for the constellation to send messages to the
     /// bluetooth thread.
@@ -321,7 +321,7 @@ pub struct InitialConstellationState {
     pub devtools_chan: Option<Sender<DevtoolsControlMsg>>,
 
     /// A channel to the Chrome developer tools server, if applicable.
-    pub cdp_chan: Option<servo_cdp::MsgSender>,
+    pub cdp_chan: Option<CdpControlSender>,
 
     /// A channel to the bluetooth thread.
     pub bluetooth_thread: IpcSender<BluetoothRequest>,

@@ -1,0 +1,14 @@
+[package]
+name = "cdp_traits"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+publish = false
+
+[lib]
+name = "cdp_traits"
+path = "lib.rs"
+
+[dependencies]
+futures = "0.1"
+script_traits = {path = "../script_traits"}

@@ -27,6 +27,7 @@ pub extern crate bluetooth;
 pub extern crate bluetooth_traits;
 pub extern crate canvas;
 pub extern crate canvas_traits;
+pub extern crate cdp_traits;
 pub extern crate compositing;
 pub extern crate constellation;
 pub extern crate debugger;
@@ -44,8 +45,8 @@ pub extern crate profile_traits;
 pub extern crate script;
 pub extern crate script_traits;
 pub extern crate script_layout_interface;
-pub extern crate servo_cdp;
 pub extern crate servo_config;
+pub extern crate servo_cdp;
 pub extern crate servo_geometry;
 pub extern crate servo_url;
 pub extern crate style;
@@ -71,6 +72,7 @@ use bluetooth::BluetoothThreadFactory;
 use bluetooth_traits::BluetoothRequest;
 use canvas::gl_context::GLContextFactory;
 use canvas::webgl_thread::WebGLThreads;
+use cdp_traits::{CdpControlMsg, CdpControlSender};
 use compositing::IOCompositor;
 use compositing::compositor_thread::{self, CompositorProxy, CompositorReceiver, InitialCompositorState};
 use compositing::windowing::WindowEvent;
@@ -298,7 +300,7 @@ fn create_constellation(user_agent: Cow<'static, str>,
                         mem_profiler_chan: mem::ProfilerChan,
                         debugger_chan: Option<debugger::Sender>,
                         devtools_chan: Option<Sender<devtools_traits::DevtoolsControlMsg>>,
-                        cdp_chan: Option<servo_cdp::MsgSender>,
+                        cdp_chan: Option<CdpControlSender>,
                         supports_clipboard: bool,
                         webrender: &mut webrender::Renderer,
                         webrender_document: webrender_api::DocumentId,
@@ -367,7 +369,7 @@ fn create_constellation(user_agent: Cow<'static, str>,
         webvr_constellation_sender.send(constellation_chan.clone()).unwrap();
     }
     if let Some(cdp_chan) = cdp_chan {
-        cdp_chan.send(servo_cdp::Msg::StartAccepting(constellation_chan.clone()));
+        let _ = cdp_chan.send(CdpControlMsg::StartAccepting(constellation_chan.clone()));
     }
 
     // channels to communicate with Service Worker Manager

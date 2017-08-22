@@ -11,6 +11,7 @@
 
 extern crate bincode;
 extern crate cdp;
+extern crate cdp_traits;
 extern crate futures;
 extern crate ipc_channel;
 #[macro_use]
@@ -31,9 +32,9 @@ use cdp::http::{DevToolsUrls, Page, PageType, VersionInfo};
 use cdp::http::{OwnedCommand as OwnedHttpCommand, Response as HttpResponse};
 use cdp::ws::{Command as WsCommand, Response as WsResponse, ServerError};
 use cdp::ws::page;
+use cdp_traits::{CdpControlMsg, CdpControlReceiver, CdpControlSender};
 use futures::{Future, Stream};
 use futures::future::{self, Either, Loop};
-use futures::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 use msg::constellation_msg::{BrowsingContextId, TopLevelBrowsingContextId};
 use script_traits::{ConstellationMsg, LoadData};
 use serde_json::Value;
@@ -48,35 +49,20 @@ use tokio_core::net::TcpListener;
 use tokio_core::reactor::Core;
 use tokio_service::Service;
 
-pub enum Msg {
-    StartAccepting(Sender<ConstellationMsg>),
-}
-
-type MsgReceiver = UnboundedReceiver<Msg>;
-
-#[derive(Clone)]
-pub struct MsgSender(UnboundedSender<Msg>);
-
-impl MsgSender {
-    pub fn send(&self, msg: Msg) {
-        let _ = self.0.send(msg);
-    }
-}
-
 /// Spin up a Chrome DevTools Protocol server that listens for connections on
 /// the specified port.
-pub fn start_server(port: u16) -> MsgSender {
-    let (sender, receiver) = mpsc::unbounded();
+pub fn start_server(port: u16) -> CdpControlSender {
+    let (sender, receiver) = cdp_traits::control_channel();
     {
         thread::Builder::new()
             .name("ChromeDevtools".to_owned())
             .spawn(move || run_server(receiver, port))
             .expect("Thread spawning failed");
     }
-    MsgSender(sender)
+    sender
 }
 
-fn run_server(receiver: MsgReceiver, port: u16) {
+fn run_server(receiver: CdpControlReceiver, port: u16) {
     let mut core = Core::new().expect("Core creation failed");
     let handle = core.handle();
 
@@ -105,7 +91,7 @@ fn run_server(receiver: MsgReceiver, port: u16) {
 
     let receive = future::loop_fn((receiver, Some(start_accepting)), |(receiver, maybe_start)| {
         receiver.into_future().and_then(move |(message, receiver)| match message {
-            Some(Msg::StartAccepting(constellation_chan)) => match maybe_start {
+            Some(CdpControlMsg::StartAccepting(constellation_chan)) => match maybe_start {
                 Some(start_accepting) => {
                     start_accepting(constellation_chan);
                     debug!("CDP server now accpeting clients.");

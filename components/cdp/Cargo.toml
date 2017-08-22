@@ -11,6 +11,7 @@ path = "lib.rs"
 
 [dependencies]
 bincode = "0.8"
+cdp_traits = {path = "../cdp_traits"}
 futures = "0.1"
 ipc-channel = "0.8"
 log = "0.3"

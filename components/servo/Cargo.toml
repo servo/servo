@@ -23,6 +23,7 @@ bluetooth_traits = {path = "../bluetooth_traits"}
 bluetooth = {path = "../bluetooth"}
 canvas = {path = "../canvas"}
 canvas_traits = {path = "../canvas_traits"}
+cdp_traits = {path = "../cdp_traits"}
 compositing = {path = "../compositing"}
 constellation = {path = "../constellation"}
 debugger = {path = "../debugger"}
