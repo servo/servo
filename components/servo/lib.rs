@@ -18,7 +18,7 @@
 //! `WindowMethods` trait.
 
 extern crate env_logger;
-#[cfg(not(target_os = "windows"))]
+#[cfg(all(not(target_os = "windows"), not(target_os = "ios")))]
 extern crate gaol;
 extern crate gleam;
 extern crate log;
@@ -76,10 +76,10 @@ use compositing::windowing::WindowEvent;
 use compositing::windowing::WindowMethods;
 use constellation::{Constellation, InitialConstellationState, UnprivilegedPipelineContent};
 use constellation::{FromCompositorLogger, FromScriptLogger};
-#[cfg(not(target_os = "windows"))]
+#[cfg(all(not(target_os = "windows"), not(target_os = "ios")))]
 use constellation::content_process_sandbox_profile;
 use env_logger::Logger as EnvLogger;
-#[cfg(not(target_os = "windows"))]
+#[cfg(all(not(target_os = "windows"), not(target_os = "ios")))]
 use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
 use gfx::font_cache_thread::FontCacheThread;
 use ipc_channel::ipc::{self, IpcSender};
@@ -433,13 +433,13 @@ pub unsafe extern fn __errno_location() -> *mut i32 {
     __errno()
 }
 
-#[cfg(not(target_os = "windows"))]
+#[cfg(all(not(target_os = "windows"), not(target_os = "ios")))]
 fn create_sandbox() {
     ChildSandbox::new(content_process_sandbox_profile()).activate()
         .expect("Failed to activate sandbox!");
 }
 
-#[cfg(target_os = "windows")]
+#[cfg(any(target_os = "windows", target_os = "ios"))]
 fn create_sandbox() {
-    panic!("Sandboxing is not supported on Windows.");
+    panic!("Sandboxing is not supported on Windows or iOS.");
 }
