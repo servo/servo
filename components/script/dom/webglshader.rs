@@ -10,6 +10,8 @@ use dom::bindings::codegen::Bindings::WebGLShaderBinding;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
+use dom::webgl_extensions::WebGLExtensions;
+use dom::webgl_extensions::ext::oesstandardderivatives::OESStandardDerivatives;
 use dom::webglobject::WebGLObject;
 use dom::window::Window;
 use dom_struct::dom_struct;
@@ -97,7 +99,7 @@ impl WebGLShader {
     }
 
     /// glCompileShader
-    pub fn compile(&self) {
+    pub fn compile(&self, ext: &WebGLExtensions) {
         if self.compilation_status.get() != ShaderCompilationStatus::NotCompiled {
             debug!("Compiling already compiled shader {}", self.id);
         }
@@ -105,6 +107,7 @@ impl WebGLShader {
         if let Some(ref source) = *self.source.borrow() {
             let mut params = BuiltInResources::default();
             params.FragmentPrecisionHigh = 1;
+            params.OES_standard_derivatives = ext.is_enabled::<OESStandardDerivatives>() as i32;
             let validator = ShaderValidator::for_webgl(self.gl_type,
                                                        SHADER_OUTPUT_FORMAT,
                                                        &params).unwrap();
