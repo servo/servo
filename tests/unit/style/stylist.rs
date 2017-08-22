@@ -5,16 +5,14 @@
 use cssparser::SourceLocation;
 use euclid::ScaleFactor;
 use euclid::TypedSize2D;
-use html5ever::LocalName;
 use selectors::parser::{AncestorHashes, Selector};
-use selectors::parser::LocalName as LocalNameSelector;
 use servo_arc::Arc;
 use servo_atoms::Atom;
 use style::context::QuirksMode;
 use style::media_queries::{Device, MediaType};
 use style::properties::{PropertyDeclarationBlock, PropertyDeclaration};
 use style::properties::{longhands, Importance};
-use style::selector_map::{self, SelectorMap};
+use style::selector_map::SelectorMap;
 use style::selector_parser::{SelectorImpl, SelectorParser};
 use style::shared_lock::SharedRwLock;
 use style::stylesheets::StyleRule;
