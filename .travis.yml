@@ -7,6 +7,8 @@ matrix:
       script:
          - ./mach test-tidy --no-progress --all
          - ./mach test-tidy --no-progress --self-test
+         - bash etc/ci/check_no_panic.sh
+         - bash etc/ci/manifest_changed.sh
       cache: false
     - sudo: 9000
       dist: trusty
@@ -17,9 +19,7 @@ matrix:
          - ./mach clean
          - ./mach build-geckolib
          - ./mach test-stylo
-         - bash etc/ci/check_no_panic.sh
          - bash etc/ci/lockfile_changed.sh
-         - bash etc/ci/manifest_changed.sh
       cache:
         directories:
           - .cargo
