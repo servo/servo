@@ -57,6 +57,7 @@ impl TraversalDriver {
 }
 
 #[cfg(feature = "servo")]
+#[inline]
 fn is_servo_nonincremental_layout() -> bool {
     use servo_config::opts;
 
@@ -64,6 +65,7 @@ fn is_servo_nonincremental_layout() -> bool {
 }
 
 #[cfg(not(feature = "servo"))]
+#[inline]
 fn is_servo_nonincremental_layout() -> bool {
     false
 }
