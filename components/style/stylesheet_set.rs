@@ -9,7 +9,7 @@ use invalidation::stylesheets::StylesheetInvalidationSet;
 use media_queries::Device;
 use shared_lock::SharedRwLockReadGuard;
 use std::slice;
-use stylesheets::{Origin, OriginSet, StylesheetInDocument};
+use stylesheets::{Origin, OriginSet, PerOrigin, StylesheetInDocument};
 
 /// Entry for a StylesheetSet. We don't bother creating a constructor, because
 /// there's no sensible defaults for the member variables.
@@ -19,6 +19,7 @@ where
     S: StylesheetInDocument + PartialEq + 'static,
 {
     sheet: S,
+    dirty: bool,
 }
 
 impl<S> StylesheetSetEntry<S>
@@ -26,7 +27,7 @@ where
     S: StylesheetInDocument + PartialEq + 'static,
 {
     fn new(sheet: S) -> Self {
-        Self { sheet }
+        Self { sheet, dirty: true }
     }
 }
 
@@ -47,6 +48,28 @@ where
     }
 }
 
+/// The validity of the data in a given cascade origin.
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub enum OriginValidity {
+    /// The origin is clean, all the data already there is valid, though we may
+    /// have new sheets at the end.
+    Valid = 0,
+
+    /// The cascade data is invalid, but not the invalidation data (which is
+    /// order-independent), and thus only the cascade data should be inserted.
+    CascadeInvalid = 1,
+
+    /// Everything needs to be rebuilt.
+    FullyInvalid = 2,
+}
+
+impl Default for OriginValidity {
+    fn default() -> Self {
+        OriginValidity::Valid
+    }
+}
+
 /// A struct to iterate over the different stylesheets to be flushed.
 pub struct StylesheetFlusher<'a, 'b, S>
 where
@@ -56,14 +79,23 @@ where
     iter: slice::IterMut<'a, StylesheetSetEntry<S>>,
     guard: &'a SharedRwLockReadGuard<'b>,
     origins_dirty: OriginSet,
+    origin_data_validity: PerOrigin<OriginValidity>,
     author_style_disabled: bool,
 }
 
 /// The type of rebuild that we need to do for a given stylesheet.
 pub enum SheetRebuildKind {
-    /// For now we only support full rebuilds, in the future we'll implement
-    /// partial rebuilds.
+    /// A full rebuild, of both cascade data and invalidation data.
     Full,
+    /// A partial rebuild, of only the cascade data.
+    CascadeOnly,
+}
+
+impl SheetRebuildKind {
+    /// Whether the stylesheet invalidation data should be rebuilt.
+    pub fn rebuild_invalidation(&self) -> bool {
+        matches!(*self, SheetRebuildKind::Full)
+    }
 }
 
 impl<'a, 'b, S> StylesheetFlusher<'a, 'b, S>
@@ -71,10 +103,9 @@ where
     'b: 'a,
     S: StylesheetInDocument + PartialEq + 'static,
 {
-    /// The set of origins to fully rebuild, which need to be cleared
-    /// beforehand.
-    pub fn origins_to_fully_rebuild(&self) -> OriginSet {
-        self.origins_dirty
+    /// The data validity for a given origin.
+    pub fn origin_validity(&self, origin: Origin) -> OriginValidity {
+        *self.origin_data_validity.borrow_for_origin(&origin)
     }
 
     /// Returns whether running the whole flushing process would be a no-op.
@@ -92,7 +123,7 @@ where
     fn drop(&mut self) {
         debug_assert!(
             self.iter.next().is_none(),
-            "You're supposed to fully consume the flusher",
+            "You're supposed to fully consume the flusher"
         );
     }
 }
@@ -105,11 +136,20 @@ where
     type Item = (&'a S, SheetRebuildKind);
 
     fn next(&mut self) -> Option<Self::Item> {
+        use std::mem;
+
         loop {
             let potential_sheet = match self.iter.next() {
                 None => return None,
                 Some(s) => s,
             };
+
+            let dirty = mem::replace(&mut potential_sheet.dirty, false);
+
+            if dirty {
+                // If the sheet was dirty, we need to do a full rebuild anyway.
+                return Some((&potential_sheet.sheet, SheetRebuildKind::Full))
+            }
 
             let origin = potential_sheet.sheet.contents(self.guard).origin;
             if !self.origins_dirty.contains(origin.into()) {
@@ -120,7 +160,13 @@ where
                 continue;
             }
 
-            return Some((&potential_sheet.sheet, SheetRebuildKind::Full))
+            let rebuild_kind = match self.origin_validity(origin) {
+                OriginValidity::Valid => continue,
+                OriginValidity::CascadeInvalid => SheetRebuildKind::CascadeOnly,
+                OriginValidity::FullyInvalid => SheetRebuildKind::Full,
+            };
+
+            return Some((&potential_sheet.sheet, rebuild_kind));
         }
     }
 }
@@ -144,6 +190,14 @@ where
     /// The origins whose stylesheets have changed so far.
     origins_dirty: OriginSet,
 
+    /// The validity of the data that was already there for a given origin.
+    ///
+    /// Note that an origin may appear on `origins_dirty`, but still have
+    /// `OriginValidity::Valid`, if only sheets have been appended into it (in
+    /// which case the existing data is valid, but the origin needs to be
+    /// rebuilt).
+    origin_data_validity: PerOrigin<OriginValidity>,
+
     /// Has author style been disabled?
     author_style_disabled: bool,
 }
@@ -158,6 +212,7 @@ where
             entries: vec![],
             invalidations: StylesheetInvalidationSet::new(),
             origins_dirty: OriginSet::empty(),
+            origin_data_validity: Default::default(),
             author_style_disabled: false,
         }
     }
@@ -194,6 +249,24 @@ where
         self.origins_dirty |= sheet.contents(guard).origin;
     }
 
+    fn set_data_validity_at_least(
+        &mut self,
+        origin: Origin,
+        validity: OriginValidity,
+    ) {
+        use std::cmp;
+
+        debug_assert!(
+            self.origins_dirty.contains(origin.into()),
+            "data_validity should be a subset of origins_dirty"
+        );
+
+        let existing_validity =
+            self.origin_data_validity.borrow_mut_for_origin(&origin);
+
+        *existing_validity = cmp::max(*existing_validity, validity);
+    }
+
     /// Appends a new stylesheet to the current set.
     ///
     /// No device implies not computing invalidations.
@@ -206,6 +279,8 @@ where
         debug!("StylesheetSet::append_stylesheet");
         self.remove_stylesheet_if_present(&sheet);
         self.collect_invalidations_for(device, &sheet, guard);
+        // Appending sheets doesn't alter the validity of the existing data, so
+        // we don't need to change `origin_data_validity` here.
         self.entries.push(StylesheetSetEntry::new(sheet));
     }
 
@@ -219,6 +294,11 @@ where
         debug!("StylesheetSet::prepend_stylesheet");
         self.remove_stylesheet_if_present(&sheet);
         self.collect_invalidations_for(device, &sheet, guard);
+
+        // Inserting stylesheets somewhere but at the end changes the validity
+        // of the cascade data, but not the invalidation data.
+        self.set_data_validity_at_least(sheet.contents(guard).origin, OriginValidity::CascadeInvalid);
+
         self.entries.insert(0, StylesheetSetEntry::new(sheet));
     }
 
@@ -236,6 +316,10 @@ where
             entry.sheet == before_sheet
         }).expect("`before_sheet` stylesheet not found");
         self.collect_invalidations_for(device, &sheet, guard);
+
+        // Inserting stylesheets somewhere but at the end changes the validity
+        // of the cascade data, but not the invalidation data.
+        self.set_data_validity_at_least(sheet.contents(guard).origin, OriginValidity::CascadeInvalid);
         self.entries.insert(index, StylesheetSetEntry::new(sheet));
     }
 
@@ -248,7 +332,12 @@ where
     ) {
         debug!("StylesheetSet::remove_stylesheet");
         self.remove_stylesheet_if_present(&sheet);
+
         self.collect_invalidations_for(device, &sheet, guard);
+
+        // Removing sheets makes us tear down the whole cascade and invalidation
+        // data.
+        self.set_data_validity_at_least(sheet.contents(guard).origin, OriginValidity::FullyInvalid);
     }
 
     /// Notes that the author style has been disabled for this document.
@@ -282,12 +371,16 @@ where
         debug!("StylesheetSet::flush");
 
         self.invalidations.flush(document_element);
-        let origins_dirty = mem::replace(&mut self.origins_dirty, OriginSet::empty());
+        let origins_dirty =
+            mem::replace(&mut self.origins_dirty, OriginSet::empty());
+        let origin_data_validity =
+            mem::replace(&mut self.origin_data_validity, Default::default());
 
         StylesheetFlusher {
             iter: self.entries.iter_mut(),
             author_style_disabled: self.author_style_disabled,
             origins_dirty,
+            origin_data_validity,
             guard,
         }
     }
@@ -313,5 +406,9 @@ where
     pub fn force_dirty(&mut self, origins: OriginSet) {
         self.invalidations.invalidate_fully();
         self.origins_dirty |= origins;
+        for origin in origins.iter() {
+            // We don't know what happened, assume the worse.
+            self.set_data_validity_at_least(origin, OriginValidity::FullyInvalid);
+        }
     }
 }
