@@ -7,11 +7,10 @@
 #![deny(unsafe_code)]
 
 use app_units::Au;
-use euclid::{Transform3D, SideOffsets2D, Size2D};
+use euclid::{SideOffsets2D, Size2D};
 use fragment::Fragment;
 use std::cmp::{max, min};
 use std::fmt;
-use style::computed_values::transform::ComputedMatrix;
 use style::logical_geometry::{LogicalMargin, WritingMode};
 use style::properties::ComputedValues;
 use style::values::computed::{BorderCornerRadius, LengthOrPercentageOrAuto};
@@ -506,20 +505,6 @@ pub fn specified_margin_from_style(style: &ComputedValues,
         MaybeAuto::from_style(margin_style.margin_right, Au(0)).specified_or_zero(),
         MaybeAuto::from_style(margin_style.margin_bottom, Au(0)).specified_or_zero(),
         MaybeAuto::from_style(margin_style.margin_left, Au(0)).specified_or_zero()))
-}
-
-pub trait ToGfxMatrix {
-    fn to_gfx_matrix(&self) -> Transform3D<f32>;
-}
-
-impl ToGfxMatrix for ComputedMatrix {
-    fn to_gfx_matrix(&self) -> Transform3D<f32> {
-        Transform3D::row_major(
-            self.m11 as f32, self.m12 as f32, self.m13 as f32, self.m14 as f32,
-            self.m21 as f32, self.m22 as f32, self.m23 as f32, self.m24 as f32,
-            self.m31 as f32, self.m32 as f32, self.m33 as f32, self.m34 as f32,
-            self.m41 as f32, self.m42 as f32, self.m43 as f32, self.m44 as f32)
-    }
 }
 
 /// A min-size and max-size constraint. The constructor has a optional `border`
