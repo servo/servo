@@ -124,6 +124,8 @@ pub enum LayoutControlMsg {
     /// Requests the current load state of Web fonts. `true` is returned if fonts are still loading
     /// and `false` is returned if all fonts have loaded.
     GetWebFontLoadState(IpcSender<bool>),
+    /// Send the paint time for a specific epoch to the layout thread.
+    PaintMetric(Epoch, f64),
 }
 
 /// can be passed to `LoadUrl` to load a page with GET/POST

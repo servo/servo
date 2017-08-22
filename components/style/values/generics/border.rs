@@ -5,9 +5,9 @@
 //! Generic types for CSS values related to borders.
 
 use euclid::Size2D;
-use properties::animated_properties::Animatable;
 use std::fmt;
 use style_traits::ToCss;
+use values::animated::{Animate, Procedure};
 use values::generics::rect::Rect;
 
 /// A generic value for a single side of a `border-image-width` property.
@@ -113,21 +113,17 @@ impl<L> BorderRadius<L>
     }
 }
 
-impl<L> Animatable for BorderRadius<L>
+impl<L> Animate for BorderRadius<L>
 where
-    L: Animatable + Copy,
+    L: Animate + Copy,
 {
-    fn add_weighted(
-        &self,
-        other: &Self,
-        self_portion: f64,
-        other_portion: f64,
-    ) -> Result<Self, ()> {
-        let tl = self.top_left.add_weighted(&other.top_left, self_portion, other_portion)?;
-        let tr = self.top_right.add_weighted(&other.top_right, self_portion, other_portion)?;
-        let br = self.bottom_right.add_weighted(&other.bottom_right, self_portion, other_portion)?;
-        let bl = self.bottom_left.add_weighted(&other.bottom_left, self_portion, other_portion)?;
-        Ok(BorderRadius::new(tl, tr, br, bl))
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
+        Ok(BorderRadius::new(
+            self.top_left.animate(&other.top_left, procedure)?,
+            self.top_right.animate(&other.top_right, procedure)?,
+            self.bottom_right.animate(&other.bottom_right, procedure)?,
+            self.bottom_left.animate(&other.bottom_left, procedure)?,
+        ))
     }
 }
 
@@ -163,18 +159,13 @@ impl<L: Clone> From<L> for BorderCornerRadius<L> {
     }
 }
 
-impl<L> Animatable for BorderCornerRadius<L>
+impl<L> Animate for BorderCornerRadius<L>
 where
-    L: Animatable + Copy,
+    L: Animate + Copy,
 {
     #[inline]
-    fn add_weighted(
-        &self,
-        other: &Self,
-        self_portion: f64,
-        other_portion: f64,
-    ) -> Result<Self, ()> {
-        Ok(BorderCornerRadius(self.0.add_weighted(&other.0, self_portion, other_portion)?))
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
+        Ok(BorderCornerRadius(self.0.animate(&other.0, procedure)?))
     }
 }
 

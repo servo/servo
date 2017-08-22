@@ -11,6 +11,7 @@ use style_traits::ToCss;
 use style_traits::values::specified::AllowedLengthType;
 use super::{Number, ToComputedValue, Context, Percentage};
 use values::{Auto, CSSFloat, Either, ExtremumLength, None_, Normal, specified};
+use values::animated::ToAnimatedZero;
 use values::computed::{NonNegativeAu, NonNegativeNumber};
 use values::distance::{ComputeSquaredDistance, SquaredDistance};
 use values::generics::NonNegative;
@@ -70,6 +71,17 @@ pub struct CalcLengthOrPercentage {
     pub clamping_mode: AllowedLengthType,
     length: Au,
     pub percentage: Option<Percentage>,
+}
+
+impl ToAnimatedZero for CalcLengthOrPercentage {
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        Ok(CalcLengthOrPercentage {
+            clamping_mode: self.clamping_mode,
+            length: self.length.to_animated_zero()?,
+            percentage: self.percentage.to_animated_zero()?,
+        })
+    }
 }
 
 impl ComputeSquaredDistance for CalcLengthOrPercentage {

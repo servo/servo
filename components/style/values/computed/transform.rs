@@ -4,8 +4,7 @@
 
 //! Computed types for CSS values that are related to transformations.
 
-use properties::animated_properties::Animatable;
-use values::animated::ToAnimatedZero;
+use values::animated::{Animate, Procedure, ToAnimatedZero};
 use values::computed::{Length, LengthOrPercentage, Number, Percentage};
 use values::generics::transform::TimingFunction as GenericTimingFunction;
 use values::generics::transform::TransformOrigin as GenericTransformOrigin;
@@ -28,13 +27,13 @@ impl TransformOrigin {
     }
 }
 
-impl Animatable for TransformOrigin {
+impl Animate for TransformOrigin {
     #[inline]
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         Ok(Self::new(
-            self.horizontal.add_weighted(&other.horizontal, self_portion, other_portion)?,
-            self.vertical.add_weighted(&other.vertical, self_portion, other_portion)?,
-            self.depth.add_weighted(&other.depth, self_portion, other_portion)?,
+            self.horizontal.animate(&other.horizontal, procedure)?,
+            self.vertical.animate(&other.vertical, procedure)?,
+            self.depth.animate(&other.depth, procedure)?,
         ))
     }
 }

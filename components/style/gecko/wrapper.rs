@@ -294,6 +294,7 @@ impl<'ln> TNode for GeckoNode<'ln> {
         unimplemented!()
     }
 
+    #[inline]
     fn as_element(&self) -> Option<GeckoElement<'ln>> {
         if self.is_element() {
             unsafe { Some(GeckoElement(&*(self.0 as *const _ as *const RawGeckoElement))) }
@@ -1019,10 +1020,12 @@ impl<'le> TElement for GeckoElement<'le> {
                                      Gecko_ClassOrClassList)
     }
 
+    #[inline]
     fn has_snapshot(&self) -> bool {
         self.flags() & (ELEMENT_HAS_SNAPSHOT as u32) != 0
     }
 
+    #[inline]
     fn handled_snapshot(&self) -> bool {
         self.flags() & (ELEMENT_HANDLED_SNAPSHOT as u32) != 0
     }
@@ -1032,6 +1035,7 @@ impl<'le> TElement for GeckoElement<'le> {
         self.set_flags(ELEMENT_HANDLED_SNAPSHOT as u32)
     }
 
+    #[inline]
     fn has_dirty_descendants(&self) -> bool {
         self.flags() & (ELEMENT_HAS_DIRTY_DESCENDANTS_FOR_SERVO as u32) != 0
     }
@@ -1046,6 +1050,7 @@ impl<'le> TElement for GeckoElement<'le> {
         self.unset_flags(ELEMENT_HAS_DIRTY_DESCENDANTS_FOR_SERVO as u32)
     }
 
+    #[inline]
     fn has_animation_only_dirty_descendants(&self) -> bool {
         self.flags() & (ELEMENT_HAS_ANIMATION_ONLY_DIRTY_DESCENDANTS_FOR_SERVO as u32) != 0
     }
@@ -1064,11 +1069,13 @@ impl<'le> TElement for GeckoElement<'le> {
                          NODE_DESCENDANTS_NEED_FRAMES as u32)
     }
 
+    #[inline]
     fn is_visited_link(&self) -> bool {
         use element_state::IN_VISITED_STATE;
         self.get_state().intersects(IN_VISITED_STATE)
     }
 
+    #[inline]
     fn is_native_anonymous(&self) -> bool {
         use gecko_bindings::structs::NODE_IS_NATIVE_ANONYMOUS;
         self.flags() & (NODE_IS_NATIVE_ANONYMOUS as u32) != 0
@@ -1096,6 +1103,7 @@ impl<'le> TElement for GeckoElement<'le> {
         panic!("Atomic child count not implemented in Gecko");
     }
 
+    #[inline(always)]
     fn get_data(&self) -> Option<&AtomicRefCell<ElementData>> {
         unsafe { self.0.mServoData.get().as_ref() }
     }
@@ -1127,6 +1135,7 @@ impl<'le> TElement for GeckoElement<'le> {
         }
     }
 
+    #[inline]
     fn skip_root_and_item_based_display_fixup(&self) -> bool {
         // We don't want to fix up display values of native anonymous content.
         // Additionally, we want to skip root-based display fixup for document
@@ -1401,15 +1410,15 @@ impl<'le> TElement for GeckoElement<'le> {
         })
     }
 
-    fn needs_transitions_update_per_property(&self,
-                                             property: &TransitionProperty,
-                                             combined_duration: f32,
-                                             before_change_style: &ComputedValues,
-                                             after_change_style: &ComputedValues,
-                                             existing_transitions: &HashMap<TransitionProperty,
-                                                                            Arc<AnimationValue>>)
-                                             -> bool {
-        use properties::animated_properties::Animatable;
+    fn needs_transitions_update_per_property(
+        &self,
+        property: &TransitionProperty,
+        combined_duration: f32,
+        before_change_style: &ComputedValues,
+        after_change_style: &ComputedValues,
+        existing_transitions: &HashMap<TransitionProperty, Arc<AnimationValue>>,
+    ) -> bool {
+        use values::animated::{Animate, Procedure};
 
         // |property| should be an animatable longhand
         let animatable_longhand = AnimatableLonghand::from_transition_property(property).unwrap();
@@ -1431,7 +1440,7 @@ impl<'le> TElement for GeckoElement<'le> {
 
         combined_duration > 0.0f32 &&
         from != to &&
-        from.interpolate(&to, 0.5).is_ok()
+        from.animate(&to, Procedure::Interpolate { progress: 0.5 }).is_ok()
     }
 
     #[inline]

@@ -133,17 +133,12 @@
             );
 
             % if need_animatable or animation_value_type == "ComputedValue":
-                use properties::animated_properties::Animatable;
-                use values::animated::ToAnimatedZero;
+                use values::animated::{Animate, Procedure, ToAnimatedZero};
 
-                impl Animatable for T {
-                    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64)
-                        -> Result<Self, ()> {
-                        self.0.add_weighted(&other.0, self_portion, other_portion).map(T)
-                    }
-
-                    fn add(&self, other: &Self) -> Result<Self, ()> {
-                        self.0.add(&other.0).map(T)
+                impl Animate for T {
+                    #[inline]
+                    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
+                        Ok(T(self.0.animate(&other.0, procedure)?))
                     }
                 }
 

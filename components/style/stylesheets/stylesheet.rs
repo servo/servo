@@ -7,6 +7,7 @@ use context::QuirksMode;
 use cssparser::{Parser, RuleListParser, ParserInput};
 use error_reporting::{ParseErrorReporter, ContextualParseError};
 use fnv::FnvHashMap;
+use invalidation::media_queries::{MediaListKey, ToMediaListKey};
 use media_queries::{MediaList, Device};
 use parking_lot::RwLock;
 use parser::ParserContext;
@@ -272,6 +273,41 @@ impl StylesheetInDocument for Stylesheet {
 
     fn enabled(&self) -> bool {
         !self.disabled()
+    }
+}
+
+/// A simple wrapper over an `Arc<Stylesheet>`, with pointer comparison, and
+/// suitable for its use in a `StylesheetSet`.
+#[derive(Clone)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub struct DocumentStyleSheet(
+    #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
+    pub Arc<Stylesheet>
+);
+
+impl PartialEq for DocumentStyleSheet {
+    fn eq(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.0, &other.0)
+    }
+}
+
+impl ToMediaListKey for DocumentStyleSheet {
+    fn to_media_list_key(&self) -> MediaListKey {
+        self.0.to_media_list_key()
+    }
+}
+
+impl StylesheetInDocument for DocumentStyleSheet {
+    fn contents(&self, guard: &SharedRwLockReadGuard) -> &StylesheetContents {
+        self.0.contents(guard)
+    }
+
+    fn media<'a>(&'a self, guard: &'a SharedRwLockReadGuard) -> Option<&'a MediaList> {
+        self.0.media(guard)
+    }
+
+    fn enabled(&self) -> bool {
+        self.0.enabled()
     }
 }
 

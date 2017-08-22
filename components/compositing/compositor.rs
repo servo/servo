@@ -34,7 +34,7 @@ use touch::{TouchHandler, TouchAction};
 use webrender;
 use webrender_api::{self, ClipId, DeviceUintRect, DeviceUintSize, LayoutPoint, LayoutVector2D};
 use webrender_api::{ScrollEventPhase, ScrollLocation, ScrollClamping};
-use windowing::{self, MouseWindowEvent, WindowEvent, WindowMethods};
+use windowing::{self, MouseWindowEvent, WebRenderDebugOption, WindowEvent, WindowMethods};
 
 #[derive(Debug, PartialEq)]
 enum UnableToComposite {
@@ -186,6 +186,13 @@ pub struct IOCompositor<Window: WindowMethods> {
 
     /// GL functions interface (may be GL or GLES)
     gl: Rc<gl::Gl>,
+
+    /// Map of the pending paint metrics per layout thread.
+    /// The layout thread for each specific pipeline expects the compositor to
+    /// paint frames with specific given IDs (epoch). Once the compositor paints
+    /// these frames, it records the paint time for each of them and sends the
+    /// metric to the corresponding layout thread.
+    pending_paint_metrics: HashMap<PipelineId, Epoch>,
 }
 
 #[derive(Clone, Copy)]
@@ -371,6 +378,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             webrender: state.webrender,
             webrender_document: state.webrender_document,
             webrender_api: state.webrender_api,
+            pending_paint_metrics: HashMap::new(),
         }
     }
 
@@ -593,6 +601,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.window.set_fullscreen_state(top_level_browsing_context_id, state);
             }
 
+            (Msg::PendingPaintMetric(pipeline_id, epoch), _) => {
+                self.pending_paint_metrics.insert(pipeline_id, epoch);
+            }
+
             // When we are shutting_down, we need to avoid performing operations
             // such as Paint that may crash because we have begun tearing down
             // the rest of our resources.
@@ -797,9 +809,14 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 }
             }
 
-            WindowEvent::ToggleWebRenderProfiler => {
+            WindowEvent::ToggleWebRenderDebug(option) => {
                 let mut flags = self.webrender.get_debug_flags();
-                flags.toggle(webrender::renderer::PROFILER_DBG);
+                let flag = match option {
+                    WebRenderDebugOption::Profiler => webrender::renderer::PROFILER_DBG,
+                    WebRenderDebugOption::TextureCacheDebug => webrender::renderer::TEXTURE_CACHE_DBG,
+                    WebRenderDebugOption::RenderTargetDebug => webrender::renderer::RENDER_TARGET_DBG,
+                };
+                flags.toggle(flag);
                 self.webrender.set_debug_flags(flags);
                 self.webrender_api.generate_frame(self.webrender_document, None);
             }
@@ -1421,6 +1438,38 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             // Paint the scene.
             self.webrender.render(self.frame_size);
         });
+
+        // If there are pending paint metrics, we check if any of the painted epochs is
+        // one of the ones that the paint metrics recorder is expecting . In that case,
+        // we get the current time, inform the layout thread about it and remove the
+        // pending metric from the list.
+        if !self.pending_paint_metrics.is_empty() {
+            let paint_time = precise_time_ns() as f64;
+            let mut to_remove = Vec::new();
+            // For each pending paint metrics pipeline id
+            for (id, pending_epoch) in &self.pending_paint_metrics {
+                // we get the last painted frame id from webrender
+                if let Some(webrender_api::Epoch(epoch)) = self.webrender.current_epoch(id.to_webrender()) {
+                    // and check if it is the one the layout thread is expecting,
+                    let epoch = Epoch(epoch);
+                    if *pending_epoch != epoch {
+                        continue;
+                    }
+                    // in which case, we remove it from the list of pending metrics,
+                    to_remove.push(id.clone());
+                    if let Some(pipeline) = self.pipeline(*id) {
+                        // and inform the layout thread with the measured paint time.
+                        let msg = LayoutControlMsg::PaintMetric(epoch, paint_time);
+                        if let Err(e)  = pipeline.layout_chan.send(msg) {
+                            warn!("Sending PaintMetric message to layout failed ({}).", e);
+                        }
+                    }
+                }
+            }
+            for id in to_remove.iter() {
+                self.pending_paint_metrics.remove(id);
+            }
+        }
 
         let rv = match target {
             CompositeTarget::Window => None,

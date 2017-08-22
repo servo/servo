@@ -4,14 +4,13 @@
 
 //! Animated types for CSS values related to effects.
 
-use properties::animated_properties::Animatable;
 use properties::longhands::box_shadow::computed_value::T as ComputedBoxShadowList;
 use properties::longhands::filter::computed_value::T as ComputedFilterList;
 use properties::longhands::text_shadow::computed_value::T as ComputedTextShadowList;
 use std::cmp;
 #[cfg(not(feature = "gecko"))]
 use values::Impossible;
-use values::animated::{ToAnimatedValue, ToAnimatedZero};
+use values::animated::{Animate, Procedure, ToAnimatedValue, ToAnimatedZero};
 use values::animated::color::RGBA;
 use values::computed::{Angle, NonNegativeNumber};
 use values::computed::length::{Length, NonNegativeLength};
@@ -66,41 +65,35 @@ impl ToAnimatedValue for ComputedBoxShadowList {
     }
 }
 
-impl<S> Animatable for ShadowList<S>
+impl<S> Animate for ShadowList<S>
 where
-    S: Animatable + Clone + ToAnimatedZero,
+    S: Animate + Clone + ToAnimatedZero,
 {
     #[inline]
-    fn add_weighted(
-        &self,
-        other: &Self,
-        self_portion: f64,
-        other_portion: f64,
-    ) -> Result<Self, ()> {
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
+        if procedure == Procedure::Add {
+            return Ok(ShadowList(
+                self.0.iter().chain(&other.0).cloned().collect(),
+            ));
+        }
+        // FIXME(nox): Use itertools here, to avoid the need for `unreachable!`.
         let max_len = cmp::max(self.0.len(), other.0.len());
         let mut shadows = Vec::with_capacity(max_len);
         for i in 0..max_len {
             shadows.push(match (self.0.get(i), other.0.get(i)) {
                 (Some(shadow), Some(other)) => {
-                    shadow.add_weighted(other, self_portion, other_portion)?
+                    shadow.animate(other, procedure)?
                 },
                 (Some(shadow), None) => {
-                    shadow.add_weighted(&shadow.to_animated_zero()?, self_portion, other_portion)?
+                    shadow.animate(&shadow.to_animated_zero()?, procedure)?
                 },
                 (None, Some(shadow)) => {
-                    shadow.to_animated_zero()?.add_weighted(&shadow, self_portion, other_portion)?
+                    shadow.to_animated_zero()?.animate(shadow, procedure)?
                 },
                 (None, None) => unreachable!(),
             });
         }
         Ok(ShadowList(shadows))
-    }
-
-    #[inline]
-    fn add(&self, other: &Self) -> Result<Self, ()> {
-        Ok(ShadowList(
-            self.0.iter().cloned().chain(other.0.iter().cloned()).collect(),
-        ))
     }
 }
 
@@ -146,20 +139,15 @@ impl ToAnimatedValue for ComputedTextShadowList {
     }
 }
 
-impl Animatable for BoxShadow {
+impl Animate for BoxShadow {
     #[inline]
-    fn add_weighted(
-        &self,
-        other: &Self,
-        self_portion: f64,
-        other_portion: f64,
-    ) -> Result<Self, ()> {
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         if self.inset != other.inset {
             return Err(());
         }
         Ok(BoxShadow {
-            base: self.base.add_weighted(&other.base, self_portion, other_portion)?,
-            spread: self.spread.add_weighted(&other.spread, self_portion, other_portion)?,
+            base: self.base.animate(&other.base, procedure)?,
+            spread: self.spread.animate(&other.spread, procedure)?,
             inset: self.inset,
         })
     }
@@ -224,19 +212,14 @@ impl ToAnimatedZero for FilterList {
     }
 }
 
-impl Animatable for SimpleShadow {
+impl Animate for SimpleShadow {
     #[inline]
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
-        let color = self.color.add_weighted(&other.color, self_portion, other_portion)?;
-        let horizontal = self.horizontal.add_weighted(&other.horizontal, self_portion, other_portion)?;
-        let vertical = self.vertical.add_weighted(&other.vertical, self_portion, other_portion)?;
-        let blur = self.blur.add_weighted(&other.blur, self_portion, other_portion)?;
-
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         Ok(SimpleShadow {
-            color: color,
-            horizontal: horizontal,
-            vertical: vertical,
-            blur: blur,
+            color: self.color.animate(&other.color, procedure)?,
+            horizontal: self.horizontal.animate(&other.horizontal, procedure)?,
+            vertical: self.vertical.animate(&other.vertical, procedure)?,
+            blur: self.blur.animate(&other.blur, procedure)?,
         })
     }
 }
@@ -245,7 +228,7 @@ impl ToAnimatedZero for SimpleShadow {
     #[inline]
     fn to_animated_zero(&self) -> Result<Self, ()> {
         Ok(SimpleShadow {
-            color: Some(RGBA::transparent()),
+            color: self.color.to_animated_zero()?,
             horizontal: self.horizontal.to_animated_zero()?,
             vertical: self.vertical.to_animated_zero()?,
             blur: self.blur.to_animated_zero()?,

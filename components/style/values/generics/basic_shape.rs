@@ -5,10 +5,9 @@
 //! CSS handling for the [`basic-shape`](https://drafts.csswg.org/css-shapes/#typedef-basic-shape)
 //! types that are generic over their `ToCss` implementations.
 
-use properties::animated_properties::Animatable;
 use std::fmt;
 use style_traits::{HasViewportPercentage, ToCss};
-use values::animated::ToAnimatedZero;
+use values::animated::{Animate, Procedure, ToAnimatedZero};
 use values::computed::ComputedValueAsSpecified;
 use values::distance::{ComputeSquaredDistance, SquaredDistance};
 use values::generics::border::BorderRadius;
@@ -123,24 +122,21 @@ define_css_keyword_enum!(FillRule:
 );
 add_impls_for_keyword_enum!(FillRule);
 
-impl<B, T, U> Animatable for ShapeSource<B, T, U>
+impl<B, T, U> Animate for ShapeSource<B, T, U>
 where
-    B: Animatable,
+    B: Animate,
     T: Clone + PartialEq,
 {
-    fn add_weighted(
-        &self,
-        other: &Self,
-        self_portion: f64,
-        other_portion: f64,
-    ) -> Result<Self, ()> {
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         match (self, other) {
             (
                 &ShapeSource::Shape(ref this, ref this_box),
                 &ShapeSource::Shape(ref other, ref other_box),
             ) if this_box == other_box => {
-                let shape = this.add_weighted(other, self_portion, other_portion)?;
-                Ok(ShapeSource::Shape(shape, this_box.clone()))
+                Ok(ShapeSource::Shape(
+                    this.animate(other, procedure)?,
+                    this_box.clone(),
+                ))
             },
             _ => Err(()),
         }
@@ -178,49 +174,40 @@ impl<B, T, U> HasViewportPercentage for ShapeSource<B, T, U> {
     fn has_viewport_percentage(&self) -> bool { false }
 }
 
-impl<H, V, L> Animatable for BasicShape<H, V, L>
+impl<H, V, L> Animate for BasicShape<H, V, L>
 where
-    H: Animatable,
-    V: Animatable,
-    L: Animatable + Copy,
+    H: Animate,
+    V: Animate,
+    L: Animate + Copy,
 {
-    fn add_weighted(
-        &self,
-        other: &Self,
-        self_portion: f64,
-        other_portion: f64,
-    ) -> Result<Self, ()> {
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         match (self, other) {
             (&BasicShape::Circle(ref this), &BasicShape::Circle(ref other)) => {
-                Ok(BasicShape::Circle(this.add_weighted(other, self_portion, other_portion)?))
+                Ok(BasicShape::Circle(this.animate(other, procedure)?))
             },
             (&BasicShape::Ellipse(ref this), &BasicShape::Ellipse(ref other)) => {
-                Ok(BasicShape::Ellipse(this.add_weighted(other, self_portion, other_portion)?))
+                Ok(BasicShape::Ellipse(this.animate(other, procedure)?))
             },
             (&BasicShape::Inset(ref this), &BasicShape::Inset(ref other)) => {
-                Ok(BasicShape::Inset(this.add_weighted(other, self_portion, other_portion)?))
+                Ok(BasicShape::Inset(this.animate(other, procedure)?))
             },
             (&BasicShape::Polygon(ref this), &BasicShape::Polygon(ref other)) => {
-                Ok(BasicShape::Polygon(this.add_weighted(other, self_portion, other_portion)?))
+                Ok(BasicShape::Polygon(this.animate(other, procedure)?))
             },
             _ => Err(()),
         }
     }
 }
 
-impl<L> Animatable for InsetRect<L>
+impl<L> Animate for InsetRect<L>
 where
-    L: Animatable + Copy,
+    L: Animate + Copy,
 {
-    fn add_weighted(
-        &self,
-        other: &Self,
-        self_portion: f64,
-        other_portion: f64,
-    ) -> Result<Self, ()> {
-        let rect = self.rect.add_weighted(&other.rect, self_portion, other_portion)?;
-        let round = self.round.add_weighted(&other.round, self_portion, other_portion)?;
-        Ok(InsetRect { rect, round })
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
+        Ok(InsetRect {
+            rect: self.rect.animate(&other.rect, procedure)?,
+            round: self.round.animate(&other.round, procedure)?,
+        })
     }
 }
 
@@ -238,56 +225,43 @@ impl<L> ToCss for InsetRect<L>
     }
 }
 
-impl<H, V, L> Animatable for Circle<H, V, L>
+impl<H, V, L> Animate for Circle<H, V, L>
 where
-    H: Animatable,
-    V: Animatable,
-    L: Animatable,
+    H: Animate,
+    V: Animate,
+    L: Animate,
 {
-    fn add_weighted(
-        &self,
-        other: &Self,
-        self_portion: f64,
-        other_portion: f64,
-    ) -> Result<Self, ()> {
-        let position = self.position.add_weighted(&other.position, self_portion, other_portion)?;
-        let radius = self.radius.add_weighted(&other.radius, self_portion, other_portion)?;
-        Ok(Circle { position, radius })
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
+        Ok(Circle {
+            position: self.position.animate(&other.position, procedure)?,
+            radius: self.radius.animate(&other.radius, procedure)?,
+        })
     }
 }
 
-impl<H, V, L> Animatable for Ellipse<H, V, L>
+impl<H, V, L> Animate for Ellipse<H, V, L>
 where
-    H: Animatable,
-    V: Animatable,
-    L: Animatable,
+    H: Animate,
+    V: Animate,
+    L: Animate,
 {
-    fn add_weighted(
-        &self,
-        other: &Self,
-        self_portion: f64,
-        other_portion: f64,
-    ) -> Result<Self, ()> {
-        let position = self.position.add_weighted(&other.position, self_portion, other_portion)?;
-        let semiaxis_x = self.semiaxis_x.add_weighted(&other.semiaxis_x, self_portion, other_portion)?;
-        let semiaxis_y = self.semiaxis_y.add_weighted(&other.semiaxis_y, self_portion, other_portion)?;
-        Ok(Ellipse { position, semiaxis_x, semiaxis_y })
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
+        Ok(Ellipse {
+            position: self.position.animate(&other.position, procedure)?,
+            semiaxis_x: self.semiaxis_x.animate(&other.semiaxis_x, procedure)?,
+            semiaxis_y: self.semiaxis_y.animate(&other.semiaxis_y, procedure)?,
+        })
     }
 }
 
-impl<L> Animatable for ShapeRadius<L>
+impl<L> Animate for ShapeRadius<L>
 where
-    L: Animatable,
+    L: Animate,
 {
-    fn add_weighted(
-        &self,
-        other: &Self,
-        self_portion: f64,
-        other_portion: f64,
-    ) -> Result<Self, ()> {
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         match (self, other) {
             (&ShapeRadius::Length(ref this), &ShapeRadius::Length(ref other)) => {
-                Ok(ShapeRadius::Length(this.add_weighted(other, self_portion, other_portion)?))
+                Ok(ShapeRadius::Length(this.animate(other, procedure)?))
             },
             _ => Err(()),
         }
@@ -299,16 +273,11 @@ impl<L> Default for ShapeRadius<L> {
     fn default() -> Self { ShapeRadius::ClosestSide }
 }
 
-impl<L> Animatable for Polygon<L>
+impl<L> Animate for Polygon<L>
 where
-    L: Animatable,
+    L: Animate,
 {
-    fn add_weighted(
-        &self,
-        other: &Self,
-        self_portion: f64,
-        other_portion: f64,
-    ) -> Result<Self, ()> {
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         if self.fill != other.fill {
             return Err(());
         }
@@ -316,9 +285,10 @@ where
             return Err(());
         }
         let coordinates = self.coordinates.iter().zip(other.coordinates.iter()).map(|(this, other)| {
-            let x = this.0.add_weighted(&other.0, self_portion, other_portion)?;
-            let y = this.1.add_weighted(&other.1, self_portion, other_portion)?;
-            Ok((x, y))
+            Ok((
+                this.0.animate(&other.0, procedure)?,
+                this.1.animate(&other.1, procedure)?,
+            ))
         }).collect::<Result<Vec<_>, _>>()?;
         Ok(Polygon { fill: self.fill, coordinates })
     }
