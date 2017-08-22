@@ -1055,12 +1055,16 @@ pub extern "C" fn Servo_StyleSheet_SizeOfIncludingThis(
 #[no_mangle]
 pub extern "C" fn Servo_StyleSheet_GetOrigin(
     sheet: RawServoStyleSheetContentsBorrowed
-) -> OriginFlags {
-    match StylesheetContents::as_arc(&sheet).origin {
+) -> u8 {
+    let origin = match StylesheetContents::as_arc(&sheet).origin {
         Origin::UserAgent => OriginFlags_UserAgent,
         Origin::User => OriginFlags_User,
         Origin::Author => OriginFlags_Author,
-    }
+    };
+    // We'd like to return `OriginFlags` here, but bindgen bitfield enums don't
+    // work as return values with the Linux 32-bit ABI at the moment because
+    // they wrap the value in a struct, so for now just unwrap it.
+    origin.0
 }
 
 #[no_mangle]
