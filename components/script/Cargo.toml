@@ -24,7 +24,6 @@ serde_json = "1.0"
 tinyfiledialogs = "2.5.9"
 
 [dependencies]
-angle = {git = "https://github.com/servo/angle", branch = "servo"}
 app_units = "0.5"
 audio-video-metadata = "0.1.2"
 base64 = "0.5.2"
@@ -94,3 +93,6 @@ xml5ever = {version = "0.9"}
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 webvr = {path = "../webvr"}
 webvr_traits = {path = "../webvr_traits"}
+
+[target.'cfg(not(target_os = "ios"))'.dependencies]
+angle = {git = "https://github.com/servo/angle", branch = "servo"}
