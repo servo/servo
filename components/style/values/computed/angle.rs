@@ -8,12 +8,12 @@ use std::{f32, f64, fmt};
 use std::f64::consts::PI;
 use style_traits::ToCss;
 use values::CSSFloat;
-use values::animated::{Animate, Procedure, ToAnimatedZero};
+use values::animated::{Animate, Procedure};
 use values::distance::{ComputeSquaredDistance, SquaredDistance};
 
 /// A computed angle.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
-#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, PartialOrd, ToAnimatedZero)]
 pub enum Angle {
     /// An angle with degree unit.
     Degree(CSSFloat),
@@ -81,18 +81,6 @@ impl Animate for Angle {
             _ => {
                 Ok(Angle::from_radians(self.radians().animate(&other.radians(), procedure)?))
             },
-        }
-    }
-}
-
-impl ToAnimatedZero for Angle {
-    #[inline]
-    fn to_animated_zero(&self) -> Result<Angle, ()> {
-        match *self {
-            Angle::Degree(ref this) => Ok(Angle::Degree(this.to_animated_zero()?)),
-            Angle::Gradian(ref this) => Ok(Angle::Gradian(this.to_animated_zero()?)),
-            Angle::Radian(ref this) => Ok(Angle::Radian(this.to_animated_zero()?)),
-            Angle::Turn(ref this) => Ok(Angle::Turn(this.to_animated_zero()?)),
         }
     }
 }

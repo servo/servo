@@ -4,7 +4,7 @@
 
 //! Computed types for CSS values that are related to transformations.
 
-use values::animated::{Animate, Procedure, ToAnimatedZero};
+use values::animated::{Animate, Procedure};
 use values::computed::{Length, LengthOrPercentage, Number, Percentage};
 use values::generics::transform::TimingFunction as GenericTimingFunction;
 use values::generics::transform::TransformOrigin as GenericTransformOrigin;
@@ -34,17 +34,6 @@ impl Animate for TransformOrigin {
             self.horizontal.animate(&other.horizontal, procedure)?,
             self.vertical.animate(&other.vertical, procedure)?,
             self.depth.animate(&other.depth, procedure)?,
-        ))
-    }
-}
-
-impl ToAnimatedZero for TransformOrigin {
-    #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> {
-        Ok(Self::new(
-            self.horizontal.to_animated_zero()?,
-            self.vertical.to_animated_zero()?,
-            self.depth.to_animated_zero()?,
         ))
     }
 }
