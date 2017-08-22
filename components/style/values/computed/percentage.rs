@@ -7,11 +7,11 @@
 use std::fmt;
 use style_traits::ToCss;
 use values::{CSSFloat, serialize_percentage};
-use values::animated::{Animate, Procedure, ToAnimatedZero};
 
 /// A computed percentage.
-#[derive(Clone, ComputeSquaredDistance, Copy, Debug, Default, HasViewportPercentage, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "servo", derive(Deserialize, HeapSizeOf, Serialize))]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, Default)]
+#[derive(HasViewportPercentage, PartialEq, PartialOrd, ToAnimatedZero)]
 pub struct Percentage(pub CSSFloat);
 
 impl Percentage {
@@ -31,21 +31,6 @@ impl Percentage {
     #[inline]
     pub fn abs(&self) -> Self {
         Percentage(self.0.abs())
-    }
-}
-
-/// https://drafts.csswg.org/css-transitions/#animtype-percentage
-impl Animate for Percentage {
-    #[inline]
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        Ok(Percentage(self.0.animate(&other.0, procedure)?))
-    }
-}
-
-impl ToAnimatedZero for Percentage {
-    #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> {
-        Ok(Percentage(0.))
     }
 }
 

@@ -68,8 +68,8 @@ impl Parse for Impossible {
 
 /// A struct representing one of two kinds of values.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, ComputeSquaredDistance, Copy, HasViewportPercentage, PartialEq)]
-#[derive(ToAnimatedValue, ToComputedValue, ToCss)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, HasViewportPercentage)]
+#[derive(PartialEq, ToAnimatedValue, ToComputedValue, ToCss)]
 pub enum Either<A, B> {
     /// The first value.
     First(A),

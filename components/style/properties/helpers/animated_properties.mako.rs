@@ -54,7 +54,7 @@ use values::computed::{PositiveIntegerOrAuto, ToComputedValue};
 use values::computed::length::{NonNegativeLengthOrAuto, NonNegativeLengthOrNormal};
 use values::computed::length::NonNegativeLengthOrPercentage;
 use values::distance::{ComputeSquaredDistance, SquaredDistance};
-use values::generics::{GreaterThanOrEqualToOne, NonNegative};
+use values::generics::NonNegative;
 use values::generics::effects::Filter;
 use values::generics::position as generic_position;
 use values::generics::svg::{SVGLength,  SvgLengthOrPercentageOrNumber, SVGPaint};
@@ -879,23 +879,6 @@ impl Animate for LengthOrPercentage {
     }
 }
 
-impl ToAnimatedZero for LengthOrPercentage {
-    #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> {
-         match *self {
-             LengthOrPercentage::Length(ref length) => {
-                 Ok(LengthOrPercentage::Length(length.to_animated_zero()?))
-             },
-             LengthOrPercentage::Percentage(ref percentage) => {
-                 Ok(LengthOrPercentage::Percentage(percentage.to_animated_zero()?))
-             },
-             LengthOrPercentage::Calc(ref calc) => {
-                 Ok(LengthOrPercentage::Calc(calc.to_animated_zero()?))
-             },
-         }
-    }
-}
-
 /// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
 impl Animate for LengthOrPercentageOrAuto {
     #[inline]
@@ -1120,49 +1103,8 @@ impl Into<FontStretch> for f64 {
     }
 }
 
-impl<H, V> Animate for generic_position::Position<H, V>
-where
-    H: Animate,
-    V: Animate,
-{
-    #[inline]
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        Ok(generic_position::Position {
-            horizontal: self.horizontal.animate(&other.horizontal, procedure)?,
-            vertical: self.vertical.animate(&other.vertical, procedure)?,
-        })
-    }
-}
-
-impl<H, V> ToAnimatedZero for generic_position::Position<H, V>
-where
-    H: ToAnimatedZero,
-    V: ToAnimatedZero,
-{
-    #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> {
-        Ok(generic_position::Position {
-            horizontal: self.horizontal.to_animated_zero()?,
-            vertical: self.vertical.to_animated_zero()?,
-        })
-    }
-}
-
 impl<H, V> RepeatableListAnimatable for generic_position::Position<H, V>
     where H: RepeatableListAnimatable, V: RepeatableListAnimatable {}
-
-/// https://drafts.csswg.org/css-transitions/#animtype-rect
-impl Animate for ClipRect {
-    #[inline]
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        Ok(ClipRect {
-            top: self.top.animate(&other.top, procedure)?,
-            right: self.right.animate(&other.right, procedure)?,
-            bottom: self.bottom.animate(&other.bottom, procedure)?,
-            left: self.left.animate(&other.left, procedure)?,
-        })
-    }
-}
 
 impl ToAnimatedZero for ClipRect {
     #[inline]
@@ -1353,8 +1295,8 @@ pub struct InnerMatrix2D {
 }
 
 /// A 2d translation function.
-#[derive(Clone, ComputeSquaredDistance, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug)]
 pub struct Translate2D(f32, f32);
 
 /// A 2d scale function.
@@ -1384,15 +1326,6 @@ impl Animate for InnerMatrix2D {
             m21: self.m21.animate(&other.m21, procedure)?,
             m22: animate_multiplicative_factor(self.m22, other.m22, procedure)?,
         })
-    }
-}
-
-impl Animate for Translate2D {
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        Ok(Translate2D(
-            self.0.animate(&other.0, procedure)?,
-            self.1.animate(&other.1, procedure)?,
-        ))
     }
 }
 
@@ -1627,8 +1560,8 @@ impl From<ComputedMatrix> for RawGeckoGfxMatrix4x4 {
 }
 
 /// A 3d translation.
-#[derive(Clone, ComputeSquaredDistance, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug)]
 pub struct Translate3D(f32, f32, f32);
 
 /// A 3d scale function.
@@ -1637,8 +1570,8 @@ pub struct Translate3D(f32, f32, f32);
 pub struct Scale3D(f32, f32, f32);
 
 /// A 3d skew function.
-#[derive(Clone, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Animate, Clone, Copy, Debug)]
 pub struct Skew(f32, f32, f32);
 
 /// A 3d perspective transformation.
@@ -1920,32 +1853,12 @@ fn cross(row1: [f32; 3], row2: [f32; 3]) -> [f32; 3] {
     ]
 }
 
-impl Animate for Translate3D {
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        Ok(Translate3D(
-            self.0.animate(&other.0, procedure)?,
-            self.1.animate(&other.1, procedure)?,
-            self.2.animate(&other.2, procedure)?,
-        ))
-    }
-}
-
 impl Animate for Scale3D {
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         Ok(Scale3D(
             animate_multiplicative_factor(self.0, other.0, procedure)?,
             animate_multiplicative_factor(self.1, other.1, procedure)?,
             animate_multiplicative_factor(self.2, other.2, procedure)?,
-        ))
-    }
-}
-
-impl Animate for Skew {
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        Ok(Skew(
-            self.0.animate(&other.0, procedure)?,
-            self.1.animate(&other.1, procedure)?,
-            self.2.animate(&other.2, procedure)?,
         ))
     }
 }
@@ -2464,25 +2377,6 @@ impl ToAnimatedZero for TransformList {
     }
 }
 
-impl<T, U> Animate for Either<T, U>
-where
-    T: Animate,
-    U: Animate,
-{
-    #[inline]
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        match (self, other) {
-            (&Either::First(ref this), &Either::First(ref other)) => {
-                Ok(Either::First(this.animate(other, procedure)?))
-            },
-            (&Either::Second(ref this), &Either::Second(ref other)) => {
-                Ok(Either::Second(this.animate(other, procedure)?))
-            },
-            _ => Err(()),
-        }
-    }
-}
-
 impl<A, B> ToAnimatedZero for Either<A, B>
 where
     A: ToAnimatedZero,
@@ -2689,28 +2583,6 @@ where
     }
 }
 
-impl<L, N> ToAnimatedZero for SvgLengthOrPercentageOrNumber<L, N>
-where
-    L: ToAnimatedZero,
-    N: ToAnimatedZero,
-{
-    #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> {
-        match *self {
-            SvgLengthOrPercentageOrNumber::LengthOrPercentage(ref lop) => {
-                Ok(SvgLengthOrPercentageOrNumber::LengthOrPercentage(
-                    lop.to_animated_zero()?,
-                ))
-            },
-            SvgLengthOrPercentageOrNumber::Number(ref num) => {
-                Ok(SvgLengthOrPercentageOrNumber::Number(
-                    num.to_animated_zero()?,
-                ))
-            },
-        }
-    }
-}
-
 impl<L> Animate for SVGLength<L>
 where
     L: Animate + Clone,
@@ -2728,21 +2600,6 @@ where
                 let (this_weight, other_weight) = procedure.weights();
                 Ok(if this_weight > other_weight { self.clone() } else { other.clone() })
             },
-        }
-    }
-}
-
-impl<L> ToAnimatedZero for SVGLength<L>
-where
-    L: ToAnimatedZero,
-{
-    #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> {
-        match *self {
-            SVGLength::Length(ref length) => {
-                Ok(SVGLength::Length(length.to_animated_zero()?))
-            },
-            SVGLength::ContextValue => Ok(SVGLength::ContextValue),
         }
     }
 }
@@ -2772,7 +2629,7 @@ where
 
 impl<L> ToAnimatedZero for SVGStrokeDashArray<L>
 where
-    L: Clone + ToAnimatedZero
+    L: ToAnimatedZero,
 {
     #[inline]
     fn to_animated_zero(&self) -> Result<Self, ()> {
@@ -2804,19 +2661,6 @@ where
                 let (this_weight, other_weight) = procedure.weights();
                 Ok(if this_weight > other_weight { self.clone() } else { other.clone() })
             },
-        }
-    }
-}
-
-impl<OpacityType> ToAnimatedZero for SVGOpacity<OpacityType>
-    where OpacityType: ToAnimatedZero + Clone
-{
-    #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> {
-        match self {
-            &SVGOpacity::Opacity(ref opacity) =>
-                opacity.to_animated_zero().map(SVGOpacity::Opacity),
-            other => Ok(other.clone()),
         }
     }
 }
@@ -2876,7 +2720,6 @@ impl ToAnimatedZero for AnimatedFilter {
         }
     }
 }
-
 
 // FIXME(nox): This should be derived.
 impl ComputeSquaredDistance for AnimatedFilter {
@@ -2991,43 +2834,5 @@ sorted_shorthands = [(p, position) for position, p in enumerate(sorted_shorthand
         % for property, position in sorted_shorthands:
             ShorthandId::${property.camel_case} => ${position},
         % endfor
-    }
-}
-
-impl<T> Animate for NonNegative<T>
-where
-    T: Animate,
-{
-    #[inline]
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        Ok(NonNegative(self.0.animate(&other.0, procedure)?))
-    }
-}
-
-impl<T> ToAnimatedZero for NonNegative<T>
-    where T: ToAnimatedZero
-{
-    #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> {
-        self.0.to_animated_zero().map(NonNegative::<T>)
-    }
-}
-
-impl<T> Animate for GreaterThanOrEqualToOne<T>
-where
-    T: Animate,
-{
-    #[inline]
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        Ok(GreaterThanOrEqualToOne(self.0.animate(&other.0, procedure)?))
-    }
-}
-
-impl<T> ToAnimatedZero for GreaterThanOrEqualToOne<T>
-    where T: ToAnimatedZero
-{
-    #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> {
-        self.0.to_animated_zero().map(GreaterThanOrEqualToOne::<T>)
     }
 }

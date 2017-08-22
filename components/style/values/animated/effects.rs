@@ -139,6 +139,7 @@ impl ToAnimatedValue for ComputedTextShadowList {
     }
 }
 
+// FIXME(nox): This could be derived if we implement Animate for bool.
 impl Animate for BoxShadow {
     #[inline]
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
@@ -209,29 +210,5 @@ impl ToAnimatedZero for FilterList {
     #[inline]
     fn to_animated_zero(&self) -> Result<Self, ()> {
         Ok(FilterList(vec![]))
-    }
-}
-
-impl Animate for SimpleShadow {
-    #[inline]
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        Ok(SimpleShadow {
-            color: self.color.animate(&other.color, procedure)?,
-            horizontal: self.horizontal.animate(&other.horizontal, procedure)?,
-            vertical: self.vertical.animate(&other.vertical, procedure)?,
-            blur: self.blur.animate(&other.blur, procedure)?,
-        })
-    }
-}
-
-impl ToAnimatedZero for SimpleShadow {
-    #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> {
-        Ok(SimpleShadow {
-            color: self.color.to_animated_zero()?,
-            horizontal: self.horizontal.to_animated_zero()?,
-            vertical: self.vertical.to_animated_zero()?,
-            blur: self.blur.to_animated_zero()?,
-        })
     }
 }

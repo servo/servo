@@ -122,7 +122,7 @@
             #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
             #[derive(Clone, Debug, PartialEq)]
             % if need_animatable or animation_value_type == "ComputedValue":
-            #[derive(ComputeSquaredDistance)]
+            #[derive(Animate, ComputeSquaredDistance)]
             % endif
             pub struct T(
                 % if allow_empty and allow_empty != "NotInitial":
@@ -133,14 +133,7 @@
             );
 
             % if need_animatable or animation_value_type == "ComputedValue":
-                use values::animated::{Animate, Procedure, ToAnimatedZero};
-
-                impl Animate for T {
-                    #[inline]
-                    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-                        Ok(T(self.0.animate(&other.0, procedure)?))
-                    }
-                }
+                use values::animated::{ToAnimatedZero};
 
                 impl ToAnimatedZero for T {
                     #[inline]

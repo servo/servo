@@ -7,7 +7,8 @@
 
 /// A generic type for representing a CSS [position](https://drafts.csswg.org/css-values/#position).
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, ComputeSquaredDistance, Copy, Debug, HasViewportPercentage, PartialEq, ToComputedValue)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug)]
+#[derive(HasViewportPercentage, PartialEq, ToAnimatedZero, ToComputedValue)]
 pub struct Position<H, V> {
     /// The horizontal component of position.
     pub horizontal: H,

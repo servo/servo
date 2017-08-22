@@ -286,7 +286,7 @@ impl ToComputedValue for specified::CalcLengthOrPercentage {
 
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Copy, PartialEq, ToCss)]
+#[derive(Clone, Copy, PartialEq, ToAnimatedZero, ToCss)]
 pub enum LengthOrPercentage {
     Length(Au),
     Percentage(Percentage),

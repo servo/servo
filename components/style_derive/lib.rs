@@ -9,11 +9,19 @@ extern crate synstructure;
 
 use proc_macro::TokenStream;
 
+mod animate;
 mod compute_squared_distance;
 mod has_viewport_percentage;
 mod to_animated_value;
+mod to_animated_zero;
 mod to_computed_value;
 mod to_css;
+
+#[proc_macro_derive(Animate)]
+pub fn derive_animate(stream: TokenStream) -> TokenStream {
+    let input = syn::parse_derive_input(&stream.to_string()).unwrap();
+    animate::derive(input).to_string().parse().unwrap()
+}
 
 #[proc_macro_derive(ComputeSquaredDistance)]
 pub fn derive_compute_squared_distance(stream: TokenStream) -> TokenStream {
@@ -31,6 +39,12 @@ pub fn derive_has_viewport_percentage(stream: TokenStream) -> TokenStream {
 pub fn derive_to_animated_value(stream: TokenStream) -> TokenStream {
     let input = syn::parse_derive_input(&stream.to_string()).unwrap();
     to_animated_value::derive(input).to_string().parse().unwrap()
+}
+
+#[proc_macro_derive(ToAnimatedZero)]
+pub fn derive_to_animated_zero(stream: TokenStream) -> TokenStream {
+    let input = syn::parse_derive_input(&stream.to_string()).unwrap();
+    to_animated_zero::derive(input).to_string().parse().unwrap()
 }
 
 #[proc_macro_derive(ToComputedValue)]
