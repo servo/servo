@@ -149,7 +149,7 @@ pub struct Node {
 
 bitflags! {
     #[doc = "Flags for node items."]
-    #[derive(JSTraceable, HeapSizeOf)]
+    #[derive(HeapSizeOf, JSTraceable)]
     pub flags NodeFlags: u16 {
         #[doc = "Specifies whether this node is in a document."]
         const IS_IN_DOC = 1 << 0,
@@ -203,7 +203,7 @@ impl Drop for Node {
 /// suppress observers flag
 /// https://dom.spec.whatwg.org/#concept-node-insert
 /// https://dom.spec.whatwg.org/#concept-node-remove
-#[derive(Copy, Clone, HeapSizeOf)]
+#[derive(Clone, Copy, HeapSizeOf)]
 enum SuppressObserver {
     Suppressed,
     Unsuppressed
@@ -1368,7 +1368,7 @@ impl Iterator for TreeIterator {
 }
 
 /// Specifies whether children must be recursively cloned or not.
-#[derive(Copy, Clone, PartialEq, HeapSizeOf)]
+#[derive(Clone, Copy, HeapSizeOf, PartialEq)]
 pub enum CloneChildrenFlag {
     CloneChildren,
     DoNotCloneChildren
@@ -2531,7 +2531,7 @@ impl VirtualMethods for Node {
 }
 
 /// A summary of the changes that happened to a node.
-#[derive(Copy, Clone, PartialEq, HeapSizeOf)]
+#[derive(Clone, Copy, HeapSizeOf, PartialEq)]
 pub enum NodeDamage {
     /// The node's `style` attribute changed.
     NodeStyleDamaged,

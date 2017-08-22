@@ -100,8 +100,8 @@ impl<ColorType: Parse, UrlPaintServer: Parse> Parse for SVGPaint<ColorType, UrlP
 /// A value of <length> | <percentage> | <number> for svg which allow unitless length.
 /// https://www.w3.org/TR/SVG11/painting.html#StrokeProperties
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Copy, Debug, PartialEq, ToCss, HasViewportPercentage)]
-#[derive(ToComputedValue, ToAnimatedValue, ComputeSquaredDistance)]
+#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, ToCss)]
+#[derive(ComputeSquaredDistance, ToAnimatedValue, ToComputedValue)]
 pub enum SvgLengthOrPercentageOrNumber<LengthOrPercentageType, NumberType> {
     /// <length> | <percentage>
     LengthOrPercentage(LengthOrPercentageType),
@@ -157,7 +157,7 @@ pub enum SVGLength<LengthType> {
 
 /// Generic value for stroke-dasharray.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, ComputeSquaredDistance, Debug, PartialEq, HasViewportPercentage, ToAnimatedValue, ToComputedValue)]
+#[derive(Clone, ComputeSquaredDistance, Debug, HasViewportPercentage, PartialEq, ToAnimatedValue, ToComputedValue)]
 pub enum SVGStrokeDashArray<LengthType> {
     /// `[ <length> | <percentage> | <number> ]#`
     Values(Vec<LengthType>),
@@ -191,7 +191,7 @@ impl<LengthType> ToCss for SVGStrokeDashArray<LengthType> where LengthType: ToCs
 /// An SVG opacity value accepts `context-{fill,stroke}-opacity` in
 /// addition to opacity value.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, ComputeSquaredDistance, Copy, Debug, PartialEq, HasViewportPercentage, ToComputedValue, ToCss)]
+#[derive(Clone, ComputeSquaredDistance, Copy, Debug, HasViewportPercentage, PartialEq, ToComputedValue, ToCss)]
 pub enum SVGOpacity<OpacityType> {
     /// `<opacity-value>`
     Opacity(OpacityType),

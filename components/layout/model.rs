@@ -18,7 +18,7 @@ use style::values::computed::{BorderCornerRadius, LengthOrPercentageOrAuto};
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrNone};
 
 /// A collapsible margin. See CSS 2.1 § 8.3.1.
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct AdjoiningMargins {
     /// The value of the greatest positive margin.
     pub most_positive: Au,
@@ -61,7 +61,7 @@ impl AdjoiningMargins {
 }
 
 /// Represents the block-start and block-end margins of a flow with collapsible margins. See CSS 2.1 § 8.3.1.
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub enum CollapsibleMargins {
     /// Margins may not collapse with this flow.
     None(Au, Au),
@@ -295,7 +295,7 @@ impl MarginCollapseInfo {
     }
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub enum MarginCollapseState {
     /// We are accumulating margin on the logical top of this flow.
     AccumulatingCollapsibleTopMargin,
@@ -304,7 +304,7 @@ pub enum MarginCollapseState {
 }
 
 /// Intrinsic inline-sizes, which consist of minimum and preferred.
-#[derive(Serialize, Copy, Clone)]
+#[derive(Clone, Copy, Serialize)]
 pub struct IntrinsicISizes {
     /// The *minimum inline-size* of the content.
     pub minimum_inline_size: Au,
@@ -395,7 +395,7 @@ impl IntrinsicISizesContribution {
 }
 
 /// Useful helper data type when computing values for blocks and positioned elements.
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum MaybeAuto {
     Auto,
     Specified(Au),

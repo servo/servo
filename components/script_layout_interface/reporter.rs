@@ -11,7 +11,7 @@ use servo_url::ServoUrl;
 use std::sync::{Mutex, Arc};
 use style::error_reporting::{ParseErrorReporter, ContextualParseError};
 
-#[derive(HeapSizeOf, Clone)]
+#[derive(Clone, HeapSizeOf)]
 pub struct CSSErrorReporter {
     pub pipelineid: PipelineId,
     // Arc+Mutex combo is necessary to make this struct Sync,

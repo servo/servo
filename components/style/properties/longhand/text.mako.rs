@@ -38,7 +38,7 @@
     pub mod computed_value {
         pub use super::Side;
 
-        #[derive(Debug, Clone, PartialEq)]
+        #[derive(Clone, Debug, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T {
             // When the specified value only has one side, that's the "second"

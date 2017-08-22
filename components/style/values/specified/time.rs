@@ -25,7 +25,7 @@ pub struct Time {
 }
 
 /// A time unit.
-#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Eq, HasViewportPercentage, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum TimeUnit {
     /// `s`

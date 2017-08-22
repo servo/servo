@@ -14,7 +14,7 @@ use values::computed::{ComputedValueAsSpecified, Context, ToComputedValue};
 use values::specified::Integer;
 use values::specified::grid::parse_line_names;
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 /// A `<grid-line>` type.
 ///
@@ -138,7 +138,7 @@ define_css_keyword_enum!{ TrackKeyword:
     "min-content" => MinContent
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 /// A track breadth for explicit grid track sizing. It's generic solely to
 /// avoid re-implementing it for the computed type.
@@ -382,7 +382,7 @@ no_viewport_percentage!(RepeatCount);
 ///
 /// It can also hold `repeat()` function parameters, which expands into the respective
 /// values in its computed form.
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct TrackRepeat<L> {
     /// The number of times for the value to be repeated (could also be `auto-fit` or `auto-fill`)
@@ -508,7 +508,7 @@ impl<L: ToComputedValue> ToComputedValue for TrackRepeat<L> {
 /// The type of a `<track-list>` as determined during parsing.
 ///
 /// https://drafts.csswg.org/css-grid/#typedef-track-list
-#[derive(Clone, Copy, PartialEq, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum TrackListType {
     /// [`<auto-track-list>`](https://drafts.csswg.org/css-grid/#typedef-auto-track-list)
@@ -533,7 +533,7 @@ impl ComputedValueAsSpecified for TrackListType {}
 /// A grid `<track-list>` type.
 ///
 /// https://drafts.csswg.org/css-grid/#typedef-track-list
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct TrackList<T> {
     /// The type of this `<track-list>` (auto, explicit or general).
@@ -601,7 +601,7 @@ impl<T: ToCss> ToCss for TrackList<T> {
 ///
 /// `subgrid [ <line-names> | repeat(<positive-integer> | auto-fill, <line-names>+) ]+`
 /// Old spec: https://www.w3.org/TR/2015/WD-css-grid-1-20150917/#typedef-line-name-list
-#[derive(Clone, PartialEq, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct LineNameList {
     /// The optional `<line-name-list>`
@@ -698,7 +698,7 @@ no_viewport_percentage!(LineNameList);
 /// Variants for `<grid-template-rows> | <grid-template-columns>`
 /// Subgrid deferred to Level 2 spec due to lack of implementation.
 /// But it's implemented in gecko, so we have to as well.
-#[derive(Clone, PartialEq, Debug, ToCss)]
+#[derive(Clone, Debug, PartialEq, ToCss)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum GridTemplateComponent<L> {
     /// `none` value.

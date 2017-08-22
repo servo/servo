@@ -40,7 +40,7 @@
         #[cfg(feature = "gecko")]
         use values::specified::Attr;
 
-        #[derive(Debug, PartialEq, Eq, Clone)]
+        #[derive(Clone, Debug, Eq, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub enum ContentItem {
             /// Literal string content.
@@ -101,7 +101,7 @@
             }
         }
 
-        #[derive(Debug, PartialEq, Eq, Clone)]
+        #[derive(Clone, Debug, Eq, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub enum T {
             Normal,
@@ -240,7 +240,7 @@
     use style_traits::ToCss;
     use values::CustomIdent;
 
-    #[derive(Debug, Clone, PartialEq)]
+    #[derive(Clone, Debug, PartialEq)]
     pub struct SpecifiedValue(pub Vec<(CustomIdent, specified::Integer)>);
 
     pub mod computed_value {
@@ -248,7 +248,7 @@
         use style_traits::ToCss;
         use values::CustomIdent;
 
-        #[derive(Debug, Clone, PartialEq)]
+        #[derive(Clone, Debug, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T(pub Vec<(CustomIdent, i32)>);
 

@@ -562,7 +562,7 @@ impl RunInfo {
 
 /// A mapping from a portion of an unscanned text fragment to the text run we're going to create
 /// for it.
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 struct RunMapping {
     /// The range of byte indices within the text fragment.
     byte_range: Range<usize>,

@@ -382,7 +382,7 @@ impl Drop for WebGLTexture {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Debug, JSTraceable, HeapSizeOf)]
+#[derive(Clone, Copy, Debug, HeapSizeOf, JSTraceable, PartialEq)]
 pub struct ImageInfo {
     width: u32,
     height: u32,

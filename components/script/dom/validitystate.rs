@@ -11,7 +11,7 @@ use dom::window::Window;
 use dom_struct::dom_struct;
 
 // https://html.spec.whatwg.org/multipage/#validity-states
-#[derive(JSTraceable, HeapSizeOf)]
+#[derive(HeapSizeOf, JSTraceable)]
 #[allow(dead_code)]
 pub enum ValidityStatus {
     ValueMissing,

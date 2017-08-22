@@ -24,7 +24,7 @@ use webrender_api::NativeFontHandle;
 /// The identifier is a PostScript font name. The
 /// CTFont object is cached here for use by the
 /// paint functions that create CGFont references.
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct FontTemplateData {
     /// The `CTFont` object, if present. This is cached here so that we don't have to keep creating
     /// `CTFont` instances over and over. It can always be recreated from the `identifier` and/or

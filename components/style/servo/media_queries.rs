@@ -133,7 +133,7 @@ impl Device {
 /// A expression kind servo understands and parses.
 ///
 /// Only `pub` for unit testing, please don't use it directly!
-#[derive(PartialEq, Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum ExpressionKind {
     /// http://dev.w3.org/csswg/mediaqueries-3/#width
@@ -143,7 +143,7 @@ pub enum ExpressionKind {
 /// A single expression a per:
 ///
 /// http://dev.w3.org/csswg/mediaqueries-3/#media1
-#[derive(PartialEq, Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct Expression(ExpressionKind);
 
@@ -221,7 +221,7 @@ impl ToCss for Expression {
 ///
 /// Only public for testing, implementation details of `Expression` may change
 /// for Stylo.
-#[derive(PartialEq, Eq, Copy, Clone, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum Range<T> {
     /// At least the inner value.

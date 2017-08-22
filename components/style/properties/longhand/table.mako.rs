@@ -23,7 +23,7 @@ ${helpers.single_keyword("table-layout", "auto fixed",
         use std::fmt;
         use style_traits::ToCss;
 
-        #[derive(PartialEq, Clone, Copy, Debug)]
+        #[derive(Clone, Copy, Debug, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T(pub i32);
 

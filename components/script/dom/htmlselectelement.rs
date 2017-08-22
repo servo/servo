@@ -37,7 +37,7 @@ use std::iter;
 use style::attr::AttrValue;
 use style::element_state::*;
 
-#[derive(JSTraceable, HeapSizeOf)]
+#[derive(HeapSizeOf, JSTraceable)]
 struct OptionsFilter;
 impl CollectionFilter for OptionsFilter {
     fn filter<'a>(&self, elem: &'a Element, root: &'a Node) -> bool {

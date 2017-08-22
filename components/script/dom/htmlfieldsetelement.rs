@@ -52,7 +52,7 @@ impl HTMLFieldSetElement {
 impl HTMLFieldSetElementMethods for HTMLFieldSetElement {
     // https://html.spec.whatwg.org/multipage/#dom-fieldset-elements
     fn Elements(&self) -> Root<HTMLCollection> {
-        #[derive(JSTraceable, HeapSizeOf)]
+        #[derive(HeapSizeOf, JSTraceable)]
         struct ElementsFilter;
         impl CollectionFilter for ElementsFilter {
             fn filter<'a>(&self, elem: &'a Element, _root: &'a Node) -> bool {

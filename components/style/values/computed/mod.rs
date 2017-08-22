@@ -554,7 +554,7 @@ impl From<Au> for NonNegativeAu {
 
 /// The computed value of a CSS `url()`, resolved relative to the stylesheet URL.
 #[cfg(feature = "servo")]
-#[derive(Clone, Debug, HeapSizeOf, Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, HeapSizeOf, PartialEq, Serialize)]
 pub enum ComputedUrl {
     /// The `url()` was invalid or it wasn't specified by the user.
     Invalid(Arc<String>),

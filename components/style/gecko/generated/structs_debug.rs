@@ -1038,7 +1038,7 @@ pub mod root {
         #[allow(unused_imports)]
         use self::super::super::root;
         #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
+        #[derive(Clone, Copy, Debug)]
         pub struct pair<_T1, _T2> {
             pub first: _T1,
             pub second: _T2,
@@ -1048,7 +1048,7 @@ pub mod root {
         pub type pair_first_type<_T1> = _T1;
         pub type pair_second_type<_T2> = _T2;
         #[repr(C)]
-        #[derive(Debug, Copy)]
+        #[derive(Copy, Debug)]
         pub struct input_iterator_tag {
             pub _address: u8,
         }
@@ -1066,7 +1066,7 @@ pub mod root {
             fn clone(&self) -> Self { *self }
         }
         #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
+        #[derive(Clone, Copy, Debug)]
         pub struct iterator {
             pub _address: u8,
         }
@@ -1076,7 +1076,7 @@ pub mod root {
         pub type iterator_pointer<_Pointer> = _Pointer;
         pub type iterator_reference<_Reference> = _Reference;
         #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
+        #[derive(Clone, Copy, Debug)]
         pub struct atomic {
         }
         pub type _Base_bitset__WordT = ::std::os::raw::c_ulong;
@@ -1097,7 +1097,7 @@ pub mod root {
         #[allow(unused_imports)]
         use self::super::super::root;
         #[repr(C)]
-        #[derive(Debug, Copy)]
+        #[derive(Copy, Debug)]
         pub struct fallible_t {
             pub _address: u8,
         }
@@ -1120,7 +1120,7 @@ pub mod root {
             #[allow(unused_imports)]
             use self::super::super::super::root;
             #[repr(C)]
-            #[derive(Debug, Copy)]
+            #[derive(Copy, Debug)]
             pub struct nsStringRepr {
                 pub mData: *mut root::mozilla::detail::nsStringRepr_char_type,
                 pub mLength: root::mozilla::detail::nsStringRepr_size_type,
@@ -1188,7 +1188,7 @@ pub mod root {
                 fn clone(&self) -> Self { *self }
             }
             #[repr(C)]
-            #[derive(Debug, Copy)]
+            #[derive(Copy, Debug)]
             pub struct nsCStringRepr {
                 pub mData: *mut root::mozilla::detail::nsCStringRepr_char_type,
                 pub mLength: root::mozilla::detail::nsCStringRepr_size_type,
@@ -1260,12 +1260,12 @@ pub mod root {
                 fn clone(&self) -> Self { *self }
             }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Clone, Copy, Debug)]
             pub struct AllocPolicyBasedFreePolicy {
                 pub _address: u8,
             }
             #[repr(u16)]
-            #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+            #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
             pub enum StringDataFlags {
                 TERMINATED = 1,
                 VOIDED = 2,
@@ -1275,13 +1275,13 @@ pub mod root {
                 LITERAL = 32,
             }
             #[repr(u16)]
-            #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+            #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
             pub enum StringClassFlags { FIXED = 1, NULL_TERMINATED = 2, }
             /// LinkedList supports refcounted elements using this adapter class. Clients
             /// using LinkedList<RefPtr<T>> will get a data structure that holds a strong
             /// reference to T as long as T is in the list.
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Clone, Copy, Debug)]
             pub struct LinkedListElementTraits {
                 pub _address: u8,
             }
@@ -1314,13 +1314,13 @@ pub mod root {
                             stringify ! ( mStatementDone ) ));
             }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Clone, Copy, Debug)]
             pub struct WeakReference {
             }
         }
         pub type Conditional_Type<A> = A;
         #[repr(u32)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum ArenaObjectID {
             eArenaObjectID_DummyBeforeFirstObjectID = 173,
             eArenaObjectID_GeckoStyleContext = 174,
@@ -1365,7 +1365,7 @@ pub mod root {
             eArenaObjectID_COUNT = 213,
         }
         #[repr(C)]
-        #[derive(Debug, Copy)]
+        #[derive(Copy, Debug)]
         pub struct MallocAllocPolicy {
             pub _address: u8,
         }
@@ -1394,7 +1394,7 @@ pub mod root {
         /// types), since |delete|-ing such a type will always trigger a compilation
         /// error.
         #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
+        #[derive(Clone, Copy, Debug)]
         pub struct DefaultDelete {
             pub _address: u8,
         }
@@ -1403,7 +1403,7 @@ pub mod root {
                                                            *const ::std::os::raw::c_void)
                                       -> usize>;
         #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
+        #[derive(Clone, Copy, Debug)]
         pub struct ReverseIterator<IteratorT> {
             pub mCurrent: IteratorT,
             pub _phantom_0: ::std::marker::PhantomData<::std::cell::UnsafeCell<IteratorT>>,
@@ -1540,7 +1540,7 @@ pub mod root {
             /// eSafeAgentSheetFeatures when creating the sheet. This enum value allows
             /// Servo backend to recognize the sheets as the agent level, but Gecko
             /// backend will parse it under _author_ level.
-            #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+            #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
             pub enum SheetParsingMode {
                 eAuthorSheetFeatures = 0,
                 eUserSheetFeatures = 1,
@@ -1548,7 +1548,7 @@ pub mod root {
                 eSafeAgentSheetFeatures = 3,
             }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Clone, Copy, Debug)]
             pub struct GroupRule {
                 _unused: [u8; 0],
             }
@@ -1566,7 +1566,7 @@ pub mod root {
             }
             pub type Rule_HasThreadSafeRefCnt = root::mozilla::FalseType;
             #[repr(C)]
-            #[derive(Debug, Copy)]
+            #[derive(Copy, Debug)]
             pub struct Rule_cycleCollection {
                 pub _base: root::nsXPCOMCycleCollectionParticipant,
             }
@@ -1626,7 +1626,7 @@ pub mod root {
                       root::mozilla::css::Rule__bindgen_ty_1 =
                 Rule__bindgen_ty_1::COUNTER_STYLE_RULE;
             #[repr(u32)]
-            #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+            #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
             pub enum Rule__bindgen_ty_1 {
                 UNKNOWN_RULE = 0,
                 CHARSET_RULE = 1,
@@ -1678,7 +1678,7 @@ pub mod root {
                     as Loader_ReferrerPolicy;
             pub type Loader_HasThreadSafeRefCnt = root::mozilla::FalseType;
             #[repr(C)]
-            #[derive(Debug, Copy)]
+            #[derive(Copy, Debug)]
             pub struct Loader_cycleCollection {
                 pub _base: root::nsCycleCollectionParticipant,
             }
@@ -1826,7 +1826,7 @@ pub mod root {
                             "::" , stringify ! ( mSyncCallback ) ));
             }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Clone, Copy, Debug)]
             pub struct ImageLoader {
                 _unused: [u8; 0],
             }
@@ -2073,7 +2073,7 @@ pub mod root {
                             _mOwningThread ) ));
             }
             #[repr(C)]
-            #[derive(Debug, Copy)]
+            #[derive(Copy, Debug)]
             pub struct RGBAColorData {
                 pub mR: f32,
                 pub mG: f32,
@@ -2114,7 +2114,7 @@ pub mod root {
                 fn clone(&self) -> Self { *self }
             }
             #[repr(C)]
-            #[derive(Debug, Copy)]
+            #[derive(Copy, Debug)]
             pub struct ComplexColorData {
                 pub mColor: root::mozilla::css::RGBAColorData,
                 pub mForegroundRatio: f32,
@@ -2203,14 +2203,14 @@ pub mod root {
                             mReusableSheets ) ));
             }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Clone, Copy, Debug)]
             pub struct SheetLoadData {
                 _unused: [u8; 0],
             }
             #[repr(i32)]
             /// Enum defining the type of URL matching function for a @-moz-document rule
             /// condition.
-            #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+            #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
             pub enum URLMatchingFunction {
                 eURL = 0,
                 eURLPrefix = 1,
@@ -2218,7 +2218,7 @@ pub mod root {
                 eRegExp = 3,
             }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Clone, Copy, Debug)]
             pub struct DocumentRule {
                 _unused: [u8; 0],
             }
@@ -2253,7 +2253,7 @@ pub mod root {
             pub _phantom_0: ::std::marker::PhantomData<::std::cell::UnsafeCell<T>>,
         }
         #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
+        #[derive(Clone, Copy, Debug)]
         pub struct StaticRefPtr<T> {
             pub mRawPtr: *mut T,
             pub _phantom_0: ::std::marker::PhantomData<::std::cell::UnsafeCell<T>>,
@@ -2288,7 +2288,7 @@ pub mod root {
                   root::mozilla::LinkedListElement_NodeKind =
             LinkedListElement_NodeKind::Normal;
         #[repr(i32)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum LinkedListElement_NodeKind { Normal = 0, }
         #[repr(C)]
         #[derive(Debug)]
@@ -2303,12 +2303,12 @@ pub mod root {
         pub type LinkedList_ConstClientType =
             root::mozilla::LinkedList_Traits;
         #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
+        #[derive(Clone, Copy, Debug)]
         pub struct LinkedList_Iterator {
             pub mCurrent: root::mozilla::LinkedList_RawType,
         }
         #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
+        #[derive(Clone, Copy, Debug)]
         pub struct Maybe {
         }
         pub type Maybe_ValueType<T> = T;
@@ -2317,7 +2317,7 @@ pub mod root {
             use self::super::super::super::root;
             pub type Float = f32;
             #[repr(C)]
-            #[derive(Debug, Copy)]
+            #[derive(Copy, Debug)]
             pub struct FontVariation {
                 pub mTag: u32,
                 pub mValue: f32,
@@ -2347,7 +2347,7 @@ pub mod root {
                 fn clone(&self) -> Self { *self }
             }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Clone, Copy, Debug)]
             pub struct SourceSurface {
                 _unused: [u8; 0],
             }
@@ -2356,7 +2356,7 @@ pub mod root {
             #[allow(unused_imports)]
             use self::super::super::super::root;
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Clone, Copy, Debug)]
             pub struct LayerManager {
                 _unused: [u8; 0],
             }
@@ -2365,7 +2365,7 @@ pub mod root {
             #[allow(unused_imports)]
             use self::super::super::super::root;
             #[repr(u8)]
-            #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+            #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
             pub enum PlaybackDirection {
                 Normal = 0,
                 Reverse = 1,
@@ -2374,7 +2374,7 @@ pub mod root {
                 EndGuard_ = 4,
             }
             #[repr(u8)]
-            #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+            #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
             pub enum FillMode {
                 None = 0,
                 Forwards = 1,
@@ -2387,7 +2387,7 @@ pub mod root {
                 #[allow(unused_imports)]
                 use self::super::super::super::super::root;
                 #[repr(C)]
-                #[derive(Debug, Copy, Clone)]
+                #[derive(Clone, Copy, Debug)]
                 pub struct RecordEntry<KeyType, ValueType> {
                     pub mKey: KeyType,
                     pub mValue: ValueType,
@@ -2396,7 +2396,7 @@ pub mod root {
                 }
             }
             #[repr(C)]
-            #[derive(Debug, Copy)]
+            #[derive(Copy, Debug)]
             pub struct AllOwningUnionBase {
                 pub _address: u8,
             }
@@ -2415,7 +2415,7 @@ pub mod root {
                 fn clone(&self) -> Self { *self }
             }
             #[repr(u32)]
-            #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+            #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
             pub enum CallerType { System = 0, NonSystem = 1, }
             #[repr(C)]
             #[derive(Debug)]
@@ -2453,15 +2453,15 @@ pub mod root {
                             mGlobalObject ) ));
             }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Clone, Copy, Debug)]
             pub struct Sequence {
             }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Clone, Copy, Debug)]
             pub struct Nullable {
             }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Clone, Copy, Debug)]
             pub struct CSSImportRule {
                 _unused: [u8; 0],
             }
@@ -2476,7 +2476,7 @@ pub mod root {
             }
             pub type MediaList_HasThreadSafeRefCnt = root::mozilla::FalseType;
             #[repr(C)]
-            #[derive(Debug, Copy)]
+            #[derive(Copy, Debug)]
             pub struct MediaList_cycleCollection {
                 pub _base: root::nsXPCOMCycleCollectionParticipant,
             }
@@ -2564,14 +2564,14 @@ pub mod root {
                 pub mServoData: ::gecko_bindings::structs::ServoCell<*mut ::gecko_bindings::structs::ServoNodeData>,
             }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Clone, Copy, Debug)]
             pub struct Element_COMTypeInfo {
                 pub _address: u8,
             }
             /// StyleStateLocks is used to specify which event states should be locked,
             /// and whether they should be locked to on or off.
             #[repr(C)]
-            #[derive(Debug, Copy)]
+            #[derive(Copy, Debug)]
             pub struct Element_StyleStateLocks {
                 pub mLocks: root::mozilla::EventStates,
                 pub mValues: root::mozilla::EventStates,
@@ -2605,7 +2605,7 @@ pub mod root {
                 fn clone(&self) -> Self { *self }
             }
             #[repr(C)]
-            #[derive(Debug, Copy)]
+            #[derive(Copy, Debug)]
             pub struct Element_MappedAttributeEntry {
                 pub attribute: *mut *mut root::nsIAtom,
             }
@@ -2657,7 +2657,7 @@ pub mod root {
                             "::" , stringify ! ( mServoData ) ));
             }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Clone, Copy, Debug)]
             pub struct ShadowRoot {
                 _unused: [u8; 0],
             }
@@ -2668,7 +2668,7 @@ pub mod root {
             /// this struct hold are only valid until the element or its attributes are
             /// mutated (directly or via script).
             #[repr(C)]
-            #[derive(Debug, Copy)]
+            #[derive(Copy, Debug)]
             pub struct BorrowedAttrInfo {
                 pub mName: *const root::nsAttrName,
                 pub mValue: *const root::nsAttrValue,
@@ -2712,7 +2712,7 @@ pub mod root {
             }
             pub type NodeInfo_HasThreadSafeRefCnt = root::mozilla::FalseType;
             #[repr(C)]
-            #[derive(Debug, Copy)]
+            #[derive(Copy, Debug)]
             pub struct NodeInfo_cycleCollection {
                 pub _base: root::nsCycleCollectionParticipant,
             }
@@ -2731,7 +2731,7 @@ pub mod root {
                 fn clone(&self) -> Self { *self }
             }
             #[repr(C)]
-            #[derive(Debug, Copy)]
+            #[derive(Copy, Debug)]
             pub struct NodeInfo_NodeInfoInner {
                 pub mName: *const root::nsIAtom,
                 pub mPrefix: *mut root::nsIAtom,
@@ -2874,7 +2874,7 @@ pub mod root {
                 pub _base_1: root::nsWrapperCache,
             }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Clone, Copy, Debug)]
             pub struct EventTarget_COMTypeInfo {
                 pub _address: u8,
             }
@@ -2888,22 +2888,22 @@ pub mod root {
                             "Alignment of " , stringify ! ( EventTarget ) ));
             }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Clone, Copy, Debug)]
             pub struct BoxQuadOptions {
                 _unused: [u8; 0],
             }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Clone, Copy, Debug)]
             pub struct ConvertCoordinateOptions {
                 _unused: [u8; 0],
             }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Clone, Copy, Debug)]
             pub struct DOMPoint {
                 _unused: [u8; 0],
             }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Clone, Copy, Debug)]
             pub struct DOMQuad {
                 _unused: [u8; 0],
             }
@@ -2919,7 +2919,7 @@ pub mod root {
             pub type DOMRectReadOnly_HasThreadSafeRefCnt =
                 root::mozilla::FalseType;
             #[repr(C)]
-            #[derive(Debug, Copy)]
+            #[derive(Copy, Debug)]
             pub struct DOMRectReadOnly_cycleCollection {
                 pub _base: root::nsXPCOMCycleCollectionParticipant,
             }
@@ -2960,14 +2960,14 @@ pub mod root {
                 pub mValue: root::mozilla::dom::OwningNodeOrString_Value,
             }
             #[repr(u32)]
-            #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+            #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
             pub enum OwningNodeOrString_Type {
                 eUninitialized = 0,
                 eNode = 1,
                 eString = 2,
             }
             #[repr(C)]
-            #[derive(Debug, Copy)]
+            #[derive(Copy, Debug)]
             pub struct OwningNodeOrString_Value {
                 pub _bindgen_opaque_blob: [u64; 2usize],
             }
@@ -3011,24 +3011,24 @@ pub mod root {
                             ) ));
             }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Clone, Copy, Debug)]
             pub struct TextOrElementOrDocument {
                 _unused: [u8; 0],
             }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Clone, Copy, Debug)]
             pub struct DOMPointInit {
                 _unused: [u8; 0],
             }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Clone, Copy, Debug)]
             pub struct TabGroup {
                 _unused: [u8; 0],
             }
             #[repr(C)]
             pub struct DispatcherTrait__bindgen_vtable(::std::os::raw::c_void);
             #[repr(C)]
-            #[derive(Debug, Copy)]
+            #[derive(Copy, Debug)]
             pub struct DispatcherTrait {
                 pub vtable_: *const DispatcherTrait__bindgen_vtable,
             }
@@ -3053,7 +3053,7 @@ pub mod root {
                 pub mOlder: *mut root::mozilla::dom::ScriptSettingsStackEntry,
             }
             #[repr(u32)]
-            #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+            #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
             pub enum ScriptSettingsStackEntry_Type {
                 eEntryScript = 0,
                 eIncumbentScript = 1,
@@ -3229,27 +3229,27 @@ pub mod root {
                             mCallerOverride ) ));
             }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Clone, Copy, Debug)]
             pub struct AudioContext {
                 _unused: [u8; 0],
             }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Clone, Copy, Debug)]
             pub struct DocGroup {
                 _unused: [u8; 0],
             }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Clone, Copy, Debug)]
             pub struct ServiceWorkerRegistration {
                 _unused: [u8; 0],
             }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Clone, Copy, Debug)]
             pub struct TimeoutManager {
                 _unused: [u8; 0],
             }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Clone, Copy, Debug)]
             pub struct PrefSetting {
                 _unused: [u8; 0],
             }
@@ -3265,14 +3265,14 @@ pub mod root {
                 pub mIncumbentJSGlobal: root::JS::TenuredHeap,
             }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Clone, Copy, Debug)]
             pub struct CallbackObject_COMTypeInfo {
                 pub _address: u8,
             }
             pub type CallbackObject_HasThreadSafeRefCnt =
                 root::mozilla::FalseType;
             #[repr(C)]
-            #[derive(Debug, Copy)]
+            #[derive(Copy, Debug)]
             pub struct CallbackObject_cycleCollection {
                 pub _base: root::nsXPCOMCycleCollectionParticipant,
             }
@@ -3291,7 +3291,7 @@ pub mod root {
                 fn clone(&self) -> Self { *self }
             }
             #[repr(u32)]
-            #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+            #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
             pub enum CallbackObject_ExceptionHandling {
                 eReportExceptions = 0,
                 eRethrowContentExceptions = 1,
@@ -3322,7 +3322,7 @@ pub mod root {
                             stringify ! ( mHolder ) ));
             }
             #[repr(C)]
-            #[derive(Debug, Copy)]
+            #[derive(Copy, Debug)]
             pub struct CallbackObject_FastCallbackConstructor {
                 pub _address: u8,
             }
@@ -3528,7 +3528,7 @@ pub mod root {
                 use self::super::super::super::super::root;
             }
             #[repr(u8)]
-            #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+            #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
             pub enum VisibilityState {
                 Hidden = 0,
                 Visible = 1,
@@ -3536,12 +3536,12 @@ pub mod root {
                 EndGuard_ = 3,
             }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Clone, Copy, Debug)]
             pub struct Animation {
                 _unused: [u8; 0],
             }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Clone, Copy, Debug)]
             pub struct AnonymousContent {
                 _unused: [u8; 0],
             }
@@ -3556,7 +3556,7 @@ pub mod root {
             }
             pub type Attr_HasThreadSafeRefCnt = root::mozilla::FalseType;
             #[repr(C)]
-            #[derive(Debug, Copy)]
+            #[derive(Copy, Debug)]
             pub struct Attr_cycleCollection {
                 pub _base: root::nsXPCOMCycleCollectionParticipant,
             }
@@ -3610,7 +3610,7 @@ pub mod root {
             pub type DOMIntersectionObserver_HasThreadSafeRefCnt =
                 root::mozilla::FalseType;
             #[repr(C)]
-            #[derive(Debug, Copy)]
+            #[derive(Copy, Debug)]
             pub struct DOMIntersectionObserver_cycleCollection {
                 pub _base: root::nsXPCOMCycleCollectionParticipant,
             }
@@ -3629,7 +3629,7 @@ pub mod root {
                 fn clone(&self) -> Self { *self }
             }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Clone, Copy, Debug)]
             pub struct DOMIntersectionObserver_COMTypeInfo {
                 pub _address: u8,
             }
@@ -3651,7 +3651,7 @@ pub mod root {
                             DOMIntersectionObserver ) ));
             }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Clone, Copy, Debug)]
             pub struct FontFaceSet {
                 _unused: [u8; 0],
             }
@@ -3672,27 +3672,27 @@ pub mod root {
                             FrameRequestCallback ) ));
             }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Clone, Copy, Debug)]
             pub struct FullscreenRequest {
                 _unused: [u8; 0],
             }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Clone, Copy, Debug)]
             pub struct ImageTracker {
                 _unused: [u8; 0],
             }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Clone, Copy, Debug)]
             pub struct Link {
                 _unused: [u8; 0],
             }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Clone, Copy, Debug)]
             pub struct MediaQueryList {
                 _unused: [u8; 0],
             }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Clone, Copy, Debug)]
             pub struct XPathEvaluator {
                 _unused: [u8; 0],
             }
@@ -3707,7 +3707,7 @@ pub mod root {
             #[repr(C)]
             pub struct URLParams_ForEachIterator__bindgen_vtable(::std::os::raw::c_void);
             #[repr(C)]
-            #[derive(Debug, Copy)]
+            #[derive(Copy, Debug)]
             pub struct URLParams_ForEachIterator {
                 pub vtable_: *const URLParams_ForEachIterator__bindgen_vtable,
             }
@@ -3799,7 +3799,7 @@ pub mod root {
                             StyleChildrenIterator ) ));
             }
             #[repr(u8)]
-            #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+            #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
             pub enum CompositeOperation {
                 Replace = 0,
                 Add = 1,
@@ -3807,19 +3807,19 @@ pub mod root {
                 EndGuard_ = 3,
             }
             #[repr(u8)]
-            #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+            #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
             pub enum IterationCompositeOperation {
                 Replace = 0,
                 Accumulate = 1,
                 EndGuard_ = 2,
             }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Clone, Copy, Debug)]
             pub struct XBLChildrenElement {
                 _unused: [u8; 0],
             }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Clone, Copy, Debug)]
             pub struct CustomElementData {
                 _unused: [u8; 0],
             }
@@ -3835,7 +3835,7 @@ pub mod root {
             pub type FragmentOrElement_HasThreadSafeRefCnt =
                 root::mozilla::FalseType;
             #[repr(C)]
-            #[derive(Debug, Copy)]
+            #[derive(Copy, Debug)]
             pub struct FragmentOrElement_cycleCollection {
                 pub _base: root::nsXPCOMCycleCollectionParticipant,
             }
@@ -4174,7 +4174,7 @@ pub mod root {
             pub type DOMIntersectionObserverEntry_HasThreadSafeRefCnt =
                 root::mozilla::FalseType;
             #[repr(C)]
-            #[derive(Debug, Copy)]
+            #[derive(Copy, Debug)]
             pub struct DOMIntersectionObserverEntry_cycleCollection {
                 pub _base: root::nsXPCOMCycleCollectionParticipant,
             }
@@ -4227,7 +4227,7 @@ pub mod root {
                             IntersectionCallback ) ));
             }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Clone, Copy, Debug)]
             pub struct Grid {
                 _unused: [u8; 0],
             }
@@ -4337,7 +4337,7 @@ pub mod root {
                 pub mMutationGuard: root::nsMutationGuard,
             }
             #[repr(u32)]
-            #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+            #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
             pub enum AllChildrenIterator_IteratorPhase {
                 eAtBegin = 0,
                 eAtBeforeKid = 1,
@@ -4480,7 +4480,7 @@ pub mod root {
                         ) ));
         }
         #[repr(u8)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum SheetType {
             Agent = 0,
             User = 1,
@@ -4500,7 +4500,7 @@ pub mod root {
         /// where p is mForegroundRatio. See mozilla::LinearBlendColors for
         /// the actual algorithm.
         #[repr(C)]
-        #[derive(Debug, Copy)]
+        #[derive(Copy, Debug)]
         pub struct StyleComplexColor {
             pub mColor: root::nscolor,
             pub mForegroundRatio: u8,
@@ -4539,7 +4539,7 @@ pub mod root {
             fn clone(&self) -> Self { *self }
         }
         #[repr(u32)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum Side {
             eSideTop = 0,
             eSideRight = 1,
@@ -4547,7 +4547,7 @@ pub mod root {
             eSideLeft = 3,
         }
         #[repr(u32)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum HalfCorner {
             eCornerTopLeftX = 0,
             eCornerTopLeftY = 1,
@@ -4571,7 +4571,7 @@ pub mod root {
         /// type of font family name, either a name (e.g. Helvetica) or a
         /// generic (e.g. serif, sans-serif), with the ability to distinguish
         /// between unquoted and quoted names for serializaiton
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum FontFamilyType {
             eFamily_none = 0,
             eFamily_named = 1,
@@ -4641,7 +4641,7 @@ pub mod root {
                         ) , "::" , stringify ! ( mDefaultFontType ) ));
         }
         #[repr(u8)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum StyleBasicShapeType {
             Polygon = 0,
             Circle = 1,
@@ -4649,7 +4649,7 @@ pub mod root {
             Inset = 3,
         }
         #[repr(u8)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum StyleBoxAlign {
             Stretch = 0,
             Start = 1,
@@ -4658,22 +4658,22 @@ pub mod root {
             End = 4,
         }
         #[repr(u8)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum StyleBoxDecorationBreak { Slice = 0, Clone = 1, }
         #[repr(u8)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum StyleBoxDirection { Normal = 0, Reverse = 1, }
         #[repr(u8)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum StyleBoxOrient { Horizontal = 0, Vertical = 1, }
         #[repr(u8)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum StyleBoxPack { Start = 0, Center = 1, End = 2, Justify = 3, }
         #[repr(u8)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum StyleBoxSizing { Content = 0, Border = 1, }
         #[repr(u8)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum StyleClear {
             None = 0,
             Left = 1,
@@ -4685,7 +4685,7 @@ pub mod root {
             Max = 13,
         }
         #[repr(u8)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum StyleGeometryBox {
             ContentBox = 0,
             PaddingBox = 1,
@@ -4700,10 +4700,10 @@ pub mod root {
             MozAlmostPadding = 127,
         }
         #[repr(u8)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum StyleFillRule { Nonzero = 0, Evenodd = 1, }
         #[repr(u8)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum StyleFloat {
             None = 0,
             Left = 1,
@@ -4712,16 +4712,16 @@ pub mod root {
             InlineEnd = 4,
         }
         #[repr(u8)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum StyleFloatEdge { ContentBox = 0, MarginBox = 1, }
         #[repr(u8)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum StyleHyphens { None = 0, Manual = 1, Auto = 2, }
         #[repr(u8)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum StyleShapeRadius { ClosestSide = 0, FarthestSide = 1, }
         #[repr(u8)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum StyleShapeSourceType {
             None = 0,
             URL = 1,
@@ -4729,7 +4729,7 @@ pub mod root {
             Box = 3,
         }
         #[repr(u8)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum StyleStackSizing {
             Ignore = 0,
             StretchToFit = 1,
@@ -4737,7 +4737,7 @@ pub mod root {
             IgnoreVertical = 3,
         }
         #[repr(u8)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum StyleTextJustify {
             None = 0,
             Auto = 1,
@@ -4745,7 +4745,7 @@ pub mod root {
             InterCharacter = 3,
         }
         #[repr(u8)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum StyleUserFocus {
             None = 0,
             Ignore = 1,
@@ -4757,7 +4757,7 @@ pub mod root {
             SelectMenu = 7,
         }
         #[repr(u8)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum StyleUserSelect {
             None = 0,
             Text = 1,
@@ -4771,7 +4771,7 @@ pub mod root {
             MozText = 9,
         }
         #[repr(u8)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum StyleUserInput {
             None = 0,
             Enabled = 1,
@@ -4779,17 +4779,17 @@ pub mod root {
             Auto = 3,
         }
         #[repr(u8)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum StyleUserModify {
             ReadOnly = 0,
             ReadWrite = 1,
             WriteOnly = 2,
         }
         #[repr(u8)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum StyleWindowDragging { Default = 0, Drag = 1, NoDrag = 2, }
         #[repr(u8)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum StyleOrient {
             Inline = 0,
             Block = 1,
@@ -4797,7 +4797,7 @@ pub mod root {
             Vertical = 3,
         }
         #[repr(u8)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum StyleImageLayerRepeat {
             NoRepeat = 0,
             RepeatX = 1,
@@ -4807,7 +4807,7 @@ pub mod root {
             Round = 5,
         }
         #[repr(u8)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum StyleDisplay {
             None = 0,
             Block = 1,
@@ -4850,10 +4850,10 @@ pub mod root {
             MozPopup = 38,
         }
         #[repr(u8)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum StyleGridTrackBreadth { MaxContent = 1, MinContent = 2, }
         #[repr(u8)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum StyleWhiteSpace {
             Normal = 0,
             Pre = 1,
@@ -4863,22 +4863,22 @@ pub mod root {
             PreSpace = 5,
         }
         #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
+        #[derive(Clone, Copy, Debug)]
         pub struct NotNull<T> {
             pub mBasePtr: T,
             pub _phantom_0: ::std::marker::PhantomData<::std::cell::UnsafeCell<T>>,
         }
         #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
+        #[derive(Clone, Copy, Debug)]
         pub struct WeakPtr {
         }
         pub type WeakPtr_WeakReference = u8;
         #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
+        #[derive(Clone, Copy, Debug)]
         pub struct SupportsWeakPtr {
         }
         #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
+        #[derive(Clone, Copy, Debug)]
         pub struct ShortcutKeyCandidate {
             _unused: [u8; 0],
         }
@@ -4888,7 +4888,7 @@ pub mod root {
         /// informing the layout/style engine of the change.
         /// Event states are associated with pseudo-classes.
         #[repr(C)]
-        #[derive(Debug, Copy)]
+        #[derive(Copy, Debug)]
         pub struct EventStates {
             pub mStates: root::mozilla::EventStates_InternalType,
         }
@@ -4942,7 +4942,7 @@ pub mod root {
             256;
         pub type ServoTraversalFlags = u32;
         #[repr(i32)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum StyleRuleInclusion { All = 0, DefaultOnly = 1, }
         pub const UpdateAnimationsTasks_CSSAnimations:
                   root::mozilla::UpdateAnimationsTasks =
@@ -4966,14 +4966,14 @@ pub mod root {
             2;
         pub type ParsingMode = u8;
         #[repr(i32)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum InheritTarget {
             Text = 0,
             FirstLetterContinuation = 1,
             PlaceholderFrame = 2,
         }
         #[repr(u32)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum ServoKeywordSize {
             Empty = 0,
             XXSmall = 1,
@@ -5456,7 +5456,7 @@ pub mod root {
         }
         #[repr(u8)]
         /// Enumeration that represents one of the two supported style system backends.
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum StyleBackendType { None = 0, Gecko = 1, Servo = 2, }
         pub type TimeStampValue = u64;
         /// Instances of this class represent moments in time, or a special
@@ -5488,7 +5488,7 @@ pub mod root {
         /// time_since_epoch() method that functions similiarly. i.e.
         /// t.IsNull() is equivalent to t.time_since_epoch() == decltype(t)::duration::zero();
         #[repr(C)]
-        #[derive(Debug, Copy)]
+        #[derive(Copy, Debug)]
         pub struct TimeStamp {
             /// When built with PRIntervalTime, a value of 0 means this instance
             /// is "null". Otherwise, the low 32 bits represent a PRIntervalTime,
@@ -5530,18 +5530,18 @@ pub mod root {
         /// The ValueCalculator template parameter determines how arithmetic
         /// operations are performed on the integer count of ticks (mValue).
         #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
+        #[derive(Clone, Copy, Debug)]
         pub struct BaseTimeDuration {
             pub mValue: i64,
         }
         #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
+        #[derive(Clone, Copy, Debug)]
         pub struct BaseTimeDuration__SomethingVeryRandomHere {
             pub _address: u8,
         }
         pub type Vector_Impl = u8;
         #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
+        #[derive(Clone, Copy, Debug)]
         pub struct Vector_CapacityAndReserved {
             pub mCapacity: usize,
             pub mReserved: usize,
@@ -5550,24 +5550,24 @@ pub mod root {
         pub const Vector_InlineLength: root::mozilla::Vector__bindgen_ty_1 =
             Vector__bindgen_ty_1::InlineLength;
         #[repr(i32)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum Vector__bindgen_ty_1 { InlineLength = 0, }
         #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
+        #[derive(Clone, Copy, Debug)]
         pub struct Vector_Range<T> {
             pub mCur: *mut T,
             pub mEnd: *mut T,
             pub _phantom_0: ::std::marker::PhantomData<::std::cell::UnsafeCell<T>>,
         }
         #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
+        #[derive(Clone, Copy, Debug)]
         pub struct Vector_ConstRange<T> {
             pub mCur: *mut T,
             pub mEnd: *mut T,
             pub _phantom_0: ::std::marker::PhantomData<::std::cell::UnsafeCell<T>>,
         }
         #[repr(C)]
-        #[derive(Debug, Copy)]
+        #[derive(Copy, Debug)]
         pub struct ErrorResult {
             pub _bindgen_opaque_blob: [u64; 4usize],
         }
@@ -5615,20 +5615,20 @@ pub mod root {
                       root::mozilla::binding_danger::TErrorResult_UnionState =
                 TErrorResult_UnionState::HasMessage;
             #[repr(i32)]
-            #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+            #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
             pub enum TErrorResult_UnionState { HasMessage = 0, }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Clone, Copy, Debug)]
             pub struct TErrorResult_Message {
                 pub _address: u8,
             }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Clone, Copy, Debug)]
             pub struct TErrorResult_DOMExceptionInfo {
                 pub _address: u8,
             }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Clone, Copy, Debug)]
             pub struct TErrorResult__bindgen_ty_1 {
                 pub mMessage: root::__BindgenUnionField<*mut root::mozilla::binding_danger::TErrorResult_Message>,
                 pub mJSException: root::__BindgenUnionField<root::JS::Value>,
@@ -5636,7 +5636,7 @@ pub mod root {
                 pub bindgen_union_field: u64,
             }
             #[repr(C)]
-            #[derive(Debug, Copy)]
+            #[derive(Copy, Debug)]
             pub struct AssertAndSuppressCleanupPolicy {
                 pub _address: u8,
             }
@@ -5684,7 +5684,7 @@ pub mod root {
         }
         pub type StyleSheet_HasThreadSafeRefCnt = root::mozilla::FalseType;
         #[repr(C)]
-        #[derive(Debug, Copy)]
+        #[derive(Copy, Debug)]
         pub struct StyleSheet_cycleCollection {
             pub _base: root::nsXPCOMCycleCollectionParticipant,
         }
@@ -5707,7 +5707,7 @@ pub mod root {
         ///
         /// Used by the StyleSets in order to handle more efficiently some kinds of
         /// changes.
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum StyleSheet_ChangeType {
             Added = 0,
             Removed = 1,
@@ -5717,13 +5717,13 @@ pub mod root {
             RuleChanged = 5,
         }
         #[repr(u8)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum StyleSheet_DocumentAssociationMode {
             OwnedByDocument = 0,
             NotOwnedByDocument = 1,
         }
         #[repr(C)]
-        #[derive(Debug, Copy)]
+        #[derive(Copy, Debug)]
         pub struct StyleSheet_ChildSheetListBuilder {
             pub sheetSlot: *mut root::RefPtr<root::mozilla::StyleSheet>,
             pub parent: *mut root::mozilla::StyleSheet,
@@ -5773,7 +5773,7 @@ pub mod root {
             #[allow(unused_imports)]
             use self::super::super::super::root;
             #[repr(u32)]
-            #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+            #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
             pub enum ReferrerPolicy {
                 RP_No_Referrer = 2,
                 RP_Origin = 3,
@@ -5787,7 +5787,7 @@ pub mod root {
             }
         }
         #[repr(u8)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum CORSMode {
             CORS_NONE = 0,
             CORS_ANONYMOUS = 1,
@@ -5805,7 +5805,7 @@ pub mod root {
         pub use self::super::super::root::mozilla::net::ReferrerPolicy as
                 CSSStyleSheet_ReferrerPolicy;
         #[repr(C)]
-        #[derive(Debug, Copy)]
+        #[derive(Copy, Debug)]
         pub struct CSSStyleSheet_cycleCollection {
             pub _base: root::mozilla::StyleSheet_cycleCollection,
         }
@@ -5824,7 +5824,7 @@ pub mod root {
             fn clone(&self) -> Self { *self }
         }
         #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
+        #[derive(Clone, Copy, Debug)]
         pub struct CSSStyleSheet_COMTypeInfo {
             pub _address: u8,
         }
@@ -5873,7 +5873,7 @@ pub mod root {
             pub mRuleList: root::RefPtr<root::mozilla::ServoCSSRuleList>,
         }
         #[repr(C)]
-        #[derive(Debug, Copy)]
+        #[derive(Copy, Debug)]
         pub struct ServoStyleSheet_cycleCollection {
             pub _base: root::mozilla::StyleSheet_cycleCollection,
         }
@@ -5892,7 +5892,7 @@ pub mod root {
             fn clone(&self) -> Self { *self }
         }
         #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
+        #[derive(Clone, Copy, Debug)]
         pub struct ServoStyleSheet_COMTypeInfo {
             pub _address: u8,
         }
@@ -5919,12 +5919,12 @@ pub mod root {
         /// Smart pointer class that can hold a pointer to either an nsStyleSet
         /// or a ServoStyleSet.
         #[repr(C)]
-        #[derive(Debug, Copy)]
+        #[derive(Copy, Debug)]
         pub struct StyleSetHandle {
             pub mPtr: root::mozilla::StyleSetHandle_Ptr,
         }
         #[repr(C)]
-        #[derive(Debug, Copy)]
+        #[derive(Copy, Debug)]
         pub struct StyleSetHandle_Ptr {
             pub mValue: usize,
         }
@@ -6060,7 +6060,7 @@ pub mod root {
                         ) , "::" , stringify ! ( mPrincipalSet ) ));
         }
         #[repr(i32)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum CSSEnabledState {
             eForAllContent = 0,
             eInUASheets = 1,
@@ -6072,7 +6072,7 @@ pub mod root {
                   root::mozilla::CSSPseudoElementType =
             CSSPseudoElementType::Count;
         #[repr(u8)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum CSSPseudoElementType {
             after = 0,
             before = 1,
@@ -6106,7 +6106,7 @@ pub mod root {
             MAX = 29,
         }
         #[repr(C)]
-        #[derive(Debug, Copy)]
+        #[derive(Copy, Debug)]
         pub struct SeenPtrs {
             pub _bindgen_opaque_blob: [u64; 6usize],
         }
@@ -6187,13 +6187,13 @@ pub mod root {
             #[allow(unused_imports)]
             use self::super::super::super::root;
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Clone, Copy, Debug)]
             pub struct IMEState {
                 _unused: [u8; 0],
             }
         }
         #[repr(C)]
-        #[derive(Debug, Copy)]
+        #[derive(Copy, Debug)]
         pub struct ArenaAllocator_ArenaHeader {
             /// The location in memory of the data portion of the arena.
             pub offset: usize,
@@ -6204,7 +6204,7 @@ pub mod root {
             fn clone(&self) -> Self { *self }
         }
         #[repr(C)]
-        #[derive(Debug, Copy)]
+        #[derive(Copy, Debug)]
         pub struct ArenaAllocator_ArenaChunk {
             pub header: root::mozilla::ArenaAllocator_ArenaHeader,
             pub next: *mut root::mozilla::ArenaAllocator_ArenaChunk,
@@ -6216,13 +6216,13 @@ pub mod root {
             #[allow(unused_imports)]
             use self::super::super::super::root;
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Clone, Copy, Debug)]
             pub struct DocAccessible {
                 _unused: [u8; 0],
             }
         }
         #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
+        #[derive(Clone, Copy, Debug)]
         pub struct Encoding {
             _unused: [u8; 0],
         }
@@ -6281,7 +6281,7 @@ pub mod root {
                         "::" , stringify ! ( mRecursionDepth ) ));
         }
         #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
+        #[derive(Clone, Copy, Debug)]
         pub struct SegmentedVector_SegmentImpl_Storage {
             pub mBuf: root::__BindgenUnionField<*mut ::std::os::raw::c_char>,
             pub mAlign: root::__BindgenUnionField<u8>,
@@ -6289,13 +6289,13 @@ pub mod root {
         }
         pub type SegmentedVector_Segment = u8;
         #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
+        #[derive(Clone, Copy, Debug)]
         pub struct SegmentedVector_IterImpl {
             pub mSegment: *mut root::mozilla::SegmentedVector_Segment,
             pub mIndex: usize,
         }
         #[repr(i16)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum UseCounter {
             eUseCounter_UNKNOWN = -1,
             eUseCounter_SVGSVGElement_getElementById = 0,
@@ -6614,7 +6614,7 @@ pub mod root {
         pub type EffectCompositor_HasThreadSafeRefCnt =
             root::mozilla::FalseType;
         #[repr(C)]
-        #[derive(Debug, Copy)]
+        #[derive(Copy, Debug)]
         pub struct EffectCompositor_cycleCollection {
             pub _base: root::nsCycleCollectionParticipant,
         }
@@ -6633,13 +6633,13 @@ pub mod root {
             fn clone(&self) -> Self { *self }
         }
         #[repr(u32)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum EffectCompositor_CascadeLevel {
             Animations = 0,
             Transitions = 1,
         }
         #[repr(i32)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum EffectCompositor_RestyleType {
             Throttled = 0,
             Standard = 1,
@@ -6764,7 +6764,7 @@ pub mod root {
                         mRuleProcessors ) ));
         }
         #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
+        #[derive(Clone, Copy, Debug)]
         pub struct EventStateManager {
             _unused: [u8; 0],
         }
@@ -6823,12 +6823,12 @@ pub mod root {
                         mRetiredStyles ) ));
         }
         #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
+        #[derive(Clone, Copy, Debug)]
         pub struct RestyleManager {
             _unused: [u8; 0],
         }
         #[repr(C)]
-        #[derive(Debug, Copy)]
+        #[derive(Copy, Debug)]
         pub struct XREAppData_NSFreePolicy {
             pub _address: u8,
         }
@@ -6850,17 +6850,17 @@ pub mod root {
             #[allow(unused_imports)]
             use self::super::super::super::root;
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Clone, Copy, Debug)]
             pub struct ImageURL {
                 _unused: [u8; 0],
             }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Clone, Copy, Debug)]
             pub struct Image {
                 _unused: [u8; 0],
             }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Clone, Copy, Debug)]
             pub struct ProgressTracker {
                 _unused: [u8; 0],
             }
@@ -6896,7 +6896,7 @@ pub mod root {
         #[repr(C)]
         pub struct CounterStyle__bindgen_vtable(::std::os::raw::c_void);
         #[repr(C)]
-        #[derive(Debug, Copy)]
+        #[derive(Copy, Debug)]
         pub struct CounterStyle {
             pub vtable_: *const CounterStyle__bindgen_vtable,
             pub mStyle: i32,
@@ -6924,7 +6924,7 @@ pub mod root {
             pub mRaw: usize,
         }
         #[repr(u64)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum CounterStylePtr_Type {
             eCounterStyle = 0,
             eAnonymousCounterStyle = 1,
@@ -6946,7 +6946,7 @@ pub mod root {
                         ) , "::" , stringify ! ( mRaw ) ));
         }
         #[repr(C)]
-        #[derive(Debug, Copy)]
+        #[derive(Copy, Debug)]
         pub struct Position {
             pub mXPosition: root::mozilla::Position_Coord,
             pub mYPosition: root::mozilla::Position_Coord,
@@ -7140,7 +7140,7 @@ pub mod root {
             pub mReferenceBox: root::mozilla::StyleGeometryBox,
         }
         #[repr(C)]
-        #[derive(Debug, Copy)]
+        #[derive(Copy, Debug)]
         pub struct StyleShapeSource__bindgen_ty_1 {
             pub mBasicShape: root::__BindgenUnionField<*mut root::mozilla::StyleBasicShape>,
             pub mURL: root::__BindgenUnionField<*mut root::mozilla::css::URLValue>,
@@ -7199,7 +7199,7 @@ pub mod root {
         /// TODO(Emilio): This is a workaround and we should be able to get rid of this
         /// one.
         #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
+        #[derive(Clone, Copy, Debug)]
         pub struct UniquePtr<T> {
             pub mPtr: *mut T,
             pub _phantom_0: ::std::marker::PhantomData<::std::cell::UnsafeCell<T>>,
@@ -8198,7 +8198,7 @@ pub mod root {
             pub mBeforeFlag: root::mozilla::ComputedTimingFunction_BeforeFlag,
         }
         #[repr(i32)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum ComputedTiming_AnimationPhase {
             Idle = 0,
             Before = 1,
@@ -8447,7 +8447,7 @@ pub mod root {
             }
         }
         #[repr(C)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub struct OriginFlags(pub u8);
         #[test]
         fn __bindgen_test_layout_DefaultDelete_open0_RawServoStyleSet_close0_instantiation() {
@@ -8462,13 +8462,13 @@ pub mod root {
         }
         /// Utility class to handle animated style values
         #[repr(C)]
-        #[derive(Debug, Copy)]
+        #[derive(Copy, Debug)]
         pub struct StyleAnimationValue {
             pub _bindgen_opaque_blob: [u64; 2usize],
         }
         #[repr(u32)]
         /// The types and values for the values that we extract and animate.
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum StyleAnimationValue_Unit {
             eUnit_Null = 0,
             eUnit_Normal = 1,
@@ -8500,7 +8500,7 @@ pub mod root {
             eUnit_UnparsedString = 27,
         }
         #[repr(C)]
-        #[derive(Debug, Copy)]
+        #[derive(Copy, Debug)]
         pub struct StyleAnimationValue__bindgen_ty_1 {
             pub mInt: root::__BindgenUnionField<i32>,
             pub mCoord: root::__BindgenUnionField<root::nscoord>,
@@ -8633,27 +8633,27 @@ pub mod root {
             fn clone(&self) -> Self { *self }
         }
         #[repr(u32)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum StyleAnimationValue_IntegerConstructorType {
             IntegerConstructor = 0,
         }
         #[repr(u32)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum StyleAnimationValue_CoordConstructorType {
             CoordConstructor = 0,
         }
         #[repr(u32)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum StyleAnimationValue_PercentConstructorType {
             PercentConstructor = 0,
         }
         #[repr(u32)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum StyleAnimationValue_FloatConstructorType {
             FloatConstructor = 0,
         }
         #[repr(u32)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum StyleAnimationValue_ColorConstructorType {
             ColorConstructor = 0,
         }
@@ -8696,7 +8696,7 @@ pub mod root {
                         ) , "::" , stringify ! ( mServo ) ));
         }
         #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
+        #[derive(Clone, Copy, Debug)]
         pub struct ServoCSSRuleList {
             _unused: [u8; 0],
         }
@@ -8750,7 +8750,7 @@ pub mod root {
                   =
             URIPrincipalReferrerPolicyAndCORSModeHashKey__bindgen_ty_1::ALLOW_MEMMOVE;
         #[repr(u32)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum URIPrincipalReferrerPolicyAndCORSModeHashKey__bindgen_ty_1 {
             ALLOW_MEMMOVE = 1,
         }
@@ -8796,14 +8796,14 @@ pub mod root {
                         , stringify ! ( mReferrerPolicy ) ));
         }
         #[repr(C)]
-        #[derive(Debug, Copy)]
+        #[derive(Copy, Debug)]
         pub struct ComputedTimingFunction {
             pub mType: root::nsTimingFunction_Type,
             pub mTimingFunction: root::nsSMILKeySpline,
             pub mStepsOrFrames: u32,
         }
         #[repr(i32)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum ComputedTimingFunction_BeforeFlag { Unset = 0, Set = 1, }
         #[test]
         fn bindgen_test_layout_ComputedTimingFunction() {
@@ -8852,7 +8852,7 @@ pub mod root {
         /// happen often except under test conditions in which case the wrapping
         /// behavior is probably acceptable.
         #[repr(C)]
-        #[derive(Debug, Copy)]
+        #[derive(Copy, Debug)]
         pub struct StickyTimeDurationValueCalculator {
             pub _address: u8,
         }
@@ -8879,7 +8879,7 @@ pub mod root {
         /// comparisons).
         pub type StickyTimeDuration = root::mozilla::BaseTimeDuration;
         #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
+        #[derive(Clone, Copy, Debug)]
         pub struct DeclarationBlock {
             _unused: [u8; 0],
         }
@@ -8916,7 +8916,7 @@ pub mod root {
         #[repr(u8)]
         /// A bitflags enum class used to determine what data does a ServoElementSnapshot
         /// contains.
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum ServoElementSnapshotFlags {
             State = 1,
             Attributes = 2,
@@ -8925,7 +8925,7 @@ pub mod root {
             OtherPseudoClassState = 16,
         }
         #[repr(C)]
-        #[derive(Debug, Copy)]
+        #[derive(Copy, Debug)]
         pub struct NonOwningAnimationTarget {
             pub mElement: *mut root::mozilla::dom::Element,
             pub mPseudoType: root::mozilla::CSSPseudoElementType,
@@ -8961,13 +8961,13 @@ pub mod root {
             #[allow(unused_imports)]
             use self::super::super::super::root;
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Clone, Copy, Debug)]
             pub struct WrComplexClipRegion {
                 _unused: [u8; 0],
             }
         }
         #[repr(C)]
-        #[derive(Debug, Copy)]
+        #[derive(Copy, Debug)]
         pub struct DisplayItemClip_RoundedRect {
             pub mRect: root::nsRect,
             pub mRadii: [root::nscoord; 8usize],
@@ -9015,12 +9015,12 @@ pub mod root {
                         ServoElementSnapshotTable ) ));
         }
         #[repr(C)]
-        #[derive(Debug, Copy)]
+        #[derive(Copy, Debug)]
         pub struct LookAndFeel {
             pub _address: u8,
         }
         #[repr(u8)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum LookAndFeel_ColorID {
             eColorID_WindowBackground = 0,
             eColorID_WindowForeground = 1,
@@ -9120,7 +9120,7 @@ pub mod root {
             eColorID_LAST_COLOR = 95,
         }
         #[repr(u32)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum LookAndFeel_IntID {
             eIntID_CaretBlinkTime = 0,
             eIntID_CaretWidth = 1,
@@ -9178,7 +9178,7 @@ pub mod root {
         }
         #[repr(u32)]
         /// Windows themes we currently detect.
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum LookAndFeel_WindowsTheme {
             eWindowsTheme_Generic = 0,
             eWindowsTheme_Classic = 1,
@@ -9192,7 +9192,7 @@ pub mod root {
         }
         #[repr(u32)]
         /// Operating system versions.
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum LookAndFeel_OperatingSystemVersion {
             eOperatingSystemVersion_Windows7 = 2,
             eOperatingSystemVersion_Windows8 = 3,
@@ -9215,7 +9215,7 @@ pub mod root {
                   root::mozilla::LookAndFeel__bindgen_ty_1 =
             LookAndFeel__bindgen_ty_1::eScrollArrow_EndForward;
         #[repr(u32)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum LookAndFeel__bindgen_ty_1 {
             eScrollArrow_None = 0,
             eScrollArrow_StartBackward = 4096,
@@ -9236,7 +9236,7 @@ pub mod root {
                   root::mozilla::LookAndFeel__bindgen_ty_2 =
             LookAndFeel__bindgen_ty_2::eScrollArrowStyle_BothAtTop;
         #[repr(u32)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum LookAndFeel__bindgen_ty_2 {
             eScrollArrowStyle_Single = 4097,
             eScrollArrowStyle_BothAtBottom = 17,
@@ -9250,13 +9250,13 @@ pub mod root {
                   root::mozilla::LookAndFeel__bindgen_ty_3 =
             LookAndFeel__bindgen_ty_3::eScrollThumbStyle_Proportional;
         #[repr(u32)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum LookAndFeel__bindgen_ty_3 {
             eScrollThumbStyle_Normal = 0,
             eScrollThumbStyle_Proportional = 1,
         }
         #[repr(u32)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum LookAndFeel_FloatID {
             eFloatID_IMEUnderlineRelativeSize = 0,
             eFloatID_SpellCheckerUnderlineRelativeSize = 1,
@@ -9269,7 +9269,7 @@ pub mod root {
                   root::mozilla::LookAndFeel_FontID =
             LookAndFeel_FontID::eFont_Widget;
         #[repr(u32)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum LookAndFeel_FontID {
             eFont_Caption = 1,
             eFont_Icon = 2,
@@ -9302,7 +9302,7 @@ pub mod root {
             fn clone(&self) -> Self { *self }
         }
         #[repr(C)]
-        #[derive(Debug, Copy)]
+        #[derive(Copy, Debug)]
         pub struct StylePrefs {
             pub _address: u8,
         }
@@ -9367,7 +9367,7 @@ pub mod root {
                   root::mozilla::PseudoElementHashEntry__bindgen_ty_1 =
             PseudoElementHashEntry__bindgen_ty_1::ALLOW_MEMMOVE;
         #[repr(u32)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum PseudoElementHashEntry__bindgen_ty_1 { ALLOW_MEMMOVE = 1, }
         #[test]
         fn bindgen_test_layout_PseudoElementHashEntry() {
@@ -9395,7 +9395,7 @@ pub mod root {
         }
         pub type CSSPseudoClassTypeBase = u8;
         #[repr(u8)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum CSSPseudoClassType {
             empty = 0,
             mozOnlyWhitespace = 1,
@@ -9512,7 +9512,7 @@ pub mod root {
             use self::super::super::super::root;
         }
         #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
+        #[derive(Clone, Copy, Debug)]
         pub struct JSONWriteFunc {
             _unused: [u8; 0],
         }
@@ -9523,14 +9523,14 @@ pub mod root {
         /// A PostTraversalTask is only safe to run immediately after the Servo
         /// traversal, since it can hold raw pointers to DOM objects.
         #[repr(C)]
-        #[derive(Debug, Copy)]
+        #[derive(Copy, Debug)]
         pub struct PostTraversalTask {
             pub mType: root::mozilla::PostTraversalTask_Type,
             pub mTarget: *mut ::std::os::raw::c_void,
             pub mResult: root::nsresult,
         }
         #[repr(i32)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum PostTraversalTask_Type {
             ResolveFontFaceLoadedPromise = 0,
             RejectFontFaceLoadedPromise = 1,
@@ -9658,7 +9658,7 @@ pub mod root {
         }
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct InfallibleAllocPolicy {
         pub _address: u8,
     }
@@ -9724,7 +9724,7 @@ pub mod root {
     pub const nsresult_NS_SUCCESS_RESTART_APP: root::nsresult =
         nsresult::NS_SUCCESS_DONT_FIXUP;
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsresult {
         NS_OK = 0,
         NS_ERROR_BASE = 3253927936,
@@ -10230,7 +10230,7 @@ pub mod root {
                     "Alignment of " , stringify ! ( nsAString ) ));
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsSubstringTuple {
         pub mHead: *const root::nsSubstringTuple_self_type,
         pub mFragA: *const root::nsSubstringTuple_base_string_type,
@@ -10270,7 +10270,7 @@ pub mod root {
     }
     pub type nsString_self_type = ::nsstring::nsStringRepr;
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsString_Segment {
         pub mBegin: u32,
         pub mLength: u32,
@@ -10306,7 +10306,7 @@ pub mod root {
               root::nsAutoString__bindgen_ty_1 =
         nsAutoString__bindgen_ty_1::kDefaultStorageSize;
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsAutoString__bindgen_ty_1 { kDefaultStorageSize = 64, }
     #[test]
     fn bindgen_test_layout_nsAutoString() {
@@ -10323,7 +10323,7 @@ pub mod root {
     #[repr(C)]
     pub struct nsStringComparator__bindgen_vtable(::std::os::raw::c_void);
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsStringComparator {
         pub vtable_: *const nsStringComparator__bindgen_vtable,
     }
@@ -10359,7 +10359,7 @@ pub mod root {
                     "Alignment of " , stringify ! ( nsACString ) ));
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsCSubstringTuple {
         pub mHead: *const root::nsCSubstringTuple_self_type,
         pub mFragA: *const root::nsCSubstringTuple_base_string_type,
@@ -10404,7 +10404,7 @@ pub mod root {
     }
     pub type nsCString_self_type = root::nsCString;
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsCString_Segment {
         pub mBegin: u32,
         pub mLength: u32,
@@ -10441,7 +10441,7 @@ pub mod root {
     #[repr(C)]
     pub struct nsCStringComparator__bindgen_vtable(::std::os::raw::c_void);
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsCStringComparator {
         pub vtable_: *const nsCStringComparator__bindgen_vtable,
     }
@@ -10465,12 +10465,12 @@ pub mod root {
     /// and a reference counted memory model (AddRef/Release). This is
     /// modelled after the win32 IUnknown API.
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsISupports {
         pub vtable_: *const nsISupports__bindgen_vtable,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsISupports_COMTypeInfo {
         pub _address: u8,
     }
@@ -10488,7 +10488,7 @@ pub mod root {
     pub struct nsCycleCollectionParticipant__bindgen_vtable(::std::os::raw::c_void);
     /// Participant implementation classes
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsCycleCollectionParticipant {
         pub vtable_: *const nsCycleCollectionParticipant__bindgen_vtable,
         pub mMightSkip: bool,
@@ -10522,7 +10522,7 @@ pub mod root {
         fn clone(&self) -> Self { *self }
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsCycleCollectingAutoRefCnt {
         pub mRefCntAndFlags: usize,
     }
@@ -10548,13 +10548,13 @@ pub mod root {
         fn clone(&self) -> Self { *self }
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsCharTraits {
         pub _address: u8,
     }
     /// @see nsTAString
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsReadingIterator<CharT> {
         pub mStart: *mut CharT,
         pub mEnd: *mut CharT,
@@ -10570,7 +10570,7 @@ pub mod root {
     pub type nsReadingIterator_reference = u8;
     /// @see nsTAString
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsWritingIterator<CharT> {
         pub mStart: *mut CharT,
         pub mEnd: *mut CharT,
@@ -10589,7 +10589,7 @@ pub mod root {
     pub type AutoTArray_Header<E> = root::AutoTArray_base_type<E>;
     pub type AutoTArray_elem_type<E> = root::AutoTArray_base_type<E>;
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct AutoTArray__bindgen_ty_1 {
         pub mAutoBuf: root::__BindgenUnionField<*mut ::std::os::raw::c_char>,
         pub mAlign: root::__BindgenUnionField<u8>,
@@ -10629,7 +10629,7 @@ pub mod root {
     /// A type for representing the size of objects.
     pub type PRSize = usize;
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct PLHashEntry {
         pub next: *mut root::PLHashEntry,
         pub keyHash: root::PLHashNumber,
@@ -10667,7 +10667,7 @@ pub mod root {
         fn clone(&self) -> Self { *self }
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct PLHashTable {
         pub buckets: *mut *mut root::PLHashEntry,
         pub nentries: root::PRUint32,
@@ -10740,7 +10740,7 @@ pub mod root {
                                                        *const ::std::os::raw::c_void)
                                   -> root::PRIntn>;
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct PLHashAllocOps {
         pub allocTable: ::std::option::Option<unsafe extern "C" fn(pool:
                                                                        *mut ::std::os::raw::c_void,
@@ -10795,7 +10795,7 @@ pub mod root {
         fn clone(&self) -> Self { *self }
     }
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsCSSTokenSerializationType {
         eCSSTokenSerialization_Nothing = 0,
         eCSSTokenSerialization_Whitespace = 1,
@@ -10842,7 +10842,7 @@ pub mod root {
         pub mSeenVariableReference: bool,
     }
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsCSSScanner_EOFCharacters {
         eEOFCharacters_None = 0,
         eEOFCharacters_DropBackslash = 1,
@@ -10932,12 +10932,12 @@ pub mod root {
                     "::" , stringify ! ( mSeenVariableReference ) ));
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct PRThread {
         _unused: [u8; 0],
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsAutoOwningThread {
         pub mThread: *mut ::std::os::raw::c_void,
     }
@@ -10959,7 +10959,7 @@ pub mod root {
         fn clone(&self) -> Self { *self }
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsAutoRefCnt {
         pub mValue: root::nsrefcnt,
     }
@@ -10987,17 +10987,17 @@ pub mod root {
     }
     pub type RefPtr_element_type<T> = T;
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct RefPtr_Proxy {
     }
     pub type RefPtr_Proxy_member_function = u8;
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct RefPtr_ConstRemovingRefPtrTraits {
         pub _address: u8,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct JSContext {
         _unused: [u8; 0],
     }
@@ -11034,13 +11034,13 @@ pub mod root {
         /// 32-bit user code should avoid copying jsval/JS::Value as much as possible,
         /// preferring to pass by const Value&.
         #[repr(C)]
-        #[derive(Debug, Copy)]
+        #[derive(Copy, Debug)]
         pub struct Value {
             pub data: root::JS::Value_layout,
         }
         pub type Value_PayloadType = u64;
         #[repr(C)]
-        #[derive(Debug, Copy)]
+        #[derive(Copy, Debug)]
         pub struct Value_layout {
             pub asBits: root::__BindgenUnionField<u64>,
             pub debugView: root::__BindgenUnionField<root::JS::Value_layout__bindgen_ty_1>,
@@ -11052,7 +11052,7 @@ pub mod root {
             pub bindgen_union_field: u64,
         }
         #[repr(C)]
-        #[derive(Debug, Copy)]
+        #[derive(Copy, Debug)]
         pub struct Value_layout__bindgen_ty_1 {
             pub _bitfield_1: u64,
             pub __bindgen_align: [u64; 0usize],
@@ -11161,12 +11161,12 @@ pub mod root {
             }
         }
         #[repr(C)]
-        #[derive(Debug, Copy)]
+        #[derive(Copy, Debug)]
         pub struct Value_layout__bindgen_ty_2 {
             pub payload: root::JS::Value_layout__bindgen_ty_2__bindgen_ty_1,
         }
         #[repr(C)]
-        #[derive(Debug, Copy)]
+        #[derive(Copy, Debug)]
         pub struct Value_layout__bindgen_ty_2__bindgen_ty_1 {
             pub i32: root::__BindgenUnionField<i32>,
             pub u32: root::__BindgenUnionField<u32>,
@@ -11302,18 +11302,18 @@ pub mod root {
         /// If you want to add additional methods to Rooted for a specific
         /// specialization, define a RootedBase<T> specialization containing them.
         #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
+        #[derive(Clone, Copy, Debug)]
         pub struct Rooted {
         }
         pub type Rooted_ElementType<T> = T;
         pub type RootedObject = [u64; 3usize];
         #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
+        #[derive(Clone, Copy, Debug)]
         pub struct DeletePolicy {
             pub _address: u8,
         }
         #[repr(C)]
-        #[derive(Debug, Copy)]
+        #[derive(Copy, Debug)]
         pub struct FreePolicy {
             pub _address: u8,
         }
@@ -11363,7 +11363,7 @@ pub mod root {
                 pub collections: [u64; 5usize],
             }
             #[repr(C)]
-            #[derive(Debug, Copy)]
+            #[derive(Copy, Debug)]
             pub struct GarbageCollectionEvent_Collection {
                 pub startTimestamp: root::mozilla::TimeStamp,
                 pub endTimestamp: root::mozilla::TimeStamp,
@@ -11500,7 +11500,7 @@ pub mod root {
         /// - It is however valid for a Heap<T> to refer to a tenured thing.
         /// - It is not possible to store flag bits in a Heap<T>.
         #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
+        #[derive(Clone, Copy, Debug)]
         pub struct TenuredHeap {
             pub bits: usize,
         }
@@ -11510,10 +11510,10 @@ pub mod root {
         pub const TenuredHeap_flagsMask: root::JS::TenuredHeap__bindgen_ty_1 =
             TenuredHeap__bindgen_ty_1::maskBits;
         #[repr(i32)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum TenuredHeap__bindgen_ty_1 { maskBits = 0, }
         #[repr(C)]
-        #[derive(Debug, Copy)]
+        #[derive(Copy, Debug)]
         pub struct ConstUTF8CharsZ {
             pub data_: *const ::std::os::raw::c_char,
         }
@@ -11559,7 +11559,7 @@ pub mod root {
             pub oldAsyncCallIsExplicit: bool,
         }
         #[repr(i32)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum AutoSetAsyncStackForNewCalls_AsyncCallKind {
             IMPLICIT = 0,
             EXPLICIT = 1,
@@ -11634,7 +11634,7 @@ pub mod root {
         }
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct JSObject {
         _unused: [u8; 0],
     }
@@ -11646,7 +11646,7 @@ pub mod root {
             use self::super::super::super::root;
         }
         #[repr(C)]
-        #[derive(Debug, Copy)]
+        #[derive(Copy, Debug)]
         pub struct SystemAllocPolicy {
             pub _address: u8,
         }
@@ -11664,17 +11664,17 @@ pub mod root {
             fn clone(&self) -> Self { *self }
         }
         #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
+        #[derive(Clone, Copy, Debug)]
         pub struct WrappedPtrOperations {
             pub _address: u8,
         }
         #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
+        #[derive(Clone, Copy, Debug)]
         pub struct MutableWrappedPtrOperations {
             pub _address: u8,
         }
         #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
+        #[derive(Clone, Copy, Debug)]
         pub struct HeapBase {
             pub _address: u8,
         }
@@ -11703,7 +11703,7 @@ pub mod root {
         }
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct JSCompartment {
         _unused: [u8; 0],
     }
@@ -11721,14 +11721,14 @@ pub mod root {
         pub _phantom_0: ::std::marker::PhantomData<::std::cell::UnsafeCell<T>>,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsAutoPtr_Ptr<T> {
         pub mPtr: *mut T,
         pub _phantom_0: ::std::marker::PhantomData<::std::cell::UnsafeCell<T>>,
     }
     pub type nsAutoPtr_element_type<T> = T;
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsAutoPtr_Proxy {
     }
     pub type nsAutoPtr_Proxy_member_function = u8;
@@ -11837,7 +11837,7 @@ pub mod root {
                     mHaveRemoved ) ));
     }
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum PLDHashTable_SearchReason { ForSearchOrRemove = 0, ForAdd = 1, }
     pub const PLDHashTable_kMaxCapacity: u32 = 67108864;
     pub const PLDHashTable_kMinCapacity: u32 = 8;
@@ -11889,7 +11889,7 @@ pub mod root {
                     "::" , stringify ! ( mChecker ) ));
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct PLDHashTableOps {
         pub hashKey: root::PLDHashHashKey,
         pub matchEntry: root::PLDHashMatchEntry,
@@ -11934,7 +11934,7 @@ pub mod root {
         fn clone(&self) -> Self { *self }
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct PLDHashEntryHdr {
         pub mKeyHash: root::PLDHashNumber,
     }
@@ -11955,7 +11955,7 @@ pub mod root {
         fn clone(&self) -> Self { *self }
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct Checker {
         pub mState: u32,
         pub mIsWritable: u32,
@@ -12026,7 +12026,7 @@ pub mod root {
     pub const nsPtrHashKey_ALLOW_MEMMOVE: root::nsPtrHashKey__bindgen_ty_1 =
         nsPtrHashKey__bindgen_ty_1::ALLOW_MEMMOVE;
     #[repr(i32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsPtrHashKey__bindgen_ty_1 { ALLOW_MEMMOVE = 0, }
     /// hashkey wrapper using nsAString KeyType
     ///
@@ -12043,7 +12043,7 @@ pub mod root {
               root::nsStringHashKey__bindgen_ty_1 =
         nsStringHashKey__bindgen_ty_1::ALLOW_MEMMOVE;
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsStringHashKey__bindgen_ty_1 { ALLOW_MEMMOVE = 1, }
     #[test]
     fn bindgen_test_layout_nsStringHashKey() {
@@ -12073,7 +12073,7 @@ pub mod root {
               root::nsCStringHashKey__bindgen_ty_1 =
         nsCStringHashKey__bindgen_ty_1::ALLOW_MEMMOVE;
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsCStringHashKey__bindgen_ty_1 { ALLOW_MEMMOVE = 1, }
     #[test]
     fn bindgen_test_layout_nsCStringHashKey() {
@@ -12104,7 +12104,7 @@ pub mod root {
               root::nsISupportsHashKey__bindgen_ty_1 =
         nsISupportsHashKey__bindgen_ty_1::ALLOW_MEMMOVE;
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsISupportsHashKey__bindgen_ty_1 { ALLOW_MEMMOVE = 1, }
     #[test]
     fn bindgen_test_layout_nsISupportsHashKey() {
@@ -12136,7 +12136,7 @@ pub mod root {
               root::nsRefPtrHashKey__bindgen_ty_1 =
         nsRefPtrHashKey__bindgen_ty_1::ALLOW_MEMMOVE;
     #[repr(i32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsRefPtrHashKey__bindgen_ty_1 { ALLOW_MEMMOVE = 0, }
     /// a base class for templated hashtables.
     ///
@@ -12188,7 +12188,7 @@ pub mod root {
     /// @see nsClassHashtable
     /// @author "Benjamin Smedberg <bsmedberg@covad.net>"
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsTHashtable {
     }
     pub type nsTHashtable_fallible_t = root::mozilla::fallible_t;
@@ -12213,7 +12213,7 @@ pub mod root {
     /// DataType must implicitly cast to UserDataType
     /// @param UserDataType the user sees, for example uint32_t or nsISupports*
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsBaseHashtable {
     }
     pub type nsBaseHashtable_fallible_t = root::mozilla::fallible_t;
@@ -12221,7 +12221,7 @@ pub mod root {
     pub type nsBaseHashtable_EntryType<KeyClass, DataType> =
         root::nsBaseHashtableET<KeyClass, DataType>;
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsBaseHashtable_LookupResult<KeyClass, DataType> {
         pub mEntry: *mut root::nsBaseHashtable_EntryType<KeyClass, DataType>,
         pub mTable: *mut u8,
@@ -12266,12 +12266,12 @@ pub mod root {
     /// @param DataType the simple datatype being wrapped
     /// @see nsInterfaceHashtable, nsClassHashtable
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsDataHashtable {
     }
     pub type nsDataHashtable_BaseClass = u8;
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsTArrayHeader {
         pub mLength: u32,
         pub _bitfield_1: u32,
@@ -12386,7 +12386,7 @@ pub mod root {
     pub type nscoord = i32;
     pub type nscolor = u32;
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct gfxFontFeature {
         pub mTag: u32,
         pub mValue: u32,
@@ -12565,7 +12565,7 @@ pub mod root {
               =
         gfxFontFeatureValueSet_FeatureValueHashEntry__bindgen_ty_1::ALLOW_MEMMOVE;
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum gfxFontFeatureValueSet_FeatureValueHashEntry__bindgen_ty_1 {
         ALLOW_MEMMOVE = 1,
     }
@@ -12789,14 +12789,14 @@ pub mod root {
         pub _phantom_0: ::std::marker::PhantomData<::std::cell::UnsafeCell<T>>,
     }
     #[repr(i32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsStyleAutoArray_WithSingleInitialElement {
         WITH_SINGLE_INITIAL_ELEMENT = 0,
     }
     pub const nsStyleUnit_eStyleUnit_MAX: root::nsStyleUnit =
         nsStyleUnit::eStyleUnit_Calc;
     #[repr(u8)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsStyleUnit {
         eStyleUnit_Null = 0,
         eStyleUnit_Normal = 1,
@@ -12815,7 +12815,7 @@ pub mod root {
         eStyleUnit_Calc = 40,
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsStyleUnion {
         pub mInt: root::__BindgenUnionField<i32>,
         pub mFloat: root::__BindgenUnionField<f32>,
@@ -12862,7 +12862,7 @@ pub mod root {
         mValue: root::nsStyleUnion,
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsStyleCoord_CalcValue {
         pub mLength: root::nscoord,
         pub mPercent: f32,
@@ -12921,7 +12921,7 @@ pub mod root {
                     , "::" , stringify ! ( mRefCnt ) ));
     }
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsStyleCoord_CoordConstructorType { CoordConstructor = 0, }
     #[test]
     fn bindgen_test_layout_nsStyleCoord() {
@@ -13053,7 +13053,7 @@ pub mod root {
         }
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsCSSSelector {
         _unused: [u8; 0],
     }
@@ -13171,7 +13171,7 @@ pub mod root {
         }
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub struct nsChangeHint(pub u32);
     pub const nsRestyleHint_eRestyle_Self: root::nsRestyleHint =
         nsRestyleHint(1);
@@ -13246,7 +13246,7 @@ pub mod root {
     ///
     /// NOTE: When adding new restyle hints, please also add them to
     /// RestyleManager::RestyleHintToString.
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub struct nsRestyleHint(pub u32);
     #[repr(C)]
     #[derive(Debug)]
@@ -14908,14 +14908,14 @@ pub mod root {
         pub mTwipsPerPixel: root::nscoord,
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsStyleBorder__bindgen_ty_1 {
         pub __bindgen_anon_1: root::__BindgenUnionField<root::nsStyleBorder__bindgen_ty_1__bindgen_ty_1>,
         pub mBorderColor: root::__BindgenUnionField<[root::mozilla::StyleComplexColor; 4usize]>,
         pub bindgen_union_field: [u32; 8usize],
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsStyleBorder__bindgen_ty_1__bindgen_ty_1 {
         pub mBorderTopColor: root::mozilla::StyleComplexColor,
         pub mBorderRightColor: root::mozilla::StyleComplexColor,
@@ -15574,7 +15574,7 @@ pub mod root {
                     , "::" , stringify ! ( font_computation_data ) ));
     }
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum JSValueTag {
         JSVAL_TAG_MAX_DOUBLE = 131056,
         JSVAL_TAG_INT32 = 131057,
@@ -15588,7 +15588,7 @@ pub mod root {
         JSVAL_TAG_OBJECT = 131068,
     }
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum JSWhyMagic {
         JS_ELEMENTS_HOLE = 0,
         JS_NO_ITER_VALUE = 1,
@@ -15640,7 +15640,7 @@ pub mod root {
                     "::" , stringify ! ( mStorageSize ) ));
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsIAtom {
         pub _base: root::nsISupports,
         pub _bitfield_1: u32,
@@ -15651,12 +15651,12 @@ pub mod root {
         pub mString: *mut u16,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsIAtom_COMTypeInfo {
         pub _address: u8,
     }
     #[repr(u8)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsIAtom_AtomKind {
         DynamicAtom = 0,
         StaticAtom = 1,
@@ -15769,12 +15769,12 @@ pub mod root {
         }
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsIPrincipal {
         pub _base: root::nsISerializable,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsIPrincipal_COMTypeInfo {
         pub _address: u8,
     }
@@ -15834,7 +15834,7 @@ pub mod root {
         pub mBoolFlags: u32,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsWrapperCache_COMTypeInfo {
         pub _address: u8,
     }
@@ -15851,7 +15851,7 @@ pub mod root {
     /// traces/traverses/unlinks the cached JS object (see
     /// NS_IMPL_CYCLE_COLLECTION_TRACE_PRESERVED_WRAPPER and
     /// NS_IMPL_CYCLE_COLLECTION_UNLINK_PRESERVED_WRAPPER).
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsWrapperCache__bindgen_ty_1 { WRAPPER_BIT_PRESERVED = 1, }
     pub const nsWrapperCache_WRAPPER_IS_NOT_DOM_BINDING:
               root::nsWrapperCache__bindgen_ty_2 =
@@ -15859,13 +15859,13 @@ pub mod root {
     #[repr(u32)]
     /// If this bit is set then the wrapper for the native object is not a DOM
     /// binding.
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsWrapperCache__bindgen_ty_2 { WRAPPER_IS_NOT_DOM_BINDING = 2, }
     pub const nsWrapperCache_kWrapperFlagsMask:
               root::nsWrapperCache__bindgen_ty_3 =
         nsWrapperCache__bindgen_ty_3::kWrapperFlagsMask;
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsWrapperCache__bindgen_ty_3 { kWrapperFlagsMask = 3, }
     #[test]
     fn bindgen_test_layout_nsWrapperCache() {
@@ -15890,12 +15890,12 @@ pub mod root {
                     "::" , stringify ! ( mBoolFlags ) ));
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsILoadGroup {
         pub _base: root::nsIRequest,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsILoadGroup_COMTypeInfo {
         pub _address: u8,
     }
@@ -15911,12 +15911,12 @@ pub mod root {
     }
     pub type nsLoadFlags = u32;
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsIRequest {
         pub _base: root::nsISupports,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsIRequest_COMTypeInfo {
         pub _address: u8,
     }
@@ -15954,7 +15954,7 @@ pub mod root {
               =
         nsIRequest__bindgen_ty_1::LOAD_FRESH_CONNECTION;
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsIRequest__bindgen_ty_1 {
         LOAD_REQUESTMASK = 65535,
         LOAD_NORMAL = 0,
@@ -15982,12 +15982,12 @@ pub mod root {
         fn clone(&self) -> Self { *self }
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsIURI {
         pub _base: root::nsISupports,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsIURI_COMTypeInfo {
         pub _address: u8,
     }
@@ -16002,12 +16002,12 @@ pub mod root {
         fn clone(&self) -> Self { *self }
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsIDOMNode {
         pub _base: root::nsISupports,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsIDOMNode_COMTypeInfo {
         pub _address: u8,
     }
@@ -16039,7 +16039,7 @@ pub mod root {
     pub const nsIDOMNode_NOTATION_NODE: root::nsIDOMNode__bindgen_ty_1 =
         nsIDOMNode__bindgen_ty_1::NOTATION_NODE;
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsIDOMNode__bindgen_ty_1 {
         ELEMENT_NODE = 1,
         ATTRIBUTE_NODE = 2,
@@ -16073,7 +16073,7 @@ pub mod root {
               root::nsIDOMNode__bindgen_ty_2 =
         nsIDOMNode__bindgen_ty_2::DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC;
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsIDOMNode__bindgen_ty_2 {
         DOCUMENT_POSITION_DISCONNECTED = 1,
         DOCUMENT_POSITION_PRECEDING = 2,
@@ -16122,7 +16122,7 @@ pub mod root {
     pub type nsINode_ErrorResult = root::mozilla::ErrorResult;
     pub type nsINode_Sequence = u8;
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsINode_COMTypeInfo {
         pub _address: u8,
     }
@@ -16152,7 +16152,7 @@ pub mod root {
         nsINode__bindgen_ty_2::eFILTER;
     #[repr(u32)]
     /// Bit-flags to pass (or'ed together) to IsNodeOfType()
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsINode__bindgen_ty_2 {
         eCONTENT = 1,
         eDOCUMENT = 2,
@@ -16227,7 +16227,7 @@ pub mod root {
     }
     #[repr(u32)]
     /// Boolean flags
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsINode_BooleanFlag {
         NodeHasRenderingObservers = 0,
         IsInDocument = 1,
@@ -16264,7 +16264,7 @@ pub mod root {
         BooleanFlagCount = 32,
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsINode__bindgen_ty_1 {
         pub mPrimaryFrame: root::__BindgenUnionField<*mut root::nsIFrame>,
         pub mSubtreeRoot: root::__BindgenUnionField<*mut root::nsINode>,
@@ -16334,7 +16334,7 @@ pub mod root {
                     stringify ! ( mSlots ) ));
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsIRedirectHistoryEntry {
         _unused: [u8; 0],
     }
@@ -16574,12 +16574,12 @@ pub mod root {
                     "::" , stringify ! ( notes_ ) ));
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsISerializable {
         pub _base: root::nsISupports,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsISerializable_COMTypeInfo {
         pub _address: u8,
     }
@@ -16595,12 +16595,12 @@ pub mod root {
         fn clone(&self) -> Self { *self }
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsIChannel {
         pub _base: root::nsIRequest,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsIChannel_COMTypeInfo {
         pub _address: u8,
     }
@@ -16631,7 +16631,7 @@ pub mod root {
               root::nsIChannel__bindgen_ty_1 =
         nsIChannel__bindgen_ty_1::LOAD_BYPASS_SERVICE_WORKER;
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsIChannel__bindgen_ty_1 {
         LOAD_DOCUMENT_URI = 65536,
         LOAD_RETARGETED_DOCUMENT_URI = 131072,
@@ -16650,7 +16650,7 @@ pub mod root {
               root::nsIChannel__bindgen_ty_2 =
         nsIChannel__bindgen_ty_2::DISPOSITION_ATTACHMENT;
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsIChannel__bindgen_ty_2 {
         DISPOSITION_INLINE = 0,
         DISPOSITION_ATTACHMENT = 1,
@@ -16666,12 +16666,12 @@ pub mod root {
         fn clone(&self) -> Self { *self }
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsIStreamListener {
         pub _base: root::nsIRequestObserver,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsIStreamListener_COMTypeInfo {
         pub _address: u8,
     }
@@ -16688,12 +16688,12 @@ pub mod root {
         fn clone(&self) -> Self { *self }
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsICSSLoaderObserver {
         pub _base: root::nsISupports,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsICSSLoaderObserver_COMTypeInfo {
         pub _address: u8,
     }
@@ -16711,12 +16711,12 @@ pub mod root {
     }
     pub type DOMHighResTimeStamp = f64;
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsIDOMAttr {
         pub _base: root::nsIDOMNode,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsIDOMAttr_COMTypeInfo {
         pub _address: u8,
     }
@@ -16731,12 +16731,12 @@ pub mod root {
         fn clone(&self) -> Self { *self }
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsIDOMClientRect {
         pub _base: root::nsISupports,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsIDOMClientRect_COMTypeInfo {
         pub _address: u8,
     }
@@ -16752,12 +16752,12 @@ pub mod root {
         fn clone(&self) -> Self { *self }
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsIDOMStyleSheet {
         pub _base: root::nsISupports,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsIDOMStyleSheet_COMTypeInfo {
         pub _address: u8,
     }
@@ -16773,12 +16773,12 @@ pub mod root {
         fn clone(&self) -> Self { *self }
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsIDOMMediaList {
         pub _base: root::nsISupports,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsIDOMMediaList_COMTypeInfo {
         pub _address: u8,
     }
@@ -16794,12 +16794,12 @@ pub mod root {
         fn clone(&self) -> Self { *self }
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsIDOMEventTarget {
         pub _base: root::nsISupports,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsIDOMEventTarget_COMTypeInfo {
         pub _address: u8,
     }
@@ -16816,12 +16816,12 @@ pub mod root {
         fn clone(&self) -> Self { *self }
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsIDOMHTMLCollection {
         pub _base: root::nsISupports,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsIDOMHTMLCollection_COMTypeInfo {
         pub _address: u8,
     }
@@ -16838,12 +16838,12 @@ pub mod root {
         fn clone(&self) -> Self { *self }
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsIDOMCSSRule {
         pub _base: root::nsISupports,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsIDOMCSSRule_COMTypeInfo {
         pub _address: u8,
     }
@@ -16887,7 +16887,7 @@ pub mod root {
               root::nsIDOMCSSRule__bindgen_ty_1 =
         nsIDOMCSSRule__bindgen_ty_1::FONT_FEATURE_VALUES_RULE;
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsIDOMCSSRule__bindgen_ty_1 {
         UNKNOWN_RULE = 0,
         STYLE_RULE = 1,
@@ -16915,12 +16915,12 @@ pub mod root {
         fn clone(&self) -> Self { *self }
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsIDOMCSSStyleSheet {
         pub _base: root::nsIDOMStyleSheet,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsIDOMCSSStyleSheet_COMTypeInfo {
         pub _address: u8,
     }
@@ -16937,12 +16937,12 @@ pub mod root {
         fn clone(&self) -> Self { *self }
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsIDOMCSSStyleDeclaration {
         pub _base: root::nsISupports,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsIDOMCSSStyleDeclaration_COMTypeInfo {
         pub _address: u8,
     }
@@ -16960,7 +16960,7 @@ pub mod root {
         fn clone(&self) -> Self { *self }
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsScriptObjectTracer {
         pub _base: root::nsCycleCollectionParticipant,
     }
@@ -16977,12 +16977,12 @@ pub mod root {
         fn clone(&self) -> Self { *self }
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsXPCOMCycleCollectionParticipant {
         pub _base: root::nsScriptObjectTracer,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsXPCOMCycleCollectionParticipant_COMTypeInfo {
         pub _address: u8,
     }
@@ -17109,7 +17109,7 @@ pub mod root {
     pub type nsIDocument_FullscreenRequest =
         root::mozilla::dom::FullscreenRequest;
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsIDocument_COMTypeInfo {
         pub _address: u8,
     }
@@ -17189,14 +17189,14 @@ pub mod root {
                     mState ) ));
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsIDocument_SelectorCacheKeyDeleter {
         _unused: [u8; 0],
     }
     #[repr(C)]
     pub struct nsIDocument_SelectorCache__bindgen_vtable(::std::os::raw::c_void);
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsIDocument_SelectorCache {
         pub _bindgen_opaque_blob: [u64; 18usize],
     }
@@ -17214,7 +17214,7 @@ pub mod root {
         fn clone(&self) -> Self { *self }
     }
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsIDocument_additionalSheetType {
         eAgentSheet = 0,
         eUserSheet = 1,
@@ -17222,7 +17222,7 @@ pub mod root {
         AdditionalSheetTypeCount = 3,
     }
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsIDocument_ReadyState {
         READYSTATE_UNINITIALIZED = 0,
         READYSTATE_LOADING = 1,
@@ -17239,7 +17239,7 @@ pub mod root {
                                                        *mut ::std::os::raw::c_void)
                                   -> bool>;
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsIDocument_ElementsFromPointFlags {
         IGNORE_ROOT_SCROLL_FRAME = 1,
         FLUSH_LAYOUT = 2,
@@ -17282,7 +17282,7 @@ pub mod root {
                                                    arg2:
                                                        *mut ::std::os::raw::c_void)>;
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsIDocument_DocumentTheme {
         Doc_Theme_Uninitialized = 0,
         Doc_Theme_None = 1,
@@ -17293,7 +17293,7 @@ pub mod root {
     pub type nsIDocument_FrameRequestCallbackList =
         root::nsTArray<root::RefPtr<root::mozilla::dom::FrameRequestCallback>>;
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsIDocument_DeprecatedOperations {
         eGetAttributeNode = 0,
         eSetAttributeNode = 1,
@@ -17340,7 +17340,7 @@ pub mod root {
         eDeprecatedOperationCount = 42,
     }
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsIDocument_DocumentWarnings {
         eIgnoringWillChangeOverBudget = 0,
         ePreventDefaultFromPassiveListener = 1,
@@ -17349,7 +17349,7 @@ pub mod root {
         eDocumentWarningCount = 4,
     }
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsIDocument_ElementCallbackType {
         eCreated = 0,
         eAttached = 1,
@@ -17366,14 +17366,14 @@ pub mod root {
               root::nsIDocument__bindgen_ty_1 =
         nsIDocument__bindgen_ty_1::eScopedStyle_Enabled;
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsIDocument__bindgen_ty_1 {
         eScopedStyle_Unknown = 0,
         eScopedStyle_Disabled = 1,
         eScopedStyle_Enabled = 2,
     }
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsIDocument_Type {
         eUnknown = 0,
         eHTML = 1,
@@ -17383,10 +17383,10 @@ pub mod root {
         eXUL = 5,
     }
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsIDocument_Tri { eTriUnset = 0, eTriFalse = 1, eTriTrue = 2, }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsIDocument_FrameRequest {
         _unused: [u8; 0],
     }
@@ -20015,7 +20015,7 @@ pub mod root {
         }
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsCSSRuleProcessor {
         _unused: [u8; 0],
     }
@@ -20048,13 +20048,13 @@ pub mod root {
     /// content resided.
     /// @param aDestructorHandling whether or not to run the possible XBL
     /// destructor.
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsBindingManager_DestructorHandling {
         eRunDtor = 0,
         eDoNotRunDtor = 1,
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsBindingManager_cycleCollection {
         pub _base: root::nsXPCOMCycleCollectionParticipant,
     }
@@ -20215,7 +20215,7 @@ pub mod root {
     }
     pub type nsIContent_IMEState = root::mozilla::widget::IMEState;
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsIContent_COMTypeInfo {
         pub _address: u8,
     }
@@ -20230,7 +20230,7 @@ pub mod root {
               root::nsIContent__bindgen_ty_1 =
         nsIContent__bindgen_ty_1::eSkipDocumentLevelNativeAnonymousContent;
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsIContent__bindgen_ty_1 {
         eAllChildren = 0,
         eAllButXBL = 1,
@@ -20242,7 +20242,7 @@ pub mod root {
     pub const nsIContent_ATTR_VALUE_NO_MATCH: root::nsIContent__bindgen_ty_2 =
         nsIContent__bindgen_ty_2::ATTR_VALUE_NO_MATCH;
     #[repr(i32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsIContent__bindgen_ty_2 {
         ATTR_MISSING = -1,
         ATTR_VALUE_NO_MATCH = -2,
@@ -20264,13 +20264,13 @@ pub mod root {
     /// indicating the first value of aValues that matched
     pub type nsIContent_AttrValuesArray = *const *const root::nsIAtom;
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsIContent_FlattenedParentType {
         eNotForStyle = 0,
         eForStyle = 1,
     }
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsIContent_ETabFocusType {
         eTabFocus_textControlsMask = 1,
         eTabFocus_formElementsMask = 2,
@@ -20320,7 +20320,7 @@ pub mod root {
               root::nsStyleContext__bindgen_ty_1 =
         nsStyleContext__bindgen_ty_1::kAllResolvedStructs;
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsStyleContext__bindgen_ty_1 {
         kAllResolvedStructs = 4294967295,
     }
@@ -20439,7 +20439,7 @@ pub mod root {
     pub type nsPresContext_StaticPresData = root::mozilla::StaticPresData;
     pub type nsPresContext_HasThreadSafeRefCnt = root::mozilla::FalseType;
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsPresContext_cycleCollection {
         pub _base: root::nsXPCOMCycleCollectionParticipant,
     }
@@ -20458,7 +20458,7 @@ pub mod root {
         fn clone(&self) -> Self { *self }
     }
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsPresContext_nsPresContextType {
         eContext_Galley = 0,
         eContext_PrintPreview = 1,
@@ -20466,7 +20466,7 @@ pub mod root {
         eContext_PageLayout = 3,
     }
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsPresContext_InteractionType {
         eClickInteraction = 0,
         eKeyInteraction = 1,
@@ -23387,7 +23387,7 @@ pub mod root {
               =
         nsAttrValue_ValueType::eSVGViewBox;
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsAttrValue_ValueType {
         eString = 0,
         eAtom = 2,
@@ -23423,7 +23423,7 @@ pub mod root {
     /// { nullptr, 0 }
     /// }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsAttrValue_EnumTable {
         /// The string the value maps to
         pub tag: *const ::std::os::raw::c_char,
@@ -23454,7 +23454,7 @@ pub mod root {
         fn clone(&self) -> Self { *self }
     }
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsAttrValue_ValueBaseType {
         eStringBase = 0,
         eOtherBase = 1,
@@ -23479,12 +23479,12 @@ pub mod root {
                     "::" , stringify ! ( mBits ) ));
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsIVariant {
         pub _base: root::nsISupports,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsIVariant_COMTypeInfo {
         pub _address: u8,
     }
@@ -23518,7 +23518,7 @@ pub mod root {
         pub mMathMLEnabled: root::nsNodeInfoManager_Tri,
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsNodeInfoManager_cycleCollection {
         pub _base: root::nsCycleCollectionParticipant,
     }
@@ -23538,7 +23538,7 @@ pub mod root {
     }
     pub type nsNodeInfoManager_HasThreadSafeRefCnt = root::mozilla::FalseType;
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsNodeInfoManager_Tri {
         eTriUnset = 0,
         eTriFalse = 1,
@@ -23637,7 +23637,7 @@ pub mod root {
                     , "::" , stringify ! ( mMathMLEnabled ) ));
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsIFrame {
         _unused: [u8; 0],
     }
@@ -23647,7 +23647,7 @@ pub mod root {
         pub mPropertyList: *mut root::nsPropertyTable_PropertyList,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsPropertyTable_PropertyList {
         _unused: [u8; 0],
     }
@@ -23667,7 +23667,7 @@ pub mod root {
     pub type nsTObserverArray_base_index_type = usize;
     pub type nsTObserverArray_base_size_type = usize;
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsTObserverArray_base_Iterator_base {
         pub mPosition: root::nsTObserverArray_base_index_type,
         pub mNext: *mut root::nsTObserverArray_base_Iterator_base,
@@ -23734,7 +23734,7 @@ pub mod root {
     pub type nsAutoTObserverArray_BackwardIterator_base_type =
         root::nsAutoTObserverArray_Iterator;
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsTObserverArray {
     }
     pub type nsTObserverArray_base_type = u8;
@@ -23749,7 +23749,7 @@ pub mod root {
         pub mIsDying: bool,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsIGlobalObject_COMTypeInfo {
         pub _address: u8,
     }
@@ -23798,7 +23798,7 @@ pub mod root {
                     mValue ) ));
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsAttrAndChildArray_Impl {
         pub mAttrAndChildCount: u32,
         pub mBufferSize: u32,
@@ -23858,7 +23858,7 @@ pub mod root {
                     ) , "::" , stringify ! ( mImpl ) ));
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsChildContentList {
         _unused: [u8; 0],
     }
@@ -23878,7 +23878,7 @@ pub mod root {
     pub type nsDOMAttributeMap_ErrorResult = root::mozilla::ErrorResult;
     pub type nsDOMAttributeMap_HasThreadSafeRefCnt = root::mozilla::FalseType;
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsDOMAttributeMap_cycleCollection {
         pub _base: root::nsXPCOMCycleCollectionParticipant,
     }
@@ -23924,12 +23924,12 @@ pub mod root {
     /// done from an async event, as the notification might not be
     /// surrounded by BeginUpdate/EndUpdate calls.
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsIMutationObserver {
         pub _base: root::nsISupports,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsIMutationObserver_COMTypeInfo {
         pub _address: u8,
     }
@@ -23992,14 +23992,14 @@ pub mod root {
         pub mInFlush: bool,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsIPresShell_COMTypeInfo {
         pub _address: u8,
     }
     pub type nsIPresShell_LayerManager = root::mozilla::layers::LayerManager;
     pub type nsIPresShell_SourceSurface = root::mozilla::gfx::SourceSurface;
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsIPresShell_eRenderFlag {
         STATE_IGNORING_VIEWPORT_SCROLLING = 1,
         STATE_DRAWWINDOW_NOT_FLUSHING = 2,
@@ -24010,7 +24010,7 @@ pub mod root {
     /// is scrollable with overflow:scroll or overflow:auto in some direction when
     /// aDirection is eEither.  Otherwise, this returns a nearest frame that is
     /// scrollable in the specified direction.
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsIPresShell_ScrollDirection {
         eHorizontal = 0,
         eVertical = 1,
@@ -24026,14 +24026,14 @@ pub mod root {
     /// frame or its ancestors/descendants, but that intrinsic widths will still
     /// be marked dirty.  Passing aIntrinsicDirty = eResize and aBitToAdd = 0
     /// would result in no work being done, so don't do that.
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsIPresShell_IntrinsicDirty {
         eResize = 0,
         eTreeChange = 1,
         eStyleChange = 2,
     }
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsIPresShell_ReflowRootHandling {
         ePositionOrSizeChange = 0,
         eNoPositionOrSizeChange = 1,
@@ -24052,7 +24052,7 @@ pub mod root {
     pub const nsIPresShell_SCROLL_MINIMUM: root::nsIPresShell__bindgen_ty_1 =
         nsIPresShell__bindgen_ty_1::SCROLL_MINIMUM;
     #[repr(i32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsIPresShell__bindgen_ty_1 {
         SCROLL_TOP = 0,
         SCROLL_BOTTOM = 100,
@@ -24060,14 +24060,14 @@ pub mod root {
         SCROLL_MINIMUM = -1,
     }
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsIPresShell_WhenToScroll {
         SCROLL_ALWAYS = 0,
         SCROLL_IF_NOT_VISIBLE = 1,
         SCROLL_IF_NOT_FULLY_VISIBLE = 2,
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsIPresShell_ScrollAxis {
         pub _bindgen_opaque_blob: u32,
     }
@@ -24099,7 +24099,7 @@ pub mod root {
               root::nsIPresShell__bindgen_ty_2 =
         nsIPresShell__bindgen_ty_2::SCROLL_SMOOTH_AUTO;
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsIPresShell__bindgen_ty_2 {
         SCROLL_FIRST_ANCESTOR_ONLY = 1,
         SCROLL_OVERFLOW_HIDDEN = 2,
@@ -24164,7 +24164,7 @@ pub mod root {
     /// @param aRenderedContext the gfxContext to render to. We render so that
     /// one CSS pixel in the source document is rendered to one unit in the current
     /// transform.
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsIPresShell__bindgen_ty_3 {
         RENDER_IS_UNTRUSTED = 1,
         RENDER_IGNORE_VIEWPORT_SCROLLING = 2,
@@ -24180,7 +24180,7 @@ pub mod root {
               =
         nsIPresShell__bindgen_ty_4::RENDER_AUTO_SCALE;
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsIPresShell__bindgen_ty_4 {
         RENDER_IS_IMAGE = 256,
         RENDER_AUTO_SCALE = 128,
@@ -24208,7 +24208,7 @@ pub mod root {
     /// APPEND_UNSCROLLED_ONLY only attempts to add the unscrolled item, so that we
     /// can add it manually after LayoutUseContainersForRootFrame has built the
     /// scrolling ContainerLayer.
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsIPresShell__bindgen_ty_5 {
         FORCE_DRAW = 1,
         ADD_FOR_SUBDOC = 2,
@@ -24246,7 +24246,7 @@ pub mod root {
                     mOverrideContent ) ));
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsIPresShell_PointerInfo {
         pub mPointerType: u16,
         pub mActiveState: bool,
@@ -24293,7 +24293,7 @@ pub mod root {
         fn clone(&self) -> Self { *self }
     }
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsIPresShell_PaintFlags {
         PAINT_LAYERS = 1,
         PAINT_COMPOSITE = 2,
@@ -24305,7 +24305,7 @@ pub mod root {
     ///
     /// @param aType PAINT_DELAYED_COMPRESS : Schedule a paint to be executed after a delay, and
     /// put FrameLayerBuilder in 'compressed' mode that avoids short cut optimizations.
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsIPresShell_PaintType {
         PAINT_DEFAULT = 0,
         PAINT_DELAYED_COMPRESS = 1,
@@ -25239,12 +25239,12 @@ pub mod root {
                     ) , "::" , stringify ! ( mNode ) ));
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsDOMMutationObserver {
         _unused: [u8; 0],
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsRange {
         _unused: [u8; 0],
     }
@@ -25297,7 +25297,7 @@ pub mod root {
     pub const NODE_TYPE_SPECIFIC_BITS_OFFSET: root::_bindgen_ty_83 =
         _bindgen_ty_83::NODE_TYPE_SPECIFIC_BITS_OFFSET;
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum _bindgen_ty_83 {
         NODE_HAS_LISTENERMANAGER = 4,
         NODE_HAS_PROPERTIES = 8,
@@ -25329,7 +25329,7 @@ pub mod root {
     /// You can then at any time call Mutated to check if any unexpected mutations
     /// have occurred.
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsMutationGuard {
         pub mStartingGeneration: u64,
     }
@@ -25372,7 +25372,7 @@ pub mod root {
     }
     pub type nsXBLBinding_HasThreadSafeRefCnt = root::mozilla::FalseType;
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsXBLBinding_cycleCollection {
         pub _base: root::nsCycleCollectionParticipant,
     }
@@ -25467,7 +25467,7 @@ pub mod root {
                     "::" , stringify ! ( mAnonymousContentList ) ));
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsFrameManagerBase {
         pub mPresShell: *mut root::nsIPresShell,
         pub mRootFrame: *mut root::nsIFrame,
@@ -25476,7 +25476,7 @@ pub mod root {
         pub mIsDestroyingFrames: bool,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsFrameManagerBase_UndisplayedMap {
         _unused: [u8; 0],
     }
@@ -25521,12 +25521,12 @@ pub mod root {
         fn clone(&self) -> Self { *self }
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsIWeakReference {
         pub _base: root::nsISupports,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsIWeakReference_COMTypeInfo {
         pub _address: u8,
     }
@@ -25549,7 +25549,7 @@ pub mod root {
     /// @param PtrType the reference-type being wrapped
     /// @see nsDataHashtable, nsClassHashtable
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsRefPtrHashtable {
     }
     pub type nsRefPtrHashtable_KeyType = [u8; 0usize];
@@ -25562,7 +25562,7 @@ pub mod root {
     /// @param Class the class-type being wrapped
     /// @see nsInterfaceHashtable, nsClassHashtable
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsClassHashtable {
     }
     pub type nsClassHashtable_KeyType = [u8; 0usize];
@@ -25632,12 +25632,12 @@ pub mod root {
                     "::" , stringify ! ( mArenaRefPtrs ) ));
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct imgIRequest {
         pub _base: root::nsIRequest,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct imgIRequest_COMTypeInfo {
         pub _address: u8,
     }
@@ -25664,7 +25664,7 @@ pub mod root {
               root::imgIRequest__bindgen_ty_1 =
         imgIRequest__bindgen_ty_1::STATUS_HAS_TRANSPARENCY;
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum imgIRequest__bindgen_ty_1 {
         STATUS_NONE = 0,
         STATUS_SIZE_AVAILABLE = 1,
@@ -25683,7 +25683,7 @@ pub mod root {
               root::imgIRequest__bindgen_ty_2 =
         imgIRequest__bindgen_ty_2::CORS_USE_CREDENTIALS;
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum imgIRequest__bindgen_ty_2 {
         CORS_NONE = 1,
         CORS_ANONYMOUS = 2,
@@ -25698,7 +25698,7 @@ pub mod root {
     pub const imgIRequest_CATEGORY_DISPLAY: root::imgIRequest__bindgen_ty_3 =
         imgIRequest__bindgen_ty_3::CATEGORY_DISPLAY;
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum imgIRequest__bindgen_ty_3 {
         CATEGORY_FRAME_INIT = 1,
         CATEGORY_SIZE_QUERY = 2,
@@ -25715,12 +25715,12 @@ pub mod root {
         fn clone(&self) -> Self { *self }
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct imgINotificationObserver {
         pub _base: root::nsISupports,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct imgINotificationObserver_COMTypeInfo {
         pub _address: u8,
     }
@@ -25752,7 +25752,7 @@ pub mod root {
               root::imgINotificationObserver__bindgen_ty_1 =
         imgINotificationObserver__bindgen_ty_1::HAS_TRANSPARENCY;
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum imgINotificationObserver__bindgen_ty_1 {
         SIZE_AVAILABLE = 1,
         FRAME_UPDATE = 2,
@@ -25778,37 +25778,37 @@ pub mod root {
         fn clone(&self) -> Self { *self }
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsDocShell {
         _unused: [u8; 0],
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsViewManager {
         _unused: [u8; 0],
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsFrameSelection {
         _unused: [u8; 0],
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsCSSFrameConstructor {
         _unused: [u8; 0],
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct AutoWeakFrame {
         _unused: [u8; 0],
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct WeakFrame {
         _unused: [u8; 0],
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsRefreshDriver {
         _unused: [u8; 0],
     }
@@ -25819,12 +25819,12 @@ pub mod root {
     /// @param aTimer the timer which has expired
     /// @param aClosure opaque parameter passed to initWithFuncCallback
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsITimer {
         pub _base: root::nsISupports,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsITimer_COMTypeInfo {
         pub _address: u8,
     }
@@ -25844,7 +25844,7 @@ pub mod root {
               root::nsITimer__bindgen_ty_1 =
         nsITimer__bindgen_ty_1::TYPE_ONE_SHOT_LOW_PRIORITY;
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsITimer__bindgen_ty_1 {
         TYPE_ONE_SHOT = 0,
         TYPE_REPEATING_SLACK = 1,
@@ -25913,12 +25913,12 @@ pub mod root {
                     ));
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsIObserver {
         pub _base: root::nsISupports,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsIObserver_COMTypeInfo {
         pub _address: u8,
     }
@@ -25933,13 +25933,13 @@ pub mod root {
         fn clone(&self) -> Self { *self }
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsIEventTarget {
         pub _base: root::nsISupports,
         pub mVirtualThread: *mut root::PRThread,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsIEventTarget_COMTypeInfo {
         pub _address: u8,
     }
@@ -25953,7 +25953,7 @@ pub mod root {
               root::nsIEventTarget__bindgen_ty_1 =
         nsIEventTarget__bindgen_ty_1::DISPATCH_AT_END;
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsIEventTarget__bindgen_ty_1 {
         DISPATCH_NORMAL = 0,
         DISPATCH_SYNC = 1,
@@ -25981,7 +25981,7 @@ pub mod root {
     /// @param Interface the interface-type being wrapped
     /// @see nsDataHashtable, nsClassHashtable
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsInterfaceHashtable {
     }
     pub type nsInterfaceHashtable_KeyType = [u8; 0usize];
@@ -26019,12 +26019,12 @@ pub mod root {
                     mLocaleLanguage ) ));
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsINamed {
         pub _base: root::nsISupports,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsINamed_COMTypeInfo {
         pub _address: u8,
     }
@@ -26039,12 +26039,12 @@ pub mod root {
         fn clone(&self) -> Self { *self }
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsIRunnable {
         pub _base: root::nsISupports,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsIRunnable_COMTypeInfo {
         pub _address: u8,
     }
@@ -26060,7 +26060,7 @@ pub mod root {
     }
     pub type nsRunnableMethod_BaseType = u8;
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsRunnableMethod_ReturnTypeEnforcer {
         pub _address: u8,
     }
@@ -26074,7 +26074,7 @@ pub mod root {
         pub _base: [u64; 31usize],
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsPIDOMWindowInner_COMTypeInfo {
         pub _address: u8,
     }
@@ -26097,7 +26097,7 @@ pub mod root {
         pub _base: root::nsIGlobalObject,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsIScriptGlobalObject_COMTypeInfo {
         pub _address: u8,
     }
@@ -26112,12 +26112,12 @@ pub mod root {
                     ));
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsIXPConnectJSObjectHolder {
         pub _base: root::nsISupports,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsIXPConnectJSObjectHolder_COMTypeInfo {
         pub _address: u8,
     }
@@ -26136,12 +26136,12 @@ pub mod root {
         fn clone(&self) -> Self { *self }
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsIXPConnectWrappedJS {
         pub _base: root::nsIXPConnectJSObjectHolder,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsIXPConnectWrappedJS_COMTypeInfo {
         pub _address: u8,
     }
@@ -26159,17 +26159,17 @@ pub mod root {
         fn clone(&self) -> Self { *self }
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsIControllers {
         _unused: [u8; 0],
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct mozIDOMWindow {
         pub _base: root::nsISupports,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct mozIDOMWindow_COMTypeInfo {
         pub _address: u8,
     }
@@ -26190,7 +26190,7 @@ pub mod root {
         pub _base_1: root::nsWrapperCache,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsICSSDeclaration_COMTypeInfo {
         pub _address: u8,
     }
@@ -26206,7 +26206,7 @@ pub mod root {
     #[repr(C)]
     pub struct nsPIDOMWindow__bindgen_vtable(::std::os::raw::c_void);
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsPIDOMWindow {
     }
     pub type nsPIDOMWindow_ServiceWorkerRegistrationTable = [u64; 6usize];
@@ -26262,19 +26262,19 @@ pub mod root {
         }
     }
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsCompatibility {
         eCompatibility_FullStandards = 1,
         eCompatibility_AlmostStandards = 2,
         eCompatibility_NavQuirks = 3,
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsIRequestObserver {
         pub _base: root::nsISupports,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsIRequestObserver_COMTypeInfo {
         pub _address: u8,
     }
@@ -26302,7 +26302,7 @@ pub mod root {
     pub const nsURIHashKey_ALLOW_MEMMOVE: root::nsURIHashKey__bindgen_ty_1 =
         nsURIHashKey__bindgen_ty_1::ALLOW_MEMMOVE;
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsURIHashKey__bindgen_ty_1 { ALLOW_MEMMOVE = 1, }
     #[test]
     fn bindgen_test_layout_nsURIHashKey() {
@@ -26317,7 +26317,7 @@ pub mod root {
                     "::" , stringify ! ( mKey ) ));
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsContentList {
         _unused: [u8; 0],
     }
@@ -26325,7 +26325,7 @@ pub mod root {
     /// is 32 bits so that objects that includes this as a field can pad and align
     /// efficiently.
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsExpirationState {
         pub _bitfield_1: u32,
         pub __bindgen_align: [u32; 0usize],
@@ -26337,7 +26337,7 @@ pub mod root {
               root::nsExpirationState__bindgen_ty_1 =
         nsExpirationState__bindgen_ty_1::MAX_INDEX_IN_GENERATION;
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsExpirationState__bindgen_ty_1 {
         NOT_TRACKED = 15,
         MAX_INDEX_IN_GENERATION = 268435455,
@@ -26444,33 +26444,33 @@ pub mod root {
         }
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsHTMLCSSStyleSheet {
         _unused: [u8; 0],
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsHTMLStyleSheet {
         _unused: [u8; 0],
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsIBFCacheEntry {
         _unused: [u8; 0],
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsIDocumentEncoder {
         _unused: [u8; 0],
     }
     /// An internal interface
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsIHTMLCollection {
         pub _base: root::nsIDOMHTMLCollection,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsIHTMLCollection_COMTypeInfo {
         pub _address: u8,
     }
@@ -26487,39 +26487,39 @@ pub mod root {
         fn clone(&self) -> Self { *self }
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsIObjectLoadingContent {
         _unused: [u8; 0],
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsIStructuredCloneContainer {
         _unused: [u8; 0],
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsSMILAnimationController {
         _unused: [u8; 0],
     }
     #[repr(i32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum HSTSPrimingState {
         eNO_HSTS_PRIMING = 0,
         eHSTS_PRIMING_ALLOW = 1,
         eHSTS_PRIMING_BLOCK = 2,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct ProfilerBacktrace {
         _unused: [u8; 0],
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct ProfilerMarkerPayload {
         _unused: [u8; 0],
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct ProfilerBacktraceDestructor {
         pub _address: u8,
     }
@@ -26538,28 +26538,28 @@ pub mod root {
         fn clone(&self) -> Self { *self }
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsBidi {
         _unused: [u8; 0],
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsIPrintSettings {
         _unused: [u8; 0],
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsITheme {
         _unused: [u8; 0],
     }
     /// Interface used for handling clicks on links
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsILinkHandler {
         pub _base: root::nsISupports,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsILinkHandler_COMTypeInfo {
         pub _address: u8,
     }
@@ -26574,34 +26574,34 @@ pub mod root {
         fn clone(&self) -> Self { *self }
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct gfxTextPerfMetrics {
         _unused: [u8; 0],
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsTransitionManager {
         _unused: [u8; 0],
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsAnimationManager {
         _unused: [u8; 0],
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsDeviceContext {
         _unused: [u8; 0],
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct gfxMissingFontRecorder {
         _unused: [u8; 0],
     }
     pub const kPresContext_DefaultVariableFont_ID: u8 = 0;
     pub const kPresContext_DefaultFixedFont_ID: u8 = 1;
     #[repr(i16)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsCSSKeyword {
         eCSSKeyword_UNKNOWN = -1,
         eCSSKeyword__moz_activehyperlinktext = 0,
@@ -27387,7 +27387,7 @@ pub mod root {
               =
         nsCSSPropertyID::eCSSPropertyAlias_WebkitMaskSize;
     #[repr(i32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsCSSPropertyID {
         eCSSProperty_UNKNOWN = -1,
         eCSSProperty_align_content = 0,
@@ -27876,7 +27876,7 @@ pub mod root {
         eCSSProperty_DOM = 483,
     }
     #[repr(i32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsCSSCounterDesc {
         eCSSCounterDesc_UNKNOWN = -1,
         eCSSCounterDesc_System = 0,
@@ -27906,7 +27906,7 @@ pub mod root {
               root::nsStyleStructID =
         nsStyleStructID::eStyleStruct_Table;
     #[repr(i32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsStyleStructID {
         nsStyleStructID_None = -1,
         nsStyleStructID_Inherited_Start = 0,
@@ -27937,7 +27937,7 @@ pub mod root {
     }
     #[repr(u32)]
     /// Types of animatable values.
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsStyleAnimType {
         eStyleAnimType_Custom = 0,
         eStyleAnimType_Coord = 1,
@@ -27959,14 +27959,14 @@ pub mod root {
         eStyleAnimType_None = 17,
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsCSSProps {
         pub _address: u8,
     }
     pub use self::super::root::mozilla::CSSEnabledState as
             nsCSSProps_EnabledState;
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsCSSProps_KTableEntry {
         pub mKeyword: root::nsCSSKeyword,
         pub mValue: i16,
@@ -29378,7 +29378,7 @@ pub mod root {
         }
     }
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsCSSUnit {
         eCSSUnit_Null = 0,
         eCSSUnit_Auto = 1,
@@ -30069,7 +30069,7 @@ pub mod root {
                     , "::" , stringify ! ( mArray ) ));
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsCSSValue__bindgen_ty_1 {
         pub mInt: root::__BindgenUnionField<i32>,
         pub mFloat: root::__BindgenUnionField<f32>,
@@ -30299,17 +30299,17 @@ pub mod root {
                     mIsInterpolationHint ) ));
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct imgIContainer {
         _unused: [u8; 0],
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsISecurityInfoProvider {
         pub _base: root::nsISupports,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsISecurityInfoProvider_COMTypeInfo {
         pub _address: u8,
     }
@@ -30327,12 +30327,12 @@ pub mod root {
         fn clone(&self) -> Self { *self }
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsISupportsPriority {
         pub _base: root::nsISupports,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsISupportsPriority_COMTypeInfo {
         pub _address: u8,
     }
@@ -30352,7 +30352,7 @@ pub mod root {
               root::nsISupportsPriority__bindgen_ty_1 =
         nsISupportsPriority__bindgen_ty_1::PRIORITY_LOWEST;
     #[repr(i32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsISupportsPriority__bindgen_ty_1 {
         PRIORITY_HIGHEST = -20,
         PRIORITY_HIGH = -10,
@@ -30373,12 +30373,12 @@ pub mod root {
         fn clone(&self) -> Self { *self }
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsITimedChannel {
         pub _base: root::nsISupports,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsITimedChannel_COMTypeInfo {
         pub _address: u8,
     }
@@ -30394,7 +30394,7 @@ pub mod root {
         fn clone(&self) -> Self { *self }
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct ProxyBehaviour {
         _unused: [u8; 0],
     }
@@ -30558,7 +30558,7 @@ pub mod root {
     pub type nsStyleImageRequest_URLValueData =
         root::mozilla::css::URLValueData;
     #[repr(u8)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsStyleImageRequest_Mode { Track = 1, Discard = 2, }
     pub type nsStyleImageRequest_HasThreadSafeRefCnt =
         root::mozilla::TrueType;
@@ -30609,7 +30609,7 @@ pub mod root {
                     ) , "::" , stringify ! ( mResolved ) ));
     }
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsStyleImageType {
         eStyleImageType_Null = 0,
         eStyleImageType_Image = 1,
@@ -30665,7 +30665,7 @@ pub mod root {
     pub type nsStyleImage_URLValue = root::mozilla::css::URLValue;
     pub type nsStyleImage_URLValueData = root::mozilla::css::URLValueData;
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsStyleImage__bindgen_ty_1 {
         pub mImage: root::__BindgenUnionField<*mut root::nsStyleImageRequest>,
         pub mGradient: root::__BindgenUnionField<*mut root::nsStyleGradient>,
@@ -30786,7 +30786,7 @@ pub mod root {
               root::nsStyleImageLayers__bindgen_ty_1 =
         nsStyleImageLayers__bindgen_ty_1::composite;
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsStyleImageLayers__bindgen_ty_1 {
         shorthand = 0,
         color = 1,
@@ -30802,10 +30802,10 @@ pub mod root {
         composite = 11,
     }
     #[repr(u8)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsStyleImageLayers_LayerType { Background = 0, Mask = 1, }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsStyleImageLayers_Size {
         pub mWidth: root::nsStyleImageLayers_Size_Dimension,
         pub mHeight: root::nsStyleImageLayers_Size_Dimension,
@@ -30813,7 +30813,7 @@ pub mod root {
         pub mHeightType: u8,
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsStyleImageLayers_Size_Dimension {
         pub _base: root::nsStyleCoord_CalcValue,
     }
@@ -30832,7 +30832,7 @@ pub mod root {
         fn clone(&self) -> Self { *self }
     }
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsStyleImageLayers_Size_DimensionType {
         eContain = 0,
         eCover = 1,
@@ -30878,7 +30878,7 @@ pub mod root {
         fn clone(&self) -> Self { *self }
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsStyleImageLayers_Repeat {
         pub mXRepeat: root::mozilla::StyleImageLayerRepeat,
         pub mYRepeat: root::mozilla::StyleImageLayerRepeat,
@@ -31456,19 +31456,19 @@ pub mod root {
                     ) , "::" , stringify ! ( mLogicalDirections ) ));
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsStyleImageOrientation {
         pub mOrientation: u8,
     }
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsStyleImageOrientation_Bits {
         ORIENTATION_MASK = 3,
         FLIP_MASK = 4,
         FROM_IMAGE_MASK = 8,
     }
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsStyleImageOrientation_Angles {
         ANGLE_0 = 0,
         ANGLE_90 = 1,
@@ -31495,13 +31495,13 @@ pub mod root {
         fn clone(&self) -> Self { *self }
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsTimingFunction {
         pub mType: root::nsTimingFunction_Type,
         pub __bindgen_anon_1: root::nsTimingFunction__bindgen_ty_1,
     }
     #[repr(i32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsTimingFunction_Type {
         Ease = 0,
         Linear = 1,
@@ -31514,17 +31514,17 @@ pub mod root {
         Frames = 8,
     }
     #[repr(i32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsTimingFunction_Keyword { Implicit = 0, Explicit = 1, }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsTimingFunction__bindgen_ty_1 {
         pub mFunc: root::__BindgenUnionField<root::nsTimingFunction__bindgen_ty_1__bindgen_ty_1>,
         pub __bindgen_anon_1: root::__BindgenUnionField<root::nsTimingFunction__bindgen_ty_1__bindgen_ty_2>,
         pub bindgen_union_field: [u32; 4usize],
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsTimingFunction__bindgen_ty_1__bindgen_ty_1 {
         pub mX1: f32,
         pub mY1: f32,
@@ -31578,7 +31578,7 @@ pub mod root {
         fn clone(&self) -> Self { *self }
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsTimingFunction__bindgen_ty_1__bindgen_ty_2 {
         pub mStepsOrFrames: u32,
     }
@@ -31660,7 +31660,7 @@ pub mod root {
                     "::" , stringify ! ( mPtr ) ));
     }
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsStyleContentType {
         eStyleContentType_String = 1,
         eStyleContentType_Image = 10,
@@ -31728,7 +31728,7 @@ pub mod root {
                     ( mRefCnt ) ));
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsStyleContentData__bindgen_ty_1 {
         pub mString: root::__BindgenUnionField<*mut u16>,
         pub mImage: root::__BindgenUnionField<*mut root::nsStyleImageRequest>,
@@ -31847,7 +31847,7 @@ pub mod root {
                     "::" , stringify ! ( mImage ) ));
     }
     #[repr(u8)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsStyleSVGPaintType {
         eStyleSVGPaintType_None = 1,
         eStyleSVGPaintType_Color = 2,
@@ -31856,14 +31856,14 @@ pub mod root {
         eStyleSVGPaintType_ContextStroke = 5,
     }
     #[repr(u8)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsStyleSVGFallbackType {
         eStyleSVGFallbackType_NotSet = 0,
         eStyleSVGFallbackType_None = 1,
         eStyleSVGFallbackType_Color = 2,
     }
     #[repr(u8)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsStyleSVGOpacitySource {
         eStyleSVGOpacitySource_Normal = 0,
         eStyleSVGOpacitySource_ContextFillOpacity = 1,
@@ -31878,7 +31878,7 @@ pub mod root {
         pub mFallbackColor: root::nscolor,
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsStyleSVGPaint__bindgen_ty_1 {
         pub mColor: root::__BindgenUnionField<root::nscolor>,
         pub mPaintServer: root::__BindgenUnionField<*mut root::mozilla::css::URLValue>,
@@ -31946,7 +31946,7 @@ pub mod root {
         pub __bindgen_anon_1: root::nsStyleFilter__bindgen_ty_1,
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsStyleFilter__bindgen_ty_1 {
         pub mURL: root::__BindgenUnionField<*mut root::mozilla::css::URLValue>,
         pub mDropShadow: root::__BindgenUnionField<*mut root::nsCSSShadowArray>,
@@ -32004,7 +32004,7 @@ pub mod root {
     ///
     /// <div rustbindgen="true" replaces="nsPoint">
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsPoint {
         pub x: root::nscoord,
         pub y: root::nscoord,
@@ -32031,7 +32031,7 @@ pub mod root {
     }
     /// <div rustbindgen="true" replaces="nsMargin">
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsMargin {
         pub top: root::nscoord,
         pub right: root::nscoord,
@@ -32070,7 +32070,7 @@ pub mod root {
     }
     /// <div rustbindgen="true" replaces="nsRect">
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsRect {
         pub x: root::nscoord,
         pub y: root::nscoord,
@@ -32109,7 +32109,7 @@ pub mod root {
     }
     /// <div rustbindgen="true" replaces="nsSize">
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsSize {
         pub width: root::nscoord,
         pub height: root::nscoord,
@@ -32150,32 +32150,32 @@ pub mod root {
         pub mBuffer: root::nsTArray<*mut root::nsISupports>,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct RawServoStyleSet {
         _unused: [u8; 0],
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct RawServoStyleSheetContents {
         _unused: [u8; 0],
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct RawServoDeclarationBlock {
         _unused: [u8; 0],
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct RawServoStyleRule {
         _unused: [u8; 0],
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct RawServoAnimationValue {
         _unused: [u8; 0],
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct RawServoMediaList {
         _unused: [u8; 0],
     }
@@ -32183,11 +32183,11 @@ pub mod root {
         #[allow(unused_imports)]
         use self::super::super::root;
         #[repr(u8)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum MatrixTransformOperator { Interpolate = 0, Accumulate = 1, }
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsCSSPropertyIDSet {
         _unused: [u8; 0],
     }
@@ -32535,12 +32535,12 @@ pub mod root {
         125;
     pub type ThemeWidgetType = u8;
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsIConsoleReportCollector {
         _unused: [u8; 0],
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct CSSRuleListImpl {
         _unused: [u8; 0],
     }
@@ -32613,7 +32613,7 @@ pub mod root {
     }
     /// Utility class to provide scaling defined in a keySplines element.
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsSMILKeySpline {
         pub mX1: f64,
         pub mY1: f64,
@@ -32625,7 +32625,7 @@ pub mod root {
               root::nsSMILKeySpline__bindgen_ty_1 =
         nsSMILKeySpline__bindgen_ty_1::kSplineTableSize;
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsSMILKeySpline__bindgen_ty_1 { kSplineTableSize = 11, }
     extern "C" {
         #[link_name = "_ZN15nsSMILKeySpline15kSampleStepSizeE"]
@@ -32669,22 +32669,22 @@ pub mod root {
         fn clone(&self) -> Self { *self }
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsMappedAttributes {
         _unused: [u8; 0],
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsXBLDocumentInfo {
         _unused: [u8; 0],
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsIStyleRuleProcessor {
         pub _base: root::nsISupports,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsIStyleRuleProcessor_COMTypeInfo {
         pub _address: u8,
     }
@@ -32708,37 +32708,37 @@ pub mod root {
         fn clone(&self) -> Self { *self }
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsXBLPrototypeBinding {
         _unused: [u8; 0],
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsAnonymousContentList {
         _unused: [u8; 0],
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsLabelsNodeList {
         _unused: [u8; 0],
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsDOMTokenList {
         _unused: [u8; 0],
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsDOMStringMap {
         _unused: [u8; 0],
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsIDOMMozNamedAttrMap {
         pub _base: root::nsISupports,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsIDOMMozNamedAttrMap_COMTypeInfo {
         pub _address: u8,
     }
@@ -32762,7 +32762,7 @@ pub mod root {
         pub mAttrMap: root::RefPtr<root::nsDOMAttributeMap>,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsIAttribute_COMTypeInfo {
         pub _address: u8,
     }
@@ -32788,7 +32788,7 @@ pub mod root {
     /// can reduce instruction cache misses and perhaps improve branch
     /// prediction)
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsStubMutationObserver {
         pub _base: root::nsIMutationObserver,
     }
@@ -32807,7 +32807,7 @@ pub mod root {
     }
     /// Structure used as a key for caching Attrs in nsDOMAttributeMap's mAttributeCache.
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsAttrKey {
         /// The namespace of the attribute
         pub mNamespaceID: i32,
@@ -32847,7 +32847,7 @@ pub mod root {
     pub const nsAttrHashKey_ALLOW_MEMMOVE: root::nsAttrHashKey__bindgen_ty_1 =
         nsAttrHashKey__bindgen_ty_1::ALLOW_MEMMOVE;
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsAttrHashKey__bindgen_ty_1 { ALLOW_MEMMOVE = 1, }
     #[test]
     fn bindgen_test_layout_nsAttrHashKey() {
@@ -32914,7 +32914,7 @@ pub mod root {
     pub const ELEMENT_TYPE_SPECIFIC_BITS_OFFSET: root::_bindgen_ty_85 =
         _bindgen_ty_85::ELEMENT_TYPE_SPECIFIC_BITS_OFFSET;
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum _bindgen_ty_85 {
         ELEMENT_SHARED_RESTYLE_BIT_1 = 8388608,
         ELEMENT_SHARED_RESTYLE_BIT_2 = 16777216,
@@ -32927,7 +32927,7 @@ pub mod root {
         ELEMENT_TYPE_SPECIFIC_BITS_OFFSET = 27,
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct LookAndFeelInt {
         pub id: i32,
         pub value: i32,
@@ -32980,12 +32980,12 @@ pub mod root {
     /// to typically being owned by their sheet), which are in turn garbage
     /// collected (with the garbage collection roots being style contexts).
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsIStyleRule {
         pub _base: root::nsISupports,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsIStyleRule_COMTypeInfo {
         pub _address: u8,
     }
@@ -33007,7 +33007,7 @@ pub mod root {
         pub mDecl: root::nsCSSFontFaceStyleDecl,
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsCSSFontFaceRule_cycleCollection {
         pub _base: root::mozilla::css::Rule_cycleCollection,
     }
@@ -33040,7 +33040,7 @@ pub mod root {
                     "Alignment of " , stringify ! ( nsCSSFontFaceRule ) ));
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsMediaFeature {
         pub mName: *mut *mut root::nsIAtom,
         pub mRangeType: root::nsMediaFeature_RangeType,
@@ -33050,13 +33050,13 @@ pub mod root {
         pub mGetter: root::nsMediaFeatureValueGetter,
     }
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsMediaFeature_RangeType {
         eMinMaxAllowed = 0,
         eMinMaxNotAllowed = 1,
     }
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsMediaFeature_ValueType {
         eLength = 0,
         eInteger = 1,
@@ -33068,14 +33068,14 @@ pub mod root {
         eIdent = 7,
     }
     #[repr(u8)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsMediaFeature_RequirementFlags {
         eNoRequirements = 0,
         eHasWebkitPrefix = 1,
         eWebkitDevicePixelRatioPrefEnabled = 2,
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsMediaFeature__bindgen_ty_1 {
         pub mInitializer_: root::__BindgenUnionField<*const ::std::os::raw::c_void>,
         pub mKeywordTable: root::__BindgenUnionField<*const root::nsCSSProps_KTableEntry>,
@@ -33157,7 +33157,7 @@ pub mod root {
         fn clone(&self) -> Self { *self }
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct ServoBundledURI {
         pub mURLString: *const u8,
         pub mURLStringLength: u32,
@@ -33191,7 +33191,7 @@ pub mod root {
         fn clone(&self) -> Self { *self }
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct FontSizePrefs {
         pub mDefaultVariableSize: root::nscoord,
         pub mDefaultFixedSize: root::nscoord,
@@ -33252,7 +33252,7 @@ pub mod root {
         fn clone(&self) -> Self { *self }
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct GeckoFontMetrics {
         pub mChSize: root::nscoord,
         pub mXSize: root::nscoord,
@@ -33305,22 +33305,22 @@ pub mod root {
     pub const SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozColorSwatch: u32 = 12;
     pub type nsBindingList = root::nsTArray<root::RefPtr<root::nsXBLBinding>>;
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsCSSFontFeatureValuesRule {
         _unused: [u8; 0],
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsCSSPageRule {
         _unused: [u8; 0],
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsIDOMCSSCounterStyleRule {
         pub _base: root::nsISupports,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsIDOMCSSCounterStyleRule_COMTypeInfo {
         pub _address: u8,
     }
@@ -33338,12 +33338,12 @@ pub mod root {
         fn clone(&self) -> Self { *self }
     }
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsIDOMCSSFontFaceRule {
         pub _base: root::nsISupports,
     }
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Clone, Copy, Debug)]
     pub struct nsIDOMCSSFontFaceRule_COMTypeInfo {
         pub _address: u8,
     }
@@ -33391,7 +33391,7 @@ pub mod root {
                                                    aResult:
                                                        *mut root::nsCSSValue)>;
     #[repr(C)]
-    #[derive(Debug, Copy)]
+    #[derive(Copy, Debug)]
     pub struct nsMediaFeatures {
         pub _address: u8,
     }
@@ -33419,7 +33419,7 @@ pub mod root {
         pub mValue: root::nsCSSValue,
     }
     #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub enum nsMediaExpression_Range { eMin = 0, eMax = 1, eEqual = 2, }
     #[test]
     fn bindgen_test_layout_nsMediaExpression() {

@@ -204,7 +204,7 @@ impl<'a> CoordDataMut for CornersDataMut<'a> {
 ///
 /// In release mode this should never actually exist in the code, and will be
 /// optimized out by threading matches and inlining.
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum CoordDataValue {
     /// eStyleUnit_Null
     Null,

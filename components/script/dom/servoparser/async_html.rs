@@ -495,7 +495,7 @@ fn run(sink: Sink,
     }
 }
 
-#[derive(JSTraceable, HeapSizeOf, Default)]
+#[derive(Default, HeapSizeOf, JSTraceable)]
 struct ParseNodeData {
     contents: Option<ParseNode>,
     is_integration_point: bool,

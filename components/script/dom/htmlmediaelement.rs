@@ -201,7 +201,7 @@ impl HTMLMediaElementContext {
     }
 }
 
-#[derive(JSTraceable, HeapSizeOf)]
+#[derive(HeapSizeOf, JSTraceable)]
 pub struct VideoMedia {
     format: String,
     #[ignore_heap_size_of = "defined in time"]
@@ -794,7 +794,7 @@ impl VirtualMethods for HTMLMediaElement {
     }
 }
 
-#[derive(JSTraceable, HeapSizeOf)]
+#[derive(HeapSizeOf, JSTraceable)]
 pub enum MediaElementMicrotask {
     ResourceSelectionTask {
         elem: Root<HTMLMediaElement>,

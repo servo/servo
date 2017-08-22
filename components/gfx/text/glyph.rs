@@ -21,7 +21,7 @@ pub use gfx_traits::ByteIndex;
 /// In the uncommon case (multiple glyphs per unicode character, large glyph index/advance, or
 /// glyph offsets), we pack the glyph count into GlyphEntry, and store the other glyph information
 /// in DetailedGlyphStore.
-#[derive(Clone, Debug, Copy, Deserialize, Serialize, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub struct GlyphEntry {
     value: u32,
 }
@@ -147,7 +147,7 @@ impl GlyphEntry {
 
 // Stores data for a detailed glyph, in the case that several glyphs
 // correspond to one character, or the glyph's data couldn't be packed.
-#[derive(Clone, Debug, Copy, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 struct DetailedGlyph {
     id: GlyphId,
     // glyph's advance, in the text's direction (LTR or RTL)
@@ -166,7 +166,7 @@ impl DetailedGlyph {
     }
 }
 
-#[derive(PartialEq, Clone, Eq, Debug, Copy, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 struct DetailedGlyphRecord {
     // source string offset/GlyphEntry offset in the TextRun
     entry_offset: ByteIndex,
@@ -308,7 +308,7 @@ impl<'a> DetailedGlyphStore {
 
 // This struct is used by GlyphStore clients to provide new glyph data.
 // It should be allocated on the stack and passed by reference to GlyphStore.
-#[derive(Copy, Clone)]
+#[derive(Clone, Copy)]
 pub struct GlyphData {
     id: GlyphId,
     advance: Au,
@@ -339,7 +339,7 @@ impl GlyphData {
 // through glyphs (either for a particular TextRun offset, or all glyphs).
 // Rather than eagerly assembling and copying glyph data, it only retrieves
 // values as they are needed from the GlyphStore, using provided offsets.
-#[derive(Copy, Clone)]
+#[derive(Clone, Copy)]
 pub enum GlyphInfo<'a> {
     Simple(&'a GlyphStore, ByteIndex),
     Detail(&'a GlyphStore, ByteIndex, u16),

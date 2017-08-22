@@ -36,7 +36,7 @@ const DEFAULT_NOT_FILTERABLE_TEX_TYPES: [GLenum; 2] = [
 ];
 
 /// WebGL features that are enabled/disabled by WebGL Extensions.
-#[derive(JSTraceable, HeapSizeOf)]
+#[derive(HeapSizeOf, JSTraceable)]
 struct WebGLExtensionFeatures {
     gl_extensions: HashSet<String>,
     disabled_tex_types: HashSet<GLenum>,
@@ -59,7 +59,7 @@ impl Default for WebGLExtensionFeatures {
 
 /// Handles the list of implemented, supported and enabled WebGL extensions.
 #[must_root]
-#[derive(JSTraceable, HeapSizeOf)]
+#[derive(HeapSizeOf, JSTraceable)]
 pub struct WebGLExtensions {
     extensions: DOMRefCell<HashMap<String, Box<WebGLExtensionWrapper>>>,
     features: DOMRefCell<WebGLExtensionFeatures>,
@@ -182,7 +182,7 @@ impl WebGLExtensions {
 }
 
 // Helper structs
-#[derive(JSTraceable, HeapSizeOf, PartialEq, Eq, Hash)]
+#[derive(Eq, Hash, HeapSizeOf, JSTraceable, PartialEq)]
 struct TexFormatType(u32, u32);
 
 type WebGLQueryParameterFunc = Fn(*mut JSContext, &WebGLRenderingContext)

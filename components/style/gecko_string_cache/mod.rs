@@ -39,7 +39,7 @@ macro_rules! local_name {
 }
 
 /// A strong reference to a Gecko atom.
-#[derive(PartialEq, Eq)]
+#[derive(Eq, PartialEq)]
 pub struct Atom(*mut WeakAtom);
 
 /// An atom *without* a strong reference.

@@ -42,7 +42,7 @@ use std::thread;
 use task_source::TaskSource;
 use task_source::networking::NetworkingTaskSource;
 
-#[derive(JSTraceable, PartialEq, Copy, Clone, Debug, HeapSizeOf)]
+#[derive(Clone, Copy, Debug, HeapSizeOf, JSTraceable, PartialEq)]
 enum WebSocketRequestState {
     Connecting = 0,
     Open = 1,
