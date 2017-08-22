@@ -47,6 +47,70 @@ where
     }
 }
 
+/// A struct to iterate over the different stylesheets to be flushed.
+pub struct StylesheetFlusher<'a, 'b, S>
+where
+    'b: 'a,
+    S: StylesheetInDocument + PartialEq + 'static,
+{
+    iter: slice::IterMut<'a, StylesheetSetEntry<S>>,
+    guard: &'a SharedRwLockReadGuard<'b>,
+    origins_dirty: OriginSet,
+    author_style_disabled: bool,
+}
+
+/// The type of rebuild that we need to do for a given stylesheet.
+pub enum SheetRebuildKind {
+    /// For now we only support full rebuilds, in the future we'll implement
+    /// partial rebuilds.
+    Full,
+}
+
+impl<'a, 'b, S> StylesheetFlusher<'a, 'b, S>
+where
+    'b: 'a,
+    S: StylesheetInDocument + PartialEq + 'static,
+{
+    /// The set of origins to fully rebuild, which need to be cleared
+    /// beforehand.
+    pub fn origins_to_fully_rebuild(&self) -> OriginSet {
+        self.origins_dirty
+    }
+
+    /// Returns whether running the whole flushing process would be a no-op.
+    pub fn nothing_to_do(&self) -> bool {
+        self.origins_dirty.is_empty()
+    }
+}
+
+impl<'a, 'b, S> Iterator for StylesheetFlusher<'a, 'b, S>
+where
+    'b: 'a,
+    S: StylesheetInDocument + PartialEq + 'static,
+{
+    type Item = (&'a S, SheetRebuildKind);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            let potential_sheet = match self.iter.next() {
+                None => return None,
+                Some(s) => s,
+            };
+
+            let origin = potential_sheet.sheet.contents(self.guard).origin;
+            if !self.origins_dirty.contains(origin.into()) {
+                continue;
+            }
+
+            if self.author_style_disabled && matches!(origin, Origin::Author) {
+                continue;
+            }
+
+            return Some((&potential_sheet.sheet, SheetRebuildKind::Full))
+        }
+    }
+}
+
 /// The set of stylesheets effective for a given document.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct StylesheetSet<S>
@@ -191,10 +255,11 @@ where
 
     /// Flush the current set, unmarking it as dirty, and returns the damaged
     /// origins.
-    pub fn flush<E>(
-        &mut self,
+    pub fn flush<'a, 'b, E>(
+        &'a mut self,
         document_element: Option<E>,
-    ) -> OriginSet
+        guard: &'a SharedRwLockReadGuard<'b>,
+    ) -> StylesheetFlusher<'a, 'b, S>
     where
         E: TElement,
     {
@@ -203,7 +268,14 @@ where
         debug!("StylesheetSet::flush");
 
         self.invalidations.flush(document_element);
-        mem::replace(&mut self.origins_dirty, OriginSet::empty())
+        let origins_dirty = mem::replace(&mut self.origins_dirty, OriginSet::empty());
+
+        StylesheetFlusher {
+            iter: self.entries.iter_mut(),
+            author_style_disabled: self.author_style_disabled,
+            origins_dirty,
+            guard,
+        }
     }
 
     /// Flush stylesheets, but without running any of the invalidation passes.

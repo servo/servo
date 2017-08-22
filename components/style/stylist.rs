@@ -38,7 +38,7 @@ use smallvec::VecLike;
 use std::fmt::Debug;
 use std::ops;
 use style_traits::viewport::ViewportConstraints;
-use stylesheet_set::{StylesheetSet, StylesheetIterator};
+use stylesheet_set::{StylesheetSet, StylesheetIterator, StylesheetFlusher};
 #[cfg(feature = "gecko")]
 use stylesheets::{CounterStyleRule, FontFaceRule};
 use stylesheets::{CssRule, StyleRule};
@@ -83,22 +83,22 @@ impl DocumentCascadeData {
 
     /// Rebuild the cascade data for the given document stylesheets, and
     /// optionally with a set of user agent stylesheets.
-    fn rebuild<'a, I, S>(
+    fn rebuild<'a, 'b, S>(
         &mut self,
         device: &Device,
         quirks_mode: QuirksMode,
-        doc_stylesheets: I,
+        flusher: StylesheetFlusher<'a, 'b, S>,
         guards: &StylesheetGuards,
         ua_stylesheets: Option<&UserAgentStylesheets>,
-        author_style_disabled: bool,
         extra_data: &mut PerOrigin<ExtraStyleData>,
-        origins_to_rebuild: OriginSet,
     )
     where
-        I: Iterator<Item = &'a S> + Clone,
-        S: StylesheetInDocument + ToMediaListKey + 'static,
+        'b: 'a,
+        S: StylesheetInDocument + ToMediaListKey + PartialEq + 'static,
     {
-        debug_assert!(!origins_to_rebuild.is_empty());
+        debug_assert!(!flusher.nothing_to_do());
+
+        let origins_to_rebuild = flusher.origins_to_fully_rebuild();
 
         for origin in origins_to_rebuild.iter() {
             extra_data.borrow_mut_for_origin(&origin).clear();
@@ -146,22 +146,13 @@ impl DocumentCascadeData {
                         quirks_mode,
                         &ua_stylesheets.quirks_mode_stylesheet,
                         guards.ua_or_user,
-                        extra_data
+                        extra_data,
                     );
                 }
             }
         }
 
-        // Only add stylesheets for origins we are updating, and only add
-        // Author level sheets if author style is not disabled.
-        let sheets_to_add = doc_stylesheets.filter(|s| {
-            let sheet_origin = s.contents(guards.author).origin;
-
-            origins_to_rebuild.contains(sheet_origin.into()) &&
-                (!matches!(sheet_origin, Origin::Author) || !author_style_disabled)
-        });
-
-        for stylesheet in sheets_to_add {
+        for (stylesheet, _rebuild_kind) in flusher {
             self.add_stylesheet(
                 device,
                 quirks_mode,
@@ -489,15 +480,6 @@ impl Stylist {
             return;
         }
 
-        let author_style_disabled = self.stylesheets.author_style_disabled();
-        let origins_to_rebuild = self.stylesheets.flush(document_element);
-
-        if origins_to_rebuild.is_empty() {
-            return;
-        }
-
-        let doc_stylesheets = self.stylesheets.iter();
-
         self.num_rebuilds += 1;
 
         // Update viewport_constraints regardless of which origins'
@@ -516,7 +498,9 @@ impl Stylist {
             // queries defined?)
             let cascaded_rule = ViewportRule {
                 declarations: viewport_rule::Cascade::from_stylesheets(
-                    doc_stylesheets.clone(), guards.author, &self.device
+                    self.stylesheets.iter(),
+                    guards.author,
+                    &self.device,
                 ).finish()
             };
 
@@ -532,15 +516,15 @@ impl Stylist {
             }
         }
 
+        let flusher = self.stylesheets.flush(document_element, &guards.author);
+
         self.cascade_data.rebuild(
             &self.device,
             self.quirks_mode,
-            doc_stylesheets,
+            flusher,
             guards,
             ua_sheets,
-            author_style_disabled,
             extra_data,
-            origins_to_rebuild,
         );
     }
 
