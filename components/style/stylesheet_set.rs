@@ -83,6 +83,20 @@ where
     }
 }
 
+#[cfg(debug_assertions)]
+impl<'a, 'b, S> Drop for StylesheetFlusher<'a, 'b, S>
+where
+    'b: 'a,
+    S: StylesheetInDocument + PartialEq + 'static,
+{
+    fn drop(&mut self) {
+        debug_assert!(
+            self.iter.next().is_none(),
+            "You're supposed to fully consume the flusher",
+        );
+    }
+}
+
 impl<'a, 'b, S> Iterator for StylesheetFlusher<'a, 'b, S>
 where
     'b: 'a,
