@@ -5,7 +5,7 @@
 //! Computed types for text properties.
 
 use values::{CSSInteger, CSSFloat};
-use values::animated::{Animate, Procedure, ToAnimatedZero};
+use values::animated::ToAnimatedZero;
 use values::computed::{NonNegativeAu, NonNegativeNumber};
 use values::computed::length::{Length, LengthOrPercentage};
 use values::generics::text::InitialLetter as GenericInitialLetter;
@@ -23,28 +23,6 @@ pub type WordSpacing = Spacing<LengthOrPercentage>;
 
 /// A computed value for the `line-height` property.
 pub type LineHeight = GenericLineHeight<NonNegativeNumber, NonNegativeAu>;
-
-impl Animate for LineHeight {
-    #[inline]
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        match (self, other) {
-            (&GenericLineHeight::Length(ref this), &GenericLineHeight::Length(ref other)) => {
-                Ok(GenericLineHeight::Length(this.animate(other, procedure)?))
-            },
-            (&GenericLineHeight::Number(ref this), &GenericLineHeight::Number(ref other)) => {
-                Ok(GenericLineHeight::Number(this.animate(other, procedure)?))
-            },
-            (&GenericLineHeight::Normal, &GenericLineHeight::Normal) => {
-                Ok(GenericLineHeight::Normal)
-            },
-            #[cfg(feature = "gecko")]
-            (&GenericLineHeight::MozBlockHeight, &GenericLineHeight::MozBlockHeight) => {
-                Ok(GenericLineHeight::MozBlockHeight)
-            },
-            _ => Err(()),
-        }
-    }
-}
 
 impl ToAnimatedZero for LineHeight {
     #[inline]
