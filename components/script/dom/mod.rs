@@ -236,6 +236,7 @@ pub mod characterdata;
 pub mod client;
 pub mod closeevent;
 pub mod comment;
+pub mod compositionevent;
 pub mod console;
 mod create;
 pub mod crypto;
