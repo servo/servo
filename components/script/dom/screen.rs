@@ -39,6 +39,20 @@ impl Screen {
 }
 
 impl ScreenMethods for Screen {
+    // https://drafts.csswg.org/cssom-view/#dom-screen-availwidth
+    fn AvailWidth(&self) -> Finite<f64> {
+        // FIXME: Not spec complient because glutin don't have corresponding API
+        // Fallback to window.screen.width behavior
+        self.Width()
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-screen-availheight
+    fn AvailHeight(&self) -> Finite<f64> {
+        // FIXME: Not spec complient because glutin don't have corresponding API
+        // Fallback to window.screen.height behavior
+        self.Height()
+    }
+
     // https://drafts.csswg.org/cssom-view/#dom-screen-width
     fn Width(&self) -> Finite<f64> {
         Finite::wrap(self.screen_size().width as f64)
