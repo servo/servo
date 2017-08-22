@@ -2526,27 +2526,17 @@ impl Fragment {
             return true
         }
 
-        match (self.style().get_box().position,
-               self.style().get_position().z_index,
-               self.style().get_box().overflow_x,
-               self.style().get_box().overflow_y) {
-            (position::T::absolute,
-             Either::Second(Auto),
-             overflow_x::T::visible,
-             overflow_x::T::visible) |
-            (position::T::fixed,
-             Either::Second(Auto),
-             overflow_x::T::visible,
-             overflow_x::T::visible) |
-            (position::T::relative,
-             Either::Second(Auto),
-             overflow_x::T::visible,
-             overflow_x::T::visible) => false,
-            (position::T::absolute, _, _, _) |
-            (position::T::fixed, _, _, _) |
-            (position::T::relative, _, _, _) => true,
-            (position::T::static_, _, _, _) => false
+        // Statically positioned fragments don't establish stacking contexts if the previous
+        // conditions are not fulfilled. Furthermore, z-index doesn't apply to statically
+        // positioned fragments.
+        if self.style().get_box().position == position::T::static_ {
+            return false;
         }
+
+        // For absolutely and relatively positioned fragments we only establish a stacking
+        // context if there is a z-index set.
+        // See https://www.w3.org/TR/CSS2/visuren.html#z-index
+        self.style().get_position().z_index != Either::Second(Auto)
     }
 
     // Get the effective z-index of this fragment. Z-indices only apply to positioned element
