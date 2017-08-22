@@ -72,6 +72,7 @@ impl RestyleData {
     ///
     /// FIXME(bholley): The only caller of this should probably just assert that
     /// the hint is empty and call clear_flags_and_damage().
+    #[inline]
     fn clear_restyle_state(&mut self) {
         self.clear_restyle_flags_and_damage();
         self.hint = RestyleHint::empty();
@@ -83,6 +84,7 @@ impl RestyleData {
     /// set to the correct value on each traversal. There's no reason anyone
     /// needs to clear it, and clearing it accidentally mid-traversal could
     /// cause incorrect style sharing behavior.
+    #[inline]
     fn clear_restyle_flags_and_damage(&mut self) {
         self.damage = RestyleDamage::empty();
         self.flags = self.flags & TRAVERSED_WITHOUT_STYLING;
@@ -124,6 +126,7 @@ impl RestyleData {
     }
 
     /// Returns true if this element was restyled.
+    #[inline]
     pub fn is_restyle(&self) -> bool {
         self.flags.contains(WAS_RESTYLED)
     }
@@ -140,6 +143,7 @@ impl RestyleData {
     }
 
     /// Returns whether this element has been part of a restyle.
+    #[inline]
     pub fn contains_restyle_data(&self) -> bool {
         self.is_restyle() || !self.hint.is_empty() || !self.damage.is_empty()
     }
@@ -353,6 +357,7 @@ impl ElementData {
     }
 
     /// Returns true if this element has styles.
+    #[inline]
     pub fn has_styles(&self) -> bool {
         self.styles.primary.is_some()
     }
@@ -429,11 +434,13 @@ impl ElementData {
     }
 
     /// Drops any restyle state from the element.
+    #[inline]
     pub fn clear_restyle_state(&mut self) {
         self.restyle.clear_restyle_state();
     }
 
     /// Drops restyle flags and damage from the element.
+    #[inline]
     pub fn clear_restyle_flags_and_damage(&mut self) {
         self.restyle.clear_restyle_flags_and_damage();
     }

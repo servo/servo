@@ -77,6 +77,7 @@ pub fn assert_traversal_flags_match() {
 
 impl TraversalFlags {
     /// Returns true if the traversal is for animation-only restyles.
+    #[inline]
     pub fn for_animation_only(&self) -> bool {
         self.contains(AnimationOnly)
     }
