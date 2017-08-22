@@ -9,7 +9,7 @@ use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderi
 /// with gl constants.
 macro_rules! type_safe_wrapper {
     ($name: ident, $($variant:ident => $mod:ident::$constant:ident, )+) => {
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, JSTraceable, HeapSizeOf)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, HeapSizeOf, JSTraceable, PartialEq)]
         #[repr(u32)]
         pub enum $name {
             $(

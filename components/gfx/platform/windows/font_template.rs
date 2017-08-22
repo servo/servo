@@ -7,7 +7,7 @@ use servo_atoms::Atom;
 use std::io;
 use webrender_api::NativeFontHandle;
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct FontTemplateData {
     pub bytes: Option<Vec<u8>>,
     pub identifier: Atom,

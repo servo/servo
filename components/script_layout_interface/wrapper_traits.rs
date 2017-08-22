@@ -28,7 +28,7 @@ use style::selector_parser::{PseudoElement, PseudoElementCascadeType, SelectorIm
 use style::stylist::RuleInclusion;
 use webrender_api::ClipId;
 
-#[derive(Copy, PartialEq, Clone, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum PseudoElementType<T> {
     Normal,
     Before(T),

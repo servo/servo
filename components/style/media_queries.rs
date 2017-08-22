@@ -23,7 +23,7 @@ pub use servo::media_queries::{Device, Expression};
 pub use gecko::media_queries::{Device, Expression};
 
 /// A type that encapsulates a media query list.
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct MediaList {
     /// The list of media queries.
@@ -60,7 +60,7 @@ pub enum Qualifier {
 /// A [media query][mq].
 ///
 /// [mq]: https://drafts.csswg.org/mediaqueries/
-#[derive(PartialEq, Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct MediaQuery {
     /// The qualifier for this query.
@@ -132,7 +132,7 @@ impl ToCss for MediaQuery {
 }
 
 /// http://dev.w3.org/csswg/mediaqueries-3/#media0
-#[derive(PartialEq, Eq, Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum MediaQueryType {
     /// A media type that matches every device.
@@ -161,7 +161,7 @@ impl MediaQueryType {
 }
 
 /// https://drafts.csswg.org/mediaqueries/#media-types
-#[derive(PartialEq, Eq, Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct MediaType(pub CustomIdent);
 

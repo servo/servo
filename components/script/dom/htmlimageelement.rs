@@ -58,7 +58,7 @@ use std::sync::{Arc, Mutex};
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use task_source::TaskSource;
 
-#[derive(Clone, Copy, JSTraceable, HeapSizeOf)]
+#[derive(Clone, Copy, HeapSizeOf, JSTraceable)]
 #[allow(dead_code)]
 enum State {
     Unavailable,
@@ -66,12 +66,12 @@ enum State {
     CompletelyAvailable,
     Broken,
 }
-#[derive(Copy, Clone, JSTraceable, HeapSizeOf)]
+#[derive(Clone, Copy, HeapSizeOf, JSTraceable)]
 enum ImageRequestPhase {
     Pending,
     Current
 }
-#[derive(JSTraceable, HeapSizeOf)]
+#[derive(HeapSizeOf, JSTraceable)]
 #[must_root]
 struct ImageRequest {
     state: State,
@@ -715,7 +715,7 @@ impl HTMLImageElement {
 
 }
 
-#[derive(JSTraceable, HeapSizeOf)]
+#[derive(HeapSizeOf, JSTraceable)]
 pub enum ImageElementMicrotask {
     StableStateUpdateImageDataTask {
         elem: Root<HTMLImageElement>,

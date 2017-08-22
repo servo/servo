@@ -154,7 +154,7 @@ impl CSSStyleOwner {
     }
 }
 
-#[derive(PartialEq, HeapSizeOf)]
+#[derive(HeapSizeOf, PartialEq)]
 pub enum CSSModificationAccess {
     ReadWrite,
     Readonly,

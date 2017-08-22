@@ -27,7 +27,7 @@ use std::collections::HashMap;
 use std::default::Default;
 use std::rc::Rc;
 
-#[derive(JSTraceable, PartialEq, Eq, Copy, Clone, HeapSizeOf, Hash, PartialOrd, Ord, Debug)]
+#[derive(Clone, Copy, Debug, Eq, Hash, HeapSizeOf, JSTraceable, Ord, PartialEq, PartialOrd)]
 pub struct OneshotTimerHandle(i32);
 
 #[derive(DenyPublicFields, HeapSizeOf, JSTraceable)]
@@ -65,7 +65,7 @@ struct OneshotTimer {
 // This enum is required to work around the fact that trait objects do not support generic methods.
 // A replacement trait would have a method such as
 //     `invoke<T: DomObject>(self: Box<Self>, this: &T, js_timers: &JsTimers);`.
-#[derive(JSTraceable, HeapSizeOf)]
+#[derive(HeapSizeOf, JSTraceable)]
 pub enum OneshotTimerCallback {
     XhrTimeout(XHRTimeoutCallback),
     EventSourceTimeout(EventSourceTimeoutCallback),
@@ -301,7 +301,7 @@ impl OneshotTimers {
     }
 }
 
-#[derive(JSTraceable, PartialEq, Eq, Copy, Clone, HeapSizeOf, Hash, PartialOrd, Ord)]
+#[derive(Clone, Copy, Eq, Hash, HeapSizeOf, JSTraceable, Ord, PartialEq, PartialOrd)]
 pub struct JsTimerHandle(i32);
 
 #[derive(DenyPublicFields, HeapSizeOf, JSTraceable)]
@@ -314,7 +314,7 @@ pub struct JsTimers {
     min_duration: Cell<Option<MsDuration>>,
 }
 
-#[derive(JSTraceable, HeapSizeOf)]
+#[derive(HeapSizeOf, JSTraceable)]
 struct JsTimerEntry {
     oneshot_handle: OneshotTimerHandle,
 }
@@ -323,7 +323,7 @@ struct JsTimerEntry {
 // (ie. function value to invoke and all arguments to pass
 //      to the function when calling it)
 // TODO: Handle rooting during invocation when movable GC is turned on
-#[derive(JSTraceable, HeapSizeOf)]
+#[derive(HeapSizeOf, JSTraceable)]
 pub struct JsTimerTask {
     #[ignore_heap_size_of = "Because it is non-owning"]
     handle: JsTimerHandle,
@@ -335,7 +335,7 @@ pub struct JsTimerTask {
 }
 
 // Enum allowing more descriptive values for the is_interval field
-#[derive(JSTraceable, PartialEq, Copy, Clone, HeapSizeOf)]
+#[derive(Clone, Copy, HeapSizeOf, JSTraceable, PartialEq)]
 pub enum IsInterval {
     Interval,
     NonInterval,
@@ -347,7 +347,7 @@ pub enum TimerCallback {
     FunctionTimerCallback(Rc<Function>),
 }
 
-#[derive(JSTraceable, Clone)]
+#[derive(Clone, JSTraceable)]
 enum InternalTimerCallback {
     StringTimerCallback(DOMString),
     FunctionTimerCallback(Rc<Function>, Rc<Box<[Heap<JSVal>]>>),

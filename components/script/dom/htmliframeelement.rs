@@ -57,7 +57,7 @@ use style::context::ReflowGoal;
 use task_source::TaskSource;
 
 bitflags! {
-    #[derive(JSTraceable, HeapSizeOf)]
+    #[derive(HeapSizeOf, JSTraceable)]
     flags SandboxAllowance: u8 {
         const ALLOW_NOTHING = 0x00,
         const ALLOW_SAME_ORIGIN = 0x01,

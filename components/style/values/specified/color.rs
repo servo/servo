@@ -18,7 +18,7 @@ use super::AllowQuirks;
 use values::computed::{Color as ComputedColor, Context, ToComputedValue};
 
 /// Specified color value
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum Color {
     /// The 'currentColor' keyword

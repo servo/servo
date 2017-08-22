@@ -9,7 +9,7 @@
 use time;
 
 /// The `TimerMode` is used to determine what time should the `Timer` return.
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 enum TimerMode {
     /// The timer should return a fixed value.
     Test(f64),
@@ -20,7 +20,7 @@ enum TimerMode {
 /// A `Timer` struct that takes care of giving the current time for animations.
 ///
 /// This is needed to be allowed to hook the time in the animations' test-mode.
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub struct Timer {
     mode: TimerMode,
 }

@@ -22,7 +22,7 @@ use values::computed::{Context, ToComputedValue, ComputedUrl};
 ///
 /// However, this approach is still not necessarily optimal: See
 /// https://bugzilla.mozilla.org/show_bug.cgi?id=1347435#c6
-#[derive(Clone, Debug, HeapSizeOf, Serialize, Deserialize)]
+#[derive(Clone, Debug, Deserialize, HeapSizeOf, Serialize)]
 pub struct SpecifiedUrl {
     /// The original URI. This might be optional since we may insert computed
     /// values of images into the cascade directly, and we don't bother to

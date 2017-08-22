@@ -372,7 +372,7 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
     }
 }
 
-#[derive(HeapSizeOf, JSTraceable, Clone)]
+#[derive(Clone, HeapSizeOf, JSTraceable)]
 pub struct LifecycleCallbacks {
     #[ignore_heap_size_of = "Rc"]
     connected_callback: Option<Rc<Function>>,
@@ -387,14 +387,14 @@ pub struct LifecycleCallbacks {
     attribute_changed_callback: Option<Rc<Function>>,
 }
 
-#[derive(HeapSizeOf, JSTraceable, Clone)]
+#[derive(Clone, HeapSizeOf, JSTraceable)]
 pub enum ConstructionStackEntry {
     Element(Root<Element>),
     AlreadyConstructedMarker,
 }
 
 /// https://html.spec.whatwg.org/multipage/#custom-element-definition
-#[derive(HeapSizeOf, JSTraceable, Clone)]
+#[derive(Clone, HeapSizeOf, JSTraceable)]
 pub struct CustomElementDefinition {
     pub name: LocalName,
 
@@ -620,7 +620,7 @@ pub enum CallbackReaction {
 }
 
 /// https://html.spec.whatwg.org/multipage/#processing-the-backup-element-queue
-#[derive(HeapSizeOf, JSTraceable, Eq, PartialEq, Clone, Copy)]
+#[derive(Clone, Copy, Eq, HeapSizeOf, JSTraceable, PartialEq)]
 enum BackupElementQueueFlag {
     Processing,
     NotProcessing,

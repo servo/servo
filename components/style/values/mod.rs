@@ -98,7 +98,7 @@ impl<A: Parse, B: Parse> Parse for Either<A, B> {
 }
 
 /// https://drafts.csswg.org/css-values-4/#custom-idents
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct CustomIdent(pub Atom);
 
@@ -127,7 +127,7 @@ impl ToCss for CustomIdent {
 }
 
 /// https://drafts.csswg.org/css-animations/#typedef-keyframes-name
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum KeyframesName {
     /// <custom-ident>

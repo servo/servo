@@ -78,7 +78,7 @@ impl RangeIndex for usize {
 #[macro_export]
 macro_rules! int_range_index {
     ($(#[$attr:meta])* struct $Self_:ident($T:ty)) => (
-        #[derive(Clone, PartialEq, PartialOrd, Eq, Ord, Debug, Copy)]
+        #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
         $(#[$attr])*
         pub struct $Self_(pub $T);
 

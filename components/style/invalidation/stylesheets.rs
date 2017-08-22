@@ -20,7 +20,7 @@ use stylesheets::{CssRule, StylesheetInDocument};
 
 /// An invalidation scope represents a kind of subtree that may need to be
 /// restyled.
-#[derive(Debug, Hash, Eq, PartialEq)]
+#[derive(Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 enum InvalidationScope {
     /// All the descendants of an element with a given id.

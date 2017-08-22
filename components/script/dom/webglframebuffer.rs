@@ -19,7 +19,7 @@ use dom_struct::dom_struct;
 use std::cell::Cell;
 
 #[must_root]
-#[derive(JSTraceable, Clone, HeapSizeOf)]
+#[derive(Clone, HeapSizeOf, JSTraceable)]
 enum WebGLFramebufferAttachment {
     Renderbuffer(JS<WebGLRenderbuffer>),
     Texture { texture: JS<WebGLTexture>, level: i32 },

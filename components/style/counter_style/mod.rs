@@ -270,7 +270,7 @@ counter_style_descriptors! {
 }
 
 /// https://drafts.csswg.org/css-counter-styles/#counter-style-system
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub enum System {
     /// 'cyclic'
     Cyclic,
@@ -335,7 +335,7 @@ impl ToCss for System {
 }
 
 /// https://drafts.csswg.org/css-counter-styles/#typedef-symbol
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Symbol {
     /// <string>
     String(String),
@@ -378,7 +378,7 @@ impl Symbol {
 }
 
 /// https://drafts.csswg.org/css-counter-styles/#counter-style-negative
-#[derive(Debug, Clone, ToCss)]
+#[derive(Clone, Debug, ToCss)]
 pub struct Negative(pub Symbol, pub Option<Symbol>);
 
 impl Parse for Negative {
@@ -393,7 +393,7 @@ impl Parse for Negative {
 /// https://drafts.csswg.org/css-counter-styles/#counter-style-range
 ///
 /// Empty Vec represents 'auto'
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub struct Ranges(pub Vec<Range<Option<i32>>>);
 
 impl Parse for Ranges {
@@ -482,7 +482,7 @@ impl Parse for Fallback {
 }
 
 /// https://drafts.csswg.org/css-counter-styles/#descdef-counter-style-symbols
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Symbols(pub Vec<Symbol>);
 
 impl Parse for Symbols {

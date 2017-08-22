@@ -29,7 +29,7 @@ impl<T: DomObject> SimpleWorkerErrorHandler<T> {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Clone, Copy)]
 pub struct SharedRt {
     rt: *mut JSRuntime
 }

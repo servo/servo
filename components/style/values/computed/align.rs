@@ -17,7 +17,7 @@ pub use super::specified::{AlignItems, AlignJustifyContent, AlignJustifySelf};
 ///
 /// Need to carry around both the specified and computed value to handle the
 /// special legacy keyword. Sigh.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct JustifyItems {
     /// The specified value for the property. Can contain `auto`.
     pub specified: specified::JustifyItems,

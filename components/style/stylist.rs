@@ -76,9 +76,85 @@ struct DocumentCascadeData {
     precomputed_pseudo_element_decls: PerPseudoElementMap<Vec<ApplicableDeclarationBlock>>,
 }
 
-impl DocumentCascadeData {
-    fn iter_origins(&self) -> PerOriginIter<CascadeData> {
-        self.per_origin.iter_origins()
+/// What cascade levels to include when styling elements.
+#[derive(Clone, Copy, PartialEq)]
+pub enum RuleInclusion {
+    /// Include rules for style sheets at all cascade levels.  This is the
+    /// normal rule inclusion mode.
+    All,
+    /// Only include rules from UA and user level sheets.  Used to implement
+    /// `getDefaultComputedStyle`.
+    DefaultOnly,
+}
+
+#[cfg(feature = "gecko")]
+impl From<StyleRuleInclusion> for RuleInclusion {
+    fn from(value: StyleRuleInclusion) -> Self {
+        match value {
+            StyleRuleInclusion::All => RuleInclusion::All,
+            StyleRuleInclusion::DefaultOnly => RuleInclusion::DefaultOnly,
+        }
+    }
+}
+
+impl Stylist {
+    /// Construct a new `Stylist`, using given `Device` and `QuirksMode`.
+    /// If more members are added here, think about whether they should
+    /// be reset in clear().
+    #[inline]
+    pub fn new(device: Device, quirks_mode: QuirksMode) -> Self {
+        Stylist {
+            viewport_constraints: None,
+            device: device,
+            quirks_mode: quirks_mode,
+
+            cascade_data: Default::default(),
+            precomputed_pseudo_element_decls: PerPseudoElementMap::default(),
+            rule_tree: RuleTree::new(),
+            num_rebuilds: 0,
+        }
+
+        // FIXME: Add iso-8859-9.css when the document’s encoding is ISO-8859-8.
+    }
+
+    /// Returns the number of selectors.
+    pub fn num_selectors(&self) -> usize {
+        self.cascade_data.iter_origins().map(|(d, _)| d.num_selectors).sum()
+    }
+
+    /// Returns the number of declarations.
+    pub fn num_declarations(&self) -> usize {
+        self.cascade_data.iter_origins().map(|(d, _)| d.num_declarations).sum()
+    }
+
+    /// Returns the number of times the stylist has been rebuilt.
+    pub fn num_rebuilds(&self) -> usize {
+        self.num_rebuilds
+    }
+
+    /// Returns the number of revalidation_selectors.
+    pub fn num_revalidation_selectors(&self) -> usize {
+        self.cascade_data.iter_origins()
+            .map(|(d, _)| d.selectors_for_cache_revalidation.len()).sum()
+    }
+
+    /// Returns the number of entries in invalidation maps.
+    pub fn num_invalidations(&self) -> usize {
+        self.cascade_data.iter_origins()
+            .map(|(d, _)| d.invalidation_map.len()).sum()
+    }
+
+    /// Invokes `f` with the `InvalidationMap` for each origin.
+    ///
+    /// NOTE(heycam) This might be better as an `iter_invalidation_maps`, once
+    /// we have `impl trait` and can return that easily without bothering to
+    /// create a whole new iterator type.
+    pub fn each_invalidation_map<F>(&self, mut f: F)
+        where F: FnMut(&InvalidationMap)
+    {
+        for (data, _) in self.cascade_data.iter_origins() {
+            f(&data.invalidation_map)
+        }
     }
 
     /// Rebuild the cascade data for the given document stylesheets, and
@@ -394,7 +470,7 @@ pub struct Stylist {
 }
 
 /// What cascade levels to include when styling elements.
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum RuleInclusion {
     /// Include rules for style sheets at all cascade levels.  This is the
     /// normal rule inclusion mode.

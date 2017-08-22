@@ -52,7 +52,7 @@ pub fn au_to_int_px(au: f32) -> i32 {
     (au / AU_PER_PX).round() as i32
 }
 
-#[derive(Clone, PartialEq, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 /// A font relative length.
 pub enum FontRelativeLength {
@@ -167,7 +167,7 @@ impl FontRelativeLength {
     }
 }
 
-#[derive(Clone, PartialEq, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 /// A viewport-relative length.
 ///
@@ -224,7 +224,7 @@ impl ViewportPercentageLength {
 }
 
 /// HTML5 "character width", as defined in HTML5 § 14.5.4.
-#[derive(Clone, PartialEq, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct CharacterWidth(pub i32);
 
@@ -256,7 +256,7 @@ fn to_au_round(length: CSSFloat, au_per_unit: CSSFloat) -> Au {
 }
 
 /// Represents an absolute length with its unit
-#[derive(Clone, PartialEq, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum AbsoluteLength {
     /// An absolute length in pixels (px)
@@ -347,7 +347,7 @@ impl Mul<CSSFloat> for AbsoluteLength {
 }
 
 /// Represents a physical length (mozmm) based on DPI
-#[derive(Clone, PartialEq, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 #[cfg(feature = "gecko")]
 pub struct PhysicalLength(pub CSSFloat);
 
@@ -393,7 +393,7 @@ impl Mul<CSSFloat> for PhysicalLength {
 /// A `<length>` without taking `calc` expressions into account
 ///
 /// https://drafts.csswg.org/css-values/#lengths
-#[derive(Clone, PartialEq, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum NoCalcLength {
     /// An absolute length

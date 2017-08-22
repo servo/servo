@@ -170,7 +170,7 @@ pub trait Parser<'i> {
     }
 }
 
-#[derive(PartialEq, Eq, Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SelectorList<Impl: SelectorImpl>(pub Vec<Selector<Impl>>);
 
 impl<Impl: SelectorImpl> SelectorList<Impl> {
@@ -206,7 +206,7 @@ impl<Impl: SelectorImpl> SelectorList<Impl> {
 /// off the upper bits) at the expense of making the fourth somewhat more
 /// complicated to assemble, because we often bail out before checking all the
 /// hashes.
-#[derive(Eq, PartialEq, Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AncestorHashes {
     pub packed_hashes: [u32; 3],
 }
@@ -575,7 +575,7 @@ impl<'a, Impl: SelectorImpl> Iterator for AncestorIter<'a, Impl> {
     }
 }
 
-#[derive(Eq, PartialEq, Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Combinator {
     Child,  //  >
     Descendant,  // space
@@ -613,7 +613,7 @@ impl Combinator {
 /// optimal packing and cache performance, see [1].
 ///
 /// [1] https://bugzilla.mozilla.org/show_bug.cgi?id=1357973
-#[derive(Eq, PartialEq, Clone)]
+#[derive(Clone, Eq, PartialEq)]
 pub enum Component<Impl: SelectorImpl> {
     Combinator(Combinator),
 
@@ -712,7 +712,7 @@ impl<Impl: SelectorImpl> Component<Impl> {
     }
 }
 
-#[derive(Eq, PartialEq, Clone)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct LocalName<Impl: SelectorImpl> {
     pub name: Impl::LocalName,
     pub lower_name: Impl::LocalName,
@@ -1694,14 +1694,14 @@ pub mod tests {
     use std::fmt;
     use super::*;
 
-    #[derive(PartialEq, Clone, Debug, Eq)]
+    #[derive(Clone, Debug, Eq, PartialEq)]
     pub enum PseudoClass {
         Hover,
         Active,
         Lang(String),
     }
 
-    #[derive(Eq, PartialEq, Clone, Debug)]
+    #[derive(Clone, Debug, Eq, PartialEq)]
     pub enum PseudoElement {
         Before,
         After,
@@ -1749,7 +1749,7 @@ pub mod tests {
             where V: SelectorVisitor<Impl = Self::Impl> { true }
     }
 
-    #[derive(Clone, PartialEq, Debug)]
+    #[derive(Clone, Debug, PartialEq)]
     pub struct DummySelectorImpl;
 
     #[derive(Default)]
@@ -1786,7 +1786,7 @@ pub mod tests {
         }
     }
 
-    #[derive(Default, Debug, Clone, PartialEq, Eq, Hash)]
+    #[derive(Clone, Debug, Default, Eq, Hash, PartialEq)]
     pub struct DummyAtom(String);
 
     impl fmt::Display for DummyAtom {

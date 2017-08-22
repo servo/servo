@@ -40,7 +40,7 @@ pub struct DevtoolsPageInfo {
     pub url: ServoUrl,
 }
 
-#[derive(Debug, Deserialize, HeapSizeOf, Serialize, Clone)]
+#[derive(Clone, Debug, Deserialize, HeapSizeOf, Serialize)]
 pub struct CSSError {
     pub filename: String,
     pub line: u32,
@@ -144,7 +144,7 @@ pub struct TimelineMarker {
     pub end_stack: Option<Vec<()>>,
 }
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Deserialize, Serialize, HeapSizeOf)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, HeapSizeOf, PartialEq, Serialize)]
 pub enum TimelineMarkerType {
     Reflow,
     DOMEvent,
@@ -223,7 +223,7 @@ pub struct Modification {
     pub newValue: Option<String>,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum LogLevel {
     Log,
     Debug,
@@ -232,7 +232,7 @@ pub enum LogLevel {
     Error,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ConsoleMessage {
     pub message: String,
     pub logLevel: LogLevel,
@@ -342,7 +342,7 @@ impl StartedTimelineMarker {
 /// library, which definitely can't have any dependencies on `serde`. But `serde` can't implement
 /// `Deserialize` and `Serialize` itself, because `time::PreciseTime` is opaque! A Catch-22. So I'm
 /// duplicating the definition here.
-#[derive(Debug, Copy, Clone, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub struct PreciseTime(u64);
 
 impl PreciseTime {
@@ -355,5 +355,5 @@ impl PreciseTime {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, HeapSizeOf, PartialEq, Serialize)]
 pub struct WorkerId(pub u32);

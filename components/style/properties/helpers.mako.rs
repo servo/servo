@@ -448,7 +448,7 @@
             ${gecko_keyword_conversion(keyword, keyword.values_for(product), type="T", cast_to="i32")}
         }
 
-        #[derive(Debug, Clone, PartialEq, Eq, Copy, ToCss)]
+        #[derive(Clone, Copy, Debug, Eq, PartialEq, ToCss)]
         pub enum SpecifiedValue {
             Keyword(computed_value::T),
             System(SystemFont),

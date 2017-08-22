@@ -10,7 +10,7 @@ use servo_url::{ImmutableOrigin, ServoUrl};
 use std::default::Default;
 
 /// An [initiator](https://fetch.spec.whatwg.org/#concept-request-initiator)
-#[derive(Copy, Clone, PartialEq, HeapSizeOf)]
+#[derive(Clone, Copy, HeapSizeOf, PartialEq)]
 pub enum Initiator {
     None,
     Download,
@@ -20,7 +20,7 @@ pub enum Initiator {
 }
 
 /// A request [type](https://fetch.spec.whatwg.org/#concept-request-type)
-#[derive(Copy, Clone, PartialEq, Serialize, Deserialize, HeapSizeOf)]
+#[derive(Clone, Copy, Deserialize, HeapSizeOf, PartialEq, Serialize)]
 pub enum Type {
     None,
     Audio,
@@ -33,7 +33,7 @@ pub enum Type {
 }
 
 /// A request [destination](https://fetch.spec.whatwg.org/#concept-request-destination)
-#[derive(Copy, Clone, PartialEq, Serialize, Deserialize, HeapSizeOf)]
+#[derive(Clone, Copy, Deserialize, HeapSizeOf, PartialEq, Serialize)]
 pub enum Destination {
     None,
     Document,
@@ -53,14 +53,14 @@ pub enum Destination {
 }
 
 /// A request [origin](https://fetch.spec.whatwg.org/#concept-request-origin)
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize, HeapSizeOf)]
+#[derive(Clone, Debug, Deserialize, HeapSizeOf, PartialEq, Serialize)]
 pub enum Origin {
     Client,
     Origin(ImmutableOrigin),
 }
 
 /// A [referer](https://fetch.spec.whatwg.org/#concept-request-referrer)
-#[derive(Clone, PartialEq, Serialize, Deserialize, HeapSizeOf)]
+#[derive(Clone, Deserialize, HeapSizeOf, PartialEq, Serialize)]
 pub enum Referrer {
     NoReferrer,
     /// Default referrer if nothing is specified
@@ -69,7 +69,7 @@ pub enum Referrer {
 }
 
 /// A [request mode](https://fetch.spec.whatwg.org/#concept-request-mode)
-#[derive(Copy, Clone, PartialEq, Serialize, Deserialize, HeapSizeOf)]
+#[derive(Clone, Copy, Deserialize, HeapSizeOf, PartialEq, Serialize)]
 pub enum RequestMode {
     Navigate,
     SameOrigin,
@@ -79,7 +79,7 @@ pub enum RequestMode {
 }
 
 /// Request [credentials mode](https://fetch.spec.whatwg.org/#concept-request-credentials-mode)
-#[derive(Copy, Clone, PartialEq, Serialize, Deserialize, HeapSizeOf)]
+#[derive(Clone, Copy, Deserialize, HeapSizeOf, PartialEq, Serialize)]
 pub enum CredentialsMode {
     Omit,
     CredentialsSameOrigin,
@@ -87,7 +87,7 @@ pub enum CredentialsMode {
 }
 
 /// [Cache mode](https://fetch.spec.whatwg.org/#concept-request-cache-mode)
-#[derive(Copy, Clone, PartialEq, Serialize, Deserialize, HeapSizeOf)]
+#[derive(Clone, Copy, Deserialize, HeapSizeOf, PartialEq, Serialize)]
 pub enum CacheMode {
     Default,
     NoStore,
@@ -98,7 +98,7 @@ pub enum CacheMode {
 }
 
 /// [Service-workers mode](https://fetch.spec.whatwg.org/#request-service-workers-mode)
-#[derive(Copy, Clone, PartialEq, Serialize, Deserialize, HeapSizeOf)]
+#[derive(Clone, Copy, Deserialize, HeapSizeOf, PartialEq, Serialize)]
 pub enum ServiceWorkersMode {
     All,
     Foreign,
@@ -106,7 +106,7 @@ pub enum ServiceWorkersMode {
 }
 
 /// [Redirect mode](https://fetch.spec.whatwg.org/#concept-request-redirect-mode)
-#[derive(Copy, Clone, PartialEq, Serialize, Deserialize, HeapSizeOf)]
+#[derive(Clone, Copy, Deserialize, HeapSizeOf, PartialEq, Serialize)]
 pub enum RedirectMode {
     Follow,
     Error,
@@ -114,7 +114,7 @@ pub enum RedirectMode {
 }
 
 /// [Response tainting](https://fetch.spec.whatwg.org/#concept-request-response-tainting)
-#[derive(Copy, Clone, PartialEq, HeapSizeOf)]
+#[derive(Clone, Copy, HeapSizeOf, PartialEq)]
 pub enum ResponseTainting {
     Basic,
     CorsTainting,
@@ -122,20 +122,20 @@ pub enum ResponseTainting {
 }
 
 /// [Window](https://fetch.spec.whatwg.org/#concept-request-window)
-#[derive(Copy, Clone, PartialEq, HeapSizeOf)]
+#[derive(Clone, Copy, HeapSizeOf, PartialEq)]
 pub enum Window {
     NoWindow,
     Client, // TODO: Environmental settings object
 }
 
 /// [CORS settings attribute](https://html.spec.whatwg.org/multipage/#attr-crossorigin-anonymous)
-#[derive(Copy, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Deserialize, PartialEq, Serialize)]
 pub enum CorsSettings {
     Anonymous,
     UseCredentials,
 }
 
-#[derive(Serialize, Deserialize, Clone, HeapSizeOf)]
+#[derive(Clone, Deserialize, HeapSizeOf, Serialize)]
 pub struct RequestInit {
     #[serde(deserialize_with = "::hyper_serde::deserialize",
             serialize_with = "::hyper_serde::serialize")]

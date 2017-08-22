@@ -36,7 +36,7 @@ pub struct HTMLTableElement {
 }
 
 #[allow(unrooted_must_root)]
-#[derive(JSTraceable, HeapSizeOf)]
+#[derive(HeapSizeOf, JSTraceable)]
 struct TableRowFilter {
     sections: Vec<JS<Node>>,
 }

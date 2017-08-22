@@ -12,7 +12,7 @@ use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 
 #[repr(u16)]
-#[derive(JSTraceable, Copy, Clone, Debug, HeapSizeOf)]
+#[derive(Clone, Copy, Debug, HeapSizeOf, JSTraceable)]
 pub enum DOMErrorName {
     IndexSizeError = DOMExceptionConstants::INDEX_SIZE_ERR,
     HierarchyRequestError = DOMExceptionConstants::HIERARCHY_REQUEST_ERR,

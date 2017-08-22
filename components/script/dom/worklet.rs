@@ -152,7 +152,7 @@ impl WorkletMethods for Worklet {
 }
 
 /// A guid for worklets.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, JSTraceable)]
+#[derive(Clone, Copy, Debug, Eq, Hash, JSTraceable, PartialEq)]
 pub struct WorkletId(Uuid);
 
 known_heap_size!(0, WorkletId);
@@ -656,7 +656,7 @@ impl WorkletThread {
 }
 
 /// An executor of worklet tasks
-#[derive(Clone, JSTraceable, HeapSizeOf)]
+#[derive(Clone, HeapSizeOf, JSTraceable)]
 pub struct WorkletExecutor {
     worklet_id: WorkletId,
     #[ignore_heap_size_of = "channels are hard"]

@@ -97,7 +97,7 @@ pub fn parse_line_names<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Box<[Custo
 /// The type of `repeat` function (only used in parsing).
 ///
 /// https://drafts.csswg.org/css-grid/#typedef-track-repeat
-#[derive(Clone, Copy, PartialEq, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 enum RepeatType {
     /// [`<auto-repeat>`](https://drafts.csswg.org/css-grid/#typedef-auto-repeat)

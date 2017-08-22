@@ -183,7 +183,7 @@ fn split_from_end<T>(s: &[T], at: usize) -> (&[T], &[T]) {
 
 pub const HAS_PSEUDO_BIT: u32 = 1 << 30;
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct SpecificityAndFlags(pub u32);
 
 impl SpecificityAndFlags {

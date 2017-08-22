@@ -305,7 +305,7 @@ impl fmt::Debug for TableCellFlow {
     }
 }
 
-#[derive(Copy, Clone, Debug, Serialize)]
+#[derive(Clone, Copy, Debug, Serialize)]
 pub struct CollapsedBordersForCell {
     pub inline_start_border: CollapsedBorder,
     pub inline_end_border: CollapsedBorder,

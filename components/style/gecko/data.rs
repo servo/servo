@@ -20,7 +20,7 @@ use stylesheets::{PerOrigin, StylesheetContents, StylesheetInDocument};
 use stylist::{ExtraStyleData, Stylist};
 
 /// Little wrapper to a Gecko style sheet.
-#[derive(PartialEq, Eq, Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct GeckoStyleSheet(*const ServoStyleSheet);
 
 impl ToMediaListKey for ::gecko::data::GeckoStyleSheet {
