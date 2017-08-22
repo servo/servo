@@ -535,7 +535,7 @@ impl UnprivilegedPipelineContent {
         }
     }
 
-    #[cfg(any(not(target_os = "windows"), not(target_os = "ios")))]
+    #[cfg(all(not(target_os = "windows"), not(target_os = "ios")))]
     pub fn spawn_multiprocess(self) -> Result<(), Error> {
         use gaol::sandbox::{self, Sandbox, SandboxMethods};
         use ipc_channel::ipc::IpcOneShotServer;
@@ -583,7 +583,7 @@ impl UnprivilegedPipelineContent {
         Ok(())
     }
 
-    #[cfg(any(not(target_os = "windows"), not(target_os = "ios")))]
+    #[cfg(any(target_os = "windows", target_os = "ios"))]
     pub fn spawn_multiprocess(self) -> Result<(), Error> {
         error!("Multiprocess is not supported on Windows or iOS.");
         process::exit(1);
