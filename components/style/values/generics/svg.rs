@@ -102,7 +102,7 @@ impl<ColorType: Parse, UrlPaintServer: Parse> Parse for SVGPaint<ColorType, UrlP
 /// https://www.w3.org/TR/SVG11/painting.html#StrokeProperties
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, ToAnimatedValue)]
-#[derive(ToCss, ToComputedValue)]
+#[derive(ToComputedValue, ToCss)]
 pub enum SvgLengthOrPercentageOrNumber<LengthOrPercentageType, NumberType> {
     /// <length> | <percentage>
     LengthOrPercentage(LengthOrPercentageType),
