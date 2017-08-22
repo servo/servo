@@ -674,6 +674,10 @@ impl LayoutThread {
             Request::FromPipeline(LayoutControlMsg::ExitNow) => {
                 self.handle_request_helper(Msg::ExitNow, possibly_locked_rw_data)
             },
+            Request::FromPipeline(LayoutControlMsg::PaintMetric(epoch, paint_time)) => {
+                self.paint_time_metrics.maybe_set_metric(epoch, paint_time);
+                true
+            },
             Request::FromScript(msg) => {
                 self.handle_request_helper(msg, possibly_locked_rw_data)
             },
@@ -1079,10 +1083,10 @@ impl LayoutThread {
 
             let viewport_size = webrender_api::LayoutSize::from_untyped(&viewport_size);
 
-            // Set paint metrics if needed right before sending the display list to WebRender.
-            // XXX At some point, we may want to set this metric from WebRender itself.
-            self.paint_time_metrics.maybe_set_first_paint(self);
-            self.paint_time_metrics.maybe_set_first_contentful_paint(self, &display_list);
+            // Observe notifications about rendered frames if needed right before
+            // sending the display list to WebRender in order to set time related
+            // Progressive Web Metrics.
+            self.paint_time_metrics.maybe_observe_paint_time(self, epoch, &display_list);
 
             self.webrender_api.set_display_list(
                 self.webrender_document,

@@ -12,6 +12,7 @@ doctest = false
 [dependencies]
 euclid = "0.15"
 gfx = {path = "../../../components/gfx"}
+gfx_traits = {path = "../../../components/gfx_traits"}
 ipc-channel = "0.8"
 metrics = {path = "../../../components/metrics"}
 msg = {path = "../../../components/msg"}
