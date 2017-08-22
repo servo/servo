@@ -1902,7 +1902,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 .any(|change| change.browsing_context_id == top_level_browsing_context_id);
 
             if !current_top_level_pipeline_will_be_replaced {
-                // Notify embedder top level document finished loading.
+                // Notify embedder and compositor top level document finished loading.
+                self.compositor_proxy.send(ToCompositorMsg::LoadComplete(top_level_browsing_context_id));
                 self.embedder_proxy.send(EmbedderMsg::LoadComplete(top_level_browsing_context_id));
             }
         }

@@ -428,8 +428,6 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
                 },
 
                 (EmbedderMsg::LoadComplete(top_level_browsing_context), ShutdownState::NotShuttingDown) => {
-                    self.compositor.on_load_complete();
-
                     // Inform the embedder that the load has finished.
                     //
                     // TODO(pcwalton): Specify which frame's load completed.

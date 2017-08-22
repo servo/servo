@@ -544,6 +544,13 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 func();
             }
 
+            (Msg::LoadComplete(_), ShutdownState::NotShuttingDown) => {
+                // If we're painting in headless mode, schedule a recomposite.
+                if opts::get().output_file.is_some() || opts::get().exit_after_load {
+                    self.composite_if_necessary(CompositingReason::Headless);
+                }
+            },
+
             // When we are shutting_down, we need to avoid performing operations
             // such as Paint that may crash because we have begun tearing down
             // the rest of our resources.
@@ -654,13 +661,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                                                LayoutPoint::from_untyped(&point),
                                                id,
                                                ScrollClamping::ToContentBounds);
-    }
-
-    pub fn on_load_complete(&mut self) {
-        // If we're painting in headless mode, schedule a recomposite.
-        if opts::get().output_file.is_some() || opts::get().exit_after_load {
-            self.composite_if_necessary(CompositingReason::Headless);
-        }
     }
 
     pub fn on_resize_window_event(&mut self, new_size: DeviceUintSize) {

@@ -182,6 +182,8 @@ pub enum Msg {
     /// It's used to dispatch functions from webrender to the main thread's event loop.
     /// Required to allow WGL GLContext sharing in Windows.
     Dispatch(Box<Fn() + Send>),
+    /// The load of a page has completed
+    LoadComplete(TopLevelBrowsingContextId),
 }
 
 impl Debug for Msg {
@@ -201,6 +203,7 @@ impl Debug for Msg {
             Msg::PipelineExited(..) => write!(f, "PipelineExited"),
             Msg::NewScrollFrameReady(..) => write!(f, "NewScrollFrameReady"),
             Msg::Dispatch(..) => write!(f, "Dispatch"),
+            Msg::LoadComplete(..) => write!(f, "LoadComplete"),
         }
     }
 }
