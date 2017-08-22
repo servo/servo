@@ -14,11 +14,20 @@ use stylesheets::{Origin, OriginSet, StylesheetInDocument};
 /// Entry for a StylesheetSet. We don't bother creating a constructor, because
 /// there's no sensible defaults for the member variables.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub struct StylesheetSetEntry<S>
+struct StylesheetSetEntry<S>
 where
     S: StylesheetInDocument + PartialEq + 'static,
 {
     sheet: S,
+}
+
+impl<S> StylesheetSetEntry<S>
+where
+    S: StylesheetInDocument + PartialEq + 'static,
+{
+    fn new(sheet: S) -> Self {
+        Self { sheet }
+    }
 }
 
 /// A iterator over the stylesheets of a list of entries in the StylesheetSet.
@@ -119,7 +128,7 @@ where
         debug!("StylesheetSet::append_stylesheet");
         self.remove_stylesheet_if_present(&sheet);
         self.collect_invalidations_for(device, &sheet, guard);
-        self.entries.push(StylesheetSetEntry { sheet });
+        self.entries.push(StylesheetSetEntry::new(sheet));
     }
 
     /// Prepend a new stylesheet to the current set.
@@ -132,7 +141,7 @@ where
         debug!("StylesheetSet::prepend_stylesheet");
         self.remove_stylesheet_if_present(&sheet);
         self.collect_invalidations_for(device, &sheet, guard);
-        self.entries.insert(0, StylesheetSetEntry { sheet });
+        self.entries.insert(0, StylesheetSetEntry::new(sheet));
     }
 
     /// Insert a given stylesheet before another stylesheet in the document.
@@ -149,7 +158,7 @@ where
             entry.sheet == before_sheet
         }).expect("`before_sheet` stylesheet not found");
         self.collect_invalidations_for(device, &sheet, guard);
-        self.entries.insert(index, StylesheetSetEntry { sheet });
+        self.entries.insert(index, StylesheetSetEntry::new(sheet));
     }
 
     /// Remove a given stylesheet from the set.
