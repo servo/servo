@@ -180,18 +180,19 @@ where
             .any(|(d, _)| d.dirty)
     }
 
-    /// Flush the current set, unmarking it as dirty, and returns an iterator
-    /// over the new stylesheet list.
+    /// Flush the current set, unmarking it as dirty, and returns the damaged
+    /// origins.
     pub fn flush<E>(
         &mut self,
         document_element: Option<E>,
-    ) -> (StylesheetIterator<S>, OriginSet)
+    ) -> OriginSet
     where
         E: TElement,
     {
         debug!("StylesheetSet::flush");
 
         let mut origins = OriginSet::empty();
+
         for (data, origin) in self.invalidation_data.iter_mut_origins() {
             if data.dirty {
                 data.invalidations.flush(document_element);
@@ -200,7 +201,7 @@ where
             }
         }
 
-        (self.iter(), origins)
+        origins
     }
 
     /// Flush stylesheets, but without running any of the invalidation passes.

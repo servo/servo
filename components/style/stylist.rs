@@ -490,11 +490,13 @@ impl Stylist {
         }
 
         let author_style_disabled = self.stylesheets.author_style_disabled();
-        let (doc_stylesheets, origins_to_rebuild) = self.stylesheets.flush(document_element);
+        let origins_to_rebuild = self.stylesheets.flush(document_element);
 
         if origins_to_rebuild.is_empty() {
             return;
         }
+
+        let doc_stylesheets = self.stylesheets.iter();
 
         self.num_rebuilds += 1;
 
@@ -519,9 +521,11 @@ impl Stylist {
             };
 
             self.viewport_constraints =
-                ViewportConstraints::maybe_new(&self.device,
-                                               &cascaded_rule,
-                                               self.quirks_mode);
+                ViewportConstraints::maybe_new(
+                    &self.device,
+                    &cascaded_rule,
+                    self.quirks_mode,
+                );
 
             if let Some(ref constraints) = self.viewport_constraints {
                 self.device.account_for_viewport_rule(constraints);
