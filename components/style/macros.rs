@@ -84,19 +84,9 @@ macro_rules! define_keyword_type {
     ($name: ident, $css: expr) => {
         #[allow(missing_docs)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        #[derive(Clone, ComputeSquaredDistance, Copy, PartialEq, ToAnimatedZero, ToCss)]
+        #[derive(Animate, Clone, ComputeSquaredDistance, Copy, PartialEq)]
+        #[derive(ToAnimatedZero, ToCss)]
         pub struct $name;
-
-        impl $crate::values::animated::Animate for $name {
-            #[inline]
-            fn animate(
-                &self,
-                _other: &Self,
-                _procedure: $crate::values::animated::Procedure,
-            ) -> Result<Self, ()> {
-                Ok($name)
-            }
-        }
 
         impl fmt::Debug for $name {
             fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

@@ -7,7 +7,6 @@
 use euclid::Size2D;
 use std::fmt;
 use style_traits::ToCss;
-use values::animated::{Animate, Procedure};
 use values::generics::rect::Rect;
 
 /// A generic value for a single side of a `border-image-width` property.
@@ -36,7 +35,8 @@ pub struct BorderImageSlice<NumberOrPercentage> {
 ///
 /// https://drafts.csswg.org/css-backgrounds-3/#border-radius
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, ComputeSquaredDistance, Copy, Debug, HasViewportPercentage, PartialEq, ToComputedValue)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, HasViewportPercentage)]
+#[derive(PartialEq, ToComputedValue)]
 pub struct BorderRadius<LengthOrPercentage> {
     /// The top left radius.
     pub top_left: BorderCornerRadius<LengthOrPercentage>,
@@ -50,7 +50,8 @@ pub struct BorderRadius<LengthOrPercentage> {
 
 /// A generic value for `border-*-radius` longhand properties.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, ComputeSquaredDistance, Copy, Debug, HasViewportPercentage, PartialEq, ToComputedValue)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, HasViewportPercentage)]
+#[derive(PartialEq, ToComputedValue)]
 pub struct BorderCornerRadius<L>(pub Size2D<L>);
 
 impl<N> From<N> for BorderImageSlice<N>
@@ -113,20 +114,6 @@ impl<L> BorderRadius<L>
     }
 }
 
-impl<L> Animate for BorderRadius<L>
-where
-    L: Animate + Copy,
-{
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        Ok(BorderRadius::new(
-            self.top_left.animate(&other.top_left, procedure)?,
-            self.top_right.animate(&other.top_right, procedure)?,
-            self.bottom_right.animate(&other.bottom_right, procedure)?,
-            self.bottom_left.animate(&other.bottom_left, procedure)?,
-        ))
-    }
-}
-
 impl<L> ToCss for BorderRadius<L>
     where L: PartialEq + ToCss
 {
@@ -156,16 +143,6 @@ impl<L> BorderCornerRadius<L> {
 impl<L: Clone> From<L> for BorderCornerRadius<L> {
     fn from(radius: L) -> Self {
         Self::new(radius.clone(), radius)
-    }
-}
-
-impl<L> Animate for BorderCornerRadius<L>
-where
-    L: Animate + Copy,
-{
-    #[inline]
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        Ok(BorderCornerRadius(self.0.animate(&other.0, procedure)?))
     }
 }
 

@@ -54,7 +54,8 @@ pub enum ShapeSource<BasicShape, ReferenceBox, Url> {
 
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, ComputeSquaredDistance, Debug, PartialEq, ToComputedValue, ToCss)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Debug, PartialEq)]
+#[derive(ToComputedValue, ToCss)]
 pub enum BasicShape<H, V, LengthOrPercentage> {
     Inset(InsetRect<LengthOrPercentage>),
     Circle(Circle<H, V, LengthOrPercentage>),
@@ -65,7 +66,7 @@ pub enum BasicShape<H, V, LengthOrPercentage> {
 /// https://drafts.csswg.org/css-shapes/#funcdef-inset
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, ComputeSquaredDistance, Debug, PartialEq, ToComputedValue)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Debug, PartialEq, ToComputedValue)]
 pub struct InsetRect<LengthOrPercentage> {
     pub rect: Rect<LengthOrPercentage>,
     pub round: Option<BorderRadius<LengthOrPercentage>>,
@@ -74,7 +75,7 @@ pub struct InsetRect<LengthOrPercentage> {
 /// https://drafts.csswg.org/css-shapes/#funcdef-circle
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, ComputeSquaredDistance, Copy, Debug, PartialEq, ToComputedValue)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, PartialEq, ToComputedValue)]
 pub struct Circle<H, V, LengthOrPercentage> {
     pub position: Position<H, V>,
     pub radius: ShapeRadius<LengthOrPercentage>,
@@ -83,7 +84,7 @@ pub struct Circle<H, V, LengthOrPercentage> {
 /// https://drafts.csswg.org/css-shapes/#funcdef-ellipse
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, ComputeSquaredDistance, Copy, Debug, PartialEq, ToComputedValue)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, PartialEq, ToComputedValue)]
 pub struct Ellipse<H, V, LengthOrPercentage> {
     pub position: Position<H, V>,
     pub semiaxis_x: ShapeRadius<LengthOrPercentage>,
@@ -122,6 +123,8 @@ define_css_keyword_enum!(FillRule:
 );
 add_impls_for_keyword_enum!(FillRule);
 
+// FIXME(nox): This should be derivable, but we need to implement Animate
+// on the T types.
 impl<B, T, U> Animate for ShapeSource<B, T, U>
 where
     B: Animate,
@@ -174,43 +177,6 @@ impl<B, T, U> HasViewportPercentage for ShapeSource<B, T, U> {
     fn has_viewport_percentage(&self) -> bool { false }
 }
 
-impl<H, V, L> Animate for BasicShape<H, V, L>
-where
-    H: Animate,
-    V: Animate,
-    L: Animate + Copy,
-{
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        match (self, other) {
-            (&BasicShape::Circle(ref this), &BasicShape::Circle(ref other)) => {
-                Ok(BasicShape::Circle(this.animate(other, procedure)?))
-            },
-            (&BasicShape::Ellipse(ref this), &BasicShape::Ellipse(ref other)) => {
-                Ok(BasicShape::Ellipse(this.animate(other, procedure)?))
-            },
-            (&BasicShape::Inset(ref this), &BasicShape::Inset(ref other)) => {
-                Ok(BasicShape::Inset(this.animate(other, procedure)?))
-            },
-            (&BasicShape::Polygon(ref this), &BasicShape::Polygon(ref other)) => {
-                Ok(BasicShape::Polygon(this.animate(other, procedure)?))
-            },
-            _ => Err(()),
-        }
-    }
-}
-
-impl<L> Animate for InsetRect<L>
-where
-    L: Animate + Copy,
-{
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        Ok(InsetRect {
-            rect: self.rect.animate(&other.rect, procedure)?,
-            round: self.round.animate(&other.round, procedure)?,
-        })
-    }
-}
-
 impl<L> ToCss for InsetRect<L>
     where L: ToCss + PartialEq
 {
@@ -222,35 +188,6 @@ impl<L> ToCss for InsetRect<L>
             radius.to_css(dest)?;
         }
         dest.write_str(")")
-    }
-}
-
-impl<H, V, L> Animate for Circle<H, V, L>
-where
-    H: Animate,
-    V: Animate,
-    L: Animate,
-{
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        Ok(Circle {
-            position: self.position.animate(&other.position, procedure)?,
-            radius: self.radius.animate(&other.radius, procedure)?,
-        })
-    }
-}
-
-impl<H, V, L> Animate for Ellipse<H, V, L>
-where
-    H: Animate,
-    V: Animate,
-    L: Animate,
-{
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        Ok(Ellipse {
-            position: self.position.animate(&other.position, procedure)?,
-            semiaxis_x: self.semiaxis_x.animate(&other.semiaxis_x, procedure)?,
-            semiaxis_y: self.semiaxis_y.animate(&other.semiaxis_y, procedure)?,
-        })
     }
 }
 

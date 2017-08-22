@@ -8,12 +8,12 @@ use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use std::fmt;
 use style_traits::{ToCss, ParseError};
-use values::animated::{Animate, Procedure};
 
 /// A CSS value made of four components, where its `ToCss` impl will try to
 /// serialize as few components as possible, like for example in `border-width`.
-#[derive(Clone, ComputeSquaredDistance, Copy, Debug, HasViewportPercentage, PartialEq, ToComputedValue)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug)]
+#[derive(HasViewportPercentage, PartialEq, ToComputedValue)]
 pub struct Rect<T>(pub T, pub T, pub T, pub T);
 
 impl<T> Rect<T> {
@@ -49,20 +49,6 @@ impl<T> Rect<T>
         };
         // <first> <second> <third> <fourth>
         Ok(Self::new(first, second, third, fourth))
-    }
-}
-
-impl<L> Animate for Rect<L>
-where
-    L: Animate,
-{
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        Ok(Rect(
-            self.0.animate(&other.0, procedure)?,
-            self.1.animate(&other.1, procedure)?,
-            self.2.animate(&other.2, procedure)?,
-            self.3.animate(&other.3, procedure)?,
-        ))
     }
 }
 
