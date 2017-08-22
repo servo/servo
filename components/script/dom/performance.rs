@@ -35,24 +35,6 @@ impl PerformanceEntryList {
         }
     }
 
-    pub fn get_entries(&self) -> Vec<Root<PerformanceEntry>> {
-        self.entries.clone()
-    }
-
-    pub fn get_entries_by_type(&self, entry_type: DOMString) -> Vec<Root<PerformanceEntry>> {
-        self.entries.iter().filter(|e| *e.entry_type() == entry_type)
-                           .map(|e| e.clone())
-                           .collect()
-    }
-
-    pub fn get_entries_by_name(&self, name: DOMString, entry_type: Option<DOMString>)
-        -> Vec<Root<PerformanceEntry>> {
-        self.entries.iter().filter(|e|
-            *e.name() == name &&
-            entry_type.as_ref().map_or(true, |type_| *e.entry_type() == *type_)
-        ).map(|e| e.clone()).collect()
-    }
-
     pub fn get_entries_by_name_and_type(&self, name: Option<DOMString>, entry_type: Option<DOMString>)
         -> Vec<Root<PerformanceEntry>> {
         let mut res = self.entries.iter().filter(|e|
@@ -254,17 +236,17 @@ impl PerformanceMethods for Performance {
 
     // https://www.w3.org/TR/performance-timeline-2/#dom-performance-getentries
     fn GetEntries(&self) -> Vec<Root<PerformanceEntry>> {
-        self.entries.borrow().get_entries()
+        self.entries.borrow().get_entries_by_name_and_type(None, None)
     }
 
     // https://www.w3.org/TR/performance-timeline-2/#dom-performance-getentriesbytype
     fn GetEntriesByType(&self, entry_type: DOMString) -> Vec<Root<PerformanceEntry>> {
-        self.entries.borrow().get_entries_by_type(entry_type)
+        self.entries.borrow().get_entries_by_name_and_type(None, Some(entry_type))
     }
 
     // https://www.w3.org/TR/performance-timeline-2/#dom-performance-getentriesbyname
     fn GetEntriesByName(&self, name: DOMString, entry_type: Option<DOMString>)
         -> Vec<Root<PerformanceEntry>> {
-        self.entries.borrow().get_entries_by_name(name, entry_type)
+        self.entries.borrow().get_entries_by_name_and_type(Some(name), entry_type)
     }
 }
