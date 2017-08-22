@@ -479,7 +479,15 @@ impl<Window: WindowMethods> IOCompositor<Window> {
              ShutdownState::NotShuttingDown) => {
                 let screen_size = self.window.screen_size(top_level_browsing_context_id);
                 if let Err(e) = send.send(screen_size) {
-                    warn!("Sending response to get client window failed ({}).", e);
+                    warn!("Sending response to get screen size failed ({}).", e);
+                }
+            }
+
+            (Msg::GetScreenAvailSize(top_level_browsing_context_id, send),
+             ShutdownState::NotShuttingDown) => {
+                let screen_size = self.window.screen_avail_size(top_level_browsing_context_id);
+                if let Err(e) = send.send(screen_size) {
+                    warn!("Sending response to get screen avail size failed ({}).", e);
                 }
             }
 
