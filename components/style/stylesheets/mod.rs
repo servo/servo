@@ -44,12 +44,13 @@ pub use self::memory::{MallocSizeOf, MallocSizeOfFn, MallocSizeOfWithGuard};
 #[cfg(feature = "gecko")]
 pub use self::memory::{MallocSizeOfWithRepeats, SizeOfState};
 pub use self::namespace_rule::NamespaceRule;
-pub use self::origin::{Origin, OriginSet, PerOrigin};
+pub use self::origin::{Origin, OriginSet, PerOrigin, PerOriginIter};
 pub use self::page_rule::PageRule;
 pub use self::rule_parser::{State, TopLevelRuleParser};
 pub use self::rule_list::{CssRules, CssRulesHelpers};
 pub use self::rules_iterator::{AllRules, EffectiveRules, NestedRuleIterationCondition, RulesIterator};
-pub use self::stylesheet::{Namespaces, Stylesheet, StylesheetContents, StylesheetInDocument, UserAgentStylesheets};
+pub use self::stylesheet::{Namespaces, Stylesheet, DocumentStyleSheet};
+pub use self::stylesheet::{StylesheetContents, StylesheetInDocument, UserAgentStylesheets};
 pub use self::style_rule::StyleRule;
 pub use self::supports_rule::SupportsRule;
 pub use self::viewport_rule::ViewportRule;

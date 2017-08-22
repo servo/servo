@@ -36,11 +36,13 @@ use servo_arc::{Arc, ArcBorrow};
 use shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
 use smallvec::VecLike;
 use std::fmt::Debug;
+use std::ops;
 use style_traits::viewport::ViewportConstraints;
+use stylesheet_set::{StylesheetSet, StylesheetIterator};
 #[cfg(feature = "gecko")]
 use stylesheets::{CounterStyleRule, FontFaceRule};
 use stylesheets::{CssRule, StyleRule};
-use stylesheets::{StylesheetInDocument, Origin, OriginSet, PerOrigin};
+use stylesheets::{StylesheetInDocument, Origin, OriginSet, PerOrigin, PerOriginIter};
 use stylesheets::UserAgentStylesheets;
 use stylesheets::keyframes_rule::KeyframesAnimation;
 use stylesheets::viewport_rule::{self, MaybeNew, ViewportRule};
@@ -48,140 +50,43 @@ use thread_state;
 
 pub use ::fnv::FnvHashMap;
 
-/// This structure holds all the selectors and device characteristics
-/// for a given document. The selectors are converted into `Rule`s
-/// (defined in rust-selectors), and sorted into `SelectorMap`s keyed
-/// off stylesheet origin and pseudo-element (see `CascadeData`).
-///
-/// This structure is effectively created once per pipeline, in the
-/// LayoutThread corresponding to that pipeline.
+/// The type of the stylesheets that the stylist contains.
+#[cfg(feature = "servo")]
+pub type StylistSheet = ::stylesheets::DocumentStyleSheet;
+
+/// The type of the stylesheets that the stylist contains.
+#[cfg(feature = "gecko")]
+pub type StylistSheet = ::gecko::data::GeckoStyleSheet;
+
+/// All the computed information for a stylesheet.
+#[derive(Default)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub struct Stylist {
-    /// Device that the stylist is currently evaluating against.
-    ///
-    /// This field deserves a bigger comment due to the different use that Gecko
-    /// and Servo give to it (that we should eventually unify).
-    ///
-    /// With Gecko, the device is never changed. Gecko manually tracks whether
-    /// the device data should be reconstructed, and "resets" the state of the
-    /// device.
-    ///
-    /// On Servo, on the other hand, the device is a really cheap representation
-    /// that is recreated each time some constraint changes and calling
-    /// `set_device`.
-    device: Device,
-
-    /// Viewport constraints based on the current device.
-    viewport_constraints: Option<ViewportConstraints>,
-
-    /// If true, the quirks-mode stylesheet is applied.
-    #[cfg_attr(feature = "servo", ignore_heap_size_of = "defined in selectors")]
-    quirks_mode: QuirksMode,
-
-    /// Selector maps for all of the style sheets in the stylist, after
-    /// evalutaing media rules against the current device, split out per
-    /// cascade level.
-    cascade_data: PerOrigin<CascadeData>,
-
-    /// The rule tree, that stores the results of selector matching.
-    rule_tree: RuleTree,
+struct DocumentCascadeData {
+    /// Common data for all the origins.
+    per_origin: PerOrigin<CascadeData>,
 
     /// Applicable declarations for a given non-eagerly cascaded pseudo-element.
+    ///
     /// These are eagerly computed once, and then used to resolve the new
     /// computed values on the fly on layout.
     ///
+    /// These are only filled from UA stylesheets.
+    ///
     /// FIXME(emilio): Use the rule tree!
     precomputed_pseudo_element_decls: PerPseudoElementMap<Vec<ApplicableDeclarationBlock>>,
-
-    /// The total number of times the stylist has been rebuilt.
-    num_rebuilds: usize,
 }
 
-/// What cascade levels to include when styling elements.
-#[derive(Copy, Clone, PartialEq)]
-pub enum RuleInclusion {
-    /// Include rules for style sheets at all cascade levels.  This is the
-    /// normal rule inclusion mode.
-    All,
-    /// Only include rules from UA and user level sheets.  Used to implement
-    /// `getDefaultComputedStyle`.
-    DefaultOnly,
-}
-
-#[cfg(feature = "gecko")]
-impl From<StyleRuleInclusion> for RuleInclusion {
-    fn from(value: StyleRuleInclusion) -> Self {
-        match value {
-            StyleRuleInclusion::All => RuleInclusion::All,
-            StyleRuleInclusion::DefaultOnly => RuleInclusion::DefaultOnly,
-        }
-    }
-}
-
-impl Stylist {
-    /// Construct a new `Stylist`, using given `Device` and `QuirksMode`.
-    /// If more members are added here, think about whether they should
-    /// be reset in clear().
-    #[inline]
-    pub fn new(device: Device, quirks_mode: QuirksMode) -> Self {
-        Stylist {
-            viewport_constraints: None,
-            device: device,
-            quirks_mode: quirks_mode,
-
-            cascade_data: Default::default(),
-            precomputed_pseudo_element_decls: PerPseudoElementMap::default(),
-            rule_tree: RuleTree::new(),
-            num_rebuilds: 0,
-        }
-
-        // FIXME: Add iso-8859-9.css when the document’s encoding is ISO-8859-8.
+impl DocumentCascadeData {
+    fn iter_origins(&self) -> PerOriginIter<CascadeData> {
+        self.per_origin.iter_origins()
     }
 
-    /// Returns the number of selectors.
-    pub fn num_selectors(&self) -> usize {
-        self.cascade_data.iter_origins().map(|(d, _)| d.num_selectors).sum()
-    }
-
-    /// Returns the number of declarations.
-    pub fn num_declarations(&self) -> usize {
-        self.cascade_data.iter_origins().map(|(d, _)| d.num_declarations).sum()
-    }
-
-    /// Returns the number of times the stylist has been rebuilt.
-    pub fn num_rebuilds(&self) -> usize {
-        self.num_rebuilds
-    }
-
-    /// Returns the number of revalidation_selectors.
-    pub fn num_revalidation_selectors(&self) -> usize {
-        self.cascade_data.iter_origins()
-            .map(|(d, _)| d.selectors_for_cache_revalidation.len()).sum()
-    }
-
-    /// Returns the number of entries in invalidation maps.
-    pub fn num_invalidations(&self) -> usize {
-        self.cascade_data.iter_origins()
-            .map(|(d, _)| d.invalidation_map.len()).sum()
-    }
-
-    /// Invokes `f` with the `InvalidationMap` for each origin.
-    ///
-    /// NOTE(heycam) This might be better as an `iter_invalidation_maps`, once
-    /// we have `impl trait` and can return that easily without bothering to
-    /// create a whole new iterator type.
-    pub fn each_invalidation_map<F>(&self, mut f: F)
-        where F: FnMut(&InvalidationMap)
-    {
-        for (data, _) in self.cascade_data.iter_origins() {
-            f(&data.invalidation_map)
-        }
-    }
-
-    /// Rebuild the stylist for the given document stylesheets, and optionally
-    /// with a set of user agent stylesheets.
-    pub fn rebuild<'a, I, S>(
+    /// Rebuild the cascade data for the given document stylesheets, and
+    /// optionally with a set of user agent stylesheets.
+    fn rebuild<'a, I, S>(
         &mut self,
+        device: &Device,
+        quirks_mode: QuirksMode,
         doc_stylesheets: I,
         guards: &StylesheetGuards,
         ua_stylesheets: Option<&UserAgentStylesheets>,
@@ -195,41 +100,9 @@ impl Stylist {
     {
         debug_assert!(!origins_to_rebuild.is_empty());
 
-        self.num_rebuilds += 1;
-
-        // Update viewport_constraints regardless of which origins'
-        // `CascadeData` we're updating.
-        self.viewport_constraints = None;
-        if viewport_rule::enabled() {
-            // TODO(emilio): This doesn't look so efficient.
-            //
-            // Presumably when we properly implement this we can at least have a
-            // bit on the stylesheet that says whether it contains viewport
-            // rules to skip it entirely?
-            //
-            // Processing it with the rest of rules seems tricky since it
-            // overrides the viewport size which may change the evaluation of
-            // media queries (or may not? how are viewport units in media
-            // queries defined?)
-            let cascaded_rule = ViewportRule {
-                declarations: viewport_rule::Cascade::from_stylesheets(
-                    doc_stylesheets.clone(), guards.author, &self.device
-                ).finish()
-            };
-
-            self.viewport_constraints =
-                ViewportConstraints::maybe_new(&self.device,
-                                               &cascaded_rule,
-                                               self.quirks_mode);
-
-            if let Some(ref constraints) = self.viewport_constraints {
-                self.device.account_for_viewport_rule(constraints);
-            }
-        }
-
         for origin in origins_to_rebuild.iter() {
             extra_data.borrow_mut_for_origin(&origin).clear();
-            self.cascade_data.borrow_mut_for_origin(&origin).clear();
+            self.per_origin.borrow_mut_for_origin(&origin).clear();
         }
 
         if origins_to_rebuild.contains(Origin::UserAgent.into()) {
@@ -248,14 +121,16 @@ impl Stylist {
 
                 if origins_to_rebuild.contains(sheet_origin.into()) {
                     self.add_stylesheet(
+                        device,
+                        quirks_mode,
                         stylesheet,
                         guards.ua_or_user,
-                        extra_data
+                        extra_data,
                     );
                 }
             }
 
-            if self.quirks_mode != QuirksMode::NoQuirks {
+            if quirks_mode != QuirksMode::NoQuirks {
                 let stylesheet = &ua_stylesheets.quirks_mode_stylesheet;
                 let sheet_origin =
                     stylesheet.contents(guards.ua_or_user).origin;
@@ -267,6 +142,8 @@ impl Stylist {
 
                 if origins_to_rebuild.contains(sheet_origin.into()) {
                     self.add_stylesheet(
+                        device,
+                        quirks_mode,
                         &ua_stylesheets.quirks_mode_stylesheet,
                         guards.ua_or_user,
                         extra_data
@@ -285,12 +162,20 @@ impl Stylist {
         });
 
         for stylesheet in sheets_to_add {
-            self.add_stylesheet(stylesheet, guards.author, extra_data);
+            self.add_stylesheet(
+                device,
+                quirks_mode,
+                stylesheet,
+                guards.author,
+                extra_data
+            );
         }
     }
 
     fn add_stylesheet<S>(
         &mut self,
+        device: &Device,
+        quirks_mode: QuirksMode,
         stylesheet: &S,
         guard: &SharedRwLockReadGuard,
         _extra_data: &mut PerOrigin<ExtraStyleData>
@@ -299,19 +184,19 @@ impl Stylist {
         S: StylesheetInDocument + ToMediaListKey + 'static,
     {
         if !stylesheet.enabled() ||
-           !stylesheet.is_effective_for_device(&self.device, guard) {
+           !stylesheet.is_effective_for_device(device, guard) {
             return;
         }
 
         let origin = stylesheet.origin(guard);
         let origin_cascade_data =
-            self.cascade_data.borrow_mut_for_origin(&origin);
+            self.per_origin.borrow_mut_for_origin(&origin);
 
         origin_cascade_data
             .effective_media_query_results
             .saw_effective(stylesheet);
 
-        for rule in stylesheet.effective_rules(&self.device, guard) {
+        for rule in stylesheet.effective_rules(device, guard) {
             match *rule {
                 CssRule::Style(ref locked) => {
                     let style_rule = locked.read_with(&guard);
@@ -352,7 +237,7 @@ impl Stylist {
                         };
 
                         let hashes =
-                            AncestorHashes::new(&selector, self.quirks_mode);
+                            AncestorHashes::new(&selector, quirks_mode);
 
                         let rule = Rule::new(
                             selector.clone(),
@@ -361,11 +246,11 @@ impl Stylist {
                             origin_cascade_data.rules_source_order
                         );
 
-                        map.insert(rule, self.quirks_mode);
+                        map.insert(rule, quirks_mode);
 
                         origin_cascade_data
                             .invalidation_map
-                            .note_selector(selector, self.quirks_mode);
+                            .note_selector(selector, quirks_mode);
                         let mut visitor = StylistSelectorVisitor {
                             needs_revalidation: false,
                             passed_rightmost_selector: false,
@@ -380,7 +265,8 @@ impl Stylist {
                         if visitor.needs_revalidation {
                             origin_cascade_data.selectors_for_cache_revalidation.insert(
                                 RevalidationSelectorAndHashes::new(selector.clone(), hashes),
-                                self.quirks_mode);
+                                quirks_mode
+                            );
                         }
                     }
                     origin_cascade_data.rules_source_order += 1;
@@ -433,12 +319,290 @@ impl Stylist {
             }
         }
     }
+}
+
+/// A wrapper over a StylesheetSet that can be `Sync`, since it's only used and
+/// exposed via mutable methods in the `Stylist`.
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+struct StylistStylesheetSet(StylesheetSet<StylistSheet>);
+// Read above to see why this is fine.
+unsafe impl Sync for StylistStylesheetSet {}
+
+impl StylistStylesheetSet {
+    fn new() -> Self {
+        StylistStylesheetSet(StylesheetSet::new())
+    }
+}
+
+impl ops::Deref for StylistStylesheetSet {
+    type Target = StylesheetSet<StylistSheet>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl ops::DerefMut for StylistStylesheetSet {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+/// This structure holds all the selectors and device characteristics
+/// for a given document. The selectors are converted into `Rule`s
+/// and sorted into `SelectorMap`s keyed off stylesheet origin and
+/// pseudo-element (see `CascadeData`).
+///
+/// This structure is effectively created once per pipeline, in the
+/// LayoutThread corresponding to that pipeline.
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub struct Stylist {
+    /// Device that the stylist is currently evaluating against.
+    ///
+    /// This field deserves a bigger comment due to the different use that Gecko
+    /// and Servo give to it (that we should eventually unify).
+    ///
+    /// With Gecko, the device is never changed. Gecko manually tracks whether
+    /// the device data should be reconstructed, and "resets" the state of the
+    /// device.
+    ///
+    /// On Servo, on the other hand, the device is a really cheap representation
+    /// that is recreated each time some constraint changes and calling
+    /// `set_device`.
+    device: Device,
+
+    /// Viewport constraints based on the current device.
+    viewport_constraints: Option<ViewportConstraints>,
+
+    /// The list of stylesheets.
+    stylesheets: StylistStylesheetSet,
+
+    /// If true, the quirks-mode stylesheet is applied.
+    #[cfg_attr(feature = "servo", ignore_heap_size_of = "defined in selectors")]
+    quirks_mode: QuirksMode,
+
+    /// Selector maps for all of the style sheets in the stylist, after
+    /// evalutaing media rules against the current device, split out per
+    /// cascade level.
+    cascade_data: DocumentCascadeData,
+
+    /// The rule tree, that stores the results of selector matching.
+    rule_tree: RuleTree,
+
+    /// The total number of times the stylist has been rebuilt.
+    num_rebuilds: usize,
+}
+
+/// What cascade levels to include when styling elements.
+#[derive(Copy, Clone, PartialEq)]
+pub enum RuleInclusion {
+    /// Include rules for style sheets at all cascade levels.  This is the
+    /// normal rule inclusion mode.
+    All,
+    /// Only include rules from UA and user level sheets.  Used to implement
+    /// `getDefaultComputedStyle`.
+    DefaultOnly,
+}
+
+#[cfg(feature = "gecko")]
+impl From<StyleRuleInclusion> for RuleInclusion {
+    fn from(value: StyleRuleInclusion) -> Self {
+        match value {
+            StyleRuleInclusion::All => RuleInclusion::All,
+            StyleRuleInclusion::DefaultOnly => RuleInclusion::DefaultOnly,
+        }
+    }
+}
+
+impl Stylist {
+    /// Construct a new `Stylist`, using given `Device` and `QuirksMode`.
+    /// If more members are added here, think about whether they should
+    /// be reset in clear().
+    #[inline]
+    pub fn new(device: Device, quirks_mode: QuirksMode) -> Self {
+        Self {
+            viewport_constraints: None,
+            device,
+            quirks_mode,
+            stylesheets: StylistStylesheetSet::new(),
+            cascade_data: Default::default(),
+            rule_tree: RuleTree::new(),
+            num_rebuilds: 0,
+        }
+    }
+
+    /// Returns the number of selectors.
+    pub fn num_selectors(&self) -> usize {
+        self.cascade_data.iter_origins().map(|(d, _)| d.num_selectors).sum()
+    }
+
+    /// Returns the number of declarations.
+    pub fn num_declarations(&self) -> usize {
+        self.cascade_data.iter_origins().map(|(d, _)| d.num_declarations).sum()
+    }
+
+    /// Returns the number of times the stylist has been rebuilt.
+    pub fn num_rebuilds(&self) -> usize {
+        self.num_rebuilds
+    }
+
+    /// Returns the number of revalidation_selectors.
+    pub fn num_revalidation_selectors(&self) -> usize {
+        self.cascade_data.iter_origins()
+            .map(|(d, _)| d.selectors_for_cache_revalidation.len()).sum()
+    }
+
+    /// Returns the number of entries in invalidation maps.
+    pub fn num_invalidations(&self) -> usize {
+        self.cascade_data.iter_origins()
+            .map(|(d, _)| d.invalidation_map.len()).sum()
+    }
+
+    /// Invokes `f` with the `InvalidationMap` for each origin.
+    ///
+    /// NOTE(heycam) This might be better as an `iter_invalidation_maps`, once
+    /// we have `impl trait` and can return that easily without bothering to
+    /// create a whole new iterator type.
+    pub fn each_invalidation_map<F>(&self, mut f: F)
+        where F: FnMut(&InvalidationMap)
+    {
+        for (data, _) in self.cascade_data.iter_origins() {
+            f(&data.invalidation_map)
+        }
+    }
+
+    /// Flush the list of stylesheets if they changed, ensuring the stylist is
+    /// up-to-date.
+    ///
+    /// FIXME(emilio): Move the `ua_sheets` to the Stylist too?
+    pub fn flush<E>(
+        &mut self,
+        guards: &StylesheetGuards,
+        ua_sheets: Option<&UserAgentStylesheets>,
+        extra_data: &mut PerOrigin<ExtraStyleData>,
+        document_element: Option<E>,
+    )
+    where
+        E: TElement,
+    {
+        if !self.stylesheets.has_changed() {
+            return;
+        }
+
+        let author_style_disabled = self.stylesheets.author_style_disabled();
+        let (doc_stylesheets, origins_to_rebuild) = self.stylesheets.flush(document_element);
+
+        if origins_to_rebuild.is_empty() {
+            return;
+        }
+
+        self.num_rebuilds += 1;
+
+        // Update viewport_constraints regardless of which origins'
+        // `CascadeData` we're updating.
+        self.viewport_constraints = None;
+        if viewport_rule::enabled() {
+            // TODO(emilio): This doesn't look so efficient.
+            //
+            // Presumably when we properly implement this we can at least have a
+            // bit on the stylesheet that says whether it contains viewport
+            // rules to skip it entirely?
+            //
+            // Processing it with the rest of rules seems tricky since it
+            // overrides the viewport size which may change the evaluation of
+            // media queries (or may not? how are viewport units in media
+            // queries defined?)
+            let cascaded_rule = ViewportRule {
+                declarations: viewport_rule::Cascade::from_stylesheets(
+                    doc_stylesheets.clone(), guards.author, &self.device
+                ).finish()
+            };
+
+            self.viewport_constraints =
+                ViewportConstraints::maybe_new(&self.device,
+                                               &cascaded_rule,
+                                               self.quirks_mode);
+
+            if let Some(ref constraints) = self.viewport_constraints {
+                self.device.account_for_viewport_rule(constraints);
+            }
+        }
+
+        self.cascade_data.rebuild(
+            &self.device,
+            self.quirks_mode,
+            doc_stylesheets,
+            guards,
+            ua_sheets,
+            author_style_disabled,
+            extra_data,
+            origins_to_rebuild,
+        );
+    }
+
+    /// Insert a given stylesheet before another stylesheet in the document.
+    pub fn insert_stylesheet_before(
+        &mut self,
+        sheet: StylistSheet,
+        before_sheet: StylistSheet,
+        guard: &SharedRwLockReadGuard,
+    ) {
+        self.stylesheets.insert_stylesheet_before(
+            Some(&self.device),
+            sheet,
+            before_sheet,
+            guard,
+        )
+    }
+
+    /// Marks a given stylesheet origin as dirty, due to, for example, changes
+    /// in the declarations that affect a given rule.
+    ///
+    /// FIXME(emilio): Eventually it'd be nice for this to become more
+    /// fine-grained.
+    pub fn force_stylesheet_origins_dirty(&mut self, origins: OriginSet) {
+        self.stylesheets.force_dirty(origins)
+    }
+
+    /// Iterate over the given set of stylesheets.
+    ///
+    /// This is very intentionally exposed only on `&mut self`, since we don't
+    /// want to give access to the stylesheet list from worker threads.
+    pub fn iter_stylesheets(&mut self) -> StylesheetIterator<StylistSheet> {
+        self.stylesheets.iter()
+    }
+
+    /// Sets whether author style is enabled or not.
+    pub fn set_author_style_disabled(&mut self, disabled: bool) {
+        self.stylesheets.set_author_style_disabled(disabled);
+    }
+
+    /// Returns whether we've recorded any stylesheet change so far.
+    pub fn stylesheets_have_changed(&self) -> bool {
+        self.stylesheets.has_changed()
+    }
+
+    /// Appends a new stylesheet to the current set.
+    pub fn append_stylesheet(&mut self, sheet: StylistSheet, guard: &SharedRwLockReadGuard) {
+        self.stylesheets.append_stylesheet(Some(&self.device), sheet, guard)
+    }
+
+    /// Appends a new stylesheet to the current set.
+    pub fn prepend_stylesheet(&mut self, sheet: StylistSheet, guard: &SharedRwLockReadGuard) {
+        self.stylesheets.prepend_stylesheet(Some(&self.device), sheet, guard)
+    }
+
+    /// Remove a given stylesheet to the current set.
+    pub fn remove_stylesheet(&mut self, sheet: StylistSheet, guard: &SharedRwLockReadGuard) {
+        self.stylesheets.remove_stylesheet(Some(&self.device), sheet, guard)
+    }
 
     /// Returns whether the given attribute might appear in an attribute
     /// selector of some rule in the stylist.
-    pub fn might_have_attribute_dependency(&self,
-                                           local_name: &LocalName)
-                                           -> bool {
+    pub fn might_have_attribute_dependency(
+        &self,
+        local_name: &LocalName,
+    ) -> bool {
         if *local_name == local_name!("style") {
             self.cascade_data
                 .iter_origins()
@@ -483,15 +647,16 @@ impl Stylist {
                                          -> Arc<ComputedValues> {
         debug_assert!(pseudo.is_precomputed());
 
-        let rule_node = match self.precomputed_pseudo_element_decls.get(pseudo) {
-            Some(declarations) => {
-                self.rule_tree.insert_ordered_rules_with_important(
-                    declarations.into_iter().map(|a| (a.source.clone(), a.level())),
-                    guards
-                )
-            }
-            None => self.rule_tree.root().clone(),
-        };
+        let rule_node =
+            match self.cascade_data.precomputed_pseudo_element_decls.get(pseudo) {
+                Some(declarations) => {
+                    self.rule_tree.insert_ordered_rules_with_important(
+                        declarations.into_iter().map(|a| (a.source.clone(), a.level())),
+                        guards
+                    )
+                }
+                None => self.rule_tree.root().clone(),
+            };
 
         // NOTE(emilio): We skip calculating the proper layout parent style
         // here.
@@ -523,11 +688,12 @@ impl Stylist {
 
     /// Returns the style for an anonymous box of the given type.
     #[cfg(feature = "servo")]
-    pub fn style_for_anonymous(&self,
-                               guards: &StylesheetGuards,
-                               pseudo: &PseudoElement,
-                               parent_style: &ComputedValues)
-                               -> Arc<ComputedValues> {
+    pub fn style_for_anonymous(
+        &self,
+        guards: &StylesheetGuards,
+        pseudo: &PseudoElement,
+        parent_style: &ComputedValues
+    ) -> Arc<ComputedValues> {
         use font_metrics::ServoMetricsProvider;
 
         // For most (but not all) pseudo-elements, we inherit all values from the parent.
@@ -554,8 +720,13 @@ impl Stylist {
         if inherit_all {
             cascade_flags.insert(INHERIT_ALL);
         }
-        self.precomputed_values_for_pseudo(guards, &pseudo, Some(parent_style), cascade_flags,
-                                           &ServoMetricsProvider)
+        self.precomputed_values_for_pseudo(
+            guards,
+            &pseudo,
+            Some(parent_style),
+            cascade_flags,
+            &ServoMetricsProvider
+        )
     }
 
     /// Computes a pseudo-element style lazily during layout.
@@ -849,22 +1020,21 @@ impl Stylist {
     /// FIXME(emilio): The semantics of the device for Servo and Gecko are
     /// different enough we may want to unify them.
     #[cfg(feature = "servo")]
-    pub fn set_device<'a, I, S>(
+    pub fn set_device(
         &mut self,
         mut device: Device,
         guard: &SharedRwLockReadGuard,
-        stylesheets: I,
-    ) -> OriginSet
-    where
-        I: Iterator<Item = &'a S> + Clone,
-        S: StylesheetInDocument + ToMediaListKey + 'static,
-    {
-        let cascaded_rule = ViewportRule {
-            declarations: viewport_rule::Cascade::from_stylesheets(
-                stylesheets.clone(),
-                guard,
-                &device
-            ).finish(),
+    ) -> OriginSet {
+        let cascaded_rule = {
+            let stylesheets = self.stylesheets.iter();
+
+            ViewportRule {
+                declarations: viewport_rule::Cascade::from_stylesheets(
+                    stylesheets.clone(),
+                    guard,
+                    &device
+                ).finish(),
+            }
         };
 
         self.viewport_constraints =
@@ -875,28 +1045,21 @@ impl Stylist {
         }
 
         self.device = device;
-        self.media_features_change_changed_style(
-            stylesheets,
-            guard,
-        )
+        self.media_features_change_changed_style(guard)
     }
 
     /// Returns whether, given a media feature change, any previously-applicable
     /// style has become non-applicable, or vice-versa for each origin.
-    pub fn media_features_change_changed_style<'a, I, S>(
+    pub fn media_features_change_changed_style(
         &self,
-        stylesheets: I,
         guard: &SharedRwLockReadGuard,
-    ) -> OriginSet
-    where
-        I: Iterator<Item = &'a S>,
-        S: StylesheetInDocument + ToMediaListKey + 'static,
-    {
+    ) -> OriginSet {
         use invalidation::media_queries::PotentiallyEffectiveMediaRules;
 
         debug!("Stylist::media_features_change_changed_style");
 
         let mut origins = OriginSet::empty();
+        let stylesheets = self.stylesheets.iter();
 
         'stylesheets_loop: for stylesheet in stylesheets {
             let effective_now =
@@ -909,7 +1072,7 @@ impl Stylist {
             }
 
             let origin_cascade_data =
-                self.cascade_data.borrow_for_origin(&origin);
+                self.cascade_data.per_origin.borrow_for_origin(&origin);
 
             let effective_then =
                 origin_cascade_data
@@ -1034,7 +1197,7 @@ impl Stylist {
 
         // nsXBLPrototypeResources::LoadResources() loads Chrome XBL style
         // sheets under eAuthorSheetFeatures level.
-        if let Some(map) = self.cascade_data.author.borrow_for_pseudo(pseudo_element) {
+        if let Some(map) = self.cascade_data.per_origin.author.borrow_for_pseudo(pseudo_element) {
             map.get_all_matching_rules(element,
                                        &rule_hash_target,
                                        applicable_declarations,
@@ -1081,7 +1244,7 @@ impl Stylist {
         let only_default_rules = rule_inclusion == RuleInclusion::DefaultOnly;
 
         // Step 1: Normal user-agent rules.
-        if let Some(map) = self.cascade_data.user_agent.borrow_for_pseudo(pseudo_element) {
+        if let Some(map) = self.cascade_data.per_origin.user_agent.borrow_for_pseudo(pseudo_element) {
             map.get_all_matching_rules(element,
                                        &rule_hash_target,
                                        applicable_declarations,
@@ -1117,7 +1280,7 @@ impl Stylist {
         // Which may be more what you would probably expect.
         if rule_hash_target.matches_user_and_author_rules() {
             // Step 3a: User normal rules.
-            if let Some(map) = self.cascade_data.user.borrow_for_pseudo(pseudo_element) {
+            if let Some(map) = self.cascade_data.per_origin.user.borrow_for_pseudo(pseudo_element) {
                 map.get_all_matching_rules(element,
                                            &rule_hash_target,
                                            applicable_declarations,
@@ -1140,7 +1303,7 @@ impl Stylist {
             // See nsStyleSet::FileRules().
             if !cut_off_inheritance {
                 // Step 3c: Author normal rules.
-                if let Some(map) = self.cascade_data.author.borrow_for_pseudo(pseudo_element) {
+                if let Some(map) = self.cascade_data.per_origin.author.borrow_for_pseudo(pseudo_element) {
                     map.get_all_matching_rules(element,
                                                &rule_hash_target,
                                                applicable_declarations,

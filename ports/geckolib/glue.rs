@@ -215,7 +215,7 @@ fn traverse_subtree(element: GeckoElement,
     }
 
     let per_doc_data = PerDocumentStyleData::from_ffi(raw_data).borrow();
-    debug_assert!(!per_doc_data.stylesheets.has_changed());
+    debug_assert!(!per_doc_data.stylist.stylesheets_have_changed());
 
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
@@ -902,7 +902,7 @@ pub extern "C" fn Servo_StyleSet_AppendStyleSheet(
     let data = &mut *data;
     let guard = global_style_data.shared_lock.read();
     let sheet = unsafe { GeckoStyleSheet::new(sheet) };
-    data.stylesheets.append_stylesheet(Some(data.stylist.device()), sheet, &guard);
+    data.stylist.append_stylesheet(sheet, &guard);
 }
 
 #[no_mangle]
@@ -930,10 +930,7 @@ pub extern "C" fn Servo_StyleSet_MediumFeaturesChanged(
     }
     data.stylist.device_mut().reset_computed_values();
     let origins_in_which_rules_changed =
-        data.stylist.media_features_change_changed_style(
-            data.stylesheets.iter(),
-            &guard,
-        );
+        data.stylist.media_features_change_changed_style(&guard);
 
     // We'd like to return `OriginFlags` here, but bindgen bitfield enums don't
     // work as return values with the Linux 32-bit ABI at the moment because
@@ -951,7 +948,7 @@ pub extern "C" fn Servo_StyleSet_PrependStyleSheet(
     let data = &mut *data;
     let guard = global_style_data.shared_lock.read();
     let sheet = unsafe { GeckoStyleSheet::new(sheet) };
-    data.stylesheets.prepend_stylesheet(Some(data.stylist.device()), sheet, &guard);
+    data.stylist.prepend_stylesheet(sheet, &guard);
 }
 
 #[no_mangle]
@@ -965,8 +962,7 @@ pub extern "C" fn Servo_StyleSet_InsertStyleSheetBefore(
     let data = &mut *data;
     let guard = global_style_data.shared_lock.read();
     let sheet = unsafe { GeckoStyleSheet::new(sheet) };
-    data.stylesheets.insert_stylesheet_before(
-        Some(data.stylist.device()),
+    data.stylist.insert_stylesheet_before(
         sheet,
         unsafe { GeckoStyleSheet::new(before_sheet) },
         &guard,
@@ -983,7 +979,7 @@ pub extern "C" fn Servo_StyleSet_RemoveStyleSheet(
     let data = &mut *data;
     let guard = global_style_data.shared_lock.read();
     let sheet = unsafe { GeckoStyleSheet::new(sheet) };
-    data.stylesheets.remove_stylesheet(Some(data.stylist.device()), sheet, &guard);
+    data.stylist.remove_stylesheet(sheet, &guard);
 }
 
 #[no_mangle]
@@ -1005,8 +1001,8 @@ pub extern "C" fn Servo_StyleSet_NoteStyleSheetsChanged(
     changed_origins: OriginFlags,
 ) {
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
-    data.stylesheets.force_dirty(OriginSet::from(changed_origins));
-    data.stylesheets.set_author_style_disabled(author_style_disabled);
+    data.stylist.force_stylesheet_origins_dirty(OriginSet::from(changed_origins));
+    data.stylist.set_author_style_disabled(author_style_disabled);
 }
 
 #[no_mangle]

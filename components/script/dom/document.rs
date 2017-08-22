@@ -2338,6 +2338,11 @@ impl Document {
     pub fn flush_stylesheets_for_reflow(&self) -> bool {
         // NOTE(emilio): The invalidation machinery is used on the replicated
         // list on the layout thread.
+        //
+        // FIXME(emilio): This really should differentiate between CSSOM changes
+        // and normal stylesheets additions / removals, because in the last case
+        // the layout thread already has that information and we could avoid
+        // dirtying the whole thing.
         let mut stylesheets = self.stylesheets.borrow_mut();
         let have_changed = stylesheets.has_changed();
         stylesheets.flush_without_invalidation();
@@ -2370,11 +2375,10 @@ impl Document {
             .unwrap();
 
         let guard = s.shared_lock.read();
-        let device = self.device();
 
         // FIXME(emilio): Would be nice to remove the clone, etc.
         self.stylesheets.borrow_mut().remove_stylesheet(
-            device.as_ref(),
+            None,
             StyleSheetInDocument {
                 sheet: s.clone(),
                 owner: JS::from_ref(owner),
@@ -2414,13 +2418,12 @@ impl Document {
         let lock = self.style_shared_lock();
         let guard = lock.read();
 
-        let device = self.device();
         match insertion_point {
             Some(ip) => {
-                stylesheets.insert_stylesheet_before(device.as_ref(), sheet, ip, &guard);
+                stylesheets.insert_stylesheet_before(None, sheet, ip, &guard);
             }
             None => {
-                stylesheets.append_stylesheet(device.as_ref(), sheet, &guard);
+                stylesheets.append_stylesheet(None, sheet, &guard);
             }
         }
     }
