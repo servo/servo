@@ -185,9 +185,15 @@ pub trait DomTraversal<E: TElement> : Sync {
         let should_traverse = Self::element_needs_traversal(
             root,
             flags,
-            data.map(|d| &*d),
+            data.as_mut().map(|d| &**d),
             parent_data.as_ref().map(|d| &**d)
         );
+
+        // If we're not going to traverse at all, we may need to clear some state
+        // off the root (which would normally be done at the end of recalc_style_at).
+        if !should_traverse && data.is_some() {
+            clear_state_after_traversing(root, data.unwrap(), flags);
+        }
 
         PreTraverseToken(should_traverse)
     }
@@ -592,6 +598,31 @@ where
         );
     }
 
+    // FIXME(bholley): Make these assertions pass for servo.
+    if cfg!(feature = "gecko") && cfg!(debug_assertions) && data.styles.is_display_none() {
+        debug_assert!(!element.has_dirty_descendants());
+        debug_assert!(!element.has_animation_only_dirty_descendants());
+    }
+
+    debug_assert!(flags.for_animation_only() ||
+                  !flags.contains(ClearDirtyBits) ||
+                  !element.has_animation_only_dirty_descendants(),
+                  "Should have cleared animation bits already");
+    clear_state_after_traversing(element, data, flags);
+
+    context.thread_local.end_element(element);
+}
+
+fn clear_state_after_traversing<E>(
+    element: E,
+    data: &mut ElementData,
+    flags: TraversalFlags
+)
+where
+    E: TElement,
+{
+    use traversal_flags::*;
+
     // If we are in a forgetful traversal, drop the existing restyle
     // data here, since we won't need to perform a post-traversal to pick up
     // any change hints.
@@ -599,32 +630,16 @@ where
         data.clear_restyle_flags_and_damage();
     }
 
-    // Optionally clear the descendants bits.
-    if data.styles.is_display_none() {
-        // When this element is the root of a display:none subtree, we want to clear
-        // the bits even if the style didn't change (since, if the style did change,
-        // we'd have already cleared it above).
-        //
-        // This keeps the tree in a valid state without requiring the DOM to check
-        // display:none on the parent when inserting new children (which can be
-        // moderately expensive). Instead, DOM implementations can unconditionally
-        // set the dirty descendants bit on any styled parent, and let the traversal
-        // sort it out.
-        //
-        // Note that the NODE_DESCENDANTS_NEED_FRAMES bit should generally only be set
-        // when appending content beneath an element with a frame (i.e. not
-        // display:none), so clearing it here isn't strictly necessary, but good
-        // belt-and-suspenders.
-        unsafe { element.clear_descendants_bits(); }
-    } else if flags.for_animation_only() {
-        if flags.contains(ClearAnimationOnlyDirtyDescendants) {
+    // Clear dirty bits as appropriate.
+    if flags.for_animation_only() {
+        if flags.intersects(ClearDirtyBits | ClearAnimationOnlyDirtyDescendants) {
             unsafe { element.unset_animation_only_dirty_descendants(); }
         }
-    } else if flags.contains(ClearDirtyDescendants) {
-        unsafe { element.unset_dirty_descendants(); }
+    } else if flags.contains(ClearDirtyBits) {
+        // The animation traversal happens first, so we don't need to guard against
+        // clearing the animation bit on the regular traversal.
+        unsafe { element.clear_dirty_bits(); }
     }
-
-    context.thread_local.end_element(element);
 }
 
 fn compute_style<E>(
@@ -855,6 +870,11 @@ where
                 }
             }
         }
-        p.clear_descendants_bits();
+        if p == root {
+            // Make sure not to clear NODE_NEEDS_FRAME on the root.
+            p.clear_descendants_bits();
+        } else {
+            p.clear_dirty_bits();
+        }
     }
 }

@@ -25,6 +25,7 @@ use style::gecko::restyle_damage::GeckoRestyleDamage;
 use style::gecko::selector_parser::PseudoElement;
 use style::gecko::traversal::RecalcStyleOnly;
 use style::gecko::wrapper::GeckoElement;
+use style::gecko_bindings::bindings;
 use style::gecko_bindings::bindings::{RawGeckoElementBorrowed, RawGeckoElementBorrowedOrNull};
 use style::gecko_bindings::bindings::{RawGeckoKeyframeListBorrowed, RawGeckoKeyframeListBorrowedMut};
 use style::gecko_bindings::bindings::{RawServoDeclarationBlockBorrowed, RawServoDeclarationBlockStrong};
@@ -291,14 +292,14 @@ pub extern "C" fn Servo_TraverseSubtree(root: RawGeckoElementBorrowed,
                      traversal_flags,
                      unsafe { &*snapshots });
 
-    debug!("Servo_TraverseSubtree complete (dd={}, aodd={}, restyle={:?})",
+    debug!("Servo_TraverseSubtree complete (dd={}, aodd={}, lfcd={}, lfc={}, restyle={:?})",
            element.has_dirty_descendants(),
            element.has_animation_only_dirty_descendants(),
+           element.descendants_need_frames(),
+           element.needs_frame(),
            element.borrow_data().unwrap().restyle);
 
-    element.has_dirty_descendants() ||
-    element.has_animation_only_dirty_descendants() ||
-    element.borrow_data().unwrap().restyle.contains_restyle_data()
+    element.needs_post_traversal()
 }
 
 /// Checks whether the rule tree has crossed its threshold for unused nodes, and
@@ -827,6 +828,14 @@ pub extern "C" fn Servo_Element_GetPseudoComputedValues(element: RawGeckoElement
 }
 
 #[no_mangle]
+pub extern "C" fn Servo_Element_IsDisplayNone(element: RawGeckoElementBorrowed) -> bool
+{
+    let element = GeckoElement(element);
+    let data = element.borrow_data().expect("Invoking Servo_Element_IsDisplayNone on unstyled element");
+    data.styles.is_display_none()
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_StyleSheet_Empty(mode: SheetParsingMode) -> RawServoStyleSheetContentsStrong {
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let origin = match mode {
@@ -991,7 +1000,12 @@ pub extern "C" fn Servo_StyleSet_FlushStyleSheets(
     let guard = global_style_data.shared_lock.read();
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
     let doc_element = doc_element.map(GeckoElement);
-    data.flush_stylesheets(&guard, doc_element);
+    let have_invalidations = data.flush_stylesheets(&guard, doc_element);
+    if have_invalidations && doc_element.is_some() {
+        // The invalidation machinery propagates the bits up, but we still
+        // need to tell the gecko restyle root machinery about it.
+        unsafe { bindings::Gecko_NoteDirtyElement(doc_element.unwrap().0); }
+    }
 }
 
 #[no_mangle]
