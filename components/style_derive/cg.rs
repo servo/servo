@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use darling::FromVariant;
 use quote::Tokens;
 use std::borrow::Cow;
 use std::iter;
@@ -133,6 +134,16 @@ where
     Path {
         global: true,
         segments: segments.into_iter().map(|s| s.as_ref().into()).collect(),
+    }
+}
+
+pub fn parse_variant_attrs<A>(variant: &Variant) -> A
+where
+    A: FromVariant,
+{
+    match A::from_variant(variant) {
+        Ok(attrs) => attrs,
+        Err(e) => panic!("failed to parse attributes: {}", e),
     }
 }
 
