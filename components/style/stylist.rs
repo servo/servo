@@ -1715,6 +1715,9 @@ impl<'a> SelectorVisitor for StylistSelectorVisitor<'a> {
 
 /// Data resulting from performing the CSS cascade that is specific to a given
 /// origin.
+///
+/// FIXME(emilio): Consider renaming and splitting in `CascadeData` and
+/// `InvalidationData`? That'd make `clear_cascade_data()` clearer.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Debug)]
 struct CascadeData {
