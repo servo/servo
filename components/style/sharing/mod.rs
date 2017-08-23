@@ -509,6 +509,23 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
             return;
         }
 
+        // If the element has running animations, we can't share style.
+        //
+        // This is distinct from the specifies_{animations,transitions} check below,
+        // because:
+        //   * Animations can be triggered directly via the Web Animations API.
+        //   * Our computed style can still be affected by animations after we no
+        //     longer match any animation rules, since removing animations involves
+        //     a sequential task and an additional traversal.
+        if element.has_animations() {
+            debug!("Failing to insert to the cache: running animations");
+            return;
+        }
+
+        // In addition to the above running animations check, we also need to
+        // check CSS animation and transition styles since it's possible that
+        // we are about to create CSS animations/transitions.
+        //
         // These are things we don't check in the candidate match because they
         // are either uncommon or expensive.
         let box_style = style.get_box();
