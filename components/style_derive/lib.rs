@@ -10,6 +10,7 @@ extern crate synstructure;
 use proc_macro::TokenStream;
 
 mod animate;
+mod cg;
 mod compute_squared_distance;
 mod has_viewport_percentage;
 mod to_animated_value;
