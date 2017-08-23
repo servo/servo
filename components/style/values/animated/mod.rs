@@ -27,6 +27,7 @@ use values::specified::url::SpecifiedUrl;
 
 pub mod color;
 pub mod effects;
+pub mod svg;
 
 /// Animate from one value to another.
 ///
