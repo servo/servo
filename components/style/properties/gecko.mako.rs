@@ -11,7 +11,7 @@
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
 use app_units::Au;
-use custom_properties::CustomPropertiesMap;
+use properties_and_values::CustomPropertiesMap;
 use gecko_bindings::bindings;
 % for style_struct in data.style_structs:
 use gecko_bindings::structs::${style_struct.gecko_ffi_name};
@@ -324,7 +324,7 @@ impl ComputedValuesInner {
     }
 
     /// Gets a reference to the custom properties map (if one exists).
-    pub fn get_custom_properties(&self) -> Option<<&::custom_properties::CustomPropertiesMap> {
+    pub fn get_custom_properties(&self) -> Option<<&CustomPropertiesMap> {
         self.custom_properties.as_ref().map(|x| &**x)
     }
 

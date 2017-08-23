@@ -541,7 +541,7 @@ impl PropertyDeclarationBlock {
                          Some(ref computed_values)) => unparsed
                             .substitute_variables(
                                 id,
-                                &computed_values.custom_properties(),
+                                computed_values.get_custom_properties(),
                                 QuirksMode::NoQuirks,
                             )
                             .to_css(dest),

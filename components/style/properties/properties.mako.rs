@@ -23,6 +23,7 @@ use cssparser::ParserInput;
 #[cfg(feature = "servo")] use euclid::SideOffsets2D;
 use computed_values;
 use context::QuirksMode;
+use custom_properties::OrderedMap;
 use error_reporting::NullReporter;
 use font_metrics::FontMetricsProvider;
 #[cfg(feature = "gecko")] use gecko_bindings::bindings;
@@ -31,12 +32,13 @@ use font_metrics::FontMetricsProvider;
 use logical_geometry::WritingMode;
 use media_queries::Device;
 use parser::ParserContext;
+use properties_and_values::{CustomPropertiesMap, RegisteredPropertySet};
 use properties::animated_properties::AnimatableLonghand;
 #[cfg(feature = "gecko")] use properties::longhands::system_font::SystemFont;
 use selector_parser::PseudoElement;
 use selectors::parser::SelectorParseError;
 #[cfg(feature = "servo")] use servo_config::prefs::PREFS;
-use shared_lock::StylesheetGuards;
+use shared_lock::{Locked, StylesheetGuards};
 use style_traits::{PARSING_MODE_DEFAULT, HasViewportPercentage, ToCss, ParseError};
 use style_traits::{PropertyDeclarationParseError, StyleParseError, ValueParseError};
 use stylesheets::{CssRuleType, MallocSizeOf, MallocSizeOfFn, Origin, UrlExtraData};
@@ -821,10 +823,10 @@ pub struct UnparsedValue {
 
 impl UnparsedValue {
     fn substitute_variables(&self, longhand_id: LonghandId,
-                            custom_properties: &Option<Arc<::custom_properties::CustomPropertiesMap>>,
+                            custom_properties: Option<<&CustomPropertiesMap>,
                             quirks_mode: QuirksMode)
                             -> PropertyDeclaration {
-        ::custom_properties::substitute(&self.css, self.first_token_type, custom_properties)
+        ::custom_properties::substitute(&self.css, self.first_token_type, custom_properties.map(|x| &**x))
         .ok()
         .and_then(|css| {
             // As of this writing, only the base URL is used for property values:
@@ -1975,7 +1977,7 @@ pub struct ComputedValuesInner {
     % for style_struct in data.active_style_structs():
         ${style_struct.ident}: Arc<style_structs::${style_struct.name}>,
     % endfor
-    custom_properties: Option<Arc<::custom_properties::CustomPropertiesMap>>,
+    custom_properties: Option<Arc<CustomPropertiesMap>>,
     /// The writing mode of this computed values struct.
     pub writing_mode: WritingMode,
 
@@ -2021,7 +2023,7 @@ impl ComputedValues {
         _: &Device,
         _: Option<<&ComputedValues>,
         _: Option<<&PseudoElement>,
-        custom_properties: Option<Arc<::custom_properties::CustomPropertiesMap>>,
+        custom_properties: Option<Arc<CustomPropertiesMap>>,
         writing_mode: WritingMode,
         font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>,
         flags: ComputedValueFlags,
@@ -2054,7 +2056,7 @@ impl ComputedValues {
 impl ComputedValuesInner {
     /// Construct a `ComputedValuesInner` instance.
     pub fn new(
-        custom_properties: Option<Arc<::custom_properties::CustomPropertiesMap>>,
+        custom_properties: Option<Arc<CustomPropertiesMap>>,
         writing_mode: WritingMode,
         font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>,
         flags: ComputedValueFlags,
@@ -2150,7 +2152,7 @@ impl ComputedValuesInner {
     // Aah! The << in the return type below is not valid syntax, but we must
     // escape < that way for Mako.
     /// Gets a reference to the custom properties map (if one exists).
-    pub fn get_custom_properties(&self) -> Option<<&::custom_properties::CustomPropertiesMap> {
+    pub fn get_custom_properties(&self) -> Option<<&CustomPropertiesMap> {
         self.custom_properties.as_ref().map(|x| &**x)
     }
 
@@ -2158,7 +2160,7 @@ impl ComputedValuesInner {
     ///
     /// Cloning the Arc here is fine because it only happens in the case where
     /// we have custom properties, and those are both rare and expensive.
-    pub fn custom_properties(&self) -> Option<Arc<::custom_properties::CustomPropertiesMap>> {
+    pub fn custom_properties(&self) -> Option<Arc<CustomPropertiesMap>> {
         self.custom_properties.clone()
     }
 
@@ -2570,7 +2572,7 @@ pub struct StyleBuilder<'a> {
     /// node.
     rules: Option<StrongRuleNode>,
 
-    custom_properties: Option<Arc<::custom_properties::CustomPropertiesMap>>,
+    custom_properties: Option<Arc<CustomPropertiesMap>>,
 
     /// The pseudo-element this style will represent.
     pseudo: Option<<&'a PseudoElement>,
@@ -2601,7 +2603,7 @@ impl<'a> StyleBuilder<'a> {
         pseudo: Option<<&'a PseudoElement>,
         cascade_flags: CascadeFlags,
         rules: Option<StrongRuleNode>,
-        custom_properties: Option<Arc<::custom_properties::CustomPropertiesMap>>,
+        custom_properties: Option<Arc<CustomPropertiesMap>>,
         writing_mode: WritingMode,
         font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>,
         flags: ComputedValueFlags,
@@ -2861,12 +2863,14 @@ impl<'a> StyleBuilder<'a> {
         )
     }
 
-    /// Get the custom properties map if necessary.
-    ///
-    /// Cloning the Arc here is fine because it only happens in the case where
-    /// we have custom properties, and those are both rare and expensive.
-    fn custom_properties(&self) -> Option<Arc<::custom_properties::CustomPropertiesMap>> {
-        self.custom_properties.clone()
+    /// Gets a reference to the custom properties map (if one exists).
+    pub fn get_custom_properties(&self) -> Option<<&CustomPropertiesMap> {
+        self.custom_properties.as_ref().map(|x| &**x)
+    }
+
+    /// Gets a reference to the parent's custom properties map (if one exists).
+    pub fn get_parent_custom_properties(&self) -> Option<<&CustomPropertiesMap> {
+        self.inherited_style.custom_properties.as_ref().map(|x| &**x)
     }
 
     /// Access to various information about our inherited styles.  We don't
@@ -3025,7 +3029,8 @@ pub fn cascade(
     cascade_info: Option<<&mut CascadeInfo>,
     font_metrics_provider: &FontMetricsProvider,
     flags: CascadeFlags,
-    quirks_mode: QuirksMode
+    quirks_mode: QuirksMode,
+    registered_property_set: &Locked<RegisteredPropertySet>,
 ) -> Arc<ComputedValues> {
     debug_assert_eq!(parent_style.is_some(), parent_style_ignoring_first_line.is_some());
     #[cfg(feature = "gecko")]
@@ -3085,7 +3090,336 @@ pub fn cascade(
         font_metrics_provider,
         flags,
         quirks_mode,
+        registered_property_set.read_with(guards.registered_property_set),
     )
+}
+
+/// Compute a fully resolved custom property declaration. Note that we are
+/// turning a custom_properties::ComputedValue into a
+/// custom_properties::ComputedValue and possibly a
+/// properties_and_values::ComputedValue: the difference afterwards is that if
+/// this is a typed custom property we have computed out things like em units.
+/// Also return whether or not this property inherits.
+fn compute_resolved_custom_property(
+    registered_property_set: &RegisteredPropertySet,
+    context: &computed::Context,
+    url_data: &UrlExtraData,
+    name: &::custom_properties::Name,
+    value: ::custom_properties::ComputedValue,
+) -> Result<(::custom_properties::ComputedValue,
+             Option<::properties_and_values::ComputedValue>,
+             bool),
+            ()> {
+    let registration = match registered_property_set.get(name) {
+        None => return Ok((value, None, true)),
+        Some(registration) => registration
+    };
+    let specified = {
+        let reporter = NullReporter;
+        let parser_context = ParserContext::new(
+            Origin::Author,
+            url_data,
+            &reporter,
+            /* rule_type */ None,
+            PARSING_MODE_DEFAULT,
+            context.quirks_mode,
+        );
+        let mut input = ParserInput::new(&value.css);
+        let mut input = Parser::new(&mut input);
+        match registration.syntax.parse(&parser_context, &mut input) {
+            Ok(x) => x,
+            Err(_) => return Err(()),
+        }
+    };
+    specified
+        .to_computed_value(context)
+        .map(|x| ((&x).into(), Some(x), registration.inherits))
+}
+
+/// Substitute `var()` functions in the declarations for the custom properties
+/// specified in `to_substitute`. If `to_substitute` is `None`, substitute for
+/// all custom properties. Computed values are added to `computed`.
+///
+/// This function is called twice: before and after we compute early properties.
+fn substitute_all(
+    context: &computed::Context,
+    registered_property_set: &RegisteredPropertySet,
+    specified: &OrderedMap<<&::custom_properties::Name,
+                           ::custom_properties::BorrowedSpecifiedValue>,
+    inherited: &Option<Arc<CustomPropertiesMap>>,
+    to_substitute: &Option<HashSet<::custom_properties::Name>>,
+    computed: &mut CustomPropertiesMap,
+) {
+    let mut computed_to_insert_typed = Vec::new();
+    let mut invalid_to_insert_typed = Vec::new();
+    let mut has_uninherited = false;
+
+    ::custom_properties::substitute_all(
+        specified,
+        to_substitute,
+        &mut **computed,
+        /* compute */ &mut |name, value| {
+            use ::custom_properties::BorrowedExtraData;
+            let specified = specified.get(&name).unwrap();
+            match specified.extra {
+                BorrowedExtraData::Specified(ref url_data) => {
+                    // This specified value came straight from a declaration.
+                    // We should try to compute with the `url_data` associated
+                    // with the declaration.
+                    compute_resolved_custom_property(
+                        registered_property_set,
+                        context,
+                        url_data,
+                        name,
+                        value
+                    ).map(|(untyped, maybe_typed, inherits)| {
+                        has_uninherited = has_uninherited || !inherits;
+                        if let Some(typed) = maybe_typed {
+                            computed_to_insert_typed.push((name.clone(), typed));
+                        }
+                        untyped
+                    })
+                },
+                BorrowedExtraData::Precomputed(ref computed_value) => {
+                    // This specified value came from an animation or an
+                    // inherited typed custom property. We don't need to
+                    // compute!
+                    if let Some(ref registration) = registered_property_set.get(name) {
+                        has_uninherited = has_uninherited || !registration.inherits;
+                        computed_to_insert_typed.push((name.clone(), (*computed_value).clone()));
+                    }
+                    Ok(value)
+                },
+                BorrowedExtraData::InheritedUntyped => {
+                    // The specified value was inherited from an untyped custom
+                    // property. We shouldn't insert any typed value here.
+                    Ok(value)
+                },
+            }
+        },
+        /* handle_invalid */ &mut |name| {
+            registered_property_set
+                .get(name)
+                .and_then(|registration| {
+                    if !registration.inherits {
+                        registration.initial_value.as_ref()
+                            .map(|x| {
+                                let typed =
+                                    x.to_computed_value(context)
+                                    .expect("The initial value should never fail to compute.");
+                                let untyped = (&typed).into();
+                                invalid_to_insert_typed.push((name.clone(), typed));
+                                untyped
+                            })
+                    } else {
+                        None
+                    }
+                })
+                .or_else(|| inherited.as_ref().and_then(|x| x.get(name).cloned()))
+                .ok_or(())
+        }
+    );
+
+    for (name, typed) in computed_to_insert_typed {
+        computed.insert_typed(&name, None, typed);
+    }
+    for (name, typed) in invalid_to_insert_typed {
+        computed.insert_typed(&name, None, typed);
+    }
+    if has_uninherited {
+        computed.set_has_uninherited();
+    }
+}
+
+/// Determine and then compute those custom properties we want to compute before
+/// early custom properties (might avoid doing any work if we haven't declared
+/// any properties and there are no uninherited custom properties).
+/// Returns the custom properties' specified nad computed values, as well as
+/// whether or not the declaration for font-size is involved in a cycle.
+fn compute_early_custom_properties<'a, 'b: 'a, I>(
+    context: &computed::Context,
+    inherited: &'a Option<Arc<CustomPropertiesMap>>,
+    declarations: I,
+    registered_property_set: &RegisteredPropertySet,
+) -> (
+    Option<OrderedMap<<&'a ::custom_properties::Name,
+                    ::custom_properties::BorrowedSpecifiedValue<'a>>>,
+    Option<Arc<CustomPropertiesMap>>,
+    bool
+)
+where I: Iterator<Item = (&'b PropertyDeclaration, CascadeLevel)>
+{
+    // Will be populated by ::custom_properties::cascade if any of the
+    // specified custom properties end up being used.
+    let mut specified = None;
+    // parse_declaration_value_block wants Options.
+    let mut referenced_by_font_size = Some(HashSet::new());
+    let mut referenced_by_other_early = Some(HashSet::new());
+    let mut possibly_font_size_dependent = HashSet::new();
+    let mut seen_custom = HashSet::new();
+    // Don't really need this, but parse_declaration_value_block expects it.
+    let mut missing_closing_characters = String::new();
+    for (declaration, _cascade_level) in declarations {
+        match *declaration {
+            PropertyDeclaration::Custom(ref name, ref value) => {
+                ::custom_properties::cascade(
+                    &mut specified,
+                    inherited.as_ref().map(|x| &***x),
+                    /* inherited_computed */ &|name| {
+                        inherited.as_ref().and_then(|inherited| inherited.get_typed(name))
+                    },
+                    /* handle_keyword */ |name, keyword| {
+                        // We return true if we should inherit and false
+                        // otherwise.
+                        match keyword {
+                            CSSWideKeyword::Initial => false,
+                            CSSWideKeyword::Inherit => true,
+                            CSSWideKeyword::Unset => {
+                                if let Some(registration) = registered_property_set.get(name) {
+                                    registration.inherits
+                                } else {
+                                    true
+                                }
+                            },
+                        }
+                    },
+                    &mut seen_custom,
+                    name,
+                    value.borrow()
+                );
+                if let Some(registration) = registered_property_set.get(name) {
+                    if let ::properties_and_values::Syntax::Disjunction(ref terms) = registration.syntax {
+                        use ::properties_and_values::{Term, Type};
+                        if terms.iter().any(|&Term { ref typ, .. }| {
+                            match *typ {
+                                Type::Length | Type::LengthPercentage |
+                                Type::TransformList => true,
+                                _ => false,
+                            }
+                        }) {
+                            possibly_font_size_dependent.insert(name.clone());
+                        }
+                    }
+                }
+            },
+            PropertyDeclaration::WithVariables(id, ref value) if id.is_early_property() => {
+                let mut referenced_by = if id == LonghandId::FontSize {
+                    &mut referenced_by_font_size
+                } else {
+                    &mut referenced_by_other_early
+                };
+                let mut input = ParserInput::new(&value.css);
+                let mut input = Parser::new(&mut input);
+                // We're just going to use parse_declaration_value_block to grab
+                // references.
+                let _ = ::custom_properties::parse_declaration_value_block(
+                    &mut input,
+                    &mut referenced_by,
+                    &mut missing_closing_characters,
+                );
+            },
+            _ => (),
+        }
+    }
+
+    let referenced_by_font_size = referenced_by_font_size.unwrap();
+    let referenced_by_other_early = referenced_by_other_early.unwrap();
+
+    // Remove cycles and compute those custom properties depended on by early
+    // properties.
+    let (computed_early, font_size_cyclical) = {
+        if let Some(ref mut specified) = specified {
+            // Something was specified.
+
+            let (font_size_cyclical, dependencies, cyclical) = {
+                ::custom_properties::compute_ordering(
+                    specified,
+                    &referenced_by_font_size,
+                    &referenced_by_other_early,
+                    &possibly_font_size_dependent,
+                )
+            };
+
+            // Note that inherited properties will have already been inserted
+            // into `specified` by ::custom_properties::cascade.
+            // If a property isn't specified and is either
+            // a) uninherited or has no inherited value, and
+            // b) has an initial value,
+            // then we should set it to its initial value.
+            let mut computed = {
+                let has_value = specified.iter().map(|(name, _)| name.clone()).collect();
+                registered_property_set.initial_values_except(context, Some(&has_value))
+            };
+
+            for name in cyclical {
+                specified.remove(&name);
+                // "If there is a cycle in the dependency graph, all the custom
+                //  properties in the cycle must compute to their initial value
+                //  (which is a guaranteed-invalid value)."
+                // -- https://drafts.csswg.org/css-variables/#cycles
+                let initial_typed_value =
+                    registered_property_set
+                    .get(&name)
+                    .and_then(|registration| registration.initial_value.clone())
+                    .map(|initial_value| initial_value.to_computed_value(context).unwrap());
+                if let Some(initial_typed_value) = initial_typed_value {
+                    let initial_untyped_value = (&initial_typed_value).into();
+                    computed.insert_typed(&name, Some(initial_untyped_value), initial_typed_value);
+                }
+            }
+
+            substitute_all(
+                context,
+                &*registered_property_set,
+                specified,
+                inherited,
+                /* to_substitute */ &Some(dependencies),
+                &mut computed
+            );
+
+            (Some(Arc::new(computed)), font_size_cyclical)
+        } else if let &Some(ref inherited) = inherited {
+            // Nothing specified, but we did inherit something.
+
+            if inherited.has_uninherited() {
+                // There were uninherited custom properties set to something
+                // other than their initial value, so we have to create a new
+                // CustomPropertiesMap with them removed.
+                let mut computed = CustomPropertiesMap::new();
+                for (name, value) in inherited.iter() {
+                    let registration = registered_property_set.get(name);
+                    if registration.map(|x| x.inherits).unwrap_or(true) {
+                        // This property inherits; just clone it over.
+                        computed.insert(name.clone(), value.clone());
+                        if let Some(typed_value) = inherited.get_typed(name) {
+                            computed.insert_typed(name, None, typed_value.clone());
+                        }
+                    } else {
+                        // The property doesn't inherit; set it to its initial
+                        // value.
+                        if let Some(ref initial) = registration.and_then(|x| x.initial_value.as_ref()) {
+                            let typed_value = initial.clone().to_computed_value(context).unwrap();
+                            let untyped_value = (&typed_value).into();
+                            computed.insert_typed(name, Some(untyped_value), typed_value);
+                        }
+                    }
+                }
+                (Some(Arc::new(computed)), false)
+            } else {
+                // There weren't any uninherited custom properties set to
+                // something other than their initial value, so we can just
+                // clone the Arc, which should be cheap!
+                (Some((*inherited).clone()), false)
+            }
+        } else {
+            // There were no inherited or specified values.
+            // If there are any properties with initial values, we should set
+            // them.
+            (Some(Arc::new(registered_property_set.initial_values_except(context, None))), false)
+        }
+    };
+
+    (specified, computed_early, font_size_cyclical)
 }
 
 /// NOTE: This function expects the declaration with more priority to appear
@@ -3104,6 +3438,7 @@ pub fn apply_declarations<'a, F, I>(
     font_metrics_provider: &FontMetricsProvider,
     flags: CascadeFlags,
     quirks_mode: QuirksMode,
+    registered_property_set: &RegisteredPropertySet,
 ) -> Arc<ComputedValues>
 where
     F: Fn() -> I,
@@ -3127,21 +3462,6 @@ where
         }
     };
 
-    let inherited_custom_properties = inherited_style.custom_properties();
-    let mut custom_properties = None;
-    let mut seen_custom = HashSet::new();
-    for (declaration, _cascade_level) in iter_declarations() {
-        if let PropertyDeclaration::Custom(ref name, ref value) = *declaration {
-            ::custom_properties::cascade(
-                &mut custom_properties, &inherited_custom_properties,
-                &mut seen_custom, name, value.borrow());
-        }
-    }
-
-    let custom_properties =
-        ::custom_properties::finish_cascade(
-            custom_properties, &inherited_custom_properties);
-
     let mut context = computed::Context {
         is_root_element: flags.contains(IS_ROOT_ELEMENT),
         // We'd really like to own the rules here to avoid refcount traffic, but
@@ -3154,7 +3474,9 @@ where
             pseudo,
             flags,
             Some(rules.clone()),
-            custom_properties,
+            // We need the context to finish computing these; then we'll fill
+            // them in.
+            /* custom_properties */ None,
             WritingMode::empty(),
             inherited_style.font_computation_data.font_size_keyword,
             ComputedValueFlags::empty(),
@@ -3166,6 +3488,24 @@ where
         quirks_mode: quirks_mode,
         for_smil_animation: false,
     };
+
+    let inherited_custom_properties = inherited_style.custom_properties();
+    let (
+        specified_custom_properties,
+        mut computed_custom_properties,
+        font_size_cyclical
+    ) = {
+        compute_early_custom_properties(
+            &context,
+            &inherited_custom_properties,
+            iter_declarations(),
+            registered_property_set,
+        )
+    };
+
+    // Should be enough to resolve early properties. Need to fill in the other
+    // ones later.
+    context.builder.custom_properties = computed_custom_properties;
 
     let ignore_colors = !device.use_document_colors();
     let default_background_color_decl = if ignore_colors {
@@ -3194,12 +3534,39 @@ where
             let mut font_size = None;
             let mut font_family = None;
         % endif
+        %if category_to_cascade_now == "other":
+            // Now we can compute the other custom properties that
+            // weren't depended on by early properties and that might have
+            // depended on them.
+            if context.builder.custom_properties.is_some() && specified_custom_properties.is_some() {
+                // Swap out context.builder.custom_properties temporarily so we
+                // can update it. (We still need to pass context in to compute
+                // with). We'll swap it back in at the end!
+                let mut maybe_arc = None;
+                mem::swap(&mut maybe_arc, &mut context.builder.custom_properties);
+                {
+                    let mut arc = maybe_arc.as_mut().unwrap();
+                    let mut computed_custom_properties = Arc::get_mut(arc).unwrap();
+                    let specified_custom_properties = specified_custom_properties.as_ref().unwrap();
+                    substitute_all(
+                        &context,
+                        &*registered_property_set,
+                        specified_custom_properties,
+                        &inherited_custom_properties,
+                        // Compute everybody that isn't yet computed.
+                        /* to_substitute */ &None,
+                        computed_custom_properties
+                    );
+                }
+                mem::swap(&mut maybe_arc, &mut context.builder.custom_properties);
+            }
+        % endif
         for (declaration, cascade_level) in iter_declarations() {
             let mut declaration = match *declaration {
                 PropertyDeclaration::WithVariables(id, ref unparsed) => {
                     Cow::Owned(unparsed.substitute_variables(
                         id,
-                        &context.builder.custom_properties,
+                        context.builder.custom_properties.as_ref().map(|x| &**x),
                         context.quirks_mode
                     ))
                 }
@@ -3210,6 +3577,10 @@ where
                 PropertyDeclarationId::Longhand(id) => id,
                 PropertyDeclarationId::Custom(..) => continue,
             };
+
+            if font_size_cyclical && longhand_id == LonghandId::FontSize {
+                continue
+            }
 
             // Only a few properties are allowed to depend on the visited state
             // of links.  When cascading visited styles, we can save time by

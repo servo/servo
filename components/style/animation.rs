@@ -494,6 +494,8 @@ fn compute_style_for_animation_step(context: &SharedStyleContext,
 
             // This currently ignores visited styles, which seems acceptable,
             // as existing browsers don't appear to animate visited styles.
+            let registered_property_set =
+                context.stylist.registered_property_set().read_with(context.guards.registered_property_set);
             let computed =
                 properties::apply_declarations(context.stylist.device(),
                                                /* pseudo = */ None,
@@ -506,7 +508,8 @@ fn compute_style_for_animation_step(context: &SharedStyleContext,
                                                /* visited_style = */ None,
                                                font_metrics_provider,
                                                CascadeFlags::empty(),
-                                               context.quirks_mode);
+                                               context.quirks_mode,
+                                               registered_property_set);
             computed
         }
     }

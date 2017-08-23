@@ -36,6 +36,7 @@ use selectors::visitor::SelectorVisitor;
 use servo_arc::{Arc, ArcBorrow};
 use shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
 use smallvec::VecLike;
+use std::borrow::Borrow;
 use std::fmt::Debug;
 use std::ops;
 use style_traits::viewport::ViewportConstraints;
@@ -731,7 +732,11 @@ impl Stylist {
                             None,
                             font_metrics,
                             cascade_flags,
-                            self.quirks_mode)
+                            self.quirks_mode,
+                            self.registered_property_set
+                                .as_ref()
+                                .expect("set_registered_property_set should have been called")
+                                .borrow())
     }
 
     /// Returns the style for an anonymous box of the given type.
@@ -904,7 +909,11 @@ impl Stylist {
                                     None,
                                     font_metrics,
                                     cascade_flags,
-                                    self.quirks_mode);
+                                    self.quirks_mode,
+                                    self.registered_property_set
+                                        .as_ref()
+                                        .expect("The registered property set must be set beforehand.")
+                                        .borrow());
 
             Some(computed)
         } else {
@@ -930,7 +939,11 @@ impl Stylist {
                             None,
                             font_metrics,
                             cascade_flags,
-                            self.quirks_mode)
+                            self.quirks_mode,
+                            self.registered_property_set
+                                .as_ref()
+                                .expect("The registered property set must be set beforehand.")
+                                .borrow())
     }
 
     fn has_rules_for_pseudo(&self, pseudo: &PseudoElement) -> bool {
@@ -1504,7 +1517,12 @@ impl Stylist {
                             None,
                             &metrics,
                             CascadeFlags::empty(),
-                            self.quirks_mode)
+                            self.quirks_mode,
+                            self.registered_property_set
+                                .as_ref()
+                                .expect("set_registered_property_set should \
+                                         have been called.")
+                                .borrow())
     }
 
     /// Accessor for a shared reference to the device.
