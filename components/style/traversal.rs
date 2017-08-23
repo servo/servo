@@ -878,11 +878,8 @@ where
                 }
             }
         }
-        if p == root {
-            // Make sure not to clear NODE_NEEDS_FRAME on the root.
-            p.clear_descendants_bits();
-        } else {
-            p.clear_dirty_bits();
-        }
     }
+
+    // Make sure not to clear NODE_NEEDS_FRAME on the root.
+    root.clear_descendant_bits();
 }

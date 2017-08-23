@@ -1094,7 +1094,7 @@ impl<'le> TElement for GeckoElement<'le> {
         self.unset_flags(ELEMENT_HAS_ANIMATION_ONLY_DIRTY_DESCENDANTS_FOR_SERVO as u32)
     }
 
-    unsafe fn clear_descendants_bits(&self) {
+    unsafe fn clear_descendant_bits(&self) {
         self.unset_flags(ELEMENT_HAS_DIRTY_DESCENDANTS_FOR_SERVO as u32 |
                          ELEMENT_HAS_ANIMATION_ONLY_DIRTY_DESCENDANTS_FOR_SERVO as u32 |
                          NODE_DESCENDANTS_NEED_FRAMES as u32)
@@ -1159,7 +1159,9 @@ impl<'le> TElement for GeckoElement<'le> {
         let ptr = self.0.mServoData.get();
         unsafe {
             self.unset_flags(ELEMENT_HAS_SNAPSHOT as u32 |
-                             ELEMENT_HANDLED_SNAPSHOT as u32);
+                             ELEMENT_HANDLED_SNAPSHOT as u32 |
+                             structs::Element_kAllServoDescendantBits |
+                             NODE_NEEDS_FRAME as u32);
         }
         if !ptr.is_null() {
             debug!("Dropping ElementData for {:?}", self);
