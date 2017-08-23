@@ -519,12 +519,12 @@ fn matches_complex_selector_internal<E, F>(mut selector_iter: SelectorIter<E::Im
 {
     *relevant_link = relevant_link.examine_potential_link(element, &mut context.shared);
 
+    debug!("Matching complex selector {:?} for {:?}, relevant link {:?}",
+           selector_iter, element, relevant_link);
+
     let matches_all_simple_selectors = selector_iter.all(|simple| {
         matches_simple_selector(simple, element, context, &relevant_link, flags_setter)
     });
-
-    debug!("Matching for {:?}, simple selector {:?}, relevant link {:?}",
-           element, selector_iter, relevant_link);
 
     let combinator = selector_iter.next_sequence();
     let siblings = combinator.map_or(false, |c| c.is_sibling());
