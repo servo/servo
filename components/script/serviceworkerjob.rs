@@ -26,7 +26,7 @@ use std::rc::Rc;
 use task_source::TaskSource;
 use task_source::dom_manipulation::DOMManipulationTaskSource;
 
-#[derive(PartialEq, Copy, Clone, Debug, JSTraceable)]
+#[derive(Clone, Copy, Debug, JSTraceable, PartialEq)]
 pub enum JobType {
     Register,
     Unregister,

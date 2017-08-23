@@ -107,6 +107,7 @@ class CheckTidiness(unittest.TestCase):
         self.assertTrue('mod declaration is not in alphabetical order' in errors.next()[2])
         self.assertEqual('mod declaration spans multiple lines', errors.next()[2])
         self.assertTrue('extern crate declaration is not in alphabetical order' in errors.next()[2])
+        self.assertTrue('derivable traits list is not in alphabetical order' in errors.next()[2])
         self.assertEqual('found an empty line following a {', errors.next()[2])
         self.assertEqual('missing space before ->', errors.next()[2])
         self.assertEqual('missing space after ->', errors.next()[2])

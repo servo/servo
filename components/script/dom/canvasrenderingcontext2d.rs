@@ -51,7 +51,7 @@ use std::sync::Arc;
 use unpremultiplytable::UNPREMULTIPLY_TABLE;
 
 #[must_root]
-#[derive(JSTraceable, Clone, HeapSizeOf)]
+#[derive(Clone, HeapSizeOf, JSTraceable)]
 #[allow(dead_code)]
 enum CanvasFillOrStrokeStyle {
     Color(RGBA),
@@ -81,7 +81,7 @@ pub struct CanvasRenderingContext2D {
 }
 
 #[must_root]
-#[derive(JSTraceable, Clone, HeapSizeOf)]
+#[derive(Clone, HeapSizeOf, JSTraceable)]
 struct CanvasContextState {
     global_alpha: f64,
     global_composition: CompositionOrBlending,

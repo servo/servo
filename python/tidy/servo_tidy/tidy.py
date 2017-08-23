@@ -692,6 +692,19 @@ def check_rust(file_name, lines):
             # we now erase previous entries
             prev_mod = {}
 
+        # derivable traits should be alphabetically ordered
+        if is_attribute:
+            # match the derivable traits filtering out macro expansions
+            match = re.search(r"#\[derive\(([a-zA-Z, ]*)", line)
+            if match:
+                derives = map(lambda w: w.strip(), match.group(1).split(','))
+                # sort, compare and report
+                sorted_derives = sorted(derives)
+                if sorted_derives != derives:
+                    yield(idx + 1, decl_message.format("derivable traits list")
+                              + decl_expected.format(", ".join(sorted_derives))
+                              + decl_found.format(", ".join(derives)))
+
 
 # Avoid flagging <Item=Foo> constructs
 def is_associated_type(match, line):

@@ -44,7 +44,7 @@ impl OneOrMoreSeparated for Source {
 /// `url()` function.
 ///
 /// https://drafts.csswg.org/css-fonts/#src-desc
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 pub struct UrlSource {
     /// The specified url.
@@ -225,7 +225,7 @@ macro_rules! font_face_descriptors_common {
         /// Data inside a `@font-face` rule.
         ///
         /// https://drafts.csswg.org/css-fonts/#font-face-rule
-        #[derive(Clone, Debug, PartialEq, Eq)]
+        #[derive(Clone, Debug, Eq, PartialEq)]
         pub struct FontFaceRuleData {
             $(
                 #[$doc]

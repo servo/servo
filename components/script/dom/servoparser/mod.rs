@@ -738,7 +738,7 @@ fn insert(parent: &Node, reference_child: Option<&Node>, child: NodeOrText<JS<No
     }
 }
 
-#[derive(JSTraceable, HeapSizeOf)]
+#[derive(HeapSizeOf, JSTraceable)]
 #[must_root]
 pub struct Sink {
     base_url: ServoUrl,

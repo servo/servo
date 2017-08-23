@@ -243,7 +243,7 @@ impl<'a> PostorderFlowTraversal for BubbleISizes<'a> {
 }
 
 /// The assign-inline-sizes traversal. In Gecko this corresponds to `Reflow`.
-#[derive(Copy, Clone)]
+#[derive(Clone, Copy)]
 pub struct AssignISizes<'a> {
     pub layout_context: &'a LayoutContext<'a>,
 }
@@ -263,7 +263,7 @@ impl<'a> PreorderFlowTraversal for AssignISizes<'a> {
 /// The assign-block-sizes-and-store-overflow traversal, the last (and most expensive) part of
 /// layout computation. Determines the final block-sizes for all layout objects and computes
 /// positions. In Gecko this corresponds to `Reflow`.
-#[derive(Copy, Clone)]
+#[derive(Clone, Copy)]
 pub struct AssignBSizes<'a> {
     pub layout_context: &'a LayoutContext<'a>,
 }

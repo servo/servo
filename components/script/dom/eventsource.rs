@@ -43,10 +43,10 @@ header! { (LastEventId, "Last-Event-ID") => [String] }
 
 const DEFAULT_RECONNECTION_TIME: u64 = 5000;
 
-#[derive(JSTraceable, PartialEq, Copy, Clone, Debug, HeapSizeOf)]
+#[derive(Clone, Copy, Debug, HeapSizeOf, JSTraceable, PartialEq)]
 struct GenerationId(u32);
 
-#[derive(JSTraceable, PartialEq, Copy, Clone, Debug, HeapSizeOf)]
+#[derive(Clone, Copy, Debug, HeapSizeOf, JSTraceable, PartialEq)]
 /// https://html.spec.whatwg.org/multipage/#dom-eventsource-readystate
 enum ReadyState {
     Connecting = 0,
@@ -535,7 +535,7 @@ impl Runnable for ReestablishConnectionRunnable {
     }
 }
 
-#[derive(JSTraceable, HeapSizeOf)]
+#[derive(HeapSizeOf, JSTraceable)]
 pub struct EventSourceTimeoutCallback {
     #[ignore_heap_size_of = "Because it is non-owning"]
     event_source: Trusted<EventSource>,

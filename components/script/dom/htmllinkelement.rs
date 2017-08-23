@@ -38,7 +38,7 @@ use style::stylesheets::{CssRuleType, Stylesheet};
 use style_traits::PARSING_MODE_DEFAULT;
 use stylesheet_loader::{StylesheetLoader, StylesheetContextSource, StylesheetOwner};
 
-#[derive(JSTraceable, PartialEq, Clone, Copy, HeapSizeOf)]
+#[derive(Clone, Copy, HeapSizeOf, JSTraceable, PartialEq)]
 pub struct RequestGenerationId(u32);
 
 impl RequestGenerationId {

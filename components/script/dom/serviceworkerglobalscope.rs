@@ -50,7 +50,7 @@ pub enum MixedMessage {
     FromTimeoutThread(())
 }
 
-#[derive(JSTraceable, Clone)]
+#[derive(Clone, JSTraceable)]
 pub struct ServiceWorkerChan {
     pub sender: Sender<ServiceWorkerScriptMsg>
 }

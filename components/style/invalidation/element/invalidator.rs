@@ -48,7 +48,7 @@ type InvalidationVector = SmallVec<[Invalidation; 10]>;
 ///
 /// We can use this to avoid pushing invalidations of the same kind to our
 /// descendants or siblings.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum InvalidationKind {
     Descendant,
     Sibling,

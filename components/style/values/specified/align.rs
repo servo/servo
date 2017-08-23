@@ -113,7 +113,7 @@ const ALIGN_ALL_SHIFT: u32 = structs::NS_STYLE_ALIGN_ALL_SHIFT;
 ///
 /// The 16-bit field stores the primary value in its lower 8 bits, and the optional fallback value
 /// in its upper 8 bits.  This matches the representation of these properties in Gecko.
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
 pub struct AlignJustifyContent(u16);
 
@@ -206,7 +206,7 @@ impl Parse for AlignJustifyContent {
 /// Value of the `align-self` or `justify-self` property.
 ///
 /// https://drafts.csswg.org/css-align/#self-alignment
-#[derive(Copy, Clone, Debug, Eq, PartialEq, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, ToCss)]
 pub struct AlignJustifySelf(pub AlignFlags);
 
 impl AlignJustifySelf {
@@ -244,7 +244,7 @@ impl Parse for AlignJustifySelf {
 /// Value of the `align-items` property
 ///
 /// https://drafts.csswg.org/css-align/#self-alignment
-#[derive(Copy, Clone, Debug, Eq, PartialEq, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, ToCss)]
 pub struct AlignItems(pub AlignFlags);
 
 impl AlignItems {
@@ -282,7 +282,7 @@ impl Parse for AlignItems {
 /// Value of the `justify-items` property
 ///
 /// https://drafts.csswg.org/css-align/#justify-items-property
-#[derive(Copy, Clone, Debug, Eq, PartialEq, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, ToCss)]
 pub struct JustifyItems(pub AlignFlags);
 
 impl JustifyItems {

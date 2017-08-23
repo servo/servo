@@ -231,7 +231,7 @@ pub mod animated_properties {
 }
 
 /// A longhand or shorthand porperty
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct NonCustomPropertyId(usize);
 
 impl From<LonghandId> for NonCustomPropertyId {
@@ -396,7 +396,7 @@ impl PropertyDeclarationIdSet {
 
 /// An enum to represent a CSS Wide keyword.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Copy, Clone, Debug, Eq, PartialEq, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, ToCss)]
 pub enum CSSWideKeyword {
     /// The `initial` keyword.
     Initial,
@@ -459,7 +459,7 @@ bitflags! {
 }
 
 /// An identifier for a given longhand property.
-#[derive(Clone, Copy, Eq, PartialEq, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum LonghandId {
     % for i, property in enumerate(data.longhands):
@@ -771,7 +771,7 @@ impl ShorthandId {
 
 /// Servo's representation of a declared value for a given `T`, which is the
 /// declared value for that property.
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum DeclaredValue<'a, T: 'a> {
     /// A known specified value from the stylesheet.
     Value(&'a T),
@@ -785,7 +785,7 @@ pub enum DeclaredValue<'a, T: 'a> {
 /// that PropertyDeclaration can avoid embedding a DeclaredValue (and its
 /// extra discriminant word) and synthesize dependent DeclaredValues for
 /// PropertyDeclaration instances as needed.
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum DeclaredValueOwned<T> {
     /// A known specified value from the stylesheet.
     Value(T),
@@ -807,7 +807,7 @@ impl<T> DeclaredValueOwned<T> {
 }
 
 /// An unparsed property value that contains `var()` functions.
-#[derive(PartialEq, Eq, Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct UnparsedValue {
     /// The css serialization for this value.
     css: String,
@@ -910,7 +910,7 @@ impl<'a, T: ToCss> ToCss for DeclaredValue<'a, T> {
 
 /// An identifier for a given property declaration, which can be either a
 /// longhand or a custom property.
-#[derive(PartialEq, Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum PropertyDeclarationId<'a> {
     /// A longhand.
@@ -975,7 +975,7 @@ impl<'a> PropertyDeclarationId<'a> {
 
 /// Servo's representation of a CSS property, that is, either a longhand, a
 /// shorthand, or a custom property.
-#[derive(Eq, PartialEq, Clone)]
+#[derive(Clone, Eq, PartialEq)]
 pub enum PropertyId {
     /// A longhand property.
     Longhand(LonghandId),
@@ -1284,7 +1284,7 @@ impl PropertyParserContext {
 }
 
 /// Servo's representation for a property declaration.
-#[derive(PartialEq, Clone)]
+#[derive(Clone, PartialEq)]
 pub enum PropertyDeclaration {
     % for property in data.longhands:
         /// ${property.name}
@@ -1724,7 +1724,7 @@ pub mod style_structs {
         % if style_struct.name == "Font":
         #[derive(Clone, Debug)]
         % else:
-        #[derive(PartialEq, Clone, Debug)]
+        #[derive(Clone, Debug, PartialEq)]
         % endif
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         /// The ${style_struct.name} style struct.
@@ -3495,7 +3495,7 @@ pub fn modify_border_style_for_inline_sides(style: &mut Arc<ComputedValues>,
 }
 
 /// An identifier for a given alias property.
-#[derive(Clone, Copy, Eq, PartialEq, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum AliasId {
     % for i, property in enumerate(data.all_aliases()):

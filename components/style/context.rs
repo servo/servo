@@ -727,7 +727,7 @@ pub struct StyleContext<'a, E: TElement + 'a> {
 }
 
 /// Why we're doing reflow.
-#[derive(PartialEq, Copy, Clone, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum ReflowGoal {
     /// We're reflowing in order to send a display list to the screen.
     ForDisplay,

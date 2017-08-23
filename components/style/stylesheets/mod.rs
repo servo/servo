@@ -88,7 +88,7 @@ impl Eq for UrlExtraData {}
 /// A CSS rule.
 ///
 /// TODO(emilio): Lots of spec links should be around.
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 #[allow(missing_docs)]
 pub enum CssRule {
     // No Charset here, CSSCharsetRule has been removed from CSSOM
@@ -135,7 +135,7 @@ impl MallocSizeOfWithGuard for CssRule {
 }
 
 #[allow(missing_docs)]
-#[derive(PartialEq, Eq, Copy, Clone, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CssRuleType {
     // https://drafts.csswg.org/cssom/#the-cssrule-interface
     Style               = 1,

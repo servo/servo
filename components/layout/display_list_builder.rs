@@ -2915,7 +2915,7 @@ impl ComputedValuesCursorUtility for ComputedValues {
 }
 
 // A helper data structure for gradients.
-#[derive(Copy, Clone)]
+#[derive(Clone, Copy)]
 struct StopRun {
     start_offset: f32,
     end_offset: f32,
@@ -2953,7 +2953,7 @@ impl ToGfxColor for RGBA {
 }
 
 /// Describes how to paint the borders.
-#[derive(Copy, Clone)]
+#[derive(Clone, Copy)]
 pub enum BorderPaintingMode<'a> {
     /// Paint borders separately (`border-collapse: separate`).
     Separate,
@@ -2963,7 +2963,7 @@ pub enum BorderPaintingMode<'a> {
     Hidden,
 }
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum StackingContextCreationMode {
     Normal,
     PseudoPositioned,

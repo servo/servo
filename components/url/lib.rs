@@ -28,7 +28,7 @@ use url::{Url, Position};
 
 pub use url::Host;
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, HeapSizeOf)]
+#[derive(Clone, Eq, Hash, HeapSizeOf, Ord, PartialEq, PartialOrd)]
 pub struct ServoUrl(Arc<Url>);
 
 impl ServoUrl {

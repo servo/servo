@@ -81,13 +81,13 @@ pub enum FromScriptMsg {
     SendPixels(IpcSender<Option<Vec<u8>>>),
 }
 
-#[derive(Clone, Deserialize, Serialize, HeapSizeOf)]
+#[derive(Clone, Deserialize, HeapSizeOf, Serialize)]
 pub struct CanvasGradientStop {
     pub offset: f64,
     pub color: RGBA,
 }
 
-#[derive(Clone, Deserialize, Serialize, HeapSizeOf)]
+#[derive(Clone, Deserialize, HeapSizeOf, Serialize)]
 pub struct LinearGradientStyle {
     pub x0: f64,
     pub y0: f64,
@@ -109,7 +109,7 @@ impl LinearGradientStyle {
     }
 }
 
-#[derive(Clone, Deserialize, Serialize, HeapSizeOf)]
+#[derive(Clone, Deserialize, HeapSizeOf, Serialize)]
 pub struct RadialGradientStyle {
     pub x0: f64,
     pub y0: f64,
@@ -164,7 +164,7 @@ pub enum FillOrStrokeStyle {
     Surface(SurfaceStyle),
 }
 
-#[derive(Copy, Clone, PartialEq, Deserialize, Serialize, HeapSizeOf)]
+#[derive(Clone, Copy, Deserialize, HeapSizeOf, PartialEq, Serialize)]
 pub enum LineCapStyle {
     Butt = 0,
     Round = 1,
@@ -184,7 +184,7 @@ impl FromStr for LineCapStyle {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Deserialize, Serialize, HeapSizeOf)]
+#[derive(Clone, Copy, Deserialize, HeapSizeOf, PartialEq, Serialize)]
 pub enum LineJoinStyle {
     Round = 0,
     Bevel = 1,
@@ -204,7 +204,7 @@ impl FromStr for LineJoinStyle {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Deserialize, Serialize)]
+#[derive(Clone, Copy, Deserialize, PartialEq, Serialize)]
 pub enum RepetitionStyle {
     Repeat,
     RepeatX,
@@ -226,7 +226,7 @@ impl FromStr for RepetitionStyle {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Deserialize, Serialize, HeapSizeOf)]
+#[derive(Clone, Copy, Deserialize, HeapSizeOf, PartialEq, Serialize)]
 pub enum CompositionStyle {
     SrcIn,
     SrcOut,
@@ -280,7 +280,7 @@ impl CompositionStyle {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Deserialize, Serialize, HeapSizeOf)]
+#[derive(Clone, Copy, Deserialize, HeapSizeOf, PartialEq, Serialize)]
 pub enum BlendingStyle {
     Multiply,
     Screen,
@@ -346,7 +346,7 @@ impl BlendingStyle {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Deserialize, Serialize, HeapSizeOf)]
+#[derive(Clone, Copy, Deserialize, HeapSizeOf, PartialEq, Serialize)]
 pub enum CompositionOrBlending {
     Composition(CompositionStyle),
     Blending(BlendingStyle),

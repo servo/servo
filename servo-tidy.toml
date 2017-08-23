@@ -43,6 +43,7 @@ files = [
   "./components/style/gecko/non_ts_pseudo_class_list.rs",
   # Generated and upstream code combined with our own. Could use cleanup
   "./components/style/gecko/generated/bindings.rs",
+  "./components/style/gecko/generated/pseudo_element_definition.rs",
   "./components/style/gecko/generated/structs_debug.rs",
   "./components/style/gecko/generated/structs_release.rs",
   "./components/style/gecko/generated/atom_macro.rs",

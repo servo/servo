@@ -18,7 +18,7 @@ use dom_struct::dom_struct;
 use std::cell::Cell;
 use std::sync::{ONCE_INIT, Once};
 
-#[derive(Clone, Copy, PartialEq, Debug, JSTraceable, HeapSizeOf)]
+#[derive(Clone, Copy, Debug, HeapSizeOf, JSTraceable, PartialEq)]
 pub enum ShaderCompilationStatus {
     NotCompiled,
     Succeeded,

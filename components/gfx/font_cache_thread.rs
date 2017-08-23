@@ -33,7 +33,7 @@ struct FontTemplates {
     templates: Vec<FontTemplate>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct FontTemplateInfo {
     pub font_template: Arc<FontTemplateData>,
     pub font_key: Option<webrender_api::FontKey>,
@@ -102,7 +102,7 @@ impl FontTemplates {
 }
 
 /// Commands that the FontContext sends to the font cache thread.
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum Command {
     GetFontTemplate(FontFamily, FontTemplateDescriptor, IpcSender<Reply>),
     GetLastResortFontTemplate(FontTemplateDescriptor, IpcSender<Reply>),
@@ -112,7 +112,7 @@ pub enum Command {
 }
 
 /// Reply messages sent from the font cache thread to the FontContext caller.
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum Reply {
     GetFontTemplateReply(Option<FontTemplateInfo>),
 }
@@ -396,7 +396,7 @@ impl FontCache {
 
 /// The public interface to the font cache thread, used exclusively by
 /// the per-thread/thread FontContext structures.
-#[derive(Clone, Deserialize, Serialize, Debug)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct FontCacheThread {
     chan: IpcSender<Command>,
 }
@@ -478,7 +478,7 @@ impl FontCacheThread {
 }
 
 
-#[derive(Clone, Eq, PartialEq, Hash, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct LowercaseString {
     inner: String,
 }

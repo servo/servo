@@ -536,7 +536,7 @@ pub fn should_be_blocked_due_to_nosniff(request_type: Type, response_headers: &H
     ///
     /// A [unit-like struct](https://doc.rust-lang.org/book/structs.html#unit-like-structs)
     /// is sufficient since a valid header implies that we use `nosniff`.
-    #[derive(Debug, Clone, Copy)]
+    #[derive(Clone, Copy, Debug)]
     struct XContentTypeOptions;
 
     impl Header for XContentTypeOptions {

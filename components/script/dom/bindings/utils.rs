@@ -47,7 +47,7 @@ impl HeapSizeOf for WindowProxyHandler {
     }
 }
 
-#[derive(JSTraceable, HeapSizeOf)]
+#[derive(HeapSizeOf, JSTraceable)]
 /// Static data associated with a global object.
 pub struct GlobalStaticData {
     /// The WindowProxy proxy handler for this global.
@@ -79,7 +79,7 @@ pub const JSCLASS_DOM_GLOBAL: u32 = js::JSCLASS_USERBIT1;
 
 
 /// The struct that holds inheritance information for DOM object reflectors.
-#[derive(Copy, Clone)]
+#[derive(Clone, Copy)]
 pub struct DOMClass {
     /// A list of interfaces that this object implements, in order of decreasing
     /// derivedness.

@@ -40,7 +40,7 @@ impl PreTraverseToken {
 }
 
 /// The kind of traversals we could perform.
-#[derive(Debug, Copy, Clone)]
+#[derive(Clone, Copy, Debug)]
 pub enum TraversalDriver {
     /// A potentially parallel traversal.
     Parallel,

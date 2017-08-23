@@ -170,7 +170,7 @@ impl fmt::Debug for Root<Element> {
     }
 }
 
-#[derive(PartialEq, HeapSizeOf)]
+#[derive(HeapSizeOf, PartialEq)]
 pub enum ElementCreator {
     ParserCreated(u64),
     ScriptCreated,
@@ -182,7 +182,7 @@ pub enum CustomElementCreationMode {
 }
 
 /// https://dom.spec.whatwg.org/#concept-element-custom-element-state
-#[derive(Clone, Copy, PartialEq, Eq, HeapSizeOf, JSTraceable)]
+#[derive(Clone, Copy, Eq, HeapSizeOf, JSTraceable, PartialEq)]
 pub enum CustomElementState {
     Undefined,
     Failed,
@@ -2981,7 +2981,7 @@ impl<'a> AttributeMutation<'a> {
 /// A holder for an element's "tag name", which will be lazily
 /// resolved and cached. Should be reset when the document
 /// owner changes.
-#[derive(JSTraceable, HeapSizeOf)]
+#[derive(HeapSizeOf, JSTraceable)]
 struct TagName {
     ptr: DOMRefCell<Option<LocalName>>,
 }

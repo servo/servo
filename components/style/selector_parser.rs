@@ -80,7 +80,7 @@ impl<'a> SelectorParser<'a> {
 ///
 /// If you're implementing a public selector for `Servo` that the end-user might
 /// customize, then you probably need to make it eager.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum PseudoElementCascadeType {
     /// Eagerly cascaded pseudo-elements are "normal" pseudo-elements (i.e.
     /// `::before` and `::after`). They inherit styles normally as another

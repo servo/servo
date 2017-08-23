@@ -13,7 +13,7 @@ use std::ascii::AsciiExt;
 use std::sync::{Arc, Mutex};
 
 /// [Response type](https://fetch.spec.whatwg.org/#concept-response-type)
-#[derive(Clone, PartialEq, Debug, Deserialize, Serialize, HeapSizeOf)]
+#[derive(Clone, Debug, Deserialize, HeapSizeOf, PartialEq, Serialize)]
 pub enum ResponseType {
     Basic,
     Cors,
@@ -24,7 +24,7 @@ pub enum ResponseType {
 }
 
 /// [Response termination reason](https://fetch.spec.whatwg.org/#concept-response-termination-reason)
-#[derive(Debug, Clone, Copy, Deserialize, Serialize, HeapSizeOf)]
+#[derive(Clone, Copy, Debug, Deserialize, HeapSizeOf, Serialize)]
 pub enum TerminationReason {
     EndUserAbort,
     Fatal,
@@ -33,7 +33,7 @@ pub enum TerminationReason {
 
 /// The response body can still be pushed to after fetch
 /// This provides a way to store unfinished response bodies
-#[derive(Clone, Debug, PartialEq, HeapSizeOf)]
+#[derive(Clone, Debug, HeapSizeOf, PartialEq)]
 pub enum ResponseBody {
     Empty, // XXXManishearth is this necessary, or is Done(vec![]) enough?
     Receiving(Vec<u8>),
@@ -52,7 +52,7 @@ impl ResponseBody {
 
 
 /// [Cache state](https://fetch.spec.whatwg.org/#concept-response-cache-state)
-#[derive(Clone, Debug, Deserialize, Serialize, HeapSizeOf)]
+#[derive(Clone, Debug, Deserialize, HeapSizeOf, Serialize)]
 pub enum CacheState {
     None,
     Local,
@@ -61,7 +61,7 @@ pub enum CacheState {
 }
 
 /// [Https state](https://fetch.spec.whatwg.org/#concept-response-https-state)
-#[derive(Debug, Clone, Copy, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, HeapSizeOf, Serialize)]
 pub enum HttpsState {
     None,
     Deprecated,
@@ -74,7 +74,7 @@ pub enum ResponseMsg {
     Errored,
 }
 
-#[derive(Serialize, Deserialize, Clone, HeapSizeOf)]
+#[derive(Clone, Deserialize, HeapSizeOf, Serialize)]
 pub struct ResponseInit {
     pub url: ServoUrl,
     #[serde(deserialize_with = "::hyper_serde::deserialize",
@@ -86,7 +86,7 @@ pub struct ResponseInit {
 }
 
 /// A [Response](https://fetch.spec.whatwg.org/#concept-response) as defined by the Fetch spec
-#[derive(Debug, Clone, HeapSizeOf)]
+#[derive(Clone, Debug, HeapSizeOf)]
 pub struct Response {
     pub response_type: ResponseType,
     pub termination_reason: Option<TerminationReason>,

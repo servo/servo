@@ -86,7 +86,7 @@ impl<'b> TopLevelRuleParser<'b> {
 }
 
 /// The current state of the parser.
-#[derive(Eq, PartialEq, Ord, PartialOrd, Copy, Clone)]
+#[derive(Clone, Copy, Eq, Ord, PartialEq, PartialOrd)]
 pub enum State {
     /// We haven't started parsing rules.
     Start = 1,

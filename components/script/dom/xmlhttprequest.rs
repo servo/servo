@@ -74,7 +74,7 @@ use time;
 use timers::{OneshotTimerCallback, OneshotTimerHandle};
 use url::Position;
 
-#[derive(JSTraceable, PartialEq, Copy, Clone, HeapSizeOf)]
+#[derive(Clone, Copy, HeapSizeOf, JSTraceable, PartialEq)]
 enum XMLHttpRequestState {
     Unsent = 0,
     Opened = 1,
@@ -83,7 +83,7 @@ enum XMLHttpRequestState {
     Done = 4,
 }
 
-#[derive(JSTraceable, PartialEq, Clone, Copy, HeapSizeOf)]
+#[derive(Clone, Copy, HeapSizeOf, JSTraceable, PartialEq)]
 pub struct GenerationId(u32);
 
 /// Closure of required data for each async network event that comprises the
@@ -1335,7 +1335,7 @@ impl XMLHttpRequest {
     }
 }
 
-#[derive(JSTraceable, HeapSizeOf)]
+#[derive(HeapSizeOf, JSTraceable)]
 pub struct XHRTimeoutCallback {
     #[ignore_heap_size_of = "Because it is non-owning"]
     xhr: Trusted<XMLHttpRequest>,

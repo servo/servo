@@ -25,7 +25,7 @@ use libc::c_uint;
 use std::slice::from_raw_parts;
 
 /// DOM exceptions that can be thrown by a native DOM method.
-#[derive(Debug, Clone, HeapSizeOf)]
+#[derive(Clone, Debug, HeapSizeOf)]
 pub enum Error {
     /// IndexSizeError DOMException
     IndexSize,

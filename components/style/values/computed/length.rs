@@ -64,7 +64,7 @@ impl ToComputedValue for specified::Length {
     }
 }
 
-#[derive(Clone, PartialEq, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
 pub struct CalcLengthOrPercentage {

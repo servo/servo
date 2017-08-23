@@ -396,7 +396,7 @@ macro_rules! __define_css_keyword_enum__actual {
                   [ $( $css: expr => $variant: ident ),+ ]
                   [ $( $alias: expr => $alias_variant: ident ),* ]) => {
         #[allow(non_camel_case_types, missing_docs)]
-        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq $(, $derived_trait )* )]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq$(, $derived_trait )* )]
         pub enum $name {
             $( $variant ),+
         }
@@ -443,7 +443,7 @@ pub mod specified {
     /// Whether to allow negative lengths or not.
     #[repr(u8)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
     pub enum AllowedLengthType {
         /// Allow all kind of lengths.
         All,

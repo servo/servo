@@ -14,7 +14,7 @@ use std::result::Result;
 use std::sync::mpsc::Sender;
 use task_source::TaskSource;
 
-#[derive(JSTraceable, Clone)]
+#[derive(Clone, JSTraceable)]
 pub struct UserInteractionTaskSource(pub Sender<MainThreadScriptMsg>);
 
 impl fmt::Debug for UserInteractionTaskSource {

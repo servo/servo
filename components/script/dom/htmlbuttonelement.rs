@@ -29,7 +29,7 @@ use std::cell::Cell;
 use std::default::Default;
 use style::element_state::*;
 
-#[derive(JSTraceable, PartialEq, Copy, Clone)]
+#[derive(Clone, Copy, JSTraceable, PartialEq)]
 #[derive(HeapSizeOf)]
 enum ButtonType {
     Submit,

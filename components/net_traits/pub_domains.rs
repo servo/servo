@@ -20,7 +20,7 @@ use std::collections::HashSet;
 use std::iter::FromIterator;
 use std::str::from_utf8;
 
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 pub struct PubDomainRules {
     rules: HashSet<String>,
     wildcards: HashSet<String>,

@@ -46,7 +46,7 @@ pub use style_traits::UnsafeNode;
 /// Because the script task's GC does not trace layout, node data cannot be safely stored in layout
 /// data structures. Also, layout code tends to be faster when the DOM is not being accessed, for
 /// locality reasons. Using `OpaqueNode` enforces this invariant.
-#[derive(Clone, PartialEq, Copy, Debug, Hash, Eq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
 pub struct OpaqueNode(pub usize);
 

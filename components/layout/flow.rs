@@ -559,7 +559,7 @@ pub trait MutableOwnedFlowUtils {
                                             absolute_descendants: &mut AbsoluteDescendants);
 }
 
-#[derive(Copy, Clone, Serialize, PartialEq, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Serialize)]
 pub enum FlowClass {
     Block,
     Inline,
@@ -771,7 +771,7 @@ pub type AbsoluteDescendantOffsetIter<'a> = Zip<AbsoluteDescendantIter<'a>, Iter
 
 /// Information needed to compute absolute (i.e. viewport-relative) flow positions (not to be
 /// confused with absolutely-positioned flows) that is computed during block-size assignment.
-#[derive(Copy, Clone)]
+#[derive(Clone, Copy)]
 pub struct EarlyAbsolutePositionInfo {
     /// The size of the containing block for relatively-positioned descendants.
     pub relative_containing_block_size: LogicalSize<Au>,
@@ -793,7 +793,7 @@ impl EarlyAbsolutePositionInfo {
 
 /// Information needed to compute absolute (i.e. viewport-relative) flow positions (not to be
 /// confused with absolutely-positioned flows) that is computed during final position assignment.
-#[derive(Serialize, Copy, Clone)]
+#[derive(Clone, Copy, Serialize)]
 pub struct LateAbsolutePositionInfo {
     /// The position of the absolute containing block relative to the nearest ancestor stacking
     /// context. If the absolute containing block establishes the stacking context for this flow,
@@ -809,7 +809,7 @@ impl LateAbsolutePositionInfo {
     }
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct FragmentationContext {
     pub available_block_size: Au,
     pub this_fragment_is_empty: bool,
@@ -1412,7 +1412,7 @@ impl ContainingBlockLink {
 
 /// A wrapper for the pointer address of a flow. These pointer addresses may only be compared for
 /// equality with other such pointer addresses, never dereferenced.
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct OpaqueFlow(pub usize);
 
 impl OpaqueFlow {

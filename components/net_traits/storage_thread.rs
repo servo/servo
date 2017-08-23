@@ -5,7 +5,7 @@
 use ipc_channel::ipc::IpcSender;
 use servo_url::ServoUrl;
 
-#[derive(Copy, Clone, Deserialize, Serialize, HeapSizeOf)]
+#[derive(Clone, Copy, Deserialize, HeapSizeOf, Serialize)]
 pub enum StorageType {
     Session,
     Local,
