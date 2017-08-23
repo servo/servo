@@ -119,6 +119,8 @@ impl DocumentCascadeData {
         }
 
         if let Some(ua_stylesheets) = ua_stylesheets {
+            debug_assert!(cfg!(feature = "servo"));
+
             for stylesheet in &ua_stylesheets.user_or_user_agent_stylesheets {
                 let sheet_origin =
                     stylesheet.contents(guards.ua_or_user).origin;
