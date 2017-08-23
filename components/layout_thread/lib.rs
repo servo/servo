@@ -1147,7 +1147,7 @@ impl LayoutThread {
 
         let document_shared_lock = document.style_shared_lock();
         self.document_shared_lock = Some(document_shared_lock.clone());
-        let author_guard = document_shared_lock.read();
+        let document_guard = document_shared_lock.read();
         let device = Device::new(MediaType::screen(), initial_viewport, device_pixel_ratio);
         let sheet_origins_affected_by_device_change =
             self.stylist.set_device(device, &author_guard);
@@ -1200,8 +1200,9 @@ impl LayoutThread {
         let ua_stylesheets = &*UA_STYLESHEETS;
         let ua_or_user_guard = ua_stylesheets.shared_lock.read();
         let guards = StylesheetGuards {
-            author: &author_guard,
+            author: &document_guard,
             ua_or_user: &ua_or_user_guard,
+            registered_property_set: &document_guard,
         };
 
         {
@@ -1517,12 +1518,13 @@ impl LayoutThread {
 
             // Unwrap here should not panic since self.root_flow is only ever set to Some(_)
             // in handle_reflow() where self.document_shared_lock is as well.
-            let author_shared_lock = self.document_shared_lock.clone().unwrap();
-            let author_guard = author_shared_lock.read();
+            let document_shared_lock = self.document_shared_lock.clone().unwrap();
+            let document_guard = document_shared_lock.read();
             let ua_or_user_guard = UA_STYLESHEETS.shared_lock.read();
             let guards = StylesheetGuards {
-                author: &author_guard,
+                author: &document_guard,
                 ua_or_user: &ua_or_user_guard,
+                registered_property_set: &document_guard,
             };
             let snapshots = SnapshotMap::new();
             let mut layout_context = self.build_layout_context(guards,
