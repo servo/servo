@@ -243,7 +243,8 @@
     use parser::Parse;
     use properties::longhands::grid_template_areas::TemplateAreas;
     use values::{Either, None_};
-    use values::generics::grid::{LineNameList, TrackSize, TrackList, TrackListType, concat_serialize_idents};
+    use values::generics::grid::{LineNameList, TrackSize, TrackList, TrackListType};
+    use values::generics::grid::{TrackListValue, concat_serialize_idents};
     use values::specified::{GridTemplateComponent, GenericGridTemplateComponent};
     use values::specified::grid::parse_line_names;
 
@@ -287,7 +288,7 @@
                 line_names.push(names.into_boxed_slice());
                 strings.push(string);
                 let size = input.try(|i| TrackSize::parse(context, i)).unwrap_or_default();
-                values.push(size);
+                values.push(TrackListValue::TrackSize(size));
                 names = input.try(parse_line_names).unwrap_or(vec![].into_boxed_slice()).into_vec();
                 if let Ok(v) = input.try(parse_line_names) {
                     names.extend(v.into_vec());

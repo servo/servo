@@ -399,45 +399,27 @@ pub struct TrackRepeat<L> {
 
 impl<L: ToCss> ToCss for TrackRepeat<L> {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        // If repeat count is an integer instead of a keyword, it should'n serialized
-        // with `repeat` function. It should serialized with `N` repeated form.
-        let repeat_count = match self.count {
-            RepeatCount::Number(integer) => integer.value(),
-            _ => {
-                dest.write_str("repeat(")?;
-                self.count.to_css(dest)?;
-                dest.write_str(", ")?;
-                1
-            },
-        };
+        dest.write_str("repeat(")?;
+        self.count.to_css(dest)?;
+        dest.write_str(", ")?;
 
-        for i in 0..repeat_count {
-            if i != 0 {
+        let mut line_names_iter = self.line_names.iter();
+        for (i, (ref size, ref names)) in self.track_sizes.iter()
+                                              .zip(&mut line_names_iter).enumerate() {
+            if i > 0 {
                 dest.write_str(" ")?;
             }
 
-            let mut line_names_iter = self.line_names.iter();
-            for (i, (ref size, ref names)) in self.track_sizes.iter()
-                                                  .zip(&mut line_names_iter).enumerate() {
-                if i > 0 {
-                    dest.write_str(" ")?;
-                }
-
-                concat_serialize_idents("[", "] ", names, " ", dest)?;
-                size.to_css(dest)?;
-            }
-
-            if let Some(line_names_last) = line_names_iter.next() {
-                concat_serialize_idents(" [", "]", line_names_last, " ", dest)?;
-            }
+            concat_serialize_idents("[", "] ", names, " ", dest)?;
+            size.to_css(dest)?;
         }
 
-        match self.count {
-            RepeatCount::AutoFill | RepeatCount::AutoFit => {
-                dest.write_str(")")?;
-            },
-            _ => {},
+        if let Some(line_names_last) = line_names_iter.next() {
+            concat_serialize_idents(" [", "]", line_names_last, " ", dest)?;
         }
+
+        dest.write_str(")")?;
+
         Ok(())
     }
 }
@@ -505,6 +487,46 @@ impl<L: ToComputedValue> ToComputedValue for TrackRepeat<L> {
     }
 }
 
+/// Track list values. Can be <track-size> or <track-repeat>
+#[derive(Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub enum TrackListValue<T> {
+    /// A <track-size> value.
+    TrackSize(TrackSize<T>),
+    /// A <track-repeat> value.
+    TrackRepeat(TrackRepeat<T>),
+}
+
+impl<L: ToCss> ToCss for TrackListValue<L> {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            TrackListValue::TrackSize(ref size) => size.to_css(dest),
+            TrackListValue::TrackRepeat(ref repeat) => repeat.to_css(dest),
+        }
+    }
+}
+
+impl<L: ToComputedValue> ToComputedValue for TrackListValue<L> {
+    type ComputedValue = TrackListValue<L::ComputedValue>;
+
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
+        match *self {
+            TrackListValue::TrackSize(ref size) => TrackListValue::TrackSize(size.to_computed_value(context)),
+            _ => unreachable!("Should only compute track-size values"),
+        }
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        match *computed {
+            TrackListValue::TrackSize(ref size) =>
+                TrackListValue::TrackSize(ToComputedValue::from_computed_value(size)),
+            _ => unreachable!("Should only transform from track-size computed values"),
+        }
+    }
+}
+
 /// The type of a `<track-list>` as determined during parsing.
 ///
 /// https://drafts.csswg.org/css-grid/#typedef-track-list
@@ -541,8 +563,8 @@ pub struct TrackList<T> {
     /// In order to avoid parsing the same value multiple times, this does a single traversal
     /// and arrives at the type of value it has parsed (or bails out gracefully with an error).
     pub list_type: TrackListType,
-    /// A vector of `<track-size>` values.
-    pub values: Vec<TrackSize<T>>,
+    /// A vector of `<track-size> | <track-repeat>` values.
+    pub values: Vec<TrackListValue<T>>,
     /// `<line-names>` accompanying `<track-size> | <track-repeat>` values.
     ///
     /// If there's no `<line-names>`, then it's represented by an empty vector.
