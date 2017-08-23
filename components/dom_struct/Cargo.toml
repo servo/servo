@@ -10,4 +10,4 @@ path = "lib.rs"
 proc-macro = true
 
 [dependencies]
-quote = "0.3"
+quote = "0.3.15"
