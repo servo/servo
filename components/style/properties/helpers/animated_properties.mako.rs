@@ -1399,6 +1399,7 @@ impl ComputeSquaredDistance for MatrixDecomposed2D {
 }
 
 impl Animate for ComputedMatrix {
+    #[cfg(feature = "servo")]
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         if self.is_3d() || other.is_3d() {
             let decomposed_from = decompose_3d_matrix(*self);
@@ -1419,10 +1420,30 @@ impl Animate for ComputedMatrix {
             Ok(ComputedMatrix::from(this.animate(&other, procedure)?))
         }
     }
+
+    #[cfg(feature = "gecko")]
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
+        let (from, to) = if self.is_3d() || other.is_3d() {
+            (decompose_3d_matrix(*self), decompose_3d_matrix(*other))
+        } else {
+            (decompose_2d_matrix(self), decompose_2d_matrix(other))
+        };
+        match (from, to) {
+            (Ok(from), Ok(to)) => {
+                Ok(ComputedMatrix::from(from.animate(&to, procedure)?))
+            },
+            _ => {
+                let (this_weight, other_weight) = procedure.weights();
+                let result = if this_weight > other_weight { *self } else { *other };
+                Ok(result)
+            },
+        }
+    }
 }
 
 impl ComputeSquaredDistance for ComputedMatrix {
     #[inline]
+    #[cfg(feature = "servo")]
     fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
         if self.is_3d() || other.is_3d() {
             let from = decompose_3d_matrix(*self)?;
@@ -1433,6 +1454,17 @@ impl ComputeSquaredDistance for ComputedMatrix {
             let to = MatrixDecomposed2D::from(*other);
             from.compute_squared_distance(&to)
         }
+    }
+
+    #[inline]
+    #[cfg(feature = "gecko")]
+    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
+        let (from, to) = if self.is_3d() || other.is_3d() {
+            (decompose_3d_matrix(*self)?, decompose_3d_matrix(*other)?)
+        } else {
+            (decompose_2d_matrix(self)?, decompose_2d_matrix(other)?)
+        };
+        from.compute_squared_distance(&to)
     }
 }
 
@@ -1827,6 +1859,56 @@ fn decompose_3d_matrix(mut matrix: ComputedMatrix) -> Result<MatrixDecomposed3D,
         skew: skew,
         perspective: perspective,
         quaternion: quaternion
+    })
+}
+
+/// Decompose a 2D matrix for Gecko.
+// Use the algorithm from nsStyleTransformMatrix::Decompose2DMatrix() in Gecko.
+#[cfg(feature = "gecko")]
+fn decompose_2d_matrix(matrix: &ComputedMatrix) -> Result<MatrixDecomposed3D, ()> {
+    // The index is column-major, so the equivalent transform matrix is:
+    // | m11 m21  0 m41 |  =>  | m11 m21 | and translate(m41, m42)
+    // | m12 m22  0 m42 |      | m12 m22 |
+    // |   0   0  1   0 |
+    // |   0   0  0   1 |
+    let (mut m11, mut m12) = (matrix.m11, matrix.m12);
+    let (mut m21, mut m22) = (matrix.m21, matrix.m22);
+    if m11 * m22 == m12 * m21 {
+        // singular matrix
+        return Err(());
+    }
+
+    let mut scale_x = (m11 * m11 + m12 * m12).sqrt();
+    m11 /= scale_x;
+    m12 /= scale_x;
+
+    let mut shear_xy = m11 * m21 + m12 * m22;
+    m21 -= m11 * shear_xy;
+    m22 -= m12 * shear_xy;
+
+    let scale_y = (m21 * m21 + m22 * m22).sqrt();
+    m21 /= scale_y;
+    m22 /= scale_y;
+    shear_xy /= scale_y;
+
+    let determinant = m11 * m22 - m12 * m21;
+    debug_assert!(0.99 < determinant.abs() && determinant.abs() < 1.01,
+                  "determinant should now be 1 or -1");
+
+    if determinant < 0. {
+        m11 = -m11;
+        m12 = -m12;
+        shear_xy = -shear_xy;
+        scale_x = -scale_x;
+    }
+
+    Ok(MatrixDecomposed3D {
+        translate: Translate3D(matrix.m41, matrix.m42, 0.),
+        scale: Scale3D(scale_x, scale_y, 1.),
+        skew: Skew(shear_xy, 0., 0.),
+        perspective: Perspective(0., 0., 0., 1.),
+        quaternion: Quaternion::from_direction_and_angle(&DirectionVector::new(0., 0., 1.),
+                                                         m12.atan2(m11) as f64)
     })
 }
 
