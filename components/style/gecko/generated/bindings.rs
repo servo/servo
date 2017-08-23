@@ -1917,6 +1917,10 @@ extern "C" {
      -> ServoStyleContextStrong;
 }
 extern "C" {
+    pub fn Servo_Element_IsDisplayNone(element: RawGeckoElementBorrowed)
+     -> bool;
+}
+extern "C" {
     pub fn Servo_StyleSheet_FromUTF8Bytes(loader: *mut Loader,
                                           gecko_stylesheet:
                                               *mut ServoStyleSheet,
