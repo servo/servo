@@ -117,7 +117,17 @@ impl Performance {
     /// observed entry types.
     pub fn add_observer(&self,
                         observer: &DOMPerformanceObserver,
-                        entry_types: Vec<DOMString>) {
+                        entry_types: Vec<DOMString>,
+                        buffered: bool) {
+        if buffered {
+            let entries = self.entries.borrow();
+            let mut new_entries = entry_types.iter()
+                            .flat_map(|e| entries.get_entries_by_name_and_type(None, Some(e.clone())))
+                            .collect::<DOMPerformanceEntryList>();
+            let mut obs_entries = observer.entries();
+            obs_entries.append(&mut new_entries);
+            observer.set_entries(obs_entries);
+        }
         let mut observers = self.observers.borrow_mut();
         match observers.iter().position(|o| &(*o.observer) == observer) {
             // If the observer is already in the list, we only update the observed

@@ -5,7 +5,6 @@
 use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceEntryList as DOMPerformanceEntryList;
-use dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceMethods;
 use dom::bindings::codegen::Bindings::PerformanceObserverBinding;
 use dom::bindings::codegen::Bindings::PerformanceObserverBinding::PerformanceObserverCallback;
 use dom::bindings::codegen::Bindings::PerformanceObserverBinding::PerformanceObserverInit;
@@ -90,6 +89,10 @@ impl PerformanceObserver {
     pub fn entries(&self) -> DOMPerformanceEntryList {
         self.entries.borrow().clone()
     }
+
+    pub fn set_entries(&self, entries: DOMPerformanceEntryList) {
+        *self.entries.borrow_mut() = entries;
+    }
 }
 
 impl PerformanceObserverMethods for PerformanceObserver {
@@ -108,17 +111,8 @@ impl PerformanceObserverMethods for PerformanceObserver {
         }
 
         let performance = self.global().as_window().Performance();
-
-        // step 5
-        if options.buffered {
-            let pel = PerformanceEntryList::new(performance.GetEntries());
-            let mut entries = entry_types.iter()
-                                         .flat_map(|e| pel.get_entries_by_name_and_type(None, Some(e.clone())))
-                                         .collect::<DOMPerformanceEntryList>();
-            self.entries.borrow_mut().append(&mut entries);
-        }
-        // step 3-4
-        performance.add_observer(self, entry_types);
+        // step 3-4-5
+        performance.add_observer(self, entry_types, options.buffered);
         Ok(())
     }
 
