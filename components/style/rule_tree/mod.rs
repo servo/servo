@@ -819,7 +819,7 @@ struct WeakRuleNode {
 }
 
 /// A strong reference to a rule node.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Eq, Hash, PartialEq)]
 pub struct StrongRuleNode {
     p: NonZeroPtrMut<RuleNode>,
 }

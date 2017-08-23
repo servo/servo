@@ -131,6 +131,12 @@ impl FontRelativeLength {
 
         match *self {
             FontRelativeLength::Em(length) => {
+                if !matches!(base_size, FontBaseSize::InheritedStyle) {
+                    context.rule_cache_conditions.borrow_mut()
+                        .set_font_size_dependency(
+                            reference_font_size.into()
+                        );
+                }
                 (reference_font_size, length)
             },
             FontRelativeLength::Ex(length) => {

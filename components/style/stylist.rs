@@ -771,6 +771,8 @@ impl Stylist {
             font_metrics,
             cascade_flags,
             self.quirks_mode,
+            /* rule_cache = */ None,
+            &mut Default::default(),
         )
     }
 
@@ -987,6 +989,8 @@ impl Stylist {
                 font_metrics,
                 cascade_flags,
                 self.quirks_mode,
+                /* rule_cache = */ None,
+                &mut Default::default(),
             ))
         } else {
             None
@@ -1012,6 +1016,8 @@ impl Stylist {
             font_metrics,
             cascade_flags,
             self.quirks_mode,
+            /* rule_cache = */ None,
+            &mut Default::default(),
         )
     }
 
@@ -1625,6 +1631,8 @@ impl Stylist {
             &metrics,
             CascadeFlags::empty(),
             self.quirks_mode,
+            /* rule_cache = */ None,
+            &mut Default::default(),
         )
     }
 

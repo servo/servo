@@ -20,6 +20,7 @@ use parallel::{STACK_SAFETY_MARGIN_KB, STYLE_THREAD_STACK_SIZE_KB};
 #[cfg(feature = "servo")] use parking_lot::RwLock;
 use properties::ComputedValues;
 #[cfg(feature = "servo")] use properties::PropertyId;
+use rule_cache::RuleCache;
 use rule_tree::StrongRuleNode;
 use selector_parser::{EAGER_PSEUDO_COUNT, SnapshotMap};
 use selectors::matching::ElementSelectorFlags;
@@ -685,6 +686,8 @@ impl StackLimitChecker {
 pub struct ThreadLocalStyleContext<E: TElement> {
     /// A cache to share style among siblings.
     pub sharing_cache: StyleSharingCache<E>,
+    /// A cache from matched properties to elements that match those.
+    pub rule_cache: RuleCache,
     /// The bloom filter used to fast-reject selector-matching.
     pub bloom_filter: StyleBloom<E>,
     /// A channel on which new animations that have been triggered by style
@@ -722,6 +725,7 @@ impl<E: TElement> ThreadLocalStyleContext<E> {
     pub fn new(shared: &SharedStyleContext) -> Self {
         ThreadLocalStyleContext {
             sharing_cache: StyleSharingCache::new(),
+            rule_cache: RuleCache::new(),
             bloom_filter: StyleBloom::new(),
             new_animations_sender: shared.local_context_creation_data.lock().unwrap().new_animations_sender.clone(),
             tasks: SequentialTaskList(Vec::new()),
@@ -739,6 +743,7 @@ impl<E: TElement> ThreadLocalStyleContext<E> {
     pub fn new(shared: &SharedStyleContext) -> Self {
         ThreadLocalStyleContext {
             sharing_cache: StyleSharingCache::new(),
+            rule_cache: RuleCache::new(),
             bloom_filter: StyleBloom::new(),
             tasks: SequentialTaskList(Vec::new()),
             selector_flags: SelectorFlagsMap::new(),

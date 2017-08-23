@@ -122,6 +122,12 @@ impl<T: ?Sized + 'static> PartialEq for NonZeroPtrMut<T> {
 
 impl<T: ?Sized + 'static> Eq for NonZeroPtrMut<T> {}
 
+impl<T: Sized + 'static> Hash for NonZeroPtrMut<T> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.ptr().hash(state)
+    }
+}
+
 pub struct Arc<T: ?Sized + 'static> {
     p: NonZeroPtrMut<ArcInner<T>>,
 }

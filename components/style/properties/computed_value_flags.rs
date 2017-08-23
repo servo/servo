@@ -59,5 +59,8 @@ bitflags! {
 
         /// Whether the child explicitly inherits any reset property.
         const INHERITS_RESET_STYLE = 1 << 8,
+
+        /// A flag to mark a style which is a visited style.
+        const IS_STYLE_IF_VISITED = 1 << 9,
     }
 }

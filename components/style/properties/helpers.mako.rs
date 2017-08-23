@@ -322,6 +322,10 @@
                                 longhands::system_font::resolve_system_font(sf, context);
                             }
                         % endif
+                        % if property.logical:
+                            context.rule_cache_conditions.borrow_mut()
+                                .set_writing_mode_dependency(context.builder.writing_mode);
+                        % endif
                         % if property.is_vector:
                             // In the case of a vector property we want to pass
                             // down an iterator so that this can be computed
@@ -363,6 +367,7 @@
                         CSSWideKeyword::Unset |
                         % endif
                         CSSWideKeyword::Initial => {
+                            context.rule_cache_conditions.borrow_mut().set_uncacheable();
                             % if property.ident == "font_size":
                                 longhands::font_size::cascade_initial_font_size(context);
                             % else:

@@ -574,6 +574,7 @@ where
         }
 
         let implemented_pseudo = self.element.implemented_pseudo_element();
+        let mut conditions = Default::default();
         let values =
             cascade(
                 self.context.shared.stylist.device(),
@@ -587,7 +588,14 @@ where
                 &self.context.thread_local.font_metrics_provider,
                 cascade_flags,
                 self.context.shared.quirks_mode(),
+                Some(&self.context.thread_local.rule_cache),
+                &mut conditions,
             );
+
+        self.context
+            .thread_local
+            .rule_cache
+            .insert_if_possible(&values, &conditions);
 
         values
     }

@@ -124,6 +124,7 @@ pub mod matching;
 pub mod media_queries;
 pub mod parallel;
 pub mod parser;
+pub mod rule_cache;
 pub mod rule_tree;
 pub mod scoped_tls;
 pub mod selector_map;
