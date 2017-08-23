@@ -216,7 +216,7 @@ impl DocumentCascadeData {
         let origin_cascade_data =
             self.per_origin.borrow_mut_for_origin(&origin);
 
-        if rebuild_kind.rebuild_invalidation() {
+        if rebuild_kind.should_rebuild_invalidation() {
             origin_cascade_data
                 .effective_media_query_results
                 .saw_effective(stylesheet);
@@ -274,7 +274,7 @@ impl DocumentCascadeData {
 
                         map.insert(rule, quirks_mode);
 
-                        if rebuild_kind.rebuild_invalidation() {
+                        if rebuild_kind.should_rebuild_invalidation() {
                             origin_cascade_data
                                 .invalidation_map
                                 .note_selector(selector, quirks_mode);
@@ -299,20 +299,24 @@ impl DocumentCascadeData {
                     }
                     origin_cascade_data.rules_source_order += 1;
                 }
-                CssRule::Import(ref lock) if rebuild_kind.rebuild_invalidation() => {
-                    let import_rule = lock.read_with(guard);
-                    origin_cascade_data
-                        .effective_media_query_results
-                        .saw_effective(import_rule);
+                CssRule::Import(ref lock) => {
+                    if rebuild_kind.should_rebuild_invalidation() {
+                        let import_rule = lock.read_with(guard);
+                        origin_cascade_data
+                            .effective_media_query_results
+                            .saw_effective(import_rule);
+                    }
 
                     // NOTE: effective_rules visits the inner stylesheet if
                     // appropriate.
                 }
-                CssRule::Media(ref lock) if rebuild_kind.rebuild_invalidation() => {
-                    let media_rule = lock.read_with(guard);
-                    origin_cascade_data
-                        .effective_media_query_results
-                        .saw_effective(media_rule);
+                CssRule::Media(ref lock) => {
+                    if rebuild_kind.should_rebuild_invalidation() {
+                        let media_rule = lock.read_with(guard);
+                        origin_cascade_data
+                            .effective_media_query_results
+                            .saw_effective(media_rule);
+                    }
                 }
                 CssRule::Keyframes(ref keyframes_rule) => {
                     let keyframes_rule = keyframes_rule.read_with(guard);
