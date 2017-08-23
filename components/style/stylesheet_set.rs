@@ -94,7 +94,7 @@ pub enum SheetRebuildKind {
 
 impl SheetRebuildKind {
     /// Whether the stylesheet invalidation data should be rebuilt.
-    pub fn rebuild_invalidation(&self) -> bool {
+    pub fn should_rebuild_invalidation(&self) -> bool {
         matches!(*self, SheetRebuildKind::Full)
     }
 }
