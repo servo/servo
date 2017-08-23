@@ -8,9 +8,10 @@ use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use std::fmt;
 use style_traits::{ParseError, StyleParseError, ToCss};
-use values::computed::NumberOrPercentage;
+use values::animated::ToAnimatedValue;
+use values::animated::svg::SvgNumberOrPercentageOrCalc;
+use values::computed::Number;
 use values::computed::length::LengthOrPercentage;
-use values::distance::{ComputeSquaredDistance, SquaredDistance};
 
 /// An SVG paint value
 ///
@@ -101,8 +102,8 @@ impl<ColorType: Parse, UrlPaintServer: Parse> Parse for SVGPaint<ColorType, UrlP
 /// A value of <length> | <percentage> | <number> for svg which allow unitless length.
 /// https://www.w3.org/TR/SVG11/painting.html#StrokeProperties
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, ComputeSquaredDistance, Copy, Debug, HasViewportPercentage)]
-#[derive(PartialEq, ToAnimatedValue, ToAnimatedZero, ToCss, ToComputedValue)]
+#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, ToCss)]
+#[derive(ToComputedValue)]
 pub enum SvgLengthOrPercentageOrNumber<L, N> {
     /// <length> | <percentage>
     LengthOrPercentage(L),
@@ -110,56 +111,45 @@ pub enum SvgLengthOrPercentageOrNumber<L, N> {
     Number(N),
 }
 
-impl<L, N> ComputeSquaredDistance for SvgLengthOrPercentageOrNumber<L, N>
+/// Following From implements use for converting animated value.
+impl<L, N> ToAnimatedValue for SvgLengthOrPercentageOrNumber<L, N>
     where
-        L: ComputeSquaredDistance + Copy + Into<NumberOrPercentage>,
-        N: ComputeSquaredDistance + Copy + Into<NumberOrPercentage>
+        L: Into<SvgNumberOrPercentageOrCalc> + From<LengthOrPercentage>,
+        N: Into<SvgNumberOrPercentageOrCalc> + From<Number>
 {
+    type AnimatedValue = SvgNumberOrPercentageOrCalc;
+
     #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        match (self, other) {
-            (
-                &SvgLengthOrPercentageOrNumber::LengthOrPercentage(ref from),
-                &SvgLengthOrPercentageOrNumber::LengthOrPercentage(ref to)
-            ) => {
-                from.compute_squared_distance(to)
+    fn to_animated_value(self) -> Self::AnimatedValue {
+        match self {
+            SvgLengthOrPercentageOrNumber::LengthOrPercentage(lop) =>
+            {
+                lop.into()
             },
-            (
-                &SvgLengthOrPercentageOrNumber::Number(ref from),
-                &SvgLengthOrPercentageOrNumber::Number(ref to)
-            ) => {
-                from.compute_squared_distance(to)
-            },
-            (
-                &SvgLengthOrPercentageOrNumber::LengthOrPercentage(from),
-                &SvgLengthOrPercentageOrNumber::Number(to)
-            ) => {
-                from.into().compute_squared_distance(&to.into())
-            },
-            (
-                &SvgLengthOrPercentageOrNumber::Number(from),
-                &SvgLengthOrPercentageOrNumber::LengthOrPercentage(to)
-            ) => {
-                from.into().compute_squared_distance(&to.into())
+            SvgLengthOrPercentageOrNumber::Number(num) =>
+            {
+                num.into()
             },
         }
     }
-}
 
-impl<L, N> SvgLengthOrPercentageOrNumber<L, N>
-    where
-        L: Into<LengthOrPercentage> + Copy
-{
-    /// return true if this struct has calc value.
-    pub fn has_calc(&self) -> bool {
-        match self {
-            &SvgLengthOrPercentageOrNumber::LengthOrPercentage(lop) => {
-                match lop.into() {
-                    LengthOrPercentage::Calc(_) => true,
-                    _ => false,
-                }
+    #[inline]
+    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+        match animated {
+            SvgNumberOrPercentageOrCalc::Number(num) =>
+            {
+                SvgLengthOrPercentageOrNumber::Number(From::from(num))
             },
-            _ => false,
+            SvgNumberOrPercentageOrCalc::Percentage(p) =>
+            {
+                SvgLengthOrPercentageOrNumber::LengthOrPercentage(
+                    From::from(LengthOrPercentage::Percentage(p)))
+            },
+            SvgNumberOrPercentageOrCalc::Calc(calc) =>
+            {
+                SvgLengthOrPercentageOrNumber::LengthOrPercentage(
+                    From::from(LengthOrPercentage::Calc(calc)))
+            },
         }
     }
 }
@@ -194,7 +184,8 @@ pub enum SVGLength<LengthType> {
 
 /// Generic value for stroke-dasharray.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, ComputeSquaredDistance, Debug, HasViewportPercentage, PartialEq, ToAnimatedValue, ToComputedValue)]
+#[derive(Clone, ComputeSquaredDistance, Debug, HasViewportPercentage, PartialEq)]
+#[derive(ToAnimatedValue, ToComputedValue)]
 pub enum SVGStrokeDashArray<LengthType> {
     /// `[ <length> | <percentage> | <number> ]#`
     Values(Vec<LengthType>),

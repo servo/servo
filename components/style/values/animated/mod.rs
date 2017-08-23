@@ -27,6 +27,7 @@ use values::specified::url::SpecifiedUrl;
 
 pub mod color;
 pub mod effects;
+pub mod svg;
 
 /// Animating from one value to another.
 pub trait Animate: Sized {
