@@ -43,6 +43,7 @@ pub enum Canvas2dMsg {
     Clip,
     ClosePath,
     Fill,
+    FillText(String, f64, f64, Option<f64>),
     FillRect(Rect<f32>),
     GetImageData(Rect<i32>, Size2D<f64>, IpcSender<Vec<u8>>),
     IsPointInPath(f64, f64, FillRule, IpcSender<bool>),

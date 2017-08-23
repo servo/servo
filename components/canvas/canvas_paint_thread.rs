@@ -133,6 +133,7 @@ impl<'a> CanvasPaintThread<'a> {
                 match msg.unwrap() {
                     CanvasMsg::Canvas2d(message) => {
                         match message {
+                            Canvas2dMsg::FillText(text, x, y, max_width) => painter.fill_text(text, x, y, max_width),
                             Canvas2dMsg::FillRect(ref rect) => painter.fill_rect(rect),
                             Canvas2dMsg::StrokeRect(ref rect) => painter.stroke_rect(rect),
                             Canvas2dMsg::ClearRect(ref rect) => painter.clear_rect(rect),
@@ -226,6 +227,10 @@ impl<'a> CanvasPaintThread<'a> {
             self.drawtarget.set_transform(&self.state.transform);
             self.drawtarget.pop_clip();
         }
+    }
+
+    fn fill_text(&self, text: String, x: f64, y: f64, max_width: Option<f64>) {
+        error!("Unimplemented canvas2d.fillText. Values received: {}, {}, {}, {:?}.", text, x, y, max_width);
     }
 
     fn fill_rect(&self, rect: &Rect<f32>) {
