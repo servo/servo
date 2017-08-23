@@ -11,8 +11,7 @@ use shared_lock::SharedRwLockReadGuard;
 use std::slice;
 use stylesheets::{Origin, OriginSet, PerOrigin, StylesheetInDocument};
 
-/// Entry for a StylesheetSet. We don't bother creating a constructor, because
-/// there's no sensible defaults for the member variables.
+/// Entry for a StylesheetSet.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 struct StylesheetSetEntry<S>
 where
