@@ -828,6 +828,13 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 }
             }
 
+            WindowEvent::CloseBrowser(ctx) => {
+                let msg = ConstellationMsg::CloseBrowser(ctx);
+                if let Err(e) = self.constellation_chan.send(msg) {
+                    warn!("Sending CloseBrowser message to constellation failed ({}).", e);
+                }
+            }
+
             WindowEvent::SelectBrowser(ctx) => {
                 let msg = ConstellationMsg::SelectBrowser(ctx);
                 if let Err(e) = self.constellation_chan.send(msg) {

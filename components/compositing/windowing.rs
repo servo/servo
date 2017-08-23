@@ -79,6 +79,8 @@ pub enum WindowEvent {
     Reload(TopLevelBrowsingContextId),
     /// Create a new top level browsing context
     NewBrowser(ServoUrl, IpcSender<TopLevelBrowsingContextId>),
+    /// Close a top level browsing context
+    CloseBrowser(TopLevelBrowsingContextId),
     /// Make a top level browsing context visible, hiding the previous
     /// visible one.
     SelectBrowser(TopLevelBrowsingContextId),
@@ -106,6 +108,7 @@ impl Debug for WindowEvent {
             WindowEvent::Quit => write!(f, "Quit"),
             WindowEvent::Reload(..) => write!(f, "Reload"),
             WindowEvent::NewBrowser(..) => write!(f, "NewBrowser"),
+            WindowEvent::CloseBrowser(..) => write!(f, "CloseBrowser"),
             WindowEvent::SelectBrowser(..) => write!(f, "SelectBrowser"),
             WindowEvent::ToggleWebRenderDebug(..) => write!(f, "ToggleWebRenderDebug"),
         }
