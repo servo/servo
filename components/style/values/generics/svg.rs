@@ -101,13 +101,13 @@ impl<ColorType: Parse, UrlPaintServer: Parse> Parse for SVGPaint<ColorType, UrlP
 /// A value of <length> | <percentage> | <number> for svg which allow unitless length.
 /// https://www.w3.org/TR/SVG11/painting.html#StrokeProperties
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, ToAnimatedValue)]
-#[derive(ToAnimatedZero, ToComputedValue, ToCss)]
-pub enum SvgLengthOrPercentageOrNumber<LengthOrPercentage, Number> {
+#[derive(Clone, ComputeSquaredDistance, Copy, Debug, HasViewportPercentage)]
+#[derive(PartialEq, ToAnimatedValue, ToAnimatedZero, ToCss, ToComputedValue)]
+pub enum SvgLengthOrPercentageOrNumber<L, N> {
     /// <length> | <percentage>
-    LengthOrPercentage(LengthOrPercentage),
+    LengthOrPercentage(L),
     /// <number>
-    Number(Number),
+    Number(N),
 }
 
 impl<L, N> ComputeSquaredDistance for SvgLengthOrPercentageOrNumber<L, N>
@@ -146,15 +146,15 @@ impl<L, N> ComputeSquaredDistance for SvgLengthOrPercentageOrNumber<L, N>
     }
 }
 
-impl<LengthOrPercentageType, NumberType> SvgLengthOrPercentageOrNumber<LengthOrPercentageType, NumberType>
-    where LengthOrPercentage: From<LengthOrPercentageType>,
-          LengthOrPercentageType: Copy
+impl<L, N> SvgLengthOrPercentageOrNumber<L, N>
+    where
+        L: Into<LengthOrPercentage> + Copy
 {
     /// return true if this struct has calc value.
     pub fn has_calc(&self) -> bool {
         match self {
             &SvgLengthOrPercentageOrNumber::LengthOrPercentage(lop) => {
-                match LengthOrPercentage::from(lop) {
+                match lop.into() {
                     LengthOrPercentage::Calc(_) => true,
                     _ => false,
                 }
@@ -166,15 +166,14 @@ impl<LengthOrPercentageType, NumberType> SvgLengthOrPercentageOrNumber<LengthOrP
 
 /// Parsing the SvgLengthOrPercentageOrNumber. At first, we need to parse number
 /// since prevent converting to the length.
-impl <LengthOrPercentageType: Parse, NumberType: Parse> Parse for
-    SvgLengthOrPercentageOrNumber<LengthOrPercentageType, NumberType> {
+impl <L: Parse, N: Parse> Parse for SvgLengthOrPercentageOrNumber<L, N> {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                      -> Result<Self, ParseError<'i>> {
-        if let Ok(num) = input.try(|i| NumberType::parse(context, i)) {
+        if let Ok(num) = input.try(|i| N::parse(context, i)) {
             return Ok(SvgLengthOrPercentageOrNumber::Number(num));
         }
 
-        if let Ok(lop) = input.try(|i| LengthOrPercentageType::parse(context, i)) {
+        if let Ok(lop) = input.try(|i| L::parse(context, i)) {
             return Ok(SvgLengthOrPercentageOrNumber::LengthOrPercentage(lop));
         }
         Err(StyleParseError::UnspecifiedError.into())

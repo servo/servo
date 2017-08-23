@@ -2579,8 +2579,12 @@ impl From<NonNegativeNumber> for NumberOrPercentage {
 impl From<LengthOrPercentage> for NumberOrPercentage {
     fn from(lop: LengthOrPercentage) -> NumberOrPercentage {
         match lop {
-            LengthOrPercentage::Length(len) => NumberOrPercentage::Number(len.to_f32_px()),
-            LengthOrPercentage::Percentage(p) => NumberOrPercentage::Percentage(p),
+            LengthOrPercentage::Length(len) => {
+                NumberOrPercentage::Number(len.to_f32_px())
+            },
+            LengthOrPercentage::Percentage(p) => {
+                NumberOrPercentage::Percentage(p)
+            },
             LengthOrPercentage::Calc(_) => {
                 panic!("We dont't expected calc interpolation for SvgLengthOrPercentageOrNumber");
             },
@@ -2594,31 +2598,33 @@ impl From<Number> for NumberOrPercentage {
     }
 }
 
-fn convert_to_number_or_percentage<LengthOrPercentageType, NumberType>(
-    from: SvgLengthOrPercentageOrNumber<LengthOrPercentageType, NumberType>)
+fn convert_to_number_or_percentage<L, N>(from: SvgLengthOrPercentageOrNumber<L, N>)
     -> NumberOrPercentage
-    where LengthOrPercentageType: Into<NumberOrPercentage>,
-          NumberType: Into<NumberOrPercentage>
+    where
+        L: Into<NumberOrPercentage>,
+        N: Into<NumberOrPercentage>
 {
     match from {
-        SvgLengthOrPercentageOrNumber::LengthOrPercentage(lop) => {
+        SvgLengthOrPercentageOrNumber::LengthOrPercentage(lop) =>
+        {
             lop.into()
         }
-        SvgLengthOrPercentageOrNumber::Number(num) => {
+        SvgLengthOrPercentageOrNumber::Number(num) =>
+        {
             num.into()
         }
     }
 }
 
-fn convert_from_number_or_percentage<LengthOrPercentageType, NumberType>(
-    from: NumberOrPercentage)
-    -> SvgLengthOrPercentageOrNumber<LengthOrPercentageType, NumberType>
-    where LengthOrPercentageType: From<LengthOrPercentage>,
-          NumberType: From<Number>
+fn convert_from_number_or_percentage<L, N>(from: NumberOrPercentage)
+    -> SvgLengthOrPercentageOrNumber<L, N>
+    where
+        L: From<LengthOrPercentage>,
+        N: From<Number>
 {
     match from {
         NumberOrPercentage::Number(num) =>
-            SvgLengthOrPercentageOrNumber::Number(num.into()),
+            SvgLengthOrPercentageOrNumber::Number(From::from(num)),
         NumberOrPercentage::Percentage(p) =>
             SvgLengthOrPercentageOrNumber::LengthOrPercentage(
                 (LengthOrPercentage::Percentage(p)).into())
