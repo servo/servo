@@ -15,7 +15,7 @@ use std::thread;
 
 thread_local!(static STACK: RefCell<Vec<StackEntry>> = RefCell::new(Vec::new()));
 
-#[derive(PartialEq, Eq, Debug, JSTraceable)]
+#[derive(Debug, Eq, JSTraceable, PartialEq)]
 enum StackEntryKind {
     Incumbent,
     Entry,

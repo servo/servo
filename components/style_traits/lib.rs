@@ -34,7 +34,7 @@ use selectors::parser::SelectorParseError;
 ///
 /// This unit corresponds to the smallest addressable element of the display hardware.
 #[cfg(not(feature = "servo"))]
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub enum DevicePixel {}
 
 /// Opaque type stored in type-unsafe work queues for parallel layout.
@@ -148,7 +148,7 @@ impl<'i> ValueParseError<'i> {
 }
 
 /// The result of parsing a property declaration.
-#[derive(PartialEq, Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum PropertyDeclarationParseError<'i> {
     /// The property declaration was for an unknown property.
     UnknownProperty(CowRcStr<'i>),

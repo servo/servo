@@ -35,7 +35,7 @@ use style::values::CSSFloat;
 use style::values::computed::LengthOrPercentageOrAuto;
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize};
 
-#[derive(Copy, Clone, Serialize, Debug)]
+#[derive(Clone, Copy, Debug, Serialize)]
 pub enum TableLayout {
     Fixed,
     Auto
@@ -615,7 +615,7 @@ impl<'a> Add for &'a AutoLayoutCandidateGuess {
 
 /// The `CSSFloat` member specifies the weight of the smaller of the two guesses, on a scale from
 /// 0.0 to 1.0.
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 enum SelectedAutoLayoutCandidateGuess {
     UseMinimumGuess,
     InterpolateBetweenMinimumGuessAndMinimumPercentageGuess(CSSFloat),

@@ -28,7 +28,7 @@ use values::generics::transform::{StepPosition, TimingFunction as GenericTimingF
 ///
 /// If the iteration count is infinite, there's no other state, otherwise we
 /// have to keep track the current iteration and the max iteration count.
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub enum KeyframesIterationState {
     /// Infinite iterations, so no need to track a state.
     Infinite,
@@ -39,7 +39,7 @@ pub enum KeyframesIterationState {
 /// This structure represents wether an animation is actually running.
 ///
 /// An animation can be running, or paused at a given time.
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub enum KeyframesRunningState {
     /// This animation is paused. The inner field is the percentage of progress
     /// when it was paused, from 0 to 1.
@@ -52,7 +52,7 @@ pub enum KeyframesRunningState {
 /// duration, the current and maximum iteration count, and the state (either
 /// playing or paused).
 // TODO: unify the use of f32/f64 in this file.
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub struct KeyframesAnimationState {
     /// The time this animation started at.
     pub started_at: f64,
@@ -244,7 +244,7 @@ impl Animation {
 
 
 /// A single animation frame of a single property.
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub struct AnimationFrame {
     /// A description of the property animation that is occurring.
     pub property_animation: PropertyAnimation,
@@ -254,7 +254,7 @@ pub struct AnimationFrame {
 }
 
 /// Represents an animation for a given property.
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub struct PropertyAnimation {
     property: AnimatedProperty,
     timing_function: TimingFunction,

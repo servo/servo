@@ -9,7 +9,7 @@ use bloom::BloomFilter;
 ///
 /// There are two modes of selector matching. The difference is only noticeable
 /// in presence of pseudo-elements.
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum MatchingMode {
     /// Don't ignore any pseudo-element selectors.
     Normal,
@@ -29,7 +29,7 @@ pub enum MatchingMode {
 }
 
 /// The mode to use when matching unvisited and visited links.
-#[derive(PartialEq, Eq, Copy, Clone, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum VisitedHandlingMode {
     /// All links are matched as if they are unvisted.
     AllLinksUnvisited,
@@ -48,7 +48,7 @@ pub enum VisitedHandlingMode {
 /// Which quirks mode is this document in.
 ///
 /// See: https://quirks.spec.whatwg.org/
-#[derive(PartialEq, Eq, Copy, Clone, Hash, Debug)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum QuirksMode {
     /// Quirks mode.
     Quirks,

@@ -467,7 +467,7 @@ pub enum PaintWorkletTask {
 /// https://drafts.css-houdini.org/css-paint-api/#paint-definition
 /// This type is dangerous, because it contains uboxed `Heap<JSVal>` values,
 /// which can't be moved.
-#[derive(JSTraceable, HeapSizeOf)]
+#[derive(HeapSizeOf, JSTraceable)]
 #[must_root]
 struct PaintDefinition {
     class_constructor: Heap<JSVal>,

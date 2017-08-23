@@ -59,7 +59,7 @@ fn main() {
     write!(&mut phf, ";\n").unwrap();
 }
 
-#[derive(Eq, PartialEq, Hash)]
+#[derive(Eq, Hash, PartialEq)]
 struct Bytes<'a>(&'a str);
 
 impl<'a> fmt::Debug for Bytes<'a> {

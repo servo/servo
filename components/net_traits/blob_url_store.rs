@@ -9,7 +9,7 @@ use url::Url;
 use uuid::Uuid;
 
 /// Errors returned to Blob URL Store request
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum BlobURLStoreError {
     /// Invalid File UUID
     InvalidFileID,
@@ -22,7 +22,7 @@ pub enum BlobURLStoreError {
 }
 
 /// Standalone blob buffer object
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct BlobBuf {
     pub filename: Option<String>,
     /// MIME type string

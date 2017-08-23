@@ -108,7 +108,7 @@ use script_thread::ScriptThread;
 use std::ptr;
 
 /// The class of a non-callback interface object.
-#[derive(Copy, Clone)]
+#[derive(Clone, Copy)]
 pub struct NonCallbackInterfaceObjectClass {
     /// The SpiderMonkey Class structure.
     pub class: Class,

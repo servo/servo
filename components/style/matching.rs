@@ -40,7 +40,7 @@ impl StyleDifference {
 }
 
 /// Represents whether or not the style of an element has changed.
-#[derive(Copy, Clone)]
+#[derive(Clone, Copy)]
 pub enum StyleChange {
     /// The style hasn't changed.
     Unchanged,
@@ -50,7 +50,7 @@ pub enum StyleChange {
 
 /// Whether or not newly computed values for an element need to be cascade
 /// to children.
-#[derive(PartialEq, Eq, PartialOrd, Ord, Copy, Clone, Debug)]
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum ChildCascadeRequirement {
     /// Old and new computed values were the same, or we otherwise know that
     /// we won't bother recomputing style for children, so we can skip cascading
@@ -96,7 +96,7 @@ impl RulesChanged {
 }
 
 /// Determines which styles are being cascaded currently.
-#[derive(PartialEq, Eq, Copy, Clone, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CascadeVisitedMode {
     /// Cascade the regular, unvisited styles.
     Unvisited,

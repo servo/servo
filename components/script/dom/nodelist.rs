@@ -12,7 +12,7 @@ use dom::window::Window;
 use dom_struct::dom_struct;
 use std::cell::Cell;
 
-#[derive(JSTraceable, HeapSizeOf)]
+#[derive(HeapSizeOf, JSTraceable)]
 #[must_root]
 pub enum NodeListType {
     Simple(Vec<JS<Node>>),
@@ -109,7 +109,7 @@ impl NodeList {
     }
 }
 
-#[derive(JSTraceable, HeapSizeOf)]
+#[derive(HeapSizeOf, JSTraceable)]
 #[must_root]
 pub struct ChildrenList {
     node: JS<Node>,

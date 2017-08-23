@@ -77,7 +77,7 @@ pub use script_msg::{ServiceWorkerMsg, ScopeThings, SWManagerMsg, SWManagerSende
 
 /// The address of a node. Layout sends these back. They must be validated via
 /// `from_untrusted_node_address` before they can be used, because we do not trust layout.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct UntrustedNodeAddress(pub *const c_void);
 
 impl HeapSizeOf for UntrustedNodeAddress {
@@ -196,7 +196,7 @@ pub struct NewLayoutInfo {
 }
 
 /// When a pipeline is closed, should its browsing context be discarded too?
-#[derive(Copy, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
+#[derive(Clone, Copy, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub enum DiscardBrowsingContext {
     /// Discard the browsing context
     Yes,
@@ -210,7 +210,7 @@ pub enum DiscardBrowsingContext {
 /// and it is inactive otherwise.
 /// https://html.spec.whatwg.org/multipage/#active-document
 /// https://html.spec.whatwg.org/multipage/#fully-active
-#[derive(Copy, Clone, PartialEq, Eq, Hash, HeapSizeOf, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, HeapSizeOf, PartialEq, Serialize)]
 pub enum DocumentActivity {
     /// An inactive document
     Inactive,
@@ -221,7 +221,7 @@ pub enum DocumentActivity {
 }
 
 /// The reason why the pipeline id of an iframe is being updated.
-#[derive(Copy, Clone, PartialEq, Eq, Hash, HeapSizeOf, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, HeapSizeOf, PartialEq, Serialize)]
 pub enum UpdatePipelineIdReason {
     /// The pipeline id is being updated due to a navigation.
     Navigation,
@@ -340,7 +340,7 @@ impl fmt::Debug for ConstellationControlMsg {
 }
 
 /// Used to determine if a script has any pending asynchronous activity.
-#[derive(Copy, Clone, Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub enum DocumentState {
     /// The document has been loaded and is idle.
     Idle,
@@ -350,7 +350,7 @@ pub enum DocumentState {
 
 /// For a given pipeline, whether any animations are currently running
 /// and any animation callbacks are queued
-#[derive(Clone, Eq, PartialEq, Deserialize, Serialize, Debug)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum AnimationState {
     /// Animations are active but no callbacks are queued
     AnimationsPresent,
@@ -378,7 +378,7 @@ pub enum TouchEventType {
 /// An opaque identifier for a touch point.
 ///
 /// http://w3c.github.io/touch-events/#widl-Touch-identifier
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct TouchId(pub i32);
 
 /// The mouse button involved in the event.
@@ -421,7 +421,7 @@ pub enum CompositorEvent {
 }
 
 /// Touchpad pressure phase for `TouchpadPressureEvent`.
-#[derive(Copy, Clone, HeapSizeOf, PartialEq, Deserialize, Serialize)]
+#[derive(Clone, Copy, Deserialize, HeapSizeOf, PartialEq, Serialize)]
 pub enum TouchpadPressurePhase {
     /// Pressure before a regular click.
     BeforeClick,
@@ -451,7 +451,7 @@ pub enum TimerSchedulerMsg {
 pub struct TimerEvent(pub TimerSource, pub TimerEventId);
 
 /// Describes the thread that requested the TimerEvent.
-#[derive(Copy, Clone, Debug, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, HeapSizeOf, Serialize)]
 pub enum TimerSource {
     /// The event was requested from a window (ScriptThread).
     FromWindow(PipelineId),
@@ -460,7 +460,7 @@ pub enum TimerSource {
 }
 
 /// The id to be used for a `TimerEvent` is defined by the corresponding `TimerEventRequest`.
-#[derive(PartialEq, Eq, Copy, Clone, Debug, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, HeapSizeOf, PartialEq, Serialize)]
 pub struct TimerEventId(pub u32);
 
 /// Unit of measurement.
@@ -543,7 +543,7 @@ pub trait ScriptThreadFactory {
 }
 
 /// Whether the sandbox attribute is present for an iframe element
-#[derive(PartialEq, Eq, Copy, Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum IFrameSandboxState {
     /// Sandbox attribute is present
     IFrameSandboxed,
@@ -683,7 +683,7 @@ pub enum AnimationTickType {
 }
 
 /// The scroll state of a stacking context.
-#[derive(Copy, Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub struct ScrollState {
     /// The ID of the scroll root.
     pub scroll_root_id: ClipId,
@@ -692,7 +692,7 @@ pub struct ScrollState {
 }
 
 /// Data about the window size.
-#[derive(Copy, Clone, Deserialize, Serialize, HeapSizeOf)]
+#[derive(Clone, Copy, Deserialize, HeapSizeOf, Serialize)]
 pub struct WindowSizeData {
     /// The size of the initial layout viewport, before parsing an
     /// http://www.w3.org/TR/css-device-adapt/#initial-viewport
@@ -703,7 +703,7 @@ pub struct WindowSizeData {
 }
 
 /// The type of window size change.
-#[derive(Deserialize, Eq, PartialEq, Serialize, Copy, Clone, HeapSizeOf)]
+#[derive(Clone, Copy, Deserialize, Eq, HeapSizeOf, PartialEq, Serialize)]
 pub enum WindowSizeType {
     /// Initial load.
     Initial,
@@ -774,7 +774,7 @@ pub enum ConstellationMsg {
 }
 
 /// Resources required by workerglobalscopes
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct WorkerGlobalScopeInit {
     /// Chan to a resource thread
     pub resource_threads: ResourceThreads,
@@ -799,7 +799,7 @@ pub struct WorkerGlobalScopeInit {
 }
 
 /// Common entities representing a network load origin
-#[derive(Deserialize, Serialize, Clone)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct WorkerScriptLoadOrigin {
     /// referrer url
     pub referrer_url: Option<ServoUrl>,
@@ -810,7 +810,7 @@ pub struct WorkerScriptLoadOrigin {
 }
 
 /// Errors from executing a paint worklet
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum PaintWorkletError {
     /// Execution timed out.
     Timeout,
@@ -837,7 +837,7 @@ pub trait Painter: SpeculativePainter {
 
 /// The result of executing paint code: the image together with any image URLs that need to be loaded.
 /// TODO: this should return a WR display list. https://github.com/servo/servo/issues/17497
-#[derive(Debug, Deserialize, Serialize, Clone, HeapSizeOf)]
+#[derive(Clone, Debug, Deserialize, HeapSizeOf, Serialize)]
 pub struct DrawAPaintImageResult {
     /// The image height
     pub width: u32,
@@ -852,7 +852,7 @@ pub struct DrawAPaintImageResult {
 }
 
 /// A Script to Constellation channel.
-#[derive(Deserialize, Serialize, Clone)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct ScriptToConstellationChan {
     /// Sender for communicating with constellation thread.
     pub sender: IpcSender<(PipelineId, ScriptMsg)>,

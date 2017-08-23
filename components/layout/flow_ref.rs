@@ -13,7 +13,7 @@ use flow::Flow;
 use std::ops::Deref;
 use std::sync::{Arc, Weak};
 
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 pub struct FlowRef(Arc<Flow>);
 
 impl Deref for FlowRef {
@@ -55,7 +55,7 @@ impl FlowRef {
     }
 }
 
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 pub struct WeakFlowRef(Weak<Flow>);
 
 impl WeakFlowRef {

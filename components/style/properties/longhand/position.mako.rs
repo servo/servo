@@ -296,14 +296,14 @@ ${helpers.predefined_type("object-position",
     pub type SpecifiedValue = computed_value::T;
 
     pub mod computed_value {
-        #[derive(PartialEq, Clone, Eq, Copy, Debug)]
+        #[derive(Clone, Copy, Debug, Eq, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub enum AutoFlow {
             Row,
             Column,
         }
 
-        #[derive(PartialEq, Clone, Eq, Copy, Debug)]
+        #[derive(Clone, Copy, Debug, Eq, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T {
             pub autoflow: AutoFlow,

@@ -71,7 +71,7 @@ ${helpers.single_keyword("image-rendering",
     use std::f64::consts::PI;
     const TWO_PI: f64 = 2.0 * PI;
 
-    #[derive(Clone, PartialEq, Copy, Debug)]
+    #[derive(Clone, Copy, Debug, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue {
         pub angle: Option<Angle>,
@@ -102,7 +102,7 @@ ${helpers.single_keyword("image-rendering",
         use style_traits::ToCss;
         use values::specified::Angle;
 
-        #[derive(Copy, Clone, Debug, Eq, PartialEq)]
+        #[derive(Clone, Copy, Debug, Eq, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub enum Orientation {
             Angle0 = 0,
@@ -134,7 +134,7 @@ ${helpers.single_keyword("image-rendering",
             }
         }
 
-        #[derive(Clone, PartialEq, Copy, Debug)]
+        #[derive(Clone, Copy, Debug, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub enum T {
             FromImage,
@@ -261,7 +261,7 @@ ${helpers.single_keyword("image-rendering",
 
     no_viewport_percentage!(SpecifiedValue);
 
-    #[derive(Copy, Clone, Debug, Eq, PartialEq)]
+    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
     pub struct SpecifiedValue(pub bool);
 

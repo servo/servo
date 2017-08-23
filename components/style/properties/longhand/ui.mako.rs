@@ -54,7 +54,7 @@ ${helpers.single_keyword("-moz-window-shadow", "none default menu tooltip sheet"
     no_viewport_percentage!(SpecifiedValue);
 
     pub mod computed_value {
-        #[derive(Debug, Clone, Copy, PartialEq)]
+        #[derive(Clone, Copy, Debug, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T(pub bool);
     }

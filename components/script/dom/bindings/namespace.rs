@@ -11,7 +11,7 @@ use libc;
 use std::ptr;
 
 /// The class of a namespace object.
-#[derive(Copy, Clone)]
+#[derive(Clone, Copy)]
 pub struct NamespaceObjectClass(JSClass);
 
 unsafe impl Sync for NamespaceObjectClass {}

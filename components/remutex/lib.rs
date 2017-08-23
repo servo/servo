@@ -26,7 +26,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 // TODO: can we use the thread-id crate for this?
 
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct ThreadId(NonZero<usize>);
 
 lazy_static!{ static ref THREAD_COUNT: AtomicUsize = AtomicUsize::new(1); }

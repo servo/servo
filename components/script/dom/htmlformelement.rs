@@ -59,7 +59,7 @@ use style::attr::AttrValue;
 use style::str::split_html_space_chars;
 use task_source::TaskSource;
 
-#[derive(JSTraceable, PartialEq, Clone, Copy, HeapSizeOf)]
+#[derive(Clone, Copy, HeapSizeOf, JSTraceable, PartialEq)]
 pub struct GenerationId(u32);
 
 #[dom_struct]
@@ -172,7 +172,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
             return elements;
         }
 
-        #[derive(JSTraceable, HeapSizeOf)]
+        #[derive(HeapSizeOf, JSTraceable)]
         struct ElementsFilter {
             form: Root<HTMLFormElement>
         }
@@ -241,13 +241,13 @@ impl HTMLFormElementMethods for HTMLFormElement {
     }
 }
 
-#[derive(Copy, Clone, HeapSizeOf, PartialEq)]
+#[derive(Clone, Copy, HeapSizeOf, PartialEq)]
 pub enum SubmittedFrom {
     FromForm,
     NotFromForm
 }
 
-#[derive(Copy, Clone, HeapSizeOf)]
+#[derive(Clone, Copy, HeapSizeOf)]
 pub enum ResetFrom {
     FromForm,
     NotFromForm
@@ -674,14 +674,14 @@ impl HTMLFormElement {
     }
 }
 
-#[derive(JSTraceable, HeapSizeOf, Clone)]
+#[derive(Clone, HeapSizeOf, JSTraceable)]
 pub enum FormDatumValue {
     #[allow(dead_code)]
     File(Root<File>),
     String(DOMString)
 }
 
-#[derive(HeapSizeOf, JSTraceable, Clone)]
+#[derive(Clone, HeapSizeOf, JSTraceable)]
 pub struct FormDatum {
     pub ty: DOMString,
     pub name: DOMString,
@@ -701,14 +701,14 @@ impl FormDatum {
     }
 }
 
-#[derive(Copy, Clone, HeapSizeOf)]
+#[derive(Clone, Copy, HeapSizeOf)]
 pub enum FormEncType {
     TextPlainEncoded,
     UrlEncoded,
     FormDataEncoded
 }
 
-#[derive(Copy, Clone, HeapSizeOf)]
+#[derive(Clone, Copy, HeapSizeOf)]
 pub enum FormMethod {
     FormGet,
     FormPost,
@@ -759,7 +759,7 @@ impl FormSubmittableElement {
     }
 }
 
-#[derive(Copy, Clone, HeapSizeOf)]
+#[derive(Clone, Copy, HeapSizeOf)]
 pub enum FormSubmitter<'a> {
     FormElement(&'a HTMLFormElement),
     InputElement(&'a HTMLInputElement),

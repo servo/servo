@@ -11,7 +11,7 @@ use url_serde;
 use uuid::Uuid;
 
 /// The origin of an URL
-#[derive(PartialEq, Eq, Clone, Debug, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, HeapSizeOf, PartialEq, Serialize)]
 pub enum ImmutableOrigin {
     /// A globally unique identifier
     Opaque(OpaqueOrigin),
@@ -95,7 +95,7 @@ impl ImmutableOrigin {
 }
 
 /// Opaque identifier for URLs that have file or other schemes
-#[derive(Eq, PartialEq, Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct OpaqueOrigin(Uuid);
 
 known_heap_size!(0, OpaqueOrigin);

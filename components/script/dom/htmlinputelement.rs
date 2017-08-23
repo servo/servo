@@ -60,7 +60,7 @@ const DEFAULT_SUBMIT_VALUE: &'static str = "Submit";
 const DEFAULT_RESET_VALUE: &'static str = "Reset";
 const PASSWORD_REPLACEMENT_CHAR: char = '●';
 
-#[derive(JSTraceable, PartialEq, Copy, Clone)]
+#[derive(Clone, Copy, JSTraceable, PartialEq)]
 #[allow(dead_code)]
 #[derive(HeapSizeOf)]
 enum InputType {

@@ -193,7 +193,7 @@ impl PendingRestyle {
     }
 }
 
-#[derive(Clone, JSTraceable, HeapSizeOf)]
+#[derive(Clone, HeapSizeOf, JSTraceable)]
 #[must_root]
 struct StyleSheetInDocument {
     #[ignore_heap_size_of = "Arc"]
@@ -353,7 +353,7 @@ pub struct Document {
     form_id_listener_map: DOMRefCell<HashMap<Atom, HashSet<JS<Element>>>>,
 }
 
-#[derive(JSTraceable, HeapSizeOf)]
+#[derive(HeapSizeOf, JSTraceable)]
 struct ImagesFilter;
 impl CollectionFilter for ImagesFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -361,7 +361,7 @@ impl CollectionFilter for ImagesFilter {
     }
 }
 
-#[derive(JSTraceable, HeapSizeOf)]
+#[derive(HeapSizeOf, JSTraceable)]
 struct EmbedsFilter;
 impl CollectionFilter for EmbedsFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -369,7 +369,7 @@ impl CollectionFilter for EmbedsFilter {
     }
 }
 
-#[derive(JSTraceable, HeapSizeOf)]
+#[derive(HeapSizeOf, JSTraceable)]
 struct LinksFilter;
 impl CollectionFilter for LinksFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -378,7 +378,7 @@ impl CollectionFilter for LinksFilter {
     }
 }
 
-#[derive(JSTraceable, HeapSizeOf)]
+#[derive(HeapSizeOf, JSTraceable)]
 struct FormsFilter;
 impl CollectionFilter for FormsFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -386,7 +386,7 @@ impl CollectionFilter for FormsFilter {
     }
 }
 
-#[derive(JSTraceable, HeapSizeOf)]
+#[derive(HeapSizeOf, JSTraceable)]
 struct ScriptsFilter;
 impl CollectionFilter for ScriptsFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -394,7 +394,7 @@ impl CollectionFilter for ScriptsFilter {
     }
 }
 
-#[derive(JSTraceable, HeapSizeOf)]
+#[derive(HeapSizeOf, JSTraceable)]
 struct AnchorsFilter;
 impl CollectionFilter for AnchorsFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -402,7 +402,7 @@ impl CollectionFilter for AnchorsFilter {
     }
 }
 
-#[derive(JSTraceable, HeapSizeOf)]
+#[derive(HeapSizeOf, JSTraceable)]
 struct AppletsFilter;
 impl CollectionFilter for AppletsFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
@@ -2027,7 +2027,7 @@ impl Document {
     }
 }
 
-#[derive(PartialEq, HeapSizeOf)]
+#[derive(HeapSizeOf, PartialEq)]
 pub enum DocumentSource {
     FromParser,
     NotFromParser,
@@ -2141,7 +2141,7 @@ fn url_has_network_scheme(url: &ServoUrl) -> bool {
     }
 }
 
-#[derive(Copy, Clone, HeapSizeOf, JSTraceable, PartialEq, Eq)]
+#[derive(Clone, Copy, Eq, HeapSizeOf, JSTraceable, PartialEq)]
 pub enum HasBrowsingContext {
     No,
     Yes,
@@ -3513,7 +3513,7 @@ impl DocumentMethods for Document {
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:dom-document-nameditem-filter
     unsafe fn NamedGetter(&self, _cx: *mut JSContext, name: DOMString) -> Option<NonZero<*mut JSObject>> {
-        #[derive(JSTraceable, HeapSizeOf)]
+        #[derive(HeapSizeOf, JSTraceable)]
         struct NamedElementFilter {
             name: Atom,
         }
@@ -4033,7 +4033,7 @@ impl Runnable for DocumentProgressHandler {
 }
 
 /// Specifies the type of focus event that is sent to a pipeline
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum FocusType {
     Element,    // The first focus message - focus the element itself
     Parent,     // Focusing a parent element (an iframe)
@@ -4051,7 +4051,7 @@ pub enum FocusEventType {
 /// If the page is observed to be using `requestAnimationFrame()` for non-animation purposes (i.e.
 /// without mutating the DOM), then we fall back to simple timeouts to save energy over video
 /// refresh.
-#[derive(JSTraceable, HeapSizeOf)]
+#[derive(HeapSizeOf, JSTraceable)]
 pub struct FakeRequestAnimationFrameCallback {
     /// The document.
     #[ignore_heap_size_of = "non-owning"]

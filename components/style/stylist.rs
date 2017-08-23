@@ -426,7 +426,7 @@ pub struct Stylist {
 }
 
 /// What cascade levels to include when styling elements.
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum RuleInclusion {
     /// Include rules for style sheets at all cascade levels.  This is the
     /// normal rule inclusion mode.

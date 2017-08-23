@@ -79,7 +79,7 @@ unsafe_no_jsmanaged_fields!(WebVRDisplayData);
 unsafe_no_jsmanaged_fields!(WebVRFrameData);
 unsafe_no_jsmanaged_fields!(WebVRLayer);
 
-#[derive(Clone, Copy, PartialEq, Eq, HeapSizeOf)]
+#[derive(Clone, Copy, Eq, HeapSizeOf, PartialEq)]
 enum VRFrameDataStatus {
     Waiting,
     Synced,

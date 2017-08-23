@@ -163,7 +163,7 @@ pub enum ScriptMsg {
 }
 
 /// Entities required to spawn service workers
-#[derive(Deserialize, Serialize, Clone)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct ScopeThings {
     /// script resource url
     pub script_url: ServoUrl,
@@ -178,7 +178,7 @@ pub struct ScopeThings {
 }
 
 /// Message that gets passed to service worker scope on postMessage
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct DOMMessage(pub Vec<u8>);
 
 /// Channels to allow service worker manager to communicate with constellation and resource thread

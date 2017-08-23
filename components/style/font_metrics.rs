@@ -16,7 +16,7 @@ use std::fmt;
 
 /// Represents the font metrics that style needs from a font to compute the
 /// value of certain CSS units like `ex`.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct FontMetrics {
     /// The x-height of the font.
     pub x_height: Au,
@@ -25,7 +25,7 @@ pub struct FontMetrics {
 }
 
 /// The result for querying font metrics for a given font family.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum FontMetricsQueryResult {
     /// The font is available, but we may or may not have found any font metrics
     /// for it.

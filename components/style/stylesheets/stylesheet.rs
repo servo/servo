@@ -36,7 +36,7 @@ pub struct UserAgentStylesheets {
 /// A set of namespaces applying to a given stylesheet.
 ///
 /// The namespace id is used in gecko
-#[derive(Clone, Default, Debug)]
+#[derive(Clone, Debug, Default)]
 #[allow(missing_docs)]
 pub struct Namespaces {
     pub default: Option<(Namespace, NamespaceId)>,

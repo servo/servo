@@ -27,7 +27,7 @@ pub trait WebGLExtensionWrapper: JSTraceable + HeapSizeOf {
 }
 
 #[must_root]
-#[derive(JSTraceable, HeapSizeOf)]
+#[derive(HeapSizeOf, JSTraceable)]
 pub struct TypedWebGLExtensionWrapper<T: WebGLExtension> {
     extension: MutNullableJS<T::Extension>
 }

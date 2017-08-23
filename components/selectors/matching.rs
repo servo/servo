@@ -215,7 +215,7 @@ fn may_match<E>(hashes: &AncestorHashes,
 /// and `is_unvisited` are based on relevant link state of only the current
 /// complex selector being matched (not the global relevant link status for all
 /// selectors in `MatchingContext`).
-#[derive(PartialEq, Eq, Copy, Clone, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum RelevantLinkStatus {
     /// Looking for a possible relevant link.  This is the initial mode when
     /// matching a selector.
@@ -352,7 +352,7 @@ impl RelevantLinkStatus {
 /// However since the selector "c1" raises
 /// NotMatchedAndRestartFromClosestDescendant. So the selector
 /// "b1 + c1 > b2 ~ " doesn't match and restart matching from "d1".
-#[derive(PartialEq, Eq, Copy, Clone)]
+#[derive(Clone, Copy, Eq, PartialEq)]
 enum SelectorMatchingResult {
     Matched,
     NotMatchedAndRestartFromClosestLaterSibling,

@@ -25,7 +25,7 @@ use std::ptr;
 use std::rc::Rc;
 
 /// The exception handling used for a call.
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum ExceptionHandling {
     /// Report any exception and don't throw it to the caller code.
     Report,
