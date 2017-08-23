@@ -2459,24 +2459,6 @@ impl ToAnimatedZero for TransformList {
     }
 }
 
-impl<A, B> ToAnimatedZero for Either<A, B>
-where
-    A: ToAnimatedZero,
-    B: ToAnimatedZero,
-{
-    #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> {
-        match *self {
-            Either::First(ref first) => {
-                Ok(Either::First(first.to_animated_zero()?))
-            },
-            Either::Second(ref second) => {
-                Ok(Either::Second(second.to_animated_zero()?))
-            },
-        }
-    }
-}
-
 /// Animated SVGPaint
 pub type IntermediateSVGPaint = SVGPaint<AnimatedRGBA, ComputedUrl>;
 
