@@ -45,19 +45,20 @@ use values::animated::effects::BoxShadowList as AnimatedBoxShadowList;
 use values::animated::effects::Filter as AnimatedFilter;
 use values::animated::effects::FilterList as AnimatedFilterList;
 use values::animated::effects::TextShadowList as AnimatedTextShadowList;
+use values::animated::svg::SvgStrokeNumberOrPercentageOrCalc;
 use values::computed::{Angle, BorderCornerRadius, CalcLengthOrPercentage};
 use values::computed::{ClipRect, Context, ComputedUrl, ComputedValueAsSpecified};
 use values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use values::computed::{LengthOrPercentageOrNone, MaxLength, MozLength, NonNegativeAu};
-use values::computed::{NonNegativeNumber, Number, NumberOrPercentage, Percentage};
-use values::computed::{PositiveIntegerOrAuto, ToComputedValue};
+use values::computed::{NonNegativeNumber, Percentage, PositiveIntegerOrAuto};
+use values::computed::ToComputedValue;
 use values::computed::length::{NonNegativeLengthOrAuto, NonNegativeLengthOrNormal};
 use values::computed::length::NonNegativeLengthOrPercentage;
 use values::distance::{ComputeSquaredDistance, SquaredDistance};
 use values::generics::NonNegative;
 use values::generics::effects::Filter;
 use values::generics::position as generic_position;
-use values::generics::svg::{SVGLength,  SvgLengthOrPercentageOrNumber, SVGPaint};
+use values::generics::svg::{SVGLength, SVGPaint};
 use values::generics::svg::{SVGPaintKind, SVGStrokeDashArray, SVGOpacity};
 
 /// https://drafts.csswg.org/css-transitions/#animtype-repeatable-list
@@ -714,7 +715,7 @@ impl ToAnimatedZero for AnimationValue {
 impl RepeatableListAnimatable for LengthOrPercentage {}
 impl RepeatableListAnimatable for Either<f32, LengthOrPercentage> {}
 impl RepeatableListAnimatable for Either<NonNegativeNumber, NonNegativeLengthOrPercentage> {}
-impl RepeatableListAnimatable for SvgLengthOrPercentageOrNumber<NonNegativeLengthOrPercentage, NonNegativeNumber> {}
+impl RepeatableListAnimatable for SvgStrokeNumberOrPercentageOrCalc {}
 
 macro_rules! repeated_vec_impl {
     ($($ty:ty),*) => {
@@ -2477,113 +2478,6 @@ impl ToAnimatedZero for IntermediateSVGPaintKind {
             SVGPaintKind::None |
             SVGPaintKind::ContextFill |
             SVGPaintKind::ContextStroke => Ok(self.clone()),
-            _ => Err(()),
-        }
-    }
-}
-
-impl From<NonNegativeLengthOrPercentage> for NumberOrPercentage {
-    fn from(lop: NonNegativeLengthOrPercentage) -> NumberOrPercentage {
-        lop.0.into()
-    }
-}
-
-impl From<NonNegativeNumber> for NumberOrPercentage {
-    fn from(num: NonNegativeNumber) -> NumberOrPercentage {
-        num.0.into()
-    }
-}
-
-impl From<LengthOrPercentage> for NumberOrPercentage {
-    fn from(lop: LengthOrPercentage) -> NumberOrPercentage {
-        match lop {
-            LengthOrPercentage::Length(len) => {
-                NumberOrPercentage::Number(len.to_f32_px())
-            },
-            LengthOrPercentage::Percentage(p) => {
-                NumberOrPercentage::Percentage(p)
-            },
-            LengthOrPercentage::Calc(_) => {
-                panic!("We dont't expected calc interpolation for SvgLengthOrPercentageOrNumber");
-            },
-        }
-    }
-}
-
-impl From<Number> for NumberOrPercentage {
-    fn from(num: Number) -> NumberOrPercentage {
-        NumberOrPercentage::Number(num)
-    }
-}
-
-fn convert_to_number_or_percentage<L, N>(from: SvgLengthOrPercentageOrNumber<L, N>)
-    -> NumberOrPercentage
-    where
-        L: Into<NumberOrPercentage>,
-        N: Into<NumberOrPercentage>
-{
-    match from {
-        SvgLengthOrPercentageOrNumber::LengthOrPercentage(lop) =>
-        {
-            lop.into()
-        }
-        SvgLengthOrPercentageOrNumber::Number(num) =>
-        {
-            num.into()
-        }
-    }
-}
-
-fn convert_from_number_or_percentage<L, N>(from: NumberOrPercentage)
-    -> SvgLengthOrPercentageOrNumber<L, N>
-    where
-        L: From<LengthOrPercentage>,
-        N: From<Number>
-{
-    match from {
-        NumberOrPercentage::Number(num) =>
-            SvgLengthOrPercentageOrNumber::Number(From::from(num)),
-        NumberOrPercentage::Percentage(p) =>
-            SvgLengthOrPercentageOrNumber::LengthOrPercentage(
-                (LengthOrPercentage::Percentage(p)).into())
-    }
-}
-
-impl <L, N> Animate for SvgLengthOrPercentageOrNumber<L, N>
-where
-    L: Animate + From<LengthOrPercentage> + Into<NumberOrPercentage> + Copy,
-    N: Animate + From<Number> + Into<NumberOrPercentage>,
-    LengthOrPercentage: From<L>,
-    Self: Copy,
-{
-    #[inline]
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        if self.has_calc() || other.has_calc() {
-            // TODO: We need to treat calc value.
-            // https://bugzilla.mozilla.org/show_bug.cgi?id=1386967
-            return Err(());
-        }
-
-        let this = convert_to_number_or_percentage(*self);
-        let other = convert_to_number_or_percentage(*other);
-
-        match (this, other) {
-            (
-                NumberOrPercentage::Number(ref this),
-                NumberOrPercentage::Number(ref other),
-            ) => {
-                Ok(convert_from_number_or_percentage(
-                    NumberOrPercentage::Number(this.animate(other, procedure)?)
-                ))
-            },
-            (
-                NumberOrPercentage::Percentage(ref this),
-                NumberOrPercentage::Percentage(ref other),
-            ) => {
-                Ok(convert_from_number_or_percentage(
-                    NumberOrPercentage::Percentage(this.animate(other, procedure)?)
-                ))
-            },
             _ => Err(()),
         }
     }
