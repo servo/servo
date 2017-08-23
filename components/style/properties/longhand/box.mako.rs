@@ -370,11 +370,12 @@ ${helpers.single_keyword("position", "static absolute relative fixed",
         /// The keywords are the same, and the `LengthOrPercentage` is computed
         /// here.
         #[allow(non_camel_case_types)]
-        #[derive(Clone, Copy, Debug, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        #[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, PartialEq)]
         pub enum T {
             % for keyword in vertical_align_keywords:
-                ${to_rust_ident(keyword)},
+            #[animation(error)] // only animatable as a length
+            ${to_rust_ident(keyword)},
             % endfor
             LengthOrPercentage(computed::LengthOrPercentage),
         }

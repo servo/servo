@@ -787,40 +787,6 @@ impl ToAnimatedZero for Visibility {
     }
 }
 
-/// https://drafts.csswg.org/css-transitions/#animtype-length
-impl Animate for VerticalAlign {
-    #[inline]
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        match (self, other) {
-            (
-                &VerticalAlign::LengthOrPercentage(ref this),
-                &VerticalAlign::LengthOrPercentage(ref other),
-            ) => {
-                Ok(VerticalAlign::LengthOrPercentage(
-                    this.animate(other, procedure)?
-                ))
-            },
-            _ => Err(()),
-        }
-    }
-}
-
-impl ComputeSquaredDistance for VerticalAlign {
-    #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        match (self, other) {
-            (&VerticalAlign::LengthOrPercentage(ref this), &VerticalAlign::LengthOrPercentage(ref other)) => {
-                this.compute_squared_distance(other)
-            },
-            _ => {
-                // FIXME(nox): Should this return `Ok(SquaredDistance::Value(0.))`
-                // if `self` and `other` are the same keyword value?
-                Err(())
-            },
-        }
-    }
-}
-
 impl ToAnimatedZero for VerticalAlign {
     #[inline]
     fn to_animated_zero(&self) -> Result<Self, ()> { Err(()) }
