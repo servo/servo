@@ -14444,6 +14444,12 @@
      {}
     ]
    ],
+   "mozilla/paint_timing.html": [
+    [
+     "/_mozilla/mozilla/paint_timing.html",
+     {}
+    ]
+   ],
    "mozilla/parentNode_querySelector.html": [
     [
      "/_mozilla/mozilla/parentNode_querySelector.html",
@@ -27286,7 +27292,7 @@
    "testharness"
   ],
   "mozilla/interfaces.html": [
-   "7ac46204fb780c96344f166d34d0fb888c9e25c4",
+   "48028c5a9b401bab52a155c8820140a65dbc2f11",
    "testharness"
   ],
   "mozilla/interfaces.js": [
@@ -27294,7 +27300,7 @@
    "support"
   ],
   "mozilla/interfaces.worker.js": [
-   "1474c6500ce1c4aef99d200dae5407324ddbdd4a",
+   "5fb0da8a22a5afe00d1232c700720c080f5dff44",
    "testharness"
   ],
   "mozilla/iterable.html": [
@@ -27523,6 +27529,10 @@
   ],
   "mozilla/out-of-order-stylesheet-loads.html": [
    "1e0066636c757e68b13a4a5271d4184232c51e34",
+   "testharness"
+  ],
+  "mozilla/paint_timing.html": [
+   "8cf0400c36168b57c386253d647b61013896d325",
    "testharness"
   ],
   "mozilla/parentNode_querySelector.html": [
