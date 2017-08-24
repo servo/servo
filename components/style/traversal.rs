@@ -40,23 +40,6 @@ impl PreTraverseToken {
     pub fn should_traverse(&self) -> bool { self.0 }
 }
 
-/// The kind of traversals we could perform.
-#[derive(Clone, Copy, Debug)]
-pub enum TraversalDriver {
-    /// A potentially parallel traversal.
-    Parallel,
-    /// A sequential traversal.
-    Sequential,
-}
-
-impl TraversalDriver {
-    /// Returns whether this represents a parallel traversal or not.
-    #[inline]
-    pub fn is_parallel(&self) -> bool {
-        matches!(*self, TraversalDriver::Parallel)
-    }
-}
-
 #[cfg(feature = "servo")]
 #[inline]
 fn is_servo_nonincremental_layout() -> bool {
@@ -369,14 +352,6 @@ pub trait DomTraversal<E: TElement> : Sync {
 
     /// Return the shared style context common to all worker threads.
     fn shared_context(&self) -> &SharedStyleContext;
-
-    /// Whether we're performing a parallel traversal.
-    ///
-    /// NB: We do this check on runtime. We could guarantee correctness in this
-    /// regard via the type system via a `TraversalDriver` trait for this trait,
-    /// that could be one of two concrete types. It's not clear whether the
-    /// potential code size impact of that is worth it.
-    fn is_parallel(&self) -> bool;
 }
 
 /// Manually resolve style by sequentially walking up the parent chain to the

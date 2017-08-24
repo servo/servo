@@ -18,8 +18,6 @@ use style::servo::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW, STORE_OVERFLOW};
 use traversal::{AssignBSizes, AssignISizes, BubbleISizes, BuildDisplayList};
 use traversal::{InorderFlowTraversal, PostorderFlowTraversal, PreorderFlowTraversal};
 
-pub use style::sequential::traverse_dom;
-
 pub fn resolve_generated_content(root: &mut Flow, layout_context: &LayoutContext) {
     ResolveGeneratedContent::new(&layout_context).traverse(root, 0);
 }

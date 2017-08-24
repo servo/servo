@@ -21,8 +21,6 @@ use style::dom::UnsafeNode;
 use traversal::{AssignBSizes, AssignISizes, BubbleISizes};
 use traversal::{PostorderFlowTraversal, PreorderFlowTraversal};
 
-pub use style::parallel::traverse_dom;
-
 /// Traversal chunk size.
 const CHUNK_SIZE: usize = 16;
 

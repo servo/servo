@@ -127,6 +127,7 @@ use style::context::{StyleSystemOptions, ThreadLocalStyleContextCreationInfo};
 use style::context::RegisteredSpeculativePainter;
 use style::context::RegisteredSpeculativePainters;
 use style::dom::{ShowSubtree, ShowSubtreeDataAndPrimaryValues, TElement, TNode};
+use style::driver;
 use style::error_reporting::{NullReporter, RustLogReporter};
 use style::invalidation::element::restyle_hints::RestyleHint;
 use style::logical_geometry::LogicalPoint;
@@ -139,7 +140,7 @@ use style::stylesheets::{Origin, OriginSet, Stylesheet, DocumentStyleSheet, Styl
 use style::stylist::Stylist;
 use style::thread_state;
 use style::timer::Timer;
-use style::traversal::{DomTraversal, TraversalDriver};
+use style::traversal::DomTraversal;
 use style::traversal_flags::TraversalFlags;
 use style_traits::CSSPixel;
 use style_traits::DevicePixel;
@@ -1276,14 +1277,14 @@ impl LayoutThread {
         let mut layout_context =
             self.build_layout_context(guards.clone(), true, &map);
 
-        // NB: Type inference falls apart here for some reason, so we need to be very verbose. :-(
-        let traversal_driver = if self.parallel_flag && self.parallel_traversal.is_some() {
-            TraversalDriver::Parallel
+        let thread_pool = if self.parallel_flag {
+            self.parallel_traversal.as_ref()
         } else {
-            TraversalDriver::Sequential
+            None
         };
 
-        let traversal = RecalcStyleAndConstructFlows::new(layout_context, traversal_driver);
+        // NB: Type inference falls apart here for some reason, so we need to be very verbose. :-(
+        let traversal = RecalcStyleAndConstructFlows::new(layout_context);
         let token = {
             let context = <RecalcStyleAndConstructFlows as
                            DomTraversal<ServoLayoutElement>>::shared_context(&traversal);
@@ -1300,16 +1301,8 @@ impl LayoutThread {
                     self.time_profiler_chan.clone(),
                     || {
                 // Perform CSS selector matching and flow construction.
-                if traversal_driver.is_parallel() {
-                    let pool = self.parallel_traversal.as_ref().unwrap();
-                    // Parallel mode
-                    parallel::traverse_dom::<ServoLayoutElement, RecalcStyleAndConstructFlows>(
-                        &traversal, element, token, pool);
-                } else {
-                    // Sequential mode
-                    sequential::traverse_dom::<ServoLayoutElement, RecalcStyleAndConstructFlows>(
-                        &traversal, element, token);
-                }
+                driver::traverse_dom::<ServoLayoutElement, RecalcStyleAndConstructFlows>(
+                    &traversal, element, token, thread_pool);
             });
             // TODO(pcwalton): Measure energy usage of text shaping, perhaps?
             let text_shaping_time =
