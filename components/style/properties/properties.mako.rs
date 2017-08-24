@@ -23,7 +23,6 @@ use cssparser::ParserInput;
 #[cfg(feature = "servo")] use euclid::SideOffsets2D;
 use computed_values;
 use context::QuirksMode;
-use error_reporting::NullReporter;
 use font_metrics::FontMetricsProvider;
 #[cfg(feature = "gecko")] use gecko_bindings::bindings;
 #[cfg(feature = "gecko")] use gecko_bindings::structs::{self, nsCSSPropertyID};
@@ -828,10 +827,8 @@ impl UnparsedValue {
         .ok()
         .and_then(|css| {
             // As of this writing, only the base URL is used for property values:
-            let reporter = NullReporter;
             let context = ParserContext::new(Origin::Author,
                                              &self.url_data,
-                                             &reporter,
                                              None,
                                              PARSING_MODE_DEFAULT,
                                              quirks_mode);

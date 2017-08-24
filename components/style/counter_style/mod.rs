@@ -9,10 +9,10 @@
 use Atom;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser};
 use cssparser::{Parser, Token, serialize_identifier, BasicParseError, CowRcStr};
-use error_reporting::ContextualParseError;
+use error_reporting::{ContextualParseError, ParseErrorReporter};
 #[cfg(feature = "gecko")] use gecko::rules::CounterStyleDescriptors;
 #[cfg(feature = "gecko")] use gecko_bindings::structs::nsCSSCounterDesc;
-use parser::{ParserContext, Parse};
+use parser::{ParserContext, ParserErrorContext, Parse};
 use selectors::parser::SelectorParseError;
 use shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
 use std::ascii::AsciiExt;
@@ -50,8 +50,13 @@ pub fn parse_counter_style_name<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Cu
 }
 
 /// Parse the body (inside `{}`) of an @counter-style rule
-pub fn parse_counter_style_body<'i, 't>(name: CustomIdent, context: &ParserContext, input: &mut Parser<'i, 't>)
-                                        -> Result<CounterStyleRuleData, ParseError<'i>> {
+pub fn parse_counter_style_body<'i, 't, R>(name: CustomIdent,
+                                           context: &ParserContext,
+                                           error_context: &ParserErrorContext<R>,
+                                           input: &mut Parser<'i, 't>)
+                                           -> Result<CounterStyleRuleData, ParseError<'i>>
+    where R: ParseErrorReporter
+{
     let start = input.current_source_location();
     let mut rule = CounterStyleRuleData::empty(name);
     {
@@ -63,7 +68,7 @@ pub fn parse_counter_style_body<'i, 't>(name: CustomIdent, context: &ParserConte
         while let Some(declaration) = iter.next() {
             if let Err(err) = declaration {
                 let error = ContextualParseError::UnsupportedCounterStyleDescriptorDeclaration(err.slice, err.error);
-                context.log_css_error(err.location, error)
+                context.log_css_error(error_context, err.location, error)
             }
         }
     }
@@ -95,7 +100,7 @@ pub fn parse_counter_style_body<'i, 't>(name: CustomIdent, context: &ParserConte
         _ => None
     };
     if let Some(error) = error {
-        context.log_css_error(start, error);
+        context.log_css_error(error_context, start, error);
         Err(StyleParseError::UnspecifiedError.into())
     } else {
         Ok(rule)

@@ -38,6 +38,12 @@ pub fn assert_parsing_mode_match() {
     }
 }
 
+/// The context required to report a parse error.
+pub struct ParserErrorContext<'a, R: 'a> {
+    /// An error reporter to report syntax errors.
+    pub error_reporter: &'a R,
+}
+
 /// The data that the parser needs from outside in order to parse a stylesheet.
 pub struct ParserContext<'a> {
     /// The `Origin` of the stylesheet, whether it's a user, author or
@@ -45,8 +51,6 @@ pub struct ParserContext<'a> {
     pub stylesheet_origin: Origin,
     /// The extra data we need for resolving url values.
     pub url_data: &'a UrlExtraData,
-    /// An error reporter to report syntax errors.
-    pub error_reporter: &'a ParseErrorReporter,
     /// The current rule type, if any.
     pub rule_type: Option<CssRuleType>,
     /// Line number offsets for inline stylesheets
@@ -64,7 +68,6 @@ impl<'a> ParserContext<'a> {
     pub fn new(
         stylesheet_origin: Origin,
         url_data: &'a UrlExtraData,
-        error_reporter: &'a ParseErrorReporter,
         rule_type: Option<CssRuleType>,
         parsing_mode: ParsingMode,
         quirks_mode: QuirksMode,
@@ -72,7 +75,6 @@ impl<'a> ParserContext<'a> {
         ParserContext {
             stylesheet_origin: stylesheet_origin,
             url_data: url_data,
-            error_reporter: error_reporter,
             rule_type: rule_type,
             line_number_offset: 0u64,
             parsing_mode: parsing_mode,
@@ -84,7 +86,6 @@ impl<'a> ParserContext<'a> {
     /// Create a parser context for on-the-fly parsing in CSSOM
     pub fn new_for_cssom(
         url_data: &'a UrlExtraData,
-        error_reporter: &'a ParseErrorReporter,
         rule_type: Option<CssRuleType>,
         parsing_mode: ParsingMode,
         quirks_mode: QuirksMode
@@ -92,7 +93,6 @@ impl<'a> ParserContext<'a> {
         Self::new(
             Origin::Author,
             url_data,
-            error_reporter,
             rule_type,
             parsing_mode,
             quirks_mode,
@@ -108,7 +108,6 @@ impl<'a> ParserContext<'a> {
         ParserContext {
             stylesheet_origin: context.stylesheet_origin,
             url_data: context.url_data,
-            error_reporter: context.error_reporter,
             rule_type: Some(rule_type),
             line_number_offset: context.line_number_offset,
             parsing_mode: context.parsing_mode,
@@ -121,7 +120,6 @@ impl<'a> ParserContext<'a> {
     pub fn new_with_line_number_offset(
         stylesheet_origin: Origin,
         url_data: &'a UrlExtraData,
-        error_reporter: &'a ParseErrorReporter,
         line_number_offset: u64,
         parsing_mode: ParsingMode,
         quirks_mode: QuirksMode,
@@ -129,7 +127,6 @@ impl<'a> ParserContext<'a> {
         ParserContext {
             stylesheet_origin: stylesheet_origin,
             url_data: url_data,
-            error_reporter: error_reporter,
             rule_type: None,
             line_number_offset: line_number_offset,
             parsing_mode: parsing_mode,
@@ -144,12 +141,17 @@ impl<'a> ParserContext<'a> {
     }
 
     /// Record a CSS parse error with this context’s error reporting.
-    pub fn log_css_error(&self, location: SourceLocation, error: ContextualParseError) {
+    pub fn log_css_error<R>(&self,
+                            context: &ParserErrorContext<R>,
+                            location: SourceLocation,
+                            error: ContextualParseError)
+        where R: ParseErrorReporter
+    {
         let location = SourceLocation {
             line: location.line + self.line_number_offset as u32,
             column: location.column,
         };
-        self.error_reporter.report_error(self.url_data, location, error)
+        context.error_reporter.report_error(self.url_data, location, error)
     }
 }
 

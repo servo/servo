@@ -10,7 +10,7 @@ use context::QuirksMode;
 use cssparser::{DeclarationListParser, parse_important, ParserInput, CowRcStr};
 use cssparser::{Parser, AtRuleParser, DeclarationParser, Delimiter, ParseError as CssParseError};
 use error_reporting::{ParseErrorReporter, ContextualParseError};
-use parser::ParserContext;
+use parser::{ParserContext, ParserErrorContext};
 use properties::animated_properties::AnimationValue;
 use selectors::parser::SelectorParseError;
 use shared_lock::Locked;
@@ -896,36 +896,39 @@ pub fn append_serialization<'a, W, I, N>(dest: &mut W,
 
 /// A helper to parse the style attribute of an element, in order for this to be
 /// shared between Servo and Gecko.
-pub fn parse_style_attribute(input: &str,
-                             url_data: &UrlExtraData,
-                             error_reporter: &ParseErrorReporter,
-                             quirks_mode: QuirksMode)
-                             -> PropertyDeclarationBlock {
+pub fn parse_style_attribute<R>(input: &str,
+                                url_data: &UrlExtraData,
+                                error_reporter: &R,
+                                quirks_mode: QuirksMode)
+                                -> PropertyDeclarationBlock
+    where R: ParseErrorReporter
+{
     let context = ParserContext::new(Origin::Author,
                                      url_data,
-                                     error_reporter,
                                      Some(CssRuleType::Style),
                                      PARSING_MODE_DEFAULT,
                                      quirks_mode);
+    let error_context = ParserErrorContext { error_reporter: error_reporter };
     let mut input = ParserInput::new(input);
-    parse_property_declaration_list(&context, &mut Parser::new(&mut input))
+    parse_property_declaration_list(&context, &error_context, &mut Parser::new(&mut input))
 }
 
 /// Parse a given property declaration. Can result in multiple
 /// `PropertyDeclaration`s when expanding a shorthand, for example.
 ///
 /// This does not attempt to parse !important at all.
-pub fn parse_one_declaration_into(declarations: &mut SourcePropertyDeclaration,
-                                  id: PropertyId,
-                                  input: &str,
-                                  url_data: &UrlExtraData,
-                                  error_reporter: &ParseErrorReporter,
-                                  parsing_mode: ParsingMode,
-                                  quirks_mode: QuirksMode)
-                                  -> Result<(), ()> {
+pub fn parse_one_declaration_into<R>(declarations: &mut SourcePropertyDeclaration,
+                                     id: PropertyId,
+                                     input: &str,
+                                     url_data: &UrlExtraData,
+                                     error_reporter: &R,
+                                     parsing_mode: ParsingMode,
+                                     quirks_mode: QuirksMode)
+                                     -> Result<(), ()>
+    where R: ParseErrorReporter
+{
     let context = ParserContext::new(Origin::Author,
                                      url_data,
-                                     error_reporter,
                                      Some(CssRuleType::Style),
                                      parsing_mode,
                                      quirks_mode);
@@ -939,7 +942,8 @@ pub fn parse_one_declaration_into(declarations: &mut SourcePropertyDeclaration,
     }).map_err(|err| {
         let error = ContextualParseError::UnsupportedPropertyDeclaration(
             parser.slice_from(start_position), err);
-        context.log_css_error(start_location, error);
+        let error_context = ParserErrorContext { error_reporter: error_reporter };
+        context.log_css_error(&error_context, start_location, error);
     })
 }
 
@@ -997,9 +1001,12 @@ impl<'a, 'b, 'i> DeclarationParser<'i> for PropertyDeclarationParser<'a, 'b> {
 
 /// Parse a list of property declarations and return a property declaration
 /// block.
-pub fn parse_property_declaration_list(context: &ParserContext,
-                                       input: &mut Parser)
-                                       -> PropertyDeclarationBlock {
+pub fn parse_property_declaration_list<R>(context: &ParserContext,
+                                          error_context: &ParserErrorContext<R>,
+                                          input: &mut Parser)
+                                          -> PropertyDeclarationBlock
+    where R: ParseErrorReporter
+{
     let mut declarations = SourcePropertyDeclaration::new();
     let mut block = PropertyDeclarationBlock::new();
     let parser = PropertyDeclarationParser {
@@ -1024,7 +1031,7 @@ pub fn parse_property_declaration_list(context: &ParserContext,
                 }
 
                 let error = ContextualParseError::UnsupportedPropertyDeclaration(err.slice, err.error);
-                context.log_css_error(err.location, error);
+                context.log_css_error(error_context, err.location, error);
             }
         }
     }

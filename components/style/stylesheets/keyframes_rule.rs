@@ -6,8 +6,8 @@
 
 use cssparser::{AtRuleParser, Parser, QualifiedRuleParser, RuleListParser, ParserInput, CowRcStr};
 use cssparser::{DeclarationListParser, DeclarationParser, parse_one_rule, SourceLocation};
-use error_reporting::{NullReporter, ContextualParseError};
-use parser::ParserContext;
+use error_reporting::{NullReporter, ContextualParseError, ParseErrorReporter};
+use parser::{ParserContext, ParserErrorContext};
 use properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock, PropertyId, PropertyParserContext};
 use properties::{PropertyDeclarationId, LonghandId, SourcePropertyDeclaration};
 use properties::LonghandIdSet;
@@ -218,11 +218,11 @@ impl Keyframe {
         let mut context = ParserContext::new(
             parent_stylesheet_contents.origin,
             &url_data,
-            &error_reporter,
             Some(CssRuleType::Keyframe),
             PARSING_MODE_DEFAULT,
             parent_stylesheet_contents.quirks_mode
         );
+        let error_context = ParserErrorContext { error_reporter: &error_reporter };
         context.namespaces = Some(&*namespaces);
         let mut input = ParserInput::new(css);
         let mut input = Parser::new(&mut input);
@@ -230,6 +230,7 @@ impl Keyframe {
         let mut declarations = SourcePropertyDeclaration::new();
         let mut rule_parser = KeyframeListParser {
             context: &context,
+            error_context: &error_context,
             shared_lock: &lock,
             declarations: &mut declarations,
         };
@@ -447,37 +448,42 @@ impl KeyframesAnimation {
 /// 40%, 60%, 100% {
 ///     width: 100%;
 /// }
-struct KeyframeListParser<'a> {
+struct KeyframeListParser<'a, R: 'a> {
     context: &'a ParserContext<'a>,
+    error_context: &'a ParserErrorContext<'a, R>,
     shared_lock: &'a SharedRwLock,
     declarations: &'a mut SourcePropertyDeclaration,
 }
 
 /// Parses a keyframe list from CSS input.
-pub fn parse_keyframe_list(
+pub fn parse_keyframe_list<R>(
     context: &ParserContext,
+    error_context: &ParserErrorContext<R>,
     input: &mut Parser,
     shared_lock: &SharedRwLock
-) -> Vec<Arc<Locked<Keyframe>>> {
+) -> Vec<Arc<Locked<Keyframe>>>
+    where R: ParseErrorReporter
+{
     debug_assert!(context.namespaces.is_some(),
                   "Parsing a keyframe list from a context without namespaces?");
 
     let mut declarations = SourcePropertyDeclaration::new();
     RuleListParser::new_for_nested_rule(input, KeyframeListParser {
         context: context,
+        error_context: error_context,
         shared_lock: shared_lock,
         declarations: &mut declarations,
     }).filter_map(Result::ok).collect()
 }
 
 enum Void {}
-impl<'a, 'i> AtRuleParser<'i> for KeyframeListParser<'a> {
+impl<'a, 'i, R> AtRuleParser<'i> for KeyframeListParser<'a, R> {
     type Prelude = Void;
     type AtRule = Arc<Locked<Keyframe>>;
     type Error = SelectorParseError<'i, StyleParseError<'i>>;
 }
 
-impl<'a, 'i> QualifiedRuleParser<'i> for KeyframeListParser<'a> {
+impl<'a, 'i, R: ParseErrorReporter> QualifiedRuleParser<'i> for KeyframeListParser<'a, R> {
     type Prelude = KeyframeSelector;
     type QualifiedRule = Arc<Locked<Keyframe>>;
     type Error = SelectorParseError<'i, StyleParseError<'i>>;
@@ -489,7 +495,7 @@ impl<'a, 'i> QualifiedRuleParser<'i> for KeyframeListParser<'a> {
             Ok(sel) => Ok(sel),
             Err(e) => {
                 let error = ContextualParseError::InvalidKeyframeRule(input.slice_from(start_position), e.clone());
-                self.context.log_css_error(start_location, error);
+                self.context.log_css_error(self.error_context, start_location, error);
                 Err(e)
             }
         }
@@ -518,7 +524,7 @@ impl<'a, 'i> QualifiedRuleParser<'i> for KeyframeListParser<'a> {
                 Err(err) => {
                     iter.parser.declarations.clear();
                     let error = ContextualParseError::UnsupportedKeyframePropertyDeclaration(err.slice, err.error);
-                    context.log_css_error(err.location, error);
+                    context.log_css_error(self.error_context, err.location, error);
                 }
             }
             // `parse_important` is not called here, `!important` is not allowed in keyframe blocks.

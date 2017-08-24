@@ -7,5 +7,5 @@ use style::properties::longhands::background_size;
 
 #[test]
 fn background_size_should_reject_negative_values() {
-    assert!(parse(background_size::parse, "-40% -40%").is_err());
+    assert!(parse(|c, _, i| background_size::parse(c, i), "-40% -40%").is_err());
 }

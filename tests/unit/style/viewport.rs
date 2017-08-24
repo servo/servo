@@ -11,7 +11,7 @@ use servo_config::prefs::{PREFS, PrefValue};
 use servo_url::ServoUrl;
 use style::context::QuirksMode;
 use style::media_queries::{Device, MediaList, MediaType};
-use style::parser::{Parse, ParserContext};
+use style::parser::{Parse, ParserContext, ParserErrorContext};
 use style::shared_lock::SharedRwLock;
 use style::stylesheets::{CssRuleType, Stylesheet, StylesheetInDocument, Origin};
 use style::stylesheets::viewport_rule::*;
@@ -302,14 +302,14 @@ fn multiple_stylesheets_cascading() {
 #[test]
 fn constrain_viewport() {
     let url = ServoUrl::parse("http://localhost").unwrap();
-    let reporter = CSSErrorReporterTest;
-    let context = ParserContext::new(Origin::Author, &url, &reporter, Some(CssRuleType::Viewport),
+    let context = ParserContext::new(Origin::Author, &url, Some(CssRuleType::Viewport),
                                      PARSING_MODE_DEFAULT,
                                      QuirksMode::NoQuirks);
+    let error_context = ParserErrorContext { error_reporter: &CSSErrorReporterTest };
 
     macro_rules! from_css {
         ($css:expr) => {
-            &ViewportRule::parse(&context, &mut Parser::new(&mut $css)).unwrap()
+            &ViewportRule::parse(&context, &error_context, &mut Parser::new(&mut $css)).unwrap()
         }
     }
 

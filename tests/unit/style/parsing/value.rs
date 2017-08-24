@@ -4,7 +4,6 @@
 
 use app_units::Au;
 use cssparser::{Parser, ParserInput};
-use media_queries::CSSErrorReporterTest;
 use style::context::QuirksMode;
 use style::parser::ParserContext;
 use style::stylesheets::{CssRuleType, Origin};
@@ -23,8 +22,7 @@ fn length_has_viewport_percentage() {
 fn test_parsing_allo_all_numeric_values() {
     // In SVG length mode, non-zero lengths are assumed to be px.
     let url = ::servo_url::ServoUrl::parse("http://localhost").unwrap();
-    let reporter = CSSErrorReporterTest;
-    let context = ParserContext::new(Origin::Author, &url, &reporter,
+    let context = ParserContext::new(Origin::Author, &url,
                                      Some(CssRuleType::Style), PARSING_MODE_ALLOW_ALL_NUMERIC_VALUES,
                                      QuirksMode::NoQuirks);
     let mut input = ParserInput::new("-1");

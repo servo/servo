@@ -10,7 +10,7 @@ use fnv::FnvHashMap;
 use invalidation::media_queries::{MediaListKey, ToMediaListKey};
 use media_queries::{MediaList, Device};
 use parking_lot::RwLock;
-use parser::ParserContext;
+use parser::{ParserContext, ParserErrorContext};
 use servo_arc::Arc;
 use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard};
 use std::mem;
@@ -67,13 +67,13 @@ pub struct StylesheetContents {
 impl StylesheetContents {
     /// Parse a given CSS string, with a given url-data, origin, and
     /// quirks mode.
-    pub fn from_str(
+    pub fn from_str<R: ParseErrorReporter>(
         css: &str,
         url_data: UrlExtraData,
         origin: Origin,
         shared_lock: &SharedRwLock,
         stylesheet_loader: Option<&StylesheetLoader>,
-        error_reporter: &ParseErrorReporter,
+        error_reporter: &R,
         quirks_mode: QuirksMode,
         line_number_offset: u64
     ) -> Self {
@@ -313,12 +313,14 @@ impl StylesheetInDocument for DocumentStyleSheet {
 
 impl Stylesheet {
     /// Updates an empty stylesheet from a given string of text.
-    pub fn update_from_str(existing: &Stylesheet,
-                           css: &str,
-                           url_data: UrlExtraData,
-                           stylesheet_loader: Option<&StylesheetLoader>,
-                           error_reporter: &ParseErrorReporter,
-                           line_number_offset: u64) {
+    pub fn update_from_str<R>(existing: &Stylesheet,
+                              css: &str,
+                              url_data: UrlExtraData,
+                              stylesheet_loader: Option<&StylesheetLoader>,
+                              error_reporter: &R,
+                              line_number_offset: u64)
+        where R: ParseErrorReporter
+    {
         let namespaces = RwLock::new(Namespaces::default());
         let (rules, dirty_on_viewport_size_change, source_map_url) =
             Stylesheet::parse_rules(
@@ -347,14 +349,14 @@ impl Stylesheet {
         *existing.contents.source_map_url.write() = source_map_url;
     }
 
-    fn parse_rules(
+    fn parse_rules<R: ParseErrorReporter>(
         css: &str,
         url_data: &UrlExtraData,
         origin: Origin,
         namespaces: &mut Namespaces,
         shared_lock: &SharedRwLock,
         stylesheet_loader: Option<&StylesheetLoader>,
-        error_reporter: &ParseErrorReporter,
+        error_reporter: &R,
         quirks_mode: QuirksMode,
         line_number_offset: u64
     ) -> (Vec<CssRule>, bool, Option<String>) {
@@ -366,17 +368,18 @@ impl Stylesheet {
             ParserContext::new_with_line_number_offset(
                 origin,
                 url_data,
-                error_reporter,
                 line_number_offset,
                 PARSING_MODE_DEFAULT,
                 quirks_mode
             );
+        let error_context = ParserErrorContext { error_reporter };
 
         let rule_parser = TopLevelRuleParser {
             stylesheet_origin: origin,
             shared_lock: shared_lock,
             loader: stylesheet_loader,
             context: context,
+            error_context: error_context,
             state: State::Start,
             had_hierarchy_error: false,
             namespaces: namespaces,
@@ -393,7 +396,8 @@ impl Stylesheet {
                     Ok(rule) => rules.push(rule),
                     Err(err) => {
                         let error = ContextualParseError::InvalidRule(err.slice, err.error);
-                        iter.parser.context.log_css_error(err.location, error);
+                        iter.parser.context.log_css_error(&iter.parser.error_context,
+                                                          err.location, error);
                     }
                 }
             }
@@ -408,16 +412,18 @@ impl Stylesheet {
     ///
     /// Effectively creates a new stylesheet and forwards the hard work to
     /// `Stylesheet::update_from_str`.
-    pub fn from_str(css: &str,
-                    url_data: UrlExtraData,
-                    origin: Origin,
-                    media: Arc<Locked<MediaList>>,
-                    shared_lock: SharedRwLock,
-                    stylesheet_loader: Option<&StylesheetLoader>,
-                    error_reporter: &ParseErrorReporter,
-                    quirks_mode: QuirksMode,
-                    line_number_offset: u64)
-                    -> Stylesheet {
+    pub fn from_str<R: ParseErrorReporter>(
+        css: &str,
+        url_data: UrlExtraData,
+        origin: Origin,
+        media: Arc<Locked<MediaList>>,
+        shared_lock: SharedRwLock,
+        stylesheet_loader: Option<&StylesheetLoader>,
+        error_reporter: &R,
+        quirks_mode: QuirksMode,
+        line_number_offset: u64)
+        -> Stylesheet
+    {
         let contents = StylesheetContents::from_str(
             css,
             url_data,
