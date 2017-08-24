@@ -13,6 +13,7 @@ use eutil::Downcast;
 #[cfg(target_os="linux")]
 use interfaces::CefApp;
 use interfaces::CefBrowser;
+use interfaces::cef_screen_info_t;
 use render_handler::CefRenderHandlerExtensions;
 use types::{cef_cursor_handle_t, cef_cursor_type_t, cef_rect_t};
 use wrappers::CefWrap;
@@ -241,6 +242,51 @@ impl WindowMethods for Window {
         //TODO get real window position
         (Size2D::new(width, height), Point2D::zero())
     }
+
+    fn screen_size(&self, _: BrowserId) -> Size2D<u32> {
+        let browser = self.cef_browser.borrow();
+        match *browser {
+            None => Size2D::zero(),
+            Some(ref browser) => {
+                let mut screen_info = cef_screen_info_t {
+                    device_scale_factor: 0 as f32,
+                    depth: 0 as i32,
+                    depth_per_component: 0 as i32,
+                    is_monochrome: 0 as i32,
+                    rect: cef_rect_t::zero(),
+                    available_rect: cef_rect_t::zero(),
+                };
+                browser.get_host()
+                       .get_client()
+                       .get_render_handler()
+                       .get_screen_info((*browser).clone(), &mut screen_info);
+                Size2D::new(screen_info.rect.width as u32, screen_info.rect.height as u32)
+            }
+        }
+    }
+
+    fn screen_avail_size(&self, _: BrowserId) -> Size2D<u32> {
+        let browser = self.cef_browser.borrow();
+        match *browser {
+            None => Size2D::zero(),
+            Some(ref browser) => {
+                let mut screen_info = cef_screen_info_t {
+                    device_scale_factor: 0 as f32,
+                    depth: 0 as i32,
+                    depth_per_component: 0 as i32,
+                    is_monochrome: 0 as i32,
+                    rect: cef_rect_t::zero(),
+                    available_rect: cef_rect_t::zero(),
+                };
+                browser.get_host()
+                       .get_client()
+                       .get_render_handler()
+                       .get_screen_info((*browser).clone(), &mut screen_info);
+                Size2D::new(screen_info.available_rect.width as u32, screen_info.available_rect.height as u32)
+            }
+        }
+    }
+
 
     fn set_inner_size(&self, _: BrowserId, _size: Size2D<u32>) {
 
