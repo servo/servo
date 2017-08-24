@@ -38,7 +38,6 @@ impl CSS {
         let url = win.Document().url();
         let context = ParserContext::new_for_cssom(
             &url,
-            win.css_error_reporter(),
             Some(CssRuleType::Style),
             PARSING_MODE_DEFAULT,
             QuirksMode::NoQuirks
@@ -55,7 +54,6 @@ impl CSS {
             let url = win.Document().url();
             let context = ParserContext::new_for_cssom(
                 &url,
-                win.css_error_reporter(),
                 Some(CssRuleType::Style),
                 PARSING_MODE_DEFAULT,
                 QuirksMode::NoQuirks

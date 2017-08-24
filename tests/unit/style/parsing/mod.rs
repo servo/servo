@@ -5,7 +5,6 @@
 //! Tests for parsing and serialization of values/properties
 
 use cssparser::{Parser, ParserInput};
-use media_queries::CSSErrorReporterTest;
 use style::context::QuirksMode;
 use style::parser::ParserContext;
 use style::stylesheets::{CssRuleType, Origin};
@@ -20,8 +19,7 @@ where F: for<'t> Fn(&ParserContext, &mut Parser<'static, 't>) -> Result<T, Parse
 fn parse_input<'i: 't, 't, T, F>(f: F, input: &'t mut ParserInput<'i>) -> Result<T, ParseError<'i>>
 where F: Fn(&ParserContext, &mut Parser<'i, 't>) -> Result<T, ParseError<'i>> {
     let url = ::servo_url::ServoUrl::parse("http://localhost").unwrap();
-    let reporter = CSSErrorReporterTest;
-    let context = ParserContext::new(Origin::Author, &url, &reporter, Some(CssRuleType::Style),
+    let context = ParserContext::new(Origin::Author, &url, Some(CssRuleType::Style),
                                      PARSING_MODE_DEFAULT,
                                      QuirksMode::NoQuirks);
     let mut parser = Parser::new(input);

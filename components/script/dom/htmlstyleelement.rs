@@ -86,7 +86,6 @@ impl HTMLStyleElement {
         let data = node.GetTextContent().expect("Element.textContent must be a string");
         let url = win.get_url();
         let context = CssParserContext::new_for_cssom(&url,
-                                                      win.css_error_reporter(),
                                                       Some(CssRuleType::Media),
                                                       PARSING_MODE_DEFAULT,
                                                       doc.quirks_mode());

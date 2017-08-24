@@ -26,7 +26,7 @@ pub mod viewport_rule;
 
 use cssparser::{parse_one_rule, Parser, ParserInput};
 use error_reporting::NullReporter;
-use parser::ParserContext;
+use parser::{ParserContext, ParserErrorContext};
 use servo_arc::Arc;
 use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt;
@@ -230,7 +230,6 @@ impl CssRule {
         let context = ParserContext::new(
             parent_stylesheet_contents.origin,
             &url_data,
-            &error_reporter,
             None,
             PARSING_MODE_DEFAULT,
             parent_stylesheet_contents.quirks_mode,
@@ -246,6 +245,7 @@ impl CssRule {
         let mut rule_parser = TopLevelRuleParser {
             stylesheet_origin: parent_stylesheet_contents.origin,
             context: context,
+            error_context: ParserErrorContext { error_reporter: &error_reporter },
             shared_lock: &shared_lock,
             loader: loader,
             state: state,

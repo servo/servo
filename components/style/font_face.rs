@@ -13,10 +13,10 @@ use computed_values::{font_feature_settings, font_stretch, font_style, font_weig
 use computed_values::font_family::FamilyName;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
 use cssparser::{SourceLocation, CowRcStr};
-use error_reporting::ContextualParseError;
+use error_reporting::{ContextualParseError, ParseErrorReporter};
 #[cfg(feature = "gecko")] use gecko_bindings::structs::CSSFontFaceDescriptors;
 #[cfg(feature = "gecko")] use cssparser::UnicodeRange;
-use parser::{ParserContext, Parse};
+use parser::{ParserContext, ParserErrorContext, Parse};
 #[cfg(feature = "gecko")]
 use properties::longhands::font_language_override;
 use selectors::parser::SelectorParseError;
@@ -108,8 +108,13 @@ impl Parse for FontWeight {
 /// Parse the block inside a `@font-face` rule.
 ///
 /// Note that the prelude parsing code lives in the `stylesheets` module.
-pub fn parse_font_face_block(context: &ParserContext, input: &mut Parser, location: SourceLocation)
-    -> FontFaceRuleData {
+pub fn parse_font_face_block<R>(context: &ParserContext,
+                                error_context: &ParserErrorContext<R>,
+                                input: &mut Parser,
+                                location: SourceLocation)
+                                -> FontFaceRuleData
+    where R: ParseErrorReporter
+{
     let mut rule = FontFaceRuleData::empty(location);
     {
         let parser = FontFaceRuleParser {
@@ -120,7 +125,7 @@ pub fn parse_font_face_block(context: &ParserContext, input: &mut Parser, locati
         while let Some(declaration) = iter.next() {
             if let Err(err) = declaration {
                 let error = ContextualParseError::UnsupportedFontFaceDescriptor(err.slice, err.error);
-                context.log_css_error(err.location, error)
+                context.log_css_error(error_context, err.location, error)
             }
         }
     }

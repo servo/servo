@@ -10,8 +10,8 @@ use Atom;
 use computed_values::font_family::FamilyName;
 use cssparser::{AtRuleParser, AtRuleType, BasicParseError, DeclarationListParser, DeclarationParser, Parser};
 use cssparser::{CowRcStr, RuleListParser, SourceLocation, QualifiedRuleParser, Token, serialize_identifier};
-use error_reporting::ContextualParseError;
-use parser::{ParserContext, Parse};
+use error_reporting::{ContextualParseError, ParseErrorReporter};
+use parser::{ParserContext, ParserErrorContext, Parse};
 use selectors::parser::SelectorParseError;
 use shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt;
@@ -210,20 +210,26 @@ macro_rules! font_feature_values_blocks {
             }
 
             /// Parses a `FontFeatureValuesRule`.
-            pub fn parse(context: &ParserContext, input: &mut Parser,
-                         family_names: Vec<FamilyName>, location: SourceLocation)
-                         -> FontFeatureValuesRule {
+            pub fn parse<R>(context: &ParserContext,
+                            error_context: &ParserErrorContext<R>,
+                            input: &mut Parser,
+                            family_names: Vec<FamilyName>,
+                            location: SourceLocation)
+                            -> FontFeatureValuesRule
+                where R: ParseErrorReporter
+            {
                 let mut rule = FontFeatureValuesRule::new(family_names, location);
 
                 {
                     let mut iter = RuleListParser::new_for_nested_rule(input, FontFeatureValuesRuleParser {
                         context: context,
+                        error_context: error_context,
                         rule: &mut rule,
                     });
                     while let Some(result) = iter.next() {
                         if let Err(err) = result {
                             let error = ContextualParseError::UnsupportedRule(err.slice, err.error);
-                            context.log_css_error(err.location, error);
+                            context.log_css_error(error_context, err.location, error);
                         }
                     }
                 }
@@ -293,19 +299,20 @@ macro_rules! font_feature_values_blocks {
         /// }
         /// <feature-type> = @stylistic | @historical-forms | @styleset |
         /// @character-variant | @swash | @ornaments | @annotation
-        struct FontFeatureValuesRuleParser<'a> {
+        struct FontFeatureValuesRuleParser<'a, R: 'a> {
             context: &'a ParserContext<'a>,
+            error_context: &'a ParserErrorContext<'a, R>,
             rule: &'a mut FontFeatureValuesRule,
         }
 
         /// Default methods reject all qualified rules.
-        impl<'a, 'i> QualifiedRuleParser<'i> for FontFeatureValuesRuleParser<'a> {
+        impl<'a, 'i, R: ParseErrorReporter> QualifiedRuleParser<'i> for FontFeatureValuesRuleParser<'a, R> {
             type Prelude = ();
             type QualifiedRule = ();
             type Error = SelectorParseError<'i, StyleParseError<'i>>;
         }
 
-        impl<'a, 'i> AtRuleParser<'i> for FontFeatureValuesRuleParser<'a> {
+        impl<'a, 'i, R: ParseErrorReporter> AtRuleParser<'i> for FontFeatureValuesRuleParser<'a, R> {
             type Prelude = BlockType;
             type AtRule = ();
             type Error = SelectorParseError<'i, StyleParseError<'i>>;
@@ -341,7 +348,7 @@ macro_rules! font_feature_values_blocks {
                                 if let Err(err) = declaration {
                                     let error = ContextualParseError::UnsupportedKeyframePropertyDeclaration(
                                         err.slice, err.error);
-                                    self.context.log_css_error(err.location, error);
+                                    self.context.log_css_error(self.error_context, err.location, error);
                                 }
                             }
                         },

@@ -63,7 +63,7 @@ impl CSSSupportsRule {
             let win = global.as_window();
             let url = win.Document().url();
             let quirks_mode = win.Document().quirks_mode();
-            let context = ParserContext::new_for_cssom(&url, win.css_error_reporter(), Some(CssRuleType::Supports),
+            let context = ParserContext::new_for_cssom(&url, Some(CssRuleType::Supports),
                                                        PARSING_MODE_DEFAULT,
                                                        quirks_mode);
             let enabled = cond.eval(&context);
