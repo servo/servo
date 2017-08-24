@@ -1107,7 +1107,7 @@ impl ToAnimatedZero for TransformOperation {
                 Ok(TransformOperation::Scale(1.0, 1.0, 1.0))
             },
             TransformOperation::Rotate(x, y, z, a) => {
-                let (x, y, z, _) = DirectionVector::get_normalized_vector_and_angle(x, y, z, a);
+                let (x, y, z, _) = TransformList::get_normalized_vector_and_angle(x, y, z, a);
                 Ok(TransformOperation::Rotate(x, y, z, Angle::zero()))
             },
             TransformOperation::Perspective(..) |
@@ -1185,9 +1185,9 @@ impl Animate for TransformOperation {
                 &TransformOperation::Rotate(tx, ty, tz, ta),
             ) => {
                 let (fx, fy, fz, fa) =
-                    DirectionVector::get_normalized_vector_and_angle(fx, fy, fz, fa);
+                    TransformList::get_normalized_vector_and_angle(fx, fy, fz, fa);
                 let (tx, ty, tz, ta) =
-                    DirectionVector::get_normalized_vector_and_angle(tx, ty, tz, ta);
+                    TransformList::get_normalized_vector_and_angle(tx, ty, tz, ta);
                 if (fx, fy, fz) == (tx, ty, tz) {
                     let ia = fa.animate(&ta, procedure)?;
                     Ok(TransformOperation::Rotate(fx, fy, fz, ia))
@@ -1604,8 +1604,8 @@ impl Quaternion {
     /// Return a quaternion from a unit direction vector and angle (unit: radian).
     #[inline]
     fn from_direction_and_angle(vector: &DirectionVector, angle: f64) -> Self {
-        debug_assert!((vector.length() - 1.).abs() < 0.0001f64,
-                       "Only accept an unit direction vector to create a quaternion");
+        debug_assert!((vector.length() - 1.).abs() < 0.0001,
+                      "Only accept an unit direction vector to create a quaternion");
         // Reference:
         // https://en.wikipedia.org/wiki/Quaternions_and_spatial_rotation
         //
@@ -1615,9 +1615,9 @@ impl Quaternion {
         //   q = cos(theta/2) + (xi + yj + zk)(sin(theta/2))
         //     = cos(theta/2) +
         //       x*sin(theta/2)i + y*sin(theta/2)j + z*sin(theta/2)k
-        Quaternion(vector.0.x * (angle / 2.).sin(),
-                   vector.0.y * (angle / 2.).sin(),
-                   vector.0.z * (angle / 2.).sin(),
+        Quaternion(vector.x as f64 * (angle / 2.).sin(),
+                   vector.y as f64 * (angle / 2.).sin(),
+                   vector.z as f64 * (angle / 2.).sin(),
                    (angle / 2.).cos())
     }
 
@@ -2304,9 +2304,9 @@ impl ComputeSquaredDistance for TransformOperation {
                 &TransformOperation::Rotate(tx, ty, tz, ta),
             ) => {
                 let (fx, fy, fz, angle1) =
-                    DirectionVector::get_normalized_vector_and_angle(fx, fy, fz, fa);
+                    TransformList::get_normalized_vector_and_angle(fx, fy, fz, fa);
                 let (tx, ty, tz, angle2) =
-                    DirectionVector::get_normalized_vector_and_angle(tx, ty, tz, ta);
+                    TransformList::get_normalized_vector_and_angle(tx, ty, tz, ta);
                 if (fx, fy, fz) == (tx, ty, tz) {
                     angle1.compute_squared_distance(&angle2)
                 } else {

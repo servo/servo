@@ -5,7 +5,7 @@
 //! Computed types for CSS values that are related to transformations.
 
 use app_units::Au;
-use euclid::{Point3D, Rect, Transform3D};
+use euclid::{Rect, Transform3D, Vector3D};
 use properties::longhands::transform::computed_value::{ComputedOperation, ComputedMatrix};
 use properties::longhands::transform::computed_value::T as TransformList;
 use std::f32;
@@ -21,6 +21,9 @@ pub type TransformOrigin = GenericTransformOrigin<LengthOrPercentage, LengthOrPe
 /// A computed timing function.
 pub type TimingFunction = GenericTimingFunction<u32, Number>;
 
+/// A vector to represent the direction vector (rotate axis) for Rotate3D.
+pub type DirectionVector = Vector3D<CSSFloat>;
+
 impl TransformOrigin {
     /// Returns the initial computed value for `transform-origin`.
     #[inline]
@@ -30,52 +33,6 @@ impl TransformOrigin {
             LengthOrPercentage::Percentage(Percentage(0.5)),
             Length::from_px(0),
         )
-    }
-}
-
-/// A wrapper of Point3D to represent the direction vector (rotate axis) for Rotate3D.
-#[derive(Clone, Copy, Debug, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub struct DirectionVector(pub Point3D<f64>);
-
-impl DirectionVector {
-    /// Create a DirectionVector.
-    #[inline]
-    pub fn new(x: f32, y: f32, z: f32) -> Self {
-        DirectionVector(Point3D::new(x as f64, y as f64, z as f64))
-    }
-
-    /// Return the normalized direction vector.
-    #[inline]
-    pub fn normalize(&mut self) -> bool {
-        let len = self.length();
-        if len > 0. {
-            self.0.x = self.0.x / len;
-            self.0.y = self.0.y / len;
-            self.0.z = self.0.z / len;
-            true
-        } else {
-            false
-        }
-    }
-
-    /// Get the length of this vector.
-    #[inline]
-    pub fn length(&self) -> f64 {
-        self.0.to_array().iter().fold(0f64, |sum, v| sum + v * v).sqrt()
-    }
-
-    /// Return the normalized direction vector and its angle.
-    /// A direction vector that cannot be normalized, such as [0,0,0], will cause the
-    /// rotation to not be applied. i.e. Use an identity matrix or rotate3d(0, 0, 1, 0).
-    pub fn get_normalized_vector_and_angle(x: f32, y: f32, z: f32, angle: Angle)
-                                           -> (f32, f32, f32, Angle) {
-        let mut vector = DirectionVector::new(x, y, z);
-        if vector.normalize() {
-            (vector.0.x as f32, vector.0.y as f32, vector.0.z as f32, angle)
-        } else {
-            (0., 0., 1., Angle::zero())
-        }
     }
 }
 
@@ -125,12 +82,9 @@ impl TransformList {
         for operation in list {
             let matrix = match *operation {
                 ComputedOperation::Rotate(ax, ay, az, theta) => {
-                    // https://www.w3.org/TR/css-transforms-1/#funcdef-rotate3d
-                    // A direction vector that cannot be normalized, such as [0, 0, 0], will cause
-                    // the rotation to not be applied, so we use identity matrix in this case.
                     let theta = Angle::from_radians(2.0f32 * f32::consts::PI - theta.radians());
                     let (ax, ay, az, theta) =
-                        DirectionVector::get_normalized_vector_and_angle(ax, ay, az, theta);
+                        Self::get_normalized_vector_and_angle(ax, ay, az, theta);
                     Transform3D::create_rotation(ax, ay, az, theta.into())
                 }
                 ComputedOperation::Perspective(d) => {
@@ -197,6 +151,23 @@ impl TransformList {
             Transform3D::identity()
         } else {
             Transform3D::create_perspective(d)
+        }
+    }
+
+    /// Return the normalized direction vector and its angle for Rotate3D.
+    pub fn get_normalized_vector_and_angle(x: f32, y: f32, z: f32, angle: Angle)
+                                           -> (f32, f32, f32, Angle) {
+        use euclid::approxeq::ApproxEq;
+        use euclid::num::Zero;
+        let vector = DirectionVector::new(x, y, z);
+        if vector.square_length().approx_eq(&f32::zero()) {
+            // https://www.w3.org/TR/css-transforms-1/#funcdef-rotate3d
+            // A direction vector that cannot be normalized, such as [0, 0, 0], will cause the
+            // rotation to not be applied, so we use identity matrix (i.e. rotate3d(0, 0, 1, 0)).
+            (0., 0., 1., Angle::zero())
+        } else {
+            let vector = vector.normalize();
+            (vector.x, vector.y, vector.z, angle)
         }
     }
 }
