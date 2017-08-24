@@ -25,6 +25,7 @@
 use arrayvec::ArrayVec;
 use context::{StyleContext, ThreadLocalStyleContext, TraversalStatistics};
 use dom::{OpaqueNode, SendNode, TElement, TNode};
+use itertools::Itertools;
 use rayon;
 use scoped_tls::ScopedTLS;
 use smallvec::SmallVec;
@@ -78,7 +79,7 @@ pub fn traverse_dom<E, D>(traversal: &D,
         rayon::scope(|scope| {
             let root = send_root;
             let root_opaque = root.opaque();
-            traverse_nodes(&[root],
+            traverse_nodes(Some(root).into_iter(),
                            DispatchMode::TailCall,
                            true,
                            root_opaque,
@@ -210,7 +211,7 @@ fn top_down_dom<'a, 'scope, E, D>(nodes: &'a [SendNode<E::ConcreteNode>],
             if discovered_child_nodes.len() >= WORK_UNIT_MAX {
                 let mut traversal_data_copy = traversal_data.clone();
                 traversal_data_copy.current_dom_depth += 1;
-                traverse_nodes(&*discovered_child_nodes,
+                traverse_nodes(discovered_child_nodes.drain(),
                                DispatchMode::NotTailCall,
                                recursion_ok,
                                root,
@@ -219,7 +220,6 @@ fn top_down_dom<'a, 'scope, E, D>(nodes: &'a [SendNode<E::ConcreteNode>],
                                pool,
                                traversal,
                                tls);
-                discovered_child_nodes.clear();
             }
 
             let node = **n;
@@ -240,7 +240,7 @@ fn top_down_dom<'a, 'scope, E, D>(nodes: &'a [SendNode<E::ConcreteNode>],
     // worth of them) directly on this thread by passing TailCall.
     if !discovered_child_nodes.is_empty() {
         traversal_data.current_dom_depth += 1;
-        traverse_nodes(&discovered_child_nodes,
+        traverse_nodes(discovered_child_nodes.drain(),
                        DispatchMode::TailCall,
                        recursion_ok,
                        root,
@@ -264,20 +264,26 @@ impl DispatchMode {
     fn is_tail_call(&self) -> bool { matches!(*self, DispatchMode::TailCall) }
 }
 
+/// Enqueues |nodes| for processing, possibly on this thread if the tail call
+/// conditions are met.
 #[inline]
-fn traverse_nodes<'a, 'scope, E, D>(nodes: &[SendNode<E::ConcreteNode>],
-                                    mode: DispatchMode,
-                                    recursion_ok: bool,
-                                    root: OpaqueNode,
-                                    traversal_data: PerLevelTraversalData,
-                                    scope: &'a rayon::Scope<'scope>,
-                                    pool: &'scope rayon::ThreadPool,
-                                    traversal: &'scope D,
-                                    tls: &'scope ScopedTLS<'scope, ThreadLocalStyleContext<E>>)
-    where E: TElement + 'scope,
-          D: DomTraversal<E>,
+fn traverse_nodes<'a, 'scope, E, D, I>(
+    nodes: I,
+    mode: DispatchMode,
+    recursion_ok: bool,
+    root: OpaqueNode,
+    traversal_data: PerLevelTraversalData,
+    scope: &'a rayon::Scope<'scope>,
+    pool: &'scope rayon::ThreadPool,
+    traversal: &'scope D,
+    tls: &'scope ScopedTLS<'scope, ThreadLocalStyleContext<E>>
+)
+where
+    E: TElement + 'scope,
+    D: DomTraversal<E>,
+    I: ExactSizeIterator<Item = SendNode<E::ConcreteNode>>
 {
-    debug_assert!(!nodes.is_empty());
+    debug_assert_ne!(nodes.len(), 0);
 
     // This is a tail call from the perspective of the caller. However, we only
     // want to actually dispatch the job as a tail call if there's nothing left
@@ -293,7 +299,7 @@ fn traverse_nodes<'a, 'scope, E, D>(nodes: &[SendNode<E::ConcreteNode>],
     // In the common case, our children fit within a single work unit, in which
     // case we can pass the SmallVec directly and avoid extra allocation.
     if nodes.len() <= WORK_UNIT_MAX {
-        let work = nodes.iter().cloned().collect::<WorkUnit<E::ConcreteNode>>();
+        let work: WorkUnit<E::ConcreteNode> = nodes.collect();
         if may_dispatch_tail {
             top_down_dom(&work, root,
                          traversal_data, scope, pool, traversal, tls);
@@ -305,8 +311,8 @@ fn traverse_nodes<'a, 'scope, E, D>(nodes: &[SendNode<E::ConcreteNode>],
             });
         }
     } else {
-        for chunk in nodes.chunks(WORK_UNIT_MAX) {
-            let nodes = chunk.iter().cloned().collect::<WorkUnit<E::ConcreteNode>>();
+        for chunk in nodes.chunks(WORK_UNIT_MAX).into_iter() {
+            let nodes: WorkUnit<E::ConcreteNode> = chunk.collect();
             let traversal_data_copy = traversal_data.clone();
             scope.spawn(move |scope| {
                 let n = nodes;
