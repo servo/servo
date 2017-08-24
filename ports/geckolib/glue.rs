@@ -384,7 +384,7 @@ pub extern "C" fn Servo_AnimationValues_ComputeDistance(from: RawServoAnimationV
                                                         -> f64 {
     let from_value = AnimationValue::as_arc(&from);
     let to_value = AnimationValue::as_arc(&to);
-    from_value.compute_squared_distance(to_value).map(|d| d.sqrt()).unwrap_or(0.0)
+    from_value.compute_squared_distance(to_value).map(|d| d.sqrt()).unwrap_or(-1.0)
 }
 
 #[no_mangle]
