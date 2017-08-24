@@ -2691,6 +2691,14 @@ impl<'a> StyleBuilder<'a> {
             self.inherited_style_ignoring_first_line.get_${property.style_struct.name_lower}();
         % endif
 
+        % if property.ident == "content":
+        self.flags.insert(::properties::computed_value_flags::INHERITS_CONTENT);
+        % endif
+
+        % if property.ident == "display":
+        self.flags.insert(::properties::computed_value_flags::INHERITS_DISPLAY);
+        % endif
+
         self.${property.style_struct.ident}.mutate()
             .copy_${property.ident}_from(
                 inherited_struct,

@@ -123,7 +123,7 @@ trait PrivateMatchMethods: TElement {
         primary_style: &Arc<ComputedValues>
     ) -> Option<Arc<ComputedValues>> {
         use context::CascadeInputs;
-        use style_resolver::StyleResolverForElement;
+        use style_resolver::{PseudoElementResolution, StyleResolverForElement};
         use stylist::RuleInclusion;
 
         let rule_node = primary_style.rules();
@@ -143,8 +143,9 @@ trait PrivateMatchMethods: TElement {
                 visited_rules: primary_style.get_visited_style().and_then(|s| s.rules.clone()),
             };
 
+        // Actually `PseudoElementResolution` doesn't really matter.
         let style =
-            StyleResolverForElement::new(*self, context, RuleInclusion::All)
+            StyleResolverForElement::new(*self, context, RuleInclusion::All, PseudoElementResolution::IfApplicable)
                 .cascade_style_and_visited_with_default_parents(inputs);
 
         Some(style)
