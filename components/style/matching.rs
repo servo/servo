@@ -170,12 +170,12 @@ trait PrivateMatchMethods: TElement {
 
             // If the traverse is triggered by CSS rule changes, we need to
             // try to update all CSS animations on the element if the element
-            // has CSS animation style regardless of whether the animation is
-            // running or not.
+            // has or will have CSS animation style regardless of whether the
+            // animation is running or not.
             // TODO: We should check which @keyframes changed/added/deleted
             // and update only animations corresponding to those @keyframes.
             (context.shared.traversal_flags.contains(traversal_flags::ForCSSRuleChanges) &&
-             has_new_animation_style) ||
+             (has_new_animation_style || has_animations)) ||
             !old_box_style.animations_equals(new_box_style) ||
              (old_display_style == display::T::none &&
               new_display_style != display::T::none &&
