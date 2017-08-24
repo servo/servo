@@ -20,6 +20,7 @@ use std::fmt;
 use std::sync::Arc;
 use style_traits::ToCss;
 use super::{CSSFloat, CSSInteger};
+use super::animated::Procedure;
 use super::generics::{GreaterThanOrEqualToOne, NonNegative};
 use super::generics::grid::{TrackBreadth as GenericTrackBreadth, TrackSize as GenericTrackSize};
 use super::generics::grid::GridTemplateComponent as GenericGridTemplateComponent;
@@ -439,7 +440,7 @@ pub type NonNegativeLengthOrPercentageOrNumber = Either<NonNegativeNumber, NonNe
 
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, ComputeSquaredDistance, Copy, Debug, Eq, PartialEq)]
 /// A computed cliprect for clip and image-region
 pub struct ClipRect {
     pub top: Option<Au>,
@@ -478,6 +479,36 @@ impl ToCss for ClipRect {
             dest.write_str("auto")?;
         }
         dest.write_str(")")
+    }
+}
+
+impl ClipRect {
+    /// Returns true if both values can be interpolated/added together using the
+    /// specified interpolation procedure.
+    fn can_animate_component(a: Option<Au>,
+                             b: Option<Au>,
+                             procedure: Procedure) -> bool {
+        match (a, b) {
+            (Some(_), Some(_)) => true,
+            (None, None) => {
+                match procedure {
+                    // We allow interpolating 'auto' with 'auto' but not adding them.
+                    Procedure::Interpolate { .. } => true,
+                    _ => false,
+                }
+            },
+            _ => false,
+        }
+    }
+
+    /// Return true if all corresponding components in this and |other| can be
+    /// interpolated/added together.
+    pub fn can_animate_with(&self, other: &Self, procedure: Procedure)
+        -> bool {
+        return ClipRect::can_animate_component(self.top, other.top, procedure) &&
+            ClipRect::can_animate_component(self.right, other.right, procedure) &&
+            ClipRect::can_animate_component(self.bottom, other.bottom, procedure) &&
+            ClipRect::can_animate_component(self.left, other.left, procedure);
     }
 }
 
