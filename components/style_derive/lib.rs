@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#[macro_use] extern crate darling;
 extern crate proc_macro;
 #[macro_use] extern crate quote;
 extern crate syn;
@@ -18,13 +19,13 @@ mod to_animated_zero;
 mod to_computed_value;
 mod to_css;
 
-#[proc_macro_derive(Animate)]
+#[proc_macro_derive(Animate, attributes(animation))]
 pub fn derive_animate(stream: TokenStream) -> TokenStream {
     let input = syn::parse_derive_input(&stream.to_string()).unwrap();
     animate::derive(input).to_string().parse().unwrap()
 }
 
-#[proc_macro_derive(ComputeSquaredDistance)]
+#[proc_macro_derive(ComputeSquaredDistance, attributes(animation))]
 pub fn derive_compute_squared_distance(stream: TokenStream) -> TokenStream {
     let input = syn::parse_derive_input(&stream.to_string()).unwrap();
     compute_squared_distance::derive(input).to_string().parse().unwrap()
