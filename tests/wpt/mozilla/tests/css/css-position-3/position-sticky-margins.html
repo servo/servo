@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<title>position:sticky elements should properly interact with margins</title>
+<link rel="match" href="position-sticky-margins-ref.html" />
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#sticky-pos" />
+<meta name="assert" content="position:sticky elements should ignore margins when sticking, but consider them when making sure sticky elements do not escape their containing block" />
+
+<style>
+.group {
+  display: inline-block;
+  position: relative;
+  width: 180px;
+  height: 400px;
+}
+
+.scroller {
+  position: relative;
+  width: 150px;
+  height: 300px;
+  overflow-y: scroll;
+  overflow-x: hidden;
+}
+
+.holder {
+  width: 130px;
+  height: 200px;
+}
+
+.sticky {
+  position: sticky;
+  background-color: green;
+  top: 5px;
+  margin: 15px;
+}
+
+.indicator {
+  left: 15px;
+  position: absolute;
+  background-color: red;
+}
+
+.box {
+  width: 100px;
+  height: 100px;
+}
+
+.padding {
+  height: 300px;
+}
+</style>
+<script>
+window.addEventListener('load', function() {
+  document.getElementById('scroller1').scrollTop = 0;
+  document.getElementById('scroller2').scrollTop = 60;
+  document.getElementById('scroller3').scrollTop = 120;
+});
+</script>
+
+<!-- Before sticking, the margin should be obeyed. -->
+<div class="group">
+  <div id="scroller1"  class="scroller">
+    <div class="indicator box" style="top: 15px;"></div>
+    <div class="holder">
+      <div class="sticky box"></div>
+    </div>
+    <div class="padding"></div>
+  </div>
+</div>
+
+<!-- Whilst stuck, the margin is irrelevant. -->
+<div class="group">
+  <div id="scroller2"  class="scroller">
+    <div class="indicator box" style="top: 65px;"></div>
+    <div class="holder">
+      <div class="sticky box"></div>
+    </div>
+    <div class="padding"></div>
+  </div>
+</div>
+
+<!-- The margin does count when making sure the sticky element does not escape
+     its containing block. -->
+<div class="group">
+  <div id="scroller3"  class="scroller">
+    <div class="indicator box" style="top: 100px;"></div>
+    <div class="holder">
+      <div class="sticky box"></div>
+    </div>
+    <div class="padding"></div>
+  </div>
+</div>
+
+<div>You should see three green boxes above. No red should be visible.</div>

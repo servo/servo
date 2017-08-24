@@ -1403,6 +1403,318 @@
      {}
     ]
    ],
+   "css/css-position-3/position-sticky-bottom.html": [
+    [
+     "/_mozilla/css/css-position-3/position-sticky-bottom.html",
+     [
+      [
+       "/_mozilla/css/css-position-3/position-sticky-bottom-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/css-position-3/position-sticky-flexbox.html": [
+    [
+     "/_mozilla/css/css-position-3/position-sticky-flexbox.html",
+     [
+      [
+       "/_mozilla/css/css-position-3/position-sticky-flexbox-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/css-position-3/position-sticky-grid.html": [
+    [
+     "/_mozilla/css/css-position-3/position-sticky-grid.html",
+     [
+      [
+       "/_mozilla/css/css-position-3/position-sticky-grid-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/css-position-3/position-sticky-inflow-position.html": [
+    [
+     "/_mozilla/css/css-position-3/position-sticky-inflow-position.html",
+     [
+      [
+       "/_mozilla/css/css-position-3/position-sticky-inflow-position-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/css-position-3/position-sticky-inline.html": [
+    [
+     "/_mozilla/css/css-position-3/position-sticky-inline.html",
+     [
+      [
+       "/_mozilla/css/css-position-3/position-sticky-inline-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/css-position-3/position-sticky-left.html": [
+    [
+     "/_mozilla/css/css-position-3/position-sticky-left.html",
+     [
+      [
+       "/_mozilla/css/css-position-3/position-sticky-left-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/css-position-3/position-sticky-margins.html": [
+    [
+     "/_mozilla/css/css-position-3/position-sticky-margins.html",
+     [
+      [
+       "/_mozilla/css/css-position-3/position-sticky-margins-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/css-position-3/position-sticky-nested-bottom.html": [
+    [
+     "/_mozilla/css/css-position-3/position-sticky-nested-bottom.html",
+     [
+      [
+       "/_mozilla/css/css-position-3/position-sticky-nested-bottom-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/css-position-3/position-sticky-nested-inline.html": [
+    [
+     "/_mozilla/css/css-position-3/position-sticky-nested-inline.html",
+     [
+      [
+       "/_mozilla/css/css-position-3/position-sticky-nested-inline-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/css-position-3/position-sticky-nested-left.html": [
+    [
+     "/_mozilla/css/css-position-3/position-sticky-nested-left.html",
+     [
+      [
+       "/_mozilla/css/css-position-3/position-sticky-nested-left-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/css-position-3/position-sticky-nested-right.html": [
+    [
+     "/_mozilla/css/css-position-3/position-sticky-nested-right.html",
+     [
+      [
+       "/_mozilla/css/css-position-3/position-sticky-nested-right-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/css-position-3/position-sticky-nested-table.html": [
+    [
+     "/_mozilla/css/css-position-3/position-sticky-nested-table.html",
+     [
+      [
+       "/_mozilla/css/css-position-3/position-sticky-nested-table-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/css-position-3/position-sticky-nested-top.html": [
+    [
+     "/_mozilla/css/css-position-3/position-sticky-nested-top.html",
+     [
+      [
+       "/_mozilla/css/css-position-3/position-sticky-nested-top-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/css-position-3/position-sticky-overflow-padding.html": [
+    [
+     "/_mozilla/css/css-position-3/position-sticky-overflow-padding.html",
+     [
+      [
+       "/_mozilla/css/css-position-3/position-sticky-overflow-padding-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/css-position-3/position-sticky-right.html": [
+    [
+     "/_mozilla/css/css-position-3/position-sticky-right.html",
+     [
+      [
+       "/_mozilla/css/css-position-3/position-sticky-right-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/css-position-3/position-sticky-stacking-context.html": [
+    [
+     "/_mozilla/css/css-position-3/position-sticky-stacking-context.html",
+     [
+      [
+       "/_mozilla/css/css-position-3/position-sticky-stacking-context-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/css-position-3/position-sticky-table-tfoot-bottom.html": [
+    [
+     "/_mozilla/css/css-position-3/position-sticky-table-tfoot-bottom.html",
+     [
+      [
+       "/_mozilla/css/css-position-3/position-sticky-table-tfoot-bottom-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/css-position-3/position-sticky-table-th-bottom.html": [
+    [
+     "/_mozilla/css/css-position-3/position-sticky-table-th-bottom.html",
+     [
+      [
+       "/_mozilla/css/css-position-3/position-sticky-table-th-bottom-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/css-position-3/position-sticky-table-th-left.html": [
+    [
+     "/_mozilla/css/css-position-3/position-sticky-table-th-left.html",
+     [
+      [
+       "/_mozilla/css/css-position-3/position-sticky-table-th-left-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/css-position-3/position-sticky-table-th-right.html": [
+    [
+     "/_mozilla/css/css-position-3/position-sticky-table-th-right.html",
+     [
+      [
+       "/_mozilla/css/css-position-3/position-sticky-table-th-right-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/css-position-3/position-sticky-table-th-top.html": [
+    [
+     "/_mozilla/css/css-position-3/position-sticky-table-th-top.html",
+     [
+      [
+       "/_mozilla/css/css-position-3/position-sticky-table-th-top-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/css-position-3/position-sticky-table-thead-top.html": [
+    [
+     "/_mozilla/css/css-position-3/position-sticky-table-thead-top.html",
+     [
+      [
+       "/_mozilla/css/css-position-3/position-sticky-table-thead-top-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/css-position-3/position-sticky-table-tr-bottom.html": [
+    [
+     "/_mozilla/css/css-position-3/position-sticky-table-tr-bottom.html",
+     [
+      [
+       "/_mozilla/css/css-position-3/position-sticky-table-tr-bottom-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/css-position-3/position-sticky-table-tr-top.html": [
+    [
+     "/_mozilla/css/css-position-3/position-sticky-table-tr-top.html",
+     [
+      [
+       "/_mozilla/css/css-position-3/position-sticky-table-tr-top-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/css-position-3/position-sticky-top.html": [
+    [
+     "/_mozilla/css/css-position-3/position-sticky-top.html",
+     [
+      [
+       "/_mozilla/css/css-position-3/position-sticky-top-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/css-position-3/position-sticky-writing-modes.html": [
+    [
+     "/_mozilla/css/css-position-3/position-sticky-writing-modes.html",
+     [
+      [
+       "/_mozilla/css/css-position-3/position-sticky-writing-modes-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "css/data_img_a.html": [
     [
      "/_mozilla/css/data_img_a.html",
@@ -8101,6 +8413,136 @@
      {}
     ]
    ],
+   "css/css-position-3/position-sticky-bottom-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/css-position-3/position-sticky-flexbox-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/css-position-3/position-sticky-grid-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/css-position-3/position-sticky-inflow-position-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/css-position-3/position-sticky-inline-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/css-position-3/position-sticky-left-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/css-position-3/position-sticky-margins-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/css-position-3/position-sticky-nested-bottom-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/css-position-3/position-sticky-nested-inline-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/css-position-3/position-sticky-nested-left-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/css-position-3/position-sticky-nested-right-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/css-position-3/position-sticky-nested-table-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/css-position-3/position-sticky-nested-top-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/css-position-3/position-sticky-overflow-padding-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/css-position-3/position-sticky-right-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/css-position-3/position-sticky-stacking-context-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/css-position-3/position-sticky-table-tfoot-bottom-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/css-position-3/position-sticky-table-th-bottom-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/css-position-3/position-sticky-table-th-left-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/css-position-3/position-sticky-table-th-right-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/css-position-3/position-sticky-table-th-top-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/css-position-3/position-sticky-table-thead-top-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/css-position-3/position-sticky-table-tr-bottom-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/css-position-3/position-sticky-table-tr-top-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/css-position-3/position-sticky-top-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/css-position-3/position-sticky-writing-modes-ref.html": [
+    [
+     {}
+    ]
+   ],
    "css/css/ahem.css": [
     [
      {}
@@ -13515,6 +13957,30 @@
    "css/calc-serialization.html": [
     [
      "/_mozilla/css/calc-serialization.html",
+     {}
+    ]
+   ],
+   "css/css-position-3/position-sticky-get-bounding-client-rect.html": [
+    [
+     "/_mozilla/css/css-position-3/position-sticky-get-bounding-client-rect.html",
+     {}
+    ]
+   ],
+   "css/css-position-3/position-sticky-input-box-gets-focused-after-scroll.html": [
+    [
+     "/_mozilla/css/css-position-3/position-sticky-input-box-gets-focused-after-scroll.html",
+     {}
+    ]
+   ],
+   "css/css-position-3/position-sticky-offset-top-left.html": [
+    [
+     "/_mozilla/css/css-position-3/position-sticky-offset-top-left.html",
+     {}
+    ]
+   ],
+   "css/css-position-3/position-sticky-parsing.html": [
+    [
+     "/_mozilla/css/css-position-3/position-sticky-parsing.html",
      {}
     ]
    ],
@@ -22966,6 +23432,230 @@
   "css/counters_simple_ref.html": [
    "768744b9db67d625e4ba3ae1809a967648440503",
    "support"
+  ],
+  "css/css-position-3/position-sticky-bottom-ref.html": [
+   "726d6e927d84669e9355701ccd948349d377e6fd",
+   "support"
+  ],
+  "css/css-position-3/position-sticky-bottom.html": [
+   "2a908e60a635dbf765987c0f93d0f33c8ea85de6",
+   "reftest"
+  ],
+  "css/css-position-3/position-sticky-flexbox-ref.html": [
+   "f8dedb4a637ea3f4bf79eb621f52a8c4622f8c75",
+   "support"
+  ],
+  "css/css-position-3/position-sticky-flexbox.html": [
+   "efb055a7efb5ee3aabd28e369d0bdc9ae98bd33d",
+   "reftest"
+  ],
+  "css/css-position-3/position-sticky-get-bounding-client-rect.html": [
+   "5b9a1a29084f46228749c1b2b1a664be3ce02c43",
+   "testharness"
+  ],
+  "css/css-position-3/position-sticky-grid-ref.html": [
+   "9748c25d3db9b5ec2753ff53ceb0b82db9453cdc",
+   "support"
+  ],
+  "css/css-position-3/position-sticky-grid.html": [
+   "a06a40f39b4a748c111dc01281261c5451204f95",
+   "reftest"
+  ],
+  "css/css-position-3/position-sticky-inflow-position-ref.html": [
+   "bcce2ded8073a7b5b3477bcf90157cb0e77c2b40",
+   "support"
+  ],
+  "css/css-position-3/position-sticky-inflow-position.html": [
+   "c8e2bcdddf9e8ee93f9306d88b96c3bf1f1bfaf6",
+   "reftest"
+  ],
+  "css/css-position-3/position-sticky-inline-ref.html": [
+   "9458cab53d2065e4893d127ee0097bbd53c6b898",
+   "support"
+  ],
+  "css/css-position-3/position-sticky-inline.html": [
+   "9fe0b3407310fbe1ee8b1614db0801bdf93b38be",
+   "reftest"
+  ],
+  "css/css-position-3/position-sticky-input-box-gets-focused-after-scroll.html": [
+   "6580451dddfd6f8865925326c170f630f343fbcd",
+   "testharness"
+  ],
+  "css/css-position-3/position-sticky-left-ref.html": [
+   "9de7a8ba6019395d729b32e514cc3bd9fee25d2b",
+   "support"
+  ],
+  "css/css-position-3/position-sticky-left.html": [
+   "5151bca08dff652ea728cb8bccbb6b7c6d364dd8",
+   "reftest"
+  ],
+  "css/css-position-3/position-sticky-margins-ref.html": [
+   "0cdb788c913f47a121114ac5b8e6a140bb08c1ff",
+   "support"
+  ],
+  "css/css-position-3/position-sticky-margins.html": [
+   "72fb6ae7d97bf2448ebd68ccf110edd6bae2c92f",
+   "reftest"
+  ],
+  "css/css-position-3/position-sticky-nested-bottom-ref.html": [
+   "59a8e46358a8a5bf8638a2d1982c63becef5bc77",
+   "support"
+  ],
+  "css/css-position-3/position-sticky-nested-bottom.html": [
+   "3604a921be04927dd19b805b7c9abaed6d0e7c72",
+   "reftest"
+  ],
+  "css/css-position-3/position-sticky-nested-inline-ref.html": [
+   "8fb9378e91a20b71ef886b9aac0147b25d00a9a3",
+   "support"
+  ],
+  "css/css-position-3/position-sticky-nested-inline.html": [
+   "50be9f2fb6ab9295081f6f13705be4853e48fdde",
+   "reftest"
+  ],
+  "css/css-position-3/position-sticky-nested-left-ref.html": [
+   "52804c5589c3035818cd653c1801a70645a9fe99",
+   "support"
+  ],
+  "css/css-position-3/position-sticky-nested-left.html": [
+   "c32881097147e285b6ee66e6239af4808d780c83",
+   "reftest"
+  ],
+  "css/css-position-3/position-sticky-nested-right-ref.html": [
+   "5703ad6457deca332232e510dc479c39b7020d24",
+   "support"
+  ],
+  "css/css-position-3/position-sticky-nested-right.html": [
+   "39683624316599779b0efcb347010b92694e02a6",
+   "reftest"
+  ],
+  "css/css-position-3/position-sticky-nested-table-ref.html": [
+   "7b8956bc720e2e25e7ff0bc5889812c26837ab58",
+   "support"
+  ],
+  "css/css-position-3/position-sticky-nested-table.html": [
+   "87a80629bcfcace28d4f13bce99325d55d317574",
+   "reftest"
+  ],
+  "css/css-position-3/position-sticky-nested-top-ref.html": [
+   "66ea8b8c72023089d52e6ebdf5bfff5d56259bfc",
+   "support"
+  ],
+  "css/css-position-3/position-sticky-nested-top.html": [
+   "88e35164b6ede3adf9727989cf59ff9956bdbae7",
+   "reftest"
+  ],
+  "css/css-position-3/position-sticky-offset-top-left.html": [
+   "a25b64d016644c272ea92b6129a59eefb21d2fa0",
+   "testharness"
+  ],
+  "css/css-position-3/position-sticky-overflow-padding-ref.html": [
+   "b3d81934cc90e70dff6bc5cd7789594a8fcd7ecf",
+   "support"
+  ],
+  "css/css-position-3/position-sticky-overflow-padding.html": [
+   "588502dc7eb4a7f88f78dd1b2cdc857861c89f77",
+   "reftest"
+  ],
+  "css/css-position-3/position-sticky-parsing.html": [
+   "224bc984bc6eb4a55931461cf7e51f7b04d219f4",
+   "testharness"
+  ],
+  "css/css-position-3/position-sticky-right-ref.html": [
+   "9a4a11b22cb0ea13f38a7dded8469f4848550ed4",
+   "support"
+  ],
+  "css/css-position-3/position-sticky-right.html": [
+   "f79c0e3e99085e483652950b141fe15c3c4d01d8",
+   "reftest"
+  ],
+  "css/css-position-3/position-sticky-stacking-context-ref.html": [
+   "dd6e5d4734c924c1ad08d14db986fb89d7cb03f6",
+   "support"
+  ],
+  "css/css-position-3/position-sticky-stacking-context.html": [
+   "ac1e643ac9f03d0fe415c3f52a4db7c407dd3537",
+   "reftest"
+  ],
+  "css/css-position-3/position-sticky-table-tfoot-bottom-ref.html": [
+   "b902bec7e12fd6d9cad02c61f332a44f5818f8ee",
+   "support"
+  ],
+  "css/css-position-3/position-sticky-table-tfoot-bottom.html": [
+   "4caf24ad5f783119598d52b40425ae3433b61da6",
+   "reftest"
+  ],
+  "css/css-position-3/position-sticky-table-th-bottom-ref.html": [
+   "14d74f652a67cad449bd7ef75ed18bd906ba3bf0",
+   "support"
+  ],
+  "css/css-position-3/position-sticky-table-th-bottom.html": [
+   "84df11e668ada7f89586b2b82774f3f43e07457c",
+   "reftest"
+  ],
+  "css/css-position-3/position-sticky-table-th-left-ref.html": [
+   "a9057263cf68862de453cf857961ece6003eb589",
+   "support"
+  ],
+  "css/css-position-3/position-sticky-table-th-left.html": [
+   "e58662697cbf38f24c38562417864ffa38a312ee",
+   "reftest"
+  ],
+  "css/css-position-3/position-sticky-table-th-right-ref.html": [
+   "8d42e0ff2920782dbfbd060b23817e75125dfb5e",
+   "support"
+  ],
+  "css/css-position-3/position-sticky-table-th-right.html": [
+   "6ea7a6d2e456022d3ebfb91869f751013e27991d",
+   "reftest"
+  ],
+  "css/css-position-3/position-sticky-table-th-top-ref.html": [
+   "b30c817f263e6e7b695508983952a46eb32494f9",
+   "support"
+  ],
+  "css/css-position-3/position-sticky-table-th-top.html": [
+   "ce4a56682101dc24c9170d3d265fc6a021b5b7ab",
+   "reftest"
+  ],
+  "css/css-position-3/position-sticky-table-thead-top-ref.html": [
+   "a2b03215ddc3aed6bc81ed678f6339d72132d4df",
+   "support"
+  ],
+  "css/css-position-3/position-sticky-table-thead-top.html": [
+   "2c3d4dd8028d7d79f74aa1460c57f10d087a45f0",
+   "reftest"
+  ],
+  "css/css-position-3/position-sticky-table-tr-bottom-ref.html": [
+   "77fcc16040cff06c53f18cfe96296f495b752c18",
+   "support"
+  ],
+  "css/css-position-3/position-sticky-table-tr-bottom.html": [
+   "f66365f4ceed9072bf25b98ecc36e49c89625b8b",
+   "reftest"
+  ],
+  "css/css-position-3/position-sticky-table-tr-top-ref.html": [
+   "8a54752c532080b652ae5ffb384b34ad2c8d8cb4",
+   "support"
+  ],
+  "css/css-position-3/position-sticky-table-tr-top.html": [
+   "7a030d17358067b78c879bf17171b60d1dc3acd9",
+   "reftest"
+  ],
+  "css/css-position-3/position-sticky-top-ref.html": [
+   "e5a05c21494a2e2923d1ed37050ec75db7ab55cd",
+   "support"
+  ],
+  "css/css-position-3/position-sticky-top.html": [
+   "30c0c00c6313a747b51c8b6d4f1301056af56560",
+   "reftest"
+  ],
+  "css/css-position-3/position-sticky-writing-modes-ref.html": [
+   "407a1831479ccca61f6f7b268abcbf97f667f0bf",
+   "support"
+  ],
+  "css/css-position-3/position-sticky-writing-modes.html": [
+   "b6d16a38b73d4c107e587194818a542fee9d0716",
+   "reftest"
   ],
   "css/css/ahem.css": [
    "16a4dd68da41156fbdd139b4a56547f94ad4dbe7",
