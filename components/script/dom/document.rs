@@ -138,8 +138,9 @@ use style::attr::AttrValue;
 use style::context::{QuirksMode, ReflowGoal};
 use style::invalidation::element::restyle_hints::{RestyleHint, RESTYLE_SELF, RESTYLE_STYLE_ATTRIBUTE};
 use style::media_queries::{Device, MediaList, MediaType};
+use style::properties_and_values::RegisteredPropertySet;
 use style::selector_parser::{RestyleDamage, Snapshot};
-use style::shared_lock::{SharedRwLock as StyleSharedRwLock, SharedRwLockReadGuard};
+use style::shared_lock::{Locked as StyleLocked, SharedRwLock as StyleSharedRwLock, SharedRwLockReadGuard};
 use style::str::{HTML_SPACE_CHARACTERS, split_html_space_chars, str_join};
 use style::stylesheet_set::StylesheetSet;
 use style::stylesheets::{Stylesheet, StylesheetContents, OriginSet};
@@ -249,7 +250,8 @@ pub struct Document {
     scripts: MutNullableJS<HTMLCollection>,
     anchors: MutNullableJS<HTMLCollection>,
     applets: MutNullableJS<HTMLCollection>,
-    /// Lock use for style attributes and author-origin stylesheet objects in this document.
+    /// Lock used for style attributes, author-origin stylesheet objects, and
+    /// the registered property set in/for this document.
     /// Can be acquired once for accessing many objects.
     style_shared_lock: StyleSharedRwLock,
     /// List of stylesheets associated with nodes in this document. |None| if the list needs to be refreshed.
@@ -351,6 +353,10 @@ pub struct Document {
     /// is inserted or removed from the document.
     /// See https://html.spec.whatwg.org/multipage/#form-owner
     form_id_listener_map: DOMRefCell<HashMap<Atom, HashSet<JS<Element>>>>,
+
+    /// The set of registered custom properties.
+    #[ignore_heap_size_of = "Arc"]
+    registered_property_set: Arc<StyleLocked<RegisteredPropertySet>>,
 }
 
 #[derive(HeapSizeOf, JSTraceable)]
@@ -2041,6 +2047,7 @@ pub trait LayoutDocumentHelpers {
     unsafe fn will_paint(&self);
     unsafe fn quirks_mode(&self) -> QuirksMode;
     unsafe fn style_shared_lock(&self) -> &StyleSharedRwLock;
+    unsafe fn registered_property_set(&self) -> Arc<StyleLocked<RegisteredPropertySet>>;
 }
 
 #[allow(unsafe_code)]
@@ -2081,6 +2088,11 @@ impl LayoutDocumentHelpers for LayoutJS<Document> {
     #[inline]
     unsafe fn style_shared_lock(&self) -> &StyleSharedRwLock {
         (*self.unsafe_get()).style_shared_lock()
+    }
+
+    #[inline]
+    unsafe fn registered_property_set(&self) -> Arc<StyleLocked<RegisteredPropertySet>> {
+        (*self.unsafe_get()).registered_property_set()
     }
 }
 
@@ -2169,6 +2181,18 @@ impl Document {
             (DocumentReadyState::Complete, true)
         };
 
+        lazy_static! {
+            /// Per-process shared lock for author-origin stylesheets
+            ///
+            /// FIXME: make it per-document or per-pipeline instead:
+            /// https://github.com/servo/servo/issues/16027
+            /// (Need to figure out what to do with the style attribute
+            /// of elements adopted into another document.)
+            static ref PER_PROCESS_AUTHOR_SHARED_LOCK: StyleSharedRwLock = {
+                StyleSharedRwLock::new()
+            };
+        }
+
         Document {
             node: Node::new_document_node(),
             window: JS::from_ref(window),
@@ -2204,17 +2228,6 @@ impl Document {
             anchors: Default::default(),
             applets: Default::default(),
             style_shared_lock: {
-                lazy_static! {
-                    /// Per-process shared lock for author-origin stylesheets
-                    ///
-                    /// FIXME: make it per-document or per-pipeline instead:
-                    /// https://github.com/servo/servo/issues/16027
-                    /// (Need to figure out what to do with the style attribute
-                    /// of elements adopted into another document.)
-                    static ref PER_PROCESS_AUTHOR_SHARED_LOCK: StyleSharedRwLock = {
-                        StyleSharedRwLock::new()
-                    };
-                }
                 PER_PROCESS_AUTHOR_SHARED_LOCK.clone()
                 //StyleSharedRwLock::new()
             },
@@ -2261,6 +2274,7 @@ impl Document {
             dom_count: Cell::new(1),
             fullscreen_element: MutNullableJS::new(None),
             form_id_listener_map: Default::default(),
+            registered_property_set: Arc::new(PER_PROCESS_AUTHOR_SHARED_LOCK.wrap(Default::default())),
         }
     }
 
@@ -2679,6 +2693,10 @@ impl Document {
                         .reset_form_owner();
             }
         }
+    }
+
+    pub fn registered_property_set(&self) -> Arc<StyleLocked<RegisteredPropertySet>> {
+        self.registered_property_set.clone()
     }
 }
 

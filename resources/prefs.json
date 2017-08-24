@@ -60,6 +60,7 @@
   "layout.column-gap.enabled": false,
   "layout.column-width.enabled": false,
   "layout.columns.enabled": false,
+  "layout.css.properties-and-values.enabled": false,
   "layout.text-orientation.enabled": false,
   "layout.viewport.enabled": false,
   "layout.writing-mode.enabled": false,

@@ -1,0 +1,266 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Bug 1273706 - Inheritance &amp; Cacading (CSS Properties &amp; Values)</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api/" />
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+
+<style type="text/css">
+div#container {
+  font-size: 16px;
+}
+</style>
+
+<div id="container">
+  <div id="grandparent">
+    <div id="parent">
+      <div id="child"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+let grandparent = document.getElementById("grandparent");
+let parent = document.getElementById("parent");
+let child = document.getElementById("child");
+
+// { registrations: [
+//     { name: <custom property name with '--' prefix>,
+//       syntax: <custom property syntax>,
+//       inherits: bool,
+//       initialValue: <computationally idempotent initial value>
+//     },
+//     ...
+//   ],
+//   grandparent: <style for grandparent element>,
+//   parent: <style for parent element>,
+//   child: <style for child element>,
+//   expected: {
+//     <computed property>: <expected value string for the child>,
+//     ...
+//   },
+// }
+let familyTests = [
+  { title: "Registered custom properties should have syntax '*' by default.",
+    registrations: [
+      { name: "--a",
+        inherits: false,
+        initialValue: "some tokens",
+      },
+    ],
+    child: "--a: i am a token stream;",
+    expected: {
+      "--a": " i am a token stream",
+    },
+  },
+  { title: "Basic uninherited property.",
+    registrations: [
+      { name: "--a",
+        syntax: "<integer>",
+        inherits: false,
+        initialValue: "0",
+      },
+    ],
+    parent: "--a: 1;",
+    expected: {
+      "--a": "0",
+    },
+  },
+  { title: "Transform function arguments should be computed.",
+    registrations: [
+      { name: "--a",
+        syntax: "<transform-function>",
+        inherits: true,
+        initialValue: "translateX(10px)",
+      },
+    ],
+    parent: "font-size: 10px;",
+    child: "--a: translateX(5em);",
+    expected: {
+      "--a": "translateX(50px)",
+    },
+  },
+  { title: "If no initialValue is provided and the syntax is *, then a " +
+           "special initial value is used. This initial value must be " +
+           "considered parseable by registerProperty() but invalid at " +
+           "computed value time.",
+    registrations: [
+      { name: "--a",
+        syntax: "*",
+        inherits: true,
+      },
+    ],
+    parent: "--b: happy birthday; --b: hi var(--a);",
+    expected: {
+      // 'happy birthday' is overwritten in the cascade, and the var(--a)
+      // substitution is illegal.
+      "--b": "",
+    },
+  },
+  { title: "Same as the previous test, with a fallback (i.e. we shouldn't " +
+           "quit before resolving).",
+    registrations: [
+      { name: "--a",
+        syntax: "*",
+        inherits: true,
+      },
+    ],
+    parent: "--b: happy birthday; --b: hi var(--a,to you);",
+    expected: {
+      // The leading space is part of the value!
+      "--b": " hi to you",
+    },
+  },
+  { title: "Make sure we calculate font-relative lengths in lengths and " +
+           "length-percentages.",
+    registrations: [
+      { name: "--a",
+        syntax: "<length>",
+        inherits: true,
+        initialValue: "10px",
+      },
+      { name: "--b",
+        syntax: "<length-percentage>",
+        inherits: true,
+        initialValue: "10px",
+      },
+    ],
+    parent: "font-size: 15px",
+    child: "--a: 1em; --b: calc(1em + 20%);",
+    // Note also that (at time of writing) there's a pending change [1] to the
+    // spec for serializing calc()s [2]: we should output the percentage first,
+    // then the number.
+    // [1]: https://github.com/w3c/csswg-drafts/issues/1731
+    // [2]: https://drafts.csswg.org/css-values/#calc-serialize
+    expected: {
+      "--a": "15px",
+      "--b": "calc(20% + 15px)",
+    },
+  },
+  { title: "Make sure we set initial values on the root, even if nothing is " +
+           "ever specified.",
+    registrations: [
+      { name: "--a",
+        syntax: "<number>",
+        initialValue: "42",
+        inherits: true,
+      },
+    ],
+    expected: {
+      "--a": "42",
+    },
+  },
+  { title: "We should parse 'inherit' correctly in token stream values.",
+    registrations: [
+      { name: "--a",
+        syntax: "*",
+        inherits: false,
+        initialValue: "some tokens",
+      },
+    ],
+    parent: "--a: some-value",
+    child: "--a: inherit",
+    expected: {
+      "--a": " some-value",
+    },
+  },
+  { title: "We should parse 'inherit' correctly in list values.",
+    registrations: [
+      { name: "--a",
+        syntax: "<number>+",
+        inherits: false,
+        initialValue: "10",
+      },
+    ],
+    parent: "--a: 4 8 15",
+    child: "--a: inherit",
+    expected: {
+      "--a": "4 8 15",
+    },
+  },
+  { title: "We should handle dependencies between custom properties and " +
+           "font-size correctly when computing.",
+    registrations: [
+      { name: "--length-a",
+        syntax: "<length>",
+        inherits: false,
+        initialValue: "7px",
+      },
+      { name: "--length-b",
+        syntax: "<length>",
+        inherits: false,
+        initialValue: "7px",
+      },
+    ],
+    child: "--tokens: var(--length-a); " +
+           "--length-a: calc(5px + 5px); " +
+           "--length-b: 2em;" +
+           "font-size: var(--tokens); ",
+    expected: {
+      "--tokens": " 10px",
+      "--length-a": "10px",
+      "--length-b": "20px",
+      "font-size": "10px",
+    },
+    // If we don't correctly compute dependencies, then we would expect
+    // font-size's declaration to end up being invalid at computed-value time
+    // due to --length-a being substituted into --tokens before being computed,
+    // or for --length-b to end up computing to 32px (we define font-size to be
+    // 16px at the top of this test file). The order of computation we want is
+    // --length-a → --tokens → font-size → --length-b.
+  },
+  { title: "If declarations for custom properties and font-size are involved " +
+           "in a cycle, all involved properties should compute to their " +
+           "initial values.",
+    registrations: [
+      { name: "--a",
+        syntax: "<length>",
+        inherits: false,
+        initialValue: "7px",
+      },
+      { name: "--b",
+        syntax: "*",
+        inherits: false,
+        initialValue: "initial-value",
+      }
+    ],
+    child: "--a: 5em; " +
+           "--b: var(--a); " +
+           "font-size: var(--b)",
+    expected: {
+      "--a": "7px",
+      "--b": "initial-value",
+      "font-size": "16px",
+    }
+  },
+];
+
+for (let spec of familyTests) {
+  test(function () {
+    let registered = [];
+    try {
+      for (let registration of spec.registrations) {
+        CSS.registerProperty(registration);
+        registered.push(registration.name);
+      }
+
+      grandparent.setAttribute("style", spec.grandparent || "");
+      parent.setAttribute("style", spec.parent || "");
+      child.setAttribute("style", spec.child || "");
+
+      for (let key in spec.expected) {
+        assert_equals(window.getComputedStyle(child).getPropertyValue(key),
+          spec.expected[key], "property value equals expected value");
+      }
+    } finally {
+      grandparent.removeAttribute("style");
+      parent.removeAttribute("style");
+      child.removeAttribute("style");
+
+      for (let name of registered) {
+        CSS.unregisterProperty(name);
+      }
+    }
+  }, "family: " + spec.title);
+}
+</script>

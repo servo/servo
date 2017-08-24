@@ -486,7 +486,8 @@ where
                 Some(&mut cascade_info),
                 &self.context.thread_local.font_metrics_provider,
                 cascade_flags,
-                self.context.shared.quirks_mode
+                self.context.shared.quirks_mode,
+                self.context.shared.stylist.registered_property_set(),
             );
 
         cascade_info.finish(&self.element.as_node());

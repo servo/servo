@@ -21,6 +21,7 @@ use properties::{AnimationRules, PropertyDeclarationBlock};
 #[cfg(feature = "servo")]
 use properties::INHERIT_ALL;
 use properties::IS_LINK;
+use properties_and_values::RegisteredPropertySet;
 use rule_tree::{CascadeLevel, RuleTree, StyleSource};
 use selector_map::{PrecomputedHashMap, SelectorMap, SelectorMapEntry};
 use selector_parser::{SelectorImpl, PerPseudoElementMap, PseudoElement};
@@ -35,6 +36,7 @@ use selectors::visitor::SelectorVisitor;
 use servo_arc::{Arc, ArcBorrow};
 use shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
 use smallvec::VecLike;
+use std::borrow::Borrow;
 use std::fmt::Debug;
 use std::ops;
 use style_traits::viewport::ViewportConstraints;
@@ -423,6 +425,16 @@ pub struct Stylist {
 
     /// The total number of times the stylist has been rebuilt.
     num_rebuilds: usize,
+
+    /// The set of registered custom properties associated with the document.
+    /// Should be initialized as soon as possible.
+    #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
+    registered_property_set: Option<Arc<Locked<RegisteredPropertySet>>>,
+
+    /// The registered property set generation at the time that rebuild was last
+    /// called. Used to keep track of whether or not we need to actually
+    /// rebuild, similar to is_device_dirty.
+    last_used_registered_property_set_generation: Option<u32>,
 }
 
 /// What cascade levels to include when styling elements.
@@ -460,6 +472,8 @@ impl Stylist {
             cascade_data: Default::default(),
             rule_tree: RuleTree::new(),
             num_rebuilds: 0,
+            registered_property_set: None,
+            last_used_registered_property_set_generation: None,
         }
     }
 
@@ -488,6 +502,38 @@ impl Stylist {
     pub fn num_invalidations(&self) -> usize {
         self.cascade_data.iter_origins()
             .map(|(d, _)| d.invalidation_map.len()).sum()
+    }
+
+    /// Set the registered property set associated with the document this
+    /// Stylist is styling.
+    pub fn set_registered_property_set(
+        &mut self,
+        registered_property_set: Arc<Locked<RegisteredPropertySet>>
+    ) {
+        debug_assert!(if let Some(ref old) = self.registered_property_set {
+            Arc::ptr_eq(old, &registered_property_set)
+        } else { true });
+        self.registered_property_set = Some(registered_property_set);
+    }
+
+    /// Get the registered property set associated with the document this
+    /// Stylist is styling. Panics if there is none set.
+    pub fn registered_property_set(&self) -> &Locked<RegisteredPropertySet> {
+        self.registered_property_set
+            .as_ref()
+            .map(|x| &**x)
+            .expect("set_registered_property_set should have been called.")
+    }
+
+    /// Returns whether the registered property set was updated since the last
+    /// time the Stylist was flushed.
+    pub fn registered_property_set_updated(&self, guard: &SharedRwLockReadGuard) -> bool {
+        let registered_property_set =
+            self.registered_property_set.as_ref()
+            .expect("set_registered_property_set must be called.")
+            .read_with(guard);
+
+        self.last_used_registered_property_set_generation != Some(registered_property_set.generation())
     }
 
     /// Invokes `f` with the `InvalidationMap` for each origin.
@@ -716,7 +762,11 @@ impl Stylist {
                             None,
                             font_metrics,
                             cascade_flags,
-                            self.quirks_mode)
+                            self.quirks_mode,
+                            self.registered_property_set
+                                .as_ref()
+                                .expect("set_registered_property_set should have been called")
+                                .borrow())
     }
 
     /// Returns the style for an anonymous box of the given type.
@@ -889,7 +939,11 @@ impl Stylist {
                                     None,
                                     font_metrics,
                                     cascade_flags,
-                                    self.quirks_mode);
+                                    self.quirks_mode,
+                                    self.registered_property_set
+                                        .as_ref()
+                                        .expect("The registered property set must be set beforehand.")
+                                        .borrow());
 
             Some(computed)
         } else {
@@ -915,7 +969,11 @@ impl Stylist {
                             None,
                             font_metrics,
                             cascade_flags,
-                            self.quirks_mode)
+                            self.quirks_mode,
+                            self.registered_property_set
+                                .as_ref()
+                                .expect("The registered property set must be set beforehand.")
+                                .borrow())
     }
 
     fn has_rules_for_pseudo(&self, pseudo: &PseudoElement) -> bool {
@@ -1489,7 +1547,12 @@ impl Stylist {
                             None,
                             &metrics,
                             CascadeFlags::empty(),
-                            self.quirks_mode)
+                            self.quirks_mode,
+                            self.registered_property_set
+                                .as_ref()
+                                .expect("set_registered_property_set should \
+                                         have been called.")
+                                .borrow())
     }
 
     /// Accessor for a shared reference to the device.

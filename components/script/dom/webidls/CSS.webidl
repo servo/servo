@@ -17,3 +17,11 @@ partial interface CSS {
   static boolean supports(DOMString property, DOMString value);
   static boolean supports(DOMString conditionText);
 };
+
+// https://drafts.css-houdini.org/css-properties-values-api/#registering-custom-properties
+partial interface CSS {
+  [Throws,Pref="layout.css.properties-and-values.enabled"]
+  static void registerProperty(PropertyDescriptorDict descriptor);
+  [Throws,Pref="layout.css.properties-and-values.enabled"]
+  static void unregisterProperty(DOMString name);
+};

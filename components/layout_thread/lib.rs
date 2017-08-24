@@ -1137,6 +1137,18 @@ impl LayoutThread {
                element, self.url, data.query_type);
         trace!("{:?}", ShowSubtree(element.as_node()));
 
+        let document_shared_lock = document.style_shared_lock();
+        self.document_shared_lock = Some(document_shared_lock.clone());
+        let document_guard = document_shared_lock.read();
+
+        // Set the registered property set (if it isn't already set), and mark
+        // stylesheet origins dirty if they've changed, analogously to the check
+        // regarding device changes below.
+        self.stylist.set_registered_property_set(document.registered_property_set());
+        if self.stylist.registered_property_set_updated(&document_guard) {
+            self.stylist.force_stylesheet_origins_dirty(OriginSet::all());
+        }
+
         let initial_viewport = data.window_size.initial_viewport;
         let device_pixel_ratio = data.window_size.device_pixel_ratio;
         let old_viewport_size = self.viewport_size;
@@ -1145,12 +1157,9 @@ impl LayoutThread {
 
         // Calculate the actual viewport as per DEVICE-ADAPT § 6
 
-        let document_shared_lock = document.style_shared_lock();
-        self.document_shared_lock = Some(document_shared_lock.clone());
-        let author_guard = document_shared_lock.read();
         let device = Device::new(MediaType::screen(), initial_viewport, device_pixel_ratio);
         let sheet_origins_affected_by_device_change =
-            self.stylist.set_device(device, &author_guard);
+            self.stylist.set_device(device, &document_guard);
 
         self.stylist.force_stylesheet_origins_dirty(sheet_origins_affected_by_device_change);
         self.viewport_size =
@@ -1200,8 +1209,9 @@ impl LayoutThread {
         let ua_stylesheets = &*UA_STYLESHEETS;
         let ua_or_user_guard = ua_stylesheets.shared_lock.read();
         let guards = StylesheetGuards {
-            author: &author_guard,
+            author: &document_guard,
             ua_or_user: &ua_or_user_guard,
+            registered_property_set: &document_guard,
         };
 
         {
@@ -1517,12 +1527,13 @@ impl LayoutThread {
 
             // Unwrap here should not panic since self.root_flow is only ever set to Some(_)
             // in handle_reflow() where self.document_shared_lock is as well.
-            let author_shared_lock = self.document_shared_lock.clone().unwrap();
-            let author_guard = author_shared_lock.read();
+            let document_shared_lock = self.document_shared_lock.clone().unwrap();
+            let document_guard = document_shared_lock.read();
             let ua_or_user_guard = UA_STYLESHEETS.shared_lock.read();
             let guards = StylesheetGuards {
-                author: &author_guard,
+                author: &document_guard,
                 ua_or_user: &ua_or_user_guard,
+                registered_property_set: &document_guard,
             };
             let snapshots = SnapshotMap::new();
             let mut layout_context = self.build_layout_context(guards,

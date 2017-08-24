@@ -1,0 +1,50 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Bug 1273706 - Registration (CSS Properties &amp; Values)</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api/#the-registerproperty-function" />
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id="sandbox"></div>
+<script>
+let sandbox = document.getElementById("sandbox");
+
+test(function () {
+  let caughtError = false;
+  try {
+    CSS.registerProperty({ syntax: "<integer>", inherits: false,
+                           initialValue: "0" });
+  } catch (e) {
+    caughtError = true;
+  }
+  assert_true(caughtError, "caught error");
+}, "Attempting to register a property without a name should result in an " +
+   "error.");
+
+test(function () {
+  let caughtDuplicate = false;
+  CSS.registerProperty({ name: "--duplicate-ime" });
+  try {
+    CSS.registerProperty({ name: "--duplicate-ime" });
+    CSS.unregisterProperty("--duplicate-ime");
+  } catch (e) {
+    caughtDuplicate =
+      e instanceof DOMException &&
+      e.name == "InvalidModificationError";
+  }
+  assert_true(caughtDuplicate, "caught exception");
+}, "Attempting to register a property with a name that has already been " +
+   "registered should result in an InvalidModificationError.");
+
+test(function () {
+  let caughtNotFound = false;
+  try {
+    CSS.unregisterProperty("--not-found-nfe");
+  } catch (e) {
+    caughtNotFound =
+      e instanceof DOMException &&
+      e.name == "NotFoundError";
+  }
+  assert_true(caughtNotFound, "caught exception");
+}, "Attempting to unregister a property that doesn't exist should result in " +
+   "a NotFoundError.");
+</script>

@@ -1,0 +1,355 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Bug 1273706 - Animation (CSS Properties &amp; Values)</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api/#animation-behavior-of-custom-properties" />
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="common.js"></script>
+
+<!-- Styles used to test custom properties going through the whole system
+     correctly. -->
+<style type="text/css">
+div#container {
+  font-size: 16px;
+}
+
+@keyframes number {
+  from { --number: 0; }
+  to { --number: 1; }
+}
+
+@keyframes transform {
+  from { --transform: rotate(0deg); }
+  to { --transform: rotate(180deg); }
+}
+
+@keyframes list1 {
+  from { --list: 0 0; }
+  to { --list: 1 2; }
+}
+
+@keyframes lp {
+  from { --lp: calc(0 + 15%); }
+  to { --lp: calc(45% + 14); }
+}
+
+@keyframes length {
+  from { --length: 0px; }
+  to { --length: 10px; }
+}
+
+@keyframes percentage {
+  from { --percentage: 0%; }
+  to { --percentage: 100%; }
+}
+
+@keyframes integer {
+  from { --integer: 0; }
+  to { --integer: 10; }
+}
+
+@keyframes lps1 {
+  from { --lps: 0px 0% calc(0px + 0%); }
+  to { --lps: 100px 100% calc(100px + 100%); }
+}
+
+@keyframes lps2 {
+  from { --lps: calc(50px + 0%) calc(0px + 50%) calc(50px + 50%); }
+  to { --lps: calc(100px + 0%) calc(0px + 100%) calc(0px + 0%); }
+}
+
+@keyframes missing {
+  from { --number: 0; }
+}
+</style>
+
+<!-- Some dummy elements that we will use for testing. -->
+<div id="container">
+  <div id="sandbox"></div>
+</div>
+
+<script>
+// Test specifications.
+let animTests = [
+  { keyframes: "number",
+    property: "--number",
+    syntax: "<number>",
+    halfway: "0.5"
+  },
+  { keyframes: "transform",
+    property: "--transform",
+    syntax: "<transform-function>",
+    halfway: "rotate(90deg)"
+  },
+  { keyframes: "list1",
+    property: "--list",
+    syntax: "<number>+",
+    halfway: "0.5 1.0"
+  },
+  { keyframes: "lp",
+    property: "--lp",
+    syntax: "<length-percentage>",
+    halfway: "calc(7 + 30%)"
+  },
+  { keyframes: "length",
+    property: "--length",
+    syntax: "<length>",
+    halfway: "5px",
+  },
+  { keyframes: "percentage",
+    property: "--percentage",
+    syntax: "<percentage>",
+    halfway: "50%",
+  },
+  { keyframes: "integer",
+    property: "--integer",
+    syntax: "<integer>",
+    halfway: "5",
+  },
+  { keyframes: "lps1",
+    property: "--lps",
+    syntax: "<length-percentage>+",
+    halfway: "50px 50% calc(50px + 50%)",
+  },
+  { keyframes: "lps2",
+    property: "--lps",
+    syntax: "<length-percentage>+",
+    halfway: "calc(75px + 0%) calc(0px + 75%) calc(25px + 25%)",
+  },
+];
+
+let animTests2 = [
+  { syntax: "<number>",
+    keyframes: [
+      "0",
+      "1",
+    ],
+    checks: {
+      "0.4": "0.4",
+      "0.6": "0.6",
+    },
+  },
+
+  // These are uninterpolable values.
+  // They should be flip at 50%.
+
+  { syntax: "<angle>",
+    keyframes: [
+      "0deg",
+      "90deg",
+    ],
+    checks: {
+      "0.4": "0deg",
+      "0.6": "90deg",
+    },
+  },
+
+  { syntax: "<time>",
+    keyframes: [
+      "3s",
+      "9s",
+    ],
+    checks: {
+      "0.4": "3s",
+      "0.6": "9s",
+    },
+  },
+
+  { syntax: "<resolution>",
+    keyframes: [
+      "96dpi",
+      "144dpi",
+    ],
+    checks: {
+      "0.4": "96dpi",
+      "0.6": "144dpi",
+    },
+  },
+
+  { syntax: "<custom-ident>",
+    keyframes: [
+      "doing-good",
+      "is-in-our-code",
+    ],
+    checks: {
+      "0.4": "doing-good",
+      "0.6": "is-in-our-code",
+    },
+  },
+
+  { syntax: "Mozilla | Firefox",
+    keyframes: [
+      "Mozilla",
+      "Firefox",
+    ],
+    checks: {
+      "0.4": "Mozilla",
+      "0.6": "Firefox",
+    },
+  },
+
+  // <url>s need to carry around a principal too, so it's worth testing that we
+  // are able to pass them around correctly (the others are all just unparsed
+  // strings).
+  { syntax: "<url>",
+    keyframes: [
+      "url(\"http://mozilla.com/\")",
+      "url(\"http://firefox.com/\")",
+    ],
+    checks: {
+      "0.4": "url(\"http://mozilla.com/\")",
+      "0.6": "url(\"http://firefox.com/\")",
+    },
+  },
+
+  { syntax: "*",
+    keyframes: [
+      "youve never seen the real numbers",
+      "like this before",
+    ],
+    checks: {
+      "0.4": "youve never seen the real numbers",
+      "0.6": "like this before",
+    },
+  },
+];
+
+let sandbox = document.getElementById("sandbox");
+
+for (let spec of animTests) {
+  let { keyframes, property, syntax, halfway } = spec;
+  test(function () {
+    try {
+      CSS.registerProperty({ name: property, syntax: syntax });
+
+      // Store into |computedExpected| the computed value we get from specifying
+      // |halfway|. This should normalize the value.
+      sandbox.style.setProperty(property, halfway);
+      let computedExpected = window.getComputedStyle(sandbox)
+                                   .getPropertyValue(property);
+      sandbox.style.removeProperty(property);
+
+      sandbox.style.setProperty("animation-name", keyframes);
+      sandbox.style.setProperty("animation-duration", "1s");
+      sandbox.style.setProperty("animation-timing-function", "linear");
+
+      let anim = sandbox.getAnimations()[0];
+      anim.pause();
+      anim.currentTime = 500;
+
+      let computed = window.getComputedStyle(sandbox)
+                           .getPropertyValue(property);
+      assert_equals(computed, computedExpected,
+                    "halfway value equals expected value");
+    } finally {
+      sandbox.style.removeProperty("animation-name");
+      sandbox.style.removeProperty("animation-duration");
+      sandbox.style.removeProperty("animation-timing-function");
+      CSS.unregisterProperty(property);
+    }
+  }, "anim: " + JSON.stringify(spec));
+}
+
+for (let spec of animTests2) {
+  let { keyframes, initial, syntax, checks } = spec;
+  test(function () {
+    try {
+      CSS.registerProperty({ name: "--test", syntax: syntax });
+
+      let anim = sandbox.animate(
+                   keyframes.map(value => ({ "--test": value })), 1000);
+      try {
+        anim.pause();
+        for (let point in checks) {
+          let time = parseFloat(point);
+          anim.currentTime = time * 1000;
+          let computed = window.getComputedStyle(sandbox)
+                               .getPropertyValue("--test");
+          assert_equals(computed, checks[point],
+                        `value at time ${time} equals expected value`);
+        }
+      } finally {
+        anim.cancel();
+      }
+    } finally {
+      sandbox.style.removeProperty("--test");
+      CSS.unregisterProperty("--test");
+    }
+  }, "anim #2: " + JSON.stringify(spec));
+}
+
+// Make sure that we fill in missing keyframe values.
+// It's possible to have custom properties without initial values (i.e. they
+// have invalid initial values).
+// CSS Animations says:
+//   If a ‘0%’ or ‘from’ keyframe is not specified, then the user agent
+//   constructs a ‘0%’ keyframe using the computed values of the properties
+//   being animated. If a ‘100%’ or ‘to’ keyframe is not specified, then the
+//   user agent constructs a ‘100%’ keyframe using the computed values of the
+//   properties being animated.
+// But for a custom property without an initial value, it's not possible to
+// fill in a value.
+
+test(function () {
+  CSS.registerProperty({ name: "--number", syntax: "<number>" });
+
+  sandbox.style.setProperty("animation-name", "missing");
+  sandbox.style.setProperty("animation-duration", "1s");
+  sandbox.style.setProperty("animation-timing-function", "linear");
+
+  let anim = sandbox.getAnimations()[0];
+  anim.pause();
+  anim.currentTime = 500;
+
+  try {
+    assert_equals(window.getComputedStyle(sandbox)
+                        .getPropertyValue("--number"),
+                  "",
+                  "There should be no animation if there is no property to " +
+                  "fall back on.");
+    // Shouldn't segfault while uncomputing values either!
+    for (let keyframe of anim.effect.getKeyframes()) {
+      assert_equals(keyframe["--number"], undefined,
+        "Shouldn't have --number in keyframes when we were missing a " +
+        "keyframe value.");
+    }
+  } finally {
+    CSS.unregisterProperty("--number");
+    sandbox.style.removeProperty("animation-name");
+    sandbox.style.removeProperty("animation-duration");
+    sandbox.style.removeProperty("animation-timing-function");
+  }
+}, "Custom properties without initial values missing in keyframes should be " +
+   "removed.");
+
+test(function () {
+  CSS.registerProperty({ name: "--number", syntax: "<number>" });
+
+  sandbox.style.setProperty("animation-name", "missing");
+  sandbox.style.setProperty("animation-duration", "1s");
+  sandbox.style.setProperty("animation-timing-function", "linear");
+  sandbox.style.setProperty("--number", "1");
+
+  let anim = sandbox.getAnimations()[0];
+  anim.pause();
+  anim.currentTime = 500;
+
+  try {
+    assert_equals(window.getComputedStyle(sandbox)
+                        .getPropertyValue("--number"),
+                  "0.5",
+                  "Animation value should have been filled in using computed " +
+                  "value.");
+    for (let keyframe of anim.effect.getKeyframes()) {
+      assert_true(keyframe["--number"] != undefined,
+        "Should have --number in keyframes, serialized as a custom property.");
+    }
+  } finally {
+    CSS.unregisterProperty("--number");
+    sandbox.style.removeProperty("animation-name");
+    sandbox.style.removeProperty("animation-duration");
+    sandbox.style.removeProperty("animation-timing-function");
+  }
+}, "Custom properties in missing keyframes using computed values should be " +
+   "filled in.");
+</script>
