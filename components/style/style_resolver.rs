@@ -356,7 +356,7 @@ where
         );
 
         if log_enabled!(Trace) {
-            trace!("Matched rules:");
+            trace!("Matched rules for {:?}:", self.element);
             for rn in rule_node.self_and_ancestors() {
                 let source = rn.style_source();
                 if source.is_some() {
