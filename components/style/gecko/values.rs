@@ -414,10 +414,8 @@ impl GeckoStyleCoordConvertible for ScrollSnapPoint<LengthOrPercentage> {
         Some(
             match coord.unit() {
                 nsStyleUnit::eStyleUnit_None => ScrollSnapPoint::None,
-                nsStyleUnit::eStyleUnit_Coord | nsStyleUnit::eStyleUnit_Percent  =>
-                    ScrollSnapPoint::Repeat(LengthOrPercentage::from_gecko_style_coord(coord)
-                                            .expect("coord could not convert to LengthOrPercentage")),
-                x => panic!("Unexpected unit {:?}", x)
+                _  => ScrollSnapPoint::Repeat(LengthOrPercentage::from_gecko_style_coord(coord)
+                            .expect("coord could not convert to LengthOrPercentage")),
             }
         )
     }
