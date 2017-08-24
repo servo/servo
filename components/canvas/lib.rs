@@ -9,6 +9,7 @@ extern crate canvas_traits;
 extern crate compositing;
 extern crate cssparser;
 extern crate euclid;
+extern crate fnv;
 extern crate gleam;
 extern crate ipc_channel;
 #[macro_use] extern crate log;

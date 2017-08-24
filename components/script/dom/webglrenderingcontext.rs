@@ -44,6 +44,7 @@ use dom::webgluniformlocation::WebGLUniformLocation;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use euclid::Size2D;
+use fnv::FnvHashMap;
 use half::f16;
 use js::conversions::ConversionBehavior;
 use js::jsapi::{JSContext, JSObject, Type, Rooted};
@@ -55,7 +56,6 @@ use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use script_layout_interface::HTMLCanvasDataSource;
 use servo_config::prefs::PREFS;
 use std::cell::Cell;
-use std::collections::HashMap;
 use webrender_api;
 
 type ImagePixelResult = Result<(Vec<u8>, Size2D<i32>, bool), ()>;
@@ -151,7 +151,7 @@ pub struct WebGLRenderingContext {
     bound_texture_cube_map: MutNullableJS<WebGLTexture>,
     bound_buffer_array: MutNullableJS<WebGLBuffer>,
     bound_buffer_element_array: MutNullableJS<WebGLBuffer>,
-    bound_attrib_buffers: DOMRefCell<HashMap<u32, JS<WebGLBuffer>>>,
+    bound_attrib_buffers: DOMRefCell<FnvHashMap<u32, JS<WebGLBuffer>>>,
     current_program: MutNullableJS<WebGLProgram>,
     #[ignore_heap_size_of = "Because it's small"]
     current_vertex_attrib_0: Cell<(f32, f32, f32, f32)>,
@@ -194,7 +194,7 @@ impl WebGLRenderingContext {
                 bound_texture_cube_map: MutNullableJS::new(None),
                 bound_buffer_array: MutNullableJS::new(None),
                 bound_buffer_element_array: MutNullableJS::new(None),
-                bound_attrib_buffers: DOMRefCell::new(HashMap::new()),
+                bound_attrib_buffers: DOMRefCell::new(Default::default()),
                 bound_renderbuffer: MutNullableJS::new(None),
                 current_program: MutNullableJS::new(None),
                 current_vertex_attrib_0: Cell::new((0f32, 0f32, 0f32, 1f32)),
@@ -239,12 +239,12 @@ impl WebGLRenderingContext {
         }
     }
 
-    pub fn borrow_bound_attrib_buffers(&self) -> Ref<HashMap<u32, JS<WebGLBuffer>>> {
+    pub fn borrow_bound_attrib_buffers(&self) -> Ref<FnvHashMap<u32, JS<WebGLBuffer>>> {
         self.bound_attrib_buffers.borrow()
     }
 
     pub fn set_bound_attrib_buffers<'a, T>(&self, iter: T) where T: Iterator<Item=(u32, &'a WebGLBuffer)> {
-        *self.bound_attrib_buffers.borrow_mut() = HashMap::from_iter(iter.map(|(k,v)| (k, JS::from_ref(v))));
+        *self.bound_attrib_buffers.borrow_mut() = FnvHashMap::from_iter(iter.map(|(k,v)| (k, JS::from_ref(v))));
     }
 
     pub fn bound_buffer_element_array(&self) -> Option<Root<WebGLBuffer>> {

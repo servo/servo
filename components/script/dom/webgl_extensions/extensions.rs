@@ -12,13 +12,14 @@ use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderi
 use dom::bindings::js::Root;
 use dom::bindings::trace::JSTraceable;
 use dom::webglrenderingcontext::WebGLRenderingContext;
+use fnv::{FnvHashMap, FnvHashSet};
 use gleam::gl::GLenum;
 use heapsize::HeapSizeOf;
 use js::jsapi::{JSContext, JSObject};
 use js::jsval::JSVal;
 use ref_filter_map::ref_filter_map;
 use std::cell::Ref;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use super::{ext, WebGLExtension};
 use super::wrapper::{WebGLExtensionWrapper, TypedWebGLExtensionWrapper};
 
@@ -46,26 +47,26 @@ const DEFAULT_DISABLED_GET_PARAMETER_NAMES: [GLenum; 1] = [
 /// WebGL features that are enabled/disabled by WebGL Extensions.
 #[derive(HeapSizeOf, JSTraceable)]
 struct WebGLExtensionFeatures {
-    gl_extensions: HashSet<String>,
-    disabled_tex_types: HashSet<GLenum>,
-    not_filterable_tex_types: HashSet<GLenum>,
-    effective_tex_internal_formats: HashMap<TexFormatType, u32>,
-    query_parameter_handlers: HashMap<GLenum, WebGLQueryParameterHandler>,
+    gl_extensions: FnvHashSet<String>,
+    disabled_tex_types: FnvHashSet<GLenum>,
+    not_filterable_tex_types: FnvHashSet<GLenum>,
+    effective_tex_internal_formats: FnvHashMap<TexFormatType, u32>,
+    query_parameter_handlers: FnvHashMap<GLenum, WebGLQueryParameterHandler>,
     /// WebGL Hint() targets enabled by extensions.
-    hint_targets: HashSet<GLenum>,
+    hint_targets: FnvHashSet<GLenum>,
     /// WebGL GetParameter() names enabled by extensions.
-    disabled_get_parameter_names: HashSet<GLenum>,
+    disabled_get_parameter_names: FnvHashSet<GLenum>,
 }
 
 impl Default for WebGLExtensionFeatures {
     fn default() -> WebGLExtensionFeatures {
         WebGLExtensionFeatures {
-            gl_extensions: HashSet::new(),
+            gl_extensions: Default::default(),
             disabled_tex_types: DEFAULT_DISABLED_TEX_TYPES.iter().cloned().collect(),
             not_filterable_tex_types: DEFAULT_NOT_FILTERABLE_TEX_TYPES.iter().cloned().collect(),
-            effective_tex_internal_formats: HashMap::new(),
-            query_parameter_handlers: HashMap::new(),
-            hint_targets: HashSet::new(),
+            effective_tex_internal_formats: Default::default(),
+            query_parameter_handlers: Default::default(),
+            hint_targets: Default::default(),
             disabled_get_parameter_names: DEFAULT_DISABLED_GET_PARAMETER_NAMES.iter().cloned().collect(),
         }
     }
@@ -90,8 +91,8 @@ impl WebGLExtensions {
     pub fn init_once<F>(&self, cb: F) where F: FnOnce() -> String {
         if self.extensions.borrow().len() == 0 {
             let gl_str = cb();
-            self.features.borrow_mut().gl_extensions = HashSet::from_iter(gl_str.split(&[',', ' '][..])
-                                                                                .map(|s| s.into()));
+            self.features.borrow_mut().gl_extensions = FnvHashSet::from_iter(gl_str.split(&[',', ' '][..])
+                                                                                   .map(|s| s.into()));
             self.register_all_extensions();
         }
     }
