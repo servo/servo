@@ -73,7 +73,7 @@ impl StylesheetContents {
         stylesheet_loader: Option<&StylesheetLoader>,
         error_reporter: &R,
         quirks_mode: QuirksMode,
-        line_number_offset: u64
+        line_number_offset: u32
     ) -> Self {
         let namespaces = RwLock::new(Namespaces::default());
         let (rules, source_map_url) = Stylesheet::parse_rules(
@@ -311,7 +311,7 @@ impl Stylesheet {
                               url_data: UrlExtraData,
                               stylesheet_loader: Option<&StylesheetLoader>,
                               error_reporter: &R,
-                              line_number_offset: u64)
+                              line_number_offset: u32)
         where R: ParseErrorReporter
     {
         let namespaces = RwLock::new(Namespaces::default());
@@ -349,17 +349,17 @@ impl Stylesheet {
         stylesheet_loader: Option<&StylesheetLoader>,
         error_reporter: &R,
         quirks_mode: QuirksMode,
-        line_number_offset: u64
+        line_number_offset: u32
     ) -> (Vec<CssRule>, Option<String>) {
         let mut rules = Vec::new();
-        let mut input = ParserInput::new(css);
+        let mut input = ParserInput::new_with_line_number_offset(css, line_number_offset);
         let mut input = Parser::new(&mut input);
 
         let context =
-            ParserContext::new_with_line_number_offset(
+            ParserContext::new(
                 origin,
                 url_data,
-                line_number_offset,
+                None,
                 PARSING_MODE_DEFAULT,
                 quirks_mode
             );
@@ -410,7 +410,7 @@ impl Stylesheet {
         stylesheet_loader: Option<&StylesheetLoader>,
         error_reporter: &R,
         quirks_mode: QuirksMode,
-        line_number_offset: u64)
+        line_number_offset: u32)
         -> Stylesheet
     {
         let contents = StylesheetContents::from_str(

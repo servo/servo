@@ -53,8 +53,6 @@ pub struct ParserContext<'a> {
     pub url_data: &'a UrlExtraData,
     /// The current rule type, if any.
     pub rule_type: Option<CssRuleType>,
-    /// Line number offsets for inline stylesheets
-    pub line_number_offset: u64,
     /// The mode to use when parsing.
     pub parsing_mode: ParsingMode,
     /// The quirks mode of this stylesheet.
@@ -76,7 +74,6 @@ impl<'a> ParserContext<'a> {
             stylesheet_origin: stylesheet_origin,
             url_data: url_data,
             rule_type: rule_type,
-            line_number_offset: 0u64,
             parsing_mode: parsing_mode,
             quirks_mode: quirks_mode,
             namespaces: None,
@@ -109,29 +106,9 @@ impl<'a> ParserContext<'a> {
             stylesheet_origin: context.stylesheet_origin,
             url_data: context.url_data,
             rule_type: Some(rule_type),
-            line_number_offset: context.line_number_offset,
             parsing_mode: context.parsing_mode,
             quirks_mode: context.quirks_mode,
             namespaces: Some(namespaces),
-        }
-    }
-
-    /// Create a parser context for inline CSS which accepts additional line offset argument.
-    pub fn new_with_line_number_offset(
-        stylesheet_origin: Origin,
-        url_data: &'a UrlExtraData,
-        line_number_offset: u64,
-        parsing_mode: ParsingMode,
-        quirks_mode: QuirksMode,
-    ) -> ParserContext<'a> {
-        ParserContext {
-            stylesheet_origin: stylesheet_origin,
-            url_data: url_data,
-            rule_type: None,
-            line_number_offset: line_number_offset,
-            parsing_mode: parsing_mode,
-            quirks_mode: quirks_mode,
-            namespaces: None,
         }
     }
 
@@ -148,7 +125,7 @@ impl<'a> ParserContext<'a> {
         where R: ParseErrorReporter
     {
         let location = SourceLocation {
-            line: location.line + self.line_number_offset as u32,
+            line: location.line,
             column: location.column,
         };
         context.error_reporter.report_error(self.url_data, location, error)

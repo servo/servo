@@ -35,7 +35,7 @@ macro_rules! stylesheet {
             None,
             &$error_reporter,
             QuirksMode::NoQuirks,
-            0u64
+            0
         ))
     }
 }

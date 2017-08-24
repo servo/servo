@@ -98,7 +98,7 @@ impl HTMLStyleElement {
                                          shared_lock, Some(&loader),
                                          win.css_error_reporter(),
                                          doc.quirks_mode(),
-                                         self.line_number);
+                                         self.line_number as u32);
 
         let sheet = Arc::new(sheet);
 

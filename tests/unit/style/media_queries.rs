@@ -37,7 +37,7 @@ fn test_media_rule<F>(css: &str, callback: F)
     let media_list = Arc::new(lock.wrap(MediaList::empty()));
     let stylesheet = Stylesheet::from_str(
         css, url, Origin::Author, media_list, lock,
-        None, &CSSErrorReporterTest, QuirksMode::NoQuirks, 0u64);
+        None, &CSSErrorReporterTest, QuirksMode::NoQuirks, 0);
     let dummy = Device::new(MediaType::screen(), TypedSize2D::new(200.0, 100.0), ScaleFactor::new(1.0));
     let mut rule_count = 0;
     let guard = stylesheet.shared_lock.read();
@@ -56,7 +56,7 @@ fn media_query_test(device: &Device, css: &str, expected_rule_count: usize) {
     let media_list = Arc::new(lock.wrap(MediaList::empty()));
     let ss = Stylesheet::from_str(
         css, url, Origin::Author, media_list, lock,
-        None, &CSSErrorReporterTest, QuirksMode::NoQuirks, 0u64);
+        None, &CSSErrorReporterTest, QuirksMode::NoQuirks, 0);
     let mut rule_count = 0;
     ss.effective_style_rules(device, &ss.shared_lock.read(), |_| rule_count += 1);
     assert!(rule_count == expected_rule_count, css.to_owned());

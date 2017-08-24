@@ -894,7 +894,7 @@ pub extern "C" fn Servo_StyleSheet_FromUTF8Bytes(
     Arc::new(StylesheetContents::from_str(
         input, url_data.clone(), origin,
         &global_style_data.shared_lock, loader, &reporter,
-        quirks_mode.into(), line_number_offset as u64)
+        quirks_mode.into(), line_number_offset)
     ).into_strong()
 }
 
