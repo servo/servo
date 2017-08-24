@@ -29,8 +29,8 @@
 
 use app_units::{Au, MAX_AU};
 use context::LayoutContext;
-use display_list_builder::{BorderPaintingMode, DisplayListBuildState};
-use display_list_builder::BlockFlowDisplayListBuilding;
+use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode};
+use display_list_builder::{DisplayListBuildState, EstablishContainingBlock};
 use euclid::{Point2D, Size2D, Rect};
 use floats::{ClearType, FloatKind, Floats, PlacementInfo};
 use flow::{self, BaseFlow, EarlyAbsolutePositionInfo, Flow, FlowClass, ForceNonfloatedFlag};
@@ -643,7 +643,7 @@ impl BlockFlow {
         &mut self.fragment
     }
 
-    pub fn stacking_relative_position(&self, coor: CoordinateSystem) -> Rect<Au> {
+    pub fn stacking_relative_border_box(&self, coor: CoordinateSystem) -> Rect<Au> {
         return self.fragment.stacking_relative_border_box(
             &self.base.stacking_relative_position,
             &self.base.early_absolute_position_info.relative_containing_block_size,
@@ -1787,6 +1787,17 @@ impl BlockFlow {
         self.flags.contains(HAS_SCROLLING_OVERFLOW)
     }
 
+    // Return offset from original position because of `position: sticky`.
+    pub fn sticky_position(&self) -> (MaybeAuto, MaybeAuto, MaybeAuto, MaybeAuto) {
+        let containing_block_size = &self.base.early_absolute_position_info
+                                              .relative_containing_block_size;
+        let offsets = self.fragment.style().logical_position();
+        (MaybeAuto::from_style(offsets.inline_start, containing_block_size.inline),
+         MaybeAuto::from_style(offsets.inline_end, containing_block_size.inline),
+         MaybeAuto::from_style(offsets.block_start, containing_block_size.inline),
+         MaybeAuto::from_style(offsets.block_end, containing_block_size.inline))
+    }
+
 }
 
 impl Flow for BlockFlow {
@@ -2134,7 +2145,7 @@ impl Flow for BlockFlow {
     }
 
     fn collect_stacking_contexts(&mut self, state: &mut DisplayListBuildState) {
-        self.collect_stacking_contexts_for_block(state);
+        self.collect_stacking_contexts_for_block(state, EstablishContainingBlock::CanEstablish);
     }
 
     fn build_display_list(&mut self, state: &mut DisplayListBuildState) {
