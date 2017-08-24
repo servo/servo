@@ -8,7 +8,7 @@ use std::borrow::Cow;
 use std::iter;
 use syn::{AngleBracketedParameterData, Body, DeriveInput, Ident, ImplGenerics};
 use syn::{Path, PathParameters, PathSegment, PolyTraitRef, QSelf};
-use syn::{TraitBoundModifier, Ty, TyGenerics, TyParam, TyParamBound, TypeBinding};
+use syn::{TraitBoundModifier, Ty, TyGenerics, TyParam, TyParamBound};
 use syn::{Variant, WhereBoundPredicate, WhereClause, WherePredicate};
 use syn::visit::{self, Visitor};
 use synstructure::{self, BindOpts, BindStyle, BindingInfo};
@@ -58,50 +58,6 @@ pub fn fmap_trait_parts<'a>(
         }),
     }.into();
     (impl_generics, ty_generics, where_clause, output_ty)
-}
-
-fn fmap_trait_where_predicate(
-    bounded_ty: Ty,
-    trait_path: &[&str],
-    trait_output: Option<(&str, Ty)>,
-) -> WherePredicate {
-    WherePredicate::BoundPredicate(WhereBoundPredicate {
-        bound_lifetimes: vec![],
-        bounded_ty,
-        bounds: vec![TyParamBound::Trait(
-            PolyTraitRef {
-                bound_lifetimes: vec![],
-                trait_ref: fmap_trait_ref(trait_path, trait_output),
-            },
-            TraitBoundModifier::None
-        )],
-    })
-}
-
-fn fmap_trait_ref(path: &[&str], output: Option<(&str, Ty)>) -> Path {
-    let (name, parent) = path.split_last().unwrap();
-    let last_segment = PathSegment {
-        ident: (*name).into(),
-        parameters: PathParameters::AngleBracketed(
-            AngleBracketedParameterData {
-                bindings: output.into_iter().map(|(param, ty)| {
-                    TypeBinding { ident: param.into(), ty }
-                }).collect(),
-                .. Default::default()
-            }
-        )
-    };
-    Path {
-        global: true,
-        segments: {
-            parent
-                .iter()
-                .cloned()
-                .map(Into::into)
-                .chain(iter::once(last_segment))
-                .collect()
-        },
-    }
 }
 
 pub fn is_parameterized(ty: &Ty, params: &[TyParam]) -> bool {
@@ -166,10 +122,9 @@ pub fn trait_parts<'a>(
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
     let mut where_clause = where_clause.clone();
     for param in &input.generics.ty_params {
-        where_clause.predicates.push(fmap_trait_where_predicate(
+        where_clause.predicates.push(where_predicate(
             Ty::Path(None, param.ident.clone().into()),
             trait_path,
-            None,
         ));
     }
     (impl_generics, ty_generics, where_clause)
