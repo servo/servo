@@ -7,12 +7,11 @@
 #![deny(missing_docs)]
 
 use context::{StyleContext, ThreadLocalStyleContext};
-use dom::{TElement, TNode};
+use dom::{SendNode, TElement, TNode};
+use parallel::WORK_UNIT_MAX;
 use std::collections::VecDeque;
 use time;
 use traversal::{DomTraversal, PerLevelTraversalData, PreTraverseToken};
-
-struct WorkItem<N: TNode>(N, usize);
 
 /// Do a sequential DOM traversal for layout or styling, generic over `D`.
 pub fn traverse_dom<E, D>(traversal: &D,
@@ -27,29 +26,36 @@ pub fn traverse_dom<E, D>(traversal: &D,
     debug_assert!(!traversal.is_parallel());
     debug_assert!(token.should_traverse());
 
-    let mut discovered = VecDeque::<WorkItem<E::ConcreteNode>>::with_capacity(16);
+    let mut discovered =
+        VecDeque::<SendNode<E::ConcreteNode>>::with_capacity(WORK_UNIT_MAX * 2);
     let mut tlc = ThreadLocalStyleContext::new(traversal.shared_context());
     let mut context = StyleContext {
         shared: traversal.shared_context(),
         thread_local: &mut tlc,
     };
 
-    let root_depth = root.depth();
-    discovered.push_back(WorkItem(root.as_node(), root_depth));
 
     // Process the nodes breadth-first, just like the parallel traversal does.
     // This helps keep similar traversal characteristics for the style sharing
     // cache.
-    while let Some(WorkItem(node, depth)) = discovered.pop_front() {
+    let mut depth = root.depth();
+    let mut nodes_remaining_at_current_depth = 1;
+    discovered.push_back(unsafe { SendNode::new(root.as_node()) });
+    while let Some(node) = discovered.pop_front() {
         let mut children_to_process = 0isize;
         let traversal_data = PerLevelTraversalData { current_dom_depth: depth };
-        traversal.process_preorder(&traversal_data, &mut context, node, |n| {
+        traversal.process_preorder(&traversal_data, &mut context, *node, |n| {
             children_to_process += 1;
-            discovered.push_back(WorkItem(n, depth + 1));
+            discovered.push_back(unsafe { SendNode::new(n) });
         });
 
         traversal.handle_postorder_traversal(&mut context, root.as_node().opaque(),
-                                             node, children_to_process);
+                                             *node, children_to_process);
+        nodes_remaining_at_current_depth -= 1;
+        if nodes_remaining_at_current_depth == 0 {
+            depth += 1;
+            nodes_remaining_at_current_depth = discovered.len();
+        }
     }
 
     // Dump statistics to stdout if requested.
