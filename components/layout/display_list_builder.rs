@@ -169,6 +169,9 @@ pub struct DisplayListBuildState<'a> {
     /// recursively building and processing the display list.
     pub current_stacking_context_id: StackingContextId,
 
+    /// The current stacking real context id, which doesn't include pseudo-stacking contexts.
+    pub current_real_stacking_context_id: StackingContextId,
+
     /// The current clip and scroll info, used to keep track of state when
     /// recursively building and processing the display list.
     pub current_clip_and_scroll_info: ClipAndScrollInfo,
@@ -202,6 +205,7 @@ impl<'a> DisplayListBuildState<'a> {
             scroll_root_parents: HashMap::new(),
             processing_scroll_root_element: false,
             current_stacking_context_id: StackingContextId::root(),
+            current_real_stacking_context_id: StackingContextId::root(),
             current_clip_and_scroll_info: root_clip_info,
             containing_block_clip_and_scroll_info: root_clip_info,
             iframe_sizes: Vec::new(),
@@ -228,10 +232,14 @@ impl<'a> DisplayListBuildState<'a> {
         self.scroll_root_parents.contains_key(&id)
     }
 
-    fn add_scroll_root(&mut self, scroll_root: ScrollRoot, stacking_context_id: StackingContextId) {
+    fn add_scroll_root(&mut self, scroll_root: ScrollRoot) {
+        // We want the scroll root to be defined by another other possible item that could use it,
+        // so we make sure that it is added to the beginning of the parent "real" (non-pseudo)
+        // stacking context. This ensures that item reordering will not result in an item using
+        // the scroll root before it is defined.
         self.scroll_root_parents.insert(scroll_root.id, scroll_root.parent_id);
         let info = self.stacking_context_info
-                       .entry(stacking_context_id)
+                       .entry(self.current_real_stacking_context_id)
                        .or_insert(StackingContextInfo::new());
         info.scroll_roots.push(scroll_root);
     }
@@ -547,7 +555,7 @@ pub trait FragmentDisplayListBuilding {
                                id: StackingContextId,
                                base_flow: &BaseFlow,
                                scroll_policy: ScrollPolicy,
-                               mode: StackingContextCreationMode,
+                               context_type: StackingContextType,
                                parent_clip_and_scroll_info: ClipAndScrollInfo)
                                -> StackingContext;
 
@@ -2035,7 +2043,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                id: StackingContextId,
                                base_flow: &BaseFlow,
                                scroll_policy: ScrollPolicy,
-                               mode: StackingContextCreationMode,
+                               context_type: StackingContextType,
                                parent_clip_and_scroll_info: ClipAndScrollInfo)
                                -> StackingContext {
         let border_box =
@@ -2058,12 +2066,6 @@ impl FragmentDisplayListBuilding for Fragment {
         if effects.opacity != 1.0 {
             filters.push(Filter::Opacity(effects.opacity.into()))
         }
-
-        let context_type = match mode {
-            StackingContextCreationMode::PseudoFloat => StackingContextType::PseudoFloat,
-            StackingContextCreationMode::PseudoPositioned => StackingContextType::PseudoPositioned,
-            _ => StackingContextType::Real,
-        };
 
         StackingContext::new(id,
                              context_type,
@@ -2290,6 +2292,7 @@ pub trait BlockFlowDisplayListBuilding {
 /// TODO(mrobinson): It would be nice to use RAII here to avoid having to call restore.
 pub struct PreservedDisplayListState {
     stacking_context_id: StackingContextId,
+    real_stacking_context_id: StackingContextId,
     clip_and_scroll_info: ClipAndScrollInfo,
     containing_block_clip_and_scroll_info: ClipAndScrollInfo,
     clips_pushed: usize,
@@ -2300,6 +2303,7 @@ impl PreservedDisplayListState {
     fn new(state: &mut DisplayListBuildState) -> PreservedDisplayListState {
         PreservedDisplayListState {
             stacking_context_id: state.current_stacking_context_id,
+            real_stacking_context_id: state.current_real_stacking_context_id,
             clip_and_scroll_info: state.current_clip_and_scroll_info,
             containing_block_clip_and_scroll_info: state.containing_block_clip_and_scroll_info,
             clips_pushed: 0,
@@ -2315,6 +2319,7 @@ impl PreservedDisplayListState {
 
     fn restore(self, state: &mut DisplayListBuildState) {
         state.current_stacking_context_id = self.stacking_context_id;
+        state.current_real_stacking_context_id = self.real_stacking_context_id;
         state.current_clip_and_scroll_info = self.clip_and_scroll_info;
         state.containing_block_clip_and_scroll_info = self.containing_block_clip_and_scroll_info;
 
@@ -2417,6 +2422,10 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
             BlockStackingContextType::StackingContext => self.fragment.stacking_context_id(),
         };
         state.current_stacking_context_id = self.base.stacking_context_id;
+
+        if block_stacking_context_type == BlockStackingContextType::StackingContext {
+            state.current_real_stacking_context_id = self.base.stacking_context_id;
+        }
 
         // We are getting the id of the scroll root that contains us here, not the id of
         // any scroll root that we create. If we create a scroll root, its id will be
@@ -2552,7 +2561,6 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                 content_rect: Rect::new(content_box.origin, content_size),
                 root_type: ScrollRootType::ScrollFrame(sensitivity),
             },
-            self.base.stacking_context_id
         );
 
         let new_clip_and_scroll_info = ClipAndScrollInfo::simple(new_scroll_root_id);
@@ -2613,7 +2621,6 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                 content_rect: Rect::zero(), // content_rect isn't important for clips.
                 root_type: ScrollRootType::Clip,
             },
-            self.base.stacking_context_id
         );
 
         let new_clip_and_scroll_info = ClipAndScrollInfo::new(new_scroll_root_id, new_scroll_root_id);
@@ -2627,10 +2634,10 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                                                 state: &mut DisplayListBuildState) {
         let creation_mode = if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) ||
                                self.fragment.style.get_box().position != position::T::static_ {
-            StackingContextCreationMode::PseudoPositioned
+            StackingContextType::PseudoPositioned
         } else {
             assert!(self.base.flags.is_float());
-            StackingContextCreationMode::PseudoFloat
+            StackingContextType::PseudoFloat
         };
 
         let new_context = self.fragment.create_stacking_context(self.base.stacking_context_id,
@@ -2669,7 +2676,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
             self.base.stacking_context_id,
             &self.base,
             scroll_policy,
-            StackingContextCreationMode::Normal,
+            StackingContextType::Real,
             parent_clip_and_scroll_info);
 
         state.add_stacking_context(parent_stacking_context_id, stacking_context);
@@ -2754,7 +2761,7 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
                     let stacking_context = fragment.create_stacking_context(fragment.stacking_context_id,
                                                                             &self.base,
                                                                             ScrollPolicy::Scrollable,
-                                                                            StackingContextCreationMode::Normal,
+                                                                            StackingContextType::Real,
                                                                             state.current_clip_and_scroll_info);
 
                     state.add_stacking_context(current_stacking_context_id,
@@ -2961,11 +2968,4 @@ pub enum BorderPaintingMode<'a> {
     Collapse(&'a CollapsedBordersForCell),
     /// Paint no borders.
     Hidden,
-}
-
-#[derive(Clone, Copy, PartialEq)]
-pub enum StackingContextCreationMode {
-    Normal,
-    PseudoPositioned,
-    PseudoFloat,
 }
