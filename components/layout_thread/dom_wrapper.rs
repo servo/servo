@@ -67,7 +67,7 @@ use style::CaseSensitivityExt;
 use style::applicable_declarations::ApplicableDeclarationBlock;
 use style::attr::AttrValue;
 use style::computed_values::display;
-use style::context::{QuirksMode, SharedStyleContext};
+use style::context::SharedStyleContext;
 use style::data::ElementData;
 use style::dom::{LayoutIterator, NodeInfo, OpaqueNode};
 use style::dom::{PresentationalHintsSynthesizer, TElement, TNode, UnsafeNode};
@@ -355,10 +355,6 @@ impl<'ld> ServoLayoutDocument<'ld> {
 
     pub fn will_paint(&self) {
         unsafe { self.document.will_paint(); }
-    }
-
-    pub fn quirks_mode(&self) -> QuirksMode {
-        unsafe { self.document.quirks_mode() }
     }
 
     pub fn style_shared_lock(&self) -> &StyleSharedRwLock {

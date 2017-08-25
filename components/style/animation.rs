@@ -506,7 +506,7 @@ fn compute_style_for_animation_step(context: &SharedStyleContext,
                                                /* visited_style = */ None,
                                                font_metrics_provider,
                                                CascadeFlags::empty(),
-                                               context.quirks_mode);
+                                               context.quirks_mode());
             computed
         }
     }
