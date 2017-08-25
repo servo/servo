@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use animate::AnimateAttrs;
+use animate::{AnimateAttrs, AnimateFieldAttrs};
 use cg;
 use quote;
 use syn;
@@ -25,10 +25,23 @@ pub fn derive(input: syn::DeriveInput) -> quote::Tokens {
         let bindings_pairs = bindings.into_iter().zip(mapped_bindings);
         let mut computations = quote!();
         computations.append_all(bindings_pairs.map(|(binding, mapped_binding)| {
-            where_clause.add_trait_bound(binding.field.ty.clone());
-            quote! {
-                let #mapped_binding =
-                    ::values::animated::ToAnimatedZero::to_animated_zero(#binding)?;
+            let field_attrs = cg::parse_field_attrs::<AnimateFieldAttrs>(&binding.field);
+            if field_attrs.equal {
+                if cg::is_parameterized(&binding.field.ty, where_clause.params) {
+                    where_clause.inner.predicates.push(cg::where_predicate(
+                        binding.field.ty.clone(),
+                        &["std", "clone", "Clone"],
+                    ));
+                }
+                quote! {
+                    let #mapped_binding = ::std::clone::Clone::clone(#binding);
+                }
+            } else {
+                where_clause.add_trait_bound(binding.field.ty.clone());
+                quote! {
+                    let #mapped_binding =
+                        ::values::animated::ToAnimatedZero::to_animated_zero(#binding)?;
+                }
             }
         }));
         computations.append(quote! { Ok(#mapped) });
