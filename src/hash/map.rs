@@ -11,16 +11,14 @@
 use self::Entry::*;
 use self::VacantEntryState::*;
 
-use cell::Cell;
 use borrow::Borrow;
 use cmp::max;
 use fmt::{self, Debug};
 #[allow(deprecated)]
-use hash::{Hash, Hasher, BuildHasher, SipHasher13};
+use hash::{Hash, BuildHasher};
 use iter::{FromIterator, FusedIterator};
 use mem::{self, replace};
 use ops::{Deref, Index, InPlace, Place, Placer};
-use rand::{self, Rng};
 use ptr;
 
 use super::table::{self, Bucket, EmptyBucket, FullBucket, FullBucketMut, RawTable, SafeHash};
@@ -2186,136 +2184,9 @@ impl<'a, K, V, S> Extend<(&'a K, &'a V)> for HashMap<K, V, S>
     }
 }
 
-/// `RandomState` is the default state for [`HashMap`] types.
-///
-/// A particular instance `RandomState` will create the same instances of
-/// [`Hasher`], but the hashers created by two different `RandomState`
-/// instances are unlikely to produce the same result for the same values.
-///
-/// [`HashMap`]: struct.HashMap.html
-/// [`Hasher`]: ../../hash/trait.Hasher.html
-///
-/// # Examples
-///
-/// ```
-/// use std::collections::HashMap;
-/// use std::collections::hash_map::RandomState;
-///
-/// let s = RandomState::new();
-/// let mut map = HashMap::with_hasher(s);
-/// map.insert(1, 2);
-/// ```
-#[derive(Clone)]
-pub struct RandomState {
-    k0: u64,
-    k1: u64,
-}
+// FORK NOTE: These can be reused
+pub use std::collections::hash_map::{DefaultHasher, RandomState};
 
-impl RandomState {
-    /// Constructs a new `RandomState` that is initialized with random keys.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use std::collections::hash_map::RandomState;
-    ///
-    /// let s = RandomState::new();
-    /// ```
-    #[inline]
-    #[allow(deprecated)]
-    // rand
-        pub fn new() -> RandomState {
-        // Historically this function did not cache keys from the OS and instead
-        // simply always called `rand::thread_rng().gen()` twice. In #31356 it
-        // was discovered, however, that because we re-seed the thread-local RNG
-        // from the OS periodically that this can cause excessive slowdown when
-        // many hash maps are created on a thread. To solve this performance
-        // trap we cache the first set of randomly generated keys per-thread.
-        //
-        // Later in #36481 it was discovered that exposing a deterministic
-        // iteration order allows a form of DOS attack. To counter that we
-        // increment one of the seeds on every RandomState creation, giving
-        // every corresponding HashMap a different iteration order.
-        thread_local!(static KEYS: Cell<(u64, u64)> = {
-            let r = rand::OsRng::new();
-            let mut r = r.expect("failed to create an OS RNG");
-            Cell::new((r.gen(), r.gen()))
-        });
-
-        KEYS.with(|keys| {
-            let (k0, k1) = keys.get();
-            keys.set((k0.wrapping_add(1), k1));
-            RandomState { k0: k0, k1: k1 }
-        })
-    }
-}
-
-impl BuildHasher for RandomState {
-    type Hasher = DefaultHasher;
-    #[inline]
-    #[allow(deprecated)]
-    fn build_hasher(&self) -> DefaultHasher {
-        DefaultHasher(SipHasher13::new_with_keys(self.k0, self.k1))
-    }
-}
-
-/// The default [`Hasher`] used by [`RandomState`].
-///
-/// The internal algorithm is not specified, and so it and its hashes should
-/// not be relied upon over releases.
-///
-/// [`RandomState`]: struct.RandomState.html
-/// [`Hasher`]: ../../hash/trait.Hasher.html
-#[allow(deprecated)]
-#[derive(Clone, Debug)]
-pub struct DefaultHasher(SipHasher13);
-
-impl DefaultHasher {
-    /// Creates a new `DefaultHasher`.
-    ///
-    /// This hasher is not guaranteed to be the same as all other
-    /// `DefaultHasher` instances, but is the same as all other `DefaultHasher`
-    /// instances created through `new` or `default`.
-        #[allow(deprecated)]
-    pub fn new() -> DefaultHasher {
-        DefaultHasher(SipHasher13::new_with_keys(0, 0))
-    }
-}
-
-impl Default for DefaultHasher {
-    /// Creates a new `DefaultHasher` using [`new`]. See its documentation for more.
-    ///
-    /// [`new`]: #method.new
-    fn default() -> DefaultHasher {
-        DefaultHasher::new()
-    }
-}
-
-impl Hasher for DefaultHasher {
-    #[inline]
-    fn write(&mut self, msg: &[u8]) {
-        self.0.write(msg)
-    }
-
-    #[inline]
-    fn finish(&self) -> u64 {
-        self.0.finish()
-    }
-}
-
-impl Default for RandomState {
-    /// Constructs a new `RandomState`.
-    #[inline]
-    fn default() -> RandomState {
-        RandomState::new()
-    }
-}
-
-impl fmt::Debug for RandomState {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.pad("RandomState { .. }")
-    }
-}
 
 impl<K, S, Q: ?Sized> super::Recover<Q> for HashMap<K, (), S>
     where K: Eq + Hash + Borrow<Q>,
