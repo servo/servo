@@ -14,5 +14,5 @@ var observer = new PerformanceObserver(t.step_func_done(list => {
     assert_equals(entry.duration, 0, "Duration is 0");
   });
 }));
-observer.observe({entryTypes: ['paint']});
+observer.observe({entryTypes: ['paint'], buffered: true});
 </script>
