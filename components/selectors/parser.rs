@@ -272,9 +272,7 @@ impl<Impl: SelectorImpl> SelectorMethods for Selector<Impl> {
         let mut current = self.iter();
         let mut combinator = None;
         loop {
-            if !visitor.visit_complex_selector(combinator) {
-                return false;
-            }
+            visitor.visit_complex_selector(combinator);
 
             for selector in &mut current {
                 if !selector.visit(visitor) {
@@ -299,9 +297,7 @@ impl<Impl: SelectorImpl> SelectorMethods for Component<Impl> {
         where V: SelectorVisitor<Impl = Impl>,
     {
         use self::Component::*;
-        if !visitor.visit_simple_selector(self) {
-            return false;
-        }
+        visitor.visit_simple_selector(self);
 
         match *self {
             Negation(ref negated) => {
@@ -313,32 +309,26 @@ impl<Impl: SelectorImpl> SelectorMethods for Component<Impl> {
             }
 
             AttributeInNoNamespaceExists { ref local_name, ref local_name_lower } => {
-                if !visitor.visit_attribute_selector(
+                visitor.visit_attribute_selector(
                     &NamespaceConstraint::Specific(&namespace_empty_string::<Impl>()),
                     local_name,
                     local_name_lower,
-                ) {
-                    return false;
-                }
+                );
             }
             AttributeInNoNamespace { ref local_name, ref local_name_lower, never_matches, .. }
             if !never_matches => {
-                if !visitor.visit_attribute_selector(
+                visitor.visit_attribute_selector(
                     &NamespaceConstraint::Specific(&namespace_empty_string::<Impl>()),
                     local_name,
                     local_name_lower,
-                ) {
-                    return false;
-                }
+                );
             }
             AttributeOther(ref attr_selector) if !attr_selector.never_matches => {
-                if !visitor.visit_attribute_selector(
+                visitor.visit_attribute_selector(
                     &attr_selector.namespace(),
                     &attr_selector.local_name,
                     &attr_selector.local_name_lower,
-                ) {
-                    return false;
-                }
+                );
             }
 
             NonTSPseudoClass(ref pseudo_class) => {
@@ -2261,11 +2251,10 @@ pub mod tests {
     impl SelectorVisitor for TestVisitor {
         type Impl = DummySelectorImpl;
 
-        fn visit_simple_selector(&mut self, s: &Component<DummySelectorImpl>) -> bool {
+        fn visit_simple_selector(&mut self, s: &Component<DummySelectorImpl>) {
             let mut dest = String::new();
             s.to_css(&mut dest).unwrap();
             self.seen.push(dest);
-            true
         }
     }
 

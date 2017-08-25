@@ -1653,7 +1653,7 @@ impl<'a> SelectorVisitor for StylistSelectorVisitor<'a> {
     fn visit_complex_selector(
         &mut self,
         combinator: Option<Combinator>
-    ) -> bool {
+    ) {
         self.needs_revalidation =
             self.needs_revalidation || combinator.map_or(false, |c| c.is_sibling());
 
@@ -1667,8 +1667,6 @@ impl<'a> SelectorVisitor for StylistSelectorVisitor<'a> {
         self.passed_rightmost_selector =
             self.passed_rightmost_selector ||
             !matches!(combinator, None | Some(Combinator::PseudoElement));
-
-        true
     }
 
     fn visit_attribute_selector(
@@ -1676,17 +1674,16 @@ impl<'a> SelectorVisitor for StylistSelectorVisitor<'a> {
         _ns: &NamespaceConstraint<&Namespace>,
         name: &LocalName,
         lower_name: &LocalName
-    ) -> bool {
+    ) {
         if *lower_name == local_name!("style") {
             *self.style_attribute_dependency = true;
         } else {
             self.attribute_dependencies.insert_hash(name.get_hash());
             self.attribute_dependencies.insert_hash(lower_name.get_hash());
         }
-        true
     }
 
-    fn visit_simple_selector(&mut self, s: &Component<SelectorImpl>) -> bool {
+    fn visit_simple_selector(&mut self, s: &Component<SelectorImpl>) {
         self.needs_revalidation =
             self.needs_revalidation ||
             component_needs_revalidation(s, self.passed_rightmost_selector);
@@ -1711,8 +1708,6 @@ impl<'a> SelectorVisitor for StylistSelectorVisitor<'a> {
             }
             _ => {},
         }
-
-        true
     }
 }
 

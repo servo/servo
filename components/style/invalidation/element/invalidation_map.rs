@@ -321,7 +321,7 @@ struct CompoundSelectorDependencyCollector {
 impl SelectorVisitor for CompoundSelectorDependencyCollector {
     type Impl = SelectorImpl;
 
-    fn visit_simple_selector(&mut self, s: &Component<SelectorImpl>) -> bool {
+    fn visit_simple_selector(&mut self, s: &Component<SelectorImpl>) {
         #[cfg(feature = "gecko")]
         use selector_parser::NonTSPseudoClass;
 
@@ -344,8 +344,6 @@ impl SelectorVisitor for CompoundSelectorDependencyCollector {
             }
             _ => {}
         }
-
-        true
     }
 
     fn visit_attribute_selector(
@@ -353,7 +351,7 @@ impl SelectorVisitor for CompoundSelectorDependencyCollector {
         constraint: &NamespaceConstraint<&Namespace>,
         _local_name: &LocalName,
         local_name_lower: &LocalName,
-    ) -> bool {
+    ) {
         self.other_attributes = true;
         let may_match_in_no_namespace = match *constraint {
             NamespaceConstraint::Any => true,
@@ -364,7 +362,5 @@ impl SelectorVisitor for CompoundSelectorDependencyCollector {
             self.has_id_attribute_selectors |= *local_name_lower == local_name!("id");
             self.has_class_attribute_selectors |= *local_name_lower == local_name!("class");
         }
-
-        true
     }
 }
