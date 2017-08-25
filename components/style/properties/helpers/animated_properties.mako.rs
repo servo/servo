@@ -48,9 +48,10 @@ use values::animated::effects::TextShadowList as AnimatedTextShadowList;
 use values::computed::{Angle, BorderCornerRadius, CalcLengthOrPercentage};
 use values::computed::{ClipRect, Context, ComputedUrl, ComputedValueAsSpecified};
 use values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
-use values::computed::{LengthOrPercentageOrNone, MaxLength, MozLength, NonNegativeAu};
+use values::computed::{LengthOrPercentageOrNone, MaxLength, NonNegativeAu};
 use values::computed::{NonNegativeNumber, Number, NumberOrPercentage, Percentage};
 use values::computed::{PositiveIntegerOrAuto, ToComputedValue};
+#[cfg(feature = "gecko")] use values::computed::MozLength;
 use values::computed::length::{NonNegativeLengthOrAuto, NonNegativeLengthOrNormal};
 use values::computed::length::NonNegativeLengthOrPercentage;
 use values::distance::{ComputeSquaredDistance, SquaredDistance};
@@ -935,54 +936,6 @@ impl ToAnimatedZero for LengthOrPercentageOrNone {
                 Ok(LengthOrPercentageOrNone::Length(Au(0)))
             },
             LengthOrPercentageOrNone::None => Err(()),
-        }
-    }
-}
-
-/// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
-impl Animate for MozLength {
-    #[inline]
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        match (self, other) {
-            (
-                &MozLength::LengthOrPercentageOrAuto(ref this),
-                &MozLength::LengthOrPercentageOrAuto(ref other),
-            ) => {
-                Ok(MozLength::LengthOrPercentageOrAuto(
-                    this.animate(other, procedure)?,
-                ))
-            }
-            _ => Err(()),
-        }
-    }
-}
-
-impl ToAnimatedZero for MozLength {
-    #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> {
-        match *self {
-            MozLength::LengthOrPercentageOrAuto(ref length) => {
-                Ok(MozLength::LengthOrPercentageOrAuto(length.to_animated_zero()?))
-            },
-            _ => Err(())
-        }
-    }
-}
-
-/// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
-impl Animate for MaxLength {
-    #[inline]
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        match (self, other) {
-            (
-                &MaxLength::LengthOrPercentageOrNone(ref this),
-                &MaxLength::LengthOrPercentageOrNone(ref other),
-            ) => {
-                Ok(MaxLength::LengthOrPercentageOrNone(
-                    this.animate(other, procedure)?,
-                ))
-            },
-            _ => Err(()),
         }
     }
 }
