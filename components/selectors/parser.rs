@@ -787,8 +787,8 @@ impl<Impl: SelectorImpl> ToCss for Selector<Impl> {
                 // something like `... > ::before`, because we store `>` and `::`
                 // both as combinators internally.
                 //
-                // If we are in this case, we continue to the next iteration of the
-                // `for compound in compound_selectors` loop.
+                // If we are in this case, after we have serialized the universal
+                // selector, we skip Step 2 and continue with the algorithm.
                 let (can_elide_namespace, first_non_namespace) = match &compound[0] {
                     &Component::ExplicitAnyNamespace |
                     &Component::ExplicitNoNamespace |
@@ -796,6 +796,7 @@ impl<Impl: SelectorImpl> ToCss for Selector<Impl> {
                     &Component::DefaultNamespace(_) => (true, 1),
                     _ => (true, 0),
                 };
+                let mut perform_step_2 = true;
                 if first_non_namespace == compound.len() - 1 {
                     match (combinators.peek(), &compound[first_non_namespace]) {
                         // We have to be careful here, because if there is a pseudo
@@ -811,7 +812,8 @@ impl<Impl: SelectorImpl> ToCss for Selector<Impl> {
                             for simple in compound.iter() {
                                 simple.to_css(dest)?;
                             }
-                            continue
+                            // Skip step 2, which is an "otherwise".
+                            perform_step_2 = false;
                         }
                         (_, _) => (),
                     }
@@ -826,17 +828,19 @@ impl<Impl: SelectorImpl> ToCss for Selector<Impl> {
                 // proposing to change this to match up with the behavior asserted
                 // in cssom/serialize-namespaced-type-selectors.html, which the
                 // following code tries to match.
-                for simple in compound.iter() {
-                    if let Component::ExplicitUniversalType = *simple {
-                        // Can't have a namespace followed by a pseudo-element
-                        // selector followed by a universal selector in the same
-                        // compound selector, so we don't have to worry about the
-                        // real namespace being in a different `compound`.
-                        if can_elide_namespace {
-                            continue
+                if perform_step_2 {
+                    for simple in compound.iter() {
+                        if let Component::ExplicitUniversalType = *simple {
+                            // Can't have a namespace followed by a pseudo-element
+                            // selector followed by a universal selector in the same
+                            // compound selector, so we don't have to worry about the
+                            // real namespace being in a different `compound`.
+                            if can_elide_namespace {
+                                continue
+                            }
                         }
+                        simple.to_css(dest)?;
                     }
-                    simple.to_css(dest)?;
                 }
             }
 
