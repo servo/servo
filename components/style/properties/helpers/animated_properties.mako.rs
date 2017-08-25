@@ -2384,27 +2384,6 @@ pub type IntermediateSVGPaint = SVGPaint<AnimatedRGBA, ComputedUrl>;
 /// Animated SVGPaintKind
 pub type IntermediateSVGPaintKind = SVGPaintKind<AnimatedRGBA, ComputedUrl>;
 
-impl Animate for IntermediateSVGPaint {
-    #[inline]
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        Ok(IntermediateSVGPaint {
-            kind: self.kind.animate(&other.kind, procedure)?,
-            fallback: self.fallback.animate(&other.fallback, procedure)?,
-        })
-    }
-}
-
-impl ComputeSquaredDistance for IntermediateSVGPaint {
-    #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        // FIXME(nox): This should be derived.
-        Ok(
-            self.kind.compute_squared_distance(&other.kind)? +
-            self.fallback.compute_squared_distance(&other.fallback)?,
-        )
-    }
-}
-
 impl ToAnimatedZero for IntermediateSVGPaint {
     #[inline]
     fn to_animated_zero(&self) -> Result<Self, ()> {
@@ -2412,56 +2391,6 @@ impl ToAnimatedZero for IntermediateSVGPaint {
             kind: self.kind.to_animated_zero()?,
             fallback: self.fallback.and_then(|v| v.to_animated_zero().ok()),
         })
-    }
-}
-
-impl Animate for IntermediateSVGPaintKind {
-    #[inline]
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        match (self, other) {
-            (&SVGPaintKind::Color(ref this), &SVGPaintKind::Color(ref other)) => {
-                Ok(SVGPaintKind::Color(this.animate(other, procedure)?))
-            },
-            (&SVGPaintKind::ContextFill, &SVGPaintKind::ContextFill) => Ok(SVGPaintKind::ContextFill),
-            (&SVGPaintKind::ContextStroke, &SVGPaintKind::ContextStroke) => Ok(SVGPaintKind::ContextStroke),
-            _ => {
-                // FIXME: Context values should be interpolable with colors,
-                // Gecko doesn't implement this behavior either.
-                Err(())
-            }
-        }
-    }
-}
-
-impl ComputeSquaredDistance for IntermediateSVGPaintKind {
-    #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        match (self, other) {
-            (&SVGPaintKind::Color(ref this), &SVGPaintKind::Color(ref other)) => {
-                this.compute_squared_distance(other)
-            }
-            (&SVGPaintKind::None, &SVGPaintKind::None) |
-            (&SVGPaintKind::ContextFill, &SVGPaintKind::ContextFill) |
-            (&SVGPaintKind::ContextStroke, &SVGPaintKind::ContextStroke) => {
-                Ok(SquaredDistance::Value(0.))
-            },
-            _ => Err(())
-        }
-    }
-}
-
-impl ToAnimatedZero for IntermediateSVGPaintKind {
-    #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> {
-        match *self {
-            SVGPaintKind::Color(ref color) => {
-                Ok(SVGPaintKind::Color(color.to_animated_zero()?))
-            },
-            SVGPaintKind::None |
-            SVGPaintKind::ContextFill |
-            SVGPaintKind::ContextStroke => Ok(self.clone()),
-            _ => Err(()),
-        }
     }
 }
 
