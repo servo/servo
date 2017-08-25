@@ -139,7 +139,7 @@ pub trait DomTraversal<E: TElement> : Sync {
     fn pre_traverse(
         root: E,
         shared_context: &SharedStyleContext,
-        traversal_flags: TraversalFlags
+        traversal_flags: TraversalFlags,
     ) -> PreTraverseToken {
         // If this is an unstyled-only traversal, the caller has already verified
         // that there's something to traverse, and we don't need to do any
@@ -155,7 +155,7 @@ pub trait DomTraversal<E: TElement> : Sync {
         if let Some(ref mut data) = data {
             // Invalidate our style, and the one of our siblings and descendants
             // as needed.
-            data.invalidate_style_if_needed(root, shared_context);
+            data.invalidate_style_if_needed(root, shared_context, None);
 
             // Make sure we don't have any stale RECONSTRUCTED_ANCESTOR bits from
             // the last traversal (at a potentially-higher root). From the
@@ -828,7 +828,11 @@ where
             // as needed.
             //
             // NB: This will be a no-op if there's no snapshot.
-            child_data.invalidate_style_if_needed(child, &context.shared);
+            child_data.invalidate_style_if_needed(
+                child,
+                &context.shared,
+                Some(&context.thread_local.stack_limit_checker)
+            );
         }
 
         if D::element_needs_traversal(child, flags, child_data.map(|d| &*d), Some(data)) {

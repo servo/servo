@@ -6,7 +6,7 @@
 //! element styles need to be invalidated.
 
 use Atom;
-use context::SharedStyleContext;
+use context::{SharedStyleContext, StackLimitChecker};
 use data::ElementData;
 use dom::{TElement, TNode};
 use element_state::{ElementState, IN_VISITED_OR_UNVISITED_STATE};
@@ -40,6 +40,7 @@ pub struct TreeStyleInvalidator<'a, 'b: 'a, E>
     // descendants if an element has no data, though.
     data: Option<&'a mut ElementData>,
     shared_context: &'a SharedStyleContext<'b>,
+    stack_limit_checker: Option<&'a StackLimitChecker>,
 }
 
 type InvalidationVector = SmallVec<[Invalidation; 10]>;
@@ -130,11 +131,13 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
         element: E,
         data: Option<&'a mut ElementData>,
         shared_context: &'a SharedStyleContext<'b>,
+        stack_limit_checker: Option<&'a StackLimitChecker>,
     ) -> Self {
         Self {
-            element: element,
-            data: data,
-            shared_context: shared_context,
+            element,
+            data,
+            shared_context,
+            stack_limit_checker,
         }
     }
 
@@ -276,7 +279,8 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
             let mut sibling_invalidator = TreeStyleInvalidator::new(
                 sibling,
                 sibling_data,
-                self.shared_context
+                self.shared_context,
+                self.stack_limit_checker,
             );
 
             let mut invalidations_for_descendants = InvalidationVector::new();
@@ -338,7 +342,8 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
         let mut child_invalidator = TreeStyleInvalidator::new(
             child,
             child_data,
-            self.shared_context
+            self.shared_context,
+            self.stack_limit_checker,
         );
 
         let mut invalidations_for_descendants = InvalidationVector::new();
@@ -448,9 +453,18 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
         match self.data {
             None => return false,
             Some(ref data) => {
+                // FIXME(emilio): Only needs to check RESTYLE_DESCENDANTS,
+                // really.
                 if data.restyle.hint.contains_subtree() {
                     return false;
                 }
+            }
+        }
+
+        if let Some(checker) = self.stack_limit_checker {
+            if checker.limit_exceeded() {
+                self.data.as_mut().unwrap().restyle.hint.insert(RESTYLE_DESCENDANTS);
+                return true;
             }
         }
 
