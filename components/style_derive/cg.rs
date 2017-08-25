@@ -3,15 +3,38 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use darling::FromVariant;
-use quote::Tokens;
+use quote::{ToTokens, Tokens};
 use std::borrow::Cow;
+use std::collections::HashSet;
 use std::iter;
-use syn::{AngleBracketedParameterData, Body, DeriveInput, Ident, ImplGenerics};
-use syn::{Path, PathParameters, PathSegment, PolyTraitRef, QSelf};
-use syn::{TraitBoundModifier, Ty, TyGenerics, TyParam, TyParamBound};
-use syn::{Variant, WhereBoundPredicate, WhereClause, WherePredicate};
+use syn::{self, AngleBracketedParameterData, Body, DeriveInput, Ident};
+use syn::{ImplGenerics, Path, PathParameters, PathSegment, PolyTraitRef};
+use syn::{QSelf, TraitBoundModifier, Ty, TyGenerics, TyParam, TyParamBound};
+use syn::{Variant, WhereBoundPredicate, WherePredicate};
 use syn::visit::{self, Visitor};
 use synstructure::{self, BindOpts, BindStyle, BindingInfo};
+
+pub struct WhereClause<'input, 'path> {
+    clause: syn::WhereClause,
+    params: &'input [TyParam],
+    trait_path: &'path [&'path str],
+    bounded_types: HashSet<Ty>,
+}
+
+impl<'input, 'path> ToTokens for WhereClause<'input, 'path> {
+    fn to_tokens(&self, tokens: &mut Tokens) {
+        self.clause.to_tokens(tokens);
+    }
+}
+
+impl<'input, 'path> WhereClause<'input, 'path> {
+    pub fn add_trait_bound(&mut self, ty: Ty) {
+        if is_parameterized(&ty, self.params) && !self.bounded_types.contains(&ty) {
+            self.bounded_types.insert(ty.clone());
+            self.clause.predicates.push(where_predicate(ty, self.trait_path));
+        }
+    }
+}
 
 pub fn fmap_match<F>(
     input: &DeriveInput,
@@ -35,11 +58,11 @@ where
     })
 }
 
-pub fn fmap_trait_parts<'a>(
-    input: &'a DeriveInput,
-    trait_path: &[&str],
+pub fn fmap_trait_parts<'input, 'path>(
+    input: &'input DeriveInput,
+    trait_path: &'path [&'path str],
     trait_output: &str,
-) -> (ImplGenerics<'a>, TyGenerics<'a>, WhereClause, Path) {
+) -> (ImplGenerics<'input>, TyGenerics<'input>, WhereClause<'input, 'path>, Path) {
     let (impl_generics, ty_generics, where_clause) = trait_parts(input, trait_path);
     let output_ty = PathSegment {
         ident: input.ident.clone(),
@@ -115,18 +138,17 @@ pub fn ref_pattern<'a>(
     )
 }
 
-pub fn trait_parts<'a>(
-    input: &'a DeriveInput,
-    trait_path: &[&str],
-) -> (ImplGenerics<'a>, TyGenerics<'a>, WhereClause) {
+pub fn trait_parts<'input, 'path>(
+    input: &'input DeriveInput,
+    trait_path: &'path [&'path str],
+) -> (ImplGenerics<'input>, TyGenerics<'input>, WhereClause<'input, 'path>) {
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
-    let mut where_clause = where_clause.clone();
-    for param in &input.generics.ty_params {
-        where_clause.predicates.push(where_predicate(
-            Ty::Path(None, param.ident.clone().into()),
-            trait_path,
-        ));
-    }
+    let where_clause = WhereClause {
+        clause: where_clause.clone(),
+        params: &input.generics.ty_params,
+        trait_path,
+        bounded_types: HashSet::new()
+    };
     (impl_generics, ty_generics, where_clause)
 }
 
