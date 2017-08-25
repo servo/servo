@@ -40,7 +40,7 @@ use std::ops;
 use style_traits::viewport::ViewportConstraints;
 use stylesheet_set::{OriginValidity, SheetRebuildKind, StylesheetSet, StylesheetIterator, StylesheetFlusher};
 #[cfg(feature = "gecko")]
-use stylesheets::{CounterStyleRule, FontFaceRule, FontFeatureValuesRule};
+use stylesheets::{CounterStyleRule, FontFaceRule};
 use stylesheets::{CssRule, StyleRule};
 use stylesheets::{StylesheetInDocument, Origin, OriginSet, PerOrigin, PerOriginIter};
 use stylesheets::UserAgentStylesheets;
@@ -338,19 +338,13 @@ impl DocumentCascadeData {
                 CssRule::FontFace(ref rule) => {
                     _extra_data
                         .borrow_mut_for_origin(&origin)
-                        .add_font_face(rule);
-                }
-                #[cfg(feature = "gecko")]
-                CssRule::FontFeatureValues(ref rule) => {
-                    _extra_data
-                        .borrow_mut_for_origin(&origin)
-                        .add_font_feature_values(rule);
+                        .add_font_face(&rule);
                 }
                 #[cfg(feature = "gecko")]
                 CssRule::CounterStyle(ref rule) => {
                     _extra_data
                         .borrow_mut_for_origin(&origin)
-                        .add_counter_style(guard, rule);
+                        .add_counter_style(guard, &rule);
                 }
                 // We don't care about any other rule.
                 _ => {}
@@ -1522,10 +1516,6 @@ pub struct ExtraStyleData {
     #[cfg(feature = "gecko")]
     pub font_faces: Vec<Arc<Locked<FontFaceRule>>>,
 
-    /// A list of effective font-feature-values rules.
-    #[cfg(feature = "gecko")]
-    pub font_feature_values: Vec<Arc<Locked<FontFeatureValuesRule>>>,
-
     /// A map of effective counter-style rules.
     #[cfg(feature = "gecko")]
     pub counter_styles: PrecomputedHashMap<Atom, Arc<Locked<CounterStyleRule>>>,
@@ -1536,11 +1526,6 @@ impl ExtraStyleData {
     /// Add the given @font-face rule.
     fn add_font_face(&mut self, rule: &Arc<Locked<FontFaceRule>>) {
         self.font_faces.push(rule.clone());
-    }
-
-    /// Add the given @font-feature-values rule.
-    fn add_font_feature_values(&mut self, rule: &Arc<Locked<FontFeatureValuesRule>>) {
-        self.font_feature_values.push(rule.clone());
     }
 
     /// Add the given @counter-style rule.
@@ -1559,7 +1544,6 @@ impl ExtraStyleData {
         #[cfg(feature = "gecko")]
         {
             self.font_faces.clear();
-            self.font_feature_values.clear();
             self.counter_styles.clear();
         }
     }

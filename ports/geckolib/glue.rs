@@ -88,7 +88,6 @@ use style::gecko_bindings::structs::ServoElementSnapshotTable;
 use style::gecko_bindings::structs::ServoTraversalFlags;
 use style::gecko_bindings::structs::StyleRuleInclusion;
 use style::gecko_bindings::structs::URLExtraData;
-use style::gecko_bindings::structs::gfxFontFeatureValueSet;
 use style::gecko_bindings::structs::nsCSSValueSharedList;
 use style::gecko_bindings::structs::nsCompatibility;
 use style::gecko_bindings::structs::nsIDocument;
@@ -3518,30 +3517,6 @@ pub extern "C" fn Servo_StyleSet_GetCounterStyleRule(raw_data: RawServoStyleSetB
         let guard = global_style_data.shared_lock.read();
         rule.read_with(&guard).get()
     }).unwrap_or(ptr::null_mut())
-}
-
-#[no_mangle]
-pub extern "C" fn Servo_StyleSet_BuildFontFeatureValueSet(
-  raw_data: RawServoStyleSetBorrowed,
-  set: *mut gfxFontFeatureValueSet
-) -> bool {
-    let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
-
-    let global_style_data = &*GLOBAL_STYLE_DATA;
-    let guard = global_style_data.shared_lock.read();
-
-    let font_feature_values_iter = data.extra_style_data
-        .iter_origins_rev()
-        .flat_map(|(d, _)| d.font_feature_values.iter());
-
-    let mut any_rule = false;
-    for src in font_feature_values_iter {
-        any_rule = true;
-        let rule = src.read_with(&guard);
-        rule.set_at_rules(set);
-    }
-
-    any_rule
 }
 
 #[no_mangle]
