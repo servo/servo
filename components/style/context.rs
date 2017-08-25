@@ -644,8 +644,8 @@ impl StackLimitChecker {
         //
         // The correctness of depends on the assumption that no stack wraps
         // around the end of the address space.
-        debug_assert!(curr_sp - self.lower_limit
-                      <= STYLE_THREAD_STACK_SIZE_KB * 1024);
+        //debug_assert!(curr_sp - self.lower_limit
+        //              <= STYLE_THREAD_STACK_SIZE_KB * 1024);
 
         // The actual bounds check.
         curr_sp <= self.lower_limit
