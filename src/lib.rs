@@ -6,15 +6,19 @@ extern crate alloc;
 
 pub use std::*;
 
-#[path="hash/mod.rs"]
-mod impls;
+mod bench;
+mod table;
+#[path="map.rs"]
+pub mod hash_map;
+#[path="set.rs"]
+pub mod hash_set;
 
-pub mod hash_map {
-    pub use super::impls::map::*;
-}
+trait Recover<Q: ?Sized> {
+    type Key;
 
-pub mod hash_set {
-    pub use super::impls::set::*;
+    fn get(&self, key: &Q) -> Option<&Self::Key>;
+    fn take(&mut self, key: &Q) -> Option<Self::Key>;
+    fn replace(&mut self, key: Self::Key) -> Option<Self::Key>;
 }
 
 mod shim {

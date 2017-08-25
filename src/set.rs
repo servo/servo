@@ -15,7 +15,7 @@ use iter::{Chain, FromIterator};
 use ops::{BitOr, BitAnd, BitXor, Sub};
 
 use super::Recover;
-use super::map::{self, HashMap, Keys, RandomState};
+use super::hash_map::{self, HashMap, Keys, RandomState};
 
 // Future Optimization (FIXME!)
 // =============================
@@ -882,7 +882,7 @@ pub struct Iter<'a, K: 'a> {
 /// [`HashSet`]: struct.HashSet.html
 /// [`into_iter`]: struct.HashSet.html#method.into_iter
 pub struct IntoIter<K> {
-    iter: map::IntoIter<K, ()>,
+    iter: hash_map::IntoIter<K, ()>,
 }
 
 /// A draining iterator over the items of a `HashSet`.
@@ -893,7 +893,7 @@ pub struct IntoIter<K> {
 /// [`HashSet`]: struct.HashSet.html
 /// [`drain`]: struct.HashSet.html#method.drain
 pub struct Drain<'a, K: 'static> {
-    iter: map::Drain<'a, K, ()>,
+    iter: hash_map::Drain<'a, K, ()>,
 }
 
 /// A lazy iterator producing elements in the intersection of `HashSet`s.
