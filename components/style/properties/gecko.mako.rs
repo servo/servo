@@ -2169,9 +2169,10 @@ fn static_assert() {
         }
     }
 
-    pub fn fixup_system(&mut self) {
+    pub fn fixup_system(&mut self, default_font_type: structs::FontFamilyType) {
         self.gecko.mFont.systemFont = true;
         self.gecko.mGenericID = structs::kGenericFont_NONE;
+        self.gecko.mFont.fontlist.mDefaultFontType = default_font_type;
     }
 
     pub fn set_font_family(&mut self, v: longhands::font_family::computed_value::T) {
@@ -2223,7 +2224,16 @@ fn static_assert() {
         use gecko_bindings::structs::FontFamilyType;
         use gecko_string_cache::Atom;
 
-        ::properties::longhands::font_family::computed_value::T(
+        if self.gecko.mFont.fontlist.mFontlist.is_empty() {
+            let default = match self.gecko.mFont.fontlist.mDefaultFontType {
+                FontFamilyType::eFamily_serif => FontFamily::Generic(atom!("serif")),
+                FontFamilyType::eFamily_sans_serif => FontFamily::Generic(atom!("sans-serif")),
+                _ => panic!("Default generic must be serif or sans-serif"),
+            };
+            return longhands::font_family::computed_value::T(vec![default]);
+        }
+
+        longhands::font_family::computed_value::T(
             self.gecko.mFont.fontlist.mFontlist.iter().map(|gecko_font_family_name| {
                 match gecko_font_family_name.mType {
                     FontFamilyType::eFamily_serif => FontFamily::Generic(atom!("serif")),

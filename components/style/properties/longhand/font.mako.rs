@@ -2491,11 +2491,13 @@ ${helpers.single_keyword("-moz-math-variant",
 
         use app_units::Au;
         use cssparser::{Parser, ToCss};
+        use gecko_bindings::structs::FontFamilyType;
         use properties::longhands;
         use std::fmt;
         use std::hash::{Hash, Hasher};
         use style_traits::ParseError;
         use values::computed::{ToComputedValue, Context};
+
         <%
             system_fonts = """caption icon menu message-box small-caption status-bar
                               -moz-window -moz-document -moz-workspace -moz-desktop
@@ -2584,6 +2586,7 @@ ${helpers.single_keyword("-moz-math-variant",
                     font_feature_settings: longhands::font_feature_settings::get_initial_value(),
                     font_variant_alternates: longhands::font_variant_alternates::get_initial_value(),
                     system_font: *self,
+                    default_font_type: system.fontlist.mDefaultFontType,
                 };
                 unsafe { bindings::Gecko_nsFont_Destroy(&mut system); }
                 ret
@@ -2615,6 +2618,7 @@ ${helpers.single_keyword("-moz-math-variant",
                 pub ${name}: longhands::${name}::computed_value::T,
             % endfor
             pub system_font: SystemFont,
+            pub default_font_type: FontFamilyType,
         }
 
         impl SystemFont {
