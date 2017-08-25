@@ -16,7 +16,8 @@ use marker;
 use mem::{align_of, size_of};
 use mem;
 use ops::{Deref, DerefMut};
-use ptr::{self, Unique, Shared};
+use ptr;
+use shim::{Unique, Shared};
 
 use self::BucketState::*;
 
@@ -997,7 +998,7 @@ impl<K, V> IntoIter<K, V> {
 }
 
 /// Iterator over the entries in a table, clearing the table.
-pub struct Drain<'a, K: 'a, V: 'a> {
+pub struct Drain<'a, K: 'static, V: 'static> {
     table: Shared<RawTable<K, V>>,
     iter: RawBuckets<'static, K, V>,
     marker: marker::PhantomData<&'a RawTable<K, V>>,
@@ -1105,7 +1106,7 @@ impl<'a, K, V> ExactSizeIterator for Drain<'a, K, V> {
     }
 }
 
-impl<'a, K: 'a, V: 'a> Drop for Drain<'a, K, V> {
+impl<'a, K: 'static, V: 'static> Drop for Drain<'a, K, V> {
     fn drop(&mut self) {
         for _ in self {}
     }

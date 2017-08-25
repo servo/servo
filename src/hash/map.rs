@@ -1035,7 +1035,7 @@ impl<K, V, S> HashMap<K, V, S>
     /// assert!(a.is_empty());
     /// ```
     #[inline]
-        pub fn drain(&mut self) -> Drain<K, V> {
+        pub fn drain(&mut self) -> Drain<K, V> where K: 'static, V: 'static {
         Drain { inner: self.table.drain() }
     }
 
@@ -1053,7 +1053,7 @@ impl<K, V, S> HashMap<K, V, S>
     /// assert!(a.is_empty());
     /// ```
         #[inline]
-    pub fn clear(&mut self) {
+    pub fn clear(&mut self) where K: 'static, V: 'static  {
         self.drain();
     }
 
@@ -1409,7 +1409,7 @@ impl<'a, K, V: Debug> fmt::Debug for Values<'a, K, V> {
 ///
 /// [`drain`]: struct.HashMap.html#method.drain
 /// [`HashMap`]: struct.HashMap.html
-pub struct Drain<'a, K: 'a, V: 'a> {
+pub struct Drain<'a, K: 'static, V: 'static> {
     pub(super) inner: table::Drain<'a, K, V>,
 }
 
