@@ -152,17 +152,6 @@ impl ComputeSquaredDistance for BoxShadow {
     }
 }
 
-impl ToAnimatedZero for BoxShadow {
-    #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> {
-        Ok(BoxShadow {
-            base: self.base.to_animated_zero()?,
-            spread: self.spread.to_animated_zero()?,
-            inset: self.inset,
-        })
-    }
-}
-
 impl ToAnimatedValue for ComputedFilterList {
     type AnimatedValue = FilterList;
 

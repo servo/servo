@@ -11,7 +11,8 @@ use values::specified::url::SpecifiedUrl;
 
 /// A generic value for a single `box-shadow`.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Animate, Clone, Debug, HasViewportPercentage, PartialEq, ToAnimatedValue)]
+#[derive(Animate, Clone, Debug, HasViewportPercentage, PartialEq)]
+#[derive(ToAnimatedValue, ToAnimatedZero)]
 pub struct BoxShadow<Color, SizeLength, BlurShapeLength, ShapeLength> {
     /// The base shadow.
     pub base: SimpleShadow<Color, SizeLength, BlurShapeLength>,
