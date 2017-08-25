@@ -1,0 +1,6 @@
+[package]
+name = "hashglobe"
+version = "0.1.0"
+authors = ["Manish Goregaokar <manishsmail@gmail.com>"]
+
+[dependencies]
