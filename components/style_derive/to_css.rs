@@ -21,11 +21,7 @@ pub fn derive(input: syn::DeriveInput) -> quote::Tokens {
         let mut expr = if !bindings.is_empty() {
             let mut expr = quote! {};
             for binding in bindings {
-                if cg::is_parameterized(&binding.field.ty, &input.generics.ty_params) {
-                    where_clause.predicates.push(
-                        cg::where_predicate(binding.field.ty.clone(), trait_path),
-                    );
-                }
+                where_clause.add_trait_bound(binding.field.ty.clone());
                 expr = quote! {
                     #expr
                     writer.item(#binding)?;

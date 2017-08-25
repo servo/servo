@@ -28,9 +28,7 @@ pub fn derive(input: syn::DeriveInput) -> quote::Tokens {
         let mut computations = quote!();
         let iter = result_info.iter().zip(this_info.iter().zip(&other_info));
         computations.append_all(iter.map(|(result, (this, other))| {
-            where_clause.predicates.push(
-                cg::where_predicate(this.field.ty.clone(), trait_path),
-            );
+            where_clause.add_trait_bound(this.field.ty.clone());
             quote! {
                 let #result = ::values::animated::Animate::animate(#this, #other, procedure)?;
             }
