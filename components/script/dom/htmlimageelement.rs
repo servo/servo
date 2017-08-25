@@ -59,6 +59,7 @@ use std::i32;
 use std::iter::Iterator;
 use std::sync::{Arc, Mutex};
 use style::attr::{AttrValue, LengthOrPercentageOrAuto, parse_double, parse_unsigned_integer};
+use style::str::is_ascii_digit;
 use task_source::TaskSource;
 
 #[derive(Clone, Copy, JSTraceable, HeapSizeOf)]
@@ -1067,10 +1068,10 @@ pub struct Descriptor {
 }
 
 pub fn collect_sequence_characters<F>(s: &str, predicate: F) -> (&str, &str)
-        where F: Fn(char) -> bool
+        where F: Fn(&char) -> bool
         {
             for (i, ch) in s.chars().enumerate() {
-                if !predicate(ch) {
+                if !predicate(&ch) {
                     return (&s[0..i], &s[i..])
                 }
             }
@@ -1078,189 +1079,202 @@ pub fn collect_sequence_characters<F>(s: &str, predicate: F) -> (&str, &str)
         }
 
 pub fn parse_a_srcset_attribute(input: String) -> Vec<ImageSource> {
-        let mut start = 0;
-        let mut candidates: Vec<ImageSource> = Vec::new();
+    let mut start = 0;
+    let mut candidates: Vec<ImageSource> = Vec::new();
+    loop {
+        let position = &input[start..];
+
+        let(spaces, position) = collect_sequence_characters(position, |c| *c ==',' || char::is_whitespace(*c));
+        let x = spaces.find(',');
+        match x {
+            Some(val) => println!("Parse Error"),
+            None => println!("No commas\n"),
+        }
+
+        // add the counts of spaces that we collect to advance the start index
+        let space_len = spaces.char_indices().count();
+        start += space_len;
+
+        //Returns and breaks out of the loop
+        if position.is_empty() {
+            return candidates;
+        }
+        let(url, spaces) = collect_sequence_characters(position, |c| !char::is_whitespace(*c));
+
+        // add the counts of urls that we parse to advance the start index
+        start += url.char_indices().count();
+
+        let comma_count = url.chars().rev().take_while(|c| *c == ',').count();
+        let url: String = url.chars().take(url.chars().count() - comma_count).collect();
+        if comma_count > 1 {
+            println!("Parse Error (trailing commas)")
+        }
+
+        // add 1 to start index, for the comma
+        start += 1;
+
+        let(space, position) = collect_sequence_characters(spaces, |c| char::is_whitespace(*c));
+
+        let space_len = space.char_indices().count();
+        start += space_len;
+
+        let mut descriptors = LinkedList::<String>::new();
+        let mut current_descriptor = String::new();
+        let mut state = ParseState::InDescriptor;
+        let mut char_stream = position.chars().enumerate();
+        //let mut last_index = 0;
+        let mut buffered: Option<(usize, char)> = None;
         loop {
-            let position = &input[start..];
-            let(spaces, position) = collect_sequence_characters(position, |c| c ==',' || char::is_whitespace(c));
-            println!("\nspaces:`{}`, position:`{}`", spaces, position);
-            let x = spaces.find(',');
-            match x {
-                Some(val) => println!("Parse Error"),
-                None => println!("No commas"),
+            let nextChar = buffered.take().or_else(|| char_stream.next());
+            if let Some((i, _)) = nextChar {
+                start += 1;
             }
-            if position.is_empty() {
-                return candidates;
-            }
-            let(url, spaces) = collect_sequence_characters(position, |c| !char::is_whitespace(c));
-            println!("\nurl:'{}', spaces:'{}'", url, spaces);
-            let comma_count = url.chars().rev().take_while(|c| *c == ',').count();
-            let url: String = url.chars().take(url.chars().count() - comma_count).collect();
-            if comma_count > 1 {
-                println!("Parse Error (trailing commas)")
-            }
-            let mut descriptors = LinkedList::<String>::new();
-            //descriptor tokenizer
-            let(space, position) = collect_sequence_characters(spaces, |c| char::is_whitespace(c));
-            println!("\nspace: `{}`and position: `{}`", spaces, position);
-            let mut current_descriptor = String::new();
-            let mut state = ParseState::InDescriptor;
-            println!("\nposition: `{}`", position);
-            let mut char_stream = position.chars().enumerate();
-            let mut last_index = 0;
-            let mut buffered: Option<(usize, char)> = None;
-            loop {
-                let nextChar = buffered.take().or_else(|| char_stream.next());
-                if let Some((i, _)) = nextChar {
-                    start = i;
-                }
-                match state {
-                    ParseState::InDescriptor => {
-                        match nextChar {
-                            Some((idx, c @ ' ')) => {
-                                if !current_descriptor.is_empty() { 
-                                    descriptors.push_back(current_descriptor.clone());
-                                    current_descriptor = String::new();
-                                    state = ParseState::AfterDescriptor;
-                                }
-                                continue;
-                            }
-                            Some((idx, c @ ',')) => {
-                                position.chars().enumerate();
-                                if !current_descriptor.is_empty() {
-                                    descriptors.push_back(current_descriptor.clone());
-                                }
-                                break;
-                            }
-                            Some((idx, c @ '(')) => {
-                                current_descriptor.push(c);
-                                state = ParseState::InParens;
-                                continue;
-                            }
-                            Some((_, c)) => {
-                                current_descriptor.push(c);
-                                continue;
-                            }
-                            None => {
-                                if !current_descriptor.is_empty() {
-                                    descriptors.push_back(current_descriptor.clone());
-                                }
-                                break;
-                            }
-                        }
-                    }
-                    ParseState::InParens => {
-                        match nextChar {
-                            Some((idx, c @ ')')) => {
-                                current_descriptor.push(c);
-                                state = ParseState::InDescriptor;
-                                continue;
-                            }
-                            Some((_, c)) => {
-                                current_descriptor.push(c);
-                                continue;
-                            }
-                            None => {
-                                if !current_descriptor.is_empty() {
-                                    descriptors.push_back(current_descriptor.clone());
-                                }
-                                break;
-                            }
-                        }
-                    }
-                    ParseState::AfterDescriptor => {
-                        match nextChar {
-                            Some((idx, ' ')) => {
+            match state {
+                ParseState::InDescriptor => {
+                    match nextChar {
+                        Some((idx, c @ ' ')) => {
+                            if !current_descriptor.is_empty() {
+                                descriptors.push_back(current_descriptor.clone());
+                                current_descriptor = String::new();
                                 state = ParseState::AfterDescriptor;
-                                continue;
                             }
-                            Some((idx, c)) => {
-                                state = ParseState::InDescriptor;
-                                buffered = Some((idx, c));
-                                continue;
+                            continue;
+                        }
+                        Some((idx, c @ ',')) => {
+                            position.chars().enumerate();
+                            if !current_descriptor.is_empty() {
+                                descriptors.push_back(current_descriptor.clone());
                             }
-                            None => {
-                                if !current_descriptor.is_empty() {
-                                    descriptors.push_back(current_descriptor.clone());
-                                }
-                                break;
+                            break;
+                        }
+                        Some((idx, c @ '(')) => {
+                            current_descriptor.push(c);
+                            state = ParseState::InParens;
+                            continue;
+                        }
+                        Some((_, c)) => {
+                            current_descriptor.push(c);
+                            continue;
+                        }
+                        None => {
+                            if !current_descriptor.is_empty() {
+                                descriptors.push_back(current_descriptor.clone());
                             }
+                            break;
                         }
                     }
                 }
-            }
-            start += last_index;
-            println!("Descriptors: `{:?}`", descriptors);
-            break;
-            let mut error = Error::No;
-            let mut width: Option<u32> = None;
-            let mut density: Option<f64> = None;
-            let mut future_compat_h: Option<u32> = None;
-            for descriptor in descriptors {
-                let mut char_iter = descriptor.chars();
-                let valid_non_negative_integer = parse_unsigned_integer(char_iter.clone());
-                let has_w = if let Some('w') = char_iter.next() {
-                    true
-                } else {
-                    false
-                };
-                let valid_floating_point = parse_double(char_iter.as_str());
-                let has_x = if let Some('x') = char_iter.next() {
-                    true
-                } else {
-                    false
-                };
-                let has_h = if let Some('h') = char_iter.next() {
-                    true
-                } else {
-                    false
-                };
-                if valid_non_negative_integer.is_ok() && has_w {
-                    //not support sizes attribute
-                    if width != None && density != None {
-                        error = Error::Yes;
+                ParseState::InParens => {
+                    match nextChar {
+                        Some((idx, c @ ')')) => {
+                            current_descriptor.push(c);
+                            state = ParseState::InDescriptor;
+                            continue;
+                        }
+                        Some((_, c)) => {
+                            current_descriptor.push(c);
+                            continue;
+                        }
+                        None => {
+                            if !current_descriptor.is_empty() {
+                                descriptors.push_back(current_descriptor.clone());
+                            }
+                            break;
+                        }
                     }
-                    let result = parse_unsigned_integer(char_iter.clone());
-                    if result.is_err() {
-                        error = Error::Yes;
-                    } else {
-                        width = Some(result.unwrap());
-                    }
-                } else if valid_floating_point.is_ok() && has_x {
-                    if width != None && density != None && future_compat_h != None {
-                        error = Error::Yes;
-                    }
-                    let result = parse_double(char_iter.as_str());
-                    if result.is_err() {
-                        error = Error::Yes;
-                    } else {
-                        density = Some(result.unwrap());
-                    }
-                } else if valid_non_negative_integer.is_ok() && has_h {
-                    if density != None && future_compat_h != None {
-                        error = Error::Yes;
-                    }
-                    let result = parse_unsigned_integer(char_iter.clone());
-                    if result.is_err() {
-                        error = Error::Yes;
-                    } else {
-                        future_compat_h = Some(result.unwrap());
-                    }
-                } else {
-                    error = Error::Yes;
                 }
-            }
-            if future_compat_h != None && width == None {
-                error = Error::Yes;
-            }
-            if let Error::No = error {
-                if width != None && density != None {
-                    let descriptor = Descriptor { wid: width, den: density };
-                    let mut imageSource = ImageSource { url: url, descriptor: descriptor };
-                    candidates.push(imageSource);
-                } else {
-                    debug!("parse error");
+                ParseState::AfterDescriptor => {
+                    match nextChar {
+                        Some((idx, ' ')) => {
+                            state = ParseState::AfterDescriptor;
+                            continue;
+                        }
+                        Some((idx, c)) => {
+                            state = ParseState::InDescriptor;
+                            buffered = Some((idx, c));
+                            continue;
+                        }
+                        None => {
+                            if !current_descriptor.is_empty() {
+                                descriptors.push_back(current_descriptor.clone());
+                            }
+                            break;
+                        }
+                    }
                 }
             }
         }
+        let mut error = Error::No;
+        let mut width: Option<u32> = None;
+        let mut density: Option<f64> = None;
+        let mut future_compat_h: Option<u32> = None;
+        for descriptor in descriptors {
+            let mut char_iter = descriptor.chars();
+            let (digits, remaining) = collect_sequence_characters(&descriptor, is_ascii_digit);
+            let valid_non_negative_integer = parse_unsigned_integer(digits.chars());
+            let has_w = if let "w" = remaining {
+                true
+            } else {
+                false
+            };
+            let valid_floating_point = parse_double(digits);
+            let has_x = if let "x" = remaining {
+                true
+            } else {
+                false
+            };
+            let has_h = if let "h" = remaining {
+                true
+            } else {
+                false
+            };
+            if valid_non_negative_integer.is_ok() && has_w {
+                //not support sizes attribute
+                if width != None && density != None {
+                    error = Error::Yes;
+                }
+                let result = parse_unsigned_integer(char_iter.clone());
+                if result.is_err() {
+                    error = Error::Yes;
+                } else {
+                    width = Some(result.unwrap());
+                }
+            } else if valid_floating_point.is_ok() && has_x {
+                if width != None && density != None && future_compat_h != None {
+                    error = Error::Yes;
+                }
+                let result = parse_double(char_iter.as_str());
+                if result.is_err() {
+                    error = Error::Yes;
+                } else {
+                    density = Some(result.unwrap());
+                }
+            } else if valid_non_negative_integer.is_ok() && has_h {
+                if density != None && future_compat_h != None {
+                    error = Error::Yes;
+                }
+                let result = parse_unsigned_integer(char_iter.clone());
+                if result.is_err() {
+                    error = Error::Yes;
+                } else {
+                    future_compat_h = Some(result.unwrap());
+                }
+            } else {
+                error = Error::Yes;
+            }
+        }
+        if future_compat_h != None && width == None {
+            error = Error::Yes;
+        }
+        if let Error::No = error {
+            if width != None || density != None {
+                let descriptor = Descriptor { wid: width, den: density };
+                let mut imageSource = ImageSource { url: url, descriptor: descriptor };
+                candidates.push(imageSource);
+            } else {
+                println!("parse error");
+            }
+        }
+        start -= 1;
     }
+}
