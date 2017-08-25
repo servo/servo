@@ -1,5 +1,3 @@
-#![feature(generic_param_attrs)]
-#![feature(dropck_eyepatch)]
 #![feature(allocator_api)]
 #![feature(alloc, shared, unique, fused, placement_new_protocol)]
 

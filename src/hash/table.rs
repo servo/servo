@@ -1163,7 +1163,10 @@ impl<K: Clone, V: Clone> Clone for RawTable<K, V> {
     }
 }
 
-unsafe impl<#[may_dangle] K, #[may_dangle] V> Drop for RawTable<K, V> {
+// FORK NOTE: There may be lifetime errors that do not occur on std::HashMap
+// since we removed the may_dangle (which allows more things to compile but has stricter guarantees).
+// Generally we should be fine as long as no borrowed data is stuck into the map.
+impl<K, V> Drop for RawTable<K, V> {
     fn drop(&mut self) {
         if self.capacity() == 0 {
             return;
