@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use darling::FromVariant;
+use darling::{FromField, FromVariant};
 use quote::{ToTokens, Tokens};
 use std::borrow::Cow;
 use std::collections::HashSet;
 use std::iter;
-use syn::{self, AngleBracketedParameterData, Body, DeriveInput, Ident};
+use syn::{self, AngleBracketedParameterData, Body, DeriveInput, Field, Ident};
 use syn::{ImplGenerics, Path, PathParameters, PathSegment, PolyTraitRef};
 use syn::{QSelf, TraitBoundModifier, Ty, TyGenerics, TyParam, TyParamBound};
 use syn::{Variant, WhereBoundPredicate, WherePredicate};
@@ -15,15 +15,15 @@ use syn::visit::{self, Visitor};
 use synstructure::{self, BindOpts, BindStyle, BindingInfo};
 
 pub struct WhereClause<'input, 'path> {
-    clause: syn::WhereClause,
-    params: &'input [TyParam],
+    pub inner: syn::WhereClause,
+    pub params: &'input [TyParam],
     trait_path: &'path [&'path str],
     bounded_types: HashSet<Ty>,
 }
 
 impl<'input, 'path> ToTokens for WhereClause<'input, 'path> {
     fn to_tokens(&self, tokens: &mut Tokens) {
-        self.clause.to_tokens(tokens);
+        self.inner.to_tokens(tokens);
     }
 }
 
@@ -31,7 +31,7 @@ impl<'input, 'path> WhereClause<'input, 'path> {
     pub fn add_trait_bound(&mut self, ty: Ty) {
         if is_parameterized(&ty, self.params) && !self.bounded_types.contains(&ty) {
             self.bounded_types.insert(ty.clone());
-            self.clause.predicates.push(where_predicate(ty, self.trait_path));
+            self.inner.predicates.push(where_predicate(ty, self.trait_path));
         }
     }
 }
@@ -116,13 +116,23 @@ where
     }
 }
 
+pub fn parse_field_attrs<A>(field: &Field) -> A
+where
+    A: FromField,
+{
+    match A::from_field(field) {
+        Ok(attrs) => attrs,
+        Err(e) => panic!("failed to parse field attributes: {}", e),
+    }
+}
+
 pub fn parse_variant_attrs<A>(variant: &Variant) -> A
 where
     A: FromVariant,
 {
     match A::from_variant(variant) {
         Ok(attrs) => attrs,
-        Err(e) => panic!("failed to parse attributes: {}", e),
+        Err(e) => panic!("failed to parse variant attributes: {}", e),
     }
 }
 
@@ -144,7 +154,7 @@ pub fn trait_parts<'input, 'path>(
 ) -> (ImplGenerics<'input>, TyGenerics<'input>, WhereClause<'input, 'path>) {
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
     let where_clause = WhereClause {
-        clause: where_clause.clone(),
+        inner: where_clause.clone(),
         params: &input.generics.ty_params,
         trait_path,
         bounded_types: HashSet::new()

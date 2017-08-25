@@ -44,11 +44,18 @@ add_impls_for_keyword_enum!(ShapeBox);
 /// A shape source, for some reference box.
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Debug, PartialEq, ToComputedValue, ToCss)]
+#[derive(Animate, Clone, Debug, PartialEq, ToComputedValue, ToCss)]
 pub enum ShapeSource<BasicShape, ReferenceBox, Url> {
+    #[animation(error)]
     Url(Url),
-    Shape(BasicShape, Option<ReferenceBox>),
+    Shape(
+        BasicShape,
+        #[animation(equal)]
+        Option<ReferenceBox>,
+    ),
+    #[animation(error)]
     Box(ReferenceBox),
+    #[animation(error)]
     None,
 }
 
@@ -125,29 +132,6 @@ define_css_keyword_enum!(FillRule:
     "evenodd" => EvenOdd
 );
 add_impls_for_keyword_enum!(FillRule);
-
-// FIXME(nox): This should be derivable, but we need to implement Animate
-// on the T types.
-impl<B, T, U> Animate for ShapeSource<B, T, U>
-where
-    B: Animate,
-    T: Clone + PartialEq,
-{
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        match (self, other) {
-            (
-                &ShapeSource::Shape(ref this, ref this_box),
-                &ShapeSource::Shape(ref other, ref other_box),
-            ) if this_box == other_box => {
-                Ok(ShapeSource::Shape(
-                    this.animate(other, procedure)?,
-                    this_box.clone(),
-                ))
-            },
-            _ => Err(()),
-        }
-    }
-}
 
 // FIXME(nox): Implement ComputeSquaredDistance for T types and stop
 // using PartialEq here, this will let us derive this impl.
