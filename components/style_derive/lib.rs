@@ -43,7 +43,7 @@ pub fn derive_to_animated_value(stream: TokenStream) -> TokenStream {
     to_animated_value::derive(input).to_string().parse().unwrap()
 }
 
-#[proc_macro_derive(ToAnimatedZero)]
+#[proc_macro_derive(ToAnimatedZero, attributes(animation))]
 pub fn derive_to_animated_zero(stream: TokenStream) -> TokenStream {
     let input = syn::parse_derive_input(&stream.to_string()).unwrap();
     to_animated_zero::derive(input).to_string().parse().unwrap()

@@ -2,10 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use animate::AnimateAttrs;
 use cg;
 use quote;
 use syn;
-use synstructure::BindStyle;
+use synstructure::{self, BindStyle};
 
 pub fn derive(input: syn::DeriveInput) -> quote::Tokens {
     let name = &input.ident;
@@ -13,9 +14,25 @@ pub fn derive(input: syn::DeriveInput) -> quote::Tokens {
     let (impl_generics, ty_generics, mut where_clause) =
         cg::trait_parts(&input, trait_path);
 
-    let to_body = cg::fmap_match(&input, BindStyle::Ref, |binding| {
-        where_clause.add_trait_bound(binding.field.ty.clone());
-        quote! { ::values::animated::ToAnimatedZero::to_animated_zero(#binding)? }
+    let bind_opts = BindStyle::Ref.into();
+    let to_body = synstructure::each_variant(&input, &bind_opts, |bindings, variant| {
+        let attrs = cg::parse_variant_attrs::<AnimateAttrs>(variant);
+        if attrs.error {
+            return Some(quote! { Err(()) });
+        }
+        let name = cg::variant_ctor(&input, variant);
+        let (mapped, mapped_bindings) = cg::value(&name, variant, "mapped");
+        let bindings_pairs = bindings.into_iter().zip(mapped_bindings);
+        let mut computations = quote!();
+        computations.append_all(bindings_pairs.map(|(binding, mapped_binding)| {
+            where_clause.add_trait_bound(binding.field.ty.clone());
+            quote! {
+                let #mapped_binding =
+                    ::values::animated::ToAnimatedZero::to_animated_zero(#binding)?;
+            }
+        }));
+        computations.append(quote! { Ok(#mapped) });
+        Some(computations)
     });
 
     quote! {
@@ -23,9 +40,9 @@ pub fn derive(input: syn::DeriveInput) -> quote::Tokens {
             #[allow(unused_variables)]
             #[inline]
             fn to_animated_zero(&self) -> Result<Self, ()> {
-                Ok(match *self {
+                match *self {
                     #to_body
-                })
+                }
             }
         }
     }
