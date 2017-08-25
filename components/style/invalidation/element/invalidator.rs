@@ -580,7 +580,7 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
                 MatchingMode::Normal,
                 None,
                 VisitedHandlingMode::AllLinksVisitedAndUnvisited,
-                self.shared_context.quirks_mode,
+                self.shared_context.quirks_mode(),
             );
 
         let matching_result = matches_compound_selector(
@@ -774,7 +774,7 @@ impl<'a, 'b: 'a, E> InvalidationCollector<'a, 'b, E>
         &mut self,
         map: &InvalidationMap,
     ) {
-        let quirks_mode = self.shared_context.quirks_mode;
+        let quirks_mode = self.shared_context.quirks_mode();
         let removed_id = self.removed_id;
         if let Some(ref id) = removed_id {
             if let Some(deps) = map.id_to_selector.get(id, quirks_mode) {
@@ -821,7 +821,7 @@ impl<'a, 'b: 'a, E> InvalidationCollector<'a, 'b, E>
     ) {
         map.lookup_with_additional(
             self.lookup_element,
-            self.shared_context.quirks_mode,
+            self.shared_context.quirks_mode(),
             self.removed_id,
             self.classes_removed,
             &mut |dependency| {
@@ -841,7 +841,7 @@ impl<'a, 'b: 'a, E> InvalidationCollector<'a, 'b, E>
     ) {
         map.lookup_with_additional(
             self.lookup_element,
-            self.shared_context.quirks_mode,
+            self.shared_context.quirks_mode(),
             self.removed_id,
             self.classes_removed,
             &mut |dependency| {
@@ -885,11 +885,11 @@ impl<'a, 'b: 'a, E> InvalidationCollector<'a, 'b, E>
         let mut now_context =
             MatchingContext::new_for_visited(MatchingMode::Normal, None,
                                              VisitedHandlingMode::AllLinksUnvisited,
-                                             self.shared_context.quirks_mode);
+                                             self.shared_context.quirks_mode());
         let mut then_context =
             MatchingContext::new_for_visited(MatchingMode::Normal, None,
                                              VisitedHandlingMode::AllLinksUnvisited,
-                                             self.shared_context.quirks_mode);
+                                             self.shared_context.quirks_mode());
 
         let matched_then =
             matches_selector(&dependency.selector,

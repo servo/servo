@@ -197,7 +197,6 @@ fn create_shared_context<'a>(global_style_data: &GlobalStyleData,
         options: global_style_data.options.clone(),
         guards: StylesheetGuards::same(guard),
         timer: Timer::new(),
-        quirks_mode: per_doc_data.stylist.quirks_mode(),
         traversal_flags: traversal_flags,
         snapshot_map: snapshot_map,
     }

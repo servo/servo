@@ -363,7 +363,7 @@ where
                 MatchingMode::Normal,
                 Some(bloom_filter),
                 visited_handling,
-                self.context.shared.quirks_mode
+                self.context.shared.quirks_mode(),
             );
 
         let stylist = &self.context.shared.stylist;
@@ -437,7 +437,7 @@ where
                 MatchingMode::ForStatelessPseudoElement,
                 Some(bloom_filter),
                 visited_handling,
-                self.context.shared.quirks_mode
+                self.context.shared.quirks_mode(),
             );
 
         let map = &mut self.context.thread_local.selector_flags;
@@ -528,7 +528,7 @@ where
                 Some(&mut cascade_info),
                 &self.context.thread_local.font_metrics_provider,
                 cascade_flags,
-                self.context.shared.quirks_mode
+                self.context.shared.quirks_mode(),
             );
 
         cascade_info.finish(&self.element.as_node());

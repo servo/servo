@@ -260,9 +260,6 @@ pub struct LayoutThread {
     // rather limit the dependency on that module here.
     layout_threads: usize,
 
-    /// Which quirks mode are we rendering the document in?
-    quirks_mode: Option<QuirksMode>,
-
     /// Paint time metrics.
     paint_time_metrics: PaintTimeMetrics,
 }
@@ -543,7 +540,6 @@ impl LayoutThread {
                     Timer::new()
                 },
             layout_threads: layout_threads,
-            quirks_mode: None,
             paint_time_metrics: paint_time_metrics,
         }
     }
@@ -582,7 +578,6 @@ impl LayoutThread {
                 registered_speculative_painters: &self.registered_painters,
                 local_context_creation_data: Mutex::new(thread_local_style_context_creation_data),
                 timer: self.timer.clone(),
-                quirks_mode: self.quirks_mode.unwrap(),
                 traversal_flags: TraversalFlags::empty(),
                 snapshot_map: snapshot_map,
             },
@@ -1068,7 +1063,6 @@ impl LayoutThread {
                              possibly_locked_rw_data: &mut RwData<'a, 'b>) {
         let document = unsafe { ServoLayoutNode::new(&data.document) };
         let document = document.as_document().unwrap();
-        self.quirks_mode = Some(document.quirks_mode());
 
         // FIXME(pcwalton): Combine `ReflowGoal` and `ReflowQueryType`. Then remove this assert.
         debug_assert!((data.reflow_info.goal == ReflowGoal::ForDisplay &&

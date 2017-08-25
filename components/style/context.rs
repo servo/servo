@@ -137,9 +137,6 @@ pub struct SharedStyleContext<'a> {
     /// them.
     pub timer: Timer,
 
-    /// The QuirksMode state which the document needs to be rendered with
-    pub quirks_mode: QuirksMode,
-
     /// Flags controlling how we traverse the tree.
     pub traversal_flags: TraversalFlags,
 
@@ -173,6 +170,11 @@ impl<'a> SharedStyleContext<'a> {
     /// The device pixel ratio
     pub fn device_pixel_ratio(&self) -> ScaleFactor<f32, CSSPixel, DevicePixel> {
         self.stylist.device().device_pixel_ratio()
+    }
+
+    /// The quirks mode of the document.
+    pub fn quirks_mode(&self) -> QuirksMode {
+        self.stylist.quirks_mode()
     }
 }
 
