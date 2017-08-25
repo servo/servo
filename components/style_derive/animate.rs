@@ -28,9 +28,30 @@ pub fn derive(input: syn::DeriveInput) -> quote::Tokens {
         let mut computations = quote!();
         let iter = result_info.iter().zip(this_info.iter().zip(&other_info));
         computations.append_all(iter.map(|(result, (this, other))| {
-            where_clause.add_trait_bound(this.field.ty.clone());
-            quote! {
-                let #result = ::values::animated::Animate::animate(#this, #other, procedure)?;
+            let field_attrs = cg::parse_field_attrs::<AnimateFieldAttrs>(&result.field);
+            if field_attrs.constant {
+                if cg::is_parameterized(&result.field.ty, where_clause.params) {
+                    where_clause.inner.predicates.push(cg::where_predicate(
+                        result.field.ty.clone(),
+                        &["std", "cmp", "PartialEq"],
+                    ));
+                    where_clause.inner.predicates.push(cg::where_predicate(
+                        result.field.ty.clone(),
+                        &["std", "clone", "Clone"],
+                    ));
+                }
+                quote! {
+                    if #this != #other {
+                        return Err(());
+                    }
+                    let #result = ::std::clone::Clone::clone(#this);
+                }
+            } else {
+                where_clause.add_trait_bound(result.field.ty.clone());
+                quote! {
+                    let #result =
+                        ::values::animated::Animate::animate(#this, #other, procedure)?;
+                }
             }
         }));
         Some(quote! {
@@ -66,4 +87,10 @@ pub fn derive(input: syn::DeriveInput) -> quote::Tokens {
 #[darling(attributes(animation), default)]
 pub struct AnimateAttrs {
     pub error: bool,
+}
+
+#[derive(Default, FromField)]
+#[darling(attributes(animation), default)]
+pub struct AnimateFieldAttrs {
+    pub constant: bool,
 }
