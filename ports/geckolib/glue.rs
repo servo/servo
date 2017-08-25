@@ -669,7 +669,7 @@ pub extern "C" fn Servo_StyleSet_GetBaseComputedValuesForElement(raw_data: RawSe
                                                                  pseudo_type: CSSPseudoElementType)
                                                                  -> ServoStyleContextStrong
 {
-    use style::style_resolver::StyleResolverForElement;
+    use style::style_resolver::{PseudoElementResolution, StyleResolverForElement};
 
     debug_assert!(!snapshots.is_null());
     let computed_values = unsafe { ArcBorrow::from_ref(computed_values) };
@@ -725,7 +725,8 @@ pub extern "C" fn Servo_StyleSet_GetBaseComputedValuesForElement(raw_data: RawSe
             visited_rules: None,
         };
 
-    StyleResolverForElement::new(element, &mut context, RuleInclusion::All)
+    // Actually `PseudoElementResolution` doesn't matter.
+    StyleResolverForElement::new(element, &mut context, RuleInclusion::All, PseudoElementResolution::IfApplicable)
         .cascade_style_and_visited_with_default_parents(inputs)
         .into()
 }
@@ -2932,8 +2933,9 @@ pub extern "C" fn Servo_ResolveStyleLazily(element: RawGeckoElementBorrowed,
     let doc_data = PerDocumentStyleData::from_ffi(raw_data);
     let data = doc_data.borrow();
     let rule_inclusion = RuleInclusion::from(rule_inclusion);
-    let finish = |styles: &ElementStyles| -> Arc<ComputedValues> {
-        match PseudoElement::from_pseudo_type(pseudo_type) {
+    let pseudo = PseudoElement::from_pseudo_type(pseudo_type);
+    let finish = |styles: &ElementStyles, is_probe: bool| -> Option<Arc<ComputedValues>> {
+        match pseudo {
             Some(ref pseudo) => {
                 get_pseudo_style(
                     &guard,
@@ -2943,22 +2945,27 @@ pub extern "C" fn Servo_ResolveStyleLazily(element: RawGeckoElementBorrowed,
                     styles,
                     /* inherited_styles = */ None,
                     &*data,
-                    /* is_probe = */ false,
-                ).expect("We're not probing, so we should always get a style \
-                         back")
+                    is_probe,
+                )
             }
-            None => styles.primary().clone(),
+            None => Some(styles.primary().clone()),
         }
     };
+
+    let is_before_or_after = pseudo.as_ref().map_or(false, |p| p.is_before_or_after());
 
     // In the common case we already have the style. Check that before setting
     // up all the computation machinery. (Don't use it when we're getting
     // default styles or in a bfcached document (as indicated by
     // ignore_existing_styles), though.)
+    //
+    // Also, only probe in the ::before or ::after case, since their styles may
+    // not be in the `ElementData`, given they may exist but not be applicable
+    // to generate an actual pseudo-element (like, having a `content: none`).
     if rule_inclusion == RuleInclusion::All && !ignore_existing_styles {
         let styles = element.mutate_data().and_then(|d| {
             if d.has_styles() {
-                Some(finish(&d.styles))
+                finish(&d.styles, is_before_or_after)
             } else {
                 None
             }
@@ -2980,8 +2987,17 @@ pub extern "C" fn Servo_ResolveStyleLazily(element: RawGeckoElementBorrowed,
         thread_local: &mut tlc,
     };
 
-    let styles = resolve_style(&mut context, element, rule_inclusion, ignore_existing_styles);
-    finish(&styles).into()
+    let styles = resolve_style(
+        &mut context,
+        element,
+        rule_inclusion,
+        ignore_existing_styles,
+        pseudo.as_ref()
+    );
+
+    finish(&styles, /* is_probe = */ false)
+        .expect("We're not probing, so we should always get a style back")
+        .into()
 }
 
 #[no_mangle]

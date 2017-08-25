@@ -15,11 +15,21 @@ use properties::{AnimationRules, CascadeFlags, ComputedValues};
 use properties::{IS_LINK, IS_ROOT_ELEMENT, IS_VISITED_LINK};
 use properties::{PROHIBIT_DISPLAY_CONTENTS, SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP};
 use properties::{VISITED_DEPENDENT_ONLY, cascade};
+use properties::longhands::display::computed_value::T as display;
 use rule_tree::StrongRuleNode;
 use selector_parser::{PseudoElement, SelectorImpl};
 use selectors::matching::{ElementSelectorFlags, MatchingContext, MatchingMode, VisitedHandlingMode};
 use servo_arc::Arc;
 use stylist::RuleInclusion;
+
+/// Whether pseudo-elements should be resolved or not.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PseudoElementResolution {
+    /// Only resolve pseudo-styles if possibly applicable.
+    IfApplicable,
+    /// Force pseudo-element resolution.
+    Force,
+}
 
 /// A struct that takes care of resolving the style of a given element.
 pub struct StyleResolverForElement<'a, 'ctx, 'le, E>
@@ -31,6 +41,7 @@ where
     element: E,
     context: &'a mut StyleContext<'ctx, E>,
     rule_inclusion: RuleInclusion,
+    pseudo_resolution: PseudoElementResolution,
     _marker: ::std::marker::PhantomData<&'le E>,
 }
 
@@ -66,6 +77,29 @@ where
     f(parent_style.map(|x| &**x), layout_parent_style.map(|s| &**s))
 }
 
+fn eager_pseudo_is_definitely_not_generated(
+    pseudo: &PseudoElement,
+    style: &ComputedValues,
+) -> bool {
+    use properties::computed_value_flags::{INHERITS_CONTENT, INHERITS_DISPLAY};
+
+    if !pseudo.is_before_or_after() {
+        return false;
+    }
+
+    if !style.flags.intersects(INHERITS_DISPLAY) &&
+       style.get_box().clone_display() == display::none {
+        return true;
+    }
+
+    if !style.flags.intersects(INHERITS_CONTENT) &&
+       style.ineffective_content_property() {
+        return true;
+    }
+
+    false
+}
+
 impl<'a, 'ctx, 'le, E> StyleResolverForElement<'a, 'ctx, 'le, E>
 where
     'ctx: 'a,
@@ -77,11 +111,13 @@ where
         element: E,
         context: &'a mut StyleContext<'ctx, E>,
         rule_inclusion: RuleInclusion,
+        pseudo_resolution: PseudoElementResolution,
     ) -> Self {
         Self {
             element,
             context,
             rule_inclusion,
+            pseudo_resolution,
             _marker: ::std::marker::PhantomData,
         }
     }
@@ -250,15 +286,21 @@ where
                 for (i, inputs) in pseudo_array.iter_mut().enumerate() {
                     if let Some(inputs) = inputs.take() {
                         let pseudo = PseudoElement::from_eager_index(i);
-                        pseudo_styles.set(
-                            &pseudo,
+
+                        let style =
                             self.cascade_style_and_visited(
                                 inputs,
                                 Some(&*primary_style.style),
                                 layout_parent_style_for_pseudo,
                                 Some(&pseudo),
-                            )
-                        )
+                            );
+
+                        if !matches!(self.pseudo_resolution, PseudoElementResolution::Force) &&
+                           eager_pseudo_is_definitely_not_generated(&pseudo, &style) {
+                            continue;
+                        }
+
+                        pseudo_styles.set(&pseudo, style);
                     }
                 }
             }

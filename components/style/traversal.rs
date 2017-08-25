@@ -9,9 +9,10 @@ use data::{ElementData, ElementStyles};
 use dom::{NodeInfo, OpaqueNode, TElement, TNode};
 use invalidation::element::restyle_hints::{RECASCADE_SELF, RECASCADE_DESCENDANTS, RestyleHint};
 use matching::{ChildCascadeRequirement, MatchMethods};
+use selector_parser::PseudoElement;
 use sharing::StyleSharingTarget;
 use smallvec::SmallVec;
-use style_resolver::StyleResolverForElement;
+use style_resolver::{PseudoElementResolution, StyleResolverForElement};
 #[cfg(feature = "servo")] use style_traits::ToCss;
 use stylist::RuleInclusion;
 use traversal_flags::{TraversalFlags, self};
@@ -387,6 +388,7 @@ pub fn resolve_style<E>(
     element: E,
     rule_inclusion: RuleInclusion,
     ignore_existing_style: bool,
+    pseudo: Option<&PseudoElement>,
 ) -> ElementStyles
 where
     E: TElement,
@@ -395,6 +397,7 @@ where
 
     debug_assert!(rule_inclusion == RuleInclusion::DefaultOnly ||
                   ignore_existing_style ||
+                  pseudo.map_or(false, |p| p.is_before_or_after()) ||
                   element.borrow_data().map_or(true, |d| !d.has_styles()),
                   "Why are we here?");
     let mut ancestors_requiring_style_resolution = SmallVec::<[E; 16]>::new();
@@ -438,8 +441,10 @@ where
     for ancestor in ancestors_requiring_style_resolution.iter().rev() {
         context.thread_local.bloom_filter.assert_complete(*ancestor);
 
+        // Actually `PseudoElementResolution` doesn't really matter here.
+        // (but it does matter below!).
         let primary_style =
-            StyleResolverForElement::new(*ancestor, context, rule_inclusion)
+            StyleResolverForElement::new(*ancestor, context, rule_inclusion, PseudoElementResolution::IfApplicable)
                 .resolve_primary_style(
                     style.as_ref().map(|s| &**s),
                     layout_parent_style.as_ref().map(|s| &**s)
@@ -456,7 +461,7 @@ where
     }
 
     context.thread_local.bloom_filter.assert_complete(element);
-    StyleResolverForElement::new(element, context, rule_inclusion)
+    StyleResolverForElement::new(element, context, rule_inclusion, PseudoElementResolution::Force)
         .resolve_style(
             style.as_ref().map(|s| &**s),
             layout_parent_style.as_ref().map(|s| &**s)
@@ -692,9 +697,17 @@ where
                 CannotShare => {
                     context.thread_local.statistics.elements_matched += 1;
                     // Perform the matching and cascading.
-                    let new_styles =
-                        StyleResolverForElement::new(element, context, RuleInclusion::All)
-                            .resolve_style_with_default_parents();
+                    let new_styles = {
+                        let mut resolver =
+                            StyleResolverForElement::new(
+                                element,
+                                context,
+                                RuleInclusion::All,
+                                PseudoElementResolution::IfApplicable
+                            );
+
+                        resolver.resolve_style_with_default_parents()
+                    };
 
                     context.thread_local
                         .style_sharing_candidate_cache
@@ -715,15 +728,31 @@ where
                 ElementCascadeInputs::new_from_element_data(data);
             important_rules_changed =
                 element.replace_rules(flags, context, &mut cascade_inputs);
-            StyleResolverForElement::new(element, context, RuleInclusion::All)
-                .cascade_styles_with_default_parents(cascade_inputs)
+
+            let mut resolver =
+                StyleResolverForElement::new(
+                    element,
+                    context,
+                    RuleInclusion::All,
+                    PseudoElementResolution::IfApplicable
+                );
+
+            resolver.cascade_styles_with_default_parents(cascade_inputs)
         }
         CascadeOnly => {
             // Skipping full matching, load cascade inputs from previous values.
             let cascade_inputs =
                 ElementCascadeInputs::new_from_element_data(data);
-            StyleResolverForElement::new(element, context, RuleInclusion::All)
-                .cascade_styles_with_default_parents(cascade_inputs)
+
+            let mut resolver =
+                StyleResolverForElement::new(
+                    element,
+                    context,
+                    RuleInclusion::All,
+                    PseudoElementResolution::IfApplicable
+                );
+
+            resolver.cascade_styles_with_default_parents(cascade_inputs)
         }
     };
 

@@ -44,5 +44,17 @@ bitflags! {
         /// A flag used to mark styles which are in a display: none subtree, or
         /// under one.
         const IS_IN_DISPLAY_NONE_SUBTREE = 1 << 5,
+
+        /// Whether this style inherits the `display` property.
+        ///
+        /// This is important because it may affect our optimizations to avoid
+        /// computing the style of pseudo-elements, given whether the
+        /// pseudo-element is generated depends on the `display` value.
+        const INHERITS_DISPLAY = 1 << 6,
+
+        /// Whether this style inherits the `content` property.
+        ///
+        /// Important because of the same reason.
+        const INHERITS_CONTENT = 1 << 7,
     }
 }
