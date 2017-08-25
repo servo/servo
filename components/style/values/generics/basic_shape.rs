@@ -94,10 +94,13 @@ pub struct Ellipse<H, V, LengthOrPercentage> {
 /// https://drafts.csswg.org/css-shapes/#typedef-shape-radius
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, ComputeSquaredDistance, Copy, Debug, PartialEq, ToComputedValue, ToCss)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, PartialEq)]
+#[derive(ToComputedValue, ToCss)]
 pub enum ShapeRadius<LengthOrPercentage> {
     Length(LengthOrPercentage),
+    #[animation(error)]
     ClosestSide,
+    #[animation(error)]
     FarthestSide,
 }
 
@@ -188,20 +191,6 @@ impl<L> ToCss for InsetRect<L>
             radius.to_css(dest)?;
         }
         dest.write_str(")")
-    }
-}
-
-impl<L> Animate for ShapeRadius<L>
-where
-    L: Animate,
-{
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        match (self, other) {
-            (&ShapeRadius::Length(ref this), &ShapeRadius::Length(ref other)) => {
-                Ok(ShapeRadius::Length(this.animate(other, procedure)?))
-            },
-            _ => Err(()),
-        }
     }
 }
 
