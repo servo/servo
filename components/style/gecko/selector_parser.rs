@@ -108,18 +108,14 @@ impl ToCss for NonTSPseudoClass {
 impl SelectorMethods for NonTSPseudoClass {
     type Impl = SelectorImpl;
 
-    fn visit<V>(&self, visitor: &mut V) -> bool
+    fn visit<V>(&self, visitor: &mut V)
         where V: SelectorVisitor<Impl = Self::Impl>,
     {
         if let NonTSPseudoClass::MozAny(ref selectors) = *self {
             for selector in selectors.iter() {
-                if !selector.visit(visitor) {
-                    return false;
-                }
+                selector.visit(visitor);
             }
         }
-
-        true
     }
 }
 

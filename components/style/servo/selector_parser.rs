@@ -320,10 +320,9 @@ impl SelectorMethods for NonTSPseudoClass {
     type Impl = SelectorImpl;
 
 
-    fn visit<V>(&self, _: &mut V) -> bool
+    fn visit<V>(&self, _: &mut V)
         where V: SelectorVisitor<Impl = Self::Impl>
     {
-        true
     }
 }
 

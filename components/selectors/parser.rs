@@ -259,14 +259,14 @@ impl AncestorHashes {
 pub trait SelectorMethods {
     type Impl: SelectorImpl;
 
-    fn visit<V>(&self, visitor: &mut V) -> bool
+    fn visit<V>(&self, visitor: &mut V)
         where V: SelectorVisitor<Impl = Self::Impl>;
 }
 
 impl<Impl: SelectorImpl> SelectorMethods for Selector<Impl> {
     type Impl = Impl;
 
-    fn visit<V>(&self, visitor: &mut V) -> bool
+    fn visit<V>(&self, visitor: &mut V)
         where V: SelectorVisitor<Impl = Impl>,
     {
         let mut current = self.iter();
@@ -275,25 +275,21 @@ impl<Impl: SelectorImpl> SelectorMethods for Selector<Impl> {
             visitor.visit_complex_selector(combinator);
 
             for selector in &mut current {
-                if !selector.visit(visitor) {
-                    return false;
-                }
+                selector.visit(visitor);
             }
 
             combinator = current.next_sequence();
             if combinator.is_none() {
-                break;
+                return;
             }
         }
-
-        true
     }
 }
 
 impl<Impl: SelectorImpl> SelectorMethods for Component<Impl> {
     type Impl = Impl;
 
-    fn visit<V>(&self, visitor: &mut V) -> bool
+    fn visit<V>(&self, visitor: &mut V)
         where V: SelectorVisitor<Impl = Impl>,
     {
         use self::Component::*;
@@ -302,9 +298,7 @@ impl<Impl: SelectorImpl> SelectorMethods for Component<Impl> {
         match *self {
             Negation(ref negated) => {
                 for component in negated.iter() {
-                    if !component.visit(visitor) {
-                        return false;
-                    }
+                    component.visit(visitor);
                 }
             }
 
@@ -332,14 +326,10 @@ impl<Impl: SelectorImpl> SelectorMethods for Component<Impl> {
             }
 
             NonTSPseudoClass(ref pseudo_class) => {
-                if !pseudo_class.visit(visitor) {
-                    return false;
-                }
+                pseudo_class.visit(visitor);
             },
             _ => {}
         }
-
-        true
     }
 }
 
