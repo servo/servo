@@ -1652,7 +1652,6 @@ impl<'a> SelectorVisitor for StylistSelectorVisitor<'a> {
 
     fn visit_complex_selector(
         &mut self,
-        _: SelectorIter<SelectorImpl>,
         combinator: Option<Combinator>
     ) -> bool {
         self.needs_revalidation =
