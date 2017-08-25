@@ -1,5 +1,5 @@
 #![feature(allocator_api)]
-#![feature(alloc, shared, unique, fused)]
+#![feature(alloc, shared, unique)]
 
 extern crate alloc;
 

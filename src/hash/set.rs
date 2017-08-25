@@ -11,7 +11,7 @@
 use borrow::Borrow;
 use fmt;
 use hash::{Hash, BuildHasher};
-use iter::{Chain, FromIterator, FusedIterator};
+use iter::{Chain, FromIterator};
 use ops::{BitOr, BitAnd, BitXor, Sub};
 
 use super::Recover;
@@ -1010,7 +1010,6 @@ impl<'a, K> ExactSizeIterator for Iter<'a, K> {
         self.iter.len()
     }
 }
-impl<'a, K> FusedIterator for Iter<'a, K> {}
 
 impl<'a, K: fmt::Debug> fmt::Debug for Iter<'a, K> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -1033,7 +1032,6 @@ impl<K> ExactSizeIterator for IntoIter<K> {
         self.iter.len()
     }
 }
-impl<K> FusedIterator for IntoIter<K> {}
 
 impl<K: fmt::Debug> fmt::Debug for IntoIter<K> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -1060,7 +1058,6 @@ impl<'a, K> ExactSizeIterator for Drain<'a, K> {
         self.iter.len()
     }
 }
-impl<'a, K> FusedIterator for Drain<'a, K> {}
 
 impl<'a, K: fmt::Debug> fmt::Debug for Drain<'a, K> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -1112,12 +1109,6 @@ impl<'a, T, S> fmt::Debug for Intersection<'a, T, S>
     }
 }
 
-impl<'a, T, S> FusedIterator for Intersection<'a, T, S>
-    where T: Eq + Hash,
-          S: BuildHasher
-{
-}
-
 impl<'a, T, S> Clone for Difference<'a, T, S> {
     fn clone(&self) -> Difference<'a, T, S> {
         Difference { iter: self.iter.clone(), ..*self }
@@ -1149,12 +1140,6 @@ impl<'a, T, S> Iterator for Difference<'a, T, S>
     }
 }
 
-impl<'a, T, S> FusedIterator for Difference<'a, T, S>
-    where T: Eq + Hash,
-          S: BuildHasher
-{
-}
-
 impl<'a, T, S> fmt::Debug for Difference<'a, T, S>
     where T: fmt::Debug + Eq + Hash,
           S: BuildHasher
@@ -1184,12 +1169,6 @@ impl<'a, T, S> Iterator for SymmetricDifference<'a, T, S>
     }
 }
 
-impl<'a, T, S> FusedIterator for SymmetricDifference<'a, T, S>
-    where T: Eq + Hash,
-          S: BuildHasher
-{
-}
-
 impl<'a, T, S> fmt::Debug for SymmetricDifference<'a, T, S>
     where T: fmt::Debug + Eq + Hash,
           S: BuildHasher
@@ -1203,12 +1182,6 @@ impl<'a, T, S> Clone for Union<'a, T, S> {
     fn clone(&self) -> Union<'a, T, S> {
         Union { iter: self.iter.clone() }
     }
-}
-
-impl<'a, T, S> FusedIterator for Union<'a, T, S>
-    where T: Eq + Hash,
-          S: BuildHasher
-{
 }
 
 impl<'a, T, S> fmt::Debug for Union<'a, T, S>

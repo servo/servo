@@ -16,7 +16,7 @@ use cmp::max;
 use fmt::{self, Debug};
 #[allow(deprecated)]
 use hash::{Hash, BuildHasher};
-use iter::{FromIterator, FusedIterator};
+use iter::FromIterator;
 use mem::{self, replace};
 use ops::{Deref, Index};
 
@@ -1613,7 +1613,6 @@ impl<'a, K, V> ExactSizeIterator for Iter<'a, K, V> {
     }
 }
 
-impl<'a, K, V> FusedIterator for Iter<'a, K, V> {}
 
 impl<'a, K, V> Iterator for IterMut<'a, K, V> {
     type Item = (&'a K, &'a mut V);
@@ -1633,7 +1632,6 @@ impl<'a, K, V> ExactSizeIterator for IterMut<'a, K, V> {
         self.inner.len()
     }
 }
-impl<'a, K, V> FusedIterator for IterMut<'a, K, V> {}
 
 impl<'a, K, V> fmt::Debug for IterMut<'a, K, V>
     where K: fmt::Debug,
@@ -1664,7 +1662,6 @@ impl<K, V> ExactSizeIterator for IntoIter<K, V> {
         self.inner.len()
     }
 }
-impl<K, V> FusedIterator for IntoIter<K, V> {}
 
 impl<K: Debug, V: Debug> fmt::Debug for IntoIter<K, V> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -1692,7 +1689,6 @@ impl<'a, K, V> ExactSizeIterator for Keys<'a, K, V> {
         self.inner.len()
     }
 }
-impl<'a, K, V> FusedIterator for Keys<'a, K, V> {}
 
 impl<'a, K, V> Iterator for Values<'a, K, V> {
     type Item = &'a V;
@@ -1712,8 +1708,6 @@ impl<'a, K, V> ExactSizeIterator for Values<'a, K, V> {
         self.inner.len()
     }
 }
-impl<'a, K, V> FusedIterator for Values<'a, K, V> {}
-
 impl<'a, K, V> Iterator for ValuesMut<'a, K, V> {
     type Item = &'a mut V;
 
@@ -1732,7 +1726,6 @@ impl<'a, K, V> ExactSizeIterator for ValuesMut<'a, K, V> {
         self.inner.len()
     }
 }
-impl<'a, K, V> FusedIterator for ValuesMut<'a, K, V> {}
 
 impl<'a, K, V> fmt::Debug for ValuesMut<'a, K, V>
     where K: fmt::Debug,
@@ -1763,7 +1756,6 @@ impl<'a, K, V> ExactSizeIterator for Drain<'a, K, V> {
         self.inner.len()
     }
 }
-impl<'a, K, V> FusedIterator for Drain<'a, K, V> {}
 
 impl<'a, K, V> fmt::Debug for Drain<'a, K, V>
     where K: fmt::Debug,
