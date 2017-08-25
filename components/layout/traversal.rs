@@ -15,14 +15,13 @@ use style::data::ElementData;
 use style::dom::{NodeInfo, TElement, TNode};
 use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, REPOSITION};
-use style::traversal::{DomTraversal, TraversalDriver, recalc_style_at};
+use style::traversal::{DomTraversal, recalc_style_at};
 use style::traversal::PerLevelTraversalData;
 use wrapper::{GetRawData, LayoutNodeLayoutData};
 use wrapper::ThreadSafeLayoutNodeHelpers;
 
 pub struct RecalcStyleAndConstructFlows<'a> {
     context: LayoutContext<'a>,
-    driver: TraversalDriver,
 }
 
 impl<'a> RecalcStyleAndConstructFlows<'a> {
@@ -33,10 +32,9 @@ impl<'a> RecalcStyleAndConstructFlows<'a> {
 
 impl<'a> RecalcStyleAndConstructFlows<'a> {
     /// Creates a traversal context, taking ownership of the shared layout context.
-    pub fn new(context: LayoutContext<'a>, driver: TraversalDriver) -> Self {
+    pub fn new(context: LayoutContext<'a>) -> Self {
         RecalcStyleAndConstructFlows {
             context: context,
-            driver: driver,
         }
     }
 
@@ -84,10 +82,6 @@ impl<'a, E> DomTraversal<E> for RecalcStyleAndConstructFlows<'a>
 
     fn shared_context(&self) -> &SharedStyleContext {
         &self.context.style_context
-    }
-
-    fn is_parallel(&self) -> bool {
-        self.driver.is_parallel()
     }
 }
 

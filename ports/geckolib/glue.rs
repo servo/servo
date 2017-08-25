@@ -16,6 +16,7 @@ use style::context::{CascadeInputs, QuirksMode, SharedStyleContext, StyleContext
 use style::context::ThreadLocalStyleContext;
 use style::data::ElementStyles;
 use style::dom::{ShowSubtreeData, TElement, TNode};
+use style::driver;
 use style::element_state::ElementState;
 use style::error_reporting::{NullReporter, ParseErrorReporter};
 use style::font_metrics::{FontMetricsProvider, get_metrics_provider_for_product};
@@ -100,7 +101,6 @@ use style::gecko_bindings::sugar::refptr::RefPtr;
 use style::gecko_properties::style_structs;
 use style::invalidation::element::restyle_hints;
 use style::media_queries::{MediaList, parse_media_query_list};
-use style::parallel;
 use style::parser::{ParserContext, self};
 use style::properties::{CascadeFlags, ComputedValues, Importance};
 use style::properties::{IS_FIELDSET_CONTENT, IS_LINK, IS_VISITED_LINK, LonghandIdSet};
@@ -112,7 +112,6 @@ use style::properties::animated_properties::compare_property_priority;
 use style::properties::parse_one_declaration_into;
 use style::rule_tree::StyleSource;
 use style::selector_parser::PseudoElementCascadeType;
-use style::sequential;
 use style::shared_lock::{SharedRwLockReadGuard, StylesheetGuards, ToCssWithGuard, Locked};
 use style::string_cache::Atom;
 use style::style_adjuster::StyleAdjuster;
@@ -126,7 +125,7 @@ use style::stylesheets::supports_rule::parse_condition_or_declaration;
 use style::stylist::RuleInclusion;
 use style::thread_state;
 use style::timer::Timer;
-use style::traversal::{DomTraversal, TraversalDriver};
+use style::traversal::DomTraversal;
 use style::traversal::resolve_style;
 use style::traversal_flags::{TraversalFlags, self};
 use style::values::{CustomIdent, KeyframesName};
@@ -237,21 +236,15 @@ fn traverse_subtree(element: GeckoElement,
     debug!("Traversing subtree:");
     debug!("{:?}", ShowSubtreeData(element.as_node()));
 
-    let style_thread_pool = &*STYLE_THREAD_POOL;
-    let traversal_driver = if !traversal_flags.contains(traversal_flags::ParallelTraversal) ||
-                              style_thread_pool.style_thread_pool.is_none() {
-        TraversalDriver::Sequential
+    let thread_pool_holder = &*STYLE_THREAD_POOL;
+    let thread_pool = if traversal_flags.contains(traversal_flags::ParallelTraversal) {
+        thread_pool_holder.style_thread_pool.as_ref()
     } else {
-        TraversalDriver::Parallel
+        None
     };
 
-    let traversal = RecalcStyleOnly::new(shared_style_context, traversal_driver);
-    if traversal_driver.is_parallel() {
-        parallel::traverse_dom(&traversal, element, token,
-                               style_thread_pool.style_thread_pool.as_ref().unwrap());
-    } else {
-        sequential::traverse_dom(&traversal, element, token);
-    }
+    let traversal = RecalcStyleOnly::new(shared_style_context);
+    driver::traverse_dom(&traversal, element, token, thread_pool);
 }
 
 /// Traverses the subtree rooted at `root` for restyling.

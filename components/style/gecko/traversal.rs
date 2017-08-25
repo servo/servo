@@ -7,21 +7,19 @@
 use context::{SharedStyleContext, StyleContext};
 use dom::{TNode, TElement};
 use gecko::wrapper::{GeckoElement, GeckoNode};
-use traversal::{DomTraversal, PerLevelTraversalData, TraversalDriver, recalc_style_at};
+use traversal::{DomTraversal, PerLevelTraversalData, recalc_style_at};
 
 /// This is the simple struct that Gecko uses to encapsulate a DOM traversal for
 /// styling.
 pub struct RecalcStyleOnly<'a> {
     shared: SharedStyleContext<'a>,
-    driver: TraversalDriver,
 }
 
 impl<'a> RecalcStyleOnly<'a> {
     /// Create a `RecalcStyleOnly` traversal from a `SharedStyleContext`.
-    pub fn new(shared: SharedStyleContext<'a>, driver: TraversalDriver) -> Self {
+    pub fn new(shared: SharedStyleContext<'a>) -> Self {
         RecalcStyleOnly {
             shared: shared,
-            driver: driver,
         }
     }
 }
@@ -49,9 +47,5 @@ impl<'recalc, 'le> DomTraversal<GeckoElement<'le>> for RecalcStyleOnly<'recalc> 
 
     fn shared_context(&self) -> &SharedStyleContext {
         &self.shared
-    }
-
-    fn is_parallel(&self) -> bool {
-        self.driver.is_parallel()
     }
 }
