@@ -11,6 +11,10 @@ use computed_values::font_family::FamilyName;
 use cssparser::{AtRuleParser, AtRuleType, BasicParseError, DeclarationListParser, DeclarationParser, Parser};
 use cssparser::{CowRcStr, RuleListParser, SourceLocation, QualifiedRuleParser, Token, serialize_identifier};
 use error_reporting::{ContextualParseError, ParseErrorReporter};
+#[cfg(feature = "gecko")]
+use gecko_bindings::bindings::Gecko_AppendFeatureValueHashEntry;
+#[cfg(feature = "gecko")]
+use gecko_bindings::structs::{self, gfxFontFeatureValueSet, nsTArray};
 use parser::{ParserContext, ParserErrorContext, Parse};
 use selectors::parser::SelectorParseError;
 use shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
@@ -41,6 +45,13 @@ impl<T: ToCss> ToCss for FFVDeclaration<T> {
     }
 }
 
+/// A trait for @font-feature-values rule to gecko values conversion.
+#[cfg(feature = "gecko")]
+pub trait ToGeckoFontFeatureValues {
+    /// Sets the equivalent of declaration to gecko `nsTArray<u32>` array.
+    fn to_gecko_font_feature_values(&self, array: &mut nsTArray<u32>);
+}
+
 /// A @font-feature-values block declaration value that keeps one value.
 #[derive(Clone, Debug, PartialEq)]
 pub struct SingleValue(pub u32);
@@ -58,6 +69,14 @@ impl Parse for SingleValue {
 impl ToCss for SingleValue {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         write!(dest, "{}", self.0)
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl ToGeckoFontFeatureValues for SingleValue {
+    fn to_gecko_font_feature_values(&self, array: &mut nsTArray<u32>) {
+        unsafe { array.set_len_pod(1); }
+        array[0] = self.0 as u32;
     }
 }
 
@@ -91,6 +110,19 @@ impl ToCss for PairValues {
             write!(dest, " {}", second)?;
         }
         Ok(())
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl ToGeckoFontFeatureValues for PairValues {
+    fn to_gecko_font_feature_values(&self, array: &mut nsTArray<u32>) {
+        let len = if self.1.is_some() { 2 } else { 1 };
+
+        unsafe { array.set_len_pod(len); }
+        array[0] = self.0 as u32;
+        if let Some(second) = self.1 {
+            array[1] = second as u32;
+        };
     }
 }
 
@@ -136,6 +168,16 @@ impl ToCss for VectorValues {
     }
 }
 
+#[cfg(feature = "gecko")]
+impl ToGeckoFontFeatureValues for VectorValues {
+    fn to_gecko_font_feature_values(&self, array: &mut nsTArray<u32>) {
+        unsafe { array.set_len_pod(self.0.len() as u32); }
+        for (dest, value) in array.iter_mut().zip(self.0.iter()) {
+            *dest = *value;
+        }
+    }
+}
+
 /// Parses a list of `FamilyName`s.
 pub fn parse_family_name_list<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                                   -> Result<Vec<FamilyName>, ParseError<'i>> {
@@ -166,7 +208,7 @@ impl<'a, 'b, 'i, T> DeclarationParser<'i> for FFVDeclarationsParser<'a, 'b, T>
                        -> Result<(), ParseError<'i>> {
         let value = input.parse_entirely(|i| T::parse(self.context, i))?;
         let new = FFVDeclaration {
-            name: Atom::from(&*name),
+            name: Atom::from(&*name).to_ascii_lowercase(),
             value: value,
         };
         update_or_push(&mut self.declarations, new);
@@ -177,7 +219,7 @@ impl<'a, 'b, 'i, T> DeclarationParser<'i> for FFVDeclarationsParser<'a, 'b, T>
 macro_rules! font_feature_values_blocks {
     (
         blocks = [
-            $( #[$doc: meta] $name: tt $ident: ident / $ident_camel: ident: $ty: ty, )*
+            $( #[$doc: meta] $name: tt $ident: ident / $ident_camel: ident / $gecko_enum: ident: $ty: ty, )*
         ]
     ) => {
         /// The [`@font-feature-values`][font-feature-values] at-rule.
@@ -261,6 +303,40 @@ macro_rules! font_feature_values_blocks {
                     }
                 )*
                 Ok(())
+            }
+
+            /// Returns length of all at-rules.
+            pub fn len(&self) -> usize {
+                let mut len = 0;
+                $(
+                    len += self.$ident.len();
+                )*
+                len
+            }
+
+            /// Convert to Gecko gfxFontFeatureValueSet.
+            #[cfg(feature = "gecko")]
+            pub fn set_at_rules(&self, dest: *mut gfxFontFeatureValueSet) {
+                for ref family in self.family_names.iter() {
+                    let family = family.name.to_ascii_lowercase();
+                    $(
+                        if self.$ident.len() > 0 {
+                            for val in self.$ident.iter() {
+                                let array = unsafe {
+                                    Gecko_AppendFeatureValueHashEntry(
+                                        dest,
+                                        family.as_ptr(),
+                                        structs::$gecko_enum,
+                                        val.name.as_ptr()
+                                    )
+                                };
+                                unsafe {
+                                    val.value.to_gecko_font_feature_values(&mut *array);
+                                }
+                            }
+                        }
+                    )*
+                }
             }
         }
 
@@ -366,31 +442,32 @@ font_feature_values_blocks! {
         #[doc = "A @swash blocksck. \
                  Specifies a feature name that will work with the swash() \
                  functional notation of font-variant-alternates."]
-        "swash" swash / Swash: SingleValue,
+        "swash" swash / Swash / NS_FONT_VARIANT_ALTERNATES_SWASH: SingleValue,
 
         #[doc = "A @stylistic block. \
                  Specifies a feature name that will work with the annotation() \
                  functional notation of font-variant-alternates."]
-        "stylistic" stylistic / Stylistic: SingleValue,
+        "stylistic" stylistic / Stylistic / NS_FONT_VARIANT_ALTERNATES_STYLISTIC: SingleValue,
 
         #[doc = "A @ornaments block. \
                  Specifies a feature name that will work with the ornaments() ] \
                  functional notation of font-variant-alternates."]
-        "ornaments" ornaments / Ornaments: SingleValue,
+        "ornaments" ornaments / Ornaments / NS_FONT_VARIANT_ALTERNATES_ORNAMENTS: SingleValue,
 
         #[doc = "A @annotation block. \
                  Specifies a feature name that will work with the stylistic() \
                  functional notation of font-variant-alternates."]
-        "annotation" annotation / Annotation: SingleValue,
+        "annotation" annotation / Annotation / NS_FONT_VARIANT_ALTERNATES_ANNOTATION: SingleValue,
 
         #[doc = "A @character-variant block. \
                  Specifies a feature name that will work with the styleset() \
                  functional notation of font-variant-alternates. The value can be a pair."]
-        "character-variant" character_variant / CharacterVariant: PairValues,
+        "character-variant" character_variant / CharacterVariant / NS_FONT_VARIANT_ALTERNATES_CHARACTER_VARIANT:
+            PairValues,
 
         #[doc = "A @styleset block. \
                  Specifies a feature name that will work with the character-variant() \
                  functional notation of font-variant-alternates. The value can be a list."]
-        "styleset" styleset / Styleset: VectorValues,
+        "styleset" styleset / Styleset / NS_FONT_VARIANT_ALTERNATES_STYLESET: VectorValues,
     ]
 }

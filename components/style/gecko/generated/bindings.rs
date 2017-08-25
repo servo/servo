@@ -66,6 +66,7 @@ use gecko_bindings::structs::StyleBasicShape;
 use gecko_bindings::structs::StyleBasicShapeType;
 use gecko_bindings::structs::StyleShapeSource;
 use gecko_bindings::structs::StyleTransition;
+use gecko_bindings::structs::gfxFontFeatureValueSet;
 use gecko_bindings::structs::nsBorderColors;
 use gecko_bindings::structs::nsCSSCounterStyleRule;
 use gecko_bindings::structs::nsCSSFontFaceRule;
@@ -909,6 +910,22 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_nsFont_Destroy(dst: *mut nsFont);
+}
+extern "C" {
+    pub fn Gecko_AppendFeatureValueHashEntry(value_set:
+                                                 *mut gfxFontFeatureValueSet,
+                                             family: *mut nsIAtom,
+                                             alternate: u32,
+                                             name: *mut nsIAtom)
+     -> *mut nsTArray<::std::os::raw::c_uint>;
+}
+extern "C" {
+    pub fn Gecko_nsFont_SetFontFeatureValuesLookup(font: *mut nsFont,
+                                                   pres_context:
+                                                       *const RawGeckoPresContext);
+}
+extern "C" {
+    pub fn Gecko_nsFont_ResetFontFeatureValuesLookup(font: *mut nsFont);
 }
 extern "C" {
     pub fn Gecko_ClearAlternateValues(font: *mut nsFont, length: usize);
@@ -2033,6 +2050,13 @@ extern "C" {
     pub fn Servo_StyleSet_GetCounterStyleRule(set: RawServoStyleSetBorrowed,
                                               name: *mut nsIAtom)
      -> *mut nsCSSCounterStyleRule;
+}
+extern "C" {
+    pub fn Servo_StyleSet_BuildFontFeatureValueSet(set:
+                                                       RawServoStyleSetBorrowed,
+                                                   list:
+                                                       *mut gfxFontFeatureValueSet)
+     -> bool;
 }
 extern "C" {
     pub fn Servo_StyleSet_ResolveForDeclarations(set:
