@@ -16,6 +16,7 @@ use euclid::Size2D;
 use fnv::FnvHashMap;
 use font_metrics::FontMetricsProvider;
 #[cfg(feature = "gecko")] use gecko_bindings::structs;
+use parallel::STYLE_THREAD_STACK_SIZE_KB;
 #[cfg(feature = "servo")] use parking_lot::RwLock;
 use properties::ComputedValues;
 #[cfg(feature = "servo")] use properties::PropertyId;
@@ -605,6 +606,61 @@ where
     }
 }
 
+
+/// A helper type for stack limit checking.  This assumes that stacks grow
+/// down, which is true for all non-ancient CPU architectures.
+pub struct StackLimitChecker {
+   lower_limit: usize
+}
+
+impl StackLimitChecker {
+    /// Create a new limit checker, for this thread, allowing further use
+    /// of up to |stack_size| bytes beyond (below) the current stack pointer.
+    #[inline(never)]
+    pub fn new(stack_size_limit: usize) -> Self {
+        StackLimitChecker {
+            lower_limit: StackLimitChecker::get_sp() - stack_size_limit
+        }
+    }
+
+    /// Checks whether the previously stored stack limit has now been exceeded.
+    #[inline(never)]
+    pub fn limit_exceeded(&self) -> bool {
+        let curr_sp = StackLimitChecker::get_sp();
+
+        // Try to assert if we're called from a different thread than the
+        // one that originally created this object.  This is a bit subtle
+        // and relies on wraparound behaviour of unsigned integers.
+        //
+        // * If we're called from a thread whose stack has a higher address
+        //   than the one that created this object, then
+        //   |curr_sp - self.lower_limit| will (almost certainly) be larger
+        //   than the thread stack size, so the check will fail.
+        //
+        // * If we're called from a thread whose stack has a lower address
+        //   than the one that created this object, then
+        //   |curr_sp - self.lower_limit| will be negative, which will look
+        //   like a very large unsigned value, so the check will also fail.
+        //
+        // The correctness of depends on the assumption that no stack wraps
+        // around the end of the address space.
+        debug_assert!(curr_sp - self.lower_limit
+                      <= STYLE_THREAD_STACK_SIZE_KB * 1024);
+
+        // The actual bounds check.
+        curr_sp <= self.lower_limit
+    }
+
+    // Technically, rustc can optimize this away, but shouldn't for now.
+    // We should fix this once black_box is stable.
+    #[inline(always)]
+    fn get_sp() -> usize {
+        let mut foo: usize = 42;
+        (&mut foo as *mut usize) as usize
+    }
+}
+
+
 /// A thread-local style context.
 ///
 /// This context contains data that needs to be used during restyling, but is
@@ -639,6 +695,9 @@ pub struct ThreadLocalStyleContext<E: TElement> {
     /// The struct used to compute and cache font metrics from style
     /// for evaluation of the font-relative em/ch units and font-size
     pub font_metrics_provider: E::FontMetricsProvider,
+    /// A checker used to ensure that parallel.rs does not recurse indefinitely
+    /// even on arbitrarily deep trees.  See Gecko bug 1376883.
+    pub stack_limit_checker: StackLimitChecker,
 }
 
 impl<E: TElement> ThreadLocalStyleContext<E> {
@@ -654,6 +713,8 @@ impl<E: TElement> ThreadLocalStyleContext<E> {
             statistics: TraversalStatistics::default(),
             current_element_info: None,
             font_metrics_provider: E::FontMetricsProvider::create_from(shared),
+            stack_limit_checker: StackLimitChecker::new(
+                (STYLE_THREAD_STACK_SIZE_KB - 40) * 1024),
         }
     }
 
@@ -668,6 +729,15 @@ impl<E: TElement> ThreadLocalStyleContext<E> {
             statistics: TraversalStatistics::default(),
             current_element_info: None,
             font_metrics_provider: E::FontMetricsProvider::create_from(shared),
+            // Threads in the styling pool have small stacks, and we have to
+            // be careful not to run out of stack during recursion in
+            // parallel.rs.  Therefore set up a stack limit checker, in
+            // which we reserve 40KB of stack as a safety buffer.  Currently
+            // the stack size is 128KB, so this allows 88KB for recursive
+            // DOM traversal, which encompasses 53 levels of recursion before
+            // the limiter kicks in, on x86_64-Linux.  See Gecko bug 1376883.
+            stack_limit_checker: StackLimitChecker::new(
+                (STYLE_THREAD_STACK_SIZE_KB - 40) * 1024),
         }
     }
 
