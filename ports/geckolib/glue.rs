@@ -3659,3 +3659,31 @@ pub extern "C" fn Servo_GetCustomPropertyNameAt(computed_values: ServoStyleConte
 
     true
 }
+
+#[no_mangle]
+pub extern "C" fn Servo_ProcessInvalidations(set: RawServoStyleSetBorrowed,
+                                             element: RawGeckoElementBorrowed,
+                                             snapshots: *const ServoElementSnapshotTable) {
+    debug_assert!(!snapshots.is_null());
+
+    let element = GeckoElement(element);
+    debug_assert!(element.has_snapshot());
+    debug_assert!(!element.handled_snapshot());
+
+    let mut data = element.mutate_data();
+    debug_assert!(data.is_some());
+
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
+    let per_doc_data = PerDocumentStyleData::from_ffi(set).borrow();
+    let shared_style_context = create_shared_context(&global_style_data,
+                                                     &guard,
+                                                     &per_doc_data,
+                                                     TraversalFlags::empty(),
+                                                     unsafe { &*snapshots });
+    let mut data = data.as_mut().map(|d| &mut **d);
+
+    if let Some(ref mut data) = data {
+        data.invalidate_style_if_needed(element, &shared_style_context);
+    }
+}
