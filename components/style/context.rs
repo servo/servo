@@ -16,7 +16,7 @@ use euclid::Size2D;
 use fnv::FnvHashMap;
 use font_metrics::FontMetricsProvider;
 #[cfg(feature = "gecko")] use gecko_bindings::structs;
-use parallel::STYLE_THREAD_STACK_SIZE_KB;
+use parallel::{STACK_SAFETY_MARGIN_KB, STYLE_THREAD_STACK_SIZE_KB};
 #[cfg(feature = "servo")] use parking_lot::RwLock;
 use properties::ComputedValues;
 #[cfg(feature = "servo")] use properties::PropertyId;
@@ -628,24 +628,35 @@ impl StackLimitChecker {
     pub fn limit_exceeded(&self) -> bool {
         let curr_sp = StackLimitChecker::get_sp();
 
-        // Try to assert if we're called from a different thread than the
-        // one that originally created this object.  This is a bit subtle
-        // and relies on wraparound behaviour of unsigned integers.
-        //
-        // * If we're called from a thread whose stack has a higher address
-        //   than the one that created this object, then
-        //   |curr_sp - self.lower_limit| will (almost certainly) be larger
-        //   than the thread stack size, so the check will fail.
-        //
-        // * If we're called from a thread whose stack has a lower address
-        //   than the one that created this object, then
-        //   |curr_sp - self.lower_limit| will be negative, which will look
-        //   like a very large unsigned value, so the check will also fail.
+        // Do some sanity-checking to ensure that our invariants hold, even in
+        // the case where we've exceeded the soft limit.
         //
         // The correctness of depends on the assumption that no stack wraps
         // around the end of the address space.
-        //debug_assert!(curr_sp - self.lower_limit
-        //              <= STYLE_THREAD_STACK_SIZE_KB * 1024);
+        if cfg!(debug_assertions) {
+            // Compute the actual bottom of the stack by subtracting our safety
+            // margin from our soft limit. Note that this will be slightly below
+            // the actual bottom of the stack, because there are a few initial
+            // frames on the stack before we do the measurement that computes
+            // the limit.
+            let stack_bottom = self.lower_limit - STACK_SAFETY_MARGIN_KB * 1024;
+
+            // The bottom of the stack should be below the current sp. If it
+            // isn't, that means we've either waited too long to check the limit
+            // and burned through our safety margin (in which case we probably
+            // would have segfaulted by now), or we're using a limit computed for
+            // a different thread.
+            debug_assert!(stack_bottom < curr_sp);
+
+            // Compute the distance between the current sp and the bottom of
+            // the stack, and compare it against the current stack. It should be
+            // no further from us than the total stack size. We allow some slop
+            // to handle the fact that stack_bottom is a bit further than the
+            // bottom of the stack, as discussed above.
+            let distance_to_stack_bottom = curr_sp - stack_bottom;
+            let max_allowable_distance = (STYLE_THREAD_STACK_SIZE_KB + 10) * 1024;
+            debug_assert!(distance_to_stack_bottom <= max_allowable_distance);
+        }
 
         // The actual bounds check.
         curr_sp <= self.lower_limit
@@ -714,7 +725,7 @@ impl<E: TElement> ThreadLocalStyleContext<E> {
             current_element_info: None,
             font_metrics_provider: E::FontMetricsProvider::create_from(shared),
             stack_limit_checker: StackLimitChecker::new(
-                (STYLE_THREAD_STACK_SIZE_KB - 40) * 1024),
+                (STYLE_THREAD_STACK_SIZE_KB - STACK_SAFETY_MARGIN_KB) * 1024),
         }
     }
 
@@ -729,15 +740,8 @@ impl<E: TElement> ThreadLocalStyleContext<E> {
             statistics: TraversalStatistics::default(),
             current_element_info: None,
             font_metrics_provider: E::FontMetricsProvider::create_from(shared),
-            // Threads in the styling pool have small stacks, and we have to
-            // be careful not to run out of stack during recursion in
-            // parallel.rs.  Therefore set up a stack limit checker, in
-            // which we reserve 40KB of stack as a safety buffer.  Currently
-            // the stack size is 128KB, so this allows 88KB for recursive
-            // DOM traversal, which encompasses 53 levels of recursion before
-            // the limiter kicks in, on x86_64-Linux.  See Gecko bug 1376883.
             stack_limit_checker: StackLimitChecker::new(
-                (STYLE_THREAD_STACK_SIZE_KB - 40) * 1024),
+                (STYLE_THREAD_STACK_SIZE_KB - STACK_SAFETY_MARGIN_KB) * 1024),
         }
     }
 
