@@ -1,7 +1,7 @@
 #![feature(generic_param_attrs)]
 #![feature(dropck_eyepatch)]
 #![feature(allocator_api)]
-#![feature(alloc, needs_drop, shared, unique, fused, placement_new_protocol)]
+#![feature(alloc, shared, unique, fused, placement_new_protocol)]
 
 extern crate alloc;
 
