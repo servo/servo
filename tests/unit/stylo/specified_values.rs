@@ -4,7 +4,7 @@
 
 use style;
 
-#[test]
+#[cfg(all(test, target_pointer_width = "64"))]
 fn size_of_specified_values() {
     use std::mem::size_of;
     let threshold = 24;
