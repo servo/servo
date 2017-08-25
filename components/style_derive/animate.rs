@@ -63,7 +63,7 @@ pub fn derive(input: syn::DeriveInput) -> quote::Tokens {
 }
 
 #[derive(Default, FromVariant)]
-#[darling(attributes(animate), default)]
+#[darling(attributes(animation), default)]
 pub struct AnimateAttrs {
     pub error: bool,
 }
