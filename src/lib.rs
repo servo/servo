@@ -8,9 +8,7 @@ pub use std::*;
 
 mod bench;
 mod table;
-#[path="map.rs"]
 pub mod hash_map;
-#[path="set.rs"]
 pub mod hash_set;
 
 trait Recover<Q: ?Sized> {
