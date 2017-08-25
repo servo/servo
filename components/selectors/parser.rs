@@ -272,7 +272,7 @@ impl<Impl: SelectorImpl> SelectorMethods for Selector<Impl> {
         let mut current = self.iter();
         let mut combinator = None;
         loop {
-            if !visitor.visit_complex_selector(current.clone(), combinator) {
+            if !visitor.visit_complex_selector(combinator) {
                 return false;
             }
 
