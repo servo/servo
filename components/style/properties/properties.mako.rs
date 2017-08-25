@@ -3331,20 +3331,15 @@ where
                         }
                     }
 
-                    // In case of just the language changing, the parent could have had no generic,
-                    // which Gecko just does regular cascading with. Do the same.
-                    // This can only happen in the case where the language changed but the family did not
-                    if generic != structs::kGenericFont_NONE {
-                        let pres_context = context.builder.device.pres_context();
-                        let gecko_font = context.builder.mutate_font().gecko_mut();
-                        gecko_font.mGenericID = generic;
-                        unsafe {
-                            bindings::Gecko_nsStyleFont_PrefillDefaultForGeneric(
-                                gecko_font,
-                                pres_context,
-                                generic,
-                            );
-                        }
+                    let pres_context = context.builder.device.pres_context();
+                    let gecko_font = context.builder.mutate_font().gecko_mut();
+                    gecko_font.mGenericID = generic;
+                    unsafe {
+                        bindings::Gecko_nsStyleFont_PrefillDefaultForGeneric(
+                            gecko_font,
+                            pres_context,
+                            generic,
+                        );
                     }
                 }
             % endif
@@ -3371,7 +3366,9 @@ where
                         let device = context.builder.device;
                         if let PropertyDeclaration::FontFamily(ref val) = **declaration {
                             if val.get_system().is_some() {
-                                context.builder.mutate_font().fixup_system();
+                                let default = context.cached_system_font
+                                                     .as_ref().unwrap().default_font_type;
+                                context.builder.mutate_font().fixup_system(default);
                             } else {
                                 context.builder.mutate_font().fixup_none_generic(device);
                             }
