@@ -9,6 +9,7 @@ use gecko_bindings::bindings;
 use gecko_bindings::bindings::{Gecko_RegisterProfilerThread, Gecko_UnregisterProfilerThread};
 use gecko_bindings::bindings::Gecko_SetJemallocThreadLocalArena;
 use num_cpus;
+use parallel::STYLE_THREAD_STACK_SIZE_KB;
 use rayon;
 use shared_lock::SharedRwLock;
 use std::cmp;
@@ -92,9 +93,8 @@ lazy_static! {
                 .breadth_first()
                 .thread_name(thread_name)
                 .start_handler(thread_startup)
-                .exit_handler(thread_shutdown);
-                // Set thread stack size to 128KB.  See Gecko bug 1376883.
-                //.stack_size(STYLE_THREAD_STACK_SIZE_KB * 1024);
+                .exit_handler(thread_shutdown)
+                .stack_size(STYLE_THREAD_STACK_SIZE_KB * 1024);
             let pool = rayon::ThreadPool::new(configuration).ok();
             pool
         };
