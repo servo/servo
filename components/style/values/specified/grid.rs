@@ -354,27 +354,3 @@ impl HasViewportPercentage for GridTemplateComponent<LengthOrPercentage> {
         }
     }
 }
-
-impl ToComputedValue for GridTemplateComponent<LengthOrPercentage> {
-    type ComputedValue = GridTemplateComponent<computed::LengthOrPercentage>;
-
-    #[inline]
-    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
-        match *self {
-            GridTemplateComponent::None => GridTemplateComponent::None,
-            GridTemplateComponent::TrackList(ref l) => GridTemplateComponent::TrackList(l.to_computed_value(context)),
-            GridTemplateComponent::Subgrid(ref n) => GridTemplateComponent::Subgrid(n.to_computed_value(context)),
-        }
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        match *computed {
-            GridTemplateComponent::None => GridTemplateComponent::None,
-            GridTemplateComponent::TrackList(ref l) =>
-                GridTemplateComponent::TrackList(ToComputedValue::from_computed_value(l)),
-            GridTemplateComponent::Subgrid(ref n) =>
-                GridTemplateComponent::Subgrid(ToComputedValue::from_computed_value(n)),
-        }
-    }
-}

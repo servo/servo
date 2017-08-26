@@ -61,8 +61,8 @@ pub enum CompatMode {
 }
 
 /// A gradient kind.
-#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, ToComputedValue)]
 pub enum GradientKind<LineDirection, Length, LengthOrPercentage, Position, Angle> {
     /// A linear gradient.
     Linear(LineDirection),

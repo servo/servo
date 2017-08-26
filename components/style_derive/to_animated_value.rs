@@ -12,13 +12,9 @@ pub fn derive(input: syn::DeriveInput) -> quote::Tokens {
     let trait_path = &["values", "animated", "ToAnimatedValue"];
     let (impl_generics, ty_generics, mut where_clause, animated_value_type) =
         cg::fmap_trait_parts(&input, trait_path, "AnimatedValue");
-    for param in &input.generics.ty_params {
-        where_clause.add_trait_bound(
-            syn::Ty::Path(None, param.ident.clone().into()),
-        );
-    }
 
     let to_body = cg::fmap_match(&input, BindStyle::Move, |binding| {
+        where_clause.add_trait_bound(&binding.field.ty);
         quote!(::values::animated::ToAnimatedValue::to_animated_value(#binding))
     });
     let from_body = cg::fmap_match(&input, BindStyle::Move, |binding| {

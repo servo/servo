@@ -30,14 +30,16 @@ pub fn derive(input: syn::DeriveInput) -> quote::Tokens {
         computations.append_all(iter.map(|(result, (this, other))| {
             let field_attrs = cg::parse_field_attrs::<AnimateFieldAttrs>(&result.field);
             if field_attrs.constant {
-                if cg::is_parameterized(&result.field.ty, where_clause.params) {
+                if cg::is_parameterized(&result.field.ty, where_clause.params, None) {
                     where_clause.inner.predicates.push(cg::where_predicate(
                         result.field.ty.clone(),
                         &["std", "cmp", "PartialEq"],
+                        None,
                     ));
                     where_clause.inner.predicates.push(cg::where_predicate(
                         result.field.ty.clone(),
                         &["std", "clone", "Clone"],
+                        None,
                     ));
                 }
                 quote! {
@@ -47,7 +49,7 @@ pub fn derive(input: syn::DeriveInput) -> quote::Tokens {
                     let #result = ::std::clone::Clone::clone(#this);
                 }
             } else {
-                where_clause.add_trait_bound(result.field.ty.clone());
+                where_clause.add_trait_bound(&result.field.ty);
                 quote! {
                     let #result =
                         ::values::animated::Animate::animate(#this, #other, procedure)?;
