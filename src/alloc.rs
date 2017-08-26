@@ -1,3 +1,7 @@
+// FORK NOTE: Copied from libsystem_alloc, removed unnecessary APIs,
+// APIs take size/align directly instead of Layout
+
+
 
 
 // The minimum alignment guaranteed by the architecture. This value is used to

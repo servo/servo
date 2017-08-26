@@ -8,8 +8,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use alloc::heap::{Heap, Alloc, Layout};
-
+use alloc::{alloc, dealloc};
 use cmp;
 use hash::{BuildHasher, Hash, Hasher};
 use marker;
@@ -756,8 +755,10 @@ impl<K, V> RawTable<K, V> {
                     .expect("capacity overflow"),
                 "capacity overflow");
 
-        let buffer = Heap.alloc(Layout::from_size_align(size, alignment).unwrap())
-            .unwrap_or_else(|e| Heap.oom(e));
+        // FORK NOTE: Uses alloc shim instead of Heap.alloc
+        let buffer = alloc(size, alignment);
+        // FORK NOTE: Should handle null
+        debug_assert!(!buffer.is_null());
 
         let hashes = buffer.offset(hash_offset as isize) as *mut HashUint;
 
@@ -1162,7 +1163,7 @@ impl<K, V> Drop for RawTable<K, V> {
 
         let hashes_size = self.capacity() * size_of::<HashUint>();
         let pairs_size = self.capacity() * size_of::<(K, V)>();
-        let (align, _, size, oflo) = calculate_allocation(hashes_size,
+        let (align, _, _, oflo) = calculate_allocation(hashes_size,
                                                           align_of::<HashUint>(),
                                                           pairs_size,
                                                           align_of::<(K, V)>());
@@ -1170,8 +1171,7 @@ impl<K, V> Drop for RawTable<K, V> {
         debug_assert!(!oflo, "should be impossible");
 
         unsafe {
-            Heap.dealloc(self.hashes.ptr() as *mut u8,
-                         Layout::from_size_align(size, align).unwrap());
+            dealloc(self.hashes.ptr() as *mut u8, align);
             // Remember how everything was allocated out of one buffer
             // during initialization? We only need one call to free here.
         }
