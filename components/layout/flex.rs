@@ -21,7 +21,6 @@ use model::{IntrinsicISizes, MaybeAuto, SizeConstraint};
 use std::cmp::{max, min};
 use std::ops::Range;
 use style::computed_values::{align_content, align_self, flex_direction, flex_wrap, justify_content};
-use style::computed_values::border_collapse;
 use style::logical_geometry::{Direction, LogicalSize};
 use style::properties::ComputedValues;
 use style::servo::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW};
@@ -160,8 +159,7 @@ impl FlexItem {
                                             Some(containing_length));
 
                 // These methods compute auto margins to zero length, which is exactly what we want.
-                block.fragment.compute_border_and_padding(containing_length,
-                                                          border_collapse::T::separate);
+                block.fragment.compute_border_and_padding(containing_length);
                 block.fragment.compute_inline_direction_margins(containing_length);
                 block.fragment.compute_block_direction_margins(containing_length);
 

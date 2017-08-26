@@ -27,7 +27,7 @@ use model::MaybeAuto;
 use std::cmp::{max, min};
 use std::fmt;
 use std::ops::Add;
-use style::computed_values::{border_collapse, position, table_layout};
+use style::computed_values::{position, table_layout};
 use style::context::SharedStyleContext;
 use style::logical_geometry::{LogicalRect, LogicalSize};
 use style::properties::ComputedValues;
@@ -96,7 +96,6 @@ impl TableWrapperFlow {
     // tables are separated into table flows and table wrapper flows.
     fn compute_border_and_padding_of_table(&mut self) {
         let available_inline_size = self.block_flow.base.block_container_inline_size;
-        let border_collapse = self.block_flow.fragment.style.get_inheritedtable().border_collapse;
         for kid in self.block_flow.base.child_iter_mut() {
             if !kid.is_table() {
                 continue
@@ -104,8 +103,7 @@ impl TableWrapperFlow {
 
             let kid_table = kid.as_mut_table();
             let kid_block_flow = &mut kid_table.block_flow;
-            kid_block_flow.fragment.compute_border_and_padding(available_inline_size,
-                                                               border_collapse);
+            kid_block_flow.fragment.compute_border_and_padding(available_inline_size);
             kid_block_flow.fragment.compute_block_direction_margins(available_inline_size);
             kid_block_flow.fragment.compute_inline_direction_margins(available_inline_size);
             return
@@ -232,12 +230,10 @@ impl TableWrapperFlow {
 
         // Delegate to the appropriate inline size computer to find the constraint inputs and write
         // the constraint solutions in.
-        let border_collapse = self.block_flow.fragment.style.get_inheritedtable().border_collapse;
         if self.block_flow.base.flags.is_float() {
             let inline_size_computer = FloatedTable {
                 minimum_width_of_all_columns: minimum_width_of_all_columns,
                 preferred_width_of_all_columns: preferred_width_of_all_columns,
-                border_collapse: border_collapse,
                 table_border_padding: border_padding,
             };
             let input =
@@ -258,7 +254,6 @@ impl TableWrapperFlow {
             let inline_size_computer = AbsoluteTable {
                 minimum_width_of_all_columns: minimum_width_of_all_columns,
                 preferred_width_of_all_columns: preferred_width_of_all_columns,
-                border_collapse: border_collapse,
                 table_border_padding: border_padding,
             };
             let input =
@@ -278,7 +273,6 @@ impl TableWrapperFlow {
         let inline_size_computer = Table {
             minimum_width_of_all_columns: minimum_width_of_all_columns,
             preferred_width_of_all_columns: preferred_width_of_all_columns,
-            border_collapse: border_collapse,
             table_border_padding: border_padding,
         };
         let input =
@@ -786,14 +780,12 @@ fn initial_computed_inline_size(block: &mut BlockFlow,
 struct Table {
     minimum_width_of_all_columns: Au,
     preferred_width_of_all_columns: Au,
-    border_collapse: border_collapse::T,
     table_border_padding: Au,
 }
 
 impl ISizeAndMarginsComputer for Table {
     fn compute_border_and_padding(&self, block: &mut BlockFlow, containing_block_inline_size: Au) {
-        block.fragment.compute_border_and_padding(containing_block_inline_size,
-                                                  self.border_collapse)
+        block.fragment.compute_border_and_padding(containing_block_inline_size)
     }
 
     fn initial_computed_inline_size(&self,
@@ -821,14 +813,12 @@ impl ISizeAndMarginsComputer for Table {
 struct FloatedTable {
     minimum_width_of_all_columns: Au,
     preferred_width_of_all_columns: Au,
-    border_collapse: border_collapse::T,
     table_border_padding: Au,
 }
 
 impl ISizeAndMarginsComputer for FloatedTable {
     fn compute_border_and_padding(&self, block: &mut BlockFlow, containing_block_inline_size: Au) {
-        block.fragment.compute_border_and_padding(containing_block_inline_size,
-                                                  self.border_collapse)
+        block.fragment.compute_border_and_padding(containing_block_inline_size)
     }
 
     fn initial_computed_inline_size(&self,
@@ -858,14 +848,12 @@ impl ISizeAndMarginsComputer for FloatedTable {
 struct AbsoluteTable {
     minimum_width_of_all_columns: Au,
     preferred_width_of_all_columns: Au,
-    border_collapse: border_collapse::T,
     table_border_padding: Au,
 }
 
 impl ISizeAndMarginsComputer for AbsoluteTable {
     fn compute_border_and_padding(&self, block: &mut BlockFlow, containing_block_inline_size: Au) {
-        block.fragment.compute_border_and_padding(containing_block_inline_size,
-                                                  self.border_collapse)
+        block.fragment.compute_border_and_padding(containing_block_inline_size)
     }
 
     fn initial_computed_inline_size(&self,
