@@ -6,7 +6,7 @@
 
 use properties::animated_properties::RepeatableListAnimatable;
 use properties::longhands::background_size::computed_value::T as BackgroundSizeList;
-use values::animated::{Animate, Procedure, ToAnimatedValue, ToAnimatedZero};
+use values::animated::{ToAnimatedValue, ToAnimatedZero};
 use values::computed::length::LengthOrPercentageOrAuto;
 use values::generics::background::BackgroundSize as GenericBackgroundSize;
 
@@ -14,23 +14,6 @@ use values::generics::background::BackgroundSize as GenericBackgroundSize;
 pub type BackgroundSize = GenericBackgroundSize<LengthOrPercentageOrAuto>;
 
 impl RepeatableListAnimatable for BackgroundSize {}
-
-impl Animate for BackgroundSize {
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        match (self, other) {
-            (
-                &GenericBackgroundSize::Explicit { width: self_width, height: self_height },
-                &GenericBackgroundSize::Explicit { width: other_width, height: other_height },
-            ) => {
-                Ok(GenericBackgroundSize::Explicit {
-                    width: self_width.animate(&other_width, procedure)?,
-                    height: self_height.animate(&other_height, procedure)?,
-                })
-            }
-            _ => Err(()),
-        }
-    }
-}
 
 impl ToAnimatedZero for BackgroundSize {
     #[inline]
