@@ -506,7 +506,7 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
     /// In Gecko, this corresponds to the regular dirty descendants bit, the
     /// animation-only dirty descendants bit, and the lazy frame construction
     /// descendants bit.
-    unsafe fn clear_descendants_bits(&self) { self.unset_dirty_descendants(); }
+    unsafe fn clear_descendant_bits(&self) { self.unset_dirty_descendants(); }
 
     /// Clear all element flags related to dirtiness.
     ///
