@@ -1,14 +1,16 @@
+
 #![feature(allocator_api)]
 #![feature(alloc)]
 
 extern crate alloc;
-
 
 pub use std::*;
 
 mod bench;
 mod table;
 mod shim;
+#[path="alloc.rs"]
+mod alloc2;
 pub mod hash_map;
 pub mod hash_set;
 

@@ -10,3 +10,4 @@ repository = "https://github.com/Manishearth/hashglobe"
 readme = "README.md"
 
 [dependencies]
+libc = "0.2"
