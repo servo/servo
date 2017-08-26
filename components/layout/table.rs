@@ -545,8 +545,7 @@ pub struct InternalTable {
 
 impl ISizeAndMarginsComputer for InternalTable {
     fn compute_border_and_padding(&self, block: &mut BlockFlow, containing_block_inline_size: Au) {
-        block.fragment.compute_border_and_padding(containing_block_inline_size,
-                                                  self.border_collapse)
+        block.fragment.compute_border_and_padding(containing_block_inline_size)
     }
 
     /// Compute the used value of inline-size, taking care of min-inline-size and max-inline-size.

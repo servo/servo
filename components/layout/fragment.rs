@@ -1305,14 +1305,10 @@ impl Fragment {
     /// Computes the border and padding in both inline and block directions from the containing
     /// block inline-size and the style. After this call, the `border_padding` field will be
     /// correct.
-    ///
-    /// TODO(pcwalton): Remove `border_collapse`; we can figure it out from our style and specific
-    /// fragment info.
     pub fn compute_border_and_padding(&mut self,
-                                      containing_block_inline_size: Au,
-                                      border_collapse: border_collapse::T) {
+                                      containing_block_inline_size: Au) {
         // Compute border.
-        let border = match border_collapse {
+        let border = match self.style.get_inheritedtable().border_collapse {
             border_collapse::T::separate => self.border_width(),
             border_collapse::T::collapse => LogicalMargin::zero(self.style.writing_mode),
         };

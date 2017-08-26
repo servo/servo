@@ -51,7 +51,7 @@ use servo_geometry::max_rect;
 use std::cmp::{max, min};
 use std::fmt;
 use std::sync::Arc;
-use style::computed_values::{border_collapse, box_sizing, display, float, overflow_x};
+use style::computed_values::{box_sizing, display, float, overflow_x};
 use style::computed_values::{position, text_align};
 use style::context::SharedStyleContext;
 use style::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMode};
@@ -2268,8 +2268,7 @@ impl ISizeConstraintSolution {
 pub trait ISizeAndMarginsComputer {
     /// Instructs the fragment to compute its border and padding.
     fn compute_border_and_padding(&self, block: &mut BlockFlow, containing_block_inline_size: Au) {
-        block.fragment.compute_border_and_padding(containing_block_inline_size,
-                                                  border_collapse::T::separate);
+        block.fragment.compute_border_and_padding(containing_block_inline_size);
     }
 
     /// Compute the inputs for the ISize constraint equation.
