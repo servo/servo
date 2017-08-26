@@ -3701,6 +3701,6 @@ pub extern "C" fn Servo_ProcessInvalidations(set: RawServoStyleSetBorrowed,
     let mut data = data.as_mut().map(|d| &mut **d);
 
     if let Some(ref mut data) = data {
-        data.invalidate_style_if_needed(element, &shared_style_context);
+        data.invalidate_style_if_needed(element, &shared_style_context, None);
     }
 }

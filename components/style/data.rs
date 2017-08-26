@@ -4,7 +4,7 @@
 
 //! Per-node data used in style calculation.
 
-use context::SharedStyleContext;
+use context::{SharedStyleContext, StackLimitChecker};
 use dom::TElement;
 use invalidation::element::restyle_hints::RestyleHint;
 use properties::ComputedValues;
@@ -327,8 +327,9 @@ impl ElementData {
     pub fn invalidate_style_if_needed<'a, E: TElement>(
         &mut self,
         element: E,
-        shared_context: &SharedStyleContext)
-    {
+        shared_context: &SharedStyleContext,
+        stack_limit_checker: Option<&StackLimitChecker>,
+    ) {
         // In animation-only restyle we shouldn't touch snapshot at all.
         if shared_context.traversal_flags.for_animation_only() {
             return;
@@ -349,6 +350,7 @@ impl ElementData {
                 element,
                 Some(self),
                 shared_context,
+                stack_limit_checker,
             );
             invalidator.invalidate();
             unsafe { element.set_handled_snapshot() }
