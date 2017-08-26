@@ -349,8 +349,8 @@ no_viewport_percentage!(RepeatCount);
 ///
 /// It can also hold `repeat()` function parameters, which expands into the respective
 /// values in its computed form.
-#[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Debug, PartialEq, ToComputedValue)]
 pub struct TrackRepeat<L> {
     /// The number of times for the value to be repeated (could also be `auto-fit` or `auto-fill`)
     pub count: RepeatCount,
@@ -359,6 +359,7 @@ pub struct TrackRepeat<L> {
     /// If there's no `<line-names>`, then it's represented by an empty vector.
     /// For N `<track-size>` values, there will be N+1 `<line-names>`, and so this vector's
     /// length is always one value more than that of the `<track-size>`.
+    #[compute(clone)]
     pub line_names: Box<[Box<[CustomIdent]>]>,
     /// `<track-size>` values.
     pub track_sizes: Vec<TrackSize<L>>,
@@ -446,31 +447,6 @@ impl<L: Clone> TrackRepeat<L> {
         }
     }
 }
-impl<L: ToComputedValue> ToComputedValue for TrackRepeat<L> {
-    type ComputedValue = TrackRepeat<L::ComputedValue>;
-
-    #[inline]
-    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
-        TrackRepeat {
-            count: self.count,
-            track_sizes: self.track_sizes.iter()
-                                         .map(|val| val.to_computed_value(context))
-                                         .collect(),
-            line_names: self.line_names.clone(),
-        }
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        TrackRepeat {
-            count: computed.count,
-            track_sizes: computed.track_sizes.iter()
-                                             .map(ToComputedValue::from_computed_value)
-                                             .collect(),
-            line_names: computed.line_names.clone(),
-        }
-    }
-}
 
 /// The type of a `<track-list>` as determined during parsing.
 ///
@@ -500,8 +476,8 @@ impl ComputedValueAsSpecified for TrackListType {}
 /// A grid `<track-list>` type.
 ///
 /// https://drafts.csswg.org/css-grid/#typedef-track-list
-#[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Debug, PartialEq, ToComputedValue)]
 pub struct TrackList<T> {
     /// The type of this `<track-list>` (auto, explicit or general).
     ///
@@ -515,6 +491,7 @@ pub struct TrackList<T> {
     /// If there's no `<line-names>`, then it's represented by an empty vector.
     /// For N values, there will be N+1 `<line-names>`, and so this vector's
     /// length is always one value more than that of the `<track-size>`.
+    #[compute(clone)]
     pub line_names: Box<[Box<[CustomIdent]>]>,
     /// `<auto-repeat>` value. There can only be one `<auto-repeat>` in a TrackList.
     pub auto_repeat: Option<TrackRepeat<T>>,
