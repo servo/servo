@@ -699,7 +699,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             },
             layout_to_constellation_chan: self.layout_sender.clone(),
             scheduler_chan: self.scheduler_chan.clone(),
-            compositor_proxy: self.compositor_proxy.clone_compositor_proxy(),
+            compositor_proxy: self.compositor_proxy.clone(),
             devtools_chan: self.devtools_chan.clone(),
             bluetooth_thread: self.bluetooth_thread.clone(),
             swmanager_thread: self.swmanager_sender.clone(),
@@ -1694,7 +1694,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                           Some((parent_pipeline_id, frame_type)),
                           script_sender,
                           layout_sender,
-                          self.compositor_proxy.clone_compositor_proxy(),
+                          self.compositor_proxy.clone(),
                           is_private || parent_pipeline.is_private,
                           url.clone(),
                           parent_pipeline.visible)
@@ -1998,7 +1998,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             },
             None => {
                 let event = EmbedderMsg::KeyEvent(None, ch, key, state, mods);
-                self.embedder_proxy.clone_embedder_proxy().send(event);
+                self.embedder_proxy.clone().send(event);
             }
         }
     }

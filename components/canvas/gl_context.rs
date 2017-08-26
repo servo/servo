@@ -27,7 +27,7 @@ impl GLContextFactory {
             if cfg!(target_os = "windows") {
                 // Used to dispatch functions from the GLContext thread to the main thread's event loop.
                 // Required to allow WGL GLContext sharing in Windows.
-                GLContextFactory::Native(handle, Some(MainThreadDispatcher::new(proxy.clone_compositor_proxy())))
+                GLContextFactory::Native(handle, Some(MainThreadDispatcher::new(proxy.clone())))
             } else {
                 GLContextFactory::Native(handle, None)
             }

@@ -43,7 +43,10 @@ impl EmbedderProxy {
         }
         self.event_loop_waker.wake();
     }
-    pub fn clone_embedder_proxy(&self) -> EmbedderProxy {
+}
+
+impl Clone for EmbedderProxy {
+    fn clone(&self) -> EmbedderProxy {
         EmbedderProxy {
             sender: self.sender.clone(),
             event_loop_waker: self.event_loop_waker.clone(),
@@ -79,7 +82,10 @@ impl CompositorProxy {
         }
         self.event_loop_waker.wake();
     }
-    pub fn clone_compositor_proxy(&self) -> CompositorProxy {
+}
+
+impl Clone for CompositorProxy {
+    fn clone(&self) -> CompositorProxy {
         CompositorProxy {
             sender: self.sender.clone(),
             event_loop_waker: self.event_loop_waker.clone(),

@@ -213,8 +213,8 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
         // as the navigation context.
         let (constellation_chan, sw_senders) = create_constellation(opts.user_agent.clone(),
                                                                     opts.config_dir.clone(),
-                                                                    embedder_proxy.clone_embedder_proxy(),
-                                                                    compositor_proxy.clone_compositor_proxy(),
+                                                                    embedder_proxy.clone(),
+                                                                    compositor_proxy.clone(),
                                                                     time_profiler_chan.clone(),
                                                                     mem_profiler_chan.clone(),
                                                                     debugger_chan,
