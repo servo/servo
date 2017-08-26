@@ -8,13 +8,14 @@ use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
 use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilterConstants;
 use dom::bindings::codegen::Bindings::TreeWalkerBinding;
 use dom::bindings::codegen::Bindings::TreeWalkerBinding::TreeWalkerMethods;
-use dom::bindings::error::Fallible;
+use dom::bindings::error::{Error, Fallible};
 use dom::bindings::js::{JS, MutJS};
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::document::Document;
 use dom::node::Node;
 use dom_struct::dom_struct;
+use std::cell::Cell;
 use std::rc::Rc;
 
 // https://dom.spec.whatwg.org/#interface-treewalker
@@ -25,7 +26,8 @@ pub struct TreeWalker {
     current_node: MutJS<Node>,
     what_to_show: u32,
     #[ignore_heap_size_of = "function pointers and Rc<T> are hard"]
-    filter: Filter
+    filter: Filter,
+    active: Cell<bool>,
 }
 
 impl TreeWalker {
@@ -37,7 +39,8 @@ impl TreeWalker {
             root_node: JS::from_ref(root_node),
             current_node: MutJS::new(root_node),
             what_to_show: what_to_show,
-            filter: filter
+            filter: filter,
+            active: Cell::new(false),
         }
     }
 
@@ -417,21 +420,33 @@ impl TreeWalker {
     // https://dom.spec.whatwg.org/#concept-node-filter
     fn accept_node(&self, node: &Node) -> Fallible<u16> {
         // "To filter node run these steps:"
-        // "1. Let n be node's nodeType attribute value minus 1."
+        // "1. If the active flag is set, then throw an InvalidStateError."
+        if self.active.get() {
+            return Err(Error::InvalidState);
+        }
+        // "2. Let n be node's nodeType attribute value minus 1."
         let n = node.NodeType() - 1;
-        // "2. If the nth bit (where 0 is the least significant bit) of whatToShow is not set,
+        // "3. If the nth bit (where 0 is the least significant bit) of whatToShow is not set,
         //     return FILTER_SKIP."
         if (self.what_to_show & (1 << n)) == 0 {
             return Ok(NodeFilterConstants::FILTER_SKIP)
         }
-        // "3. If filter is null, return FILTER_ACCEPT."
-        // "4. Let result be the return value of invoking filter."
-        // "5. If an exception was thrown, re-throw the exception."
-        // "6. Return result."
+        // "4. If filter is null, return FILTER_ACCEPT."
+        // "5. Set the active flag."
+        // "6. Let result be the return value of call a user object’s operation with filter,
+        //     "acceptNode", and a list of arguments consisting of node. If that throws an exception,
+        //     then unset the active flag and rethrow the exception."
+        // "7. Unset the active flag"
+        // "8. Return result."
         match self.filter {
             Filter::None => Ok(NodeFilterConstants::FILTER_ACCEPT),
             Filter::Native(f) => Ok((f)(node)),
-            Filter::JS(ref callback) => callback.AcceptNode_(self, node, Rethrow)
+            Filter::JS(ref callback) => {
+                self.active.set(true);
+                let result = callback.AcceptNode_(self, node, Rethrow);
+                self.active.set(false);
+                result
+            },
         }
     }
 
