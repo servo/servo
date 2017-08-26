@@ -278,7 +278,9 @@ impl ToComputedValue for specified::CalcLengthOrPercentage {
 #[animate(fallback = "Self::animate_fallback")]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[css(derive_debug)]
-#[derive(Animate, Clone, Copy, PartialEq, ToAnimatedZero, ToCss)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, PartialEq)]
+#[derive(ToAnimatedZero, ToCss)]
+#[distance(fallback = "Self::compute_squared_distance_fallback")]
 pub enum LengthOrPercentage {
     Length(Au),
     Percentage(Percentage),
@@ -304,22 +306,16 @@ impl LengthOrPercentage {
         let other = CalcLengthOrPercentage::from(*other);
         Ok(LengthOrPercentage::Calc(this.animate(&other, procedure)?))
     }
-}
 
-impl ComputeSquaredDistance for LengthOrPercentage {
     #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        match (self, other) {
-            (&LengthOrPercentage::Length(ref this), &LengthOrPercentage::Length(ref other)) => {
-                this.compute_squared_distance(other)
-            },
-            (&LengthOrPercentage::Percentage(ref this), &LengthOrPercentage::Percentage(ref other)) => {
-                this.compute_squared_distance(other)
-            },
-            (this, other) => {
-                CalcLengthOrPercentage::compute_squared_distance(&(*this).into(), &(*other).into())
-            }
-        }
+    fn compute_squared_distance_fallback(
+        &self,
+        other: &Self,
+    ) -> Result<SquaredDistance, ()> {
+        CalcLengthOrPercentage::compute_squared_distance(
+            &(*self).into(),
+            &(*other).into(),
+        )
     }
 }
 
@@ -432,7 +428,8 @@ impl ToComputedValue for specified::LengthOrPercentage {
 #[animate(fallback = "Self::animate_fallback")]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[css(derive_debug)]
-#[derive(Animate, Clone, Copy, PartialEq, ToCss)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, PartialEq, ToCss)]
+#[distance(fallback = "Self::compute_squared_distance_fallback")]
 pub enum LengthOrPercentageOrAuto {
     Length(Au),
     Percentage(Percentage),
@@ -453,22 +450,16 @@ impl LengthOrPercentageOrAuto {
             this.animate(&other, procedure)?.ok_or(())?,
         ))
     }
-}
 
-impl ComputeSquaredDistance for LengthOrPercentageOrAuto {
     #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        match (self, other) {
-            (&LengthOrPercentageOrAuto::Length(ref this), &LengthOrPercentageOrAuto::Length(ref other)) => {
-                this.compute_squared_distance(other)
-            },
-            (&LengthOrPercentageOrAuto::Percentage(ref this), &LengthOrPercentageOrAuto::Percentage(ref other)) => {
-                this.compute_squared_distance(other)
-            },
-            (this, other) => {
-                <Option<CalcLengthOrPercentage>>::compute_squared_distance(&(*this).into(), &(*other).into())
-            }
-        }
+    fn compute_squared_distance_fallback(
+        &self,
+        other: &Self,
+    ) -> Result<SquaredDistance, ()> {
+        <Option<CalcLengthOrPercentage>>::compute_squared_distance(
+            &(*self).into(),
+            &(*other).into(),
+        )
     }
 }
 
@@ -533,7 +524,8 @@ impl ToComputedValue for specified::LengthOrPercentageOrAuto {
 #[animate(fallback = "Self::animate_fallback")]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[css(derive_debug)]
-#[derive(Animate, Clone, Copy, PartialEq, ToCss)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, PartialEq, ToCss)]
+#[distance(fallback = "Self::compute_squared_distance_fallback")]
 pub enum LengthOrPercentageOrNone {
     Length(Au),
     Percentage(Percentage),
@@ -554,22 +546,15 @@ impl LengthOrPercentageOrNone {
             this.animate(&other, procedure)?.ok_or(())?,
         ))
     }
-}
 
-impl ComputeSquaredDistance for LengthOrPercentageOrNone {
-    #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        match (self, other) {
-            (&LengthOrPercentageOrNone::Length(ref this), &LengthOrPercentageOrNone::Length(ref other)) => {
-                this.compute_squared_distance(other)
-            },
-            (&LengthOrPercentageOrNone::Percentage(ref this), &LengthOrPercentageOrNone::Percentage(ref other)) => {
-                this.compute_squared_distance(other)
-            },
-            (this, other) => {
-                <Option<CalcLengthOrPercentage>>::compute_squared_distance(&(*this).into(), &(*other).into())
-            }
-        }
+    fn compute_squared_distance_fallback(
+        &self,
+        other: &Self,
+    ) -> Result<SquaredDistance, ()> {
+        <Option<CalcLengthOrPercentage>>::compute_squared_distance(
+            &(*self).into(),
+            &(*other).into(),
+        )
     }
 }
 

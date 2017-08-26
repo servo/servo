@@ -25,7 +25,7 @@ pub fn derive_animate(stream: TokenStream) -> TokenStream {
     animate::derive(input).to_string().parse().unwrap()
 }
 
-#[proc_macro_derive(ComputeSquaredDistance, attributes(animation))]
+#[proc_macro_derive(ComputeSquaredDistance, attributes(animation, distance))]
 pub fn derive_compute_squared_distance(stream: TokenStream) -> TokenStream {
     let input = syn::parse_derive_input(&stream.to_string()).unwrap();
     compute_squared_distance::derive(input).to_string().parse().unwrap()

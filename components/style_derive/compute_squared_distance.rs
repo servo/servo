@@ -4,15 +4,16 @@
 
 use animate::AnimationVariantAttrs;
 use cg;
-use quote;
-use syn;
+use quote::Tokens;
+use syn::{DeriveInput, Path};
 
-pub fn derive(input: syn::DeriveInput) -> quote::Tokens {
+pub fn derive(input: DeriveInput) -> Tokens {
     let name = &input.ident;
     let trait_path = &["values", "distance", "ComputeSquaredDistance"];
     let (impl_generics, ty_generics, mut where_clause) =
         cg::trait_parts(&input, trait_path);
 
+    let input_attrs = cg::parse_input_attrs::<DistanceInputAttrs>(&input);
     let variants = cg::variants(&input);
     let mut match_body = quote!();
     let mut append_error_clause = variants.len() > 1;
@@ -45,7 +46,13 @@ pub fn derive(input: syn::DeriveInput) -> quote::Tokens {
     }));
 
     if append_error_clause {
-        match_body = quote! { #match_body, _ => Err(()), };
+        if let Some(fallback) = input_attrs.fallback {
+            match_body.append(quote! {
+                (this, other) => #fallback(this, other)
+            });
+        } else {
+            match_body.append(quote! { _ => Err(()) });
+        }
     }
 
     quote! {
@@ -62,4 +69,10 @@ pub fn derive(input: syn::DeriveInput) -> quote::Tokens {
             }
         }
     }
+}
+
+#[darling(attributes(distance), default)]
+#[derive(Default, FromDeriveInput)]
+struct DistanceInputAttrs {
+    fallback: Option<Path>,
 }
