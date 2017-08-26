@@ -206,7 +206,13 @@ impl<N: TNode> Debug for ShowSubtreeDataAndPrimaryValues<N> {
 
 fn fmt_with_data<N: TNode>(f: &mut fmt::Formatter, n: N) -> fmt::Result {
     if let Some(el) = n.as_element() {
-        write!(f, "{:?} dd={} data={:?}", el, el.has_dirty_descendants(), el.borrow_data())
+        write!(
+            f, "{:?} dd={} aodd={} data={:?}",
+            el,
+            el.has_dirty_descendants(),
+            el.has_animation_only_dirty_descendants(),
+            el.borrow_data(),
+       )
     } else {
         write!(f, "{:?}", n)
     }
@@ -215,9 +221,10 @@ fn fmt_with_data<N: TNode>(f: &mut fmt::Formatter, n: N) -> fmt::Result {
 fn fmt_with_data_and_primary_values<N: TNode>(f: &mut fmt::Formatter, n: N) -> fmt::Result {
     if let Some(el) = n.as_element() {
         let dd = el.has_dirty_descendants();
+        let aodd = el.has_animation_only_dirty_descendants();
         let data = el.borrow_data();
         let values = data.as_ref().and_then(|d| d.styles.get_primary());
-        write!(f, "{:?} dd={} data={:?} values={:?}", el, dd, &data, values)
+        write!(f, "{:?} dd={} aodd={} data={:?} values={:?}", el, dd, aodd, &data, values)
     } else {
         write!(f, "{:?}", n)
     }
