@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use darling::{FromField, FromVariant};
+use darling::{FromDeriveInput, FromField, FromVariant};
 use quote::{ToTokens, Tokens};
 use std::borrow::Cow;
 use std::collections::HashSet;
@@ -273,6 +273,16 @@ where
     match A::from_field(field) {
         Ok(attrs) => attrs,
         Err(e) => panic!("failed to parse field attributes: {}", e),
+    }
+}
+
+pub fn parse_input_attrs<A>(input: &DeriveInput) -> A
+where
+    A: FromDeriveInput,
+{
+    match A::from_derive_input(input) {
+        Ok(attrs) => attrs,
+        Err(e) => panic!("failed to parse input attributes: {}", e),
     }
 }
 

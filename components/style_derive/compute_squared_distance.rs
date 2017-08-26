@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use animate::AnimateAttrs;
+use animate::AnimationVariantAttrs;
 use cg;
 use quote;
 use syn;
@@ -17,7 +17,7 @@ pub fn derive(input: syn::DeriveInput) -> quote::Tokens {
     let mut match_body = quote!();
     let mut append_error_clause = variants.len() > 1;
     match_body.append_all(variants.iter().map(|variant| {
-        let attrs = cg::parse_variant_attrs::<AnimateAttrs>(variant);
+        let attrs = cg::parse_variant_attrs::<AnimationVariantAttrs>(variant);
         if attrs.error {
             append_error_clause = true;
             return None;

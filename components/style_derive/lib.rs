@@ -19,7 +19,7 @@ mod to_animated_zero;
 mod to_computed_value;
 mod to_css;
 
-#[proc_macro_derive(Animate, attributes(animation))]
+#[proc_macro_derive(Animate, attributes(animate, animation))]
 pub fn derive_animate(stream: TokenStream) -> TokenStream {
     let input = syn::parse_derive_input(&stream.to_string()).unwrap();
     animate::derive(input).to_string().parse().unwrap()
