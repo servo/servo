@@ -1,4 +1,4 @@
-// FORK NOTE: Copied from libsystem_alloc, removed unnecessary APIs,
+// FORK NOTE: Copied from liballoc_system, removed unnecessary APIs,
 // APIs take size/align directly instead of Layout
 
 
