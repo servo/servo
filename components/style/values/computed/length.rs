@@ -277,6 +277,7 @@ impl ToComputedValue for specified::CalcLengthOrPercentage {
 #[allow(missing_docs)]
 #[animate(fallback = "Self::animate_fallback")]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[css(derive_debug)]
 #[derive(Animate, Clone, Copy, PartialEq, ToAnimatedZero, ToCss)]
 pub enum LengthOrPercentage {
     Length(Au),
@@ -391,16 +392,6 @@ impl LengthOrPercentage {
     }
 }
 
-impl fmt::Debug for LengthOrPercentage {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            LengthOrPercentage::Length(length) => write!(f, "{:?}", length),
-            LengthOrPercentage::Percentage(percentage) => write!(f, "{}%", percentage.0 * 100.),
-            LengthOrPercentage::Calc(calc) => write!(f, "{:?}", calc),
-        }
-    }
-}
-
 impl ToComputedValue for specified::LengthOrPercentage {
     type ComputedValue = LengthOrPercentage;
 
@@ -440,6 +431,7 @@ impl ToComputedValue for specified::LengthOrPercentage {
 #[allow(missing_docs)]
 #[animate(fallback = "Self::animate_fallback")]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[css(derive_debug)]
 #[derive(Animate, Clone, Copy, PartialEq, ToCss)]
 pub enum LengthOrPercentageOrAuto {
     Length(Au),
@@ -495,17 +487,6 @@ impl LengthOrPercentageOrAuto {
     }
 }
 
-impl fmt::Debug for LengthOrPercentageOrAuto {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            LengthOrPercentageOrAuto::Length(length) => write!(f, "{:?}", length),
-            LengthOrPercentageOrAuto::Percentage(percentage) => write!(f, "{}%", percentage.0 * 100.),
-            LengthOrPercentageOrAuto::Auto => write!(f, "auto"),
-            LengthOrPercentageOrAuto::Calc(calc) => write!(f, "{:?}", calc),
-        }
-    }
-}
-
 impl ToComputedValue for specified::LengthOrPercentageOrAuto {
     type ComputedValue = LengthOrPercentageOrAuto;
 
@@ -551,6 +532,7 @@ impl ToComputedValue for specified::LengthOrPercentageOrAuto {
 #[allow(missing_docs)]
 #[animate(fallback = "Self::animate_fallback")]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[css(derive_debug)]
 #[derive(Animate, Clone, Copy, PartialEq, ToCss)]
 pub enum LengthOrPercentageOrNone {
     Length(Au),
@@ -599,17 +581,6 @@ impl LengthOrPercentageOrNone {
             LengthOrPercentageOrNone::Length(length) => Some(length),
             LengthOrPercentageOrNone::Percentage(percent) => Some(containing_length.scale_by(percent.0)),
             LengthOrPercentageOrNone::Calc(ref calc) => calc.to_used_value(Some(containing_length)),
-        }
-    }
-}
-
-impl fmt::Debug for LengthOrPercentageOrNone {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            LengthOrPercentageOrNone::Length(length) => write!(f, "{:?}", length),
-            LengthOrPercentageOrNone::Percentage(percentage) => write!(f, "{}%", percentage.0 * 100.),
-            LengthOrPercentageOrNone::Calc(calc) => write!(f, "{:?}", calc),
-            LengthOrPercentageOrNone::None => write!(f, "none"),
         }
     }
 }
