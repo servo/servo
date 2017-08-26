@@ -234,8 +234,7 @@ fn traverse_subtree(element: GeckoElement,
         return;
     }
 
-    debug!("Traversing subtree:");
-    debug!("{:?}", ShowSubtreeData(element.as_node()));
+    debug!("Traversing subtree from {:?}", element);
 
     let thread_pool_holder = &*STYLE_THREAD_POOL;
     let thread_pool = if traversal_flags.contains(traversal_flags::ParallelTraversal) {
@@ -253,17 +252,19 @@ fn traverse_subtree(element: GeckoElement,
 /// Returns whether a Gecko post-traversal (to perform lazy frame construction,
 /// or consume any RestyleData, or drop any ElementData) is required.
 #[no_mangle]
-pub extern "C" fn Servo_TraverseSubtree(root: RawGeckoElementBorrowed,
-                                        raw_data: RawServoStyleSetBorrowed,
-                                        snapshots: *const ServoElementSnapshotTable,
-                                        raw_flags: ServoTraversalFlags)
-                                        -> bool {
+pub extern "C" fn Servo_TraverseSubtree(
+    root: RawGeckoElementBorrowed,
+    raw_data: RawServoStyleSetBorrowed,
+    snapshots: *const ServoElementSnapshotTable,
+    raw_flags: ServoTraversalFlags
+) -> bool {
     let traversal_flags = TraversalFlags::from_bits_truncate(raw_flags);
     debug_assert!(!snapshots.is_null());
 
     let element = GeckoElement(root);
 
     debug!("Servo_TraverseSubtree (flags={:?})", traversal_flags);
+    debug!("{:?}", ShowSubtreeData(element.as_node()));
     // It makes no sense to do an animation restyle when we're styling
     // newly-inserted content.
     if !traversal_flags.contains(traversal_flags::UnstyledOnly) {
@@ -3303,6 +3304,9 @@ pub extern "C" fn Servo_AssertTreeIsClean(root: RawGeckoElementBorrowed) {
     }
 
     let root = GeckoElement(root);
+    debug!("Servo_AssertTreeIsClean: ");
+    debug!("{:?}", ShowSubtreeData(root.as_node()));
+
     fn assert_subtree_is_clean<'le>(el: GeckoElement<'le>) {
         debug_assert!(!el.has_dirty_descendants() && !el.has_animation_only_dirty_descendants(),
                       "{:?} has still dirty bit {:?} or animation-only dirty bit {:?}",
