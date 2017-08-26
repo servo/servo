@@ -316,6 +316,12 @@ impl fmt::Display for TopLevelBrowsingContextId {
     }
 }
 
+impl AsRef<BrowsingContextId> for TopLevelBrowsingContextId {
+    fn as_ref(&self) -> &BrowsingContextId {
+        &self.0
+    }
+}
+
 impl From<TopLevelBrowsingContextId> for BrowsingContextId {
     fn from(id: TopLevelBrowsingContextId) -> BrowsingContextId {
         id.0

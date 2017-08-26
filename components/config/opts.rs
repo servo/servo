@@ -126,6 +126,10 @@ pub struct Opts {
     /// remote Firefox devtools connections.
     pub devtools_port: Option<u16>,
 
+    /// `None` to disable Chrome DevTools or `Some` with a port number to start a server to listen
+    /// to Chrome DevTools Protocol connections.
+    pub cdp_port: Option<u16>,
+
     /// `None` to disable WebDriver or `Some` with a port number to start a server to listen to
     /// remote WebDriver commands.
     pub webdriver_port: Option<u16>,
@@ -521,6 +525,7 @@ pub fn default_opts() -> Opts {
         trace_layout: false,
         debugger_port: None,
         devtools_port: None,
+        cdp_port: None,
         webdriver_port: None,
         initial_window_size: TypedSize2D::new(1024, 740),
         user_agent: default_user_agent_string(DEFAULT_USER_AGENT).into(),
@@ -586,7 +591,11 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     opts.optflag("f", "hard-fail", "Exit on thread failure instead of displaying about:failure");
     opts.optflag("F", "soft-fail", "Display about:failure on thread failure instead of exiting");
     opts.optflagopt("", "remote-debugging-port", "Start remote debugger server on port", "2794");
-    opts.optflagopt("", "devtools", "Start remote devtools server on port", "6000");
+    opts.optflagopt("", "devtools", "Start remote Firefox devtools server on port", "6000");
+    opts.optflagopt("",
+                    "cdp",
+                    "Start Chrome DevTools Protocol server on port",
+                    concat!(cdp_default_port!()));
     opts.optflagopt("", "webdriver", "Start remote WebDriver server on port", "7000");
     opts.optopt("", "resolution", "Set window resolution.", "1024x740");
     opts.optopt("u",
@@ -752,6 +761,10 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         port.parse().unwrap_or_else(|err| args_fail(&format!("Error parsing option: --devtools ({})", err)))
     });
 
+    let cdp_port = opt_match.opt_default("cdp", concat!(cdp_default_port!())).map(|port| {
+        port.parse().unwrap_or_else(|err| args_fail(&format!("Error parsing option: --cdp ({})", err)))
+    });
+
     let webdriver_port = opt_match.opt_default("webdriver", "7000").map(|port| {
         port.parse().unwrap_or_else(|err| args_fail(&format!("Error parsing option: --webdriver ({})", err)))
     });
@@ -820,6 +833,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         trace_layout: debug_options.trace_layout,
         debugger_port: debugger_port,
         devtools_port: devtools_port,
+        cdp_port: cdp_port,
         webdriver_port: webdriver_port,
         initial_window_size: initial_window_size,
         user_agent: user_agent,

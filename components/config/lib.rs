@@ -6,6 +6,7 @@
 
 #[cfg(target_os = "android")]
 extern crate android_injected_glue;
+#[macro_use] extern crate cdp;
 extern crate euclid;
 extern crate getopts;
 #[macro_use] extern crate lazy_static;

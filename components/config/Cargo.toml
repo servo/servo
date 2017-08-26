@@ -21,6 +21,10 @@ servo_geometry = {path = "../geometry"}
 servo_url = {path = "../url"}
 url = "1.2"
 
+[dependencies.cdp]
+git = "https://github.com/devtools-html/cdp"
+rev = "0b3a0ba2a71b36324a8f465cc47eaaa2762b8d59"
+
 [dev-dependencies]
 env_logger = "0.4"
 
