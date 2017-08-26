@@ -717,16 +717,25 @@ fn test_offset_calculation() {
 }
 
 impl<K, V> RawTable<K, V> {
+    unsafe fn new_uninitialized(capacity: usize) -> RawTable<K, V> {
+        extern crate libc;
+        if let Ok(table) = Self::new_uninitialized_fallible(capacity) {
+            table
+        } else {
+            libc::abort();
+        }
+    }
+
     /// Does not initialize the buckets. The caller should ensure they,
     /// at the very least, set every hash to EMPTY_BUCKET.
-    unsafe fn new_uninitialized(capacity: usize) -> RawTable<K, V> {
+    unsafe fn new_uninitialized_fallible(capacity: usize) -> Result<RawTable<K, V>, ()> {
         if capacity == 0 {
-            return RawTable {
+            return Ok(RawTable {
                 size: 0,
                 capacity_mask: capacity.wrapping_sub(1),
                 hashes: TaggedHashUintPtr::new(EMPTY as *mut HashUint),
                 marker: marker::PhantomData,
-            };
+            });
         }
 
         // No need for `checked_mul` before a more restrictive check performed
@@ -757,17 +766,19 @@ impl<K, V> RawTable<K, V> {
 
         // FORK NOTE: Uses alloc shim instead of Heap.alloc
         let buffer = alloc(size, alignment);
-        // FORK NOTE: Should handle null
-        debug_assert!(!buffer.is_null());
+        
+        if buffer.is_null() {
+            return Err(())
+        }
 
         let hashes = buffer.offset(hash_offset as isize) as *mut HashUint;
 
-        RawTable {
+        Ok(RawTable {
             capacity_mask: capacity.wrapping_sub(1),
             size: 0,
             hashes: TaggedHashUintPtr::new(hashes),
             marker: marker::PhantomData,
-        }
+        })
     }
 
     fn raw_bucket_at(&self, index: usize) -> RawBucket<K, V> {
