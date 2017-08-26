@@ -11,6 +11,7 @@ use style_traits::ToCss;
 use style_traits::values::specified::AllowedLengthType;
 use super::{Number, ToComputedValue, Context, Percentage};
 use values::{Auto, CSSFloat, Either, ExtremumLength, None_, Normal, specified};
+use values::animated::{Animate, Procedure, ToAnimatedZero};
 use values::computed::{NonNegativeAu, NonNegativeNumber};
 use values::distance::{ComputeSquaredDistance, SquaredDistance};
 use values::generics::NonNegative;
@@ -274,12 +275,34 @@ impl ToComputedValue for specified::CalcLengthOrPercentage {
 }
 
 #[allow(missing_docs)]
+#[animate(fallback = "Self::animate_fallback")]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Copy, PartialEq, ToAnimatedZero, ToCss)]
+#[derive(Animate, Clone, Copy, PartialEq, ToAnimatedZero, ToCss)]
 pub enum LengthOrPercentage {
     Length(Au),
     Percentage(Percentage),
     Calc(CalcLengthOrPercentage),
+}
+
+impl LengthOrPercentage {
+    /// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
+    fn animate_fallback(
+        &self,
+        other: &Self,
+        procedure: Procedure,
+    ) -> Result<Self, ()> {
+        // Special handling for zero values since these should not require calc().
+        if self.is_definitely_zero() {
+            return other.to_animated_zero()?.animate(other, procedure);
+        }
+        if other.is_definitely_zero() {
+            return self.animate(&self.to_animated_zero()?, procedure);
+        }
+
+        let this = CalcLengthOrPercentage::from(*self);
+        let other = CalcLengthOrPercentage::from(*other);
+        Ok(LengthOrPercentage::Calc(this.animate(&other, procedure)?))
+    }
 }
 
 impl ComputeSquaredDistance for LengthOrPercentage {
@@ -415,13 +438,29 @@ impl ToComputedValue for specified::LengthOrPercentage {
 }
 
 #[allow(missing_docs)]
+#[animate(fallback = "Self::animate_fallback")]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Copy, PartialEq, ToCss)]
+#[derive(Animate, Clone, Copy, PartialEq, ToCss)]
 pub enum LengthOrPercentageOrAuto {
     Length(Au),
     Percentage(Percentage),
     Auto,
     Calc(CalcLengthOrPercentage),
+}
+
+impl LengthOrPercentageOrAuto {
+    /// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
+    fn animate_fallback(
+        &self,
+        other: &Self,
+        procedure: Procedure,
+    ) -> Result<Self, ()> {
+        let this = <Option<CalcLengthOrPercentage>>::from(*self);
+        let other = <Option<CalcLengthOrPercentage>>::from(*other);
+        Ok(LengthOrPercentageOrAuto::Calc(
+            this.animate(&other, procedure)?.ok_or(())?,
+        ))
+    }
 }
 
 impl ComputeSquaredDistance for LengthOrPercentageOrAuto {
@@ -510,13 +549,29 @@ impl ToComputedValue for specified::LengthOrPercentageOrAuto {
 }
 
 #[allow(missing_docs)]
+#[animate(fallback = "Self::animate_fallback")]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Copy, PartialEq, ToCss)]
+#[derive(Animate, Clone, Copy, PartialEq, ToCss)]
 pub enum LengthOrPercentageOrNone {
     Length(Au),
     Percentage(Percentage),
     Calc(CalcLengthOrPercentage),
     None,
+}
+
+impl LengthOrPercentageOrNone {
+    /// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
+    fn animate_fallback(
+        &self,
+        other: &Self,
+        procedure: Procedure,
+    ) -> Result<Self, ()> {
+        let this = <Option<CalcLengthOrPercentage>>::from(*self);
+        let other = <Option<CalcLengthOrPercentage>>::from(*other);
+        Ok(LengthOrPercentageOrNone::Calc(
+            this.animate(&other, procedure)?.ok_or(())?,
+        ))
+    }
 }
 
 impl ComputeSquaredDistance for LengthOrPercentageOrNone {

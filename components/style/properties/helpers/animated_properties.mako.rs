@@ -812,73 +812,6 @@ impl Animate for CalcLengthOrPercentage {
     }
 }
 
-/// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
-impl Animate for LengthOrPercentage {
-    #[inline]
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        match (self, other) {
-            (
-                &LengthOrPercentage::Length(ref this),
-                &LengthOrPercentage::Length(ref other),
-            ) => {
-                Ok(LengthOrPercentage::Length(this.animate(other, procedure)?))
-            },
-            (
-                &LengthOrPercentage::Percentage(ref this),
-                &LengthOrPercentage::Percentage(ref other),
-            ) => {
-                Ok(LengthOrPercentage::Percentage(this.animate(other, procedure)?))
-            },
-            (this, other) => {
-                // Special handling for zero values since these should not require calc().
-                if this.is_definitely_zero() {
-                    return other.to_animated_zero()?.animate(other, procedure);
-                }
-                if other.is_definitely_zero() {
-                    return this.animate(&this.to_animated_zero()?, procedure);
-                }
-
-                let this = CalcLengthOrPercentage::from(*this);
-                let other = CalcLengthOrPercentage::from(*other);
-                Ok(LengthOrPercentage::Calc(this.animate(&other, procedure)?))
-            }
-        }
-    }
-}
-
-/// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
-impl Animate for LengthOrPercentageOrAuto {
-    #[inline]
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        match (self, other) {
-            (
-                &LengthOrPercentageOrAuto::Length(ref this),
-                &LengthOrPercentageOrAuto::Length(ref other),
-            ) => {
-                Ok(LengthOrPercentageOrAuto::Length(this.animate(other, procedure)?))
-            },
-            (
-                &LengthOrPercentageOrAuto::Percentage(ref this),
-                &LengthOrPercentageOrAuto::Percentage(ref other),
-            ) => {
-                Ok(LengthOrPercentageOrAuto::Percentage(
-                    this.animate(other, procedure)?,
-                ))
-            },
-            (&LengthOrPercentageOrAuto::Auto, &LengthOrPercentageOrAuto::Auto) => {
-                Ok(LengthOrPercentageOrAuto::Auto)
-            },
-            (this, other) => {
-                let this: Option<CalcLengthOrPercentage> = From::from(*this);
-                let other: Option<CalcLengthOrPercentage> = From::from(*other);
-                Ok(LengthOrPercentageOrAuto::Calc(
-                    this.animate(&other, procedure)?.ok_or(())?,
-                ))
-            },
-        }
-    }
-}
-
 impl ToAnimatedZero for LengthOrPercentageOrAuto {
     #[inline]
     fn to_animated_zero(&self) -> Result<Self, ()> {
@@ -889,39 +822,6 @@ impl ToAnimatedZero for LengthOrPercentageOrAuto {
                 Ok(LengthOrPercentageOrAuto::Length(Au(0)))
             },
             LengthOrPercentageOrAuto::Auto => Err(()),
-        }
-    }
-}
-
-/// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
-impl Animate for LengthOrPercentageOrNone {
-    #[inline]
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        match (self, other) {
-            (
-                &LengthOrPercentageOrNone::Length(ref this),
-                &LengthOrPercentageOrNone::Length(ref other),
-            ) => {
-                Ok(LengthOrPercentageOrNone::Length(this.animate(other, procedure)?))
-            },
-            (
-                &LengthOrPercentageOrNone::Percentage(ref this),
-                &LengthOrPercentageOrNone::Percentage(ref other),
-            ) => {
-                Ok(LengthOrPercentageOrNone::Percentage(
-                    this.animate(other, procedure)?,
-                ))
-            }
-            (&LengthOrPercentageOrNone::None, &LengthOrPercentageOrNone::None) => {
-                Ok(LengthOrPercentageOrNone::None)
-            },
-            (this, other) => {
-                let this = <Option<CalcLengthOrPercentage>>::from(*this);
-                let other = <Option<CalcLengthOrPercentage>>::from(*other);
-                Ok(LengthOrPercentageOrNone::Calc(
-                    this.animate(&other, procedure)?.ok_or(())?,
-                ))
-            },
         }
     }
 }
