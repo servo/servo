@@ -19,10 +19,10 @@ pub fn derive(input: syn::DeriveInput) -> quote::Tokens {
             None => return Some(quote!(false)),
             Some(pair) => pair,
         };
-        where_clause.add_trait_bound(first.field.ty.clone());
+        where_clause.add_trait_bound(&first.field.ty);
         let mut expr = quote!(::style_traits::HasViewportPercentage::has_viewport_percentage(#first));
         for binding in rest {
-            where_clause.add_trait_bound(binding.field.ty.clone());
+            where_clause.add_trait_bound(&binding.field.ty);
             expr = quote!(#expr || ::style_traits::HasViewportPercentage::has_viewport_percentage(#binding));
         }
         Some(expr)

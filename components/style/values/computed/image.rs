@@ -203,33 +203,3 @@ impl ToComputedValue for SpecifiedGradient {
         }
     }
 }
-
-impl ToComputedValue for SpecifiedGradientKind {
-    type ComputedValue = GradientKind;
-
-    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
-        match self {
-            &GenericGradientKind::Linear(ref line_direction) => {
-                GenericGradientKind::Linear(line_direction.to_computed_value(context))
-            },
-            &GenericGradientKind::Radial(ref ending_shape, ref position, ref angle) => {
-                GenericGradientKind::Radial(ending_shape.to_computed_value(context),
-                                            position.to_computed_value(context),
-                                            angle.map(|angle| angle.to_computed_value(context)))
-            }
-        }
-    }
-
-    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        match *computed {
-            GenericGradientKind::Linear(line_direction) => {
-                GenericGradientKind::Linear(SpecifiedLineDirection::from_computed_value(&line_direction))
-            },
-            GenericGradientKind::Radial(ending_shape, position, angle) => {
-                GenericGradientKind::Radial(ToComputedValue::from_computed_value(&ending_shape),
-                                            ToComputedValue::from_computed_value(&position),
-                                            angle.map(|angle| ToComputedValue::from_computed_value(&angle)))
-            }
-        }
-    }
-}

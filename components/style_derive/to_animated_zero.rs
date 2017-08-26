@@ -27,17 +27,18 @@ pub fn derive(input: syn::DeriveInput) -> quote::Tokens {
         computations.append_all(bindings_pairs.map(|(binding, mapped_binding)| {
             let field_attrs = cg::parse_field_attrs::<AnimateFieldAttrs>(&binding.field);
             if field_attrs.equal {
-                if cg::is_parameterized(&binding.field.ty, where_clause.params) {
+                if cg::is_parameterized(&binding.field.ty, where_clause.params, None) {
                     where_clause.inner.predicates.push(cg::where_predicate(
                         binding.field.ty.clone(),
                         &["std", "clone", "Clone"],
+                        None,
                     ));
                 }
                 quote! {
                     let #mapped_binding = ::std::clone::Clone::clone(#binding);
                 }
             } else {
-                where_clause.add_trait_bound(binding.field.ty.clone());
+                where_clause.add_trait_bound(&binding.field.ty);
                 quote! {
                     let #mapped_binding =
                         ::values::animated::ToAnimatedZero::to_animated_zero(#binding)?;

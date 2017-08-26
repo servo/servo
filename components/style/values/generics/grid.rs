@@ -204,7 +204,7 @@ impl<L: ToComputedValue> ToComputedValue for TrackBreadth<L> {
 ///
 /// https://drafts.csswg.org/css-grid/#typedef-track-size
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
+#[derive(Clone, Debug, HasViewportPercentage, PartialEq, ToComputedValue)]
 pub enum TrackSize<L> {
     /// A flexible `<track-breadth>`
     Breadth(TrackBreadth<L>),
@@ -282,39 +282,6 @@ impl<L: ToCss> ToCss for TrackSize<L> {
                 lop.to_css(dest)?;
                 dest.write_str(")")
             },
-        }
-    }
-}
-
-impl<L: ToComputedValue> ToComputedValue for TrackSize<L> {
-    type ComputedValue = TrackSize<L::ComputedValue>;
-
-    #[inline]
-    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
-        match *self {
-            TrackSize::Breadth(ref b) => match *b {
-                // <flex> outside `minmax()` expands to `mimmax(auto, <flex>)`
-                // https://drafts.csswg.org/css-grid/#valdef-grid-template-columns-flex
-                TrackBreadth::Flex(f) =>
-                    TrackSize::Minmax(TrackBreadth::Keyword(TrackKeyword::Auto), TrackBreadth::Flex(f)),
-                _ => TrackSize::Breadth(b.to_computed_value(context)),
-            },
-            TrackSize::Minmax(ref b_1, ref b_2) =>
-                TrackSize::Minmax(b_1.to_computed_value(context), b_2.to_computed_value(context)),
-            TrackSize::FitContent(ref lop) => TrackSize::FitContent(lop.to_computed_value(context)),
-        }
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        match *computed {
-            TrackSize::Breadth(ref b) =>
-                TrackSize::Breadth(ToComputedValue::from_computed_value(b)),
-            TrackSize::Minmax(ref b_1, ref b_2) =>
-                TrackSize::Minmax(ToComputedValue::from_computed_value(b_1),
-                                  ToComputedValue::from_computed_value(b_2)),
-            TrackSize::FitContent(ref lop) =>
-                TrackSize::FitContent(ToComputedValue::from_computed_value(lop)),
         }
     }
 }
@@ -698,8 +665,8 @@ no_viewport_percentage!(LineNameList);
 /// Variants for `<grid-template-rows> | <grid-template-columns>`
 /// Subgrid deferred to Level 2 spec due to lack of implementation.
 /// But it's implemented in gecko, so we have to as well.
-#[derive(Clone, Debug, PartialEq, ToCss)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Debug, PartialEq, ToComputedValue, ToCss)]
 pub enum GridTemplateComponent<L> {
     /// `none` value.
     None,

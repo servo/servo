@@ -30,7 +30,7 @@ pub fn derive(input: syn::DeriveInput) -> quote::Tokens {
         } else {
             let mut sum = quote!();
             sum.append_separated(this_info.iter().zip(&other_info).map(|(this, other)| {
-                where_clause.add_trait_bound(this.field.ty.clone());
+                where_clause.add_trait_bound(&this.field.ty);
                 quote! {
                     ::values::distance::ComputeSquaredDistance::compute_squared_distance(#this, #other)?
                 }

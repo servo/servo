@@ -21,7 +21,7 @@ pub fn derive(input: syn::DeriveInput) -> quote::Tokens {
         let mut expr = if !bindings.is_empty() {
             let mut expr = quote! {};
             for binding in bindings {
-                where_clause.add_trait_bound(binding.field.ty.clone());
+                where_clause.add_trait_bound(&binding.field.ty);
                 expr = quote! {
                     #expr
                     writer.item(#binding)?;
