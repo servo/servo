@@ -711,14 +711,18 @@ impl FlexFlow {
 
             line_interval = match line_align {
                 align_content::T::space_between => {
-                    if line_count == 1 {
+                    if line_count <= 1 {
                         Au(0)
                     } else {
                         free_space / (line_count - 1)
                     }
                 }
                 align_content::T::space_around => {
-                    free_space / line_count
+                    if line_count == 0 {
+                        Au(0)
+                    } else {
+                        free_space / line_count
+                    }
                 }
                 _ => Au(0),
             };
