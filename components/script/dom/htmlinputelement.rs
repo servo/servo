@@ -52,7 +52,7 @@ use std::ops::Range;
 use style::attr::AttrValue;
 use style::element_state::*;
 use style::str::split_commas;
-use textinput::{SelectionDirection, TextInput};
+use textinput::{Direction, Selection, SelectionDirection, TextInput};
 use textinput::KeyReaction::{DispatchInput, Nothing, RedrawSelection, TriggerDefaultAction};
 use textinput::Lines::Single;
 
@@ -176,7 +176,7 @@ impl HTMLInputElement {
             .map_or_else(|| atom!(""), |a| a.value().as_atom().to_owned())
     }
 
-    // https://html.spec.whatwg.org/multipage/#input-type-attr-summary
+    // https://html.spec.whatwg.org/multipage/#common-input-element-apis
     fn value_mode(&self) -> ValueMode {
         match self.input_type.get() {
             InputType::InputSubmit |
@@ -410,8 +410,19 @@ impl HTMLInputElementMethods for HTMLInputElement {
     fn SetValue(&self, value: DOMString) -> ErrorResult {
         match self.value_mode() {
             ValueMode::Value => {
+                // Step 1.
+                let old_value = self.textinput.borrow().get_content();
+                // Step 2.
                 self.textinput.borrow_mut().set_content(value);
+                // Step 3.
                 self.value_dirty.set(true);
+                // Step 4.
+                self.sanitize_value();
+                // Step 5.
+                if self.textinput.borrow().get_content() != old_value {
+                    self.textinput.borrow_mut()
+                                  .adjust_horizontal_to_limit(Direction::Forward, Selection::NotSelected);
+                }
             }
             ValueMode::Default |
             ValueMode::DefaultOn => {
@@ -860,6 +871,28 @@ impl HTMLInputElement {
             target.fire_bubbling_event(atom!("change"));
         }
     }
+
+    // https://html.spec.whatwg.org/multipage/#value-sanitization-algorithm
+    fn sanitize_value(&self) {
+        let new_value = match self.type_() {
+            atom!("text") | atom!("search") | atom!("tel") | atom!("password") => {
+                DOMString::from(self.textinput.borrow().get_content()
+                                                       .chars()
+                                                       .filter(|&c| c != '\r' && c != '\n')
+                                                       .collect::<String>())
+            }
+            atom!("url") => {
+                DOMString::from(self.textinput.borrow().get_content()
+                                                       .chars()
+                                                       .filter(|&c| c != '\r' && c != '\n')
+                                                       .collect::<String>()
+                                                       .trim_matches(char::is_whitespace))
+            }
+            // TODO: Implement more value sanitization algorithms for different types of inputs
+            _ => return
+        };
+        self.textinput.borrow_mut().set_content(new_value);
+    }
 }
 
 impl VirtualMethods for HTMLInputElement {
@@ -973,7 +1006,8 @@ impl VirtualMethods for HTMLInputElement {
                                 self.radio_group_name().as_ref());
                         }
 
-                        // TODO: Step 6 - value sanitization
+                        // Step 6
+                        self.sanitize_value();
                     },
                     AttributeMutation::Removed => {
                         if self.input_type.get() == InputType::InputRadio {
