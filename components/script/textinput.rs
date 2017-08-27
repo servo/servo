@@ -754,6 +754,18 @@ impl<T: ClipboardProvider> TextInput<T> {
         DOMString::from(content)
     }
 
+    /// Get a reference to the contents of a single-line text input. Panics if self is a multiline input.
+    pub fn single_line_content(&self) -> &DOMString {
+        assert!(!self.multiline);
+        &self.lines[0]
+    }
+
+    /// Get a mutable reference to the contents of a single-line text input. Panics if self is a multiline input.
+    pub fn single_line_content_mut(&mut self) -> &mut DOMString {
+        assert!(!self.multiline);
+        &mut self.lines[0]
+    }
+
     /// Set the current contents of the text input. If this is control supports multiple lines,
     /// any \n encountered will be stripped and force a new logical line.
     pub fn set_content(&mut self, content: DOMString) {

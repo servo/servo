@@ -51,6 +51,8 @@
             input.type = types[j].type;  // change state
             if (types[j].sanitizedValue || types[j].sanitizedValue === "") {
               assert_equals(input.value, types[j].sanitizedValue, "input.value should be " + types[j].sanitizedValue + " after change of state");
+            } else if (types[i].sanitizedValue || types[i].sanitizedValue === "") {
+              assert_equals(input.value, types[i].sanitizedValue, "input.value should be " + types[i].sanitizedValue + " after change of state");
             } else {
               assert_equals(input.value, "  foo\rbar  ", "input.value should be '  foo\\rbar  ' after change of state");
             }
