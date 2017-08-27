@@ -194,7 +194,12 @@ where
                     &primary_style,
                     layout_parent_style_for_pseudo
                 );
+
                 if let Some(style) = pseudo_style {
+                    if !matches!(self.pseudo_resolution, PseudoElementResolution::Force) &&
+                       eager_pseudo_is_definitely_not_generated(&pseudo, &style) {
+                        return;
+                    }
                     pseudo_styles.set(&pseudo, style);
                 }
             })
