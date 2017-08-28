@@ -51,6 +51,10 @@ impl PerformanceEntry {
     pub fn name(&self) -> &DOMString {
         &self.name
     }
+
+    pub fn start_time(&self) -> f64 {
+        self.start_time
+    }
 }
 
 impl PerformanceEntryMethods for PerformanceEntry {
