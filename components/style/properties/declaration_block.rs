@@ -97,12 +97,7 @@ impl<'a> Iterator for PropertyDeclarationIterator<'a> {
     type Item = &'a PropertyDeclaration;
     #[inline]
     fn next(&mut self) -> Option<&'a PropertyDeclaration> {
-        // we use this function because a closure won't be `Clone`
-        fn get_declaration(dec: &(PropertyDeclaration, Importance))
-            -> &PropertyDeclaration {
-            &dec.0
-        }
-        self.iter.next().map(get_declaration as fn(_) -> _)
+        self.iter.next().map(|&(ref decl, _)| decl)
     }
 }
 
