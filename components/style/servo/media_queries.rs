@@ -101,6 +101,12 @@ impl Device {
     #[inline]
     pub fn au_viewport_size(&self) -> Size2D<Au> {
         self.used_viewport_units.store(true, Ordering::Relaxed);
+        self.au_viewport_size_for_media_query_resolution()
+    }
+
+    /// A version of the above function that doesn't assume it's used for
+    /// viewport percentages.
+    fn au_viewport_size_for_media_query_resolution(&self) -> Size2D<Au> {
         Size2D::new(Au::from_f32_px(self.viewport_size.width),
                     Au::from_f32_px(self.viewport_size.height))
     }
@@ -193,7 +199,7 @@ impl Expression {
     /// Evaluate this expression and return whether it matches the current
     /// device.
     pub fn matches(&self, device: &Device, quirks_mode: QuirksMode) -> bool {
-        let viewport_size = device.au_viewport_size();
+        let viewport_size = device.au_viewport_size_for_media_query_resolution();
         let value = viewport_size.width;
         match self.0 {
             ExpressionKind::Width(ref range) => {
