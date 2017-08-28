@@ -1676,19 +1676,19 @@ impl ScriptThread {
         // the pipeline exited before the page load completed.
         match idx {
             Some(idx) => {
-                let load = self.incomplete_loads.borrow_mut().remove(idx);
-
                 // https://html.spec.whatwg.org/multipage/#process-a-navigate-response
                 // 2. If response's status is 204 or 205, then abort these steps.
                 match metadata {
                     Some(Metadata { status: Some((204 ... 205, _)), .. }) => {
-                        // TODO: This leaves the page in a broken state where you can't follow
-                        // other links. Fix this.
+                        self.script_sender
+                            .send((id.clone(), ScriptMsg::AbortLoadUrl))
+                            .unwrap();
                         return None;
                     },
                     _ => ()
                 };
 
+                let load = self.incomplete_loads.borrow_mut().remove(idx);
                 metadata.map(|meta| self.load(meta, load))
             }
             None => {
