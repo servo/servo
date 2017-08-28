@@ -118,6 +118,7 @@ use task_source::networking::NetworkingTaskSource;
 use task_source::performance_timeline::{PerformanceTimelineTask, PerformanceTimelineTaskSource};
 use task_source::user_interaction::{UserInteractionTask, UserInteractionTaskSource};
 use time::{get_time, precise_time_ns, Tm};
+use url::percent_encoding::percent_decode;
 use url::Position;
 use webdriver_handlers;
 use webvr_traits::{WebVREvent, WebVRMsg};
@@ -2309,67 +2310,68 @@ impl ScriptThread {
                               browsing_context_id: Option<BrowsingContextId>,
                               mut load_data: LoadData,
                               replace: bool) {
+        let is_javascript = load_data.url.scheme() == "javascript";
+        if is_javascript {
+            self.eval_js_url(parent_pipeline_id, &mut load_data);
+        }
+
         match browsing_context_id {
             Some(browsing_context_id) => {
                 let iframe = self.documents.borrow().find_iframe(parent_pipeline_id, browsing_context_id);
                 if let Some(iframe) = iframe {
                     iframe.navigate_or_reload_child_browsing_context(Some(load_data), NavigationType::Regular, replace);
                 }
-
-                // TODO: Test javascript: urls in iframes
             }
             None => {
-                let is_javascript = load_data.url.scheme() == "javascript";
-                if is_javascript {
-                    use url::percent_encoding::percent_decode;
-
-                    // Turn javascript: URL into JS code to eval, according to the steps in
-                    // https://html.spec.whatwg.org/multipage/#javascript-protocol
-
-                    // This slice of the URL’s serialization is equivalent to (5.) to (7.):
-                    // Start with the scheme data of the parsed URL;
-                    // append question mark and query component, if any;
-                    // append number sign and fragment component if any.
-                    let encoded = &load_data.url[Position::BeforePath..];
-
-                    // Percent-decode (8.) and UTF-8 decode (9.)
-                    let script_source = percent_decode(encoded.as_bytes()).decode_utf8_lossy();
-
-                    // Script source is ready to be evaluated (11.)
-                    let window = self.documents.borrow().find_window(parent_pipeline_id);
-                    if let Some(window) = window {
-                        let _ac = JSAutoCompartment::new(self.get_cx(), window.reflector().get_jsobject().get());
-                        rooted!(in(self.get_cx()) let mut jsval = UndefinedValue());
-                        window.upcast::<GlobalScope>().evaluate_js_on_global_with_result(
-                            &script_source, jsval.handle_mut());
-
-                        load_data.js_eval_result = if jsval.get().is_string() {
-                            unsafe {
-                                let strval = DOMString::from_jsval(self.get_cx(),
-                                                                   jsval.handle(),
-                                                                   StringificationBehavior::Empty);
-                                match strval {
-                                    Ok(ConversionResult::Success(s)) => {
-                                        Some(JsEvalResult::Ok(String::from(s).as_bytes().to_vec()))
-                                    },
-                                    _ => None,
-                                }
-                            }
-                        } else {
-                            Some(JsEvalResult::NoContent)
-                        };
-                    }
-                }
-
-                if is_javascript {
-                    load_data.url = ServoUrl::parse("about:blank").unwrap();
-                }
-
                 self.script_sender
                     .send((parent_pipeline_id, ScriptMsg::LoadUrl(load_data, replace)))
                     .unwrap();
             }
         }
+    }
+
+    fn eval_js_url(&self, pipeline_id: PipelineId, load_data: &mut LoadData) {
+        {
+            // Turn javascript: URL into JS code to eval, according to the steps in
+            // https://html.spec.whatwg.org/multipage/#javascript-protocol
+
+            // This slice of the URL’s serialization is equivalent to (5.) to (7.):
+            // Start with the scheme data of the parsed URL;
+            // append question mark and query component, if any;
+            // append number sign and fragment component if any.
+            let encoded = &load_data.url[Position::BeforePath..];
+
+            // Percent-decode (8.) and UTF-8 decode (9.)
+            let script_source = percent_decode(encoded.as_bytes()).decode_utf8_lossy();
+
+            // Script source is ready to be evaluated (11.)
+            let window = self.documents.borrow().find_window(pipeline_id);
+
+            if let Some(window) = window {
+                let _ac = JSAutoCompartment::new(self.get_cx(), window.reflector().get_jsobject().get());
+                rooted!(in(self.get_cx()) let mut jsval = UndefinedValue());
+                window.upcast::<GlobalScope>().evaluate_js_on_global_with_result(
+                    &script_source, jsval.handle_mut());
+
+                load_data.js_eval_result = if jsval.get().is_string() {
+                    unsafe {
+                        let strval = DOMString::from_jsval(self.get_cx(),
+                                                           jsval.handle(),
+                                                           StringificationBehavior::Empty);
+                        match strval {
+                            Ok(ConversionResult::Success(s)) => {
+                                Some(JsEvalResult::Ok(String::from(s).as_bytes().to_vec()))
+                            },
+                            _ => None,
+                        }
+                    }
+                } else {
+                    Some(JsEvalResult::NoContent)
+                };
+            }
+        };
+
+        load_data.url = ServoUrl::parse("about:blank").unwrap();
     }
 
     fn handle_resize_event(&self, pipeline_id: PipelineId, new_size: WindowSizeData, size_type: WindowSizeType) {
