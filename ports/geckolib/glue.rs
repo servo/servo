@@ -3722,6 +3722,19 @@ pub extern "C" fn Servo_ProcessInvalidations(set: RawServoStyleSetBorrowed,
     let mut data = data.as_mut().map(|d| &mut **d);
 
     if let Some(ref mut data) = data {
-        data.invalidate_style_if_needed(element, &shared_style_context, None);
+        let result = data.invalidate_style_if_needed(element, &shared_style_context, None);
+        if result.has_invalidated() {
+            if let Some(sibling) = element.next_sibling_element() {
+                let parent = sibling.inheritance_parent();
+                debug_assert!(parent.is_some());
+                let parent = parent.unwrap();
+                unsafe {
+                    bindings::Gecko_NoteDirtyElement(parent.0);
+                    parent.set_dirty_descendants();
+                };
+            } else {
+                unsafe { bindings::Gecko_NoteDirtyElement(element.0); };
+            }
+        }
     }
 }

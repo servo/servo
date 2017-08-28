@@ -6,6 +6,7 @@
 
 use context::{SharedStyleContext, StackLimitChecker};
 use dom::TElement;
+use invalidation::element::invalidator::InvalidationResult;
 use invalidation::element::restyle_hints::RestyleHint;
 use properties::ComputedValues;
 use properties::longhands::display::computed_value as display;
@@ -329,10 +330,12 @@ impl ElementData {
         element: E,
         shared_context: &SharedStyleContext,
         stack_limit_checker: Option<&StackLimitChecker>,
-    ) {
+    ) -> InvalidationResult {
+        let mut result = InvalidationResult::empty();
+
         // In animation-only restyle we shouldn't touch snapshot at all.
         if shared_context.traversal_flags.for_animation_only() {
-            return;
+            return result;
         }
 
         use invalidation::element::invalidator::TreeStyleInvalidator;
@@ -352,10 +355,12 @@ impl ElementData {
                 shared_context,
                 stack_limit_checker,
             );
-            invalidator.invalidate();
+            result = invalidator.invalidate();
             unsafe { element.set_handled_snapshot() }
             debug_assert!(element.handled_snapshot());
         }
+
+        result
     }
 
     /// Returns true if this element has styles.

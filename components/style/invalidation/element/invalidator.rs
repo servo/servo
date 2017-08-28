@@ -115,12 +115,38 @@ impl fmt::Debug for Invalidation {
 }
 
 /// The result of processing a single invalidation for a given element.
-struct InvalidationResult {
+struct InvalidationResultSingle {
     /// Whether the element itself was invalidated.
     invalidated_self: bool,
     /// Whether the invalidation matched, either invalidating the element or
     /// generating another invalidation.
     matched: bool,
+}
+
+/// The result of a whole invalidation process for a given element.
+pub struct InvalidationResult {
+    /// Whether the element itself was invalidated.
+    invalidated_self: bool,
+    /// Whether the element's descendants were invalidated.
+    invalidated_descendants: bool,
+    /// Whether the element's siblings were invalidated.
+    invalidated_siblings: bool,
+}
+
+impl InvalidationResult {
+    /// Create an emtpy result.
+    pub fn empty() -> Self {
+        Self {
+            invalidated_self:        false,
+            invalidated_descendants: false,
+            invalidated_siblings:    false,
+        }
+    }
+
+    /// Whether the invalidation has invalidate anything.
+    pub fn has_invalidated(&self) -> bool {
+        self.invalidated_self || self.invalidated_descendants || self.invalidated_siblings
+    }
 }
 
 impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
@@ -142,7 +168,7 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
     }
 
     /// Perform the invalidation pass.
-    pub fn invalidate(mut self) {
+    pub fn invalidate(mut self) -> InvalidationResult {
         debug!("StyleTreeInvalidator::invalidate({:?})", self.element);
         debug_assert!(self.element.has_snapshot(), "Why bothering?");
         debug_assert!(self.data.is_some(), "How exactly?");
@@ -155,7 +181,7 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
         let snapshot = wrapper.snapshot().expect("has_snapshot lied");
 
         if !snapshot.has_attrs() && state_changes.is_empty() {
-            return;
+            return InvalidationResult::empty();
         }
 
         // If we are sensitive to visitedness and the visited state changed, we
@@ -252,8 +278,10 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
         debug!("Collected invalidations (self: {}): ", invalidated_self);
         debug!(" > descendants: {:?}", descendant_invalidations);
         debug!(" > siblings: {:?}", sibling_invalidations);
-        self.invalidate_descendants(&descendant_invalidations);
-        self.invalidate_siblings(&mut sibling_invalidations);
+        let invalidated_descendants = self.invalidate_descendants(&descendant_invalidations);
+        let invalidated_siblings = self.invalidate_siblings(&mut sibling_invalidations);
+
+        InvalidationResult{ invalidated_self, invalidated_descendants, invalidated_siblings }
     }
 
     /// Go through later DOM siblings, invalidating style as needed using the
@@ -585,7 +613,7 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
         descendant_invalidations: &mut InvalidationVector,
         sibling_invalidations: &mut InvalidationVector,
         invalidation_kind: InvalidationKind,
-    ) -> InvalidationResult {
+    ) -> InvalidationResultSingle {
         debug!("TreeStyleInvalidator::process_invalidation({:?}, {:?}, {:?})",
                self.element, invalidation, invalidation_kind);
 
@@ -759,7 +787,7 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
             }
         }
 
-        InvalidationResult { invalidated_self, matched, }
+        InvalidationResultSingle { invalidated_self, matched, }
     }
 }
 
