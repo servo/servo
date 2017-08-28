@@ -2623,13 +2623,7 @@ where
             (&SVGLength::Length(ref this), &SVGLength::Length(ref other)) => {
                 Ok(SVGLength::Length(this.animate(other, procedure)?))
             },
-            _ => {
-                // FIXME(nox): Is this correct for addition and accumulation?
-                // I think an error should be returned if it's not
-                // an interpolation.
-                let (this_weight, other_weight) = procedure.weights();
-                Ok(if this_weight > other_weight { self.clone() } else { other.clone() })
-            },
+            _ => Err(()),
         }
     }
 }
@@ -2649,10 +2643,7 @@ where
             (&SVGStrokeDashArray::Values(ref this), &SVGStrokeDashArray::Values(ref other)) => {
                 Ok(SVGStrokeDashArray::Values(this.animate(other, procedure)?))
             },
-            _ => {
-                let (this_weight, other_weight) = procedure.weights();
-                Ok(if this_weight > other_weight { self.clone() } else { other.clone() })
-            },
+            _ => Err(()),
         }
     }
 }
@@ -2684,13 +2675,7 @@ where
             (&SVGOpacity::Opacity(ref this), &SVGOpacity::Opacity(ref other)) => {
                 Ok(SVGOpacity::Opacity(this.animate(other, procedure)?))
             },
-            _ => {
-                // FIXME(nox): Is this correct for addition and accumulation?
-                // I think an error should be returned if it's not
-                // an interpolation.
-                let (this_weight, other_weight) = procedure.weights();
-                Ok(if this_weight > other_weight { self.clone() } else { other.clone() })
-            },
+            _ => Err(()),
         }
     }
 }
