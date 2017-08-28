@@ -3706,5 +3706,8 @@ pub extern "C" fn Servo_ProcessInvalidations(set: RawServoStyleSetBorrowed,
 
     if let Some(ref mut data) = data {
         data.invalidate_style_if_needed(element, &shared_style_context, None);
+        if data.restyle.hint.contains_subtree() {
+            unsafe { bindings::Gecko_NoteDirtyElement(element.0); };
+        }
     }
 }
