@@ -29,7 +29,11 @@ partial interface Performance {
                                         optional DOMString type);
 };
 
+<<<<<<< HEAD
 // https://w3c.github.io/user-timing/#extensions-performance-interface
+=======
+// http://www.w3.org/TR/user-timing/
+>>>>>>> User Timing API
 [Exposed=(Window,Worker)]
 partial interface Performance {
   [Throws]
