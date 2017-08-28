@@ -10,7 +10,7 @@ use parser::{Parse, ParserContext};
 use std::{fmt, mem, usize};
 use style_traits::{ToCss, ParseError, StyleParseError};
 use values::{CSSFloat, CustomIdent, serialize_dimension};
-use values::computed::ComputedValueAsSpecified;
+use values::computed::{ComputedValueAsSpecified, Context, ToComputedValue};
 use values::specified::Integer;
 use values::specified::grid::parse_line_names;
 
@@ -182,7 +182,7 @@ impl<L: ToCss> ToCss for TrackBreadth<L> {
 ///
 /// https://drafts.csswg.org/css-grid/#typedef-track-size
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Debug, HasViewportPercentage, PartialEq, ToComputedValue)]
+#[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
 pub enum TrackSize<L> {
     /// A flexible `<track-breadth>`
     Breadth(TrackBreadth<L>),
@@ -259,6 +259,57 @@ impl<L: ToCss> ToCss for TrackSize<L> {
                 dest.write_str("fit-content(")?;
                 lop.to_css(dest)?;
                 dest.write_str(")")
+            },
+        }
+    }
+}
+
+impl<L: ToComputedValue> ToComputedValue for TrackSize<L> {
+    type ComputedValue = TrackSize<L::ComputedValue>;
+
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
+        match *self {
+            TrackSize::Breadth(TrackBreadth::Flex(ref f)) => {
+                // <flex> outside `minmax()` expands to `mimmax(auto, <flex>)`
+                // https://drafts.csswg.org/css-grid/#valdef-grid-template-columns-flex
+                // FIXME(nox): This sounds false, the spec just says that <flex>
+                // implies `minmax(auto, <flex>)`, not that it should be changed
+                // into `minmax` at computed value time.
+                TrackSize::Minmax(
+                    TrackBreadth::Keyword(TrackKeyword::Auto),
+                    TrackBreadth::Flex(f.to_computed_value(context)),
+                )
+            },
+            TrackSize::Breadth(ref b) => {
+                TrackSize::Breadth(b.to_computed_value(context))
+            },
+            TrackSize::Minmax(ref b1, ref b2) => {
+                TrackSize::Minmax(
+                    b1.to_computed_value(context),
+                    b2.to_computed_value(context),
+                )
+            }
+            TrackSize::FitContent(ref lop) => {
+                TrackSize::FitContent(lop.to_computed_value(context))
+            },
+        }
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        match *computed {
+            TrackSize::Breadth(ref b) => {
+                TrackSize::Breadth(ToComputedValue::from_computed_value(b))
+            },
+            TrackSize::Minmax(ref b1, ref b2) => {
+                TrackSize::Minmax(
+                    ToComputedValue::from_computed_value(b1),
+                    ToComputedValue::from_computed_value(b2),
+                )
+            },
+            TrackSize::FitContent(ref lop) => {
+                TrackSize::FitContent(ToComputedValue::from_computed_value(lop))
             },
         }
     }
