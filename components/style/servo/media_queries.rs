@@ -48,21 +48,26 @@ pub struct Device {
     /// by using rem units.
     #[ignore_heap_size_of = "Pure stack type"]
     used_root_font_size: AtomicBool,
+    /// Whether any styles computed in the document relied on the viewport size.
+    #[ignore_heap_size_of = "Pure stack type"]
+    used_viewport_units: AtomicBool,
 }
 
 impl Device {
     /// Trivially construct a new `Device`.
-    pub fn new(media_type: MediaType,
-               viewport_size: TypedSize2D<f32, CSSPixel>,
-               device_pixel_ratio: ScaleFactor<f32, CSSPixel, DevicePixel>)
-               -> Device {
+    pub fn new(
+        media_type: MediaType,
+        viewport_size: TypedSize2D<f32, CSSPixel>,
+        device_pixel_ratio: ScaleFactor<f32, CSSPixel, DevicePixel>
+    ) -> Device {
         Device {
-            media_type: media_type,
-            viewport_size: viewport_size,
-            device_pixel_ratio: device_pixel_ratio,
+            media_type,
+            viewport_size,
+            device_pixel_ratio,
             // FIXME(bz): Seems dubious?
             root_font_size: AtomicIsize::new(font_size::get_initial_value().value() as isize),
             used_root_font_size: AtomicBool::new(false),
+            used_viewport_units: AtomicBool::new(false),
         }
     }
 
@@ -98,10 +103,15 @@ impl Device {
                     Au::from_f32_px(self.viewport_size.height))
     }
 
-    /// Returns the viewport size in pixels.
-    #[inline]
-    pub fn px_viewport_size(&self) -> TypedSize2D<f32, CSSPixel> {
-        self.viewport_size
+    /// Like the above, but records that we've used viewport units.
+    pub fn au_viewport_size_for_viewport_unit_resolution(&self) -> Size2D<Au> {
+        self.used_viewport_units.store(true, Ordering::Relaxed);
+        self.au_viewport_size()
+    }
+
+    /// Whether viewport units were used since the last device change.
+    pub fn used_viewport_units(&self) -> bool {
+        self.used_viewport_units.load(Ordering::Relaxed)
     }
 
     /// Returns the device pixel ratio.

@@ -289,7 +289,6 @@ impl<'a> StyleStylesheetLoader for StylesheetLoader<'a> {
                 rules: CssRules::new(Vec::new(), lock),
                 origin: context.stylesheet_origin,
                 url_data: RwLock::new(context.url_data.clone()),
-                dirty_on_viewport_size_change: AtomicBool::new(false),
                 quirks_mode: context.quirks_mode,
                 namespaces: RwLock::new(Namespaces::default()),
                 source_map_url: RwLock::new(None),

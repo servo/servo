@@ -127,9 +127,9 @@ impl<'a> Context<'a> {
         self.builder.device
     }
 
-    /// The current viewport size.
-    pub fn viewport_size(&self) -> Size2D<Au> {
-        self.builder.device.au_viewport_size()
+    /// The current viewport size, used to resolve viewport units.
+    pub fn viewport_size_for_viewport_unit_resolution(&self) -> Size2D<Au> {
+        self.builder.device.au_viewport_size_for_viewport_unit_resolution()
     }
 
     /// The default computed style we're getting our reset style from.
