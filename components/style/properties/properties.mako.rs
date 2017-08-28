@@ -1011,10 +1011,6 @@ impl PropertyId {
     /// will be used. It is `Origin::Author` for stylesheet_origin and
     /// `CssRuleType::Style` for rule_type.
     pub fn parse(property_name: &str, context: Option< &PropertyParserContext>) -> Result<Self, ()> {
-        if let Ok(name) = ::custom_properties::parse_name(property_name) {
-            return Ok(PropertyId::Custom(::custom_properties::Name::from(name)))
-        }
-
         // FIXME(https://github.com/rust-lang/rust/issues/33156): remove this enum and use PropertyId
         // when stable Rust allows destructors in statics.
         // ShorthandAlias is not used in servo build. That's why we need to allow dead_code.
@@ -1071,7 +1067,8 @@ impl PropertyId {
             Some(&StaticId::ShorthandAlias(id, alias)) => {
                 (PropertyId::Shorthand(id), Some(alias))
             },
-            None => return Err(()),
+            None => return ::custom_properties::parse_name(property_name)
+                .map(|name| PropertyId::Custom(::custom_properties::Name::from(name))),
         };
         id.check_allowed_in(alias, context).map_err(|_| ())?;
         Ok(id)
