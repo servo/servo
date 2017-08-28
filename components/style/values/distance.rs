@@ -10,6 +10,17 @@ use std::iter::Sum;
 use std::ops::Add;
 
 /// A trait to compute squared distances between two animatable values.
+///
+/// This trait is derivable with `#[derive(ComputeSquaredDistance)]`. The derived
+/// implementation uses a `match` expression with identical patterns for both
+/// `self` and `other`, calling `ComputeSquaredDistance::compute_squared_distance`
+/// on each fields of the values.
+///
+/// If a variant is annotated with `#[animation(error)]`, the corresponding
+/// `match` arm is not generated.
+///
+/// If the two values are not similar, an error is returned unless a fallback
+/// function has been specified through `#[distance(fallback)]`.
 pub trait ComputeSquaredDistance {
     /// Computes the squared distance between two animatable values.
     fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()>;

@@ -11,7 +11,7 @@ use style_traits::ToCss;
 use style_traits::values::specified::AllowedLengthType;
 use super::{Number, ToComputedValue, Context, Percentage};
 use values::{Auto, CSSFloat, Either, ExtremumLength, None_, Normal, specified};
-use values::animated::ToAnimatedZero;
+use values::animated::{Animate, Procedure, ToAnimatedZero};
 use values::computed::{NonNegativeAu, NonNegativeNumber};
 use values::distance::{ComputeSquaredDistance, SquaredDistance};
 use values::generics::NonNegative;
@@ -64,24 +64,14 @@ impl ToComputedValue for specified::Length {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Copy, Debug, PartialEq, ToAnimatedZero)]
 pub struct CalcLengthOrPercentage {
+    #[animation(constant)]
     pub clamping_mode: AllowedLengthType,
     length: Au,
     pub percentage: Option<Percentage>,
-}
-
-impl ToAnimatedZero for CalcLengthOrPercentage {
-    #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> {
-        Ok(CalcLengthOrPercentage {
-            clamping_mode: self.clamping_mode,
-            length: self.length.to_animated_zero()?,
-            percentage: self.percentage.to_animated_zero()?,
-        })
-    }
 }
 
 impl ComputeSquaredDistance for CalcLengthOrPercentage {
@@ -285,28 +275,47 @@ impl ToComputedValue for specified::CalcLengthOrPercentage {
 }
 
 #[allow(missing_docs)]
+#[animate(fallback = "Self::animate_fallback")]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Copy, PartialEq, ToAnimatedZero, ToCss)]
+#[css(derive_debug)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, PartialEq)]
+#[derive(ToAnimatedZero, ToCss)]
+#[distance(fallback = "Self::compute_squared_distance_fallback")]
 pub enum LengthOrPercentage {
     Length(Au),
     Percentage(Percentage),
     Calc(CalcLengthOrPercentage),
 }
 
-impl ComputeSquaredDistance for LengthOrPercentage {
-    #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        match (self, other) {
-            (&LengthOrPercentage::Length(ref this), &LengthOrPercentage::Length(ref other)) => {
-                this.compute_squared_distance(other)
-            },
-            (&LengthOrPercentage::Percentage(ref this), &LengthOrPercentage::Percentage(ref other)) => {
-                this.compute_squared_distance(other)
-            },
-            (this, other) => {
-                CalcLengthOrPercentage::compute_squared_distance(&(*this).into(), &(*other).into())
-            }
+impl LengthOrPercentage {
+    /// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
+    fn animate_fallback(
+        &self,
+        other: &Self,
+        procedure: Procedure,
+    ) -> Result<Self, ()> {
+        // Special handling for zero values since these should not require calc().
+        if self.is_definitely_zero() {
+            return other.to_animated_zero()?.animate(other, procedure);
         }
+        if other.is_definitely_zero() {
+            return self.animate(&self.to_animated_zero()?, procedure);
+        }
+
+        let this = CalcLengthOrPercentage::from(*self);
+        let other = CalcLengthOrPercentage::from(*other);
+        Ok(LengthOrPercentage::Calc(this.animate(&other, procedure)?))
+    }
+
+    #[inline]
+    fn compute_squared_distance_fallback(
+        &self,
+        other: &Self,
+    ) -> Result<SquaredDistance, ()> {
+        CalcLengthOrPercentage::compute_squared_distance(
+            &(*self).into(),
+            &(*other).into(),
+        )
     }
 }
 
@@ -379,16 +388,6 @@ impl LengthOrPercentage {
     }
 }
 
-impl fmt::Debug for LengthOrPercentage {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            LengthOrPercentage::Length(length) => write!(f, "{:?}", length),
-            LengthOrPercentage::Percentage(percentage) => write!(f, "{}%", percentage.0 * 100.),
-            LengthOrPercentage::Calc(calc) => write!(f, "{:?}", calc),
-        }
-    }
-}
-
 impl ToComputedValue for specified::LengthOrPercentage {
     type ComputedValue = LengthOrPercentage;
 
@@ -426,8 +425,11 @@ impl ToComputedValue for specified::LengthOrPercentage {
 }
 
 #[allow(missing_docs)]
+#[animate(fallback = "Self::animate_fallback")]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Copy, PartialEq, ToCss)]
+#[css(derive_debug)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, PartialEq, ToCss)]
+#[distance(fallback = "Self::compute_squared_distance_fallback")]
 pub enum LengthOrPercentageOrAuto {
     Length(Au),
     Percentage(Percentage),
@@ -435,20 +437,29 @@ pub enum LengthOrPercentageOrAuto {
     Calc(CalcLengthOrPercentage),
 }
 
-impl ComputeSquaredDistance for LengthOrPercentageOrAuto {
+impl LengthOrPercentageOrAuto {
+    /// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
+    fn animate_fallback(
+        &self,
+        other: &Self,
+        procedure: Procedure,
+    ) -> Result<Self, ()> {
+        let this = <Option<CalcLengthOrPercentage>>::from(*self);
+        let other = <Option<CalcLengthOrPercentage>>::from(*other);
+        Ok(LengthOrPercentageOrAuto::Calc(
+            this.animate(&other, procedure)?.ok_or(())?,
+        ))
+    }
+
     #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        match (self, other) {
-            (&LengthOrPercentageOrAuto::Length(ref this), &LengthOrPercentageOrAuto::Length(ref other)) => {
-                this.compute_squared_distance(other)
-            },
-            (&LengthOrPercentageOrAuto::Percentage(ref this), &LengthOrPercentageOrAuto::Percentage(ref other)) => {
-                this.compute_squared_distance(other)
-            },
-            (this, other) => {
-                <Option<CalcLengthOrPercentage>>::compute_squared_distance(&(*this).into(), &(*other).into())
-            }
-        }
+    fn compute_squared_distance_fallback(
+        &self,
+        other: &Self,
+    ) -> Result<SquaredDistance, ()> {
+        <Option<CalcLengthOrPercentage>>::compute_squared_distance(
+            &(*self).into(),
+            &(*other).into(),
+        )
     }
 }
 
@@ -463,17 +474,6 @@ impl LengthOrPercentageOrAuto {
             Length(Au(0)) => true,
             Percentage(p) => p.0 == 0.0,
             Length(_) | Calc(_) | Auto => false
-        }
-    }
-}
-
-impl fmt::Debug for LengthOrPercentageOrAuto {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            LengthOrPercentageOrAuto::Length(length) => write!(f, "{:?}", length),
-            LengthOrPercentageOrAuto::Percentage(percentage) => write!(f, "{}%", percentage.0 * 100.),
-            LengthOrPercentageOrAuto::Auto => write!(f, "auto"),
-            LengthOrPercentageOrAuto::Calc(calc) => write!(f, "{:?}", calc),
         }
     }
 }
@@ -521,8 +521,11 @@ impl ToComputedValue for specified::LengthOrPercentageOrAuto {
 }
 
 #[allow(missing_docs)]
+#[animate(fallback = "Self::animate_fallback")]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Copy, PartialEq, ToCss)]
+#[css(derive_debug)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, PartialEq, ToCss)]
+#[distance(fallback = "Self::compute_squared_distance_fallback")]
 pub enum LengthOrPercentageOrNone {
     Length(Au),
     Percentage(Percentage),
@@ -530,20 +533,28 @@ pub enum LengthOrPercentageOrNone {
     None,
 }
 
-impl ComputeSquaredDistance for LengthOrPercentageOrNone {
-    #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        match (self, other) {
-            (&LengthOrPercentageOrNone::Length(ref this), &LengthOrPercentageOrNone::Length(ref other)) => {
-                this.compute_squared_distance(other)
-            },
-            (&LengthOrPercentageOrNone::Percentage(ref this), &LengthOrPercentageOrNone::Percentage(ref other)) => {
-                this.compute_squared_distance(other)
-            },
-            (this, other) => {
-                <Option<CalcLengthOrPercentage>>::compute_squared_distance(&(*this).into(), &(*other).into())
-            }
-        }
+impl LengthOrPercentageOrNone {
+    /// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
+    fn animate_fallback(
+        &self,
+        other: &Self,
+        procedure: Procedure,
+    ) -> Result<Self, ()> {
+        let this = <Option<CalcLengthOrPercentage>>::from(*self);
+        let other = <Option<CalcLengthOrPercentage>>::from(*other);
+        Ok(LengthOrPercentageOrNone::Calc(
+            this.animate(&other, procedure)?.ok_or(())?,
+        ))
+    }
+
+    fn compute_squared_distance_fallback(
+        &self,
+        other: &Self,
+    ) -> Result<SquaredDistance, ()> {
+        <Option<CalcLengthOrPercentage>>::compute_squared_distance(
+            &(*self).into(),
+            &(*other).into(),
+        )
     }
 }
 
@@ -555,17 +566,6 @@ impl LengthOrPercentageOrNone {
             LengthOrPercentageOrNone::Length(length) => Some(length),
             LengthOrPercentageOrNone::Percentage(percent) => Some(containing_length.scale_by(percent.0)),
             LengthOrPercentageOrNone::Calc(ref calc) => calc.to_used_value(Some(containing_length)),
-        }
-    }
-}
-
-impl fmt::Debug for LengthOrPercentageOrNone {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            LengthOrPercentageOrNone::Length(length) => write!(f, "{:?}", length),
-            LengthOrPercentageOrNone::Percentage(percentage) => write!(f, "{}%", percentage.0 * 100.),
-            LengthOrPercentageOrNone::Calc(calc) => write!(f, "{:?}", calc),
-            LengthOrPercentageOrNone::None => write!(f, "none"),
         }
     }
 }
@@ -695,26 +695,12 @@ pub type NonNegativeLengthOrNumber = Either<NonNegativeLength, NonNegativeNumber
 /// See values/specified/length.rs for more details.
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Copy, Debug, PartialEq, ToCss)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, PartialEq)]
+#[derive(ToAnimatedZero, ToCss)]
 pub enum MozLength {
     LengthOrPercentageOrAuto(LengthOrPercentageOrAuto),
+    #[animation(error)]
     ExtremumLength(ExtremumLength),
-}
-
-impl ComputeSquaredDistance for MozLength {
-    #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        match (self, other) {
-            (&MozLength::LengthOrPercentageOrAuto(ref this), &MozLength::LengthOrPercentageOrAuto(ref other)) => {
-                this.compute_squared_distance(other)
-            },
-            _ => {
-                // FIXME(nox): Should this return `Ok(SquaredDistance::Value(1.))`
-                // when `self` and `other` are the same extremum value?
-                Err(())
-            },
-        }
-    }
 }
 
 impl MozLength {
@@ -755,26 +741,11 @@ impl ToComputedValue for specified::MozLength {
 /// See values/specified/length.rs for more details.
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Copy, Debug, PartialEq, ToCss)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, PartialEq, ToCss)]
 pub enum MaxLength {
     LengthOrPercentageOrNone(LengthOrPercentageOrNone),
+    #[animation(error)]
     ExtremumLength(ExtremumLength),
-}
-
-impl ComputeSquaredDistance for MaxLength {
-    #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        match (self, other) {
-            (&MaxLength::LengthOrPercentageOrNone(ref this), &MaxLength::LengthOrPercentageOrNone(ref other)) => {
-                this.compute_squared_distance(other)
-            },
-            _ => {
-                // FIXME(nox): Should this return `Ok(SquaredDistance::Value(1.))`
-                // when `self` and `other` are the same extremum value?
-                Err(())
-            },
-        }
-    }
 }
 
 impl MaxLength {

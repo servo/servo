@@ -9,18 +9,16 @@ use synstructure::BindStyle;
 
 pub fn derive(input: syn::DeriveInput) -> quote::Tokens {
     let name = &input.ident;
-    let (impl_generics, ty_generics, where_clause, animated_value_type) =
-        cg::fmap_trait_parts(
-            &input,
-            &["values", "animated", "ToAnimatedValue"],
-            "AnimatedValue",
-        );
+    let trait_path = &["values", "animated", "ToAnimatedValue"];
+    let (impl_generics, ty_generics, mut where_clause, animated_value_type) =
+        cg::fmap_trait_parts(&input, trait_path, "AnimatedValue");
 
-    let to_body = cg::fmap_match(&input, BindStyle::Move, |field| {
-        quote!(::values::animated::ToAnimatedValue::to_animated_value(#field))
+    let to_body = cg::fmap_match(&input, BindStyle::Move, |binding| {
+        where_clause.add_trait_bound(&binding.field.ty);
+        quote!(::values::animated::ToAnimatedValue::to_animated_value(#binding))
     });
-    let from_body = cg::fmap_match(&input, BindStyle::Move, |field| {
-        quote!(::values::animated::ToAnimatedValue::from_animated_value(#field))
+    let from_body = cg::fmap_match(&input, BindStyle::Move, |binding| {
+        quote!(::values::animated::ToAnimatedValue::from_animated_value(#binding))
     });
 
     quote! {

@@ -3,29 +3,26 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cg;
-use quote;
-use syn;
+use quote::Tokens;
+use syn::DeriveInput;
 use synstructure;
 
-pub fn derive(input: syn::DeriveInput) -> quote::Tokens {
+pub fn derive(input: DeriveInput) -> Tokens {
     let name = &input.ident;
     let trait_path = &["style_traits", "ToCss"];
     let (impl_generics, ty_generics, mut where_clause) =
         cg::trait_parts(&input, trait_path);
 
+    let input_attrs = cg::parse_input_attrs::<CssInputAttrs>(&input);
     let style = synstructure::BindStyle::Ref.into();
     let match_body = synstructure::each_variant(&input, &style, |bindings, variant| {
         let mut identifier = to_css_identifier(variant.ident.as_ref());
-        let css_attrs = cg::parse_variant_attrs::<CssAttrs>(variant);
-        let separator = if css_attrs.comma { ", " } else { " " };
+        let variant_attrs = cg::parse_variant_attrs::<CssVariantAttrs>(variant);
+        let separator = if variant_attrs.comma { ", " } else { " " };
         let mut expr = if !bindings.is_empty() {
             let mut expr = quote! {};
             for binding in bindings {
-                if cg::is_parameterized(&binding.field.ty, &input.generics.ty_params) {
-                    where_clause.predicates.push(
-                        cg::where_predicate(binding.field.ty.clone(), trait_path),
-                    );
-                }
+                where_clause.add_trait_bound(&binding.field.ty);
                 expr = quote! {
                     #expr
                     writer.item(#binding)?;
@@ -41,7 +38,7 @@ pub fn derive(input: syn::DeriveInput) -> quote::Tokens {
                 ::std::fmt::Write::write_str(dest, #identifier)
             }
         };
-        if css_attrs.function {
+        if variant_attrs.function {
             identifier.push_str("(");
             expr = quote! {
                 ::std::fmt::Write::write_str(dest, #identifier)?;
@@ -52,7 +49,7 @@ pub fn derive(input: syn::DeriveInput) -> quote::Tokens {
         Some(expr)
     });
 
-    quote! {
+    let mut impls = quote! {
         impl #impl_generics ::style_traits::ToCss for #name #ty_generics #where_clause {
             #[allow(unused_variables)]
             #[inline]
@@ -65,12 +62,32 @@ pub fn derive(input: syn::DeriveInput) -> quote::Tokens {
                 }
             }
         }
+    };
+
+    if input_attrs.derive_debug {
+        impls.append(quote! {
+            impl #impl_generics ::std::fmt::Debug for #name #ty_generics #where_clause {
+                fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+                    ::style_traits::ToCss::to_css(self, f)
+                }
+            }
+        });
     }
+
+    impls
 }
 
-#[derive(Default, FromVariant)]
 #[darling(attributes(css), default)]
-struct CssAttrs {
+#[derive(Default, FromDeriveInput)]
+struct CssInputAttrs {
+    derive_debug: bool,
+    function: bool,
+    comma: bool,
+}
+
+#[darling(attributes(css), default)]
+#[derive(Default, FromVariant)]
+struct CssVariantAttrs {
     function: bool,
     comma: bool,
 }

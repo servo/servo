@@ -1116,12 +1116,12 @@ ${helpers.single_keyword_system("font-variant-caps",
 
     pub mod computed_value {
         use values::CSSFloat;
-        use values::animated::{Animate, Procedure, ToAnimatedValue, ToAnimatedZero};
-        use values::distance::{ComputeSquaredDistance, SquaredDistance};
+        use values::animated::{ToAnimatedValue, ToAnimatedZero};
 
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        #[derive(Clone, Copy, Debug, PartialEq, ToCss)]
+        #[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, PartialEq, ToCss)]
         pub enum T {
+            #[animation(error)]
             None,
             Number(CSSFloat),
         }
@@ -1132,27 +1132,6 @@ ${helpers.single_keyword_system("font-variant-caps",
                     T::None
                 } else {
                     T::Number(gecko)
-                }
-            }
-        }
-
-        impl Animate for T {
-            fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-                match (self, other) {
-                    (&T::Number(ref number), &T::Number(ref other)) => {
-                        Ok(T::Number(number.animate(other, procedure)?))
-                    },
-                    _ => Err(()),
-                }
-            }
-        }
-
-        impl ComputeSquaredDistance for T {
-            #[inline]
-            fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-                match (self, other) {
-                    (&T::Number(ref this), &T::Number(ref other)) => this.compute_squared_distance(other),
-                    _ => Err(()),
                 }
             }
         }
@@ -2265,10 +2244,7 @@ https://drafts.csswg.org/css-fonts-4/#low-level-font-variation-settings-control-
                    predefined_type="Number" gecko_ffi_name="mScriptSizeMultiplier"
                    spec="Internal (not web-exposed)"
                    internal="True">
-    use values::computed::ComputedValueAsSpecified;
     pub use self::computed_value::T as SpecifiedValue;
-
-    impl ComputedValueAsSpecified for SpecifiedValue {}
 
     pub mod computed_value {
         pub type T = f32;

@@ -3,21 +3,22 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cg;
-use quote;
-use syn;
+use quote::Tokens;
+use syn::{DeriveInput, Path};
 
-pub fn derive(input: syn::DeriveInput) -> quote::Tokens {
+pub fn derive(input: DeriveInput) -> Tokens {
     let name = &input.ident;
     let trait_path = &["values", "animated", "Animate"];
     let (impl_generics, ty_generics, mut where_clause) =
         cg::trait_parts(&input, trait_path);
 
+    let input_attrs = cg::parse_input_attrs::<AnimateInputAttrs>(&input);
     let variants = cg::variants(&input);
     let mut match_body = quote!();
     let mut append_error_clause = variants.len() > 1;
     match_body.append_all(variants.iter().flat_map(|variant| {
-        let attrs = cg::parse_variant_attrs::<AnimateAttrs>(variant);
-        if attrs.error {
+        let variant_attrs = cg::parse_variant_attrs::<AnimationVariantAttrs>(variant);
+        if variant_attrs.error {
             append_error_clause = true;
             return None;
         }
@@ -28,11 +29,32 @@ pub fn derive(input: syn::DeriveInput) -> quote::Tokens {
         let mut computations = quote!();
         let iter = result_info.iter().zip(this_info.iter().zip(&other_info));
         computations.append_all(iter.map(|(result, (this, other))| {
-            where_clause.predicates.push(
-                cg::where_predicate(this.field.ty.clone(), trait_path),
-            );
-            quote! {
-                let #result = ::values::animated::Animate::animate(#this, #other, procedure)?;
+            let field_attrs = cg::parse_field_attrs::<AnimationFieldAttrs>(&result.field);
+            if field_attrs.constant {
+                if cg::is_parameterized(&result.field.ty, where_clause.params, None) {
+                    where_clause.inner.predicates.push(cg::where_predicate(
+                        result.field.ty.clone(),
+                        &["std", "cmp", "PartialEq"],
+                        None,
+                    ));
+                    where_clause.inner.predicates.push(cg::where_predicate(
+                        result.field.ty.clone(),
+                        &["std", "clone", "Clone"],
+                        None,
+                    ));
+                }
+                quote! {
+                    if #this != #other {
+                        return Err(());
+                    }
+                    let #result = ::std::clone::Clone::clone(#this);
+                }
+            } else {
+                where_clause.add_trait_bound(&result.field.ty);
+                quote! {
+                    let #result =
+                        ::values::animated::Animate::animate(#this, #other, procedure)?;
+                }
             }
         }));
         Some(quote! {
@@ -44,7 +66,13 @@ pub fn derive(input: syn::DeriveInput) -> quote::Tokens {
     }));
 
     if append_error_clause {
-        match_body = quote! { #match_body, _ => Err(()), };
+        if let Some(fallback) = input_attrs.fallback {
+            match_body.append(quote! {
+                (this, other) => #fallback(this, other, procedure)
+            });
+        } else {
+            match_body.append(quote! { _ => Err(()) });
+        }
     }
 
     quote! {
@@ -64,8 +92,20 @@ pub fn derive(input: syn::DeriveInput) -> quote::Tokens {
     }
 }
 
-#[derive(Default, FromVariant)]
 #[darling(attributes(animate), default)]
-pub struct AnimateAttrs {
+#[derive(Default, FromDeriveInput)]
+struct AnimateInputAttrs {
+    fallback: Option<Path>,
+}
+
+#[darling(attributes(animation), default)]
+#[derive(Default, FromVariant)]
+pub struct AnimationVariantAttrs {
     pub error: bool,
+}
+
+#[darling(attributes(animation), default)]
+#[derive(Default, FromField)]
+pub struct AnimationFieldAttrs {
+    pub constant: bool,
 }

@@ -16,7 +16,8 @@ use values::distance::{ComputeSquaredDistance, SquaredDistance};
 ///
 /// https://www.w3.org/TR/SVG2/painting.html#SpecifyingPaint
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Debug, PartialEq, ToAnimatedValue, ToComputedValue, ToCss)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Debug, PartialEq)]
+#[derive(ToAnimatedValue, ToComputedValue, ToCss)]
 pub struct SVGPaint<ColorType, UrlPaintServer> {
     /// The paint source
     pub kind: SVGPaintKind<ColorType, UrlPaintServer>,
@@ -30,13 +31,15 @@ pub struct SVGPaint<ColorType, UrlPaintServer> {
 /// to have a fallback, Gecko lets the context
 /// properties have a fallback as well.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Debug, PartialEq, ToAnimatedValue, ToComputedValue, ToCss)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Debug, PartialEq)]
+#[derive(ToAnimatedValue, ToAnimatedZero, ToComputedValue, ToCss)]
 pub enum SVGPaintKind<ColorType, UrlPaintServer> {
     /// `none`
     None,
     /// `<color>`
     Color(ColorType),
     /// `url(...)`
+    #[animation(error)]
     PaintServer(UrlPaintServer),
     /// `context-fill`
     ContextFill,

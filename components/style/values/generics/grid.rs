@@ -10,7 +10,7 @@ use parser::{Parse, ParserContext};
 use std::{fmt, mem, usize};
 use style_traits::{ToCss, ParseError, StyleParseError};
 use values::{CSSFloat, CustomIdent, serialize_dimension};
-use values::computed::{ComputedValueAsSpecified, Context, ToComputedValue};
+use values::computed::ComputedValueAsSpecified;
 use values::specified::Integer;
 use values::specified::grid::parse_line_names;
 
@@ -137,13 +137,14 @@ define_css_keyword_enum!{ TrackKeyword:
     "max-content" => MaxContent,
     "min-content" => MinContent
 }
+impl ComputedValueAsSpecified for TrackKeyword {}
 
-#[derive(Clone, Debug, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 /// A track breadth for explicit grid track sizing. It's generic solely to
 /// avoid re-implementing it for the computed type.
 ///
 /// https://drafts.csswg.org/css-grid/#typedef-track-breadth
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Debug, PartialEq, ToComputedValue)]
 pub enum TrackBreadth<L> {
     /// The generic type is almost always a non-negative `<length-percentage>`
     Breadth(L),
@@ -176,35 +177,12 @@ impl<L: ToCss> ToCss for TrackBreadth<L> {
     }
 }
 
-impl<L: ToComputedValue> ToComputedValue for TrackBreadth<L> {
-    type ComputedValue = TrackBreadth<L::ComputedValue>;
-
-    #[inline]
-    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
-        match *self {
-            TrackBreadth::Breadth(ref lop) => TrackBreadth::Breadth(lop.to_computed_value(context)),
-            TrackBreadth::Flex(fr) => TrackBreadth::Flex(fr),
-            TrackBreadth::Keyword(k) => TrackBreadth::Keyword(k),
-        }
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        match *computed {
-            TrackBreadth::Breadth(ref lop) =>
-                TrackBreadth::Breadth(ToComputedValue::from_computed_value(lop)),
-            TrackBreadth::Flex(fr) => TrackBreadth::Flex(fr),
-            TrackBreadth::Keyword(k) => TrackBreadth::Keyword(k),
-        }
-    }
-}
-
 /// A `<track-size>` type for explicit grid track sizing. Like `<track-breadth>`, this is
 /// generic only to avoid code bloat. It only takes `<length-percentage>`
 ///
 /// https://drafts.csswg.org/css-grid/#typedef-track-size
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
+#[derive(Clone, Debug, HasViewportPercentage, PartialEq, ToComputedValue)]
 pub enum TrackSize<L> {
     /// A flexible `<track-breadth>`
     Breadth(TrackBreadth<L>),
@@ -286,39 +264,6 @@ impl<L: ToCss> ToCss for TrackSize<L> {
     }
 }
 
-impl<L: ToComputedValue> ToComputedValue for TrackSize<L> {
-    type ComputedValue = TrackSize<L::ComputedValue>;
-
-    #[inline]
-    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
-        match *self {
-            TrackSize::Breadth(ref b) => match *b {
-                // <flex> outside `minmax()` expands to `mimmax(auto, <flex>)`
-                // https://drafts.csswg.org/css-grid/#valdef-grid-template-columns-flex
-                TrackBreadth::Flex(f) =>
-                    TrackSize::Minmax(TrackBreadth::Keyword(TrackKeyword::Auto), TrackBreadth::Flex(f)),
-                _ => TrackSize::Breadth(b.to_computed_value(context)),
-            },
-            TrackSize::Minmax(ref b_1, ref b_2) =>
-                TrackSize::Minmax(b_1.to_computed_value(context), b_2.to_computed_value(context)),
-            TrackSize::FitContent(ref lop) => TrackSize::FitContent(lop.to_computed_value(context)),
-        }
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        match *computed {
-            TrackSize::Breadth(ref b) =>
-                TrackSize::Breadth(ToComputedValue::from_computed_value(b)),
-            TrackSize::Minmax(ref b_1, ref b_2) =>
-                TrackSize::Minmax(ToComputedValue::from_computed_value(b_1),
-                                  ToComputedValue::from_computed_value(b_2)),
-            TrackSize::FitContent(ref lop) =>
-                TrackSize::FitContent(ToComputedValue::from_computed_value(lop)),
-        }
-    }
-}
-
 /// Helper function for serializing identifiers with a prefix and suffix, used
 /// for serializing <line-names> (in grid).
 pub fn concat_serialize_idents<W>(prefix: &str, suffix: &str,
@@ -382,8 +327,8 @@ no_viewport_percentage!(RepeatCount);
 ///
 /// It can also hold `repeat()` function parameters, which expands into the respective
 /// values in its computed form.
-#[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Debug, PartialEq, ToComputedValue)]
 pub struct TrackRepeat<L> {
     /// The number of times for the value to be repeated (could also be `auto-fit` or `auto-fill`)
     pub count: RepeatCount,
@@ -392,6 +337,7 @@ pub struct TrackRepeat<L> {
     /// If there's no `<line-names>`, then it's represented by an empty vector.
     /// For N `<track-size>` values, there will be N+1 `<line-names>`, and so this vector's
     /// length is always one value more than that of the `<track-size>`.
+    #[compute(clone)]
     pub line_names: Box<[Box<[CustomIdent]>]>,
     /// `<track-size>` values.
     pub track_sizes: Vec<TrackSize<L>>,
@@ -479,31 +425,6 @@ impl<L: Clone> TrackRepeat<L> {
         }
     }
 }
-impl<L: ToComputedValue> ToComputedValue for TrackRepeat<L> {
-    type ComputedValue = TrackRepeat<L::ComputedValue>;
-
-    #[inline]
-    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
-        TrackRepeat {
-            count: self.count,
-            track_sizes: self.track_sizes.iter()
-                                         .map(|val| val.to_computed_value(context))
-                                         .collect(),
-            line_names: self.line_names.clone(),
-        }
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        TrackRepeat {
-            count: computed.count,
-            track_sizes: computed.track_sizes.iter()
-                                             .map(ToComputedValue::from_computed_value)
-                                             .collect(),
-            line_names: computed.line_names.clone(),
-        }
-    }
-}
 
 /// The type of a `<track-list>` as determined during parsing.
 ///
@@ -533,8 +454,8 @@ impl ComputedValueAsSpecified for TrackListType {}
 /// A grid `<track-list>` type.
 ///
 /// https://drafts.csswg.org/css-grid/#typedef-track-list
-#[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Debug, PartialEq, ToComputedValue)]
 pub struct TrackList<T> {
     /// The type of this `<track-list>` (auto, explicit or general).
     ///
@@ -548,6 +469,7 @@ pub struct TrackList<T> {
     /// If there's no `<line-names>`, then it's represented by an empty vector.
     /// For N values, there will be N+1 `<line-names>`, and so this vector's
     /// length is always one value more than that of the `<track-size>`.
+    #[compute(clone)]
     pub line_names: Box<[Box<[CustomIdent]>]>,
     /// `<auto-repeat>` value. There can only be one `<auto-repeat>` in a TrackList.
     pub auto_repeat: Option<TrackRepeat<T>>,
@@ -698,8 +620,8 @@ no_viewport_percentage!(LineNameList);
 /// Variants for `<grid-template-rows> | <grid-template-columns>`
 /// Subgrid deferred to Level 2 spec due to lack of implementation.
 /// But it's implemented in gecko, so we have to as well.
-#[derive(Clone, Debug, PartialEq, ToCss)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Debug, PartialEq, ToComputedValue, ToCss)]
 pub enum GridTemplateComponent<L> {
     /// `none` value.
     None,

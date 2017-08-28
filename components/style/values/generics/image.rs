@@ -35,16 +35,18 @@ pub enum Image<Gradient, MozImageRect, ImageUrl> {
 
 /// A CSS gradient.
 /// https://drafts.csswg.org/css-images/#gradients
-#[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Debug, HasViewportPercentage, PartialEq, ToComputedValue)]
 pub struct Gradient<LineDirection, Length, LengthOrPercentage, Position, Color, Angle> {
     /// Gradients can be linear or radial.
     pub kind: GradientKind<LineDirection, Length, LengthOrPercentage, Position, Angle>,
     /// The color stops and interpolation hints.
     pub items: Vec<GradientItem<Color, LengthOrPercentage>>,
     /// True if this is a repeating gradient.
+    #[compute(clone)]
     pub repeating: bool,
     /// Compatibility mode.
+    #[compute(clone)]
     pub compat_mode: CompatMode,
 }
 
@@ -61,8 +63,8 @@ pub enum CompatMode {
 }
 
 /// A gradient kind.
-#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, ToComputedValue)]
 pub enum GradientKind<LineDirection, Length, LengthOrPercentage, Position, Angle> {
     /// A linear gradient.
     Linear(LineDirection),

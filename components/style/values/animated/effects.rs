@@ -139,21 +139,6 @@ impl ToAnimatedValue for ComputedTextShadowList {
     }
 }
 
-// FIXME(nox): This could be derived if we implement Animate for bool.
-impl Animate for BoxShadow {
-    #[inline]
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        if self.inset != other.inset {
-            return Err(());
-        }
-        Ok(BoxShadow {
-            base: self.base.animate(&other.base, procedure)?,
-            spread: self.spread.animate(&other.spread, procedure)?,
-            inset: self.inset,
-        })
-    }
-}
-
 impl ComputeSquaredDistance for BoxShadow {
     #[inline]
     fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
@@ -164,17 +149,6 @@ impl ComputeSquaredDistance for BoxShadow {
             self.base.compute_squared_distance(&other.base)? +
             self.spread.compute_squared_distance(&other.spread)?,
         )
-    }
-}
-
-impl ToAnimatedZero for BoxShadow {
-    #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> {
-        Ok(BoxShadow {
-            base: self.base.to_animated_zero()?,
-            spread: self.spread.to_animated_zero()?,
-            inset: self.inset,
-        })
     }
 }
 

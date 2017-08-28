@@ -48,9 +48,10 @@ use values::animated::effects::TextShadowList as AnimatedTextShadowList;
 use values::computed::{Angle, BorderCornerRadius, CalcLengthOrPercentage};
 use values::computed::{ClipRect, Context, ComputedUrl, ComputedValueAsSpecified};
 use values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
-use values::computed::{LengthOrPercentageOrNone, MaxLength, MozLength, NonNegativeAu};
+use values::computed::{LengthOrPercentageOrNone, MaxLength, NonNegativeAu};
 use values::computed::{NonNegativeNumber, Number, NumberOrPercentage, Percentage};
 use values::computed::{PositiveIntegerOrAuto, ToComputedValue};
+#[cfg(feature = "gecko")] use values::computed::MozLength;
 use values::computed::length::{NonNegativeLengthOrAuto, NonNegativeLengthOrNormal};
 use values::computed::length::NonNegativeLengthOrPercentage;
 use values::distance::{ComputeSquaredDistance, SquaredDistance};
@@ -811,73 +812,6 @@ impl Animate for CalcLengthOrPercentage {
     }
 }
 
-/// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
-impl Animate for LengthOrPercentage {
-    #[inline]
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        match (self, other) {
-            (
-                &LengthOrPercentage::Length(ref this),
-                &LengthOrPercentage::Length(ref other),
-            ) => {
-                Ok(LengthOrPercentage::Length(this.animate(other, procedure)?))
-            },
-            (
-                &LengthOrPercentage::Percentage(ref this),
-                &LengthOrPercentage::Percentage(ref other),
-            ) => {
-                Ok(LengthOrPercentage::Percentage(this.animate(other, procedure)?))
-            },
-            (this, other) => {
-                // Special handling for zero values since these should not require calc().
-                if this.is_definitely_zero() {
-                    return other.to_animated_zero()?.animate(other, procedure);
-                }
-                if other.is_definitely_zero() {
-                    return this.animate(&this.to_animated_zero()?, procedure);
-                }
-
-                let this = CalcLengthOrPercentage::from(*this);
-                let other = CalcLengthOrPercentage::from(*other);
-                Ok(LengthOrPercentage::Calc(this.animate(&other, procedure)?))
-            }
-        }
-    }
-}
-
-/// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
-impl Animate for LengthOrPercentageOrAuto {
-    #[inline]
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        match (self, other) {
-            (
-                &LengthOrPercentageOrAuto::Length(ref this),
-                &LengthOrPercentageOrAuto::Length(ref other),
-            ) => {
-                Ok(LengthOrPercentageOrAuto::Length(this.animate(other, procedure)?))
-            },
-            (
-                &LengthOrPercentageOrAuto::Percentage(ref this),
-                &LengthOrPercentageOrAuto::Percentage(ref other),
-            ) => {
-                Ok(LengthOrPercentageOrAuto::Percentage(
-                    this.animate(other, procedure)?,
-                ))
-            },
-            (&LengthOrPercentageOrAuto::Auto, &LengthOrPercentageOrAuto::Auto) => {
-                Ok(LengthOrPercentageOrAuto::Auto)
-            },
-            (this, other) => {
-                let this: Option<CalcLengthOrPercentage> = From::from(*this);
-                let other: Option<CalcLengthOrPercentage> = From::from(*other);
-                Ok(LengthOrPercentageOrAuto::Calc(
-                    this.animate(&other, procedure)?.ok_or(())?,
-                ))
-            },
-        }
-    }
-}
-
 impl ToAnimatedZero for LengthOrPercentageOrAuto {
     #[inline]
     fn to_animated_zero(&self) -> Result<Self, ()> {
@@ -892,39 +826,6 @@ impl ToAnimatedZero for LengthOrPercentageOrAuto {
     }
 }
 
-/// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
-impl Animate for LengthOrPercentageOrNone {
-    #[inline]
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        match (self, other) {
-            (
-                &LengthOrPercentageOrNone::Length(ref this),
-                &LengthOrPercentageOrNone::Length(ref other),
-            ) => {
-                Ok(LengthOrPercentageOrNone::Length(this.animate(other, procedure)?))
-            },
-            (
-                &LengthOrPercentageOrNone::Percentage(ref this),
-                &LengthOrPercentageOrNone::Percentage(ref other),
-            ) => {
-                Ok(LengthOrPercentageOrNone::Percentage(
-                    this.animate(other, procedure)?,
-                ))
-            }
-            (&LengthOrPercentageOrNone::None, &LengthOrPercentageOrNone::None) => {
-                Ok(LengthOrPercentageOrNone::None)
-            },
-            (this, other) => {
-                let this = <Option<CalcLengthOrPercentage>>::from(*this);
-                let other = <Option<CalcLengthOrPercentage>>::from(*other);
-                Ok(LengthOrPercentageOrNone::Calc(
-                    this.animate(&other, procedure)?.ok_or(())?,
-                ))
-            },
-        }
-    }
-}
-
 impl ToAnimatedZero for LengthOrPercentageOrNone {
     #[inline]
     fn to_animated_zero(&self) -> Result<Self, ()> {
@@ -935,54 +836,6 @@ impl ToAnimatedZero for LengthOrPercentageOrNone {
                 Ok(LengthOrPercentageOrNone::Length(Au(0)))
             },
             LengthOrPercentageOrNone::None => Err(()),
-        }
-    }
-}
-
-/// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
-impl Animate for MozLength {
-    #[inline]
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        match (self, other) {
-            (
-                &MozLength::LengthOrPercentageOrAuto(ref this),
-                &MozLength::LengthOrPercentageOrAuto(ref other),
-            ) => {
-                Ok(MozLength::LengthOrPercentageOrAuto(
-                    this.animate(other, procedure)?,
-                ))
-            }
-            _ => Err(()),
-        }
-    }
-}
-
-impl ToAnimatedZero for MozLength {
-    #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> {
-        match *self {
-            MozLength::LengthOrPercentageOrAuto(ref length) => {
-                Ok(MozLength::LengthOrPercentageOrAuto(length.to_animated_zero()?))
-            },
-            _ => Err(())
-        }
-    }
-}
-
-/// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
-impl Animate for MaxLength {
-    #[inline]
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        match (self, other) {
-            (
-                &MaxLength::LengthOrPercentageOrNone(ref this),
-                &MaxLength::LengthOrPercentageOrNone(ref other),
-            ) => {
-                Ok(MaxLength::LengthOrPercentageOrNone(
-                    this.animate(other, procedure)?,
-                ))
-            },
-            _ => Err(()),
         }
     }
 }
@@ -2431,27 +2284,6 @@ pub type IntermediateSVGPaint = SVGPaint<AnimatedRGBA, ComputedUrl>;
 /// Animated SVGPaintKind
 pub type IntermediateSVGPaintKind = SVGPaintKind<AnimatedRGBA, ComputedUrl>;
 
-impl Animate for IntermediateSVGPaint {
-    #[inline]
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        Ok(IntermediateSVGPaint {
-            kind: self.kind.animate(&other.kind, procedure)?,
-            fallback: self.fallback.animate(&other.fallback, procedure)?,
-        })
-    }
-}
-
-impl ComputeSquaredDistance for IntermediateSVGPaint {
-    #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        // FIXME(nox): This should be derived.
-        Ok(
-            self.kind.compute_squared_distance(&other.kind)? +
-            self.fallback.compute_squared_distance(&other.fallback)?,
-        )
-    }
-}
-
 impl ToAnimatedZero for IntermediateSVGPaint {
     #[inline]
     fn to_animated_zero(&self) -> Result<Self, ()> {
@@ -2459,56 +2291,6 @@ impl ToAnimatedZero for IntermediateSVGPaint {
             kind: self.kind.to_animated_zero()?,
             fallback: self.fallback.and_then(|v| v.to_animated_zero().ok()),
         })
-    }
-}
-
-impl Animate for IntermediateSVGPaintKind {
-    #[inline]
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        match (self, other) {
-            (&SVGPaintKind::Color(ref this), &SVGPaintKind::Color(ref other)) => {
-                Ok(SVGPaintKind::Color(this.animate(other, procedure)?))
-            },
-            (&SVGPaintKind::ContextFill, &SVGPaintKind::ContextFill) => Ok(SVGPaintKind::ContextFill),
-            (&SVGPaintKind::ContextStroke, &SVGPaintKind::ContextStroke) => Ok(SVGPaintKind::ContextStroke),
-            _ => {
-                // FIXME: Context values should be interpolable with colors,
-                // Gecko doesn't implement this behavior either.
-                Err(())
-            }
-        }
-    }
-}
-
-impl ComputeSquaredDistance for IntermediateSVGPaintKind {
-    #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        match (self, other) {
-            (&SVGPaintKind::Color(ref this), &SVGPaintKind::Color(ref other)) => {
-                this.compute_squared_distance(other)
-            }
-            (&SVGPaintKind::None, &SVGPaintKind::None) |
-            (&SVGPaintKind::ContextFill, &SVGPaintKind::ContextFill) |
-            (&SVGPaintKind::ContextStroke, &SVGPaintKind::ContextStroke) => {
-                Ok(SquaredDistance::Value(0.))
-            },
-            _ => Err(())
-        }
-    }
-}
-
-impl ToAnimatedZero for IntermediateSVGPaintKind {
-    #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> {
-        match *self {
-            SVGPaintKind::Color(ref color) => {
-                Ok(SVGPaintKind::Color(color.to_animated_zero()?))
-            },
-            SVGPaintKind::None |
-            SVGPaintKind::ContextFill |
-            SVGPaintKind::ContextStroke => Ok(self.clone()),
-            _ => Err(()),
-        }
     }
 }
 

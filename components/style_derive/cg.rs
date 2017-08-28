@@ -2,16 +2,85 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use darling::FromVariant;
-use quote::Tokens;
+use darling::{FromDeriveInput, FromField, FromVariant};
+use quote::{ToTokens, Tokens};
 use std::borrow::Cow;
+use std::collections::HashSet;
 use std::iter;
-use syn::{AngleBracketedParameterData, Body, DeriveInput, Ident, ImplGenerics};
-use syn::{Path, PathParameters, PathSegment, PolyTraitRef, QSelf};
-use syn::{TraitBoundModifier, Ty, TyGenerics, TyParam, TyParamBound, TypeBinding};
-use syn::{Variant, WhereBoundPredicate, WhereClause, WherePredicate};
+use syn::{self, AngleBracketedParameterData, Body, DeriveInput, Field, Ident};
+use syn::{ImplGenerics, Path, PathParameters, PathSegment, PolyTraitRef};
+use syn::{QSelf, TraitBoundModifier, Ty, TyGenerics, TyParam, TyParamBound};
+use syn::{TypeBinding, Variant, WhereBoundPredicate, WherePredicate};
 use syn::visit::{self, Visitor};
 use synstructure::{self, BindOpts, BindStyle, BindingInfo};
+
+pub struct WhereClause<'input, 'path> {
+    pub inner: syn::WhereClause,
+    pub params: &'input [TyParam],
+    trait_path: &'path [&'path str],
+    trait_output: Option<&'path str>,
+    bounded_types: HashSet<Ty>,
+}
+
+impl<'input, 'path> ToTokens for WhereClause<'input, 'path> {
+    fn to_tokens(&self, tokens: &mut Tokens) {
+        self.inner.to_tokens(tokens);
+    }
+}
+
+impl<'input, 'path> WhereClause<'input, 'path> {
+    pub fn add_trait_bound(&mut self, ty: &Ty) {
+        let trait_path = self.trait_path;
+        let params = self.params;
+        let mut found = self.trait_output.map(|_| HashSet::new());
+        if self.bounded_types.contains(&ty) {
+            return;
+        }
+        if !is_parameterized(&ty, params, found.as_mut()) {
+            return;
+        }
+        self.bounded_types.insert(ty.clone());
+
+        let output = if let Some(output) = self.trait_output {
+            output
+        } else {
+            self.inner.predicates.push(where_predicate(ty.clone(), trait_path, None));
+            return;
+        };
+
+        if let Ty::Path(None, ref path) = *ty {
+            if path_to_ident(path).is_some() {
+                self.inner.predicates.push(where_predicate(ty.clone(), trait_path, None));
+                return;
+            }
+        }
+
+        let output_type = map_type_params(ty, params, &mut |ident| {
+            let ty = Ty::Path(None, ident.clone().into());
+            fmap_output_type(ty, trait_path, output)
+        });
+
+        let pred = where_predicate(
+            ty.clone(),
+            trait_path,
+            Some((output, output_type)),
+        );
+
+        self.inner.predicates.push(pred);
+
+        if let Some(found) = found {
+            for ident in found {
+                let ty = Ty::Path(None, ident.into());
+                if !self.bounded_types.contains(&ty) {
+                    self.bounded_types.insert(ty.clone());
+                    self.inner.predicates.push(
+                        where_predicate(ty, trait_path, None),
+                    );
+                };
+            }
+        }
+    }
+}
 
 pub fn fmap_match<F>(
     input: &DeriveInput,
@@ -35,23 +104,36 @@ where
     })
 }
 
-pub fn fmap_trait_parts<'a>(
-    input: &'a DeriveInput,
+fn fmap_output_type(
+    ty: Ty,
     trait_path: &[&str],
     trait_output: &str,
-) -> (ImplGenerics<'a>, TyGenerics<'a>, WhereClause, Path) {
-    let (impl_generics, ty_generics, where_clause) = trait_parts(input, trait_path);
+) -> Ty {
+    Ty::Path(
+        Some(QSelf {
+            ty: Box::new(ty),
+            position: trait_path.len(),
+        }),
+        path(trait_path.iter().chain(iter::once(&trait_output))),
+    )
+}
+
+pub fn fmap_trait_parts<'input, 'path>(
+    input: &'input DeriveInput,
+    trait_path: &'path [&'path str],
+    trait_output: &'path str,
+) -> (ImplGenerics<'input>, TyGenerics<'input>, WhereClause<'input, 'path>, Path) {
+    let (impl_generics, ty_generics, mut where_clause) = trait_parts(input, trait_path);
+    where_clause.trait_output = Some(trait_output);
     let output_ty = PathSegment {
         ident: input.ident.clone(),
         parameters: PathParameters::AngleBracketed(AngleBracketedParameterData {
             lifetimes: input.generics.lifetimes.iter().map(|l| l.lifetime.clone()).collect(),
             types: input.generics.ty_params.iter().map(|ty| {
-                Ty::Path(
-                    Some(QSelf {
-                        ty: Box::new(Ty::Path(None, ty.ident.clone().into())),
-                        position: trait_path.len(),
-                    }),
-                    path(trait_path.iter().chain(iter::once(&trait_output))),
+                fmap_output_type(
+                    Ty::Path(None, ty.ident.clone().into()),
+                    trait_path,
+                    trait_output,
                 )
             }).collect(),
             .. Default::default()
@@ -60,25 +142,188 @@ pub fn fmap_trait_parts<'a>(
     (impl_generics, ty_generics, where_clause, output_ty)
 }
 
-fn fmap_trait_where_predicate(
-    bounded_ty: Ty,
-    trait_path: &[&str],
-    trait_output: Option<(&str, Ty)>,
-) -> WherePredicate {
-    WherePredicate::BoundPredicate(WhereBoundPredicate {
-        bound_lifetimes: vec![],
-        bounded_ty,
-        bounds: vec![TyParamBound::Trait(
-            PolyTraitRef {
-                bound_lifetimes: vec![],
-                trait_ref: fmap_trait_ref(trait_path, trait_output),
-            },
-            TraitBoundModifier::None
-        )],
-    })
+pub fn is_parameterized(
+    ty: &Ty,
+    params: &[TyParam],
+    found: Option<&mut HashSet<Ident>>,
+) -> bool {
+    struct IsParameterized<'a, 'b> {
+        params: &'a [TyParam],
+        has_free: bool,
+        found: Option<&'b mut HashSet<Ident>>,
+    }
+
+    impl<'a, 'b> Visitor for IsParameterized<'a, 'b> {
+        fn visit_path(&mut self, path: &Path) {
+            if let Some(ident) = path_to_ident(path) {
+                if self.params.iter().any(|param| param.ident == ident) {
+                    self.has_free = true;
+                    if let Some(ref mut found) = self.found {
+                        found.insert(ident.clone());
+                    }
+                }
+            }
+            visit::walk_path(self, path);
+        }
+    }
+
+    let mut visitor = IsParameterized { params, has_free: false, found };
+    visitor.visit_ty(ty);
+    visitor.has_free
 }
 
-fn fmap_trait_ref(path: &[&str], output: Option<(&str, Ty)>) -> Path {
+pub fn map_type_params<F>(ty: &Ty, params: &[TyParam], f: &mut F) -> Ty
+where
+    F: FnMut(&Ident) -> Ty,
+{
+    match *ty {
+        Ty::Slice(ref ty) => Ty::Slice(Box::new(map_type_params(ty, params, f))),
+        Ty::Array(ref ty, ref expr) => {
+            Ty::Array(Box::new(map_type_params(ty, params, f)), expr.clone())
+        },
+        Ty::Never => Ty::Never,
+        Ty::Tup(ref items) => {
+            Ty::Tup(items.iter().map(|ty| map_type_params(ty, params, f)).collect())
+        },
+        Ty::Path(None, ref path) => {
+            if let Some(ident) = path_to_ident(path) {
+                if params.iter().any(|param| param.ident == ident) {
+                    return f(ident);
+                }
+            }
+            Ty::Path(None, map_type_params_in_path(path, params, f))
+        }
+        Ty::Path(ref qself, ref path) => {
+            Ty::Path(
+                qself.as_ref().map(|qself| {
+                    QSelf {
+                        ty: Box::new(map_type_params(&qself.ty, params, f)),
+                        position: qself.position,
+                    }
+                }),
+                map_type_params_in_path(path, params, f),
+            )
+        },
+        Ty::Paren(ref ty) => Ty::Paren(Box::new(map_type_params(ty, params, f))),
+        ref ty => panic!("type {:?} cannot be mapped yet", ty),
+    }
+}
+
+fn map_type_params_in_path<F>(path: &Path, params: &[TyParam], f: &mut F) -> Path
+where
+    F: FnMut(&Ident) -> Ty,
+{
+    Path {
+        global: path.global,
+        segments: path.segments.iter().map(|segment| {
+            PathSegment {
+                ident: segment.ident.clone(),
+                parameters: match segment.parameters {
+                    PathParameters::AngleBracketed(ref data) => {
+                        PathParameters::AngleBracketed(AngleBracketedParameterData {
+                            lifetimes: data.lifetimes.clone(),
+                            types: data.types.iter().map(|ty| {
+                                map_type_params(ty, params, f)
+                            }).collect(),
+                            bindings: data.bindings.iter().map(|binding| {
+                                TypeBinding {
+                                    ident: binding.ident.clone(),
+                                    ty: map_type_params(&binding.ty, params, f),
+                                }
+                            }).collect(),
+                        })
+                    },
+                    ref parameters => {
+                        panic!("parameters {:?} cannot be mapped yet", parameters)
+                    },
+                },
+            }
+        }).collect(),
+    }
+}
+
+pub fn path<S>(segments: S) -> Path
+where
+    S: IntoIterator,
+    <S as IntoIterator>::Item: AsRef<str>,
+{
+    Path {
+        global: true,
+        segments: segments.into_iter().map(|s| s.as_ref().into()).collect(),
+    }
+}
+
+fn path_to_ident(path: &Path) -> Option<&Ident> {
+    match *path {
+        Path { global: false, ref segments } if segments.len() == 1 => {
+            if segments[0].parameters.is_empty() {
+                Some(&segments[0].ident)
+            } else {
+                None
+            }
+        },
+        _ => None,
+    }
+}
+
+pub fn parse_field_attrs<A>(field: &Field) -> A
+where
+    A: FromField,
+{
+    match A::from_field(field) {
+        Ok(attrs) => attrs,
+        Err(e) => panic!("failed to parse field attributes: {}", e),
+    }
+}
+
+pub fn parse_input_attrs<A>(input: &DeriveInput) -> A
+where
+    A: FromDeriveInput,
+{
+    match A::from_derive_input(input) {
+        Ok(attrs) => attrs,
+        Err(e) => panic!("failed to parse input attributes: {}", e),
+    }
+}
+
+pub fn parse_variant_attrs<A>(variant: &Variant) -> A
+where
+    A: FromVariant,
+{
+    match A::from_variant(variant) {
+        Ok(attrs) => attrs,
+        Err(e) => panic!("failed to parse variant attributes: {}", e),
+    }
+}
+
+pub fn ref_pattern<'a>(
+    name: &Ident,
+    variant: &'a Variant,
+    prefix: &str,
+) -> (Tokens, Vec<BindingInfo<'a>>) {
+    synstructure::match_pattern(
+        &name,
+        &variant.data,
+        &BindOpts::with_prefix(BindStyle::Ref, prefix.to_owned()),
+    )
+}
+
+pub fn trait_parts<'input, 'path>(
+    input: &'input DeriveInput,
+    trait_path: &'path [&'path str],
+) -> (ImplGenerics<'input>, TyGenerics<'input>, WhereClause<'input, 'path>) {
+    let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
+    let where_clause = WhereClause {
+        inner: where_clause.clone(),
+        params: &input.generics.ty_params,
+        trait_path,
+        trait_output: None,
+        bounded_types: HashSet::new()
+    };
+    (impl_generics, ty_generics, where_clause)
+}
+
+fn trait_ref(path: &[&str], output: Option<(&str, Ty)>) -> Path {
     let (name, parent) = path.split_last().unwrap();
     let last_segment = PathSegment {
         ident: (*name).into(),
@@ -102,77 +347,6 @@ fn fmap_trait_ref(path: &[&str], output: Option<(&str, Ty)>) -> Path {
                 .collect()
         },
     }
-}
-
-pub fn is_parameterized(ty: &Ty, params: &[TyParam]) -> bool {
-    struct IsParameterized<'a> {
-        params: &'a [TyParam],
-        has_free: bool,
-    }
-
-    impl<'a> Visitor for IsParameterized<'a> {
-        fn visit_path(&mut self, path: &Path) {
-            if !path.global && path.segments.len() == 1 {
-                if self.params.iter().any(|param| param.ident == path.segments[0].ident) {
-                    self.has_free = true;
-                }
-            }
-            visit::walk_path(self, path);
-        }
-    }
-
-    let mut visitor = IsParameterized { params: params, has_free: false };
-    visitor.visit_ty(ty);
-    visitor.has_free
-}
-
-pub fn path<S>(segments: S) -> Path
-where
-    S: IntoIterator,
-    <S as IntoIterator>::Item: AsRef<str>,
-{
-    Path {
-        global: true,
-        segments: segments.into_iter().map(|s| s.as_ref().into()).collect(),
-    }
-}
-
-pub fn parse_variant_attrs<A>(variant: &Variant) -> A
-where
-    A: FromVariant,
-{
-    match A::from_variant(variant) {
-        Ok(attrs) => attrs,
-        Err(e) => panic!("failed to parse attributes: {}", e),
-    }
-}
-
-pub fn ref_pattern<'a>(
-    name: &Ident,
-    variant: &'a Variant,
-    prefix: &str,
-) -> (Tokens, Vec<BindingInfo<'a>>) {
-    synstructure::match_pattern(
-        &name,
-        &variant.data,
-        &BindOpts::with_prefix(BindStyle::Ref, prefix.to_owned()),
-    )
-}
-
-pub fn trait_parts<'a>(
-    input: &'a DeriveInput,
-    trait_path: &[&str],
-) -> (ImplGenerics<'a>, TyGenerics<'a>, WhereClause) {
-    let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
-    let mut where_clause = where_clause.clone();
-    for param in &input.generics.ty_params {
-        where_clause.predicates.push(fmap_trait_where_predicate(
-            Ty::Path(None, param.ident.clone().into()),
-            trait_path,
-            None,
-        ));
-    }
-    (impl_generics, ty_generics, where_clause)
 }
 
 pub fn value<'a>(
@@ -215,16 +389,20 @@ pub fn variants(input: &DeriveInput) -> Cow<[Variant]> {
     }
 }
 
-pub fn where_predicate(ty: Ty, segments: &[&str]) -> WherePredicate {
+pub fn where_predicate(
+    bounded_ty: Ty,
+    trait_path: &[&str],
+    trait_output: Option<(&str, Ty)>,
+) -> WherePredicate {
     WherePredicate::BoundPredicate(WhereBoundPredicate {
         bound_lifetimes: vec![],
-        bounded_ty: ty,
+        bounded_ty,
         bounds: vec![TyParamBound::Trait(
             PolyTraitRef {
                 bound_lifetimes: vec![],
-                trait_ref: path(segments),
+                trait_ref: trait_ref(trait_path, trait_output),
             },
-            TraitBoundModifier::None,
+            TraitBoundModifier::None
         )],
     })
 }
