@@ -99,7 +99,7 @@ use std::cmp::max;
 use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::mpsc::{Sender, channel};
-use webrender::renderer::RendererKind;
+use webrender::RendererKind;
 use webvr::{WebVRThread, WebVRCompositorHandler};
 
 pub use gleam::gl;
@@ -176,8 +176,8 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
                 None
             };
 
-            let mut debug_flags = webrender::renderer::DebugFlags::empty();
-            debug_flags.set(webrender::renderer::PROFILER_DBG, opts.webrender_stats);
+            let mut debug_flags = webrender::DebugFlags::empty();
+            debug_flags.set(webrender::PROFILER_DBG, opts.webrender_stats);
 
             webrender::Renderer::new(window.gl(), webrender::RendererOptions {
                 device_pixel_ratio: device_pixel_ratio,

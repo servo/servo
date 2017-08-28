@@ -812,9 +812,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             WindowEvent::ToggleWebRenderDebug(option) => {
                 let mut flags = self.webrender.get_debug_flags();
                 let flag = match option {
-                    WebRenderDebugOption::Profiler => webrender::renderer::PROFILER_DBG,
-                    WebRenderDebugOption::TextureCacheDebug => webrender::renderer::TEXTURE_CACHE_DBG,
-                    WebRenderDebugOption::RenderTargetDebug => webrender::renderer::RENDER_TARGET_DBG,
+                    WebRenderDebugOption::Profiler => webrender::PROFILER_DBG,
+                    WebRenderDebugOption::TextureCacheDebug => webrender::TEXTURE_CACHE_DBG,
+                    WebRenderDebugOption::RenderTargetDebug => webrender::RENDER_TARGET_DBG,
                 };
                 flags.toggle(flag);
                 self.webrender.set_debug_flags(flags);
