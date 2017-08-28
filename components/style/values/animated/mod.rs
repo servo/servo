@@ -28,7 +28,19 @@ use values::specified::url::SpecifiedUrl;
 pub mod color;
 pub mod effects;
 
-/// Animating from one value to another.
+/// Animate from one value to another.
+///
+/// This trait is derivable with `#[derive(Animate)]`. The derived
+/// implementation uses a `match` expression with identical patterns for both
+/// `self` and `other`, calling `Animate::animate` on each fields of the values.
+/// If a field is annotated with `#[animation(constant)]`, the two values should
+/// be equal or an error is returned.
+///
+/// If a variant is annotated with `#[animation(error)]`, the corresponding
+/// `match` arm is not generated.
+///
+/// If the two values are not similar, an error is returned unless a fallback
+/// function has been specified through `#[animate(fallback)]`.
 pub trait Animate: Sized {
     /// Animate a value towards another one, given an animation procedure.
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()>;
@@ -51,6 +63,8 @@ pub enum Procedure {
 /// Conversion between computed values and intermediate values for animations.
 ///
 /// Notably, colors are represented as four floats during animations.
+///
+/// This trait is derivable with `#[derive(ToAnimatedValue)]`.
 pub trait ToAnimatedValue {
     /// The type of the animated value.
     type AnimatedValue;
@@ -66,6 +80,13 @@ pub trait ToAnimatedValue {
 pub trait AnimatedValueAsComputed {}
 
 /// Returns a value similar to `self` that represents zero.
+///
+/// This trait is derivable with `#[derive(ToAnimatedValue)]`. If a field is
+/// annotated with `#[animation(constant)]`, a clone of its value will be used
+/// instead of calling `ToAnimatedZero::to_animated_zero` on it.
+///
+/// If a variant is annotated with `#[animation(error)]`, the corresponding
+/// `match` arm is not generated.
 pub trait ToAnimatedZero: Sized {
     /// Returns a value that, when added with an underlying value, will produce the underlying
     /// value. This is used for SMIL animation's "by-animation" where SMIL first interpolates from

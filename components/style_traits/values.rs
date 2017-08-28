@@ -18,8 +18,12 @@ use std::fmt::{self, Write};
 ///   of their name;
 /// * unit variants whose name starts with "Moz" or "Webkit" are prepended
 ///   with a "-";
-/// * variants with fields get serialised as the space-separated serialisations
-///   of their fields.
+/// * if `#[css(comma)]` is found on a variant, its fields are separated by
+///   commas, otherwise, by spaces;
+/// * if `#[css(function)]` is found on a variant, the variant name gets
+///   serialised like unit variants and its fields are surrounded by parentheses;
+/// * finally, one can put `#[css(derive_debug)]` on the whole type, to
+///   implement `Debug` by a single call to `ToCss::to_css`.
 pub trait ToCss {
     /// Serialize `self` in CSS syntax, writing to `dest`.
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: Write;
