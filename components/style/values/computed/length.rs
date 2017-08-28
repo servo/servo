@@ -32,7 +32,7 @@ impl ToComputedValue for specified::NoCalcLength {
             specified::NoCalcLength::FontRelative(length) =>
                 length.to_computed_value(context, FontBaseSize::CurrentStyle),
             specified::NoCalcLength::ViewportPercentage(length) =>
-                length.to_computed_value(context.viewport_size()),
+                length.to_computed_value(context.viewport_size_for_viewport_unit_resolution()),
             specified::NoCalcLength::ServoCharacterWidth(length) =>
                 length.to_computed_value(context.style().get_font().clone_font_size().0),
             #[cfg(feature = "gecko")]
@@ -240,7 +240,7 @@ impl specified::CalcLengthOrPercentage {
                      self.vmin.map(ViewportPercentageLength::Vmin),
                      self.vmax.map(ViewportPercentageLength::Vmax)] {
             if let Some(val) = *val {
-                length += val.to_computed_value(context.viewport_size());
+                length += val.to_computed_value(context.viewport_size_for_viewport_unit_resolution());
             }
         }
 

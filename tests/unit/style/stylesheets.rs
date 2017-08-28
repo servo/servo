@@ -78,7 +78,6 @@ fn test_parse_stylesheet() {
             origin: Origin::UserAgent,
             namespaces: RwLock::new(namespaces),
             url_data: RwLock::new(url),
-            dirty_on_viewport_size_change: AtomicBool::new(false),
             quirks_mode: QuirksMode::NoQuirks,
             rules: CssRules::new(vec![
                 CssRule::Namespace(Arc::new(stylesheet.shared_lock.wrap(NamespaceRule {
