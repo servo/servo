@@ -275,8 +275,6 @@
         #[allow(unused_imports)]
         use values::{Auto, Either, None_, Normal};
         #[allow(unused_imports)]
-        use cascade_info::CascadeInfo;
-        #[allow(unused_imports)]
         use error_reporting::ParseErrorReporter;
         #[allow(unused_imports)]
         use properties::longhands;
@@ -303,7 +301,6 @@
         pub fn cascade_property(
             declaration: &PropertyDeclaration,
             context: &mut computed::Context,
-            cascade_info: &mut Option<<&mut CascadeInfo>,
         ) {
             let value = match *declaration {
                 PropertyDeclaration::${property.camel_case}(ref value) => {
@@ -320,9 +317,6 @@
             };
 
             % if not property.derived_from:
-                if let Some(ref mut cascade_info) = *cascade_info {
-                    cascade_info.on_cascade_property(&declaration, &value);
-                }
                 match value {
                     DeclaredValue::Value(ref specified_value) => {
                         % if property.ident in SYSTEM_FONT_LONGHANDS and product == "gecko":

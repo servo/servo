@@ -43,7 +43,6 @@ use stylesheets::{CssRuleType, MallocSizeOf, MallocSizeOfFn, Origin, UrlExtraDat
 use values::generics::text::LineHeight;
 use values::computed;
 use values::computed::NonNegativeAu;
-use cascade_info::CascadeInfo;
 use rule_tree::{CascadeLevel, StrongRuleNode};
 use self::computed_value_flags::ComputedValueFlags;
 use style_adjuster::StyleAdjuster;
@@ -2953,9 +2952,10 @@ mod lazy_static_module {
 
 /// A per-longhand function that performs the CSS cascade for that longhand.
 pub type CascadePropertyFn =
-    extern "Rust" fn(declaration: &PropertyDeclaration,
-                     context: &mut computed::Context,
-                     cascade_info: &mut Option<<&mut CascadeInfo>);
+    extern "Rust" fn(
+        declaration: &PropertyDeclaration,
+        context: &mut computed::Context,
+    );
 
 /// A per-longhand array of functions to perform the CSS cascade on each of
 /// them, effectively doing virtual dispatch.
@@ -3030,7 +3030,6 @@ pub fn cascade(
     parent_style_ignoring_first_line: Option<<&ComputedValues>,
     layout_parent_style: Option<<&ComputedValues>,
     visited_style: Option<Arc<ComputedValues>>,
-    cascade_info: Option<<&mut CascadeInfo>,
     font_metrics_provider: &FontMetricsProvider,
     flags: CascadeFlags,
     quirks_mode: QuirksMode
@@ -3089,7 +3088,6 @@ pub fn cascade(
         parent_style_ignoring_first_line,
         layout_parent_style,
         visited_style,
-        cascade_info,
         font_metrics_provider,
         flags,
         quirks_mode,
@@ -3108,7 +3106,6 @@ pub fn apply_declarations<'a, F, I>(
     parent_style_ignoring_first_line: Option<<&ComputedValues>,
     layout_parent_style: Option<<&ComputedValues>,
     visited_style: Option<Arc<ComputedValues>>,
-    mut cascade_info: Option<<&mut CascadeInfo>,
     font_metrics_provider: &FontMetricsProvider,
     flags: CascadeFlags,
     quirks_mode: QuirksMode,
@@ -3280,9 +3277,7 @@ where
             % endif
 
             let discriminant = longhand_id as usize;
-            (CASCADE_PROPERTY[discriminant])(&*declaration,
-                                             &mut context,
-                                             &mut cascade_info);
+            (CASCADE_PROPERTY[discriminant])(&*declaration, &mut context);
         }
         % if category_to_cascade_now == "early":
             let writing_mode = get_writing_mode(context.builder.get_inheritedbox());
@@ -3363,9 +3358,7 @@ where
                 if let Some(ref declaration) = font_family {
 
                     let discriminant = LonghandId::FontFamily as usize;
-                    (CASCADE_PROPERTY[discriminant])(declaration,
-                                                     &mut context,
-                                                     &mut cascade_info);
+                    (CASCADE_PROPERTY[discriminant])(declaration, &mut context);
                     % if product == "gecko":
                         let device = context.builder.device;
                         if let PropertyDeclaration::FontFamily(ref val) = **declaration {
@@ -3383,9 +3376,7 @@ where
 
             if let Some(ref declaration) = font_size {
                 let discriminant = LonghandId::FontSize as usize;
-                (CASCADE_PROPERTY[discriminant])(declaration,
-                                                 &mut context,
-                                                 &mut cascade_info);
+                (CASCADE_PROPERTY[discriminant])(declaration, &mut context);
             % if product == "gecko":
             // Font size must be explicitly inherited to handle lang changes and
             // scriptlevel changes.
@@ -3397,9 +3388,7 @@ where
                 let size = PropertyDeclaration::CSSWideKeyword(
                     LonghandId::FontSize, CSSWideKeyword::Inherit);
 
-                (CASCADE_PROPERTY[discriminant])(&size,
-                                                 &mut context,
-                                                 &mut cascade_info);
+                (CASCADE_PROPERTY[discriminant])(&size, &mut context);
             % endif
             }
         % endif
