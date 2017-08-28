@@ -138,12 +138,6 @@ pub trait TNode : Sized + Copy + Clone + Debug + NodeInfo {
     /// Get this node as an element, if it's one.
     fn as_element(&self) -> Option<Self::ConcreteElement>;
 
-    /// Whether this node needs to be laid out on viewport size change.
-    fn needs_dirty_on_viewport_size_changed(&self) -> bool;
-
-    /// Mark this node as needing layout on viewport size change.
-    unsafe fn set_dirty_on_viewport_size_changed(&self);
-
     /// Whether this node can be fragmented. This is used for multicol, and only
     /// for Servo.
     fn can_be_fragmented(&self) -> bool;
