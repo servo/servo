@@ -399,6 +399,8 @@ pub mod paintsize;
 pub mod paintworkletglobalscope;
 pub mod performance;
 pub mod performanceentry;
+pub mod performancemark;
+pub mod performancemeasure;
 pub mod performanceobserver;
 pub mod performanceobserverentrylist;
 pub mod performancepainttiming;

@@ -595,3 +595,42 @@ macro_rules! rooted_vec {
         let mut $name = $crate::dom::bindings::trace::RootedVec::from_iter(&mut root, $iter);
     }
 }
+
+/// DOM struct implementation for simple interfaces inheriting from PerformanceEntry.
+macro_rules! impl_performance_entry_struct(
+    ($binding:ident, $struct:ident, $type:expr) => (
+        use dom::bindings::codegen::Bindings::$binding;
+        use dom::bindings::js::Root;
+        use dom::bindings::reflector::reflect_dom_object;
+        use dom::bindings::str::DOMString;
+        use dom::globalscope::GlobalScope;
+        use dom::performanceentry::PerformanceEntry;
+        use dom_struct::dom_struct;
+
+        #[dom_struct]
+        pub struct $struct {
+            entry: PerformanceEntry,
+        }
+
+        impl $struct {
+            fn new_inherited(name: DOMString, start_time: f64, duration: f64)
+                -> $struct {
+                $struct {
+                    entry: PerformanceEntry::new_inherited(name,
+                                                           DOMString::from($type),
+                                                           start_time,
+                                                           duration)
+                }
+            }
+
+            #[allow(unrooted_must_root)]
+            pub fn new(global: &GlobalScope,
+                       name: DOMString,
+                       start_time: f64,
+                       duration: f64) -> Root<$struct> {
+                let entry = $struct::new_inherited(name, start_time, duration);
+                reflect_dom_object(box entry, global, $binding::Wrap)
+            }
+        }
+    );
+);
