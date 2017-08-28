@@ -1167,27 +1167,8 @@ impl LayoutThread {
                        .unwrap();
             }
             if had_used_viewport_units {
-                let mut iter = element.as_node().traverse_preorder();
-
-                let mut next = iter.next();
-                while let Some(node) = next {
-                    if node.needs_dirty_on_viewport_size_changed() {
-                        let el = node.as_element().unwrap();
-                        if let Some(mut d) = element.mutate_data() {
-                            if d.has_styles() {
-                                // FIXME(emilio): This only needs to recascade,
-                                // afaict.
-                                d.restyle.hint.insert(RestyleHint::restyle_subtree());
-                            }
-                        }
-                        if let Some(p) = el.parent_element() {
-                            unsafe { p.note_dirty_descendant() };
-                        }
-
-                        next = iter.next_skipping_children();
-                    } else {
-                        next = iter.next();
-                    }
+                if let Some(mut data) = element.mutate_data() {
+                    data.restyle.hint.insert(RestyleHint::recascade_subtree());
                 }
             }
         }
