@@ -38,17 +38,17 @@ impl PerformanceObserverEntryList {
 impl PerformanceObserverEntryListMethods for PerformanceObserverEntryList {
     // https://w3c.github.io/performance-timeline/#dom-performanceobserver
     fn GetEntries(&self) -> Vec<Root<PerformanceEntry>> {
-        self.entries.borrow().get_entries()
+        self.entries.borrow().get_entries_by_name_and_type(None, None)
     }
 
     // https://w3c.github.io/performance-timeline/#dom-performanceobserver
     fn GetEntriesByType(&self, entry_type: DOMString) -> Vec<Root<PerformanceEntry>> {
-        self.entries.borrow().get_entries_by_type(entry_type)
+        self.entries.borrow().get_entries_by_name_and_type(None, Some(entry_type))
     }
 
     // https://w3c.github.io/performance-timeline/#dom-performanceobserver
     fn GetEntriesByName(&self, name: DOMString, entry_type: Option<DOMString>)
         -> Vec<Root<PerformanceEntry>> {
-        self.entries.borrow().get_entries_by_name(name, entry_type)
+        self.entries.borrow().get_entries_by_name_and_type(Some(name), entry_type)
     }
 }
