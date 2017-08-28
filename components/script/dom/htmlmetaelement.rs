@@ -109,10 +109,6 @@ impl HTMLMetaElement {
                             namespaces: Default::default(),
                             quirks_mode: document.quirks_mode(),
                             url_data: RwLock::new(window_from_node(self).get_url()),
-                            // Viewport constraints are always recomputed on
-                            // resize; they don't need to force all styles to be
-                            // recomputed.
-                            dirty_on_viewport_size_change: AtomicBool::new(false),
                             source_map_url: RwLock::new(None),
                         },
                         media: Arc::new(shared_lock.wrap(MediaList::empty())),

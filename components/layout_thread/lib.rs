@@ -1143,6 +1143,7 @@ impl LayoutThread {
         let document_shared_lock = document.style_shared_lock();
         self.document_shared_lock = Some(document_shared_lock.clone());
         let author_guard = document_shared_lock.read();
+        let had_used_viewport_units = self.stylist.device().used_viewport_units();
         let device = Device::new(MediaType::screen(), initial_viewport, device_pixel_ratio);
         let sheet_origins_affected_by_device_change =
             self.stylist.set_device(device, &author_guard);
@@ -1165,7 +1166,7 @@ impl LayoutThread {
                        .send(ConstellationMsg::ViewportConstrained(self.id, constraints.clone()))
                        .unwrap();
             }
-            if self.stylist.iter_stylesheets().any(|sheet| sheet.0.dirty_on_viewport_size_change()) {
+            if had_used_viewport_units {
                 let mut iter = element.as_node().traverse_preorder();
 
                 let mut next = iter.next();
