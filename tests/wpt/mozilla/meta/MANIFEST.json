@@ -1607,6 +1607,18 @@
      {}
     ]
    ],
+   "css/flex-zero_lines.html": [
+    [
+     "/_mozilla/css/flex-zero_lines.html",
+     [
+      [
+       "/_mozilla/css/flex-zero_lines_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "css/flex_column_direction.html": [
     [
      "/_mozilla/css/flex_column_direction.html",
@@ -8197,6 +8209,11 @@
     ]
    ],
    "css/fixed_width_overrides_child_intrinsic_width_ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/flex-zero_lines_ref.html": [
     [
      {}
     ]
@@ -23122,6 +23139,14 @@
   "css/flex-item-assign-inline-size.html": [
    "9e262b0328e80050f5088a7264e7d40b67873750",
    "testharness"
+  ],
+  "css/flex-zero_lines.html": [
+   "0624d63ae563dbc4754da143b2631949ad114abd",
+   "reftest"
+  ],
+  "css/flex-zero_lines_ref.html": [
+   "69db5dc9423df6c451c80faa70fff1c3a31cd7f7",
+   "support"
   ],
   "css/flex_column_direction.html": [
    "d8d62ddbb5be5da2fbbaed24d1c97880cb7d7d5f",
