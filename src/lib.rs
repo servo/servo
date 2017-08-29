@@ -1,6 +1,5 @@
 pub use std::*;
 
-mod bench;
 mod table;
 mod shim;
 mod alloc;

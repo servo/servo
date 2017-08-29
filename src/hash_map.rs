@@ -2213,12 +2213,12 @@ fn assert_covariance() {
 
 #[cfg(test)]
 mod test_map {
+    extern crate rand;
     use super::HashMap;
     use super::Entry::{Occupied, Vacant};
     use super::RandomState;
     use cell::RefCell;
-    use rand::{thread_rng, Rng};
-    use panic;
+    use self::rand::{thread_rng, Rng};
 
     #[test]
     fn test_zero_capacities() {
@@ -3091,58 +3091,5 @@ mod test_map {
             }
         }
         panic!("Adaptive early resize failed");
-    }
-
-    #[test]
-    fn test_placement_in() {
-        let mut map = HashMap::new();
-        map.extend((0..10).map(|i| (i, i)));
-
-        map.entry(100) <- 100;
-        assert_eq!(map[&100], 100);
-
-        map.entry(0) <- 10;
-        assert_eq!(map[&0], 10);
-
-        assert_eq!(map.len(), 11);
-    }
-
-    #[test]
-    fn test_placement_panic() {
-        let mut map = HashMap::new();
-        map.extend((0..10).map(|i| (i, i)));
-
-        fn mkpanic() -> usize { panic!() }
-
-        // modify existing key
-        // when panic happens, previous key is removed.
-        let _ = panic::catch_unwind(panic::AssertUnwindSafe(|| { map.entry(0) <- mkpanic(); }));
-        assert_eq!(map.len(), 9);
-        assert!(!map.contains_key(&0));
-
-        // add new key
-        let _ = panic::catch_unwind(panic::AssertUnwindSafe(|| { map.entry(100) <- mkpanic(); }));
-        assert_eq!(map.len(), 9);
-        assert!(!map.contains_key(&100));
-    }
-
-    #[test]
-    fn test_placement_drop() {
-        // correctly drop
-        struct TestV<'a>(&'a mut bool);
-        impl<'a> Drop for TestV<'a> {
-            fn drop(&mut self) {
-                if !*self.0 { panic!("value double drop!"); } // no double drop
-                *self.0 = false;
-            }
-        }
-
-        fn makepanic<'a>() -> TestV<'a> { panic!() }
-
-        let mut can_drop = true;
-        let mut hm = HashMap::new();
-        hm.insert(0, TestV(&mut can_drop));
-        let _ = panic::catch_unwind(panic::AssertUnwindSafe(|| { hm.entry(0) <- makepanic(); }));
-        assert_eq!(hm.len(), 0);
     }
 }

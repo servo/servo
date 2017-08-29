@@ -1242,7 +1242,7 @@ fn assert_covariance() {
 #[cfg(test)]
 mod test_set {
     use super::HashSet;
-    use super::super::map::RandomState;
+    use super::hash_map::RandomState;
 
     #[test]
     fn test_zero_capacities() {
