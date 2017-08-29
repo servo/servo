@@ -169,8 +169,7 @@ bitflags! {
         /// Whether any ancestor is a fragmentation container
         const CAN_BE_FRAGMENTED = 1 << 4,
 
-        #[doc = "Specifies whether this node needs to be dirted when viewport size changed."]
-        const DIRTY_ON_VIEWPORT_SIZE_CHANGE = 1 << 5,
+        // There's a free bit here.
 
         #[doc = "Specifies whether the parser has set an associated form owner for \
                  this element. Only applicable for form-associatable elements."]

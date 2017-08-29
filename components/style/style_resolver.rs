@@ -5,7 +5,6 @@
 //! Style resolution for a given element or pseudo-element.
 
 use applicable_declarations::ApplicableDeclarationList;
-use cascade_info::CascadeInfo;
 use context::{CascadeInputs, ElementCascadeInputs, StyleContext};
 use data::{ElementStyles, EagerPseudoStyles};
 use dom::TElement;
@@ -486,7 +485,6 @@ where
         cascade_visited: CascadeVisitedMode,
         pseudo: Option<&PseudoElement>,
     ) -> Arc<ComputedValues> {
-        let mut cascade_info = CascadeInfo::new();
         let mut cascade_flags = CascadeFlags::empty();
 
         if self.element.skip_root_and_item_based_display_fixup() ||
@@ -530,13 +528,10 @@ where
                 parent_style,
                 layout_parent_style,
                 style_if_visited,
-                Some(&mut cascade_info),
                 &self.context.thread_local.font_metrics_provider,
                 cascade_flags,
                 self.context.shared.quirks_mode(),
             );
-
-        cascade_info.finish(&self.element.as_node());
 
         values
     }

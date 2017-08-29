@@ -38,7 +38,7 @@ use layout::data::StyleAndLayoutData;
 use layout::wrapper::GetRawData;
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use range::Range;
-use script::layout_exports::{CAN_BE_FRAGMENTED, DIRTY_ON_VIEWPORT_SIZE_CHANGE, HAS_DIRTY_DESCENDANTS, IS_IN_DOC};
+use script::layout_exports::{CAN_BE_FRAGMENTED, HAS_DIRTY_DESCENDANTS, IS_IN_DOC};
 use script::layout_exports::{CharacterDataTypeId, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use script::layout_exports::{Document, Element, Node, Text};
 use script::layout_exports::{HANDLED_SNAPSHOT, HAS_SNAPSHOT};
@@ -203,14 +203,6 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
 
     fn as_element(&self) -> Option<ServoLayoutElement<'ln>> {
         as_element(self.node)
-    }
-
-    fn needs_dirty_on_viewport_size_changed(&self) -> bool {
-        unsafe { self.node.get_flag(DIRTY_ON_VIEWPORT_SIZE_CHANGE) }
-    }
-
-    unsafe fn set_dirty_on_viewport_size_changed(&self) {
-        self.node.set_flag(DIRTY_ON_VIEWPORT_SIZE_CHANGE, true);
     }
 
     fn can_be_fragmented(&self) -> bool {
