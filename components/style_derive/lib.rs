@@ -13,7 +13,6 @@ use proc_macro::TokenStream;
 mod animate;
 mod cg;
 mod compute_squared_distance;
-mod has_viewport_percentage;
 mod to_animated_value;
 mod to_animated_zero;
 mod to_computed_value;
@@ -29,12 +28,6 @@ pub fn derive_animate(stream: TokenStream) -> TokenStream {
 pub fn derive_compute_squared_distance(stream: TokenStream) -> TokenStream {
     let input = syn::parse_derive_input(&stream.to_string()).unwrap();
     compute_squared_distance::derive(input).to_string().parse().unwrap()
-}
-
-#[proc_macro_derive(HasViewportPercentage)]
-pub fn derive_has_viewport_percentage(stream: TokenStream) -> TokenStream {
-    let input = syn::parse_derive_input(&stream.to_string()).unwrap();
-    has_viewport_percentage::derive(input).to_string().parse().unwrap()
 }
 
 #[proc_macro_derive(ToAnimatedValue)]

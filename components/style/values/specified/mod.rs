@@ -102,7 +102,6 @@ impl Eq for SpecifiedUrl {}
 #[cfg(feature = "gecko")]
 impl ComputedValueAsSpecified for SpecifiedUrl {}
 
-no_viewport_percentage!(SpecifiedUrl);
 }
 
 /// Parse an `<integer>` value, handling `calc()` correctly.
@@ -171,7 +170,6 @@ define_numbered_css_keyword_enum! { BorderStyle:
     "outset" => outset = 2,
 }
 
-no_viewport_percentage!(BorderStyle);
 
 impl BorderStyle {
     /// Whether this border style is either none or hidden.
@@ -191,7 +189,6 @@ pub struct Number {
     calc_clamping_mode: Option<AllowedNumericType>,
 }
 
-no_viewport_percentage!(Number);
 
 impl Parse for Number {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
@@ -296,7 +293,6 @@ pub enum NumberOrPercentage {
     Number(Number),
 }
 
-no_viewport_percentage!(NumberOrPercentage);
 
 impl NumberOrPercentage {
     fn parse_with_clamping_mode<'i, 't>(
@@ -329,7 +325,6 @@ impl Parse for NumberOrPercentage {
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd, ToCss)]
 pub struct Opacity(Number);
 
-no_viewport_percentage!(Opacity);
 
 impl Parse for Opacity {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
@@ -389,7 +384,6 @@ impl Integer {
     }
 }
 
-no_viewport_percentage!(Integer);
 
 impl Parse for Integer {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
@@ -498,7 +492,7 @@ pub type LengthOrPercentageOrNumber = Either<Number, LengthOrPercentage>;
 /// NonNegativeLengthOrPercentage | NonNegativeNumber
 pub type NonNegativeLengthOrPercentageOrNumber = Either<NonNegativeNumber, NonNegativeLengthOrPercentage>;
 
-#[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 /// rect(<top>, <left>, <bottom>, <right>) used by clip and image-region
 pub struct ClipRect {

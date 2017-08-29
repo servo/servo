@@ -83,8 +83,6 @@
         #[allow(unused_imports)]
         use smallvec::SmallVec;
         use std::fmt;
-        #[allow(unused_imports)]
-        use style_traits::HasViewportPercentage;
         use style_traits::{Separator, ToCss};
 
         pub mod single_value {
@@ -179,7 +177,7 @@
         }
 
         /// The specified value of ${name}.
-        #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
+        #[derive(Clone, Debug, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct SpecifiedValue(pub Vec<single_value::SpecifiedValue>);
 
@@ -420,7 +418,6 @@
     %>
     <%call expr="longhand(name, keyword=Keyword(name, values, **keyword_kwargs), **kwargs)">
         use properties::longhands::system_font::SystemFont;
-        no_viewport_percentage!(SpecifiedValue);
 
         pub mod computed_value {
             use cssparser::Parser;
@@ -529,7 +526,6 @@
             impl ComputedValueAsSpecified for SpecifiedValue {}
         % endif
 
-        no_viewport_percentage!(SpecifiedValue);
     </%call>
 </%def>
 
@@ -948,7 +944,7 @@
         }
 
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        #[derive(Clone, Debug, HasViewportPercentage, PartialEq, ToCss)]
+        #[derive(Clone, Debug, PartialEq, ToCss)]
         pub struct SpecifiedValue(pub ${length_type});
 
         % if length_type == "MozLength":

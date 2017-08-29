@@ -9,7 +9,7 @@ use cssparser::{Parser, Token, BasicParseError};
 use parser::{Parse, ParserContext};
 use std::ascii::AsciiExt;
 use std::mem;
-use style_traits::{HasViewportPercentage, ParseError, StyleParseError};
+use style_traits::{ParseError, StyleParseError};
 use values::{CSSFloat, CustomIdent};
 use values::generics::grid::{GridTemplateComponent, RepeatCount, TrackBreadth, TrackKeyword, TrackRepeat};
 use values::generics::grid::{LineNameList, TrackSize, TrackList, TrackListType};
@@ -35,17 +35,6 @@ impl Parse for TrackBreadth<LengthOrPercentage> {
         }
 
         TrackKeyword::parse(input).map(TrackBreadth::Keyword)
-    }
-}
-
-impl HasViewportPercentage for TrackBreadth<LengthOrPercentage> {
-    #[inline]
-    fn has_viewport_percentage(&self) -> bool {
-        if let TrackBreadth::Breadth(ref lop) = *self {
-            lop.has_viewport_percentage()
-        } else {
-            false
-        }
     }
 }
 
@@ -175,13 +164,6 @@ impl TrackRepeat<LengthOrPercentage> {
     }
 }
 
-impl HasViewportPercentage for TrackRepeat<LengthOrPercentage> {
-    #[inline]
-    fn has_viewport_percentage(&self) -> bool {
-        self.track_sizes.iter().any(|ref v| v.has_viewport_percentage())
-    }
-}
-
 impl Parse for TrackList<LengthOrPercentage> {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         // Merge the line names while parsing values. The resulting values will
@@ -278,13 +260,6 @@ impl Parse for TrackList<LengthOrPercentage> {
     }
 }
 
-impl HasViewportPercentage for TrackList<LengthOrPercentage> {
-    #[inline]
-    fn has_viewport_percentage(&self) -> bool {
-        self.values.iter().any(|ref v| v.has_viewport_percentage())
-    }
-}
-
 impl Parse for GridTemplateComponent<LengthOrPercentage> {
     // FIXME: Derive Parse (probably with None_)
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
@@ -305,15 +280,5 @@ impl GridTemplateComponent<LengthOrPercentage> {
         }
 
         LineNameList::parse(context, input).map(GridTemplateComponent::Subgrid)
-    }
-}
-
-impl HasViewportPercentage for GridTemplateComponent<LengthOrPercentage> {
-    #[inline]
-    fn has_viewport_percentage(&self) -> bool {
-        match *self {
-            GridTemplateComponent::TrackList(ref l) => l.has_viewport_percentage(),
-            _ => false,
-        }
     }
 }

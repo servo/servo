@@ -92,7 +92,6 @@ impl CounterStyleOrNone {
     }
 }
 
-no_viewport_percentage!(CounterStyleOrNone);
 
 impl Parse for CounterStyleOrNone {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
@@ -268,12 +267,12 @@ impl ToCss for FontSettingTagFloat {
 
 /// A wrapper of Non-negative values.
 #[cfg_attr(feature = "servo", derive(Deserialize, HeapSizeOf, Serialize))]
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, HasViewportPercentage)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug)]
 #[derive(PartialEq, PartialOrd, ToAnimatedZero, ToComputedValue, ToCss)]
 pub struct NonNegative<T>(pub T);
 
 /// A wrapper of greater-than-or-equal-to-one values.
 #[cfg_attr(feature = "servo", derive(Deserialize, HeapSizeOf, Serialize))]
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, HasViewportPercentage)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug)]
 #[derive(PartialEq, PartialOrd, ToAnimatedZero, ToComputedValue, ToCss)]
 pub struct GreaterThanOrEqualToOne<T>(pub T);

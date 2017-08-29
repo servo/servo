@@ -23,7 +23,6 @@
     pub use self::computed_value::ContentItem;
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
-    no_viewport_percentage!(SpecifiedValue);
 
     pub mod computed_value {
         use cssparser;
@@ -296,7 +295,6 @@
         computed_value::T(Vec::new())
     }
 
-    no_viewport_percentage!(SpecifiedValue);
 
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result

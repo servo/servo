@@ -11,7 +11,7 @@ use cssparser::{Parser, Token, BasicParseError};
 use parser::ParserContext;
 use std::ascii::AsciiExt;
 use std::fmt;
-use style_traits::{HasViewportPercentage, ToCss, ParseError, StyleParseError};
+use style_traits::{ToCss, ParseError, StyleParseError};
 use style_traits::values::specified::AllowedLengthType;
 use values::{CSSInteger, CSSFloat};
 use values::computed;
@@ -80,13 +80,6 @@ pub struct CalcLengthOrPercentage {
     pub percentage: Option<computed::Percentage>,
     #[cfg(feature = "gecko")]
     pub mozmm: Option<CSSFloat>,
-}
-
-impl HasViewportPercentage for CalcLengthOrPercentage {
-    fn has_viewport_percentage(&self) -> bool {
-        self.vw.is_some() || self.vh.is_some() ||
-        self.vmin.is_some() || self.vmax.is_some()
-    }
 }
 
 impl ToCss for CalcLengthOrPercentage {

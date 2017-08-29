@@ -311,7 +311,6 @@ ${helpers.predefined_type("object-position",
         }
     }
 
-    no_viewport_percentage!(SpecifiedValue);
     impl ComputedValueAsSpecified for SpecifiedValue {}
 
     impl ToCss for computed_value::T {
@@ -454,7 +453,6 @@ ${helpers.predefined_type("object-position",
         pub columns: Range<u32>,
     }
 
-    no_viewport_percentage!(TemplateAreas);
     impl ComputedValueAsSpecified for TemplateAreas {}
 
     impl Parse for TemplateAreas {

@@ -57,9 +57,8 @@ macro_rules! define_numbered_css_keyword_enum {
     }
 }
 
-/// A macro for implementing `ComputedValueAsSpecified`, `Parse`
-/// and `HasViewportPercentage` traits for the enums defined
-/// using `define_css_keyword_enum` macro.
+/// A macro for implementing `ComputedValueAsSpecified`, and `Parse` traits for
+/// the enums defined using `define_css_keyword_enum` macro.
 ///
 /// NOTE: We should either move `Parse` trait to `style_traits`
 /// or `define_css_keyword_enum` macro to this crate, but that
@@ -76,7 +75,6 @@ macro_rules! add_impls_for_keyword_enum {
         }
 
         impl $crate::values::computed::ComputedValueAsSpecified for $name {}
-        no_viewport_percentage!($name);
     };
 }
 
@@ -104,6 +102,5 @@ macro_rules! define_keyword_type {
 
         impl $crate::values::computed::ComputedValueAsSpecified for $name {}
         impl $crate::values::animated::AnimatedValueAsComputed for $name {}
-        no_viewport_percentage!($name);
     };
 }

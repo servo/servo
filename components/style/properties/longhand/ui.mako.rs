@@ -51,7 +51,6 @@ ${helpers.single_keyword("-moz-window-shadow", "none default menu tooltip sheet"
     use style_traits::ToCss;
     use values::computed::ComputedValueAsSpecified;
 
-    no_viewport_percentage!(SpecifiedValue);
 
     pub mod computed_value {
         #[derive(Clone, Copy, Debug, PartialEq)]

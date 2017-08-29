@@ -50,7 +50,6 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
         }
 
         impl ComputedValueAsSpecified for SpecifiedValue {}
-        no_viewport_percentage!(SpecifiedValue);
 
         #[cfg(feature = "gecko")]
         impl SpecifiedValue {
@@ -116,7 +115,6 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
 
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
-    no_viewport_percentage!(SpecifiedValue);
 
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
@@ -157,7 +155,6 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
     }
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
-    no_viewport_percentage!(SpecifiedValue);
 
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {

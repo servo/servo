@@ -36,7 +36,6 @@
     %>
     use values::computed::ComputedValueAsSpecified;
     use style_traits::ToCss;
-    no_viewport_percentage!(SpecifiedValue);
 
     pub mod computed_value {
         pub use super::SpecifiedValue as T;
@@ -222,7 +221,6 @@ ${helpers.single_keyword("position", "static absolute relative fixed",
                                   gecko_pref_ident="float_"
                                   flags="APPLIES_TO_FIRST_LETTER"
                                   spec="https://drafts.csswg.org/css-box/#propdef-float">
-    no_viewport_percentage!(SpecifiedValue);
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
 
@@ -261,7 +259,6 @@ ${helpers.single_keyword("position", "static absolute relative fixed",
                                   gecko_enum_prefix="StyleClear"
                                   gecko_ffi_name="mBreakType"
                                   spec="https://www.w3.org/TR/CSS2/visuren.html#flow-control">
-    no_viewport_percentage!(SpecifiedValue);
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
 
@@ -327,7 +324,7 @@ ${helpers.single_keyword("position", "static absolute relative fixed",
 
     /// The `vertical-align` value.
     #[allow(non_camel_case_types)]
-    #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
+    #[derive(Clone, Debug, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SpecifiedValue {
         % for keyword in vertical_align_keywords:
@@ -571,7 +568,6 @@ ${helpers.predefined_type("transition-delay",
             }
         }
     }
-    no_viewport_percentage!(SpecifiedValue);
 
     pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                          -> Result<SpecifiedValue,ParseError<'i>> {
@@ -641,7 +637,6 @@ ${helpers.predefined_type("animation-timing-function",
         }
     }
 
-    no_viewport_percentage!(SpecifiedValue);
 
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
@@ -842,7 +837,7 @@ ${helpers.predefined_type(
     /// Multiple transform functions compose a transformation.
     ///
     /// Some transformations can be expressed by other more general functions.
-    #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
+    #[derive(Clone, Debug, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SpecifiedOperation {
         /// Represents a 2D 2x3 matrix.
@@ -991,7 +986,7 @@ ${helpers.predefined_type(
         }
     }
 
-    #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
+    #[derive(Clone, Debug, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue(Vec<SpecifiedOperation>);
 
@@ -1705,7 +1700,6 @@ ${helpers.predefined_type("transform-origin",
     use values::computed::ComputedValueAsSpecified;
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
-    no_viewport_percentage!(SpecifiedValue);
 
     pub mod computed_value {
         pub type T = super::SpecifiedValue;
@@ -1850,7 +1844,6 @@ ${helpers.single_keyword("-moz-orient",
     use values::computed::ComputedValueAsSpecified;
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
-    no_viewport_percentage!(SpecifiedValue);
 
     pub mod computed_value {
         pub use super::SpecifiedValue as T;
@@ -1924,7 +1917,6 @@ ${helpers.predefined_type(
     use values::computed::ComputedValueAsSpecified;
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
-    no_viewport_percentage!(SpecifiedValue);
 
     pub mod computed_value {
         pub use super::SpecifiedValue as T;

@@ -173,7 +173,6 @@ impl ToCss for AlignJustifyContent {
     }
 }
 
-no_viewport_percentage!(AlignJustifyContent);
 
 impl Parse for AlignJustifyContent {
     // normal | <baseline-position> |
@@ -223,7 +222,6 @@ impl AlignJustifySelf {
     }
 }
 
-no_viewport_percentage!(AlignJustifySelf);
 
 impl Parse for AlignJustifySelf {
     // auto | normal | stretch | <baseline-position> |
@@ -261,7 +259,6 @@ impl AlignItems {
     }
 }
 
-no_viewport_percentage!(AlignItems);
 
 impl Parse for AlignItems {
     // normal | stretch | <baseline-position> |
@@ -305,7 +302,6 @@ impl JustifyItems {
     }
 }
 
-no_viewport_percentage!(JustifyItems);
 
 impl Parse for JustifyItems {
     // auto | normal | stretch | <baseline-position> |

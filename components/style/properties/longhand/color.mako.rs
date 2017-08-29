@@ -34,7 +34,6 @@
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     #[derive(Clone, Debug, PartialEq, ToCss)]
     pub struct SpecifiedValue(pub Color);
-    no_viewport_percentage!(SpecifiedValue);
 
     pub mod computed_value {
         use cssparser;

@@ -13,7 +13,7 @@ use style_traits::{ToCss, ParseError};
 /// serialize as few components as possible, like for example in `border-width`.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug)]
-#[derive(HasViewportPercentage, PartialEq, ToComputedValue)]
+#[derive(PartialEq, ToComputedValue)]
 pub struct Rect<T>(pub T, pub T, pub T, pub T);
 
 impl<T> Rect<T> {

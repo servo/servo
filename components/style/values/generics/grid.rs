@@ -130,7 +130,6 @@ impl Parse for GridLine {
 }
 
 impl ComputedValueAsSpecified for GridLine {}
-no_viewport_percentage!(GridLine);
 
 define_css_keyword_enum!{ TrackKeyword:
     "auto" => Auto,
@@ -182,7 +181,7 @@ impl<L: ToCss> ToCss for TrackBreadth<L> {
 ///
 /// https://drafts.csswg.org/css-grid/#typedef-track-size
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum TrackSize<L> {
     /// A flexible `<track-breadth>`
     Breadth(TrackBreadth<L>),
@@ -372,7 +371,6 @@ impl Parse for RepeatCount {
 }
 
 impl ComputedValueAsSpecified for RepeatCount {}
-no_viewport_percentage!(RepeatCount);
 
 /// The structure containing `<line-names>` and `<track-size>` values.
 ///
@@ -666,7 +664,6 @@ impl ToCss for LineNameList {
 }
 
 impl ComputedValueAsSpecified for LineNameList {}
-no_viewport_percentage!(LineNameList);
 
 /// Variants for `<grid-template-rows> | <grid-template-columns>`
 /// Subgrid deferred to Level 2 spec due to lack of implementation.

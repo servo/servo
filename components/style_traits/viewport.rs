@@ -19,66 +19,6 @@ define_css_keyword_enum!(Orientation:
                          "portrait" => Portrait,
                          "landscape" => Landscape);
 
-/// A trait used to query whether this value has viewport units.
-pub trait HasViewportPercentage {
-    /// Returns true if this value has viewport units.
-    fn has_viewport_percentage(&self) -> bool;
-}
-
-/// A macro used to implement HasViewportPercentage trait
-/// for a given type that may never contain viewport units.
-#[macro_export]
-macro_rules! no_viewport_percentage {
-    ($($name: ident),+) => {
-        $(impl $crate::HasViewportPercentage for $name {
-            #[inline]
-            fn has_viewport_percentage(&self) -> bool {
-                false
-            }
-        })+
-    };
-}
-
-no_viewport_percentage!(bool, f32);
-
-impl<T> HasViewportPercentage for Box<T>
-where
-    T: ?Sized + HasViewportPercentage
-{
-    #[inline]
-    fn has_viewport_percentage(&self) -> bool {
-        (**self).has_viewport_percentage()
-    }
-}
-
-impl<T: HasViewportPercentage> HasViewportPercentage for Option<T> {
-    #[inline]
-    fn has_viewport_percentage(&self) -> bool {
-        self.as_ref().map_or(false, T::has_viewport_percentage)
-    }
-}
-
-impl<T: HasViewportPercentage, U> HasViewportPercentage for TypedSize2D<T, U> {
-    #[inline]
-    fn has_viewport_percentage(&self) -> bool {
-        self.width.has_viewport_percentage() || self.height.has_viewport_percentage()
-    }
-}
-
-impl<T: HasViewportPercentage> HasViewportPercentage for Vec<T> {
-    #[inline]
-    fn has_viewport_percentage(&self) -> bool {
-        self.iter().any(T::has_viewport_percentage)
-    }
-}
-
-impl<T: HasViewportPercentage> HasViewportPercentage for [T] {
-    #[inline]
-    fn has_viewport_percentage(&self) -> bool {
-        self.iter().any(T::has_viewport_percentage)
-    }
-}
-
 /// A set of viewport descriptors:
 ///
 /// https://drafts.csswg.org/css-device-adapt/#viewport-desc

@@ -6,7 +6,7 @@
 //! types that are generic over their `ToCss` implementations.
 
 use std::fmt;
-use style_traits::{HasViewportPercentage, ToCss};
+use style_traits::ToCss;
 use values::animated::{Animate, Procedure, ToAnimatedZero};
 use values::computed::ComputedValueAsSpecified;
 use values::distance::{ComputeSquaredDistance, SquaredDistance};
@@ -157,11 +157,6 @@ impl<B, T, U> ToAnimatedZero for ShapeSource<B, T, U> {
     fn to_animated_zero(&self) -> Result<Self, ()> {
         Err(())
     }
-}
-
-impl<B, T, U> HasViewportPercentage for ShapeSource<B, T, U> {
-    #[inline]
-    fn has_viewport_percentage(&self) -> bool { false }
 }
 
 impl<L> ToCss for InsetRect<L>
