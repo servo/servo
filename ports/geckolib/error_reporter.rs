@@ -194,7 +194,7 @@ enum Action {
 
 trait ErrorHelpers<'a> {
     fn error_data(self) -> (CowRcStr<'a>, ParseError<'a>);
-    fn error_params(self) -> (ErrorString<'a>, Option<ErrorString<'a>>);
+    fn error_params(self) -> ErrorParams<'a>;
     fn to_gecko_message(&self) -> (Option<&'static [u8]>, &'static [u8], Action);
 }
 
@@ -236,17 +236,29 @@ fn extract_value_error_param<'a>(err: ValueParseError<'a>) -> ErrorString<'a> {
     }
 }
 
+struct ErrorParams<'a> {
+    prefix_param: Option<ErrorString<'a>>,
+    main_param: Option<ErrorString<'a>>,
+}
+
 /// If an error parameter is present in the given error, return it. Additionally return
 /// a second parameter if it exists, for use in the prefix for the eventual error message.
-fn extract_error_params<'a>(err: ParseError<'a>) -> Option<(ErrorString<'a>, Option<ErrorString<'a>>)> {
-    match err {
+fn extract_error_params<'a>(err: ParseError<'a>) -> Option<ErrorParams<'a>> {
+    let (main, prefix) = match err {
         CssParseError::Custom(SelectorParseError::Custom(
             StyleParseError::PropertyDeclaration(
                 PropertyDeclarationParseError::InvalidValue(property, Some(e))))) =>
-            Some((ErrorString::Snippet(property.into()), Some(extract_value_error_param(e)))),
+            (Some(ErrorString::Snippet(property.into())), Some(extract_value_error_param(e))),
 
-        err => extract_error_param(err).map(|e| (e, None)),
-    }
+        err => match extract_error_param(err) {
+            Some(e) => (Some(e), None),
+            None => return None,
+        }
+    };
+    Some(ErrorParams {
+        main_param: main,
+        prefix_param: prefix,
+    })
 }
 
 impl<'a> ErrorHelpers<'a> for ContextualParseError<'a> {
@@ -273,9 +285,12 @@ impl<'a> ErrorHelpers<'a> for ContextualParseError<'a> {
         }
     }
 
-    fn error_params(self) -> (ErrorString<'a>, Option<ErrorString<'a>>) {
+    fn error_params(self) -> ErrorParams<'a> {
         let (s, error) = self.error_data();
-        extract_error_params(error).unwrap_or((ErrorString::Snippet(s), None))
+        extract_error_params(error).unwrap_or_else(|| ErrorParams {
+            main_param: Some(ErrorString::Snippet(s)),
+            prefix_param: None
+        })
     }
 
     fn to_gecko_message(&self) -> (Option<&'static [u8]>, &'static [u8], Action) {
@@ -340,17 +355,20 @@ impl ParseErrorReporter for ErrorReporter {
             Action::Skip => b"PEDeclSkipped\0".as_ptr(),
             Action::Drop => b"PEDeclDropped\0".as_ptr(),
         };
-        let (param, pre_param) = error.error_params();
-        let param = param.into_str();
+        let params = error.error_params();
+        let param = params.main_param;
+        let pre_param = params.prefix_param;
+        let param = param.map(|p| p.into_str());
         let pre_param = pre_param.map(|p| p.into_str());
+        let param_ptr = param.as_ref().map_or(ptr::null(), |p| p.as_ptr());
         let pre_param_ptr = pre_param.as_ref().map_or(ptr::null(), |p| p.as_ptr());
         // The CSS source text is unused and will be removed in bug 1381188.
         let source = "";
         unsafe {
             Gecko_ReportUnexpectedCSSError(self.0,
                                            name.as_ptr() as *const _,
-                                           param.as_ptr() as *const _,
-                                           param.len() as u32,
+                                           param_ptr as *const _,
+                                           param.as_ref().map_or(0, |p| p.len()) as u32,
                                            pre.map_or(ptr::null(), |p| p.as_ptr()) as *const _,
                                            pre_param_ptr as *const _,
                                            pre_param.as_ref().map_or(0, |p| p.len()) as u32,
