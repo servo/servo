@@ -49,18 +49,23 @@ fn to_ascii_lowercase(s: &str) -> Cow<str> {
 #[derive(Clone, Debug, PartialEq)]
 pub enum SelectorParseError<'i, T> {
     PseudoElementInComplexSelector,
-    NoQualifiedNameInAttributeSelector,
-    TooManyCompoundSelectorComponentsInNegation,
-    NegationSelectorComponentNotNamespace,
-    NegationSelectorComponentNotLocalName,
+    NoQualifiedNameInAttributeSelector(Token<'i>),
     EmptySelector,
+    DanglingCombinator,
     NonSimpleSelectorInNegation,
-    UnexpectedTokenInAttributeSelector,
-    PseudoElementExpectedColon,
-    PseudoElementExpectedIdent,
-    UnsupportedPseudoClass,
+    UnexpectedTokenInAttributeSelector(Token<'i>),
+    PseudoElementExpectedColon(Token<'i>),
+    PseudoElementExpectedIdent(Token<'i>),
+    NoIdentForPseudo(Token<'i>),
+    UnsupportedPseudoClassOrElement(CowRcStr<'i>),
     UnexpectedIdent(CowRcStr<'i>),
     ExpectedNamespace(CowRcStr<'i>),
+    ExpectedBarInAttr(Token<'i>),
+    BadValueInAttr(Token<'i>),
+    InvalidQualNameInAttr(Token<'i>),
+    ExplicitNamespaceUnexpectedToken(Token<'i>),
+    ClassNeedsIdent(Token<'i>),
+    EmptyNegation,
     Custom(T),
 }
 
@@ -136,7 +141,7 @@ pub trait Parser<'i> {
     fn parse_non_ts_pseudo_class(&self, name: CowRcStr<'i>)
                                  -> Result<<Self::Impl as SelectorImpl>::NonTSPseudoClass,
                                            ParseError<'i, SelectorParseError<'i, Self::Error>>> {
-        Err(ParseError::Custom(SelectorParseError::UnexpectedIdent(name)))
+        Err(ParseError::Custom(SelectorParseError::UnsupportedPseudoClassOrElement(name)))
     }
 
     fn parse_non_ts_functional_pseudo_class<'t>
@@ -144,20 +149,20 @@ pub trait Parser<'i> {
          -> Result<<Self::Impl as SelectorImpl>::NonTSPseudoClass,
                    ParseError<'i, SelectorParseError<'i, Self::Error>>>
     {
-        Err(ParseError::Custom(SelectorParseError::UnexpectedIdent(name)))
+        Err(ParseError::Custom(SelectorParseError::UnsupportedPseudoClassOrElement(name)))
     }
 
     fn parse_pseudo_element(&self, name: CowRcStr<'i>)
                             -> Result<<Self::Impl as SelectorImpl>::PseudoElement,
                                       ParseError<'i, SelectorParseError<'i, Self::Error>>> {
-        Err(ParseError::Custom(SelectorParseError::UnexpectedIdent(name)))
+        Err(ParseError::Custom(SelectorParseError::UnsupportedPseudoClassOrElement(name)))
     }
 
     fn parse_functional_pseudo_element<'t>
         (&self, name: CowRcStr<'i>, _arguments: &mut CssParser<'i, 't>)
          -> Result<<Self::Impl as SelectorImpl>::PseudoElement,
                    ParseError<'i, SelectorParseError<'i, Self::Error>>> {
-        Err(ParseError::Custom(SelectorParseError::UnexpectedIdent(name)))
+        Err(ParseError::Custom(SelectorParseError::UnsupportedPseudoClassOrElement(name)))
     }
 
     fn default_namespace(&self) -> Option<<Self::Impl as SelectorImpl>::NamespaceUrl> {
@@ -1041,7 +1046,12 @@ fn parse_selector<'i, 't, P, E, Impl>(
     let mut parsed_pseudo_element;
     'outer_loop: loop {
         // Parse a sequence of simple selectors.
-        parsed_pseudo_element = parse_compound_selector(parser, input, &mut builder)?;
+        parsed_pseudo_element = match parse_compound_selector(parser, input, &mut builder) {
+            Ok(result) => result,
+            Err(ParseError::Custom(SelectorParseError::EmptySelector)) if builder.has_combinators() =>
+                return Err(SelectorParseError::DanglingCombinator.into()),
+            Err(e) => return Err(e),
+        };
         if parsed_pseudo_element {
             break;
         }
@@ -1106,9 +1116,10 @@ fn parse_type_selector<'i, 't, P, E, Impl, S>(parser: &P, input: &mut CssParser<
           Impl: SelectorImpl,
           S: Push<Component<Impl>>,
 {
-    match parse_qualified_name(parser, input, /* in_attr_selector = */ false)? {
-        None => Ok(false),
-        Some((namespace, local_name)) => {
+    match parse_qualified_name(parser, input, /* in_attr_selector = */ false) {
+        Err(ParseError::Basic(BasicParseError::EndOfInput)) |
+        Ok(OptionalQName::None(_)) => Ok(false),
+        Ok(OptionalQName::Some(namespace, local_name)) => {
             match namespace {
                 QNamePrefix::ImplicitAnyNamespace => {}
                 QNamePrefix::ImplicitDefaultNamespace(url) => {
@@ -1157,6 +1168,7 @@ fn parse_type_selector<'i, 't, P, E, Impl, S>(parser: &P, input: &mut CssParser<
             }
             Ok(true)
         }
+        Err(e) => Err(e)
     }
 }
 
@@ -1176,13 +1188,19 @@ enum QNamePrefix<Impl: SelectorImpl> {
     ExplicitNamespace(Impl::NamespacePrefix, Impl::NamespaceUrl),  // `prefix|foo`
 }
 
+enum OptionalQName<'i, Impl: SelectorImpl> {
+    Some(QNamePrefix<Impl>, Option<CowRcStr<'i>>),
+    None(Token<'i>),
+}
+
 /// * `Err(())`: Invalid selector, abort
-/// * `Ok(None)`: Not a simple selector, could be something else. `input` was not consumed.
-/// * `Ok(Some((namespace, local_name)))`: `None` for the local name means a `*` universal selector
+/// * `Ok(None(token))`: Not a simple selector, could be something else. `input` was not consumed,
+///                      but the token is still returned.
+/// * `Ok(Some(namespace, local_name))`: `None` for the local name means a `*` universal selector
 fn parse_qualified_name<'i, 't, P, E, Impl>
                        (parser: &P, input: &mut CssParser<'i, 't>,
                         in_attr_selector: bool)
-                        -> Result<Option<(QNamePrefix<Impl>, Option<CowRcStr<'i>>)>,
+                        -> Result<OptionalQName<'i, Impl>,
                                   ParseError<'i, SelectorParseError<'i, E>>>
     where P: Parser<'i, Impl=Impl, Error=E>, Impl: SelectorImpl
 {
@@ -1191,18 +1209,19 @@ fn parse_qualified_name<'i, 't, P, E, Impl>
             Some(url) => QNamePrefix::ImplicitDefaultNamespace(url),
             None => QNamePrefix::ImplicitAnyNamespace,
         };
-        Ok(Some((namespace, local_name)))
+        Ok(OptionalQName::Some(namespace, local_name))
     };
 
     let explicit_namespace = |input: &mut CssParser<'i, 't>, namespace| {
         match input.next_including_whitespace() {
             Ok(&Token::Delim('*')) if !in_attr_selector => {
-                Ok(Some((namespace, None)))
+                Ok(OptionalQName::Some(namespace, None))
             },
             Ok(&Token::Ident(ref local_name)) => {
-                Ok(Some((namespace, Some(local_name.clone()))))
+                Ok(OptionalQName::Some(namespace, Some(local_name.clone())))
             },
-            Ok(t) => Err(ParseError::Basic(BasicParseError::UnexpectedToken(t.clone()))),
+            Ok(t) if in_attr_selector => Err(SelectorParseError::InvalidQualNameInAttr(t.clone()).into()),
+            Ok(t) => Err(SelectorParseError::ExplicitNamespaceUnexpectedToken(t.clone()).into()),
             Err(e) => Err(ParseError::Basic(e)),
         }
     };
@@ -1223,7 +1242,7 @@ fn parse_qualified_name<'i, 't, P, E, Impl>
                 _ => {
                     input.reset(&after_ident);
                     if in_attr_selector {
-                        Ok(Some((QNamePrefix::ImplicitNoNamespace, Some(value))))
+                        Ok(OptionalQName::Some(QNamePrefix::ImplicitNoNamespace, Some(value)))
                     } else {
                         default_namespace(Some(value))
                     }
@@ -1241,7 +1260,7 @@ fn parse_qualified_name<'i, 't, P, E, Impl>
                     input.reset(&after_star);
                     if in_attr_selector {
                         match result {
-                            Ok(t) => Err(ParseError::Basic(BasicParseError::UnexpectedToken(t))),
+                            Ok(t) => Err(SelectorParseError::ExpectedBarInAttr(t).into()),
                             Err(e) => Err(ParseError::Basic(e)),
                         }
                     } else {
@@ -1253,9 +1272,13 @@ fn parse_qualified_name<'i, 't, P, E, Impl>
         Ok(Token::Delim('|')) => {
             explicit_namespace(input, QNamePrefix::ExplicitNoNamespace)
         }
-        _ => {
+        Ok(t) => {
             input.reset(&start);
-            Ok(None)
+            Ok(OptionalQName::None(t))
+        }
+        Err(e) => {
+            input.reset(&start);
+            Err(e.into())
         }
     }
 }
@@ -1269,9 +1292,10 @@ fn parse_attribute_selector<'i, 't, P, E, Impl>(parser: &P, input: &mut CssParse
     let namespace;
     let local_name;
     match parse_qualified_name(parser, input, /* in_attr_selector = */ true)? {
-        None => return Err(ParseError::Custom(SelectorParseError::NoQualifiedNameInAttributeSelector)),
-        Some((_, None)) => unreachable!(),
-        Some((ns, Some(ln))) => {
+        OptionalQName::None(t) =>
+            return Err(ParseError::Custom(SelectorParseError::NoQualifiedNameInAttributeSelector(t))),
+        OptionalQName::Some(_, None) => unreachable!(),
+        OptionalQName::Some(ns, Some(ln)) => {
             local_name = ln;
             namespace = match ns {
                 QNamePrefix::ImplicitNoNamespace |
@@ -1292,10 +1316,7 @@ fn parse_attribute_selector<'i, 't, P, E, Impl>(parser: &P, input: &mut CssParse
         }
     }
 
-    let operator;
-    let value;
-    let never_matches;
-    match input.next() {
+    let operator = match input.next() {
         // [foo]
         Err(_) => {
             let local_name_lower = to_ascii_lowercase(&local_name).as_ref().into();
@@ -1317,43 +1338,38 @@ fn parse_attribute_selector<'i, 't, P, E, Impl>(parser: &P, input: &mut CssParse
         }
 
         // [foo=bar]
-        Ok(&Token::Delim('=')) => {
-            value = input.expect_ident_or_string()?.clone();
-            never_matches = false;
-            operator = AttrSelectorOperator::Equal;
-        }
+        Ok(&Token::Delim('=')) => AttrSelectorOperator::Equal,
         // [foo~=bar]
-        Ok(&Token::IncludeMatch) => {
-            value = input.expect_ident_or_string()?.clone();
-            never_matches = value.is_empty() || value.contains(SELECTOR_WHITESPACE);
-            operator = AttrSelectorOperator::Includes;
-        }
+        Ok(&Token::IncludeMatch) => AttrSelectorOperator::Includes,
         // [foo|=bar]
-        Ok(&Token::DashMatch) => {
-            value = input.expect_ident_or_string()?.clone();
-            never_matches = false;
-            operator = AttrSelectorOperator::DashMatch;
-        }
+        Ok(&Token::DashMatch) => AttrSelectorOperator::DashMatch,
         // [foo^=bar]
-        Ok(&Token::PrefixMatch) => {
-            value = input.expect_ident_or_string()?.clone();
-            never_matches = value.is_empty();
-            operator = AttrSelectorOperator::Prefix;
-        }
+        Ok(&Token::PrefixMatch) => AttrSelectorOperator::Prefix,
         // [foo*=bar]
-        Ok(&Token::SubstringMatch) => {
-            value = input.expect_ident_or_string()?.clone();
-            never_matches = value.is_empty();
-            operator = AttrSelectorOperator::Substring;
-        }
+        Ok(&Token::SubstringMatch) => AttrSelectorOperator::Substring,
         // [foo$=bar]
-        Ok(&Token::SuffixMatch) => {
-            value = input.expect_ident_or_string()?.clone();
-            never_matches = value.is_empty();
-            operator = AttrSelectorOperator::Suffix;
+        Ok(&Token::SuffixMatch) => AttrSelectorOperator::Suffix,
+        Ok(t) => return Err(SelectorParseError::UnexpectedTokenInAttributeSelector(t.clone()).into())
+    };
+
+    let value = match input.expect_ident_or_string() {
+        Ok(t) => t.clone(),
+        Err(BasicParseError::UnexpectedToken(t)) =>
+            return Err(SelectorParseError::BadValueInAttr(t.clone()).into()),
+        Err(e) => return Err(e.into()),
+    };
+    let never_matches = match operator {
+        AttrSelectorOperator::Equal |
+        AttrSelectorOperator::DashMatch => false,
+
+        AttrSelectorOperator::Includes => {
+            value.is_empty() || value.contains(SELECTOR_WHITESPACE)
         }
-        _ => return Err(SelectorParseError::UnexpectedTokenInAttributeSelector.into())
-    }
+
+        AttrSelectorOperator::Prefix |
+        AttrSelectorOperator::Substring |
+        AttrSelectorOperator::Suffix => value.is_empty()
+    };
 
     let mut case_sensitivity = parse_attribute_flags(input)?;
 
@@ -1429,13 +1445,19 @@ fn parse_negation<'i, 't, P, E, Impl>(parser: &P,
 
     // Get exactly one simple selector. The parse logic in the caller will verify
     // that there are no trailing tokens after we're done.
-    if !parse_type_selector(parser, input, &mut sequence)? {
+    let is_type_sel = match parse_type_selector(parser, input, &mut sequence) {
+        Ok(result) => result,
+        Err(ParseError::Basic(BasicParseError::EndOfInput)) =>
+            return Err(SelectorParseError::EmptyNegation.into()),
+        Err(e) => return Err(e.into()),
+    };
+    if !is_type_sel {
         match parse_one_simple_selector(parser, input, /* inside_negation = */ true)? {
             Some(SimpleSelectorParseResult::SimpleSelector(s)) => {
                 sequence.push(s);
             },
             None => {
-                return Err(ParseError::Custom(SelectorParseError::EmptySelector));
+                return Err(ParseError::Custom(SelectorParseError::EmptyNegation));
             },
             Some(SimpleSelectorParseResult::PseudoElement(_)) => {
                 return Err(ParseError::Custom(SelectorParseError::NonSimpleSelectorInNegation));
@@ -1492,20 +1514,21 @@ fn parse_compound_selector<'i, 't, P, E, Impl>(
                     match input.next_including_whitespace() {
                         Ok(&Token::Colon) => {},
                         Ok(&Token::WhiteSpace(_)) | Err(_) => break,
-                        _ => return Err(SelectorParseError::PseudoElementExpectedColon.into()),
+                        Ok(t) =>
+                            return Err(SelectorParseError::PseudoElementExpectedColon(t.clone()).into()),
                     }
 
                     // TODO(emilio): Functional pseudo-classes too?
                     // We don't need it for now.
-                    let name = match input.next_including_whitespace() {
-                        Ok(&Token::Ident(ref name)) => name.clone(),
-                        _ => return Err(SelectorParseError::PseudoElementExpectedIdent.into()),
+                    let name = match input.next_including_whitespace()? {
+                        &Token::Ident(ref name) => name.clone(),
+                        t => return Err(SelectorParseError::NoIdentForPseudo(t.clone()).into()),
                     };
 
                     let pseudo_class =
-                        P::parse_non_ts_pseudo_class(parser, name)?;
+                        P::parse_non_ts_pseudo_class(parser, name.clone())?;
                     if !p.supports_pseudo_class(&pseudo_class) {
-                        return Err(SelectorParseError::UnsupportedPseudoClass.into());
+                        return Err(SelectorParseError::UnsupportedPseudoClassOrElement(name).into());
                     }
                     state_selectors.push(Component::NonTSPseudoClass(pseudo_class));
                 }
@@ -1604,7 +1627,7 @@ fn parse_one_simple_selector<'i, 't, P, E, Impl>(parser: &P,
                     let class = Component::Class(class.as_ref().into());
                     Ok(Some(SimpleSelectorParseResult::SimpleSelector(class)))
                 }
-                ref t => Err(ParseError::Basic(BasicParseError::UnexpectedToken(t.clone()))),
+                ref t => Err(SelectorParseError::ClassNeedsIdent(t.clone()).into()),
             }
         }
         Ok(Token::SquareBracketBlock) => {
@@ -1619,7 +1642,7 @@ fn parse_one_simple_selector<'i, 't, P, E, Impl>(parser: &P,
             let (name, is_functional) = match next_token {
                 Token::Ident(name) => (name, false),
                 Token::Function(name) => (name, true),
-                t => return Err(ParseError::Basic(BasicParseError::UnexpectedToken(t))),
+                t => return Err(SelectorParseError::PseudoElementExpectedIdent(t).into()),
             };
             let is_pseudo_element = !is_single_colon ||
                 P::is_pseudo_element_allows_single_colon(&name);

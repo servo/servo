@@ -161,7 +161,7 @@ fn token_to_str<'a>(t: Token<'a>) -> String {
             format!("{}{}", i, escape_css_ident(&*unit)),
         Token::Dimension { value, ref unit, .. } =>
             format!("{}{}", value, escape_css_ident(&*unit)),
-        Token::WhiteSpace(_) => "whitespace".into(),
+        Token::WhiteSpace(s) => s.into(),
         Token::Comment(_) => "comment".into(),
         Token::Colon => ":".into(),
         Token::Semicolon => ";".into(),
@@ -194,7 +194,7 @@ enum Action {
 
 trait ErrorHelpers<'a> {
     fn error_data(self) -> (CowRcStr<'a>, ParseError<'a>);
-    fn error_params(self) -> (ErrorString<'a>, Option<ErrorString<'a>>);
+    fn error_params(self) -> ErrorParams<'a>;
     fn to_gecko_message(&self) -> (Option<&'static [u8]>, &'static [u8], Action);
 }
 
@@ -203,7 +203,9 @@ fn extract_error_param<'a>(err: ParseError<'a>) -> Option<ErrorString<'a>> {
         CssParseError::Basic(BasicParseError::UnexpectedToken(t)) =>
             ErrorString::UnexpectedToken(t),
 
-        CssParseError::Basic(BasicParseError::AtRuleInvalid(i)) =>
+        CssParseError::Basic(BasicParseError::AtRuleInvalid(i)) |
+        CssParseError::Custom(SelectorParseError::Custom(
+            StyleParseError::UnsupportedAtRule(i))) =>
             ErrorString::Snippet(format!("@{}", escape_css_ident(&i)).into()),
 
         CssParseError::Custom(SelectorParseError::Custom(
@@ -213,9 +215,6 @@ fn extract_error_param<'a>(err: ParseError<'a>) -> Option<ErrorString<'a>> {
 
         CssParseError::Custom(SelectorParseError::UnexpectedIdent(ident)) =>
             ErrorString::Ident(ident),
-
-        CssParseError::Custom(SelectorParseError::ExpectedNamespace(namespace)) =>
-            ErrorString::Ident(namespace),
 
         CssParseError::Custom(SelectorParseError::Custom(
             StyleParseError::PropertyDeclaration(
@@ -236,17 +235,54 @@ fn extract_value_error_param<'a>(err: ValueParseError<'a>) -> ErrorString<'a> {
     }
 }
 
+struct ErrorParams<'a> {
+    prefix_param: Option<ErrorString<'a>>,
+    main_param: Option<ErrorString<'a>>,
+}
+
 /// If an error parameter is present in the given error, return it. Additionally return
 /// a second parameter if it exists, for use in the prefix for the eventual error message.
-fn extract_error_params<'a>(err: ParseError<'a>) -> Option<(ErrorString<'a>, Option<ErrorString<'a>>)> {
-    match err {
+fn extract_error_params<'a>(err: ParseError<'a>) -> Option<ErrorParams<'a>> {
+    let (main, prefix) = match err {
         CssParseError::Custom(SelectorParseError::Custom(
             StyleParseError::PropertyDeclaration(
                 PropertyDeclarationParseError::InvalidValue(property, Some(e))))) =>
-            Some((ErrorString::Snippet(property.into()), Some(extract_value_error_param(e)))),
+            (Some(ErrorString::Snippet(property.into())), Some(extract_value_error_param(e))),
 
-        err => extract_error_param(err).map(|e| (e, None)),
-    }
+        CssParseError::Custom(SelectorParseError::UnexpectedTokenInAttributeSelector(t)) |
+        CssParseError::Custom(SelectorParseError::BadValueInAttr(t)) |
+        CssParseError::Custom(SelectorParseError::ExpectedBarInAttr(t)) |
+        CssParseError::Custom(SelectorParseError::NoQualifiedNameInAttributeSelector(t)) |
+        CssParseError::Custom(SelectorParseError::InvalidQualNameInAttr(t)) |
+        CssParseError::Custom(SelectorParseError::ExplicitNamespaceUnexpectedToken(t)) |
+        CssParseError::Custom(SelectorParseError::PseudoElementExpectedIdent(t)) |
+        CssParseError::Custom(SelectorParseError::NoIdentForPseudo(t)) |
+        CssParseError::Custom(SelectorParseError::ClassNeedsIdent(t)) |
+        CssParseError::Custom(SelectorParseError::PseudoElementExpectedColon(t)) =>
+            (None, Some(ErrorString::UnexpectedToken(t))),
+
+        CssParseError::Custom(SelectorParseError::ExpectedNamespace(namespace)) =>
+            (None, Some(ErrorString::Ident(namespace))),
+
+        CssParseError::Custom(SelectorParseError::UnsupportedPseudoClassOrElement(p)) =>
+            (None, Some(ErrorString::Ident(p))),
+
+        CssParseError::Custom(SelectorParseError::EmptySelector) |
+        CssParseError::Custom(SelectorParseError::DanglingCombinator) =>
+            (None, None),
+
+        CssParseError::Custom(SelectorParseError::EmptyNegation) =>
+            (None, Some(ErrorString::Snippet(")".into()))),
+
+        err => match extract_error_param(err) {
+            Some(e) => (Some(e), None),
+            None => return None,
+        }
+    };
+    Some(ErrorParams {
+        main_param: main,
+        prefix_param: prefix,
+    })
 }
 
 impl<'a> ErrorHelpers<'a> for ContextualParseError<'a> {
@@ -273,9 +309,12 @@ impl<'a> ErrorHelpers<'a> for ContextualParseError<'a> {
         }
     }
 
-    fn error_params(self) -> (ErrorString<'a>, Option<ErrorString<'a>>) {
+    fn error_params(self) -> ErrorParams<'a> {
         let (s, error) = self.error_data();
-        extract_error_params(error).unwrap_or((ErrorString::Snippet(s), None))
+        extract_error_params(error).unwrap_or_else(|| ErrorParams {
+            main_param: Some(ErrorString::Snippet(s)),
+            prefix_param: None
+        })
     }
 
     fn to_gecko_message(&self) -> (Option<&'static [u8]>, &'static [u8], Action) {
@@ -304,14 +343,51 @@ impl<'a> ErrorHelpers<'a> for ContextualParseError<'a> {
             ContextualParseError::UnsupportedKeyframePropertyDeclaration(..) =>
                 (b"PEBadSelectorKeyframeRuleIgnored\0", Action::Nothing),
             ContextualParseError::InvalidRule(
-                _, CssParseError::Custom(SelectorParseError::ExpectedNamespace(_))) =>
-                (b"PEUnknownNamespacePrefix\0", Action::Nothing),
-            ContextualParseError::InvalidRule(
                 _, CssParseError::Custom(SelectorParseError::Custom(
                 StyleParseError::UnexpectedTokenWithinNamespace(_)))) =>
                 (b"PEAtNSUnexpected\0", Action::Nothing),
-            ContextualParseError::InvalidRule(..) =>
-                (b"PEBadSelectorRSIgnored\0", Action::Nothing),
+            ContextualParseError::InvalidRule(
+                _, CssParseError::Basic(BasicParseError::AtRuleInvalid(_))) |
+            ContextualParseError::InvalidRule(
+                _, CssParseError::Custom(SelectorParseError::Custom(
+                    StyleParseError::UnsupportedAtRule(_)))) =>
+                (b"PEUnknownAtRule\0", Action::Nothing),
+            ContextualParseError::InvalidRule(_, ref err) => {
+                let prefix = match *err {
+                    CssParseError::Custom(SelectorParseError::UnexpectedTokenInAttributeSelector(_)) =>
+                        Some(&b"PEAttSelUnexpected\0"[..]),
+                    CssParseError::Custom(SelectorParseError::ExpectedBarInAttr(_)) =>
+                        Some(&b"PEAttSelNoBar\0"[..]),
+                    CssParseError::Custom(SelectorParseError::BadValueInAttr(_)) =>
+                        Some(&b"PEAttSelBadValue\0"[..]),
+                    CssParseError::Custom(SelectorParseError::NoQualifiedNameInAttributeSelector(_)) =>
+                        Some(&b"PEAttributeNameOrNamespaceExpected\0"[..]),
+                    CssParseError::Custom(SelectorParseError::InvalidQualNameInAttr(_)) =>
+                        Some(&b"PEAttributeNameExpected\0"[..]),
+                    CssParseError::Custom(SelectorParseError::ExplicitNamespaceUnexpectedToken(_)) =>
+                        Some(&b"PETypeSelNotType\0"[..]),
+                    CssParseError::Custom(SelectorParseError::ExpectedNamespace(_)) =>
+                       Some(&b"PEUnknownNamespacePrefix\0"[..]),
+                    CssParseError::Custom(SelectorParseError::EmptySelector) =>
+                        Some(&b"PESelectorGroupNoSelector\0"[..]),
+                    CssParseError::Custom(SelectorParseError::DanglingCombinator) =>
+                        Some(&b"PESelectorGroupExtraCombinator\0"[..]),
+                    CssParseError::Custom(SelectorParseError::UnsupportedPseudoClassOrElement(_)) =>
+                        Some(&b"PEPseudoSelUnknown\0"[..]),
+                    CssParseError::Custom(SelectorParseError::PseudoElementExpectedColon(_)) =>
+                        Some(&b"PEPseudoSelEndOrUserActionPC\0"[..]),
+                    CssParseError::Custom(SelectorParseError::NoIdentForPseudo(_)) =>
+                        Some(&b"PEPseudoClassArgNotIdent\0"[..]),
+                    CssParseError::Custom(SelectorParseError::PseudoElementExpectedIdent(_)) =>
+                        Some(&b"PEPseudoSelBadName\0"[..]),
+                    CssParseError::Custom(SelectorParseError::ClassNeedsIdent(_)) =>
+                        Some(&b"PEClassSelNotIdent\0"[..]),
+                    CssParseError::Custom(SelectorParseError::EmptyNegation) =>
+                        Some(&b"PENegationBadArg\0"[..]),
+                    _ => None,
+                };
+                return (prefix, b"PEBadSelectorRSIgnored\0", Action::Nothing);
+            }
             ContextualParseError::UnsupportedRule(..) =>
                 (b"PEDeclDropped\0", Action::Nothing),
             ContextualParseError::UnsupportedViewportDescriptorDeclaration(..) |
@@ -340,17 +416,20 @@ impl ParseErrorReporter for ErrorReporter {
             Action::Skip => b"PEDeclSkipped\0".as_ptr(),
             Action::Drop => b"PEDeclDropped\0".as_ptr(),
         };
-        let (param, pre_param) = error.error_params();
-        let param = param.into_str();
+        let params = error.error_params();
+        let param = params.main_param;
+        let pre_param = params.prefix_param;
+        let param = param.map(|p| p.into_str());
         let pre_param = pre_param.map(|p| p.into_str());
+        let param_ptr = param.as_ref().map_or(ptr::null(), |p| p.as_ptr());
         let pre_param_ptr = pre_param.as_ref().map_or(ptr::null(), |p| p.as_ptr());
         // The CSS source text is unused and will be removed in bug 1381188.
         let source = "";
         unsafe {
             Gecko_ReportUnexpectedCSSError(self.0,
                                            name.as_ptr() as *const _,
-                                           param.as_ptr() as *const _,
-                                           param.len() as u32,
+                                           param_ptr as *const _,
+                                           param.as_ref().map_or(0, |p| p.len()) as u32,
                                            pre.map_or(ptr::null(), |p| p.as_ptr()) as *const _,
                                            pre_param_ptr as *const _,
                                            pre_param.as_ref().map_or(0, |p| p.len()) as u32,
