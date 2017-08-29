@@ -397,12 +397,14 @@ impl PropertyDeclarationBlock {
         importance: Importance,
         overwrite_more_important_and_reuse_slot: bool
     ) -> bool {
-        let definitely_new = if let PropertyDeclarationId::Longhand(id) = declaration.id() {
-            !self.longhands.contains(id)
-        } else {
-            false  // For custom properties, always scan
+        let longhand_id = match declaration.id() {
+            PropertyDeclarationId::Longhand(id) => Some(id),
+            PropertyDeclarationId::Custom(..) => None,
         };
 
+        let definitely_new = longhand_id.map_or(false, |id| {
+            !self.longhands.contains(id)
+        });
 
         if !definitely_new {
             let mut index_to_remove = None;
@@ -444,7 +446,7 @@ impl PropertyDeclarationBlock {
             }
         }
 
-        if let PropertyDeclarationId::Longhand(id) = declaration.id() {
+        if let Some(id) = longhand_id {
             self.longhands.insert(id);
         }
         self.declarations.push((declaration, importance));
