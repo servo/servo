@@ -136,7 +136,8 @@ use std::rc::Rc;
 use std::time::{Duration, Instant};
 use style::attr::AttrValue;
 use style::context::{QuirksMode, ReflowGoal};
-use style::invalidation::element::restyle_hints::{RestyleHint, RESTYLE_SELF, RESTYLE_STYLE_ATTRIBUTE};
+use style::invalidation::element::restyle_hints::{RESTYLE_SELF, RESTYLE_STYLE_ATTRIBUTE, RESTYLE_DESCENDANTS};
+use style::invalidation::element::restyle_hints::RestyleHint;
 use style::media_queries::{Device, MediaList, MediaType};
 use style::selector_parser::{RestyleDamage, Snapshot};
 use style::shared_lock::{SharedRwLock as StyleSharedRwLock, SharedRwLockReadGuard};
@@ -2503,6 +2504,12 @@ impl Document {
         if attr.local_name() == &local_name!("width") ||
            attr.local_name() == &local_name!("height") {
             entry.hint.insert(RESTYLE_SELF);
+        }
+
+        // FIXME: This is only true for table elements.
+        // Fix when these hints are populated in a virtual method
+        if attr.local_name() == &local_name!("cellpadding") {
+            entry.hint.insert(RESTYLE_DESCENDANTS);
         }
 
         let snapshot = entry.snapshot.as_mut().unwrap();
