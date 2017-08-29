@@ -250,6 +250,9 @@ fn extract_error_params<'a>(err: ParseError<'a>) -> Option<ErrorParams<'a>> {
                 PropertyDeclarationParseError::InvalidValue(property, Some(e))))) =>
             (Some(ErrorString::Snippet(property.into())), Some(extract_value_error_param(e))),
 
+        CssParseError::Custom(SelectorParseError::UnexpectedTokenInAttributeSelector(t)) =>
+            (None, Some(ErrorString::UnexpectedToken(t))),
+
         CssParseError::Custom(SelectorParseError::UnsupportedPseudoClassOrElement(p)) =>
             (None, Some(ErrorString::Ident(p))),
 
@@ -330,6 +333,8 @@ impl<'a> ErrorHelpers<'a> for ContextualParseError<'a> {
                 (b"PEAtNSUnexpected\0", Action::Nothing),
             ContextualParseError::InvalidRule(_, ref err) => {
                 let prefix = match *err {
+                    CssParseError::Custom(SelectorParseError::UnexpectedTokenInAttributeSelector(_)) =>
+                        Some(&b"PEAttSelUnexpected\0"[..]),
                     CssParseError::Custom(SelectorParseError::UnsupportedPseudoClassOrElement(_)) =>
                         Some(&b"PEPseudoSelUnknown\0"[..]),
                     _ => None,

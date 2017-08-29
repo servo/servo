@@ -55,7 +55,7 @@ pub enum SelectorParseError<'i, T> {
     NegationSelectorComponentNotLocalName,
     EmptySelector,
     NonSimpleSelectorInNegation,
-    UnexpectedTokenInAttributeSelector,
+    UnexpectedTokenInAttributeSelector(Token<'i>),
     PseudoElementExpectedColon,
     PseudoElementExpectedIdent,
     UnsupportedPseudoClassOrElement(CowRcStr<'i>),
@@ -1292,10 +1292,7 @@ fn parse_attribute_selector<'i, 't, P, E, Impl>(parser: &P, input: &mut CssParse
         }
     }
 
-    let operator;
-    let value;
-    let never_matches;
-    match input.next() {
+    let operator = match input.next() {
         // [foo]
         Err(_) => {
             let local_name_lower = to_ascii_lowercase(&local_name).as_ref().into();
@@ -1317,43 +1314,33 @@ fn parse_attribute_selector<'i, 't, P, E, Impl>(parser: &P, input: &mut CssParse
         }
 
         // [foo=bar]
-        Ok(&Token::Delim('=')) => {
-            value = input.expect_ident_or_string()?.clone();
-            never_matches = false;
-            operator = AttrSelectorOperator::Equal;
-        }
+        Ok(&Token::Delim('=')) => AttrSelectorOperator::Equal,
         // [foo~=bar]
-        Ok(&Token::IncludeMatch) => {
-            value = input.expect_ident_or_string()?.clone();
-            never_matches = value.is_empty() || value.contains(SELECTOR_WHITESPACE);
-            operator = AttrSelectorOperator::Includes;
-        }
+        Ok(&Token::IncludeMatch) => AttrSelectorOperator::Includes,
         // [foo|=bar]
-        Ok(&Token::DashMatch) => {
-            value = input.expect_ident_or_string()?.clone();
-            never_matches = false;
-            operator = AttrSelectorOperator::DashMatch;
-        }
+        Ok(&Token::DashMatch) => AttrSelectorOperator::DashMatch,
         // [foo^=bar]
-        Ok(&Token::PrefixMatch) => {
-            value = input.expect_ident_or_string()?.clone();
-            never_matches = value.is_empty();
-            operator = AttrSelectorOperator::Prefix;
-        }
+        Ok(&Token::PrefixMatch) => AttrSelectorOperator::Prefix,
         // [foo*=bar]
-        Ok(&Token::SubstringMatch) => {
-            value = input.expect_ident_or_string()?.clone();
-            never_matches = value.is_empty();
-            operator = AttrSelectorOperator::Substring;
-        }
+        Ok(&Token::SubstringMatch) => AttrSelectorOperator::Substring,
         // [foo$=bar]
-        Ok(&Token::SuffixMatch) => {
-            value = input.expect_ident_or_string()?.clone();
-            never_matches = value.is_empty();
-            operator = AttrSelectorOperator::Suffix;
+        Ok(&Token::SuffixMatch) => AttrSelectorOperator::Suffix,
+        Ok(t) => return Err(SelectorParseError::UnexpectedTokenInAttributeSelector(t.clone()).into())
+    };
+
+    let value = input.expect_ident_or_string()?.clone();
+    let never_matches = match operator {
+        AttrSelectorOperator::Equal |
+        AttrSelectorOperator::DashMatch => false,
+
+        AttrSelectorOperator::Includes => {
+            value.is_empty() || value.contains(SELECTOR_WHITESPACE)
         }
-        _ => return Err(SelectorParseError::UnexpectedTokenInAttributeSelector.into())
-    }
+
+        AttrSelectorOperator::Prefix |
+        AttrSelectorOperator::Substring |
+        AttrSelectorOperator::Suffix => value.is_empty()
+    };
 
     let mut case_sensitivity = parse_attribute_flags(input)?;
 
