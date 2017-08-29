@@ -203,7 +203,9 @@ fn extract_error_param<'a>(err: ParseError<'a>) -> Option<ErrorString<'a>> {
         CssParseError::Basic(BasicParseError::UnexpectedToken(t)) =>
             ErrorString::UnexpectedToken(t),
 
-        CssParseError::Basic(BasicParseError::AtRuleInvalid(i)) =>
+        CssParseError::Basic(BasicParseError::AtRuleInvalid(i)) |
+        CssParseError::Custom(SelectorParseError::Custom(
+            StyleParseError::UnsupportedAtRule(i))) =>
             ErrorString::Snippet(format!("@{}", escape_css_ident(&i)).into()),
 
         CssParseError::Custom(SelectorParseError::Custom(
@@ -344,6 +346,12 @@ impl<'a> ErrorHelpers<'a> for ContextualParseError<'a> {
                 _, CssParseError::Custom(SelectorParseError::Custom(
                 StyleParseError::UnexpectedTokenWithinNamespace(_)))) =>
                 (b"PEAtNSUnexpected\0", Action::Nothing),
+            ContextualParseError::InvalidRule(
+                _, CssParseError::Basic(BasicParseError::AtRuleInvalid(_))) |
+            ContextualParseError::InvalidRule(
+                _, CssParseError::Custom(SelectorParseError::Custom(
+                    StyleParseError::UnsupportedAtRule(_)))) =>
+                (b"PEUnknownAtRule\0", Action::Nothing),
             ContextualParseError::InvalidRule(_, ref err) => {
                 let prefix = match *err {
                     CssParseError::Custom(SelectorParseError::UnexpectedTokenInAttributeSelector(_)) =>
