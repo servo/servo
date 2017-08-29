@@ -58,7 +58,7 @@ pub enum SelectorParseError<'i, T> {
     UnexpectedTokenInAttributeSelector,
     PseudoElementExpectedColon,
     PseudoElementExpectedIdent,
-    UnsupportedPseudoClass,
+    UnsupportedPseudoClassOrElement(CowRcStr<'i>),
     UnexpectedIdent(CowRcStr<'i>),
     ExpectedNamespace(CowRcStr<'i>),
     Custom(T),
@@ -136,7 +136,7 @@ pub trait Parser<'i> {
     fn parse_non_ts_pseudo_class(&self, name: CowRcStr<'i>)
                                  -> Result<<Self::Impl as SelectorImpl>::NonTSPseudoClass,
                                            ParseError<'i, SelectorParseError<'i, Self::Error>>> {
-        Err(ParseError::Custom(SelectorParseError::UnexpectedIdent(name)))
+        Err(ParseError::Custom(SelectorParseError::UnsupportedPseudoClassOrElement(name)))
     }
 
     fn parse_non_ts_functional_pseudo_class<'t>
@@ -144,20 +144,20 @@ pub trait Parser<'i> {
          -> Result<<Self::Impl as SelectorImpl>::NonTSPseudoClass,
                    ParseError<'i, SelectorParseError<'i, Self::Error>>>
     {
-        Err(ParseError::Custom(SelectorParseError::UnexpectedIdent(name)))
+        Err(ParseError::Custom(SelectorParseError::UnsupportedPseudoClassOrElement(name)))
     }
 
     fn parse_pseudo_element(&self, name: CowRcStr<'i>)
                             -> Result<<Self::Impl as SelectorImpl>::PseudoElement,
                                       ParseError<'i, SelectorParseError<'i, Self::Error>>> {
-        Err(ParseError::Custom(SelectorParseError::UnexpectedIdent(name)))
+        Err(ParseError::Custom(SelectorParseError::UnsupportedPseudoClassOrElement(name)))
     }
 
     fn parse_functional_pseudo_element<'t>
         (&self, name: CowRcStr<'i>, _arguments: &mut CssParser<'i, 't>)
          -> Result<<Self::Impl as SelectorImpl>::PseudoElement,
                    ParseError<'i, SelectorParseError<'i, Self::Error>>> {
-        Err(ParseError::Custom(SelectorParseError::UnexpectedIdent(name)))
+        Err(ParseError::Custom(SelectorParseError::UnsupportedPseudoClassOrElement(name)))
     }
 
     fn default_namespace(&self) -> Option<<Self::Impl as SelectorImpl>::NamespaceUrl> {
@@ -1503,9 +1503,9 @@ fn parse_compound_selector<'i, 't, P, E, Impl>(
                     };
 
                     let pseudo_class =
-                        P::parse_non_ts_pseudo_class(parser, name)?;
+                        P::parse_non_ts_pseudo_class(parser, name.clone())?;
                     if !p.supports_pseudo_class(&pseudo_class) {
-                        return Err(SelectorParseError::UnsupportedPseudoClass.into());
+                        return Err(SelectorParseError::UnsupportedPseudoClassOrElement(name).into());
                     }
                     state_selectors.push(Component::NonTSPseudoClass(pseudo_class));
                 }

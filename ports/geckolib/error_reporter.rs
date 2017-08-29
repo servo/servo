@@ -250,6 +250,9 @@ fn extract_error_params<'a>(err: ParseError<'a>) -> Option<ErrorParams<'a>> {
                 PropertyDeclarationParseError::InvalidValue(property, Some(e))))) =>
             (Some(ErrorString::Snippet(property.into())), Some(extract_value_error_param(e))),
 
+        CssParseError::Custom(SelectorParseError::UnsupportedPseudoClassOrElement(p)) =>
+            (None, Some(ErrorString::Ident(p))),
+
         err => match extract_error_param(err) {
             Some(e) => (Some(e), None),
             None => return None,
@@ -325,8 +328,14 @@ impl<'a> ErrorHelpers<'a> for ContextualParseError<'a> {
                 _, CssParseError::Custom(SelectorParseError::Custom(
                 StyleParseError::UnexpectedTokenWithinNamespace(_)))) =>
                 (b"PEAtNSUnexpected\0", Action::Nothing),
-            ContextualParseError::InvalidRule(..) =>
-                (b"PEBadSelectorRSIgnored\0", Action::Nothing),
+            ContextualParseError::InvalidRule(_, ref err) => {
+                let prefix = match *err {
+                    CssParseError::Custom(SelectorParseError::UnsupportedPseudoClassOrElement(_)) =>
+                        Some(&b"PEPseudoSelUnknown\0"[..]),
+                    _ => None,
+                };
+                return (prefix, b"PEBadSelectorRSIgnored\0", Action::Nothing);
+            }
             ContextualParseError::UnsupportedRule(..) =>
                 (b"PEDeclDropped\0", Action::Nothing),
             ContextualParseError::UnsupportedViewportDescriptorDeclaration(..) |
