@@ -1070,7 +1070,7 @@ impl PropertyId {
             None => return ::custom_properties::parse_name(property_name)
                 .map(|name| PropertyId::Custom(::custom_properties::Name::from(name))),
         };
-        id.check_allowed_in(alias, context).map_err(|_| ())?;
+        id.check_allowed_in(alias, context)?;
         Ok(id)
     }
 
@@ -1153,8 +1153,11 @@ impl PropertyId {
         }
     }
 
-    fn check_allowed_in(&self, alias: Option<AliasId>, context: &PropertyParserContext)
-                        -> Result<(), PropertyDeclarationParseError<'static>> {
+    fn check_allowed_in(
+        &self,
+        alias: Option<AliasId>,
+        context: &PropertyParserContext,
+    ) -> Result<(), ()> {
         let id: NonCustomPropertyId;
         if let Some(alias_id) = alias {
             id = alias_id.into();
@@ -1174,10 +1177,10 @@ impl PropertyId {
         ${id_set("DISALLOWED_IN_PAGE_RULE", lambda p: not p.allowed_in_page_rule)}
         match context.rule_type {
             CssRuleType::Keyframe if DISALLOWED_IN_KEYFRAME_BLOCK.contains(id) => {
-                return Err(PropertyDeclarationParseError::AnimationPropertyInKeyframeBlock)
+                return Err(());
             }
             CssRuleType::Page if DISALLOWED_IN_PAGE_RULE.contains(id) => {
-                return Err(PropertyDeclarationParseError::NotAllowedInPageRule)
+                return Err(())
             }
             _ => {}
         }
@@ -1242,15 +1245,15 @@ impl PropertyId {
             if context.stylesheet_origin != Origin::UserAgent {
                 if EXPERIMENTAL.contains(id) {
                     if !passes_pref_check() {
-                        return Err(PropertyDeclarationParseError::ExperimentalProperty);
+                        return Err(())
                     }
                 } else {
-                    return Err(PropertyDeclarationParseError::UnknownProperty(self.name().into()));
+                    return Err(())
                 }
             }
         } else {
             if EXPERIMENTAL.contains(id) && !passes_pref_check() {
-                return Err(PropertyDeclarationParseError::ExperimentalProperty);
+                return Err(());
             }
         }
 
