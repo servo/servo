@@ -57,7 +57,7 @@ fn parse_rules(css: &str) -> Vec<(StyleSource, CascadeLevel)> {
                                  None,
                                  &ErrorringErrorReporter,
                                  QuirksMode::NoQuirks,
-                                 0u64);
+                                 0);
     let guard = s.shared_lock.read();
     let rules = s.contents.rules.read_with(&guard);
     rules.0.iter().filter_map(|rule| {
