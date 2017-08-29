@@ -25,6 +25,8 @@ use super::table::BucketState::{Empty, Full};
 
 const MIN_NONZERO_RAW_CAPACITY: usize = 32;     // must be a power of two
 
+static OOM_STR: &str = "out of memory whilst allocating hashmap"; 
+
 /// The default behavior of HashMap implements a maximum load factor of 90.9%.
 #[derive(Clone)]
 struct DefaultResizePolicy;
@@ -591,7 +593,7 @@ impl<K: Hash + Eq, V> HashMap<K, V, RandomState> {
     /// let mut map: HashMap<&str, isize> = HashMap::new();
     /// ```
     #[inline]
-        pub fn new() -> HashMap<K, V, RandomState> {
+    pub fn new() -> HashMap<K, V, RandomState> {
         Default::default()
     }
 
@@ -607,8 +609,13 @@ impl<K: Hash + Eq, V> HashMap<K, V, RandomState> {
     /// let mut map: HashMap<&str, isize> = HashMap::with_capacity(10);
     /// ```
     #[inline]
-        pub fn with_capacity(capacity: usize) -> HashMap<K, V, RandomState> {
+    pub fn with_capacity(capacity: usize) -> HashMap<K, V, RandomState> {
         HashMap::with_capacity_and_hasher(capacity, Default::default())
+    }
+
+    #[inline]
+    pub fn with_capacity_fallible(capacity: usize) -> Result<HashMap<K, V, RandomState>, ()> {
+        HashMap::with_capacity_and_hasher_fallible(capacity, Default::default())
     }
 }
 
@@ -637,12 +644,17 @@ impl<K, V, S> HashMap<K, V, S>
     /// map.insert(1, 2);
     /// ```
     #[inline]
-        pub fn with_hasher(hash_builder: S) -> HashMap<K, V, S> {
-        HashMap {
+    pub fn with_hasher_fallible(hash_builder: S) -> Result<HashMap<K, V, S>, ()> {
+        Ok(HashMap {
             hash_builder,
             resize_policy: DefaultResizePolicy::new(),
-            table: RawTable::new(0),
-        }
+            table: RawTable::new(0)?,
+        })
+    }
+
+    #[inline]
+    pub fn with_hasher(hash_builder: S) -> HashMap<K, V, S> {
+        Self::with_hasher_fallible(hash_builder).expect(OOM_STR)
     }
 
     /// Creates an empty `HashMap` with the specified capacity, using `hash_builder`
@@ -667,20 +679,24 @@ impl<K, V, S> HashMap<K, V, S>
     /// map.insert(1, 2);
     /// ```
     #[inline]
-        pub fn with_capacity_and_hasher(capacity: usize, hash_builder: S) -> HashMap<K, V, S> {
+    pub fn with_capacity_and_hasher_fallible(capacity: usize, hash_builder: S) -> Result<HashMap<K, V, S>, ()> {
         let resize_policy = DefaultResizePolicy::new();
         let raw_cap = resize_policy.raw_capacity(capacity);
-        HashMap {
+        Ok(HashMap {
             hash_builder,
             resize_policy,
-            table: RawTable::new(raw_cap),
-        }
+            table: RawTable::new(raw_cap)?,
+        })
+    }
+
+    pub fn with_capacity_and_hasher(capacity: usize, hash_builder: S) -> HashMap<K, V, S> {
+        Self::with_capacity_and_hasher_fallible(capacity, hash_builder).expect(OOM_STR)
     }
 
     /// Returns a reference to the map's [`BuildHasher`].
     ///
     /// [`BuildHasher`]: ../../std/hash/trait.BuildHasher.html
-        pub fn hasher(&self) -> &S {
+    pub fn hasher(&self) -> &S {
         &self.hash_builder
     }
 
@@ -697,7 +713,7 @@ impl<K, V, S> HashMap<K, V, S>
     /// assert!(map.capacity() >= 100);
     /// ```
     #[inline]
-        pub fn capacity(&self) -> usize {
+    pub fn capacity(&self) -> usize {
         self.resize_policy.capacity(self.raw_capacity())
     }
 
@@ -724,36 +740,38 @@ impl<K, V, S> HashMap<K, V, S>
     /// let mut map: HashMap<&str, isize> = HashMap::new();
     /// map.reserve(10);
     /// ```
-        pub fn reserve(&mut self, additional: usize) {
+    pub fn reserve(&mut self, additional: usize) {
+        self.reserve_fallible(additional).expect(OOM_STR);
+    }
+
+
+    #[inline]
+    pub fn reserve_fallible(&mut self, additional: usize) -> Result<(), ()> {
         let remaining = self.capacity() - self.len(); // this can't overflow
         if remaining < additional {
             let min_cap = self.len().checked_add(additional).expect("reserve overflow");
             let raw_cap = self.resize_policy.raw_capacity(min_cap);
-            self.resize(raw_cap);
+            self.resize_fallible(raw_cap)?;
         } else if self.table.tag() && remaining <= self.len() {
             // Probe sequence is too long and table is half full,
             // resize early to reduce probing length.
             let new_capacity = self.table.capacity() * 2;
-            self.resize(new_capacity);
+            self.resize_fallible(new_capacity)?;
         }
+        Ok(())
     }
 
-    /// Resizes the internal vectors to a new capacity. It's your
-    /// responsibility to:
-    ///   1) Ensure `new_raw_cap` is enough for all the elements, accounting
-    ///      for the load factor.
-    ///   2) Ensure `new_raw_cap` is a power of two or zero.
-    #[inline(never)]
     #[cold]
-    fn resize(&mut self, new_raw_cap: usize) {
+    #[inline(never)]
+    fn resize_fallible(&mut self, new_raw_cap: usize) -> Result<(), ()> {
         assert!(self.table.size() <= new_raw_cap);
         assert!(new_raw_cap.is_power_of_two() || new_raw_cap == 0);
 
-        let mut old_table = replace(&mut self.table, RawTable::new(new_raw_cap));
+        let mut old_table = replace(&mut self.table, RawTable::new(new_raw_cap)?);
         let old_size = old_table.size();
 
         if old_table.size() == 0 {
-            return;
+            return Ok(());
         }
 
         let mut bucket = Bucket::head_bucket(&mut old_table);
@@ -788,6 +806,7 @@ impl<K, V, S> HashMap<K, V, S>
         }
 
         assert_eq!(self.table.size(), old_size);
+        Ok(())
     }
 
     /// Shrinks the capacity of the map as much as possible. It will drop
@@ -806,10 +825,14 @@ impl<K, V, S> HashMap<K, V, S>
     /// map.shrink_to_fit();
     /// assert!(map.capacity() >= 2);
     /// ```
-        pub fn shrink_to_fit(&mut self) {
+    pub fn shrink_to_fit(&mut self) {
+        self.shrink_to_fit_fallible().expect(OOM_STR);
+    }
+
+    pub fn shrink_to_fit_fallible(&mut self) -> Result<(), ()> {
         let new_raw_cap = self.resize_policy.raw_capacity(self.len());
         if self.raw_capacity() != new_raw_cap {
-            let old_table = replace(&mut self.table, RawTable::new(new_raw_cap));
+            let old_table = replace(&mut self.table, RawTable::new(new_raw_cap)?);
             let old_size = old_table.size();
 
             // Shrink the table. Naive algorithm for resizing:
@@ -819,6 +842,7 @@ impl<K, V, S> HashMap<K, V, S>
 
             debug_assert_eq!(self.table.size(), old_size);
         }
+        Ok(())
     }
 
     /// Insert a pre-hashed key-value pair, without first checking
@@ -856,7 +880,7 @@ impl<K, V, S> HashMap<K, V, S>
     ///     println!("{}", key);
     /// }
     /// ```
-        pub fn keys(&self) -> Keys<K, V> {
+    pub fn keys(&self) -> Keys<K, V> {
         Keys { inner: self.iter() }
     }
 
@@ -877,7 +901,7 @@ impl<K, V, S> HashMap<K, V, S>
     ///     println!("{}", val);
     /// }
     /// ```
-        pub fn values(&self) -> Values<K, V> {
+    pub fn values(&self) -> Values<K, V> {
         Values { inner: self.iter() }
     }
 
@@ -903,7 +927,7 @@ impl<K, V, S> HashMap<K, V, S>
     ///     println!("{}", val);
     /// }
     /// ```
-        pub fn values_mut(&mut self) -> ValuesMut<K, V> {
+    pub fn values_mut(&mut self) -> ValuesMut<K, V> {
         ValuesMut { inner: self.iter_mut() }
     }
 
@@ -924,7 +948,7 @@ impl<K, V, S> HashMap<K, V, S>
     ///     println!("key: {} val: {}", key, val);
     /// }
     /// ```
-        pub fn iter(&self) -> Iter<K, V> {
+    pub fn iter(&self) -> Iter<K, V> {
         Iter { inner: self.table.iter() }
     }
 
@@ -951,7 +975,7 @@ impl<K, V, S> HashMap<K, V, S>
     ///     println!("key: {} val: {}", key, val);
     /// }
     /// ```
-        pub fn iter_mut(&mut self) -> IterMut<K, V> {
+    pub fn iter_mut(&mut self) -> IterMut<K, V> {
         IterMut { inner: self.table.iter_mut() }
     }
 
@@ -974,12 +998,16 @@ impl<K, V, S> HashMap<K, V, S>
     /// assert_eq!(letters[&'u'], 1);
     /// assert_eq!(letters.get(&'y'), None);
     /// ```
-        pub fn entry(&mut self, key: K) -> Entry<K, V> {
+    pub fn entry(&mut self, key: K) -> Entry<K, V> {
+        self.entry_fallible(key).expect(OOM_STR)
+    }
+
+    pub fn entry_fallible(&mut self, key: K) -> Result<Entry<K, V>, ()> {
         // Gotta resize now.
-        self.reserve(1);
+        self.reserve_fallible(1)?;
         let hash = self.make_hash(&key);
-        search_hashed(&mut self.table, hash, |q| q.eq(&key))
-            .into_entry(key).expect("unreachable")
+        Ok(search_hashed(&mut self.table, hash, |q| q.eq(&key))
+            .into_entry(key).expect("unreachable"))
     }
 
     /// Returns the number of elements in the map.
@@ -994,7 +1022,7 @@ impl<K, V, S> HashMap<K, V, S>
     /// a.insert(1, "a");
     /// assert_eq!(a.len(), 1);
     /// ```
-        pub fn len(&self) -> usize {
+    pub fn len(&self) -> usize {
         self.table.size()
     }
 
@@ -1011,7 +1039,7 @@ impl<K, V, S> HashMap<K, V, S>
     /// assert!(!a.is_empty());
     /// ```
     #[inline]
-        pub fn is_empty(&self) -> bool {
+    pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
@@ -1035,7 +1063,7 @@ impl<K, V, S> HashMap<K, V, S>
     /// assert!(a.is_empty());
     /// ```
     #[inline]
-        pub fn drain(&mut self) -> Drain<K, V> where K: 'static, V: 'static {
+    pub fn drain(&mut self) -> Drain<K, V> where K: 'static, V: 'static {
         Drain { inner: self.table.drain() }
     }
 
@@ -1052,7 +1080,7 @@ impl<K, V, S> HashMap<K, V, S>
     /// a.clear();
     /// assert!(a.is_empty());
     /// ```
-        #[inline]
+    #[inline]
     pub fn clear(&mut self) where K: 'static, V: 'static  {
         self.drain();
     }
@@ -1076,7 +1104,7 @@ impl<K, V, S> HashMap<K, V, S>
     /// assert_eq!(map.get(&1), Some(&"a"));
     /// assert_eq!(map.get(&2), None);
     /// ```
-        pub fn get<Q: ?Sized>(&self, k: &Q) -> Option<&V>
+    pub fn get<Q: ?Sized>(&self, k: &Q) -> Option<&V>
         where K: Borrow<Q>,
               Q: Hash + Eq
     {
@@ -1102,7 +1130,7 @@ impl<K, V, S> HashMap<K, V, S>
     /// assert_eq!(map.contains_key(&1), true);
     /// assert_eq!(map.contains_key(&2), false);
     /// ```
-        pub fn contains_key<Q: ?Sized>(&self, k: &Q) -> bool
+    pub fn contains_key<Q: ?Sized>(&self, k: &Q) -> bool
         where K: Borrow<Q>,
               Q: Hash + Eq
     {
@@ -1130,7 +1158,7 @@ impl<K, V, S> HashMap<K, V, S>
     /// }
     /// assert_eq!(map[&1], "b");
     /// ```
-        pub fn get_mut<Q: ?Sized>(&mut self, k: &Q) -> Option<&mut V>
+    pub fn get_mut<Q: ?Sized>(&mut self, k: &Q) -> Option<&mut V>
         where K: Borrow<Q>,
               Q: Hash + Eq
     {
@@ -1162,10 +1190,15 @@ impl<K, V, S> HashMap<K, V, S>
     /// assert_eq!(map.insert(37, "c"), Some("b"));
     /// assert_eq!(map[&37], "c");
     /// ```
-        pub fn insert(&mut self, k: K, v: V) -> Option<V> {
+    pub fn insert(&mut self, k: K, v: V) -> Option<V> {
+        self.insert_fallible(k, v).expect(OOM_STR)
+    }
+
+    #[inline]
+    pub fn insert_fallible(&mut self, k: K, v: V) -> Result<Option<V>, ()> {
         let hash = self.make_hash(&k);
-        self.reserve(1);
-        self.insert_hashed_nocheck(hash, k, v)
+        self.reserve_fallible(1)?;
+        Ok(self.insert_hashed_nocheck(hash, k, v))
     }
 
     /// Removes a key from the map, returning the value at the key if the key
@@ -1188,7 +1221,7 @@ impl<K, V, S> HashMap<K, V, S>
     /// assert_eq!(map.remove(&1), Some("a"));
     /// assert_eq!(map.remove(&1), None);
     /// ```
-        pub fn remove<Q: ?Sized>(&mut self, k: &Q) -> Option<V>
+    pub fn remove<Q: ?Sized>(&mut self, k: &Q) -> Option<V>
         where K: Borrow<Q>,
               Q: Hash + Eq
     {
@@ -1212,7 +1245,7 @@ impl<K, V, S> HashMap<K, V, S>
     /// map.retain(|&k, _| k % 2 == 0);
     /// assert_eq!(map.len(), 4);
     /// ```
-        pub fn retain<F>(&mut self, mut f: F)
+    pub fn retain<F>(&mut self, mut f: F)
         where F: FnMut(&K, &mut V) -> bool
     {
         if self.table.size() == 0 {

@@ -802,11 +802,11 @@ impl<K, V> RawTable<K, V> {
 
     /// Creates a new raw table from a given capacity. All buckets are
     /// initially empty.
-    pub fn new(capacity: usize) -> RawTable<K, V> {
+    pub fn new(capacity: usize) -> Result<RawTable<K, V>, ()> {
         unsafe {
-            let ret = RawTable::new_uninitialized(capacity);
+            let ret = RawTable::new_uninitialized_fallible(capacity)?;
             ptr::write_bytes(ret.hashes.ptr(), 0, capacity);
-            ret
+            Ok(ret)
         }
     }
 
