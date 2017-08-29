@@ -24,7 +24,6 @@ use properties::longhands::line_height::computed_value::T as LineHeight;
 use properties::longhands::transform::computed_value::ComputedMatrix;
 use properties::longhands::transform::computed_value::ComputedOperation as TransformOperation;
 use properties::longhands::transform::computed_value::T as TransformList;
-use properties::longhands::vertical_align::computed_value::T as VerticalAlign;
 use properties::longhands::visibility::computed_value::T as Visibility;
 #[cfg(feature = "gecko")] use properties::{PropertyId, PropertyDeclarationId, LonghandId};
 #[cfg(feature = "gecko")] use properties::{ShorthandId};
@@ -785,11 +784,6 @@ impl ToAnimatedZero for Visibility {
     fn to_animated_zero(&self) -> Result<Self, ()> {
         Err(())
     }
-}
-
-impl ToAnimatedZero for VerticalAlign {
-    #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> { Err(()) }
 }
 
 /// https://drafts.csswg.org/css-transitions/#animtype-lpcalc

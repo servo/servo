@@ -34,6 +34,7 @@ pub use self::angle::Angle;
 pub use self::background::BackgroundSize;
 pub use self::border::{BorderImageSlice, BorderImageWidth, BorderImageSideWidth};
 pub use self::border::{BorderRadius, BorderCornerRadius};
+pub use self::box_::VerticalAlign;
 pub use self::color::{Color, RGBAColor};
 pub use self::effects::{BoxShadow, Filter, SimpleShadow};
 pub use self::flex::FlexBasis;
@@ -60,6 +61,8 @@ pub mod angle;
 pub mod background;
 pub mod basic_shape;
 pub mod border;
+#[path = "box.rs"]
+pub mod box_;
 pub mod color;
 pub mod effects;
 pub mod flex;

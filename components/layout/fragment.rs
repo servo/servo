@@ -42,7 +42,7 @@ use std::collections::LinkedList;
 use std::sync::{Arc, Mutex};
 use style::computed_values::{border_collapse, box_sizing, clear, color, display, mix_blend_mode};
 use style::computed_values::{overflow_wrap, overflow_x, position, text_decoration_line};
-use style::computed_values::{transform_style, vertical_align, white_space, word_break};
+use style::computed_values::{transform_style, white_space, word_break};
 use style::computed_values::content::ContentItem;
 use style::logical_geometry::{Direction, LogicalMargin, LogicalRect, LogicalSize, WritingMode};
 use style::properties::ComputedValues;
@@ -52,6 +52,7 @@ use style::servo::restyle_damage::RECONSTRUCT_FLOW;
 use style::str::char_is_whitespace;
 use style::values::{self, Either, Auto};
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
+use style::values::generics::box_::VerticalAlign;
 use text;
 use text::TextRunScanner;
 use webrender_api;
@@ -2222,8 +2223,8 @@ impl Fragment {
             // FIXME(#5624, pcwalton): This passes our current reftests but isn't the right thing
             // to do.
             match style.get_box().vertical_align {
-                vertical_align::T::baseline => {}
-                vertical_align::T::middle => {
+                VerticalAlign::Baseline => {}
+                VerticalAlign::Middle => {
                     let font_metrics = with_thread_local_font_context(layout_context, |font_context| {
                         text::font_metrics_for_style(font_context, self.style.clone_font())
                     });
@@ -2231,42 +2232,41 @@ impl Fragment {
                                content_inline_metrics.space_below_baseline -
                                font_metrics.x_height).scale_by(0.5)
                 }
-                vertical_align::T::sub => {
+                VerticalAlign::Sub => {
                     offset += minimum_line_metrics.space_needed()
                                                   .scale_by(FONT_SUBSCRIPT_OFFSET_RATIO)
                 }
-                vertical_align::T::super_ => {
+                VerticalAlign::Super => {
                     offset -= minimum_line_metrics.space_needed()
                                                   .scale_by(FONT_SUPERSCRIPT_OFFSET_RATIO)
                 }
-                vertical_align::T::text_top => {
+                VerticalAlign::TextTop => {
                     offset = self.content_inline_metrics(layout_context).ascent -
                         minimum_line_metrics.space_above_baseline
                 }
-                vertical_align::T::text_bottom => {
+                VerticalAlign::TextBottom => {
                     offset = minimum_line_metrics.space_below_baseline -
                         self.content_inline_metrics(layout_context).space_below_baseline
                 }
-                vertical_align::T::top => {
+                VerticalAlign::Top => {
                     if let Some(actual_line_metrics) = actual_line_metrics {
                         offset = content_inline_metrics.ascent -
                             actual_line_metrics.space_above_baseline
                     }
                 }
-                vertical_align::T::bottom => {
+                VerticalAlign::Bottom => {
                     if let Some(actual_line_metrics) = actual_line_metrics {
                         offset = actual_line_metrics.space_below_baseline -
                             content_inline_metrics.space_below_baseline
                     }
                 }
-                vertical_align::T::LengthOrPercentage(LengthOrPercentage::Length(length)) => {
+                VerticalAlign::Length(LengthOrPercentage::Length(length)) => {
                     offset -= length
                 }
-                vertical_align::T::LengthOrPercentage(LengthOrPercentage::Percentage(
-                        percentage)) => {
+                VerticalAlign::Length(LengthOrPercentage::Percentage(percentage)) => {
                     offset -= minimum_line_metrics.space_needed().scale_by(percentage.0)
                 }
-                vertical_align::T::LengthOrPercentage(LengthOrPercentage::Calc(formula)) => {
+                VerticalAlign::Length(LengthOrPercentage::Calc(formula)) => {
                     offset -= formula.to_used_value(Some(minimum_line_metrics.space_needed())).unwrap()
                 }
             }
@@ -2824,13 +2824,13 @@ impl Fragment {
     /// `vertical-align` set to `top` or `bottom`.
     pub fn is_vertically_aligned_to_top_or_bottom(&self) -> bool {
         match self.style.get_box().vertical_align {
-            vertical_align::T::top | vertical_align::T::bottom => return true,
+            VerticalAlign::Top | VerticalAlign::Bottom => return true,
             _ => {}
         }
         if let Some(ref inline_context) = self.inline_context {
             for node in &inline_context.nodes {
                 match node.style.get_box().vertical_align {
-                    vertical_align::T::top | vertical_align::T::bottom => return true,
+                    VerticalAlign::Top | VerticalAlign::Bottom => return true,
                     _ => {}
                 }
             }

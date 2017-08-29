@@ -34,6 +34,7 @@ use style::computed_values::{vertical_align, white_space};
 use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
 use style::properties::{longhands, ComputedValues};
 use style::servo::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, RESOLVE_GENERATED_CONTENT};
+use style::values::generics::box_::VerticalAlign;
 use text;
 use traversal::PreorderFlowTraversal;
 use unicode_bidi as bidi;
@@ -1136,12 +1137,12 @@ impl InlineFlow {
         let mut largest_block_size_for_top_fragments = Au(0);
         let mut largest_block_size_for_bottom_fragments = Au(0);
 
-        // We use `vertical_align::T::baseline` here because `vertical-align` must not apply to
-        // the inside of inline blocks.
+        // We use `VerticalAlign::Baseline` here because `vertical-align` must
+        // not apply to the inside of inline blocks.
         update_line_metrics_for_fragment(&mut line_metrics,
                                          &inline_metrics,
                                          style.get_box().display,
-                                         vertical_align::T::baseline,
+                                         VerticalAlign::Baseline,
                                          &mut largest_block_size_for_top_fragments,
                                          &mut largest_block_size_for_bottom_fragments);
 
@@ -1182,19 +1183,19 @@ impl InlineFlow {
                                             largest_block_size_for_top_fragments: &mut Au,
                                             largest_block_size_for_bottom_fragments: &mut Au) {
             match (display_value, vertical_align_value) {
-                (display::T::inline, vertical_align::T::top) |
-                (display::T::block, vertical_align::T::top) |
-                (display::T::inline_flex, vertical_align::T::top) |
-                (display::T::inline_block, vertical_align::T::top) if
+                (display::T::inline, VerticalAlign::Top) |
+                (display::T::block, VerticalAlign::Top) |
+                (display::T::inline_flex, VerticalAlign::Top) |
+                (display::T::inline_block, VerticalAlign::Top) if
                         inline_metrics.space_above_baseline >= Au(0) => {
                     *largest_block_size_for_top_fragments = max(
                         *largest_block_size_for_top_fragments,
                         inline_metrics.space_above_baseline + inline_metrics.space_below_baseline)
                 }
-                (display::T::inline, vertical_align::T::bottom) |
-                (display::T::block, vertical_align::T::bottom) |
-                (display::T::inline_flex, vertical_align::T::bottom) |
-                (display::T::inline_block, vertical_align::T::bottom) if
+                (display::T::inline, VerticalAlign::Bottom) |
+                (display::T::block, VerticalAlign::Bottom) |
+                (display::T::inline_flex, VerticalAlign::Bottom) |
+                (display::T::inline_block, VerticalAlign::Bottom) if
                         inline_metrics.space_below_baseline >= Au(0) => {
                     *largest_block_size_for_bottom_fragments = max(
                         *largest_block_size_for_bottom_fragments,

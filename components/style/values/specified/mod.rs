@@ -31,6 +31,7 @@ pub use self::align::{AlignItems, AlignJustifyContent, AlignJustifySelf, Justify
 pub use self::background::BackgroundSize;
 pub use self::border::{BorderCornerRadius, BorderImageSlice, BorderImageWidth};
 pub use self::border::{BorderImageSideWidth, BorderRadius, BorderSideWidth};
+pub use self::box_::VerticalAlign;
 pub use self::color::{Color, RGBAColor};
 pub use self::effects::{BoxShadow, Filter, SimpleShadow};
 pub use self::flex::FlexBasis;
@@ -60,6 +61,8 @@ pub mod angle;
 pub mod background;
 pub mod basic_shape;
 pub mod border;
+#[path = "box.rs"]
+pub mod box_;
 pub mod calc;
 pub mod color;
 pub mod effects;
