@@ -859,7 +859,7 @@ ${helpers.single_keyword_system("font-variant-caps",
                     base_size.resolve(context).scale_by(pc.0).into()
                 }
                 SpecifiedValue::Length(LengthOrPercentage::Calc(ref calc)) => {
-                    let calc = calc.to_computed_value_zoomed(context);
+                    let calc = calc.to_computed_value_zoomed(context, base_size);
                     calc.to_used_value(Some(base_size.resolve(context))).unwrap().into()
                 }
                 SpecifiedValue::Keyword(ref key, fraction) => {

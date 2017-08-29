@@ -217,7 +217,8 @@ impl ToCss for CalcLengthOrPercentage {
 
 impl specified::CalcLengthOrPercentage {
     /// Compute the value, zooming any absolute units by the zoom function.
-    fn to_computed_value_with_zoom<F>(&self, context: &Context, zoom_fn: F) -> CalcLengthOrPercentage
+    fn to_computed_value_with_zoom<F>(&self, context: &Context, zoom_fn: F,
+                                      base_size: FontBaseSize) -> CalcLengthOrPercentage
         where F: Fn(Au) -> Au {
         let mut length = Au(0);
 
@@ -239,7 +240,7 @@ impl specified::CalcLengthOrPercentage {
                      self.ex.map(FontRelativeLength::Ex),
                      self.rem.map(FontRelativeLength::Rem)] {
             if let Some(val) = *val {
-                length += val.to_computed_value(context, FontBaseSize::CurrentStyle);
+                length += val.to_computed_value(context, base_size);
             }
         }
 
@@ -251,8 +252,8 @@ impl specified::CalcLengthOrPercentage {
     }
 
     /// Compute font-size or line-height taking into account text-zoom if necessary.
-    pub fn to_computed_value_zoomed(&self, context: &Context) -> CalcLengthOrPercentage {
-        self.to_computed_value_with_zoom(context, |abs| context.maybe_zoom_text(abs.into()).0)
+    pub fn to_computed_value_zoomed(&self, context: &Context, base_size: FontBaseSize) -> CalcLengthOrPercentage {
+        self.to_computed_value_with_zoom(context, |abs| context.maybe_zoom_text(abs.into()).0, base_size)
     }
 }
 
@@ -260,7 +261,8 @@ impl ToComputedValue for specified::CalcLengthOrPercentage {
     type ComputedValue = CalcLengthOrPercentage;
 
     fn to_computed_value(&self, context: &Context) -> CalcLengthOrPercentage {
-        self.to_computed_value_with_zoom(context, |abs| abs)
+        // normal properties don't zoom, and compute em units against the current style's font-size
+        self.to_computed_value_with_zoom(context, |abs| abs, FontBaseSize::CurrentStyle)
     }
 
     #[inline]

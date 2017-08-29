@@ -80,6 +80,7 @@ impl ToCss for FontRelativeLength {
 }
 
 /// A source to resolve font-relative units against
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum FontBaseSize {
     /// Use the font-size of the current element
     CurrentStyle,
