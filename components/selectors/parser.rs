@@ -50,9 +50,6 @@ fn to_ascii_lowercase(s: &str) -> Cow<str> {
 pub enum SelectorParseError<'i, T> {
     PseudoElementInComplexSelector,
     NoQualifiedNameInAttributeSelector(Token<'i>),
-    TooManyCompoundSelectorComponentsInNegation,
-    NegationSelectorComponentNotNamespace,
-    NegationSelectorComponentNotLocalName,
     EmptySelector,
     DanglingCombinator,
     NonSimpleSelectorInNegation,
@@ -67,6 +64,8 @@ pub enum SelectorParseError<'i, T> {
     BadValueInAttr(Token<'i>),
     InvalidQualNameInAttr(Token<'i>),
     ExplicitNamespaceUnexpectedToken(Token<'i>),
+    ClassNeedsIdent(Token<'i>),
+    EmptyNegation,
     Custom(T),
 }
 
@@ -1446,13 +1445,19 @@ fn parse_negation<'i, 't, P, E, Impl>(parser: &P,
 
     // Get exactly one simple selector. The parse logic in the caller will verify
     // that there are no trailing tokens after we're done.
-    if !parse_type_selector(parser, input, &mut sequence)? {
+    let is_type_sel = match parse_type_selector(parser, input, &mut sequence) {
+        Ok(result) => result,
+        Err(ParseError::Basic(BasicParseError::EndOfInput)) =>
+            return Err(SelectorParseError::EmptyNegation.into()),
+        Err(e) => return Err(e.into()),
+    };
+    if !is_type_sel {
         match parse_one_simple_selector(parser, input, /* inside_negation = */ true)? {
             Some(SimpleSelectorParseResult::SimpleSelector(s)) => {
                 sequence.push(s);
             },
             None => {
-                return Err(ParseError::Custom(SelectorParseError::EmptySelector));
+                return Err(ParseError::Custom(SelectorParseError::EmptyNegation));
             },
             Some(SimpleSelectorParseResult::PseudoElement(_)) => {
                 return Err(ParseError::Custom(SelectorParseError::NonSimpleSelectorInNegation));
@@ -1622,7 +1627,7 @@ fn parse_one_simple_selector<'i, 't, P, E, Impl>(parser: &P,
                     let class = Component::Class(class.as_ref().into());
                     Ok(Some(SimpleSelectorParseResult::SimpleSelector(class)))
                 }
-                ref t => Err(ParseError::Basic(BasicParseError::UnexpectedToken(t.clone()))),
+                ref t => Err(SelectorParseError::ClassNeedsIdent(t.clone()).into()),
             }
         }
         Ok(Token::SquareBracketBlock) => {

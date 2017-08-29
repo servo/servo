@@ -255,6 +255,7 @@ fn extract_error_params<'a>(err: ParseError<'a>) -> Option<ErrorParams<'a>> {
         CssParseError::Custom(SelectorParseError::ExplicitNamespaceUnexpectedToken(t)) |
         CssParseError::Custom(SelectorParseError::PseudoElementExpectedIdent(t)) |
         CssParseError::Custom(SelectorParseError::NoIdentForPseudo(t)) |
+        CssParseError::Custom(SelectorParseError::ClassNeedsIdent(t)) |
         CssParseError::Custom(SelectorParseError::PseudoElementExpectedColon(t)) =>
             (None, Some(ErrorString::UnexpectedToken(t))),
 
@@ -267,6 +268,9 @@ fn extract_error_params<'a>(err: ParseError<'a>) -> Option<ErrorParams<'a>> {
         CssParseError::Custom(SelectorParseError::EmptySelector) |
         CssParseError::Custom(SelectorParseError::DanglingCombinator) =>
             (None, None),
+
+        CssParseError::Custom(SelectorParseError::EmptyNegation) =>
+            (None, Some(ErrorString::Snippet(")".into()))),
 
         err => match extract_error_param(err) {
             Some(e) => (Some(e), None),
@@ -368,6 +372,10 @@ impl<'a> ErrorHelpers<'a> for ContextualParseError<'a> {
                         Some(&b"PEPseudoClassArgNotIdent\0"[..]),
                     CssParseError::Custom(SelectorParseError::PseudoElementExpectedIdent(_)) =>
                         Some(&b"PEPseudoSelBadName\0"[..]),
+                    CssParseError::Custom(SelectorParseError::ClassNeedsIdent(_)) =>
+                        Some(&b"PEClassSelNotIdent\0"[..]),
+                    CssParseError::Custom(SelectorParseError::EmptyNegation) =>
+                        Some(&b"PENegationBadArg\0"[..]),
                     _ => None,
                 };
                 return (prefix, b"PEBadSelectorRSIgnored\0", Action::Nothing);
