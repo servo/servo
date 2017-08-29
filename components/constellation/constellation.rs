@@ -1056,7 +1056,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 self.handle_load_url_msg(source_top_ctx_id, source_pipeline_id, load_data, replace);
             }
             FromScriptMsg::AbortLoadUrl => {
-                debug!("constellation got URL load message from script");
+                debug!("constellation got abort URL load message from script");
                 self.handle_abort_load_url_msg(source_pipeline_id);
             }
             // A page loaded has completed all parsing, script, and reflow messages have been sent.

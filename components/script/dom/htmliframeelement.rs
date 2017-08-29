@@ -44,7 +44,7 @@ use msg::constellation_msg::{FrameType, BrowsingContextId, PipelineId, TopLevelB
 use net_traits::response::HttpsState;
 use script_layout_interface::message::ReflowQueryType;
 use script_thread::{ScriptThread, Runnable};
-use script_traits::{IFrameLoadInfo, IFrameLoadInfoWithData, LoadData, UpdatePipelineIdReason};
+use script_traits::{IFrameLoadInfo, IFrameLoadInfoWithData, JsEvalResult, LoadData, UpdatePipelineIdReason};
 use script_traits::{MozBrowserEvent, NewLayoutInfo, ScriptMsg};
 use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
 use servo_atoms::Atom;
@@ -114,7 +114,7 @@ impl HTMLIFrameElement {
     }
 
     pub fn navigate_or_reload_child_browsing_context(&self,
-                                                     load_data: Option<LoadData>,
+                                                     mut load_data: Option<LoadData>,
                                                      nav_type: NavigationType,
                                                      replace: bool) {
         let sandboxed = if self.is_sandboxed() {
@@ -140,11 +140,26 @@ impl HTMLIFrameElement {
         // document; the new navigation will continue blocking it.
         LoadBlocker::terminate(&mut load_blocker);
 
+        if let Some(ref mut load_data) = load_data {
+            let is_javascript = load_data.url.scheme() == "javascript";
+            if is_javascript {
+                let window_proxy = self.GetContentWindow();
+                if let Some(window_proxy) = window_proxy {
+                    ScriptThread::eval_js_url(&window_proxy.global(), load_data);
+                }
+            }
+        }
+
         //TODO(#9592): Deal with the case where an iframe is being reloaded so url is None.
         //      The iframe should always have access to the nested context's active
         //      document URL through the browsing context.
         if let Some(ref load_data) = load_data {
-            *load_blocker = Some(LoadBlocker::new(&*document, LoadType::Subframe(load_data.url.clone())));
+            match load_data.js_eval_result {
+                Some(JsEvalResult::NoContent) => (),
+                _ => {
+                    *load_blocker = Some(LoadBlocker::new(&*document, LoadType::Subframe(load_data.url.clone())));
+                }
+            };
         }
 
         let window = window_from_node(self);

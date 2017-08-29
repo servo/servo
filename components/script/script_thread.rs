@@ -2312,7 +2312,10 @@ impl ScriptThread {
                               replace: bool) {
         let is_javascript = load_data.url.scheme() == "javascript";
         if is_javascript {
-            self.eval_js_url(parent_pipeline_id, &mut load_data);
+            let window = self.documents.borrow().find_window(parent_pipeline_id);
+            if let Some(window) = window {
+                ScriptThread::eval_js_url(window.upcast::<GlobalScope>(), &mut load_data);
+            }
         }
 
         match browsing_context_id {
@@ -2330,7 +2333,7 @@ impl ScriptThread {
         }
     }
 
-    fn eval_js_url(&self, pipeline_id: PipelineId, load_data: &mut LoadData) {
+    pub fn eval_js_url(global_scope: &GlobalScope, load_data: &mut LoadData) {
         {
             // Turn javascript: URL into JS code to eval, according to the steps in
             // https://html.spec.whatwg.org/multipage/#javascript-protocol
@@ -2345,30 +2348,25 @@ impl ScriptThread {
             let script_source = percent_decode(encoded.as_bytes()).decode_utf8_lossy();
 
             // Script source is ready to be evaluated (11.)
-            let window = self.documents.borrow().find_window(pipeline_id);
+            let _ac = JSAutoCompartment::new(global_scope.get_cx(), global_scope.reflector().get_jsobject().get());
+            rooted!(in(global_scope.get_cx()) let mut jsval = UndefinedValue());
+            global_scope.evaluate_js_on_global_with_result(&script_source, jsval.handle_mut());
 
-            if let Some(window) = window {
-                let _ac = JSAutoCompartment::new(self.get_cx(), window.reflector().get_jsobject().get());
-                rooted!(in(self.get_cx()) let mut jsval = UndefinedValue());
-                window.upcast::<GlobalScope>().evaluate_js_on_global_with_result(
-                    &script_source, jsval.handle_mut());
-
-                load_data.js_eval_result = if jsval.get().is_string() {
-                    unsafe {
-                        let strval = DOMString::from_jsval(self.get_cx(),
-                                                           jsval.handle(),
-                                                           StringificationBehavior::Empty);
-                        match strval {
-                            Ok(ConversionResult::Success(s)) => {
-                                Some(JsEvalResult::Ok(String::from(s).as_bytes().to_vec()))
-                            },
-                            _ => None,
-                        }
+            load_data.js_eval_result = if jsval.get().is_string() {
+                unsafe {
+                    let strval = DOMString::from_jsval(global_scope.get_cx(),
+                                                       jsval.handle(),
+                                                       StringificationBehavior::Empty);
+                    match strval {
+                        Ok(ConversionResult::Success(s)) => {
+                            Some(JsEvalResult::Ok(String::from(s).as_bytes().to_vec()))
+                        },
+                        _ => None,
                     }
-                } else {
-                    Some(JsEvalResult::NoContent)
-                };
-            }
+                }
+            } else {
+                Some(JsEvalResult::NoContent)
+            };
         };
 
         load_data.url = ServoUrl::parse("about:blank").unwrap();
