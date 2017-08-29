@@ -11,7 +11,7 @@ use gfx_traits::Epoch;
 use gleam::gl;
 use image::{DynamicImage, ImageFormat, RgbImage};
 use ipc_channel::ipc::{self, IpcSharedMemory};
-use msg::constellation_msg::{KeyState, PipelineId, PipelineIndex, PipelineNamespaceId};
+use msg::constellation_msg::{PipelineId, PipelineIndex, PipelineNamespaceId};
 use net_traits::image::base::{Image, PixelFormat};
 use profile_traits::time::{self, ProfilerCategory, profile};
 use script_traits::{AnimationState, AnimationTickType, ConstellationControlMsg};
@@ -34,7 +34,7 @@ use touch::{TouchHandler, TouchAction};
 use webrender;
 use webrender_api::{self, ClipId, DeviceUintRect, DeviceUintSize, LayoutPoint, LayoutVector2D};
 use webrender_api::{ScrollEventPhase, ScrollLocation, ScrollClamping};
-use windowing::{self, MouseWindowEvent, WebRenderDebugOption, WindowEvent, WindowMethods};
+use windowing::{self, MouseWindowEvent, WebRenderDebugOption, WindowMethods};
 
 #[derive(Debug, PartialEq)]
 enum UnableToComposite {
@@ -94,7 +94,7 @@ enum LayerPixel {}
 /// NB: Never block on the constellation, because sometimes the constellation blocks on us.
 pub struct IOCompositor<Window: WindowMethods> {
     /// The application window.
-    window: Rc<Window>,
+    pub window: Rc<Window>,
 
     /// The port on which we receive messages.
     port: CompositorReceiver,
@@ -137,7 +137,7 @@ pub struct IOCompositor<Window: WindowMethods> {
 
     /// Tracks whether we are in the process of shutting down, or have shut down and should close
     /// the compositor.
-    shutdown_state: ShutdownState,
+    pub shutdown_state: ShutdownState,
 
     /// Tracks the last composite time.
     last_composite_time: u64,
@@ -216,7 +216,7 @@ enum CompositionRequest {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-enum ShutdownState {
+pub enum ShutdownState {
     NotShuttingDown,
     ShuttingDown,
     FinishedShuttingDown,
@@ -355,7 +355,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             window_rect: window_rect,
             scale: ScaleFactor::new(1.0),
             scale_factor: scale_factor,
-            channel_to_self: state.sender.clone_compositor_proxy(),
+            channel_to_self: state.sender.clone(),
             composition_request: CompositionRequest::NoCompositingNecessary,
             touch_handler: TouchHandler::new(),
             pending_scroll_zoom_events: Vec::new(),
@@ -386,7 +386,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         let mut compositor = IOCompositor::new(window, state);
 
         let compositor_proxy_for_webrender = compositor.channel_to_self
-                                                       .clone_compositor_proxy();
+                                                       .clone();
         let render_notifier = RenderNotifier::new(compositor_proxy_for_webrender,
                                                   compositor.constellation_chan.clone());
         compositor.webrender.set_render_notifier(Box::new(render_notifier));
@@ -402,6 +402,13 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     pub fn deinit(self) {
         self.webrender.deinit();
+    }
+
+    pub fn maybe_start_shutting_down(&mut self) {
+        if self.shutdown_state == ShutdownState::NotShuttingDown {
+            debug!("Shutting down the constellation for WindowEvent::Quit");
+            self.start_shutting_down();
+        }
     }
 
     fn start_shutting_down(&mut self) {
@@ -450,10 +457,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.change_running_animations_state(pipeline_id, animation_state);
             }
 
-            (Msg::ChangePageTitle(top_level_browsing_context, title), ShutdownState::NotShuttingDown) => {
-                self.window.set_page_title(top_level_browsing_context, title);
-            }
-
             (Msg::SetFrameTree(frame_tree),
              ShutdownState::NotShuttingDown) => {
                 self.set_frame_tree(&frame_tree);
@@ -465,65 +468,13 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.scroll_fragment_to_point(scroll_root_id, point);
             }
 
-            (Msg::MoveTo(top_level_browsing_context_id, point),
-             ShutdownState::NotShuttingDown) => {
-                self.window.set_position(top_level_browsing_context_id, point);
-            }
-
-            (Msg::ResizeTo(top_level_browsing_context_id, size),
-             ShutdownState::NotShuttingDown) => {
-                self.window.set_inner_size(top_level_browsing_context_id, size);
-            }
-
-            (Msg::GetClientWindow(top_level_browsing_context_id, send),
-             ShutdownState::NotShuttingDown) => {
-                let rect = self.window.client_window(top_level_browsing_context_id);
-                if let Err(e) = send.send(rect) {
-                    warn!("Sending response to get client window failed ({}).", e);
-                }
-            }
-
-            (Msg::Status(top_level_browsing_context_id, message),
-             ShutdownState::NotShuttingDown) => {
-                self.window.status(top_level_browsing_context_id, message);
-            }
-
-            (Msg::LoadStart(top_level_browsing_context_id), ShutdownState::NotShuttingDown) => {
-                self.window.load_start(top_level_browsing_context_id);
-            }
-
-            (Msg::LoadComplete(top_level_browsing_context_id), ShutdownState::NotShuttingDown) => {
-                // If we're painting in headless mode, schedule a recomposite.
-                if opts::get().output_file.is_some() || opts::get().exit_after_load {
-                    self.composite_if_necessary(CompositingReason::Headless);
-                }
-
-                // Inform the embedder that the load has finished.
-                self.window.load_end(top_level_browsing_context_id);
-            }
-
-            (Msg::AllowNavigation(top_level_browsing_context_id, url, response_chan),
-             ShutdownState::NotShuttingDown) => {
-                self.window.allow_navigation(top_level_browsing_context_id, url, response_chan);
-            }
-
             (Msg::Recomposite(reason), ShutdownState::NotShuttingDown) => {
                 self.composition_request = CompositionRequest::CompositeNow(reason)
             }
 
-            (Msg::KeyEvent(top_level_browsing_context_id, ch, key, state, modified),
-             ShutdownState::NotShuttingDown) => {
-                if state == KeyState::Pressed {
-                    self.window.handle_key(top_level_browsing_context_id, ch, key, modified);
-                }
-            }
 
             (Msg::TouchEventProcessed(result), ShutdownState::NotShuttingDown) => {
                 self.touch_handler.on_event_processed(result);
-            }
-
-            (Msg::SetCursor(cursor), ShutdownState::NotShuttingDown) => {
-                self.window.set_cursor(cursor)
             }
 
             (Msg::CreatePng(reply), ShutdownState::NotShuttingDown) => {
@@ -558,18 +509,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.composite_if_necessary(CompositingReason::Headless);
             }
 
-            (Msg::NewFavicon(top_level_browsing_context_id, url), ShutdownState::NotShuttingDown) => {
-                self.window.set_favicon(top_level_browsing_context_id, url);
-            }
-
-            (Msg::HeadParsed(top_level_browsing_context_id), ShutdownState::NotShuttingDown) => {
-                self.window.head_parsed(top_level_browsing_context_id);
-            }
-
-            (Msg::HistoryChanged(top_level_browsing_context_id, entries, current), ShutdownState::NotShuttingDown) => {
-                self.window.history_changed(top_level_browsing_context_id, entries, current);
-            }
-
             (Msg::PipelineVisibilityChanged(pipeline_id, visible), ShutdownState::NotShuttingDown) => {
                 self.pipeline_details(pipeline_id).visible = visible;
                 if visible {
@@ -597,9 +536,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 func();
             }
 
-            (Msg::SetFullscreenState(top_level_browsing_context_id, state), ShutdownState::NotShuttingDown) => {
-                self.window.set_fullscreen_state(top_level_browsing_context_id, state);
-            }
+            (Msg::LoadComplete(_), ShutdownState::NotShuttingDown) => {
+                // If we're painting in headless mode, schedule a recomposite.
+                if opts::get().output_file.is_some() || opts::get().exit_after_load {
+                    self.composite_if_necessary(CompositingReason::Headless);
+                }
+            },
 
             (Msg::PendingPaintMetric(pipeline_id, epoch), _) => {
                 self.pending_paint_metrics.insert(pipeline_id, epoch);
@@ -608,7 +550,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             // When we are shutting_down, we need to avoid performing operations
             // such as Paint that may crash because we have begun tearing down
             // the rest of our resources.
-            (_, ShutdownState::ShuttingDown) => { }
+            (_, ShutdownState::ShuttingDown) => {}
         }
 
         true
@@ -717,134 +659,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                                                ScrollClamping::ToContentBounds);
     }
 
-    fn handle_window_message(&mut self, event: WindowEvent) {
-        match event {
-            WindowEvent::Idle => {}
-
-            WindowEvent::Refresh => {
-                self.composite();
-            }
-
-            WindowEvent::Resize(size) => {
-                self.on_resize_window_event(size);
-            }
-
-            WindowEvent::LoadUrl(top_level_browsing_context_id, url) => {
-                let msg = ConstellationMsg::LoadUrl(top_level_browsing_context_id, url);
-                if let Err(e) = self.constellation_chan.send(msg) {
-                    warn!("Sending load url to constellation failed ({}).", e);
-                }
-            }
-
-            WindowEvent::MouseWindowEventClass(mouse_window_event) => {
-                self.on_mouse_window_event_class(mouse_window_event);
-            }
-
-            WindowEvent::MouseWindowMoveEventClass(cursor) => {
-                self.on_mouse_window_move_event_class(cursor);
-            }
-
-            WindowEvent::Touch(event_type, identifier, location) => {
-                match event_type {
-                    TouchEventType::Down => self.on_touch_down(identifier, location),
-                    TouchEventType::Move => self.on_touch_move(identifier, location),
-                    TouchEventType::Up => self.on_touch_up(identifier, location),
-                    TouchEventType::Cancel => self.on_touch_cancel(identifier, location),
-                }
-            }
-
-            WindowEvent::Scroll(delta, cursor, phase) => {
-                match phase {
-                    TouchEventType::Move => self.on_scroll_window_event(delta, cursor),
-                    TouchEventType::Up | TouchEventType::Cancel => {
-                        self.on_scroll_end_window_event(delta, cursor);
-                    }
-                    TouchEventType::Down => {
-                        self.on_scroll_start_window_event(delta, cursor);
-                    }
-                }
-            }
-
-            WindowEvent::Zoom(magnification) => {
-                self.on_zoom_window_event(magnification);
-            }
-
-            WindowEvent::ResetZoom => {
-                self.on_zoom_reset_window_event();
-            }
-
-            WindowEvent::PinchZoom(magnification) => {
-                self.on_pinch_zoom_window_event(magnification);
-            }
-
-            WindowEvent::Navigation(top_level_browsing_context_id, direction) => {
-                let msg = ConstellationMsg::TraverseHistory(top_level_browsing_context_id, direction);
-                if let Err(e) = self.constellation_chan.send(msg) {
-                    warn!("Sending navigation to constellation failed ({}).", e);
-                }
-            }
-
-            WindowEvent::TouchpadPressure(cursor, pressure, stage) => {
-                self.on_touchpad_pressure_event(cursor, pressure, stage);
-            }
-
-            WindowEvent::KeyEvent(ch, key, state, modifiers) => {
-                let msg = ConstellationMsg::KeyEvent(ch, key, state, modifiers);
-                if let Err(e) = self.constellation_chan.send(msg) {
-                    warn!("Sending key event to constellation failed ({}).", e);
-                }
-            }
-
-            WindowEvent::Quit => {
-                if self.shutdown_state == ShutdownState::NotShuttingDown {
-                    debug!("Shutting down the constellation for WindowEvent::Quit");
-                    self.start_shutting_down();
-                }
-            }
-
-            WindowEvent::Reload(top_level_browsing_context_id) => {
-                let msg = ConstellationMsg::Reload(top_level_browsing_context_id);
-                if let Err(e) = self.constellation_chan.send(msg) {
-                    warn!("Sending reload to constellation failed ({}).", e);
-                }
-            }
-
-            WindowEvent::ToggleWebRenderDebug(option) => {
-                let mut flags = self.webrender.get_debug_flags();
-                let flag = match option {
-                    WebRenderDebugOption::Profiler => webrender::PROFILER_DBG,
-                    WebRenderDebugOption::TextureCacheDebug => webrender::TEXTURE_CACHE_DBG,
-                    WebRenderDebugOption::RenderTargetDebug => webrender::RENDER_TARGET_DBG,
-                };
-                flags.toggle(flag);
-                self.webrender.set_debug_flags(flags);
-                self.webrender_api.generate_frame(self.webrender_document, None);
-            }
-
-            WindowEvent::NewBrowser(url, response_chan) => {
-                let msg = ConstellationMsg::NewBrowser(url, response_chan);
-                if let Err(e) = self.constellation_chan.send(msg) {
-                    warn!("Sending NewBrowser message to constellation failed ({}).", e);
-                }
-            }
-
-            WindowEvent::CloseBrowser(ctx) => {
-                let msg = ConstellationMsg::CloseBrowser(ctx);
-                if let Err(e) = self.constellation_chan.send(msg) {
-                    warn!("Sending CloseBrowser message to constellation failed ({}).", e);
-                }
-            }
-
-            WindowEvent::SelectBrowser(ctx) => {
-                let msg = ConstellationMsg::SelectBrowser(ctx);
-                if let Err(e) = self.constellation_chan.send(msg) {
-                    warn!("Sending SelectBrowser message to constellation failed ({}).", e);
-                }
-            }
-        }
-    }
-
-    fn on_resize_window_event(&mut self, new_size: DeviceUintSize) {
+    pub fn on_resize_window_event(&mut self, new_size: DeviceUintSize) {
         debug!("compositor resizing to {:?}", new_size.to_untyped());
 
         // A size change could also mean a resolution change.
@@ -868,7 +683,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.send_window_size(WindowSizeType::Resize);
     }
 
-    fn on_mouse_window_event_class(&mut self, mouse_window_event: MouseWindowEvent) {
+    pub fn on_mouse_window_event_class(&mut self, mouse_window_event: MouseWindowEvent) {
         if opts::get().convert_mouse_to_touch {
             match mouse_window_event {
                 MouseWindowEvent::Click(_, _) => {}
@@ -914,7 +729,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    fn on_mouse_window_move_event_class(&mut self, cursor: TypedPoint2D<f32, DevicePixel>) {
+    pub fn on_mouse_window_move_event_class(&mut self, cursor: TypedPoint2D<f32, DevicePixel>) {
         if opts::get().convert_mouse_to_touch {
             self.on_touch_move(TouchId(0), cursor);
             return
@@ -953,6 +768,18 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             if let Err(e) = pipeline.script_chan.send(msg) {
                 warn!("Sending control event to script failed ({}).", e);
             }
+        }
+    }
+
+    pub fn on_touch_event(&mut self,
+                          event_type: TouchEventType,
+                          identifier: TouchId,
+                          location: TypedPoint2D<f32, DevicePixel>) {
+        match event_type {
+            TouchEventType::Down => self.on_touch_down(identifier, location),
+            TouchEventType::Move => self.on_touch_move(identifier, location),
+            TouchEventType::Up => self.on_touch_up(identifier, location),
+            TouchEventType::Cancel => self.on_touch_cancel(identifier, location),
         }
     }
 
@@ -1021,7 +848,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                                                     translated_point));
     }
 
-    fn on_touchpad_pressure_event(&self,
+    pub fn on_touchpad_pressure_event(&self,
                                   point: TypedPoint2D<f32, DevicePixel>,
                                   pressure: f32,
                                   phase: TouchpadPressurePhase) {
@@ -1041,6 +868,21 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.dispatch_mouse_window_event_class(MouseWindowEvent::MouseDown(button, p));
         self.dispatch_mouse_window_event_class(MouseWindowEvent::MouseUp(button, p));
         self.dispatch_mouse_window_event_class(MouseWindowEvent::Click(button, p));
+    }
+
+    pub fn on_scroll_event(&mut self,
+                           delta: ScrollLocation,
+                           cursor: TypedPoint2D<i32, DevicePixel>,
+                           phase: TouchEventType) {
+        match phase {
+            TouchEventType::Move => self.on_scroll_window_event(delta, cursor),
+            TouchEventType::Up | TouchEventType::Cancel => {
+                self.on_scroll_end_window_event(delta, cursor);
+            }
+            TouchEventType::Down => {
+                self.on_scroll_start_window_event(delta, cursor);
+            }
+        }
     }
 
     fn on_scroll_window_event(&mut self,
@@ -1261,14 +1103,14 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.scale = ScaleFactor::new(scale.get());
     }
 
-    fn on_zoom_reset_window_event(&mut self) {
+    pub fn on_zoom_reset_window_event(&mut self) {
         self.page_zoom = ScaleFactor::new(1.0);
         self.update_zoom_transform();
         self.send_window_size(WindowSizeType::Resize);
         self.update_page_zoom_for_webrender();
     }
 
-    fn on_zoom_window_event(&mut self, magnification: f32) {
+    pub fn on_zoom_window_event(&mut self, magnification: f32) {
         self.page_zoom = ScaleFactor::new((self.page_zoom.get() * magnification)
                                           .max(MIN_ZOOM).min(MAX_ZOOM));
         self.update_zoom_transform();
@@ -1282,7 +1124,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     /// Simulate a pinch zoom
-    fn on_pinch_zoom_window_event(&mut self, magnification: f32) {
+    pub fn on_pinch_zoom_window_event(&mut self, magnification: f32) {
         self.pending_scroll_zoom_events.push(ScrollZoomEvent {
             magnification: magnification,
             scroll_location: ScrollLocation::Delta(TypedVector2D::zero()), // TODO: Scroll to keep the center in view?
@@ -1385,7 +1227,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    fn composite(&mut self) {
+    pub fn composite(&mut self) {
         let target = self.composite_target;
         match self.composite_specific_target(target) {
             Ok(_) => if opts::get().output_file.is_some() || opts::get().exit_after_load {
@@ -1580,7 +1422,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    pub fn handle_events(&mut self, messages: Vec<WindowEvent>) -> bool {
+    pub fn receive_messages(&mut self) -> bool {
         // Check for new messages coming from the other threads in the system.
         let mut compositor_messages = vec![];
         let mut found_recomposite_msg = false;
@@ -1596,17 +1438,15 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
         for msg in compositor_messages {
             if !self.handle_browser_message(msg) {
-                break
+                return false
             }
         }
+        true
+    }
 
+    pub fn perform_updates(&mut self) -> bool {
         if self.shutdown_state == ShutdownState::FinishedShuttingDown {
             return false;
-        }
-
-        // Handle any messages coming from the windowing system.
-        for message in messages {
-            self.handle_window_message(message);
         }
 
         // If a pinch-zoom happened recently, ask for tiles at the new resolution
@@ -1624,7 +1464,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         if !self.pending_scroll_zoom_events.is_empty() && !self.waiting_for_results_of_scroll {
             self.process_pending_scroll_events()
         }
-
         self.shutdown_state != ShutdownState::FinishedShuttingDown
     }
 
@@ -1653,6 +1492,18 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     pub fn pinch_zoom_level(&self) -> f32 {
         // TODO(gw): Access via WR.
         1.0
+    }
+
+    pub fn toggle_webrender_debug(&mut self, option: WebRenderDebugOption) {
+        let mut flags = self.webrender.get_debug_flags();
+        let flag = match option {
+            WebRenderDebugOption::Profiler => webrender::PROFILER_DBG,
+            WebRenderDebugOption::TextureCacheDebug => webrender::TEXTURE_CACHE_DBG,
+            WebRenderDebugOption::RenderTargetDebug => webrender::RENDER_TARGET_DBG,
+        };
+        flags.toggle(flag);
+        self.webrender.set_debug_flags(flags);
+        self.webrender_api.generate_frame(self.webrender_document, None);
     }
 }
 

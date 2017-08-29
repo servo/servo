@@ -21,6 +21,7 @@ extern crate env_logger;
 #[cfg(all(not(target_os = "windows"), not(target_os = "ios")))]
 extern crate gaol;
 extern crate gleam;
+#[macro_use]
 extern crate log;
 
 pub extern crate bluetooth;
@@ -70,8 +71,9 @@ use bluetooth::BluetoothThreadFactory;
 use bluetooth_traits::BluetoothRequest;
 use canvas::gl_context::GLContextFactory;
 use canvas::webgl_thread::WebGLThreads;
-use compositing::IOCompositor;
+use compositing::{IOCompositor, ShutdownState};
 use compositing::compositor_thread::{self, CompositorProxy, CompositorReceiver, InitialCompositorState};
+use compositing::compositor_thread::{EmbedderMsg, EmbedderProxy, EmbedderReceiver};
 use compositing::windowing::WindowEvent;
 use compositing::windowing::WindowMethods;
 use constellation::{Constellation, InitialConstellationState, UnprivilegedPipelineContent};
@@ -84,6 +86,7 @@ use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
 use gfx::font_cache_thread::FontCacheThread;
 use ipc_channel::ipc::{self, IpcSender};
 use log::{Log, LogMetadata, LogRecord};
+use msg::constellation_msg::KeyState;
 use net::resource_thread::new_resource_threads;
 use net_traits::IpcSend;
 use profile::mem as profile_mem;
@@ -121,6 +124,7 @@ pub use msg::constellation_msg::TopLevelBrowsingContextId as BrowserId;
 pub struct Servo<Window: WindowMethods + 'static> {
     compositor: IOCompositor<Window>,
     constellation_chan: Sender<ConstellationMsg>,
+    embedder_receiver: EmbedderReceiver
 }
 
 impl<Window> Servo<Window> where Window: WindowMethods + 'static {
@@ -137,6 +141,8 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
         // to deliver the message.
         let (compositor_proxy, compositor_receiver) =
             create_compositor_channel(window.create_event_loop_waker());
+        let (embedder_proxy, embedder_receiver) =
+            create_embedder_channel(window.create_event_loop_waker());
         let supports_clipboard = window.supports_clipboard();
         let time_profiler_chan = profile_time::Profiler::create(&opts.time_profiling,
                                                                 opts.time_profiler_trace_path.clone());
@@ -207,7 +213,8 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
         // as the navigation context.
         let (constellation_chan, sw_senders) = create_constellation(opts.user_agent.clone(),
                                                                     opts.config_dir.clone(),
-                                                                    compositor_proxy.clone_compositor_proxy(),
+                                                                    embedder_proxy.clone(),
+                                                                    compositor_proxy.clone(),
                                                                     time_profiler_chan.clone(),
                                                                     mem_profiler_chan.clone(),
                                                                     debugger_chan,
@@ -242,11 +249,214 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
         Servo {
             compositor: compositor,
             constellation_chan: constellation_chan,
+            embedder_receiver: embedder_receiver,
+        }
+    }
+
+    fn handle_window_event(&mut self, event: WindowEvent) {
+        match event {
+            WindowEvent::Idle => {
+            }
+
+            WindowEvent::Refresh => {
+                self.compositor.composite();
+            }
+
+            WindowEvent::Resize(size) => {
+                self.compositor.on_resize_window_event(size);
+            }
+
+            WindowEvent::LoadUrl(top_level_browsing_context_id, url) => {
+                let msg = ConstellationMsg::LoadUrl(top_level_browsing_context_id, url);
+                if let Err(e) = self.constellation_chan.send(msg) {
+                    warn!("Sending load url to constellation failed ({}).", e);
+                }
+            }
+
+            WindowEvent::MouseWindowEventClass(mouse_window_event) => {
+                self.compositor.on_mouse_window_event_class(mouse_window_event);
+            }
+
+            WindowEvent::MouseWindowMoveEventClass(cursor) => {
+                self.compositor.on_mouse_window_move_event_class(cursor);
+            }
+
+            WindowEvent::Touch(event_type, identifier, location) => {
+                self.compositor.on_touch_event(event_type, identifier, location);
+            }
+
+            WindowEvent::Scroll(delta, cursor, phase) => {
+                self.compositor.on_scroll_event(delta, cursor, phase);
+            }
+
+            WindowEvent::Zoom(magnification) => {
+                self.compositor.on_zoom_window_event(magnification);
+            }
+
+            WindowEvent::ResetZoom => {
+                self.compositor.on_zoom_reset_window_event();
+            }
+
+            WindowEvent::PinchZoom(magnification) => {
+                self.compositor.on_pinch_zoom_window_event(magnification);
+            }
+
+            WindowEvent::Navigation(top_level_browsing_context_id, direction) => {
+                let msg = ConstellationMsg::TraverseHistory(top_level_browsing_context_id, direction);
+                if let Err(e) = self.constellation_chan.send(msg) {
+                    warn!("Sending navigation to constellation failed ({}).", e);
+                }
+            }
+
+            WindowEvent::TouchpadPressure(cursor, pressure, stage) => {
+                self.compositor.on_touchpad_pressure_event(cursor, pressure, stage);
+            }
+
+            WindowEvent::KeyEvent(ch, key, state, modifiers) => {
+                let msg = ConstellationMsg::KeyEvent(ch, key, state, modifiers);
+                if let Err(e) = self.constellation_chan.send(msg) {
+                    warn!("Sending key event to constellation failed ({}).", e);
+                }
+            }
+
+            WindowEvent::Quit => {
+                self.compositor.maybe_start_shutting_down();
+            }
+
+            WindowEvent::Reload(top_level_browsing_context_id) => {
+                let msg = ConstellationMsg::Reload(top_level_browsing_context_id);
+                if let Err(e) = self.constellation_chan.send(msg) {
+                    warn!("Sending reload to constellation failed ({}).", e);
+                }
+            }
+
+            WindowEvent::ToggleWebRenderDebug(option) => {
+                self.compositor.toggle_webrender_debug(option);
+            }
+
+            WindowEvent::NewBrowser(url, response_chan) => {
+                let msg = ConstellationMsg::NewBrowser(url, response_chan);
+                if let Err(e) = self.constellation_chan.send(msg) {
+                    warn!("Sending NewBrowser message to constellation failed ({}).", e);
+                }
+            }
+
+            WindowEvent::SelectBrowser(ctx) => {
+                let msg = ConstellationMsg::SelectBrowser(ctx);
+                if let Err(e) = self.constellation_chan.send(msg) {
+                    warn!("Sending SelectBrowser message to constellation failed ({}).", e);
+                }
+            }
+
+            WindowEvent::CloseBrowser(ctx) => {
+                let msg = ConstellationMsg::CloseBrowser(ctx);
+                if let Err(e) = self.constellation_chan.send(msg) {
+                    warn!("Sending CloseBrowser message to constellation failed ({}).", e);
+                }
+            }
+        }
+    }
+
+    fn receive_messages(&mut self) {
+        while let Some(msg) = self.embedder_receiver.try_recv_embedder_msg() {
+            match (msg, self.compositor.shutdown_state) {
+                (_, ShutdownState::FinishedShuttingDown) => {
+                    error!("embedder shouldn't be handling messages after compositor has shut down");
+                },
+
+                (_, ShutdownState::ShuttingDown) => {},
+
+                (EmbedderMsg::Status(top_level_browsing_context, message), ShutdownState::NotShuttingDown) => {
+                    self.compositor.window.status(top_level_browsing_context, message);
+                },
+
+                (EmbedderMsg::ChangePageTitle(top_level_browsing_context, title), ShutdownState::NotShuttingDown) => {
+                    self.compositor.window.set_page_title(top_level_browsing_context, title);
+                },
+
+                (EmbedderMsg::MoveTo(top_level_browsing_context, point),
+                 ShutdownState::NotShuttingDown) => {
+                    self.compositor.window.set_position(top_level_browsing_context, point);
+                },
+
+                (EmbedderMsg::ResizeTo(top_level_browsing_context, size),
+                 ShutdownState::NotShuttingDown) => {
+                    self.compositor.window.set_inner_size(top_level_browsing_context, size);
+                },
+
+                (EmbedderMsg::GetClientWindow(top_level_browsing_context, send),
+                 ShutdownState::NotShuttingDown) => {
+                    let rect = self.compositor.window.client_window(top_level_browsing_context);
+                    if let Err(e) = send.send(rect) {
+                        warn!("Sending response to get client window failed ({}).", e);
+                    }
+                },
+
+                (EmbedderMsg::AllowNavigation(top_level_browsing_context,
+                                              url,
+                                              response_chan),
+                 ShutdownState::NotShuttingDown) => {
+                    self.compositor.window.allow_navigation(top_level_browsing_context, url, response_chan);
+                },
+
+                (EmbedderMsg::KeyEvent(top_level_browsing_context,
+                                       ch,
+                                       key,
+                                       state,
+                                       modified),
+                 ShutdownState::NotShuttingDown) => {
+                    if state == KeyState::Pressed {
+                        self.compositor.window.handle_key(top_level_browsing_context, ch, key, modified);
+                    }
+                },
+
+                (EmbedderMsg::SetCursor(cursor), ShutdownState::NotShuttingDown) => {
+                    self.compositor.window.set_cursor(cursor)
+                },
+
+                (EmbedderMsg::NewFavicon(top_level_browsing_context, url), ShutdownState::NotShuttingDown) => {
+                    self.compositor.window.set_favicon(top_level_browsing_context, url);
+                },
+
+                (EmbedderMsg::HeadParsed(top_level_browsing_context, ), ShutdownState::NotShuttingDown) => {
+                    self.compositor.window.head_parsed(top_level_browsing_context, );
+                },
+
+                (EmbedderMsg::HistoryChanged(top_level_browsing_context, entries, current),
+                 ShutdownState::NotShuttingDown) => {
+                    self.compositor.window.history_changed(top_level_browsing_context, entries, current);
+                },
+
+                (EmbedderMsg::SetFullscreenState(top_level_browsing_context, state),
+                 ShutdownState::NotShuttingDown) => {
+                    self.compositor.window.set_fullscreen_state(top_level_browsing_context, state);
+                },
+
+                (EmbedderMsg::LoadStart(top_level_browsing_context), ShutdownState::NotShuttingDown) => {
+                    self.compositor.window.load_start(top_level_browsing_context);
+                },
+
+                (EmbedderMsg::LoadComplete(top_level_browsing_context), ShutdownState::NotShuttingDown) => {
+                    // Inform the embedder that the load has finished.
+                    //
+                    // TODO(pcwalton): Specify which frame's load completed.
+                    self.compositor.window.load_end(top_level_browsing_context);
+                },
+            }
         }
     }
 
     pub fn handle_events(&mut self, events: Vec<WindowEvent>) -> bool {
-        self.compositor.handle_events(events)
+        if self.compositor.receive_messages() {
+            self.receive_messages();
+        }
+        for event in events {
+            self.handle_window_event(event);
+        }
+        if self.compositor.shutdown_state != ShutdownState::FinishedShuttingDown {
+            self.compositor.perform_updates();
+        }
+        self.compositor.shutdown_state != ShutdownState::FinishedShuttingDown
     }
 
     pub fn repaint_synchronously(&mut self) {
@@ -274,13 +484,25 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
     }
 }
 
+fn create_embedder_channel(event_loop_waker: Box<compositor_thread::EventLoopWaker>)
+    -> (EmbedderProxy, EmbedderReceiver) {
+    let (sender, receiver) = channel();
+    (EmbedderProxy {
+         sender: sender,
+         event_loop_waker: event_loop_waker,
+     },
+     EmbedderReceiver {
+         receiver: receiver
+     })
+}
+
 fn create_compositor_channel(event_loop_waker: Box<compositor_thread::EventLoopWaker>)
     -> (CompositorProxy, CompositorReceiver) {
     let (sender, receiver) = channel();
     (CompositorProxy {
          sender: sender,
          event_loop_waker: event_loop_waker,
-        },
+     },
      CompositorReceiver {
          receiver: receiver
      })
@@ -288,6 +510,7 @@ fn create_compositor_channel(event_loop_waker: Box<compositor_thread::EventLoopW
 
 fn create_constellation(user_agent: Cow<'static, str>,
                         config_dir: Option<PathBuf>,
+                        embedder_proxy: EmbedderProxy,
                         compositor_proxy: CompositorProxy,
                         time_profiler_chan: time::ProfilerChan,
                         mem_profiler_chan: mem::ProfilerChan,
@@ -336,6 +559,7 @@ fn create_constellation(user_agent: Cow<'static, str>,
 
     let initial_state = InitialConstellationState {
         compositor_proxy,
+        embedder_proxy,
         debugger_chan,
         devtools_chan,
         bluetooth_thread,

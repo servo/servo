@@ -74,7 +74,7 @@ use canvas::webgl_thread::WebGLThreads;
 use canvas_traits::canvas::CanvasMsg;
 use clipboard::{ClipboardContext, ClipboardProvider};
 use compositing::SendableFrameTree;
-use compositing::compositor_thread::CompositorProxy;
+use compositing::compositor_thread::{CompositorProxy, EmbedderMsg, EmbedderProxy};
 use compositing::compositor_thread::Msg as ToCompositorMsg;
 use debugger;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg};
@@ -168,6 +168,9 @@ pub struct Constellation<Message, LTF, STF> {
 
     /// A channel for the constellation to receive messages from the compositor thread.
     compositor_receiver: Receiver<FromCompositorMsg>,
+
+    /// A channel through which messages can be sent to the embedder.
+    embedder_proxy: EmbedderProxy,
 
     /// A channel (the implementation of which is port-specific) for the
     /// constellation to send messages to the compositor thread.
@@ -306,6 +309,9 @@ pub struct Constellation<Message, LTF, STF> {
 
 /// State needed to construct a constellation.
 pub struct InitialConstellationState {
+    /// A channel through which messages can be sent to the embedder.
+    pub embedder_proxy: EmbedderProxy,
+
     /// A channel through which messages can be sent to the compositor.
     pub compositor_proxy: CompositorProxy,
 
@@ -537,6 +543,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 layout_receiver: layout_receiver,
                 network_listener_sender: network_listener_sender,
                 network_listener_receiver: network_listener_receiver,
+                embedder_proxy: state.embedder_proxy,
                 compositor_proxy: state.compositor_proxy,
                 active_browser_id: None,
                 debugger_chan: state.debugger_chan,
@@ -692,7 +699,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             },
             layout_to_constellation_chan: self.layout_sender.clone(),
             scheduler_chan: self.scheduler_chan.clone(),
-            compositor_proxy: self.compositor_proxy.clone_compositor_proxy(),
+            compositor_proxy: self.compositor_proxy.clone(),
             devtools_chan: self.devtools_chan.clone(),
             bluetooth_thread: self.bluetooth_thread.clone(),
             swmanager_thread: self.swmanager_sender.clone(),
@@ -1152,13 +1159,13 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             FromScriptMsg::NewFavicon(url) => {
                 debug!("constellation got new favicon message");
                 if source_is_top_level_pipeline {
-                    self.compositor_proxy.send(ToCompositorMsg::NewFavicon(source_top_ctx_id, url));
+                    self.embedder_proxy.send(EmbedderMsg::NewFavicon(source_top_ctx_id, url));
                 }
             }
             FromScriptMsg::HeadParsed => {
                 debug!("constellation got head parsed message");
                 if source_is_top_level_pipeline {
-                    self.compositor_proxy.send(ToCompositorMsg::HeadParsed(source_top_ctx_id));
+                    self.embedder_proxy.send(EmbedderMsg::HeadParsed(source_top_ctx_id));
                 }
             }
             FromScriptMsg::CreateCanvasPaintThread(size, sender) => {
@@ -1167,7 +1174,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             }
             FromScriptMsg::NodeStatus(message) => {
                 debug!("constellation got NodeStatus message");
-                self.compositor_proxy.send(ToCompositorMsg::Status(source_top_ctx_id, message));
+                self.embedder_proxy.send(EmbedderMsg::Status(source_top_ctx_id, message));
             }
             FromScriptMsg::SetDocumentState(state) => {
                 debug!("constellation got SetDocumentState message");
@@ -1185,15 +1192,15 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             }
 
             FromScriptMsg::GetClientWindow(send) => {
-                self.compositor_proxy.send(ToCompositorMsg::GetClientWindow(source_top_ctx_id, send));
+                self.embedder_proxy.send(EmbedderMsg::GetClientWindow(source_top_ctx_id, send));
             }
 
             FromScriptMsg::MoveTo(point) => {
-                self.compositor_proxy.send(ToCompositorMsg::MoveTo(source_top_ctx_id, point));
+                self.embedder_proxy.send(EmbedderMsg::MoveTo(source_top_ctx_id, point));
             }
 
             FromScriptMsg::ResizeTo(size) => {
-                self.compositor_proxy.send(ToCompositorMsg::ResizeTo(source_top_ctx_id, size));
+                self.embedder_proxy.send(EmbedderMsg::ResizeTo(source_top_ctx_id, size));
             }
 
             FromScriptMsg::Exit => {
@@ -1205,13 +1212,13 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
             FromScriptMsg::SetTitle(title) => {
                 if source_is_top_level_pipeline {
-                    self.compositor_proxy.send(ToCompositorMsg::ChangePageTitle(source_top_ctx_id, title))
+                    self.embedder_proxy.send(EmbedderMsg::ChangePageTitle(source_top_ctx_id, title))
                 }
             }
 
             FromScriptMsg::SendKeyEvent(ch, key, key_state, key_modifiers) => {
-                let event = ToCompositorMsg::KeyEvent(Some(source_top_ctx_id), ch, key, key_state, key_modifiers);
-                self.compositor_proxy.send(event);
+                let event = EmbedderMsg::KeyEvent(Some(source_top_ctx_id), ch, key, key_state, key_modifiers);
+                self.embedder_proxy.send(event);
             }
 
             FromScriptMsg::TouchEventProcessed(result) => {
@@ -1244,7 +1251,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 self.handle_broadcast_storage_event(source_pipeline_id, storage, url, key, old_value, new_value);
             }
             FromScriptMsg::SetFullscreenState(state) => {
-                self.compositor_proxy.send(ToCompositorMsg::SetFullscreenState(source_top_ctx_id, state));
+                self.embedder_proxy.send(EmbedderMsg::SetFullscreenState(source_top_ctx_id, state));
             }
         }
     }
@@ -1687,7 +1694,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                           Some((parent_pipeline_id, frame_type)),
                           script_sender,
                           layout_sender,
-                          self.compositor_proxy.clone_compositor_proxy(),
+                          self.compositor_proxy.clone(),
                           is_private || parent_pipeline.is_private,
                           url.clone(),
                           parent_pipeline.visible)
@@ -1719,7 +1726,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     }
 
     fn handle_set_cursor_msg(&mut self, cursor: Cursor) {
-        self.compositor_proxy.send(ToCompositorMsg::SetCursor(cursor))
+        self.embedder_proxy.send(EmbedderMsg::SetCursor(cursor))
     }
 
     fn handle_change_running_animations_state(&mut self,
@@ -1793,8 +1800,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 load_data: LoadData, replace: bool) -> Option<PipelineId> {
         // Allow the embedder to handle the url itself
         let (chan, port) = ipc::channel().expect("Failed to create IPC channel!");
-        let msg = ToCompositorMsg::AllowNavigation(top_level_browsing_context_id, load_data.url.clone(), chan);
-        self.compositor_proxy.send(msg);
+        let msg = EmbedderMsg::AllowNavigation(top_level_browsing_context_id, load_data.url.clone(), chan);
+        self.embedder_proxy.send(msg);
         if let Ok(false) = port.recv() {
             return None;
         }
@@ -1888,7 +1895,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                              pipeline_id: PipelineId) {
         if self.pipelines.get(&pipeline_id).and_then(|p| p.parent_info).is_none() {
             // Notify embedder top level document started loading.
-            self.compositor_proxy.send(ToCompositorMsg::LoadStart(top_level_browsing_context_id));
+            self.embedder_proxy.send(EmbedderMsg::LoadStart(top_level_browsing_context_id));
         }
     }
 
@@ -1920,8 +1927,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 .any(|change| change.browsing_context_id == top_level_browsing_context_id);
 
             if !current_top_level_pipeline_will_be_replaced {
-                // Notify embedder top level document finished loading.
+                // Notify embedder and compositor top level document finished loading.
                 self.compositor_proxy.send(ToCompositorMsg::LoadComplete(top_level_browsing_context_id));
+                self.embedder_proxy.send(EmbedderMsg::LoadComplete(top_level_browsing_context_id));
             }
         }
         self.handle_subframe_loaded(pipeline_id);
@@ -1989,8 +1997,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 }
             },
             None => {
-                let event = ToCompositorMsg::KeyEvent(None, ch, key, state, mods);
-                self.compositor_proxy.clone_compositor_proxy().send(event);
+                let event = EmbedderMsg::KeyEvent(None, ch, key, state, mods);
+                self.embedder_proxy.clone().send(event);
             }
         }
     }
@@ -2169,7 +2177,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             },
             WebDriverCommandMsg::SetWindowSize(top_level_browsing_context_id, size, reply) => {
                 self.webdriver.resize_channel = Some(reply);
-                self.compositor_proxy.send(ToCompositorMsg::ResizeTo(top_level_browsing_context_id, size));
+                self.embedder_proxy.send(EmbedderMsg::ResizeTo(top_level_browsing_context_id, size));
             },
             WebDriverCommandMsg::LoadUrl(top_level_browsing_context_id, load_data, reply) => {
                 self.load_url_for_webdriver(top_level_browsing_context_id, load_data, reply, false);
@@ -2402,8 +2410,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                        .map(&keep_load_data_if_top_browsing_context)
                        .scan(current_load_data.clone(), &resolve_load_data));
 
-        let msg = ToCompositorMsg::HistoryChanged(top_level_browsing_context_id, entries, current_index);
-        self.compositor_proxy.send(msg);
+        let msg = EmbedderMsg::HistoryChanged(top_level_browsing_context_id, entries, current_index);
+        self.embedder_proxy.send(msg);
     }
 
     fn load_url_for_webdriver(&mut self,
