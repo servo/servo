@@ -214,9 +214,6 @@ fn extract_error_param<'a>(err: ParseError<'a>) -> Option<ErrorString<'a>> {
         CssParseError::Custom(SelectorParseError::UnexpectedIdent(ident)) =>
             ErrorString::Ident(ident),
 
-        CssParseError::Custom(SelectorParseError::ExpectedNamespace(namespace)) =>
-            ErrorString::Ident(namespace),
-
         CssParseError::Custom(SelectorParseError::Custom(
             StyleParseError::PropertyDeclaration(
                 PropertyDeclarationParseError::UnknownProperty(property)))) =>
@@ -250,8 +247,15 @@ fn extract_error_params<'a>(err: ParseError<'a>) -> Option<ErrorParams<'a>> {
                 PropertyDeclarationParseError::InvalidValue(property, Some(e))))) =>
             (Some(ErrorString::Snippet(property.into())), Some(extract_value_error_param(e))),
 
-        CssParseError::Custom(SelectorParseError::UnexpectedTokenInAttributeSelector(t)) =>
+        CssParseError::Custom(SelectorParseError::UnexpectedTokenInAttributeSelector(t)) |
+        CssParseError::Custom(SelectorParseError::BadValueInAttr(t)) |
+        CssParseError::Custom(SelectorParseError::ExpectedBarInAttr(t)) |
+        CssParseError::Custom(SelectorParseError::NoQualifiedNameInAttributeSelector(t)) |
+        CssParseError::Custom(SelectorParseError::InvalidQualNameInAttr(t)) =>
             (None, Some(ErrorString::UnexpectedToken(t))),
+
+        CssParseError::Custom(SelectorParseError::ExpectedNamespace(namespace)) =>
+            (None, Some(ErrorString::Ident(namespace))),
 
         CssParseError::Custom(SelectorParseError::UnsupportedPseudoClassOrElement(p)) =>
             (None, Some(ErrorString::Ident(p))),
@@ -325,9 +329,6 @@ impl<'a> ErrorHelpers<'a> for ContextualParseError<'a> {
             ContextualParseError::UnsupportedKeyframePropertyDeclaration(..) =>
                 (b"PEBadSelectorKeyframeRuleIgnored\0", Action::Nothing),
             ContextualParseError::InvalidRule(
-                _, CssParseError::Custom(SelectorParseError::ExpectedNamespace(_))) =>
-                (b"PEUnknownNamespacePrefix\0", Action::Nothing),
-            ContextualParseError::InvalidRule(
                 _, CssParseError::Custom(SelectorParseError::Custom(
                 StyleParseError::UnexpectedTokenWithinNamespace(_)))) =>
                 (b"PEAtNSUnexpected\0", Action::Nothing),
@@ -335,6 +336,16 @@ impl<'a> ErrorHelpers<'a> for ContextualParseError<'a> {
                 let prefix = match *err {
                     CssParseError::Custom(SelectorParseError::UnexpectedTokenInAttributeSelector(_)) =>
                         Some(&b"PEAttSelUnexpected\0"[..]),
+                    CssParseError::Custom(SelectorParseError::ExpectedBarInAttr(_)) =>
+                        Some(&b"PEAttSelNoBar\0"[..]),
+                    CssParseError::Custom(SelectorParseError::BadValueInAttr(_)) =>
+                        Some(&b"PEAttSelBadValue\0"[..]),
+                    CssParseError::Custom(SelectorParseError::NoQualifiedNameInAttributeSelector(_)) =>
+                        Some(&b"PEAttributeNameOrNamespaceExpected\0"[..]),
+                    CssParseError::Custom(SelectorParseError::InvalidQualNameInAttr(_)) =>
+                        Some(&b"PEAttributeNameExpected\0"[..]),
+                    CssParseError::Custom(SelectorParseError::ExpectedNamespace(_)) =>
+                       Some(&b"PEUnknownNamespacePrefix\0"[..]),
                     CssParseError::Custom(SelectorParseError::UnsupportedPseudoClassOrElement(_)) =>
                         Some(&b"PEPseudoSelUnknown\0"[..]),
                     _ => None,

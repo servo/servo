@@ -49,7 +49,7 @@ fn to_ascii_lowercase(s: &str) -> Cow<str> {
 #[derive(Clone, Debug, PartialEq)]
 pub enum SelectorParseError<'i, T> {
     PseudoElementInComplexSelector,
-    NoQualifiedNameInAttributeSelector,
+    NoQualifiedNameInAttributeSelector(Token<'i>),
     TooManyCompoundSelectorComponentsInNegation,
     NegationSelectorComponentNotNamespace,
     NegationSelectorComponentNotLocalName,
@@ -61,6 +61,9 @@ pub enum SelectorParseError<'i, T> {
     UnsupportedPseudoClassOrElement(CowRcStr<'i>),
     UnexpectedIdent(CowRcStr<'i>),
     ExpectedNamespace(CowRcStr<'i>),
+    ExpectedBarInAttr(Token<'i>),
+    BadValueInAttr(Token<'i>),
+    InvalidQualNameInAttr(Token<'i>),
     Custom(T),
 }
 
@@ -1107,8 +1110,8 @@ fn parse_type_selector<'i, 't, P, E, Impl, S>(parser: &P, input: &mut CssParser<
           S: Push<Component<Impl>>,
 {
     match parse_qualified_name(parser, input, /* in_attr_selector = */ false)? {
-        None => Ok(false),
-        Some((namespace, local_name)) => {
+        OptionalQName::None(_) => Ok(false),
+        OptionalQName::Some(namespace, local_name) => {
             match namespace {
                 QNamePrefix::ImplicitAnyNamespace => {}
                 QNamePrefix::ImplicitDefaultNamespace(url) => {
@@ -1176,13 +1179,19 @@ enum QNamePrefix<Impl: SelectorImpl> {
     ExplicitNamespace(Impl::NamespacePrefix, Impl::NamespaceUrl),  // `prefix|foo`
 }
 
+enum OptionalQName<'i, Impl: SelectorImpl> {
+    Some(QNamePrefix<Impl>, Option<CowRcStr<'i>>),
+    None(Token<'i>),
+}
+
 /// * `Err(())`: Invalid selector, abort
-/// * `Ok(None)`: Not a simple selector, could be something else. `input` was not consumed.
-/// * `Ok(Some((namespace, local_name)))`: `None` for the local name means a `*` universal selector
+/// * `Ok(None(token))`: Not a simple selector, could be something else. `input` was not consumed,
+///                      but the token is still returned.
+/// * `Ok(Some(namespace, local_name))`: `None` for the local name means a `*` universal selector
 fn parse_qualified_name<'i, 't, P, E, Impl>
                        (parser: &P, input: &mut CssParser<'i, 't>,
                         in_attr_selector: bool)
-                        -> Result<Option<(QNamePrefix<Impl>, Option<CowRcStr<'i>>)>,
+                        -> Result<OptionalQName<'i, Impl>,
                                   ParseError<'i, SelectorParseError<'i, E>>>
     where P: Parser<'i, Impl=Impl, Error=E>, Impl: SelectorImpl
 {
@@ -1191,17 +1200,18 @@ fn parse_qualified_name<'i, 't, P, E, Impl>
             Some(url) => QNamePrefix::ImplicitDefaultNamespace(url),
             None => QNamePrefix::ImplicitAnyNamespace,
         };
-        Ok(Some((namespace, local_name)))
+        Ok(OptionalQName::Some(namespace, local_name))
     };
 
     let explicit_namespace = |input: &mut CssParser<'i, 't>, namespace| {
         match input.next_including_whitespace() {
             Ok(&Token::Delim('*')) if !in_attr_selector => {
-                Ok(Some((namespace, None)))
+                Ok(OptionalQName::Some(namespace, None))
             },
             Ok(&Token::Ident(ref local_name)) => {
-                Ok(Some((namespace, Some(local_name.clone()))))
+                Ok(OptionalQName::Some(namespace, Some(local_name.clone())))
             },
+            Ok(t) if in_attr_selector => Err(SelectorParseError::InvalidQualNameInAttr(t.clone()).into()),
             Ok(t) => Err(ParseError::Basic(BasicParseError::UnexpectedToken(t.clone()))),
             Err(e) => Err(ParseError::Basic(e)),
         }
@@ -1223,7 +1233,7 @@ fn parse_qualified_name<'i, 't, P, E, Impl>
                 _ => {
                     input.reset(&after_ident);
                     if in_attr_selector {
-                        Ok(Some((QNamePrefix::ImplicitNoNamespace, Some(value))))
+                        Ok(OptionalQName::Some(QNamePrefix::ImplicitNoNamespace, Some(value)))
                     } else {
                         default_namespace(Some(value))
                     }
@@ -1241,7 +1251,7 @@ fn parse_qualified_name<'i, 't, P, E, Impl>
                     input.reset(&after_star);
                     if in_attr_selector {
                         match result {
-                            Ok(t) => Err(ParseError::Basic(BasicParseError::UnexpectedToken(t))),
+                            Ok(t) => Err(SelectorParseError::ExpectedBarInAttr(t).into()),
                             Err(e) => Err(ParseError::Basic(e)),
                         }
                     } else {
@@ -1253,9 +1263,13 @@ fn parse_qualified_name<'i, 't, P, E, Impl>
         Ok(Token::Delim('|')) => {
             explicit_namespace(input, QNamePrefix::ExplicitNoNamespace)
         }
-        _ => {
+        Ok(t) => {
             input.reset(&start);
-            Ok(None)
+            Ok(OptionalQName::None(t))
+        }
+        Err(e) => {
+            input.reset(&start);
+            Err(e.into())
         }
     }
 }
@@ -1269,9 +1283,10 @@ fn parse_attribute_selector<'i, 't, P, E, Impl>(parser: &P, input: &mut CssParse
     let namespace;
     let local_name;
     match parse_qualified_name(parser, input, /* in_attr_selector = */ true)? {
-        None => return Err(ParseError::Custom(SelectorParseError::NoQualifiedNameInAttributeSelector)),
-        Some((_, None)) => unreachable!(),
-        Some((ns, Some(ln))) => {
+        OptionalQName::None(t) =>
+            return Err(ParseError::Custom(SelectorParseError::NoQualifiedNameInAttributeSelector(t))),
+        OptionalQName::Some(_, None) => unreachable!(),
+        OptionalQName::Some(ns, Some(ln)) => {
             local_name = ln;
             namespace = match ns {
                 QNamePrefix::ImplicitNoNamespace |
@@ -1328,7 +1343,12 @@ fn parse_attribute_selector<'i, 't, P, E, Impl>(parser: &P, input: &mut CssParse
         Ok(t) => return Err(SelectorParseError::UnexpectedTokenInAttributeSelector(t.clone()).into())
     };
 
-    let value = input.expect_ident_or_string()?.clone();
+    let value = match input.expect_ident_or_string() {
+        Ok(t) => t.clone(),
+        Err(BasicParseError::UnexpectedToken(t)) =>
+            return Err(SelectorParseError::BadValueInAttr(t.clone()).into()),
+        Err(e) => return Err(e.into()),
+    };
     let never_matches = match operator {
         AttrSelectorOperator::Equal |
         AttrSelectorOperator::DashMatch => false,
