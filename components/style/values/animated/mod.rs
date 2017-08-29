@@ -125,7 +125,10 @@ impl Animate for i32 {
 impl Animate for f32 {
     #[inline]
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        Ok((*self as f64).animate(&(*other as f64), procedure)? as f32)
+        use std::f32;
+
+        let ret = (*self as f64).animate(&(*other as f64), procedure)?;
+        Ok(ret.min(f32::MAX as f64).max(f32::MIN as f64) as f32)
     }
 }
 
@@ -133,8 +136,12 @@ impl Animate for f32 {
 impl Animate for f64 {
     #[inline]
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
+        use std::f64;
+
         let (self_weight, other_weight) = procedure.weights();
-        Ok(*self * self_weight + *other * other_weight)
+
+        let ret = *self * self_weight + *other * other_weight;
+        Ok(ret.min(f64::MAX).max(f64::MIN))
     }
 }
 
