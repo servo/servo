@@ -161,7 +161,7 @@ fn token_to_str<'a>(t: Token<'a>) -> String {
             format!("{}{}", i, escape_css_ident(&*unit)),
         Token::Dimension { value, ref unit, .. } =>
             format!("{}{}", value, escape_css_ident(&*unit)),
-        Token::WhiteSpace(_) => "whitespace".into(),
+        Token::WhiteSpace(s) => s.into(),
         Token::Comment(_) => "comment".into(),
         Token::Colon => ":".into(),
         Token::Semicolon => ";".into(),
@@ -251,7 +251,11 @@ fn extract_error_params<'a>(err: ParseError<'a>) -> Option<ErrorParams<'a>> {
         CssParseError::Custom(SelectorParseError::BadValueInAttr(t)) |
         CssParseError::Custom(SelectorParseError::ExpectedBarInAttr(t)) |
         CssParseError::Custom(SelectorParseError::NoQualifiedNameInAttributeSelector(t)) |
-        CssParseError::Custom(SelectorParseError::InvalidQualNameInAttr(t)) =>
+        CssParseError::Custom(SelectorParseError::InvalidQualNameInAttr(t)) |
+        CssParseError::Custom(SelectorParseError::ExplicitNamespaceUnexpectedToken(t)) |
+        CssParseError::Custom(SelectorParseError::PseudoElementExpectedIdent(t)) |
+        CssParseError::Custom(SelectorParseError::NoIdentForPseudo(t)) |
+        CssParseError::Custom(SelectorParseError::PseudoElementExpectedColon(t)) =>
             (None, Some(ErrorString::UnexpectedToken(t))),
 
         CssParseError::Custom(SelectorParseError::ExpectedNamespace(namespace)) =>
@@ -259,6 +263,10 @@ fn extract_error_params<'a>(err: ParseError<'a>) -> Option<ErrorParams<'a>> {
 
         CssParseError::Custom(SelectorParseError::UnsupportedPseudoClassOrElement(p)) =>
             (None, Some(ErrorString::Ident(p))),
+
+        CssParseError::Custom(SelectorParseError::EmptySelector) |
+        CssParseError::Custom(SelectorParseError::DanglingCombinator) =>
+            (None, None),
 
         err => match extract_error_param(err) {
             Some(e) => (Some(e), None),
@@ -344,10 +352,22 @@ impl<'a> ErrorHelpers<'a> for ContextualParseError<'a> {
                         Some(&b"PEAttributeNameOrNamespaceExpected\0"[..]),
                     CssParseError::Custom(SelectorParseError::InvalidQualNameInAttr(_)) =>
                         Some(&b"PEAttributeNameExpected\0"[..]),
+                    CssParseError::Custom(SelectorParseError::ExplicitNamespaceUnexpectedToken(_)) =>
+                        Some(&b"PETypeSelNotType\0"[..]),
                     CssParseError::Custom(SelectorParseError::ExpectedNamespace(_)) =>
                        Some(&b"PEUnknownNamespacePrefix\0"[..]),
+                    CssParseError::Custom(SelectorParseError::EmptySelector) =>
+                        Some(&b"PESelectorGroupNoSelector\0"[..]),
+                    CssParseError::Custom(SelectorParseError::DanglingCombinator) =>
+                        Some(&b"PESelectorGroupExtraCombinator\0"[..]),
                     CssParseError::Custom(SelectorParseError::UnsupportedPseudoClassOrElement(_)) =>
                         Some(&b"PEPseudoSelUnknown\0"[..]),
+                    CssParseError::Custom(SelectorParseError::PseudoElementExpectedColon(_)) =>
+                        Some(&b"PEPseudoSelEndOrUserActionPC\0"[..]),
+                    CssParseError::Custom(SelectorParseError::NoIdentForPseudo(_)) =>
+                        Some(&b"PEPseudoClassArgNotIdent\0"[..]),
+                    CssParseError::Custom(SelectorParseError::PseudoElementExpectedIdent(_)) =>
+                        Some(&b"PEPseudoSelBadName\0"[..]),
                     _ => None,
                 };
                 return (prefix, b"PEBadSelectorRSIgnored\0", Action::Nothing);
