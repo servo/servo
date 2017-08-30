@@ -13,6 +13,9 @@ pub use std::collections::hash_map::{Entry, RandomState};
 
 pub struct HashMap<K, V, S = RandomState>(StdMap<K, V, S>);
 
+
+use FailedAllocationError;
+
 impl<K, V, S> Deref for HashMap<K, V, S> {
     type Target = StdMap<K, V, S>;
     fn deref(&self) -> &Self::Target {
@@ -39,7 +42,7 @@ impl<K: Hash + Eq, V> HashMap<K, V, RandomState> {
     }
 
     #[inline]
-    pub fn try_with_capacity(capacity: usize) -> Result<HashMap<K, V, RandomState>, ()> {
+    pub fn try_with_capacity(capacity: usize) -> Result<HashMap<K, V, RandomState>, FailedAllocationError> {
         Ok(HashMap(StdMap::with_capacity(capacity)))
     }
 }
@@ -50,12 +53,12 @@ impl<K, V, S> HashMap<K, V, S>
           S: BuildHasher
 {
     #[inline]
-    pub fn try_with_hasher(hash_builder: S) -> Result<HashMap<K, V, S>, ()> {
+    pub fn try_with_hasher(hash_builder: S) -> Result<HashMap<K, V, S>, FailedAllocationError> {
         Ok(HashMap(StdMap::with_hasher(hash_builder)))
     }
 
     #[inline]
-    pub fn try_with_capacity_and_hasher(capacity: usize, hash_builder: S) -> Result<HashMap<K, V, S>, ()> {
+    pub fn try_with_capacity_and_hasher(capacity: usize, hash_builder: S) -> Result<HashMap<K, V, S>, FailedAllocationError> {
         Ok(HashMap(StdMap::with_capacity_and_hasher(capacity, hash_builder)))
     }
 
@@ -65,20 +68,20 @@ impl<K, V, S> HashMap<K, V, S>
 
 
     #[inline]
-    pub fn try_reserve(&mut self, additional: usize) -> Result<(), ()> {
+    pub fn try_reserve(&mut self, additional: usize) -> Result<(), FailedAllocationError> {
         Ok(self.reserve(additional))
     }
 
-    pub fn try_shrink_to_fit(&mut self) -> Result<(), ()> {
+    pub fn try_shrink_to_fit(&mut self) -> Result<(), FailedAllocationError> {
         Ok(self.shrink_to_fit())
     }
 
-    pub fn try_entry(&mut self, key: K) -> Result<Entry<K, V>, ()> {
+    pub fn try_entry(&mut self, key: K) -> Result<Entry<K, V>, FailedAllocationError> {
         Ok(self.entry(key))
     }
 
     #[inline]
-    pub fn try_insert(&mut self, k: K, v: V) -> Result<Option<V>, ()> {
+    pub fn try_insert(&mut self, k: K, v: V) -> Result<Option<V>, FailedAllocationError> {
         Ok(self.insert(k, v))
     }
 }
@@ -130,17 +133,17 @@ impl<T, S> HashSet<T, S>
     }
 
     #[inline]
-    pub fn try_reserve(&mut self, additional: usize) -> Result<(), ()> {
+    pub fn try_reserve(&mut self, additional: usize) -> Result<(), FailedAllocationError> {
         Ok(self.reserve(additional))
     }
 
     #[inline]
-    pub fn try_shrink_to_fit(&mut self) -> Result<(), ()> {
+    pub fn try_shrink_to_fit(&mut self) -> Result<(), FailedAllocationError> {
         Ok(self.shrink_to_fit())
     }
 
     #[inline]
-    pub fn try_insert(&mut self, value: T) -> Result<bool, ()> {
+    pub fn try_insert(&mut self, value: T) -> Result<bool, FailedAllocationError> {
         Ok(self.insert(value))
     }
 }

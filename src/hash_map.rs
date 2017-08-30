@@ -23,6 +23,8 @@ use ops::{Deref, Index};
 use super::table::{self, Bucket, EmptyBucket, FullBucket, FullBucketMut, RawTable, SafeHash};
 use super::table::BucketState::{Empty, Full};
 
+use FailedAllocationError;
+
 const MIN_NONZERO_RAW_CAPACITY: usize = 32;     // must be a power of two
 
 static OOM_STR: &str = "out of memory whilst allocating hashmap"; 
@@ -614,7 +616,7 @@ impl<K: Hash + Eq, V> HashMap<K, V, RandomState> {
     }
 
     #[inline]
-    pub fn try_with_capacity(capacity: usize) -> Result<HashMap<K, V, RandomState>, ()> {
+    pub fn try_with_capacity(capacity: usize) -> Result<HashMap<K, V, RandomState>, FailedAllocationError> {
         HashMap::try_with_capacity_and_hasher(capacity, Default::default())
     }
 }
@@ -644,7 +646,7 @@ impl<K, V, S> HashMap<K, V, S>
     /// map.insert(1, 2);
     /// ```
     #[inline]
-    pub fn try_with_hasher(hash_builder: S) -> Result<HashMap<K, V, S>, ()> {
+    pub fn try_with_hasher(hash_builder: S) -> Result<HashMap<K, V, S>, FailedAllocationError> {
         Ok(HashMap {
             hash_builder,
             resize_policy: DefaultResizePolicy::new(),
@@ -679,7 +681,7 @@ impl<K, V, S> HashMap<K, V, S>
     /// map.insert(1, 2);
     /// ```
     #[inline]
-    pub fn try_with_capacity_and_hasher(capacity: usize, hash_builder: S) -> Result<HashMap<K, V, S>, ()> {
+    pub fn try_with_capacity_and_hasher(capacity: usize, hash_builder: S) -> Result<HashMap<K, V, S>, FailedAllocationError> {
         let resize_policy = DefaultResizePolicy::new();
         let raw_cap = resize_policy.raw_capacity(capacity);
         Ok(HashMap {
@@ -746,7 +748,7 @@ impl<K, V, S> HashMap<K, V, S>
 
 
     #[inline]
-    pub fn try_reserve(&mut self, additional: usize) -> Result<(), ()> {
+    pub fn try_reserve(&mut self, additional: usize) -> Result<(), FailedAllocationError> {
         let remaining = self.capacity() - self.len(); // this can't overflow
         if remaining < additional {
             let min_cap = self.len().checked_add(additional).expect("reserve overflow");
@@ -763,7 +765,7 @@ impl<K, V, S> HashMap<K, V, S>
 
     #[cold]
     #[inline(never)]
-    fn try_resize(&mut self, new_raw_cap: usize) -> Result<(), ()> {
+    fn try_resize(&mut self, new_raw_cap: usize) -> Result<(), FailedAllocationError> {
         assert!(self.table.size() <= new_raw_cap);
         assert!(new_raw_cap.is_power_of_two() || new_raw_cap == 0);
 
@@ -829,7 +831,7 @@ impl<K, V, S> HashMap<K, V, S>
         self.try_shrink_to_fit().expect(OOM_STR);
     }
 
-    pub fn try_shrink_to_fit(&mut self) -> Result<(), ()> {
+    pub fn try_shrink_to_fit(&mut self) -> Result<(), FailedAllocationError> {
         let new_raw_cap = self.resize_policy.raw_capacity(self.len());
         if self.raw_capacity() != new_raw_cap {
             let old_table = replace(&mut self.table, RawTable::new(new_raw_cap)?);
@@ -1002,7 +1004,7 @@ impl<K, V, S> HashMap<K, V, S>
         self.try_entry(key).expect(OOM_STR)
     }
 
-    pub fn try_entry(&mut self, key: K) -> Result<Entry<K, V>, ()> {
+    pub fn try_entry(&mut self, key: K) -> Result<Entry<K, V>, FailedAllocationError> {
         // Gotta resize now.
         self.try_reserve(1)?;
         let hash = self.make_hash(&key);
@@ -1195,7 +1197,7 @@ impl<K, V, S> HashMap<K, V, S>
     }
 
     #[inline]
-    pub fn try_insert(&mut self, k: K, v: V) -> Result<Option<V>, ()> {
+    pub fn try_insert(&mut self, k: K, v: V) -> Result<Option<V>, FailedAllocationError> {
         let hash = self.make_hash(&k);
         self.try_reserve(1)?;
         Ok(self.insert_hashed_nocheck(hash, k, v))

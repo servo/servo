@@ -19,6 +19,7 @@ use ptr;
 use shim::{Unique, Shared};
 
 use self::BucketState::*;
+use FailedAllocationError;
 
 /// Integer type used for stored hash values.
 ///
@@ -728,7 +729,7 @@ impl<K, V> RawTable<K, V> {
 
     /// Does not initialize the buckets. The caller should ensure they,
     /// at the very least, set every hash to EMPTY_BUCKET.
-    unsafe fn try_new_uninitialized(capacity: usize) -> Result<RawTable<K, V>, ()> {
+    unsafe fn try_new_uninitialized(capacity: usize) -> Result<RawTable<K, V>, FailedAllocationError> {
         if capacity == 0 {
             return Ok(RawTable {
                 size: 0,
@@ -757,8 +758,7 @@ impl<K, V> RawTable<K, V> {
                                                                         align_of::<(K, V)>());
 
         if oflo {
-            // capacity overflow
-            return Err(());
+            return Err(FailedAllocationError { reason: "capacity overflow when allocating RawTable" });
         }
 
         // One check for overflow that covers calculation and rounding of size.
@@ -768,12 +768,11 @@ impl<K, V> RawTable<K, V> {
 
         if let Some(cap_bytes) = cap_bytes {
             if size < cap_bytes {
-                // capacity overflow
-                return Err(());
+                return Err(FailedAllocationError { reason: "capacity overflow when allocating RawTable" });
             }
         } else {
-            // capacity overflow
-            return Err(());
+            
+            return Err(FailedAllocationError { reason: "capacity overflow when allocating RawTable" });
         }
 
 
@@ -782,8 +781,8 @@ impl<K, V> RawTable<K, V> {
         let buffer = alloc(size, alignment);
         
         if buffer.is_null() {
-            // OOM
-            return Err(())
+            
+            return Err(FailedAllocationError { reason: "out of memory when allocating RawTable" });
         }
 
         let hashes = buffer.offset(hash_offset as isize) as *mut HashUint;
@@ -817,7 +816,7 @@ impl<K, V> RawTable<K, V> {
 
     /// Creates a new raw table from a given capacity. All buckets are
     /// initially empty.
-    pub fn new(capacity: usize) -> Result<RawTable<K, V>, ()> {
+    pub fn new(capacity: usize) -> Result<RawTable<K, V>, FailedAllocationError> {
         unsafe {
             let ret = RawTable::try_new_uninitialized(capacity)?;
             ptr::write_bytes(ret.hashes.ptr(), 0, capacity);
