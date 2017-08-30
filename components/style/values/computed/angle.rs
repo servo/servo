@@ -4,6 +4,7 @@
 
 //! Computed angles.
 
+use euclid::Radians;
 use std::{f32, f64, fmt};
 use std::f64::consts::PI;
 use style_traits::ToCss;
@@ -97,5 +98,12 @@ impl ToCss for Angle {
             Angle::Radian(val) => write(val, "rad"),
             Angle::Turn(val) => write(val, "turn"),
         }
+    }
+}
+
+impl From<Angle> for Radians<CSSFloat> {
+    #[inline]
+    fn from(a: Angle) -> Self {
+        Radians::new(a.radians())
     }
 }
