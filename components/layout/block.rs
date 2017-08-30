@@ -1680,7 +1680,7 @@ impl BlockFlow {
         }
     }
 
-    pub fn overflow_style_may_require_scroll_root(&self) -> bool {
+    pub fn overflow_style_may_require_clip_scroll_node(&self) -> bool {
         match (self.fragment.style().get_box().overflow_x,
                self.fragment.style().get_box().overflow_y) {
             (overflow_x::T::auto, _) | (overflow_x::T::scroll, _) | (overflow_x::T::hidden, _) |
