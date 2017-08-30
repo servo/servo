@@ -4159,14 +4159,19 @@ fn static_assert() {
     }
 
     pub fn clone_list_style_type(&self) -> longhands::list_style_type::computed_value::T {
+        use gecko_bindings::bindings::Gecko_CounterStyle_IsSingleString;
+        use gecko_bindings::bindings::Gecko_CounterStyle_GetSingleString;
         use self::longhands::list_style_type::computed_value::T;
-        use values::Either;
         use values::generics::CounterStyleOrNone;
 
-        let result = CounterStyleOrNone::from_gecko_value(&self.gecko.mCounterStyle);
-        match result {
-            Either::First(counter_style) => T::CounterStyle(counter_style),
-            Either::Second(string) => T::String(string),
+        if unsafe { Gecko_CounterStyle_IsSingleString(&self.gecko.mCounterStyle) } {
+            ns_auto_string!(single_string);
+            unsafe {
+                Gecko_CounterStyle_GetSingleString(&self.gecko.mCounterStyle, &mut *single_string)
+            };
+            T::String(single_string.to_string())
+        } else {
+            T::CounterStyle(CounterStyleOrNone::from_gecko_value(&self.gecko.mCounterStyle))
         }
     }
 
@@ -5612,7 +5617,6 @@ clip-path
         use gecko::conversions::string_from_chars_pointer;
         use gecko_bindings::structs::nsStyleContentType::*;
         use properties::longhands::content::computed_value::{T, ContentItem};
-        use values::Either;
         use values::generics::CounterStyleOrNone;
         use values::specified::url::SpecifiedUrl;
         use values::specified::Attr;
@@ -5660,11 +5664,6 @@ clip-path
                         let ident = gecko_function.mIdent.to_string();
                         let style =
                             CounterStyleOrNone::from_gecko_value(&gecko_function.mCounterStyle);
-                        let style = match style {
-                            Either::First(counter_style) => counter_style,
-                            Either::Second(_) =>
-                                unreachable!("counter function shouldn't have single string type"),
-                        };
                         if gecko_content.mType == eStyleContentType_Counter {
                             ContentItem::Counter(ident, style)
                         } else {
