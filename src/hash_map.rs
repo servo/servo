@@ -27,8 +27,6 @@ use FailedAllocationError;
 
 const MIN_NONZERO_RAW_CAPACITY: usize = 32;     // must be a power of two
 
-static OOM_STR: &str = "out of memory whilst allocating hashmap"; 
-
 /// The default behavior of HashMap implements a maximum load factor of 90.9%.
 #[derive(Clone)]
 struct DefaultResizePolicy;
@@ -656,7 +654,7 @@ impl<K, V, S> HashMap<K, V, S>
 
     #[inline]
     pub fn with_hasher(hash_builder: S) -> HashMap<K, V, S> {
-        Self::try_with_hasher(hash_builder).expect(OOM_STR)
+        Self::try_with_hasher(hash_builder).unwrap()
     }
 
     /// Creates an empty `HashMap` with the specified capacity, using `hash_builder`
@@ -692,7 +690,7 @@ impl<K, V, S> HashMap<K, V, S>
     }
 
     pub fn with_capacity_and_hasher(capacity: usize, hash_builder: S) -> HashMap<K, V, S> {
-        Self::try_with_capacity_and_hasher(capacity, hash_builder).expect(OOM_STR)
+        Self::try_with_capacity_and_hasher(capacity, hash_builder).unwrap()
     }
 
     /// Returns a reference to the map's [`BuildHasher`].
@@ -743,7 +741,7 @@ impl<K, V, S> HashMap<K, V, S>
     /// map.reserve(10);
     /// ```
     pub fn reserve(&mut self, additional: usize) {
-        self.try_reserve(additional).expect(OOM_STR);
+        self.try_reserve(additional).unwrap();
     }
 
 
@@ -828,7 +826,7 @@ impl<K, V, S> HashMap<K, V, S>
     /// assert!(map.capacity() >= 2);
     /// ```
     pub fn shrink_to_fit(&mut self) {
-        self.try_shrink_to_fit().expect(OOM_STR);
+        self.try_shrink_to_fit().unwrap();
     }
 
     pub fn try_shrink_to_fit(&mut self) -> Result<(), FailedAllocationError> {
@@ -1001,7 +999,7 @@ impl<K, V, S> HashMap<K, V, S>
     /// assert_eq!(letters.get(&'y'), None);
     /// ```
     pub fn entry(&mut self, key: K) -> Entry<K, V> {
-        self.try_entry(key).expect(OOM_STR)
+        self.try_entry(key).unwrap()
     }
 
     pub fn try_entry(&mut self, key: K) -> Result<Entry<K, V>, FailedAllocationError> {
@@ -1193,7 +1191,7 @@ impl<K, V, S> HashMap<K, V, S>
     /// assert_eq!(map[&37], "c");
     /// ```
     pub fn insert(&mut self, k: K, v: V) -> Option<V> {
-        self.try_insert(k, v).expect(OOM_STR)
+        self.try_insert(k, v).unwrap()
     }
 
     #[inline]
