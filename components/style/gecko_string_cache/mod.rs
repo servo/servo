@@ -265,7 +265,7 @@ impl Atom {
     /// called on it.
     #[inline]
     pub unsafe fn from_addrefed(ptr: *mut nsIAtom) -> Self {
-        debug_assert!(!ptr.is_null());
+        assert!(!ptr.is_null());
         unsafe {
             Atom(WeakAtom::new(ptr))
         }
@@ -378,7 +378,7 @@ impl From<String> for Atom {
 impl From<*mut nsIAtom> for Atom {
     #[inline]
     fn from(ptr: *mut nsIAtom) -> Atom {
-        debug_assert!(!ptr.is_null());
+        assert!(!ptr.is_null());
         unsafe {
             let ret = Atom(WeakAtom::new(ptr));
             if !ret.is_static() {
