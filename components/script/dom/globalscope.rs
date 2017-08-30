@@ -5,6 +5,7 @@
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+use dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
 use dom::bindings::conversions::root_from_object;
 use dom::bindings::error::{ErrorInfo, report_pending_exception};
 use dom::bindings::inheritance::Castable;
@@ -17,6 +18,7 @@ use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use dom::errorevent::ErrorEvent;
 use dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use dom::eventtarget::EventTarget;
+use dom::performance::Performance;
 use dom::window::Window;
 use dom::workerglobalscope::WorkerGlobalScope;
 use dom::workletglobalscope::WorkletGlobalScope;
@@ -46,6 +48,7 @@ use std::collections::hash_map::Entry;
 use std::ffi::CString;
 use task_source::file_reading::FileReadingTaskSource;
 use task_source::networking::NetworkingTaskSource;
+use task_source::performance_timeline::PerformanceTimelineTaskSource;
 use time::{Timespec, get_time};
 use timers::{IsInterval, OneshotTimerCallback, OneshotTimerHandle};
 use timers::{OneshotTimers, TimerCallback};
@@ -569,6 +572,29 @@ impl GlobalScope {
     pub fn incumbent() -> Option<Root<Self>> {
         incumbent_global()
     }
+
+    pub fn performance(&self) -> Root<Performance> {
+        if let Some(window) = self.downcast::<Window>() {
+            return window.Performance();
+        }
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            return worker.Performance();
+        }
+        unreachable!();
+    }
+
+    /// Channel to send messages to the performance timeline task source
+    /// of this global scope.
+    pub fn performance_timeline_task_source(&self) -> PerformanceTimelineTaskSource {
+        if let Some(window) = self.downcast::<Window>() {
+            return window.performance_timeline_task_source();
+        }
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            return worker.performance_timeline_task_source();
+        }
+        unreachable!();
+    }
+
 }
 
 fn timestamp_in_ms(time: Timespec) -> u64 {

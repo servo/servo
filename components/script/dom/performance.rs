@@ -6,17 +6,17 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::PerformanceBinding;
 use dom::bindings::codegen::Bindings::PerformanceBinding::{DOMHighResTimeStamp, PerformanceMethods};
 use dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceEntryList as DOMPerformanceEntryList;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::num::Finite;
-use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
+use dom::globalscope::GlobalScope;
 use dom::performanceentry::PerformanceEntry;
 use dom::performanceobserver::PerformanceObserver as DOMPerformanceObserver;
 use dom::performancetiming::PerformanceTiming;
 use dom::window::Window;
 use dom_struct::dom_struct;
-use script_thread::{Runnable, ScriptThread};
 use std::cell::Cell;
 use std::cmp::Ordering;
 use time;
@@ -64,34 +64,40 @@ struct PerformanceObserver {
 #[dom_struct]
 pub struct Performance {
     reflector_: Reflector,
-    timing: JS<PerformanceTiming>,
+    timing: Option<JS<PerformanceTiming>>,
     entries: DOMRefCell<PerformanceEntryList>,
     observers: DOMRefCell<Vec<PerformanceObserver>>,
     pending_notification_observers_task: Cell<bool>,
+    navigation_start_precise: f64,
 }
 
 impl Performance {
-    fn new_inherited(window: &Window,
+    fn new_inherited(global: &GlobalScope,
                      navigation_start: u64,
                      navigation_start_precise: f64) -> Performance {
         Performance {
             reflector_: Reflector::new(),
-            timing: JS::from_ref(&*PerformanceTiming::new(window,
-                                                            navigation_start,
-                                                            navigation_start_precise)),
+            timing: if global.is::<Window>() {
+                Some(JS::from_ref(&*PerformanceTiming::new(global.as_window(),
+                                                           navigation_start,
+                                                           navigation_start_precise)))
+            } else {
+                None
+            },
             entries: DOMRefCell::new(PerformanceEntryList::new(Vec::new())),
             observers: DOMRefCell::new(Vec::new()),
             pending_notification_observers_task: Cell::new(false),
+            navigation_start_precise,
         }
     }
 
-    pub fn new(window: &Window,
+    pub fn new(global: &GlobalScope,
                navigation_start: u64,
                navigation_start_precise: f64) -> Root<Performance> {
-        reflect_dom_object(box Performance::new_inherited(window,
+        reflect_dom_object(box Performance::new_inherited(global,
                                                           navigation_start,
                                                           navigation_start_precise),
-                           window,
+                           global,
                            PerformanceBinding::Wrap)
     }
 
@@ -168,17 +174,15 @@ impl Performance {
         // Step 6.
         // Queue a new notification task.
         self.pending_notification_observers_task.set(true);
-        let global = self.global();
-        let window = global.as_window();
-        let task_source = window.performance_timeline_task_source();
-        task_source.queue_notification(self, window);
+        let task_source = self.global().performance_timeline_task_source();
+        task_source.queue_notification(&self.global());
     }
 
     /// Observers notifications task.
     ///
     /// Algorithm spec (step 7):
     /// https://w3c.github.io/performance-timeline/#queue-a-performanceentry
-    fn notify_observers(&self) {
+    pub fn notify_observers(&self) {
         // Step 7.1.
         self.pending_notification_observers_task.set(false);
 
@@ -200,34 +204,21 @@ impl Performance {
     }
 }
 
-pub struct NotifyPerformanceObserverRunnable {
-    owner: Trusted<Performance>,
-}
-
-impl NotifyPerformanceObserverRunnable {
-    pub fn new(owner: Trusted<Performance>) -> Self {
-        NotifyPerformanceObserverRunnable {
-            owner,
-        }
-    }
-}
-
-impl Runnable for NotifyPerformanceObserverRunnable {
-    fn main_thread_handler(self: Box<NotifyPerformanceObserverRunnable>,
-                           _: &ScriptThread) {
-        self.owner.root().notify_observers();
-    }
-}
-
 impl PerformanceMethods for Performance {
     // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/NavigationTiming/Overview.html#performance-timing-attribute
     fn Timing(&self) -> Root<PerformanceTiming> {
-        Root::from_ref(&*self.timing)
+        match self.timing {
+            Some(ref timing) => Root::from_ref(&*timing),
+            None => unreachable!("Are we trying to expose Performance.timing in workers?"),
+        }
     }
 
     // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/HighResolutionTime/Overview.html#dom-performance-now
     fn Now(&self) -> DOMHighResTimeStamp {
-        let nav_start = self.timing.navigation_start_precise();
+        let nav_start = match self.timing {
+            Some(ref timing) => timing.navigation_start_precise(),
+            None => self.navigation_start_precise,
+        };
         let now = (time::precise_time_ns() as f64 - nav_start) / 1000000 as f64;
         Finite::wrap(now)
     }

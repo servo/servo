@@ -17,6 +17,7 @@ use dom::bindings::trace::RootedTraceableBox;
 use dom::crypto::Crypto;
 use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use dom::globalscope::GlobalScope;
+use dom::performance::Performance;
 use dom::promise::Promise;
 use dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use dom::window::{base64_atob, base64_btoa};
@@ -44,6 +45,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::Receiver;
 use task_source::file_reading::FileReadingTaskSource;
 use task_source::networking::NetworkingTaskSource;
+use task_source::performance_timeline::PerformanceTimelineTaskSource;
+use time::precise_time_ns;
 use timers::{IsInterval, TimerCallback};
 
 pub fn prepare_workerscope_init(global: &GlobalScope,
@@ -89,6 +92,9 @@ pub struct WorkerGlobalScope {
     from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
 
     microtask_queue: MicrotaskQueue,
+
+    navigation_start_precise: f64,
+    performance: MutNullableJS<Performance>,
 }
 
 impl WorkerGlobalScope {
@@ -120,6 +126,8 @@ impl WorkerGlobalScope {
             from_devtools_sender: init.from_devtools_sender,
             from_devtools_receiver: from_devtools_receiver,
             microtask_queue: MicrotaskQueue::default(),
+            navigation_start_precise: precise_time_ns() as f64,
+            performance: Default::default(),
         }
     }
 
@@ -320,6 +328,16 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
     fn Fetch(&self, input: RequestOrUSVString, init: RootedTraceableBox<RequestInit>) -> Rc<Promise> {
         fetch::Fetch(self.upcast(), input, init)
     }
+
+    // https://w3c.github.io/hr-time/#the-performance-attribute
+    fn Performance(&self) -> Root<Performance> {
+        self.performance.or_init(|| {
+            let global_scope = self.upcast::<GlobalScope>();
+            Performance::new(global_scope,
+                             0 /* navigation start is not used in workers */,
+                             self.navigation_start_precise)
+        })
+    }
 }
 
 
@@ -366,6 +384,10 @@ impl WorkerGlobalScope {
 
     pub fn networking_task_source(&self) -> NetworkingTaskSource {
         NetworkingTaskSource(self.script_chan())
+    }
+
+    pub fn performance_timeline_task_source(&self) -> PerformanceTimelineTaskSource {
+        PerformanceTimelineTaskSource(self.script_chan())
     }
 
     pub fn new_script_pair(&self) -> (Box<ScriptChan + Send>, Box<ScriptPort + Send>) {
