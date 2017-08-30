@@ -26,5 +26,11 @@ interface WindowOrWorkerGlobalScope {
   //   ImageBitmapSource image, long sx, long sy, long sw, long sh, optional ImageBitmapOptions options);
 };
 
+// https://w3c.github.io/hr-time/#the-performance-attribute
+partial interface WindowOrWorkerGlobalScope {
+    [Replaceable]
+    readonly attribute Performance performance;
+};
+
 Window implements WindowOrWorkerGlobalScope;
 WorkerGlobalScope implements WindowOrWorkerGlobalScope;

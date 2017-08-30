@@ -98,11 +98,6 @@ interface WindowBase64 {
 };
 Window implements WindowBase64;
 
-// https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/NavigationTiming/Overview.html#sec-window.performance-attribute
-partial interface Window {
-  [Replaceable] readonly attribute Performance performance;
-};
-
 // https://html.spec.whatwg.org/multipage/#Window-partial
 partial interface Window {
   void captureEvents();
