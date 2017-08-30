@@ -9,7 +9,6 @@ use dom::abstractworkerglobalscope::{SendableWorkerScriptChan, WorkerThreadWorke
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding;
 use dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding::DedicatedWorkerGlobalScopeMethods;
-use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::error::{ErrorInfo, ErrorResult};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{Root, RootCollection};

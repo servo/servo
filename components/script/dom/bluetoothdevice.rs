@@ -8,7 +8,6 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::BluetoothDeviceBinding;
 use dom::bindings::codegen::Bindings::BluetoothDeviceBinding::BluetoothDeviceMethods;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;
-use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::error::Error;
 use dom::bindings::error::ErrorResult;
 use dom::bindings::inheritance::Castable;

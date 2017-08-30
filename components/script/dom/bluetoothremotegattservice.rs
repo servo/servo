@@ -6,7 +6,6 @@ use bluetooth_traits::{BluetoothResponse, GATTType};
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding::BluetoothRemoteGATTServiceMethods;
-use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::error::Error;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::reflect_dom_object;
