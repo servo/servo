@@ -62,6 +62,7 @@ use gecko_bindings::structs::SeenPtrs;
 use gecko_bindings::structs::ServoBundledURI;
 use gecko_bindings::structs::ServoElementSnapshot;
 use gecko_bindings::structs::ServoElementSnapshotTable;
+use gecko_bindings::structs::ServoStyleSetSizes;
 use gecko_bindings::structs::SheetParsingMode;
 use gecko_bindings::structs::StyleBasicShape;
 use gecko_bindings::structs::StyleBasicShapeType;
@@ -2050,6 +2051,11 @@ extern "C" {
                                                  declarations:
                                                      RawServoDeclarationBlockBorrowed)
      -> ServoStyleContextStrong;
+}
+extern "C" {
+    pub fn Servo_StyleSet_AddSizeOfExcludingThis(malloc_size_of: MallocSizeOf,
+                                                 sizes: *mut ServoStyleSetSizes,
+                                                 set: RawServoStyleSetBorrowed);
 }
 extern "C" {
     pub fn Servo_StyleContext_AddRef(ctx: ServoStyleContextBorrowed);

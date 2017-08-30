@@ -12,7 +12,7 @@ use dom::TElement;
 use element_state::ElementState;
 use font_metrics::FontMetricsProvider;
 #[cfg(feature = "gecko")]
-use gecko_bindings::structs::{nsIAtom, StyleRuleInclusion};
+use gecko_bindings::structs::{nsIAtom, ServoStyleSetSizes, StyleRuleInclusion};
 use invalidation::element::invalidation_map::InvalidationMap;
 use invalidation::media_queries::{EffectiveMediaQueryResults, ToMediaListKey};
 use media_queries::Device;
@@ -41,8 +41,11 @@ use style_traits::viewport::ViewportConstraints;
 use stylesheet_set::{OriginValidity, SheetRebuildKind, StylesheetSet, StylesheetIterator, StylesheetFlusher};
 #[cfg(feature = "gecko")]
 use stylesheets::{CounterStyleRule, FontFaceRule, FontFeatureValuesRule};
-use stylesheets::{CssRule, StyleRule};
-use stylesheets::{StylesheetInDocument, Origin, OriginSet, PerOrigin, PerOriginIter};
+use stylesheets::{CssRule, Origin, OriginSet, PerOrigin, PerOriginIter};
+#[cfg(feature = "gecko")]
+use stylesheets::{MallocSizeOf, MallocSizeOfFn};
+use stylesheets::StyleRule;
+use stylesheets::StylesheetInDocument;
 use stylesheets::UserAgentStylesheets;
 use stylesheets::keyframes_rule::KeyframesAnimation;
 use stylesheets::viewport_rule::{self, MaybeNew, ViewportRule};
@@ -1559,6 +1562,14 @@ impl Stylist {
     /// Accessor for a shared reference to the rule tree.
     pub fn rule_tree(&self) -> &RuleTree {
         &self.rule_tree
+    }
+
+    /// Measures heap usage.
+    #[cfg(feature = "gecko")]
+    pub fn malloc_add_size_of_children(&self, malloc_size_of: MallocSizeOfFn,
+                                       sizes: &mut ServoStyleSetSizes) {
+        // XXX: need to measure other fields
+        sizes.mStylistRuleTree += self.rule_tree.malloc_size_of_children(malloc_size_of);
     }
 }
 

@@ -17,7 +17,7 @@ use std::io::{self, Write};
 use std::mem;
 use std::ptr;
 use std::sync::atomic::{AtomicPtr, AtomicUsize, Ordering};
-use stylesheets::StyleRule;
+use stylesheets::{MallocSizeOf, MallocSizeOfFn, StyleRule};
 use thread_state;
 
 /// The rule tree, the structure servo uses to preserve the results of selector
@@ -59,6 +59,12 @@ impl Drop for RuleTree {
         // Any further drops of StrongRuleNodes must occur on the main thread,
         // and will trigger synchronous dropping of the Rule nodes.
         self.root.get().next_free.store(ptr::null_mut(), Ordering::Relaxed);
+    }
+}
+
+impl MallocSizeOf for RuleTree {
+    fn malloc_size_of_children(&self, malloc_size_of: MallocSizeOfFn) -> usize {
+        self.root.get().malloc_size_of_including_self(malloc_size_of)
     }
 }
 
@@ -780,6 +786,14 @@ impl RuleNode {
                 Some(WeakRuleNode::from_ptr(first_child))
             }
         }
+    }
+
+    fn malloc_size_of_including_self(&self, malloc_size_of: MallocSizeOfFn) -> usize {
+        let mut n = unsafe { malloc_size_of(self as *const _ as *const _) };
+        for child in self.iter_children() {
+            n += unsafe { (*child.ptr()).malloc_size_of_including_self(malloc_size_of) };
+        }
+        n
     }
 }
 
