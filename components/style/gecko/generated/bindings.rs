@@ -14,7 +14,6 @@ use gecko_bindings::structs::mozilla::css::ErrorReporter;
 use gecko_bindings::structs::mozilla::css::ImageValue;
 use gecko_bindings::structs::mozilla::css::URLValue;
 use gecko_bindings::structs::mozilla::css::URLValueData;
-use gecko_bindings::structs::mozilla::AnonymousCounterStyle;
 use gecko_bindings::structs::mozilla::MallocSizeOf;
 use gecko_bindings::structs::mozilla::OriginFlags;
 use gecko_bindings::structs::mozilla::Side;
@@ -972,12 +971,29 @@ extern "C" {
                                   src: *const CounterStylePtr);
 }
 extern "C" {
-    pub fn Gecko_CounterStyle_GetName(ptr: *const CounterStylePtr)
-     -> *mut nsIAtom;
+    pub fn Gecko_CounterStyle_IsNone(ptr: *const CounterStylePtr) -> bool;
 }
 extern "C" {
-    pub fn Gecko_CounterStyle_GetAnonymous(ptr: *const CounterStylePtr)
-     -> *const AnonymousCounterStyle;
+    pub fn Gecko_CounterStyle_IsName(ptr: *const CounterStylePtr) -> bool;
+}
+extern "C" {
+    pub fn Gecko_CounterStyle_GetName(ptr: *const CounterStylePtr,
+                                      result: *mut nsAString);
+}
+extern "C" {
+    pub fn Gecko_CounterStyle_GetSymbols(ptr: *const CounterStylePtr)
+     -> *const nsTArray<nsStringRepr>;
+}
+extern "C" {
+    pub fn Gecko_CounterStyle_GetSystem(ptr: *const CounterStylePtr) -> u8;
+}
+extern "C" {
+    pub fn Gecko_CounterStyle_IsSingleString(ptr: *const CounterStylePtr)
+     -> bool;
+}
+extern "C" {
+    pub fn Gecko_CounterStyle_GetSingleString(ptr: *const CounterStylePtr,
+                                              result: *mut nsAString);
 }
 extern "C" {
     pub fn Gecko_SetNullImageValue(image: *mut nsStyleImage);

@@ -6,9 +6,8 @@
 
 //! Different kind of helpers to interact with Gecko values.
 
-use Atom;
 use app_units::Au;
-use counter_style::{Symbol, Symbols};
+use counter_style::Symbol;
 use cssparser::RGBA;
 use gecko_bindings::structs::{CounterStylePtr, nsStyleCoord};
 use gecko_bindings::structs::{StyleGridTrackBreadth, StyleShapeRadius};
@@ -477,35 +476,33 @@ impl CounterStyleOrNone {
         }
     }
 
-    /// Convert Gecko CounterStylePtr to CounterStyleOrNone or String.
-    pub fn from_gecko_value(gecko_value: &CounterStylePtr) -> Either<Self, String> {
-        use gecko_bindings::bindings;
+    /// Convert Gecko CounterStylePtr to CounterStyleOrNone.
+    pub fn from_gecko_value(gecko_value: &CounterStylePtr) -> Self {
+        use counter_style::{Symbol, Symbols};
+        use gecko_bindings::bindings::Gecko_CounterStyle_GetName;
+        use gecko_bindings::bindings::Gecko_CounterStyle_GetSymbols;
+        use gecko_bindings::bindings::Gecko_CounterStyle_GetSystem;
+        use gecko_bindings::bindings::Gecko_CounterStyle_IsName;
+        use gecko_bindings::bindings::Gecko_CounterStyle_IsNone;
         use values::CustomIdent;
         use values::generics::SymbolsType;
 
-        let name = unsafe { bindings::Gecko_CounterStyle_GetName(gecko_value) };
-        if !name.is_null() {
-            let name = Atom::from(name);
-            if name == atom!("none") {
-                Either::First(CounterStyleOrNone::None)
-            } else {
-                Either::First(CounterStyleOrNone::Name(CustomIdent(name)))
-            }
+        if unsafe { Gecko_CounterStyle_IsNone(gecko_value) } {
+            CounterStyleOrNone::None
+        } else if unsafe { Gecko_CounterStyle_IsName(gecko_value) } {
+            ns_auto_string!(name);
+            unsafe { Gecko_CounterStyle_GetName(gecko_value, &mut *name) };
+            CounterStyleOrNone::Name(CustomIdent((&*name).into()))
         } else {
-            let anonymous = unsafe {
-                bindings::Gecko_CounterStyle_GetAnonymous(gecko_value).as_ref()
-            }.unwrap();
-            let symbols = &anonymous.mSymbols;
-            if anonymous.mSingleString {
-                debug_assert_eq!(symbols.len(), 1);
-                Either::Second(symbols[0].to_string())
-            } else {
-                let symbol_type = SymbolsType::from_gecko_keyword(anonymous.mSystem as u32);
-                let symbols = symbols.iter().map(|gecko_symbol| {
+            let system = unsafe { Gecko_CounterStyle_GetSystem(gecko_value) };
+            let symbol_type = SymbolsType::from_gecko_keyword(system as u32);
+            let symbols = unsafe {
+                let ref gecko_symbols = *Gecko_CounterStyle_GetSymbols(gecko_value);
+                gecko_symbols.iter().map(|gecko_symbol| {
                     Symbol::String(gecko_symbol.to_string())
-                }).collect();
-                Either::First(CounterStyleOrNone::Symbols(symbol_type, Symbols(symbols)))
-            }
+                }).collect()
+            };
+            CounterStyleOrNone::Symbols(symbol_type, Symbols(symbols))
         }
     }
 }
