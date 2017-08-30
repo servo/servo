@@ -719,7 +719,7 @@ fn test_offset_calculation() {
 impl<K, V> RawTable<K, V> {
     unsafe fn new_uninitialized(capacity: usize) -> RawTable<K, V> {
         extern crate libc;
-        if let Ok(table) = Self::new_uninitialized_fallible(capacity) {
+        if let Ok(table) = Self::try_new_uninitialized(capacity) {
             table
         } else {
             libc::abort();
@@ -728,7 +728,7 @@ impl<K, V> RawTable<K, V> {
 
     /// Does not initialize the buckets. The caller should ensure they,
     /// at the very least, set every hash to EMPTY_BUCKET.
-    unsafe fn new_uninitialized_fallible(capacity: usize) -> Result<RawTable<K, V>, ()> {
+    unsafe fn try_new_uninitialized(capacity: usize) -> Result<RawTable<K, V>, ()> {
         if capacity == 0 {
             return Ok(RawTable {
                 size: 0,
@@ -804,7 +804,7 @@ impl<K, V> RawTable<K, V> {
     /// initially empty.
     pub fn new(capacity: usize) -> Result<RawTable<K, V>, ()> {
         unsafe {
-            let ret = RawTable::new_uninitialized_fallible(capacity)?;
+            let ret = RawTable::try_new_uninitialized(capacity)?;
             ptr::write_bytes(ret.hashes.ptr(), 0, capacity);
             Ok(ret)
         }

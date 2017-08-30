@@ -614,8 +614,8 @@ impl<K: Hash + Eq, V> HashMap<K, V, RandomState> {
     }
 
     #[inline]
-    pub fn with_capacity_fallible(capacity: usize) -> Result<HashMap<K, V, RandomState>, ()> {
-        HashMap::with_capacity_and_hasher_fallible(capacity, Default::default())
+    pub fn try_with_capacity(capacity: usize) -> Result<HashMap<K, V, RandomState>, ()> {
+        HashMap::try_with_capacity_and_hasher(capacity, Default::default())
     }
 }
 
@@ -644,7 +644,7 @@ impl<K, V, S> HashMap<K, V, S>
     /// map.insert(1, 2);
     /// ```
     #[inline]
-    pub fn with_hasher_fallible(hash_builder: S) -> Result<HashMap<K, V, S>, ()> {
+    pub fn try_with_hasher(hash_builder: S) -> Result<HashMap<K, V, S>, ()> {
         Ok(HashMap {
             hash_builder,
             resize_policy: DefaultResizePolicy::new(),
@@ -654,7 +654,7 @@ impl<K, V, S> HashMap<K, V, S>
 
     #[inline]
     pub fn with_hasher(hash_builder: S) -> HashMap<K, V, S> {
-        Self::with_hasher_fallible(hash_builder).expect(OOM_STR)
+        Self::try_with_hasher(hash_builder).expect(OOM_STR)
     }
 
     /// Creates an empty `HashMap` with the specified capacity, using `hash_builder`
@@ -679,7 +679,7 @@ impl<K, V, S> HashMap<K, V, S>
     /// map.insert(1, 2);
     /// ```
     #[inline]
-    pub fn with_capacity_and_hasher_fallible(capacity: usize, hash_builder: S) -> Result<HashMap<K, V, S>, ()> {
+    pub fn try_with_capacity_and_hasher(capacity: usize, hash_builder: S) -> Result<HashMap<K, V, S>, ()> {
         let resize_policy = DefaultResizePolicy::new();
         let raw_cap = resize_policy.raw_capacity(capacity);
         Ok(HashMap {
@@ -690,7 +690,7 @@ impl<K, V, S> HashMap<K, V, S>
     }
 
     pub fn with_capacity_and_hasher(capacity: usize, hash_builder: S) -> HashMap<K, V, S> {
-        Self::with_capacity_and_hasher_fallible(capacity, hash_builder).expect(OOM_STR)
+        Self::try_with_capacity_and_hasher(capacity, hash_builder).expect(OOM_STR)
     }
 
     /// Returns a reference to the map's [`BuildHasher`].
@@ -741,29 +741,29 @@ impl<K, V, S> HashMap<K, V, S>
     /// map.reserve(10);
     /// ```
     pub fn reserve(&mut self, additional: usize) {
-        self.reserve_fallible(additional).expect(OOM_STR);
+        self.try_reserve(additional).expect(OOM_STR);
     }
 
 
     #[inline]
-    pub fn reserve_fallible(&mut self, additional: usize) -> Result<(), ()> {
+    pub fn try_reserve(&mut self, additional: usize) -> Result<(), ()> {
         let remaining = self.capacity() - self.len(); // this can't overflow
         if remaining < additional {
             let min_cap = self.len().checked_add(additional).expect("reserve overflow");
             let raw_cap = self.resize_policy.raw_capacity(min_cap);
-            self.resize_fallible(raw_cap)?;
+            self.try_resize(raw_cap)?;
         } else if self.table.tag() && remaining <= self.len() {
             // Probe sequence is too long and table is half full,
             // resize early to reduce probing length.
             let new_capacity = self.table.capacity() * 2;
-            self.resize_fallible(new_capacity)?;
+            self.try_resize(new_capacity)?;
         }
         Ok(())
     }
 
     #[cold]
     #[inline(never)]
-    fn resize_fallible(&mut self, new_raw_cap: usize) -> Result<(), ()> {
+    fn try_resize(&mut self, new_raw_cap: usize) -> Result<(), ()> {
         assert!(self.table.size() <= new_raw_cap);
         assert!(new_raw_cap.is_power_of_two() || new_raw_cap == 0);
 
@@ -826,10 +826,10 @@ impl<K, V, S> HashMap<K, V, S>
     /// assert!(map.capacity() >= 2);
     /// ```
     pub fn shrink_to_fit(&mut self) {
-        self.shrink_to_fit_fallible().expect(OOM_STR);
+        self.try_shrink_to_fit().expect(OOM_STR);
     }
 
-    pub fn shrink_to_fit_fallible(&mut self) -> Result<(), ()> {
+    pub fn try_shrink_to_fit(&mut self) -> Result<(), ()> {
         let new_raw_cap = self.resize_policy.raw_capacity(self.len());
         if self.raw_capacity() != new_raw_cap {
             let old_table = replace(&mut self.table, RawTable::new(new_raw_cap)?);
@@ -999,12 +999,12 @@ impl<K, V, S> HashMap<K, V, S>
     /// assert_eq!(letters.get(&'y'), None);
     /// ```
     pub fn entry(&mut self, key: K) -> Entry<K, V> {
-        self.entry_fallible(key).expect(OOM_STR)
+        self.try_entry(key).expect(OOM_STR)
     }
 
-    pub fn entry_fallible(&mut self, key: K) -> Result<Entry<K, V>, ()> {
+    pub fn try_entry(&mut self, key: K) -> Result<Entry<K, V>, ()> {
         // Gotta resize now.
-        self.reserve_fallible(1)?;
+        self.try_reserve(1)?;
         let hash = self.make_hash(&key);
         Ok(search_hashed(&mut self.table, hash, |q| q.eq(&key))
             .into_entry(key).expect("unreachable"))
@@ -1191,13 +1191,13 @@ impl<K, V, S> HashMap<K, V, S>
     /// assert_eq!(map[&37], "c");
     /// ```
     pub fn insert(&mut self, k: K, v: V) -> Option<V> {
-        self.insert_fallible(k, v).expect(OOM_STR)
+        self.try_insert(k, v).expect(OOM_STR)
     }
 
     #[inline]
-    pub fn insert_fallible(&mut self, k: K, v: V) -> Result<Option<V>, ()> {
+    pub fn try_insert(&mut self, k: K, v: V) -> Result<Option<V>, ()> {
         let hash = self.make_hash(&k);
-        self.reserve_fallible(1)?;
+        self.try_reserve(1)?;
         Ok(self.insert_hashed_nocheck(hash, k, v))
     }
 

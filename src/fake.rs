@@ -39,7 +39,7 @@ impl<K: Hash + Eq, V> HashMap<K, V, RandomState> {
     }
 
     #[inline]
-    pub fn with_capacity_fallible(capacity: usize) -> Result<HashMap<K, V, RandomState>, ()> {
+    pub fn try_with_capacity(capacity: usize) -> Result<HashMap<K, V, RandomState>, ()> {
         Ok(HashMap(StdMap::with_capacity(capacity)))
     }
 }
@@ -50,12 +50,12 @@ impl<K, V, S> HashMap<K, V, S>
           S: BuildHasher
 {
     #[inline]
-    pub fn with_hasher_fallible(hash_builder: S) -> Result<HashMap<K, V, S>, ()> {
+    pub fn try_with_hasher(hash_builder: S) -> Result<HashMap<K, V, S>, ()> {
         Ok(HashMap(StdMap::with_hasher(hash_builder)))
     }
 
     #[inline]
-    pub fn with_capacity_and_hasher_fallible(capacity: usize, hash_builder: S) -> Result<HashMap<K, V, S>, ()> {
+    pub fn try_with_capacity_and_hasher(capacity: usize, hash_builder: S) -> Result<HashMap<K, V, S>, ()> {
         Ok(HashMap(StdMap::with_capacity_and_hasher(capacity, hash_builder)))
     }
 
@@ -65,20 +65,20 @@ impl<K, V, S> HashMap<K, V, S>
 
 
     #[inline]
-    pub fn reserve_fallible(&mut self, additional: usize) -> Result<(), ()> {
+    pub fn try_reserve(&mut self, additional: usize) -> Result<(), ()> {
         Ok(self.reserve(additional))
     }
 
-    pub fn shrink_to_fit_fallible(&mut self) -> Result<(), ()> {
+    pub fn try_shrink_to_fit(&mut self) -> Result<(), ()> {
         Ok(self.shrink_to_fit())
     }
 
-    pub fn entry_fallible(&mut self, key: K) -> Result<Entry<K, V>, ()> {
+    pub fn try_entry(&mut self, key: K) -> Result<Entry<K, V>, ()> {
         Ok(self.entry(key))
     }
 
     #[inline]
-    pub fn insert_fallible(&mut self, k: K, v: V) -> Result<Option<V>, ()> {
+    pub fn try_insert(&mut self, k: K, v: V) -> Result<Option<V>, ()> {
         Ok(self.insert(k, v))
     }
 }
@@ -130,17 +130,17 @@ impl<T, S> HashSet<T, S>
     }
 
     #[inline]
-    pub fn reserve_fallible(&mut self, additional: usize) -> Result<(), ()> {
+    pub fn try_reserve(&mut self, additional: usize) -> Result<(), ()> {
         Ok(self.reserve(additional))
     }
 
     #[inline]
-    pub fn shrink_to_fit_fallible(&mut self) -> Result<(), ()> {
+    pub fn try_shrink_to_fit(&mut self) -> Result<(), ()> {
         Ok(self.shrink_to_fit())
     }
 
     #[inline]
-    pub fn insert_fallible(&mut self, value: T) -> Result<bool, ()> {
+    pub fn try_insert(&mut self, value: T) -> Result<bool, ()> {
         Ok(self.insert(value))
     }
 }
