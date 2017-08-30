@@ -35,7 +35,7 @@ pub type Filter = GenericFilter<Angle, Factor, NonNegativeLength, SimpleShadow>;
 pub type Filter = GenericFilter<Angle, Factor, NonNegativeLength, Impossible>;
 
 /// A value for the `<factor>` parts in `Filter`.
-#[derive(Clone, Debug, HasViewportPercentage, PartialEq, ToCss)]
+#[derive(Clone, Debug, PartialEq, ToCss)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct Factor(NumberOrPercentage);
 

@@ -78,7 +78,6 @@ ${helpers.gecko_keyword_conversion(Keyword('border-style',
         use std::fmt;
         use style_traits::ToCss;
         use values::specified::RGBAColor;
-        no_viewport_percentage!(SpecifiedValue);
 
         pub mod computed_value {
             use cssparser::RGBA;
@@ -230,7 +229,6 @@ ${helpers.predefined_type("border-image-outset", "LengthOrNumberRect",
                    spec="https://drafts.csswg.org/css-backgrounds/#border-image-repeat">
     use style_traits::ToCss;
 
-    no_viewport_percentage!(SpecifiedValue);
 
     pub mod computed_value {
         pub use super::RepeatKeyword;

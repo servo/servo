@@ -20,7 +20,7 @@ use values::specified::calc::CalcNode;
 /// value serialization. Therefore we are storing a computed angle inside
 /// to hold the actual value and its unit.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
-#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Angle {
     value: ComputedAngle,
     was_calc: bool,

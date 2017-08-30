@@ -18,7 +18,7 @@ use values::specified::length::{Length, LengthOrPercentage};
 
 /// A specified value for a single side of the `border-width` property.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Debug, HasViewportPercentage, PartialEq, ToCss)]
+#[derive(Clone, Debug, PartialEq, ToCss)]
 pub enum BorderSideWidth {
     /// `thin`
     Thin,

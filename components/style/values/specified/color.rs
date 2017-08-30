@@ -44,7 +44,6 @@ pub enum Color {
     InheritFromBodyQuirk,
 }
 
-no_viewport_percentage!(Color);
 
 #[cfg(feature = "gecko")]
 mod gecko {
@@ -305,7 +304,6 @@ impl ToComputedValue for Color {
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct RGBAColor(pub Color);
 
-no_viewport_percentage!(RGBAColor);
 
 impl Parse for RGBAColor {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {

@@ -17,7 +17,7 @@ use std::borrow::{Borrow, Cow};
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::hash::Hash;
-use style_traits::{HasViewportPercentage, ToCss, StyleParseError, ParseError};
+use style_traits::{ToCss, StyleParseError, ParseError};
 
 /// A custom property name is just an `Atom`.
 ///
@@ -49,12 +49,6 @@ pub struct SpecifiedValue {
 
     /// Custom property names in var() functions.
     references: HashSet<Name>,
-}
-
-impl HasViewportPercentage for SpecifiedValue {
-    fn has_viewport_percentage(&self) -> bool {
-        panic!("has_viewport_percentage called before resolving!");
-    }
 }
 
 /// This struct is a cheap borrowed version of a `SpecifiedValue`.

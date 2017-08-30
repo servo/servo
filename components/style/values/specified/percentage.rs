@@ -28,7 +28,6 @@ pub struct Percentage {
     calc_clamping_mode: Option<AllowedNumericType>,
 }
 
-no_viewport_percentage!(Percentage);
 
 impl ToCss for Percentage {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result

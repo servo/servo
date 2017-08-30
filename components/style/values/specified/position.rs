@@ -10,7 +10,7 @@
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use std::fmt;
-use style_traits::{HasViewportPercentage, ToCss, ParseError};
+use style_traits::{ToCss, ParseError};
 use values::computed::{CalcLengthOrPercentage, LengthOrPercentage as ComputedLengthOrPercentage};
 use values::computed::{Context, Percentage, ToComputedValue};
 use values::generics::position::Position as GenericPosition;
@@ -152,18 +152,6 @@ impl ToCss for Position {
                 dest.write_str(" ")?;
                 y_pos.to_css(dest)
             },
-        }
-    }
-}
-
-impl<S> HasViewportPercentage for PositionComponent<S> {
-    fn has_viewport_percentage(&self) -> bool {
-        match *self {
-            PositionComponent::Length(ref lop) |
-            PositionComponent::Side(_, Some(ref lop)) => {
-                lop.has_viewport_percentage()
-            },
-            _ => false,
         }
     }
 }

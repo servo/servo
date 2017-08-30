@@ -2,21 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use app_units::Au;
 use cssparser::{Parser, ParserInput};
 use style::context::QuirksMode;
 use style::parser::ParserContext;
 use style::stylesheets::{CssRuleType, Origin};
-use style::values::specified::{AbsoluteLength, NoCalcLength, Number, ViewportPercentageLength};
-use style_traits::{PARSING_MODE_ALLOW_ALL_NUMERIC_VALUES, HasViewportPercentage};
-
-#[test]
-fn length_has_viewport_percentage() {
-    let l = NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vw(100.));
-    assert!(l.has_viewport_percentage());
-    let l = NoCalcLength::Absolute(AbsoluteLength::Px(Au(100).to_f32_px()));
-    assert!(!l.has_viewport_percentage());
-}
+use style::values::specified::Number;
+use style_traits::PARSING_MODE_ALLOW_ALL_NUMERIC_VALUES;
 
 #[test]
 fn test_parsing_allo_all_numeric_values() {

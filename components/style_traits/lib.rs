@@ -84,7 +84,6 @@ pub mod values;
 pub mod viewport;
 
 pub use values::{Comma, CommaWithSpace, OneOrMoreSeparated, Separator, Space, ToCss};
-pub use viewport::HasViewportPercentage;
 
 /// The error type for all CSS parsing routines.
 pub type ParseError<'i> = cssparser::ParseError<'i, SelectorParseError<'i, StyleParseError<'i>>>;

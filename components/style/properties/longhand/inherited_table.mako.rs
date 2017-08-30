@@ -60,7 +60,7 @@ ${helpers.single_keyword("caption-side", "top bottom",
     }
 
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    #[derive(Clone, Debug, HasViewportPercentage, PartialEq, ToCss)]
+    #[derive(Clone, Debug, PartialEq, ToCss)]
     pub struct SpecifiedValue {
         pub horizontal: NonNegativeLength,
         pub vertical: Option<NonNegativeLength>,

@@ -214,7 +214,6 @@ pub enum TransitionProperty {
     Unsupported(CustomIdent)
 }
 
-no_viewport_percentage!(TransitionProperty);
 
 impl ComputedValueAsSpecified for TransitionProperty {}
 

@@ -5,7 +5,7 @@
 //! Generic types for counters-related CSS values.
 
 use std::fmt;
-use style_traits::{HasViewportPercentage, ToCss};
+use style_traits::ToCss;
 use values::CustomIdent;
 
 /// A generic value for the `counter-increment` property.
@@ -20,10 +20,6 @@ impl<I> CounterIncrement<I> {
     pub fn none() -> Self {
         CounterIncrement(vec![].into_boxed_slice())
     }
-}
-
-impl<I> HasViewportPercentage for CounterIncrement<I> {
-    #[inline] fn has_viewport_percentage(&self) -> bool { false }
 }
 
 impl<I> ToCss for CounterIncrement<I>

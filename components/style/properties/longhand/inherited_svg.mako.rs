@@ -259,7 +259,6 @@ ${helpers.predefined_type("marker-end", "UrlOrNone", "Either::Second(None_)",
         }
     }
 
-    no_viewport_percentage!(SpecifiedValue);
 
     impl ComputedValueAsSpecified for SpecifiedValue { }
 </%helpers:longhand>
@@ -271,7 +270,6 @@ ${helpers.predefined_type("marker-end", "UrlOrNone", "Either::Second(None_)",
     use values::CustomIdent;
     use values::computed::ComputedValueAsSpecified;
 
-    no_viewport_percentage!(SpecifiedValue);
 
     impl ComputedValueAsSpecified for SpecifiedValue { }
 

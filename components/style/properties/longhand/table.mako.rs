@@ -17,7 +17,6 @@ ${helpers.single_keyword("table-layout", "auto fixed",
     use values::computed::ComputedValueAsSpecified;
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
-    no_viewport_percentage!(SpecifiedValue);
     pub type SpecifiedValue = computed_value::T;
     pub mod computed_value {
         use std::fmt;
