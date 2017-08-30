@@ -39,3 +39,22 @@ fn more_then_one_value() {
             None);
     assert_eq!(result.len(), 3);
 }
+
+#[test]
+fn no_extra_whitespace() {
+    let mut a = vec![];
+    let media_query = test_media_query(200f32);
+    let length = test_length(545f32);
+    let size = Size { query: Some(media_query), length: length };
+    a.push(size);
+    assert_eq!(parse_a_sizes_attribute(DOMString::from(" (max-width: 200px) 545px"), None), a);
+}
+
+fn extra_whitespace() {
+    let mut a = vec![];
+    let media_query = test_media_query(200f32);
+    let length = test_length(545f32);
+    let size = Size { query: Some(media_query), length: length };
+    a.push(size);
+    assert_eq!(parse_a_sizes_attribute(DOMString::from("(max-width: 320px) 280px,     (max-width: 480px) 440px, 800px"), None), a);
+}

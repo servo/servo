@@ -817,7 +817,6 @@ pub fn parse_a_sizes_attribute(input: DOMString, width: Option<u32>) -> Vec<Size
                                                    None,
                                                    ParsingMode::empty(),
                                                    QuirksMode::NoQuirks);
-        let url = ServoUrl::parse("about:blank").unwrap();
         let length = Parser::new(&mut input).try(|i| Length::parse_non_negative(&context, i));
         println!("\n{:?}", length);
         match length {
