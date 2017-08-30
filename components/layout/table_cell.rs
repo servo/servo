@@ -11,6 +11,7 @@ use block::{BlockFlow, ISizeAndMarginsComputer, MarginsMayCollapseFlag};
 use context::LayoutContext;
 use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode};
 use display_list_builder::{DisplayListBuildState, EstablishContainingBlock};
+use display_list_builder::StackingContextCollectionState;
 use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
 use flow::{self, Flow, FlowClass, IS_ABSOLUTELY_POSITIONED, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
@@ -261,7 +262,7 @@ impl Flow for TableCellFlow {
         self.block_flow.build_display_list_for_block(state, border_painting_mode)
     }
 
-    fn collect_stacking_contexts(&mut self, state: &mut DisplayListBuildState) {
+    fn collect_stacking_contexts(&mut self, state: &mut StackingContextCollectionState) {
         self.block_flow.collect_stacking_contexts_for_block(state, EstablishContainingBlock::No);
     }
 

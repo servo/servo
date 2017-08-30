@@ -10,7 +10,7 @@ use app_units::Au;
 use block::{BlockFlow, ISizeAndMarginsComputer};
 use context::LayoutContext;
 use display_list_builder::{BlockFlowDisplayListBuilding, DisplayListBuildState};
-use display_list_builder::EstablishContainingBlock;
+use display_list_builder::{EstablishContainingBlock, StackingContextCollectionState};
 use euclid::Point2D;
 use flow::{Flow, FlowClass, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
@@ -183,7 +183,7 @@ impl Flow for TableRowGroupFlow {
         self.block_flow.build_display_list(state);
     }
 
-    fn collect_stacking_contexts(&mut self, state: &mut DisplayListBuildState) {
+    fn collect_stacking_contexts(&mut self, state: &mut StackingContextCollectionState) {
         self.block_flow.collect_stacking_contexts_for_block(state, EstablishContainingBlock::No);
     }
 
