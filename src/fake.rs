@@ -6,6 +6,7 @@
 
 use std::hash::{BuildHasher, Hash};
 use std::collections::HashMap as StdMap;
+use std::collections::HashSet as StdSet;
 use std::ops::{Deref, DerefMut};
 
 pub use std::collections::hash_map::{Entry, RandomState};
@@ -79,5 +80,67 @@ impl<K, V, S> HashMap<K, V, S>
     #[inline]
     pub fn insert_fallible(&mut self, k: K, v: V) -> Result<Option<V>, ()> {
         Ok(self.insert(k, v))
+    }
+}
+
+pub struct HashSet<T, S = RandomState>(StdSet<T, S>);
+
+
+impl<T, S> Deref for HashSet<T, S> {
+    type Target = StdSet<T, S>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    } 
+}
+
+impl<T, S> DerefMut for HashSet<T, S> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    } 
+}
+
+impl<T: Hash + Eq> HashSet<T, RandomState> {
+
+    #[inline]
+    pub fn new() -> HashSet<T, RandomState> {
+        HashSet(StdSet::new())
+    }
+
+    #[inline]
+    pub fn with_capacity(capacity: usize) -> HashSet<T, RandomState> {
+        HashSet(StdSet::with_capacity(capacity))
+    }
+}
+
+
+impl<T, S> HashSet<T, S>
+    where T: Eq + Hash,
+          S: BuildHasher
+{
+
+    #[inline]
+    pub fn with_hasher(hasher: S) -> HashSet<T, S> {
+        HashSet(StdSet::with_hasher(hasher))
+    }
+
+
+    #[inline]
+    pub fn with_capacity_and_hasher(capacity: usize, hasher: S) -> HashSet<T, S> {
+        HashSet(StdSet::with_capacity_and_hasher(capacity, hasher))
+    }
+
+    #[inline]
+    pub fn reserve_fallible(&mut self, additional: usize) -> Result<(), ()> {
+        Ok(self.reserve(additional))
+    }
+
+    #[inline]
+    pub fn shrink_to_fit_fallible(&mut self) -> Result<(), ()> {
+        Ok(self.shrink_to_fit())
+    }
+
+    #[inline]
+    pub fn insert_fallible(&mut self, value: T) -> Result<bool, ()> {
+        Ok(self.insert(value))
     }
 }
