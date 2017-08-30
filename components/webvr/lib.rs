@@ -10,6 +10,7 @@ extern crate ipc_channel;
 #[macro_use]
 extern crate log;
 extern crate msg;
+extern crate rust_webvr;
 extern crate script_traits;
 extern crate servo_config;
 extern crate webvr_traits;
