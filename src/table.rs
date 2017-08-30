@@ -755,19 +755,34 @@ impl<K, V> RawTable<K, V> {
                                                                         align_of::<HashUint>(),
                                                                         pairs_size,
                                                                         align_of::<(K, V)>());
-        assert!(!oflo, "capacity overflow");
+
+        if oflo {
+            // capacity overflow
+            return Err(());
+        }
 
         // One check for overflow that covers calculation and rounding of size.
         let size_of_bucket = size_of::<HashUint>().checked_add(size_of::<(K, V)>()).unwrap();
-        assert!(size >=
-                capacity.checked_mul(size_of_bucket)
-                    .expect("capacity overflow"),
-                "capacity overflow");
+
+        let cap_bytes = capacity.checked_mul(size_of_bucket);
+
+        if let Some(cap_bytes) = cap_bytes {
+            if size < cap_bytes {
+                // capacity overflow
+                return Err(());
+            }
+        } else {
+            // capacity overflow
+            return Err(());
+        }
+
+
 
         // FORK NOTE: Uses alloc shim instead of Heap.alloc
         let buffer = alloc(size, alignment);
         
         if buffer.is_null() {
+            // OOM
             return Err(())
         }
 
