@@ -1692,8 +1692,8 @@ fn decompose_2d_matrix(matrix: &ComputedMatrix) -> Result<MatrixDecomposed3D, ()
     // |   0   0  0   1 |
     let (mut m11, mut m12) = (matrix.m11, matrix.m12);
     let (mut m21, mut m22) = (matrix.m21, matrix.m22);
+    // Check if this is a singular matrix.
     if m11 * m22 == m12 * m21 {
-        // singular matrix
         return Err(());
     }
 
@@ -1711,8 +1711,10 @@ fn decompose_2d_matrix(matrix: &ComputedMatrix) -> Result<MatrixDecomposed3D, ()
     shear_xy /= scale_y;
 
     let determinant = m11 * m22 - m12 * m21;
-    debug_assert!(0.99 < determinant.abs() && determinant.abs() < 1.01,
-                  "determinant should now be 1 or -1");
+    // Determinant should now be 1 or -1.
+    if 0.99 > determinant.abs() || determinant.abs() > 1.01 {
+        return Err(());
+    }
 
     if determinant < 0. {
         m11 = -m11;
