@@ -1246,6 +1246,7 @@ dependencies = [
 name = "hashglobe"
 version = "0.1.0"
 dependencies = [
+ "heapsize 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.23 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)",
 ]

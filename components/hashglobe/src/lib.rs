@@ -1,5 +1,7 @@
 pub use std::*;
 
+extern crate heapsize;
+
 mod table;
 mod shim;
 mod alloc;

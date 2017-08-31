@@ -8,9 +8,14 @@ use std::hash::{BuildHasher, Hash};
 use std::collections::HashMap as StdMap;
 use std::collections::HashSet as StdSet;
 use std::ops::{Deref, DerefMut};
+use std::fmt;
 
-pub use std::collections::hash_map::{Entry, RandomState};
+use heapsize::HeapSizeOf;
 
+pub use std::collections::hash_map::{Entry, RandomState, Iter as MapIter, IterMut as MapIterMut};
+pub use std::collections::hash_set::{Iter as SetIter, IntoIter as SetIntoIter};
+
+#[derive(Clone)]
 pub struct HashMap<K, V, S = RandomState>(StdMap<K, V, S>);
 
 
@@ -86,6 +91,7 @@ impl<K, V, S> HashMap<K, V, S>
     }
 }
 
+#[derive(Clone)]
 pub struct HashSet<T, S = RandomState>(StdSet<T, S>);
 
 
@@ -147,3 +153,133 @@ impl<T, S> HashSet<T, S>
         Ok(self.insert(value))
     }
 }
+
+// Pass through trait impls
+// We can't derive these since the bounds are not obvious to the derive macro
+
+
+impl<K: HeapSizeOf + Hash + Eq, V: HeapSizeOf, S: BuildHasher> HeapSizeOf for HashMap<K, V, S> {
+    fn heap_size_of_children(&self) -> usize {
+        self.0.heap_size_of_children()
+    } 
+}
+
+impl<K: Hash + Eq, V, S: BuildHasher + Default> Default for HashMap<K, V, S> {
+    fn default() -> Self {
+        HashMap(Default::default())
+    }
+}
+
+impl<K, V, S> fmt::Debug for HashMap<K, V, S>
+    where K: Eq + Hash + fmt::Debug,
+          V: fmt::Debug,
+          S: BuildHasher {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl<K, V, S> PartialEq for HashMap<K, V, S>
+    where K: Eq + Hash,
+          V: PartialEq,
+          S: BuildHasher
+{
+    fn eq(&self, other: &HashMap<K, V, S>) -> bool {
+        self.0.eq(&other.0)
+    }
+}
+
+impl<K, V, S> Eq for HashMap<K, V, S>
+    where K: Eq + Hash,
+          V: Eq,
+          S: BuildHasher
+{
+}
+
+impl<'a, K, V, S> IntoIterator for &'a HashMap<K, V, S>
+    where K: Eq + Hash,
+          S: BuildHasher
+{
+    type Item = (&'a K, &'a V);
+    type IntoIter = MapIter<'a, K, V>;
+
+    fn into_iter(self) -> MapIter<'a, K, V> {
+        self.0.iter()
+    }
+}
+
+impl<'a, K, V, S> IntoIterator for &'a mut HashMap<K, V, S>
+    where K: Eq + Hash,
+          S: BuildHasher
+{
+    type Item = (&'a K, &'a mut V);
+    type IntoIter = MapIterMut<'a, K, V>;
+
+    fn into_iter(self) -> MapIterMut<'a, K, V> {
+        self.0.iter_mut()
+    }
+}
+
+
+impl<T: HeapSizeOf + Eq + Hash, S: BuildHasher> HeapSizeOf for HashSet<T, S> {
+    fn heap_size_of_children(&self) -> usize {
+        self.0.heap_size_of_children()
+    } 
+}
+
+impl<T: Eq + Hash, S: BuildHasher + Default> Default for HashSet<T, S> {
+    fn default() -> Self {
+        HashSet(Default::default())
+    }
+}
+
+impl<T, S> fmt::Debug for HashSet<T, S>
+    where T: Eq + Hash + fmt::Debug,
+          S: BuildHasher
+{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl<T, S> PartialEq for HashSet<T, S>
+    where T: Eq + Hash,
+          S: BuildHasher
+{
+    fn eq(&self, other: &HashSet<T, S>) -> bool {
+        self.0.eq(&other.0)
+    }
+}
+
+impl<T, S> Eq for HashSet<T, S>
+    where T: Eq + Hash,
+          S: BuildHasher
+{
+}
+
+impl<'a, T, S> IntoIterator for &'a HashSet<T, S>
+    where T: Eq + Hash,
+          S: BuildHasher
+{
+    type Item = &'a T;
+    type IntoIter = SetIter<'a, T>;
+
+    fn into_iter(self) -> SetIter<'a, T> {
+        self.0.iter()
+    }
+}
+
+impl<T, S> IntoIterator for HashSet<T, S>
+    where T: Eq + Hash,
+          S: BuildHasher
+{
+    type Item = T;
+    type IntoIter = SetIntoIter<T>;
+
+
+    fn into_iter(self) -> SetIntoIter<T> {
+        self.0.into_iter()
+    }
+}
+
+
