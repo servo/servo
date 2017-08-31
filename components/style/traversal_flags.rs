@@ -24,9 +24,6 @@ bitflags! {
         /// pre-traversal. A forgetful traversal is usually the right thing if you
         /// aren't going to do a post-traversal.
         const Forgetful = 1 << 3,
-        /// Actively seeks out and clears change hints that may have been posted into
-        /// the tree. Nonsensical without also passing Forgetful.
-        const AggressivelyForgetful = 1 << 4,
         /// Clears all the dirty bits on the elements traversed.
         const ClearDirtyBits = 1 << 5,
         /// Clears the animation-only dirty descendants bit in the subtree.
@@ -66,7 +63,6 @@ pub fn assert_traversal_flags_match() {
         ServoTraversalFlags_ForCSSRuleChanges => ForCSSRuleChanges,
         ServoTraversalFlags_UnstyledOnly => UnstyledOnly,
         ServoTraversalFlags_Forgetful => Forgetful,
-        ServoTraversalFlags_AggressivelyForgetful => AggressivelyForgetful,
         ServoTraversalFlags_ClearDirtyBits => ClearDirtyBits,
         ServoTraversalFlags_ClearAnimationOnlyDirtyDescendants =>
             ClearAnimationOnlyDirtyDescendants,
