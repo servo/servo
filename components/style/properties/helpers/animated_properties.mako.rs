@@ -924,6 +924,27 @@ impl Into<FontStretch> for f64 {
 impl<H, V> RepeatableListAnimatable for generic_position::Position<H, V>
     where H: RepeatableListAnimatable, V: RepeatableListAnimatable {}
 
+/// https://drafts.csswg.org/css-transitions/#animtype-rect
+impl Animate for ClipRect {
+    #[inline]
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
+        let animate_component = |this: &Option<Au>, other: &Option<Au>| {
+            match (this.animate(other, procedure)?, procedure) {
+                (None, Procedure::Interpolate { .. }) => Ok(None),
+                (None, _) => Err(()),
+                (result, _) => Ok(result),
+            }
+        };
+
+        Ok(ClipRect {
+            top:    animate_component(&self.top, &other.top)?,
+            right:  animate_component(&self.right, &other.right)?,
+            bottom: animate_component(&self.bottom, &other.bottom)?,
+            left:   animate_component(&self.left, &other.left)?,
+        })
+    }
+}
+
 impl ToAnimatedZero for ClipRect {
     #[inline]
     fn to_animated_zero(&self) -> Result<Self, ()> { Err(()) }
