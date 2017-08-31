@@ -36,8 +36,8 @@ branches:
     - master
 
 cache:
-  - .servo -> rust-commit-hash
-  - .cargo -> rust-commit-hash
+  - .servo -> rust-toolchain
+  - .cargo -> rust-toolchain
   - .ccache
 
 # Uncomment these lines to expose RDP access information to the build machine in the build log.

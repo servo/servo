@@ -136,7 +136,6 @@ class MachCommands(CommandBase):
 
         if dry_run:
             import toml
-            import json
             import httplib
             import colorama
 
@@ -262,31 +261,16 @@ class MachCommands(CommandBase):
     @Command('rustup',
              description='Update the Rust version to latest Nightly',
              category='devenv')
-    @CommandArgument('--master',
-                     action='store_true',
-                     help='Use the latest commit of the "master" branch')
-    def rustup(self, master=False):
-        if master:
-            url = "https://api.github.com/repos/rust-lang/rust/git/refs/heads/master"
-            commit = json.load(urllib2.urlopen(url))["object"]["sha"]
-        else:
-            import toml
-            import re
-            url = "https://static.rust-lang.org/dist/channel-rust-nightly.toml"
-            version = toml.load(urllib2.urlopen(url))["pkg"]["rustc"]["version"]
-            short_commit = re.search("\(([0-9a-f]+) ", version).group(1)
-            url = "https://api.github.com/repos/rust-lang/rust/commits/" + short_commit
-            commit = json.load(urllib2.urlopen(url))["sha"]
-        filename = path.join(self.context.topdir, "rust-commit-hash")
+    def rustup(self):
+        url = "https://static.rust-lang.org/dist/channel-rust-nightly-date.txt"
+        nightly_date = urllib2.urlopen(url).read()
+        filename = path.join(self.context.topdir, "rust-toolchain")
         with open(filename, "w") as f:
-            f.write(commit + "\n")
+            f.write("nightly-%s\n" % nightly_date)
 
-        # Reset self.config["tools"]["rust-root"]
-        self._rust_version = None
+        # Reset self.config["tools"]["rust-root"] and self.config["tools"]["cargo-root"]
+        self._rust_nightly_date = None
         self.set_use_stable_rust(False)
-
-        # Reset self.config["tools"]["cargo-root"]
-        self._cargo_build_id = None
         self.set_cargo_root()
 
         self.fetch()
