@@ -288,7 +288,6 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                       &glyphs,
                                       item.text_run.font_key,
                                       item.text_color,
-                                      item.text_run.actual_pt_size,
                                       None);
                 }
             }
