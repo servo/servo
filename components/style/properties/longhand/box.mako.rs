@@ -307,125 +307,15 @@ ${helpers.single_keyword("position", "static absolute relative fixed",
 
 </%helpers:longhand>
 
-<%helpers:longhand name="vertical-align" animation_value_type="ComputedValue"
-                   flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
-                   spec="https://www.w3.org/TR/CSS2/visudet.html#propdef-vertical-align">
-    use std::fmt;
-    use style_traits::ToCss;
-    use values::specified::AllowQuirks;
 
-    <% vertical_align = data.longhands_by_name["vertical-align"] %>
-    <% vertical_align.keyword = Keyword("vertical-align",
-                                        "baseline sub super top text-top middle bottom text-bottom",
-                                        extra_gecko_values="-moz-middle-with-baseline") %>
-    <% vertical_align_keywords = vertical_align.keyword.values_for(product) %>
-
-    ${helpers.gecko_keyword_conversion(vertical_align.keyword)}
-
-    /// The `vertical-align` value.
-    #[allow(non_camel_case_types)]
-    #[derive(Clone, Debug, PartialEq)]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub enum SpecifiedValue {
-        % for keyword in vertical_align_keywords:
-            ${to_rust_ident(keyword)},
-        % endfor
-        LengthOrPercentage(specified::LengthOrPercentage),
-    }
-
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match *self {
-                % for keyword in vertical_align_keywords:
-                    SpecifiedValue::${to_rust_ident(keyword)} => dest.write_str("${keyword}"),
-                % endfor
-                SpecifiedValue::LengthOrPercentage(ref value) => value.to_css(dest),
-            }
-        }
-    }
-    /// baseline | sub | super | top | text-top | middle | bottom | text-bottom
-    /// | <percentage> | <length>
-    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                         -> Result<SpecifiedValue, ParseError<'i>> {
-        if let Ok(lop) = input.try(|i| specified::LengthOrPercentage::parse_quirky(context, i, AllowQuirks::Yes)) {
-            return Ok(SpecifiedValue::LengthOrPercentage(lop));
-        }
-
-        try_match_ident_ignore_ascii_case! { input.expect_ident()?,
-            % for keyword in vertical_align_keywords:
-                "${keyword}" => Ok(SpecifiedValue::${to_rust_ident(keyword)}),
-            % endfor
-        }
-    }
-
-    /// The computed value for `vertical-align`.
-    pub mod computed_value {
-        use std::fmt;
-        use style_traits::ToCss;
-        use values::computed;
-
-        /// The keywords are the same, and the `LengthOrPercentage` is computed
-        /// here.
-        #[allow(non_camel_case_types)]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        #[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, PartialEq)]
-        pub enum T {
-            % for keyword in vertical_align_keywords:
-            #[animation(error)] // only animatable as a length
-            ${to_rust_ident(keyword)},
-            % endfor
-            LengthOrPercentage(computed::LengthOrPercentage),
-        }
-        impl ToCss for T {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                match *self {
-                    % for keyword in vertical_align_keywords:
-                        T::${to_rust_ident(keyword)} => dest.write_str("${keyword}"),
-                    % endfor
-                    T::LengthOrPercentage(ref value) => value.to_css(dest),
-                }
-            }
-        }
-    }
-
-    /// The initial computed value for `vertical-align`.
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        computed_value::T::baseline
-    }
-
-    impl ToComputedValue for SpecifiedValue {
-        type ComputedValue = computed_value::T;
-
-        #[inline]
-        fn to_computed_value(&self, context: &Context) -> computed_value::T {
-            match *self {
-                % for keyword in vertical_align_keywords:
-                    SpecifiedValue::${to_rust_ident(keyword)} => {
-                        computed_value::T::${to_rust_ident(keyword)}
-                    }
-                % endfor
-                SpecifiedValue::LengthOrPercentage(ref value) =>
-                    computed_value::T::LengthOrPercentage(value.to_computed_value(context)),
-            }
-        }
-        #[inline]
-        fn from_computed_value(computed: &computed_value::T) -> Self {
-            match *computed {
-                % for keyword in vertical_align_keywords:
-                    computed_value::T::${to_rust_ident(keyword)} => {
-                        SpecifiedValue::${to_rust_ident(keyword)}
-                    }
-                % endfor
-                computed_value::T::LengthOrPercentage(value) =>
-                    SpecifiedValue::LengthOrPercentage(
-                      ToComputedValue::from_computed_value(&value)
-                    ),
-            }
-        }
-    }
-</%helpers:longhand>
-
+${helpers.predefined_type(
+    "vertical-align",
+    "VerticalAlign",
+    "computed::VerticalAlign::baseline()",
+    animation_value_type="ComputedValue",
+    flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
+    spec="https://www.w3.org/TR/CSS2/visudet.html#propdef-vertical-align",
+)}
 
 // CSS 2.1, Section 11 - Visual effects
 

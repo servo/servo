@@ -15,6 +15,8 @@ use super::CustomIdent;
 pub mod background;
 pub mod basic_shape;
 pub mod border;
+#[path = "box.rs"]
+pub mod box_;
 pub mod effects;
 pub mod flex;
 #[cfg(feature = "gecko")]

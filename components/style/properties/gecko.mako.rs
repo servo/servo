@@ -2904,33 +2904,41 @@ fn static_assert() {
     }
 
     pub fn set_vertical_align(&mut self, v: longhands::vertical_align::computed_value::T) {
-        <% keyword = data.longhands_by_name["vertical-align"].keyword %>
-        use properties::longhands::vertical_align::computed_value::T;
-        // FIXME: Align binary representations and ditch |match| for cast + static_asserts
-        match v {
-            % for value in keyword.values_for('gecko'):
-                T::${to_rust_ident(value)} =>
-                    self.gecko.mVerticalAlign.set_value(
-                            CoordDataValue::Enumerated(structs::${keyword.gecko_constant(value)})),
-            % endfor
-            T::LengthOrPercentage(v) => self.gecko.mVerticalAlign.set(v),
-        }
+        use values::generics::box_::VerticalAlign;
+        let value = match v {
+            VerticalAlign::Baseline => structs::NS_STYLE_VERTICAL_ALIGN_BASELINE,
+            VerticalAlign::Sub => structs::NS_STYLE_VERTICAL_ALIGN_SUB,
+            VerticalAlign::Super => structs::NS_STYLE_VERTICAL_ALIGN_SUPER,
+            VerticalAlign::Top => structs::NS_STYLE_VERTICAL_ALIGN_TOP,
+            VerticalAlign::TextTop => structs::NS_STYLE_VERTICAL_ALIGN_TEXT_TOP,
+            VerticalAlign::Middle => structs::NS_STYLE_VERTICAL_ALIGN_MIDDLE,
+            VerticalAlign::Bottom => structs::NS_STYLE_VERTICAL_ALIGN_BOTTOM,
+            VerticalAlign::TextBottom => structs::NS_STYLE_VERTICAL_ALIGN_TEXT_BOTTOM,
+            VerticalAlign::MozMiddleWithBaseline => {
+                structs::NS_STYLE_VERTICAL_ALIGN_MIDDLE_WITH_BASELINE
+            },
+            VerticalAlign::Length(length) => {
+                self.gecko.mVerticalAlign.set(length);
+                return;
+            },
+        };
+        self.gecko.mVerticalAlign.set_value(CoordDataValue::Enumerated(value));
     }
 
     pub fn clone_vertical_align(&self) -> longhands::vertical_align::computed_value::T {
-        use properties::longhands::vertical_align::computed_value::T;
         use values::computed::LengthOrPercentage;
+        use values::generics::box_::VerticalAlign;
 
-        match self.gecko.mVerticalAlign.as_value() {
-            % for value in keyword.values_for('gecko'):
-                CoordDataValue::Enumerated(structs::${keyword.gecko_constant(value)}) => T::${to_rust_ident(value)},
-            % endfor
-                CoordDataValue::Enumerated(_) => panic!("Unexpected enum variant for vertical-align"),
-                _ => {
-                    let v = LengthOrPercentage::from_gecko_style_coord(&self.gecko.mVerticalAlign)
-                        .expect("Expected length or percentage for vertical-align");
-                    T::LengthOrPercentage(v)
-                }
+        let gecko = &self.gecko.mVerticalAlign;
+        match gecko.as_value() {
+            CoordDataValue::Enumerated(value) => VerticalAlign::from_gecko_keyword(value),
+            _ => {
+                VerticalAlign::Length(
+                    LengthOrPercentage::from_gecko_style_coord(gecko).expect(
+                        "expected <length-percentage> for vertical-align",
+                    ),
+                )
+            },
         }
     }
 

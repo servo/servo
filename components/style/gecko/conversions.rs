@@ -12,13 +12,14 @@ use app_units::Au;
 use gecko::values::{convert_rgba_to_nscolor, GeckoStyleCoordConvertible};
 use gecko_bindings::bindings::{Gecko_CreateGradient, Gecko_SetGradientImageValue, Gecko_SetLayerImageImageValue};
 use gecko_bindings::bindings::{Gecko_InitializeImageCropRect, Gecko_SetImageElement};
-use gecko_bindings::structs::{nsCSSUnit, nsStyleCoord_CalcValue, nsStyleImage};
-use gecko_bindings::structs::{nsresult, SheetType};
+use gecko_bindings::structs::{self, nsCSSUnit, nsStyleCoord_CalcValue};
+use gecko_bindings::structs::{nsStyleImage, nsresult, SheetType};
 use gecko_bindings::sugar::ns_style_coord::{CoordDataValue, CoordData, CoordDataMut};
 use std::f32::consts::PI;
 use stylesheets::{Origin, RulesMutateError};
 use values::computed::{Angle, CalcLengthOrPercentage, Gradient, Image};
 use values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto, Percentage};
+use values::generics::box_::VerticalAlign;
 use values::generics::grid::TrackSize;
 use values::generics::image::{CompatMode, Image as GenericImage, GradientItem};
 use values::generics::rect::Rect;
@@ -917,6 +918,26 @@ impl<T> Rect<T> where T: GeckoStyleCoordConvertible {
                 T::from_gecko_style_coord(&sides.data_at(3)).expect("coord[3] cound not convert")
             )
         )
+    }
+}
+
+impl<L> VerticalAlign<L> {
+    /// Converts an enumerated value coming from Gecko to a `VerticalAlign<L>`.
+    pub fn from_gecko_keyword(value: u32) -> Self {
+        match value {
+            structs::NS_STYLE_VERTICAL_ALIGN_BASELINE => VerticalAlign::Baseline,
+            structs::NS_STYLE_VERTICAL_ALIGN_SUB => VerticalAlign::Sub,
+            structs::NS_STYLE_VERTICAL_ALIGN_SUPER => VerticalAlign::Super,
+            structs::NS_STYLE_VERTICAL_ALIGN_TOP => VerticalAlign::Top,
+            structs::NS_STYLE_VERTICAL_ALIGN_TEXT_TOP => VerticalAlign::TextTop,
+            structs::NS_STYLE_VERTICAL_ALIGN_MIDDLE => VerticalAlign::Middle,
+            structs::NS_STYLE_VERTICAL_ALIGN_BOTTOM => VerticalAlign::Bottom,
+            structs::NS_STYLE_VERTICAL_ALIGN_TEXT_BOTTOM => VerticalAlign::TextBottom,
+            structs::NS_STYLE_VERTICAL_ALIGN_MIDDLE_WITH_BASELINE => {
+                VerticalAlign::MozMiddleWithBaseline
+            },
+            _ => panic!("unexpected enumerated value for vertical-align"),
+        }
     }
 }
 

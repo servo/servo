@@ -18,10 +18,11 @@ use layout_debug;
 use model::MaybeAuto;
 use script_layout_interface::wrapper_traits::ThreadSafeLayoutNode;
 use std::fmt;
-use style::computed_values::{border_collapse, border_top_style, vertical_align};
+use style::computed_values::{border_collapse, border_top_style};
 use style::logical_geometry::{LogicalMargin, LogicalRect, LogicalSize, WritingMode};
 use style::properties::ComputedValues;
 use style::values::computed::Color;
+use style::values::generics::box_::VerticalAlign;
 use table::InternalTable;
 use table_row::{CollapsedBorder, CollapsedBorderProvenance};
 
@@ -124,11 +125,11 @@ impl TableCellFlow {
             self.block_flow.fragment.border_padding.block_start_end();
         let kids_self_gap = self_size - kids_size;
 
-        // This offset should also account for vertical_align::T::baseline.
+        // This offset should also account for VerticalAlign::Baseline.
         // Need max cell ascent from the first row of this cell.
         let offset = match self.block_flow.fragment.style().get_box().vertical_align {
-            vertical_align::T::middle => kids_self_gap / 2,
-            vertical_align::T::bottom => kids_self_gap,
+            VerticalAlign::Middle => kids_self_gap / 2,
+            VerticalAlign::Bottom => kids_self_gap,
             _ => Au(0),
         };
         if offset == Au(0) {
