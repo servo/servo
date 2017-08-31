@@ -91,7 +91,6 @@ utf-8 = "0.7"
 uuid = {version = "0.5", features = ["v4"]}
 xml5ever = {version = "0.9"}
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
-webvr = {path = "../webvr"}
 webvr_traits = {path = "../webvr_traits"}
 
 [target.'cfg(not(target_os = "ios"))'.dependencies]

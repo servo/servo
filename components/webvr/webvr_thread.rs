@@ -7,6 +7,7 @@ use euclid::Size2D;
 use ipc_channel::ipc;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use msg::constellation_msg::PipelineId;
+use rust_webvr::VRServiceManager;
 use script_traits::ConstellationMsg;
 use servo_config::prefs::PREFS;
 use std::{thread, time};
@@ -358,7 +359,8 @@ impl webgl::WebVRRenderHandler for WebVRCompositorHandler {
                             texture_size: Some((size.width as u32, size.height as u32))
                         };
                         unsafe {
-                            (*compositor.0).submit_frame(&layer);
+                            (*compositor.0).render_layer(&layer);
+                            (*compositor.0).submit_frame();
                         }
                     }
                 }
