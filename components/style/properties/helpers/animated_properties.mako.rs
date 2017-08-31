@@ -31,7 +31,7 @@ use selectors::parser::SelectorParseError;
 use smallvec::SmallVec;
 use std::borrow::Cow;
 use std::cmp;
-#[cfg(feature = "gecko")] use fnv::FnvHashMap;
+#[cfg(feature = "gecko")] use hash::FnvHashMap;
 use style_traits::ParseError;
 use super::ComputedValues;
 #[cfg(feature = "gecko")]
