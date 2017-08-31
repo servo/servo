@@ -285,14 +285,13 @@ class CommandBase(object):
         self.set_use_stable_rust(False)
 
     _use_stable_rust = False
-    _rust_version = None
-    _rust_version_is_stable = False
-    _cargo_build_id = None
+    _rust_stable_version = None
+    _rust_nightly_date = None
 
     def set_cargo_root(self):
         if not self.config["tools"]["system-cargo"]:
             self.config["tools"]["cargo-root"] = path.join(
-                self.context.sharedir, "cargo", self.cargo_build_id())
+                self.context.sharedir, "cargo", self.rust_nightly_date())
 
     def set_use_stable_rust(self, use_stable_rust=True):
         self._use_stable_rust = use_stable_rust
@@ -308,28 +307,39 @@ class CommandBase(object):
     def use_stable_rust(self):
         return self._use_stable_rust
 
-    def rust_path(self):
-        version = self.rust_version()
+    def rust_install_dir(self):
         if self._use_stable_rust:
-            return os.path.join(version, "rustc-%s-%s" % (version, host_triple()))
-        if not self.config["build"]["llvm-assertions"]:
-            version += "-alt"
-        return os.path.join(version, "rustc-nightly-%s" % (host_triple()))
+            return self.rust_stable_version()
+        elif not self.config["build"]["llvm-assertions"]:
+            return self.rust_nightly_date() + "-alt"
+        else:
+            return self.rust_nightly_date()
 
-    def rust_version(self):
-        if self._rust_version is None or self._use_stable_rust != self._rust_version_is_stable:
-            filename = path.join(self.context.topdir,
-                                 "rust-stable-version" if self._use_stable_rust else "rust-commit-hash")
-            with open(filename) as f:
-                self._rust_version = f.read().strip()
-        return self._rust_version
+    def rust_path(self):
+        if self._use_stable_rust:
+            version = self.rust_stable_version()
+        else:
+            version = "nightly"
 
-    def cargo_build_id(self):
-        if self._cargo_build_id is None:
-            filename = path.join(self.context.topdir, "rust-commit-hash")
+        subdir = "rustc-%s-%s" % (version, host_triple())
+        return os.path.join(self.rust_install_dir(), subdir)
+
+    def rust_stable_version(self):
+        if self._rust_stable_version is None:
+            filename = path.join("rust-stable-version")
             with open(filename) as f:
-                self._cargo_build_id = "rust-" + f.read().strip()
-        return self._cargo_build_id
+                self._rust_stable_version = f.read().strip()
+        return self._rust_stable_version
+
+    def rust_nightly_date(self):
+        if self._rust_nightly_date is None:
+            filename = path.join(self.context.topdir, "rust-toolchain")
+            with open(filename) as f:
+                toolchain = f.read().strip()
+                prefix = "nightly-"
+                assert toolchain.startswith(prefix)
+                self._rust_nightly_date = toolchain[len(prefix):]
+        return self._rust_nightly_date
 
     def get_top_dir(self):
         return self.context.topdir
@@ -587,7 +597,7 @@ class CommandBase(object):
             Registrar.dispatch("bootstrap", context=self.context)
 
         if not (self.config['tools']['system-rust'] or (rustc_binary_exists and target_exists)):
-            print("looking for rustc at %s" % (rustc_path))
+            print("Looking for rustc at %s" % (rustc_path))
             Registrar.dispatch("bootstrap-rust", context=self.context, target=filter(None, [target]),
                                stable=self._use_stable_rust)
 

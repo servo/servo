@@ -68,13 +68,10 @@ class MachCommands(CommandBase):
                      help='Use stable rustc version')
     def bootstrap_rustc(self, force=False, target=[], stable=False):
         self.set_use_stable_rust(stable)
-        version = self.rust_version()
-        rust_path = self.rust_path()
-        rust_dir = path.join(self.context.sharedir, "rust", rust_path)
-        install_dir = path.join(self.context.sharedir, "rust", version)
-        if not self.config["build"]["llvm-assertions"]:
-            if not self.use_stable_rust():
-                install_dir += "-alt"
+        rust_dir = path.join(self.context.sharedir, "rust", self.rust_path())
+        install_dir = path.join(self.context.sharedir, "rust", self.rust_install_dir())
+        version = self.rust_stable_version() if stable else "nightly"
+        static_s3 = "https://static-rust-lang-org.s3.amazonaws.com/dist"
 
         if not force and path.exists(path.join(rust_dir, "rustc", "bin", "rustc" + BIN_SUFFIX)):
             print("Rust compiler already downloaded.", end=" ")
@@ -90,16 +87,23 @@ class MachCommands(CommandBase):
             # giving a directory name that will be the same as the tarball name (rustc is
             # in that directory).
             if stable:
-                tarball = "rustc-%s-%s.tar.gz" % (version, host_triple())
-                rustc_url = "https://static-rust-lang-org.s3.amazonaws.com/dist/" + tarball
+                base_url = static_s3
             else:
-                tarball = "%s/rustc-nightly-%s.tar.gz" % (version, host_triple())
+                import toml
+                import re
+                channel = "%s/%s/channel-rust-nightly.toml" % (static_s3, self.rust_nightly_date())
+                version_string = toml.load(urllib2.urlopen(channel))["pkg"]["rustc"]["version"]
+                short_commit = re.search("\(([0-9a-f]+) ", version_string).group(1)
+                commit_api = "https://api.github.com/repos/rust-lang/rust/commits/" + short_commit
+                nightly_commit_hash = json.load(urllib2.urlopen(commit_api))["sha"]
+
                 base_url = "https://s3.amazonaws.com/rust-lang-ci/rustc-builds"
                 if not self.config["build"]["llvm-assertions"]:
                     base_url += "-alt"
-                rustc_url = base_url + "/" + tarball
-            tgz_file = rust_dir + '-rustc.tar.gz'
+                base_url += "/" + nightly_commit_hash
 
+            rustc_url = base_url + "/rustc-%s-%s.tar.gz" % (version, host_triple())
+            tgz_file = rust_dir + '-rustc.tar.gz'
             download_file("Rust compiler", rustc_url, tgz_file)
 
             print("Extracting Rust compiler...")
@@ -111,10 +115,8 @@ class MachCommands(CommandBase):
         # a directory of the name `rust-std-TRIPLE` inside and then a `lib` directory.
         # This `lib` directory needs to be extracted and merged with the `rustc/lib`
         # directory from the host compiler above.
-        nightly_suffix = "" if stable else "-nightly"
-        stable_version = "-{}".format(version) if stable else ""
         lib_dir = path.join(install_dir,
-                            "rustc{}{}-{}".format(nightly_suffix, stable_version, host_triple()),
+                            "rustc-%s-%s" % (version, host_triple()),
                             "rustc", "lib", "rustlib")
 
         # ensure that the libs for the host's target is downloaded
@@ -130,26 +132,25 @@ class MachCommands(CommandBase):
                 print("Use |bootstrap-rust --force| to download again.")
                 continue
 
+            tarball = "rust-std-%s-%s.tar.gz" % (version, target_triple)
+            tgz_file = path.join(install_dir, tarball)
             if self.use_stable_rust():
-                std_url = ("https://static-rust-lang-org.s3.amazonaws.com/dist/rust-std-%s-%s.tar.gz"
-                           % (version, target_triple))
-                tgz_file = install_dir + ('rust-std-%s-%s.tar.gz' % (version, target_triple))
+                std_url = static_s3 + "/" + tarball
             else:
-                std_url = ("https://s3.amazonaws.com/rust-lang-ci/rustc-builds/%s/rust-std-nightly-%s.tar.gz"
-                           % (version, target_triple))
-                tgz_file = install_dir + ('rust-std-nightly-%s.tar.gz' % target_triple)
+                std_url = static_s3 + "/" + self.rust_nightly_date() + "/" + tarball
 
             download_file("Host rust library for target %s" % target_triple, std_url, tgz_file)
             print("Extracting Rust stdlib for target %s..." % target_triple)
             extract(tgz_file, install_dir)
             shutil.copytree(path.join(install_dir,
-                                      "rust-std%s%s-%s" % (nightly_suffix, stable_version, target_triple),
-                                      "rust-std-%s" % target_triple, "lib", "rustlib", target_triple),
+                                      "rust-std-%s-%s" % (version, target_triple),
+                                      "rust-std-%s" % target_triple,
+                                      "lib", "rustlib", target_triple),
                             path.join(install_dir,
-                                      "rustc%s%s-%s" % (nightly_suffix, stable_version, host_triple()),
-                                      "rustc", "lib", "rustlib", target_triple))
-            shutil.rmtree(path.join(install_dir,
-                          "rust-std%s%s-%s" % (nightly_suffix, stable_version, target_triple)))
+                                      "rustc-%s-%s" % (version, host_triple()),
+                                      "rustc",
+                                      "lib", "rustlib", target_triple))
+            shutil.rmtree(path.join(install_dir, "rust-std-%s-%s" % (version, target_triple)))
 
             print("Rust {} libs ready.".format(target_triple))
 
@@ -171,8 +172,8 @@ class MachCommands(CommandBase):
         if path.isdir(docs_dir):
             shutil.rmtree(docs_dir)
         docs_name = self.rust_path().replace("rustc-", "rust-docs-")
-        docs_url = ("https://static-rust-lang-org.s3.amazonaws.com/dist/rust-docs-nightly-%s.tar.gz"
-                    % host_triple())
+        docs_url = ("https://static-rust-lang-org.s3.amazonaws.com/dist/%s/rust-docs-nightly-%s.tar.gz"
+                    % (self.rust_nightly_date(), host_triple()))
         tgz_file = path.join(rust_root, 'doc.tar.gz')
 
         download_file("Rust docs", docs_url, tgz_file)
@@ -195,8 +196,7 @@ class MachCommands(CommandBase):
                      action='store_true',
                      help='Force download even if cargo already exists')
     def bootstrap_cargo(self, force=False):
-        cargo_dir = path.join(self.context.sharedir, "cargo",
-                              self.cargo_build_id())
+        cargo_dir = path.join(self.context.sharedir, "cargo", self.rust_nightly_date())
         if not force and path.exists(path.join(cargo_dir, "cargo", "bin", "cargo" + BIN_SUFFIX)):
             print("Cargo already downloaded.", end=" ")
             print("Use |bootstrap-cargo --force| to download again.")
@@ -207,8 +207,8 @@ class MachCommands(CommandBase):
         os.makedirs(cargo_dir)
 
         tgz_file = "cargo-nightly-%s.tar.gz" % host_triple()
-        nightly_url = "https://s3.amazonaws.com/rust-lang-ci/rustc-builds/%s/%s" % \
-            (self.cargo_build_id()[len("rust-"):], tgz_file)
+        nightly_url = "https://static-rust-lang-org.s3.amazonaws.com/dist/%s/%s" % \
+            (self.rust_nightly_date(), tgz_file)
 
         download_file("Cargo nightly", nightly_url, tgz_file)
 
@@ -291,10 +291,8 @@ class MachCommands(CommandBase):
                      default='1',
                      help='Keep up to this many most recent nightlies')
     def clean_nightlies(self, force=False, keep=None):
-        self.set_use_stable_rust(False)
-        rust_current_nightly = self.rust_version()
-        self.set_use_stable_rust(True)
-        rust_current_stable = self.rust_version()
+        rust_current_nightly = self.rust_nightly_date()
+        rust_current_stable = self.rust_stable_version()
         print("Current Rust nightly version: {}".format(rust_current_nightly))
         print("Current Rust stable version: {}".format(rust_current_stable))
         to_keep = set()
@@ -303,7 +301,7 @@ class MachCommands(CommandBase):
             to_keep.add(rust_current_nightly)
             to_keep.add(rust_current_stable)
         else:
-            for version_file in ['rust-commit-hash', 'rust-stable-version']:
+            for version_file in ['rust-toolchain', 'rust-stable-version']:
                 cmd = subprocess.Popen(
                     ['git', 'log', '--oneline', '--no-color', '-n', keep, '--patch', version_file],
                     stdout=subprocess.PIPE,
