@@ -78,10 +78,13 @@ pub type ColorStop = GenericColorStop<RGBA, LengthOrPercentage>;
 pub type MozImageRect = GenericMozImageRect<NumberOrPercentage, ComputedUrl>;
 
 impl GenericLineDirection for LineDirection {
-    fn points_downwards(&self) -> bool {
+    fn points_downwards(&self, compat_mode: CompatMode) -> bool {
         match *self {
             LineDirection::Angle(angle) => angle.radians() == PI,
-            LineDirection::Vertical(Y::Bottom) => true,
+            LineDirection::Vertical(Y::Bottom)
+                if compat_mode == CompatMode::Modern => true,
+            LineDirection::Vertical(Y::Top)
+                if compat_mode != CompatMode::Modern => true,
             LineDirection::Corner(..) => false,
             #[cfg(feature = "gecko")]
             LineDirection::MozPosition(_, _) => false,
