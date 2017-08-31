@@ -5456,6 +5456,38 @@ pub mod root {
                         "Alignment of field: " , stringify ! ( GeckoEffects )
                         , "::" , stringify ! ( gecko ) ));
         }
+        #[repr(C)]
+        #[derive(Debug, Copy)]
+        pub struct ServoStyleSetSizes {
+            pub mStylistRuleTree: usize,
+            pub mOther: usize,
+        }
+        #[test]
+        fn bindgen_test_layout_ServoStyleSetSizes() {
+            assert_eq!(::std::mem::size_of::<ServoStyleSetSizes>() , 16usize ,
+                       concat ! (
+                       "Size of: " , stringify ! ( ServoStyleSetSizes ) ));
+            assert_eq! (::std::mem::align_of::<ServoStyleSetSizes>() , 8usize
+                        , concat ! (
+                        "Alignment of " , stringify ! ( ServoStyleSetSizes )
+                        ));
+            assert_eq! (unsafe {
+                        & ( * ( 0 as * const ServoStyleSetSizes ) ) .
+                        mStylistRuleTree as * const _ as usize } , 0usize ,
+                        concat ! (
+                        "Alignment of field: " , stringify ! (
+                        ServoStyleSetSizes ) , "::" , stringify ! (
+                        mStylistRuleTree ) ));
+            assert_eq! (unsafe {
+                        & ( * ( 0 as * const ServoStyleSetSizes ) ) . mOther
+                        as * const _ as usize } , 8usize , concat ! (
+                        "Alignment of field: " , stringify ! (
+                        ServoStyleSetSizes ) , "::" , stringify ! ( mOther )
+                        ));
+        }
+        impl Clone for ServoStyleSetSizes {
+            fn clone(&self) -> Self { *self }
+        }
         #[repr(u8)]
         /// Enumeration that represents one of the two supported style system backends.
         #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
