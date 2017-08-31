@@ -1004,7 +1004,9 @@ pub extern "C" fn Servo_StyleSet_FlushStyleSheets(
     if have_invalidations && doc_element.is_some() {
         // The invalidation machinery propagates the bits up, but we still
         // need to tell the gecko restyle root machinery about it.
-        unsafe { bindings::Gecko_NoteDirtyElement(doc_element.unwrap().0); }
+        unsafe {
+            bindings::Gecko_NoteDirtySubtreeForInvalidation(doc_element.unwrap().0);
+        }
     }
 }
 

@@ -1069,6 +1069,10 @@ extern "C" {
     pub fn Gecko_NoteDirtyElement(element: RawGeckoElementBorrowed);
 }
 extern "C" {
+    pub fn Gecko_NoteDirtySubtreeForInvalidation(element:
+                                                     RawGeckoElementBorrowed);
+}
+extern "C" {
     pub fn Gecko_NoteAnimationOnlyDirtyElement(element:
                                                    RawGeckoElementBorrowed);
 }
