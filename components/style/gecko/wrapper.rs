@@ -1171,7 +1171,9 @@ impl<'le> TElement for GeckoElement<'le> {
         // level native anonymous content subtree roots, since they're not
         // really roots from the style fixup perspective.  Checking that we
         // are NAC handles both cases.
-        self.is_native_anonymous()
+        self.is_native_anonymous() &&
+        (self.is_root_of_native_anonymous_subtree() ||
+         self.implemented_pseudo_element().is_some())
     }
 
     unsafe fn set_selector_flags(&self, flags: ElementSelectorFlags) {
