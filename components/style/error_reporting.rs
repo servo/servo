@@ -18,7 +18,7 @@ pub enum ContextualParseError<'a> {
     UnsupportedPropertyDeclaration(&'a str, ParseError<'a>),
     /// A font face descriptor was not recognized.
     UnsupportedFontFaceDescriptor(&'a str, ParseError<'a>),
-    /// A font feature values descroptor was not recognized.
+    /// A font feature values descriptor was not recognized.
     UnsupportedFontFeatureValuesDescriptor(&'a str, ParseError<'a>),
     /// A keyframe rule was not valid.
     InvalidKeyframeRule(&'a str, ParseError<'a>),
@@ -43,7 +43,9 @@ pub enum ContextualParseError<'a> {
     /// A counter style rule had extends with symbols.
     InvalidCounterStyleExtendsWithSymbols,
     /// A counter style rule had extends with additive-symbols.
-    InvalidCounterStyleExtendsWithAdditiveSymbols
+    InvalidCounterStyleExtendsWithAdditiveSymbols,
+    /// A media feature was not recognized.
+    InvalidMediaFeature(&'a str, ParseError<'a>),
 }
 
 impl<'a> ContextualParseError<'a> {
@@ -144,6 +146,9 @@ impl<'a> ContextualParseError<'a> {
                 "Invalid @counter-style rule: 'system: extends …' with 'symbols'".into(),
             ContextualParseError::InvalidCounterStyleExtendsWithAdditiveSymbols =>
                 "Invalid @counter-style rule: 'system: extends …' with 'additive-symbols'".into(),
+            ContextualParseError::InvalidMediaFeature(feature, ref err) =>
+                format!("Expected media feature name but found: '{}', {}", feature,
+                        parse_error_to_str(err)),
         }
     }
 }

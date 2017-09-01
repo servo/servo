@@ -297,7 +297,8 @@ impl<'a> ErrorHelpers<'a> for ContextualParseError<'a> {
             ContextualParseError::InvalidRule(s, err) |
             ContextualParseError::UnsupportedRule(s, err) |
             ContextualParseError::UnsupportedViewportDescriptorDeclaration(s, err) |
-            ContextualParseError::UnsupportedCounterStyleDescriptorDeclaration(s, err) =>
+            ContextualParseError::UnsupportedCounterStyleDescriptorDeclaration(s, err) |
+            ContextualParseError::InvalidMediaFeature(s, err) =>
                 (s.into(), err),
             ContextualParseError::InvalidCounterStyleWithoutSymbols(s) |
             ContextualParseError::InvalidCounterStyleNotEnoughSymbols(s) =>
@@ -390,6 +391,8 @@ impl<'a> ErrorHelpers<'a> for ContextualParseError<'a> {
             }
             ContextualParseError::UnsupportedRule(..) =>
                 (b"PEDeclDropped\0", Action::Nothing),
+            ContextualParseError::InvalidMediaFeature(..) =>
+                (b"PEMQExpectedFeatureName\0", Action::Nothing),
             ContextualParseError::UnsupportedViewportDescriptorDeclaration(..) |
             ContextualParseError::UnsupportedCounterStyleDescriptorDeclaration(..) |
             ContextualParseError::InvalidCounterStyleWithoutSymbols(..) |
