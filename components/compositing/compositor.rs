@@ -1285,7 +1285,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             debug!("compositor: compositing");
 
             // Paint the scene.
-            self.webrender.render(self.frame_size);
+            // TODO(gw): Take notice of any errors the renderer returns!
+            self.webrender.render(self.frame_size).ok();
         });
 
         // If there are pending paint metrics, we check if any of the painted epochs is
