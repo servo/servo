@@ -92,7 +92,9 @@ impl FontContext {
                                                         template,
                                                         Some(actual_pt_size))?;
 
-        Ok(Font::new(handle, variant, descriptor, pt_size, actual_pt_size, font_key))
+        let font_instance_key = self.font_cache_thread
+                                    .get_font_instance(font_key, actual_pt_size);
+        Ok(Font::new(handle, variant, descriptor, pt_size, actual_pt_size, font_instance_key))
     }
 
     fn expire_font_caches_if_necessary(&mut self) {
@@ -166,8 +168,7 @@ impl FontContext {
                                                                   desc.clone(),
                                                                   style.font_size.0,
                                                                   style.font_variant_caps,
-                                                                  template_info.font_key
-                                                                               .expect("No font key present!"));
+                                                                  template_info.font_key);
                         let font = match layout_font {
                             Ok(layout_font) => {
                                 let layout_font = Rc::new(RefCell::new(layout_font));
@@ -212,7 +213,7 @@ impl FontContext {
                                                       desc.clone(),
                                                       style.font_size.0,
                                                       style.font_variant_caps,
-                                                      template_info.font_key.expect("No font key present!"));
+                                                      template_info.font_key);
             match layout_font {
                 Ok(layout_font) => {
                     let layout_font = Rc::new(RefCell::new(layout_font));
