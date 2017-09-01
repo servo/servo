@@ -526,7 +526,10 @@ impl GradientKind {
             input.expect_comma()?;
             d
         } else {
-            LineDirection::Vertical(Y::Bottom)
+            match *compat_mode {
+                CompatMode::Modern => LineDirection::Vertical(Y::Bottom),
+                _ => LineDirection::Vertical(Y::Top),
+            }
         };
         Ok(GenericGradientKind::Linear(direction))
     }
@@ -615,10 +618,13 @@ impl GradientKind {
 }
 
 impl GenericsLineDirection for LineDirection {
-    fn points_downwards(&self) -> bool {
+    fn points_downwards(&self, compat_mode: CompatMode) -> bool {
         match *self {
             LineDirection::Angle(ref angle) => angle.radians() == PI,
-            LineDirection::Vertical(Y::Bottom) => true,
+            LineDirection::Vertical(Y::Bottom)
+                if compat_mode == CompatMode::Modern => true,
+            LineDirection::Vertical(Y::Top)
+                if compat_mode != CompatMode::Modern => true,
             _ => false,
         }
     }

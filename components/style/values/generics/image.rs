@@ -230,7 +230,8 @@ impl<D, L, LoP, P, C, A> ToCss for Gradient<D, L, LoP, P, C, A>
         dest.write_str(self.kind.label())?;
         dest.write_str("-gradient(")?;
         let mut skip_comma = match self.kind {
-            GradientKind::Linear(ref direction) if direction.points_downwards() => true,
+            GradientKind::Linear(ref direction)
+                if direction.points_downwards(self.compat_mode) => true,
             GradientKind::Linear(ref direction) => {
                 direction.to_css(dest, self.compat_mode)?;
                 false
@@ -287,7 +288,7 @@ impl<D, L, LoP, P, A> GradientKind<D, L, LoP, P, A> {
 /// The direction of a linear gradient.
 pub trait LineDirection {
     /// Whether this direction points towards, and thus can be omitted.
-    fn points_downwards(&self) -> bool;
+    fn points_downwards(&self, compat_mode: CompatMode) -> bool;
 
     /// Serialises this direction according to the compatibility mode.
     fn to_css<W>(&self, dest: &mut W, compat_mode: CompatMode) -> fmt::Result
