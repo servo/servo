@@ -355,13 +355,7 @@ impl Profiler {
                 write!(file, "_category_\t_incremental?_\t_iframe?_\t_url_\t_mean (ms)_\t\
                     _median (ms)_\t_min (ms)_\t_max (ms)_\t_events_\n").unwrap();
                 for (&(ref category, ref meta), ref mut data) in &mut self.buckets {
-                    data.sort_by(|a, b| {
-                        if a < b {
-                            Ordering::Less
-                        } else {
-                            Ordering::Greater
-                        }
-                    });
+                    data.sort_by(|a, b| a.partial_cmp(b).expect("No NaN values in profiles"));
                     let data_len = data.len();
                     if data_len > 0 {
                         let (mean, median, min, max) = Self::get_statistics(data);
@@ -380,13 +374,7 @@ impl Profiler {
                          "            _url_", "    _mean (ms)_", "  _median (ms)_",
                          "     _min (ms)_", "     _max (ms)_", "      _events_").unwrap();
                 for (&(ref category, ref meta), ref mut data) in &mut self.buckets {
-                    data.sort_by(|a, b| {
-                        if a < b {
-                            Ordering::Less
-                        } else {
-                            Ordering::Greater
-                        }
-                    });
+                    data.sort_by(|a, b| a.partial_cmp(b).expect("No NaN values in profiles"));
                     let data_len = data.len();
                     if data_len > 0 {
                         let (mean, median, min, max) = Self::get_statistics(data);
@@ -418,13 +406,7 @@ impl Profiler {
                 let client = create_client(credentials, hosts);
 
                 for (&(ref category, ref meta), ref mut data) in &mut self.buckets {
-                    data.sort_by(|a, b| {
-                        if a < b {
-                            Ordering::Less
-                        } else {
-                            Ordering::Greater
-                        }
-                    });
+                    data.sort_by(|a, b| a.partial_cmp(b).expect("No NaN values in profiles"));
                     let data_len = data.len();
                     if data_len > 0 {
                         let (mean, median, min, max) = Self::get_statistics(data);
