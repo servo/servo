@@ -60,7 +60,7 @@ use selector_parser::PseudoElement;
 use servo_arc::{Arc, RawOffsetArc};
 use std::mem::{forget, uninitialized, transmute, zeroed};
 use std::{cmp, ops, ptr};
-use values::{self, Auto, CustomIdent, Either, KeyframesName};
+use values::{self, Auto, CustomIdent, Either, KeyframesName, None_};
 use values::computed::{NonNegativeAu, ToComputedValue, Percentage};
 use values::computed::effects::{BoxShadow, Filter, SimpleShadow};
 use computed_values::border_style;
@@ -743,10 +743,16 @@ def set_gecko_property(ffi_name, expr):
             }
         }
 
-        if let Some(fallback) = fallback {
-            paint.mFallbackType = nsStyleSVGFallbackType::eStyleSVGFallbackType_Color;
-            paint.mFallbackColor = convert_rgba_to_nscolor(&fallback);
-        }
+        paint.mFallbackType = match fallback {
+            Some(Either::First(color)) => {
+                paint.mFallbackColor = convert_rgba_to_nscolor(&color);
+                nsStyleSVGFallbackType::eStyleSVGFallbackType_Color
+            },
+            Some(Either::Second(_)) => {
+                nsStyleSVGFallbackType::eStyleSVGFallbackType_None
+            },
+            None => nsStyleSVGFallbackType::eStyleSVGFallbackType_NotSet
+        };
     }
 
     #[allow(non_snake_case)]
@@ -771,11 +777,17 @@ def set_gecko_property(ffi_name, expr):
         use self::structs::nsStyleSVGPaintType;
         use self::structs::nsStyleSVGFallbackType;
         let ref paint = ${get_gecko_property(gecko_ffi_name)};
-        let fallback = if let nsStyleSVGFallbackType::eStyleSVGFallbackType_Color = paint.mFallbackType {
-            Some(convert_nscolor_to_rgba(paint.mFallbackColor))
-        } else {
-            None
+
+        let fallback = match paint.mFallbackType {
+            nsStyleSVGFallbackType::eStyleSVGFallbackType_Color => {
+                Some(Either::First(convert_nscolor_to_rgba(paint.mFallbackColor)))
+            },
+            nsStyleSVGFallbackType::eStyleSVGFallbackType_None => {
+                Some(Either::Second(None_))
+            },
+            nsStyleSVGFallbackType::eStyleSVGFallbackType_NotSet => None,
         };
+
         let kind = match paint.mType {
             nsStyleSVGPaintType::eStyleSVGPaintType_None => SVGPaintKind::None,
             nsStyleSVGPaintType::eStyleSVGPaintType_ContextFill => SVGPaintKind::ContextFill,
