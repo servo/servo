@@ -264,10 +264,6 @@ impl WebGLRenderingContext {
             return;
         };
 
-        // Reset webrender_image because resize creates a new image_key.
-        // The new image key is set in the next handle_layout() method.
-        self.webrender_image.set(None);
-
         // ClearColor needs to be restored because after a resize the GLContext is recreated
         // and the framebuffer is cleared using the default black transparent color.
         let color = self.current_clear_color.get();
