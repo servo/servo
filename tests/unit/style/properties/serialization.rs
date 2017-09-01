@@ -341,6 +341,53 @@ mod shorthand_serialization {
     mod border_shorthands {
         use super::*;
 
+        #[test]
+        fn border_top_and_color() {
+            let mut properties = Vec::new();
+            properties.push(PropertyDeclaration::BorderTopWidth(BorderSideWidth::Length(Length::from_px(1.))));
+            properties.push(PropertyDeclaration::BorderTopStyle(BorderStyle::solid));
+            let c = Color::Numeric {
+                parsed: RGBA::new(255, 0, 0, 255),
+                authored: Some("green".to_string().into_boxed_str())
+            };
+            properties.push(PropertyDeclaration::BorderTopColor(c));
+            let c = Color::Numeric {
+                parsed: RGBA::new(0, 255, 0, 255),
+                authored: Some("red".to_string().into_boxed_str())
+            };
+            properties.push(PropertyDeclaration::BorderTopColor(c.clone()));
+            properties.push(PropertyDeclaration::BorderBottomColor(c.clone()));
+            properties.push(PropertyDeclaration::BorderLeftColor(c.clone()));
+            properties.push(PropertyDeclaration::BorderRightColor(c.clone()));
+
+            let serialization = shorthand_properties_to_string(properties);
+            assert_eq!(serialization, "border-top: 1px solid red; border-color: red;");
+        }
+
+        #[test]
+        fn border_color_and_top() {
+            let mut properties = Vec::new();
+                let c = Color::Numeric {
+                parsed: RGBA::new(0, 255, 0, 255),
+                authored: Some("red".to_string().into_boxed_str())
+            };
+            properties.push(PropertyDeclaration::BorderTopColor(c.clone()));
+            properties.push(PropertyDeclaration::BorderBottomColor(c.clone()));
+            properties.push(PropertyDeclaration::BorderLeftColor(c.clone()));
+            properties.push(PropertyDeclaration::BorderRightColor(c.clone()));
+
+            properties.push(PropertyDeclaration::BorderTopWidth(BorderSideWidth::Length(Length::from_px(1.))));
+            properties.push(PropertyDeclaration::BorderTopStyle(BorderStyle::solid));
+            let c = Color::Numeric {
+                parsed: RGBA::new(255, 0, 0, 255),
+                authored: Some("green".to_string().into_boxed_str())
+            };
+            properties.push(PropertyDeclaration::BorderTopColor(c));
+
+            let serialization = shorthand_properties_to_string(properties);
+            assert_eq!(serialization, "border-color: green red red; border-top: 1px solid green;");
+        }
+
         // we can use border-top as a base to test out the different combinations
         // but afterwards, we only need to to one test per "directional border shorthand"
 
