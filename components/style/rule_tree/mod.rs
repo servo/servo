@@ -199,10 +199,11 @@ impl RuleTree {
         for (source, level) in iter {
             debug_assert!(last_level <= level, "Not really ordered");
             debug_assert!(!level.is_important(), "Important levels handled internally");
-            let (any_normal, any_important) = {
+            let any_important = {
                 let pdb = source.read(level.guard(guards));
-                (pdb.any_normal(), pdb.any_important())
+                pdb.any_important()
             };
+
             if any_important {
                 found_important = true;
                 match level {
@@ -216,19 +217,25 @@ impl RuleTree {
                     _ => {},
                 };
             }
-            // We really want to ensure empty rule nodes appear in the rule tree for
-            // devtools, this condition ensures that if we find an empty rule node, we
-            // insert it at the normal level.
-            if any_normal || !any_important {
-                if matches!(level, Transitions) && found_important {
-                    // There can be at most one transition, and it will come at
-                    // the end of the iterator. Stash it and apply it after
-                    // !important rules.
-                    debug_assert!(transition.is_none());
-                    transition = Some(source);
-                } else {
-                    current = current.ensure_child(self.root.downgrade(), source, level);
-                }
+
+            // We don't optimize out empty rules, even though we could.
+            //
+            // Inspector relies on every rule being inserted in the normal level
+            // at least once, in order to return the rules with the correct
+            // specificity order.
+            //
+            // TODO(emilio): If we want to apply these optimizations without
+            // breaking inspector's expectations, we'd need to run
+            // selector-matching again at the inspector's request. That may or
+            // may not be a better trade-off.
+            if matches!(level, Transitions) && found_important {
+                // There can be at most one transition, and it will come at
+                // the end of the iterator. Stash it and apply it after
+                // !important rules.
+                debug_assert!(transition.is_none());
+                transition = Some(source);
+            } else {
+                current = current.ensure_child(self.root.downgrade(), source, level);
             }
             last_level = level;
         }

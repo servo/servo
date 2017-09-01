@@ -1921,9 +1921,6 @@ pub extern "C" fn Servo_ComputedValues_GetStyleRuleList(values: ServoStyleContex
         None => return,
     };
 
-    let global_style_data = &*GLOBAL_STYLE_DATA;
-    let guard = global_style_data.shared_lock.read();
-
     // TODO(emilio): Will benefit from SmallVec.
     let mut result = vec![];
     for node in rule_node.self_and_ancestors() {
@@ -1932,13 +1929,12 @@ pub extern "C" fn Servo_ComputedValues_GetStyleRuleList(values: ServoStyleContex
             _ => continue,
         };
 
+        // For the rules with any important declaration, we insert them into
+        // rule tree twice, one for normal level and another for important
+        // level. So, we skip the important one to keep the specificity order of
+        // rules.
         if node.importance().important() {
-            let block = style_rule.read_with(&guard).block.read_with(&guard);
-            if block.any_normal() {
-                // We'll append it when we find the normal rules in our
-                // parent chain.
-                continue;
-            }
+            continue;
         }
 
         result.push(style_rule);
