@@ -29,7 +29,7 @@ pub fn match_def_path(cx: &LateContext, def_id: DefId, path: &[&str]) -> bool {
 }
 
 pub fn in_derive_expn(span: Span) -> bool {
-    if let Some(i) = span.ctxt.outer().expn_info() {
+    if let Some(i) = span.ctxt().outer().expn_info() {
         if let ExpnFormat::MacroAttribute(n) = i.callee.format {
             n.as_str().contains("derive")
         } else {
