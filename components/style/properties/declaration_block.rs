@@ -673,10 +673,6 @@ impl ToCss for PropertyDeclarationBlock {
                         }
                     } else {
                         for &(ref longhand, longhand_importance) in &self.declarations {
-                            if already_serialized.contains(longhand.id()) {
-                                continue;
-                            }
-
                             if longhand.id().is_longhand_of(shorthand) {
                                 current_longhands.push(longhand);
                                 if longhand_importance.important() {
@@ -772,6 +768,13 @@ impl ToCss for PropertyDeclarationBlock {
                         // Substep 9
                         already_serialized.insert(current_longhand.id());
                     }
+
+                    // FIXME(https://github.com/w3c/csswg-drafts/issues/1774)
+                    // The specification does not include an instruction to abort
+                    // the shorthand loop at this point, but doing so both matches
+                    // Gecko and makes sense since shorthands are checked in
+                    // preferred order.
+                    break;
                 }
             }
 
