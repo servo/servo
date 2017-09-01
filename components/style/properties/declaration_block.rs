@@ -614,6 +614,7 @@ impl ToCss for PropertyDeclarationBlock {
 
         // Step 2
         let mut already_serialized = PropertyDeclarationIdSet::new();
+        let mut shorthands_used = vec![];
 
         // Step 3
         for &(ref declaration, importance) in &*self.declarations {
@@ -630,6 +631,13 @@ impl ToCss for PropertyDeclarationBlock {
             if !shorthands.is_empty() {
                 // Step 3.3.1 is done by checking already_serialized while
                 // iterating below.
+
+                // If the set of previously serialized shorthands contains any of the shorthands
+                // that are associated with the current longhand, we can skip it since its value
+                // has already been included in the serialization of the related shorthand.
+                if shorthands.iter().any(|s| shorthands_used.iter().any(|used| used == s)) {
+                    continue;
+                }
 
                 // Step 3.3.2
                 for &shorthand in shorthands {
@@ -751,6 +759,7 @@ impl ToCss for PropertyDeclarationBlock {
                              importance,
                              &mut is_first_serialization)?;
                     } else {
+                        shorthands_used.push(shorthand);
                         append_serialization::<_, Cloned<slice::Iter< _>>, _>(
                              dest,
                              &shorthand,
