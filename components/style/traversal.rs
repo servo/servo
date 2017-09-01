@@ -290,13 +290,7 @@ pub trait DomTraversal<E: TElement> : Sync {
         // Servo uses the post-order traversal for flow construction, so we need
         // to traverse any element with damage so that we can perform fixup /
         // reconstruction on our way back up the tree.
-        //
-        // In aggressively forgetful traversals (where we seek out and clear damage
-        // in addition to not computing it) we also need to traverse nodes with
-        // explicit damage and no other restyle data, so that this damage can be cleared.
-        if (cfg!(feature = "servo") ||
-            traversal_flags.contains(traversal_flags::AggressivelyForgetful)) &&
-           !data.restyle.damage.is_empty() {
+        if cfg!(feature = "servo") && !data.restyle.damage.is_empty() {
             return true;
         }
 
