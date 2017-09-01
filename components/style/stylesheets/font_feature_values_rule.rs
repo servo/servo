@@ -193,7 +193,8 @@ struct FFVDeclarationsParser<'a, 'b: 'a, T: 'a> {
 
 /// Default methods reject all at rules.
 impl<'a, 'b, 'i, T> AtRuleParser<'i> for FFVDeclarationsParser<'a, 'b, T> {
-    type Prelude = ();
+    type PreludeNoBlock = ();
+    type PreludeBlock = ();
     type AtRule = ();
     type Error = SelectorParseError<'i, StyleParseError<'i>>;
 }
@@ -389,14 +390,15 @@ macro_rules! font_feature_values_blocks {
         }
 
         impl<'a, 'i, R: ParseErrorReporter> AtRuleParser<'i> for FontFeatureValuesRuleParser<'a, R> {
-            type Prelude = BlockType;
+            type PreludeNoBlock = ();
+            type PreludeBlock = BlockType;
             type AtRule = ();
             type Error = SelectorParseError<'i, StyleParseError<'i>>;
 
             fn parse_prelude<'t>(&mut self,
                                  name: CowRcStr<'i>,
                                  _input: &mut Parser<'i, 't>)
-                                 -> Result<AtRuleType<Self::Prelude, Self::AtRule>, ParseError<'i>> {
+                                 -> Result<AtRuleType<(), BlockType>, ParseError<'i>> {
                 match_ignore_ascii_case! { &*name,
                     $(
                         $name => Ok(AtRuleType::WithBlock(BlockType::$ident_camel)),
@@ -407,7 +409,7 @@ macro_rules! font_feature_values_blocks {
 
             fn parse_block<'t>(
                 &mut self,
-                prelude: Self::Prelude,
+                prelude: BlockType,
                 input: &mut Parser<'i, 't>
             ) -> Result<Self::AtRule, ParseError<'i>> {
                 debug_assert_eq!(self.context.rule_type(), CssRuleType::FontFeatureValues);

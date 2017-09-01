@@ -476,9 +476,9 @@ pub fn parse_keyframe_list<R>(
     }).filter_map(Result::ok).collect()
 }
 
-enum Void {}
 impl<'a, 'i, R> AtRuleParser<'i> for KeyframeListParser<'a, R> {
-    type Prelude = Void;
+    type PreludeNoBlock = ();
+    type PreludeBlock = ();
     type AtRule = Arc<Locked<Keyframe>>;
     type Error = SelectorParseError<'i, StyleParseError<'i>>;
 }
@@ -543,7 +543,8 @@ struct KeyframeDeclarationParser<'a, 'b: 'a> {
 
 /// Default methods reject all at rules.
 impl<'a, 'b, 'i> AtRuleParser<'i> for KeyframeDeclarationParser<'a, 'b> {
-    type Prelude = ();
+    type PreludeNoBlock = ();
+    type PreludeBlock = ();
     type AtRule = ();
     type Error = SelectorParseError<'i, StyleParseError<'i>>;
 }
