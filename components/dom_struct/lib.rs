@@ -5,24 +5,19 @@
 #![feature(proc_macro)]
 
 extern crate proc_macro;
-#[macro_use] extern crate quote;
 
-use proc_macro::TokenStream;
+use proc_macro::{TokenStream, quote};
+use std::iter;
 
 #[proc_macro_attribute]
 pub fn dom_struct(args: TokenStream, input: TokenStream) -> TokenStream {
-    if !args.to_string().is_empty() {
+    if !args.is_empty() {
         panic!("#[dom_struct] takes no arguments");
     }
-    expand_string(&input.to_string()).parse().unwrap()
-}
-
-fn expand_string(input: &str) -> String {
-    let mut tokens = quote! {
+    let attributes = quote! {
         #[derive(DenyPublicFields, DomObject, HeapSizeOf, JSTraceable)]
         #[must_root]
         #[repr(C)]
     };
-    tokens.append(input);
-    tokens.to_string()
+    iter::once(attributes).chain(iter::once(input)).collect()
 }
