@@ -1930,7 +1930,8 @@ extern "C" {
     pub fn Servo_StyleSheet_FromUTF8Bytes(loader: *mut Loader,
                                           gecko_stylesheet:
                                               *mut ServoStyleSheet,
-                                          data: *const nsACString,
+                                          data: *const u8,
+                                          data_len: usize,
                                           parsing_mode: SheetParsingMode,
                                           extra_data:
                                               *mut RawGeckoURLExtraData,
