@@ -13,7 +13,7 @@
 #[cfg(feature = "servo")] use app_units::Au;
 use servo_arc::{Arc, UniqueArc};
 use std::borrow::Cow;
-use std::collections::HashSet;
+use hash::HashSet;
 use std::{fmt, mem, ops};
 #[cfg(feature = "gecko")] use std::ptr;
 

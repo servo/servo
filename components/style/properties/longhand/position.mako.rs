@@ -416,7 +416,7 @@ ${helpers.predefined_type("object-position",
         products="gecko"
         animation_value_type="discrete"
         boxed="True">
-    use std::collections::HashMap;
+    use hash::HashMap;
     use std::fmt;
     use std::ops::Range;
     use str::HTML_SPACE_CHARACTERS;

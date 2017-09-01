@@ -8,13 +8,13 @@
 
 use Atom;
 use cssparser::{Delimiter, Parser, ParserInput, SourcePosition, Token, TokenSerializationType};
+use hash::{HashMap, HashSet};
 use parser::ParserContext;
 use properties::{CSSWideKeyword, DeclaredValue};
 use selectors::parser::SelectorParseError;
 use servo_arc::Arc;
 use std::ascii::AsciiExt;
 use std::borrow::{Borrow, Cow};
-use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::hash::Hash;
 use style_traits::{ToCss, StyleParseError, ParseError};

@@ -1,0 +1,17 @@
+[package]
+name = "hashglobe"
+version = "0.1.0"
+authors = ["The Rust Project Developers", "Manish Goregaokar <manishsmail@gmail.com>"]
+license = "MIT/Apache-2.0"
+description = "Fork of std::HashMap with stable fallible allocation."
+documentation = "https://docs.rs/hashglobe"
+repository = "https://github.com/Manishearth/hashglobe"
+
+readme = "README.md"
+
+[dependencies]
+libc = "0.2"
+heapsize = "0.4"
+
+[dev-dependencies]
+rand = "0.3"

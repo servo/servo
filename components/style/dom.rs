@@ -28,7 +28,7 @@ use servo_arc::{Arc, ArcBorrow};
 use shared_lock::Locked;
 use smallvec::VecLike;
 use std::fmt;
-#[cfg(feature = "gecko")] use std::collections::HashMap;
+#[cfg(feature = "gecko")] use hash::HashMap;
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::ops::Deref;
