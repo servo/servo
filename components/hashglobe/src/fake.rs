@@ -1,16 +1,25 @@
+// Copyright 2014-2015 The Rust Project Developers. See the COPYRIGHT
+// file at the top-level directory of this distribution and at
+// http://rust-lang.org/COPYRIGHT.
+//
+// Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
+// http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
+// <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
+// option. This file may not be copied, modified, or distributed
+// except according to those terms.
+
 //! This module contains shims around the stdlib HashMap
 //! that add fallible methods
 //!
 //! These methods are a lie. They are not actually fallible. This is just to make
 //! it smooth to switch between hashmap impls in a codebase.
 
-use std::hash::{BuildHasher, Hash};
+use heapsize::HeapSizeOf;
 use std::collections::HashMap as StdMap;
 use std::collections::HashSet as StdSet;
-use std::ops::{Deref, DerefMut};
 use std::fmt;
-
-use heapsize::HeapSizeOf;
+use std::hash::{BuildHasher, Hash};
+use std::ops::{Deref, DerefMut};
 
 pub use std::collections::hash_map::{Entry, RandomState, Iter as MapIter, IterMut as MapIterMut};
 pub use std::collections::hash_set::{Iter as SetIter, IntoIter as SetIntoIter};
@@ -25,17 +34,16 @@ impl<K, V, S> Deref for HashMap<K, V, S> {
     type Target = StdMap<K, V, S>;
     fn deref(&self) -> &Self::Target {
         &self.0
-    } 
+    }
 }
 
 impl<K, V, S> DerefMut for HashMap<K, V, S> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
-    } 
+    }
 }
 
 impl<K: Hash + Eq, V> HashMap<K, V, RandomState> {
-
     #[inline]
     pub fn new() -> HashMap<K, V, RandomState> {
         HashMap(StdMap::new())
@@ -63,7 +71,9 @@ impl<K, V, S> HashMap<K, V, S>
     }
 
     #[inline]
-    pub fn try_with_capacity_and_hasher(capacity: usize, hash_builder: S) -> Result<HashMap<K, V, S>, FailedAllocationError> {
+    pub fn try_with_capacity_and_hasher(capacity: usize,
+                                        hash_builder: S)
+        -> Result<HashMap<K, V, S>, FailedAllocationError> {
         Ok(HashMap(StdMap::with_capacity_and_hasher(capacity, hash_builder)))
     }
 
@@ -99,17 +109,16 @@ impl<T, S> Deref for HashSet<T, S> {
     type Target = StdSet<T, S>;
     fn deref(&self) -> &Self::Target {
         &self.0
-    } 
+    }
 }
 
 impl<T, S> DerefMut for HashSet<T, S> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
-    } 
+    }
 }
 
 impl<T: Hash + Eq> HashSet<T, RandomState> {
-
     #[inline]
     pub fn new() -> HashSet<T, RandomState> {
         HashSet(StdSet::new())
@@ -126,7 +135,6 @@ impl<T, S> HashSet<T, S>
     where T: Eq + Hash,
           S: BuildHasher
 {
-
     #[inline]
     pub fn with_hasher(hasher: S) -> HashSet<T, S> {
         HashSet(StdSet::with_hasher(hasher))
@@ -158,10 +166,11 @@ impl<T, S> HashSet<T, S>
 // We can't derive these since the bounds are not obvious to the derive macro
 
 
-impl<K: HeapSizeOf + Hash + Eq, V: HeapSizeOf, S: BuildHasher> HeapSizeOf for HashMap<K, V, S> {
+impl<K: HeapSizeOf + Hash + Eq, V: HeapSizeOf, S: BuildHasher>
+        HeapSizeOf for HashMap<K, V, S> {
     fn heap_size_of_children(&self) -> usize {
         self.0.heap_size_of_children()
-    } 
+    }
 }
 
 impl<K: Hash + Eq, V, S: BuildHasher + Default> Default for HashMap<K, V, S> {
@@ -224,7 +233,7 @@ impl<'a, K, V, S> IntoIterator for &'a mut HashMap<K, V, S>
 impl<T: HeapSizeOf + Eq + Hash, S: BuildHasher> HeapSizeOf for HashSet<T, S> {
     fn heap_size_of_children(&self) -> usize {
         self.0.heap_size_of_children()
-    } 
+    }
 }
 
 impl<T: Eq + Hash, S: BuildHasher + Default> Default for HashSet<T, S> {

@@ -15,6 +15,7 @@ lint-scripts = [
 rand = [
   "deque",
   "gaol",
+  "hashglobe", # only uses in tests
   "ipc-channel",
   "num-bigint",
   "parking_lot_core",
@@ -74,6 +75,7 @@ directories = [
   "./components/script/dom/bindings/codegen/parser",
   "./components/script/dom/bindings/codegen/ply",
   "./python/_virtualenv",
+  "./components/hashglobe/src",
   # Generated and upstream code combined with our own. Could use cleanup
   "./target",
   "./ports/cef",

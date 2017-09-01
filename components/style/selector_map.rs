@@ -9,6 +9,8 @@ use {Atom, LocalName};
 use applicable_declarations::ApplicableDeclarationBlock;
 use context::QuirksMode;
 use dom::TElement;
+use hash::{HashMap, HashSet};
+use hash::map as hash_map;
 use pdqsort::sort_by;
 use precomputed_hash::PrecomputedHash;
 use rule_tree::CascadeLevel;
@@ -16,8 +18,6 @@ use selector_parser::SelectorImpl;
 use selectors::matching::{matches_selector, MatchingContext, ElementSelectorFlags};
 use selectors::parser::{Component, Combinator, SelectorIter};
 use smallvec::{SmallVec, VecLike};
-use hash::{HashMap, HashSet};
-use hash::map as hash_map;
 use std::hash::{BuildHasherDefault, Hash, Hasher};
 use stylist::Rule;
 
