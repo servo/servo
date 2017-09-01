@@ -476,15 +476,28 @@ impl LonghandId {
         // algorithms and what not, I guess.
         <%
             longhand_to_shorthand_map = {}
+            num_sub_properties = {}
             for shorthand in data.shorthands:
+                num_sub_properties[shorthand.camel_case] = len(shorthand.sub_properties)
                 for sub_property in shorthand.sub_properties:
                     if sub_property.ident not in longhand_to_shorthand_map:
                         longhand_to_shorthand_map[sub_property.ident] = []
 
                     longhand_to_shorthand_map[sub_property.ident].append(shorthand.camel_case)
 
+            def preferred_order(x, y):
+                # Since we want properties in order from most subproperties to least,
+                # reverse the arguments to cmp from the expected order.
+                result = cmp(num_sub_properties.get(y, 0), num_sub_properties.get(x, 0))
+                if result:
+                    return result
+                # Fall back to lexicographic comparison.
+                return cmp(x, y)
+
+            # Sort the lists of shorthand properties according to preferred order:
+            # https://drafts.csswg.org/cssom/#concept-shorthands-preferred-order
             for shorthand_list in longhand_to_shorthand_map.itervalues():
-                shorthand_list.sort()
+                shorthand_list.sort(cmp=preferred_order)
         %>
 
         // based on lookup results for each longhand, create result arrays
