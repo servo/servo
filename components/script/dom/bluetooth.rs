@@ -14,7 +14,6 @@ use dom::bindings::codegen::Bindings::BluetoothBinding::{BluetoothMethods, Reque
 use dom::bindings::codegen::Bindings::BluetoothPermissionResultBinding::BluetoothPermissionDescriptor;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerBinding::
     BluetoothRemoteGATTServerMethods;
-use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::PermissionStatusBinding::{PermissionName, PermissionState};
 use dom::bindings::codegen::UnionTypes::StringOrUnsignedLong;
 use dom::bindings::error::Error::{self, Network, Security, Type};

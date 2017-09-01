@@ -4,7 +4,6 @@
 
 use dom::abstractworker::SimpleWorkerErrorHandler;
 use dom::bindings::cell::DOMRefCell;
-use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::ServiceWorkerBinding::{ServiceWorkerMethods, ServiceWorkerState, Wrap};
 use dom::bindings::error::{ErrorResult, Error};
 use dom::bindings::inheritance::Castable;

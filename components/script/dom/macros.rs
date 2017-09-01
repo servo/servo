@@ -334,7 +334,7 @@ macro_rules! jsmanaged_array(
 
 /// These are used to generate a event handler which has no special case.
 macro_rules! define_event_handler(
-    ($handler: ident, $event_type: ident, $getter: ident, $setter: ident, $setter_fn: ident) => (
+    ($handler: ty, $event_type: ident, $getter: ident, $setter: ident, $setter_fn: ident) => (
         fn $getter(&self) -> Option<::std::rc::Rc<$handler>> {
             use dom::bindings::inheritance::Castable;
             use dom::eventtarget::EventTarget;
@@ -352,7 +352,7 @@ macro_rules! define_event_handler(
 );
 
 macro_rules! define_window_owned_event_handler(
-    ($handler: ident, $event_type: ident, $getter: ident, $setter: ident) => (
+    ($handler: ty, $event_type: ident, $getter: ident, $setter: ident) => (
         fn $getter(&self) -> Option<::std::rc::Rc<$handler>> {
             let document = document_from_node(self);
             if document.has_browsing_context() {
@@ -373,36 +373,59 @@ macro_rules! define_window_owned_event_handler(
 
 macro_rules! event_handler(
     ($event_type: ident, $getter: ident, $setter: ident) => (
-        define_event_handler!(EventHandlerNonNull, $event_type, $getter, $setter,
-                              set_event_handler_common);
+        define_event_handler!(
+            ::dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull,
+            $event_type,
+            $getter,
+            $setter,
+            set_event_handler_common
+        );
     )
 );
 
 macro_rules! error_event_handler(
     ($event_type: ident, $getter: ident, $setter: ident) => (
-        define_event_handler!(OnErrorEventHandlerNonNull, $event_type, $getter, $setter,
-                              set_error_event_handler);
+        define_event_handler!(
+            ::dom::bindings::codegen::Bindings::EventHandlerBinding::OnErrorEventHandlerNonNull,
+            $event_type,
+            $getter,
+            $setter,
+            set_error_event_handler
+        );
     )
 );
 
 macro_rules! beforeunload_event_handler(
     ($event_type: ident, $getter: ident, $setter: ident) => (
-        define_event_handler!(OnBeforeUnloadEventHandlerNonNull, $event_type,
-                              $getter, $setter, set_beforeunload_event_handler);
+        define_event_handler!(
+            ::dom::bindings::codegen::Bindings::EventHandlerBinding::OnBeforeUnloadEventHandlerNonNull,
+            $event_type,
+            $getter,
+            $setter,
+            set_beforeunload_event_handler
+        );
     )
 );
 
 macro_rules! window_owned_event_handler(
     ($event_type: ident, $getter: ident, $setter: ident) => (
-        define_window_owned_event_handler!(EventHandlerNonNull,
-                                           $event_type, $getter, $setter);
+        define_window_owned_event_handler!(
+            ::dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull,
+            $event_type,
+            $getter,
+            $setter
+        );
     )
 );
 
 macro_rules! window_owned_beforeunload_event_handler(
     ($event_type: ident, $getter: ident, $setter: ident) => (
-        define_window_owned_event_handler!(OnBeforeUnloadEventHandlerNonNull,
-                                           $event_type, $getter, $setter);
+        define_window_owned_event_handler!(
+            ::dom::bindings::codegen::Bindings::EventHandlerBinding::OnBeforeUnloadEventHandlerNonNull,
+            $event_type,
+            $getter,
+            $setter
+        );
     )
 );
 

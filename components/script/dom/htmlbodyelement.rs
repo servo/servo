@@ -4,7 +4,6 @@
 
 use cssparser::RGBA;
 use dom::attr::Attr;
-use dom::bindings::codegen::Bindings::EventHandlerBinding::{EventHandlerNonNull, OnBeforeUnloadEventHandlerNonNull};
 use dom::bindings::codegen::Bindings::HTMLBodyElementBinding::{self, HTMLBodyElementMethods};
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::inheritance::Castable;
