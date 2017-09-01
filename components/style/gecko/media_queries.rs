@@ -32,8 +32,9 @@ use string_cache::Atom;
 use style_traits::{CSSPixel, DevicePixel};
 use style_traits::{ToCss, ParseError, StyleParseError};
 use style_traits::viewport::ViewportConstraints;
-use values::{CSSFloat, specified, CustomIdent, serialize_dimension};
+use values::{CSSFloat, CustomIdent, serialize_dimension};
 use values::computed::{self, ToComputedValue};
+use values::specified::Length;
 
 /// The `Device` in Gecko wraps a pres context, has a default values computed,
 /// and contains all the viewport rule state.
@@ -304,7 +305,7 @@ impl ToCss for Resolution {
 #[derive(Clone, Debug, PartialEq)]
 pub enum MediaExpressionValue {
     /// A length.
-    Length(specified::Length),
+    Length(Length),
     /// A (non-negative) integer.
     Integer(u32),
     /// A floating point value.
@@ -339,7 +340,7 @@ impl MediaExpressionValue {
             nsMediaFeature_ValueType::eLength => {
                 debug_assert!(css_value.mUnit == nsCSSUnit::eCSSUnit_Pixel);
                 let pixels = css_value.float_unchecked();
-                Some(MediaExpressionValue::Length(specified::Length::from_px(pixels)))
+                Some(MediaExpressionValue::Length(Length::from_px(pixels)))
             }
             nsMediaFeature_ValueType::eInteger => {
                 let i = css_value.integer_unchecked();
@@ -555,10 +556,20 @@ impl Expression {
 
             let value = match feature.mValueType {
                 nsMediaFeature_ValueType::eLength => {
-                    MediaExpressionValue::Length(
-                        specified::Length::parse_non_negative(context, input)?)
+                    let length = Length::parse_non_negative(context, input)?;
+                    // FIXME(canaltinova): See bug 1396057. Gecko doesn't support calc
+                    // inside media queries. This check is for temporarily remove it
+                    // for parity with gecko. We should remove this check when we want
+                    // to support it.
+                    if let Length::Calc(_) = length {
+                        return Err(StyleParseError::UnspecifiedError.into())
+                    }
+                    MediaExpressionValue::Length(length)
                 },
                 nsMediaFeature_ValueType::eInteger => {
+                    // FIXME(emilio): We should use `Integer::parse` to handle `calc`
+                    // properly in integer expressions. Note that calc is still not
+                    // supported in media queries per FIXME above.
                     let i = input.expect_integer()?;
                     if i < 0 {
                         return Err(StyleParseError::UnspecifiedError.into())
