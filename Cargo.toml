@@ -19,3 +19,4 @@ opt-level = 3
 # crate, add that here. Use the form:
 #
 #     <crate> = { path = "/path/to/local/checkout" }
+cssparser = { git = "https://github.com/upsuper/rust-cssparser", rev = "at-rule-parser" }

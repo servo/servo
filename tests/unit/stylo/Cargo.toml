@@ -13,7 +13,7 @@ doctest = false
 
 [dependencies]
 atomic_refcell = "0.1"
-cssparser = "0.19"
+cssparser = "0.20"
 env_logger = "0.4"
 euclid = "0.15"
 geckoservo = {path = "../../../ports/geckolib"}

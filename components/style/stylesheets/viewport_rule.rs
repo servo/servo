@@ -271,7 +271,8 @@ fn parse_shorthand<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
 }
 
 impl<'a, 'b, 'i> AtRuleParser<'i> for ViewportRuleParser<'a, 'b> {
-    type Prelude = ();
+    type PreludeNoBlock = ();
+    type PreludeBlock = ();
     type AtRule = Vec<ViewportDescriptorDeclaration>;
     type Error = SelectorParseError<'i, StyleParseError<'i>>;
 }
