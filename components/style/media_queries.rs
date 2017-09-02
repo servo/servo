@@ -96,7 +96,7 @@ impl ToCss for MediaQuery {
     {
         if let Some(qual) = self.qualifier {
             qual.to_css(dest)?;
-            write!(dest, " ")?;
+            dest.write_char(' ')?;
         }
 
         match self.media_type {
@@ -107,7 +107,7 @@ impl ToCss for MediaQuery {
                 // Otherwise, we'd serialize media queries like "(min-width:
                 // 40px)" in "all (min-width: 40px)", which is unexpected.
                 if self.qualifier.is_some() || self.expressions.is_empty() {
-                    write!(dest, "all")?;
+                    dest.write_str("all")?;
                 }
             },
             MediaQueryType::Concrete(MediaType(ref desc)) => desc.to_css(dest)?,
@@ -118,13 +118,13 @@ impl ToCss for MediaQuery {
         }
 
         if self.media_type != MediaQueryType::All || self.qualifier.is_some() {
-            write!(dest, " and ")?;
+            dest.write_str(" and ")?;
         }
 
         self.expressions[0].to_css(dest)?;
 
         for expr in self.expressions.iter().skip(1) {
-            write!(dest, " and ")?;
+            dest.write_str(" and ")?;
             expr.to_css(dest)?;
         }
         Ok(())

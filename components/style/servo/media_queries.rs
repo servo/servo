@@ -215,15 +215,14 @@ impl ToCss for Expression {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result
         where W: fmt::Write,
     {
-        write!(dest, "(")?;
-        let (mm, l) = match self.0 {
-            ExpressionKind::Width(Range::Min(ref l)) => ("min-", l),
-            ExpressionKind::Width(Range::Max(ref l)) => ("max-", l),
-            ExpressionKind::Width(Range::Eq(ref l)) => ("", l),
+        let (s, l) = match self.0 {
+            ExpressionKind::Width(Range::Min(ref l)) => ("(min-width: ", l),
+            ExpressionKind::Width(Range::Max(ref l)) => ("(max-width: ", l),
+            ExpressionKind::Width(Range::Eq(ref l)) => ("(width: ", l),
         };
-        write!(dest, "{}width: ", mm)?;
+        dest.write_str(s)?;
         l.to_css(dest)?;
-        write!(dest, ")")
+        dest.write_char(')')
     }
 }
 

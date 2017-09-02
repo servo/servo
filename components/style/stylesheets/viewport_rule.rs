@@ -151,7 +151,7 @@ impl ToCss for ViewportLength {
     {
         match *self {
             ViewportLength::Specified(ref length) => length.to_css(dest),
-            ViewportLength::ExtendToZoom => write!(dest, "extend-to-zoom"),
+            ViewportLength::ExtendToZoom => dest.write_str("extend-to-zoom"),
         }
     }
 }
