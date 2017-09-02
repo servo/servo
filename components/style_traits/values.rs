@@ -6,6 +6,7 @@
 
 use app_units::Au;
 use cssparser::{BasicParseError, ParseError, Parser, Token, UnicodeRange, serialize_string};
+use cssparser::ToCss as CssparserToCss;
 use std::fmt::{self, Write};
 
 /// Serialises a value according to its CSS representation.
@@ -326,7 +327,8 @@ impl<T> ToCss for Box<T> where T: ?Sized + ToCss {
 
 impl ToCss for Au {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: Write {
-        write!(dest, "{}px", self.to_f64_px())
+        self.to_f64_px().to_css(dest)?;
+        dest.write_str("px")
     }
 }
 
