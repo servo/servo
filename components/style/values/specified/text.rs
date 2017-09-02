@@ -112,7 +112,7 @@ impl ToComputedValue for LineHeight {
                             ).into()
                     }
                     LengthOrPercentage::Calc(ref calc) => {
-                        let computed_calc = calc.to_computed_value_zoomed(context);
+                        let computed_calc = calc.to_computed_value_zoomed(context, FontBaseSize::CurrentStyle);
                         let font_relative_length =
                             FontRelativeLength::Em(computed_calc.percentage())
                                 .to_computed_value(
