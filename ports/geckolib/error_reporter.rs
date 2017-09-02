@@ -200,30 +200,42 @@ trait ErrorHelpers<'a> {
 
 fn extract_error_param<'a>(err: ParseError<'a>) -> Option<ErrorString<'a>> {
     Some(match err {
-        CssParseError::Basic(BasicParseError::UnexpectedToken(t)) =>
-            ErrorString::UnexpectedToken(t),
+        CssParseError::Basic(BasicParseError::UnexpectedToken(t)) => {
+            ErrorString::UnexpectedToken(t)
+        }
 
         CssParseError::Basic(BasicParseError::AtRuleInvalid(i)) |
         CssParseError::Custom(SelectorParseError::Custom(
-            StyleParseError::UnsupportedAtRule(i))) =>
-            ErrorString::Snippet(format!("@{}", escape_css_ident(&i)).into()),
+            StyleParseError::UnsupportedAtRule(i)
+        )) => {
+            ErrorString::Snippet(format!("@{}", escape_css_ident(&i)).into())
+        }
 
         CssParseError::Custom(SelectorParseError::Custom(
             StyleParseError::PropertyDeclaration(
-                PropertyDeclarationParseError::InvalidValue(property, None)))) =>
-            ErrorString::Snippet(property),
+                PropertyDeclarationParseError::InvalidValue(property, None)
+            )
+        )) => {
+            ErrorString::Snippet(property)
+        }
 
-        CssParseError::Custom(SelectorParseError::UnexpectedIdent(ident)) =>
-            ErrorString::Ident(ident),
+        CssParseError::Custom(SelectorParseError::UnexpectedIdent(ident)) => {
+            ErrorString::Ident(ident)
+        }
 
         CssParseError::Custom(SelectorParseError::Custom(
             StyleParseError::PropertyDeclaration(
-                PropertyDeclarationParseError::UnknownProperty(property)))) =>
-            ErrorString::Ident(property),
+                PropertyDeclarationParseError::UnknownProperty(property)
+            )
+        )) => {
+            ErrorString::Ident(property)
+        }
 
         CssParseError::Custom(SelectorParseError::Custom(
-            StyleParseError::UnexpectedTokenWithinNamespace(token))) =>
-            ErrorString::UnexpectedToken(token),
+            StyleParseError::UnexpectedTokenWithinNamespace(token)
+        )) => {
+            ErrorString::UnexpectedToken(token)
+        }
 
         _ => return None,
     })
