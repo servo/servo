@@ -109,8 +109,8 @@ dependencies = [
 
 [[package]]
 name = "azure"
-version = "0.20.1"
-source = "git+https://github.com/servo/rust-azure#ca851788b3bc1f1034d4d899da66faf78e420c5e"
+version = "0.21.0"
+source = "git+https://github.com/servo/rust-azure#dea0d6ebf4603771740acf2cebceab88f2efcc5e"
 dependencies = [
  "cmake 0.1.22 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-foundation 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -324,7 +324,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "canvas"
 version = "0.0.1"
 dependencies = [
- "azure 0.20.1 (git+https://github.com/servo/rust-azure)",
+ "azure 0.21.0 (git+https://github.com/servo/rust-azure)",
  "canvas_traits 0.0.1",
  "compositing 0.0.1",
  "cssparser 0.20.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3725,7 +3725,7 @@ dependencies = [
 "checksum aster 0.41.0 (registry+https://github.com/rust-lang/crates.io-index)" = "4ccfdf7355d9db158df68f976ed030ab0f6578af811f5a7bb6dcf221ec24e0e0"
 "checksum atomic_refcell 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "fb2dcb6e6d35f20276943cc04bb98e538b348d525a04ac79c10021561d202f21"
 "checksum audio-video-metadata 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)" = "3b6ef29ee98ad95a37f34547fd7fb40724772294110ed6ca0445fc2e964c29d1"
-"checksum azure 0.20.1 (git+https://github.com/servo/rust-azure)" = "<none>"
+"checksum azure 0.21.0 (git+https://github.com/servo/rust-azure)" = "<none>"
 "checksum backtrace 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)" = "72f9b4182546f4b04ebc4ab7f84948953a118bd6021a1b6a6c909e3e94f6be76"
 "checksum backtrace-sys 0.1.11 (registry+https://github.com/rust-lang/crates.io-index)" = "3a0d842ea781ce92be2bf78a9b38883948542749640b8378b3b2f03d1fd9f1ff"
 "checksum base64 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)" = "30e93c03064e7590d0466209155251b90c22e37fab1daf2771582598b5827557"

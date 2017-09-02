@@ -173,6 +173,9 @@ impl<'a> CanvasPaintThread<'a> {
                             Canvas2dMsg::ArcTo(ref cp1, ref cp2, radius) => {
                                 painter.arc_to(cp1, cp2, radius)
                             }
+                            Canvas2dMsg::Ellipse(ref center, radius_x, radius_y, rotation, start, end, ccw) => {
+                                painter.ellipse(center, radius_x, radius_y, rotation, start, end, ccw)
+                            }
                             Canvas2dMsg::RestoreContext => painter.restore_context_state(),
                             Canvas2dMsg::SaveContext => painter.save_context_state(),
                             Canvas2dMsg::SetFillStyle(style) => painter.set_fill_style(style),
@@ -499,6 +502,17 @@ impl<'a> CanvasPaintThread<'a> {
             self.arc(&Point2D::new(cx, cy), radius,
                      angle_start, angle_end, anticlockwise);
         }
+    }
+
+    fn ellipse(&mut self,
+           center: &Point2D<AzFloat>,
+           radius_x: AzFloat,
+           radius_y: AzFloat,
+           rotation_angle: AzFloat,
+           start_angle: AzFloat,
+           end_angle: AzFloat,
+           ccw: bool) {
+        self.path_builder.ellipse(*center, radius_x, radius_y, rotation_angle, start_angle, end_angle, ccw);
     }
 
     fn set_fill_style(&mut self, style: FillOrStrokeStyle) {
