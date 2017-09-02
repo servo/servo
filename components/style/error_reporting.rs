@@ -90,60 +90,81 @@ impl<'a> ContextualParseError<'a> {
 
         fn parse_error_to_str(err: &ParseError) -> String {
             match *err {
-                CssParseError::Basic(BasicParseError::UnexpectedToken(ref t)) =>
-                    format!("found unexpected {}", token_to_str(t)),
-                CssParseError::Basic(BasicParseError::EndOfInput) =>
-                    format!("unexpected end of input"),
-                CssParseError::Basic(BasicParseError::AtRuleInvalid(ref i)) =>
-                    format!("@ rule invalid: {}", i),
-                CssParseError::Basic(BasicParseError::AtRuleBodyInvalid) =>
-                    format!("@ rule invalid"),
-                CssParseError::Basic(BasicParseError::QualifiedRuleInvalid) =>
-                    format!("qualified rule invalid"),
-                CssParseError::Custom(ref err) =>
+                CssParseError::Basic(BasicParseError::UnexpectedToken(ref t)) => {
+                    format!("found unexpected {}", token_to_str(t))
+                }
+                CssParseError::Basic(BasicParseError::EndOfInput) => {
+                    format!("unexpected end of input")
+                }
+                CssParseError::Basic(BasicParseError::AtRuleInvalid(ref i)) => {
+                    format!("@ rule invalid: {}", i)
+                }
+                CssParseError::Basic(BasicParseError::AtRuleBodyInvalid) => {
+                    format!("@ rule invalid")
+                }
+                CssParseError::Basic(BasicParseError::QualifiedRuleInvalid) => {
+                    format!("qualified rule invalid")
+                }
+                CssParseError::Custom(ref err) => {
                     format!("{:?}", err)
+                }
             }
         }
 
         match *self {
-            ContextualParseError::UnsupportedPropertyDeclaration(decl, ref err) =>
+            ContextualParseError::UnsupportedPropertyDeclaration(decl, ref err) => {
                 format!("Unsupported property declaration: '{}', {}", decl,
-                        parse_error_to_str(err)),
-            ContextualParseError::UnsupportedFontFaceDescriptor(decl, ref err) =>
+                        parse_error_to_str(err))
+            }
+            ContextualParseError::UnsupportedFontFaceDescriptor(decl, ref err) => {
                 format!("Unsupported @font-face descriptor declaration: '{}', {}", decl,
-                        parse_error_to_str(err)),
-            ContextualParseError::UnsupportedFontFeatureValuesDescriptor(decl, ref err) =>
-            format!("Unsupported @font-feature-values descriptor declaration: '{}', {}", decl,
-                    parse_error_to_str(err)),
-            ContextualParseError::InvalidKeyframeRule(rule, ref err) =>
+                        parse_error_to_str(err))
+            }
+            ContextualParseError::UnsupportedFontFeatureValuesDescriptor(decl, ref err) => {
+                format!("Unsupported @font-feature-values descriptor declaration: '{}', {}", decl,
+                        parse_error_to_str(err))
+            }
+            ContextualParseError::InvalidKeyframeRule(rule, ref err) => {
                 format!("Invalid keyframe rule: '{}', {}", rule,
-                        parse_error_to_str(err)),
-            ContextualParseError::InvalidFontFeatureValuesRule(rule, ref err) =>
-            format!("Invalid font feature value rule: '{}', {}", rule,
-                    parse_error_to_str(err)),
-            ContextualParseError::UnsupportedKeyframePropertyDeclaration(decl, ref err) =>
+                        parse_error_to_str(err))
+            }
+            ContextualParseError::InvalidFontFeatureValuesRule(rule, ref err) => {
+                format!("Invalid font feature value rule: '{}', {}", rule,
+                        parse_error_to_str(err))
+            }
+            ContextualParseError::UnsupportedKeyframePropertyDeclaration(decl, ref err) => {
                 format!("Unsupported keyframe property declaration: '{}', {}", decl,
-                        parse_error_to_str(err)),
-            ContextualParseError::InvalidRule(rule, ref err) =>
-                format!("Invalid rule: '{}', {}", rule, parse_error_to_str(err)),
-            ContextualParseError::UnsupportedRule(rule, ref err) =>
-                format!("Unsupported rule: '{}', {}", rule, parse_error_to_str(err)),
-            ContextualParseError::UnsupportedViewportDescriptorDeclaration(decl, ref err) =>
+                        parse_error_to_str(err))
+            }
+            ContextualParseError::InvalidRule(rule, ref err) => {
+                format!("Invalid rule: '{}', {}", rule, parse_error_to_str(err))
+            }
+            ContextualParseError::UnsupportedRule(rule, ref err) => {
+                format!("Unsupported rule: '{}', {}", rule, parse_error_to_str(err))
+            }
+            ContextualParseError::UnsupportedViewportDescriptorDeclaration(decl, ref err) => {
                 format!("Unsupported @viewport descriptor declaration: '{}', {}", decl,
-                        parse_error_to_str(err)),
-            ContextualParseError::UnsupportedCounterStyleDescriptorDeclaration(decl, ref err) =>
+                        parse_error_to_str(err))
+            }
+            ContextualParseError::UnsupportedCounterStyleDescriptorDeclaration(decl, ref err) => {
                 format!("Unsupported @counter-style descriptor declaration: '{}', {}", decl,
-                        parse_error_to_str(err)),
-            ContextualParseError::InvalidCounterStyleWithoutSymbols(ref system) =>
-                format!("Invalid @counter-style rule: 'system: {}' without 'symbols'", system),
-            ContextualParseError::InvalidCounterStyleNotEnoughSymbols(ref system) =>
-                format!("Invalid @counter-style rule: 'system: {}' less than two 'symbols'", system),
-            ContextualParseError::InvalidCounterStyleWithoutAdditiveSymbols =>
-                "Invalid @counter-style rule: 'system: additive' without 'additive-symbols'".into(),
-            ContextualParseError::InvalidCounterStyleExtendsWithSymbols =>
-                "Invalid @counter-style rule: 'system: extends …' with 'symbols'".into(),
-            ContextualParseError::InvalidCounterStyleExtendsWithAdditiveSymbols =>
-                "Invalid @counter-style rule: 'system: extends …' with 'additive-symbols'".into(),
+                        parse_error_to_str(err))
+            }
+            ContextualParseError::InvalidCounterStyleWithoutSymbols(ref system) => {
+                format!("Invalid @counter-style rule: 'system: {}' without 'symbols'", system)
+            }
+            ContextualParseError::InvalidCounterStyleNotEnoughSymbols(ref system) => {
+                format!("Invalid @counter-style rule: 'system: {}' less than two 'symbols'", system)
+            }
+            ContextualParseError::InvalidCounterStyleWithoutAdditiveSymbols => {
+                "Invalid @counter-style rule: 'system: additive' without 'additive-symbols'".into()
+            }
+            ContextualParseError::InvalidCounterStyleExtendsWithSymbols => {
+                "Invalid @counter-style rule: 'system: extends …' with 'symbols'".into()
+            }
+            ContextualParseError::InvalidCounterStyleExtendsWithAdditiveSymbols => {
+                "Invalid @counter-style rule: 'system: extends …' with 'additive-symbols'".into()
+            }
         }
     }
 }
