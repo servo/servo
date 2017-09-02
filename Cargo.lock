@@ -743,9 +743,6 @@ dependencies = [
 [[package]]
 name = "dom_struct"
 version = "0.0.1"
-dependencies = [
- "quote 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)",
-]
 
 [[package]]
 name = "domobject_derive"
