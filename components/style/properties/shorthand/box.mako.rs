@@ -176,7 +176,7 @@ macro_rules! try_parse_one {
 
             for i in 0..len {
                 if i != 0 {
-                    write!(dest, ", ")?;
+                    dest.write_str(", ")?;
                 }
                 self.transition_property.0[i].to_css(dest)?;
                 % for name in "duration timing_function delay".split():
@@ -289,7 +289,7 @@ macro_rules! try_parse_one {
 
             for i in 0..len {
                 if i != 0 {
-                    write!(dest, ", ")?;
+                    dest.write_str(", ")?;
                 }
 
                 % for name in props[1:]:

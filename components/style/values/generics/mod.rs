@@ -226,7 +226,10 @@ impl ToCss for FontSettingTagInt {
         match self.0 {
             1 => Ok(()),
             0 => dest.write_str(" off"),
-            x => write!(dest, " {}", x)
+            x => {
+                dest.write_char(' ')?;
+                x.to_css(dest)
+            }
         }
     }
 }
