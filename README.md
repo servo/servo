@@ -112,6 +112,12 @@ settings for the installer are fine).
 
 4. Install Visual Studio Community 2017 (https://www.visualstudio.com/). You MUST add "Visual C++" to the
 list of installed components. It is not on by default.
+> If you encountered errors with the environment above, do the following for a workaround:
+> 1.  Download and install [Build Tools for Visual Studio 2017](https://www.visualstudio.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=15)
+> 2.  Install `python2.7 x86-x64` and `virtualenv`
+> 3.  Since `mach.bat` cannot find the prompt, you should execute `Developer Command Prompt for VS 2017` manually in the Windows menu. ( You may need to choose the type, such as `x86_x64 Cross Tools Command Prompt for VS 2017`, manually if it cannot recognize type correctly. )
+> 4. `cd to/the/path/servo`
+> 5. `python mach build -d`
 
 #### Cross-compilation for Android
 
