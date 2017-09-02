@@ -70,6 +70,24 @@ where
     }
 }
 
+#[macro_export]
+macro_rules! serialize_function {
+    ($dest: expr, $name: ident($( $arg: expr, )+)) => {
+        serialize_function!($dest, $name($($arg),+))
+    };
+    ($dest: expr, $name: ident($first_arg: expr $( , $arg: expr )*)) => {
+        {
+            $dest.write_str(concat!(stringify!($name), "("))?;
+            $first_arg.to_css($dest)?;
+            $(
+                $dest.write_str(", ")?;
+                $arg.to_css($dest)?;
+            )*
+            $dest.write_char(')')
+        }
+    }
+}
+
 /// Convenience wrapper to serialise CSS values separated by a given string.
 pub struct SequenceWriter<'a, W> {
     writer: TrackedWriter<W>,
@@ -531,16 +549,5 @@ pub mod specified {
                 _ => val,
             }
         }
-    }
-}
-
-
-/// Wrap CSS types for serialization with `write!` or `format!` macros.
-/// Used by ToCss of SpecifiedOperation.
-pub struct Css<T>(pub T);
-
-impl<T: ToCss> fmt::Display for Css<T> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        self.0.to_css(f)
     }
 }
