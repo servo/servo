@@ -113,6 +113,8 @@ settings for the installer are fine).
 4. Install Visual Studio Community 2017 (https://www.visualstudio.com/). You MUST add "Visual C++" to the
 list of installed components. It is not on by default.
 
+If you encountered errors with the environment above, see [#18256](https://github.com/servo/servo/issues/18256) for a workaround.
+
 #### Cross-compilation for Android
 
 Pre-installed Android tools are needed. See wiki for
