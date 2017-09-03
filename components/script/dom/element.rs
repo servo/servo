@@ -82,8 +82,8 @@ use html5ever::serialize;
 use html5ever::serialize::SerializeOpts;
 use html5ever::serialize::TraversalScope;
 use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
-use js::jsapi::{HandleValue, Heap, JSAutoCompartment};
-use js::jsval::JSVal;
+use js;
+use js::jsapi;
 use net_traits::request::CorsSettings;
 use ref_filter_map::ref_filter_map;
 use script_layout_interface::message::ReflowQueryType;
@@ -317,7 +317,7 @@ impl Element {
         (*self.custom_element_definition.borrow()).clone()
     }
 
-    pub fn push_callback_reaction(&self, function: Rc<Function>, args: Box<[Heap<JSVal>]>) {
+    pub fn push_callback_reaction(&self, function: Rc<Function>, args: Box<[js::heap::Heap<jsapi::JS::Value>]>) {
         self.custom_element_reaction_queue.borrow_mut().push(CustomElementReaction::Callback(function, args));
     }
 
@@ -3037,7 +3037,7 @@ impl ElementPerformFullscreenEnter {
 impl Runnable for ElementPerformFullscreenEnter {
     fn name(&self) -> &'static str { "ElementPerformFullscreenEnter" }
 
-    #[allow(unrooted_must_root)]
+    #[allow(unrooted_must_root, unsafe_code)]
     fn handler(self: Box<ElementPerformFullscreenEnter>) {
         let element = self.element.root();
         let document = document_from_node(element.r());
@@ -3048,7 +3048,10 @@ impl Runnable for ElementPerformFullscreenEnter {
             // Otherwise, Servo will crash.
             let promise = self.promise.root();
             let promise_cx = promise.global().get_cx();
-            let _ac = JSAutoCompartment::new(promise_cx, promise.reflector().get_jsobject().get());
+            let _ac = unsafe {
+                js::ac::AutoCompartment::with_obj(promise_cx,
+                                                  promise.reflector().get_jsobject().get())
+            };
             document.upcast::<EventTarget>().fire_event(atom!("fullscreenerror"));
             promise.reject_error(promise.global().get_cx(), Error::Type(String::from("fullscreen is not connected")));
             return
@@ -3070,8 +3073,11 @@ impl Runnable for ElementPerformFullscreenEnter {
         // Otherwise, Servo will crash.
         let promise = self.promise.root();
         let promise_cx = promise.global().get_cx();
-        let _ac = JSAutoCompartment::new(promise_cx, promise.reflector().get_jsobject().get());
-        promise.resolve(promise.global().get_cx(), HandleValue::undefined());
+        let _ac = unsafe {
+            js::ac::AutoCompartment::with_obj(promise_cx,
+                                              promise.reflector().get_jsobject().get())
+        };
+        promise.resolve(promise.global().get_cx(), jsapi::JS::HandleValue::undefined());
     }
 }
 
@@ -3092,7 +3098,7 @@ impl ElementPerformFullscreenExit {
 impl Runnable for ElementPerformFullscreenExit {
     fn name(&self) -> &'static str { "ElementPerformFullscreenExit" }
 
-    #[allow(unrooted_must_root)]
+    #[allow(unrooted_must_root, unsafe_code)]
     fn handler(self: Box<ElementPerformFullscreenExit>) {
         let element = self.element.root();
         let document = document_from_node(element.r());
@@ -3114,8 +3120,11 @@ impl Runnable for ElementPerformFullscreenExit {
         // JSAutoCompartment needs to be manually made.
         // Otherwise, Servo will crash.
         let promise_cx = promise.global().get_cx();
-        let _ac = JSAutoCompartment::new(promise_cx, promise.reflector().get_jsobject().get());
-        promise.resolve(promise.global().get_cx(), HandleValue::undefined());
+        let _ac = unsafe {
+            js::ac::AutoCompartment::with_obj(promise_cx,
+                                              promise.reflector().get_jsobject().get())
+        };
+        promise.resolve(promise.global().get_cx(), jsapi::JS::HandleValue::undefined());
     }
 }
 

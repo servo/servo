@@ -16,7 +16,8 @@ use dom::bindings::trace::JSTraceable;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
-use js::jsapi::{HandleValue, Heap, JSContext, JSObject, MutableHandleObject};
+use js::heap::Heap;
+use js::jsapi;
 use js::jsval::UndefinedValue;
 use std::cell::Cell;
 use std::ptr;
@@ -60,7 +61,7 @@ impl<T: DomObject + JSTraceable + Iterable> IterableIterator<T> {
     /// Create a new iterator instance for the provided iterable DOM interface.
     pub fn new(iterable: &T,
                type_: IteratorType,
-               wrap: unsafe fn(*mut JSContext, &GlobalScope, Box<IterableIterator<T>>)
+               wrap: unsafe fn(*mut jsapi::JSContext, &GlobalScope, Box<IterableIterator<T>>)
                      -> Root<Self>) -> Root<Self> {
         let iterator = box IterableIterator {
             reflector: Reflector::new(),
@@ -73,7 +74,7 @@ impl<T: DomObject + JSTraceable + Iterable> IterableIterator<T> {
 
     /// Return the next value from the iterable object.
     #[allow(non_snake_case)]
-    pub fn Next(&self, cx: *mut JSContext) -> Fallible<NonZero<*mut JSObject>> {
+    pub fn Next(&self, cx: *mut jsapi::JSContext) -> Fallible<NonZero<*mut jsapi::JSObject>> {
         let index = self.index.get();
         rooted!(in(cx) let mut value = UndefinedValue());
         rooted!(in(cx) let mut rval = ptr::null_mut());
@@ -111,10 +112,10 @@ impl<T: DomObject + JSTraceable + Iterable> IterableIterator<T> {
     }
 }
 
-fn dict_return(cx: *mut JSContext,
-               result: MutableHandleObject,
+fn dict_return(cx: *mut jsapi::JSContext,
+               result: jsapi::JS::MutableHandleObject,
                done: bool,
-               value: HandleValue) -> Fallible<()> {
+               value: jsapi::JS::HandleValue) -> Fallible<()> {
     let mut dict = unsafe { IterableKeyOrValueResult::empty(cx) };
     dict.done = done;
     dict.value.set(value.get());
@@ -126,10 +127,10 @@ fn dict_return(cx: *mut JSContext,
     Ok(())
 }
 
-fn key_and_value_return(cx: *mut JSContext,
-                        result: MutableHandleObject,
-                        key: HandleValue,
-                        value: HandleValue) -> Fallible<()> {
+fn key_and_value_return(cx: *mut jsapi::JSContext,
+                        result: jsapi::JS::MutableHandleObject,
+                        key: jsapi::JS::HandleValue,
+                        value: jsapi::JS::HandleValue) -> Fallible<()> {
     let mut dict = unsafe { IterableKeyAndValueResult::empty(cx) };
     dict.done = false;
     dict.value = Some(vec![Heap::new(key.get()), Heap::new(value.get())]);

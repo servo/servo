@@ -25,7 +25,7 @@ use dom::node::{Node, window_from_node};
 use euclid::{Point2D, Rect, Size2D};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
-use js::jsapi::{HandleValue, JSContext};
+use js::jsapi;
 use js::jsval::UndefinedValue;
 use msg::constellation_msg::BrowsingContextId;
 use msg::constellation_msg::PipelineId;
@@ -47,7 +47,7 @@ fn find_node_by_unique_id(documents: &Documents,
 }
 
 #[allow(unsafe_code)]
-pub unsafe fn jsval_to_webdriver(cx: *mut JSContext, val: HandleValue) -> WebDriverJSResult {
+pub unsafe fn jsval_to_webdriver(cx: *mut jsapi::JSContext, val: jsapi::JS::HandleValue) -> WebDriverJSResult {
     if val.get().is_undefined() {
         Ok(WebDriverJSValue::Undefined)
     } else if val.get().is_boolean() {

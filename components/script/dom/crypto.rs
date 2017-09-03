@@ -11,8 +11,7 @@ use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
-use js::jsapi::{JSContext, JSObject};
-use js::jsapi::Type;
+use js::jsapi;
 use servo_rand::{ServoRng, Rng};
 
 unsafe_no_jsmanaged_fields!(ServoRng);
@@ -42,9 +41,9 @@ impl CryptoMethods for Crypto {
     #[allow(unsafe_code)]
     // https://dvcs.w3.org/hg/webcrypto-api/raw-file/tip/spec/Overview.html#Crypto-method-getRandomValues
     unsafe fn GetRandomValues(&self,
-                       _cx: *mut JSContext,
-                       input: *mut JSObject)
-                       -> Fallible<NonZero<*mut JSObject>> {
+                       _cx: *mut jsapi::JSContext,
+                       input: *mut jsapi::JSObject)
+                       -> Fallible<NonZero<*mut jsapi::JSObject>> {
         assert!(!input.is_null());
         typedarray!(in(_cx) let mut array_buffer_view: ArrayBufferView = input);
         let (array_type, mut data) = match array_buffer_view.as_mut() {
@@ -69,15 +68,15 @@ impl CryptoMethods for Crypto {
     }
 }
 
-fn is_integer_buffer(array_type: Type) -> bool {
+fn is_integer_buffer(array_type: jsapi::js::Scalar::Type) -> bool {
     match array_type {
-        Type::Uint8 |
-        Type::Uint8Clamped |
-        Type::Int8 |
-        Type::Uint16 |
-        Type::Int16 |
-        Type::Uint32 |
-        Type::Int32 => true,
+        jsapi::js::Scalar::Type::Uint8 |
+        jsapi::js::Scalar::Type::Uint8Clamped |
+        jsapi::js::Scalar::Type::Int8 |
+        jsapi::js::Scalar::Type::Uint16 |
+        jsapi::js::Scalar::Type::Int16 |
+        jsapi::js::Scalar::Type::Uint32 |
+        jsapi::js::Scalar::Type::Int32 => true,
         _ => false,
     }
 }

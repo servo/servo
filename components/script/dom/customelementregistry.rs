@@ -26,11 +26,10 @@ use dom::promise::Promise;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Namespace, Prefix};
+use js;
 use js::conversions::ToJSValConvertible;
-use js::glue::UnwrapObject;
-use js::jsapi::{Construct1, IsCallable, IsConstructor, HandleValueArray, HandleObject, MutableHandleValue};
-use js::jsapi::{Heap, JS_GetProperty, JS_SameValue, JSAutoCompartment, JSContext};
-use js::jsval::{JSVal, NullValue, ObjectValue, UndefinedValue};
+use js::jsapi;
+use js::jsval::{NullValue, ObjectValue, UndefinedValue};
 use microtask::Microtask;
 use script_thread::ScriptThread;
 use std::cell::Cell;
@@ -91,7 +90,9 @@ impl CustomElementRegistry {
         }).cloned()
     }
 
-    pub fn lookup_definition_by_constructor(&self, constructor: HandleObject) -> Option<Rc<CustomElementDefinition>> {
+    pub fn lookup_definition_by_constructor(&self,
+                                            constructor: jsapi::JS::HandleObject)
+                                            -> Option<Rc<CustomElementDefinition>> {
         self.definitions.borrow().values().find(|definition| {
             definition.constructor.callback() == constructor.get()
         }).cloned()
@@ -100,11 +101,14 @@ impl CustomElementRegistry {
     /// https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define
     /// Steps 10.1, 10.2
     #[allow(unsafe_code)]
-    fn check_prototype(&self, constructor: HandleObject, prototype: MutableHandleValue) -> ErrorResult {
+    fn check_prototype(&self,
+                       constructor: jsapi::JS::HandleObject,
+                       prototype: jsapi::JS::MutableHandleValue)
+                       -> ErrorResult {
         let global_scope = self.window.upcast::<GlobalScope>();
         unsafe {
             // Step 10.1
-            if !JS_GetProperty(global_scope.get_cx(),
+            if !jsapi::JS_GetProperty(global_scope.get_cx(),
                                constructor,
                                b"prototype\0".as_ptr() as *const _,
                                prototype) {
@@ -121,7 +125,7 @@ impl CustomElementRegistry {
 
     /// https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define
     /// Steps 10.3, 10.4
-    fn get_callbacks(&self, prototype: HandleObject) -> Fallible<LifecycleCallbacks> {
+    fn get_callbacks(&self, prototype: jsapi::JS::HandleObject) -> Fallible<LifecycleCallbacks> {
         let cx = self.window.get_cx();
 
         // Step 4
@@ -136,10 +140,10 @@ impl CustomElementRegistry {
     /// https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define
     /// Step 10.6
     #[allow(unsafe_code)]
-    fn get_observed_attributes(&self, constructor: HandleObject) -> Fallible<Vec<DOMString>> {
+    fn get_observed_attributes(&self, constructor: jsapi::JS::HandleObject) -> Fallible<Vec<DOMString>> {
         let cx = self.window.get_cx();
         rooted!(in(cx) let mut observed_attributes = UndefinedValue());
-        if unsafe { !JS_GetProperty(cx,
+        if unsafe { !jsapi::JS_GetProperty(cx,
                                     constructor,
                                     b"observedAttributes\0".as_ptr() as *const _,
                                     observed_attributes.handle_mut()) } {
@@ -164,11 +168,11 @@ impl CustomElementRegistry {
 /// https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define
 /// Step 10.4
 #[allow(unsafe_code)]
-fn get_callback(cx: *mut JSContext, prototype: HandleObject, name: &[u8]) -> Fallible<Option<Rc<Function>>> {
+fn get_callback(cx: *mut jsapi::JSContext, prototype: jsapi::JS::HandleObject, name: &[u8]) -> Fallible<Option<Rc<Function>>> {
     rooted!(in(cx) let mut callback = UndefinedValue());
 
     // Step 10.4.1
-    if unsafe { !JS_GetProperty(cx,
+    if unsafe { !jsapi::JS_GetProperty(cx,
                                 prototype,
                                 name.as_ptr() as *const _,
                                 callback.handle_mut()) } {
@@ -177,7 +181,7 @@ fn get_callback(cx: *mut JSContext, prototype: HandleObject, name: &[u8]) -> Fal
 
     // Step 10.4.2
     if !callback.is_undefined() {
-        if !callback.is_object() || unsafe { !IsCallable(callback.to_object()) } {
+        if !callback.is_object() || unsafe { !jsapi::JS::IsCallable(callback.to_object()) } {
             return Err(Error::Type("Lifecycle callback is not callable".to_owned()));
         }
         Ok(Some(Function::new(cx, callback.to_object())))
@@ -196,14 +200,14 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
 
         // Step 1
         // We must unwrap the constructor as all wrappers are constructable if they are callable.
-        rooted!(in(cx) let unwrapped_constructor = unsafe { UnwrapObject(constructor.get(), 1) });
+        rooted!(in(cx) let unwrapped_constructor = unsafe { js::glue::UnwrapObject(constructor.get(), 1) });
 
         if unwrapped_constructor.is_null() {
             // We do not have permission to access the unwrapped constructor.
             return Err(Error::Security);
         }
 
-        if unsafe { !IsConstructor(unwrapped_constructor.get()) } {
+        if unsafe { !jsapi::JS::IsConstructor(unwrapped_constructor.get()) } {
             return Err(Error::Type("Second argument of CustomElementRegistry.define is not a constructor".to_owned()));
         }
 
@@ -254,7 +258,9 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
         // Steps 10.1 - 10.2
         rooted!(in(cx) let mut prototype = UndefinedValue());
         {
-            let _ac = JSAutoCompartment::new(cx, constructor.get());
+            let _ac = unsafe {
+                js::ac::AutoCompartment::with_obj(cx, constructor.get())
+            };
             if let Err(error) = self.check_prototype(constructor.handle(), prototype.handle_mut()) {
                 self.element_definition_is_running.set(false);
                 return Err(error);
@@ -264,7 +270,9 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
         // Steps 10.3 - 10.4
         rooted!(in(cx) let proto_object = prototype.to_object());
         let callbacks = {
-            let _ac = JSAutoCompartment::new(cx, proto_object.get());
+            let _ac = unsafe {
+                js::ac::AutoCompartment::with_obj(cx, proto_object.get())
+            };
             match self.get_callbacks(proto_object.handle()) {
                 Ok(callbacks) => callbacks,
                 Err(error) => {
@@ -276,7 +284,9 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
 
         // Step 10.5 - 10.6
         let observed_attributes = if callbacks.attribute_changed_callback.is_some() {
-            let _ac = JSAutoCompartment::new(cx, constructor.get());
+            let _ac = unsafe {
+                js::ac::AutoCompartment::with_obj(cx, constructor.get())
+            };
             match self.get_observed_attributes(constructor.handle()) {
                 Ok(attributes) => attributes,
                 Err(error) => {
@@ -326,7 +336,7 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
 
     /// https://html.spec.whatwg.org/multipage/#dom-customelementregistry-get
     #[allow(unsafe_code)]
-    unsafe fn Get(&self, cx: *mut JSContext, name: DOMString) -> JSVal {
+    unsafe fn Get(&self, cx: *mut jsapi::JSContext, name: DOMString) -> jsapi::JS::Value {
         match self.definitions.borrow().get(&LocalName::from(&*name)) {
             Some(definition) => {
                 rooted!(in(cx) let mut constructor = UndefinedValue());
@@ -442,9 +452,11 @@ impl CustomElementDefinition {
         rooted!(in(cx) let mut element = ptr::null_mut());
         {
             // Go into the constructor's compartment
-            let _ac = JSAutoCompartment::new(cx, self.constructor.callback());
-            let args = HandleValueArray::new();
-            if unsafe { !Construct1(cx, constructor.handle(), &args, element.handle_mut()) } {
+            let _ac = unsafe {
+                js::ac::AutoCompartment::with_obj(cx, self.constructor.callback())
+            };
+            let args = jsapi::JS::HandleValueArray::new();
+            if unsafe { !jsapi::JS::Construct1(cx, constructor.handle(), &args, element.handle_mut()) } {
                 return Err(Error::JSFailed);
             }
         }
@@ -551,16 +563,18 @@ fn run_upgrade_constructor(constructor: &Rc<Function>, element: &Element) -> Err
     rooted!(in(cx) let mut construct_result = ptr::null_mut());
     {
         // Go into the constructor's compartment
-        let _ac = JSAutoCompartment::new(cx, constructor.callback());
-        let args = HandleValueArray::new();
+        let _ac = unsafe {
+            js::ac::AutoCompartment::with_obj(cx, constructor.callback())
+        };
+        let args = jsapi::JS::HandleValueArray::new();
         // Step 7.1
-        if unsafe { !Construct1(cx, constructor_val.handle(), &args, construct_result.handle_mut()) } {
+        if unsafe { !jsapi::JS::Construct1(cx, constructor_val.handle(), &args, construct_result.handle_mut()) } {
             return Err(Error::JSFailed);
         }
         // Step 7.2
         let mut same = false;
         rooted!(in(cx) let construct_result_val = ObjectValue(construct_result.get()));
-        if unsafe { !JS_SameValue(cx, construct_result_val.handle(), element_val.handle(), &mut same) } {
+        if unsafe { !jsapi::JS_SameValue(cx, construct_result_val.handle(), element_val.handle(), &mut same) } {
             return Err(Error::JSFailed);
         }
         if !same {
@@ -593,7 +607,7 @@ pub enum CustomElementReaction {
     Callback(
         #[ignore_heap_size_of = "Rc"]
         Rc<Function>,
-        Box<[Heap<JSVal>]>
+        Box<[js::heap::Heap<jsapi::JS::Value>]>
     ),
 }
 
@@ -710,7 +724,7 @@ impl CustomElementReactionStack {
             CallbackReaction::Connected => (definition.callbacks.connected_callback.clone(), Vec::new()),
             CallbackReaction::Disconnected => (definition.callbacks.disconnected_callback.clone(), Vec::new()),
             CallbackReaction::Adopted(ref old_doc, ref new_doc) => {
-                let args = vec![Heap::default(), Heap::default()];
+                let args = vec![js::heap::Heap::default(), js::heap::Heap::default()];
                 args[0].set(ObjectValue(old_doc.reflector().get_jsobject().get()));
                 args[1].set(ObjectValue(new_doc.reflector().get_jsobject().get()));
                 (definition.callbacks.adopted_callback.clone(), args)
@@ -743,7 +757,7 @@ impl CustomElementReactionStack {
                     unsafe { namespace.to_jsval(cx, namespace_value.handle_mut()); }
                 }
 
-                let args = vec![Heap::default(), Heap::default(), Heap::default(), Heap::default()];
+                let args = vec![js::heap::Heap::default(), js::heap::Heap::default(), js::heap::Heap::default(), js::heap::Heap::default()];
                 args[0].set(name_value.get());
                 args[1].set(old_value.get());
                 args[2].set(value.get());

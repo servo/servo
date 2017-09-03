@@ -25,7 +25,8 @@ use dom::workernavigator::WorkerNavigator;
 use dom_struct::dom_struct;
 use fetch;
 use ipc_channel::ipc::IpcSender;
-use js::jsapi::{HandleValue, JSAutoCompartment, JSContext, JSRuntime};
+use js;
+use js::jsapi;
 use js::jsval::UndefinedValue;
 use js::panic::maybe_resume_unwind;
 use js::rust::Runtime;
@@ -131,11 +132,7 @@ impl WorkerGlobalScope {
         &self.from_devtools_receiver
     }
 
-    pub fn runtime(&self) -> *mut JSRuntime {
-        self.runtime.rt()
-    }
-
-    pub fn get_cx(&self) -> *mut JSContext {
+    pub fn get_cx(&self) -> *mut jsapi::JSContext {
         self.runtime.cx()
     }
 
@@ -263,8 +260,8 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
 
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-settimeout
-    unsafe fn SetTimeout(&self, _cx: *mut JSContext, callback: Rc<Function>,
-                         timeout: i32, args: Vec<HandleValue>) -> i32 {
+    unsafe fn SetTimeout(&self, _cx: *mut jsapi::JSContext, callback: Rc<Function>,
+                         timeout: i32, args: Vec<jsapi::JS::HandleValue>) -> i32 {
         self.upcast::<GlobalScope>().set_timeout_or_interval(
             TimerCallback::FunctionTimerCallback(callback),
             args,
@@ -274,8 +271,8 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
 
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-settimeout
-    unsafe fn SetTimeout_(&self, _cx: *mut JSContext, callback: DOMString,
-                          timeout: i32, args: Vec<HandleValue>) -> i32 {
+    unsafe fn SetTimeout_(&self, _cx: *mut jsapi::JSContext, callback: DOMString,
+                          timeout: i32, args: Vec<jsapi::JS::HandleValue>) -> i32 {
         self.upcast::<GlobalScope>().set_timeout_or_interval(
             TimerCallback::StringTimerCallback(callback),
             args,
@@ -290,8 +287,8 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
 
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
-    unsafe fn SetInterval(&self, _cx: *mut JSContext, callback: Rc<Function>,
-                          timeout: i32, args: Vec<HandleValue>) -> i32 {
+    unsafe fn SetInterval(&self, _cx: *mut jsapi::JSContext, callback: Rc<Function>,
+                          timeout: i32, args: Vec<jsapi::JS::HandleValue>) -> i32 {
         self.upcast::<GlobalScope>().set_timeout_or_interval(
             TimerCallback::FunctionTimerCallback(callback),
             args,
@@ -301,8 +298,8 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
 
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
-    unsafe fn SetInterval_(&self, _cx: *mut JSContext, callback: DOMString,
-                           timeout: i32, args: Vec<HandleValue>) -> i32 {
+    unsafe fn SetInterval_(&self, _cx: *mut jsapi::JSContext, callback: DOMString,
+                           timeout: i32, args: Vec<jsapi::JS::HandleValue>) -> i32 {
         self.upcast::<GlobalScope>().set_timeout_or_interval(
             TimerCallback::StringTimerCallback(callback),
             args,
@@ -339,7 +336,7 @@ impl WorkerGlobalScope {
                     // https://github.com/servo/servo/issues/6422
                     println!("evaluate_script failed");
                     unsafe {
-                        let _ac = JSAutoCompartment::new(self.runtime.cx(),
+                        let _ac = js::ac::AutoCompartment::with_obj(self.runtime.cx(),
                                                          self.reflector().get_jsobject().get());
                         report_pending_exception(self.runtime.cx(), true);
                     }

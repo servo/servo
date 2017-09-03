@@ -12,7 +12,7 @@ use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use encoding::label::encoding_from_whatwg_label;
 use encoding::types::{DecoderTrap, EncodingRef};
-use js::jsapi::{JSContext, JSObject};
+use js::jsapi;
 use std::borrow::ToOwned;
 
 #[dom_struct]
@@ -78,7 +78,7 @@ impl TextDecoderMethods for TextDecoder {
 
     #[allow(unsafe_code)]
     // https://encoding.spec.whatwg.org/#dom-textdecoder-decode
-    unsafe fn Decode(&self, _cx: *mut JSContext, input: Option<*mut JSObject>)
+    unsafe fn Decode(&self, _cx: *mut jsapi::JSContext, input: Option<*mut jsapi::JSObject>)
               -> Fallible<USVString> {
         let input = match input {
             Some(input) => input,

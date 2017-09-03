@@ -12,7 +12,7 @@ use dom::bindings::str::DOMString;
 use dom::event::Event;
 use dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use dom_struct::dom_struct;
-use js::jsapi::{HandleValue, JSContext};
+use js::jsapi;
 use servo_atoms::Atom;
 
 // https://w3c.github.io/ServiceWorker/#extendable-event
@@ -52,7 +52,7 @@ impl ExtendableEvent {
     }
 
     // https://w3c.github.io/ServiceWorker/#wait-until-method
-    pub fn WaitUntil(&self, _cx: *mut JSContext, _val: HandleValue) -> ErrorResult {
+    pub fn WaitUntil(&self, _cx: *mut jsapi::JSContext, _val: jsapi::JS::HandleValue) -> ErrorResult {
         // Step 1
         if !self.extensions_allowed {
             return Err(Error::InvalidState);

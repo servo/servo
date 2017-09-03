@@ -28,20 +28,10 @@ use dom_struct::dom_struct;
 use euclid::ScaleFactor;
 use euclid::TypedSize2D;
 use ipc_channel::ipc;
-use js::jsapi::Call;
-use js::jsapi::Construct1;
-use js::jsapi::HandleValue;
-use js::jsapi::HandleValueArray;
-use js::jsapi::Heap;
-use js::jsapi::IsCallable;
-use js::jsapi::IsConstructor;
-use js::jsapi::JSAutoCompartment;
-use js::jsapi::JS_ClearPendingException;
-use js::jsapi::JS_IsExceptionPending;
-use js::jsapi::JS_NewArrayObject;
-use js::jsval::JSVal;
-use js::jsval::ObjectValue;
-use js::jsval::UndefinedValue;
+use js;
+use js::heap::Heap;
+use js::jsapi;
+use js::jsval::{ObjectValue, UndefinedValue};
 use js::rust::Runtime;
 use msg::constellation_msg::PipelineId;
 use net_traits::image::base::PixelFormat;
@@ -75,7 +65,7 @@ pub struct PaintWorkletGlobalScope {
     /// https://drafts.css-houdini.org/css-paint-api/#paint-definitions
     paint_definitions: DOMRefCell<HashMap<Atom, Box<PaintDefinition>>>,
     /// https://drafts.css-houdini.org/css-paint-api/#paint-class-instances
-    paint_class_instances: DOMRefCell<HashMap<Atom, Box<Heap<JSVal>>>>,
+    paint_class_instances: DOMRefCell<HashMap<Atom, Box<Heap<jsapi::JS::Value>>>>,
     /// The most recent name the worklet was called with
     cached_name: DOMRefCell<Atom>,
     /// The most recent size the worklet was drawn at
@@ -204,7 +194,12 @@ impl PaintWorkletGlobalScope {
                name, size_in_px.width, size_in_px.height, device_pixel_ratio);
 
         let cx = self.worklet_global.get_cx();
-        let _ac = JSAutoCompartment::new(cx, self.worklet_global.reflector().get_jsobject().get());
+        let _ac = unsafe {
+            js::ac::AutoCompartment::with_obj(
+                cx,
+                self.worklet_global.reflector().get_jsobject().get()
+            )
+        };
 
         // TODO: Steps 1-2.1.
         // Step 2.2-5.1.
@@ -238,13 +233,13 @@ impl PaintWorkletGlobalScope {
             Entry::Occupied(entry) => paint_instance.set(entry.get().get()),
             Entry::Vacant(entry) => {
                 // Step 5.2-5.3
-                let args = HandleValueArray::new();
+                let args = jsapi::JS::HandleValueArray::new();
                 rooted!(in(cx) let mut result = null_mut());
-                unsafe { Construct1(cx, class_constructor.handle(), &args, result.handle_mut()); }
+                unsafe { jsapi::JS::Construct1(cx, class_constructor.handle(), &args, result.handle_mut()); }
                 paint_instance.set(ObjectValue(result.get()));
-                if unsafe { JS_IsExceptionPending(cx) } {
+                if unsafe { jsapi::JS_IsExceptionPending(cx) } {
                     debug!("Paint constructor threw an exception {}.", name);
-                    unsafe { JS_ClearPendingException(cx); }
+                    unsafe { jsapi::JS_ClearPendingException(cx); }
                     self.paint_definitions.borrow_mut().get_mut(name)
                         .expect("Vanishing paint definition.")
                         .constructor_valid_flag.set(false);
@@ -269,11 +264,11 @@ impl PaintWorkletGlobalScope {
         debug!("Invoking paint function {}.", name);
         rooted_vec!(let arguments_values <- arguments.iter().cloned()
                     .map(|argument| CSSStyleValue::new(self.upcast(), argument)));
-        let arguments_value_vec: Vec<JSVal> = arguments_values.iter()
+        let arguments_value_vec: Vec<jsapi::JS::Value> = arguments_values.iter()
             .map(|argument| ObjectValue(argument.reflector().get_jsobject().get()))
             .collect();
-        let arguments_value_array = unsafe { HandleValueArray::from_rooted_slice(&*arguments_value_vec) };
-        rooted!(in(cx) let argument_object = unsafe { JS_NewArrayObject(cx, &arguments_value_array) });
+        let arguments_value_array = unsafe { jsapi::JS::HandleValueArray::from_rooted_slice(&*arguments_value_vec) };
+        rooted!(in(cx) let argument_object = unsafe { jsapi::JS_NewArrayObject(cx, &arguments_value_array) });
 
         let args_slice = [
             ObjectValue(rendering_context.reflector().get_jsobject().get()),
@@ -281,16 +276,16 @@ impl PaintWorkletGlobalScope {
             ObjectValue(properties.reflector().get_jsobject().get()),
             ObjectValue(argument_object.get()),
         ];
-        let args = unsafe { HandleValueArray::from_rooted_slice(&args_slice) };
+        let args = unsafe { jsapi::JS::HandleValueArray::from_rooted_slice(&args_slice) };
 
         rooted!(in(cx) let mut result = UndefinedValue());
-        unsafe { Call(cx, paint_instance.handle(), paint_function.handle(), &args, result.handle_mut()); }
+        unsafe { jsapi::JS::Call(cx, paint_instance.handle(), paint_function.handle(), &args, result.handle_mut()); }
         let missing_image_urls = rendering_context.take_missing_image_urls();
 
         // Step 13.
-        if unsafe { JS_IsExceptionPending(cx) } {
+        if unsafe { jsapi::JS_IsExceptionPending(cx) } {
             debug!("Paint function threw an exception {}.", name);
-            unsafe { JS_ClearPendingException(cx); }
+            unsafe { jsapi::JS_ClearPendingException(cx); }
             return self.invalid_image(size_in_dpx, missing_image_urls);
         }
 
@@ -407,7 +402,7 @@ impl PaintWorkletGlobalScopeMethods for PaintWorkletGlobalScope {
             .unwrap_or(true);
 
         // Step 14
-        if unsafe { !IsConstructor(paint_obj.get()) } {
+        if unsafe { !jsapi::JS::IsConstructor(paint_obj.get()) } {
             return Err(Error::Type(String::from("Not a constructor.")));
         }
 
@@ -422,7 +417,7 @@ impl PaintWorkletGlobalScopeMethods for PaintWorkletGlobalScope {
         // Steps 17-18
         rooted!(in(cx) let mut paint_function = UndefinedValue());
         unsafe { get_property_jsval(cx, prototype.handle(), "paint", paint_function.handle_mut())?; }
-        if !paint_function.is_object() || unsafe { !IsCallable(paint_function.to_object()) } {
+        if !paint_function.is_object() || unsafe { !jsapi::JS::IsCallable(paint_function.to_object()) } {
             return Err(Error::Type(String::from("Paint function is not callable.")));
         }
 
@@ -465,13 +460,13 @@ pub enum PaintWorkletTask {
 
 /// A paint definition
 /// https://drafts.css-houdini.org/css-paint-api/#paint-definition
-/// This type is dangerous, because it contains uboxed `Heap<JSVal>` values,
+/// This type is dangerous, because it contains unboxed `Heap<jsapi::JS::Value>` values,
 /// which can't be moved.
 #[derive(HeapSizeOf, JSTraceable)]
 #[must_root]
 struct PaintDefinition {
-    class_constructor: Heap<JSVal>,
-    paint_function: Heap<JSVal>,
+    class_constructor: Heap<jsapi::JS::Value>,
+    paint_function: Heap<jsapi::JS::Value>,
     constructor_valid_flag: Cell<bool>,
     context_alpha_flag: bool,
     // TODO: this should be a list of CSS syntaxes.
@@ -483,8 +478,8 @@ struct PaintDefinition {
 }
 
 impl PaintDefinition {
-    fn new(class_constructor: HandleValue,
-           paint_function: HandleValue,
+    fn new(class_constructor: jsapi::JS::HandleValue,
+           paint_function: jsapi::JS::HandleValue,
            alpha: bool,
            input_arguments_len: usize,
            context: &PaintRenderingContext2D)
