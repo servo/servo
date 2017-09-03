@@ -4015,8 +4015,6 @@ impl DocumentProgressHandler {
 }
 
 impl Runnable for DocumentProgressHandler {
-    fn name(&self) -> &'static str { "DocumentProgressHandler" }
-
     fn handler(self: Box<DocumentProgressHandler>) {
         let document = self.addr.root();
         let window = document.window();

@@ -187,8 +187,6 @@ impl StorageEventRunnable {
 }
 
 impl Runnable for StorageEventRunnable {
-    fn name(&self) -> &'static str { "StorageEventRunnable" }
-
     fn main_thread_handler(self: Box<StorageEventRunnable>, _: &ScriptThread) {
         let this = *self;
         let storage = this.element.root();

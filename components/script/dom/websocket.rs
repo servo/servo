@@ -394,8 +394,6 @@ struct ConnectionEstablishedTask {
 }
 
 impl Runnable for ConnectionEstablishedTask {
-    fn name(&self) -> &'static str { "ConnectionEstablishedTask" }
-
     /// https://html.spec.whatwg.org/multipage/#feedback-from-the-protocol:concept-websocket-established
     fn handler(self: Box<Self>) {
         let ws = self.address.root();
@@ -426,8 +424,6 @@ impl Runnable for BufferedAmountTask {
     // To be compliant with standards, we need to reset bufferedAmount only when the event loop
     // reaches step 1.  In our implementation, the bytes will already have been sent on a background
     // thread.
-    fn name(&self) -> &'static str { "BufferedAmountTask" }
-
     fn handler(self: Box<Self>) {
         let ws = self.address.root();
 
@@ -444,8 +440,6 @@ struct CloseTask {
 }
 
 impl Runnable for CloseTask {
-    fn name(&self) -> &'static str { "CloseTask" }
-
     fn handler(self: Box<Self>) {
         let ws = self.address.root();
 
@@ -486,8 +480,6 @@ struct MessageReceivedTask {
 }
 
 impl Runnable for MessageReceivedTask {
-    fn name(&self) -> &'static str { "MessageReceivedTask" }
-
     #[allow(unsafe_code)]
     fn handler(self: Box<Self>) {
         let ws = self.address.root();

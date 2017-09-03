@@ -213,8 +213,6 @@ impl NotifyPerformanceObserverRunnable {
 }
 
 impl Runnable for NotifyPerformanceObserverRunnable {
-    fn name(&self) -> &'static str { "NotifyPerformanceObserverRunnable" }
-
     fn main_thread_handler(self: Box<NotifyPerformanceObserverRunnable>,
                            _: &ScriptThread) {
         self.owner.root().notify_observers();

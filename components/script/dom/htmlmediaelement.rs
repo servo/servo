@@ -835,8 +835,6 @@ impl FireSimpleEventTask {
 }
 
 impl Runnable for FireSimpleEventTask {
-    fn name(&self) -> &'static str { "FireSimpleEventTask" }
-
     fn handler(self: Box<FireSimpleEventTask>) {
         let elem = self.elem.root();
         elem.fire_simple_event(self.type_);
@@ -856,8 +854,6 @@ impl DedicatedMediaSourceFailureTask {
 }
 
 impl Runnable for DedicatedMediaSourceFailureTask {
-    fn name(&self) -> &'static str { "DedicatedMediaSourceFailureTask" }
-
     fn handler(self: Box<DedicatedMediaSourceFailureTask>) {
         self.elem.root().dedicated_media_source_failure();
     }
