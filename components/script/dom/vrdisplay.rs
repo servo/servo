@@ -614,8 +614,6 @@ struct NotifyDisplayRAF {
 }
 
 impl Runnable for NotifyDisplayRAF {
-    fn name(&self) -> &'static str { "NotifyDisplayRAF" }
-
     fn handler(self: Box<Self>) {
         let display = self.address.root();
         display.handle_raf(&self.sender);

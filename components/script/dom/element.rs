@@ -3030,8 +3030,6 @@ impl ElementPerformFullscreenEnter {
 }
 
 impl Runnable for ElementPerformFullscreenEnter {
-    fn name(&self) -> &'static str { "ElementPerformFullscreenEnter" }
-
     #[allow(unrooted_must_root)]
     fn handler(self: Box<ElementPerformFullscreenEnter>) {
         let element = self.element.root();
@@ -3085,8 +3083,6 @@ impl ElementPerformFullscreenExit {
 }
 
 impl Runnable for ElementPerformFullscreenExit {
-    fn name(&self) -> &'static str { "ElementPerformFullscreenExit" }
-
     #[allow(unrooted_must_root)]
     fn handler(self: Box<ElementPerformFullscreenExit>) {
         let element = self.element.root();

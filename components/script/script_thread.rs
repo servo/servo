@@ -222,8 +222,6 @@ pub struct CancellableRunnable<T: Runnable + Send> {
 }
 
 impl<T: Runnable + Send> Runnable for CancellableRunnable<T> {
-    fn name(&self) -> &'static str { unsafe { intrinsics::type_name::<Self>() } }
-
     fn is_cancelled(&self) -> bool {
         self.cancelled.as_ref()
             .map(|cancelled| cancelled.load(Ordering::SeqCst))
@@ -241,7 +239,7 @@ impl<T: Runnable + Send> Runnable for CancellableRunnable<T> {
 
 pub trait Runnable {
     fn is_cancelled(&self) -> bool { false }
-    fn name(&self) -> &'static str { "generic runnable" }
+    fn name(&self) -> &'static str { unsafe { intrinsics::type_name::<Self>() } }
     fn handler(self: Box<Self>) {}
     fn main_thread_handler(self: Box<Self>, _script_thread: &ScriptThread) { self.handler(); }
 }

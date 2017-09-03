@@ -117,8 +117,6 @@ impl ImageResponseHandlerRunnable {
 }
 
 impl Runnable for ImageResponseHandlerRunnable {
-    fn name(&self) -> &'static str { "ImageResponseHandlerRunnable" }
-
     fn handler(self: Box<Self>) {
         let element = self.element.root();
         // Ignore any image response for a previous request that has been discarded.

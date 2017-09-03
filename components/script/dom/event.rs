@@ -389,8 +389,6 @@ pub struct EventRunnable {
 }
 
 impl Runnable for EventRunnable {
-    fn name(&self) -> &'static str { "EventRunnable" }
-
     fn handler(self: Box<EventRunnable>) {
         let target = self.target.root();
         let bubbles = self.bubbles;
@@ -406,8 +404,6 @@ pub struct SimpleEventRunnable {
 }
 
 impl Runnable for SimpleEventRunnable {
-    fn name(&self) -> &'static str { "SimpleEventRunnable" }
-
     fn handler(self: Box<SimpleEventRunnable>) {
         let target = self.target.root();
         target.fire_event(self.name);
