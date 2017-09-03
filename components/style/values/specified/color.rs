@@ -10,7 +10,7 @@ use gecko_bindings::structs::nscolor;
 use itoa;
 use parser::{ParserContext, Parse};
 #[cfg(feature = "gecko")]
-use properties::longhands::color::SystemColor;
+use properties::longhands::system_colors::SystemColor;
 use std::fmt;
 use std::io::Write;
 use style_traits::{ToCss, ParseError, StyleParseError, ValueParseError};
@@ -327,5 +327,34 @@ impl ToComputedValue for RGBAColor {
 impl From<Color> for RGBAColor {
     fn from(color: Color) -> RGBAColor {
         RGBAColor(color)
+    }
+}
+
+/// Specified value for the "color" property, which resolves the `currentcolor`
+/// keyword to the parent color instead of self's color.
+#[derive(Clone, Debug, PartialEq, ToCss)]
+pub struct ColorPropertyValue(pub Color);
+
+impl ToComputedValue for ColorPropertyValue {
+    type ComputedValue = RGBA;
+
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> RGBA {
+        self.0.to_computed_value(context)
+            .to_rgba(context.builder.get_parent_color().clone_color())
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &RGBA) -> Self {
+        ColorPropertyValue(Color::rgba(*computed).into())
+    }
+}
+
+impl Parse for ColorPropertyValue {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        Color::parse_quirky(context, input, AllowQuirks::Yes).map(ColorPropertyValue)
     }
 }
