@@ -14240,6 +14240,12 @@
      {}
     ]
    ],
+   "mozilla/link_rel_crash.html": [
+    [
+     "/_mozilla/mozilla/link_rel_crash.html",
+     {}
+    ]
+   ],
    "mozilla/load_event.html": [
     [
      "/_mozilla/mozilla/load_event.html",
@@ -27313,6 +27319,10 @@
   ],
   "mozilla/lenient_this.html": [
    "7715f917a07be2a0889be075f5e579fb338d2a31",
+   "testharness"
+  ],
+  "mozilla/link_rel_crash.html": [
+   "a2ca46f6440e851fc646e98455f23efab36c25c7",
    "testharness"
   ],
   "mozilla/load_event.html": [
