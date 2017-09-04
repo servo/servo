@@ -386,11 +386,6 @@ trait PrivateMatchMethods: TElement {
 
         // We need to cascade the children in order to ensure the correct
         // propagation of computed value flags.
-        //
-        // FIXME(emilio): If we start optimizing changes to reset-only
-        // properties that aren't explicitly inherited, we'd need to add a flag
-        // to handle justify-items: auto correctly when there's a legacy
-        // justify-items.
         if old_values.flags != new_values.flags {
             debug!(" > flags changed: {:?} != {:?}", old_values.flags, new_values.flags);
             return ChildCascadeRequirement::MustCascadeChildren;
@@ -400,6 +395,37 @@ trait PrivateMatchMethods: TElement {
             StyleChange::Unchanged => ChildCascadeRequirement::CanSkipCascade,
             StyleChange::Changed { reset_only } => {
                 if reset_only {
+                    #[cfg(feature = "gecko")]
+                    {
+                        use values::specified::align;
+
+                        // Children with justify-items: legacy may depend on our
+                        // property value.
+                        //
+                        // TODO(emilio): We could special-case this even more
+                        // creating a new `ChildCascadeRequirement` variant, but
+                        // it's unclear it matters.
+                        let old_justify_items =
+                            old_values.get_position().clone_justify_items();
+                        let new_justify_items =
+                            new_values.get_position().clone_justify_items();
+
+                        let was_legacy_justify_items =
+                            old_justify_items.computed.0.contains(align::ALIGN_LEGACY);
+
+                        let is_legacy_justify_items =
+                            new_justify_items.computed.0.contains(align::ALIGN_LEGACY);
+
+                        if is_legacy_justify_items != was_legacy_justify_items {
+                            return ChildCascadeRequirement::MustCascadeChildren;
+                        }
+
+                        if was_legacy_justify_items &&
+                            old_justify_items.computed != new_justify_items.computed {
+                            return ChildCascadeRequirement::MustCascadeChildren;
+                        }
+                    }
+
                     ChildCascadeRequirement::MustCascadeChildrenIfInheritResetStyle
                 } else {
                     ChildCascadeRequirement::MustCascadeChildren
