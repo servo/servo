@@ -1070,34 +1070,32 @@ impl Stylist {
     /// Also, the device that arrives here may need to take the viewport rules
     /// into account.
     ///
-    /// feature = "servo" because gecko only has one device, and manually tracks
-    /// when the device is dirty.
-    ///
-    /// FIXME(emilio): The semantics of the device for Servo and Gecko are
-    /// different enough we may want to unify them.
-    #[cfg(feature = "servo")]
+    /// For Gecko, this is called when XBL bindings are used by different
+    /// documents.
     pub fn set_device(
         &mut self,
         mut device: Device,
         guard: &SharedRwLockReadGuard,
     ) -> OriginSet {
-        let cascaded_rule = {
-            let stylesheets = self.stylesheets.iter();
+        if viewport_rule::enabled() {
+            let cascaded_rule = {
+                let stylesheets = self.stylesheets.iter();
 
-            ViewportRule {
-                declarations: viewport_rule::Cascade::from_stylesheets(
-                    stylesheets.clone(),
-                    guard,
-                    &device
-                ).finish(),
+                ViewportRule {
+                    declarations: viewport_rule::Cascade::from_stylesheets(
+                        stylesheets.clone(),
+                        guard,
+                        &device
+                    ).finish(),
+                }
+            };
+
+            self.viewport_constraints =
+                ViewportConstraints::maybe_new(&device, &cascaded_rule, self.quirks_mode);
+
+            if let Some(ref constraints) = self.viewport_constraints {
+                device.account_for_viewport_rule(constraints);
             }
-        };
-
-        self.viewport_constraints =
-            ViewportConstraints::maybe_new(&device, &cascaded_rule, self.quirks_mode);
-
-        if let Some(ref constraints) = self.viewport_constraints {
-            device.account_for_viewport_rule(constraints);
         }
 
         self.device = device;
