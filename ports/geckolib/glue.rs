@@ -102,7 +102,7 @@ use style::gecko_bindings::sugar::ownership::{HasSimpleFFI, Strong};
 use style::gecko_bindings::sugar::refptr::RefPtr;
 use style::gecko_properties::style_structs;
 use style::invalidation::element::restyle_hints;
-use style::media_queries::{MediaList, parse_media_query_list};
+use style::media_queries::{Device, MediaList, parse_media_query_list};
 use style::parser::{ParserContext, self};
 use style::properties::{CascadeFlags, ComputedValues, Importance};
 use style::properties::{IS_FIELDSET_CONTENT, IS_LINK, IS_VISITED_LINK, LonghandIdSet};
@@ -941,6 +941,25 @@ pub extern "C" fn Servo_StyleSet_MediumFeaturesChanged(
     data.stylist.device_mut().reset_computed_values();
     let origins_in_which_rules_changed =
         data.stylist.media_features_change_changed_style(&guard);
+
+    // We'd like to return `OriginFlags` here, but bindgen bitfield enums don't
+    // work as return values with the Linux 32-bit ABI at the moment because
+    // they wrap the value in a struct, so for now just unwrap it.
+    OriginFlags::from(origins_in_which_rules_changed).0
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_StyleSet_SetDevice(
+    raw_data: RawServoStyleSetBorrowed,
+    pres_context: RawGeckoPresContextOwned
+) -> u8 {
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
+
+    let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
+    let device = Device::new(pres_context);
+    let origins_in_which_rules_changed =
+        data.stylist.set_device(device, &guard);
 
     // We'd like to return `OriginFlags` here, but bindgen bitfield enums don't
     // work as return values with the Linux 32-bit ABI at the moment because

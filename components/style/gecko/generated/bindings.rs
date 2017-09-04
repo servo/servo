@@ -1983,6 +1983,11 @@ extern "C" {
                                                     *mut bool) -> u8;
 }
 extern "C" {
+    pub fn Servo_StyleSet_SetDevice(set: RawServoStyleSetBorrowed,
+                                    pres_context: RawGeckoPresContextOwned)
+     -> u8;
+}
+extern "C" {
     pub fn Servo_StyleSet_CompatModeChanged(raw_data:
                                                 RawServoStyleSetBorrowed);
 }
