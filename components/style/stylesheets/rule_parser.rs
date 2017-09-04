@@ -587,7 +587,7 @@ impl<'a, 'b, 'i, R: ParseErrorReporter> QualifiedRuleParser<'i> for NestedRulePa
 }
 
 /// Adjust a location's column to accommodate DevTools.
-fn get_location_with_offset(location: SourceLocation) -> SourceLocation {
+pub fn get_location_with_offset(location: SourceLocation) -> SourceLocation {
     SourceLocation {
         line: location.line,
         // Column offsets are not yet supported, but Gecko devtools expect 1-based columns.

@@ -2337,9 +2337,10 @@ extern "C" {
      -> u32;
 }
 extern "C" {
-    pub fn Servo_KeyframesRule_GetKeyframe(rule:
-                                               RawServoKeyframesRuleBorrowed,
-                                           index: u32)
+    pub fn Servo_KeyframesRule_GetKeyframeAt(rule:
+                                                 RawServoKeyframesRuleBorrowed,
+                                             index: u32, line: *mut u32,
+                                             column: *mut u32)
      -> RawServoKeyframeStrong;
 }
 extern "C" {
