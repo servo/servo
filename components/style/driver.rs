@@ -13,7 +13,6 @@ use parallel;
 use parallel::{DispatchMode, WORK_UNIT_MAX};
 use rayon;
 use scoped_tls::ScopedTLS;
-use std::borrow::Borrow;
 use std::collections::VecDeque;
 use std::mem;
 use time;
@@ -115,12 +114,12 @@ where
         let mut aggregate =
             mem::replace(&mut context.thread_local.statistics, Default::default());
         let parallel = maybe_tls.is_some();
-        if let Some(tls) = maybe_tls {
+        if let Some(ref mut tls) = maybe_tls {
             let slots = unsafe { tls.unsafe_get() };
             aggregate = slots.iter().fold(aggregate, |acc, t| {
                 match *t.borrow() {
                     None => acc,
-                    Some(ref cx) => &cx.borrow().statistics + &acc,
+                    Some(ref cx) => &cx.statistics + &acc,
                 }
             });
         }
