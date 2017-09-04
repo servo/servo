@@ -65,7 +65,14 @@ impl ServoRestyleDamage {
         new: &ComputedValues,
     ) -> StyleDifference {
         let damage = compute_damage(old, new);
-        let change = if damage.is_empty() { StyleChange::Unchanged } else { StyleChange::Changed };
+        let change = if damage.is_empty() {
+            StyleChange::Unchanged
+        } else {
+            // FIXME(emilio): Differentiate between reset and inherited
+            // properties here, and set `reset_only` appropriately so the
+            // optimization to skip the cascade in those cases applies.
+            StyleChange::Changed { reset_only: false }
+        };
         StyleDifference::new(damage, change)
     }
 

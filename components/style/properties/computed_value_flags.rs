@@ -11,7 +11,7 @@ bitflags! {
     /// anonymous boxes, see StyleBuilder::for_inheritance and its callsites.
     /// If we ever want to add some flags that shouldn't inherit for them,
     /// we might want to add a function to handle this.
-    pub flags ComputedValueFlags: u8 {
+    pub flags ComputedValueFlags: u16 {
         /// Whether the style or any of the ancestors has a text-decoration-line
         /// property that should get propagated to descendants.
         ///
@@ -56,5 +56,8 @@ bitflags! {
         ///
         /// Important because of the same reason.
         const INHERITS_CONTENT = 1 << 7,
+
+        /// Whether the child explicitly inherits any reset property.
+        const INHERITS_RESET_STYLE = 1 << 8,
     }
 }

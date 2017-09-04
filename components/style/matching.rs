@@ -21,6 +21,7 @@ use servo_arc::{Arc, ArcBorrow};
 use traversal_flags;
 
 /// Represents the result of comparing an element's old and new style.
+#[derive(Debug)]
 pub struct StyleDifference {
     /// The resulting damage.
     pub damage: RestyleDamage,
@@ -40,12 +41,15 @@ impl StyleDifference {
 }
 
 /// Represents whether or not the style of an element has changed.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum StyleChange {
     /// The style hasn't changed.
     Unchanged,
     /// The style has changed.
-    Changed,
+    Changed {
+        /// Whether only reset structs changed.
+        reset_only: bool,
+    },
 }
 
 /// Whether or not newly computed values for an element need to be cascade
@@ -56,19 +60,23 @@ pub enum ChildCascadeRequirement {
     /// we won't bother recomputing style for children, so we can skip cascading
     /// the new values into child elements.
     CanSkipCascade = 0,
+    /// The same as `MustCascadeChildren`, but we only need to actually
+    /// recascade if the child inherits any explicit reset style.
+    MustCascadeChildrenIfInheritResetStyle = 1,
     /// Old and new computed values were different, so we must cascade the
     /// new values to children.
-    ///
-    /// FIXME(heycam) Although this is "must" cascade, in the future we should
-    /// track whether child elements rely specifically on inheriting particular
-    /// property values.  When we do that, we can treat `MustCascadeChildren` as
-    /// "must cascade unless we know that changes to these properties can be
-    /// ignored".
-    MustCascadeChildren = 1,
+    MustCascadeChildren = 2,
     /// The same as `MustCascadeChildren`, but for the entire subtree.  This is
     /// used to handle root font-size updates needing to recascade the whole
     /// document.
-    MustCascadeDescendants = 2,
+    MustCascadeDescendants = 3,
+}
+
+impl ChildCascadeRequirement {
+    /// Whether we can unconditionally skip the cascade.
+    pub fn can_skip_cascade(&self) -> bool {
+        matches!(*self, ChildCascadeRequirement::CanSkipCascade)
+    }
 }
 
 bitflags! {
@@ -341,16 +349,19 @@ trait PrivateMatchMethods: TElement {
 
 
     /// Computes and applies non-redundant damage.
-    #[cfg(feature = "gecko")]
-    fn accumulate_damage_for(&self,
-                             shared_context: &SharedStyleContext,
-                             restyle: &mut RestyleData,
-                             old_values: &ComputedValues,
-                             new_values: &ComputedValues,
-                             pseudo: Option<&PseudoElement>)
-                             -> ChildCascadeRequirement {
+    fn accumulate_damage_for(
+        &self,
+        shared_context: &SharedStyleContext,
+        restyle: &mut RestyleData,
+        old_values: &ComputedValues,
+        new_values: &ComputedValues,
+        pseudo: Option<&PseudoElement>
+    ) -> ChildCascadeRequirement {
+        debug!("accumulate_damage_for: {:?}", self);
+
         // Don't accumulate damage if we're in a forgetful traversal.
         if shared_context.traversal_flags.contains(traversal_flags::Forgetful) {
+            debug!(" > forgetful traversal");
             return ChildCascadeRequirement::MustCascadeChildren;
         }
 
@@ -371,6 +382,8 @@ trait PrivateMatchMethods: TElement {
             restyle.damage |= difference.damage;
         }
 
+        debug!(" > style difference: {:?}", difference);
+
         // We need to cascade the children in order to ensure the correct
         // propagation of computed value flags.
         //
@@ -379,29 +392,19 @@ trait PrivateMatchMethods: TElement {
         // to handle justify-items: auto correctly when there's a legacy
         // justify-items.
         if old_values.flags != new_values.flags {
+            debug!(" > flags changed: {:?} != {:?}", old_values.flags, new_values.flags);
             return ChildCascadeRequirement::MustCascadeChildren;
         }
 
         match difference.change {
             StyleChange::Unchanged => ChildCascadeRequirement::CanSkipCascade,
-            StyleChange::Changed => ChildCascadeRequirement::MustCascadeChildren,
-        }
-    }
-
-    /// Computes and applies restyle damage unless we've already maxed it out.
-    #[cfg(feature = "servo")]
-    fn accumulate_damage_for(&self,
-                             _shared_context: &SharedStyleContext,
-                             restyle: &mut RestyleData,
-                             old_values: &ComputedValues,
-                             new_values: &ComputedValues,
-                             pseudo: Option<&PseudoElement>)
-                             -> ChildCascadeRequirement {
-        let difference = self.compute_style_difference(old_values, new_values, pseudo);
-        restyle.damage |= difference.damage;
-        match difference.change {
-            StyleChange::Changed => ChildCascadeRequirement::MustCascadeChildren,
-            StyleChange::Unchanged => ChildCascadeRequirement::CanSkipCascade,
+            StyleChange::Changed { reset_only } => {
+                if reset_only {
+                    ChildCascadeRequirement::MustCascadeChildrenIfInheritResetStyle
+                } else {
+                    ChildCascadeRequirement::MustCascadeChildren
+                }
+            }
         }
     }
 
