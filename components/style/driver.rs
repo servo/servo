@@ -13,7 +13,6 @@ use parallel;
 use parallel::{DispatchMode, WORK_UNIT_MAX};
 use rayon;
 use scoped_tls::ScopedTLS;
-use std::borrow::Borrow;
 use std::collections::VecDeque;
 use std::mem;
 use time;
@@ -120,7 +119,7 @@ where
             aggregate = slots.iter().fold(aggregate, |acc, t| {
                 match *t.borrow() {
                     None => acc,
-                    Some(ref cx) => &cx.borrow().statistics + &acc,
+                    Some(ref cx) => &cx.statistics + &acc,
                 }
             });
         }
