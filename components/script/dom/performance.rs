@@ -177,6 +177,10 @@ impl Performance {
 
     /// Remove a PerformanceObserver from the list of observers.
     pub fn remove_observer(&self, observer: &DOMPerformanceObserver) {
+        if self.pending_notification_observers_task.get() {
+            self.notify_observers();
+        }
+
         let mut observers = self.observers.borrow_mut();
         let index = match observers.iter().position(|o| &(*o.observer) == observer) {
             Some(p) => p,
