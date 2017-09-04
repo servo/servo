@@ -2340,7 +2340,6 @@ extern "C" {
     pub fn Servo_KeyframesRule_GetKeyframe(rule:
                                                RawServoKeyframesRuleBorrowed,
                                            index: u32)
-     -> RawServoKeyframeStrong;
 }
 extern "C" {
     pub fn Servo_KeyframesRule_FindRule(rule: RawServoKeyframesRuleBorrowed,
