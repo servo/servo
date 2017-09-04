@@ -217,7 +217,11 @@ fn test_parse_stylesheet() {
                                 (PropertyDeclaration::Width(
                                     LengthOrPercentageOrAuto::Percentage(Percentage(0.))),
                                  Importance::Normal),
-                            ])))
+                            ]))),
+                            source_location: SourceLocation {
+                                line: 17,
+                                column: 13,
+                            },
                         })),
                         Arc::new(stylesheet.shared_lock.wrap(Keyframe {
                             selector: KeyframeSelector::new_for_unit_testing(
@@ -231,6 +235,10 @@ fn test_parse_stylesheet() {
                                         vec![TimingFunction::ease()])),
                                  Importance::Normal),
                             ]))),
+                            source_location: SourceLocation {
+                                line: 18,
+                                column: 13,
+                            },
                         })),
                     ],
                     vendor_prefix: None,
