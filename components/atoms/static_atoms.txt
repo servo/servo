@@ -2,6 +2,8 @@ abort
 activate
 beforeunload
 button
+canplay
+canplaythrough
 center
 change
 characteristicvaluechanged
@@ -16,6 +18,7 @@ datetime-local
 dir
 DOMContentLoaded
 email
+emptied
 error
 fantasy
 fetch
@@ -31,6 +34,8 @@ keydown
 keypress
 left
 load
+loadeddata
+loadedmetadata
 loadend
 loadstart
 message
@@ -43,6 +48,9 @@ number
 onchange
 open
 password
+pause
+play
+playing
 print
 progress
 radio
@@ -58,11 +66,14 @@ serif
 statechange
 storage
 submit
+suspend
 tel
 text
 time
+timeupdate
 toggle
 transitionend
 url
+waiting
 webglcontextcreationerror
 week
