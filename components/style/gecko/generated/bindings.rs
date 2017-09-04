@@ -1930,8 +1930,7 @@ extern "C" {
     pub fn Servo_StyleSheet_FromUTF8Bytes(loader: *mut Loader,
                                           gecko_stylesheet:
                                               *mut ServoStyleSheet,
-                                          data: *const u8,
-                                          data_len: usize,
+                                          data: *const u8, data_len: usize,
                                           parsing_mode: SheetParsingMode,
                                           extra_data:
                                               *mut RawGeckoURLExtraData,
@@ -2059,8 +2058,10 @@ extern "C" {
 }
 extern "C" {
     pub fn Servo_StyleSet_AddSizeOfExcludingThis(malloc_size_of: MallocSizeOf,
-                                                 sizes: *mut ServoStyleSetSizes,
-                                                 set: RawServoStyleSetBorrowed);
+                                                 sizes:
+                                                     *mut ServoStyleSetSizes,
+                                                 set:
+                                                     RawServoStyleSetBorrowed);
 }
 extern "C" {
     pub fn Servo_StyleContext_AddRef(ctx: ServoStyleContextBorrowed);
@@ -2937,6 +2938,12 @@ extern "C" {
     pub fn Servo_GetCustomPropertyNameAt(arg1: ServoStyleContextBorrowed,
                                          index: u32, name: *mut nsAString)
      -> bool;
+}
+extern "C" {
+    pub fn Servo_ProcessInvalidations(set: RawServoStyleSetBorrowed,
+                                      element: RawGeckoElementBorrowed,
+                                      snapshots:
+                                          *const ServoElementSnapshotTable);
 }
 extern "C" {
     pub fn Gecko_CreateCSSErrorReporter(sheet: *mut ServoStyleSheet,
