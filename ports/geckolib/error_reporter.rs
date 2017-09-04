@@ -6,8 +6,8 @@
 
 #![allow(unsafe_code)]
 
+use cssparser::{CowRcStr, serialize_identifier, ToCss};
 use cssparser::{SourceLocation, ParseError as CssParseError, Token, BasicParseError};
-use cssparser::CowRcStr;
 use selectors::parser::SelectorParseError;
 use std::ptr;
 use style::error_reporting::{ParseErrorReporter, ContextualParseError};
@@ -53,136 +53,13 @@ impl<'a> ErrorString<'a> {
     fn into_str(self) -> CowRcStr<'a> {
         match self {
             ErrorString::Snippet(s) => s,
-            ErrorString::Ident(i) => escape_css_ident(&i).into(),
-            ErrorString::UnexpectedToken(t) => token_to_str(t).into(),
-        }
-    }
-}
-
-// This is identical to the behaviour of cssparser::serialize_identifier, except that
-// it uses numerical escapes for a larger set of characters.
-fn escape_css_ident(ident: &str) -> String {
-    // The relevant parts of the CSS grammar are:
-    //   ident    ([-]?{nmstart}|[-][-]){nmchar}*
-    //   nmstart  [_a-z]|{nonascii}|{escape}
-    //   nmchar   [_a-z0-9-]|{nonascii}|{escape}
-    //   nonascii [^\0-\177]
-    //   escape   {unicode}|\\[^\n\r\f0-9a-f]
-    //   unicode  \\[0-9a-f]{1,6}(\r\n|[ \n\r\t\f])?
-    // from http://www.w3.org/TR/CSS21/syndata.html#tokenization but
-    // modified for idents by
-    // http://dev.w3.org/csswg/cssom/#serialize-an-identifier and
-    // http://dev.w3.org/csswg/css-syntax/#would-start-an-identifier
-    if ident.is_empty() {
-        return ident.into()
-    }
-
-    let mut escaped = String::with_capacity(ident.len());
-
-    // A leading dash does not need to be escaped as long as it is not the
-    // *only* character in the identifier.
-    let mut iter = ident.chars().peekable();
-    if iter.peek() == Some(&'-') {
-        if ident.len() == 1 {
-            return "\\-".into();
-        }
-
-        escaped.push('-');
-        // Skip the first character.
-        let _ = iter.next();
-    }
-
-    // Escape a digit at the start (including after a dash),
-    // numerically.  If we didn't escape it numerically, it would get
-    // interpreted as a numeric escape for the wrong character.
-    if iter.peek().map_or(false, |&c| '0' <= c && c <= '9') {
-        let ch = iter.next().unwrap();
-        escaped.push_str(&format!("\\{:x} ", ch as u32));
-    }
-
-    while let Some(ch) = iter.next() {
-        if ch == '\0' {
-            escaped.push_str("\u{FFFD}");
-        } else if ch < (0x20 as char) || (0x7f as char <= ch && ch < (0xA0 as char)) {
-            // Escape U+0000 through U+001F and U+007F through U+009F numerically.
-            escaped.push_str(&format!("\\{:x} ", ch as u32));
-        } else {
-            // Escape ASCII non-identifier printables as a backslash plus
-            // the character.
-            if (ch < (0x7F as char)) &&
-                ch != '_' && ch != '-' &&
-                (ch < '0' || '9' < ch) &&
-                (ch < 'A' || 'Z' < ch) &&
-                (ch < 'a' || 'z' < ch)
-            {
-                escaped.push('\\');
+            ErrorString::UnexpectedToken(t) => t.to_css_string().into(),
+            ErrorString::Ident(i) => {
+                let mut s = String::new();
+                serialize_identifier(&i, &mut s).unwrap();
+                s.into()
             }
-            escaped.push(ch);
         }
-    }
-
-    escaped
-}
-
-// This is identical to the behaviour of cssparser::CssStringWriter, except that
-// the characters between 0x7F and 0xA0 as numerically escaped as well.
-fn escape_css_string(s: &str) -> String {
-    let mut escaped = String::new();
-    for ch in s.chars() {
-        if ch < ' ' || (ch >= (0x7F as char) && ch < (0xA0 as char)) {
-            escaped.push_str(&format!("\\{:x} ", ch as u32));
-        } else {
-            if ch == '"' || ch == '\'' || ch == '\\' {
-                // Escape backslash and quote characters symbolically.
-                // It's not technically necessary to escape the quote
-                // character that isn't being used to delimit the string,
-                // but we do it anyway because that makes testing simpler.
-                escaped.push('\\');
-            }
-            escaped.push(ch);
-        }
-    }
-    escaped
-}
-
-fn token_to_str<'a>(t: Token<'a>) -> String {
-    match t {
-        Token::Ident(i) => escape_css_ident(&i),
-        Token::AtKeyword(kw) => format!("@{}", escape_css_ident(&kw)),
-        Token::Hash(h) | Token::IDHash(h) => format!("#{}", escape_css_ident(&h)),
-        Token::QuotedString(s) => format!("'{}'", escape_css_string(&s)),
-        Token::UnquotedUrl(u) => format!("'{}'", escape_css_string(&u)),
-        Token::Delim(d) => d.to_string(),
-        Token::Number { int_value: Some(i), .. } => i.to_string(),
-        Token::Number { value, .. } => value.to_string(),
-        Token::Percentage { int_value: Some(i), .. } => i.to_string(),
-        Token::Percentage { unit_value, .. } => unit_value.to_string(),
-        Token::Dimension { int_value: Some(i), ref unit, .. } =>
-            format!("{}{}", i, escape_css_ident(&*unit)),
-        Token::Dimension { value, ref unit, .. } =>
-            format!("{}{}", value, escape_css_ident(&*unit)),
-        Token::WhiteSpace(s) => s.into(),
-        Token::Comment(_) => "comment".into(),
-        Token::Colon => ":".into(),
-        Token::Semicolon => ";".into(),
-        Token::Comma => ",".into(),
-        Token::IncludeMatch => "~=".into(),
-        Token::DashMatch => "|=".into(),
-        Token::PrefixMatch => "^=".into(),
-        Token::SuffixMatch => "$=".into(),
-        Token::SubstringMatch => "*=".into(),
-        Token::Column => "||".into(),
-        Token::CDO => "<!--".into(),
-        Token::CDC => "-->".into(),
-        Token::Function(f) => format!("{}(", escape_css_ident(&f)),
-        Token::ParenthesisBlock => "(".into(),
-        Token::SquareBracketBlock => "[".into(),
-        Token::CurlyBracketBlock => "{".into(),
-        Token::BadUrl(url) => format!("url('{}", escape_css_string(&url)).into(),
-        Token::BadString(s) => format!("'{}", escape_css_string(&s)).into(),
-        Token::CloseParenthesis => "unmatched close parenthesis".into(),
-        Token::CloseSquareBracket => "unmatched close square bracket".into(),
-        Token::CloseCurlyBracket => "unmatched close curly bracket".into(),
     }
 }
 
@@ -200,30 +77,44 @@ trait ErrorHelpers<'a> {
 
 fn extract_error_param<'a>(err: ParseError<'a>) -> Option<ErrorString<'a>> {
     Some(match err {
-        CssParseError::Basic(BasicParseError::UnexpectedToken(t)) =>
-            ErrorString::UnexpectedToken(t),
+        CssParseError::Basic(BasicParseError::UnexpectedToken(t)) => {
+            ErrorString::UnexpectedToken(t)
+        }
 
         CssParseError::Basic(BasicParseError::AtRuleInvalid(i)) |
         CssParseError::Custom(SelectorParseError::Custom(
-            StyleParseError::UnsupportedAtRule(i))) =>
-            ErrorString::Snippet(format!("@{}", escape_css_ident(&i)).into()),
+            StyleParseError::UnsupportedAtRule(i)
+        )) => {
+            let mut s = String::from("@");
+            serialize_identifier(&i, &mut s).unwrap();
+            ErrorString::Snippet(s.into())
+        }
 
         CssParseError::Custom(SelectorParseError::Custom(
             StyleParseError::PropertyDeclaration(
-                PropertyDeclarationParseError::InvalidValue(property, None)))) =>
-            ErrorString::Snippet(property),
+                PropertyDeclarationParseError::InvalidValue(property, None)
+            )
+        )) => {
+            ErrorString::Snippet(property)
+        }
 
-        CssParseError::Custom(SelectorParseError::UnexpectedIdent(ident)) =>
-            ErrorString::Ident(ident),
+        CssParseError::Custom(SelectorParseError::UnexpectedIdent(ident)) => {
+            ErrorString::Ident(ident)
+        }
 
         CssParseError::Custom(SelectorParseError::Custom(
             StyleParseError::PropertyDeclaration(
-                PropertyDeclarationParseError::UnknownProperty(property)))) =>
-            ErrorString::Ident(property),
+                PropertyDeclarationParseError::UnknownProperty(property)
+            )
+        )) => {
+            ErrorString::Ident(property)
+        }
 
         CssParseError::Custom(SelectorParseError::Custom(
-            StyleParseError::UnexpectedTokenWithinNamespace(token))) =>
-            ErrorString::UnexpectedToken(token),
+            StyleParseError::UnexpectedTokenWithinNamespace(token)
+        )) => {
+            ErrorString::UnexpectedToken(token)
+        }
 
         _ => return None,
     })

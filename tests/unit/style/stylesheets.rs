@@ -280,7 +280,7 @@ impl ParseErrorReporter for CSSInvalidErrorReporterTest {
                 url: url.clone(),
                 line: location.line,
                 column: location.column,
-                message: error.to_string()
+                message: error.to_string(),
             }
         );
     }

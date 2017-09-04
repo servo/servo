@@ -45,19 +45,31 @@ impl ToCss for ViewportConstraints {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result
         where W: fmt::Write
     {
-        write!(dest, "@viewport {{")?;
-        write!(dest, " width: {}px;", self.size.width)?;
-        write!(dest, " height: {}px;", self.size.height)?;
-        write!(dest, " zoom: {};", self.initial_zoom.get())?;
+        dest.write_str("@viewport { width: ")?;
+        self.size.width.to_css(dest)?;
+
+        dest.write_str("px; height: ")?;
+        self.size.height.to_css(dest)?;
+
+        dest.write_str("px; zoom: ")?;
+        self.initial_zoom.get().to_css(dest)?;
+
         if let Some(min_zoom) = self.min_zoom {
-            write!(dest, " min-zoom: {};", min_zoom.get())?;
+            dest.write_str("; min-zoom: ")?;
+            min_zoom.get().to_css(dest)?;
         }
+
         if let Some(max_zoom) = self.max_zoom {
-            write!(dest, " max-zoom: {};", max_zoom.get())?;
+            dest.write_str("; max-zoom: ")?;
+            max_zoom.get().to_css(dest)?;
         }
-        write!(dest, " user-zoom: ")?; self.user_zoom.to_css(dest)?;
-        write!(dest, "; orientation: ")?; self.orientation.to_css(dest)?;
-        write!(dest, "; }}")
+
+        dest.write_str("; user-zoom: ")?;
+        self.user_zoom.to_css(dest)?;
+
+        dest.write_str("; orientation: ")?;
+        self.orientation.to_css(dest)?;
+        dest.write_str("; }")
     }
 }
 
@@ -78,9 +90,12 @@ impl ToCss for Zoom {
         where W: fmt::Write,
     {
         match *self {
-            Zoom::Number(number) => write!(dest, "{}", number),
-            Zoom::Percentage(percentage) => write!(dest, "{}%", percentage * 100.),
-            Zoom::Auto => write!(dest, "auto")
+            Zoom::Number(number) => number.to_css(dest),
+            Zoom::Auto => dest.write_str("auto"),
+            Zoom::Percentage(percentage) => {
+                (percentage * 100.).to_css(dest)?;
+                dest.write_char('%')
+            }
         }
     }
 }

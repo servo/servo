@@ -88,7 +88,7 @@ macro_rules! define_keyword_type {
 
         impl fmt::Debug for $name {
             fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                write!(f, $css)
+                f.write_str($css)
             }
         }
 

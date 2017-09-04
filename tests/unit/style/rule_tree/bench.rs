@@ -22,7 +22,7 @@ impl ParseErrorReporter for ErrorringErrorReporter {
                     url: &ServoUrl,
                     location: SourceLocation,
                     error: ContextualParseError) {
-        panic!("CSS error: {}\t\n{}:{} {}", url.as_str(), location.line, location.column, error.to_string());
+        panic!("CSS error: {}\t\n{}:{} {}", url.as_str(), location.line, location.column, error);
     }
 }
 

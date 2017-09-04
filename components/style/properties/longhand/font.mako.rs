@@ -273,7 +273,7 @@ macro_rules! impl_gecko_keyword_conversions {
                         % if product == "gecko":
                             // We should treat -moz-fixed as monospace
                             if name == &atom!("-moz-fixed") {
-                                return write!(dest, "monospace");
+                                return dest.write_str("monospace");
                             }
                         % endif
 

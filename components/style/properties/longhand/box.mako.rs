@@ -631,7 +631,6 @@ ${helpers.predefined_type(
     use values::specified::{Angle, Integer, Length, LengthOrPercentage};
     use values::specified::{LengthOrNumber, LengthOrPercentageOrNumber as LoPoNumber, Number};
     use style_traits::ToCss;
-    use style_traits::values::Css;
 
     use std::fmt;
 
@@ -819,58 +818,99 @@ ${helpers.predefined_type(
                     m11, m12, m13, m14,
                     m21, m22, m23, m24,
                     m31, m32, m33, m34,
-                    m41, m42, m43, m44 } => write!(
-                        dest, "matrix3d({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {})",
-                        Css(m11), Css(m12), Css(m13), Css(m14),
-                        Css(m21), Css(m22), Css(m23), Css(m24),
-                        Css(m31), Css(m32), Css(m33), Css(m34),
-                        Css(m41), Css(m42), Css(m43), Css(m44)),
+                    m41, m42, m43, m44,
+                } => {
+                    serialize_function!(dest, matrix3d(
+                        m11, m12, m13, m14,
+                        m21, m22, m23, m24,
+                        m31, m32, m33, m34,
+                        m41, m42, m43, m44,
+                    ))
+                }
                 SpecifiedOperation::PrefixedMatrix3D {
                     m11, m12, m13, m14,
                     m21, m22, m23, m24,
                     m31, m32, m33, m34,
-                    ref m41, ref m42, ref m43, m44 } => write!(
-                        dest, "matrix3d({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {})",
-                        Css(m11), Css(m12), Css(m13), Css(m14),
-                        Css(m21), Css(m22), Css(m23), Css(m24),
-                        Css(m31), Css(m32), Css(m33), Css(m34),
-                        Css(m41), Css(m42), Css(m43), Css(m44)),
-                SpecifiedOperation::Skew(ax, None) => write!(dest, "skew({})", Css(ax)),
-                SpecifiedOperation::Skew(ax, Some(ay)) => write!(dest, "skew({}, {})", Css(ax), Css(ay)),
-                SpecifiedOperation::SkewX(angle) => write!(dest, "skewX({})", Css(angle)),
-                SpecifiedOperation::SkewY(angle) => write!(dest, "skewY({})", Css(angle)),
-                SpecifiedOperation::Translate(ref tx, None) => write!(dest, "translate({})", Css(tx)),
+                    ref m41, ref m42, ref m43, m44,
+                } => {
+                    serialize_function!(dest, matrix3d(
+                        m11, m12, m13, m14,
+                        m21, m22, m23, m24,
+                        m31, m32, m33, m34,
+                        m41, m42, m43, m44,
+                    ))
+                }
+                SpecifiedOperation::Skew(ax, None) => {
+                    serialize_function!(dest, skew(ax))
+                }
+                SpecifiedOperation::Skew(ax, Some(ay)) => {
+                    serialize_function!(dest, skew(ax, ay))
+                }
+                SpecifiedOperation::SkewX(angle) => {
+                    serialize_function!(dest, skewX(angle))
+                }
+                SpecifiedOperation::SkewY(angle) => {
+                    serialize_function!(dest, skewY(angle))
+                }
+                SpecifiedOperation::Translate(ref tx, None) => {
+                    serialize_function!(dest, translate(tx))
+                }
                 SpecifiedOperation::Translate(ref tx, Some(ref ty)) => {
-                    write!(dest, "translate({}, {})", Css(tx), Css(ty))
-                },
-                SpecifiedOperation::TranslateX(ref tx) => write!(dest, "translateX({})", Css(tx)),
-                SpecifiedOperation::TranslateY(ref ty) => write!(dest, "translateY({})", Css(ty)),
-                SpecifiedOperation::TranslateZ(ref tz) => write!(dest, "translateZ({})", Css(tz)),
-                SpecifiedOperation::Translate3D(ref tx, ref ty, ref tz) => write!(
-                    dest, "translate3d({}, {}, {})", Css(tx), Css(ty), Css(tz)),
-                SpecifiedOperation::Scale(factor, None) => write!(dest, "scale({})", Css(factor)),
-                SpecifiedOperation::Scale(sx, Some(sy)) => write!(dest, "scale({}, {})", Css(sx), Css(sy)),
-                SpecifiedOperation::ScaleX(sx) => write!(dest, "scaleX({})", Css(sx)),
-                SpecifiedOperation::ScaleY(sy) => write!(dest, "scaleY({})", Css(sy)),
-                SpecifiedOperation::ScaleZ(sz) => write!(dest, "scaleZ({})", Css(sz)),
+                    serialize_function!(dest, translate(tx, ty))
+                }
+                SpecifiedOperation::TranslateX(ref tx) => {
+                    serialize_function!(dest, translateX(tx))
+                }
+                SpecifiedOperation::TranslateY(ref ty) => {
+                    serialize_function!(dest, translateY(ty))
+                }
+                SpecifiedOperation::TranslateZ(ref tz) => {
+                    serialize_function!(dest, translateZ(tz))
+                }
+                SpecifiedOperation::Translate3D(ref tx, ref ty, ref tz) => {
+                    serialize_function!(dest, translate3d(tx, ty, tz))
+                }
+                SpecifiedOperation::Scale(factor, None) => {
+                    serialize_function!(dest, scale(factor))
+                }
+                SpecifiedOperation::Scale(sx, Some(sy)) => {
+                    serialize_function!(dest, scale(sx, sy))
+                }
+                SpecifiedOperation::ScaleX(sx) => {
+                    serialize_function!(dest, scaleX(sx))
+                }
+                SpecifiedOperation::ScaleY(sy) => {
+                    serialize_function!(dest, scaleY(sy))
+                }
+                SpecifiedOperation::ScaleZ(sz) => {
+                    serialize_function!(dest, scaleZ(sz))
+                }
                 SpecifiedOperation::Scale3D(sx, sy, sz) => {
-                    write!(dest, "scale3d({}, {}, {})", Css(sx), Css(sy), Css(sz))
-                },
-                SpecifiedOperation::Rotate(theta) => write!(dest, "rotate({})", Css(theta)),
-                SpecifiedOperation::RotateX(theta) => write!(dest, "rotateX({})", Css(theta)),
-                SpecifiedOperation::RotateY(theta) => write!(dest, "rotateY({})", Css(theta)),
-                SpecifiedOperation::RotateZ(theta) => write!(dest, "rotateZ({})", Css(theta)),
-                SpecifiedOperation::Rotate3D(x, y, z, theta) => write!(
-                    dest, "rotate3d({}, {}, {}, {})",
-                    Css(x), Css(y), Css(z), Css(theta)),
-                SpecifiedOperation::Perspective(ref length) => write!(dest, "perspective({})", Css(length)),
+                    serialize_function!(dest, scale3d(sx, sy, sz))
+                }
+                SpecifiedOperation::Rotate(theta) => {
+                    serialize_function!(dest, rotate(theta))
+                }
+                SpecifiedOperation::RotateX(theta) => {
+                    serialize_function!(dest, rotateX(theta))
+                }
+                SpecifiedOperation::RotateY(theta) => {
+                    serialize_function!(dest, rotateY(theta))
+                }
+                SpecifiedOperation::RotateZ(theta) => {
+                    serialize_function!(dest, rotateZ(theta))
+                }
+                SpecifiedOperation::Rotate3D(x, y, z, theta) => {
+                    serialize_function!(dest, rotate3d(x, y, z, theta))
+                }
+                SpecifiedOperation::Perspective(ref length) => {
+                    serialize_function!(dest, perspective(length))
+                }
                 SpecifiedOperation::InterpolateMatrix { ref from_list, ref to_list, progress } => {
-                    write!(dest, "interpolatematrix({}, {}, {})",
-                           Css(from_list), Css(to_list), Css(progress))
-                },
+                    serialize_function!(dest, interpolatematrix(from_list, to_list, progress))
+                }
                 SpecifiedOperation::AccumulateMatrix { ref from_list, ref to_list, count } => {
-                    write!(dest, "accumulatematrix({}, {}, {})",
-                           Css(from_list), Css(to_list), Css(count))
+                    serialize_function!(dest, accumulatematrix(from_list, to_list, count))
                 }
             }
         }

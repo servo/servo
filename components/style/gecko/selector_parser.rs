@@ -70,7 +70,7 @@ impl ToCss for NonTSPseudoClass {
                 match *self {
                     $(NonTSPseudoClass::$name => concat!(":", $css),)*
                     $(NonTSPseudoClass::$s_name(ref s) => {
-                        write!(dest, ":{}(", $s_css)?;
+                        dest.write_str(concat!(":", $s_css, "("))?;
                         {
                             // FIXME(emilio): Avoid the extra allocation!
                             let mut css = CssStringWriter::new(dest);
@@ -84,7 +84,9 @@ impl ToCss for NonTSPseudoClass {
                     $(NonTSPseudoClass::$k_name(ref s) => {
                         // Don't include the terminating nul.
                         let value = String::from_utf16(&s[..s.len() - 1]).unwrap();
-                        return write!(dest, ":{}({})", $k_css, value)
+                        dest.write_str(concat!(":", $k_css, "("))?;
+                        dest.write_str(&value)?;
+                        return dest.write_char(')')
                     }, )*
                     NonTSPseudoClass::MozAny(ref selectors) => {
                         dest.write_str(":-moz-any(")?;

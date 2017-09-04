@@ -155,7 +155,7 @@ impl ToCss for KeyframeSelector {
         let mut iter = self.0.iter();
         iter.next().unwrap().to_css(dest)?;
         for percentage in iter {
-            write!(dest, ", ")?;
+            dest.write_str(", ")?;
             percentage.to_css(dest)?;
         }
         Ok(())

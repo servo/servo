@@ -31,7 +31,7 @@ impl ParseErrorReporter for CSSErrorReporter {
                   url.as_str(),
                   location.line,
                   location.column,
-                  error.to_string())
+                  error)
         }
 
         //TODO: report a real filename

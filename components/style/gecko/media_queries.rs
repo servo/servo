@@ -399,7 +399,9 @@ impl MediaExpressionValue {
                 dest.write_str(if v { "1" } else { "0" })
             },
             MediaExpressionValue::IntRatio(a, b) => {
-                write!(dest, "{}/{}", a, b)
+                a.to_css(dest)?;
+                dest.write_char('/')?;
+                b.to_css(dest)
             },
             MediaExpressionValue::Resolution(ref r) => r.to_css(dest),
             MediaExpressionValue::Ident(ref ident) => {
