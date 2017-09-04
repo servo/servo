@@ -3,12 +3,16 @@
   test(function () {
     var obs = new PerformanceObserver(function () { return true; });
     assert_throws(new TypeError(), function () {
+      obs.observe();
+    });
+    assert_throws(new TypeError(), function () {
       obs.observe({});
     });
     assert_throws(new TypeError(), function () {
       obs.observe({entryType: []});
     });
   }, "no entryTypes throws a TypeError");
+
   test(function () {
     var obs = new PerformanceObserver(function () { return true; });
     assert_throws(new TypeError(), function () {
@@ -21,9 +25,12 @@
       obs.observe({entryTypes: ["this-cannot-match-an-entryType"]});
     });
     assert_throws(new TypeError(), function () {
-      obs.observe({entryTypes: ["marks","navigate", "resources"]});
+      obs.observe({entryTypes: ["marks","navigate","resources"]});
     });
-  }, "Empty sequence entryTypes throws a TypeError");
+    assert_throws(new TypeError(), function () {
+      obs.observe({others: true});
+    });
+  }, "Wrong sequence entryTypes throws a TypeError");
 
   test(function () {
     var obs = new PerformanceObserver(function () { return true; });
@@ -33,9 +40,11 @@
   }, "Filter unsupported entryType entryType names within the entryTypes sequence");
 
   async_test(function (t) {
-  var observer = new PerformanceObserver(
+    var observer = new PerformanceObserver(
       t.step_func(function (entryList, obs) {
-        assert_equals(observer, obs, "observer is second parameter");
+        assert_equals( observer.observe({entryTypes: ["mark"]}), 
+          obs.observe({entryTypes: ["measure"]}),
+          "observer is second parameter. replace the old observer's options with the new one.");    
         checkEntries(entryList.getEntries(),
           [{ entryType: "measure", name: "measure1"}]);
         observer.disconnect();
