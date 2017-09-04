@@ -163,7 +163,7 @@ impl Performance {
             observer.set_entries(obs_entries);
         }
         let mut observers = self.observers.borrow_mut();
-        match observers.iter().position(|o| &(*o.observer) == observer) {
+        match observers.iter().position(|o| *o.observer == *observer) {
             // If the observer is already in the list, we only update the observed
             // entry types.
             Some(p) => observers[p].entry_types = entry_types,
