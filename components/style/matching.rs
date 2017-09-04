@@ -394,51 +394,55 @@ trait PrivateMatchMethods: TElement {
         match difference.change {
             StyleChange::Unchanged => ChildCascadeRequirement::CanSkipCascade,
             StyleChange::Changed { reset_only } => {
-                if reset_only {
-                    let old_display = old_values.get_box().clone_display();
-                    let new_display = new_values.get_box().clone_display();
-
-                    if old_display.is_item_container() != new_display.is_item_container() {
-                        // Blockification of children may depend on our display
-                        // value, so we need to actually do the recascade.
-                        return ChildCascadeRequirement::MustCascadeChildren
-                    }
-
-                    #[cfg(feature = "gecko")]
-                    {
-                        use values::specified::align;
-
-                        // Children with justify-items: legacy may depend on our
-                        // property value.
-                        //
-                        // TODO(emilio): We could special-case this even more
-                        // creating a new `ChildCascadeRequirement` variant, but
-                        // it's unclear it matters.
-                        let old_justify_items =
-                            old_values.get_position().clone_justify_items();
-                        let new_justify_items =
-                            new_values.get_position().clone_justify_items();
-
-                        let was_legacy_justify_items =
-                            old_justify_items.computed.0.contains(align::ALIGN_LEGACY);
-
-                        let is_legacy_justify_items =
-                            new_justify_items.computed.0.contains(align::ALIGN_LEGACY);
-
-                        if is_legacy_justify_items != was_legacy_justify_items {
-                            return ChildCascadeRequirement::MustCascadeChildren;
-                        }
-
-                        if was_legacy_justify_items &&
-                            old_justify_items.computed != new_justify_items.computed {
-                            return ChildCascadeRequirement::MustCascadeChildren;
-                        }
-                    }
-
-                    ChildCascadeRequirement::MustCascadeChildrenIfInheritResetStyle
-                } else {
-                    ChildCascadeRequirement::MustCascadeChildren
+                // If inherited properties changed, the best we can do is
+                // cascade the children.
+                if !reset_only {
+                    return ChildCascadeRequirement::MustCascadeChildren
                 }
+
+                let old_display = old_values.get_box().clone_display();
+                let new_display = new_values.get_box().clone_display();
+
+                // Blockification of children may depend on our display value,
+                // so we need to actually do the recascade. We could potentially
+                // do better, but it doesn't seem worth it.
+                if old_display.is_item_container() != new_display.is_item_container() {
+                    return ChildCascadeRequirement::MustCascadeChildren
+                }
+
+                // Children with justify-items: auto may depend on our
+                // justify-items property value.
+                //
+                // Similarly, we could potentially do better, but this really
+                // seems not common enough to care about.
+                #[cfg(feature = "gecko")]
+                {
+                    use values::specified::align;
+
+                    let old_justify_items =
+                        old_values.get_position().clone_justify_items();
+                    let new_justify_items =
+                        new_values.get_position().clone_justify_items();
+
+                    let was_legacy_justify_items =
+                        old_justify_items.computed.0.contains(align::ALIGN_LEGACY);
+
+                    let is_legacy_justify_items =
+                        new_justify_items.computed.0.contains(align::ALIGN_LEGACY);
+
+                    if is_legacy_justify_items != was_legacy_justify_items {
+                        return ChildCascadeRequirement::MustCascadeChildren;
+                    }
+
+                    if was_legacy_justify_items &&
+                        old_justify_items.computed != new_justify_items.computed {
+                        return ChildCascadeRequirement::MustCascadeChildren;
+                    }
+                }
+
+                // We could prove that, if our children don't inherit reset
+                // properties, we can stop the cascade.
+                ChildCascadeRequirement::MustCascadeChildrenIfInheritResetStyle
             }
         }
     }
