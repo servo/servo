@@ -395,6 +395,15 @@ trait PrivateMatchMethods: TElement {
             StyleChange::Unchanged => ChildCascadeRequirement::CanSkipCascade,
             StyleChange::Changed { reset_only } => {
                 if reset_only {
+                    let old_display = old_values.get_box().clone_display();
+                    let new_display = new_values.get_box().clone_display();
+
+                    if old_display.is_item_container() != new_display.is_item_container() {
+                        // Blockification of children may depend on our display
+                        // value, so we need to actually do the recascade.
+                        return ChildCascadeRequirement::MustCascadeChildren
+                    }
+
                     #[cfg(feature = "gecko")]
                     {
                         use values::specified::align;
