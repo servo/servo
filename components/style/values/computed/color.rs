@@ -26,6 +26,9 @@ pub struct Color {
 /// Computed value type for the specified RGBAColor.
 pub type RGBAColor = RGBA;
 
+/// The computed value of the `color` property.
+pub type ColorPropertyValue = RGBA;
+
 impl Color {
     /// Returns a numeric color representing the given RGBA value.
     pub fn rgba(rgba: RGBA) -> Color {
