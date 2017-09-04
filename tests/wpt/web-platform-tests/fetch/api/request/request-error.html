@@ -53,12 +53,6 @@
 
       test(function() {
         assert_throws(new TypeError() ,
-                      function() { new Request("", {"mode" : "no-cors", "integrity" : "not  an empty string"}); },
-                      "Expect TypeError exception");
-      },"RequestInit's mode is no-cors and integrity is not empty");
-
-      test(function() {
-        assert_throws(new TypeError() ,
                       function() { new Request("", {"mode" : "cors", "cache" : "only-if-cached"}); },
                       "Expect TypeError exception");
       },"RequestInit's cache mode is only-if-cached and mode is not same-origin");
