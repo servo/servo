@@ -9,7 +9,6 @@ use dom::bindings::codegen::Bindings::PerformanceObserverBinding;
 use dom::bindings::codegen::Bindings::PerformanceObserverBinding::PerformanceObserverCallback;
 use dom::bindings::codegen::Bindings::PerformanceObserverBinding::PerformanceObserverInit;
 use dom::bindings::codegen::Bindings::PerformanceObserverBinding::PerformanceObserverMethods;
-use dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
@@ -51,8 +50,8 @@ impl PerformanceObserver {
 
     #[allow(unrooted_must_root)]
     pub fn new(global: &GlobalScope,
-           callback: Rc<PerformanceObserverCallback>,
-           entries: DOMPerformanceEntryList)
+               callback: Rc<PerformanceObserverCallback>,
+               entries: DOMPerformanceEntryList)
         -> Root<PerformanceObserver> {
         let observer = PerformanceObserver::new_inherited(callback, DOMRefCell::new(entries));
         reflect_dom_object(box observer, global, PerformanceObserverBinding::Wrap)
@@ -110,15 +109,15 @@ impl PerformanceObserverMethods for PerformanceObserver {
             return Err((Error::Type("entryTypes cannot be empty".to_string())));
         }
 
-        let performance = self.global().as_window().Performance();
         // step 3-4-5
-        performance.add_observer(self, entry_types, options.buffered);
+        self.global().performance().add_observer(self, entry_types, options.buffered);
+
         Ok(())
     }
 
     // https://w3c.github.io/performance-timeline/#dom-performanceobserver-disconnect()
     fn Disconnect(&self) {
-        self.global().as_window().Performance().remove_observer(self);
+        self.global().performance().remove_observer(self);
         self.entries.borrow_mut().clear();
     }
 }

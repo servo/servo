@@ -710,7 +710,8 @@ impl WindowMethods for Window {
     // NavigationTiming/Overview.html#sec-window.performance-attribute
     fn Performance(&self) -> Root<Performance> {
         self.performance.or_init(|| {
-            Performance::new(self, self.navigation_start.get(),
+            let global_scope = self.upcast::<GlobalScope>();
+            Performance::new(global_scope, self.navigation_start.get(),
                              self.navigation_start_precise.get())
         })
     }

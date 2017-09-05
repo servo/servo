@@ -6,18 +6,41 @@
 //     a low priority task and it should be processed during idle periods.
 //     We are currently treating this task queue as a normal priority queue.
 
-use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::Trusted;
-use dom::performance::{NotifyPerformanceObserverRunnable, Performance};
-use dom::window::Window;
-use script_thread::{MainThreadScriptMsg, Runnable, RunnableWrapper, ScriptThread};
+use dom::globalscope::GlobalScope;
+use dom::performance::Performance;
+use script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
+use script_thread::{Runnable, RunnableWrapper};
 use std::fmt;
 use std::result::Result;
-use std::sync::mpsc::Sender;
 use task_source::TaskSource;
 
-#[derive(Clone, JSTraceable)]
-pub struct PerformanceTimelineTaskSource(pub Sender<MainThreadScriptMsg>);
+pub struct NotifyPerformanceObserverRunnable {
+    owner: Trusted<Performance>,
+}
+
+impl NotifyPerformanceObserverRunnable {
+    pub fn new(owner: Trusted<Performance>) -> Self {
+        NotifyPerformanceObserverRunnable {
+            owner,
+        }
+    }
+}
+
+impl Runnable for NotifyPerformanceObserverRunnable {
+    fn handler(self: Box<NotifyPerformanceObserverRunnable>) {
+        self.owner.root().notify_observers();
+    }
+}
+
+#[derive(JSTraceable)]
+pub struct PerformanceTimelineTaskSource(pub Box<ScriptChan + Send + 'static>);
+
+impl Clone for PerformanceTimelineTaskSource {
+    fn clone(&self) -> PerformanceTimelineTaskSource {
+        PerformanceTimelineTaskSource(self.0.clone())
+    }
+}
 
 impl fmt::Debug for PerformanceTimelineTaskSource {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -30,29 +53,18 @@ impl TaskSource for PerformanceTimelineTaskSource {
                              msg: Box<T>,
                              wrapper: &RunnableWrapper) -> Result<(), ()>
                              where T: Runnable + Send + 'static {
-        let msg = PerformanceTimelineTask(wrapper.wrap_runnable(msg));
-        self.0.send(MainThreadScriptMsg::PerformanceTimeline(msg)).map_err(|_| ())
+        let msg = CommonScriptMsg::RunnableMsg(
+            ScriptThreadEventCategory::PerformanceTimelineTask,
+            wrapper.wrap_runnable(msg)
+        );
+        self.0.send(msg).map_err(|_| ())
     }
 }
 
 impl PerformanceTimelineTaskSource {
-    pub fn queue_notification(&self, owner: &Performance, window: &Window) {
-        let owner = Trusted::new(owner);
+    pub fn queue_notification(&self, global: &GlobalScope) {
+        let owner = Trusted::new(&*global.performance());
         let runnable = box NotifyPerformanceObserverRunnable::new(owner);
-        let _ = self.queue(runnable, window.upcast());
-    }
-}
-
-pub struct PerformanceTimelineTask(pub Box<Runnable + Send>);
-
-impl fmt::Debug for PerformanceTimelineTask {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "PerformanceTimelineTask(...)")
-    }
-}
-
-impl PerformanceTimelineTask {
-    pub fn handle_task(self, script_thread: &ScriptThread) {
-        self.0.main_thread_handler(script_thread);
+        let _ = self.queue(runnable, global);
     }
 }
