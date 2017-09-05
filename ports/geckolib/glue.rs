@@ -1528,11 +1528,16 @@ pub extern "C" fn Servo_KeyframesRule_GetCount(rule: RawServoKeyframesRuleBorrow
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_KeyframesRule_GetKeyframe(rule: RawServoKeyframesRuleBorrowed, index: u32)
-                                                  -> RawServoKeyframeStrong {
-    read_locked_arc(rule, |rule: &KeyframesRule| {
-        rule.keyframes[index as usize].clone().into_strong()
-    })
+pub extern "C" fn Servo_KeyframesRule_GetKeyframeAt(rule: RawServoKeyframesRuleBorrowed, index: u32,
+                                                    line: *mut u32, column: *mut u32) -> RawServoKeyframeStrong {
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
+    let key = Locked::<KeyframesRule>::as_arc(&rule).read_with(&guard)
+                  .keyframes[index as usize].clone();
+    let location = key.read_with(&guard).source_location;
+    *unsafe { line.as_mut().unwrap() } = location.line as u32;
+    *unsafe { column.as_mut().unwrap() } = location.column as u32;
+    key.into_strong()
 }
 
 #[no_mangle]
