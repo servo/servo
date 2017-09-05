@@ -530,8 +530,9 @@ impl Expression {
                     Ok((f, r)) => {
                         feature = f;
                         range = r;
-                    }
-                    Err(()) => return Err(SelectorParseError::UnexpectedIdent(ident.clone()).into()),
+                    },
+                    Err(()) =>
+                        return Err(StyleParseError::MediaQueryExpectedFeatureName.into()),
                 }
 
                 if (feature.mReqFlags & !flags) != 0 {
@@ -564,7 +565,7 @@ impl Expression {
                     // for parity with gecko. We should remove this check when we want
                     // to support it.
                     if let Length::Calc(_) = length {
-                        return Err(StyleParseError::UnspecifiedError.into())
+                        return Err(StyleParseError::MediaQueryExpectedFeatureValue.into())
                     }
                     MediaExpressionValue::Length(length)
                 },
@@ -574,14 +575,14 @@ impl Expression {
                     // supported in media queries per FIXME above.
                     let i = input.expect_integer()?;
                     if i < 0 {
-                        return Err(StyleParseError::UnspecifiedError.into())
+                        return Err(StyleParseError::MediaQueryExpectedFeatureValue.into())
                     }
                     MediaExpressionValue::Integer(i as u32)
                 }
                 nsMediaFeature_ValueType::eBoolInteger => {
                     let i = input.expect_integer()?;
                     if i < 0 || i > 1 {
-                        return Err(StyleParseError::UnspecifiedError.into())
+                        return Err(StyleParseError::MediaQueryExpectedFeatureValue.into())
                     }
                     MediaExpressionValue::BoolInteger(i == 1)
                 }
@@ -591,14 +592,14 @@ impl Expression {
                 nsMediaFeature_ValueType::eIntRatio => {
                     let a = input.expect_integer()?;
                     if a <= 0 {
-                        return Err(StyleParseError::UnspecifiedError.into())
+                        return Err(StyleParseError::MediaQueryExpectedFeatureValue.into())
                     }
 
                     input.expect_delim('/')?;
 
                     let b = input.expect_integer()?;
                     if b <= 0 {
-                        return Err(StyleParseError::UnspecifiedError.into())
+                        return Err(StyleParseError::MediaQueryExpectedFeatureValue.into())
                     }
                     MediaExpressionValue::IntRatio(a as u32, b as u32)
                 }
@@ -621,7 +622,7 @@ impl Expression {
                             Some((_kw, value)) => {
                                 value
                             }
-                            None => return Err(StyleParseError::UnspecifiedError.into()),
+                            None => return Err(StyleParseError::MediaQueryExpectedFeatureValue.into()),
                         };
 
                     MediaExpressionValue::Enumerated(value)

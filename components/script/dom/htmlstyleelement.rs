@@ -74,7 +74,7 @@ impl HTMLStyleElement {
         let element = self.upcast::<Element>();
         assert!(node.is_in_doc());
 
-        let win = window_from_node(node);
+        let window = window_from_node(node);
         let doc = document_from_node(self);
 
         let mq_attribute = element.get_attribute(&ns!(), &local_name!("media"));
@@ -84,19 +84,22 @@ impl HTMLStyleElement {
         };
 
         let data = node.GetTextContent().expect("Element.textContent must be a string");
-        let url = win.get_url();
+        let url = window.get_url();
         let context = CssParserContext::new_for_cssom(&url,
                                                       Some(CssRuleType::Media),
                                                       PARSING_MODE_DEFAULT,
                                                       doc.quirks_mode());
         let shared_lock = node.owner_doc().style_shared_lock().clone();
         let mut input = ParserInput::new(&mq_str);
-        let mq = Arc::new(shared_lock.wrap(
-                    parse_media_query_list(&context, &mut CssParser::new(&mut input))));
+        let css_error_reporter = window.css_error_reporter();
+        let mq = Arc::new(shared_lock.wrap(parse_media_query_list(&context,
+                                                                  &mut CssParser::new(&mut input),
+                                                                  css_error_reporter)));
         let loader = StylesheetLoader::for_element(self.upcast());
-        let sheet = Stylesheet::from_str(&data, win.get_url(), Origin::Author, mq,
+        let sheet = Stylesheet::from_str(&data, window.get_url(),
+                                         Origin::Author, mq,
                                          shared_lock, Some(&loader),
-                                         win.css_error_reporter(),
+                                         css_error_reporter,
                                          doc.quirks_mode(),
                                          self.line_number as u32);
 

@@ -188,14 +188,18 @@ impl<'a> ErrorHelpers<'a> for ContextualParseError<'a> {
             ContextualParseError::InvalidRule(s, err) |
             ContextualParseError::UnsupportedRule(s, err) |
             ContextualParseError::UnsupportedViewportDescriptorDeclaration(s, err) |
-            ContextualParseError::UnsupportedCounterStyleDescriptorDeclaration(s, err) =>
+            ContextualParseError::UnsupportedCounterStyleDescriptorDeclaration(s, err) |
+            ContextualParseError::MediaQueryExpectedFeatureName(s, err) |
+            ContextualParseError::UnknownAtRule(s, err) =>
                 (s.into(), err),
             ContextualParseError::InvalidCounterStyleWithoutSymbols(s) |
             ContextualParseError::InvalidCounterStyleNotEnoughSymbols(s) =>
                 (s.into(), StyleParseError::UnspecifiedError.into()),
             ContextualParseError::InvalidCounterStyleWithoutAdditiveSymbols |
             ContextualParseError::InvalidCounterStyleExtendsWithSymbols |
-            ContextualParseError::InvalidCounterStyleExtendsWithAdditiveSymbols =>
+            ContextualParseError::InvalidCounterStyleExtendsWithAdditiveSymbols |
+            ContextualParseError::MediaQueryNoMinMaxWithoutValue |
+            ContextualParseError::MediaQueryExpectedFeatureValue =>
                 ("".into(), StyleParseError::UnspecifiedError.into())
         }
     }
@@ -281,6 +285,12 @@ impl<'a> ErrorHelpers<'a> for ContextualParseError<'a> {
             }
             ContextualParseError::UnsupportedRule(..) =>
                 (b"PEDeclDropped\0", Action::Nothing),
+            ContextualParseError::MediaQueryExpectedFeatureName(..) =>
+                (b"PEMQExpectedFeatureName\0", Action::Nothing),
+            ContextualParseError::MediaQueryExpectedFeatureValue =>
+                (b"PEMQExpectedFeatureValue\0", Action::Nothing),
+            ContextualParseError::MediaQueryNoMinMaxWithoutValue =>
+                (b"PEMQNoMinMaxWithoutValue\0", Action::Nothing),
             ContextualParseError::UnsupportedViewportDescriptorDeclaration(..) |
             ContextualParseError::UnsupportedCounterStyleDescriptorDeclaration(..) |
             ContextualParseError::InvalidCounterStyleWithoutSymbols(..) |
@@ -289,7 +299,8 @@ impl<'a> ErrorHelpers<'a> for ContextualParseError<'a> {
             ContextualParseError::InvalidCounterStyleExtendsWithSymbols |
             ContextualParseError::InvalidCounterStyleExtendsWithAdditiveSymbols |
             ContextualParseError::UnsupportedFontFeatureValuesDescriptor(..) |
-            ContextualParseError::InvalidFontFeatureValuesRule(..) =>
+            ContextualParseError::InvalidFontFeatureValuesRule(..) |
+            ContextualParseError::UnknownAtRule(..) =>
                 (b"PEUnknownAtRule\0", Action::Skip),
         };
         (None, msg, action)

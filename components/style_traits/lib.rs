@@ -107,6 +107,10 @@ pub enum StyleParseError<'i> {
     PropertyDeclarationValueNotExhausted,
     /// An unexpected dimension token was encountered.
     UnexpectedDimension(CowRcStr<'i>),
+    /// Missing or invalid media feature name.
+    MediaQueryExpectedFeatureName,
+    /// Missing or invalid media feature value.
+    MediaQueryExpectedFeatureValue,
     /// A media query using a ranged expression with no value was encountered.
     RangedExpressionWithNoValue,
     /// A function was encountered that was not expected.

@@ -19,7 +19,7 @@ pub enum ContextualParseError<'a> {
     UnsupportedPropertyDeclaration(&'a str, ParseError<'a>),
     /// A font face descriptor was not recognized.
     UnsupportedFontFaceDescriptor(&'a str, ParseError<'a>),
-    /// A font feature values descroptor was not recognized.
+    /// A font feature values descriptor was not recognized.
     UnsupportedFontFeatureValuesDescriptor(&'a str, ParseError<'a>),
     /// A keyframe rule was not valid.
     InvalidKeyframeRule(&'a str, ParseError<'a>),
@@ -44,7 +44,15 @@ pub enum ContextualParseError<'a> {
     /// A counter style rule had extends with symbols.
     InvalidCounterStyleExtendsWithSymbols,
     /// A counter style rule had extends with additive-symbols.
-    InvalidCounterStyleExtendsWithAdditiveSymbols
+    InvalidCounterStyleExtendsWithAdditiveSymbols,
+    /// A media feature name was not recognized.
+    MediaQueryExpectedFeatureName(&'a str, ParseError<'a>),
+    /// A media feature value was not recognized.
+    MediaQueryExpectedFeatureValue,
+    /// A media feature with min- or max- had no value.
+    MediaQueryNoMinMaxWithoutValue,
+    /// Unrecognized at-rule or error parsing at-rule.
+    UnknownAtRule(&'a str, ParseError<'a>),
 }
 
 impl<'a> fmt::Display for ContextualParseError<'a> {
@@ -167,6 +175,20 @@ impl<'a> fmt::Display for ContextualParseError<'a> {
             }
             ContextualParseError::InvalidCounterStyleExtendsWithAdditiveSymbols => {
                 write!(f, "Invalid @counter-style rule: 'system: extends …' with 'additive-symbols'")
+            }
+            ContextualParseError::MediaQueryExpectedFeatureName(feature, ref err) => {
+                write!(f, "Expected media feature name but found: '{}', ", feature)?;
+                parse_error_to_str(err, f)
+            }
+            ContextualParseError::MediaQueryExpectedFeatureValue => {
+                write!(f, "Found invalid value for media feature")
+            }
+            ContextualParseError::MediaQueryNoMinMaxWithoutValue => {
+                write!(f, "Media features with min- or max- must have a value")
+            }
+            ContextualParseError::UnknownAtRule(at_rule, ref err) => {
+                write!(f, "Unrecognized at-rule or error parsing at-rule '{}', ", at_rule)?;
+                parse_error_to_str(err, f)
             }
         }
     }
