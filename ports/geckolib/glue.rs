@@ -47,6 +47,7 @@ use style::gecko_bindings::bindings::{ServoCssRulesBorrowed, ServoCssRulesStrong
 use style::gecko_bindings::bindings::{nsACString, nsAString, nsCSSPropertyIDSetBorrowedMut};
 use style::gecko_bindings::bindings::Gecko_AddPropertyToSet;
 use style::gecko_bindings::bindings::Gecko_AppendPropertyValuePair;
+use style::gecko_bindings::bindings::Gecko_ConstructFontFeatureValueSet;
 use style::gecko_bindings::bindings::Gecko_GetOrCreateFinalKeyframe;
 use style::gecko_bindings::bindings::Gecko_GetOrCreateInitialKeyframe;
 use style::gecko_bindings::bindings::Gecko_GetOrCreateKeyframeAtStart;
@@ -3560,26 +3561,30 @@ pub extern "C" fn Servo_StyleSet_GetCounterStyleRule(raw_data: RawServoStyleSetB
 
 #[no_mangle]
 pub extern "C" fn Servo_StyleSet_BuildFontFeatureValueSet(
-  raw_data: RawServoStyleSetBorrowed,
-  set: *mut gfxFontFeatureValueSet
-) -> bool {
+  raw_data: RawServoStyleSetBorrowed) -> *mut gfxFontFeatureValueSet {
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
 
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
 
+    let has_rule = data.extra_style_data
+                  .iter_origins()
+                  .any(|(d, _)| !d.font_feature_values.is_empty());
+
+    if !has_rule {
+      return ptr::null_mut();
+    }
+
     let font_feature_values_iter = data.extra_style_data
         .iter_origins_rev()
         .flat_map(|(d, _)| d.font_feature_values.iter());
 
-    let mut any_rule = false;
+    let set = unsafe { Gecko_ConstructFontFeatureValueSet() };
     for src in font_feature_values_iter {
-        any_rule = true;
         let rule = src.read_with(&guard);
         rule.set_at_rules(set);
     }
-
-    any_rule
+    set
 }
 
 #[no_mangle]

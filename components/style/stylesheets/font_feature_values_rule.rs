@@ -210,7 +210,7 @@ impl<'a, 'b, 'i, T> DeclarationParser<'i> for FFVDeclarationsParser<'a, 'b, T>
                        -> Result<(), ParseError<'i>> {
         let value = input.parse_entirely(|i| T::parse(self.context, i))?;
         let new = FFVDeclaration {
-            name: Atom::from(&*name).to_ascii_lowercase(),
+            name: Atom::from(&*name),
             value: value,
         };
         update_or_push(&mut self.declarations, new);
