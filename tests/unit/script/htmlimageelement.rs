@@ -13,7 +13,7 @@ fn width_one_value() {
     let first_imagesource = ImageSource { url: "small-image.jpg".to_string(), descriptor: first_descriptor };
     let mut sources = Vec::new();
     sources.push(first_imagesource);
-    assert_eq!(parse_a_srcset_attribute(String::from("small-image.jpg 320w")), sources);
+    assert_eq!(parse_a_srcset_attribute(String::from("small-image.jpg, 320w")), sources);
 }
 
 #[test]
@@ -57,8 +57,16 @@ fn density_value() {
 #[test]
 fn width_density_value() {
     let first_descriptor = Descriptor { wid: Some(100), den: Some(2.0) };
-    let first_imagesource = ImageSource { url: "large-image.png".to_string(), descriptor: first_descriptor };
+    let first_imagesource = ImageSource { url: "large-image.jpg".to_string(), descriptor: first_descriptor };
     let mut sources = Vec::new();
     sources.push(first_imagesource);
-    assert_eq!(parse_a_srcset_attribute(String::from("large-image.png 100w 2x")), sources);
+    assert_eq!(parse_a_srcset_attribute(String::from("large-image.jpg 100w 2x")), sources);
+}
+#[test]
+fn without_descriptor() {
+    let first_descriptor = Descriptor { wid: None, den: None };
+    let first_imagesource = ImageSource { url: "small-image.jpg".to_string(), descriptor: first_descriptor };
+    let mut sources = Vec::new();
+    sources.push(first_imagesource);
+    assert_eq!(parse_a_srcset_attribute(String::from("small-image.jpg")), sources);
 }

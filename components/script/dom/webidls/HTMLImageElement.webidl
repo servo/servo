@@ -9,7 +9,7 @@ interface HTMLImageElement : HTMLElement {
            attribute DOMString alt;
   [CEReactions]
            attribute DOMString src;
-  // [CEReactions]
+  [CEReactions]
            attribute DOMString srcset;
   [CEReactions]
            attribute DOMString? crossOrigin;

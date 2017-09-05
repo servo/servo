@@ -83,7 +83,7 @@ pub fn read_numbers<I: Iterator<Item=char>>(mut iter: Peekable<I>) -> (Option<i6
         _ => return (None, 0),
     }
 
-    PeekableTakeWhile(&mut iter, is_ascii_digit, true).map(|d| {
+    iter.take_while(is_ascii_digit).map(|d| {
         d as i64 - '0' as i64
     }).fold((Some(0i64), 0), |accumulator, d| {
         let digits = accumulator.0.and_then(|accumulator| {
@@ -105,7 +105,7 @@ pub fn read_fraction<I: Iterator<Item=char>>(mut iter: Peekable<I>,
     }
     iter.next();
 
-    PeekableTakeWhile(&mut iter, is_ascii_digit, true).map(|d|
+    iter.take_while(is_ascii_digit).map(|d|
         d as i64 - '0' as i64
     ).fold((value, 1), |accumulator, d| {
         divisor *= 10f64;
@@ -132,29 +132,6 @@ pub fn read_exponent<I: Iterator<Item=char>>(mut iter: Peekable<I>) -> Option<i3
             read_numbers(iter).0.map(|exp| exp.to_i32().unwrap_or(0))
         }
         Some(_) => read_numbers(iter).0.map(|exp| exp.to_i32().unwrap_or(0))
-    }
-}
-
-struct PeekableTakeWhile<'a, I: Iterator + 'a, F>(&'a mut ::std::iter::Peekable<I>, F, bool);
-
-impl<'a, I: Iterator + 'a, F: FnMut(&I::Item) -> bool> Iterator for PeekableTakeWhile<'a, I, F> {
-    type Item = I::Item;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if !self.2 {
-            return None;
-        }
-
-        self.2 = match self.0.peek() {
-            Some(el) => (self.1)(el),
-            None => return None,
-        };
-
-        if self.2 {
-            self.0.next()
-        }else {
-            None
-        }
     }
 }
 

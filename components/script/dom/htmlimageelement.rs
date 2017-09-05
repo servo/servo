@@ -1112,7 +1112,6 @@ pub fn parse_a_srcset_attribute(input: String) -> Vec<ImageSource> {
         let mut current_descriptor = String::new();
         let mut state = ParseState::InDescriptor;
         let mut char_stream = position.chars().enumerate();
-        //let mut last_index = 0;
         let mut buffered: Option<(usize, char)> = None;
         loop {
             let nextChar = buffered.take().or_else(|| char_stream.next());
@@ -1202,27 +1201,13 @@ pub fn parse_a_srcset_attribute(input: String) -> Vec<ImageSource> {
             let char_iter = descriptor.chars();
             let (digits, remaining) = collect_sequence_characters(&descriptor, is_ascii_digit);
             let valid_non_negative_integer = parse_unsigned_integer(digits.chars());
-            let has_w = if remaining == "w" {
-                true
-            } else {
-                false
-            };
+            let has_w = remaining == "w";
             let valid_floating_point = parse_double(digits);
-            let has_x = if remaining == "x" {
-                true
-            } else {
-                false
-            };
-            let has_h = if remaining == "h" {
-                true
-            } else {
-                false
-            };
+            let has_x = remaining == "x";
+            let has_h = remaining == "h";
             if valid_non_negative_integer.is_ok() && has_w {
                 //not support sizes attribute
-                if width.is_some() && density.is_some() {
-                    error = true;
-                }
+                error = width.is_some() && density.is_some();
                 let result = parse_unsigned_integer(char_iter.clone());
                 error = result.is_err();
                 if let Ok(w) = result {
@@ -1253,14 +1238,12 @@ pub fn parse_a_srcset_attribute(input: String) -> Vec<ImageSource> {
         if future_compat_h.is_some() && width.is_none() {
             error = true;
         }
-        if error == false {
-            if width.is_some() || density.is_some() {
-                let descriptor = Descriptor { wid: width, den: density };
-                let imageSource = ImageSource { url: url, descriptor: descriptor };
-                candidates.push(imageSource);
-            } else {
-                println!("parse error");
-            }
+        if !error {
+            let descriptor = Descriptor { wid: width, den: density };
+            let imageSource = ImageSource { url: url, descriptor: descriptor };
+            candidates.push(imageSource);
+        } else {
+            println!("Parse error")
         }
     }
     candidates
