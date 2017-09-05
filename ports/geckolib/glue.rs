@@ -3745,6 +3745,17 @@ pub extern "C" fn Servo_ProcessInvalidations(set: RawServoStyleSetBorrowed,
     let mut data = data.as_mut().map(|d| &mut **d);
 
     if let Some(ref mut data) = data {
-        data.invalidate_style_if_needed(element, &shared_style_context, None);
+        let result = data.invalidate_style_if_needed(element, &shared_style_context, None);
+        if result.has_invalidated_siblings() {
+            let parent = element.traversal_parent().expect("How could we invalidate siblings without a common parent?");
+            unsafe {
+                parent.set_dirty_descendants();
+                bindings::Gecko_NoteDirtySubtreeForInvalidation(parent.0);
+            }
+        } else if result.has_invalidated_descendants() {
+            unsafe { bindings::Gecko_NoteDirtySubtreeForInvalidation(element.0) };
+        } else if result.has_invalidated_self() {
+            unsafe { bindings::Gecko_NoteDirtyElement(element.0) };
+        }
     }
 }

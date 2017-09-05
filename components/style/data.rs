@@ -6,6 +6,7 @@
 
 use context::{SharedStyleContext, StackLimitChecker};
 use dom::TElement;
+use invalidation::element::invalidator::InvalidationResult;
 use invalidation::element::restyle_hints::RestyleHint;
 use properties::ComputedValues;
 use properties::longhands::display::computed_value as display;
@@ -329,10 +330,10 @@ impl ElementData {
         element: E,
         shared_context: &SharedStyleContext,
         stack_limit_checker: Option<&StackLimitChecker>,
-    ) {
+    ) -> InvalidationResult {
         // In animation-only restyle we shouldn't touch snapshot at all.
         if shared_context.traversal_flags.for_animation_only() {
-            return;
+            return InvalidationResult::empty();
         }
 
         use invalidation::element::invalidator::TreeStyleInvalidator;
@@ -345,17 +346,20 @@ impl ElementData {
                 element.handled_snapshot(),
                 element.implemented_pseudo_element());
 
-        if element.has_snapshot() && !element.handled_snapshot() {
-            let invalidator = TreeStyleInvalidator::new(
-                element,
-                Some(self),
-                shared_context,
-                stack_limit_checker,
-            );
-            invalidator.invalidate();
-            unsafe { element.set_handled_snapshot() }
-            debug_assert!(element.handled_snapshot());
+        if !element.has_snapshot() || element.handled_snapshot() {
+            return InvalidationResult::empty();
         }
+
+        let invalidator = TreeStyleInvalidator::new(
+            element,
+            Some(self),
+            shared_context,
+            stack_limit_checker,
+        );
+        let result = invalidator.invalidate();
+        unsafe { element.set_handled_snapshot() }
+        debug_assert!(element.handled_snapshot());
+        result
     }
 
     /// Returns true if this element has styles.
