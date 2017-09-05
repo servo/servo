@@ -792,20 +792,26 @@ impl<'a, 'b: 'a, E> InvalidationCollector<'a, 'b, E>
         let removed_id = self.removed_id;
         if let Some(ref id) = removed_id {
             if let Some(deps) = map.id_to_selector.get(id, quirks_mode) {
-                self.collect_dependencies_in_map(deps)
+                for dep in deps {
+                    self.scan_dependency(dep, false);
+                }
             }
         }
 
         let added_id = self.added_id;
         if let Some(ref id) = added_id {
             if let Some(deps) = map.id_to_selector.get(id, quirks_mode) {
-                self.collect_dependencies_in_map(deps)
+                for dep in deps {
+                    self.scan_dependency(dep, false);
+                }
             }
         }
 
         for class in self.classes_added.iter().chain(self.classes_removed.iter()) {
             if let Some(deps) = map.class_to_selector.get(class, quirks_mode) {
-                self.collect_dependencies_in_map(deps)
+                for dep in deps {
+                    self.scan_dependency(dep, false);
+                }
             }
         }
 
