@@ -8,11 +8,11 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use borrow::Borrow;
-use fmt;
-use hash::{Hash, BuildHasher};
-use iter::{Chain, FromIterator};
-use ops::{BitOr, BitAnd, BitXor, Sub};
+use std::borrow::Borrow;
+use std::fmt;
+use std::hash::{Hash, BuildHasher};
+use std::iter::{Chain, FromIterator};
+use std::ops::{BitOr, BitAnd, BitXor, Sub};
 
 use super::Recover;
 use super::hash_map::{self, HashMap, Keys, RandomState};
