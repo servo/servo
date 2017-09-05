@@ -2063,6 +2063,8 @@ extern "C" {
 }
 extern "C" {
     pub fn Servo_StyleSet_AddSizeOfExcludingThis(malloc_size_of: MallocSizeOf,
+                                                 malloc_enclosing_size_of:
+                                                     MallocSizeOf,
                                                  sizes:
                                                      *mut ServoStyleSetSizes,
                                                  set:

@@ -19,7 +19,7 @@ use shared_lock::{DeepCloneParams, DeepCloneWithLock, SharedRwLock, SharedRwLock
 use std::fmt;
 use style_traits::{PARSING_MODE_DEFAULT, ToCss, ParseError, StyleParseError};
 use style_traits::PropertyDeclarationParseError;
-use stylesheets::{CssRuleType, StylesheetContents};
+use stylesheets::{CssRuleType, MallocSizeOfFn, MallocSizeOfVec, StylesheetContents};
 use stylesheets::rule_parser::VendorPrefix;
 use values::{KeyframesName, serialize_percentage};
 
@@ -437,6 +437,14 @@ impl KeyframesAnimation {
         }
 
         result
+    }
+
+    /// Measure heap usage.
+    pub fn malloc_size_of_children(&self, malloc_size_of: MallocSizeOfFn) -> usize {
+        let mut n = 0;
+        n += self.steps.malloc_shallow_size_of_vec(malloc_size_of);
+        n += self.properties_changed.malloc_shallow_size_of_vec(malloc_size_of);
+        n
     }
 }
 

@@ -19,6 +19,8 @@ use selectors::matching::{matches_selector, MatchingContext, ElementSelectorFlag
 use selectors::parser::{Component, Combinator, SelectorIter};
 use smallvec::{SmallVec, VecLike};
 use std::hash::{BuildHasherDefault, Hash, Hasher};
+#[cfg(feature = "gecko")]
+use stylesheets::{MallocEnclosingSizeOfFn, MallocSizeOfHash};
 use stylist::Rule;
 
 /// A hasher implementation that doesn't hash anything, because it expects its
@@ -143,6 +145,22 @@ impl<T: 'static> SelectorMap<T> {
     /// Returns the number of entries.
     pub fn len(&self) -> usize {
         self.count
+    }
+
+    /// Measures heap usage.
+    #[cfg(feature = "gecko")]
+    pub fn malloc_size_of_children(&self, malloc_enclosing_size_of: MallocEnclosingSizeOfFn)
+                                   -> usize {
+        // Currently we measure the HashMap storage, but not things pointed to
+        // by keys and values.
+        let mut n = 0;
+        n += self.id_hash.malloc_shallow_size_of_hash(malloc_enclosing_size_of);
+        n += self.class_hash.malloc_shallow_size_of_hash(malloc_enclosing_size_of);
+        n += self.local_name_hash.malloc_shallow_size_of_hash(malloc_enclosing_size_of);
+
+        // We may measure other fields in the future if DMD says it's worth it.
+
+        n
     }
 }
 
@@ -502,3 +520,14 @@ impl<V: 'static> MaybeCaseInsensitiveHashMap<Atom, V> {
         }
     }
 }
+
+#[cfg(feature = "gecko")]
+impl<K, V> MallocSizeOfHash for MaybeCaseInsensitiveHashMap<K, V>
+    where K: PrecomputedHash + Eq + Hash
+{
+    fn malloc_shallow_size_of_hash(&self, malloc_enclosing_size_of: MallocEnclosingSizeOfFn)
+                                   -> usize {
+        self.0.malloc_shallow_size_of_hash(malloc_enclosing_size_of)
+    }
+}
+
