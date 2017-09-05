@@ -9,7 +9,7 @@ use euclid::{Rect, Transform3D, Vector3D};
 use properties::longhands::transform::computed_value::{ComputedOperation, ComputedMatrix};
 use properties::longhands::transform::computed_value::T as TransformList;
 use std::f32;
-use super::{Context, CSSFloat, ToComputedValue};
+use super::{Context, CSSFloat, Either, ToComputedValue};
 use values::animated::{Animate, ToAnimatedZero, Procedure};
 use values::computed::{Angle, CalcLengthOrPercentage, Length, LengthOrPercentage, Number};
 use values::computed::Percentage;
@@ -326,3 +326,9 @@ impl ToComputedValue for specified::TransformLength {
         specified::TransformLength(specified::Length::from_px(*computed))
     }
 }
+
+/// The computed value of TransformLengthOrPercentageOrNumber.
+pub type TransformLengthOrPercentageOrNumber = Either<Number, TransformLengthOrPercentage>;
+
+/// The computed value of TransformLengthOrNumber.
+pub type TransformLengthOrNumber = Either<Number, TransformLength>;

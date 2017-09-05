@@ -1357,10 +1357,6 @@ extern "C" {
                                         aLen: f32);
 }
 extern "C" {
-    pub fn Gecko_CSSValue_SetAbsoluteLength(css_value: nsCSSValueBorrowedMut,
-                                            len: nscoord);
-}
-extern "C" {
     pub fn Gecko_CSSValue_SetNumber(css_value: nsCSSValueBorrowedMut,
                                     number: f32);
 }

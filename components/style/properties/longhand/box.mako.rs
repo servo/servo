@@ -624,22 +624,22 @@ ${helpers.predefined_type(
                    animation_value_type="ComputedValue"
                    flags="CREATES_STACKING_CONTEXT FIXPOS_CB"
                    spec="https://drafts.csswg.org/css-transforms/#propdef-transform">
-    use app_units::Au;
-    use values::computed::{LengthOrPercentageOrNumber as ComputedLoPoNumber, LengthOrNumber as ComputedLoN};
-    use values::computed::{LengthOrPercentage as ComputedLoP, Length as ComputedLength};
+    use values::computed::TransformLength as ComputedTLength;
+    use values::computed::TransformLengthOrNumber as ComputedTLoN;
+    use values::computed::TransformLengthOrPercentage as ComputedTLoP;
+    use values::computed::TransformLengthOrPercentageOrNumber as ComputedTLoPoN;
     use values::generics::transform::Matrix;
-    use values::specified::{Angle, Integer, LengthOrPercentage};
-    use values::specified::{LengthOrNumber, LengthOrPercentageOrNumber as LoPoNumber, Number};
-    use values::specified::{TransformLength, TransformLengthOrPercentage};
+    use values::specified::{Angle, Integer, Number, TransformLength, TransformLengthOrPercentage};
+    use values::specified::TransformLengthOrNumber as TLoN;
+    use values::specified::TransformLengthOrPercentageOrNumber as TLoPoN;
     use style_traits::ToCss;
 
     use std::fmt;
 
     pub mod computed_value {
-        use app_units::Au;
         use values::CSSFloat;
         use values::computed;
-        use values::computed::{Length, LengthOrPercentage};
+        use values::computed::{TransformLength, TransformLengthOrPercentage};
 
         #[derive(Clone, Copy, Debug, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -656,8 +656,8 @@ ${helpers.predefined_type(
             pub m11: CSSFloat, pub m12: CSSFloat, pub m13: CSSFloat, pub m14: CSSFloat,
             pub m21: CSSFloat, pub m22: CSSFloat, pub m23: CSSFloat, pub m24: CSSFloat,
             pub m31: CSSFloat, pub m32: CSSFloat, pub m33: CSSFloat, pub m34: CSSFloat,
-            pub m41: LengthOrPercentage, pub m42: LengthOrPercentage,
-            pub m43: Length, pub m44: CSSFloat,
+            pub m41: TransformLengthOrPercentage, pub m42: TransformLengthOrPercentage,
+            pub m43: TransformLength, pub m44: CSSFloat,
         }
 
         impl ComputedMatrix {
@@ -677,8 +677,9 @@ ${helpers.predefined_type(
                     m11: 1.0, m12: 0.0, m13: 0.0, m14: 0.0,
                     m21: 0.0, m22: 1.0, m23: 0.0, m24: 0.0,
                     m31: 0.0, m32: 0.0, m33: 1.0, m34: 0.0,
-                    m41: LengthOrPercentage::zero(), m42: LengthOrPercentage::zero(),
-                    m43: Au(0), m44: 1.0
+                    m41: TransformLengthOrPercentage::zero(),
+                    m42: TransformLengthOrPercentage::zero(),
+                    m43: 0.0, m44: 1.0
                 }
             }
         }
@@ -690,12 +691,12 @@ ${helpers.predefined_type(
             // For `-moz-transform` matrix and matrix3d.
             MatrixWithPercents(ComputedMatrixWithPercents),
             Skew(computed::Angle, computed::Angle),
-            Translate(computed::TransformLengthOrPercentage,
-                      computed::TransformLengthOrPercentage,
-                      computed::TransformLength),
+            Translate(TransformLengthOrPercentage,
+                      TransformLengthOrPercentage,
+                      TransformLength),
             Scale(CSSFloat, CSSFloat, CSSFloat),
             Rotate(CSSFloat, CSSFloat, CSSFloat, computed::Angle),
-            Perspective(computed::TransformLength),
+            Perspective(TransformLength),
             // For mismatched transform lists.
             // A vector of |ComputedOperation| could contain an |InterpolateMatrix| and other
             // |ComputedOperation|s, and multiple nested |InterpolateMatrix|s is acceptable.
@@ -734,7 +735,7 @@ ${helpers.predefined_type(
         Matrix(Matrix<Number>),
         /// Represents a 3D 4x4 matrix with percentage and length values.
         /// For `moz-transform`.
-        PrefixedMatrix(Matrix<Number, LoPoNumber>),
+        PrefixedMatrix(Matrix<Number, TLoPoN>),
         /// Represents a 3D 4x4 matrix.
         Matrix3D {
             m11: Number, m12: Number, m13: Number, m14: Number,
@@ -745,10 +746,10 @@ ${helpers.predefined_type(
         /// Represents a 3D 4x4 matrix with percentage and length values.
         /// For `moz-transform`.
         PrefixedMatrix3D {
-            m11: Number,     m12: Number,     m13: Number,         m14: Number,
-            m21: Number,     m22: Number,     m23: Number,         m24: Number,
-            m31: Number,     m32: Number,     m33: Number,         m34: Number,
-            m41: LoPoNumber, m42: LoPoNumber, m43: LengthOrNumber, m44: Number,
+            m11: Number,    m12: Number,    m13: Number,    m14: Number,
+            m21: Number,    m22: Number,    m23: Number,    m24: Number,
+            m31: Number,    m32: Number,    m33: Number,    m34: Number,
+            m41: TLoPoN,    m42: TLoPoN,    m43: TLoN,      m44: Number,
         },
         /// A 2D skew.
         ///
@@ -978,9 +979,9 @@ ${helpers.predefined_type(
                             Ok(SpecifiedOperation::Matrix(Matrix { a, b, c, d, e, f }))
                         } else {
                             // Non-standard prefixed matrix parsing for -moz-transform.
-                            let e = LoPoNumber::parse(context, input)?;
+                            let e = TLoPoN::parse(context, input)?;
                             input.expect_comma()?;
-                            let f = LoPoNumber::parse(context, input)?;
+                            let f = TLoPoN::parse(context, input)?;
                             Ok(SpecifiedOperation::PrefixedMatrix(Matrix { a, b, c, d, e, f }))
                         }
                     },
@@ -1026,11 +1027,11 @@ ${helpers.predefined_type(
                             })
                         } else {
                             // Non-standard prefixed matrix parsing for -moz-transform.
-                            let m41 = LoPoNumber::parse(context, input)?;
+                            let m41 = TLoPoN::parse(context, input)?;
                             input.expect_comma()?;
-                            let m42 = LoPoNumber::parse(context, input)?;
+                            let m42 = TLoPoN::parse(context, input)?;
                             input.expect_comma()?;
-                            let m43 = LengthOrNumber::parse(context, input)?;
+                            let m43 = TLoN::parse(context, input)?;
                             input.expect_comma()?;
                             let m44 = specified::parse_number(context, input)?;
                             Ok(SpecifiedOperation::PrefixedMatrix3D {
@@ -1162,8 +1163,9 @@ ${helpers.predefined_type(
         parse_internal(context, input, false)
     }
 
-    /// Parses `-moz-transform` property. This prefixed property also accepts LengthOrPercentage
-    /// in the nondiagonal homogeneous components of matrix and matrix3d.
+    /// Parses `-moz-transform` property. This prefixed property also accepts
+    /// TransformLengthOrPercentage in the nondiagonal homogeneous components
+    /// of matrix and matrix3d.
     #[inline]
     pub fn parse_prefixed<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                                   -> Result<SpecifiedValue,ParseError<'i>> {
@@ -1198,8 +1200,8 @@ ${helpers.predefined_type(
                         comp.m12 = b.to_computed_value(context);
                         comp.m21 = c.to_computed_value(context);
                         comp.m22 = d.to_computed_value(context);
-                        comp.m41 = lopon_to_lop(&e.to_computed_value(context));
-                        comp.m42 = lopon_to_lop(&f.to_computed_value(context));
+                        comp.m41 = tlopon_to_tlop(&e.to_computed_value(context));
+                        comp.m42 = tlopon_to_tlop(&f.to_computed_value(context));
                         result.push(computed_value::ComputedOperation::MatrixWithPercents(comp));
                     }
                     SpecifiedOperation::Matrix3D {
@@ -1245,9 +1247,9 @@ ${helpers.predefined_type(
                                 m32: m32.to_computed_value(context),
                                 m33: m33.to_computed_value(context),
                                 m34: m34.to_computed_value(context),
-                                m41: lopon_to_lop(&m41.to_computed_value(context)),
-                                m42: lopon_to_lop(&m42.to_computed_value(context)),
-                                m43: lon_to_length(&m43.to_computed_value(context)),
+                                m41: tlopon_to_tlop(&m41.to_computed_value(context)),
+                                m42: tlopon_to_tlop(&m42.to_computed_value(context)),
+                                m43: tlon_to_tlength(&m43.to_computed_value(context)),
                                 m44: m44.to_computed_value(context),
                             };
                         result.push(computed_value::ComputedOperation::MatrixWithPercents(comp));
@@ -1424,9 +1426,9 @@ ${helpers.predefined_type(
                                 m32: Number::from_computed_value(&computed.m32),
                                 m33: Number::from_computed_value(&computed.m33),
                                 m34: Number::from_computed_value(&computed.m34),
-                                m41: Either::Second(LengthOrPercentage::from_computed_value(&computed.m41)),
-                                m42: Either::Second(LengthOrPercentage::from_computed_value(&computed.m42)),
-                                m43: LengthOrNumber::from_computed_value(&Either::First(computed.m43)),
+                                m41: Either::Second(ToComputedValue::from_computed_value(&computed.m41)),
+                                m42: Either::Second(ToComputedValue::from_computed_value(&computed.m42)),
+                                m43: ToComputedValue::from_computed_value(&Either::First(computed.m43)),
                                 m44: Number::from_computed_value(&computed.m44),
                             });
                         }
@@ -1486,21 +1488,20 @@ ${helpers.predefined_type(
         }
     }
 
-    // Converts computed LengthOrPercentageOrNumber into computed
-    // LengthOrPercentage. Number maps into Length
-    fn lopon_to_lop(value: &ComputedLoPoNumber) -> ComputedLoP {
+    // Converts computed TransformLengthOrPercentageOrNumber into computed
+    // TransformLengthOrPercentage. Number maps into TransformLength.
+    fn tlopon_to_tlop(value: &ComputedTLoPoN) -> ComputedTLoP {
         match *value {
-            Either::First(number) => ComputedLoP::Length(Au::from_f32_px(number)),
-            Either::Second(length_or_percentage) => length_or_percentage,
+            Either::First(number) => ComputedTLoP::Length(number),
+            Either::Second(tlop) => tlop,
         }
     }
 
-    // Converts computed LengthOrNumber into computed Length.
-    // Number maps into Length.
-    fn lon_to_length(value: &ComputedLoN) -> ComputedLength {
+    // Converts computed TransformLengthOrNumber into computed TransformLength.
+    // Number maps into TransformLength.
+    fn tlon_to_tlength(value: &ComputedTLoN) -> ComputedTLength {
         match *value {
-            Either::First(length) => length,
-            Either::Second(number) => Au::from_f32_px(number),
+            Either::First(v) | Either::Second(v) => v,
         }
     }
 </%helpers:longhand>

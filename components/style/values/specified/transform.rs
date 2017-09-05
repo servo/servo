@@ -8,6 +8,7 @@ use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use selectors::parser::SelectorParseError;
 use style_traits::{ParseError, StyleParseError};
+use super::Either;
 use values::computed::{Context, LengthOrPercentage as ComputedLengthOrPercentage};
 use values::computed::{Percentage as ComputedPercentage, ToComputedValue};
 use values::computed::transform::TimingFunction as ComputedTimingFunction;
@@ -284,3 +285,9 @@ impl Parse for TransformLength {
         Length::parse(context, input).map(TransformLength)
     }
 }
+
+/// <length> | <percentage> | <number> for transform.
+pub type TransformLengthOrPercentageOrNumber = Either<Number, TransformLengthOrPercentage>;
+
+/// <length> | <number> for transform.
+pub type TransformLengthOrNumber = Either<Number, TransformLength>;

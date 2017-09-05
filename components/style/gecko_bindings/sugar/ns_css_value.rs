@@ -13,7 +13,7 @@ use std::marker::PhantomData;
 use std::mem;
 use std::ops::{Index, IndexMut};
 use std::slice;
-use values::computed::{Angle, LengthOrPercentage, Percentage, TransformLengthOrPercentage};
+use values::computed::{Angle, Percentage, TransformLengthOrPercentage};
 use values::specified::url::SpecifiedUrl;
 
 impl nsCSSValue {
@@ -69,21 +69,6 @@ impl nsCSSValue {
         let array = *self.mValue.mArray.as_ref();
         debug_assert!(!array.is_null());
         &*array
-    }
-
-    /// Sets LengthOrPercentage value to this nsCSSValue.
-    pub unsafe fn set_lop(&mut self, lop: LengthOrPercentage) {
-        match lop {
-            LengthOrPercentage::Length(au) => {
-                bindings::Gecko_CSSValue_SetAbsoluteLength(self, au.0)
-            }
-            LengthOrPercentage::Percentage(pc) => {
-                bindings::Gecko_CSSValue_SetPercentage(self, pc.0)
-            }
-            LengthOrPercentage::Calc(calc) => {
-                bindings::Gecko_CSSValue_SetCalc(self, calc.into())
-            }
-        }
     }
 
     /// Sets TransformLengthOrPercentage value to this nsCSSValue.
