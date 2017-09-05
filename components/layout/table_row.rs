@@ -9,7 +9,8 @@
 use app_units::Au;
 use block::{BlockFlow, ISizeAndMarginsComputer};
 use context::LayoutContext;
-use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode, DisplayListBuildState};
+use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode};
+use display_list_builder::{DisplayListBuildState, EstablishContainingBlock};
 use euclid::Point2D;
 use flow::{self, EarlyAbsolutePositionInfo, Flow, FlowClass, ImmutableFlowUtils, OpaqueFlow};
 use flow_list::MutFlowListIterator;
@@ -478,7 +479,7 @@ impl Flow for TableRowFlow {
     }
 
     fn collect_stacking_contexts(&mut self, state: &mut DisplayListBuildState) {
-        self.block_flow.collect_stacking_contexts(state);
+        self.block_flow.collect_stacking_contexts_for_block(state, EstablishContainingBlock::No);
     }
 
     fn repair_style(&mut self, new_style: &::ServoArc<ComputedValues>) {

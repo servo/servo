@@ -9,7 +9,8 @@
 use app_units::Au;
 use block::{BlockFlow, ISizeAndMarginsComputer, MarginsMayCollapseFlag};
 use context::LayoutContext;
-use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode, DisplayListBuildState};
+use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode};
+use display_list_builder::{DisplayListBuildState, EstablishContainingBlock};
 use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
 use flow::{self, Flow, FlowClass, IS_ABSOLUTELY_POSITIONED, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
@@ -261,7 +262,7 @@ impl Flow for TableCellFlow {
     }
 
     fn collect_stacking_contexts(&mut self, state: &mut DisplayListBuildState) {
-        self.block_flow.collect_stacking_contexts(state);
+        self.block_flow.collect_stacking_contexts_for_block(state, EstablishContainingBlock::No);
     }
 
     fn repair_style(&mut self, new_style: &::ServoArc<ComputedValues>) {

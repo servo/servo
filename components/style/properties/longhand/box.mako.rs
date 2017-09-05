@@ -203,8 +203,7 @@ ${helpers.single_keyword("-moz-top-layer", "none top",
                          products="gecko", animation_value_type="none", internal=True,
                          spec="Internal (not web-exposed)")}
 
-${helpers.single_keyword("position", "static absolute relative fixed",
-                         extra_gecko_values="sticky",
+${helpers.single_keyword("position", "static absolute relative fixed sticky",
                          animation_value_type="discrete",
                          flags="CREATES_STACKING_CONTEXT ABSPOS_CB",
                          spec="https://drafts.csswg.org/css-position/#position-property")}

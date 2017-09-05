@@ -492,10 +492,11 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                 builder.push_clip_id(item.scroll_root.parent_id);
 
                 let our_id = item.scroll_root.id;
+                let item_rect = item.scroll_root.clip.main.to_rectf();
                 let webrender_id = match item.scroll_root.root_type {
                    ScrollRootType::Clip => {
                         builder.define_clip(Some(our_id),
-                                            item.scroll_root.clip.main.to_rectf(),
+                                            item_rect,
                                             item.scroll_root.clip.get_complex_clips(),
                                             None)
                     }
@@ -506,6 +507,9 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                                     item.scroll_root.clip.get_complex_clips(),
                                                     None,
                                                     scroll_sensitivity)
+                    }
+                    ScrollRootType::StickyFrame(sticky_frame_info) => {
+                        builder.define_sticky_frame(Some(our_id), item_rect, sticky_frame_info)
                     }
                 };
                 debug_assert!(our_id == webrender_id);

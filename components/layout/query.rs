@@ -598,6 +598,7 @@ impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
                 (true, _, _) |
                 (false, computed_values::position::T::static_, &SpecificFragmentInfo::Table) |
                 (false, computed_values::position::T::static_, &SpecificFragmentInfo::TableCell) |
+                (false, computed_values::position::T::sticky, _) |
                 (false, computed_values::position::T::absolute, _) |
                 (false, computed_values::position::T::relative, _) |
                 (false, computed_values::position::T::fixed, _) => true,
@@ -766,7 +767,7 @@ where
 
     let positioned = match style.get_box().position {
         position::computed_value::T::relative |
-        /*position::computed_value::T::sticky |*/
+        position::computed_value::T::sticky |
         position::computed_value::T::fixed |
         position::computed_value::T::absolute => true,
         _ => false

@@ -9,7 +9,8 @@
 use app_units::Au;
 use block::BlockFlow;
 use context::LayoutContext;
-use display_list_builder::DisplayListBuildState;
+use display_list_builder::{BlockFlowDisplayListBuilding, DisplayListBuildState};
+use display_list_builder::EstablishContainingBlock;
 use euclid::Point2D;
 use flow::{Flow, FlowClass, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
@@ -80,7 +81,7 @@ impl Flow for TableCaptionFlow {
     }
 
     fn collect_stacking_contexts(&mut self, state: &mut DisplayListBuildState) {
-        self.block_flow.collect_stacking_contexts(state);
+        self.block_flow.collect_stacking_contexts_for_block(state, EstablishContainingBlock::No);
     }
 
     fn repair_style(&mut self, new_style: &::ServoArc<ComputedValues>) {

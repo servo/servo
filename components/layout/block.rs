@@ -29,9 +29,9 @@
 
 use app_units::{Au, MAX_AU};
 use context::LayoutContext;
-use display_list_builder::{BorderPaintingMode, DisplayListBuildState};
-use display_list_builder::BlockFlowDisplayListBuilding;
-use euclid::{Point2D, Size2D, Rect};
+use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode};
+use display_list_builder::{DisplayListBuildState, EstablishContainingBlock};
+use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
 use floats::{ClearType, FloatKind, Floats, PlacementInfo};
 use flow::{self, BaseFlow, EarlyAbsolutePositionInfo, Flow, FlowClass, ForceNonfloatedFlag};
 use flow::{BLOCK_POSITION_IS_STATIC, CLEARS_LEFT, CLEARS_RIGHT};
@@ -54,7 +54,7 @@ use std::sync::Arc;
 use style::computed_values::{box_sizing, display, float, overflow_x};
 use style::computed_values::{position, text_align};
 use style::context::SharedStyleContext;
-use style::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMode};
+use style::logical_geometry::{LogicalMargin, LogicalPoint, LogicalRect, LogicalSize, WritingMode};
 use style::properties::ComputedValues;
 use style::servo::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW};
 use style::values::computed::{LengthOrPercentageOrNone, LengthOrPercentage};
@@ -643,7 +643,7 @@ impl BlockFlow {
         &mut self.fragment
     }
 
-    pub fn stacking_relative_position(&self, coor: CoordinateSystem) -> Rect<Au> {
+    pub fn stacking_relative_border_box(&self, coor: CoordinateSystem) -> Rect<Au> {
         return self.fragment.stacking_relative_border_box(
             &self.base.stacking_relative_position,
             &self.base.early_absolute_position_info.relative_containing_block_size,
@@ -1790,6 +1790,20 @@ impl BlockFlow {
         self.flags.contains(HAS_SCROLLING_OVERFLOW)
     }
 
+    // Return offset from original position because of `position: sticky`.
+    pub fn sticky_position(&self) -> SideOffsets2D<MaybeAuto> {
+        let containing_block_size = &self.base.early_absolute_position_info
+                                              .relative_containing_block_size;
+        let writing_mode = self.base.early_absolute_position_info.relative_containing_block_mode;
+        let offsets = self.fragment.style().logical_position();
+        let as_margins = LogicalMargin::new(writing_mode,
+            MaybeAuto::from_style(offsets.block_start, containing_block_size.inline),
+            MaybeAuto::from_style(offsets.inline_end, containing_block_size.inline),
+            MaybeAuto::from_style(offsets.block_end, containing_block_size.inline),
+            MaybeAuto::from_style(offsets.inline_start, containing_block_size.inline));
+        as_margins.to_physical(writing_mode)
+    }
+
 }
 
 impl Flow for BlockFlow {
@@ -2137,7 +2151,7 @@ impl Flow for BlockFlow {
     }
 
     fn collect_stacking_contexts(&mut self, state: &mut DisplayListBuildState) {
-        self.collect_stacking_contexts_for_block(state);
+        self.collect_stacking_contexts_for_block(state, EstablishContainingBlock::Yes);
     }
 
     fn build_display_list(&mut self, state: &mut DisplayListBuildState) {

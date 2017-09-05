@@ -17,7 +17,8 @@ use app_units::Au;
 use block::{AbsoluteNonReplaced, BlockFlow, FloatNonReplaced, ISizeAndMarginsComputer, ISizeConstraintInput};
 use block::{ISizeConstraintSolution, MarginsMayCollapseFlag};
 use context::LayoutContext;
-use display_list_builder::DisplayListBuildState;
+use display_list_builder::{BlockFlowDisplayListBuilding, DisplayListBuildState};
+use display_list_builder::EstablishContainingBlock;
 use euclid::Point2D;
 use floats::FloatKind;
 use flow::{Flow, FlowClass, ImmutableFlowUtils, INLINE_POSITION_IS_STATIC, OpaqueFlow};
@@ -457,7 +458,7 @@ impl Flow for TableWrapperFlow {
     }
 
     fn collect_stacking_contexts(&mut self, state: &mut DisplayListBuildState) {
-        self.block_flow.collect_stacking_contexts(state);
+        self.block_flow.collect_stacking_contexts_for_block(state, EstablishContainingBlock::No);
     }
 
     fn repair_style(&mut self, new_style: &::ServoArc<ComputedValues>) {

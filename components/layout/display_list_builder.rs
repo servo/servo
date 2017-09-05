@@ -14,7 +14,8 @@ use app_units::{AU_PER_PX, Au};
 use block::{BlockFlow, BlockStackingContextType};
 use canvas_traits::canvas::{CanvasMsg, FromLayoutMsg};
 use context::LayoutContext;
-use euclid::{Transform3D, Point2D, Vector2D, Rect, SideOffsets2D, Size2D, TypedSize2D};
+use euclid::{Point2D, Rect, SideOffsets2D, Size2D, Transform3D, TypedSize2D};
+use euclid::Vector2D;
 use flex::FlexFlow;
 use flow::{BaseFlow, Flow, IS_ABSOLUTELY_POSITIONED};
 use flow_ref::FlowRef;
@@ -72,7 +73,8 @@ use style_traits::ToCss;
 use style_traits::cursor::Cursor;
 use table_cell::CollapsedBordersForCell;
 use webrender_api::{ClipAndScrollInfo, ClipId, ColorF, ComplexClipRegion, GradientStop, LineStyle};
-use webrender_api::{LocalClip, RepeatMode, ScrollPolicy, ScrollSensitivity};
+use webrender_api::{LocalClip, RepeatMode, ScrollPolicy, ScrollSensitivity, StickyFrameInfo};
+use webrender_api::StickySideConstraint;
 use webrender_helpers::{ToBorderRadius, ToMixBlendMode, ToRectF, ToTransformStyle};
 
 trait ResolvePercentage {
@@ -101,11 +103,11 @@ fn convert_repeat_mode(from: RepeatKeyword) -> RepeatMode {
     }
 }
 
-fn establishes_containing_block_for_absolute(positioning: position::T) -> bool {
-    match positioning {
-        position::T::absolute | position::T::relative | position::T::fixed => true,
-        _ => false,
-    }
+fn establishes_containing_block_for_absolute(can_establish_containing_block: EstablishContainingBlock,
+                                             positioning: position::T)
+                                             -> bool {
+    can_establish_containing_block == EstablishContainingBlock::Yes &&
+    position::T::static_ != positioning
 }
 
 trait RgbColor {
@@ -192,6 +194,9 @@ pub struct DisplayListBuildState<'a> {
     /// A stack of clips used to cull display list entries that are outside the
     /// rendered region, but only collected at containing block boundaries.
     pub containing_block_clip_stack: Vec<Rect<Au>>,
+
+    /// The flow parent's content box, used to calculate sticky constraints.
+    parent_stacking_relative_content_box: Rect<Au>,
 }
 
 impl<'a> DisplayListBuildState<'a> {
@@ -211,6 +216,7 @@ impl<'a> DisplayListBuildState<'a> {
             iframe_sizes: Vec::new(),
             clip_stack: Vec::new(),
             containing_block_clip_stack: Vec::new(),
+            parent_stacking_relative_content_box: Rect::zero(),
         }
     }
 
@@ -2254,8 +2260,16 @@ impl FragmentDisplayListBuilding for Fragment {
     }
 }
 
+#[derive(Clone, Copy, PartialEq)]
+pub enum EstablishContainingBlock {
+    Yes,
+    No,
+}
+
 pub trait BlockFlowDisplayListBuilding {
-    fn collect_stacking_contexts_for_block(&mut self, state: &mut DisplayListBuildState);
+    fn collect_stacking_contexts_for_block(&mut self,
+                                           state: &mut DisplayListBuildState,
+                                           can_establish_containing_block: EstablishContainingBlock);
 
     fn transform_clip_to_coordinate_space(&mut self,
                                           state: &mut DisplayListBuildState,
@@ -2263,8 +2277,12 @@ pub trait BlockFlowDisplayListBuilding {
     fn setup_clipping_for_block(&mut self,
                                 state: &mut DisplayListBuildState,
                                 preserved_state: &mut PreservedDisplayListState,
-                                stacking_context_type: BlockStackingContextType)
+                                stacking_context_type: BlockStackingContextType,
+                                can_establish_containing_block: EstablishContainingBlock)
                                 -> ClipAndScrollInfo;
+    fn setup_scroll_root_for_position(&mut self,
+                                      state: &mut DisplayListBuildState,
+                                      border_box: &Rect<Au>);
     fn setup_scroll_root_for_overflow(&mut self,
                                       state: &mut DisplayListBuildState,
                                       border_box: &Rect<Au>);
@@ -2297,6 +2315,7 @@ pub struct PreservedDisplayListState {
     containing_block_clip_and_scroll_info: ClipAndScrollInfo,
     clips_pushed: usize,
     containing_block_clips_pushed: usize,
+    stacking_relative_content_box: Rect<Au>,
 }
 
 impl PreservedDisplayListState {
@@ -2308,6 +2327,7 @@ impl PreservedDisplayListState {
             containing_block_clip_and_scroll_info: state.containing_block_clip_and_scroll_info,
             clips_pushed: 0,
             containing_block_clips_pushed: 0,
+            stacking_relative_content_box: state.parent_stacking_relative_content_box,
         }
     }
 
@@ -2322,6 +2342,7 @@ impl PreservedDisplayListState {
         state.current_real_stacking_context_id = self.real_stacking_context_id;
         state.current_clip_and_scroll_info = self.clip_and_scroll_info;
         state.containing_block_clip_and_scroll_info = self.containing_block_clip_and_scroll_info;
+        state.parent_stacking_relative_content_box = self.stacking_relative_content_box;
 
         let truncate_length = state.clip_stack.len() - self.clips_pushed;
         state.clip_stack.truncate(truncate_length);
@@ -2359,7 +2380,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         if state.clip_stack.is_empty() {
             return;
         }
-        let border_box = self.stacking_relative_position(CoordinateSystem::Parent);
+        let border_box = self.stacking_relative_border_box(CoordinateSystem::Parent);
         let transform = match self.fragment.transform_matrix(&border_box) {
             Some(transform) => transform,
             None => return,
@@ -2412,7 +2433,9 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         }
     }
 
-    fn collect_stacking_contexts_for_block(&mut self, state: &mut DisplayListBuildState) {
+    fn collect_stacking_contexts_for_block(&mut self,
+                                           state: &mut DisplayListBuildState,
+                                           can_establish_containing_block: EstablishContainingBlock) {
         let mut preserved_state = PreservedDisplayListState::new(state);
 
         let block_stacking_context_type = self.block_stacking_context_type();
@@ -2432,8 +2455,13 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         // stored in state.current_clip_and_scroll_info. If we create a stacking context,
         // we don't want it to be contained by its own scroll root.
         let containing_clip_and_scroll_info =
-            self.setup_clipping_for_block(state, &mut preserved_state, block_stacking_context_type);
-        if establishes_containing_block_for_absolute(self.positioning()) {
+            self.setup_clipping_for_block(state,
+                                          &mut preserved_state,
+                                          block_stacking_context_type,
+                                          can_establish_containing_block);
+
+        if establishes_containing_block_for_absolute(can_establish_containing_block,
+                                                     self.positioning()) {
             state.containing_block_clip_and_scroll_info = state.current_clip_and_scroll_info;
         }
 
@@ -2459,7 +2487,8 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
     fn setup_clipping_for_block(&mut self,
                                 state: &mut DisplayListBuildState,
                                 preserved_state: &mut PreservedDisplayListState,
-                                stacking_context_type: BlockStackingContextType)
+                                stacking_context_type: BlockStackingContextType,
+                                can_establish_containing_block: EstablishContainingBlock)
                                 -> ClipAndScrollInfo {
         // If this block is absolutely positioned, we should be clipped and positioned by
         // the scroll root of our nearest ancestor that establishes a containing block.
@@ -2477,25 +2506,32 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         };
         self.base.clip_and_scroll_info = Some(containing_clip_and_scroll_info);
 
-        let coordinate_system = if self.fragment.establishes_stacking_context() {
-            CoordinateSystem::Own
+        let stacking_relative_border_box = if self.fragment.establishes_stacking_context() {
+            self.stacking_relative_border_box(CoordinateSystem::Own)
         } else {
-            CoordinateSystem::Parent
+            self.stacking_relative_border_box(CoordinateSystem::Parent)
         };
-
-        let stacking_relative_border_box = self.fragment.stacking_relative_border_box(
-            &self.base.stacking_relative_position,
-            &self.base.early_absolute_position_info.relative_containing_block_size,
-            self.base.early_absolute_position_info.relative_containing_block_mode,
-            coordinate_system);
 
         if stacking_context_type == BlockStackingContextType::StackingContext {
             self.transform_clip_to_coordinate_space(state, preserved_state);
         }
 
+        self.setup_scroll_root_for_position(state, &stacking_relative_border_box);
         self.setup_scroll_root_for_overflow(state, &stacking_relative_border_box);
         self.setup_scroll_root_for_css_clip(state, preserved_state, &stacking_relative_border_box);
         self.base.clip = state.clip_stack.last().cloned().unwrap_or_else(max_rect);
+
+        // We keep track of our position so that any stickily positioned elements can
+        // properly determine the extent of their movement relative to scrolling containers.
+        if can_establish_containing_block == EstablishContainingBlock::Yes {
+            let border_box = if self.fragment.establishes_stacking_context() {
+                stacking_relative_border_box
+            } else {
+                self.stacking_relative_border_box(CoordinateSystem::Own)
+            };
+            state.parent_stacking_relative_content_box =
+               self.fragment.stacking_relative_content_box(&border_box)
+        }
 
         match self.positioning() {
             position::T::absolute | position::T::relative | position::T::fixed =>
@@ -2504,6 +2540,72 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         }
 
         containing_clip_and_scroll_info
+    }
+
+    fn setup_scroll_root_for_position(&mut self,
+                                      state: &mut DisplayListBuildState,
+                                      border_box: &Rect<Au>) {
+        if self.positioning() != position::T::sticky {
+            return;
+        }
+
+        let sticky_position = self.sticky_position();
+        if sticky_position.left == MaybeAuto::Auto && sticky_position.right == MaybeAuto::Auto &&
+           sticky_position.top == MaybeAuto::Auto && sticky_position.bottom == MaybeAuto::Auto {
+            return;
+        }
+
+        // Since position: sticky elements always establish a stacking context, we will
+        // have previously calculated our border box in our own coordinate system. In
+        // order to properly calculate max offsets we need to compare our size and
+        // position in our parent's coordinate system.
+        let border_box_in_parent = self.stacking_relative_border_box(CoordinateSystem::Parent);
+        let margins = self.fragment.margin.to_physical(
+            self.base.early_absolute_position_info.relative_containing_block_mode);
+
+        // Position:sticky elements are always restricted based on the size and position of
+        // their containing block, which for sticky items is like relative and statically
+        // positioned items: just the parent block.
+        let constraint_rect = state.parent_stacking_relative_content_box;
+
+        let to_max_offset = |constraint_edge: Au, moving_edge: Au| -> f32 {
+            (constraint_edge - moving_edge).to_f32_px()
+        };
+
+        let to_sticky_info = |margin: MaybeAuto, max_offset: f32| -> Option<StickySideConstraint> {
+            match margin {
+                MaybeAuto::Auto => None,
+                MaybeAuto::Specified(value) =>
+                    Some(StickySideConstraint { margin: value.to_f32_px(), max_offset }),
+            }
+        };
+
+        let sticky_frame_info = StickyFrameInfo::new(
+             to_sticky_info(sticky_position.top,
+                            to_max_offset(constraint_rect.max_y(), border_box_in_parent.max_y())),
+             to_sticky_info(sticky_position.right,
+                            to_max_offset(constraint_rect.min_x(), border_box_in_parent.min_x() - margins.left)),
+             to_sticky_info(sticky_position.bottom,
+                            to_max_offset(constraint_rect.min_y(), border_box_in_parent.min_y() - margins.top)),
+             to_sticky_info(sticky_position.left,
+                            to_max_offset(constraint_rect.max_x(), border_box_in_parent.max_x())));
+
+        let new_scroll_root_id = ClipId::new(self.fragment.unique_id(IdType::OverflowClip),
+                                             state.layout_context.id.to_webrender());
+        let parent_id = self.clip_and_scroll_info(state.layout_context.id).scroll_node_id;
+        state.add_scroll_root(
+            ScrollRoot {
+                id: new_scroll_root_id,
+                parent_id: parent_id,
+                clip: ClippingRegion::from_rect(border_box),
+                content_rect: Rect::zero(),
+                root_type: ScrollRootType::StickyFrame(sticky_frame_info),
+            },
+        );
+
+        let new_clip_and_scroll_info = ClipAndScrollInfo::simple(new_scroll_root_id);
+        self.base.clip_and_scroll_info = Some(new_clip_and_scroll_info);
+        state.current_clip_and_scroll_info = new_clip_and_scroll_info;
     }
 
     fn setup_scroll_root_for_overflow(&mut self,
@@ -2737,7 +2839,8 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
 
         for fragment in self.fragments.fragments.iter_mut() {
             let previous_cb_clip_scroll_info = state.containing_block_clip_and_scroll_info;
-            if establishes_containing_block_for_absolute(fragment.style.get_box().position) {
+            if establishes_containing_block_for_absolute(EstablishContainingBlock::Yes,
+                                                         fragment.style.get_box().position) {
                 state.containing_block_clip_and_scroll_info = state.current_clip_and_scroll_info;
             }
 

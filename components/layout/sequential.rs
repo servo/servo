@@ -93,7 +93,7 @@ pub fn iterate_through_flow_tree_fragment_border_boxes(root: &mut Flow, iterator
                                             flow::base(kid).stacking_relative_position +
                                             stacking_context_position.to_vector();
                 let relative_position = kid.as_block()
-                    .stacking_relative_position(CoordinateSystem::Own);
+                    .stacking_relative_border_box(CoordinateSystem::Own);
                 if let Some(matrix) = kid.as_block()
                        .fragment
                        .transform_matrix(&relative_position) {

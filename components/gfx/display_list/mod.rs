@@ -34,7 +34,8 @@ use style_traits::cursor::Cursor;
 use text::TextRun;
 use text::glyph::ByteIndex;
 use webrender_api::{self, ClipAndScrollInfo, ClipId, ColorF, GradientStop, LocalClip};
-use webrender_api::{MixBlendMode, ScrollPolicy, ScrollSensitivity, TransformStyle};
+use webrender_api::{MixBlendMode, ScrollPolicy, ScrollSensitivity, StickyFrameInfo};
+use webrender_api::TransformStyle;
 
 pub use style::dom::OpaqueNode;
 
@@ -559,6 +560,7 @@ impl fmt::Debug for StackingContext {
 #[derive(Clone, Debug, Deserialize, HeapSizeOf, Serialize)]
 pub enum ScrollRootType {
     ScrollFrame(ScrollSensitivity),
+    StickyFrame(StickyFrameInfo),
     Clip,
 }
 
