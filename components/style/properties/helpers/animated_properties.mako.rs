@@ -20,6 +20,8 @@ use properties::longhands::background_size::computed_value::T as BackgroundSizeL
 use properties::longhands::border_spacing::computed_value::T as BorderSpacing;
 use properties::longhands::font_weight::computed_value::T as FontWeight;
 use properties::longhands::font_stretch::computed_value::T as FontStretch;
+#[cfg(feature = "gecko")]
+use properties::longhands::font_variation_settings::computed_value::T as FontVariationSettings;
 use properties::longhands::line_height::computed_value::T as LineHeight;
 use properties::longhands::transform::computed_value::ComputedMatrix;
 use properties::longhands::transform::computed_value::ComputedOperation as TransformOperation;
@@ -54,6 +56,9 @@ use values::computed::length::{NonNegativeLengthOrAuto, NonNegativeLengthOrNorma
 use values::computed::length::NonNegativeLengthOrPercentage;
 use values::computed::transform::DirectionVector;
 use values::distance::{ComputeSquaredDistance, SquaredDistance};
+#[cfg(feature = "gecko")] use values::generics::FontSettings as GenericFontSettings;
+#[cfg(feature = "gecko")] use values::generics::FontSettingTag as GenericFontSettingTag;
+#[cfg(feature = "gecko")] use values::generics::FontSettingTagFloat;
 use values::generics::NonNegative;
 use values::generics::effects::Filter;
 use values::generics::position as generic_position;
@@ -912,6 +917,177 @@ impl Into<FontStretch> for f64 {
             [ ultra_condensed, extra_condensed, condensed, semi_condensed, normal,
               semi_expanded, expanded, extra_expanded, ultra_expanded ];
         FONT_STRETCH_ENUM_MAP[(index - 1.0) as usize]
+    }
+}
+
+/// https://drafts.csswg.org/css-fonts-4/#font-variation-settings-def
+#[cfg(feature = "gecko")]
+impl Animate for FontVariationSettings {
+    #[inline]
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
+        FontSettingTagIter::new(self, other)?
+            .map(|r| r.and_then(|(st, ot)| st.animate(&ot, procedure)))
+            .collect::<Result<Vec<FontSettingTag>, ()>>()
+            .map(GenericFontSettings::Tag)
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl ComputeSquaredDistance for FontVariationSettings {
+    #[inline]
+    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
+        FontSettingTagIter::new(self, other)?
+            .map(|r| r.and_then(|(st, ot)| st.compute_squared_distance(&ot)))
+            .sum()
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl ToAnimatedZero for FontVariationSettings {
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        Err(())
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl Animate for FontSettingTag {
+    #[inline]
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
+        if self.tag != other.tag {
+            return Err(());
+        }
+        let value = self.value.animate(&other.value, procedure)?;
+        Ok(FontSettingTag {
+            tag: self.tag,
+            value,
+        })
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl ComputeSquaredDistance for FontSettingTag {
+    #[inline]
+    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
+        if self.tag != other.tag {
+            return Err(());
+        }
+        self.value.compute_squared_distance(&other.value)
+    }
+}
+
+#[cfg(feature = "gecko")]
+type FontSettingTag = GenericFontSettingTag<FontSettingTagFloat>;
+
+#[cfg(feature = "gecko")]
+struct FontSettingTagIterState<'a> {
+    tags: Vec<(&'a FontSettingTag)>,
+    index: usize,
+    prev_tag: u32,
+}
+
+#[cfg(feature = "gecko")]
+impl<'a> FontSettingTagIterState<'a> {
+    fn new(tags: Vec<(&'a FontSettingTag)>) -> FontSettingTagIterState<'a> {
+        FontSettingTagIterState {
+            index: tags.len(),
+            tags,
+            prev_tag: 0,
+        }
+    }
+}
+
+/// Iterator for font-variation-settings tag lists
+///
+/// [CSS fonts level 4](https://drafts.csswg.org/css-fonts-4/#descdef-font-face-font-variation-settings)
+/// defines the animation of font-variation-settings as follows:
+///
+///   Two declarations of font-feature-settings[sic] can be animated between if they are "like".
+///   "Like" declarations are ones where the same set of properties appear (in any order).
+///   Because succesive[sic] duplicate properties are applied instead of prior duplicate
+///   properties, two declarations can be "like" even if they have differing number of
+///   properties. If two declarations are "like" then animation occurs pairwise between
+///   corresponding values in the declarations.
+///
+/// In other words if we have the following lists:
+///
+///   "wght" 1.4, "wdth" 5, "wght" 2
+///   "wdth" 8, "wght" 4, "wdth" 10
+///
+/// We should animate between:
+///
+///   "wdth" 5, "wght" 2
+///   "wght" 4, "wdth" 10
+///
+/// This iterator supports this by sorting the two lists, then iterating them in reverse,
+/// and skipping entries with repeated tag names. It will return Some(Err()) if it reaches the
+/// end of one list before the other, or if the tag names do not match.
+///
+/// For the above example, this iterator would return:
+///
+///   Some(Ok("wght" 2, "wght" 4))
+///   Some(Ok("wdth" 5, "wdth" 10))
+///   None
+///
+#[cfg(feature = "gecko")]
+struct FontSettingTagIter<'a> {
+    a_state: FontSettingTagIterState<'a>,
+    b_state: FontSettingTagIterState<'a>,
+}
+
+#[cfg(feature = "gecko")]
+impl<'a> FontSettingTagIter<'a> {
+    fn new(
+        a_settings: &'a FontVariationSettings,
+        b_settings: &'a FontVariationSettings,
+    ) -> Result<FontSettingTagIter<'a>, ()> {
+        if let (&GenericFontSettings::Tag(ref a_tags), &GenericFontSettings::Tag(ref b_tags)) = (a_settings, b_settings)
+        {
+            fn as_new_sorted_tags(tags: &Vec<FontSettingTag>) -> Vec<(&FontSettingTag)> {
+                use std::iter::FromIterator;
+                let mut sorted_tags: Vec<(&FontSettingTag)> = Vec::from_iter(tags.iter());
+                sorted_tags.sort_by_key(|k| k.tag);
+                sorted_tags
+            };
+
+            Ok(FontSettingTagIter {
+                a_state: FontSettingTagIterState::new(as_new_sorted_tags(a_tags)),
+                b_state: FontSettingTagIterState::new(as_new_sorted_tags(b_tags)),
+            })
+        } else {
+            Err(())
+        }
+    }
+
+    fn next_tag(state: &mut FontSettingTagIterState<'a>) -> Option<(&'a FontSettingTag)> {
+        if state.index == 0 {
+            return None;
+        }
+
+        state.index -= 1;
+        let tag = state.tags[state.index];
+        if tag.tag == state.prev_tag {
+            FontSettingTagIter::next_tag(state)
+        } else {
+            state.prev_tag = tag.tag;
+            Some(tag)
+        }
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl<'a> Iterator for FontSettingTagIter<'a> {
+    type Item = Result<(&'a FontSettingTag, &'a FontSettingTag), ()>;
+
+    fn next(&mut self) -> Option<Result<(&'a FontSettingTag, &'a FontSettingTag), ()>> {
+        match (
+            FontSettingTagIter::next_tag(&mut self.a_state),
+            FontSettingTagIter::next_tag(&mut self.b_state),
+        ) {
+            (Some(at), Some(bt)) if at.tag == bt.tag => Some(Ok((at, bt))),
+            (None, None) => None,
+            _ => Some(Err(())), // Mismatch number of unique tags or tag names.
+        }
     }
 }
 

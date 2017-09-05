@@ -1995,7 +1995,8 @@ variation_spec = """\
 https://drafts.csswg.org/css-fonts-4/#low-level-font-variation-settings-control-the-font-variation-settings-property\
 """
 %>
-<%helpers:longhand name="font-variation-settings" products="gecko" animation_value_type="none"
+<%helpers:longhand name="font-variation-settings" products="gecko"
+                   animation_value_type="ComputedValue"
                    flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER"
                    spec="${variation_spec}">
     use values::computed::ComputedValueAsSpecified;
