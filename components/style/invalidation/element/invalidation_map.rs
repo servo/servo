@@ -14,6 +14,8 @@ use selectors::parser::{Combinator, Component};
 use selectors::parser::{Selector, SelectorIter, SelectorMethods};
 use selectors::visitor::SelectorVisitor;
 use smallvec::SmallVec;
+#[cfg(feature = "gecko")]
+use stylesheets::{MallocEnclosingSizeOfFn, MallocSizeOfHash};
 
 #[cfg(feature = "gecko")]
 /// Gets the element state relevant to the given `:dir` pseudo-class selector.
@@ -286,6 +288,31 @@ impl InvalidationMap {
 
             index += 1; // Account for the combinator.
         }
+    }
+
+    /// Measures heap usage.
+    #[cfg(feature = "gecko")]
+    pub fn malloc_size_of_children(&self, malloc_enclosing_size_of: MallocEnclosingSizeOfFn)
+                                   -> usize {
+        // Currently we measure the HashMap storage, but not things pointed to
+        // by keys and values.
+        let mut n = 0;
+
+        n += self.class_to_selector.malloc_shallow_size_of_hash(malloc_enclosing_size_of);
+        for (_, val) in self.class_to_selector.iter() {
+            n += val.malloc_size_of_children(malloc_enclosing_size_of);
+        }
+
+        n += self.id_to_selector.malloc_shallow_size_of_hash(malloc_enclosing_size_of);
+        for (_, val) in self.id_to_selector.iter() {
+            n += val.malloc_size_of_children(malloc_enclosing_size_of);
+        }
+
+        n += self.state_affecting_selectors.malloc_size_of_children(malloc_enclosing_size_of);
+
+        n += self.other_attribute_affecting_selectors.malloc_size_of_children(
+            malloc_enclosing_size_of);
+        n
     }
 }
 

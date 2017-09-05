@@ -796,7 +796,7 @@ impl RuleNode {
     }
 
     fn malloc_size_of_including_self(&self, malloc_size_of: MallocSizeOfFn) -> usize {
-        let mut n = unsafe { malloc_size_of(self as *const _ as *const _) };
+        let mut n = unsafe { (malloc_size_of.0)(self as *const _ as *const _) };
         for child in self.iter_children() {
             n += unsafe { (*child.ptr()).malloc_size_of_including_self(malloc_size_of) };
         }
