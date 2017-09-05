@@ -118,8 +118,9 @@ use style::shared_lock::{SharedRwLockReadGuard, StylesheetGuards, ToCssWithGuard
 use style::string_cache::Atom;
 use style::style_adjuster::StyleAdjuster;
 use style::stylesheets::{CssRule, CssRules, CssRuleType, CssRulesHelpers, DocumentRule};
-use style::stylesheets::{FontFeatureValuesRule, ImportRule, KeyframesRule, MallocSizeOfWithGuard};
-use style::stylesheets::{MediaRule, NamespaceRule, Origin, OriginSet, PageRule, SizeOfState, StyleRule};
+use style::stylesheets::{FontFeatureValuesRule, ImportRule, KeyframesRule, MallocEnclosingSizeOfFn};
+use style::stylesheets::{MallocSizeOfFn, MallocSizeOfWithGuard, MediaRule};
+use style::stylesheets::{NamespaceRule, Origin, OriginSet, PageRule, SizeOfState, StyleRule};
 use style::stylesheets::{StylesheetContents, SupportsRule};
 use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
 use style::stylesheets::keyframes_rule::{Keyframe, KeyframeSelector, KeyframesStepValue};
@@ -775,7 +776,7 @@ pub extern "C" fn Servo_Element_ClearData(element: RawGeckoElementBorrowed) {
 pub extern "C" fn Servo_Element_SizeOfExcludingThisAndCVs(malloc_size_of: GeckoMallocSizeOf,
                                                           seen_ptrs: *mut SeenPtrs,
                                                           element: RawGeckoElementBorrowed) -> usize {
-    let malloc_size_of = malloc_size_of.unwrap();
+    let malloc_size_of = MallocSizeOfFn(malloc_size_of.unwrap());
     let element = GeckoElement(element);
     let borrow = element.borrow_data();
     if let Some(data) = borrow {
@@ -1083,9 +1084,8 @@ pub extern "C" fn Servo_StyleSheet_SizeOfIncludingThis(
 ) -> usize {
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
-    let malloc_size_of = malloc_size_of.unwrap();
-    StylesheetContents::as_arc(&sheet)
-        .malloc_size_of_children(&guard, malloc_size_of)
+    let malloc_size_of = MallocSizeOfFn(malloc_size_of.unwrap());
+    StylesheetContents::as_arc(&sheet).malloc_size_of_children(&guard, malloc_size_of)
 }
 
 #[no_mangle]
@@ -3610,13 +3610,15 @@ pub extern "C" fn Servo_StyleSet_ResolveForDeclarations(
 #[no_mangle]
 pub extern "C" fn Servo_StyleSet_AddSizeOfExcludingThis(
     malloc_size_of: GeckoMallocSizeOf,
+    malloc_enclosing_size_of: GeckoMallocSizeOf,
     sizes: *mut ServoStyleSetSizes,
     raw_data: RawServoStyleSetBorrowed
 ) {
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
-    let malloc_size_of = malloc_size_of.unwrap();
+    let malloc_size_of = MallocSizeOfFn(malloc_size_of.unwrap());
+    let malloc_enclosing_size_of = MallocEnclosingSizeOfFn(malloc_enclosing_size_of.unwrap());
     let sizes = unsafe { sizes.as_mut() }.unwrap();
-    data.malloc_add_size_of_children(malloc_size_of, sizes);
+    data.malloc_add_size_of_children(malloc_size_of, malloc_enclosing_size_of, sizes);
 }
 
 #[no_mangle]

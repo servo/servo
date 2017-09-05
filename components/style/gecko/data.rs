@@ -16,7 +16,8 @@ use media_queries::{Device, MediaList};
 use properties::ComputedValues;
 use servo_arc::Arc;
 use shared_lock::{Locked, StylesheetGuards, SharedRwLockReadGuard};
-use stylesheets::{MallocSizeOfFn, PerOrigin, StylesheetContents, StylesheetInDocument};
+use stylesheets::{MallocEnclosingSizeOfFn, MallocSizeOfFn, PerOrigin, StylesheetContents};
+use stylesheets::StylesheetInDocument;
 use stylist::{ExtraStyleData, Stylist};
 
 /// Little wrapper to a Gecko style sheet.
@@ -187,10 +188,17 @@ impl PerDocumentStyleDataImpl {
 
     /// Measures heap usage.
     pub fn malloc_add_size_of_children(&self, malloc_size_of: MallocSizeOfFn,
+                                       malloc_enclosing_size_of: MallocEnclosingSizeOfFn,
                                        sizes: &mut ServoStyleSetSizes) {
-        self.stylist.malloc_add_size_of_children(malloc_size_of, sizes);
+        self.stylist.malloc_add_size_of_children(malloc_size_of, malloc_enclosing_size_of, sizes);
 
-        // We may measure more fields in the future if DMD says it's worth it.
+        let data = &self.extra_style_data;
+        sizes.mStylistOther +=
+            data.user_agent.malloc_size_of_children(malloc_size_of, malloc_enclosing_size_of);
+        sizes.mStylistOther +=
+            data.user.malloc_size_of_children(malloc_size_of, malloc_enclosing_size_of);
+        sizes.mStylistOther +=
+            data.author.malloc_size_of_children(malloc_size_of, malloc_enclosing_size_of);
     }
 }
 
