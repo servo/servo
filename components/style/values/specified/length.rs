@@ -198,13 +198,19 @@ impl ToCss for ViewportPercentageLength {
 impl ViewportPercentageLength {
     /// Computes the given viewport-relative length for the given viewport size.
     pub fn to_computed_value(&self, viewport_size: Size2D<Au>) -> Au {
+        Au::from_f32_px(self.to_px(viewport_size))
+    }
+
+    /// Computes the given viewport-relative length for the given viewport size,
+    /// and return a pixel value.
+    pub fn to_px(&self, viewport_size: Size2D<Au>) -> CSSFloat {
         macro_rules! to_unit {
             ($viewport_dimension:expr) => {
                 $viewport_dimension.to_f32_px() / 100.0
             }
         }
 
-        let value = match *self {
+        match *self {
             ViewportPercentageLength::Vw(length) =>
                 length * to_unit!(viewport_size.width),
             ViewportPercentageLength::Vh(length) =>
@@ -213,8 +219,7 @@ impl ViewportPercentageLength {
                 length * to_unit!(cmp::min(viewport_size.width, viewport_size.height)),
             ViewportPercentageLength::Vmax(length) =>
                 length * to_unit!(cmp::max(viewport_size.width, viewport_size.height)),
-        };
-        Au::from_f32_px(value)
+        }
     }
 }
 
@@ -281,6 +286,31 @@ impl AbsoluteLength {
             | AbsoluteLength::Pt(v)
             | AbsoluteLength::Pc(v) => v == 0.,
         }
+    }
+
+    /// Convert this into a pixel value.
+    #[inline]
+    pub fn to_px(&self) -> CSSFloat {
+        use std::f32;
+
+        const PX_PER_IN: CSSFloat = 96.;
+        const PX_PER_CM: CSSFloat = PX_PER_IN / 2.54;
+        const PX_PER_MM: CSSFloat = PX_PER_IN / 25.4;
+        const PX_PER_Q: CSSFloat = PX_PER_MM / 4.;
+        const PX_PER_PT: CSSFloat = PX_PER_IN / 72.;
+        const PX_PER_PC: CSSFloat = PX_PER_PT * 12.;
+
+        let pixel = match *self {
+            AbsoluteLength::Px(value) => value,
+            AbsoluteLength::In(value) => value * PX_PER_IN,
+            AbsoluteLength::Cm(value) => value * PX_PER_CM,
+            AbsoluteLength::Mm(value) => value * PX_PER_MM,
+            AbsoluteLength::Q(value) => value * PX_PER_Q,
+            AbsoluteLength::Pt(value) => value * PX_PER_PT,
+            AbsoluteLength::Pc(value) => value * PX_PER_PC,
+        };
+
+        pixel.min(f32::MAX).max(f32::MIN)
     }
 }
 
@@ -354,17 +384,24 @@ impl PhysicalLength {
 
     /// Computes the given character width.
     pub fn to_computed_value(&self, context: &Context) -> Au {
-        use gecko_bindings::bindings;
-        // Same as Gecko
-        const MM_PER_INCH: f32 = 25.4;
+        to_au_round(self.to_px(context), AU_PER_PX)
+    }
 
-        let physical_inch = unsafe {
-            bindings::Gecko_GetAppUnitsPerPhysicalInch(context.device().pres_context())
+    /// Computes the given character width and return its pixel value.
+    pub fn to_px(&self, context: &Context) -> CSSFloat {
+        use gecko_bindings::bindings;
+        use std::f32;
+
+        // Same as Gecko
+        const INCH_PER_MM: f32 = 1. / 25.4;
+        let au_per_physical_inch = unsafe {
+            bindings::Gecko_GetAppUnitsPerPhysicalInch(context.device().pres_context()) as f32
         };
 
-        let inch = self.0 / MM_PER_INCH;
-
-        to_au_round(inch, physical_inch as f32)
+        // (au/in) / (au/px) = px/in
+        let px_per_physical_inch = au_per_physical_inch / AU_PER_PX;
+        let px_per_mozmm = px_per_physical_inch * INCH_PER_MM;
+        self.0 * px_per_mozmm.min(f32::MAX).max(f32::MIN)
     }
 }
 
@@ -527,6 +564,27 @@ impl NoCalcLength {
     #[inline]
     pub fn from_px(px_value: CSSFloat) -> NoCalcLength {
         NoCalcLength::Absolute(AbsoluteLength::Px(px_value))
+    }
+
+    /// Convert this into an absolute pixel length.
+    #[inline]
+    pub fn to_px(&self, context: &Context) -> CSSFloat {
+        match *self {
+            NoCalcLength::Absolute(length) => length.to_px(),
+            NoCalcLength::FontRelative(length) => {
+                // TODO: Implement to_px() for FontRelativeLength.
+                length.to_computed_value(context, FontBaseSize::CurrentStyle).to_f32_px()
+            },
+            NoCalcLength::ViewportPercentage(length) => {
+                length.to_px(context.viewport_size_for_viewport_unit_resolution())
+            },
+            /* This should only be reached from style dumping code */
+            NoCalcLength::ServoCharacterWidth(length) => {
+                length.to_computed_value(context.style().get_font().clone_font_size().0).to_f32_px()
+            },
+            #[cfg(feature = "gecko")]
+            NoCalcLength::Physical(length) => length.to_px(context),
+        }
     }
 }
 

@@ -3046,6 +3046,7 @@ fn static_assert() {
                 #       need to cast it to f32.
                 "integer_to_percentage" : "bindings::Gecko_CSSValue_SetPercentage(%s, %s as f32)",
                 "lop" : "%s.set_lop(%s)",
+                "transform_lop" : "%s.set_transform_lop(%s)",
                 "angle" : "%s.set_angle(%s)",
                 "number" : "bindings::Gecko_CSSValue_SetNumber(%s, %s)",
                 # Note: We use nsCSSValueSharedList here, instead of nsCSSValueList_heap
@@ -3089,7 +3090,8 @@ fn static_assert() {
                 ${transform_function_arm("MatrixWithPercents", "matrix3d", ["number"] * 12 + ["lop"] * 2
                                          + ["length"] + ["number"])}
                 ${transform_function_arm("Skew", "skew", ["angle"] * 2)}
-                ${transform_function_arm("Translate", "translate3d", ["lop", "lop", "length"])}
+                ${transform_function_arm("Translate", "translate3d",
+                                         ["transform_lop"] * 2 + ["length"])}
                 ${transform_function_arm("Scale", "scale3d", ["number"] * 3)}
                 ${transform_function_arm("Rotate", "rotate3d", ["number"] * 3 + ["angle"])}
                 ${transform_function_arm("Perspective", "perspective", ["length"])}
@@ -3143,7 +3145,7 @@ fn static_assert() {
             # %s is substituted with the call to GetArrayItem.
             css_value_getters = {
                 "length" : "Au(bindings::Gecko_CSSValue_GetAbsoluteLength(%s))",
-                "lop" : "%s.get_lop()",
+                "transform_lop" : "%s.get_transform_lop()",
                 "angle" : "%s.get_angle()",
                 "number" : "bindings::Gecko_CSSValue_GetNumber(%s)",
                 "percentage" : "Percentage(bindings::Gecko_CSSValue_GetPercentage(%s))",
@@ -3209,7 +3211,8 @@ fn static_assert() {
             match transform_function {
                 ${computed_operation_arm("Matrix", "matrix3d", ["number"] * 16)}
                 ${computed_operation_arm("Skew", "skew", ["angle"] * 2)}
-                ${computed_operation_arm("Translate", "translate3d", ["lop", "lop", "length"])}
+                ${computed_operation_arm("Translate", "translate3d",
+                                         ["transform_lop"] * 2 + ["length"])}
                 ${computed_operation_arm("Scale", "scale3d", ["number"] * 3)}
                 ${computed_operation_arm("Rotate", "rotate3d", ["number"] * 3 + ["angle"])}
                 ${computed_operation_arm("Perspective", "perspective", ["length"])}

@@ -628,7 +628,7 @@ ${helpers.predefined_type(
     use values::computed::{LengthOrPercentageOrNumber as ComputedLoPoNumber, LengthOrNumber as ComputedLoN};
     use values::computed::{LengthOrPercentage as ComputedLoP, Length as ComputedLength};
     use values::generics::transform::Matrix;
-    use values::specified::{Angle, Integer, Length, LengthOrPercentage};
+    use values::specified::{Angle, Integer, Length, LengthOrPercentage, TransformLengthOrPercentage};
     use values::specified::{LengthOrNumber, LengthOrPercentageOrNumber as LoPoNumber, Number};
     use style_traits::ToCss;
 
@@ -689,8 +689,8 @@ ${helpers.predefined_type(
             // For `-moz-transform` matrix and matrix3d.
             MatrixWithPercents(ComputedMatrixWithPercents),
             Skew(computed::Angle, computed::Angle),
-            Translate(computed::LengthOrPercentage,
-                      computed::LengthOrPercentage,
+            Translate(computed::TransformLengthOrPercentage,
+                      computed::TransformLengthOrPercentage,
                       computed::Length),
             Scale(CSSFloat, CSSFloat, CSSFloat),
             Rotate(CSSFloat, CSSFloat, CSSFloat, computed::Angle),
@@ -755,11 +755,11 @@ ${helpers.predefined_type(
         Skew(Angle, Option<Angle>),
         SkewX(Angle),
         SkewY(Angle),
-        Translate(LengthOrPercentage, Option<LengthOrPercentage>),
-        TranslateX(LengthOrPercentage),
-        TranslateY(LengthOrPercentage),
+        Translate(TransformLengthOrPercentage, Option<TransformLengthOrPercentage>),
+        TranslateX(TransformLengthOrPercentage),
+        TranslateY(TransformLengthOrPercentage),
         TranslateZ(Length),
-        Translate3D(LengthOrPercentage, LengthOrPercentage, Length),
+        Translate3D(TransformLengthOrPercentage, TransformLengthOrPercentage, Length),
         /// A 2D scaling factor.
         ///
         /// `scale(2)` is parsed as `Scale(Number::new(2.0), None)` and is equivalent to
@@ -1041,20 +1041,20 @@ ${helpers.predefined_type(
                         }
                     },
                     "translate" => {
-                        let sx = specified::LengthOrPercentage::parse(context, input)?;
+                        let sx = specified::TransformLengthOrPercentage::parse(context, input)?;
                         if input.try(|input| input.expect_comma()).is_ok() {
-                            let sy = specified::LengthOrPercentage::parse(context, input)?;
+                            let sy = specified::TransformLengthOrPercentage::parse(context, input)?;
                             Ok(SpecifiedOperation::Translate(sx, Some(sy)))
                         } else {
                             Ok(SpecifiedOperation::Translate(sx, None))
                         }
                     },
                     "translatex" => {
-                        let tx = specified::LengthOrPercentage::parse(context, input)?;
+                        let tx = specified::TransformLengthOrPercentage::parse(context, input)?;
                         Ok(SpecifiedOperation::TranslateX(tx))
                     },
                     "translatey" => {
-                        let ty = specified::LengthOrPercentage::parse(context, input)?;
+                        let ty = specified::TransformLengthOrPercentage::parse(context, input)?;
                         Ok(SpecifiedOperation::TranslateY(ty))
                     },
                     "translatez" => {
@@ -1062,9 +1062,9 @@ ${helpers.predefined_type(
                         Ok(SpecifiedOperation::TranslateZ(tz))
                     },
                     "translate3d" => {
-                        let tx = specified::LengthOrPercentage::parse(context, input)?;
+                        let tx = specified::TransformLengthOrPercentage::parse(context, input)?;
                         input.expect_comma()?;
-                        let ty = specified::LengthOrPercentage::parse(context, input)?;
+                        let ty = specified::TransformLengthOrPercentage::parse(context, input)?;
                         input.expect_comma()?;
                         let tz = specified::Length::parse(context, input)?;
                         Ok(SpecifiedOperation::Translate3D(tx, ty, tz))
@@ -1255,7 +1255,7 @@ ${helpers.predefined_type(
                         let tx = tx.to_computed_value(context);
                         result.push(computed_value::ComputedOperation::Translate(
                             tx,
-                            computed::length::LengthOrPercentage::zero(),
+                            computed::TransformLengthOrPercentage::zero(),
                             computed::length::Length::new(0)));
                     }
                     SpecifiedOperation::Translate(ref tx, Some(ref ty)) => {
@@ -1270,21 +1270,21 @@ ${helpers.predefined_type(
                         let tx = tx.to_computed_value(context);
                         result.push(computed_value::ComputedOperation::Translate(
                             tx,
-                            computed::length::LengthOrPercentage::zero(),
+                            computed::TransformLengthOrPercentage::zero(),
                             computed::length::Length::new(0)));
                     }
                     SpecifiedOperation::TranslateY(ref ty) => {
                         let ty = ty.to_computed_value(context);
                         result.push(computed_value::ComputedOperation::Translate(
-                            computed::length::LengthOrPercentage::zero(),
+                            computed::TransformLengthOrPercentage::zero(),
                             ty,
                             computed::length::Length::new(0)));
                     }
                     SpecifiedOperation::TranslateZ(ref tz) => {
                         let tz = tz.to_computed_value(context);
                         result.push(computed_value::ComputedOperation::Translate(
-                            computed::length::LengthOrPercentage::zero(),
-                            computed::length::LengthOrPercentage::zero(),
+                            computed::TransformLengthOrPercentage::zero(),
+                            computed::TransformLengthOrPercentage::zero(),
                             tz));
                     }
                     SpecifiedOperation::Translate3D(ref tx, ref ty, ref tz) => {

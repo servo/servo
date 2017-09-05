@@ -65,41 +65,43 @@ fn test_rgba_color_interepolation_out_of_range_clamped_2() {
 // Transform
 #[test]
 fn test_transform_interpolation_on_translate() {
-    use style::values::computed::{CalcLengthOrPercentage, LengthOrPercentage};
+    use style::values::computed::{CalcLengthOrPercentage, TransformLengthOrPercentage};
 
     let from = TransformList(Some(vec![
-        TransformOperation::Translate(LengthOrPercentage::Length(Au(0)),
-                                      LengthOrPercentage::Length(Au(100)),
+        TransformOperation::Translate(TransformLengthOrPercentage::Length(0.),
+                                      TransformLengthOrPercentage::Length(100.),
                                       Au(25))]));
     let to = TransformList(Some(vec![
-        TransformOperation::Translate(LengthOrPercentage::Length(Au(100)),
-                                      LengthOrPercentage::Length(Au(0)),
+        TransformOperation::Translate(TransformLengthOrPercentage::Length(100.),
+                                      TransformLengthOrPercentage::Length(0.),
                                       Au(75))]));
     assert_eq!(
         from.animate(&to, Procedure::Interpolate { progress: 0.5 }).unwrap(),
         TransformList(Some(vec![TransformOperation::Translate(
-            LengthOrPercentage::Length(Au(50)),
-            LengthOrPercentage::Length(Au(50)),
+            TransformLengthOrPercentage::Length(50.),
+            TransformLengthOrPercentage::Length(50.),
             Au(50),
         )]))
     );
 
     let from = TransformList(Some(vec![TransformOperation::Translate(
-        LengthOrPercentage::Percentage(Percentage(0.5)),
-        LengthOrPercentage::Percentage(Percentage(1.0)),
+        TransformLengthOrPercentage::Percentage(Percentage(0.5)),
+        TransformLengthOrPercentage::Percentage(Percentage(1.0)),
         Au(25),
     )]));
     let to = TransformList(Some(vec![
-        TransformOperation::Translate(LengthOrPercentage::Length(Au(100)),
-                                      LengthOrPercentage::Length(Au(50)),
+        TransformOperation::Translate(TransformLengthOrPercentage::Length(100.),
+                                      TransformLengthOrPercentage::Length(50.),
                                       Au(75))]));
     assert_eq!(
         from.animate(&to, Procedure::Interpolate { progress: 0.5 }).unwrap(),
         TransformList(Some(vec![TransformOperation::Translate(
             // calc(50px + 25%)
-            LengthOrPercentage::Calc(CalcLengthOrPercentage::new(Au(50), Some(Percentage(0.25)))),
+            TransformLengthOrPercentage::Calc(
+                CalcLengthOrPercentage::new(Au::from_px(50), Some(Percentage(0.25)))),
             // calc(25px + 50%)
-            LengthOrPercentage::Calc(CalcLengthOrPercentage::new(Au(25), Some(Percentage(0.5)))),
+            TransformLengthOrPercentage::Calc(
+                CalcLengthOrPercentage::new(Au::from_px(25), Some(Percentage(0.5)))),
             Au(50),
         )]))
     );
@@ -150,13 +152,13 @@ fn test_transform_interpolation_on_skew() {
 
 #[test]
 fn test_transform_interpolation_on_mismatched_lists() {
-    use style::values::computed::{Angle, LengthOrPercentage, Percentage};
+    use style::values::computed::{Angle, TransformLengthOrPercentage, Percentage};
 
     let from = TransformList(Some(vec![TransformOperation::Rotate(0.0, 0.0, 1.0,
                                                                   Angle::from_radians(100.0))]));
     let to = TransformList(Some(vec![
-        TransformOperation::Translate(LengthOrPercentage::Length(Au(100)),
-                                      LengthOrPercentage::Length(Au(0)),
+        TransformOperation::Translate(TransformLengthOrPercentage::Length(100.),
+                                      TransformLengthOrPercentage::Length(0.),
                                       Au(0))]));
     assert_eq!(
         from.animate(&to, Procedure::Interpolate { progress: 0.5 }).unwrap(),

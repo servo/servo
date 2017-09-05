@@ -2133,28 +2133,11 @@ impl ComputeSquaredDistance for TransformOperation {
                 &TransformOperation::Translate(ref fx, ref fy, ref fz),
                 &TransformOperation::Translate(ref tx, ref ty, ref tz),
             ) => {
-                // We don't want to require doing layout in order to calculate the result, so
-                // drop the percentage part. However, dropping percentage makes us impossible to
-                // compute the distance for the percentage-percentage case, but Gecko uses the
-                // same formula, so it's fine for now.
-                // Note: We use pixel value to compute the distance for translate, so we have to
-                // convert Au into px.
-                let extract_pixel_length = |lop: &LengthOrPercentage| {
-                    match *lop {
-                        LengthOrPercentage::Length(au) => au.to_f64_px(),
-                        LengthOrPercentage::Percentage(_) => 0.,
-                        LengthOrPercentage::Calc(calc) => calc.length().to_f64_px(),
-                    }
-                };
-
-                let fx = extract_pixel_length(&fx);
-                let fy = extract_pixel_length(&fy);
-                let tx = extract_pixel_length(&tx);
-                let ty = extract_pixel_length(&ty);
-
                 Ok(
                     fx.compute_squared_distance(&tx)? +
                     fy.compute_squared_distance(&ty)? +
+                    // We use pixel value to compute the distance for translate, so we have to
+                    // convert Au into px.
                     fz.to_f64_px().compute_squared_distance(&tz.to_f64_px())?,
                 )
             },

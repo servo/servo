@@ -9,10 +9,14 @@ use euclid::{Rect, Transform3D, Vector3D};
 use properties::longhands::transform::computed_value::{ComputedOperation, ComputedMatrix};
 use properties::longhands::transform::computed_value::T as TransformList;
 use std::f32;
-use super::CSSFloat;
-use values::computed::{Angle, Length, LengthOrPercentage, Number, Percentage};
+use super::{Context, CSSFloat, ToComputedValue};
+use values::animated::{Animate, ToAnimatedZero, Procedure};
+use values::computed::{Angle, CalcLengthOrPercentage, Length, LengthOrPercentage, Number};
+use values::computed::Percentage;
+use values::distance::{ComputeSquaredDistance, SquaredDistance};
 use values::generics::transform::TimingFunction as GenericTimingFunction;
 use values::generics::transform::TransformOrigin as GenericTransformOrigin;
+use values::specified;
 
 /// The computed value of a CSS `<transform-origin>`
 pub type TransformOrigin = GenericTransformOrigin<LengthOrPercentage, LengthOrPercentage, Length>;
@@ -70,14 +74,6 @@ impl TransformList {
             None => return None,
         };
 
-        let extract_pixel_length = |lop: &LengthOrPercentage| {
-            match *lop {
-                LengthOrPercentage::Length(au) => au.to_f32_px(),
-                LengthOrPercentage::Percentage(_) => 0.,
-                LengthOrPercentage::Calc(calc) => calc.length().to_f32_px(),
-            }
-        };
-
         for operation in list {
             let matrix = match *operation {
                 ComputedOperation::Rotate(ax, ay, az, theta) => {
@@ -92,7 +88,7 @@ impl TransformList {
                 ComputedOperation::Scale(sx, sy, sz) => {
                     Transform3D::create_scale(sx, sy, sz)
                 }
-                ComputedOperation::Translate(tx, ty, tz) => {
+                ComputedOperation::Translate(ref tx, ref ty, ref tz) => {
                     let (tx, ty) = match reference_box {
                         Some(relative_border_box) => {
                             (tx.to_used_value(relative_border_box.size.width).to_f32_px(),
@@ -102,7 +98,7 @@ impl TransformList {
                             // If we don't have reference box, we cannot resolve the used value,
                             // so only retrieve the length part. This will be used for computing
                             // distance without any layout info.
-                            (extract_pixel_length(&tx), extract_pixel_length(&ty))
+                            (tx.extract_pixel_length(), ty.extract_pixel_length())
                         }
                     };
                     let tz = tz.to_f32_px();
@@ -120,7 +116,7 @@ impl TransformList {
                 }
                 ComputedOperation::InterpolateMatrix { .. } |
                 ComputedOperation::AccumulateMatrix { .. } => {
-                    // TODO: Convert InterpolateMatrix/AccmulateMatrix into a valid Transform3D by
+                    // TODO: Convert InterpolateMatrix/AccumulateMatrix into a valid Transform3D by
                     // the reference box and do interpolation on these two Transform3D matrices.
                     // Both Gecko and Servo don't support this for computing distance, and Servo
                     // doesn't support animations on InterpolateMatrix/AccumulateMatrix, so
@@ -167,6 +163,146 @@ impl TransformList {
         } else {
             let vector = vector.normalize();
             (vector.x, vector.y, vector.z, angle)
+        }
+    }
+}
+
+/// The computed value of TransformLengthOrPercentage. We treat computed values of transform
+/// as the specified values, but need to convert the relative lengths into absolute lengths.
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[animate(fallback = "Self::animate_fallback")]
+#[derive(Animate, Clone, Copy, Debug, PartialEq, ToAnimatedZero, ToCss)]
+pub enum TransformLengthOrPercentage {
+    /// Length type. Use pixel value.
+    Length(CSSFloat),
+    /// Percentage type.
+    Percentage(Percentage),
+    // FIXME(boris): specified::CalcLengthOrPercentage and computed::CalcLengthOrPercentage store
+    // the absolute values as Au, so in order to fix the rounding issue, we probably need to
+    // revise them or write different ones.
+    /// Calc expression type.
+    Calc(CalcLengthOrPercentage),
+}
+
+impl TransformLengthOrPercentage {
+    /// Returns a `zero` length.
+    #[inline]
+    pub fn zero() -> Self {
+        TransformLengthOrPercentage::Length(0.)
+    }
+
+    /// Returns true if the computed value is absolute 0 or 0%.
+    ///
+    /// (Returns false for calc() values, even if ones that may resolve to zero.)
+    #[inline]
+    pub fn is_definitely_zero(&self) -> bool {
+        match *self {
+            TransformLengthOrPercentage::Length(l) => l == 0.0,
+            TransformLengthOrPercentage::Percentage(p) => p.0 == 0.0,
+            TransformLengthOrPercentage::Calc(_) => false,
+        }
+    }
+
+    /// Return the pixel value if any.
+    #[inline]
+    pub fn extract_pixel_length(&self) -> CSSFloat {
+        match *self {
+            TransformLengthOrPercentage::Length(l) => l,
+            TransformLengthOrPercentage::Percentage(_) => 0.,
+            TransformLengthOrPercentage::Calc(calc) => calc.length().to_f32_px(),
+        }
+    }
+
+    /// Returns the used value.
+    #[inline]
+    pub fn to_used_value(&self, containing_length: Au) -> Au {
+        match *self {
+            TransformLengthOrPercentage::Length(length) => Au::from_f32_px(length),
+            TransformLengthOrPercentage::Percentage(p) => containing_length.scale_by(p.0),
+            TransformLengthOrPercentage::Calc(ref calc) => {
+                calc.to_used_value(Some(containing_length)).unwrap()
+            },
+        }
+    }
+
+    /// Used for Animate custom-derive.
+    /// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
+    fn animate_fallback(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
+        // Special handling for zero values since these should not require calc().
+        if self.is_definitely_zero() {
+            return other.to_animated_zero()?.animate(other, procedure);
+        }
+        if other.is_definitely_zero() {
+            return self.animate(&self.to_animated_zero()?, procedure);
+        }
+
+        let this = CalcLengthOrPercentage::from(*self);
+        let other = CalcLengthOrPercentage::from(*other);
+        Ok(TransformLengthOrPercentage::Calc(this.animate(&other, procedure)?))
+    }
+}
+
+impl ToComputedValue for specified::TransformLengthOrPercentage {
+    type ComputedValue = TransformLengthOrPercentage;
+
+    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
+        match self.0 {
+            specified::LengthOrPercentage::Length(ref value) => {
+                TransformLengthOrPercentage::Length(value.to_px(context))
+            },
+            specified::LengthOrPercentage::Percentage(value) => {
+                TransformLengthOrPercentage::Percentage(value)
+            }
+            specified::LengthOrPercentage::Calc(ref calc) => {
+                TransformLengthOrPercentage::Calc(calc.to_computed_value(context))
+            }
+        }
+    }
+
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        use values::specified::NoCalcLength;
+
+        let lop = match *computed {
+            TransformLengthOrPercentage::Length(value) => {
+                specified::LengthOrPercentage::Length(NoCalcLength::from_px(value))
+            }
+            TransformLengthOrPercentage::Percentage(value) => {
+                specified::LengthOrPercentage::Percentage(value)
+            }
+            TransformLengthOrPercentage::Calc(ref calc) => {
+                specified::LengthOrPercentage::Calc(
+                    Box::new(ToComputedValue::from_computed_value(calc))
+                )
+            }
+        };
+        specified::TransformLengthOrPercentage(lop)
+    }
+}
+
+impl ComputeSquaredDistance for TransformLengthOrPercentage {
+    #[inline]
+    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
+        // We don't want to require doing layout in order to calculate the result, so
+        // drop the percentage part. However, dropping percentage makes us impossible to
+        // compute the distance for the percentage-percentage case, but Gecko uses the
+        // same formula, so it's fine for now.
+        let p1 = self.extract_pixel_length();
+        let p2 = other.extract_pixel_length();
+        p1.compute_squared_distance(&p2)
+    }
+}
+
+impl From<TransformLengthOrPercentage> for CalcLengthOrPercentage {
+    #[inline]
+    fn from(lop: TransformLengthOrPercentage) -> CalcLengthOrPercentage {
+        match lop {
+            TransformLengthOrPercentage::Calc(this) => this,
+            TransformLengthOrPercentage::Length(this) => {
+                CalcLengthOrPercentage::new(Au::from_f32_px(this), None)
+            },
+            TransformLengthOrPercentage::Percentage(this) => {
+                CalcLengthOrPercentage::new(Au(0), Some(this))
+            },
         }
     }
 }

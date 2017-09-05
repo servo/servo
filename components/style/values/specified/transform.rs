@@ -254,3 +254,20 @@ impl ToComputedValue for TimingFunction {
         }
     }
 }
+
+/// The LengthOrPercentage type for transform function.
+/// According to the spec, the computed value of transform is as specified, but with relative
+/// lengths converted into absolute lengths. Therefore, we need to define a different
+/// LengthOrPercentage type for transform.
+// https://drafts.csswg.org/css-transforms/#transform-property
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Debug, PartialEq, ToCss)]
+pub struct TransformLengthOrPercentage(pub LengthOrPercentage);
+
+impl Parse for TransformLengthOrPercentage {
+    #[inline]
+    fn parse<'i, 't>(context: &ParserContext,
+                     input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        LengthOrPercentage::parse(context, input).map(TransformLengthOrPercentage)
+    }
+}

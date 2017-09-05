@@ -4,7 +4,6 @@
 
 //! Little helpers for `nsCSSValue`.
 
-use app_units::Au;
 use gecko_bindings::bindings;
 use gecko_bindings::structs;
 use gecko_bindings::structs::{nsCSSValue, nsCSSUnit};
@@ -14,7 +13,7 @@ use std::marker::PhantomData;
 use std::mem;
 use std::ops::{Index, IndexMut};
 use std::slice;
-use values::computed::{Angle, LengthOrPercentage, Percentage};
+use values::computed::{Angle, LengthOrPercentage, Percentage, TransformLengthOrPercentage};
 use values::specified::url::SpecifiedUrl;
 
 impl nsCSSValue {
@@ -87,17 +86,32 @@ impl nsCSSValue {
         }
     }
 
-    /// Returns LengthOrPercentage value.
-    pub unsafe fn get_lop(&self) -> LengthOrPercentage {
+    /// Sets TransformLengthOrPercentage value to this nsCSSValue.
+    pub unsafe fn set_transform_lop(&mut self, lop: TransformLengthOrPercentage) {
+        match lop {
+            TransformLengthOrPercentage::Length(pixel) => {
+                bindings::Gecko_CSSValue_SetPixelValue(self, pixel)
+            }
+            TransformLengthOrPercentage::Percentage(pc) => {
+                bindings::Gecko_CSSValue_SetPercentage(self, pc.0)
+            }
+            TransformLengthOrPercentage::Calc(calc) => {
+                bindings::Gecko_CSSValue_SetCalc(self, calc.into())
+            }
+        }
+    }
+
+    /// Returns TransformLengthOrPercentage value.
+    pub unsafe fn get_transform_lop(&self) -> TransformLengthOrPercentage {
         match self.mUnit {
             nsCSSUnit::eCSSUnit_Pixel => {
-                LengthOrPercentage::Length(Au(bindings::Gecko_CSSValue_GetAbsoluteLength(self)))
+                TransformLengthOrPercentage::Length(bindings::Gecko_CSSValue_GetNumber(self))
             },
             nsCSSUnit::eCSSUnit_Percent => {
-                LengthOrPercentage::Percentage(Percentage(bindings::Gecko_CSSValue_GetPercentage(self)))
+                TransformLengthOrPercentage::Percentage(Percentage(bindings::Gecko_CSSValue_GetPercentage(self)))
             },
             nsCSSUnit::eCSSUnit_Calc => {
-                LengthOrPercentage::Calc(bindings::Gecko_CSSValue_GetCalc(self).into())
+                TransformLengthOrPercentage::Calc(bindings::Gecko_CSSValue_GetCalc(self).into())
             },
             x => panic!("The unit should not be {:?}", x),
         }

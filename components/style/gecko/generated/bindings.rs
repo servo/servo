@@ -1357,6 +1357,10 @@ extern "C" {
      -> nsStyleCoord_CalcValue;
 }
 extern "C" {
+    pub fn Gecko_CSSValue_SetPixelValue(aCSSValue: nsCSSValueBorrowedMut,
+                                        aLen: f32);
+}
+extern "C" {
     pub fn Gecko_CSSValue_SetAbsoluteLength(css_value: nsCSSValueBorrowedMut,
                                             len: nscoord);
 }
