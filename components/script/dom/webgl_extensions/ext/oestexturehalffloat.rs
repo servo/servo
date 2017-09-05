@@ -33,7 +33,8 @@ impl WebGLExtension for OESTextureHalfFloat {
     fn is_supported(ext: &WebGLExtensions) -> bool {
         ext.supports_any_gl_extension(&["GL_OES_texture_half_float",
                                         "GL_ARB_half_float_pixel",
-                                        "GL_NV_half_float"])
+                                        "GL_NV_half_float",
+                                        "GL_EXT_color_buffer_half_float"])
     }
 
     fn enable(ext: &WebGLExtensions) {
