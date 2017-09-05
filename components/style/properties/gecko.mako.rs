@@ -3041,6 +3041,7 @@ fn static_assert() {
             # %s substituted with the corresponding variable
             css_value_setters = {
                 "length" : "bindings::Gecko_CSSValue_SetAbsoluteLength(%s, %s.0)",
+                "transform_length" : "bindings::Gecko_CSSValue_SetPixelValue(%s, %s)",
                 "percentage" : "bindings::Gecko_CSSValue_SetPercentage(%s, %s.0)",
                 # Note: This is an integer type, but we use it as a percentage value in Gecko, so
                 #       need to cast it to f32.
@@ -3091,10 +3092,10 @@ fn static_assert() {
                                          + ["length"] + ["number"])}
                 ${transform_function_arm("Skew", "skew", ["angle"] * 2)}
                 ${transform_function_arm("Translate", "translate3d",
-                                         ["transform_lop"] * 2 + ["length"])}
+                                         ["transform_lop"] * 2 + ["transform_length"])}
                 ${transform_function_arm("Scale", "scale3d", ["number"] * 3)}
                 ${transform_function_arm("Rotate", "rotate3d", ["number"] * 3 + ["angle"])}
-                ${transform_function_arm("Perspective", "perspective", ["length"])}
+                ${transform_function_arm("Perspective", "perspective", ["transform_length"])}
                 ${transform_function_arm("InterpolateMatrix", "interpolatematrix",
                                          ["list"] * 2 + ["percentage"])}
                 ${transform_function_arm("AccumulateMatrix", "accumulatematrix",
@@ -3144,7 +3145,7 @@ fn static_assert() {
         <%
             # %s is substituted with the call to GetArrayItem.
             css_value_getters = {
-                "length" : "Au(bindings::Gecko_CSSValue_GetAbsoluteLength(%s))",
+                "length" : "%s.get_f32_px()",
                 "transform_lop" : "%s.get_transform_lop()",
                 "angle" : "%s.get_angle()",
                 "number" : "bindings::Gecko_CSSValue_GetNumber(%s)",

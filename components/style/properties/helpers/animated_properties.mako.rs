@@ -1067,16 +1067,16 @@ impl Animate for TransformOperation {
                 }
             },
             (
-                &TransformOperation::Perspective(ref fd),
-                &TransformOperation::Perspective(ref td),
+                &TransformOperation::Perspective(fd),
+                &TransformOperation::Perspective(td),
             ) => {
                 let mut fd_matrix = ComputedMatrix::identity();
                 let mut td_matrix = ComputedMatrix::identity();
-                if fd.0 > 0 {
-                    fd_matrix.m34 = -1. / fd.to_f32_px();
+                if fd > 0. {
+                    fd_matrix.m34 = -1. / fd;
                 }
-                if td.0 > 0 {
-                    td_matrix.m34 = -1. / td.to_f32_px();
+                if td > 0. {
+                    td_matrix.m34 = -1. / td;
                 }
                 Ok(TransformOperation::Matrix(
                     fd_matrix.animate(&td_matrix, procedure)?,
@@ -2136,9 +2136,7 @@ impl ComputeSquaredDistance for TransformOperation {
                 Ok(
                     fx.compute_squared_distance(&tx)? +
                     fy.compute_squared_distance(&ty)? +
-                    // We use pixel value to compute the distance for translate, so we have to
-                    // convert Au into px.
-                    fz.to_f64_px().compute_squared_distance(&tz.to_f64_px())?,
+                    fz.compute_squared_distance(&tz)?,
                 )
             },
             (
@@ -2170,30 +2168,30 @@ impl ComputeSquaredDistance for TransformOperation {
                 }
             }
             (
-                &TransformOperation::Perspective(ref fd),
-                &TransformOperation::Perspective(ref td),
+                &TransformOperation::Perspective(fd),
+                &TransformOperation::Perspective(td),
             ) => {
                 let mut fd_matrix = ComputedMatrix::identity();
                 let mut td_matrix = ComputedMatrix::identity();
-                if fd.0 > 0 {
-                    fd_matrix.m34 = -1. / fd.to_f32_px();
+                if fd > 0. {
+                    fd_matrix.m34 = -1. / fd;
                 }
 
-                if td.0 > 0 {
-                    td_matrix.m34 = -1. / td.to_f32_px();
+                if td > 0. {
+                    td_matrix.m34 = -1. / td;
                 }
                 fd_matrix.compute_squared_distance(&td_matrix)
             }
             (
-                &TransformOperation::Perspective(ref p),
+                &TransformOperation::Perspective(p),
                 &TransformOperation::Matrix(ref m),
             ) | (
                 &TransformOperation::Matrix(ref m),
-                &TransformOperation::Perspective(ref p),
+                &TransformOperation::Perspective(p),
             ) => {
                 let mut p_matrix = ComputedMatrix::identity();
-                if p.0 > 0 {
-                    p_matrix.m34 = -1. / p.to_f32_px();
+                if p > 0. {
+                    p_matrix.m34 = -1. / p;
                 }
                 p_matrix.compute_squared_distance(&m)
             }

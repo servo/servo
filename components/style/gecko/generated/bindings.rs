@@ -1339,10 +1339,6 @@ extern "C" {
                                             index: i32) -> nsCSSValueBorrowed;
 }
 extern "C" {
-    pub fn Gecko_CSSValue_GetAbsoluteLength(css_value: nsCSSValueBorrowed)
-     -> nscoord;
-}
-extern "C" {
     pub fn Gecko_CSSValue_GetKeyword(aCSSValue: nsCSSValueBorrowed)
      -> nsCSSKeyword;
 }

@@ -2912,7 +2912,7 @@ impl Fragment {
                                                                      -perspective_origin.y,
                                                                      0.0);
 
-                let perspective_matrix = TransformList::create_perspective_matrix(length);
+                let perspective_matrix = TransformList::create_perspective_matrix(length.to_f32_px());
 
                 Some(pre_transform.pre_mul(&perspective_matrix).pre_mul(&post_transform))
             }

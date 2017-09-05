@@ -101,8 +101,7 @@ impl TransformList {
                             (tx.extract_pixel_length(), ty.extract_pixel_length())
                         }
                     };
-                    let tz = tz.to_f32_px();
-                    Transform3D::create_translation(tx, ty, tz)
+                    Transform3D::create_translation(tx, ty, *tz)
                 }
                 ComputedOperation::Matrix(m) => {
                     m.into()
@@ -133,7 +132,7 @@ impl TransformList {
 
     /// Return the transform matrix from a perspective length.
     #[inline]
-    pub fn create_perspective_matrix(d: Au) -> Transform3D<f32> {
+    pub fn create_perspective_matrix(d: CSSFloat) -> Transform3D<f32> {
         // TODO(gw): The transforms spec says that perspective length must
         // be positive. However, there is some confusion between the spec
         // and browser implementations as to handling the case of 0 for the
@@ -141,7 +140,6 @@ impl TransformList {
         // that a provided perspective value of <= 0.0 doesn't cause panics
         // and behaves as it does in other browsers.
         // See https://lists.w3.org/Archives/Public/www-style/2016Jan/0020.html for more details.
-        let d = d.to_f32_px();
         if d <= 0.0 {
             Transform3D::identity()
         } else {
@@ -304,5 +302,27 @@ impl From<TransformLengthOrPercentage> for CalcLengthOrPercentage {
                 CalcLengthOrPercentage::new(Au(0), Some(this))
             },
         }
+    }
+}
+
+/// The computed value of TransformLength.
+pub type TransformLength = CSSFloat;
+
+impl ToComputedValue for specified::TransformLength {
+    type ComputedValue = TransformLength;
+
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
+        match self.0 {
+            specified::Length::NoCalc(l) => l.to_px(context),
+            specified::Length::Calc(ref calc) => {
+                calc.to_computed_value(context).length().to_f32_px()
+            },
+        }
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        specified::TransformLength(specified::Length::from_px(*computed))
     }
 }

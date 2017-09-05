@@ -628,8 +628,9 @@ ${helpers.predefined_type(
     use values::computed::{LengthOrPercentageOrNumber as ComputedLoPoNumber, LengthOrNumber as ComputedLoN};
     use values::computed::{LengthOrPercentage as ComputedLoP, Length as ComputedLength};
     use values::generics::transform::Matrix;
-    use values::specified::{Angle, Integer, Length, LengthOrPercentage, TransformLengthOrPercentage};
+    use values::specified::{Angle, Integer, LengthOrPercentage};
     use values::specified::{LengthOrNumber, LengthOrPercentageOrNumber as LoPoNumber, Number};
+    use values::specified::{TransformLength, TransformLengthOrPercentage};
     use style_traits::ToCss;
 
     use std::fmt;
@@ -691,10 +692,10 @@ ${helpers.predefined_type(
             Skew(computed::Angle, computed::Angle),
             Translate(computed::TransformLengthOrPercentage,
                       computed::TransformLengthOrPercentage,
-                      computed::Length),
+                      computed::TransformLength),
             Scale(CSSFloat, CSSFloat, CSSFloat),
             Rotate(CSSFloat, CSSFloat, CSSFloat, computed::Angle),
-            Perspective(computed::Length),
+            Perspective(computed::TransformLength),
             // For mismatched transform lists.
             // A vector of |ComputedOperation| could contain an |InterpolateMatrix| and other
             // |ComputedOperation|s, and multiple nested |InterpolateMatrix|s is acceptable.
@@ -758,8 +759,8 @@ ${helpers.predefined_type(
         Translate(TransformLengthOrPercentage, Option<TransformLengthOrPercentage>),
         TranslateX(TransformLengthOrPercentage),
         TranslateY(TransformLengthOrPercentage),
-        TranslateZ(Length),
-        Translate3D(TransformLengthOrPercentage, TransformLengthOrPercentage, Length),
+        TranslateZ(TransformLength),
+        Translate3D(TransformLengthOrPercentage, TransformLengthOrPercentage, TransformLength),
         /// A 2D scaling factor.
         ///
         /// `scale(2)` is parsed as `Scale(Number::new(2.0), None)` and is equivalent to
@@ -791,7 +792,7 @@ ${helpers.predefined_type(
         /// [§ 13.1. 3D Transform Function](https://drafts.csswg.org/css-transforms-2/#funcdef-perspective).
         ///
         /// The value must be greater than or equal to zero.
-        Perspective(specified::Length),
+        Perspective(specified::TransformLength),
         /// A intermediate type for interpolation of mismatched transform lists.
         InterpolateMatrix { from_list: SpecifiedValue,
                             to_list: SpecifiedValue,
@@ -1058,7 +1059,7 @@ ${helpers.predefined_type(
                         Ok(SpecifiedOperation::TranslateY(ty))
                     },
                     "translatez" => {
-                        let tz = specified::Length::parse(context, input)?;
+                        let tz = specified::TransformLength::parse(context, input)?;
                         Ok(SpecifiedOperation::TranslateZ(tz))
                     },
                     "translate3d" => {
@@ -1066,7 +1067,7 @@ ${helpers.predefined_type(
                         input.expect_comma()?;
                         let ty = specified::TransformLengthOrPercentage::parse(context, input)?;
                         input.expect_comma()?;
-                        let tz = specified::Length::parse(context, input)?;
+                        let tz = specified::TransformLength::parse(context, input)?;
                         Ok(SpecifiedOperation::Translate3D(tx, ty, tz))
                     },
                     "scale" => {
@@ -1144,7 +1145,7 @@ ${helpers.predefined_type(
                     },
                     "perspective" => {
                         let d = specified::Length::parse_non_negative(context, input)?;
-                        Ok(SpecifiedOperation::Perspective(d))
+                        Ok(SpecifiedOperation::Perspective(specified::TransformLength(d)))
                     },
                     _ => Err(()),
                 };
@@ -1256,7 +1257,7 @@ ${helpers.predefined_type(
                         result.push(computed_value::ComputedOperation::Translate(
                             tx,
                             computed::TransformLengthOrPercentage::zero(),
-                            computed::length::Length::new(0)));
+                            0.));
                     }
                     SpecifiedOperation::Translate(ref tx, Some(ref ty)) => {
                         let tx = tx.to_computed_value(context);
@@ -1264,21 +1265,21 @@ ${helpers.predefined_type(
                         result.push(computed_value::ComputedOperation::Translate(
                             tx,
                             ty,
-                            computed::length::Length::new(0)));
+                            0.));
                     }
                     SpecifiedOperation::TranslateX(ref tx) => {
                         let tx = tx.to_computed_value(context);
                         result.push(computed_value::ComputedOperation::Translate(
                             tx,
                             computed::TransformLengthOrPercentage::zero(),
-                            computed::length::Length::new(0)));
+                            0.));
                     }
                     SpecifiedOperation::TranslateY(ref ty) => {
                         let ty = ty.to_computed_value(context);
                         result.push(computed_value::ComputedOperation::Translate(
                             computed::TransformLengthOrPercentage::zero(),
                             ty,
-                            computed::length::Length::new(0)));
+                            0.));
                     }
                     SpecifiedOperation::TranslateZ(ref tz) => {
                         let tz = tz.to_computed_value(context);

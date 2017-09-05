@@ -271,3 +271,16 @@ impl Parse for TransformLengthOrPercentage {
         LengthOrPercentage::parse(context, input).map(TransformLengthOrPercentage)
     }
 }
+
+/// The Length type for transform function.
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Debug, PartialEq, ToCss)]
+pub struct TransformLength(pub Length);
+
+impl Parse for TransformLength {
+    #[inline]
+    fn parse<'i, 't>(context: &ParserContext,
+                     input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        Length::parse(context, input).map(TransformLength)
+    }
+}

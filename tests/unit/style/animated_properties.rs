@@ -70,29 +70,29 @@ fn test_transform_interpolation_on_translate() {
     let from = TransformList(Some(vec![
         TransformOperation::Translate(TransformLengthOrPercentage::Length(0.),
                                       TransformLengthOrPercentage::Length(100.),
-                                      Au(25))]));
+                                      25.)]));
     let to = TransformList(Some(vec![
         TransformOperation::Translate(TransformLengthOrPercentage::Length(100.),
                                       TransformLengthOrPercentage::Length(0.),
-                                      Au(75))]));
+                                      75.)]));
     assert_eq!(
         from.animate(&to, Procedure::Interpolate { progress: 0.5 }).unwrap(),
         TransformList(Some(vec![TransformOperation::Translate(
             TransformLengthOrPercentage::Length(50.),
             TransformLengthOrPercentage::Length(50.),
-            Au(50),
+            50.,
         )]))
     );
 
     let from = TransformList(Some(vec![TransformOperation::Translate(
         TransformLengthOrPercentage::Percentage(Percentage(0.5)),
         TransformLengthOrPercentage::Percentage(Percentage(1.0)),
-        Au(25),
+        25.,
     )]));
     let to = TransformList(Some(vec![
         TransformOperation::Translate(TransformLengthOrPercentage::Length(100.),
                                       TransformLengthOrPercentage::Length(50.),
-                                      Au(75))]));
+                                      75.)]));
     assert_eq!(
         from.animate(&to, Procedure::Interpolate { progress: 0.5 }).unwrap(),
         TransformList(Some(vec![TransformOperation::Translate(
@@ -102,7 +102,7 @@ fn test_transform_interpolation_on_translate() {
             // calc(25px + 50%)
             TransformLengthOrPercentage::Calc(
                 CalcLengthOrPercentage::new(Au::from_px(25), Some(Percentage(0.5)))),
-            Au(50),
+            50.,
         )]))
     );
 }
@@ -159,7 +159,7 @@ fn test_transform_interpolation_on_mismatched_lists() {
     let to = TransformList(Some(vec![
         TransformOperation::Translate(TransformLengthOrPercentage::Length(100.),
                                       TransformLengthOrPercentage::Length(0.),
-                                      Au(0))]));
+                                      0.)]));
     assert_eq!(
         from.animate(&to, Procedure::Interpolate { progress: 0.5 }).unwrap(),
         TransformList(Some(vec![TransformOperation::InterpolateMatrix {

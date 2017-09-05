@@ -117,6 +117,16 @@ impl nsCSSValue {
         }
     }
 
+    /// Returns pixel value.
+    pub unsafe fn get_f32_px(&self) -> f32 {
+        match self.mUnit {
+            nsCSSUnit::eCSSUnit_Pixel => {
+                bindings::Gecko_CSSValue_GetNumber(self)
+            },
+            x => panic!("The unit should not be {:?}", x),
+        }
+    }
+
     fn set_valueless_unit(&mut self, unit: nsCSSUnit) {
         debug_assert_eq!(self.mUnit, nsCSSUnit::eCSSUnit_Null);
         debug_assert!(unit as u32 <= nsCSSUnit::eCSSUnit_DummyInherit as u32, "Not a valueless unit");

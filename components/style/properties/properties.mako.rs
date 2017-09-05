@@ -2321,7 +2321,7 @@ impl ComputedValuesInner {
                         }
                     }
                     computed_values::transform::ComputedOperation::Translate(_, _, z) => {
-                        if z != Au(0) {
+                        if z != 0. {
                             return true;
                         }
                     }
