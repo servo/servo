@@ -8,8 +8,8 @@ use context::QuirksMode;
 use fnv::FnvHashSet;
 use media_queries::Device;
 use shared_lock::SharedRwLockReadGuard;
-use stylesheets::{DocumentRule, ImportRule, MediaRule,  SupportsRule};
-use stylesheets::{NestedRuleIterationCondition, Stylesheet};
+use stylesheets::{DocumentRule, ImportRule, MallocEnclosingSizeOfFn, MallocSizeOfHash, MediaRule};
+use stylesheets::{NestedRuleIterationCondition, Stylesheet, SupportsRule};
 
 /// A key for a given media query result.
 ///
@@ -87,6 +87,12 @@ impl EffectiveMediaQueryResults {
         // NOTE(emilio): We can't assert that we don't cache the same item twice
         // because of stylesheet reusing... shrug.
         self.set.insert(item.to_media_list_key());
+    }
+
+    /// Measure heap usage.
+    pub fn malloc_size_of_children(&self, malloc_enclosing_size_of: MallocEnclosingSizeOfFn)
+                                   -> usize {
+        self.set.malloc_shallow_size_of_hash(malloc_enclosing_size_of)
     }
 }
 

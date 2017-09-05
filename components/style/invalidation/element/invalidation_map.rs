@@ -14,6 +14,8 @@ use selectors::parser::{Combinator, Component};
 use selectors::parser::{Selector, SelectorIter, SelectorMethods};
 use selectors::visitor::SelectorVisitor;
 use smallvec::SmallVec;
+#[cfg(feature = "gecko")]
+use stylesheets::{MallocEnclosingSizeOfFn, MallocSizeOfHash};
 
 #[cfg(feature = "gecko")]
 /// Gets the element state relevant to the given `:dir` pseudo-class selector.
@@ -137,10 +139,10 @@ impl SelectorMapEntry for StateDependency {
 pub struct InvalidationMap {
     /// A map from a given class name to all the selectors with that class
     /// selector.
-    pub class_to_selector: MaybeCaseInsensitiveHashMap<Atom, SelectorMap<Dependency>>,
+    pub class_to_selector: MaybeCaseInsensitiveHashMap<Atom, SmallVec<[Dependency; 1]>>,
     /// A map from a given id to all the selectors with that ID in the
     /// stylesheets currently applying to the document.
-    pub id_to_selector: MaybeCaseInsensitiveHashMap<Atom, SelectorMap<Dependency>>,
+    pub id_to_selector: MaybeCaseInsensitiveHashMap<Atom, SmallVec<[Dependency; 1]>>,
     /// A map of all the state dependencies.
     pub state_affecting_selectors: SelectorMap<StateDependency>,
     /// A map of other attribute affecting selectors.
@@ -243,21 +245,21 @@ impl InvalidationMap {
             for class in compound_visitor.classes {
                 self.class_to_selector
                     .entry(class, quirks_mode)
-                    .or_insert_with(SelectorMap::new)
-                    .insert(Dependency {
+                    .or_insert_with(SmallVec::new)
+                    .push(Dependency {
                         selector: selector.clone(),
                         selector_offset: sequence_start,
-                    }, quirks_mode);
+                    })
             }
 
             for id in compound_visitor.ids {
                 self.id_to_selector
                     .entry(id, quirks_mode)
-                    .or_insert_with(SelectorMap::new)
-                    .insert(Dependency {
+                    .or_insert_with(SmallVec::new)
+                    .push(Dependency {
                         selector: selector.clone(),
                         selector_offset: sequence_start,
-                    }, quirks_mode);
+                    })
             }
 
             if !compound_visitor.state.is_empty() {
@@ -286,6 +288,24 @@ impl InvalidationMap {
 
             index += 1; // Account for the combinator.
         }
+    }
+
+    /// Measures heap usage.
+    #[cfg(feature = "gecko")]
+    pub fn malloc_size_of_children(&self, malloc_enclosing_size_of: MallocEnclosingSizeOfFn)
+                                   -> usize {
+        // Currently we measure the HashMap storage, but not things pointed to
+        // by keys and values.
+        let mut n = 0;
+
+        n += self.class_to_selector.malloc_shallow_size_of_hash(malloc_enclosing_size_of);
+        n += self.id_to_selector.malloc_shallow_size_of_hash(malloc_enclosing_size_of);
+
+        n += self.state_affecting_selectors.malloc_size_of_children(malloc_enclosing_size_of);
+
+        n += self.other_attribute_affecting_selectors.malloc_size_of_children(
+            malloc_enclosing_size_of);
+        n
     }
 }
 

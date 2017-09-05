@@ -40,7 +40,8 @@ pub use self::import_rule::ImportRule;
 pub use self::keyframes_rule::KeyframesRule;
 pub use self::loader::StylesheetLoader;
 pub use self::media_rule::MediaRule;
-pub use self::memory::{MallocSizeOf, MallocSizeOfFn, MallocSizeOfWithGuard};
+pub use self::memory::{MallocEnclosingSizeOfFn, MallocSizeOf, MallocSizeOfBox, MallocSizeOfFn};
+pub use self::memory::{MallocSizeOfHash, MallocSizeOfVec, MallocSizeOfWithGuard};
 #[cfg(feature = "gecko")]
 pub use self::memory::{MallocSizeOfWithRepeats, SizeOfState};
 pub use self::namespace_rule::NamespaceRule;

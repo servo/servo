@@ -23,6 +23,12 @@ use selectors::parser::{Combinator, Component, Selector};
 use smallvec::SmallVec;
 use std::fmt;
 
+#[derive(Debug, PartialEq)]
+enum VisitedDependent {
+    Yes,
+    No,
+}
+
 /// The struct that takes care of encapsulating all the logic on where and how
 /// element styles need to be invalidated.
 pub struct TreeStyleInvalidator<'a, 'b: 'a, E>
@@ -792,20 +798,26 @@ impl<'a, 'b: 'a, E> InvalidationCollector<'a, 'b, E>
         let removed_id = self.removed_id;
         if let Some(ref id) = removed_id {
             if let Some(deps) = map.id_to_selector.get(id, quirks_mode) {
-                self.collect_dependencies_in_map(deps)
+                for dep in deps {
+                    self.scan_dependency(dep, VisitedDependent::No);
+                }
             }
         }
 
         let added_id = self.added_id;
         if let Some(ref id) = added_id {
             if let Some(deps) = map.id_to_selector.get(id, quirks_mode) {
-                self.collect_dependencies_in_map(deps)
+                for dep in deps {
+                    self.scan_dependency(dep, VisitedDependent::No);
+                }
             }
         }
 
         for class in self.classes_added.iter().chain(self.classes_removed.iter()) {
             if let Some(deps) = map.class_to_selector.get(class, quirks_mode) {
-                self.collect_dependencies_in_map(deps)
+                for dep in deps {
+                    self.scan_dependency(dep, VisitedDependent::No);
+                }
             }
         }
 
@@ -839,10 +851,7 @@ impl<'a, 'b: 'a, E> InvalidationCollector<'a, 'b, E>
             self.removed_id,
             self.classes_removed,
             &mut |dependency| {
-                self.scan_dependency(
-                    dependency,
-                    /* is_visited_dependent = */ false
-                );
+                self.scan_dependency(dependency, VisitedDependent::No);
                 true
             },
         );
@@ -862,10 +871,13 @@ impl<'a, 'b: 'a, E> InvalidationCollector<'a, 'b, E>
                 if !dependency.state.intersects(state_changes) {
                     return true;
                 }
-                self.scan_dependency(
-                    &dependency.dep,
-                    dependency.state.intersects(IN_VISITED_OR_UNVISITED_STATE)
-                );
+                let visited_dependent =
+                    if dependency.state.intersects(IN_VISITED_OR_UNVISITED_STATE) {
+                        VisitedDependent::Yes
+                    } else {
+                        VisitedDependent::No
+                    };
+                self.scan_dependency(&dependency.dep, visited_dependent);
                 true
             },
         );
@@ -874,9 +886,9 @@ impl<'a, 'b: 'a, E> InvalidationCollector<'a, 'b, E>
     fn scan_dependency(
         &mut self,
         dependency: &Dependency,
-        is_visited_dependent: bool
+        is_visited_dependent: VisitedDependent,
     ) {
-        debug!("TreeStyleInvalidator::scan_dependency({:?}, {:?}, {})",
+        debug!("TreeStyleInvalidator::scan_dependency({:?}, {:?}, {:?})",
                self.element,
                dependency,
                is_visited_dependent);
@@ -943,7 +955,7 @@ impl<'a, 'b: 'a, E> InvalidationCollector<'a, 'b, E>
         //
         // NOTE: This thing is actually untested because testing it is flaky,
         // see the tests that were added and then backed out in bug 1328509.
-        if is_visited_dependent && now_context.relevant_link_found {
+        if is_visited_dependent == VisitedDependent::Yes && now_context.relevant_link_found {
             then_context.visited_handling = VisitedHandlingMode::RelevantLinkVisited;
             let matched_then =
                 matches_selector(&dependency.selector,
