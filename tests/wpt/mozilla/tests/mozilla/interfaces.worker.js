@@ -34,6 +34,8 @@ test_interfaces([
   "MessageEvent",
   "Performance",
   "PerformanceEntry",
+  "PerformanceMark",
+  "PerformanceMeasure",
   "PerformanceObserver",
   "PerformanceObserverEntryList",
   "PerformancePaintTiming",

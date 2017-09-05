@@ -28,3 +28,14 @@ partial interface Performance {
   PerformanceEntryList getEntriesByName(DOMString name,
                                         optional DOMString type);
 };
+
+// http://www.w3.org/TR/user-timing/
+[Exposed=(Window,Worker)]
+partial interface Performance {
+  [Throws]
+  void mark(DOMString markName);
+  void clearMarks(optional DOMString markName);
+  [Throws]
+  void measure(DOMString measureName, optional DOMString startMark, optional DOMString endMark);
+  void clearMeasures(optional DOMString measureName);
+};
