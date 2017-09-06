@@ -9,13 +9,12 @@
 // except according to those terms.
 
 use alloc::{alloc, dealloc};
-use cmp;
-use hash::{BuildHasher, Hash, Hasher};
-use marker;
-use mem::{align_of, size_of};
-use mem;
-use ops::{Deref, DerefMut};
-use ptr;
+use std::cmp;
+use std::hash::{BuildHasher, Hash, Hasher};
+use std::marker;
+use std::mem::{self, align_of, size_of};
+use std::ops::{Deref, DerefMut};
+use std::ptr;
 use shim::{Unique, Shared};
 
 use self::BucketState::*;

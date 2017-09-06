@@ -11,14 +11,14 @@
 use self::Entry::*;
 use self::VacantEntryState::*;
 
-use borrow::Borrow;
-use cmp::max;
-use fmt::{self, Debug};
+use std::borrow::Borrow;
+use std::cmp::max;
+use std::fmt::{self, Debug};
 #[allow(deprecated)]
-use hash::{Hash, BuildHasher};
-use iter::FromIterator;
-use mem::{self, replace};
-use ops::{Deref, Index};
+use std::hash::{Hash, BuildHasher};
+use std::iter::FromIterator;
+use std::mem::{self, replace};
+use std::ops::{Deref, Index};
 
 use super::table::{self, Bucket, EmptyBucket, FullBucket, FullBucketMut, RawTable, SafeHash};
 use super::table::BucketState::{Empty, Full};
