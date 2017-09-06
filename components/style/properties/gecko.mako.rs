@@ -2341,7 +2341,7 @@ fn static_assert() {
     pub fn calculate_script_level_size(&self, parent: &Self, device: &Device) -> (Au, Au) {
         use std::cmp;
 
-        let delta = self.gecko.mScriptLevel - parent.gecko.mScriptLevel;
+        let delta = self.gecko.mScriptLevel.saturating_sub(parent.gecko.mScriptLevel);
 
         let parent_size = Au(parent.gecko.mSize);
         let parent_unconstrained_size = Au(parent.gecko.mScriptUnconstrainedSize);
