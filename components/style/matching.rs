@@ -373,7 +373,7 @@ trait PrivateMatchMethods: TElement {
         // for followup work to make the optimization here more optimal by considering
         // each bit individually.
         let skip_applying_damage =
-            restyle.reconstructed_self_or_ancestor();
+            cfg!(feature = "gecko") && restyle.reconstructed_self_or_ancestor();
 
         let difference =
             self.compute_style_difference(old_values, new_values, pseudo);
