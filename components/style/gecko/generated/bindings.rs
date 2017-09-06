@@ -1087,8 +1087,8 @@ extern "C" {
 extern "C" {
     pub fn Gecko_CalcStyleDifference(old_style: ServoStyleContextBorrowed,
                                      new_style: ServoStyleContextBorrowed,
-                                     old_style_bits: u64,
-                                     any_style_changed: *mut bool) -> u32;
+                                     any_style_changed: *mut bool,
+                                     reset_only_changed: *mut bool) -> u32;
 }
 extern "C" {
     pub fn Gecko_GetElementSnapshot(table: *const ServoElementSnapshotTable,
@@ -1968,6 +1968,11 @@ extern "C" {
                                                 sheet:
                                                     RawServoStyleSheetContentsBorrowed)
      -> usize;
+}
+extern "C" {
+    pub fn Servo_StyleSheet_GetSourceMapURL(sheet:
+                                                RawServoStyleSheetContentsBorrowed,
+                                            result: *mut nsAString);
 }
 extern "C" {
     pub fn Servo_StyleSheet_GetOrigin(sheet:
