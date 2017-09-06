@@ -448,8 +448,7 @@
 
 <%helpers:shorthand name="grid"
                     sub_properties="grid-template-rows grid-template-columns grid-template-areas
-                                    grid-auto-rows grid-auto-columns grid-row-gap grid-column-gap
-                                    grid-auto-flow"
+                                    grid-auto-rows grid-auto-columns grid-auto-flow"
                     spec="https://drafts.csswg.org/css-grid/#propdef-grid"
                     products="gecko">
     use parser::Parse;
@@ -457,7 +456,7 @@
     use properties::longhands::grid_auto_flow::computed_value::{AutoFlow, T as SpecifiedAutoFlow};
     use values::{Either, None_};
     use values::generics::grid::{GridTemplateComponent, TrackListType};
-    use values::specified::{GenericGridTemplateComponent, NonNegativeLengthOrPercentage, TrackSize};
+    use values::specified::{GenericGridTemplateComponent, TrackSize};
 
     pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                                -> Result<Longhands, ParseError<'i>> {
@@ -517,9 +516,6 @@
             grid_auto_rows: auto_rows,
             grid_auto_columns: auto_cols,
             grid_auto_flow: flow,
-            // This shorthand also resets grid gap
-            grid_row_gap: NonNegativeLengthOrPercentage::zero(),
-            grid_column_gap: NonNegativeLengthOrPercentage::zero(),
         })
     }
 
@@ -535,14 +531,6 @@
 
     impl<'a> ToCss for LonghandsToSerialize<'a> {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            // `grid` shorthand resets these properties. If they are not zero, that means they
-            // are changed by longhands and in that case we should fail serializing `grid`.
-            if *self.grid_row_gap != NonNegativeLengthOrPercentage::zero() ||
-               *self.grid_column_gap != NonNegativeLengthOrPercentage::zero() {
-                return Ok(());
-            }
-
-
             if *self.grid_template_areas != Either::Second(None_) ||
                (*self.grid_template_rows != GridTemplateComponent::None &&
                    *self.grid_template_columns != GridTemplateComponent::None) ||
