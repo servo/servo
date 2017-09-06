@@ -3783,3 +3783,17 @@ pub extern "C" fn Servo_ProcessInvalidations(set: RawServoStyleSetBorrowed,
         }
     }
 }
+
+#[no_mangle]
+pub extern "C" fn Servo_HasPendingRestyleAncestor(element: RawGeckoElementBorrowed) -> bool {
+    let mut element = Some(GeckoElement(element));
+    while let Some(e) = element {
+        if let Some(data) = e.borrow_data() {
+            if data.restyle.hint.has_non_animation_invalidations() {
+                return true;
+            }
+        }
+        element = e.traversal_parent();
+    }
+    false
+}
