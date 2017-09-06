@@ -6,7 +6,7 @@
 //!
 //! [length]: https://drafts.csswg.org/css-values/#lengths
 
-use app_units::Au;
+use app_units::{Au, MAX_AU, MIN_AU};
 use cssparser::{Parser, Token, BasicParseError};
 use euclid::Size2D;
 use font_metrics::FontMetricsQueryResult;
@@ -236,16 +236,12 @@ impl CharacterWidth {
     }
 }
 
-/// Same as Gecko
-const ABSOLUTE_LENGTH_MAX: i32 = (1 << 30);
-const ABSOLUTE_LENGTH_MIN: i32 = - (1 << 30);
-
 /// Helper to convert a floating point length to application units
 fn to_au_round(length: CSSFloat, au_per_unit: CSSFloat) -> Au {
     Au(
-        (length * au_per_unit)
-        .min(ABSOLUTE_LENGTH_MAX as f32)
-        .max(ABSOLUTE_LENGTH_MIN as f32)
+        ((length * au_per_unit) as f64)
+        .min(MAX_AU.0 as f64)
+        .max(MIN_AU.0 as f64)
         .round() as i32
     )
 }
