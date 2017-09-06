@@ -122,7 +122,8 @@ fn extract_error_param<'a>(err: ParseError<'a>) -> Option<ErrorString<'a>> {
 
 fn extract_value_error_param<'a>(err: ValueParseError<'a>) -> ErrorString<'a> {
     match err {
-        ValueParseError::InvalidColor(t) => ErrorString::UnexpectedToken(t),
+        ValueParseError::InvalidColor(t) |
+        ValueParseError::InvalidFilter(t) => ErrorString::UnexpectedToken(t),
     }
 }
 
@@ -221,6 +222,7 @@ impl<'a> ErrorHelpers<'a> for ContextualParseError<'a> {
                         PropertyDeclarationParseError::InvalidValue(_, ref err))))) => {
                 let prefix = match *err {
                     Some(ValueParseError::InvalidColor(_)) => Some(&b"PEColorNotColor\0"[..]),
+                    Some(ValueParseError::InvalidFilter(_)) => Some(&b"PEExpectedNoneOrURLOrFilterFunction\0"[..]),
                     _ => None,
                 };
                 return (prefix, b"PEValueParsingError\0", Action::Drop);

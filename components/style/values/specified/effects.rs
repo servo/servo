@@ -4,9 +4,9 @@
 
 //! Specified types for CSS values related to effects.
 
-use cssparser::Parser;
+use cssparser::{Parser, Token, BasicParseError};
 use parser::{Parse, ParserContext};
-use style_traits::{ParseError, StyleParseError};
+use style_traits::{ParseError, StyleParseError, ValueParseError};
 #[cfg(not(feature = "gecko"))]
 use values::Impossible;
 use values::computed::{Context, NonNegativeNumber as ComputedNonNegativeNumber, ToComputedValue};
@@ -161,9 +161,14 @@ impl Parse for Filter {
                 return Ok(GenericFilter::Url(url));
             }
         }
-        let function = input.expect_function()?.clone();
+        let function = match input.expect_function() {
+            Ok(f) => f.clone(),
+            Err(BasicParseError::UnexpectedToken(t)) =>
+                return Err(ValueParseError::InvalidFilter(t.clone()).into()),
+            Err(e) => return Err(e.into()),
+        };
         input.parse_nested_block(|i| {
-            try_match_ident_ignore_ascii_case! { function,
+            match_ignore_ascii_case! { &*function,
                 "blur" => Ok(GenericFilter::Blur((Length::parse_non_negative(context, i)?).into())),
                 "brightness" => Ok(GenericFilter::Brightness(Factor::parse(context, i)?)),
                 "contrast" => Ok(GenericFilter::Contrast(Factor::parse(context, i)?)),
@@ -174,6 +179,7 @@ impl Parse for Filter {
                 "saturate" => Ok(GenericFilter::Saturate(Factor::parse(context, i)?)),
                 "sepia" => Ok(GenericFilter::Sepia(Factor::parse(context, i)?)),
                 "drop-shadow" => Ok(GenericFilter::DropShadow(Parse::parse(context, i)?)),
+                _ => Err(ValueParseError::InvalidFilter(Token::Function(function.clone())).into()),
             }
         })
     }
