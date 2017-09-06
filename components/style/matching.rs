@@ -21,6 +21,7 @@ use servo_arc::{Arc, ArcBorrow};
 use traversal_flags;
 
 /// Represents the result of comparing an element's old and new style.
+#[derive(Debug)]
 pub struct StyleDifference {
     /// The resulting damage.
     pub damage: RestyleDamage,
@@ -40,12 +41,15 @@ impl StyleDifference {
 }
 
 /// Represents whether or not the style of an element has changed.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum StyleChange {
     /// The style hasn't changed.
     Unchanged,
     /// The style has changed.
-    Changed,
+    Changed {
+        /// Whether only reset structs changed.
+        reset_only: bool,
+    },
 }
 
 /// Whether or not newly computed values for an element need to be cascade
@@ -56,19 +60,23 @@ pub enum ChildCascadeRequirement {
     /// we won't bother recomputing style for children, so we can skip cascading
     /// the new values into child elements.
     CanSkipCascade = 0,
+    /// The same as `MustCascadeChildren`, but we only need to actually
+    /// recascade if the child inherits any explicit reset style.
+    MustCascadeChildrenIfInheritResetStyle = 1,
     /// Old and new computed values were different, so we must cascade the
     /// new values to children.
-    ///
-    /// FIXME(heycam) Although this is "must" cascade, in the future we should
-    /// track whether child elements rely specifically on inheriting particular
-    /// property values.  When we do that, we can treat `MustCascadeChildren` as
-    /// "must cascade unless we know that changes to these properties can be
-    /// ignored".
-    MustCascadeChildren = 1,
+    MustCascadeChildren = 2,
     /// The same as `MustCascadeChildren`, but for the entire subtree.  This is
     /// used to handle root font-size updates needing to recascade the whole
     /// document.
-    MustCascadeDescendants = 2,
+    MustCascadeDescendants = 3,
+}
+
+impl ChildCascadeRequirement {
+    /// Whether we can unconditionally skip the cascade.
+    pub fn can_skip_cascade(&self) -> bool {
+        matches!(*self, ChildCascadeRequirement::CanSkipCascade)
+    }
 }
 
 bitflags! {
@@ -341,16 +349,19 @@ trait PrivateMatchMethods: TElement {
 
 
     /// Computes and applies non-redundant damage.
-    #[cfg(feature = "gecko")]
-    fn accumulate_damage_for(&self,
-                             shared_context: &SharedStyleContext,
-                             restyle: &mut RestyleData,
-                             old_values: &ComputedValues,
-                             new_values: &ComputedValues,
-                             pseudo: Option<&PseudoElement>)
-                             -> ChildCascadeRequirement {
+    fn accumulate_damage_for(
+        &self,
+        shared_context: &SharedStyleContext,
+        restyle: &mut RestyleData,
+        old_values: &ComputedValues,
+        new_values: &ComputedValues,
+        pseudo: Option<&PseudoElement>
+    ) -> ChildCascadeRequirement {
+        debug!("accumulate_damage_for: {:?}", self);
+
         // Don't accumulate damage if we're in a forgetful traversal.
         if shared_context.traversal_flags.contains(traversal_flags::Forgetful) {
+            debug!(" > forgetful traversal");
             return ChildCascadeRequirement::MustCascadeChildren;
         }
 
@@ -362,7 +373,7 @@ trait PrivateMatchMethods: TElement {
         // for followup work to make the optimization here more optimal by considering
         // each bit individually.
         let skip_applying_damage =
-            restyle.reconstructed_self_or_ancestor();
+            cfg!(feature = "gecko") && restyle.reconstructed_self_or_ancestor();
 
         let difference =
             self.compute_style_difference(old_values, new_values, pseudo);
@@ -371,37 +382,77 @@ trait PrivateMatchMethods: TElement {
             restyle.damage |= difference.damage;
         }
 
+        debug!(" > style difference: {:?}", difference);
+
         // We need to cascade the children in order to ensure the correct
         // propagation of computed value flags.
-        //
-        // FIXME(emilio): If we start optimizing changes to reset-only
-        // properties that aren't explicitly inherited, we'd need to add a flag
-        // to handle justify-items: auto correctly when there's a legacy
-        // justify-items.
         if old_values.flags != new_values.flags {
+            debug!(" > flags changed: {:?} != {:?}", old_values.flags, new_values.flags);
             return ChildCascadeRequirement::MustCascadeChildren;
         }
 
         match difference.change {
             StyleChange::Unchanged => ChildCascadeRequirement::CanSkipCascade,
-            StyleChange::Changed => ChildCascadeRequirement::MustCascadeChildren,
-        }
-    }
+            StyleChange::Changed { reset_only } => {
+                // If inherited properties changed, the best we can do is
+                // cascade the children.
+                if !reset_only {
+                    return ChildCascadeRequirement::MustCascadeChildren
+                }
 
-    /// Computes and applies restyle damage unless we've already maxed it out.
-    #[cfg(feature = "servo")]
-    fn accumulate_damage_for(&self,
-                             _shared_context: &SharedStyleContext,
-                             restyle: &mut RestyleData,
-                             old_values: &ComputedValues,
-                             new_values: &ComputedValues,
-                             pseudo: Option<&PseudoElement>)
-                             -> ChildCascadeRequirement {
-        let difference = self.compute_style_difference(old_values, new_values, pseudo);
-        restyle.damage |= difference.damage;
-        match difference.change {
-            StyleChange::Changed => ChildCascadeRequirement::MustCascadeChildren,
-            StyleChange::Unchanged => ChildCascadeRequirement::CanSkipCascade,
+                let old_display = old_values.get_box().clone_display();
+                let new_display = new_values.get_box().clone_display();
+
+                // Blockification of children may depend on our display value,
+                // so we need to actually do the recascade. We could potentially
+                // do better, but it doesn't seem worth it.
+                if old_display.is_item_container() != new_display.is_item_container() {
+                    return ChildCascadeRequirement::MustCascadeChildren
+                }
+
+                // Line break suppression may also be affected if the display
+                // type changes from ruby to non-ruby.
+                #[cfg(feature = "gecko")]
+                {
+                    if old_display.is_ruby_type() != new_display.is_ruby_type() {
+                        return ChildCascadeRequirement::MustCascadeChildren
+                    }
+                }
+
+                // Children with justify-items: auto may depend on our
+                // justify-items property value.
+                //
+                // Similarly, we could potentially do better, but this really
+                // seems not common enough to care about.
+                #[cfg(feature = "gecko")]
+                {
+                    use values::specified::align;
+
+                    let old_justify_items =
+                        old_values.get_position().clone_justify_items();
+                    let new_justify_items =
+                        new_values.get_position().clone_justify_items();
+
+                    let was_legacy_justify_items =
+                        old_justify_items.computed.0.contains(align::ALIGN_LEGACY);
+
+                    let is_legacy_justify_items =
+                        new_justify_items.computed.0.contains(align::ALIGN_LEGACY);
+
+                    if is_legacy_justify_items != was_legacy_justify_items {
+                        return ChildCascadeRequirement::MustCascadeChildren;
+                    }
+
+                    if was_legacy_justify_items &&
+                        old_justify_items.computed != new_justify_items.computed {
+                        return ChildCascadeRequirement::MustCascadeChildren;
+                    }
+                }
+
+                // We could prove that, if our children don't inherit reset
+                // properties, we can stop the cascade.
+                ChildCascadeRequirement::MustCascadeChildrenIfInheritResetStyle
+            }
         }
     }
 

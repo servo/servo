@@ -453,7 +453,9 @@ where
     D: DomTraversal<E>,
     F: FnMut(E::ConcreteNode),
 {
+    use std::cmp;
     use traversal_flags::*;
+
     let flags = context.shared.traversal_flags;
     context.thread_local.begin_element(element, data);
     context.thread_local.statistics.elements_traversed += 1;
@@ -462,28 +464,25 @@ where
                   "Should've handled snapshots here already");
 
     let compute_self = !element.has_current_styles_for_traversal(data, flags);
-    let mut hint = RestyleHint::empty();
 
     debug!("recalc_style_at: {:?} (compute_self={:?}, \
             dirty_descendants={:?}, data={:?})",
            element, compute_self, element.has_dirty_descendants(), data);
 
+    let mut child_cascade_requirement = ChildCascadeRequirement::CanSkipCascade;
+
     // Compute style for this element if necessary.
     if compute_self {
-        match compute_style(traversal_data, context, element, data) {
-            ChildCascadeRequirement::MustCascadeChildren => {
-                hint |= RECASCADE_SELF;
-            }
-            ChildCascadeRequirement::MustCascadeDescendants => {
-                hint |= RECASCADE_SELF | RECASCADE_DESCENDANTS;
-            }
-            ChildCascadeRequirement::CanSkipCascade => {}
-        };
+        child_cascade_requirement =
+            compute_style(traversal_data, context, element, data);
 
-        // We must always cascade native anonymous subtrees, since they inherit
-        // styles from their first non-NAC ancestor.
         if element.is_native_anonymous() {
-            hint |= RECASCADE_SELF;
+            // We must always cascade native anonymous subtrees, since they inherit
+            // styles from their first non-NAC ancestor.
+            child_cascade_requirement = cmp::max(
+                child_cascade_requirement,
+                ChildCascadeRequirement::MustCascadeChildren,
+            );
         }
 
         // If we're restyling this element to display:none, throw away all style
@@ -507,7 +506,7 @@ where
     // those operations and compute the propagated restyle hint (unless we're
     // not processing invalidations, in which case don't need to propagate it
     // and must avoid clearing it).
-    let mut propagated_hint = if flags.contains(UnstyledOnly) {
+    let propagated_hint = if flags.contains(UnstyledOnly) {
         RestyleHint::empty()
     } else {
         debug_assert!(flags.for_animation_only() ||
@@ -517,13 +516,10 @@ where
         data.restyle.hint.propagate(&flags)
     };
 
-    // FIXME(bholley): Need to handle explicitly-inherited reset properties
-    // somewhere.
-    propagated_hint.insert(hint);
-
-    trace!("propagated_hint={:?} \
+    trace!("propagated_hint={:?}, cascade_requirement={:?}, \
             is_display_none={:?}, implementing_pseudo={:?}",
            propagated_hint,
+           child_cascade_requirement,
            data.styles.is_display_none(),
            element.implemented_pseudo_element());
     debug_assert!(element.has_current_styles_for_traversal(data, flags),
@@ -553,6 +549,7 @@ where
     // enumerated in should_cull_subtree().
     let mut traverse_children = has_dirty_descendants_for_this_restyle ||
                                 !propagated_hint.is_empty() ||
+                                !child_cascade_requirement.can_skip_cascade() ||
                                 context.thread_local.is_initial_style() ||
                                 data.restyle.reconstructed_self() ||
                                 is_servo_nonincremental_layout();
@@ -567,6 +564,7 @@ where
             element,
             data,
             propagated_hint,
+            child_cascade_requirement,
             data.restyle.reconstructed_self_or_ancestor(),
             note_child
         );
@@ -778,6 +776,7 @@ fn note_children<E, D, F>(
     element: E,
     data: &ElementData,
     propagated_hint: RestyleHint,
+    cascade_requirement: ChildCascadeRequirement,
     reconstructed_ancestor: bool,
     mut note_child: F,
 )
@@ -816,7 +815,24 @@ where
             // subtree.
             child_data.restyle.set_reconstructed_ancestor(reconstructed_ancestor);
 
-            child_data.restyle.hint.insert(propagated_hint);
+            let mut child_hint = propagated_hint;
+            match cascade_requirement {
+                ChildCascadeRequirement::CanSkipCascade => {}
+                ChildCascadeRequirement::MustCascadeDescendants => {
+                    child_hint |= RECASCADE_SELF | RECASCADE_DESCENDANTS;
+                }
+                ChildCascadeRequirement::MustCascadeChildrenIfInheritResetStyle => {
+                    use properties::computed_value_flags::INHERITS_RESET_STYLE;
+                    if child_data.styles.primary().flags.contains(INHERITS_RESET_STYLE) {
+                        child_hint |= RECASCADE_SELF;
+                    }
+                }
+                ChildCascadeRequirement::MustCascadeChildren => {
+                    child_hint |= RECASCADE_SELF;
+                }
+            }
+
+            child_data.restyle.hint.insert(child_hint);
 
             // Handle element snapshots and invalidation of descendants and siblings
             // as needed.

@@ -2661,6 +2661,10 @@ impl<'a> StyleBuilder<'a> {
             self.inherited_style_ignoring_first_line.get_${property.style_struct.name_lower}();
         % endif
 
+        % if not property.style_struct.inherited:
+        self.flags.insert(::properties::computed_value_flags::INHERITS_RESET_STYLE);
+        % endif
+
         % if property.ident == "content":
         self.flags.insert(::properties::computed_value_flags::INHERITS_CONTENT);
         % endif
