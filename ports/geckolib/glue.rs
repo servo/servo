@@ -1124,6 +1124,20 @@ fn read_locked_arc<T, R, F>(raw: &<Locked<T> as HasFFI>::FFIType, func: F) -> R
     func(Locked::<T>::as_arc(&raw).read_with(&guard))
 }
 
+#[cfg(debug_assertions)]
+unsafe fn read_locked_arc_unchecked<T, R, F>(raw: &<Locked<T> as HasFFI>::FFIType, func: F) -> R
+    where Locked<T>: HasArcFFI, F: FnOnce(&T) -> R
+{
+    read_locked_arc(raw, func)
+}
+
+#[cfg(not(debug_assertions))]
+unsafe fn read_locked_arc_unchecked<T, R, F>(raw: &<Locked<T> as HasFFI>::FFIType, func: F) -> R
+    where Locked<T>: HasArcFFI, F: FnOnce(&T) -> R
+{
+    func(Locked::<T>::as_arc(&raw).read_unchecked())
+}
+
 fn write_locked_arc<T, R, F>(raw: &<Locked<T> as HasFFI>::FFIType, func: F) -> R
     where Locked<T>: HasArcFFI, F: FnOnce(&mut T) -> R
 {
@@ -2263,9 +2277,14 @@ macro_rules! get_property_id_from_property {
 
 fn get_property_value(declarations: RawServoDeclarationBlockBorrowed,
                       property_id: PropertyId, value: *mut nsAString) {
-    read_locked_arc(declarations, |decls: &PropertyDeclarationBlock| {
-        decls.property_value_to_css(&property_id, unsafe { value.as_mut().unwrap() }).unwrap();
-    })
+    // This callsite is hot enough that the lock acquisition shows up in profiles.
+    // Using an unchecked read here improves our performance by ~10% on the
+    // microbenchmark in bug 1355599.
+    unsafe {
+        read_locked_arc_unchecked(declarations, |decls: &PropertyDeclarationBlock| {
+            decls.property_value_to_css(&property_id, value.as_mut().unwrap()).unwrap();
+        })
+    }
 }
 
 #[no_mangle]
