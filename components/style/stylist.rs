@@ -21,7 +21,7 @@ use properties::{AnimationRules, PropertyDeclarationBlock};
 #[cfg(feature = "servo")]
 use properties::INHERIT_ALL;
 use properties::IS_LINK;
-use rule_tree::{CascadeLevel, RuleTree, StyleSource};
+use rule_tree::{CascadeLevel, RuleTree, StrongRuleNode, StyleSource};
 use selector_map::{PrecomputedHashMap, SelectorMap, SelectorMapEntry};
 use selector_parser::{SelectorImpl, PerPseudoElementMap, PseudoElement};
 use selectors::attr::NamespaceConstraint;
@@ -40,7 +40,7 @@ use std::ops;
 use style_traits::viewport::ViewportConstraints;
 use stylesheet_set::{OriginValidity, SheetRebuildKind, StylesheetSet, StylesheetIterator, StylesheetFlusher};
 #[cfg(feature = "gecko")]
-use stylesheets::{CounterStyleRule, FontFaceRule, FontFeatureValuesRule};
+use stylesheets::{CounterStyleRule, FontFaceRule, FontFeatureValuesRule, PageRule};
 use stylesheets::{CssRule, Origin, OriginSet, PerOrigin, PerOriginIter};
 #[cfg(feature = "gecko")]
 use stylesheets::{MallocEnclosingSizeOfFn, MallocSizeOf, MallocSizeOfBox, MallocSizeOfFn};
@@ -356,6 +356,12 @@ impl DocumentCascadeData {
                     _extra_data
                         .borrow_mut_for_origin(&origin)
                         .add_counter_style(guard, rule);
+                }
+                #[cfg(feature = "gecko")]
+                CssRule::Page(ref rule) => {
+                    _extra_data
+                        .borrow_mut_for_origin(&origin)
+                        .add_page(rule);
                 }
                 // We don't care about any other rule.
                 _ => {}
@@ -711,17 +717,33 @@ impl Stylist {
     ) -> Arc<ComputedValues> {
         debug_assert!(pseudo.is_precomputed());
 
-        let rule_node =
-            match self.cascade_data.precomputed_pseudo_element_decls.get(pseudo) {
-                Some(declarations) => {
-                    self.rule_tree.insert_ordered_rules_with_important(
-                        declarations.into_iter().map(|a| (a.source.clone(), a.level())),
-                        guards
-                    )
-                }
-                None => self.rule_tree.root().clone(),
-            };
+        let rule_node = self.rule_node_for_precomputed_pseudo(
+            guards,
+            pseudo,
+            None,
+        );
 
+        self.precomputed_values_for_pseudo_with_rule_node(
+            guards,
+            pseudo,
+            parent,
+            cascade_flags,
+            font_metrics,
+            &rule_node
+        )
+    }
+
+    /// Computes the style for a given "precomputed" pseudo-element with
+    /// given rule node.
+    pub fn precomputed_values_for_pseudo_with_rule_node(
+        &self,
+        guards: &StylesheetGuards,
+        pseudo: &PseudoElement,
+        parent: Option<&ComputedValues>,
+        cascade_flags: CascadeFlags,
+        font_metrics: &FontMetricsProvider,
+        rule_node: &StrongRuleNode
+    ) -> Arc<ComputedValues> {
         // NOTE(emilio): We skip calculating the proper layout parent style
         // here.
         //
@@ -739,7 +761,7 @@ impl Stylist {
         properties::cascade(
             &self.device,
             Some(pseudo),
-            &rule_node,
+            rule_node,
             guards,
             parent,
             parent,
@@ -749,6 +771,43 @@ impl Stylist {
             cascade_flags,
             self.quirks_mode,
         )
+    }
+
+    /// Returns the rule node for given precomputed pseudo-element.
+    ///
+    /// If we want to include extra declarations to this precomputed pseudo-element,
+    /// we can provide a vector of ApplicableDeclarationBlock to extra_declarations
+    /// argument. This is useful for providing extra @page rules.
+    pub fn rule_node_for_precomputed_pseudo(
+        &self,
+        guards: &StylesheetGuards,
+        pseudo: &PseudoElement,
+        extra_declarations: Option<Vec<ApplicableDeclarationBlock>>,
+    ) -> StrongRuleNode {
+        let mut decl;
+        let declarations = match self.cascade_data.precomputed_pseudo_element_decls.get(pseudo) {
+            Some(declarations) => {
+                match extra_declarations {
+                    Some(mut extra_decls) => {
+                        decl = declarations.clone();
+                        decl.append(&mut extra_decls);
+                        Some(&decl)
+                    },
+                    None => Some(declarations),
+                }
+            }
+            None => extra_declarations.as_ref(),
+        };
+
+        match declarations {
+            Some(decls) => {
+                self.rule_tree.insert_ordered_rules_with_important(
+                    decls.into_iter().map(|a| (a.source.clone(), a.level())),
+                    guards
+                )
+            },
+            None => self.rule_tree.root().clone(),
+        }
     }
 
     /// Returns the style for an anonymous box of the given type.
@@ -1611,6 +1670,10 @@ pub struct ExtraStyleData {
     /// A map of effective counter-style rules.
     #[cfg(feature = "gecko")]
     pub counter_styles: PrecomputedHashMap<Atom, Arc<Locked<CounterStyleRule>>>,
+
+    /// A map of effective page rules.
+    #[cfg(feature = "gecko")]
+    pub pages: Vec<Arc<Locked<PageRule>>>,
 }
 
 #[cfg(feature = "gecko")]
@@ -1634,6 +1697,11 @@ impl ExtraStyleData {
         let name = rule.read_with(guard).mName.raw::<nsIAtom>().into();
         self.counter_styles.insert(name, rule.clone());
     }
+
+    /// Add the given @page rule.
+    fn add_page(&mut self, rule: &Arc<Locked<PageRule>>) {
+        self.pages.push(rule.clone());
+    }
 }
 
 impl ExtraStyleData {
@@ -1643,6 +1711,7 @@ impl ExtraStyleData {
             self.font_faces.clear();
             self.font_feature_values.clear();
             self.counter_styles.clear();
+            self.pages.clear();
         }
     }
 
