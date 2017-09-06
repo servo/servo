@@ -8,6 +8,7 @@ use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use std::fmt;
 use style_traits::{ParseError, StyleParseError, ToCss};
+use values::{Either, None_};
 use values::computed::NumberOrPercentage;
 use values::computed::length::LengthOrPercentage;
 use values::distance::{ComputeSquaredDistance, SquaredDistance};
@@ -21,8 +22,8 @@ use values::distance::{ComputeSquaredDistance, SquaredDistance};
 pub struct SVGPaint<ColorType, UrlPaintServer> {
     /// The paint source
     pub kind: SVGPaintKind<ColorType, UrlPaintServer>,
-    /// The fallback color
-    pub fallback: Option<ColorType>,
+    /// The fallback color. It would be empty, the `none` keyword or <color>.
+    pub fallback: Option<Either<ColorType, None_>>,
 }
 
 /// An SVG paint value without the fallback
@@ -60,15 +61,19 @@ impl<ColorType, UrlPaintServer> SVGPaintKind<ColorType, UrlPaintServer> {
 }
 
 /// Parse SVGPaint's fallback.
-/// fallback is keyword(none) or Color.
+/// fallback is keyword(none), Color or empty.
 /// https://svgwg.org/svg2-draft/painting.html#SpecifyingPaint
 fn parse_fallback<'i, 't, ColorType: Parse>(context: &ParserContext,
                                             input: &mut Parser<'i, 't>)
-                                            -> Option<ColorType> {
+                                            -> Option<Either<ColorType, None_>> {
     if input.try(|i| i.expect_ident_matching("none")).is_ok() {
-        None
+        Some(Either::Second(None_))
     } else {
-        input.try(|i| ColorType::parse(context, i)).ok()
+        if let Ok(color) = input.try(|i| ColorType::parse(context, i)) {
+            Some(Either::First(color))
+        } else {
+            None
+        }
     }
 }
 
