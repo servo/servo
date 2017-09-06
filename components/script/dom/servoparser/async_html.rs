@@ -16,7 +16,7 @@ use dom::element::{CustomElementCreationMode, Element, ElementCreator};
 use dom::htmlformelement::{FormControlElementHelpers, HTMLFormElement};
 use dom::htmlscriptelement::HTMLScriptElement;
 use dom::htmltemplateelement::HTMLTemplateElement;
-use dom::node::Node;
+use dom::node::{document_from_node, Node};
 use dom::processinginstruction::ProcessingInstruction;
 use dom::virtualmethods::vtable_for;
 use html5ever::{Attribute as HtmlAttribute, ExpandedName, LocalName, QualName};
@@ -62,6 +62,7 @@ enum ParseOperation {
 
     CreateElement {
         node: ParseNodeId,
+        parent: Option<ParseNodeId>,
         name: QualName,
         attrs: Vec<Attribute>,
         current_line: u64
@@ -335,14 +336,14 @@ impl Tokenizer {
                     "Tried to extract contents from non-template element while parsing");
                 self.insert_node(contents, JS::from_ref(template.Content().upcast()));
             }
-            ParseOperation::CreateElement { node, name, attrs, current_line } => {
+            ParseOperation::CreateElement { node, parent, name, attrs, current_line } => {
                 let is = attrs.iter()
                               .find(|attr| attr.name.local.eq_str_ignore_ascii_case("is"))
                               .map(|attr| LocalName::from(&*attr.value));
-
+                let document = parent.and_then(|p| self.nodes.get(&p)).map(|n| document_from_node(&**n)).unwrap_or_else(|| Root::from_ref(&*self.document));
                 let elem = Element::create(name,
                                            is,
-                                           &*self.document,
+                                           &*document,
                                            ElementCreator::ParserCreated(current_line),
                                            CustomElementCreationMode::Synchronous);
                 for attr in attrs {
@@ -590,8 +591,11 @@ impl TreeSink for Sink {
         unreachable!();
     }
 
-    fn create_element(&mut self, name: QualName, html_attrs: Vec<HtmlAttribute>, _flags: ElementFlags)
-        -> Self::Handle {
+    fn create_element(&mut self,
+                      name: QualName,
+                      html_attrs: Vec<HtmlAttribute>,
+                      _flags: ElementFlags,
+                      parent: Option<&Self::Handle>) -> Self::Handle {
         let mut node = self.new_parse_node();
         node.qual_name = Some(name.clone());
         {
@@ -609,6 +613,7 @@ impl TreeSink for Sink {
 
         self.send_op(ParseOperation::CreateElement {
             node: node.id,
+            parent: parent.map(|p| p.id),
             name,
             attrs,
             current_line: self.current_line

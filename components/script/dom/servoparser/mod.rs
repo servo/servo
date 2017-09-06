@@ -788,15 +788,19 @@ impl TreeSink for Sink {
         x.is_in_same_home_subtree(y)
     }
 
-    fn create_element(&mut self, name: QualName, attrs: Vec<Attribute>, _flags: ElementFlags)
-            -> JS<Node> {
+    fn create_element(&mut self,
+                      name: QualName,
+                      attrs: Vec<Attribute>,
+                      _flags: ElementFlags,
+                      parent: Option<&JS<Node>>) -> JS<Node> {
         let is = attrs.iter()
                       .find(|attr| attr.name.local.eq_str_ignore_ascii_case("is"))
                       .map(|attr| LocalName::from(&*attr.value));
 
+        let document = parent.map(|parent| parent.owner_doc()).unwrap_or_else(|| Root::from_ref(&*self.document));
         let elem = Element::create(name,
                                    is,
-                                   &*self.document,
+                                   &*document,
                                    ElementCreator::ParserCreated(self.current_line),
                                    CustomElementCreationMode::Synchronous);
 
