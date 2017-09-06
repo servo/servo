@@ -13,6 +13,7 @@ use hash::HashMap;
 #[cfg(feature = "gecko")]
 use servo_arc::Arc;
 use shared_lock::SharedRwLockReadGuard;
+use smallvec::{Array, SmallVec};
 use std::collections::HashSet;
 use std::hash::{BuildHasher, Hash};
 use std::os::raw::c_void;
@@ -152,6 +153,16 @@ pub trait MallocSizeOfVec {
 impl<T> MallocSizeOfVec for Vec<T> {
     fn malloc_shallow_size_of_vec(&self, malloc_size_of: MallocSizeOfFn) -> usize {
         unsafe { do_malloc_size_of(malloc_size_of, self.as_ptr()) }
+    }
+}
+
+impl<A: Array> MallocSizeOfVec for SmallVec<A> {
+    fn malloc_shallow_size_of_vec(&self, malloc_size_of: MallocSizeOfFn) -> usize {
+        if self.spilled() {
+            unsafe { do_malloc_size_of(malloc_size_of, self.as_ptr()) }
+        } else {
+            0
+        }
     }
 }
 

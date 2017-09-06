@@ -1956,13 +1956,13 @@ impl CascadeData {
                                        malloc_enclosing_size_of: MallocEnclosingSizeOfFn,
                                        sizes: &mut ServoStyleSetSizes) {
         sizes.mStylistElementAndPseudosMaps +=
-            self.element_map.malloc_size_of_children(malloc_enclosing_size_of);
+            self.element_map.malloc_size_of_children(malloc_size_of, malloc_enclosing_size_of);
 
         for elem in self.pseudos_map.iter() {
             if let Some(ref elem) = *elem {
                 sizes.mStylistElementAndPseudosMaps +=
                     elem.malloc_shallow_size_of_box(malloc_size_of) +
-                    elem.malloc_size_of_children(malloc_enclosing_size_of)
+                    elem.malloc_size_of_children(malloc_size_of, malloc_enclosing_size_of)
             }
         }
 
@@ -1973,10 +1973,11 @@ impl CascadeData {
         }
 
         sizes.mStylistInvalidationMap +=
-            self.invalidation_map.malloc_size_of_children(malloc_enclosing_size_of);
+            self.invalidation_map.malloc_size_of_children(malloc_size_of, malloc_enclosing_size_of);
 
         sizes.mStylistRevalidationSelectors +=
-            self.selectors_for_cache_revalidation.malloc_size_of_children(malloc_enclosing_size_of);
+            self.selectors_for_cache_revalidation.malloc_size_of_children(malloc_size_of,
+                                                                          malloc_enclosing_size_of);
 
         sizes.mStylistOther +=
             self.effective_media_query_results.malloc_size_of_children(malloc_enclosing_size_of);
