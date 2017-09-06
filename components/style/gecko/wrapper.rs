@@ -1166,14 +1166,15 @@ impl<'le> TElement for GeckoElement<'le> {
 
     #[inline]
     fn skip_root_and_item_based_display_fixup(&self) -> bool {
-        // We don't want to fix up display values of native anonymous content.
-        // Additionally, we want to skip root-based display fixup for document
-        // level native anonymous content subtree roots, since they're not
-        // really roots from the style fixup perspective.  Checking that we
-        // are NAC handles both cases.
-        self.is_native_anonymous() &&
-        (self.is_root_of_native_anonymous_subtree() ||
-         self.implemented_pseudo_element().is_some())
+        if !self.is_native_anonymous() {
+            return false;
+        }
+
+        if let Some(p) = self.implemented_pseudo_element() {
+            return p.skip_item_based_display_fixup();
+        }
+
+        self.is_root_of_native_anonymous_subtree()
     }
 
     unsafe fn set_selector_flags(&self, flags: ElementSelectorFlags) {
