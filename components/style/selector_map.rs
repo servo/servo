@@ -20,7 +20,7 @@ use selectors::parser::{Component, Combinator, SelectorIter};
 use smallvec::{SmallVec, VecLike};
 use std::hash::{BuildHasherDefault, Hash, Hasher};
 #[cfg(feature = "gecko")]
-use stylesheets::{MallocEnclosingSizeOfFn, MallocSizeOfHash};
+use stylesheets::{MallocEnclosingSizeOfFn, MallocSizeOfFn, MallocSizeOfHash, MallocSizeOfVec};
 use stylist::Rule;
 
 /// A hasher implementation that doesn't hash anything, because it expects its
@@ -149,16 +149,31 @@ impl<T: 'static> SelectorMap<T> {
 
     /// Measures heap usage.
     #[cfg(feature = "gecko")]
-    pub fn malloc_size_of_children(&self, malloc_enclosing_size_of: MallocEnclosingSizeOfFn)
+    pub fn malloc_size_of_children(&self, malloc_size_of: MallocSizeOfFn,
+                                   malloc_enclosing_size_of: MallocEnclosingSizeOfFn)
                                    -> usize {
-        // Currently we measure the HashMap storage, but not things pointed to
-        // by keys and values.
-        let mut n = 0;
-        n += self.id_hash.malloc_shallow_size_of_hash(malloc_enclosing_size_of);
-        n += self.class_hash.malloc_shallow_size_of_hash(malloc_enclosing_size_of);
-        n += self.local_name_hash.malloc_shallow_size_of_hash(malloc_enclosing_size_of);
+        // Currently we measure the storage used by the HashMaps, and any
+        // heap-allocated SmallVec values, but not things pointed to by the T
+        // elements within the SmallVec values.
 
-        // We may measure other fields in the future if DMD says it's worth it.
+        let mut n = 0;
+
+        n += self.id_hash.malloc_shallow_size_of_hash(malloc_enclosing_size_of);
+        for (_, val) in self.id_hash.iter() {
+            n += val.malloc_shallow_size_of_vec(malloc_size_of);
+        }
+
+        n += self.class_hash.malloc_shallow_size_of_hash(malloc_enclosing_size_of);
+        for (_, val) in self.class_hash.iter() {
+            n += val.malloc_shallow_size_of_vec(malloc_size_of);
+        }
+
+        n += self.local_name_hash.malloc_shallow_size_of_hash(malloc_enclosing_size_of);
+        for (_, val) in self.local_name_hash.iter() {
+            n += val.malloc_shallow_size_of_vec(malloc_size_of);
+        }
+
+        n += self.other.malloc_shallow_size_of_vec(malloc_size_of);
 
         n
     }
