@@ -32,23 +32,26 @@ use smallvec::SmallVec;
 use traversal::{DomTraversal, PerLevelTraversalData};
 
 /// The minimum stack size for a thread in the styling pool, in kilobytes.
-pub const STYLE_THREAD_STACK_SIZE_KB: usize = 128;
+pub const STYLE_THREAD_STACK_SIZE_KB: usize = 256;
 
 /// The stack margin. If we get this deep in the stack, we will skip recursive
 /// optimizations to ensure that there is sufficient room for non-recursive work.
 ///
+/// We allocate large safety margins because certain OS calls can use very large
+/// amounts of stack space [1]. Reserving a larger-than-necessary stack costs us
+/// address space, but if we keep our safety margin big, we will generally avoid
+/// committing those extra pages, and only use them in edge cases that would
+/// otherwise cause crashes.
+///
 /// When measured with 128KB stacks and 40KB margin, we could support 53
-/// levels of recursion before the limiter kicks in, on x86_64-Linux [1].
+/// levels of recursion before the limiter kicks in, on x86_64-Linux [2]. When
+/// we doubled the stack size, we added it all to the safety margin, so we should
+/// be able to get the same amount of recursion.
 ///
-/// We currently use 45KB margins, because that seems to be the minimum amount
-/// of head room required by an unoptimized debug build, as measured on [2]. We
-/// could probably get away with a smaller margin on optimized release builds,
-/// but that would be a pain, and the extra padding reduces stability risk.
+/// [1] https://bugzilla.mozilla.org/show_bug.cgi?id=1395708#c15
+/// [2] See Gecko bug 1376883 for more discussion on the measurements.
 ///
-/// [1] See Gecko bug 1376883 for more discussion on the measurements.
-/// [2] layout/style/crashtests/1383981-3.html
-///
-pub const STACK_SAFETY_MARGIN_KB: usize = 45;
+pub const STACK_SAFETY_MARGIN_KB: usize = 168;
 
 /// The maximum number of child nodes that we will process as a single unit.
 ///
