@@ -410,6 +410,15 @@ trait PrivateMatchMethods: TElement {
                     return ChildCascadeRequirement::MustCascadeChildren
                 }
 
+                // Line break suppression may also be affected if the display
+                // type changes from ruby to non-ruby.
+                #[cfg(feature = "gecko")]
+                {
+                    if old_display.is_ruby_type() != new_display.is_ruby_type() {
+                        return ChildCascadeRequirement::MustCascadeChildren
+                    }
+                }
+
                 // Children with justify-items: auto may depend on our
                 // justify-items property value.
                 //

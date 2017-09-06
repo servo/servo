@@ -13,7 +13,11 @@ use properties::longhands::float::computed_value::T as float;
 use properties::longhands::overflow_x::computed_value::T as overflow;
 use properties::longhands::position::computed_value::T as position;
 
-/// An unsized struct that implements all the adjustment methods.
+/// A struct that implements all the adjustment methods.
+///
+/// NOTE(emilio): If new adjustments are introduced that depend on reset
+/// properties of the parent, you may need tweaking the
+/// `ChildCascadeRequirement` code in `matching.rs`.
 pub struct StyleAdjuster<'a, 'b: 'a> {
     style: &'a mut StyleBuilder<'b>,
 }
@@ -331,6 +335,10 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
 
     /// If a <fieldset> has grid/flex display type, we need to inherit
     /// this type into its ::-moz-fieldset-content anonymous box.
+    ///
+    /// NOTE(emilio): We don't need to handle the display change for this case
+    /// in matching.rs because anonymous box restyling works separately to the
+    /// normal cascading process.
     #[cfg(feature = "gecko")]
     fn adjust_for_fieldset_content(
         &mut self,
