@@ -1,0 +1,15 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <link rel="match" href="font_color_attribute_change_ref.html">
+  </head>
+  <body>
+    <font color="red">I should be green</font>
+    <script>
+      document.body.offsetTop;
+      document.querySelector("font").setAttribute("color", "green");
+    </script>
+  </body>
+</html>

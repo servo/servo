@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::RGBA;
+use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLFontElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFontElementBinding::HTMLFontElementMethods;
 use dom::bindings::inheritance::Castable;
@@ -68,6 +69,15 @@ impl HTMLFontElementMethods for HTMLFontElement {
 impl VirtualMethods for HTMLFontElement {
     fn super_type(&self) -> Option<&VirtualMethods> {
         Some(self.upcast::<HTMLElement>() as &VirtualMethods)
+    }
+
+    fn attribute_is_mapped(&self, attr: &Attr) -> bool {
+        if attr.local_name() == &local_name!("color") {
+            return true;
+        }
+
+        // FIXME: Should also return true for `size` and `face` changes!
+        self.super_type().unwrap().attribute_is_mapped(attr)
     }
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
