@@ -13,7 +13,7 @@ use font_metrics::FontMetricsQueryResult;
 use parser::{Parse, ParserContext};
 use std::{cmp, fmt, mem};
 use std::ascii::AsciiExt;
-use std::ops::Mul;
+use std::ops::{Add, Mul};
 use style_traits::{ToCss, ParseError, StyleParseError};
 use style_traits::values::specified::AllowedLengthType;
 use stylesheets::CssRuleType;
@@ -278,6 +278,23 @@ impl AbsoluteLength {
             | AbsoluteLength::Pc(v) => v == 0.,
         }
     }
+
+    /// Convert this into a pixel value.
+    #[inline]
+    pub fn to_px(&self) -> CSSFloat {
+        use std::f32;
+
+        let pixel = match *self {
+            AbsoluteLength::Px(value) => value,
+            AbsoluteLength::In(value) => value * (AU_PER_IN / AU_PER_PX),
+            AbsoluteLength::Cm(value) => value * (AU_PER_CM / AU_PER_PX),
+            AbsoluteLength::Mm(value) => value * (AU_PER_MM / AU_PER_PX),
+            AbsoluteLength::Q(value) => value * (AU_PER_Q / AU_PER_PX),
+            AbsoluteLength::Pt(value) => value * (AU_PER_PT / AU_PER_PX),
+            AbsoluteLength::Pc(value) => value * (AU_PER_PC / AU_PER_PX),
+        };
+        pixel.min(f32::MAX).max(f32::MIN)
+    }
 }
 
 impl ToComputedValue for AbsoluteLength {
@@ -333,6 +350,24 @@ impl Mul<CSSFloat> for AbsoluteLength {
             AbsoluteLength::Q(v) => AbsoluteLength::Q(v * scalar),
             AbsoluteLength::Pt(v) => AbsoluteLength::Pt(v * scalar),
             AbsoluteLength::Pc(v) => AbsoluteLength::Pc(v * scalar),
+        }
+    }
+}
+
+impl Add<AbsoluteLength> for AbsoluteLength {
+    type Output = Self;
+
+    #[inline]
+    fn add(self, rhs: Self) -> Self {
+        match (self, rhs) {
+            (AbsoluteLength::Px(x), AbsoluteLength::Px(y)) => AbsoluteLength::Px(x + y),
+            (AbsoluteLength::In(x), AbsoluteLength::In(y)) => AbsoluteLength::In(x + y),
+            (AbsoluteLength::Cm(x), AbsoluteLength::Cm(y)) => AbsoluteLength::Cm(x + y),
+            (AbsoluteLength::Mm(x), AbsoluteLength::Mm(y)) => AbsoluteLength::Mm(x + y),
+            (AbsoluteLength::Q(x), AbsoluteLength::Q(y)) => AbsoluteLength::Q(x + y),
+            (AbsoluteLength::Pt(x), AbsoluteLength::Pt(y)) => AbsoluteLength::Pt(x + y),
+            (AbsoluteLength::Pc(x), AbsoluteLength::Pc(y)) => AbsoluteLength::Pc(x + y),
+            _ => AbsoluteLength::Px(self.to_px() + rhs.to_px()),
         }
     }
 }

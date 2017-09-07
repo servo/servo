@@ -6,7 +6,6 @@
 //!
 //! [calc]: https://drafts.csswg.org/css-values/#calc-notation
 
-use app_units::Au;
 use cssparser::{Parser, Token, BasicParseError};
 use parser::ParserContext;
 use std::ascii::AsciiExt;
@@ -16,7 +15,8 @@ use style_traits::values::specified::AllowedLengthType;
 use values::{CSSInteger, CSSFloat};
 use values::computed;
 use values::specified::{Angle, Time};
-use values::specified::length::{FontRelativeLength, NoCalcLength, ViewportPercentageLength};
+use values::specified::length::{AbsoluteLength, FontRelativeLength, NoCalcLength};
+use values::specified::length::ViewportPercentageLength;
 
 /// A node inside a `Calc` expression's AST.
 #[derive(Clone, Debug)]
@@ -68,7 +68,7 @@ pub enum CalcUnit {
 #[allow(missing_docs)]
 pub struct CalcLengthOrPercentage {
     pub clamping_mode: AllowedLengthType,
-    pub absolute: Option<Au>,
+    pub absolute: Option<AbsoluteLength>,
     pub vw: Option<CSSFloat>,
     pub vh: Option<CSSFloat>,
     pub vmin: Option<CSSFloat>,
@@ -118,6 +118,17 @@ impl ToCss for CalcLengthOrPercentage {
             };
         }
 
+        macro_rules! serialize_abs {
+            ( $( $val:ident ),+ ) => {
+                $(
+                    if let Some(AbsoluteLength::$val(v)) = self.absolute {
+                        first_value_check!(v);
+                        AbsoluteLength::$val(v.abs()).to_css(dest)?;
+                    }
+                )+
+            };
+        }
+
         dest.write_str("calc(")?;
 
         // NOTE(emilio): Percentages first because of web-compat problems, see:
@@ -129,18 +140,17 @@ impl ToCss for CalcLengthOrPercentage {
 
         // NOTE(emilio): The order here it's very intentional, and alphabetic
         // per the spec linked above.
-        serialize!(ch, em, ex);
+        serialize!(ch);
+        serialize_abs!(Cm);
+        serialize!(em, ex);
+        serialize_abs!(In);
 
         #[cfg(feature = "gecko")]
         {
             serialize!(mozmm);
         }
 
-        if let Some(val) = self.absolute {
-            first_value_check!(val);
-            val.abs().to_css(dest)?;
-        }
-
+        serialize_abs!(Mm, Pc, Pt, Px, Q);
         serialize!(rem, vh, vmax, vmin, vw);
 
         dest.write_str(")")
@@ -349,8 +359,10 @@ impl CalcNode {
                 match *l {
                     NoCalcLength::Absolute(abs) => {
                         ret.absolute = Some(
-                            ret.absolute.unwrap_or(Au(0)) +
-                            Au::from(abs).scale_by(factor)
+                            match ret.absolute {
+                                Some(value) => value + abs * factor,
+                                None => abs * factor,
+                            }
                         );
                     }
                     NoCalcLength::FontRelative(rel) => {
