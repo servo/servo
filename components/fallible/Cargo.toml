@@ -1,0 +1,13 @@
+[package]
+name = "fallible"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+publish = false
+
+[lib]
+name = "fallible"
+path = "lib.rs"
+
+[dependencies]
+smallvec = "0.4"
