@@ -88,6 +88,7 @@ use dom::touchevent::TouchEvent;
 use dom::touchlist::TouchList;
 use dom::treewalker::TreeWalker;
 use dom::uievent::UIEvent;
+use dom::virtualmethods::vtable_for;
 use dom::webglcontextevent::WebGLContextEvent;
 use dom::window::{ReflowReason, Window};
 use dom::windowproxy::WindowProxy;
@@ -2499,10 +2500,7 @@ impl Document {
             entry.hint.insert(RESTYLE_STYLE_ATTRIBUTE);
         }
 
-        // FIXME(emilio): This should become something like
-        // element.is_attribute_mapped(attr.local_name()).
-        if attr.local_name() == &local_name!("width") ||
-           attr.local_name() == &local_name!("height") {
+        if vtable_for(el.upcast()).attribute_is_mapped(attr) {
             entry.hint.insert(RESTYLE_SELF);
         }
 

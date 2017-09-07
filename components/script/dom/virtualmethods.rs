@@ -70,6 +70,15 @@ pub trait VirtualMethods {
         }
     }
 
+    /// Returns `true` if given attribute `attr` affects style of the
+    /// given element.
+    fn attribute_is_mapped(&self, attr: &Attr) -> bool {
+        match self.super_type() {
+            Some(s) => s.attribute_is_mapped(attr),
+            None => false
+        }
+    }
+
     /// Returns the right AttrValue variant for the attribute with name `name`
     /// on this element.
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
