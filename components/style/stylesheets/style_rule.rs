@@ -12,7 +12,7 @@ use servo_arc::Arc;
 use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt;
 use style_traits::ToCss;
-use stylesheets::{MallocSizeOf, MallocSizeOfFn, MallocSizeOfWithGuard};
+use stylesheets::{MallocSizeOf, MallocSizeOfFn, MallocSizeOfVec, MallocSizeOfWithGuard};
 
 /// A style rule, with selectors and declarations.
 #[derive(Debug)]
@@ -47,8 +47,22 @@ impl MallocSizeOfWithGuard for StyleRule {
         guard: &SharedRwLockReadGuard,
         malloc_size_of: MallocSizeOfFn
     ) -> usize {
-        // Measurement of other fields may be added later.
-        self.block.read_with(guard).malloc_size_of_children(malloc_size_of)
+        let mut n = 0;
+
+        // We may add measurement of things hanging off the embedded Components
+        // later.
+        n += self.selectors.0.malloc_shallow_size_of_vec(malloc_size_of);
+        for selector in self.selectors.0.iter() {
+            // It's safe to measure this ThinArc directly because it's the
+            // "primary" reference. (The secondary references are on the
+            // Stylist.)
+            let ptr = selector.thin_arc_heap_ptr();
+            n += unsafe { (malloc_size_of.0)(ptr) };
+        }
+
+        n += self.block.read_with(guard).malloc_size_of_children(malloc_size_of);
+
+        n
     }
 }
 

@@ -12,7 +12,7 @@ use servo_arc::Arc;
 use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt;
 use style_traits::ToCss;
-use stylesheets::CssRules;
+use stylesheets::{CssRules, MallocSizeOfFn, MallocSizeOfWithGuard};
 
 /// An [`@media`][media] urle.
 ///
@@ -25,6 +25,15 @@ pub struct MediaRule {
     pub rules: Arc<Locked<CssRules>>,
     /// The source position where this media rule was found.
     pub source_location: SourceLocation,
+}
+
+impl MediaRule {
+    /// Measure heap usage.
+    pub fn malloc_size_of_children(&self, guard: &SharedRwLockReadGuard,
+                                   malloc_size_of: MallocSizeOfFn) -> usize {
+        // Measurement of other fields may be added later.
+        self.rules.read_with(guard).malloc_size_of_children(guard, malloc_size_of)
+    }
 }
 
 impl ToCssWithGuard for MediaRule {

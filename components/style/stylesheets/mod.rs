@@ -116,21 +116,40 @@ impl MallocSizeOfWithGuard for CssRule {
         malloc_size_of: MallocSizeOfFn
     ) -> usize {
         match *self {
+            // Not all fields are currently fully measured. Extra measurement
+            // may be added later.
+
+            CssRule::Namespace(_) => 0,
+
+            // We don't need to measure ImportRule::stylesheet because we measure
+            // it on the C++ side in the child list of the ServoStyleSheet.
+            CssRule::Import(_) => 0,
+
             CssRule::Style(ref lock) => {
                 lock.read_with(guard).malloc_size_of_children(guard, malloc_size_of)
             },
-            // Measurement of these fields may be added later.
-            CssRule::Import(_) => 0,
-            CssRule::Media(_) => 0,
+
+            CssRule::Media(ref lock) => {
+                lock.read_with(guard).malloc_size_of_children(guard, malloc_size_of)
+            },
+
             CssRule::FontFace(_) => 0,
             CssRule::FontFeatureValues(_) => 0,
             CssRule::CounterStyle(_) => 0,
-            CssRule::Keyframes(_) => 0,
-            CssRule::Namespace(_) => 0,
             CssRule::Viewport(_) => 0,
-            CssRule::Supports(_) => 0,
-            CssRule::Page(_) => 0,
-            CssRule::Document(_)  => 0,
+            CssRule::Keyframes(_) => 0,
+
+            CssRule::Supports(ref lock) => {
+                lock.read_with(guard).malloc_size_of_children(guard, malloc_size_of)
+            },
+
+            CssRule::Page(ref lock) => {
+                lock.read_with(guard).malloc_size_of_children(guard, malloc_size_of)
+            },
+
+            CssRule::Document(ref lock) => {
+                lock.read_with(guard).malloc_size_of_children(guard, malloc_size_of)
+            },
         }
     }
 }
