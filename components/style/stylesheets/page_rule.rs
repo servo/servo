@@ -12,6 +12,7 @@ use servo_arc::Arc;
 use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt;
 use style_traits::ToCss;
+use stylesheets::{MallocSizeOf, MallocSizeOfFn};
 
 /// A [`@page`][page] rule.
 ///
@@ -28,6 +29,15 @@ pub struct PageRule {
     pub block: Arc<Locked<PropertyDeclarationBlock>>,
     /// The source position this rule was found at.
     pub source_location: SourceLocation,
+}
+
+impl PageRule {
+    /// Measure heap usage.
+    pub fn malloc_size_of_children(&self, guard: &SharedRwLockReadGuard,
+                                   malloc_size_of: MallocSizeOfFn) -> usize {
+        // Measurement of other fields may be added later.
+        self.block.read_with(guard).malloc_size_of_children(malloc_size_of)
+    }
 }
 
 impl ToCssWithGuard for PageRule {
