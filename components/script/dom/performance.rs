@@ -6,6 +6,7 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::PerformanceBinding;
 use dom::bindings::codegen::Bindings::PerformanceBinding::{DOMHighResTimeStamp, PerformanceMethods};
 use dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceEntryList as DOMPerformanceEntryList;
+use dom::bindings::error::{Error, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::num::Finite;
@@ -13,6 +14,8 @@ use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::globalscope::GlobalScope;
 use dom::performanceentry::PerformanceEntry;
+use dom::performancemark::PerformanceMark;
+use dom::performancemeasure::PerformanceMeasure;
 use dom::performanceobserver::PerformanceObserver as DOMPerformanceObserver;
 use dom::performancetiming::PerformanceTiming;
 use dom::window::Window;
@@ -20,6 +23,30 @@ use dom_struct::dom_struct;
 use std::cell::Cell;
 use std::cmp::Ordering;
 use time;
+
+const INVALID_ENTRY_NAMES: &'static [&'static str] = &[
+    "navigationStart",
+    "unloadEventStart",
+    "unloadEventEnd",
+    "redirectStart",
+    "redirectEnd",
+    "fetchStart",
+    "domainLookupStart",
+    "domainLookupEnd",
+    "connectStart",
+    "connectEnd",
+    "secureConnectionStart",
+    "requestStart",
+    "responseStart",
+    "responseEnd",
+    "domLoading",
+    "domInteractive",
+    "domContentLoadedEventStart",
+    "domContentLoadedEventEnd",
+    "domComplete",
+    "loadEventStart",
+    "loadEventEnd",
+];
 
 /// Implementation of a list of PerformanceEntry items shared by the
 /// Performance and PerformanceObserverEntryList interfaces implementations.
@@ -43,6 +70,25 @@ impl PerformanceEntryList {
         ).map(|e| e.clone()).collect::<Vec<Root<PerformanceEntry>>>();
         res.sort_by(|a, b| a.start_time().partial_cmp(&b.start_time()).unwrap_or(Ordering::Equal));
         res
+    }
+
+    pub fn clear_entries_by_name_and_type(&mut self, name: Option<DOMString>,
+                                          entry_type: Option<DOMString>) {
+        self.entries.retain(|e|
+            name.as_ref().map_or(true, |name_| *e.name() == *name_) &&
+            entry_type.as_ref().map_or(true, |type_| *e.entry_type() == *type_)
+        );
+    }
+
+    fn get_last_entry_start_time_with_name_and_type(&self, name: DOMString,
+                                                    entry_type: DOMString) -> f64 {
+        match self.entries.iter()
+                          .rev()
+                          .find(|e| *e.entry_type() == *entry_type &&
+                                    *e.name() == *name) {
+            Some(entry) => entry.start_time(),
+            None => 0.,
+        }
     }
 }
 
@@ -145,9 +191,6 @@ impl Performance {
     ///
     /// Algorithm spec:
     /// https://w3c.github.io/performance-timeline/#queue-a-performanceentry
-    ///
-    /// XXX This should be called at some point by the User Timing, Resource
-    ///     Timing, Server Timing and Paint Timing APIs.
     pub fn queue_entry(&self, entry: &PerformanceEntry,
                        add_to_performance_entries_buffer: bool) {
         // Steps 1-3.
@@ -202,6 +245,14 @@ impl Performance {
             o.notify();
         }
     }
+
+    fn now(&self) -> f64 {
+        let nav_start = match self.timing {
+            Some(ref timing) => timing.navigation_start_precise(),
+            None => self.navigation_start_precise,
+        };
+        (time::precise_time_ns() as f64 - nav_start) / 1000000 as f64
+    }
 }
 
 impl PerformanceMethods for Performance {
@@ -215,12 +266,7 @@ impl PerformanceMethods for Performance {
 
     // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/HighResolutionTime/Overview.html#dom-performance-now
     fn Now(&self) -> DOMHighResTimeStamp {
-        let nav_start = match self.timing {
-            Some(ref timing) => timing.navigation_start_precise(),
-            None => self.navigation_start_precise,
-        };
-        let now = (time::precise_time_ns() as f64 - nav_start) / 1000000 as f64;
-        Finite::wrap(now)
+        Finite::wrap(self.now())
     }
 
     // https://www.w3.org/TR/performance-timeline-2/#dom-performance-getentries
@@ -237,5 +283,73 @@ impl PerformanceMethods for Performance {
     fn GetEntriesByName(&self, name: DOMString, entry_type: Option<DOMString>)
         -> Vec<Root<PerformanceEntry>> {
         self.entries.borrow().get_entries_by_name_and_type(Some(name), entry_type)
+    }
+
+    // https://w3c.github.io/user-timing/#dom-performance-mark
+    fn Mark(&self, mark_name: DOMString) -> Fallible<()> {
+        let global = self.global();
+        // Step 1.
+        if global.is::<Window>() && INVALID_ENTRY_NAMES.contains(&mark_name.as_ref()) {
+            return Err(Error::Syntax);
+        }
+
+        // Steps 2 to 6.
+        let entry = PerformanceMark::new(&global,
+                                         mark_name,
+                                         self.now(),
+                                         0.);
+        // Steps 7 and 8.
+        self.queue_entry(&entry.upcast::<PerformanceEntry>(),
+                         true /* buffer performance entry */);
+
+        // Step 9.
+        Ok(())
+    }
+
+    // https://w3c.github.io/user-timing/#dom-performance-clearmarks
+    fn ClearMarks(&self, mark_name: Option<DOMString>) {
+        self.entries.borrow_mut().clear_entries_by_name_and_type(mark_name,
+                                                                 Some(DOMString::from("mark")));
+    }
+
+    // https://w3c.github.io/user-timing/#dom-performance-measure
+    fn Measure(&self,
+               measure_name: DOMString,
+               start_mark: Option<DOMString>,
+               end_mark: Option<DOMString>) -> Fallible<()> {
+        // Steps 1 and 2.
+        let end_time = match end_mark {
+            Some(name) =>
+                self.entries.borrow().get_last_entry_start_time_with_name_and_type(
+                    DOMString::from("mark"), name),
+            None => self.now(),
+        };
+
+        // Step 3.
+        let start_time = match start_mark {
+            Some(name) =>
+                self.entries.borrow().get_last_entry_start_time_with_name_and_type(
+                    DOMString::from("mark"), name),
+            None => 0.,
+        };
+
+        // Steps 4 to 8.
+        let entry = PerformanceMeasure::new(&self.global(),
+                                            measure_name,
+                                            start_time,
+                                            end_time - start_time);
+
+        // Step 9 and 10.
+        self.queue_entry(&entry.upcast::<PerformanceEntry>(),
+                         true /* buffer performance entry */);
+
+        // Step 11.
+        Ok(())
+    }
+
+    // https://w3c.github.io/user-timing/#dom-performance-clearmeasures
+    fn ClearMeasures(&self, measure_name: Option<DOMString>) {
+        self.entries.borrow_mut().clear_entries_by_name_and_type(measure_name,
+                                                                 Some(DOMString::from("measure")));
     }
 }
