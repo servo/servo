@@ -631,9 +631,17 @@ impl AnimationValue {
     }
 }
 
+fn animate_discrete<T: Clone>(this: &T, other: &T, procedure: Procedure) -> Result<T, ()> {
+    if let Procedure::Interpolate { progress } = procedure {
+        Ok(if progress < 0.5 { this.clone() } else { other.clone() })
+    } else {
+        Err(())
+    }
+}
+
 impl Animate for AnimationValue {
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        match (self, other) {
+        let value = match (self, other) {
             % for prop in data.longhands:
             % if prop.animatable:
             % if prop.animation_value_type != "discrete":
@@ -641,22 +649,18 @@ impl Animate for AnimationValue {
                 &AnimationValue::${prop.camel_case}(ref this),
                 &AnimationValue::${prop.camel_case}(ref other),
             ) => {
-                Ok(AnimationValue::${prop.camel_case}(
+                AnimationValue::${prop.camel_case}(
                     this.animate(other, procedure)?,
-                ))
+                )
             },
             % else:
             (
                 &AnimationValue::${prop.camel_case}(ref this),
                 &AnimationValue::${prop.camel_case}(ref other),
             ) => {
-                if let Procedure::Interpolate { progress } = procedure {
-                    Ok(AnimationValue::${prop.camel_case}(
-                        if progress < 0.5 { this.clone() } else { other.clone() },
-                    ))
-                } else {
-                    Err(())
-                }
+                AnimationValue::${prop.camel_case}(
+                    animate_discrete(this, other, procedure)?
+                )
             },
             % endif
             % endif
@@ -664,7 +668,8 @@ impl Animate for AnimationValue {
             _ => {
                 panic!("Unexpected AnimationValue::animate call, got: {:?}, {:?}", self, other);
             }
-        }
+        };
+        Ok(value)
     }
 }
 
