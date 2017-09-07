@@ -446,7 +446,7 @@ bitflags! {
 }
 
 /// An identifier for a given longhand property.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Eq, PartialEq)]
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum LonghandId {
@@ -454,6 +454,12 @@ pub enum LonghandId {
         /// ${property.name}
         ${property.camel_case} = ${i},
     % endfor
+}
+
+impl fmt::Debug for LonghandId {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str(self.name())
+    }
 }
 
 impl LonghandId {
@@ -3597,13 +3603,24 @@ pub fn modify_border_style_for_inline_sides(style: &mut Arc<ComputedValues>,
 }
 
 /// An identifier for a given alias property.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Eq, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum AliasId {
     % for i, property in enumerate(data.all_aliases()):
         /// ${property.name}
         ${property.camel_case} = ${i},
     % endfor
+}
+
+impl fmt::Debug for AliasId {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        let name = match *self {
+            % for property in data.all_aliases():
+                AliasId::${property.camel_case} => "${property.camel_case}",
+            % endfor
+        };
+        formatter.write_str(name)
+    }
 }
 
 impl AliasId {
