@@ -535,7 +535,7 @@ impl AnimationValue {
     ) -> Option<Self> {
         use properties::LonghandId;
 
-        match *decl {
+        let animatable = match *decl {
             % for prop in data.longhands:
             % if prop.animatable:
             PropertyDeclaration::${prop.camel_case}(ref val) => {
@@ -549,13 +549,13 @@ impl AnimationValue {
             % else:
             let computed = val.to_computed_value(context);
             % endif
-            Some(AnimationValue::${prop.camel_case}(
+            AnimationValue::${prop.camel_case}(
             % if prop.is_animatable_with_computed_value:
                 computed
             % else:
                 computed.to_animated_value()
             % endif
-            ))
+            )
             },
             % endif
             % endfor
@@ -566,33 +566,32 @@ impl AnimationValue {
                     % for prop in data.longhands:
                     % if prop.animatable:
                     LonghandId::${prop.camel_case} => {
-                        let computed = match keyword {
+                        let style_struct = match keyword {
                             % if not prop.style_struct.inherited:
                                 CSSWideKeyword::Unset |
                             % endif
                             CSSWideKeyword::Initial => {
-                                let initial_struct = initial.get_${prop.style_struct.name_lower}();
-                                initial_struct.clone_${prop.ident}()
+                                initial.get_${prop.style_struct.name_lower}()
                             },
                             % if prop.style_struct.inherited:
                                 CSSWideKeyword::Unset |
                             % endif
                             CSSWideKeyword::Inherit => {
-                                let inherit_struct = context.builder
-                                                            .get_parent_${prop.style_struct.name_lower}();
-                                inherit_struct.clone_${prop.ident}()
+                                context.builder
+                                       .get_parent_${prop.style_struct.name_lower}()
                             },
                         };
+                        let computed = style_struct.clone_${prop.ident}();
                         % if not prop.is_animatable_with_computed_value:
                         let computed = computed.to_animated_value();
                         % endif
-                        Some(AnimationValue::${prop.camel_case}(computed))
+                        AnimationValue::${prop.camel_case}(computed)
                     },
                     % endif
                     % endfor
                     % for prop in data.longhands:
                     % if not prop.animatable:
-                    LonghandId::${prop.camel_case} => None,
+                    LonghandId::${prop.camel_case} => return None,
                     % endif
                     % endfor
                 }
@@ -600,10 +599,11 @@ impl AnimationValue {
             PropertyDeclaration::WithVariables(id, ref unparsed) => {
                 let custom_props = context.style().custom_properties();
                 let substituted = unparsed.substitute_variables(id, &custom_props, context.quirks_mode);
-                AnimationValue::from_declaration(&substituted, context, initial)
+                return AnimationValue::from_declaration(&substituted, context, initial)
             },
-            _ => None // non animatable properties will get included because of shorthands. ignore.
-        }
+            _ => return None // non animatable properties will get included because of shorthands. ignore.
+        };
+        Some(animatable)
     }
 
     /// Get an AnimationValue for an AnimatableLonghand from a given computed values.
