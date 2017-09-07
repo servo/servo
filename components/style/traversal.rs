@@ -658,7 +658,7 @@ where
             match target.share_style_if_possible(context) {
                 StyleWasShared(index, styles) => {
                     context.thread_local.statistics.styles_shared += 1;
-                    context.thread_local.style_sharing_candidate_cache.touch(index);
+                    context.thread_local.sharing_cache.touch(index);
                     styles
                 }
                 CannotShare => {
@@ -677,7 +677,7 @@ where
                     };
 
                     context.thread_local
-                        .style_sharing_candidate_cache
+                        .sharing_cache
                         .insert_if_possible(
                             &element,
                             new_styles.primary(),

@@ -343,7 +343,7 @@ impl<E: TElement> StyleSharingTarget<E> {
         &mut self,
         context: &mut StyleContext<E>,
     ) -> StyleSharingResult {
-        let cache = &mut context.thread_local.style_sharing_candidate_cache;
+        let cache = &mut context.thread_local.sharing_cache;
         let shared_context = &context.shared;
         let selector_flags_map = &mut context.thread_local.selector_flags;
         let bloom_filter = &context.thread_local.bloom_filter;
@@ -436,7 +436,7 @@ thread_local!(static SHARING_CACHE_KEY: StoredSharingCache =
 ///
 /// Note that this cache is flushed every time we steal work from the queue, so
 /// storing nodes here temporarily is safe.
-pub struct StyleSharingCandidateCache<E: TElement> {
+pub struct StyleSharingCache<E: TElement> {
     /// The LRU cache, with the type cast away to allow persisting the allocation.
     cache_typeless: OwningHandle<StoredSharingCache, AtomicRefMut<'static, TypelessSharingCache>>,
     /// Bind this structure to the lifetime of E, since that's what we effectively store.
@@ -447,13 +447,13 @@ pub struct StyleSharingCandidateCache<E: TElement> {
     dom_depth: usize,
 }
 
-impl<E: TElement> Drop for StyleSharingCandidateCache<E> {
+impl<E: TElement> Drop for StyleSharingCache<E> {
     fn drop(&mut self) {
         self.clear();
     }
 }
 
-impl<E: TElement> StyleSharingCandidateCache<E> {
+impl<E: TElement> StyleSharingCache<E> {
     fn cache(&self) -> &SharingCache<E> {
         let base: &TypelessSharingCache = &*self.cache_typeless;
         unsafe { mem::transmute(base) }
@@ -472,7 +472,7 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
         let cache = OwningHandle::new_with_fn(cache_arc, |x| unsafe { x.as_ref() }.unwrap().borrow_mut());
         debug_assert_eq!(cache.num_entries(), 0);
 
-        StyleSharingCandidateCache {
+        StyleSharingCache {
             cache_typeless: cache,
             marker: PhantomData,
             dom_depth: 0,

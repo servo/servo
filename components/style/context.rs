@@ -26,7 +26,7 @@ use selectors::matching::ElementSelectorFlags;
 use servo_arc::Arc;
 #[cfg(feature = "servo")] use servo_atoms::Atom;
 use shared_lock::StylesheetGuards;
-use sharing::StyleSharingCandidateCache;
+use sharing::StyleSharingCache;
 use std::fmt;
 use std::ops;
 #[cfg(feature = "servo")] use std::sync::Mutex;
@@ -679,7 +679,7 @@ impl StackLimitChecker {
 /// thread in order to be able to mutate it without locking.
 pub struct ThreadLocalStyleContext<E: TElement> {
     /// A cache to share style among siblings.
-    pub style_sharing_candidate_cache: StyleSharingCandidateCache<E>,
+    pub sharing_cache: StyleSharingCache<E>,
     /// The bloom filter used to fast-reject selector-matching.
     pub bloom_filter: StyleBloom<E>,
     /// A channel on which new animations that have been triggered by style
@@ -716,7 +716,7 @@ impl<E: TElement> ThreadLocalStyleContext<E> {
     #[cfg(feature = "servo")]
     pub fn new(shared: &SharedStyleContext) -> Self {
         ThreadLocalStyleContext {
-            style_sharing_candidate_cache: StyleSharingCandidateCache::new(),
+            sharing_cache: StyleSharingCache::new(),
             bloom_filter: StyleBloom::new(),
             new_animations_sender: shared.local_context_creation_data.lock().unwrap().new_animations_sender.clone(),
             tasks: SequentialTaskList(Vec::new()),
@@ -733,7 +733,7 @@ impl<E: TElement> ThreadLocalStyleContext<E> {
     /// Creates a new `ThreadLocalStyleContext` from a shared one.
     pub fn new(shared: &SharedStyleContext) -> Self {
         ThreadLocalStyleContext {
-            style_sharing_candidate_cache: StyleSharingCandidateCache::new(),
+            sharing_cache: StyleSharingCache::new(),
             bloom_filter: StyleBloom::new(),
             tasks: SequentialTaskList(Vec::new()),
             selector_flags: SelectorFlagsMap::new(),
