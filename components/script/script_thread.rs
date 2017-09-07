@@ -221,24 +221,35 @@ pub struct CancellableRunnable<T: Runnable + Send> {
     inner: Box<T>,
 }
 
-impl<T: Runnable + Send> Runnable for CancellableRunnable<T> {
+impl<T> CancellableRunnable<T>
+where
+    T: Runnable + Send,
+{
     fn is_cancelled(&self) -> bool {
-        self.cancelled.as_ref()
-            .map(|cancelled| cancelled.load(Ordering::SeqCst))
-            .unwrap_or(false)
+        self.cancelled.as_ref().map_or(false, |cancelled| {
+            cancelled.load(Ordering::SeqCst)
+        })
     }
+}
 
+impl<T> Runnable for CancellableRunnable<T>
+where
+    T: Runnable + Send,
+{
     fn main_thread_handler(self: Box<CancellableRunnable<T>>, script_thread: &ScriptThread) {
-        self.inner.main_thread_handler(script_thread);
+        if !self.is_cancelled() {
+            self.inner.main_thread_handler(script_thread);
+        }
     }
 
     fn handler(self: Box<CancellableRunnable<T>>) {
-        self.inner.handler()
+        if !self.is_cancelled() {
+            self.inner.handler()
+        }
     }
 }
 
 pub trait Runnable {
-    fn is_cancelled(&self) -> bool { false }
     fn name(&self) -> &'static str { unsafe { intrinsics::type_name::<Self>() } }
     fn handler(self: Box<Self>) {}
     fn main_thread_handler(self: Box<Self>, _script_thread: &ScriptThread) { self.handler(); }
@@ -1281,12 +1292,7 @@ impl ScriptThread {
             MainThreadScriptMsg::Common(CommonScriptMsg::RunnableMsg(_, runnable)) => {
                 // The category of the runnable is ignored by the pattern, however
                 // it is still respected by profiling (see categorize_msg).
-                if !runnable.is_cancelled() {
-                    debug!("Running runnable.");
-                    runnable.main_thread_handler(self)
-                } else {
-                    debug!("Not running cancelled runnable.");
-                }
+                runnable.main_thread_handler(self)
             }
             MainThreadScriptMsg::Common(CommonScriptMsg::CollectReports(reports_chan)) =>
                 self.collect_reports(reports_chan),
