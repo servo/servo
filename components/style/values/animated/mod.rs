@@ -162,7 +162,7 @@ where
 impl Animate for Au {
     #[inline]
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        Ok(Au::new(self.0.animate(&other.0, procedure)?))
+        Ok(Au(self.0.animate(&other.0, procedure)?))
     }
 }
 
