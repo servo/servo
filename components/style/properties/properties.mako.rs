@@ -38,7 +38,8 @@ use selectors::parser::SelectorParseError;
 use shared_lock::StylesheetGuards;
 use style_traits::{PARSING_MODE_DEFAULT, ToCss, ParseError};
 use style_traits::{PropertyDeclarationParseError, StyleParseError, ValueParseError};
-use stylesheets::{CssRuleType, MallocSizeOf, MallocSizeOfFn, Origin, UrlExtraData};
+use stylesheets::{CssRuleType, MallocSizeOf, MallocSizeOfBox, MallocSizeOfFn, MallocSizeOfVec};
+use stylesheets::{Origin, UrlExtraData};
 #[cfg(feature = "servo")] use values::Either;
 use values::generics::text::LineHeight;
 use values::computed;
@@ -1328,10 +1329,26 @@ impl ToCss for PropertyDeclaration {
 }
 
 impl MallocSizeOf for PropertyDeclaration {
-    fn malloc_size_of_children(&self, _malloc_size_of: MallocSizeOfFn) -> usize {
-        // The variants of PropertyDeclaration mostly (entirely?) contain
-        // scalars, so this is reasonable.
-        0
+    fn malloc_size_of_children(&self, malloc_size_of: MallocSizeOfFn) -> usize {
+        match *self {
+            % for property in data.longhands:
+                % if property.boxed and property.is_vector:
+                    <% raise Exception("this should not happen! not smart to box a vector here") %>
+                % elif property.boxed:
+                    PropertyDeclaration::${property.camel_case}(ref sv_box) => {
+                        sv_box.malloc_shallow_size_of_box(malloc_size_of)
+                    }
+                % elif property.is_vector:
+                    PropertyDeclaration::${property.camel_case}(ref sv_vec) => {
+                        sv_vec.0.malloc_shallow_size_of_vec(malloc_size_of)
+                    }
+                % endif
+            % endfor
+            PropertyDeclaration::CSSWideKeyword(..) => 0,
+            PropertyDeclaration::WithVariables(..) => 0,
+            PropertyDeclaration::Custom(..) => 0,
+            _ => 0,
+        }
     }
 }
 
