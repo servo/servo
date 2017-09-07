@@ -675,16 +675,23 @@ impl Animate for AnimationValue {
 
 impl ComputeSquaredDistance for AnimationValue {
     fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
+        match *self {
+            % for i, prop in enumerate([p for p in data.longhands \
+                                       if p.animatable and p.animation_value_type == "discrete"]):
+            % if i > 0:
+            |
+            % endif
+            AnimationValue::${prop.camel_case}(..)
+            % endfor
+            => return Err(()),
+            _ => (),
+        }
         match (self, other) {
             % for prop in data.longhands:
             % if prop.animatable:
             % if prop.animation_value_type != "discrete":
             (&AnimationValue::${prop.camel_case}(ref this), &AnimationValue::${prop.camel_case}(ref other)) => {
                 this.compute_squared_distance(other)
-            },
-            % else:
-            (&AnimationValue::${prop.camel_case}(_), &AnimationValue::${prop.camel_case}(_)) => {
-                Err(())
             },
             % endif
             % endif
