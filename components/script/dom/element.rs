@@ -2303,6 +2303,16 @@ impl VirtualMethods for Element {
         Some(self.upcast::<Node>() as &VirtualMethods)
     }
 
+    fn attribute_is_mapped(&self, attr: &Attr) -> bool {
+        // FIXME: This should be more fine-grained, not all elements care about these.
+        if attr.local_name() == &local_name!("width") ||
+           attr.local_name() == &local_name!("height") {
+            return true;
+        }
+
+        self.super_type().unwrap().attribute_is_mapped(attr)
+    }
+
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         let node = self.upcast::<Node>();
