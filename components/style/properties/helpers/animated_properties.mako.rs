@@ -316,19 +316,20 @@ impl<'a> From< &'a TransitionProperty> for nsCSSPropertyID {
 #[allow(non_upper_case_globals)]
 impl From<nsCSSPropertyID> for TransitionProperty {
     fn from(property: nsCSSPropertyID) -> TransitionProperty {
-        match property {
+        let unsupported = match property {
             % for prop in data.longhands + data.shorthands_except_all():
                 % if prop.transitionable:
                     ${helpers.to_nscsspropertyid(prop.ident)}
-                        => TransitionProperty::${prop.camel_case},
+                        => return TransitionProperty::${prop.camel_case},
                 % else:
                     ${helpers.to_nscsspropertyid(prop.ident)}
-                        => TransitionProperty::Unsupported(CustomIdent(Atom::from("${prop.ident}"))),
+                        => "${prop.ident}",
                 % endif
             % endfor
-            nsCSSPropertyID::eCSSPropertyExtra_all_properties => TransitionProperty::All,
+            nsCSSPropertyID::eCSSPropertyExtra_all_properties => return TransitionProperty::All,
             _ => panic!("Unconvertable nsCSSPropertyID: {:?}", property),
-        }
+        };
+        TransitionProperty::Unsupported(CustomIdent(Atom::from(unsupported)))
     }
 }
 
