@@ -292,7 +292,7 @@ mod bindings {
             },
         };
         for fixup in fixups.iter() {
-            result = Regex::new(&format!(r"\b{}\b", fixup.pat)).unwrap().replace_all(&result, fixup.rep.as_str())
+            result = Regex::new(&fixup.pat).unwrap().replace_all(&result, &*fixup.rep)
                 .into_owned().into();
         }
         let bytes = result.into_bytes();
@@ -426,7 +426,7 @@ mod bindings {
                 let servo = item["servo"].as_str().unwrap();
                 let gecko_name = gecko.rsplit("::").next().unwrap();
                 fixups.push(Fixup {
-                    pat: format!("root::{}", gecko),
+                    pat: format!("\\broot::{}\\b", gecko),
                     rep: format!("::gecko_bindings::structs::{}", gecko_name)
                 });
                 builder.hide_type(gecko)
