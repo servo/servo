@@ -2500,7 +2500,7 @@ impl Document {
             entry.hint.insert(RESTYLE_STYLE_ATTRIBUTE);
         }
 
-        if vtable_for(el.upcast()).attribute_is_mapped(attr) {
+        if vtable_for(el.upcast()).attribute_affects_presentational_hints(attr) {
             entry.hint.insert(RESTYLE_SELF);
         }
 
