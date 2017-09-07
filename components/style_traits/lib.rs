@@ -107,8 +107,12 @@ pub enum StyleParseError<'i> {
     PropertyDeclarationValueNotExhausted,
     /// An unexpected dimension token was encountered.
     UnexpectedDimension(CowRcStr<'i>),
-    /// A media query using a ranged expression with no value was encountered.
-    RangedExpressionWithNoValue,
+    /// Expected identifier in media list.
+    MediaQueryExpectedIdentifier,
+    /// Missing or invalid media feature name.
+    MediaQueryExpectedFeatureName,
+    /// Missing or invalid media feature value.
+    MediaQueryExpectedFeatureValue,
     /// A function was encountered that was not expected.
     UnexpectedFunction(CowRcStr<'i>),
     /// @namespace must be before any rule but @charset and @import

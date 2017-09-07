@@ -189,7 +189,8 @@ impl<'a> ErrorHelpers<'a> for ContextualParseError<'a> {
             ContextualParseError::InvalidRule(s, err) |
             ContextualParseError::UnsupportedRule(s, err) |
             ContextualParseError::UnsupportedViewportDescriptorDeclaration(s, err) |
-            ContextualParseError::UnsupportedCounterStyleDescriptorDeclaration(s, err) =>
+            ContextualParseError::UnsupportedCounterStyleDescriptorDeclaration(s, err) |
+            ContextualParseError::InvalidMediaRule(s, err) =>
                 (s.into(), err),
             ContextualParseError::InvalidCounterStyleWithoutSymbols(s) |
             ContextualParseError::InvalidCounterStyleNotEnoughSymbols(s) =>
@@ -280,6 +281,26 @@ impl<'a> ErrorHelpers<'a> for ContextualParseError<'a> {
                     _ => None,
                 };
                 return (prefix, b"PEBadSelectorRSIgnored\0", Action::Nothing);
+            }
+            ContextualParseError::InvalidMediaRule(_, ref err) => {
+                let err: &[u8] = match *err {
+                    CssParseError::Custom(SelectorParseError::Custom(
+                            StyleParseError::MediaQueryExpectedIdentifier)) => {
+                        b"PEGatherMediaNotIdent\0"
+                    },
+                    CssParseError::Custom(SelectorParseError::Custom(
+                            StyleParseError::MediaQueryExpectedFeatureName)) => {
+                        b"PEMQExpectedFeatureName\0"
+                    },
+                    CssParseError::Custom(SelectorParseError::Custom(
+                            StyleParseError::MediaQueryExpectedFeatureValue)) => {
+                        b"PEMQExpectedFeatureValue\0"
+                    },
+                    _ => {
+                        b"PEDeclDropped\0"
+                    },
+                };
+                (err, Action::Nothing)
             }
             ContextualParseError::UnsupportedRule(..) =>
                 (b"PEDeclDropped\0", Action::Nothing),
