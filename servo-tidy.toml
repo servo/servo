@@ -40,6 +40,8 @@ packages = [
 ]
 # Files that are ignored for all tidy and lint checks.
 files = [
+  # Mako does not lend itself easily to splitting long lines
+  "./components/style/properties/helpers/animated_properties.mako.rs",
   # Helper macro where actually a pseudo-element per line makes sense.
   "./components/style/gecko/non_ts_pseudo_class_list.rs",
   # Generated and upstream code combined with our own. Could use cleanup
