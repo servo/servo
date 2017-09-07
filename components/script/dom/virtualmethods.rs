@@ -72,9 +72,9 @@ pub trait VirtualMethods {
 
     /// Returns `true` if given attribute `attr` affects style of the
     /// given element.
-    fn attribute_is_mapped(&self, attr: &Attr) -> bool {
+    fn attribute_affects_presentational_hints(&self, attr: &Attr) -> bool {
         match self.super_type() {
-            Some(s) => s.attribute_is_mapped(attr),
+            Some(s) => s.attribute_affects_presentational_hints(attr),
             None => false
         }
     }

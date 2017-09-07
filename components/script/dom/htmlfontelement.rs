@@ -71,13 +71,13 @@ impl VirtualMethods for HTMLFontElement {
         Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
-    fn attribute_is_mapped(&self, attr: &Attr) -> bool {
+    fn attribute_affects_presentational_hints(&self, attr: &Attr) -> bool {
         if attr.local_name() == &local_name!("color") {
             return true;
         }
 
         // FIXME: Should also return true for `size` and `face` changes!
-        self.super_type().unwrap().attribute_is_mapped(attr)
+        self.super_type().unwrap().attribute_affects_presentational_hints(attr)
     }
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
