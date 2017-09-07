@@ -2231,6 +2231,18 @@
      {}
     ]
    ],
+   "css/font_color_attribute_change.html": [
+    [
+     "/_mozilla/css/font_color_attribute_change.html",
+     [
+      [
+       "/_mozilla/css/font_color_attribute_change_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "css/font_face_attribute.html": [
     [
      "/_mozilla/css/font_face_attribute.html",
@@ -8764,6 +8776,11 @@
     ]
    ],
    "css/font_advance_ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/font_color_attribute_change_ref.html": [
     [
      {}
     ]
@@ -24030,6 +24047,14 @@
   "css/font_color_attribute_a.html": [
    "c26b839b729cae2d01ba7f2588852170bcc0b82e",
    "reftest"
+  ],
+  "css/font_color_attribute_change.html": [
+   "3fbc02577b742decbd1428aa4973675bb9d02c03",
+   "reftest"
+  ],
+  "css/font_color_attribute_change_ref.html": [
+   "017178bd4c8017eb9702040e8e39be54695c92b8",
+   "support"
   ],
   "css/font_color_attribute_ref.html": [
    "4a07819ffd7c7629ee13f428cf7243c99f3dfc63",
