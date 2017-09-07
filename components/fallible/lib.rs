@@ -1,0 +1,143 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+extern crate smallvec;
+
+use smallvec::Array;
+use smallvec::SmallVec;
+use std::mem;
+use std::ptr::copy_nonoverlapping;
+use std::vec::Vec;
+
+extern "C" {
+    fn realloc(ptr: *mut u8, bytes: usize) -> *mut u8;
+    fn malloc(bytes: usize) -> *mut u8;
+}
+
+pub trait FallibleVec<T> {
+    /// Append |val| to the end of |vec|.  Returns Ok(()) on success,
+    /// Err(()) if it fails, which can only be due to lack of memory.
+    fn try_push(&mut self, value: T) -> Result<(), ()>;
+}
+
+
+/////////////////////////////////////////////////////////////////
+// Vec
+
+impl<T> FallibleVec<T> for Vec<T> {
+    #[inline]
+    fn try_push(&mut self, val: T) -> Result<(), ()> {
+        if self.capacity() == self.len() {
+            try_double_vec(self)?;
+            debug_assert!(self.capacity() > self.len());
+        }
+        self.push(val);
+        Ok(())
+    }
+}
+
+// Double the capacity of |vec|, or fail to do so due to lack of memory.
+// Returns Ok(()) on success, Err(()) on failure.
+#[inline(never)]
+#[cold]
+fn try_double_vec<T>(vec: &mut Vec<T>) -> Result<(), ()> {
+    let old_ptr = vec.as_mut_ptr();
+    let old_len = vec.len();
+
+    let old_cap: usize = vec.capacity();
+    let new_cap: usize =
+        if old_cap == 0 { 4 } else { old_cap.checked_mul(2).ok_or(()) ? };
+
+    let new_size_bytes =
+        new_cap.checked_mul(mem::size_of::<T>()).ok_or(()) ? ;
+
+    let new_ptr = unsafe {
+        if old_cap == 0 {
+            malloc(new_size_bytes)
+        } else {
+            realloc(old_ptr as *mut u8, new_size_bytes)
+        }
+    };
+
+    if new_ptr.is_null() {
+        return Err(());
+    }
+
+    let new_vec = unsafe {
+        Vec::from_raw_parts(new_ptr as *mut T, old_len, new_cap)
+    };
+
+    mem::forget(mem::replace(vec, new_vec));
+    Ok(())
+}
+
+
+/////////////////////////////////////////////////////////////////
+// SmallVec
+
+impl<T: Array> FallibleVec<T::Item> for SmallVec<T> {
+    #[inline]
+    fn try_push(&mut self, val: T::Item) -> Result<(), ()> {
+        if self.capacity() == self.len() {
+            try_double_small_vec(self)?;
+            debug_assert!(self.capacity() > self.len());
+        }
+        self.push(val);
+        Ok(())
+    }
+}
+
+// Double the capacity of |vec|, or fail to do so due to lack of memory.
+// Returns Ok(()) on success, Err(()) on failure.
+#[inline(never)]
+#[cold]
+fn try_double_small_vec<T>(svec: &mut SmallVec<T>) -> Result<(), ()>
+where
+    T: Array,
+{
+    let old_ptr = svec.as_mut_ptr();
+    let old_len = svec.len();
+
+    let old_cap: usize = svec.capacity();
+    let new_cap: usize =
+        if old_cap == 0 { 4 } else { old_cap.checked_mul(2).ok_or(()) ? };
+
+    // This surely shouldn't fail, if |old_cap| was previously accepted as a
+    // valid value.  But err on the side of caution.
+    let old_size_bytes =
+        old_cap.checked_mul(mem::size_of::<T>()).ok_or(()) ? ;
+
+    let new_size_bytes =
+        new_cap.checked_mul(mem::size_of::<T>()).ok_or(()) ? ;
+
+    let new_ptr;
+    if svec.spilled() {
+        // There's an old block to free, and, presumably, old contents to
+        // copy.  realloc takes care of both aspects.
+        unsafe {
+            new_ptr = realloc(old_ptr as *mut u8, new_size_bytes);
+        }
+    } else {
+        // There's no old block to free.  There may be old contents to copy.
+        unsafe {
+            new_ptr = malloc(new_size_bytes);
+            if !new_ptr.is_null() && old_size_bytes > 0 {
+                copy_nonoverlapping(old_ptr as *const u8,
+                                    new_ptr as *mut u8, old_size_bytes);
+            }
+        }
+    }
+
+    if new_ptr.is_null() {
+        return Err(());
+    }
+
+    let new_vec = unsafe {
+        Vec::from_raw_parts(new_ptr as *mut T::Item, old_len, new_cap)
+    };
+
+    let new_svec = SmallVec::from_vec(new_vec);
+    mem::forget(mem::replace(svec, new_svec));
+    Ok(())
+}
