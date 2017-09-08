@@ -104,10 +104,6 @@ fn each_relevant_element_hash<E, F>(element: E, mut f: F)
         f(id.get_hash());
     }
 
-    // TODO: case-sensitivity depends on the document type and quirks mode.
-    //
-    // TODO(emilio): It's not clear whether that's relevant here though?
-    // Classes and ids should be normalized already I think.
     element.each_class(|class| {
         f(class.get_hash())
     });
