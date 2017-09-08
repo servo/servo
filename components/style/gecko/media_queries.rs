@@ -156,11 +156,8 @@ impl Device {
 
     /// Returns the current viewport size in app units.
     pub fn au_viewport_size(&self) -> Size2D<Au> {
-        unsafe {
-            // TODO(emilio): Need to take into account scrollbars.
-            let area = &self.pres_context().mVisibleArea;
-            Size2D::new(Au(area.width), Au(area.height))
-        }
+        let area = &self.pres_context().mVisibleArea;
+        Size2D::new(Au(area.width), Au(area.height))
     }
 
     /// Returns the current viewport size in app units, recording that it's been
