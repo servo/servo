@@ -114,7 +114,7 @@ use std::sync::mpsc::{Receiver, Select, Sender, channel};
 use std::thread;
 use style::context::ReflowGoal;
 use style::thread_state;
-use task_source::dom_manipulation::{DOMManipulationTask, DOMManipulationTaskSource};
+use task_source::dom_manipulation::DOMManipulationTaskSource;
 use task_source::file_reading::FileReadingTaskSource;
 use task_source::history_traversal::HistoryTraversalTaskSource;
 use task_source::networking::NetworkingTaskSource;
@@ -276,8 +276,6 @@ pub enum MainThreadScriptMsg {
     /// dispatched to ScriptThread). Allows for a replace bool to be passed. If true,
     /// the current entry will be replaced instead of a new entry being added.
     Navigate(PipelineId, LoadData, bool),
-    /// Tasks that originate from the DOM manipulation task source
-    DOMManipulation(DOMManipulationTask),
     /// Tasks that originate from the user interaction task source
     UserInteraction(UserInteractionTask),
     /// Notifies the script thread that a new worklet has been loaded, and thus the page should be
@@ -1298,8 +1296,6 @@ impl ScriptThread {
                 self.collect_reports(reports_chan),
             MainThreadScriptMsg::WorkletLoaded(pipeline_id) =>
                 self.handle_worklet_loaded(pipeline_id),
-            MainThreadScriptMsg::DOMManipulation(task) =>
-                task.handle_task(self),
             MainThreadScriptMsg::UserInteraction(task) =>
                 task.handle_task(self),
         }

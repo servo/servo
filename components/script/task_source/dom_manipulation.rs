@@ -7,7 +7,8 @@ use dom::bindings::refcounted::Trusted;
 use dom::event::{EventBubbles, EventCancelable, EventRunnable, SimpleEventRunnable};
 use dom::eventtarget::EventTarget;
 use dom::window::Window;
-use script_thread::{MainThreadScriptMsg, Runnable, RunnableWrapper, ScriptThread};
+use script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
+use script_thread::{MainThreadScriptMsg, Runnable, RunnableWrapper};
 use servo_atoms::Atom;
 use std::fmt;
 use std::result::Result;
@@ -29,8 +30,11 @@ impl TaskSource for DOMManipulationTaskSource {
                              wrapper: &RunnableWrapper)
                              -> Result<(), ()>
                              where T: Runnable + Send + 'static {
-        let msg = DOMManipulationTask(wrapper.wrap_runnable(msg));
-        self.0.send(MainThreadScriptMsg::DOMManipulation(msg)).map_err(|_| ())
+        let msg = MainThreadScriptMsg::Common(CommonScriptMsg::RunnableMsg(
+            ScriptThreadEventCategory::ScriptEvent,
+            wrapper.wrap_runnable(msg),
+        ));
+        self.0.send(msg).map_err(|_| ())
     }
 }
 
@@ -58,19 +62,5 @@ impl DOMManipulationTaskSource {
             name: name,
         };
         let _ = self.queue(runnable, window.upcast());
-    }
-}
-
-pub struct DOMManipulationTask(pub Box<Runnable + Send>);
-
-impl fmt::Debug for DOMManipulationTask {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "DOMManipulationTask(...)")
-    }
-}
-
-impl DOMManipulationTask {
-    pub fn handle_task(self, script_thread: &ScriptThread) {
-        self.0.main_thread_handler(script_thread);
     }
 }
