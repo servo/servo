@@ -88,14 +88,15 @@ impl<E: TElement> PushedElement<E> {
     fn new(el: E, num_hashes: usize) -> Self {
         PushedElement {
             element: unsafe { SendElement::new(el) },
-            num_hashes: num_hashes,
+            num_hashes,
         }
     }
 }
 
 fn each_relevant_element_hash<E, F>(element: E, mut f: F)
-    where E: TElement,
-          F: FnMut(u32),
+where
+    E: TElement,
+    F: FnMut(u32),
 {
     f(element.get_local_name().get_hash());
     f(element.get_namespace().get_hash());
