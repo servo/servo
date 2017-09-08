@@ -7,7 +7,8 @@ use dom::bindings::refcounted::Trusted;
 use dom::event::{EventBubbles, EventCancelable, EventRunnable};
 use dom::eventtarget::EventTarget;
 use dom::window::Window;
-use script_thread::{MainThreadScriptMsg, Runnable, RunnableWrapper, ScriptThread};
+use script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
+use script_thread::{MainThreadScriptMsg, Runnable, RunnableWrapper};
 use servo_atoms::Atom;
 use std::fmt;
 use std::result::Result;
@@ -24,13 +25,19 @@ impl fmt::Debug for UserInteractionTaskSource {
 }
 
 impl TaskSource for UserInteractionTaskSource {
-    fn queue_with_wrapper<T>(&self,
-                             msg: Box<T>,
-                             wrapper: &RunnableWrapper)
-                             -> Result<(), ()>
-                             where T: Runnable + Send + 'static {
-        let msg = UserInteractionTask(wrapper.wrap_runnable(msg));
-        self.0.send(MainThreadScriptMsg::UserInteraction(msg)).map_err(|_| ())
+    fn queue_with_wrapper<T>(
+        &self,
+        msg: Box<T>,
+        wrapper: &RunnableWrapper,
+    ) -> Result<(), ()>
+    where
+        T: Runnable + Send + 'static,
+    {
+        let msg = MainThreadScriptMsg::Common(CommonScriptMsg::RunnableMsg(
+            ScriptThreadEventCategory::InputEvent,
+            wrapper.wrap_runnable(msg),
+        ));
+        self.0.send(msg).map_err(|_| ())
     }
 }
 
@@ -49,19 +56,5 @@ impl UserInteractionTaskSource {
             cancelable: cancelable,
         };
         let _ = self.queue(runnable, window.upcast());
-    }
-}
-
-pub struct UserInteractionTask(pub Box<Runnable + Send>);
-
-impl fmt::Debug for UserInteractionTask {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "UserInteractionTask(...)")
-    }
-}
-
-impl UserInteractionTask {
-    pub fn handle_task(self, script_thread: &ScriptThread) {
-        self.0.main_thread_handler(script_thread);
     }
 }

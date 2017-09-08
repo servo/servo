@@ -114,12 +114,12 @@ use std::sync::mpsc::{Receiver, Select, Sender, channel};
 use std::thread;
 use style::context::ReflowGoal;
 use style::thread_state;
-use task_source::dom_manipulation::{DOMManipulationTask, DOMManipulationTaskSource};
+use task_source::dom_manipulation::DOMManipulationTaskSource;
 use task_source::file_reading::FileReadingTaskSource;
 use task_source::history_traversal::HistoryTraversalTaskSource;
 use task_source::networking::NetworkingTaskSource;
 use task_source::performance_timeline::PerformanceTimelineTaskSource;
-use task_source::user_interaction::{UserInteractionTask, UserInteractionTaskSource};
+use task_source::user_interaction::UserInteractionTaskSource;
 use time::{get_time, precise_time_ns, Tm};
 use url::Position;
 use webdriver_handlers;
@@ -251,7 +251,9 @@ where
 
 pub trait Runnable {
     fn name(&self) -> &'static str { unsafe { intrinsics::type_name::<Self>() } }
-    fn handler(self: Box<Self>) {}
+    fn handler(self: Box<Self>) {
+        panic!("This should probably be redefined.")
+    }
     fn main_thread_handler(self: Box<Self>, _script_thread: &ScriptThread) { self.handler(); }
 }
 
@@ -276,10 +278,6 @@ pub enum MainThreadScriptMsg {
     /// dispatched to ScriptThread). Allows for a replace bool to be passed. If true,
     /// the current entry will be replaced instead of a new entry being added.
     Navigate(PipelineId, LoadData, bool),
-    /// Tasks that originate from the DOM manipulation task source
-    DOMManipulation(DOMManipulationTask),
-    /// Tasks that originate from the user interaction task source
-    UserInteraction(UserInteractionTask),
     /// Notifies the script thread that a new worklet has been loaded, and thus the page should be
     /// reflowed.
     WorkletLoaded(PipelineId),
@@ -1285,23 +1283,21 @@ impl ScriptThread {
 
     fn handle_msg_from_script(&self, msg: MainThreadScriptMsg) {
         match msg {
-            MainThreadScriptMsg::Navigate(parent_pipeline_id, load_data, replace) =>
-                self.handle_navigate(parent_pipeline_id, None, load_data, replace),
-            MainThreadScriptMsg::ExitWindow(id) =>
-                self.handle_exit_window_msg(id),
+            MainThreadScriptMsg::Navigate(parent_pipeline_id, load_data, replace) => {
+                self.handle_navigate(parent_pipeline_id, None, load_data, replace)
+            },
+            MainThreadScriptMsg::ExitWindow(id) => {
+                self.handle_exit_window_msg(id)
+            },
             MainThreadScriptMsg::Common(CommonScriptMsg::RunnableMsg(_, runnable)) => {
-                // The category of the runnable is ignored by the pattern, however
-                // it is still respected by profiling (see categorize_msg).
                 runnable.main_thread_handler(self)
             }
-            MainThreadScriptMsg::Common(CommonScriptMsg::CollectReports(reports_chan)) =>
-                self.collect_reports(reports_chan),
-            MainThreadScriptMsg::WorkletLoaded(pipeline_id) =>
-                self.handle_worklet_loaded(pipeline_id),
-            MainThreadScriptMsg::DOMManipulation(task) =>
-                task.handle_task(self),
-            MainThreadScriptMsg::UserInteraction(task) =>
-                task.handle_task(self),
+            MainThreadScriptMsg::Common(CommonScriptMsg::CollectReports(chan)) => {
+                self.collect_reports(chan)
+            },
+            MainThreadScriptMsg::WorkletLoaded(pipeline_id) => {
+                self.handle_worklet_loaded(pipeline_id)
+            },
         }
     }
 
