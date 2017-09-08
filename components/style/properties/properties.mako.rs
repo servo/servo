@@ -10,6 +10,7 @@
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
+use app_units::Au;
 #[cfg(feature = "servo")] use app_units::Au;
 use servo_arc::{Arc, UniqueArc};
 use smallbitvec::SmallBitVec;
@@ -109,22 +110,23 @@ pub struct FontComputationData {
     /// and is 1 when there was just a keyword and no relative values.
     ///
     /// When this is Some, we compute font sizes by computing the keyword against
-    /// the generic font, and then multiplying it by the ratio.
-    pub font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>
+    /// the generic font, and then multiplying it by the ratio (as well as adding any
+    /// absolute offset from calcs)
+    pub font_size_keyword: Option<(longhands::font_size::KeywordSize, f32, NonNegativeAu)>
 }
 
 
 impl FontComputationData {
     /// Assigns values for variables in struct FontComputationData
-    pub fn new(font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>) -> Self {
+    pub fn new(font_size_keyword: Option<(longhands::font_size::KeywordSize, f32, NonNegativeAu)>) -> Self {
         FontComputationData {
             font_size_keyword: font_size_keyword
         }
     }
 
     /// Assigns default values for variables in struct FontComputationData
-    pub fn default_font_size_keyword() -> Option<(longhands::font_size::KeywordSize, f32)> {
-        Some((Default::default(), 1.))
+    pub fn default_font_size_keyword() -> Option<(longhands::font_size::KeywordSize, f32, NonNegativeAu)> {
+        Some((Default::default(), 1., Au(0).into()))
     }
 
     /// Gets a FontComputationData with the default values.
@@ -2007,7 +2009,7 @@ impl ComputedValues {
         _: Option<<&PseudoElement>,
         custom_properties: Option<Arc<::custom_properties::CustomPropertiesMap>>,
         writing_mode: WritingMode,
-        font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>,
+        font_size_keyword: Option<(longhands::font_size::KeywordSize, f32, NonNegativeAu)>,
         flags: ComputedValueFlags,
         rules: Option<StrongRuleNode>,
         visited_style: Option<Arc<ComputedValues>>,
@@ -2040,7 +2042,7 @@ impl ComputedValuesInner {
     pub fn new(
         custom_properties: Option<Arc<::custom_properties::CustomPropertiesMap>>,
         writing_mode: WritingMode,
-        font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>,
+        font_size_keyword: Option<(longhands::font_size::KeywordSize, f32, NonNegativeAu)>,
         flags: ComputedValueFlags,
         rules: Option<StrongRuleNode>,
         visited_style: Option<Arc<ComputedValues>>,
@@ -2564,7 +2566,7 @@ pub struct StyleBuilder<'a> {
     /// TODO(emilio): Make private.
     pub writing_mode: WritingMode,
     /// The keyword behind the current font-size property, if any.
-    pub font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>,
+    pub font_size_keyword: Option<(longhands::font_size::KeywordSize, f32, NonNegativeAu)>,
     /// Flags for the computed value.
     pub flags: ComputedValueFlags,
     /// The element's style if visited, only computed if there's a relevant link
@@ -2587,7 +2589,7 @@ impl<'a> StyleBuilder<'a> {
         rules: Option<StrongRuleNode>,
         custom_properties: Option<Arc<::custom_properties::CustomPropertiesMap>>,
         writing_mode: WritingMode,
-        font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>,
+        font_size_keyword: Option<(longhands::font_size::KeywordSize, f32, NonNegativeAu)>,
         flags: ComputedValueFlags,
         visited_style: Option<Arc<ComputedValues>>,
     ) -> Self {

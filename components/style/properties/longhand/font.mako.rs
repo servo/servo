@@ -955,7 +955,7 @@ ${helpers.single_keyword_system("font-variant-caps",
                                        specified_value: &SpecifiedValue,
                                        mut computed: NonNegativeAu) {
         if let SpecifiedValue::Keyword(kw, fraction) = *specified_value {
-            context.builder.font_size_keyword = Some((kw, fraction));
+            context.builder.font_size_keyword = Some((kw, fraction, Au(0).into()));
         } else if let Some(ratio) = specified_value.as_font_ratio() {
             // In case a font-size-relative value was applied to a keyword
             // value, we must preserve this fact in case the generic font family
@@ -963,8 +963,8 @@ ${helpers.single_keyword_system("font-variant-caps",
             // recomputed from the base size for the keyword and the relative size.
             //
             // See bug 1355707
-            if let Some((kw, fraction)) = context.builder.inherited_font_computation_data().font_size_keyword {
-                context.builder.font_size_keyword = Some((kw, fraction * ratio));
+            if let Some((kw, fraction, _)) = context.builder.inherited_font_computation_data().font_size_keyword {
+                context.builder.font_size_keyword = Some((kw, fraction * ratio, Au(0).into()));
             } else {
                 context.builder.font_size_keyword = None;
             }
@@ -982,7 +982,7 @@ ${helpers.single_keyword_system("font-variant-caps",
                context.builder.get_parent_font().gecko().mLanguage.raw::<nsIAtom>() ||
                context.builder.get_font().gecko().mGenericID !=
                context.builder.get_parent_font().gecko().mGenericID {
-                if let Some((kw, ratio)) = context.builder.font_size_keyword {
+                if let Some((kw, ratio, _)) = context.builder.font_size_keyword {
                     computed = context.maybe_zoom_text(kw.to_computed_value(context).scale_by(ratio));
                 }
             }
@@ -1012,7 +1012,7 @@ ${helpers.single_keyword_system("font-variant-caps",
         // If inheriting, we must recompute font-size in case of language
         // changes using the font_size_keyword. We also need to do this to
         // handle mathml scriptlevel changes
-        let kw_inherited_size = context.builder.font_size_keyword.map(|(kw, ratio)| {
+        let kw_inherited_size = context.builder.font_size_keyword.map(|(kw, ratio, _)| {
             context.maybe_zoom_text(SpecifiedValue::Keyword(kw, ratio).to_computed_value(context))
         });
         let parent_kw;
@@ -1047,7 +1047,7 @@ ${helpers.single_keyword_system("font-variant-caps",
             let device = context.builder.device;
             context.builder.mutate_font().fixup_font_min_size(device);
         % endif
-        context.builder.font_size_keyword = Some((Default::default(), 1.));
+        context.builder.font_size_keyword = Some((Default::default(), 1., Au(0).into()));
     }
 </%helpers:longhand>
 
