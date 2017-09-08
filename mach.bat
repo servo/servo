@@ -10,7 +10,7 @@ set VC14VARS=%VS140COMNTOOLS%..\..\VC\vcvarsall.bat
 IF EXIST "%VC14VARS%" (
   set "VS_VCVARS=%VC14VARS%"
 ) ELSE (
-  for %%e in (Enterprise Professional Community) do (
+  for %%e in (Enterprise Professional Community BuildTools) do (
     IF EXIST "%ProgramFiles32%\Microsoft Visual Studio\2017\%%e\VC\Auxiliary\Build\vcvarsall.bat" (
       set "VS_VCVARS=%ProgramFiles32%\Microsoft Visual Studio\2017\%%e\VC\Auxiliary\Build\vcvarsall.bat"
     )
