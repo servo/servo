@@ -251,7 +251,9 @@ where
 
 pub trait Runnable {
     fn name(&self) -> &'static str { unsafe { intrinsics::type_name::<Self>() } }
-    fn handler(self: Box<Self>) {}
+    fn handler(self: Box<Self>) {
+        panic!("This should probably be redefined.")
+    }
     fn main_thread_handler(self: Box<Self>, _script_thread: &ScriptThread) { self.handler(); }
 }
 
