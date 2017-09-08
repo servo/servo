@@ -1520,7 +1520,7 @@ impl Fragment {
                     LengthOrPercentageOrAuto::Calc(calc) => {
                         // TODO(nox): This is probably wrong, because it accounts neither for
                         // clamping (not sure if necessary here) nor percentage.
-                        calc.unclamped_length()
+                        Au::from(calc.unclamped_length())
                     },
                 };
 

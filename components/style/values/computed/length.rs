@@ -7,9 +7,9 @@
 use app_units::{Au, AU_PER_PX};
 use ordered_float::NotNaN;
 use std::fmt;
-use std::ops::Add;
+use std::ops::{Add, Neg};
 use style_traits::ToCss;
-use style_traits::values::specified::AllowedLengthType;
+use style_traits::values::specified::AllowedNumericType;
 use super::{Number, ToComputedValue, Context, Percentage};
 use values::{Auto, CSSFloat, Either, ExtremumLength, None_, Normal, specified};
 use values::animated::{Animate, Procedure, ToAnimatedZero};
@@ -55,7 +55,7 @@ impl ToComputedValue for specified::Length {
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
         match *self {
             specified::Length::NoCalc(l) => l.to_computed_value(context),
-            specified::Length::Calc(ref calc) => calc.to_computed_value(context).length().into(),
+            specified::Length::Calc(ref calc) => calc.to_computed_value(context).length(),
         }
     }
 
@@ -70,8 +70,8 @@ impl ToComputedValue for specified::Length {
 #[derive(Clone, Copy, Debug, PartialEq, ToAnimatedZero)]
 pub struct CalcLengthOrPercentage {
     #[animation(constant)]
-    pub clamping_mode: AllowedLengthType,
-    length: Au,
+    pub clamping_mode: AllowedNumericType,
+    length: Length,
     pub percentage: Option<Percentage>,
 }
 
@@ -81,8 +81,7 @@ impl ComputeSquaredDistance for CalcLengthOrPercentage {
         // FIXME(nox): This looks incorrect to me, to add a distance between lengths
         // with a distance between percentages.
         Ok(
-            self.unclamped_length().to_f64_px().compute_squared_distance(
-                &other.unclamped_length().to_f64_px())? +
+            self.unclamped_length().compute_squared_distance(&other.unclamped_length())? +
             self.percentage().compute_squared_distance(&other.percentage())?,
         )
     }
@@ -91,15 +90,15 @@ impl ComputeSquaredDistance for CalcLengthOrPercentage {
 impl CalcLengthOrPercentage {
     /// Returns a new `CalcLengthOrPercentage`.
     #[inline]
-    pub fn new(length: Au, percentage: Option<Percentage>) -> Self {
-        Self::with_clamping_mode(length, percentage, AllowedLengthType::All)
+    pub fn new(length: Length, percentage: Option<Percentage>) -> Self {
+        Self::with_clamping_mode(length, percentage, AllowedNumericType::All)
     }
 
     /// Returns a new `CalcLengthOrPercentage` with a specific clamping mode.
     #[inline]
-    pub fn with_clamping_mode(length: Au,
+    pub fn with_clamping_mode(length: Length,
                               percentage: Option<Percentage>,
-                              clamping_mode: AllowedLengthType)
+                              clamping_mode: AllowedNumericType)
                               -> Self {
         Self {
             clamping_mode: clamping_mode,
@@ -112,20 +111,20 @@ impl CalcLengthOrPercentage {
     ///
     /// Panics in debug mode if a percentage is present in the expression.
     #[inline]
-    pub fn length(&self) -> Au {
+    pub fn length(&self) -> CSSPixelLength {
         debug_assert!(self.percentage.is_none());
         self.length_component()
     }
 
     /// Returns the length component of this `calc()`
     #[inline]
-    pub fn length_component(&self) -> Au {
-        self.clamping_mode.clamp(self.length)
+    pub fn length_component(&self) -> CSSPixelLength {
+        CSSPixelLength::new(self.clamping_mode.clamp(self.length.px()))
     }
 
     /// Returns the `<length>` component of this `calc()`, unclamped.
     #[inline]
-    pub fn unclamped_length(&self) -> Au {
+    pub fn unclamped_length(&self) -> CSSPixelLength {
         self.length
     }
 
@@ -140,9 +139,10 @@ impl CalcLengthOrPercentage {
     pub fn to_used_value(&self, container_len: Option<Au>) -> Option<Au> {
         match (container_len, self.percentage) {
             (Some(len), Some(percent)) => {
-                Some(self.clamping_mode.clamp(self.length + len.scale_by(percent.0)))
+                let pixel = self.length.px() + len.scale_by(percent.0).to_f32_px();
+                Some(Au::from_f32_px(self.clamping_mode.clamp(pixel)))
             },
-            (_, None) => Some(self.length()),
+            (_, None) => Some(Au::from(self.length())),
             _ => None,
         }
     }
@@ -152,10 +152,10 @@ impl From<LengthOrPercentage> for CalcLengthOrPercentage {
     fn from(len: LengthOrPercentage) -> CalcLengthOrPercentage {
         match len {
             LengthOrPercentage::Percentage(this) => {
-                CalcLengthOrPercentage::new(Au(0), Some(this))
+                CalcLengthOrPercentage::new(Length::new(0.), Some(this))
             }
             LengthOrPercentage::Length(this) => {
-                CalcLengthOrPercentage::new(this, None)
+                CalcLengthOrPercentage::new(this.into(), None)
             }
             LengthOrPercentage::Calc(this) => {
                 this
@@ -168,10 +168,10 @@ impl From<LengthOrPercentageOrAuto> for Option<CalcLengthOrPercentage> {
     fn from(len: LengthOrPercentageOrAuto) -> Option<CalcLengthOrPercentage> {
         match len {
             LengthOrPercentageOrAuto::Percentage(this) => {
-                Some(CalcLengthOrPercentage::new(Au(0), Some(this)))
+                Some(CalcLengthOrPercentage::new(Length::new(0.), Some(this)))
             }
             LengthOrPercentageOrAuto::Length(this) => {
-                Some(CalcLengthOrPercentage::new(this, None))
+                Some(CalcLengthOrPercentage::new(this.into(), None))
             }
             LengthOrPercentageOrAuto::Calc(this) => {
                 Some(this)
@@ -187,10 +187,10 @@ impl From<LengthOrPercentageOrNone> for Option<CalcLengthOrPercentage> {
     fn from(len: LengthOrPercentageOrNone) -> Option<CalcLengthOrPercentage> {
         match len {
             LengthOrPercentageOrNone::Percentage(this) => {
-                Some(CalcLengthOrPercentage::new(Au(0), Some(this)))
+                Some(CalcLengthOrPercentage::new(Length::new(0.), Some(this)))
             }
             LengthOrPercentageOrNone::Length(this) => {
-                Some(CalcLengthOrPercentage::new(this, None))
+                Some(CalcLengthOrPercentage::new(this.into(), None))
             }
             LengthOrPercentageOrNone::Calc(this) => {
                 Some(this)
@@ -208,14 +208,14 @@ impl ToCss for CalcLengthOrPercentage {
 
         let (length, percentage) = match (self.length, self.percentage) {
             (l, None) => return l.to_css(dest),
-            (l, Some(p)) if l == Au(0) => return p.to_css(dest),
+            (l, Some(p)) if l.px() == 0. => return p.to_css(dest),
             (l, Some(p)) => (l, p),
         };
 
         dest.write_str("calc(")?;
         percentage.to_css(dest)?;
 
-        dest.write_str(if length < Zero::zero() { " - " } else { " + " })?;
+        dest.write_str(if length.px() < Zero::zero() { " - " } else { " + " })?;
         length.abs().to_css(dest)?;
 
         dest.write_str(")")
@@ -226,11 +226,12 @@ impl specified::CalcLengthOrPercentage {
     /// Compute the value, zooming any absolute units by the zoom function.
     fn to_computed_value_with_zoom<F>(&self, context: &Context, zoom_fn: F,
                                       base_size: FontBaseSize) -> CalcLengthOrPercentage
-        where F: Fn(Au) -> Au {
-        let mut length = Au(0);
+        where F: Fn(Length) -> Length {
+        use std::f32;
+        let mut length = 0.;
 
         if let Some(absolute) = self.absolute {
-            length += zoom_fn(Au::from(absolute.to_computed_value(context)));
+            length += zoom_fn(absolute.to_computed_value(context)).px();
         }
 
         for val in &[self.vw.map(ViewportPercentageLength::Vw),
@@ -239,7 +240,7 @@ impl specified::CalcLengthOrPercentage {
                      self.vmax.map(ViewportPercentageLength::Vmax)] {
             if let Some(val) = *val {
                 let viewport_size = context.viewport_size_for_viewport_unit_resolution();
-                length += Au::from(val.to_computed_value(viewport_size));
+                length += val.to_computed_value(viewport_size).px();
             }
         }
 
@@ -248,20 +249,20 @@ impl specified::CalcLengthOrPercentage {
                      self.ex.map(FontRelativeLength::Ex),
                      self.rem.map(FontRelativeLength::Rem)] {
             if let Some(val) = *val {
-                length += Au::from(val.to_computed_value(context, base_size));
+                length += val.to_computed_value(context, base_size).px();
             }
         }
 
         CalcLengthOrPercentage {
             clamping_mode: self.clamping_mode,
-            length: length,
+            length: Length::new(length.min(f32::MAX).max(f32::MIN)),
             percentage: self.percentage,
         }
     }
 
     /// Compute font-size or line-height taking into account text-zoom if necessary.
     pub fn to_computed_value_zoomed(&self, context: &Context, base_size: FontBaseSize) -> CalcLengthOrPercentage {
-        self.to_computed_value_with_zoom(context, |abs| Au::from(context.maybe_zoom_text(abs.into())), base_size)
+        self.to_computed_value_with_zoom(context, |abs| context.maybe_zoom_text(abs), base_size)
     }
 }
 
@@ -277,7 +278,7 @@ impl ToComputedValue for specified::CalcLengthOrPercentage {
     fn from_computed_value(computed: &CalcLengthOrPercentage) -> Self {
         specified::CalcLengthOrPercentage {
             clamping_mode: computed.clamping_mode,
-            absolute: Some(AbsoluteLength::from_computed_value(&computed.length.into())),
+            absolute: Some(AbsoluteLength::from_computed_value(&computed.length)),
             percentage: computed.percentage,
             ..Default::default()
         }
@@ -368,7 +369,7 @@ impl LengthOrPercentage {
         match *self {
             Length(l) => (l, NotNaN::new(0.0).unwrap()),
             Percentage(p) => (Au(0), NotNaN::new(p.0).unwrap()),
-            Calc(c) => (c.unclamped_length(), NotNaN::new(c.percentage()).unwrap()),
+            Calc(c) => (Au::from(c.unclamped_length()), NotNaN::new(c.percentage()).unwrap()),
         }
     }
 
@@ -690,6 +691,11 @@ impl CSSPixelLength {
     pub fn to_i32_au(&self) -> i32 {
         Au::from(*self).0
     }
+
+    /// Return the absolute value of this length.
+    pub fn abs(self) -> Self {
+        CSSPixelLength::new(self.0.abs())
+    }
 }
 
 impl ToCss for CSSPixelLength {
@@ -697,6 +703,15 @@ impl ToCss for CSSPixelLength {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         self.0.to_css(dest)?;
         dest.write_str("px")
+    }
+}
+
+impl Neg for CSSPixelLength {
+    type Output = Self;
+
+    #[inline]
+    fn neg(self) -> Self {
+        CSSPixelLength::new(-self.0)
     }
 }
 

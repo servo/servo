@@ -107,7 +107,7 @@ impl Zoom {
     pub fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Zoom, ParseError<'i>> {
         use PARSING_MODE_DEFAULT;
         use cssparser::Token;
-        use values::specified::AllowedLengthType::NonNegative;
+        use values::specified::AllowedNumericType::NonNegative;
 
         match *input.next()? {
             // TODO: This parse() method should take ParserContext as an

@@ -8,12 +8,12 @@ use style::values::computed::{CalcLengthOrPercentage, Percentage};
 
 #[test]
 fn test_length_calc() {
-    let calc = CalcLengthOrPercentage::new(Au(10), Some(Percentage(0.2)));
+    let calc = CalcLengthOrPercentage::new(Au(10).into(), Some(Percentage(0.2)));
     assert_eq!(calc.to_used_value(Some(Au(10))), Some(Au(12)));
     assert_eq!(calc.to_used_value(Some(Au(0))), Some(Au(10)));
     assert_eq!(calc.to_used_value(None), None);
 
-    let calc = CalcLengthOrPercentage::new(Au(10), None);
+    let calc = CalcLengthOrPercentage::new(Au(10).into(), None);
     assert_eq!(calc.to_used_value(Some(Au(0))), Some(Au(10)));
     assert_eq!(calc.to_used_value(None), Some(Au(10)));
 }

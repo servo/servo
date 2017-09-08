@@ -74,7 +74,7 @@ impl TransformList {
             match *lop {
                 LengthOrPercentage::Length(au) => au.to_f32_px(),
                 LengthOrPercentage::Percentage(_) => 0.,
-                LengthOrPercentage::Calc(calc) => calc.length().to_f32_px(),
+                LengthOrPercentage::Calc(calc) => calc.length().px(),
             }
         };
 

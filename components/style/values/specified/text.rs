@@ -84,7 +84,7 @@ impl ToComputedValue for LineHeight {
 
     #[inline]
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
-        use app_units::Au;
+        use values::computed::NonNegativeLength;
         use values::specified::length::FontBaseSize;
         match *self {
             GenericLineHeight::Normal => {
@@ -119,13 +119,13 @@ impl ToComputedValue for LineHeight {
                                 .to_computed_value(
                                     context,
                                     FontBaseSize::CurrentStyle,
-                                );
+                                ).px();
 
-                        let absolute_length = computed_calc.unclamped_length();
-                        computed_calc
+                        let absolute_length = computed_calc.unclamped_length().px();
+                        let pixel = computed_calc
                             .clamping_mode
-                            .clamp(absolute_length + Au::from(font_relative_length))
-                            .into()
+                            .clamp(absolute_length + font_relative_length);
+                        NonNegativeLength::new(pixel)
                     }
                 };
                 GenericLineHeight::Length(result)

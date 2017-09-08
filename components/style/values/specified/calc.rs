@@ -11,7 +11,7 @@ use parser::ParserContext;
 use std::ascii::AsciiExt;
 use std::fmt;
 use style_traits::{ToCss, ParseError, StyleParseError};
-use style_traits::values::specified::AllowedLengthType;
+use style_traits::values::specified::AllowedNumericType;
 use values::{CSSInteger, CSSFloat};
 use values::computed;
 use values::specified::{Angle, Time};
@@ -67,7 +67,7 @@ pub enum CalcUnit {
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
 pub struct CalcLengthOrPercentage {
-    pub clamping_mode: AllowedLengthType,
+    pub clamping_mode: AllowedNumericType,
     pub absolute: Option<AbsoluteLength>,
     pub vw: Option<CSSFloat>,
     pub vh: Option<CSSFloat>,
@@ -291,7 +291,7 @@ impl CalcNode {
 
     /// Tries to simplify this expression into a `<length>` or `<percentage`>
     /// value.
-    fn to_length_or_percentage(&self, clamping_mode: AllowedLengthType)
+    fn to_length_or_percentage(&self, clamping_mode: AllowedNumericType)
                                -> Result<CalcLengthOrPercentage, ()> {
         let mut ret = CalcLengthOrPercentage {
             clamping_mode: clamping_mode,
@@ -565,7 +565,7 @@ impl CalcNode {
     pub fn parse_length_or_percentage<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
-        clamping_mode: AllowedLengthType
+        clamping_mode: AllowedNumericType
     ) -> Result<CalcLengthOrPercentage, ParseError<'i>> {
         Self::parse(context, input, CalcUnit::LengthOrPercentage)?
             .to_length_or_percentage(clamping_mode)
@@ -586,7 +586,7 @@ impl CalcNode {
     pub fn parse_length<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
-        clamping_mode: AllowedLengthType
+        clamping_mode: AllowedNumericType
     ) -> Result<CalcLengthOrPercentage, ParseError<'i>> {
         Self::parse(context, input, CalcUnit::Length)?
             .to_length_or_percentage(clamping_mode)

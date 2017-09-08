@@ -2316,7 +2316,7 @@ impl ComputeSquaredDistance for TransformOperation {
                     match *lop {
                         LengthOrPercentage::Length(au) => au.to_f64_px(),
                         LengthOrPercentage::Percentage(_) => 0.,
-                        LengthOrPercentage::Calc(calc) => calc.length().to_f64_px(),
+                        LengthOrPercentage::Calc(calc) => calc.length().px() as f64,
                     }
                 };
 

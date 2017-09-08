@@ -90,16 +90,18 @@ fn test_transform_interpolation_on_translate() {
         Length::new(25.),
     )]));
     let to = TransformList(Some(vec![
-        TransformOperation::Translate(LengthOrPercentage::Length(Au(100)),
-                                      LengthOrPercentage::Length(Au(50)),
+        TransformOperation::Translate(LengthOrPercentage::Length(Au::from_px(100)),
+                                      LengthOrPercentage::Length(Au::from_px(50)),
                                       Length::new(75.))]));
     assert_eq!(
         from.animate(&to, Procedure::Interpolate { progress: 0.5 }).unwrap(),
         TransformList(Some(vec![TransformOperation::Translate(
             // calc(50px + 25%)
-            LengthOrPercentage::Calc(CalcLengthOrPercentage::new(Au(50), Some(Percentage(0.25)))),
+            LengthOrPercentage::Calc(CalcLengthOrPercentage::new(Length::new(50.),
+                                                                 Some(Percentage(0.25)))),
             // calc(25px + 50%)
-            LengthOrPercentage::Calc(CalcLengthOrPercentage::new(Au(25), Some(Percentage(0.5)))),
+            LengthOrPercentage::Calc(CalcLengthOrPercentage::new(Length::new(25.),
+                                                                 Some(Percentage(0.5)))),
             Length::new(50.),
         )]))
     );

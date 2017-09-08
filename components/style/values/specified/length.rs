@@ -15,7 +15,7 @@ use std::{cmp, fmt, mem};
 use std::ascii::AsciiExt;
 use std::ops::{Add, Mul};
 use style_traits::{ToCss, ParseError, StyleParseError};
-use style_traits::values::specified::AllowedLengthType;
+use style_traits::values::specified::AllowedNumericType;
 use stylesheets::CssRuleType;
 use super::{AllowQuirks, Number, ToComputedValue, Percentage};
 use values::{Auto, CSSFloat, Either, FONT_MEDIUM_PX, None_, Normal};
@@ -642,7 +642,7 @@ impl Length {
     #[inline]
     fn parse_internal<'i, 't>(context: &ParserContext,
                               input: &mut Parser<'i, 't>,
-                              num_context: AllowedLengthType,
+                              num_context: AllowedNumericType,
                               allow_quirks: AllowQuirks)
                               -> Result<Length, ParseError<'i>> {
         // FIXME: remove early returns when lifetimes are non-lexical
@@ -683,7 +683,7 @@ impl Length {
                                              input: &mut Parser<'i, 't>,
                                              allow_quirks: AllowQuirks)
                                              -> Result<Length, ParseError<'i>> {
-        Self::parse_internal(context, input, AllowedLengthType::NonNegative, allow_quirks)
+        Self::parse_internal(context, input, AllowedNumericType::NonNegative, allow_quirks)
     }
 
     /// Get an absolute length from a px value.
@@ -713,7 +713,7 @@ impl Length {
                                 input: &mut Parser<'i, 't>,
                                 allow_quirks: AllowQuirks)
                                 -> Result<Self, ParseError<'i>> {
-        Self::parse_internal(context, input, AllowedLengthType::All, allow_quirks)
+        Self::parse_internal(context, input, AllowedNumericType::All, allow_quirks)
     }
 }
 
@@ -725,7 +725,7 @@ impl<T: Parse> Either<Length, T> {
         if let Ok(v) = input.try(|input| T::parse(context, input)) {
             return Ok(Either::Second(v));
         }
-        Length::parse_internal(context, input, AllowedLengthType::NonNegative, AllowQuirks::No).map(Either::First)
+        Length::parse_internal(context, input, AllowedNumericType::NonNegative, AllowQuirks::No).map(Either::First)
     }
 }
 
@@ -752,7 +752,7 @@ impl<T: Parse> Parse for Either<NonNegativeLength, T> {
         if let Ok(v) = input.try(|input| T::parse(context, input)) {
             return Ok(Either::Second(v));
         }
-        Length::parse_internal(context, input, AllowedLengthType::NonNegative, AllowQuirks::No)
+        Length::parse_internal(context, input, AllowedNumericType::NonNegative, AllowQuirks::No)
             .map(NonNegative::<Length>).map(Either::First)
     }
 }
@@ -836,7 +836,7 @@ impl LengthOrPercentage {
 
     fn parse_internal<'i, 't>(context: &ParserContext,
                               input: &mut Parser<'i, 't>,
-                              num_context: AllowedLengthType,
+                              num_context: AllowedNumericType,
                               allow_quirks: AllowQuirks)
                               -> Result<LengthOrPercentage, ParseError<'i>>
     {
@@ -885,7 +885,7 @@ impl LengthOrPercentage {
                                              input: &mut Parser<'i, 't>,
                                              allow_quirks: AllowQuirks)
                                              -> Result<LengthOrPercentage, ParseError<'i>> {
-        Self::parse_internal(context, input, AllowedLengthType::NonNegative, allow_quirks)
+        Self::parse_internal(context, input, AllowedNumericType::NonNegative, allow_quirks)
     }
 
     /// Parse a length, treating dimensionless numbers as pixels
@@ -946,7 +946,7 @@ impl LengthOrPercentage {
     pub fn parse_quirky<'i, 't>(context: &ParserContext,
                                 input: &mut Parser<'i, 't>,
                                 allow_quirks: AllowQuirks) -> Result<Self, ParseError<'i>> {
-        Self::parse_internal(context, input, AllowedLengthType::All, allow_quirks)
+        Self::parse_internal(context, input, AllowedNumericType::All, allow_quirks)
     }
 }
 
@@ -978,7 +978,7 @@ impl From<computed::Percentage> for LengthOrPercentageOrAuto {
 impl LengthOrPercentageOrAuto {
     fn parse_internal<'i, 't>(context: &ParserContext,
                               input: &mut Parser<'i, 't>,
-                              num_context: AllowedLengthType,
+                              num_context: AllowedNumericType,
                               allow_quirks: AllowQuirks)
                               -> Result<Self, ParseError<'i>> {
         // FIXME: remove early returns when lifetimes are non-lexical
@@ -1030,7 +1030,7 @@ impl LengthOrPercentageOrAuto {
                                              input: &mut Parser<'i, 't>,
                                              allow_quirks: AllowQuirks)
                                              -> Result<Self, ParseError<'i>> {
-        Self::parse_internal(context, input, AllowedLengthType::NonNegative, allow_quirks)
+        Self::parse_internal(context, input, AllowedNumericType::NonNegative, allow_quirks)
     }
 
     /// Returns the `auto` value.
@@ -1063,7 +1063,7 @@ impl LengthOrPercentageOrAuto {
                                 input: &mut Parser<'i, 't>,
                                 allow_quirks: AllowQuirks)
                                 -> Result<Self, ParseError<'i>> {
-        Self::parse_internal(context, input, AllowedLengthType::All, allow_quirks)
+        Self::parse_internal(context, input, AllowedNumericType::All, allow_quirks)
     }
 }
 
@@ -1081,7 +1081,7 @@ pub enum LengthOrPercentageOrNone {
 impl LengthOrPercentageOrNone {
     fn parse_internal<'i, 't>(context: &ParserContext,
                               input: &mut Parser<'i, 't>,
-                              num_context: AllowedLengthType,
+                              num_context: AllowedNumericType,
                               allow_quirks: AllowQuirks)
                               -> Result<LengthOrPercentageOrNone, ParseError<'i>>
     {
@@ -1133,14 +1133,14 @@ impl LengthOrPercentageOrNone {
                                              input: &mut Parser<'i, 't>,
                                              allow_quirks: AllowQuirks)
                                              -> Result<Self, ParseError<'i>> {
-        Self::parse_internal(context, input, AllowedLengthType::NonNegative, allow_quirks)
+        Self::parse_internal(context, input, AllowedNumericType::NonNegative, allow_quirks)
     }
 }
 
 impl Parse for LengthOrPercentageOrNone {
     #[inline]
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        Self::parse_internal(context, input, AllowedLengthType::All, AllowQuirks::No)
+        Self::parse_internal(context, input, AllowedNumericType::All, AllowQuirks::No)
     }
 }
 
