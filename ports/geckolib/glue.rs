@@ -2980,7 +2980,7 @@ pub extern "C" fn Servo_TakeChangeHint(element: RawGeckoElementBorrowed,
 
     let damage = match element.mutate_data() {
         Some(mut data) => {
-            *was_restyled = data.restyle.is_restyle();
+            *was_restyled = data.is_restyle();
 
             let damage = data.restyle.damage;
             data.clear_restyle_state();

@@ -510,7 +510,7 @@ impl<'le> GeckoElement<'le> {
                             ELEMENT_HAS_ANIMATION_ONLY_DIRTY_DESCENDANTS_FOR_SERVO as u32 |
                             NODE_DESCENDANTS_NEED_FRAMES as u32 |
                             NODE_NEEDS_FRAME as u32) != 0;
-        has_flag || self.borrow_data().unwrap().restyle.contains_restyle_data()
+        has_flag || self.borrow_data().unwrap().contains_restyle_data()
     }
 
     /// Returns true if this element has a shadow root.

@@ -161,7 +161,7 @@ pub trait DomTraversal<E: TElement> : Sync {
             // the last traversal (at a potentially-higher root). From the
             // perspective of this traversal, the root cannot have reconstructed
             // ancestors.
-            data.restyle.set_reconstructed_ancestor(false);
+            data.set_reconstructed_ancestor(false);
         };
 
         let parent = root.traversal_parent();
@@ -244,7 +244,7 @@ pub trait DomTraversal<E: TElement> : Sync {
         if el.is_native_anonymous() {
             if let Some(parent_data) = parent_data {
                 let going_to_reframe =
-                    parent_data.restyle.reconstructed_self_or_ancestor();
+                    parent_data.reconstructed_self_or_ancestor();
 
                 let mut is_before_or_after_pseudo = false;
                 if let Some(pseudo) = el.implemented_pseudo_element() {
@@ -499,7 +499,7 @@ where
         notify_paint_worklet(context, data);
     } else {
         debug_assert!(data.has_styles());
-        data.restyle.set_traversed_without_styling();
+        data.set_traversed_without_styling();
     }
 
     // Now that matching and cascading is done, clear the bits corresponding to
@@ -551,7 +551,7 @@ where
                                 !propagated_hint.is_empty() ||
                                 !child_cascade_requirement.can_skip_cascade() ||
                                 context.thread_local.is_initial_style() ||
-                                data.restyle.reconstructed_self() ||
+                                data.reconstructed_self() ||
                                 is_servo_nonincremental_layout();
 
     traverse_children = traverse_children &&
@@ -565,7 +565,7 @@ where
             data,
             propagated_hint,
             child_cascade_requirement,
-            data.restyle.reconstructed_self_or_ancestor(),
+            data.reconstructed_self_or_ancestor(),
             note_child
         );
     }
@@ -631,7 +631,7 @@ where
     debug!("compute_style: {:?} (kind={:?})", element, kind);
 
     if data.has_styles() {
-        data.restyle.set_restyled();
+        data.set_restyled();
     }
 
     let mut important_rules_changed = false;
@@ -811,7 +811,7 @@ where
         if let Some(ref mut child_data) = child_data {
             // Propagate the parent restyle hint, that may make us restyle the whole
             // subtree.
-            child_data.restyle.set_reconstructed_ancestor(reconstructed_ancestor);
+            child_data.set_reconstructed_ancestor(reconstructed_ancestor);
 
             let mut child_hint = propagated_hint;
             match cascade_requirement {

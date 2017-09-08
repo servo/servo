@@ -20,7 +20,8 @@ use std::fmt;
 use std::ops::{Deref, DerefMut};
 
 bitflags! {
-    flags RestyleFlags: u8 {
+    #[derive(Default)]
+    flags ElementDataFlags: u8 {
         /// Whether the styles changed for this restyle.
         const WAS_RESTYLED = 1 << 0,
         /// Whether the last traversal of this element did not do
@@ -42,16 +43,13 @@ bitflags! {
 /// processing.
 #[derive(Debug)]
 pub struct RestyleData {
-    /// The restyle hint, which indicates whether selectors need to be rematched
-    /// for this element, its children, and its descendants.
-    pub hint: RestyleHint,
-
-    /// A few flags to have in mind.
-    flags: RestyleFlags,
-
     /// The restyle damage, indicating what kind of layout changes are required
     /// afte restyling.
     pub damage: RestyleDamage,
+
+    /// The restyle hint, which indicates whether selectors need to be rematched
+    /// for this element, its children, and its descendants.
+    pub hint: RestyleHint,
 }
 
 impl Default for RestyleData {
@@ -63,90 +61,9 @@ impl Default for RestyleData {
 impl RestyleData {
     fn new() -> Self {
         Self {
-            hint: RestyleHint::empty(),
-            flags: RestyleFlags::empty(),
             damage: RestyleDamage::empty(),
+            hint: RestyleHint::empty(),
         }
-    }
-
-    /// Clear all the restyle state associated with this element.
-    ///
-    /// FIXME(bholley): The only caller of this should probably just assert that
-    /// the hint is empty and call clear_flags_and_damage().
-    #[inline]
-    fn clear_restyle_state(&mut self) {
-        self.clear_restyle_flags_and_damage();
-        self.hint = RestyleHint::empty();
-    }
-
-    /// Clear restyle flags and damage.
-    ///
-    /// Note that we don't touch the TRAVERSED_WITHOUT_STYLING bit, which gets
-    /// set to the correct value on each traversal. There's no reason anyone
-    /// needs to clear it, and clearing it accidentally mid-traversal could
-    /// cause incorrect style sharing behavior.
-    #[inline]
-    fn clear_restyle_flags_and_damage(&mut self) {
-        self.damage = RestyleDamage::empty();
-        self.flags = self.flags & TRAVERSED_WITHOUT_STYLING;
-    }
-
-    /// Returns whether this element or any ancestor is going to be
-    /// reconstructed.
-    pub fn reconstructed_self_or_ancestor(&self) -> bool {
-        self.reconstructed_ancestor() || self.reconstructed_self()
-    }
-
-    /// Returns whether this element is going to be reconstructed.
-    pub fn reconstructed_self(&self) -> bool {
-        self.damage.contains(RestyleDamage::reconstruct())
-    }
-
-    /// Returns whether any ancestor of this element is going to be
-    /// reconstructed.
-    fn reconstructed_ancestor(&self) -> bool {
-        self.flags.contains(ANCESTOR_WAS_RECONSTRUCTED)
-    }
-
-    /// Sets the flag that tells us whether we've reconstructed an ancestor.
-    pub fn set_reconstructed_ancestor(&mut self, reconstructed: bool) {
-        if reconstructed {
-            // If it weren't for animation-only traversals, we could assert
-            // `!self.reconstructed_ancestor()` here.
-            self.flags.insert(ANCESTOR_WAS_RECONSTRUCTED);
-        } else {
-            self.flags.remove(ANCESTOR_WAS_RECONSTRUCTED);
-        }
-    }
-
-    /// Mark this element as restyled, which is useful to know whether we need
-    /// to do a post-traversal.
-    pub fn set_restyled(&mut self) {
-        self.flags.insert(WAS_RESTYLED);
-        self.flags.remove(TRAVERSED_WITHOUT_STYLING);
-    }
-
-    /// Returns true if this element was restyled.
-    #[inline]
-    pub fn is_restyle(&self) -> bool {
-        self.flags.contains(WAS_RESTYLED)
-    }
-
-    /// Mark that we traversed this element without computing any style for it.
-    pub fn set_traversed_without_styling(&mut self) {
-        self.flags.insert(TRAVERSED_WITHOUT_STYLING);
-    }
-
-    /// Returns whether the element was traversed without computing any style for
-    /// it.
-    pub fn traversed_without_styling(&self) -> bool {
-        self.flags.contains(TRAVERSED_WITHOUT_STYLING)
-    }
-
-    /// Returns whether this element has been part of a restyle.
-    #[inline]
-    pub fn contains_restyle_data(&self) -> bool {
-        self.is_restyle() || !self.hint.is_empty() || !self.damage.is_empty()
     }
 }
 
@@ -305,6 +222,9 @@ pub struct ElementData {
 
     /// Restyle state.
     pub restyle: RestyleData,
+
+    /// Flags.
+    flags: ElementDataFlags,
 }
 
 /// The kind of restyle that a single element should do.
@@ -440,16 +360,93 @@ impl ElementData {
     }
 
     /// Drops any restyle state from the element.
+    ///
+    /// FIXME(bholley): The only caller of this should probably just assert that
+    /// the hint is empty and call clear_flags_and_damage().
     #[inline]
     pub fn clear_restyle_state(&mut self) {
-        self.restyle.clear_restyle_state();
+        self.restyle.hint = RestyleHint::empty();
+        self.clear_restyle_flags_and_damage();
     }
 
     /// Drops restyle flags and damage from the element.
     #[inline]
     pub fn clear_restyle_flags_and_damage(&mut self) {
-        self.restyle.clear_restyle_flags_and_damage();
+        self.restyle.damage = RestyleDamage::empty();
+        self.flags.remove(WAS_RESTYLED | ANCESTOR_WAS_RECONSTRUCTED)
     }
+
+    /// Returns whether this element or any ancestor is going to be
+    /// reconstructed.
+    pub fn reconstructed_self_or_ancestor(&self) -> bool {
+        self.reconstructed_ancestor() || self.reconstructed_self()
+    }
+
+    /// Returns whether this element is going to be reconstructed.
+    pub fn reconstructed_self(&self) -> bool {
+        self.restyle.damage.contains(RestyleDamage::reconstruct())
+    }
+
+    /// Returns whether any ancestor of this element is going to be
+    /// reconstructed.
+    fn reconstructed_ancestor(&self) -> bool {
+        self.flags.contains(ANCESTOR_WAS_RECONSTRUCTED)
+    }
+
+    /// Sets the flag that tells us whether we've reconstructed an ancestor.
+    pub fn set_reconstructed_ancestor(&mut self, reconstructed: bool) {
+        if reconstructed {
+            // If it weren't for animation-only traversals, we could assert
+            // `!self.reconstructed_ancestor()` here.
+            self.flags.insert(ANCESTOR_WAS_RECONSTRUCTED);
+        } else {
+            self.flags.remove(ANCESTOR_WAS_RECONSTRUCTED);
+        }
+    }
+
+    /// Mark this element as restyled, which is useful to know whether we need
+    /// to do a post-traversal.
+    pub fn set_restyled(&mut self) {
+        self.flags.insert(WAS_RESTYLED);
+        self.flags.remove(TRAVERSED_WITHOUT_STYLING);
+    }
+
+    /// Returns true if this element was restyled.
+    #[inline]
+    pub fn is_restyle(&self) -> bool {
+        self.flags.contains(WAS_RESTYLED)
+    }
+
+    /// Mark that we traversed this element without computing any style for it.
+    pub fn set_traversed_without_styling(&mut self) {
+        self.flags.insert(TRAVERSED_WITHOUT_STYLING);
+    }
+
+    /// Returns whether the element was traversed without computing any style for
+    /// it.
+    pub fn traversed_without_styling(&self) -> bool {
+        self.flags.contains(TRAVERSED_WITHOUT_STYLING)
+    }
+
+    /// Returns whether this element has been part of a restyle.
+    #[inline]
+    pub fn contains_restyle_data(&self) -> bool {
+        self.is_restyle() || !self.restyle.hint.is_empty() || !self.restyle.damage.is_empty()
+    }
+
+    /// If an ancestor is already getting reconstructed by Gecko's top-down
+    /// frame constructor, no need to apply damage.  Similarly if we already
+    /// have an explicitly stored ReconstructFrame hint.
+    ///
+    /// See https://bugzilla.mozilla.org/show_bug.cgi?id=1301258#c12
+    /// for followup work to make the optimization here more optimal by considering
+    /// each bit individually.
+    #[cfg(feature = "gecko")]
+    pub fn skip_applying_damage(&self) -> bool { self.reconstructed_self_or_ancestor() }
+
+    /// N/A in Servo.
+    #[cfg(feature = "servo")]
+    pub fn skip_applying_damage(&self) -> bool { false }
 
     /// Measures memory usage.
     #[cfg(feature = "gecko")]

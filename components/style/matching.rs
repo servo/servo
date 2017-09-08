@@ -352,10 +352,11 @@ trait PrivateMatchMethods: TElement {
     fn accumulate_damage_for(
         &self,
         shared_context: &SharedStyleContext,
+        skip_applying_damage: bool,
         restyle: &mut RestyleData,
         old_values: &ComputedValues,
         new_values: &ComputedValues,
-        pseudo: Option<&PseudoElement>
+        pseudo: Option<&PseudoElement>,
     ) -> ChildCascadeRequirement {
         debug!("accumulate_damage_for: {:?}", self);
 
@@ -364,16 +365,6 @@ trait PrivateMatchMethods: TElement {
             debug!(" > forgetful traversal");
             return ChildCascadeRequirement::MustCascadeChildren;
         }
-
-        // If an ancestor is already getting reconstructed by Gecko's top-down
-        // frame constructor, no need to apply damage.  Similarly if we already
-        // have an explicitly stored ReconstructFrame hint.
-        //
-        // See https://bugzilla.mozilla.org/show_bug.cgi?id=1301258#c12
-        // for followup work to make the optimization here more optimal by considering
-        // each bit individually.
-        let skip_applying_damage =
-            cfg!(feature = "gecko") && restyle.reconstructed_self_or_ancestor();
 
         let difference =
             self.compute_style_difference(old_values, new_values, pseudo);
@@ -615,6 +606,7 @@ pub trait MatchMethods : TElement {
             cascade_requirement,
             self.accumulate_damage_for(
                 context.shared,
+                data.skip_applying_damage(),
                 &mut data.restyle,
                 &old_primary_style,
                 new_primary_style,
@@ -636,6 +628,7 @@ pub trait MatchMethods : TElement {
                 (&Some(ref old), &Some(ref new)) => {
                     self.accumulate_damage_for(
                         context.shared,
+                        data.skip_applying_damage(),
                         &mut data.restyle,
                         old,
                         new,
