@@ -182,6 +182,15 @@ impl Performance {
             Some(p) => p,
             None => return,
         };
+
+        if self.pending_notification_observers_task.get() {
+            if let Some(o) = observers.iter().nth(index) {
+                DOMPerformanceObserver::new(&self.global(),
+                                            o.observer.callback(),
+                                            o.observer.entries()).notify();
+            }
+        }
+
         observers.remove(index);
     }
 
