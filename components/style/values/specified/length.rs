@@ -6,7 +6,7 @@
 //!
 //! [length]: https://drafts.csswg.org/css-values/#lengths
 
-use app_units::{Au, MAX_AU, MIN_AU};
+use app_units::Au;
 use cssparser::{Parser, Token, BasicParseError};
 use euclid::Size2D;
 use font_metrics::FontMetricsQueryResult;
@@ -236,16 +236,6 @@ impl CharacterWidth {
     }
 }
 
-/// Helper to convert a floating point length to application units
-fn to_au_round(length: CSSFloat, au_per_unit: CSSFloat) -> Au {
-    Au(
-        ((length * au_per_unit) as f64)
-        .min(MAX_AU.0 as f64)
-        .max(MIN_AU.0 as f64)
-        .round() as i32
-    )
-}
-
 /// Represents an absolute length with its unit
 #[derive(Clone, Copy, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -309,16 +299,20 @@ impl ToComputedValue for AbsoluteLength {
     }
 }
 
+fn au_from_f32_round(x: f32) -> Au {
+    Au::from_f64_au((x as f64).round())
+}
+
 impl From<AbsoluteLength> for Au {
     fn from(length: AbsoluteLength) -> Au {
         match length {
-            AbsoluteLength::Px(value) => to_au_round(value, AU_PER_PX),
-            AbsoluteLength::In(value) => to_au_round(value, AU_PER_IN),
-            AbsoluteLength::Cm(value) => to_au_round(value, AU_PER_CM),
-            AbsoluteLength::Mm(value) => to_au_round(value, AU_PER_MM),
-            AbsoluteLength::Q(value) => to_au_round(value, AU_PER_Q),
-            AbsoluteLength::Pt(value) => to_au_round(value, AU_PER_PT),
-            AbsoluteLength::Pc(value) => to_au_round(value, AU_PER_PC),
+            AbsoluteLength::Px(value) => au_from_f32_round((value * AU_PER_PX)),
+            AbsoluteLength::In(value) => au_from_f32_round((value * AU_PER_IN)),
+            AbsoluteLength::Cm(value) => au_from_f32_round((value * AU_PER_CM)),
+            AbsoluteLength::Mm(value) => au_from_f32_round((value * AU_PER_MM)),
+            AbsoluteLength::Q(value) => au_from_f32_round((value * AU_PER_Q)),
+            AbsoluteLength::Pt(value) => au_from_f32_round((value * AU_PER_PT)),
+            AbsoluteLength::Pc(value) => au_from_f32_round((value * AU_PER_PC)),
         }
     }
 }
@@ -395,7 +389,7 @@ impl PhysicalLength {
 
         let inch = self.0 / MM_PER_INCH;
 
-        to_au_round(inch, physical_inch as f32)
+        au_from_f32_round(inch * physical_inch as f32)
     }
 }
 
