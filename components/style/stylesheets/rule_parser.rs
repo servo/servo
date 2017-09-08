@@ -178,7 +178,8 @@ impl<'a, 'i, R: ParseErrorReporter> AtRuleParser<'i> for TopLevelRuleParser<'a, 
                 let url_string = input.expect_url_or_string()?.as_ref().to_owned();
                 let specified_url = SpecifiedUrl::parse_from_string(url_string, &self.context)?;
 
-                let media = parse_media_query_list(&self.context, input);
+                let media = parse_media_query_list(&self.context, input,
+                                                   self.error_context.error_reporter);
                 let media = Arc::new(self.shared_lock.wrap(media));
 
                 let prelude = AtRuleNonBlockPrelude::Import(specified_url, media, location);
@@ -354,7 +355,8 @@ impl<'a, 'b, 'i, R: ParseErrorReporter> AtRuleParser<'i> for NestedRuleParser<'a
 
         match_ignore_ascii_case! { &*name,
             "media" => {
-                let media_queries = parse_media_query_list(self.context, input);
+                let media_queries = parse_media_query_list(self.context, input,
+                                                           self.error_context.error_reporter);
                 let arc = Arc::new(self.shared_lock.wrap(media_queries));
                 Ok(AtRuleType::WithBlock(AtRuleBlockPrelude::Media(arc, location)))
             },
