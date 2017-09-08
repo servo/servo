@@ -72,13 +72,15 @@ impl CSSMediaRule {
         let mut input = ParserInput::new(&text);
         let mut input = Parser::new(&mut input);
         let global = self.global();
-        let win = global.as_window();
-        let url = win.get_url();
-        let quirks_mode = win.Document().quirks_mode();
+        let window = global.as_window();
+        let url = window.get_url();
+        let quirks_mode = window.Document().quirks_mode();
         let context = ParserContext::new_for_cssom(&url, Some(CssRuleType::Media),
                                                    PARSING_MODE_DEFAULT,
                                                    quirks_mode);
-        let new_medialist = parse_media_query_list(&context, &mut input);
+
+        let new_medialist = parse_media_query_list(&context, &mut input,
+                                                   window.css_error_reporter());
         let mut guard = self.cssconditionrule.shared_lock().write();
 
         // Clone an Arc because we can’t borrow `guard` twice at the same time.

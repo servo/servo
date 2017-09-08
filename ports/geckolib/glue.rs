@@ -2491,7 +2491,7 @@ pub extern "C" fn Servo_MediaList_SetText(list: RawServoMediaListBorrowed, text:
                                                PARSING_MODE_DEFAULT,
                                                QuirksMode::NoQuirks);
      write_locked_arc(list, |list: &mut MediaList| {
-        *list = parse_media_query_list(&context, &mut parser);
+        *list = parse_media_query_list(&context, &mut parser, &NullReporter);
     })
 }
 

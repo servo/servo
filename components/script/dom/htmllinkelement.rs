@@ -289,7 +289,9 @@ impl HTMLLinkElement {
         let context = CssParserContext::new_for_cssom(&doc_url, Some(CssRuleType::Media),
                                                       PARSING_MODE_DEFAULT,
                                                       document.quirks_mode());
-        let media = parse_media_query_list(&context, &mut css_parser);
+        let window = document.window();
+        let media = parse_media_query_list(&context, &mut css_parser,
+                                           window.css_error_reporter());
 
         let im_attribute = element.get_attribute(&ns!(), &local_name!("integrity"));
         let integrity_val = im_attribute.r().map(|a| a.value());

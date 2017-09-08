@@ -8,8 +8,10 @@
 
 use Atom;
 use context::QuirksMode;
-use cssparser::{Delimiter, Parser, Token, ParserInput};
-use parser::ParserContext;
+use cssparser::{Delimiter, Parser};
+use cssparser::{Token, ParserInput};
+use error_reporting::{ContextualParseError, ParseErrorReporter};
+use parser::{ParserContext, ParserErrorContext};
 use selectors::parser::SelectorParseError;
 use serialize_comma_separated_list;
 use std::fmt;
@@ -240,19 +242,32 @@ impl MediaQuery {
 /// media query list is only filled with the equivalent of "not all", see:
 ///
 /// https://drafts.csswg.org/mediaqueries/#error-handling
-pub fn parse_media_query_list(context: &ParserContext, input: &mut Parser) -> MediaList {
+pub fn parse_media_query_list<R>(
+    context: &ParserContext,
+    input: &mut Parser,
+    error_reporter: &R,
+) -> MediaList
+where
+    R: ParseErrorReporter,
+{
     if input.is_exhausted() {
         return MediaList::empty()
     }
 
     let mut media_queries = vec![];
     loop {
+        let start_position = input.position();
+        let start_location = input.current_source_location();
         match input.parse_until_before(Delimiter::Comma, |i| MediaQuery::parse(context, i)) {
             Ok(mq) => {
                 media_queries.push(mq);
             },
-            Err(..) => {
+            Err(err) => {
                 media_queries.push(MediaQuery::never_matching());
+                let error = ContextualParseError::InvalidMediaRule(
+                    input.slice_from(start_position), err);
+                let error_context = ParserErrorContext { error_reporter };
+                context.log_css_error(&error_context, start_location, error);
             },
         }
 
