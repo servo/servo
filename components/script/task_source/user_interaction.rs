@@ -25,11 +25,14 @@ impl fmt::Debug for UserInteractionTaskSource {
 }
 
 impl TaskSource for UserInteractionTaskSource {
-    fn queue_with_wrapper<T>(&self,
-                             msg: Box<T>,
-                             wrapper: &RunnableWrapper)
-                             -> Result<(), ()>
-                             where T: Runnable + Send + 'static {
+    fn queue_with_wrapper<T>(
+        &self,
+        msg: Box<T>,
+        wrapper: &RunnableWrapper,
+    ) -> Result<(), ()>
+    where
+        T: Runnable + Send + 'static,
+    {
         let msg = MainThreadScriptMsg::Common(CommonScriptMsg::RunnableMsg(
             ScriptThreadEventCategory::InputEvent,
             wrapper.wrap_runnable(msg),

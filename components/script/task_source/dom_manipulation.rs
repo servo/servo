@@ -25,11 +25,14 @@ impl fmt::Debug for DOMManipulationTaskSource {
 }
 
 impl TaskSource for DOMManipulationTaskSource {
-    fn queue_with_wrapper<T>(&self,
-                             msg: Box<T>,
-                             wrapper: &RunnableWrapper)
-                             -> Result<(), ()>
-                             where T: Runnable + Send + 'static {
+    fn queue_with_wrapper<T>(
+        &self,
+        msg: Box<T>,
+        wrapper: &RunnableWrapper,
+    ) -> Result<(), ()>
+    where
+        T: Runnable + Send + 'static,
+    {
         let msg = MainThreadScriptMsg::Common(CommonScriptMsg::RunnableMsg(
             ScriptThreadEventCategory::ScriptEvent,
             wrapper.wrap_runnable(msg),
