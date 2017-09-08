@@ -46,8 +46,7 @@ pub fn parents_allow_sharing<E>(
     // invalidation logic explicitly flag elements for which it ellided styling.
     let parent_data = parent.borrow_data().unwrap();
     let candidate_parent_data = candidate_parent.borrow_data().unwrap();
-    if parent_data.traversed_without_styling() ||
-       candidate_parent_data.traversed_without_styling() {
+    if !parent_data.safe_for_cousin_sharing() || !candidate_parent_data.safe_for_cousin_sharing() {
         return false;
     }
 

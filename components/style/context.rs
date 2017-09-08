@@ -313,6 +313,9 @@ pub struct TraversalStatistics {
     pub elements_matched: u32,
     /// The number of cache hits from the StyleSharingCache.
     pub styles_shared: u32,
+    /// The number of styles reused via rule node comparison from the
+    /// StyleSharingCache.
+    pub styles_reused: u32,
     /// The number of selectors in the stylist.
     pub selectors: u32,
     /// The number of revalidation selectors.
@@ -347,6 +350,7 @@ impl<'a> ops::Add for &'a TraversalStatistics {
             elements_styled: self.elements_styled + other.elements_styled,
             elements_matched: self.elements_matched + other.elements_matched,
             styles_shared: self.styles_shared + other.styles_shared,
+            styles_reused: self.styles_reused + other.styles_reused,
             selectors: 0,
             revalidation_selectors: 0,
             dependency_selectors: 0,
@@ -374,6 +378,7 @@ impl fmt::Display for TraversalStatistics {
         writeln!(f, "[PERF],elements_styled,{}", self.elements_styled)?;
         writeln!(f, "[PERF],elements_matched,{}", self.elements_matched)?;
         writeln!(f, "[PERF],styles_shared,{}", self.styles_shared)?;
+        writeln!(f, "[PERF],styles_reused,{}", self.styles_reused)?;
         writeln!(f, "[PERF],selectors,{}", self.selectors)?;
         writeln!(f, "[PERF],revalidation_selectors,{}", self.revalidation_selectors)?;
         writeln!(f, "[PERF],dependency_selectors,{}", self.dependency_selectors)?;

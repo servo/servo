@@ -1997,6 +1997,13 @@ pub struct ComputedValues {
     inner: ComputedValuesInner,
 }
 
+impl ComputedValues {
+    /// Returns the visited rules, if applicable.
+    pub fn visited_rules(&self) -> Option<<&StrongRuleNode> {
+        self.visited_style.as_ref().and_then(|s| s.rules.as_ref())
+    }
+}
+
 #[cfg(feature = "servo")]
 impl ComputedValues {
     /// Create a new refcounted `ComputedValues`

@@ -74,6 +74,7 @@ use dom::{TElement, SendElement};
 use matching::MatchMethods;
 use owning_ref::OwningHandle;
 use properties::ComputedValues;
+use rule_tree::StrongRuleNode;
 use selectors::matching::{ElementSelectorFlags, VisitedHandlingMode};
 use servo_arc::{Arc, NonZeroPtrMut};
 use smallbitvec::SmallBitVec;
@@ -115,6 +116,8 @@ impl OpaqueComputedValues {
         let p = NonZeroPtrMut::new(cv as *const ComputedValues as *const () as *mut ());
         OpaqueComputedValues(p)
     }
+
+    fn eq(&self, cv: &ComputedValues) -> bool { Self::from(cv) == *self }
 }
 
 /// Some data we want to avoid recomputing all the time while trying to share
@@ -729,5 +732,45 @@ impl<E: TElement> StyleSharingCache<E> {
         debug!("Sharing allowed between {:?} and {:?}", target.element, candidate.element);
 
         true
+    }
+
+    /// Attempts to find an element in the cache with the given primary rule node and parent.
+    pub fn lookup_by_rules(
+        &mut self,
+        inherited: &ComputedValues,
+        rules: &StrongRuleNode,
+        visited_rules: Option<&StrongRuleNode>,
+        target: E,
+    ) -> Option<E> {
+        self.cache_mut().lookup(|candidate| {
+            if !candidate.parent_style_identity().eq(inherited) {
+                return false;
+            }
+            let data = candidate.element.borrow_data().unwrap();
+            let style = data.styles.primary();
+            if style.rules.as_ref() != Some(&rules) {
+                return false;
+            }
+            if style.visited_rules() != visited_rules {
+                return false;
+            }
+
+            // Rule nodes and styles are computed independent of the element's
+            // actual visitedness, but at the end of the cascade (in
+            // `adjust_for_visited`) we do store the visitedness as a flag in
+            // style.  (This is a subtle change from initial visited work that
+            // landed when computed values were fused, see
+            // https://bugzilla.mozilla.org/show_bug.cgi?id=1381635.)
+            // So at the moment, we need to additionally compare visitedness,
+            // since that is not accounted for by rule nodes alone.
+            // FIXME(jryans): This seems like it breaks the constant time
+            // requirements of visited, assuming we get a cache hit on only one
+            // of unvisited vs. visited.
+            if target.is_visited_link() != candidate.element.is_visited_link() {
+                return false;
+            }
+
+            true
+        })
     }
 }

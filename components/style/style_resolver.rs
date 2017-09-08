@@ -53,6 +53,8 @@ struct MatchingResults {
 pub struct ResolvedStyle {
     /// The style itself.
     pub style: Arc<ComputedValues>,
+    /// Whether the style was reused from another element via the rule node.
+    pub reused_via_rule_node: bool,
 }
 
 /// The primary style of an element or an element-backed pseudo-element.
@@ -68,8 +70,8 @@ pub struct ResolvedElementStyles {
 
 impl ResolvedStyle {
     /// Creates a new ResolvedStyle.
-    pub fn new(style: Arc<ComputedValues>) -> Self {
-        ResolvedStyle { style }
+    pub fn new(style: Arc<ComputedValues>, reused_via_rule_node: bool) -> Self {
+        ResolvedStyle { style, reused_via_rule_node }
     }
 }
 
@@ -264,6 +266,27 @@ where
         layout_parent_style: Option<&ComputedValues>,
         pseudo: Option<&PseudoElement>,
     ) -> ResolvedStyle {
+        // Before doing the cascade, check the sharing cache and see if we can reuse
+        // the style via rule node identity.
+        let may_reuse = pseudo.is_none() && !self.element.is_native_anonymous() &&
+                        parent_style.is_some() && inputs.rules.is_some();
+        if may_reuse {
+            let cached = self.context.thread_local.sharing_cache.lookup_by_rules(
+                parent_style.unwrap(),
+                inputs.rules.as_ref().unwrap(),
+                inputs.visited_rules.as_ref(),
+                self.element,
+            );
+            if let Some(el) = cached {
+                self.context.thread_local.statistics.styles_reused += 1;
+                let mut style = el.borrow_data().unwrap().share_primary_style().0;
+                style.reused_via_rule_node = true;
+                return style;
+            }
+        }
+
+        // No style to reuse. Cascade the style, starting with visited style
+        // if necessary.
         let mut style_if_visited = None;
         if parent_style.map_or(false, |s| s.get_visited_style().is_some()) ||
             inputs.visited_rules.is_some() {
@@ -285,7 +308,8 @@ where
                 layout_parent_style,
                 CascadeVisitedMode::Unvisited,
                 pseudo,
-            )
+            ),
+            reused_via_rule_node: false,
         }
     }
 
