@@ -119,7 +119,7 @@ use task_source::file_reading::FileReadingTaskSource;
 use task_source::history_traversal::HistoryTraversalTaskSource;
 use task_source::networking::NetworkingTaskSource;
 use task_source::performance_timeline::PerformanceTimelineTaskSource;
-use task_source::user_interaction::{UserInteractionTask, UserInteractionTaskSource};
+use task_source::user_interaction::UserInteractionTaskSource;
 use time::{get_time, precise_time_ns, Tm};
 use url::Position;
 use webdriver_handlers;
@@ -276,8 +276,6 @@ pub enum MainThreadScriptMsg {
     /// dispatched to ScriptThread). Allows for a replace bool to be passed. If true,
     /// the current entry will be replaced instead of a new entry being added.
     Navigate(PipelineId, LoadData, bool),
-    /// Tasks that originate from the user interaction task source
-    UserInteraction(UserInteractionTask),
     /// Notifies the script thread that a new worklet has been loaded, and thus the page should be
     /// reflowed.
     WorkletLoaded(PipelineId),
@@ -1296,8 +1294,6 @@ impl ScriptThread {
                 self.collect_reports(reports_chan),
             MainThreadScriptMsg::WorkletLoaded(pipeline_id) =>
                 self.handle_worklet_loaded(pipeline_id),
-            MainThreadScriptMsg::UserInteraction(task) =>
-                task.handle_task(self),
         }
     }
 
