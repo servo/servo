@@ -2334,39 +2334,37 @@ impl ScriptThread {
     }
 
     pub fn eval_js_url(global_scope: &GlobalScope, load_data: &mut LoadData) {
-        {
-            // Turn javascript: URL into JS code to eval, according to the steps in
-            // https://html.spec.whatwg.org/multipage/#javascript-protocol
+        // Turn javascript: URL into JS code to eval, according to the steps in
+        // https://html.spec.whatwg.org/multipage/#javascript-protocol
 
-            // This slice of the URL’s serialization is equivalent to (5.) to (7.):
-            // Start with the scheme data of the parsed URL;
-            // append question mark and query component, if any;
-            // append number sign and fragment component if any.
-            let encoded = &load_data.url[Position::BeforePath..];
+        // This slice of the URL’s serialization is equivalent to (5.) to (7.):
+        // Start with the scheme data of the parsed URL;
+        // append question mark and query component, if any;
+        // append number sign and fragment component if any.
+        let encoded = &load_data.url.clone()[Position::BeforePath..];
 
-            // Percent-decode (8.) and UTF-8 decode (9.)
-            let script_source = percent_decode(encoded.as_bytes()).decode_utf8_lossy();
+        // Percent-decode (8.) and UTF-8 decode (9.)
+        let script_source = percent_decode(encoded.as_bytes()).decode_utf8_lossy();
 
-            // Script source is ready to be evaluated (11.)
-            let _ac = JSAutoCompartment::new(global_scope.get_cx(), global_scope.reflector().get_jsobject().get());
-            rooted!(in(global_scope.get_cx()) let mut jsval = UndefinedValue());
-            global_scope.evaluate_js_on_global_with_result(&script_source, jsval.handle_mut());
+        // Script source is ready to be evaluated (11.)
+        let _ac = JSAutoCompartment::new(global_scope.get_cx(), global_scope.reflector().get_jsobject().get());
+        rooted!(in(global_scope.get_cx()) let mut jsval = UndefinedValue());
+        global_scope.evaluate_js_on_global_with_result(&script_source, jsval.handle_mut());
 
-            load_data.js_eval_result = if jsval.get().is_string() {
-                unsafe {
-                    let strval = DOMString::from_jsval(global_scope.get_cx(),
-                                                       jsval.handle(),
-                                                       StringificationBehavior::Empty);
-                    match strval {
-                        Ok(ConversionResult::Success(s)) => {
-                            Some(JsEvalResult::Ok(String::from(s).as_bytes().to_vec()))
-                        },
-                        _ => None,
-                    }
+        load_data.js_eval_result = if jsval.get().is_string() {
+            unsafe {
+                let strval = DOMString::from_jsval(global_scope.get_cx(),
+                                                   jsval.handle(),
+                                                   StringificationBehavior::Empty);
+                match strval {
+                    Ok(ConversionResult::Success(s)) => {
+                        Some(JsEvalResult::Ok(String::from(s).as_bytes().to_vec()))
+                    },
+                    _ => None,
                 }
-            } else {
-                Some(JsEvalResult::NoContent)
-            };
+            }
+        } else {
+            Some(JsEvalResult::NoContent)
         };
 
         load_data.url = ServoUrl::parse("about:blank").unwrap();
