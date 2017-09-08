@@ -128,21 +128,27 @@ impl CalcLengthOrPercentage {
         self.length
     }
 
+    /// Return the percentage value as CSSFloat.
     #[inline]
-    #[allow(missing_docs)]
     pub fn percentage(&self) -> CSSFloat {
         self.percentage.map_or(0., |p| p.0)
     }
 
+    /// Convert the computed value into used value.
+    #[inline]
+    pub fn to_used_value(&self, container_len: Option<Au>) -> Option<Au> {
+        self.to_pixel_length(container_len).map(Au::from)
+    }
+
     /// If there are special rules for computing percentages in a value (e.g. the height property),
     /// they apply whenever a calc() expression contains percentages.
-    pub fn to_used_value(&self, container_len: Option<Au>) -> Option<Au> {
+    pub fn to_pixel_length(&self, container_len: Option<Au>) -> Option<Length> {
         match (container_len, self.percentage) {
             (Some(len), Some(percent)) => {
                 let pixel = self.length.px() + len.scale_by(percent.0).to_f32_px();
-                Some(Au::from_f32_px(self.clamping_mode.clamp(pixel)))
+                Some(Length::new(self.clamping_mode.clamp(pixel)))
             },
-            (_, None) => Some(Au::from(self.length())),
+            (_, None) => Some(self.length()),
             _ => None,
         }
     }
@@ -377,11 +383,16 @@ impl LengthOrPercentage {
 
     /// Returns the used value.
     pub fn to_used_value(&self, containing_length: Au) -> Au {
+        Au::from(self.to_pixel_length(containing_length))
+    }
+
+    /// Returns the used value as CSSPixelLength.
+    pub fn to_pixel_length(&self, containing_length: Au) -> Length {
         match *self {
-            LengthOrPercentage::Length(length) => Au::from(length),
-            LengthOrPercentage::Percentage(p) => containing_length.scale_by(p.0),
+            LengthOrPercentage::Length(length) => length,
+            LengthOrPercentage::Percentage(p) => containing_length.scale_by(p.0).into(),
             LengthOrPercentage::Calc(ref calc) => {
-                calc.to_used_value(Some(containing_length)).unwrap()
+                calc.to_pixel_length(Some(containing_length)).unwrap()
             },
         }
     }

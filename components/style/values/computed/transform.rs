@@ -95,8 +95,8 @@ impl TransformList {
                 ComputedOperation::Translate(tx, ty, tz) => {
                     let (tx, ty) = match reference_box {
                         Some(relative_border_box) => {
-                            (tx.to_used_value(relative_border_box.size.width).to_f32_px(),
-                             ty.to_used_value(relative_border_box.size.height).to_f32_px())
+                            (tx.to_pixel_length(relative_border_box.size.width).px(),
+                             ty.to_pixel_length(relative_border_box.size.height).px())
                         },
                         None => {
                             // If we don't have reference box, we cannot resolve the used value,
