@@ -53,8 +53,8 @@ impl InvalidationScope {
 
 /// A set of invalidations due to stylesheet additions.
 ///
-/// TODO(emilio): We might be able to do the same analysis for removals and
-/// media query changes too?
+/// TODO(emilio): We might be able to do the same analysis for media query
+/// changes too (or even selector changes?).
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct StylesheetInvalidationSet {
     /// The style scopes we know we have to restyle so far.
