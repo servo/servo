@@ -147,7 +147,7 @@
         let end = if input.try(|i| i.expect_delim('/')).is_ok() {
             GridLine::parse(context, input)?
         } else {
-            let mut line = GridLine::default();
+            let mut line = GridLine::auto();
             if start.line_num.is_none() && !start.is_span {
                 line.ident = start.ident.clone();       // ident from start value should be taken
             }
@@ -182,7 +182,7 @@
     pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                                -> Result<Longhands, ParseError<'i>> {
         fn line_with_ident_from(other: &GridLine) -> GridLine {
-            let mut this = GridLine::default();
+            let mut this = GridLine::auto();
             if other.line_num.is_none() && !other.is_span {
                 this.ident = other.ident.clone();
             }

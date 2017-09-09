@@ -14,7 +14,7 @@ use values::{CSSFloat, CustomIdent};
 use values::computed::{self, Context, ToComputedValue};
 use values::generics::grid::{GridTemplateComponent, RepeatCount, TrackBreadth, TrackKeyword, TrackRepeat};
 use values::generics::grid::{LineNameList, TrackSize, TrackList, TrackListType, TrackListValue};
-use values::specified::LengthOrPercentage;
+use values::specified::{LengthOrPercentage, Integer};
 
 /// Parse a single flexible length.
 pub fn parse_flex<'i, 't>(input: &mut Parser<'i, 't>) -> Result<CSSFloat, ParseError<'i>> {
@@ -97,9 +97,11 @@ enum RepeatType {
     Fixed,
 }
 
-impl TrackRepeat<LengthOrPercentage> {
-    fn parse_with_repeat_type<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                                      -> Result<(TrackRepeat<LengthOrPercentage>, RepeatType), ParseError<'i>> {
+impl TrackRepeat<LengthOrPercentage, Integer> {
+    fn parse_with_repeat_type<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<(Self, RepeatType), ParseError<'i>> {
         input.try(|i| i.expect_function_matching("repeat").map_err(|e| e.into())).and_then(|_| {
             input.parse_nested_block(|input| {
                 let count = RepeatCount::parse(context, input)?;
@@ -165,7 +167,7 @@ impl TrackRepeat<LengthOrPercentage> {
     }
 }
 
-impl Parse for TrackList<LengthOrPercentage> {
+impl Parse for TrackList<LengthOrPercentage, Integer> {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         let mut current_names = vec![];
         let mut names = vec![];
@@ -248,8 +250,8 @@ impl Parse for TrackList<LengthOrPercentage> {
     }
 }
 
-impl ToComputedValue for TrackList<LengthOrPercentage> {
-    type ComputedValue = TrackList<computed::LengthOrPercentage>;
+impl ToComputedValue for TrackList<LengthOrPercentage, Integer> {
+    type ComputedValue = TrackList<computed::LengthOrPercentage, computed::Integer>;
 
     #[inline]
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
@@ -321,7 +323,7 @@ impl ToComputedValue for TrackList<LengthOrPercentage> {
     }
 }
 
-impl Parse for GridTemplateComponent<LengthOrPercentage> {
+impl Parse for GridTemplateComponent<LengthOrPercentage, Integer> {
     // FIXME: Derive Parse (probably with None_)
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         if input.try(|i| i.expect_ident_matching("none")).is_ok() {
@@ -332,10 +334,12 @@ impl Parse for GridTemplateComponent<LengthOrPercentage> {
     }
 }
 
-impl GridTemplateComponent<LengthOrPercentage> {
+impl GridTemplateComponent<LengthOrPercentage, Integer> {
     /// Parses a `GridTemplateComponent<LengthOrPercentage>` except `none` keyword.
-    pub fn parse_without_none<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                                      -> Result<Self, ParseError<'i>> {
+    pub fn parse_without_none<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         if let Ok(t) = input.try(|i| TrackList::parse(context, i)) {
             return Ok(GridTemplateComponent::TrackList(t))
         }
