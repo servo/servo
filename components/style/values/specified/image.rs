@@ -138,7 +138,7 @@ impl Parse for Image {
             return Ok(GenericImage::Url(url));
         }
         if let Ok(gradient) = input.try(|i| Gradient::parse(context, i)) {
-            return Ok(GenericImage::Gradient(gradient));
+            return Ok(GenericImage::Gradient(Box::new(gradient)));
         }
         #[cfg(feature = "servo")]
         {
@@ -151,7 +151,7 @@ impl Parse for Image {
             {
                 image_rect.url.build_image_value();
             }
-            return Ok(GenericImage::Rect(image_rect));
+            return Ok(GenericImage::Rect(Box::new(image_rect)));
         }
         Ok(GenericImage::Element(Image::parse_element(input)?))
     }

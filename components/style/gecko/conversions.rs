@@ -151,8 +151,8 @@ impl nsStyleImage {
     /// Set a given Servo `Image` value into this `nsStyleImage`.
     pub fn set(&mut self, image: Image) {
         match image {
-            GenericImage::Gradient(gradient) => {
-                self.set_gradient(gradient)
+            GenericImage::Gradient(boxed_gradient) => {
+                self.set_gradient(*boxed_gradient)
             },
             GenericImage::Url(ref url) => {
                 unsafe {
@@ -399,7 +399,7 @@ impl nsStyleImage {
                            NumberOrPercentage::from_gecko_style_coord(&rect.data_at(2)),
                            NumberOrPercentage::from_gecko_style_coord(&rect.data_at(3))) {
                         (Some(top), Some(right), Some(bottom), Some(left)) =>
-                            Some(GenericImage::Rect(MozImageRect { url, top, right, bottom, left } )),
+                            Some(GenericImage::Rect(Box::new(MozImageRect { url, top, right, bottom, left } ))),
                         _ => {
                             debug_assert!(false, "mCropRect could not convert to NumberOrPercentage");
                             None
@@ -428,7 +428,7 @@ impl nsStyleImage {
         url
     }
 
-    unsafe fn get_gradient(self: &nsStyleImage) -> Gradient {
+    unsafe fn get_gradient(self: &nsStyleImage) -> Box<Gradient> {
         use gecko::values::convert_nscolor_to_rgba;
         use gecko_bindings::bindings::Gecko_GetGradientImageValue;
         use gecko_bindings::structs::{NS_STYLE_GRADIENT_SHAPE_CIRCULAR, NS_STYLE_GRADIENT_SHAPE_ELLIPTICAL};
@@ -581,7 +581,7 @@ impl nsStyleImage {
                 CompatMode::Modern
             };
 
-        Gradient { items, repeating: gecko_gradient.mRepeating, kind, compat_mode }
+        Box::new(Gradient { items, repeating: gecko_gradient.mRepeating, kind, compat_mode })
     }
 }
 
