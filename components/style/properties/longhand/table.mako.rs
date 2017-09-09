@@ -14,15 +14,12 @@ ${helpers.single_keyword("table-layout", "auto fixed",
                    spec="Internal-only (for `<col span>` pres attr)"
                    animation_value_type="none"
                    internal="True">
-    use values::computed::ComputedValueAsSpecified;
-
-    impl ComputedValueAsSpecified for SpecifiedValue {}
     pub type SpecifiedValue = computed_value::T;
     pub mod computed_value {
         use std::fmt;
         use style_traits::ToCss;
 
-        #[derive(Clone, Copy, Debug, PartialEq)]
+        #[derive(Clone, Copy, Debug, PartialEq, ToComputedValue)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T(pub i32);
 
@@ -39,8 +36,10 @@ ${helpers.single_keyword("table-layout", "auto fixed",
     }
 
     // never parse it, only set via presentation attribute
-    fn parse<'i, 't>(_: &ParserContext, _: &mut Parser<'i, 't>)
-                     -> Result<SpecifiedValue, ParseError<'i>> {
+    fn parse<'i, 't>(
+        _: &ParserContext,
+        _: &mut Parser<'i, 't>,
+    ) -> Result<SpecifiedValue, ParseError<'i>> {
         Err(StyleParseError::UnspecifiedError.into())
     }
 </%helpers:longhand>

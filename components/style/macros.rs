@@ -4,6 +4,24 @@
 
 //! Various macro helpers.
 
+macro_rules! trivial_to_computed_value {
+    ($name: ident) => {
+        impl $crate::values::computed::ToComputedValue for $name {
+            type ComputedValue = $name;
+
+            fn to_computed_value(&self, _: &$crate::values::computed::Context) -> Self {
+                self.clone()
+            }
+
+            fn from_computed_value(other: &Self) -> Self {
+                other.clone()
+            }
+        }
+    }
+}
+
+trivial_to_computed_value!(i32);
+
 /// A macro to parse an identifier, or return an `UnexpectedIndent` error
 /// otherwise.
 ///
@@ -76,17 +94,7 @@ macro_rules! add_impls_for_keyword_enum {
             }
         }
 
-        impl $crate::values::computed::ToComputedValue for $name {
-            type ComputedValue = $name;
-
-            fn to_computed_value(&self, _: &$crate::values::computed::Context) -> Self {
-                self.clone()
-            }
-
-            fn from_computed_value(other: &Self) -> Self {
-                other.clone()
-            }
-        }
+        trivial_to_computed_value!($name);
     };
 }
 
