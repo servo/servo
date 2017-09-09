@@ -113,6 +113,12 @@ impl CalcLengthOrPercentage {
     #[inline]
     pub fn length(&self) -> Au {
         debug_assert!(self.percentage.is_none());
+        self.length_component()
+    }
+
+    /// Returns the length component of this `calc()`
+    #[inline]
+    pub fn length_component(&self) -> Au {
         self.clamping_mode.clamp(self.length)
     }
 
