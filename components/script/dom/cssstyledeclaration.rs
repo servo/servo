@@ -410,10 +410,10 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
     // https://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface
     fn IndexedGetter(&self, index: u32) -> Option<DOMString> {
         self.owner.with_block(|pdb| {
-            pdb.declarations().get(index as usize).map(|entry| {
-                let (ref declaration, importance) = *entry;
+            pdb.declarations().get(index as usize).map(|declaration| {
+                let important = pdb.declarations_importance().get(index);
                 let mut css = declaration.to_css_string();
-                if importance.important() {
+                if important {
                     css += " !important";
                 }
                 DOMString::from(css)

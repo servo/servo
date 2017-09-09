@@ -299,7 +299,7 @@ impl KeyframesStep {
            guard: &SharedRwLockReadGuard) -> Self {
         let declared_timing_function = match value {
             KeyframesStepValue::Declarations { ref block } => {
-                block.read_with(guard).declarations().iter().any(|&(ref prop_decl, _)| {
+                block.read_with(guard).declarations().iter().any(|prop_decl| {
                     match *prop_decl {
                         PropertyDeclaration::AnimationTimingFunction(..) => true,
                         _ => false,
@@ -325,7 +325,7 @@ impl KeyframesStep {
         match self.value {
             KeyframesStepValue::Declarations { ref block } => {
                 let guard = block.read_with(guard);
-                let &(ref declaration, _) =
+                let (declaration, _) =
                     guard.get(PropertyDeclarationId::Longhand(LonghandId::AnimationTimingFunction)).unwrap();
                 match *declaration {
                     PropertyDeclaration::AnimationTimingFunction(ref value) => {
@@ -369,7 +369,7 @@ fn get_animated_properties(keyframes: &[Arc<Locked<Keyframe>>], guard: &SharedRw
     for keyframe in keyframes {
         let keyframe = keyframe.read_with(&guard);
         let block = keyframe.block.read_with(guard);
-        for &(ref declaration, importance) in block.declarations().iter() {
+        for (declaration, importance) in block.declaration_importance_iter() {
             assert!(!importance.important());
 
             if let Some(property) = AnimatableLonghand::from_declaration(declaration) {
