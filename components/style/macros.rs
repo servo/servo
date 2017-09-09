@@ -58,7 +58,7 @@ macro_rules! define_numbered_css_keyword_enum {
     }
 }
 
-/// A macro for implementing `ComputedValueAsSpecified`, and `Parse` traits for
+/// A macro for implementing `ToComputedValue`, and `Parse` traits for
 /// the enums defined using `define_css_keyword_enum` macro.
 ///
 /// NOTE: We should either move `Parse` trait to `style_traits`
@@ -76,7 +76,17 @@ macro_rules! add_impls_for_keyword_enum {
             }
         }
 
-        impl $crate::values::computed::ComputedValueAsSpecified for $name {}
+        impl $crate::values::computed::ToComputedValue for $name {
+            type ComputedValue = $name;
+
+            fn to_computed_value(&self, _: &$crate::values::computed::Context) -> Self {
+                self.clone()
+            }
+
+            fn from_computed_value(other: &Self) -> Self {
+                other.clone()
+            }
+        }
     };
 }
 
