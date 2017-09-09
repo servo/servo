@@ -500,32 +500,26 @@
 
 <%def name="single_keyword(name, values, vector=False, **kwargs)">
     <%call expr="single_keyword_computed(name, values, vector, **kwargs)">
-        % if not "extra_specified" in kwargs and ("aliases" in kwargs or (("extra_%s_aliases" % product) in kwargs)):
-            impl ToComputedValue for SpecifiedValue {
-                type ComputedValue = computed_value::T;
+        impl ToComputedValue for SpecifiedValue {
+            type ComputedValue = computed_value::T;
 
-                #[inline]
-                fn to_computed_value(&self, _context: &Context) -> computed_value::T {
-                    match *self {
-                        % for value in data.longhands_by_name[name].keyword.values_for(product):
-                            SpecifiedValue::${to_rust_ident(value)} => computed_value::T::${to_rust_ident(value)},
-                        % endfor
-                    }
-                }
-                #[inline]
-                fn from_computed_value(computed: &computed_value::T) -> Self {
-                    match *computed {
-                        % for value in data.longhands_by_name[name].keyword.values_for(product):
-                            computed_value::T::${to_rust_ident(value)} => SpecifiedValue::${to_rust_ident(value)},
-                        % endfor
-                    }
+            #[inline]
+            fn to_computed_value(&self, _context: &Context) -> computed_value::T {
+                match *self {
+                    % for value in data.longhands_by_name[name].keyword.values_for(product):
+                        SpecifiedValue::${to_rust_ident(value)} => computed_value::T::${to_rust_ident(value)},
+                    % endfor
                 }
             }
-        % else:
-            use values::computed::ComputedValueAsSpecified;
-            impl ComputedValueAsSpecified for SpecifiedValue {}
-        % endif
-
+            #[inline]
+            fn from_computed_value(computed: &computed_value::T) -> Self {
+                match *computed {
+                    % for value in data.longhands_by_name[name].keyword.values_for(product):
+                        computed_value::T::${to_rust_ident(value)} => SpecifiedValue::${to_rust_ident(value)},
+                    % endfor
+                }
+            }
+        }
     </%call>
 </%def>
 
