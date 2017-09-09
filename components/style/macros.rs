@@ -35,10 +35,10 @@ macro_rules! define_numbered_css_keyword_enum {
         }
 
         impl $crate::parser::Parse for $name {
-            #[allow(missing_docs)]
-            fn parse<'i, 't>(_context: &$crate::parser::ParserContext,
-                             input: &mut ::cssparser::Parser<'i, 't>)
-                             -> Result<$name, ::style_traits::ParseError<'i>> {
+            fn parse<'i, 't>(
+                _context: &$crate::parser::ParserContext,
+                input: &mut ::cssparser::Parser<'i, 't>,
+            ) -> Result<$name, ::style_traits::ParseError<'i>> {
                 try_match_ident_ignore_ascii_case! { input.expect_ident()?,
                     $( $css => Ok($name::$variant), )+
                 }
@@ -47,7 +47,8 @@ macro_rules! define_numbered_css_keyword_enum {
 
         impl ::style_traits::values::ToCss for $name {
             fn to_css<W>(&self, dest: &mut W) -> ::std::fmt::Result
-                where W: ::std::fmt::Write,
+            where
+                W: ::std::fmt::Write,
             {
                 match *self {
                     $( $name::$variant => dest.write_str($css) ),+
@@ -67,9 +68,10 @@ macro_rules! add_impls_for_keyword_enum {
     ($name:ident) => {
         impl $crate::parser::Parse for $name {
             #[inline]
-            fn parse<'i, 't>(_context: &$crate::parser::ParserContext,
-                             input: &mut ::cssparser::Parser<'i, 't>)
-                             -> Result<Self, ::style_traits::ParseError<'i>> {
+            fn parse<'i, 't>(
+                _context: &$crate::parser::ParserContext,
+                input: &mut ::cssparser::Parser<'i, 't>,
+            ) -> Result<Self, ::style_traits::ParseError<'i>> {
                 $name::parse(input)
             }
         }
@@ -93,9 +95,10 @@ macro_rules! define_keyword_type {
         }
 
         impl $crate::parser::Parse for $name {
-            fn parse<'i, 't>(_context: &$crate::parser::ParserContext,
-                             input: &mut ::cssparser::Parser<'i, 't>)
-                             -> Result<$name, ::style_traits::ParseError<'i>> {
+            fn parse<'i, 't>(
+                _context: &$crate::parser::ParserContext,
+                input: &mut ::cssparser::Parser<'i, 't>
+            ) -> Result<$name, ::style_traits::ParseError<'i>> {
                 input.expect_ident_matching($css).map(|_| $name).map_err(|e| e.into())
             }
         }
