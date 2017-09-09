@@ -1175,15 +1175,12 @@ ${helpers.single_keyword_system("font-variant-caps",
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-synthesis">
     use std::fmt;
     use style_traits::ToCss;
-    use values::computed::ComputedValueAsSpecified;
-
-    impl ComputedValueAsSpecified for SpecifiedValue {}
 
     pub mod computed_value {
         pub use super::SpecifiedValue as T;
     }
 
-    #[derive(Clone, Debug, PartialEq)]
+    #[derive(Clone, Debug, PartialEq, ToComputedValue)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue {
         pub weight: bool,
