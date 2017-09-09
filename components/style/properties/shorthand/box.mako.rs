@@ -92,9 +92,12 @@ macro_rules! try_parse_one {
     pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                                -> Result<Longhands, ParseError<'i>> {
         struct SingleTransition {
-            % for prop in "property duration timing_function delay".split():
+            % for prop in "duration timing_function delay".split():
             transition_${prop}: transition_${prop}::SingleSpecifiedValue,
             % endfor
+            // Unlike other properties, transition-property uses an Option<> to
+            // represent 'none' as `None`.
+            transition_property: Option<transition_property::SingleSpecifiedValue>,
         }
 
         fn parse_one_transition<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
@@ -112,7 +115,17 @@ macro_rules! try_parse_one {
                 try_parse_one!(context, input, delay, transition_delay);
                 // Must check 'transition-property' after 'transition-timing-function' since
                 // 'transition-property' accepts any keyword.
-                try_parse_one!(input, property, transition_property);
+                if property.is_none() {
+                    if let Ok(value) = input.try(|i| transition_property::SingleSpecifiedValue::parse(i)) {
+                        property = Some(Some(value));
+                        continue;
+                    } else if input.try(|i| i.expect_ident_matching("none")).is_ok() {
+                        // 'none' is not a valid value for <single-transition-property>,
+                        // so it's not acceptable in the function above.
+                        property = Some(None);
+                        continue;
+                    }
+                }
 
                 parsed -= 1;
                 break
@@ -120,10 +133,12 @@ macro_rules! try_parse_one {
 
             if parsed != 0 {
                 Ok(SingleTransition {
-                    % for prop in "property duration timing_function delay".split():
+                    % for prop in "duration timing_function delay".split():
                     transition_${prop}: ${prop}.unwrap_or_else(transition_${prop}::single_value
                                                                                  ::get_initial_specified_value),
                     % endfor
+                    transition_property: property.unwrap_or(
+                        Some(transition_property::single_value::get_initial_specified_value())),
                 })
             } else {
                 Err(StyleParseError::UnspecifiedError.into())
@@ -134,20 +149,20 @@ macro_rules! try_parse_one {
         let mut ${prop}s = Vec::new();
         % endfor
 
-        if input.try(|input| input.expect_ident_matching("none")).is_err() {
-            let results = input.parse_comma_separated(|i| parse_one_transition(context, i))?;
-            for result in results {
-                % for prop in "property duration timing_function delay".split():
-                ${prop}s.push(result.transition_${prop});
-                % endfor
+        let results = input.parse_comma_separated(|i| parse_one_transition(context, i))?;
+        let multiple_items = results.len() >= 2;
+        for result in results {
+            if let Some(value) = result.transition_property {
+                propertys.push(value);
+            } else if multiple_items {
+                // If there is more than one item, and any of transitions has 'none',
+                // then it's invalid. Othersize, leave propertys to be empty (which
+                // means "transition-property: none");
+                return Err(StyleParseError::UnspecifiedError.into());
             }
-        } else {
-            // `transition: none` is a valid syntax, and we keep transition_property empty because |none| is not
-            // a valid TransitionProperty.
-            // durations, delays, and timing_functions are not allowed as empty, so before we convert them into
-            // longhand properties, we need to put initial values for none transition.
+
             % for prop in "duration timing_function delay".split():
-            ${prop}s.push(transition_${prop}::single_value::get_initial_specified_value());
+            ${prop}s.push(result.transition_${prop});
             % endfor
         }
 
@@ -160,25 +175,37 @@ macro_rules! try_parse_one {
 
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            let len = self.transition_property.0.len();
-            // There should be at least one declared value
-            if len == 0 {
-                return Ok(());
+            let property_len = self.transition_property.0.len();
+
+            // There are two cases that we can do shorthand serialization:
+            // * when all value lists have the same length, or
+            // * when transition-property is none, and other value lists have exactly one item.
+            if property_len == 0 {
+                % for name in "duration delay timing_function".split():
+                    if self.transition_${name}.0.len() != 1 {
+                        return Ok(());
+                    }
+                % endfor
+            } else {
+                % for name in "duration delay timing_function".split():
+                    if self.transition_${name}.0.len() != property_len {
+                        return Ok(());
+                    }
+                % endfor
             }
 
-            // If any value list length is differs then we don't do a shorthand serialization
-            // either.
-            % for name in "property duration delay timing_function".split():
-                if len != self.transition_${name}.0.len() {
-                    return Ok(());
-                }
-            % endfor
+            // Representative length.
+            let len = self.transition_duration.0.len();
 
             for i in 0..len {
                 if i != 0 {
                     dest.write_str(", ")?;
                 }
-                self.transition_property.0[i].to_css(dest)?;
+                if property_len == 0 {
+                    dest.write_str("none")?;
+                } else {
+                    self.transition_property.0[i].to_css(dest)?;
+                }
                 % for name in "duration timing_function delay".split():
                     dest.write_str(" ")?;
                     self.transition_${name}.0[i].to_css(dest)?;
