@@ -299,7 +299,10 @@ impl<T: SelectorMapEntry> SelectorMap<T> {
                 // rulehash lookup may produce superfluous selectors, but the
                 // subsequent selector matching work will filter them out.
                 if name != lower_name {
-                    find_push(&mut self.local_name_hash, lower_name.clone(), entry.clone());
+                    self.local_name_hash
+                        .entry(lower_name.clone())
+                        .or_insert_with(SmallVec::new)
+                        .push(entry.clone());
                 }
                 self.local_name_hash
                     .entry(name.clone())
@@ -483,15 +486,6 @@ fn find_bucket<'a>(mut iter: SelectorIter<'a, SelectorImpl>) -> Bucket<'a> {
     }
 
     return current_bucket
-}
-
-#[inline]
-fn find_push<Str: Eq + Hash, V, VL>(map: &mut PrecomputedHashMap<Str, VL>,
-                                    key: Str,
-                                    value: V)
-    where VL: VecLike<V> + Default
-{
-    map.entry(key).or_insert_with(VL::default).push(value)
 }
 
 /// Wrapper for PrecomputedHashMap that does ASCII-case-insensitive lookup in quirks mode.
