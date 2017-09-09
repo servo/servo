@@ -46,7 +46,7 @@ use values::animated::effects::Filter as AnimatedFilter;
 use values::animated::effects::FilterList as AnimatedFilterList;
 use values::animated::effects::TextShadowList as AnimatedTextShadowList;
 use values::computed::{Angle, BorderCornerRadius, CalcLengthOrPercentage};
-use values::computed::{ClipRect, Context, ComputedUrl, ComputedValueAsSpecified};
+use values::computed::{ClipRect, Context, ComputedUrl};
 use values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use values::computed::{LengthOrPercentageOrNone, MaxLength, NonNegativeAu};
 use values::computed::{NonNegativeNumber, Number, NumberOrPercentage, Percentage};
@@ -203,7 +203,7 @@ pub fn nscsspropertyid_is_animatable(property: nsCSSPropertyID) -> bool {
 // NB: This needs to be here because it needs all the longhands generated
 // beforehand.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Debug, Eq, Hash, PartialEq, ToCss)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, ToCss, ToComputedValue)]
 pub enum TransitionProperty {
     /// All, any transitionable property changing should generate a transition.
     All,
@@ -217,9 +217,6 @@ pub enum TransitionProperty {
     /// unknown property.
     Unsupported(CustomIdent)
 }
-
-
-impl ComputedValueAsSpecified for TransitionProperty {}
 
 impl TransitionProperty {
     /// Iterates over each longhand property.
