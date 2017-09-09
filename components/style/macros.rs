@@ -95,7 +95,7 @@ macro_rules! define_keyword_type {
         #[allow(missing_docs)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         #[derive(Animate, Clone, ComputeSquaredDistance, Copy, PartialEq)]
-        #[derive(ToAnimatedZero, ToCss)]
+        #[derive(ToAnimatedZero, ToComputedValue, ToCss)]
         pub struct $name;
 
         impl fmt::Debug for $name {
@@ -113,7 +113,6 @@ macro_rules! define_keyword_type {
             }
         }
 
-        impl $crate::values::computed::ComputedValueAsSpecified for $name {}
         impl $crate::values::animated::AnimatedValueAsComputed for $name {}
     };
 }
