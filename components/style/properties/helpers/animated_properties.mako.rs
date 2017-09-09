@@ -247,21 +247,15 @@ impl TransitionProperty {
     /// Parse a transition-property value.
     pub fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         let ident = input.expect_ident()?;
-        let supported = match_ignore_ascii_case! { &ident,
-            "all" => Ok(Some(TransitionProperty::All)),
+        match_ignore_ascii_case! { &ident,
+            "all" => Ok(TransitionProperty::All),
             % for prop in data.longhands + data.shorthands_except_all():
                 % if prop.transitionable:
-                    "${prop.name}" => Ok(Some(TransitionProperty::${prop.camel_case})),
+                    "${prop.name}" => Ok(TransitionProperty::${prop.camel_case}),
                 % endif
             % endfor
-            "none" => Err(()),
-            _ => Ok(None),
-        };
-
-        match supported {
-            Ok(Some(property)) => Ok(property),
-            Ok(None) => CustomIdent::from_ident(ident, &[]).map(TransitionProperty::Unsupported),
-            Err(()) => Err(SelectorParseError::UnexpectedIdent(ident.clone()).into()),
+            "none" => Err(SelectorParseError::UnexpectedIdent(ident.clone()).into()),
+            _ => CustomIdent::from_ident(ident, &[]).map(TransitionProperty::Unsupported),
         }
     }
 
