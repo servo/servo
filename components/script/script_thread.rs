@@ -89,8 +89,8 @@ use script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
 use script_runtime::{ScriptPort, StackRootTLS, get_reports, new_rt_and_cx};
 use script_traits::{CompositorEvent, ConstellationControlMsg, PaintMetricType};
 use script_traits::{DocumentActivity, DiscardBrowsingContext, EventResult};
-use script_traits::{InitialScriptState, LayoutMsg, LoadData, MouseButton, MouseEventType, MozBrowserEvent};
-use script_traits::{NewLayoutInfo, ScriptToConstellationChan, ScriptMsg, UpdatePipelineIdReason};
+use script_traits::{InitialScriptState, JsEvalResult, LayoutMsg, LoadData, MouseButton, MouseEventType};
+use script_traits::{MozBrowserEvent, NewLayoutInfo, ScriptToConstellationChan, ScriptMsg, UpdatePipelineIdReason};
 use script_traits::{ScriptThreadFactory, TimerEvent, TimerSchedulerMsg, TimerSource};
 use script_traits::{TouchEventType, TouchId, UntrustedNodeAddress, WindowSizeData, WindowSizeType};
 use script_traits::CompositorEvent::{KeyEvent, MouseButtonEvent, MouseMoveEvent, ResizeEvent};
@@ -122,6 +122,7 @@ use task_source::performance_timeline::PerformanceTimelineTaskSource;
 use task_source::user_interaction::UserInteractionTaskSource;
 use time::{get_time, precise_time_ns, Tm};
 use url::Position;
+use url::percent_encoding::percent_decode;
 use webdriver_handlers;
 use webvr_traits::{WebVREvent, WebVRMsg};
 
@@ -1509,7 +1510,7 @@ impl ScriptThread {
                                            load_data.url.clone(),
                                            origin);
         if load_data.url.as_str() == "about:blank" {
-            self.start_page_load_about_blank(new_load);
+            self.start_page_load_about_blank(new_load, load_data.js_eval_result);
         } else {
             self.pre_page_load(new_load, load_data);
         }
@@ -1679,6 +1680,18 @@ impl ScriptThread {
         // the pipeline exited before the page load completed.
         match idx {
             Some(idx) => {
+                // https://html.spec.whatwg.org/multipage/#process-a-navigate-response
+                // 2. If response's status is 204 or 205, then abort these steps.
+                match metadata {
+                    Some(Metadata { status: Some((204 ... 205, _)), .. }) => {
+                        self.script_sender
+                            .send((id.clone(), ScriptMsg::AbortLoadUrl))
+                            .unwrap();
+                        return None;
+                    },
+                    _ => ()
+                };
+
                 let load = self.incomplete_loads.borrow_mut().remove(idx);
                 metadata.map(|meta| self.load(meta, load))
             }
@@ -2118,39 +2131,7 @@ impl ScriptThread {
         // Notify devtools that a new script global exists.
         self.notify_devtools(document.Title(), final_url.clone(), (incomplete.pipeline_id, None));
 
-        let is_javascript = incomplete.url.scheme() == "javascript";
-        let parse_input = if is_javascript {
-            use url::percent_encoding::percent_decode;
-
-            // Turn javascript: URL into JS code to eval, according to the steps in
-            // https://html.spec.whatwg.org/multipage/#javascript-protocol
-
-            // This slice of the URL’s serialization is equivalent to (5.) to (7.):
-            // Start with the scheme data of the parsed URL;
-            // append question mark and query component, if any;
-            // append number sign and fragment component if any.
-            let encoded = &incomplete.url[Position::BeforePath..];
-
-            // Percent-decode (8.) and UTF-8 decode (9.)
-            let script_source = percent_decode(encoded.as_bytes()).decode_utf8_lossy();
-
-            // Script source is ready to be evaluated (11.)
-            unsafe {
-                let _ac = JSAutoCompartment::new(self.get_cx(), window.reflector().get_jsobject().get());
-                rooted!(in(self.get_cx()) let mut jsval = UndefinedValue());
-                window.upcast::<GlobalScope>().evaluate_js_on_global_with_result(
-                    &script_source, jsval.handle_mut());
-                let strval = DOMString::from_jsval(self.get_cx(),
-                                                   jsval.handle(),
-                                                   StringificationBehavior::Empty);
-                match strval {
-                    Ok(ConversionResult::Success(s)) => s,
-                    _ => DOMString::new(),
-                }
-            }
-        } else {
-            DOMString::new()
-        };
+        let parse_input = DOMString::new();
 
         document.set_https_state(metadata.https_state);
 
@@ -2329,8 +2310,16 @@ impl ScriptThread {
     /// for the given pipeline (specifically the "navigate" algorithm).
     fn handle_navigate(&self, parent_pipeline_id: PipelineId,
                               browsing_context_id: Option<BrowsingContextId>,
-                              load_data: LoadData,
+                              mut load_data: LoadData,
                               replace: bool) {
+        let is_javascript = load_data.url.scheme() == "javascript";
+        if is_javascript {
+            let window = self.documents.borrow().find_window(parent_pipeline_id);
+            if let Some(window) = window {
+                ScriptThread::eval_js_url(window.upcast::<GlobalScope>(), &mut load_data);
+            }
+        }
+
         match browsing_context_id {
             Some(browsing_context_id) => {
                 let iframe = self.documents.borrow().find_iframe(parent_pipeline_id, browsing_context_id);
@@ -2344,6 +2333,43 @@ impl ScriptThread {
                     .unwrap();
             }
         }
+    }
+
+    pub fn eval_js_url(global_scope: &GlobalScope, load_data: &mut LoadData) {
+        // Turn javascript: URL into JS code to eval, according to the steps in
+        // https://html.spec.whatwg.org/multipage/#javascript-protocol
+
+        // This slice of the URL’s serialization is equivalent to (5.) to (7.):
+        // Start with the scheme data of the parsed URL;
+        // append question mark and query component, if any;
+        // append number sign and fragment component if any.
+        let encoded = &load_data.url.clone()[Position::BeforePath..];
+
+        // Percent-decode (8.) and UTF-8 decode (9.)
+        let script_source = percent_decode(encoded.as_bytes()).decode_utf8_lossy();
+
+        // Script source is ready to be evaluated (11.)
+        let _ac = JSAutoCompartment::new(global_scope.get_cx(), global_scope.reflector().get_jsobject().get());
+        rooted!(in(global_scope.get_cx()) let mut jsval = UndefinedValue());
+        global_scope.evaluate_js_on_global_with_result(&script_source, jsval.handle_mut());
+
+        load_data.js_eval_result = if jsval.get().is_string() {
+            unsafe {
+                let strval = DOMString::from_jsval(global_scope.get_cx(),
+                                                   jsval.handle(),
+                                                   StringificationBehavior::Empty);
+                match strval {
+                    Ok(ConversionResult::Success(s)) => {
+                        Some(JsEvalResult::Ok(String::from(s).as_bytes().to_vec()))
+                    },
+                    _ => None,
+                }
+            }
+        } else {
+            Some(JsEvalResult::NoContent)
+        };
+
+        load_data.url = ServoUrl::parse("about:blank").unwrap();
     }
 
     fn handle_resize_event(&self, pipeline_id: PipelineId, new_size: WindowSizeData, size_type: WindowSizeType) {
@@ -2377,7 +2403,7 @@ impl ScriptThread {
     /// argument until a notification is received that the fetch is complete.
     fn pre_page_load(&self, incomplete: InProgressLoad, load_data: LoadData) {
         let id = incomplete.pipeline_id.clone();
-        let mut req_init = RequestInit {
+        let req_init = RequestInit {
             url: load_data.url.clone(),
             method: load_data.method,
             destination: Destination::Document,
@@ -2392,10 +2418,6 @@ impl ScriptThread {
             origin: incomplete.origin.immutable().clone(),
             .. RequestInit::default()
         };
-
-        if req_init.url.scheme() == "javascript" {
-            req_init.url = ServoUrl::parse("about:blank").unwrap();
-        }
 
         let context = ParserContext::new(id, load_data.url);
         self.incomplete_parser_contexts.borrow_mut().push((id, context));
@@ -2436,7 +2458,7 @@ impl ScriptThread {
 
     /// Synchronously fetch `about:blank`. Stores the `InProgressLoad`
     /// argument until a notification is received that the fetch is complete.
-    fn start_page_load_about_blank(&self, incomplete: InProgressLoad) {
+    fn start_page_load_about_blank(&self, incomplete: InProgressLoad, js_eval_result: Option<JsEvalResult>) {
         let id = incomplete.pipeline_id;
 
         self.incomplete_loads.borrow_mut().push(incomplete);
@@ -2446,8 +2468,20 @@ impl ScriptThread {
 
         let mut meta = Metadata::default(url);
         meta.set_content_type(Some(&mime!(Text / Html)));
+
+        // If this page load is the result of a javascript scheme url, map
+        // the evaluation result into a response.
+        let chunk = match js_eval_result {
+            Some(JsEvalResult::Ok(content)) => content,
+            Some(JsEvalResult::NoContent) => {
+                meta.status = Some((204, b"No Content".to_vec()));
+                vec![]
+            },
+            None => vec![]
+        };
+
         context.process_response(Ok(FetchMetadata::Unfiltered(meta)));
-        context.process_response_chunk(vec![]);
+        context.process_response_chunk(chunk);
         context.process_response_eof(Ok(()));
     }
 

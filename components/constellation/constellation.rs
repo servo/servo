@@ -1067,6 +1067,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 debug!("constellation got URL load message from script");
                 self.handle_load_url_msg(source_top_ctx_id, source_pipeline_id, load_data, replace);
             }
+            FromScriptMsg::AbortLoadUrl => {
+                debug!("constellation got abort URL load message from script");
+                self.handle_abort_load_url_msg(source_pipeline_id);
+            }
             // A page loaded has completed all parsing, script, and reflow messages have been sent.
             FromScriptMsg::LoadComplete => {
                 debug!("constellation got load complete message");
@@ -1888,6 +1892,18 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 });
                 Some(new_pipeline_id)
             }
+        }
+    }
+
+    fn handle_abort_load_url_msg(&mut self, new_pipeline_id: PipelineId) {
+        let pending_index = self.pending_changes.iter().rposition(|change| {
+            change.new_pipeline_id == new_pipeline_id
+        });
+
+        // If it is found, remove it from the pending changes.
+        if let Some(pending_index) = pending_index {
+            self.pending_changes.remove(pending_index);
+            self.close_pipeline(new_pipeline_id, DiscardBrowsingContext::No, ExitPipelineMode::Normal);
         }
     }
 

@@ -99,6 +99,8 @@ pub enum ScriptMsg {
     /// A new load has been requested, with an option to replace the current entry once loaded
     /// instead of adding a new entry.
     LoadUrl(LoadData, bool),
+    /// Abort loading after sending a LoadUrl message.
+    AbortLoadUrl,
     /// Post a message to the currently active window of a given browsing context.
     PostMessage(BrowsingContextId, Option<ImmutableOrigin>, Vec<u8>),
     /// Dispatch a mozbrowser event to the parent of a mozbrowser iframe.
