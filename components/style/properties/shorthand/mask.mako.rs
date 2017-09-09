@@ -38,7 +38,11 @@
     pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                                -> Result<Longhands, ParseError<'i>> {
         % for name in "image mode position_x position_y size repeat origin clip composite".split():
-            let mut mask_${name} = mask_${name}::SpecifiedValue(Vec::new());
+            // Vec grows from 0 to 4 by default on first push().  So allocate
+            // with capacity 1, so in the common case of only one item we don't
+            // way overallocate.  Note that we always push at least one item if
+            // parsing succeeds.
+            let mut mask_${name} = mask_${name}::SpecifiedValue(Vec::with_capacity(1));
         % endfor
 
         input.parse_comma_separated(|input| {
@@ -183,8 +187,12 @@
 
     pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                                -> Result<Longhands, ParseError<'i>> {
-        let mut position_x = mask_position_x::SpecifiedValue(Vec::new());
-        let mut position_y = mask_position_y::SpecifiedValue(Vec::new());
+        // Vec grows from 0 to 4 by default on first push().  So allocate with
+        // capacity 1, so in the common case of only one item we don't way
+        // overallocate.  Note that we always push at least one item if parsing
+        // succeeds.
+        let mut position_x = mask_position_x::SpecifiedValue(Vec::with_capacity(1));
+        let mut position_y = mask_position_y::SpecifiedValue(Vec::with_capacity(1));
         let mut any = false;
 
         input.parse_comma_separated(|input| {
