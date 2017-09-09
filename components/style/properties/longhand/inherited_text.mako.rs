@@ -255,9 +255,8 @@ ${helpers.single_keyword("text-align-last",
             }
         }
     % else:
-        use values::computed::ComputedValueAsSpecified;
-        impl ComputedValueAsSpecified for SpecifiedValue {}
         pub use self::computed_value::T as SpecifiedValue;
+        add_impls_for_keyword_enum!(SpecifiedValue);
         pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
                              -> Result<SpecifiedValue, ParseError<'i>> {
             computed_value::T::parse(input)
@@ -287,9 +286,6 @@ ${helpers.predefined_type("word-spacing",
     use cssparser::RGBA;
     use std::fmt;
     use style_traits::ToCss;
-    use values::computed::ComputedValueAsSpecified;
-
-    impl ComputedValueAsSpecified for SpecifiedValue {}
 
     #[derive(Clone, Copy, Debug, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -298,6 +294,8 @@ ${helpers.predefined_type("word-spacing",
         pub overline: Option<RGBA>,
         pub line_through: Option<RGBA>,
     }
+
+    trivial_to_computed_value!(SpecifiedValue);
 
     pub mod computed_value {
         pub type T = super::SpecifiedValue;
@@ -374,9 +372,7 @@ ${helpers.predefined_type("word-spacing",
                                   // !important.
                                   flags="APPLIES_TO_PLACEHOLDER"
                                   spec="https://drafts.csswg.org/css-text/#propdef-white-space">
-    use values::computed::ComputedValueAsSpecified;
-    impl ComputedValueAsSpecified for SpecifiedValue {}
-
+    trivial_to_computed_value!(SpecifiedValue);
     % if product != "gecko":
     impl SpecifiedValue {
         pub fn allow_wrap(&self) -> bool {
@@ -433,8 +429,8 @@ ${helpers.predefined_type(
 
 
     pub mod computed_value {
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         #[derive(Clone, Debug, PartialEq, ToCss)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf, ToComputedValue))]
         pub enum T {
             Keyword(KeywordValue),
             None,
@@ -449,8 +445,8 @@ ${helpers.predefined_type(
         }
     }
 
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     #[derive(Clone, Debug, PartialEq, ToCss)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SpecifiedValue {
         Keyword(KeywordValue),
         None,
@@ -614,25 +610,24 @@ ${helpers.predefined_type(
 
 <%helpers:longhand name="text-emphasis-position" animation_value_type="discrete" products="gecko"
                    spec="https://drafts.csswg.org/css-text-decor/#propdef-text-emphasis-position">
-    use values::computed::ComputedValueAsSpecified;
     use style_traits::ToCss;
 
     define_css_keyword_enum!(HorizontalWritingModeValue:
                              "over" => Over,
                              "under" => Under);
+    add_impls_for_keyword_enum!(VerticalWritingModeValue);
     define_css_keyword_enum!(VerticalWritingModeValue:
                              "right" => Right,
                              "left" => Left);
+    add_impls_for_keyword_enum!(HorizontalWritingModeValue);
 
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    #[derive(Clone, Debug, PartialEq, ToCss)]
+    #[derive(Clone, Debug, PartialEq, ToComputedValue, ToCss)]
     pub struct SpecifiedValue(pub HorizontalWritingModeValue, pub VerticalWritingModeValue);
 
     pub mod computed_value {
         pub type T = super::SpecifiedValue;
     }
-
-    impl ComputedValueAsSpecified for SpecifiedValue {}
 
     pub fn get_initial_value() -> computed_value::T {
         SpecifiedValue(HorizontalWritingModeValue::Over, VerticalWritingModeValue::Right)

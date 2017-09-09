@@ -98,7 +98,7 @@ impl<A: Parse, B: Parse> Parse for Either<A, B> {
 }
 
 /// https://drafts.csswg.org/css-values-4/#custom-idents
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, ToComputedValue)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct CustomIdent(pub Atom);
 
