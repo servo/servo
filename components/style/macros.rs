@@ -20,8 +20,6 @@ macro_rules! trivial_to_computed_value {
     }
 }
 
-trivial_to_computed_value!(i32);
-
 /// A macro to parse an identifier, or return an `UnexpectedIndent` error
 /// otherwise.
 ///

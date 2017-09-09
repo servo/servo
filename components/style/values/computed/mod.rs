@@ -333,11 +333,12 @@ impl<T> ToComputedValue for T
     }
 }
 
-impl ComputedValueAsSpecified for Atom {}
-impl ComputedValueAsSpecified for bool {}
-impl ComputedValueAsSpecified for f32 {}
-
-impl ComputedValueAsSpecified for specified::BorderStyle {}
+trivial_to_computed_value!(Atom);
+trivial_to_computed_value!(u8);
+trivial_to_computed_value!(bool);
+trivial_to_computed_value!(i32);
+trivial_to_computed_value!(f32);
+trivial_to_computed_value!(BorderStyle);
 
 /// A `<number>` value.
 pub type Number = CSSFloat;
