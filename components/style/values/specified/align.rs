@@ -18,6 +18,7 @@ bitflags! {
     /// Constants shared by multiple CSS Box Alignment properties
     ///
     /// These constants match Gecko's `NS_STYLE_ALIGN_*` constants.
+    #[derive(ToComputedValue)]
     pub flags AlignFlags: u8 {
         // Enumeration stored in the lower 5 bits:
         /// 'auto'
@@ -113,7 +114,7 @@ const ALIGN_ALL_SHIFT: u32 = structs::NS_STYLE_ALIGN_ALL_SHIFT;
 ///
 /// The 16-bit field stores the primary value in its lower 8 bits, and the optional fallback value
 /// in its upper 8 bits.  This matches the representation of these properties in Gecko.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, ToComputedValue)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
 pub struct AlignJustifyContent(u16);
 
@@ -205,7 +206,7 @@ impl Parse for AlignJustifyContent {
 /// Value of the `align-self` or `justify-self` property.
 ///
 /// https://drafts.csswg.org/css-align/#self-alignment
-#[derive(Clone, Copy, Debug, Eq, PartialEq, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, ToComputedValue, ToCss)]
 pub struct AlignJustifySelf(pub AlignFlags);
 
 impl AlignJustifySelf {
@@ -242,7 +243,7 @@ impl Parse for AlignJustifySelf {
 /// Value of the `align-items` property
 ///
 /// https://drafts.csswg.org/css-align/#self-alignment
-#[derive(Clone, Copy, Debug, Eq, PartialEq, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, ToComputedValue, ToCss)]
 pub struct AlignItems(pub AlignFlags);
 
 impl AlignItems {
