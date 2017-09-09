@@ -34,7 +34,6 @@
                 -moz-grid-group -moz-grid-line -moz-stack -moz-inline-stack -moz-deck
                 -moz-popup -moz-groupbox""".split()
     %>
-    use values::computed::ComputedValueAsSpecified;
     use style_traits::ToCss;
 
     pub mod computed_value {
@@ -137,7 +136,7 @@
     }
 
     #[allow(non_camel_case_types)]
-    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, ToComputedValue)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
     pub enum SpecifiedValue {
         % for value in values:
@@ -179,8 +178,6 @@
             % endfor
         }
     }
-
-    impl ComputedValueAsSpecified for SpecifiedValue {}
 
     % if product == "servo":
         fn cascade_property_custom(_declaration: &PropertyDeclaration,
@@ -403,14 +400,13 @@ ${helpers.predefined_type("transition-delay",
     use Atom;
     use std::fmt;
     use style_traits::ToCss;
-    use values::computed::ComputedValueAsSpecified;
     use values::KeyframesName;
 
     pub mod computed_value {
         pub use super::SpecifiedValue as T;
     }
 
-    #[derive(Clone, Debug, Eq, Hash, PartialEq)]
+    #[derive(Clone, Debug, Eq, Hash, PartialEq, ToComputedValue)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue(pub Option<KeyframesName>);
 
@@ -448,8 +444,10 @@ ${helpers.predefined_type("transition-delay",
     }
 
     impl Parse for SpecifiedValue {
-        fn parse<'i, 't>(context: &ParserContext, input: &mut ::cssparser::Parser<'i, 't>)
-                         -> Result<Self, ParseError<'i>> {
+        fn parse<'i, 't>(
+            context: &ParserContext,
+            input: &mut ::cssparser::Parser<'i, 't>
+        ) -> Result<Self, ParseError<'i>> {
             if let Ok(name) = input.try(|input| KeyframesName::parse(context, input)) {
                 Ok(SpecifiedValue(Some(name)))
             } else {
@@ -458,12 +456,13 @@ ${helpers.predefined_type("transition-delay",
         }
     }
 
-    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                         -> Result<SpecifiedValue,ParseError<'i>> {
+    pub fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<SpecifiedValue,ParseError<'i>> {
         SpecifiedValue::parse(context, input)
     }
 
-    impl ComputedValueAsSpecified for SpecifiedValue {}
 </%helpers:vector_longhand>
 
 ${helpers.predefined_type("animation-duration",
@@ -496,15 +495,13 @@ ${helpers.predefined_type("animation-timing-function",
                           extra_prefixes="moz webkit"
                           spec="https://drafts.csswg.org/css-animations/#propdef-animation-iteration-count",
                           allowed_in_keyframe_block="False">
-    use values::computed::ComputedValueAsSpecified;
-
     pub mod computed_value {
         pub use super::SpecifiedValue as T;
     }
 
     // https://drafts.csswg.org/css-animations/#animation-iteration-count
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    #[derive(Clone, Debug, PartialEq, ToCss)]
+    #[derive(Clone, Debug, PartialEq, ToCss, ToComputedValue)]
     pub enum SpecifiedValue {
         Number(f32),
         Infinite,
@@ -538,12 +535,12 @@ ${helpers.predefined_type("animation-timing-function",
     }
 
     #[inline]
-    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                         -> Result<SpecifiedValue, ParseError<'i>> {
+    pub fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<SpecifiedValue, ParseError<'i>> {
         SpecifiedValue::parse(context, input)
     }
-
-    impl ComputedValueAsSpecified for SpecifiedValue {}
 </%helpers:vector_longhand>
 
 <% animation_direction_custom_consts = { "alternate-reverse": "Alternate_reverse" } %>
@@ -1626,15 +1623,13 @@ ${helpers.predefined_type("transform-origin",
                    spec="https://drafts.csswg.org/css-contain/#contain-property">
     use std::fmt;
     use style_traits::ToCss;
-    use values::computed::ComputedValueAsSpecified;
-
-    impl ComputedValueAsSpecified for SpecifiedValue {}
 
     pub mod computed_value {
         pub type T = super::SpecifiedValue;
     }
 
     bitflags! {
+        #[derive(ToComputedValue)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub flags SpecifiedValue: u8 {
             const LAYOUT = 0x01,
@@ -1770,15 +1765,12 @@ ${helpers.single_keyword("-moz-orient",
     use std::fmt;
     use style_traits::ToCss;
     use values::CustomIdent;
-    use values::computed::ComputedValueAsSpecified;
-
-    impl ComputedValueAsSpecified for SpecifiedValue {}
 
     pub mod computed_value {
         pub use super::SpecifiedValue as T;
     }
 
-    #[derive(Clone, Debug, PartialEq)]
+    #[derive(Clone, Debug, PartialEq, ToComputedValue)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SpecifiedValue {
         Auto,
@@ -1843,9 +1835,6 @@ ${helpers.predefined_type(
     use gecko_bindings::structs;
     use std::fmt;
     use style_traits::ToCss;
-    use values::computed::ComputedValueAsSpecified;
-
-    impl ComputedValueAsSpecified for SpecifiedValue {}
 
     pub mod computed_value {
         pub use super::SpecifiedValue as T;
@@ -1853,6 +1842,7 @@ ${helpers.predefined_type(
 
     bitflags! {
         /// These constants match Gecko's `NS_STYLE_TOUCH_ACTION_*` constants.
+        #[derive(ToComputedValue)]
         pub flags SpecifiedValue: u8 {
             const TOUCH_ACTION_NONE = structs::NS_STYLE_TOUCH_ACTION_NONE as u8,
             const TOUCH_ACTION_AUTO = structs::NS_STYLE_TOUCH_ACTION_AUTO as u8,

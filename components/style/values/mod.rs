@@ -127,7 +127,7 @@ impl ToCss for CustomIdent {
 }
 
 /// https://drafts.csswg.org/css-animations/#typedef-keyframes-name
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, ToComputedValue)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum KeyframesName {
     /// <custom-ident>
