@@ -418,7 +418,6 @@ ${helpers.predefined_type("object-position",
     use std::ops::Range;
     use str::HTML_SPACE_CHARACTERS;
     use style_traits::ToCss;
-    use values::computed::ComputedValueAsSpecified;
 
     pub mod computed_value {
         pub use super::SpecifiedValue as T;
@@ -450,11 +449,13 @@ ${helpers.predefined_type("object-position",
         pub columns: Range<u32>,
     }
 
-    impl ComputedValueAsSpecified for TemplateAreas {}
+    trivial_to_computed_value!(TemplateAreas);
 
     impl Parse for TemplateAreas {
-        fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
-                         -> Result<Self, ParseError<'i>> {
+        fn parse<'i, 't>(
+            _context: &ParserContext,
+            input: &mut Parser<'i, 't>,
+        ) -> Result<Self, ParseError<'i>> {
             let mut strings = vec![];
             while let Ok(string) = input.try(|i| i.expect_string().map(|s| s.as_ref().into())) {
                 strings.push(string);
