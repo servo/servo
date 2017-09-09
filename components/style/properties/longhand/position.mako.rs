@@ -291,27 +291,24 @@ ${helpers.predefined_type("object-position",
         animation_value_type="discrete">
     use std::fmt;
     use style_traits::ToCss;
-    use values::computed::ComputedValueAsSpecified;
 
     pub type SpecifiedValue = computed_value::T;
 
     pub mod computed_value {
-        #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+        #[derive(Clone, Copy, Debug, Eq, PartialEq, ToComputedValue)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub enum AutoFlow {
             Row,
             Column,
         }
 
-        #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+        #[derive(Clone, Copy, Debug, Eq, PartialEq, ToComputedValue)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T {
             pub autoflow: AutoFlow,
             pub dense: bool,
         }
     }
-
-    impl ComputedValueAsSpecified for SpecifiedValue {}
 
     impl ToCss for computed_value::T {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
