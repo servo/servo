@@ -37,7 +37,11 @@
         let mut background_color = None;
 
         % for name in "image position_x position_y repeat size attachment origin clip".split():
-            let mut background_${name} = background_${name}::SpecifiedValue(Vec::new());
+            // Vec grows from 0 to 4 by default on first push().  So allocate
+            // with capacity 1, so in the common case of only one item we don't
+            // way overallocate.  Note that we always push at least one item if
+            // parsing succeeds.
+            let mut background_${name} = background_${name}::SpecifiedValue(Vec::with_capacity(1));
         % endfor
         input.parse_comma_separated(|input| {
             // background-color can only be in the last element, so if it
@@ -197,8 +201,12 @@
 
     pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                                -> Result<Longhands, ParseError<'i>> {
-        let mut position_x = background_position_x::SpecifiedValue(Vec::new());
-        let mut position_y = background_position_y::SpecifiedValue(Vec::new());
+        // Vec grows from 0 to 4 by default on first push().  So allocate with
+        // capacity 1, so in the common case of only one item we don't way
+        // overallocate.  Note that we always push at least one item if parsing
+        // succeeds.
+        let mut position_x = background_position_x::SpecifiedValue(Vec::with_capacity(1));
+        let mut position_y = background_position_y::SpecifiedValue(Vec::with_capacity(1));
         let mut any = false;
 
         input.parse_comma_separated(|input| {
