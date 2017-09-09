@@ -10,7 +10,7 @@ use parser::{Parse, ParserContext};
 use std::{fmt, mem, usize};
 use style_traits::{ToCss, ParseError, StyleParseError};
 use values::{CSSFloat, CustomIdent, serialize_dimension};
-use values::computed::{ComputedValueAsSpecified, Context, ToComputedValue};
+use values::computed::{Context, ToComputedValue};
 use values::specified;
 use values::specified::grid::parse_line_names;
 
@@ -471,7 +471,7 @@ pub enum TrackListValue<LengthOrPercentage, Integer> {
 /// The type of a `<track-list>` as determined during parsing.
 ///
 /// https://drafts.csswg.org/css-grid/#typedef-track-list
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, ToComputedValue)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum TrackListType {
     /// [`<auto-track-list>`](https://drafts.csswg.org/css-grid/#typedef-auto-track-list)
@@ -490,8 +490,6 @@ pub enum TrackListType {
     /// of the latter.
     Explicit,
 }
-
-impl ComputedValueAsSpecified for TrackListType {}
 
 /// A grid `<track-list>` type.
 ///
@@ -572,6 +570,8 @@ pub struct LineNameList {
     /// Indicates the line name that requires `auto-fill`
     pub fill_idx: Option<u32>,
 }
+
+trivial_to_computed_value!(LineNameList);
 
 impl Parse for LineNameList {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
@@ -654,8 +654,6 @@ impl ToCss for LineNameList {
         Ok(())
     }
 }
-
-impl ComputedValueAsSpecified for LineNameList {}
 
 /// Variants for `<grid-template-rows> | <grid-template-columns>`
 /// Subgrid deferred to Level 2 spec due to lack of implementation.
