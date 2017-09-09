@@ -136,7 +136,7 @@ define_css_keyword_enum!{ TrackKeyword:
     "max-content" => MaxContent,
     "min-content" => MinContent
 }
-impl ComputedValueAsSpecified for TrackKeyword {}
+add_impls_for_keyword_enum!(TrackKeyword);
 
 /// A track breadth for explicit grid track sizing. It's generic solely to
 /// avoid re-implementing it for the computed type.
