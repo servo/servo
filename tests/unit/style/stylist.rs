@@ -169,9 +169,11 @@ fn test_rule_ordering_same_specificity() {
 fn test_insert() {
     let (rules_list, _) = get_mock_rules(&[".intro.foo", "#top"]);
     let mut selector_map = SelectorMap::new();
-    selector_map.insert(rules_list[1][0].clone(), QuirksMode::NoQuirks);
+    selector_map.insert(rules_list[1][0].clone(), QuirksMode::NoQuirks)
+                .expect("OOM");
     assert_eq!(1, selector_map.id_hash.get(&Atom::from("top"), QuirksMode::NoQuirks).unwrap()[0].source_order);
-    selector_map.insert(rules_list[0][0].clone(), QuirksMode::NoQuirks);
+    selector_map.insert(rules_list[0][0].clone(), QuirksMode::NoQuirks)
+                .expect("OOM");
     assert_eq!(0, selector_map.class_hash.get(&Atom::from("foo"), QuirksMode::NoQuirks).unwrap()[0].source_order);
     assert!(selector_map.class_hash.get(&Atom::from("intro"), QuirksMode::NoQuirks).is_none());
 }

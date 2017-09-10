@@ -976,6 +976,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "fallible"
 version = "0.0.1"
 dependencies = [
+ "hashglobe 0.1.0",
  "smallvec 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
