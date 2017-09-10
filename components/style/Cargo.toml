@@ -16,7 +16,7 @@ path = "lib.rs"
 doctest = false
 
 [features]
-gecko = ["nsstring_vendor", "num_cpus", "style_traits/gecko"]
+gecko = ["nsstring_vendor", "num_cpus", "style_traits/gecko", "fallible/known_system_malloc"]
 use_bindgen = ["bindgen", "regex", "toml"]
 servo = ["serde", "heapsize", "heapsize_derive",
          "style_traits/servo", "servo_atoms", "servo_config", "html5ever",

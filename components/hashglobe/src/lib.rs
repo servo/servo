@@ -33,6 +33,13 @@ pub struct FailedAllocationError {
     reason: &'static str,
 }
 
+impl FailedAllocationError {
+    #[inline]
+    pub fn new(reason: &'static str) -> Self {
+        Self { reason }
+    }
+}
+
 impl error::Error for FailedAllocationError {
     fn description(&self) -> &str {
         self.reason

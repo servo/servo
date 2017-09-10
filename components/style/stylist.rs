@@ -13,6 +13,7 @@ use element_state::ElementState;
 use font_metrics::FontMetricsProvider;
 #[cfg(feature = "gecko")]
 use gecko_bindings::structs::{nsIAtom, ServoStyleSetSizes, StyleRuleInclusion};
+use hashglobe::FailedAllocationError;
 use invalidation::element::invalidation_map::InvalidationMap;
 use invalidation::media_queries::{EffectiveMediaQueryResults, ToMediaListKey};
 use media_queries::Device;
@@ -87,7 +88,8 @@ impl DocumentCascadeData {
     }
 
     /// Rebuild the cascade data for the given document stylesheets, and
-    /// optionally with a set of user agent stylesheets.
+    /// optionally with a set of user agent stylesheets.  Returns Err(..)
+    /// to signify OOM.
     fn rebuild<'a, 'b, S>(
         &mut self,
         device: &Device,
@@ -96,7 +98,7 @@ impl DocumentCascadeData {
         guards: &StylesheetGuards,
         ua_stylesheets: Option<&UserAgentStylesheets>,
         extra_data: &mut PerOrigin<ExtraStyleData>,
-    )
+    ) -> Result<(), FailedAllocationError>
     where
         'b: 'a,
         S: StylesheetInDocument + ToMediaListKey + PartialEq + 'static,
@@ -154,7 +156,7 @@ impl DocumentCascadeData {
                     guards.ua_or_user,
                     extra_data,
                     SheetRebuildKind::Full,
-                );
+                )?;
             }
 
             if quirks_mode != QuirksMode::NoQuirks {
@@ -183,7 +185,7 @@ impl DocumentCascadeData {
                         guards.ua_or_user,
                         extra_data,
                         SheetRebuildKind::Full,
-                    );
+                    )?;
                 }
             }
         }
@@ -196,10 +198,13 @@ impl DocumentCascadeData {
                 guards.author,
                 extra_data,
                 rebuild_kind,
-            );
+            )?;
         }
+
+        Ok(())
     }
 
+    // Returns Err(..) to signify OOM
     fn add_stylesheet<S>(
         &mut self,
         device: &Device,
@@ -208,13 +213,13 @@ impl DocumentCascadeData {
         guard: &SharedRwLockReadGuard,
         _extra_data: &mut PerOrigin<ExtraStyleData>,
         rebuild_kind: SheetRebuildKind,
-    )
+    ) -> Result<(), FailedAllocationError>
     where
         S: StylesheetInDocument + ToMediaListKey + 'static,
     {
         if !stylesheet.enabled() ||
            !stylesheet.is_effective_for_device(device, guard) {
-            return;
+            return Ok(());
         }
 
         let origin = stylesheet.origin(guard);
@@ -277,12 +282,12 @@ impl DocumentCascadeData {
                             origin_cascade_data.rules_source_order
                         );
 
-                        map.insert(rule, quirks_mode);
+                        map.insert(rule, quirks_mode)?;
 
                         if rebuild_kind.should_rebuild_invalidation() {
                             origin_cascade_data
                                 .invalidation_map
-                                .note_selector(selector, quirks_mode);
+                                .note_selector(selector, quirks_mode)?;
                             let mut visitor = StylistSelectorVisitor {
                                 needs_revalidation: false,
                                 passed_rightmost_selector: false,
@@ -298,7 +303,7 @@ impl DocumentCascadeData {
                                 origin_cascade_data.selectors_for_cache_revalidation.insert(
                                     RevalidationSelectorAndHashes::new(selector.clone(), hashes),
                                     quirks_mode
-                                );
+                                )?;
                             }
                         }
                     }
@@ -336,7 +341,8 @@ impl DocumentCascadeData {
                         let animation = KeyframesAnimation::from_keyframes(
                             &keyframes_rule.keyframes, keyframes_rule.vendor_prefix.clone(), guard);
                         debug!("Found valid keyframe animation: {:?}", animation);
-                        origin_cascade_data.animations.insert(keyframes_rule.name.as_atom().clone(), animation);
+                        origin_cascade_data.animations
+                            .try_insert(keyframes_rule.name.as_atom().clone(), animation)?;
                     }
                 }
                 #[cfg(feature = "gecko")]
@@ -367,6 +373,8 @@ impl DocumentCascadeData {
                 _ => {}
             }
         }
+
+        Ok(())
     }
 
     /// Measures heap usage.
@@ -604,7 +612,7 @@ impl Stylist {
             guards,
             ua_sheets,
             extra_data,
-        );
+        ).unwrap_or_else(|_| warn!("OOM in Stylist::flush"));
 
         had_invalidations
     }

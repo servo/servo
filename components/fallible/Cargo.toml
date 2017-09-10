@@ -11,3 +11,15 @@ path = "lib.rs"
 
 [dependencies]
 smallvec = "0.4"
+hashglobe = { path = "../hashglobe" }
+
+# This crate effectively does nothing except if the `known_system_malloc`
+# feature is specified.
+#
+# In that case, we actually call the system malloc functions to reserve space,
+# otherwise we just let rust do its thing (aborting on OOM).
+#
+# This is effectively a stop-gap measure until we can do this properly in
+# stable rust.
+[features]
+known_system_malloc = []

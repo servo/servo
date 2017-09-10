@@ -47,6 +47,7 @@ extern crate bitflags;
 #[cfg(feature = "gecko")] #[macro_use] #[no_link] extern crate cfg_if;
 #[macro_use] extern crate cssparser;
 extern crate euclid;
+extern crate fallible;
 extern crate fnv;
 #[cfg(feature = "gecko")] #[macro_use] pub mod gecko_string_cache;
 extern crate hashglobe;
