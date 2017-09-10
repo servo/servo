@@ -34,6 +34,7 @@ pub struct FailedAllocationError {
 }
 
 impl FailedAllocationError {
+    #[inline]
     pub fn new(reason: &'static str) -> Self {
         Self { reason }
     }
