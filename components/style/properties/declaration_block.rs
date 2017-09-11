@@ -951,7 +951,8 @@ pub fn parse_one_declaration_into<R>(declarations: &mut SourcePropertyDeclaratio
     let start_position = parser.position();
     let start_location = parser.current_source_location();
     parser.parse_entirely(|parser| {
-        PropertyDeclaration::parse_into(declarations, id, &context, parser)
+        let name = id.name().into();
+        PropertyDeclaration::parse_into(declarations, id, name, &context, parser)
             .map_err(|e| e.into())
     }).map_err(|err| {
         let error = ContextualParseError::UnsupportedPropertyDeclaration(
@@ -1000,7 +1001,7 @@ impl<'a, 'b, 'i> DeclarationParser<'i> for PropertyDeclarationParser<'a, 'b> {
             }
         };
         input.parse_until_before(Delimiter::Bang, |input| {
-            PropertyDeclaration::parse_into(self.declarations, id, self.context, input)
+            PropertyDeclaration::parse_into(self.declarations, id, name, self.context, input)
                 .map_err(|e| e.into())
         })?;
         let importance = match input.try(parse_important) {

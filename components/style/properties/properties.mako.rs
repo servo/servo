@@ -19,7 +19,7 @@ use std::{fmt, mem, ops};
 #[cfg(feature = "gecko")] use std::ptr;
 
 #[cfg(feature = "servo")] use cssparser::RGBA;
-use cssparser::{Parser, TokenSerializationType, serialize_identifier};
+use cssparser::{CowRcStr, Parser, TokenSerializationType, serialize_identifier};
 use cssparser::ParserInput;
 #[cfg(feature = "servo")] use euclid::SideOffsets2D;
 use computed_values;
@@ -1528,12 +1528,13 @@ impl PropertyDeclaration {
     /// to Importance::Normal. Parsing Importance values is the job of PropertyDeclarationParser,
     /// we only set them here so that we don't have to reallocate
     pub fn parse_into<'i, 't>(declarations: &mut SourcePropertyDeclaration,
-                              id: PropertyId, context: &ParserContext, input: &mut Parser<'i, 't>)
+                              id: PropertyId, name: CowRcStr<'i>,
+                              context: &ParserContext, input: &mut Parser<'i, 't>)
                               -> Result<(), PropertyDeclarationParseError<'i>> {
         assert!(declarations.is_empty());
         let start = input.state();
         match id {
-            PropertyId::Custom(name) => {
+            PropertyId::Custom(property_name) => {
                 // FIXME: fully implement https://github.com/w3c/csswg-drafts/issues/774
                 // before adding skip_whitespace here.
                 // This probably affects some test results.
@@ -1545,7 +1546,7 @@ impl PropertyDeclaration {
                         ValueParseError::from_parse_error(e))),
                     }
                 };
-                declarations.push(PropertyDeclaration::Custom(name, value));
+                declarations.push(PropertyDeclaration::Custom(property_name, value));
                 Ok(())
             }
             PropertyId::Longhand(id) => {
@@ -1561,7 +1562,7 @@ impl PropertyDeclaration {
                             input.reset(&start);
                             let (first_token_type, css) =
                                 ::custom_properties::parse_non_custom_with_var(input).map_err(|e| {
-                                    PropertyDeclarationParseError::InvalidValue(id.name().into(),
+                                    PropertyDeclarationParseError::InvalidValue(name,
                                         ValueParseError::from_parse_error(e))
                                 })?;
                             Ok(PropertyDeclaration::WithVariables(id, Arc::new(UnparsedValue {
@@ -1571,7 +1572,7 @@ impl PropertyDeclaration {
                                 from_shorthand: None,
                             })))
                         } else {
-                            Err(PropertyDeclarationParseError::InvalidValue(id.name().into(),
+                            Err(PropertyDeclarationParseError::InvalidValue(name,
                                 ValueParseError::from_parse_error(err)))
                         }
                     })
@@ -1600,7 +1601,7 @@ impl PropertyDeclaration {
                             input.reset(&start);
                             let (first_token_type, css) =
                                 ::custom_properties::parse_non_custom_with_var(input).map_err(|e| {
-                                    PropertyDeclarationParseError::InvalidValue(id.name().into(),
+                                    PropertyDeclarationParseError::InvalidValue(name,
                                         ValueParseError::from_parse_error(e))
                                 })?;
                             let unparsed = Arc::new(UnparsedValue {
@@ -1620,7 +1621,7 @@ impl PropertyDeclaration {
                             }
                             Ok(())
                         } else {
-                            Err(PropertyDeclarationParseError::InvalidValue(id.name().into(),
+                            Err(PropertyDeclarationParseError::InvalidValue(name,
                                 ValueParseError::from_parse_error(err)))
                         }
                     })

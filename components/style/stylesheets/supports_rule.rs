@@ -265,7 +265,7 @@ impl Declaration {
 
             let mut declarations = SourcePropertyDeclaration::new();
             input.parse_until_before(Delimiter::Bang, |input| {
-                PropertyDeclaration::parse_into(&mut declarations, id, &context, input)
+                PropertyDeclaration::parse_into(&mut declarations, id, prop.into(), &context, input)
                     .map_err(|e| StyleParseError::PropertyDeclaration(e).into())
             })?;
             let _ = input.try(parse_important);
