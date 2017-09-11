@@ -141,17 +141,14 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
     use cssparser::serialize_string;
     use std::fmt;
     use style_traits::ToCss;
-    use values::computed::ComputedValueAsSpecified;
 
     pub use self::computed_value::T as SpecifiedValue;
 
     pub mod computed_value {
-        #[derive(Clone, Debug, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub struct T(pub Vec<(String,String)>);
+        #[derive(Clone, Debug, PartialEq, ToComputedValue)]
+        pub struct T(pub Vec<(String, String)>);
     }
-
-    impl ComputedValueAsSpecified for SpecifiedValue {}
 
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
