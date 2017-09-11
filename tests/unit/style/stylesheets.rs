@@ -320,13 +320,13 @@ fn test_report_error_stylesheet() {
     assert_eq!("Unsupported property declaration: 'invalid: true;', \
                 Custom(PropertyDeclaration(UnknownProperty(\"invalid\")))", error.message);
     assert_eq!(9, error.line);
-    assert_eq!(8, error.column);
+    assert_eq!(9, error.column);
 
     let error = errors.pop().unwrap();
     assert_eq!("Unsupported property declaration: 'display: invalid;', \
                 Custom(PropertyDeclaration(InvalidValue(\"display\", None)))", error.message);
     assert_eq!(8, error.line);
-    assert_eq!(8, error.column);
+    assert_eq!(9, error.column);
 
     // testing for the url
     assert_eq!(url, error.url);

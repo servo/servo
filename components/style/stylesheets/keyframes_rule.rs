@@ -20,7 +20,7 @@ use std::fmt;
 use style_traits::{PARSING_MODE_DEFAULT, ToCss, ParseError, StyleParseError};
 use style_traits::PropertyDeclarationParseError;
 use stylesheets::{CssRuleType, StylesheetContents};
-use stylesheets::rule_parser::{VendorPrefix, get_location_with_offset};
+use stylesheets::rule_parser::VendorPrefix;
 use values::{KeyframesName, serialize_percentage};
 
 /// A [`@keyframes`][keyframes] rule.
@@ -507,12 +507,11 @@ impl<'a, 'i, R: ParseErrorReporter> QualifiedRuleParser<'i> for KeyframeListPars
     fn parse_prelude<'t>(&mut self, input: &mut Parser<'i, 't>) -> Result<Self::Prelude, ParseError<'i>> {
         let start_position = input.position();
         let start_location = input.current_source_location();
-        let location = get_location_with_offset(start_location);
         match KeyframeSelector::parse(input) {
             Ok(sel) => {
                 Ok(KeyframeSelectorParserPrelude {
                     selector: sel,
-                    source_location: location,
+                    source_location: start_location,
                 })
             },
             Err(e) => {
