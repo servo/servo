@@ -239,6 +239,11 @@ impl PropertyDeclarationBlock {
         !self.declarations_importance.all_true()
     }
 
+    /// Returns whether this block contains a declaration of a given longhand.
+    pub fn contains(&self, id: LonghandId) -> bool {
+        self.longhands.contains(id)
+    }
+
     /// Get a declaration for a given property.
     ///
     /// NOTE: This is linear time.
