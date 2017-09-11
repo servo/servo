@@ -146,12 +146,10 @@ ${helpers.single_keyword("unicode-bidi",
                    spec="https://drafts.csswg.org/css-text-decor/#propdef-text-decoration-line">
     use std::fmt;
     use style_traits::ToCss;
-    use values::computed::ComputedValueAsSpecified;
-
-    impl ComputedValueAsSpecified for SpecifiedValue {}
 
     bitflags! {
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        #[derive(ToComputedValue)]
         pub flags SpecifiedValue: u8 {
             const NONE = 0,
             const UNDERLINE = 0x01,
