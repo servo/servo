@@ -67,7 +67,6 @@
 use Atom;
 use applicable_declarations::ApplicableDeclarationBlock;
 use atomic_refcell::{AtomicRefCell, AtomicRefMut};
-use bit_vec::BitVec;
 use bloom::StyleBloom;
 use cache::{LRUCache, LRUCacheMutIterator};
 use context::{SelectorFlagsMap, SharedStyleContext, StyleContext};
@@ -78,6 +77,7 @@ use owning_ref::OwningHandle;
 use properties::ComputedValues;
 use selectors::matching::{ElementSelectorFlags, VisitedHandlingMode};
 use servo_arc::Arc;
+use smallbitvec::SmallBitVec;
 use smallvec::SmallVec;
 use std::marker::PhantomData;
 use std::mem;
@@ -123,7 +123,7 @@ pub struct ValidationData {
 
     /// The cached result of matching this entry against the revalidation
     /// selectors.
-    revalidation_match_results: Option<BitVec>,
+    revalidation_match_results: Option<SmallBitVec>,
 }
 
 impl ValidationData {
@@ -177,7 +177,7 @@ impl ValidationData {
         bloom: &StyleBloom<E>,
         bloom_known_valid: bool,
         flags_setter: &mut F
-    ) -> &BitVec
+    ) -> &SmallBitVec
         where E: TElement,
               F: FnMut(&E, ElementSelectorFlags),
     {
@@ -256,7 +256,7 @@ impl<E: TElement> StyleSharingCandidate<E> {
         &mut self,
         stylist: &Stylist,
         bloom: &StyleBloom<E>,
-    ) -> &BitVec {
+    ) -> &SmallBitVec {
         self.validation_data.revalidation_match_results(
             self.element,
             stylist,
@@ -309,7 +309,7 @@ impl<E: TElement> StyleSharingTarget<E> {
         stylist: &Stylist,
         bloom: &StyleBloom<E>,
         selector_flags_map: &mut SelectorFlagsMap<E>
-    ) -> &BitVec {
+    ) -> &SmallBitVec {
         // It's important to set the selector flags. Otherwise, if we succeed in
         // sharing the style, we may not set the slow selector flags for the
         // right elements (which may not necessarily be |element|), causing

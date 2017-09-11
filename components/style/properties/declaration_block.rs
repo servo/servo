@@ -14,8 +14,10 @@ use parser::{ParserContext, ParserErrorContext};
 use properties::animated_properties::AnimationValue;
 use selectors::parser::SelectorParseError;
 use shared_lock::Locked;
+use smallbitvec::{self, SmallBitVec};
 use smallvec::SmallVec;
 use std::fmt;
+use std::iter::{DoubleEndedIterator, Zip};
 use std::slice::Iter;
 use style_traits::{PARSING_MODE_DEFAULT, ToCss, ParseError, ParsingMode, StyleParseError};
 use stylesheets::{CssRuleType, Origin, UrlExtraData};
@@ -73,10 +75,10 @@ pub struct PropertyDeclarationBlock {
     /// The group of declarations, along with their importance.
     ///
     /// Only deduplicated declarations appear here.
-    declarations: Vec<(PropertyDeclaration, Importance)>,
+    declarations: Vec<PropertyDeclaration>,
 
-    /// The number of entries in `self.declaration` with `Importance::Important`
-    important_count: usize,
+    /// The "important" flag for each declaration in `declarations`.
+    declarations_importance: SmallBitVec,
 
     longhands: LonghandIdSet,
 }
@@ -87,23 +89,39 @@ impl MallocSizeOf for PropertyDeclarationBlock {
     }
 }
 
-/// Iterator for PropertyDeclaration to be generated from PropertyDeclarationBlock.
-#[derive(Clone)]
-pub struct PropertyDeclarationIterator<'a> {
-    iter: Iter<'a, (PropertyDeclaration, Importance)>,
+/// Iterator over `(PropertyDeclaration, Importance)` pairs.
+pub struct DeclarationImportanceIterator<'a> {
+    iter: Zip<Iter<'a, PropertyDeclaration>, smallbitvec::Iter<'a>>,
 }
 
-impl<'a> Iterator for PropertyDeclarationIterator<'a> {
-    type Item = &'a PropertyDeclaration;
-    #[inline]
-    fn next(&mut self) -> Option<&'a PropertyDeclaration> {
-        self.iter.next().map(|&(ref decl, _)| decl)
+impl<'a> DeclarationImportanceIterator<'a> {
+    /// Constructor
+    pub fn new(declarations: &'a [PropertyDeclaration], important: &'a SmallBitVec) -> Self {
+        DeclarationImportanceIterator {
+            iter: declarations.iter().zip(important.iter()),
+        }
+    }
+}
+
+impl<'a> Iterator for DeclarationImportanceIterator<'a> {
+    type Item = (&'a PropertyDeclaration, Importance);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next().map(|(decl, important)|
+            (decl, if important { Importance::Important } else { Importance::Normal }))
+    }
+}
+
+impl<'a> DoubleEndedIterator for DeclarationImportanceIterator<'a> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.iter.next_back().map(|(decl, important)|
+            (decl, if important { Importance::Important } else { Importance::Normal }))
     }
 }
 
 /// Iterator for AnimationValue to be generated from PropertyDeclarationBlock.
 pub struct AnimationValueIterator<'a, 'cx, 'cx_a:'cx> {
-    iter: Iter<'a, (PropertyDeclaration, Importance)>,
+    iter: DeclarationImportanceIterator<'a>,
     context: &'cx mut Context<'cx_a>,
     default_values: &'a ComputedValues,
 }
@@ -113,7 +131,7 @@ impl<'a, 'cx, 'cx_a:'cx> AnimationValueIterator<'a, 'cx, 'cx_a> {
            context: &'cx mut Context<'cx_a>,
            default_values: &'a ComputedValues) -> AnimationValueIterator<'a, 'cx, 'cx_a> {
         AnimationValueIterator {
-            iter: declarations.declarations().iter(),
+            iter: declarations.declaration_importance_iter(),
             context: context,
             default_values: default_values,
         }
@@ -124,12 +142,10 @@ impl<'a, 'cx, 'cx_a:'cx> Iterator for AnimationValueIterator<'a, 'cx, 'cx_a> {
     type Item = (AnimatableLonghand, AnimationValue);
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        use properties::Importance;
-
         loop {
             let next = self.iter.next();
             match next {
-                Some(&(ref decl, importance)) => {
+                Some((decl, importance)) => {
                     if importance == Importance::Normal {
                         let property = AnimatableLonghand::from_declaration(decl);
                         let animation = AnimationValue::from_declaration(decl, &mut self.context,
@@ -166,7 +182,7 @@ impl PropertyDeclarationBlock {
     pub fn new() -> Self {
         PropertyDeclarationBlock {
             declarations: Vec::new(),
-            important_count: 0,
+            declarations_importance: SmallBitVec::new(),
             longhands: LonghandIdSet::new(),
         }
     }
@@ -178,22 +194,25 @@ impl PropertyDeclarationBlock {
             longhands.insert(id);
         }
         PropertyDeclarationBlock {
-            declarations: vec![(declaration, importance)],
-            important_count: if importance.important() { 1 } else { 0 },
+            declarations: vec![declaration],
+            declarations_importance: SmallBitVec::from_elem(1, importance.important()),
             longhands: longhands,
         }
     }
 
     /// The declarations in this block
-    pub fn declarations(&self) -> &[(PropertyDeclaration, Importance)] {
+    pub fn declarations(&self) -> &[PropertyDeclaration] {
         &self.declarations
     }
 
-    /// Iterate over only PropertyDeclaration.
-    pub fn declarations_iter(&self) -> PropertyDeclarationIterator {
-        PropertyDeclarationIterator {
-            iter: self.declarations.iter(),
-        }
+    /// The `important` flags for declarations in this block
+    pub fn declarations_importance(&self) -> &SmallBitVec {
+        &self.declarations_importance
+    }
+
+    /// Iterate over `(PropertyDeclaration, Importance)` pairs
+    pub fn declaration_importance_iter(&self) -> DeclarationImportanceIterator {
+        DeclarationImportanceIterator::new(&self.declarations, &self.declarations_importance)
     }
 
     /// Return an iterator of (AnimatableLonghand, AnimationValue).
@@ -206,27 +225,32 @@ impl PropertyDeclarationBlock {
 
     /// Returns whether this block contains any declaration with `!important`.
     ///
-    /// This is based on the `important_count` counter,
+    /// This is based on the `declarations_importance` bit-vector,
     /// which should be maintained whenever `declarations` is changed.
-    // FIXME: make fields private and maintain it here in methods?
     pub fn any_important(&self) -> bool {
-        self.important_count > 0
+        !self.declarations_importance.all_false()
     }
 
     /// Returns whether this block contains any declaration without `!important`.
     ///
-    /// This is based on the `important_count` counter,
+    /// This is based on the `declarations_importance` bit-vector,
     /// which should be maintained whenever `declarations` is changed.
-    // FIXME: make fields private and maintain it here in methods?
     pub fn any_normal(&self) -> bool {
-        self.declarations.len() > self.important_count
+        !self.declarations_importance.all_true()
     }
 
     /// Get a declaration for a given property.
     ///
     /// NOTE: This is linear time.
-    pub fn get(&self, property: PropertyDeclarationId) -> Option< &(PropertyDeclaration, Importance)> {
-        self.declarations.iter().find(|&&(ref decl, _)| decl.id() == property)
+    pub fn get(&self, property: PropertyDeclarationId) -> Option<(&PropertyDeclaration, Importance)> {
+        self.declarations.iter().enumerate().find(|&(_, decl)| decl.id() == property).map(|(i, decl)| {
+            let importance = if self.declarations_importance.get(i as u32) {
+                Importance::Important
+            } else {
+                Importance::Normal
+            };
+            (decl, importance)
+        })
     }
 
     /// Find the value of the given property in this block and serialize it
@@ -251,7 +275,7 @@ impl PropertyDeclarationBlock {
 
                     // Step 1.2.2.2 & 1.2.2.3
                     match declaration {
-                        Some(&(ref declaration, importance)) => {
+                        Some((declaration, importance)) => {
                             list.push(declaration);
                             if importance.important() {
                                 important_count += 1;
@@ -277,7 +301,7 @@ impl PropertyDeclarationBlock {
                 }
             }
             Err(longhand_or_custom) => {
-                if let Some(&(ref value, _importance)) = self.get(longhand_or_custom) {
+                if let Some((value, _importance)) = self.get(longhand_or_custom) {
                     // Step 2
                     value.to_css(dest)
                 } else {
@@ -298,7 +322,7 @@ impl PropertyDeclarationBlock {
                 // Step 2.1 & 2.2 & 2.3
                 if shorthand.longhands().iter().all(|&l| {
                     self.get(PropertyDeclarationId::Longhand(l))
-                        .map_or(false, |&(_, importance)| importance.important())
+                        .map_or(false, |(_, importance)| importance.important())
                 }) {
                     Importance::Important
                 } else {
@@ -307,7 +331,7 @@ impl PropertyDeclarationBlock {
             }
             Err(longhand_or_custom) => {
                 // Step 3
-                self.get(longhand_or_custom).map_or(Importance::Normal, |&(_, importance)| importance)
+                self.get(longhand_or_custom).map_or(Importance::Normal, |(_, importance)| importance)
             }
         }
     }
@@ -409,25 +433,24 @@ impl PropertyDeclarationBlock {
         if !definitely_new {
             let mut index_to_remove = None;
             for (i, slot) in self.declarations.iter_mut().enumerate() {
-                if slot.0.id() == declaration.id() {
-                    match (slot.1, importance) {
-                        (Importance::Normal, Importance::Important) => {
-                            self.important_count += 1;
-                        }
-                        (Importance::Important, Importance::Normal) => {
-                            if overwrite_more_important_and_reuse_slot {
-                                self.important_count -= 1;
-                            } else {
+                if slot.id() == declaration.id() {
+                    let important = self.declarations_importance.get(i as u32);
+                    match (important, importance.important()) {
+                        (false, true) => {}
+
+                        (true, false) => {
+                            if !overwrite_more_important_and_reuse_slot {
                                 return false
                             }
                         }
-                        _ => if slot.0 == declaration {
+                        _ => if *slot == declaration {
                             return false;
                         }
                     }
 
                     if overwrite_more_important_and_reuse_slot {
-                        *slot = (declaration, importance);
+                        *slot = declaration;
+                        self.declarations_importance.set(i as u32, importance.important());
                         return true;
                     }
 
@@ -441,7 +464,9 @@ impl PropertyDeclarationBlock {
 
             if let Some(index) = index_to_remove {
                 self.declarations.remove(index);
-                self.declarations.push((declaration, importance));
+                self.declarations_importance.remove(index as u32);
+                self.declarations.push(declaration);
+                self.declarations_importance.push(importance.important());
                 return true;
             }
         }
@@ -449,10 +474,8 @@ impl PropertyDeclarationBlock {
         if let Some(id) = longhand_id {
             self.longhands.insert(id);
         }
-        self.declarations.push((declaration, importance));
-        if importance.important() {
-            self.important_count += 1;
-        }
+        self.declarations.push(declaration);
+        self.declarations_importance.push(importance.important());
         true
     }
 
@@ -461,21 +484,13 @@ impl PropertyDeclarationBlock {
     /// Returns whether any declaration was updated.
     pub fn set_importance(&mut self, property: &PropertyId, new_importance: Importance) -> bool {
         let mut updated_at_least_one = false;
-        for &mut (ref declaration, ref mut importance) in &mut self.declarations {
+        for (i, declaration) in self.declarations.iter().enumerate() {
             if declaration.id().is_or_is_longhand_of(property) {
-                match (*importance, new_importance) {
-                    (Importance::Normal, Importance::Important) => {
-                        self.important_count += 1;
-                    }
-                    (Importance::Important, Importance::Normal) => {
-                        self.important_count -= 1;
-                    }
-                    _ => {
-                        continue;
-                    }
+                let is_important = new_importance.important();
+                if self.declarations_importance.get(i as u32) != is_important {
+                    self.declarations_importance.set(i as u32, is_important);
+                    updated_at_least_one = true;
                 }
-                updated_at_least_one = true;
-                *importance = new_importance;
             }
         }
         updated_at_least_one
@@ -490,20 +505,21 @@ impl PropertyDeclarationBlock {
                 return false
             }
         }
-        let important_count = &mut self.important_count;
         let mut removed_at_least_one = false;
         let longhands = &mut self.longhands;
-        self.declarations.retain(|&(ref declaration, importance)| {
+        let declarations_importance = &mut self.declarations_importance;
+        let mut i = 0;
+        self.declarations.retain(|declaration| {
             let id = declaration.id();
             let remove = id.is_or_is_longhand_of(property);
             if remove {
                 removed_at_least_one = true;
                 if let PropertyDeclarationId::Longhand(id) = id {
-                    longhands.remove(id)
+                    longhands.remove(id);
                 }
-                if importance.important() {
-                    *important_count -= 1
-                }
+                declarations_importance.remove(i);
+            } else {
+                i += 1;
             }
             !remove
         });
@@ -527,7 +543,7 @@ impl PropertyDeclarationBlock {
         match property.as_shorthand() {
             Err(_longhand_or_custom) => {
                 if self.declarations.len() == 1 {
-                    let declaration = &self.declarations[0].0;
+                    let declaration = &self.declarations[0];
                     // If we have a longhand declaration with variables, those variables will be
                     // stored as unparsed values. As a temporary measure to produce sensible results
                     // in Gecko's getKeyframes() implementation for CSS animations, if
@@ -549,10 +565,10 @@ impl PropertyDeclarationBlock {
                 }
             }
             Ok(shorthand) => {
-                if !self.declarations.iter().all(|decl| decl.0.shorthands().contains(&shorthand)) {
+                if !self.declarations.iter().all(|decl| decl.shorthands().contains(&shorthand)) {
                     return Err(fmt::Error)
                 }
-                let iter = self.declarations_iter();
+                let iter = self.declarations.iter();
                 match shorthand.get_shorthand_appendable_value(iter) {
                     Some(AppendableValue::Css { css, .. }) => {
                         dest.write_str(css)
@@ -569,17 +585,18 @@ impl PropertyDeclarationBlock {
     /// Convert AnimationValueMap to PropertyDeclarationBlock.
     #[cfg(feature = "gecko")]
     pub fn from_animation_value_map(animation_value_map: &AnimationValueMap) -> Self {
-        let mut declarations = vec![];
+        let len = animation_value_map.len();
+        let mut declarations = Vec::with_capacity(len);
         let mut longhands = LonghandIdSet::new();
 
         for (property, animation_value) in animation_value_map.iter() {
           longhands.set_animatable_longhand_bit(property);
-          declarations.push((animation_value.uncompute(), Importance::Normal));
+          declarations.push(animation_value.uncompute());
         }
 
         PropertyDeclarationBlock {
             declarations: declarations,
-            important_count: 0,
+            declarations_importance: SmallBitVec::from_elem(len as u32, false),
             longhands: longhands,
         }
     }
@@ -593,7 +610,7 @@ impl PropertyDeclarationBlock {
                 return false
             }
         }
-        self.declarations.iter().any(|&(ref decl, _)|
+        self.declarations.iter().any(|decl|
             decl.id().is_or_is_longhand_of(property) &&
             decl.get_css_wide_keyword().is_some()
         )
@@ -613,7 +630,7 @@ impl ToCss for PropertyDeclarationBlock {
         let mut already_serialized = PropertyDeclarationIdSet::new();
 
         // Step 3
-        for &(ref declaration, importance) in &*self.declarations {
+        for (declaration, importance) in self.declaration_importance_iter() {
             // Step 3.1
             let property = declaration.id();
 
@@ -639,13 +656,13 @@ impl ToCss for PropertyDeclarationBlock {
 
                     let is_system_font =
                         shorthand == ShorthandId::Font &&
-                        self.declarations.iter().any(|&(ref l, _)| {
+                        self.declarations.iter().any(|l| {
                             !already_serialized.contains(l.id()) &&
                             l.get_system().is_some()
                         });
 
                     if is_system_font {
-                        for &(ref longhand, longhand_importance) in &self.declarations {
+                        for (longhand, importance) in self.declaration_importance_iter() {
                             if already_serialized.contains(longhand.id()) {
                                 continue;
                             }
@@ -655,20 +672,20 @@ impl ToCss for PropertyDeclarationBlock {
                                 if found_system.is_none() {
                                    found_system = longhand.get_system();
                                 }
-                                if longhand_importance.important() {
+                                if importance.important() {
                                     important_count += 1;
                                 }
                             }
                         }
                     } else {
-                        for &(ref longhand, longhand_importance) in &self.declarations {
+                        for (longhand, importance) in self.declaration_importance_iter() {
                             if already_serialized.contains(longhand.id()) {
                                 continue;
                             }
 
                             if longhand.id().is_longhand_of(shorthand) {
                                 current_longhands.push(longhand);
-                                if longhand_importance.important() {
+                                if importance.important() {
                                     important_count += 1;
                                 }
                             }

@@ -12,6 +12,7 @@
 
 #[cfg(feature = "servo")] use app_units::Au;
 use servo_arc::{Arc, UniqueArc};
+use smallbitvec::SmallBitVec;
 use std::borrow::Cow;
 use hash::HashSet;
 use std::{fmt, mem, ops};
@@ -3028,25 +3029,26 @@ pub fn cascade(
                   ptr::eq(parent_style.unwrap(),
                           parent_style_ignoring_first_line.unwrap()) ||
                   parent_style.unwrap().pseudo() == Some(PseudoElement::FirstLine));
+    let empty = SmallBitVec::new();
     let iter_declarations = || {
         rule_node.self_and_ancestors().flat_map(|node| {
             let cascade_level = node.cascade_level();
             let source = node.style_source();
+
             let declarations = if source.is_some() {
-                source.read(cascade_level.guard(guards)).declarations()
+                source.read(cascade_level.guard(guards)).declaration_importance_iter()
             } else {
                 // The root node has no style source.
-                &[]
+                DeclarationImportanceIterator::new(&[], &empty)
             };
             let node_importance = node.importance();
 
             let property_restriction = pseudo.and_then(|p| p.property_restriction());
 
             declarations
-                .iter()
                 // Yield declarations later in source order (with more precedence) first.
                 .rev()
-                .filter_map(move |&(ref declaration, declaration_importance)| {
+                .filter_map(move |(declaration, declaration_importance)| {
                     if let Some(property_restriction) = property_restriction {
                         // declaration.id() is either a longhand or a custom
                         // property.  Custom properties are always allowed, but

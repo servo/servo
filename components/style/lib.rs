@@ -40,7 +40,6 @@
 extern crate app_units;
 extern crate arrayvec;
 extern crate atomic_refcell;
-extern crate bit_vec;
 #[macro_use]
 extern crate bitflags;
 #[allow(unused_extern_crates)] extern crate byteorder;
@@ -81,6 +80,7 @@ pub extern crate servo_arc;
 #[cfg(feature = "servo")] #[macro_use] extern crate servo_atoms;
 #[cfg(feature = "servo")] extern crate servo_config;
 #[cfg(feature = "servo")] extern crate servo_url;
+extern crate smallbitvec;
 extern crate smallvec;
 #[macro_use]
 extern crate style_derive;

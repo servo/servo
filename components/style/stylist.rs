@@ -6,7 +6,6 @@
 
 use {Atom, LocalName, Namespace};
 use applicable_declarations::{ApplicableDeclarationBlock, ApplicableDeclarationList};
-use bit_vec::BitVec;
 use context::{CascadeInputs, QuirksMode};
 use dom::TElement;
 use element_state::ElementState;
@@ -35,6 +34,7 @@ use selectors::sink::Push;
 use selectors::visitor::SelectorVisitor;
 use servo_arc::{Arc, ArcBorrow};
 use shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
+use smallbitvec::SmallBitVec;
 use smallvec::VecLike;
 use std::fmt::Debug;
 use std::ops;
@@ -1560,7 +1560,7 @@ impl Stylist {
         element: &E,
         bloom: Option<&BloomFilter>,
         flags_setter: &mut F
-    ) -> BitVec
+    ) -> SmallBitVec
     where
         E: TElement,
         F: FnMut(&E, ElementSelectorFlags),
@@ -1575,7 +1575,7 @@ impl Stylist {
         // This means we're guaranteed to get the same rulehash buckets for all
         // the lookups, which means that the bitvecs are comparable. We verify
         // this in the caller by asserting that the bitvecs are same-length.
-        let mut results = BitVec::new();
+        let mut results = SmallBitVec::new();
         for (data, _) in self.cascade_data.iter_origins() {
             data.selectors_for_cache_revalidation.lookup(
                 *element,

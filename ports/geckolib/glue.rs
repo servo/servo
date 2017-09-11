@@ -2261,7 +2261,7 @@ pub extern "C" fn Servo_SerializeFontValueForCanvas(
     use style::properties::shorthands::font;
 
     read_locked_arc(declarations, |decls: &PropertyDeclarationBlock| {
-        let longhands = match font::LonghandsToSerialize::from_iter(decls.declarations_iter()) {
+        let longhands = match font::LonghandsToSerialize::from_iter(decls.declarations().iter()) {
             Ok(l) => l,
             Err(()) => {
                 warn!("Unexpected property!");
@@ -2289,7 +2289,7 @@ pub extern "C" fn Servo_DeclarationBlock_Count(declarations: RawServoDeclaration
 pub extern "C" fn Servo_DeclarationBlock_GetNthProperty(declarations: RawServoDeclarationBlockBorrowed,
                                                         index: u32, result: *mut nsAString) -> bool {
     read_locked_arc(declarations, |decls: &PropertyDeclarationBlock| {
-        if let Some(&(ref decl, _)) = decls.declarations().get(index as usize) {
+        if let Some(decl) = decls.declarations().get(index as usize) {
             let result = unsafe { result.as_mut().unwrap() };
             result.assign_utf8(&decl.id().name());
             true
@@ -3407,8 +3407,8 @@ pub extern "C" fn Servo_AnimationValue_Compute(element: RawGeckoElementBorrowed,
     let guard = global_style_data.shared_lock.read();
     let declarations = Locked::<PropertyDeclarationBlock>::as_arc(&declarations);
     // We only compute the first element in declarations.
-    match declarations.read_with(&guard).declarations().first() {
-        Some(&(ref decl, imp)) if imp == Importance::Normal => {
+    match declarations.read_with(&guard).declaration_importance_iter().next() {
+        Some((decl, imp)) if imp == Importance::Normal => {
             let animation = AnimationValue::from_declaration(decl, &mut context, default_values);
             animation.map_or(RawServoAnimationValueStrong::null(), |value| {
                 Arc::new(value).into_strong()
@@ -3554,11 +3554,9 @@ pub extern "C" fn Servo_StyleSet_GetKeyframesForName(raw_data: RawServoStyleSetB
                 let animatable =
                     guard.declarations()
                          .iter()
-                         .filter(|&&(ref declaration, _)| {
-                             declaration.is_animatable()
-                         });
+                         .filter(|declaration| declaration.is_animatable());
 
-                for &(ref declaration, _) in animatable {
+                for declaration in animatable {
                     let property = AnimatableLonghand::from_declaration(declaration).unwrap();
                     // Skip the 'display' property because although it is animatable from SMIL,
                     // it should not be animatable from CSS Animations.
