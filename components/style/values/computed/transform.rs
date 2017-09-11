@@ -89,6 +89,15 @@ impl TransformList {
                 ComputedOperation::Perspective(d) => {
                     Self::create_perspective_matrix(d.px())
                 }
+                ComputedOperation::ScaleX(sx) => {
+                    Transform3D::create_scale(sx, 1., 1.)
+                }
+                ComputedOperation::ScaleY(sy) => {
+                    Transform3D::create_scale(1., sy, 1.)
+                }
+                ComputedOperation::ScaleZ(sz) => {
+                    Transform3D::create_scale(1., 1., sz)
+                }
                 ComputedOperation::Scale(sx, sy, sz) => {
                     Transform3D::create_scale(sx, sy, sz)
                 }

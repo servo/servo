@@ -689,6 +689,9 @@ ${helpers.predefined_type(
             Translate(computed::LengthOrPercentage,
                       computed::LengthOrPercentage,
                       computed::Length),
+            ScaleX(CSSFloat),
+            ScaleY(CSSFloat),
+            ScaleZ(CSSFloat),
             Scale(CSSFloat, CSSFloat, CSSFloat),
             Rotate(CSSFloat, CSSFloat, CSSFloat, computed::Angle),
             Perspective(computed::Length),
@@ -1292,15 +1295,15 @@ ${helpers.predefined_type(
                     }
                     SpecifiedOperation::ScaleX(sx) => {
                         let sx = sx.to_computed_value(context);
-                        result.push(computed_value::ComputedOperation::Scale(sx, 1.0, 1.0));
+                        result.push(computed_value::ComputedOperation::ScaleX(sx));
                     }
                     SpecifiedOperation::ScaleY(sy) => {
                         let sy = sy.to_computed_value(context);
-                        result.push(computed_value::ComputedOperation::Scale(1.0, sy, 1.0));
+                        result.push(computed_value::ComputedOperation::ScaleY(sy));
                     }
                     SpecifiedOperation::ScaleZ(sz) => {
                         let sz = sz.to_computed_value(context);
-                        result.push(computed_value::ComputedOperation::Scale(1.0, 1.0, sz));
+                        result.push(computed_value::ComputedOperation::ScaleZ(sz));
                     }
                     SpecifiedOperation::Scale3D(sx, sy, sz) => {
                         let sx = sx.to_computed_value(context);
@@ -1434,6 +1437,18 @@ ${helpers.predefined_type(
                                               ToComputedValue::from_computed_value(tx),
                                               ToComputedValue::from_computed_value(ty),
                                               ToComputedValue::from_computed_value(tz)));
+                        }
+                        computed_value::ComputedOperation::ScaleX(ref sx) => {
+                            result.push(SpecifiedOperation::ScaleX(
+                                              ToComputedValue::from_computed_value(sx)));
+                        }
+                        computed_value::ComputedOperation::ScaleY(ref sy) => {
+                            result.push(SpecifiedOperation::ScaleY(
+                                              ToComputedValue::from_computed_value(sy)));
+                        }
+                        computed_value::ComputedOperation::ScaleZ(ref sz) => {
+                            result.push(SpecifiedOperation::ScaleZ(
+                                              ToComputedValue::from_computed_value(sz)));
                         }
                         computed_value::ComputedOperation::Scale(ref sx, ref sy, ref sz) => {
                             result.push(SpecifiedOperation::Scale3D(

@@ -3073,6 +3073,9 @@ fn static_assert() {
                 ${transform_function_arm("TranslateY", "translatey", ["lop"])}
                 ${transform_function_arm("TranslateZ", "translatez", ["length"])}
                 ${transform_function_arm("Translate", "translate3d", ["lop", "lop", "length"])}
+                ${transform_function_arm("ScaleX", "scalex", ["number"])}
+                ${transform_function_arm("ScaleY", "scaley", ["number"])}
+                ${transform_function_arm("ScaleZ", "scalez", ["number"])}
                 ${transform_function_arm("Scale", "scale3d", ["number"] * 3)}
                 ${transform_function_arm("Rotate", "rotate3d", ["number"] * 3 + ["angle"])}
                 ${transform_function_arm("Perspective", "perspective", ["length"])}
@@ -3197,6 +3200,9 @@ fn static_assert() {
                 ${computed_operation_arm("TranslateY", "translatey", ["lop"])}
                 ${computed_operation_arm("TranslateZ", "translatez", ["length"])}
                 ${computed_operation_arm("Translate", "translate3d", ["lop", "lop", "length"])}
+                ${computed_operation_arm("ScaleX", "scalex", ["number"])}
+                ${computed_operation_arm("ScaleY", "scaley", ["number"])}
+                ${computed_operation_arm("ScaleZ", "scalez", ["number"])}
                 ${computed_operation_arm("Scale", "scale3d", ["number"] * 3)}
                 ${computed_operation_arm("Rotate", "rotate3d", ["number"] * 3 + ["angle"])}
                 ${computed_operation_arm("Perspective", "perspective", ["length"])}
