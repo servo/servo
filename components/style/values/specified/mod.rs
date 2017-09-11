@@ -83,8 +83,6 @@ pub mod url {
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use style_traits::ParseError;
-#[cfg(feature = "gecko")]
-use values::computed::ComputedValueAsSpecified;
 
 #[cfg(feature = "servo")]
 pub use ::servo::url::*;
@@ -99,10 +97,6 @@ impl Parse for SpecifiedUrl {
 }
 
 impl Eq for SpecifiedUrl {}
-
-#[cfg(feature = "gecko")]
-impl ComputedValueAsSpecified for SpecifiedUrl {}
-
 }
 
 /// Parse an `<integer>` value, handling `calc()` correctly.

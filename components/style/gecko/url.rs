@@ -30,6 +30,7 @@ pub struct SpecifiedUrl {
     /// a property with this specified url value.
     pub image_value: Option<RefPtr<ImageValue>>,
 }
+trivial_to_computed_value!(SpecifiedUrl);
 
 impl SpecifiedUrl {
     /// Try to parse a URL from a string value that is a valid CSS token for a
