@@ -35,7 +35,6 @@
   async_test(function (t) {
   var observer = new PerformanceObserver(
       t.step_func(function (entryList, obs) {
-        assert_equals(observer, obs, "observer is second parameter");
         checkEntries(entryList.getEntries(),
           [{ entryType: "measure", name: "measure1"}]);
         observer.disconnect();
