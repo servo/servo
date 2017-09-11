@@ -984,7 +984,13 @@ impl<'a, 'b, 'i> DeclarationParser<'i> for PropertyDeclarationParser<'a, 'b> {
         };
         input.parse_until_before(Delimiter::Bang, |input| {
             PropertyDeclaration::parse_into(self.declarations, id, self.context, input)
-                .map_err(|e| e.into())
+                .map_err(|e| {
+                    if let PropertyDeclarationParseError::InvalidValue(_, e) = e {
+                        PropertyDeclarationParseError::InvalidValue(name, e).into()
+                    } else {
+                        e.into()
+                    }
+                })
         })?;
         let importance = match input.try(parse_important) {
             Ok(()) => Importance::Important,
