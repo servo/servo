@@ -9,11 +9,8 @@
 <%helpers:longhand name="cursor" boxed="${product == 'gecko'}" animation_value_type="discrete"
   spec="https://drafts.csswg.org/css-ui/#cursor">
     pub use self::computed_value::T as SpecifiedValue;
-    use values::computed::ComputedValueAsSpecified;
     #[cfg(feature = "gecko")]
     use values::specified::url::SpecifiedUrl;
-
-    impl ComputedValueAsSpecified for SpecifiedValue {}
 
     pub mod computed_value {
         #[cfg(feature = "gecko")]
@@ -25,7 +22,7 @@
         use values::specified::url::SpecifiedUrl;
 
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        #[derive(Clone, Copy, Debug, PartialEq, ToCss)]
+        #[derive(Clone, Copy, Debug, PartialEq, ToComputedValue, ToCss)]
         pub enum Keyword {
             Auto,
             Cursor(Cursor),
@@ -35,14 +32,14 @@
         pub type T = Keyword;
 
         #[cfg(feature = "gecko")]
-        #[derive(Clone, Debug, PartialEq)]
+        #[derive(Clone, Debug, PartialEq, ToComputedValue)]
         pub struct Image {
             pub url: SpecifiedUrl,
             pub hotspot: Option<(f32, f32)>,
         }
 
         #[cfg(feature = "gecko")]
-        #[derive(Clone, Debug, PartialEq)]
+        #[derive(Clone, Debug, PartialEq, ToComputedValue)]
         pub struct T {
             pub images: Vec<Image>,
             pub keyword: Keyword,

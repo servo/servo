@@ -19,6 +19,7 @@ use std::fmt;
 #[cfg(feature = "servo")]
 use std::sync::Arc;
 use style_traits::ToCss;
+use style_traits::cursor::Cursor;
 use super::{CSSFloat, CSSInteger};
 use super::generics::{GreaterThanOrEqualToOne, NonNegative};
 use super::generics::grid::{GridLine as GenericGridLine, TrackBreadth as GenericTrackBreadth};
@@ -340,6 +341,7 @@ trivial_to_computed_value!(u8);
 trivial_to_computed_value!(u16);
 trivial_to_computed_value!(Atom);
 trivial_to_computed_value!(BorderStyle);
+trivial_to_computed_value!(Cursor);
 trivial_to_computed_value!(Namespace);
 trivial_to_computed_value!(String);
 
