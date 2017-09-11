@@ -316,7 +316,7 @@
 
             % if not property.derived_from:
                 match value {
-                    DeclaredValue::Value(ref specified_value) => {
+                    DeclaredValue::Value(specified_value) => {
                         % if property.ident in SYSTEM_FONT_LONGHANDS and product == "gecko":
                             if let Some(sf) = specified_value.get_system() {
                                 longhands::system_font::resolve_system_font(sf, context);

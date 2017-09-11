@@ -338,6 +338,7 @@ trivial_to_computed_value!(f32);
 trivial_to_computed_value!(i32);
 trivial_to_computed_value!(u8);
 trivial_to_computed_value!(u16);
+trivial_to_computed_value!(u32);
 trivial_to_computed_value!(Atom);
 trivial_to_computed_value!(BorderStyle);
 trivial_to_computed_value!(Cursor);
