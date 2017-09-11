@@ -1175,15 +1175,12 @@ ${helpers.single_keyword_system("font-variant-caps",
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-synthesis">
     use std::fmt;
     use style_traits::ToCss;
-    use values::computed::ComputedValueAsSpecified;
-
-    impl ComputedValueAsSpecified for SpecifiedValue {}
 
     pub mod computed_value {
         pub use super::SpecifiedValue as T;
     }
 
-    #[derive(Clone, Debug, PartialEq)]
+    #[derive(Clone, Debug, PartialEq, ToComputedValue)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue {
         pub weight: bool,
@@ -2186,10 +2183,7 @@ https://drafts.csswg.org/css-fonts-4/#low-level-font-variation-settings-control-
 
 <%helpers:longhand name="-x-lang" products="gecko" animation_value_type="none" internal="True"
                    spec="Internal (not web-exposed)">
-    use values::computed::ComputedValueAsSpecified;
     pub use self::computed_value::T as SpecifiedValue;
-
-    impl ComputedValueAsSpecified for SpecifiedValue {}
 
     pub mod computed_value {
         use Atom;
@@ -2202,7 +2196,7 @@ https://drafts.csswg.org/css-fonts-4/#low-level-font-variation-settings-control-
             }
         }
 
-        #[derive(Clone, Debug, PartialEq)]
+        #[derive(Clone, Debug, PartialEq, ToComputedValue)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T(pub Atom);
     }
@@ -2393,10 +2387,7 @@ ${helpers.single_keyword("-moz-math-variant",
 
 <%helpers:longhand name="-x-text-zoom" products="gecko" animation_value_type="none" internal="True"
                    spec="Internal (not web-exposed)">
-    use values::computed::ComputedValueAsSpecified;
     pub use self::computed_value::T as SpecifiedValue;
-
-    impl ComputedValueAsSpecified for SpecifiedValue {}
 
     pub mod computed_value {
         use std::fmt;
@@ -2408,7 +2399,7 @@ ${helpers.single_keyword("-moz-math-variant",
             }
         }
 
-        #[derive(Clone, Debug, PartialEq)]
+        #[derive(Clone, Debug, PartialEq, ToComputedValue)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         /// text-zoom. Enable if true, disable if false
         pub struct T(pub bool);

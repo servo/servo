@@ -21,9 +21,9 @@ use std::sync::Arc;
 use style_traits::ToCss;
 use super::{CSSFloat, CSSInteger};
 use super::generics::{GreaterThanOrEqualToOne, NonNegative};
-use super::generics::grid::{TrackBreadth as GenericTrackBreadth, TrackSize as GenericTrackSize};
+use super::generics::grid::{GridLine as GenericGridLine, TrackBreadth as GenericTrackBreadth};
+use super::generics::grid::{TrackSize as GenericTrackSize, TrackList as GenericTrackList};
 use super::generics::grid::GridTemplateComponent as GenericGridTemplateComponent;
-use super::generics::grid::TrackList as GenericTrackList;
 use super::specified;
 
 pub use app_units::Au;
@@ -44,7 +44,6 @@ pub use self::gecko::ScrollSnapPoint;
 pub use self::rect::LengthOrNumberRect;
 pub use super::{Auto, Either, None_};
 pub use super::specified::BorderStyle;
-pub use super::generics::grid::GridLine;
 pub use self::length::{CalcLengthOrPercentage, Length, LengthOrNone, LengthOrNumber, LengthOrPercentage};
 pub use self::length::{LengthOrPercentageOrAuto, LengthOrPercentageOrNone, MaxLength, MozLength};
 pub use self::length::NonNegativeLengthOrPercentage;
@@ -333,11 +332,13 @@ impl<T> ToComputedValue for T
     }
 }
 
-impl ComputedValueAsSpecified for Atom {}
-impl ComputedValueAsSpecified for bool {}
-impl ComputedValueAsSpecified for f32 {}
-
-impl ComputedValueAsSpecified for specified::BorderStyle {}
+trivial_to_computed_value!(Atom);
+trivial_to_computed_value!(u8);
+trivial_to_computed_value!(u16);
+trivial_to_computed_value!(bool);
+trivial_to_computed_value!(i32);
+trivial_to_computed_value!(f32);
+trivial_to_computed_value!(BorderStyle);
 
 /// A `<number>` value.
 pub type Number = CSSFloat;
@@ -501,10 +502,13 @@ pub type TrackSize = GenericTrackSize<LengthOrPercentage>;
 
 /// The computed value of a grid `<track-list>`
 /// (could also be `<auto-track-list>` or `<explicit-track-list>`)
-pub type TrackList = GenericTrackList<LengthOrPercentage>;
+pub type TrackList = GenericTrackList<LengthOrPercentage, Integer>;
+
+/// The computed value of a `<grid-line>`.
+pub type GridLine = GenericGridLine<Integer>;
 
 /// `<grid-template-rows> | <grid-template-columns>`
-pub type GridTemplateComponent = GenericGridTemplateComponent<LengthOrPercentage>;
+pub type GridTemplateComponent = GenericGridTemplateComponent<LengthOrPercentage, Integer>;
 
 impl ClipRectOrAuto {
     /// Return an auto (default for clip-rect and image-region) value

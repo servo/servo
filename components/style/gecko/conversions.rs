@@ -18,7 +18,7 @@ use gecko_bindings::sugar::ns_style_coord::{CoordDataValue, CoordData, CoordData
 use std::f32::consts::PI;
 use stylesheets::{Origin, RulesMutateError};
 use values::computed::{Angle, CalcLengthOrPercentage, Gradient, Image};
-use values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto, Percentage};
+use values::computed::{Integer, LengthOrPercentage, LengthOrPercentageOrAuto, Percentage};
 use values::generics::box_::VerticalAlign;
 use values::generics::grid::{TrackListValue, TrackSize};
 use values::generics::image::{CompatMode, Image as GenericImage, GradientItem};
@@ -896,7 +896,7 @@ impl TrackSize<LengthOrPercentage> {
     }
 }
 
-impl TrackListValue<LengthOrPercentage> {
+impl TrackListValue<LengthOrPercentage, Integer> {
     /// Return TrackSize from given two nsStyleCoord
     pub fn from_gecko_style_coords<T: CoordData>(gecko_min: &T, gecko_max: &T) -> Self {
         TrackListValue::TrackSize(TrackSize::from_gecko_style_coords(gecko_min, gecko_max))

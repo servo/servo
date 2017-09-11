@@ -4,6 +4,22 @@
 
 //! Various macro helpers.
 
+macro_rules! trivial_to_computed_value {
+    ($name: ident) => {
+        impl $crate::values::computed::ToComputedValue for $name {
+            type ComputedValue = $name;
+
+            fn to_computed_value(&self, _: &$crate::values::computed::Context) -> Self {
+                self.clone()
+            }
+
+            fn from_computed_value(other: &Self) -> Self {
+                other.clone()
+            }
+        }
+    }
+}
+
 /// A macro to parse an identifier, or return an `UnexpectedIndent` error
 /// otherwise.
 ///
@@ -35,10 +51,10 @@ macro_rules! define_numbered_css_keyword_enum {
         }
 
         impl $crate::parser::Parse for $name {
-            #[allow(missing_docs)]
-            fn parse<'i, 't>(_context: &$crate::parser::ParserContext,
-                             input: &mut ::cssparser::Parser<'i, 't>)
-                             -> Result<$name, ::style_traits::ParseError<'i>> {
+            fn parse<'i, 't>(
+                _context: &$crate::parser::ParserContext,
+                input: &mut ::cssparser::Parser<'i, 't>,
+            ) -> Result<$name, ::style_traits::ParseError<'i>> {
                 try_match_ident_ignore_ascii_case! { input.expect_ident()?,
                     $( $css => Ok($name::$variant), )+
                 }
@@ -47,7 +63,8 @@ macro_rules! define_numbered_css_keyword_enum {
 
         impl ::style_traits::values::ToCss for $name {
             fn to_css<W>(&self, dest: &mut W) -> ::std::fmt::Result
-                where W: ::std::fmt::Write,
+            where
+                W: ::std::fmt::Write,
             {
                 match *self {
                     $( $name::$variant => dest.write_str($css) ),+
@@ -57,7 +74,7 @@ macro_rules! define_numbered_css_keyword_enum {
     }
 }
 
-/// A macro for implementing `ComputedValueAsSpecified`, and `Parse` traits for
+/// A macro for implementing `ToComputedValue`, and `Parse` traits for
 /// the enums defined using `define_css_keyword_enum` macro.
 ///
 /// NOTE: We should either move `Parse` trait to `style_traits`
@@ -67,14 +84,15 @@ macro_rules! add_impls_for_keyword_enum {
     ($name:ident) => {
         impl $crate::parser::Parse for $name {
             #[inline]
-            fn parse<'i, 't>(_context: &$crate::parser::ParserContext,
-                             input: &mut ::cssparser::Parser<'i, 't>)
-                             -> Result<Self, ::style_traits::ParseError<'i>> {
+            fn parse<'i, 't>(
+                _context: &$crate::parser::ParserContext,
+                input: &mut ::cssparser::Parser<'i, 't>,
+            ) -> Result<Self, ::style_traits::ParseError<'i>> {
                 $name::parse(input)
             }
         }
 
-        impl $crate::values::computed::ComputedValueAsSpecified for $name {}
+        trivial_to_computed_value!($name);
     };
 }
 
@@ -83,7 +101,7 @@ macro_rules! define_keyword_type {
         #[allow(missing_docs)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         #[derive(Animate, Clone, ComputeSquaredDistance, Copy, PartialEq)]
-        #[derive(ToAnimatedZero, ToCss)]
+        #[derive(ToAnimatedZero, ToComputedValue, ToCss)]
         pub struct $name;
 
         impl fmt::Debug for $name {
@@ -93,14 +111,14 @@ macro_rules! define_keyword_type {
         }
 
         impl $crate::parser::Parse for $name {
-            fn parse<'i, 't>(_context: &$crate::parser::ParserContext,
-                             input: &mut ::cssparser::Parser<'i, 't>)
-                             -> Result<$name, ::style_traits::ParseError<'i>> {
+            fn parse<'i, 't>(
+                _context: &$crate::parser::ParserContext,
+                input: &mut ::cssparser::Parser<'i, 't>
+            ) -> Result<$name, ::style_traits::ParseError<'i>> {
                 input.expect_ident_matching($css).map(|_| $name).map_err(|e| e.into())
             }
         }
 
-        impl $crate::values::computed::ComputedValueAsSpecified for $name {}
         impl $crate::values::animated::AnimatedValueAsComputed for $name {}
     };
 }

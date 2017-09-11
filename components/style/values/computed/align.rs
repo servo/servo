@@ -8,7 +8,7 @@
 
 use std::fmt;
 use style_traits::ToCss;
-use values::computed::{ComputedValueAsSpecified, Context, ToComputedValue};
+use values::computed::{Context, ToComputedValue};
 use values::specified;
 
 pub use super::specified::{AlignItems, AlignJustifyContent, AlignJustifySelf};
@@ -69,7 +69,3 @@ impl ToComputedValue for specified::JustifyItems {
         computed.specified
     }
 }
-
-impl ComputedValueAsSpecified for AlignItems {}
-impl ComputedValueAsSpecified for AlignJustifyContent {}
-impl ComputedValueAsSpecified for AlignJustifySelf {}

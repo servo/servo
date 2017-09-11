@@ -1700,7 +1700,7 @@ fn static_assert() {
         if let Some(integer) = v.line_num {
             // clamping the integer between a range
             self.gecko.${value.gecko}.mInteger = cmp::max(nsStyleGridLine_kMinLine,
-                cmp::min(integer.value(), nsStyleGridLine_kMaxLine));
+                cmp::min(integer, nsStyleGridLine_kMaxLine));
         }
     }
 
@@ -1717,7 +1717,6 @@ fn static_assert() {
     pub fn clone_${value.name}(&self) -> longhands::${value.name}::computed_value::T {
         use gecko_bindings::structs::{nsStyleGridLine_kMinLine, nsStyleGridLine_kMaxLine};
         use string_cache::Atom;
-        use values::specified::Integer;
 
         longhands::${value.name}::computed_value::T {
             is_span: self.gecko.${value.gecko}.mHasSpan,
@@ -1735,7 +1734,7 @@ fn static_assert() {
                 } else {
                     debug_assert!(nsStyleGridLine_kMinLine <= self.gecko.${value.gecko}.mInteger);
                     debug_assert!(self.gecko.${value.gecko}.mInteger <= nsStyleGridLine_kMaxLine);
-                    Some(Integer::new(self.gecko.${value.gecko}.mInteger))
+                    Some(self.gecko.${value.gecko}.mInteger)
                 },
         }
     }

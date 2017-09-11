@@ -291,27 +291,24 @@ ${helpers.predefined_type("object-position",
         animation_value_type="discrete">
     use std::fmt;
     use style_traits::ToCss;
-    use values::computed::ComputedValueAsSpecified;
 
     pub type SpecifiedValue = computed_value::T;
 
     pub mod computed_value {
-        #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+        #[derive(Clone, Copy, Debug, Eq, PartialEq, ToComputedValue)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub enum AutoFlow {
             Row,
             Column,
         }
 
-        #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+        #[derive(Clone, Copy, Debug, Eq, PartialEq, ToComputedValue)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T {
             pub autoflow: AutoFlow,
             pub dense: bool,
         }
     }
-
-    impl ComputedValueAsSpecified for SpecifiedValue {}
 
     impl ToCss for computed_value::T {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
@@ -421,7 +418,6 @@ ${helpers.predefined_type("object-position",
     use std::ops::Range;
     use str::HTML_SPACE_CHARACTERS;
     use style_traits::ToCss;
-    use values::computed::ComputedValueAsSpecified;
 
     pub mod computed_value {
         pub use super::SpecifiedValue as T;
@@ -453,11 +449,13 @@ ${helpers.predefined_type("object-position",
         pub columns: Range<u32>,
     }
 
-    impl ComputedValueAsSpecified for TemplateAreas {}
+    trivial_to_computed_value!(TemplateAreas);
 
     impl Parse for TemplateAreas {
-        fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
-                         -> Result<Self, ParseError<'i>> {
+        fn parse<'i, 't>(
+            _context: &ParserContext,
+            input: &mut Parser<'i, 't>,
+        ) -> Result<Self, ParseError<'i>> {
             let mut strings = vec![];
             while let Ok(string) = input.try(|i| i.expect_string().map(|s| s.as_ref().into())) {
                 strings.push(string);

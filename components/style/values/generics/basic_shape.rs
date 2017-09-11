@@ -8,7 +8,6 @@
 use std::fmt;
 use style_traits::ToCss;
 use values::animated::{Animate, Procedure, ToAnimatedZero};
-use values::computed::ComputedValueAsSpecified;
 use values::distance::{ComputeSquaredDistance, SquaredDistance};
 use values::generics::border::BorderRadius;
 use values::generics::position::Position;
@@ -20,14 +19,13 @@ pub type ClippingShape<BasicShape, Url> = ShapeSource<BasicShape, GeometryBox, U
 /// https://drafts.fxtf.org/css-masking-1/#typedef-geometry-box
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Copy, Debug, PartialEq, ToCss)]
+#[derive(Clone, Copy, Debug, PartialEq, ToComputedValue, ToCss)]
 pub enum GeometryBox {
     FillBox,
     StrokeBox,
     ViewBox,
     ShapeBox(ShapeBox),
 }
-impl ComputedValueAsSpecified for GeometryBox {}
 
 /// A float area shape, for `shape-outside`.
 pub type FloatAreaShape<BasicShape, Url> = ShapeSource<BasicShape, ShapeBox, Url>;

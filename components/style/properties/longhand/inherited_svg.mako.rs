@@ -268,10 +268,6 @@ ${helpers.predefined_type("marker-end", "UrlOrNone", "Either::Second(None_)",
                    spec="Nonstandard (Internal-only)"
                    allow_empty="True">
     use values::CustomIdent;
-    use values::computed::ComputedValueAsSpecified;
-
-
-    impl ComputedValueAsSpecified for SpecifiedValue { }
 
     pub type SpecifiedValue = CustomIdent;
 
