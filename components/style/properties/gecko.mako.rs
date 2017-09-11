@@ -3069,6 +3069,9 @@ fn static_assert() {
                 ${transform_function_arm("MatrixWithPercents", "matrix3d", ["number"] * 12 + ["lop"] * 2
                                          + ["length"] + ["number"])}
                 ${transform_function_arm("Skew", "skew", ["angle"] * 2)}
+                ${transform_function_arm("TranslateX", "translatex", ["lop"])}
+                ${transform_function_arm("TranslateY", "translatey", ["lop"])}
+                ${transform_function_arm("TranslateZ", "translatez", ["length"])}
                 ${transform_function_arm("Translate", "translate3d", ["lop", "lop", "length"])}
                 ${transform_function_arm("Scale", "scale3d", ["number"] * 3)}
                 ${transform_function_arm("Rotate", "rotate3d", ["number"] * 3 + ["angle"])}
@@ -3189,6 +3192,10 @@ fn static_assert() {
             match transform_function {
                 ${computed_operation_arm("Matrix", "matrix3d", ["number"] * 16)}
                 ${computed_operation_arm("Skew", "skew", ["angle"] * 2)}
+
+                ${computed_operation_arm("TranslateX", "translatex", ["lop"])}
+                ${computed_operation_arm("TranslateY", "translatey", ["lop"])}
+                ${computed_operation_arm("TranslateZ", "translatez", ["length"])}
                 ${computed_operation_arm("Translate", "translate3d", ["lop", "lop", "length"])}
                 ${computed_operation_arm("Scale", "scale3d", ["number"] * 3)}
                 ${computed_operation_arm("Rotate", "rotate3d", ["number"] * 3 + ["angle"])}

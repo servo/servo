@@ -92,6 +92,23 @@ impl TransformList {
                 ComputedOperation::Scale(sx, sy, sz) => {
                     Transform3D::create_scale(sx, sy, sz)
                 }
+                ComputedOperation::TranslateX(tx) => {
+                    let tx =  match reference_box {
+                        Some(relative_border_box) => tx.to_used_value(relative_border_box.size.width).to_f32_px(),
+                        None => extract_pixel_length(&tx),
+                    };
+                    Transform3D::create_translation(tx, 0., 0.)
+                }
+                ComputedOperation::TranslateY(ty) => {
+                    let ty =  match reference_box {
+                        Some(relative_border_box) => ty.to_used_value(relative_border_box.size.height).to_f32_px(),
+                        None => extract_pixel_length(&ty),
+                    };
+                    Transform3D::create_translation(0., ty, 0.)
+                }
+                ComputedOperation::TranslateZ(tz) => {
+                    Transform3D::create_translation(0., 0., tz.to_f32_px())
+                }
                 ComputedOperation::Translate(tx, ty, tz) => {
                     let (tx, ty) = match reference_box {
                         Some(relative_border_box) => {

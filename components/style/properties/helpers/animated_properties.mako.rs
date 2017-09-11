@@ -1135,6 +1135,21 @@ impl ToAnimatedZero for TransformOperation {
                     sy.to_animated_zero()?,
                 ))
             },
+            TransformOperation::TranslateX(ref tx) => {
+                Ok(TransformOperation::TranslateX(
+                    tx.to_animated_zero()?
+                ))
+            },
+            TransformOperation::TranslateY(ref ty) => {
+                Ok(TransformOperation::TranslateY(
+                    ty.to_animated_zero()?
+                ))
+            },
+            TransformOperation::TranslateZ(ref tz) => {
+                Ok(TransformOperation::TranslateZ(
+                    tz.to_animated_zero()?
+                ))
+            },
             TransformOperation::Translate(ref tx, ref ty, ref tz) => {
                 Ok(TransformOperation::Translate(
                     tx.to_animated_zero()?,

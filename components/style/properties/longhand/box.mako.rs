@@ -683,6 +683,9 @@ ${helpers.predefined_type(
             // For `-moz-transform` matrix and matrix3d.
             MatrixWithPercents(ComputedMatrixWithPercents),
             Skew(computed::Angle, computed::Angle),
+            TranslateX(LengthOrPercentage),
+            TranslateY(LengthOrPercentage),
+            TranslateZ(Length),
             Translate(computed::LengthOrPercentage,
                       computed::LengthOrPercentage,
                       computed::Length),
@@ -1262,24 +1265,15 @@ ${helpers.predefined_type(
                     }
                     SpecifiedOperation::TranslateX(ref tx) => {
                         let tx = tx.to_computed_value(context);
-                        result.push(computed_value::ComputedOperation::Translate(
-                            tx,
-                            computed::length::LengthOrPercentage::zero(),
-                            computed::length::Length::new(0.)));
+                        result.push(computed_value::ComputedOperation::TranslateX(tx));
                     }
                     SpecifiedOperation::TranslateY(ref ty) => {
                         let ty = ty.to_computed_value(context);
-                        result.push(computed_value::ComputedOperation::Translate(
-                            computed::length::LengthOrPercentage::zero(),
-                            ty,
-                            computed::length::Length::new(0.)));
+                        result.push(computed_value::ComputedOperation::TranslateY(ty));
                     }
                     SpecifiedOperation::TranslateZ(ref tz) => {
                         let tz = tz.to_computed_value(context);
-                        result.push(computed_value::ComputedOperation::Translate(
-                            computed::length::LengthOrPercentage::zero(),
-                            computed::length::LengthOrPercentage::zero(),
-                            tz));
+                        result.push(computed_value::ComputedOperation::TranslateZ(tz));
                     }
                     SpecifiedOperation::Translate3D(ref tx, ref ty, ref tz) => {
                         let tx = tx.to_computed_value(context);
@@ -1423,9 +1417,19 @@ ${helpers.predefined_type(
                                 m44: Number::from_computed_value(&computed.m44),
                             });
                         }
+                        computed_value::ComputedOperation::TranslateX(ref tx) => {
+                            result.push(SpecifiedOperation::TranslateX(
+                                              ToComputedValue::from_computed_value(tx)));
+                        }
+                        computed_value::ComputedOperation::TranslateY(ref ty) => {
+                            result.push(SpecifiedOperation::TranslateY(
+                                              ToComputedValue::from_computed_value(ty)));
+                        }
+                        computed_value::ComputedOperation::TranslateZ(ref tz) => {
+                            result.push(SpecifiedOperation::TranslateZ(
+                                              ToComputedValue::from_computed_value(tz)));
+                        }
                         computed_value::ComputedOperation::Translate(ref tx, ref ty, ref tz) => {
-                            // XXXManishearth we lose information here; perhaps we should try to
-                            // recover the original function? Not sure if this can be observed.
                             result.push(SpecifiedOperation::Translate3D(
                                               ToComputedValue::from_computed_value(tx),
                                               ToComputedValue::from_computed_value(ty),
