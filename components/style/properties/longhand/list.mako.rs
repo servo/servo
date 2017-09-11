@@ -98,7 +98,6 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
 <%helpers:longhand name="list-style-image" animation_value_type="discrete"
                    boxed="${product == 'gecko'}"
                    spec="https://drafts.csswg.org/css-lists/#propdef-list-style-image">
-    use values::computed::ComputedValueAsSpecified;
     use values::specified::UrlOrNone;
     pub use self::computed_value::T as SpecifiedValue;
 
@@ -108,10 +107,11 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         #[derive(Clone, Debug, PartialEq, ToCss)]
         pub struct T(pub UrlOrNone);
+
+        // FIXME(nox): This is wrong, there are different types for specified
+        // and computed URLs in Servo.
+        trivial_to_computed_value!(T);
     }
-
-
-    impl ComputedValueAsSpecified for SpecifiedValue {}
 
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
