@@ -980,8 +980,9 @@ ${helpers.single_keyword_system("font-variant-caps",
             // recomputed from the base size for the keyword and the relative size.
             //
             // See bug 1355707
-            if let Some((kw, fraction, old_abs)) = context.builder.inherited_font_computation_data().font_size_keyword {
-                context.builder.font_size_keyword = Some((kw, fraction * ratio, abs + old_abs.0.scale_by(ratio).into()));
+            if let Some((kw, fraction, old_abs)) = *context.builder.inherited_font_computation_data() {
+                context.builder.font_size_keyword =
+                    Some((kw, fraction * ratio, abs + old_abs.0.scale_by(ratio).into()));
             } else {
                 context.builder.font_size_keyword = None;
             }
@@ -1037,7 +1038,7 @@ ${helpers.single_keyword_system("font-variant-caps",
         let mut font = context.builder.take_font();
         let used_kw = {
             let parent_font = context.builder.get_parent_font();
-            parent_kw = context.builder.inherited_font_computation_data().font_size_keyword;
+            parent_kw = *context.builder.inherited_font_computation_data();
 
             font.inherit_font_size_from(parent_font, kw_inherited_size, device)
         };
