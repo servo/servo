@@ -39,8 +39,7 @@ impl<K: Array> LRUCache<K> {
     #[inline]
     /// Touch a given entry, putting it first in the list.
     pub fn touch(&mut self, pos: usize) {
-        let last_index = self.entries.len() - 1;
-        if pos != last_index {
+        if pos != 0 {
             let entry = self.entries.remove(pos).unwrap();
             self.entries.push_front(entry);
         }
