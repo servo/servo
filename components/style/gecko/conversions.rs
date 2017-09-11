@@ -20,7 +20,7 @@ use stylesheets::{Origin, RulesMutateError};
 use values::computed::{Angle, CalcLengthOrPercentage, Gradient, Image};
 use values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto, Percentage};
 use values::generics::box_::VerticalAlign;
-use values::generics::grid::TrackSize;
+use values::generics::grid::{TrackListValue, TrackSize};
 use values::generics::image::{CompatMode, Image as GenericImage, GradientItem};
 use values::generics::rect::Rect;
 use values::specified::url::SpecifiedUrl;
@@ -892,6 +892,23 @@ impl TrackSize<LengthOrPercentage> {
                 min.to_gecko_style_coord(gecko_min);
                 max.to_gecko_style_coord(gecko_max);
             },
+        }
+    }
+}
+
+impl TrackListValue<LengthOrPercentage> {
+    /// Return TrackSize from given two nsStyleCoord
+    pub fn from_gecko_style_coords<T: CoordData>(gecko_min: &T, gecko_max: &T) -> Self {
+        TrackListValue::TrackSize(TrackSize::from_gecko_style_coords(gecko_min, gecko_max))
+    }
+
+    /// Save TrackSize to given gecko fields.
+    pub fn to_gecko_style_coords<T: CoordDataMut>(&self, gecko_min: &mut T, gecko_max: &mut T) {
+        use values::generics::grid::TrackListValue;
+
+        match *self {
+            TrackListValue::TrackSize(ref size) => size.to_gecko_style_coords(gecko_min, gecko_max),
+            _ => unreachable!("Should only transform from track-size computed values"),
         }
     }
 }

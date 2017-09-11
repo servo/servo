@@ -243,7 +243,8 @@
     use parser::Parse;
     use properties::longhands::grid_template_areas::TemplateAreas;
     use values::{Either, None_};
-    use values::generics::grid::{LineNameList, TrackSize, TrackList, TrackListType, concat_serialize_idents};
+    use values::generics::grid::{LineNameList, TrackSize, TrackList, TrackListType};
+    use values::generics::grid::{TrackListValue, concat_serialize_idents};
     use values::specified::{GridTemplateComponent, GenericGridTemplateComponent};
     use values::specified::grid::parse_line_names;
 
@@ -287,7 +288,7 @@
                 line_names.push(names.into_boxed_slice());
                 strings.push(string);
                 let size = input.try(|i| TrackSize::parse(context, i)).unwrap_or_default();
-                values.push(size);
+                values.push(TrackListValue::TrackSize(size));
                 names = input.try(parse_line_names).unwrap_or(vec![].into_boxed_slice()).into_vec();
                 if let Ok(v) = input.try(parse_line_names) {
                     names.extend(v.into_vec());
@@ -380,7 +381,11 @@
                     GenericGridTemplateComponent::TrackList(ref list) => {
                         // We should fail if there is a `repeat` function. `grid` and
                         // `grid-template` shorthands doesn't accept that. Only longhand accepts.
-                        if list.auto_repeat.is_some() {
+                        if list.auto_repeat.is_some() ||
+                           list.values.iter().any(|v| match *v {
+                               TrackListValue::TrackRepeat(_) => true,
+                               _ => false,
+                           }) {
                             return Ok(());
                         }
                         list
@@ -395,8 +400,14 @@
                 match *template_columns {
                     // We should fail if there is a `repeat` function. `grid` and
                     // `grid-template` shorthands doesn't accept that. Only longhand accepts that.
-                    GenericGridTemplateComponent::TrackList(ref list) if list.auto_repeat.is_some() => {
-                        return Ok(());
+                    GenericGridTemplateComponent::TrackList(ref list) => {
+                        if list.auto_repeat.is_some() ||
+                           list.values.iter().any(|v| match *v {
+                               TrackListValue::TrackRepeat(_) => true,
+                               _ => false,
+                           }) {
+                            return Ok(());
+                        }
                     },
                     // Also the shorthands don't accept subgrids unlike longhand.
                     // We should fail without an error here.
@@ -407,9 +418,9 @@
                 }
 
                 let mut names_iter = track_list.line_names.iter();
-                for (((i, string), names), size) in areas.strings.iter().enumerate()
-                                                                 .zip(&mut names_iter)
-                                                                 .zip(track_list.values.iter()) {
+                for (((i, string), names), value) in areas.strings.iter().enumerate()
+                                                                  .zip(&mut names_iter)
+                                                                  .zip(track_list.values.iter()) {
                     if i > 0 {
                         dest.write_str(" ")?;
                     }
@@ -420,7 +431,7 @@
 
                     string.to_css(dest)?;
                     dest.write_str(" ")?;
-                    size.to_css(dest)?;
+                    value.to_css(dest)?;
                 }
 
                 if let Some(names) = names_iter.next() {

@@ -1895,7 +1895,7 @@ fn static_assert() {
         use nsstring::nsStringRepr;
         use values::CustomIdent;
         use values::generics::grid::{GridTemplateComponent, LineNameList, RepeatCount};
-        use values::generics::grid::{TrackList, TrackListType, TrackRepeat, TrackSize};
+        use values::generics::grid::{TrackList, TrackListType, TrackListValue, TrackRepeat, TrackSize};
 
         let value = match unsafe { ${self_grid}.mPtr.as_ref() } {
             None => return GridTemplateComponent::None,
@@ -1965,7 +1965,7 @@ fn static_assert() {
 
                     auto_repeat = Some(TrackRepeat{count, line_names, track_sizes});
                 } else {
-                    values.push(track_size);
+                    values.push(TrackListValue::TrackSize(track_size));
                 }
             }
 
