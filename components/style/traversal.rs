@@ -679,7 +679,7 @@ where
                         .insert_if_possible(
                             &element,
                             new_styles.primary(),
-                            target.take_validation_data(),
+                            &mut target,
                             context.thread_local.bloom_filter.matching_depth(),
                         );
 

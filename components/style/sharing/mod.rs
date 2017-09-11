@@ -393,10 +393,10 @@ impl<Candidate> SharingCacheBase<Candidate> {
 }
 
 impl<E: TElement> SharingCache<E> {
-    fn insert(&mut self, el: E, validation_data: ValidationData) {
+    fn insert(&mut self, el: E, validation_data_holder: &mut StyleSharingTarget<E>) {
         self.entries.insert(StyleSharingCandidate {
             element: el,
-            validation_data: validation_data,
+            validation_data: validation_data_holder.take_validation_data(),
         });
     }
 
@@ -495,10 +495,13 @@ impl<E: TElement> StyleSharingCache<E> {
     /// Tries to insert an element in the style sharing cache.
     ///
     /// Fails if we know it should never be in the cache.
+    ///
+    /// NB: We pass a source for the validation data, rather than the data itself,
+    /// to avoid memmoving at each function call. See rust issue #42763.
     pub fn insert_if_possible(&mut self,
                               element: &E,
                               style: &ComputedValues,
-                              validation_data: ValidationData,
+                              validation_data_holder: &mut StyleSharingTarget<E>,
                               dom_depth: usize) {
         let parent = match element.traversal_parent() {
             Some(element) => element,
@@ -551,7 +554,7 @@ impl<E: TElement> StyleSharingCache<E> {
             self.clear();
             self.dom_depth = dom_depth;
         }
-        self.cache_mut().insert(*element, validation_data);
+        self.cache_mut().insert(*element, validation_data_holder);
     }
 
     /// Clear the style sharing candidate cache.
