@@ -45,6 +45,16 @@ impl<K: Array> LRUCache<K> {
         }
     }
 
+    /// Returns the front entry in the list (most recently used).
+    pub fn front(&self) -> Option<&K::Item> {
+        self.entries.get(0)
+    }
+
+    /// Returns a mutable reference to the front entry in the list (most recently used).
+    pub fn front_mut(&mut self) -> Option<&mut K::Item> {
+        self.entries.get_mut(0)
+    }
+
     /// Iterate over the contents of this cache, from more to less recently
     /// used.
     pub fn iter(&self) -> arraydeque::Iter<K::Item> {
