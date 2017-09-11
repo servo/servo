@@ -256,17 +256,14 @@ ${helpers.single_keyword("image-rendering",
                    spec="Nonstandard (internal layout use only)">
     use std::fmt;
     use style_traits::ToCss;
-    use values::computed::ComputedValueAsSpecified;
 
-
-    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
+    #[cfg_attr(feature = "servo", derive(Deserialize, HeapSizeOf, Serialize))]
+    #[derive(Clone, Copy, Debug, Eq, PartialEq, ToComputedValue)]
     pub struct SpecifiedValue(pub bool);
 
     pub mod computed_value {
         pub type T = super::SpecifiedValue;
     }
-    impl ComputedValueAsSpecified for SpecifiedValue {}
 
     pub fn get_initial_value() -> computed_value::T {
         SpecifiedValue(false)
