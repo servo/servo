@@ -21,7 +21,6 @@ use super::computed::{Context, ToComputedValue};
 use super::generics::{GreaterThanOrEqualToOne, NonNegative};
 use super::generics::grid::{GridLine as GenericGridLine, TrackBreadth as GenericTrackBreadth};
 use super::generics::grid::{TrackSize as GenericTrackSize, TrackList as GenericTrackList};
-use values::computed::ComputedValueAsSpecified;
 use values::specified::calc::CalcNode;
 
 pub use properties::animated_properties::TransitionProperty;
@@ -681,8 +680,8 @@ pub type NamespaceId = ();
 /// An attr(...) rule
 ///
 /// `[namespace? `|`]? ident`
-#[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Debug, Eq, PartialEq, ToComputedValue)]
 pub struct Attr {
     /// Optional namespace
     pub namespace: Option<(Namespace, NamespaceId)>,
@@ -777,5 +776,3 @@ impl ToCss for Attr {
         dest.write_str(")")
     }
 }
-
-impl ComputedValueAsSpecified for Attr {}

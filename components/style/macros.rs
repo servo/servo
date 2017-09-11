@@ -5,7 +5,7 @@
 //! Various macro helpers.
 
 macro_rules! trivial_to_computed_value {
-    ($name: ident) => {
+    ($name:ty) => {
         impl $crate::values::computed::ToComputedValue for $name {
             type ComputedValue = $name;
 
