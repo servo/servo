@@ -339,6 +339,7 @@ trivial_to_computed_value!(bool);
 trivial_to_computed_value!(i32);
 trivial_to_computed_value!(f32);
 trivial_to_computed_value!(BorderStyle);
+trivial_to_computed_value!(String);
 
 /// A `<number>` value.
 pub type Number = CSSFloat;

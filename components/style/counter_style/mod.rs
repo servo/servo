@@ -342,7 +342,7 @@ impl ToCss for System {
 }
 
 /// https://drafts.csswg.org/css-counter-styles/#typedef-symbol
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, ToComputedValue)]
 pub enum Symbol {
     /// <string>
     String(String),
@@ -489,7 +489,7 @@ impl Parse for Fallback {
 }
 
 /// https://drafts.csswg.org/css-counter-styles/#descdef-counter-style-symbols
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, ToComputedValue)]
 pub struct Symbols(pub Vec<Symbol>);
 
 impl Parse for Symbols {
