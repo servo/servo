@@ -2566,10 +2566,8 @@ pub extern "C" fn Servo_DeclarationBlock_PropertyIsSet(declarations:
                                                        RawServoDeclarationBlockBorrowed,
                                                        property: nsCSSPropertyID)
         -> bool {
-    use style::properties::PropertyDeclarationId;
-    let long = get_longhand_from_id!(property);
     read_locked_arc(declarations, |decls: &PropertyDeclarationBlock| {
-        decls.get(PropertyDeclarationId::Longhand(long)).is_some()
+        decls.contains(get_longhand_from_id!(property))
     })
 }
 
