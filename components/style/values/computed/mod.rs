@@ -312,26 +312,6 @@ impl<T> ToComputedValue for Box<[T]>
     }
 }
 
-/// A marker trait to represent that the specified value is also the computed
-/// value.
-pub trait ComputedValueAsSpecified {}
-
-impl<T> ToComputedValue for T
-    where T: ComputedValueAsSpecified + Clone,
-{
-    type ComputedValue = T;
-
-    #[inline]
-    fn to_computed_value(&self, _context: &Context) -> T {
-        self.clone()
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &T) -> Self {
-        computed.clone()
-    }
-}
-
 trivial_to_computed_value!(());
 trivial_to_computed_value!(bool);
 trivial_to_computed_value!(f32);

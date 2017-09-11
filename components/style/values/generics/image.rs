@@ -34,11 +34,7 @@ pub enum Image<Gradient, MozImageRect, ImageUrl> {
     PaintWorklet(PaintWorklet),
 }
 
-// Can't just use derive(ToComputedValue) on Image, because when trying to do
-// "impl<T> ToComputedValue for Box<T>" the Rust compiler complains that
-// "impl<T> ToComputedValue for T where T: ComputedValueAsSpecified + Clone"
-// aleady implements ToComputedValue for std::boxed::Box<_> and hence we have
-// conflicting implementations.
+// FIXME(nox): Implement TCV for Box<T> and derive this.
 impl<Gradient: ToComputedValue,
      MozImageRect: ToComputedValue,
      ImageUrl: ToComputedValue> ToComputedValue for Image<Gradient, MozImageRect, ImageUrl> {
