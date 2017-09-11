@@ -544,7 +544,11 @@ impl AnimationValue {
                     longhands::system_font::resolve_system_font(sf, context);
                 }
             % endif
+            % if prop.boxed:
+            let computed = (**val).to_computed_value(context);
+            % else:
             let computed = val.to_computed_value(context);
+            % endif
             Some(AnimationValue::${prop.camel_case}(
             % if prop.is_animatable_with_computed_value:
                 computed

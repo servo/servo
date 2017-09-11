@@ -408,7 +408,7 @@ impl ToComputedValue for specified::LengthOrPercentage {
                 LengthOrPercentage::Percentage(value)
             }
             specified::LengthOrPercentage::Calc(ref calc) => {
-                LengthOrPercentage::Calc(calc.to_computed_value(context))
+                LengthOrPercentage::Calc((**calc).to_computed_value(context))
             }
         }
     }
@@ -502,7 +502,7 @@ impl ToComputedValue for specified::LengthOrPercentageOrAuto {
                 LengthOrPercentageOrAuto::Auto
             }
             specified::LengthOrPercentageOrAuto::Calc(ref calc) => {
-                LengthOrPercentageOrAuto::Calc(calc.to_computed_value(context))
+                LengthOrPercentageOrAuto::Calc((**calc).to_computed_value(context))
             }
         }
     }
@@ -591,7 +591,7 @@ impl ToComputedValue for specified::LengthOrPercentageOrNone {
                 LengthOrPercentageOrNone::Percentage(value)
             }
             specified::LengthOrPercentageOrNone::Calc(ref calc) => {
-                LengthOrPercentageOrNone::Calc(calc.to_computed_value(context))
+                LengthOrPercentageOrNone::Calc((**calc).to_computed_value(context))
             }
             specified::LengthOrPercentageOrNone::None => {
                 LengthOrPercentageOrNone::None

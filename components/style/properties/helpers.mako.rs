@@ -341,7 +341,11 @@
                             }
                             context.builder.put_${data.current_style_struct.name_lower}(s);
                         % else:
+                            % if property.boxed:
+                            let computed = (**specified_value).to_computed_value(context);
+                            % else:
                             let computed = specified_value.to_computed_value(context);
+                            % endif
                             % if property.ident == "font_size":
                                  longhands::font_size::cascade_specified_font_size(
                                      context,

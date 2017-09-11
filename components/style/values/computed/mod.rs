@@ -296,6 +296,22 @@ impl<T> ToComputedValue for Vec<T>
     }
 }
 
+impl<T> ToComputedValue for Box<T>
+    where T: ToComputedValue
+{
+    type ComputedValue = Box<<T as ToComputedValue>::ComputedValue>;
+
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
+        Box::new(T::to_computed_value(self, context))
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        Box::new(T::from_computed_value(computed))
+    }
+}
+
 impl<T> ToComputedValue for Box<[T]>
     where T: ToComputedValue
 {
