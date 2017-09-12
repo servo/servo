@@ -26,7 +26,7 @@ pub mod viewport_rule;
 use cssparser::{parse_one_rule, Parser, ParserInput};
 use error_reporting::NullReporter;
 #[cfg(feature = "gecko")]
-use malloc_size_of::MallocSizeOfOps;
+use malloc_size_of::{MallocSizeOfOps, MallocUnconditionalShallowSizeOf};
 use parser::{ParserContext, ParserErrorContext};
 use servo_arc::Arc;
 use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
@@ -120,9 +120,11 @@ impl CssRule {
             // it on the C++ side in the child list of the ServoStyleSheet.
             CssRule::Import(_) => 0,
 
-            CssRule::Style(ref lock) => lock.read_with(guard).size_of(guard, ops),
+            CssRule::Style(ref lock) =>
+                lock.unconditional_shallow_size_of(ops) + lock.read_with(guard).size_of(guard, ops),
 
-            CssRule::Media(ref lock) => lock.read_with(guard).size_of(guard, ops),
+            CssRule::Media(ref lock) =>
+                lock.unconditional_shallow_size_of(ops) + lock.read_with(guard).size_of(guard, ops),
 
             CssRule::FontFace(_) => 0,
             CssRule::FontFeatureValues(_) => 0,
@@ -130,11 +132,14 @@ impl CssRule {
             CssRule::Viewport(_) => 0,
             CssRule::Keyframes(_) => 0,
 
-            CssRule::Supports(ref lock) => lock.read_with(guard).size_of(guard, ops),
+            CssRule::Supports(ref lock) =>
+                lock.unconditional_shallow_size_of(ops) + lock.read_with(guard).size_of(guard, ops),
 
-            CssRule::Page(ref lock) => lock.read_with(guard).size_of(guard, ops),
+            CssRule::Page(ref lock) =>
+                lock.unconditional_shallow_size_of(ops) + lock.read_with(guard).size_of(guard, ops),
 
-            CssRule::Document(ref lock) => lock.read_with(guard).size_of(guard, ops),
+            CssRule::Document(ref lock) =>
+                lock.unconditional_shallow_size_of(ops) + lock.read_with(guard).size_of(guard, ops),
         }
     }
 }

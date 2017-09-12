@@ -7,7 +7,7 @@
 use cssparser::{BasicParseError, ParseError as CssParseError, ParserInput};
 use cssparser::{Delimiter, parse_important, Parser, SourceLocation, Token};
 #[cfg(feature = "gecko")]
-use malloc_size_of::MallocSizeOfOps;
+use malloc_size_of::{MallocSizeOfOps, MallocUnconditionalShallowSizeOf};
 use parser::ParserContext;
 use properties::{PropertyId, PropertyDeclaration, PropertyParserContext, SourcePropertyDeclaration};
 use selectors::parser::SelectorParseError;
@@ -37,7 +37,8 @@ impl SupportsRule {
     #[cfg(feature = "gecko")]
     pub fn size_of(&self, guard: &SharedRwLockReadGuard, ops: &mut MallocSizeOfOps) -> usize {
         // Measurement of other fields may be added later.
-        self.rules.read_with(guard).size_of(guard, ops)
+        self.rules.unconditional_shallow_size_of(ops) +
+            self.rules.read_with(guard).size_of(guard, ops)
     }
 }
 

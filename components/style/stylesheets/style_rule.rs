@@ -6,7 +6,7 @@
 
 use cssparser::SourceLocation;
 #[cfg(feature = "gecko")]
-use malloc_size_of::{MallocShallowSizeOf, MallocSizeOf, MallocSizeOfOps};
+use malloc_size_of::{MallocShallowSizeOf, MallocSizeOf, MallocSizeOfOps, MallocUnconditionalShallowSizeOf};
 use properties::PropertyDeclarationBlock;
 use selector_parser::SelectorImpl;
 use selectors::SelectorList;
@@ -58,7 +58,8 @@ impl StyleRule {
             n += ops.malloc_size_of(selector.thin_arc_heap_ptr());
         }
 
-        n += self.block.read_with(guard).size_of(ops);
+        n += self.block.unconditional_shallow_size_of(ops) +
+             self.block.read_with(guard).size_of(ops);
 
         n
     }
