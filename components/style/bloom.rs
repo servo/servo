@@ -121,6 +121,7 @@ impl<E: TElement> StyleBloom<E> {
     /// Create an empty `StyleBloom`. Because StyleBloom acquires the thread-
     /// local filter buffer, creating multiple live StyleBloom instances at
     /// the same time on the same thread will panic.
+    #[inline(never)]
     pub fn new() -> Self {
         let bloom_arc = BLOOM_KEY.with(|b| b.clone());
         let filter = OwningHandle::new_with_fn(bloom_arc, |x| unsafe { x.as_ref() }.unwrap().borrow_mut());
