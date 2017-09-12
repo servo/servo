@@ -7,6 +7,8 @@
 use euclid::Size2D;
 use std::fmt;
 use style_traits::ToCss;
+use values::animated::{Animate, Procedure};
+use values::distance::{ComputeSquaredDistance, SquaredDistance};
 use values::generics::rect::Rect;
 
 /// A generic value for a single side of a `border-image-width` property.
@@ -50,9 +52,30 @@ pub struct BorderRadius<LengthOrPercentage> {
 
 /// A generic value for `border-*-radius` longhand properties.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug)]
+#[derive(Clone, Copy, Debug)]
 #[derive(PartialEq, ToComputedValue)]
-pub struct BorderCornerRadius<L>(pub Size2D<L>);
+pub struct BorderCornerRadius<L>(pub Size2D<L>, pub bool);
+
+impl<L> Animate for BorderCornerRadius<L>
+where
+    L: Animate + Copy,
+{
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
+        self.0.animate(&other.0, procedure).map(|s|
+            BorderCornerRadius::new(s.width, s.height, self.1)
+        )
+    }
+}
+
+impl<L> ComputeSquaredDistance for BorderCornerRadius<L>
+where
+    L: ComputeSquaredDistance,
+{
+    #[inline]
+    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
+        self.0.compute_squared_distance(&other.0)
+    }
+}
 
 impl<N> From<N> for BorderImageSlice<N>
     where N: Clone,
@@ -135,14 +158,14 @@ impl<L> ToCss for BorderRadius<L>
 impl<L> BorderCornerRadius<L> {
     #[inline]
     /// Create a new `BorderCornerRadius` for an area of given width and height.
-    pub fn new(width: L, height: L) -> BorderCornerRadius<L> {
-        BorderCornerRadius(Size2D::new(width, height))
+    pub fn new(width: L, height: L, height_specified: bool) -> BorderCornerRadius<L> {
+        BorderCornerRadius(Size2D::new(width, height), height_specified)
     }
 }
 
 impl<L: Clone> From<L> for BorderCornerRadius<L> {
     fn from(radius: L) -> Self {
-        Self::new(radius.clone(), radius)
+        Self::new(radius.clone(), radius, false)
     }
 }
 
@@ -152,8 +175,14 @@ impl<L> ToCss for BorderCornerRadius<L>
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result
         where W: fmt::Write
     {
-        self.0.width.to_css(dest)?;
-        dest.write_str(" ")?;
-        self.0.height.to_css(dest)
+        let result = self.0.width.to_css(dest)?;
+        // If the height was specified, we serialize it, otherwise,
+        // we just bail out.
+        if self.1 {
+            dest.write_str(" ")?;
+            self.0.height.to_css(dest)
+        } else {
+            Ok(result)
+        }
     }
 }

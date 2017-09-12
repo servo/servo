@@ -132,17 +132,19 @@ impl Parse for BorderImageSlice {
 impl Parse for BorderRadius {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         let widths = Rect::parse_with(context, input, LengthOrPercentage::parse_non_negative)?;
+        let mut heights_specified = true;
         let heights = if input.try(|i| i.expect_delim('/')).is_ok() {
             Rect::parse_with(context, input, LengthOrPercentage::parse_non_negative)?
         } else {
+            heights_specified = false;
             widths.clone()
         };
 
         Ok(GenericBorderRadius {
-            top_left: BorderCornerRadius::new(widths.0, heights.0),
-            top_right: BorderCornerRadius::new(widths.1, heights.1),
-            bottom_right: BorderCornerRadius::new(widths.2, heights.2),
-            bottom_left: BorderCornerRadius::new(widths.3, heights.3),
+            top_left: BorderCornerRadius::new(widths.0, heights.0, heights_specified),
+            top_right: BorderCornerRadius::new(widths.1, heights.1, heights_specified),
+            bottom_right: BorderCornerRadius::new(widths.2, heights.2, heights_specified),
+            bottom_left: BorderCornerRadius::new(widths.3, heights.3, heights_specified),
         })
     }
 }
@@ -150,9 +152,13 @@ impl Parse for BorderRadius {
 impl Parse for BorderCornerRadius {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         let first = LengthOrPercentage::parse_non_negative(context, input)?;
+        let mut heights_specified = true;
         let second = input
             .try(|i| LengthOrPercentage::parse_non_negative(context, i))
-            .unwrap_or_else(|_| first.clone());
-        Ok(Self::new(first, second))
+            .unwrap_or_else(|_| {
+                heights_specified = false;
+                first.clone()
+            });
+        Ok(Self::new(first, second, heights_specified))
     }
 }
