@@ -3859,7 +3859,8 @@ pub extern "C" fn Servo_HasPendingRestyleAncestor(element: RawGeckoElementBorrow
     let mut element = Some(GeckoElement(element));
     while let Some(e) = element {
         if let Some(data) = e.borrow_data() {
-            if data.restyle.hint.has_non_animation_invalidations() {
+            if data.restyle.hint.has_non_animation_invalidations() ||
+               data.restyle.hint.has_animation_hints() {
                 return true;
             }
         }
