@@ -5,6 +5,7 @@
 use cssparser::{Parser, ParserInput};
 use cssparser::ToCss as ParserToCss;
 use env_logger::LogBuilder;
+use malloc_size_of::MallocSizeOfOps;
 use selectors::Element;
 use selectors::matching::{MatchingContext, MatchingMode, matches_selector};
 use servo_arc::{Arc, ArcBorrow, RawOffsetArc};
@@ -52,6 +53,7 @@ use style::gecko_bindings::bindings::Gecko_ConstructFontFeatureValueSet;
 use style::gecko_bindings::bindings::Gecko_GetOrCreateFinalKeyframe;
 use style::gecko_bindings::bindings::Gecko_GetOrCreateInitialKeyframe;
 use style::gecko_bindings::bindings::Gecko_GetOrCreateKeyframeAtStart;
+use style::gecko_bindings::bindings::Gecko_HaveSeenPtr;
 use style::gecko_bindings::bindings::Gecko_NewNoneTransform;
 use style::gecko_bindings::bindings::RawGeckoAnimationPropertySegmentBorrowed;
 use style::gecko_bindings::bindings::RawGeckoCSSPropertyIDListBorrowed;
@@ -120,9 +122,8 @@ use style::shared_lock::{SharedRwLockReadGuard, StylesheetGuards, ToCssWithGuard
 use style::string_cache::Atom;
 use style::style_adjuster::StyleAdjuster;
 use style::stylesheets::{CssRule, CssRules, CssRuleType, CssRulesHelpers, DocumentRule};
-use style::stylesheets::{FontFeatureValuesRule, ImportRule, KeyframesRule, MallocEnclosingSizeOfFn};
-use style::stylesheets::{MallocSizeOfFn, MallocSizeOfWithGuard, MediaRule};
-use style::stylesheets::{NamespaceRule, Origin, OriginSet, PageRule, SizeOfState, StyleRule};
+use style::stylesheets::{FontFeatureValuesRule, ImportRule, KeyframesRule, MediaRule};
+use style::stylesheets::{NamespaceRule, Origin, OriginSet, PageRule, StyleRule};
 use style::stylesheets::{StylesheetContents, SupportsRule};
 use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
 use style::stylesheets::keyframes_rule::{Keyframe, KeyframeSelector, KeyframesStepValue};
@@ -778,15 +779,13 @@ pub extern "C" fn Servo_Element_ClearData(element: RawGeckoElementBorrowed) {
 pub extern "C" fn Servo_Element_SizeOfExcludingThisAndCVs(malloc_size_of: GeckoMallocSizeOf,
                                                           seen_ptrs: *mut SeenPtrs,
                                                           element: RawGeckoElementBorrowed) -> usize {
-    let malloc_size_of = MallocSizeOfFn(malloc_size_of.unwrap());
     let element = GeckoElement(element);
     let borrow = element.borrow_data();
     if let Some(data) = borrow {
-        let mut state = SizeOfState {
-            malloc_size_of: malloc_size_of,
-            seen_ptrs: seen_ptrs,
-        };
-        (*data).malloc_size_of_children_excluding_cvs(&mut state)
+        let have_seen_ptr = move |ptr| { unsafe { Gecko_HaveSeenPtr(seen_ptrs, ptr) } };
+        let mut ops = MallocSizeOfOps::new(malloc_size_of.unwrap(), None,
+                                           Some(Box::new(have_seen_ptr)));
+        (*data).size_of_excluding_cvs(&mut ops)
     } else {
         0
     }
@@ -1086,8 +1085,8 @@ pub extern "C" fn Servo_StyleSheet_SizeOfIncludingThis(
 ) -> usize {
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
-    let malloc_size_of = MallocSizeOfFn(malloc_size_of.unwrap());
-    StylesheetContents::as_arc(&sheet).malloc_size_of_children(&guard, malloc_size_of)
+    let mut ops = MallocSizeOfOps::new(malloc_size_of.unwrap(), None, None);
+    StylesheetContents::as_arc(&sheet).size_of(&guard, &mut ops)
 }
 
 #[no_mangle]
@@ -3710,10 +3709,10 @@ pub extern "C" fn Servo_StyleSet_AddSizeOfExcludingThis(
     raw_data: RawServoStyleSetBorrowed
 ) {
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
-    let malloc_size_of = MallocSizeOfFn(malloc_size_of.unwrap());
-    let malloc_enclosing_size_of = MallocEnclosingSizeOfFn(malloc_enclosing_size_of.unwrap());
+    let mut ops = MallocSizeOfOps::new(malloc_size_of.unwrap(),
+                                       malloc_enclosing_size_of, None);
     let sizes = unsafe { sizes.as_mut() }.unwrap();
-    data.malloc_add_size_of_children(malloc_size_of, malloc_enclosing_size_of, sizes);
+    data.add_size_of_children(&mut ops, sizes);
 }
 
 #[no_mangle]

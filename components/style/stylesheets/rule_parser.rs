@@ -102,6 +102,7 @@ pub enum State {
 }
 
 #[derive(Clone, Debug)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 /// Vendor prefix.
 pub enum VendorPrefix {

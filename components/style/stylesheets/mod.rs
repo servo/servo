@@ -12,7 +12,6 @@ pub mod import_rule;
 pub mod keyframes_rule;
 mod loader;
 mod media_rule;
-mod memory;
 mod namespace_rule;
 pub mod origin;
 mod page_rule;
@@ -26,6 +25,8 @@ pub mod viewport_rule;
 
 use cssparser::{parse_one_rule, Parser, ParserInput};
 use error_reporting::NullReporter;
+#[cfg(feature = "gecko")]
+use malloc_size_of::MallocSizeOfOps;
 use parser::{ParserContext, ParserErrorContext};
 use servo_arc::Arc;
 use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
@@ -40,10 +41,6 @@ pub use self::import_rule::ImportRule;
 pub use self::keyframes_rule::KeyframesRule;
 pub use self::loader::StylesheetLoader;
 pub use self::media_rule::MediaRule;
-pub use self::memory::{MallocEnclosingSizeOfFn, MallocSizeOf, MallocSizeOfBox, MallocSizeOfFn};
-pub use self::memory::{MallocSizeOfHash, MallocSizeOfVec, MallocSizeOfWithGuard};
-#[cfg(feature = "gecko")]
-pub use self::memory::{MallocSizeOfWithRepeats, SizeOfState};
 pub use self::namespace_rule::NamespaceRule;
 pub use self::origin::{Origin, OriginSet, PerOrigin, PerOriginIter};
 pub use self::page_rule::PageRule;
@@ -109,12 +106,10 @@ pub enum CssRule {
     Document(Arc<Locked<DocumentRule>>),
 }
 
-impl MallocSizeOfWithGuard for CssRule {
-    fn malloc_size_of_children(
-        &self,
-        guard: &SharedRwLockReadGuard,
-        malloc_size_of: MallocSizeOfFn
-    ) -> usize {
+impl CssRule {
+    /// Measure heap usage.
+    #[cfg(feature = "gecko")]
+    fn size_of(&self, guard: &SharedRwLockReadGuard, ops: &mut MallocSizeOfOps) -> usize {
         match *self {
             // Not all fields are currently fully measured. Extra measurement
             // may be added later.
@@ -125,13 +120,9 @@ impl MallocSizeOfWithGuard for CssRule {
             // it on the C++ side in the child list of the ServoStyleSheet.
             CssRule::Import(_) => 0,
 
-            CssRule::Style(ref lock) => {
-                lock.read_with(guard).malloc_size_of_children(guard, malloc_size_of)
-            },
+            CssRule::Style(ref lock) => lock.read_with(guard).size_of(guard, ops),
 
-            CssRule::Media(ref lock) => {
-                lock.read_with(guard).malloc_size_of_children(guard, malloc_size_of)
-            },
+            CssRule::Media(ref lock) => lock.read_with(guard).size_of(guard, ops),
 
             CssRule::FontFace(_) => 0,
             CssRule::FontFeatureValues(_) => 0,
@@ -139,17 +130,11 @@ impl MallocSizeOfWithGuard for CssRule {
             CssRule::Viewport(_) => 0,
             CssRule::Keyframes(_) => 0,
 
-            CssRule::Supports(ref lock) => {
-                lock.read_with(guard).malloc_size_of_children(guard, malloc_size_of)
-            },
+            CssRule::Supports(ref lock) => lock.read_with(guard).size_of(guard, ops),
 
-            CssRule::Page(ref lock) => {
-                lock.read_with(guard).malloc_size_of_children(guard, malloc_size_of)
-            },
+            CssRule::Page(ref lock) => lock.read_with(guard).size_of(guard, ops),
 
-            CssRule::Document(ref lock) => {
-                lock.read_with(guard).malloc_size_of_children(guard, malloc_size_of)
-            },
+            CssRule::Document(ref lock) => lock.read_with(guard).size_of(guard, ops),
         }
     }
 }

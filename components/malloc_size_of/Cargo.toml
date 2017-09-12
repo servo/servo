@@ -1,0 +1,15 @@
+[package]
+name = "malloc_size_of"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MIT/Apache-2.0"
+publish = false
+
+[lib]
+path = "lib.rs"
+
+[dependencies]
+hashglobe = { path = "../hashglobe" }
+servo_arc = { path = "../servo_arc" }
+smallbitvec = "1.0.3"
+smallvec = "0.4"

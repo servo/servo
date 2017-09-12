@@ -15,6 +15,8 @@ use gecko_bindings::structs::{nsIAtom, ServoStyleSetSizes, StyleRuleInclusion};
 use hashglobe::FailedAllocationError;
 use invalidation::element::invalidation_map::InvalidationMap;
 use invalidation::media_queries::{EffectiveMediaQueryResults, ToMediaListKey};
+#[cfg(feature = "gecko")]
+use malloc_size_of::{MallocShallowSizeOf, MallocSizeOf, MallocSizeOfOps};
 use media_queries::Device;
 use properties::{self, CascadeFlags, ComputedValues};
 use properties::{AnimationRules, PropertyDeclarationBlock};
@@ -43,10 +45,6 @@ use stylesheet_set::{OriginValidity, SheetRebuildKind, StylesheetSet, Stylesheet
 #[cfg(feature = "gecko")]
 use stylesheets::{CounterStyleRule, FontFaceRule, FontFeatureValuesRule, PageRule};
 use stylesheets::{CssRule, Origin, OriginSet, PerOrigin, PerOriginIter};
-#[cfg(feature = "gecko")]
-use stylesheets::{MallocEnclosingSizeOfFn, MallocSizeOf, MallocSizeOfBox, MallocSizeOfFn};
-#[cfg(feature = "gecko")]
-use stylesheets::{MallocSizeOfHash, MallocSizeOfVec};
 use stylesheets::StyleRule;
 use stylesheets::StylesheetInDocument;
 use stylesheets::UserAgentStylesheets;
@@ -379,19 +377,14 @@ impl DocumentCascadeData {
 
     /// Measures heap usage.
     #[cfg(feature = "gecko")]
-    pub fn malloc_add_size_of_children(&self, malloc_size_of: MallocSizeOfFn,
-                                       malloc_enclosing_size_of: MallocEnclosingSizeOfFn,
-                                       sizes: &mut ServoStyleSetSizes) {
-        self.per_origin.user_agent.malloc_add_size_of_children(malloc_size_of,
-                                                               malloc_enclosing_size_of, sizes);
-        self.per_origin.user.malloc_add_size_of_children(malloc_size_of,
-                                                         malloc_enclosing_size_of, sizes);
-        self.per_origin.author.malloc_add_size_of_children(malloc_size_of,
-                                                           malloc_enclosing_size_of, sizes);
+    pub fn add_size_of_children(&self, ops: &mut MallocSizeOfOps, sizes: &mut ServoStyleSetSizes) {
+        self.per_origin.user_agent.add_size_of_children(ops, sizes);
+        self.per_origin.user.add_size_of_children(ops, sizes);
+        self.per_origin.author.add_size_of_children(ops, sizes);
 
         for elem in self.precomputed_pseudo_element_decls.iter() {
             if let Some(ref elem) = *elem {
-                sizes.mStylistPrecomputedPseudos += elem.malloc_shallow_size_of_vec(malloc_size_of);
+                sizes.mStylistPrecomputedPseudos += elem.shallow_size_of(ops);
             }
         }
     }
@@ -1652,12 +1645,9 @@ impl Stylist {
 
     /// Measures heap usage.
     #[cfg(feature = "gecko")]
-    pub fn malloc_add_size_of_children(&self, malloc_size_of: MallocSizeOfFn,
-                                       malloc_enclosing_size_of: MallocEnclosingSizeOfFn,
-                                       sizes: &mut ServoStyleSetSizes) {
-        self.cascade_data.malloc_add_size_of_children(malloc_size_of, malloc_enclosing_size_of,
-                                                      sizes);
-        sizes.mStylistRuleTree += self.rule_tree.malloc_size_of_children(malloc_size_of);
+    pub fn add_size_of_children(&self, ops: &mut MallocSizeOfOps, sizes: &mut ServoStyleSetSizes) {
+        self.cascade_data.add_size_of_children(ops, sizes);
+        sizes.mStylistRuleTree += self.rule_tree.size_of(ops);
 
         // We may measure other fields in the future if DMD says it's worth it.
     }
@@ -1722,22 +1712,27 @@ impl ExtraStyleData {
             self.pages.clear();
         }
     }
+}
 
+#[cfg(feature = "gecko")]
+impl MallocSizeOf for ExtraStyleData {
     /// Measure heap usage.
-    #[cfg(feature = "gecko")]
-    pub fn malloc_size_of_children(&self, malloc_size_of: MallocSizeOfFn,
-                                   malloc_enclosing_size_of: MallocEnclosingSizeOfFn) -> usize {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         let mut n = 0;
-        n += self.font_faces.malloc_shallow_size_of_vec(malloc_size_of);
-        n += self.font_feature_values.malloc_shallow_size_of_vec(malloc_size_of);
-        n += self.counter_styles.malloc_shallow_size_of_hash(malloc_enclosing_size_of);
+        n += self.font_faces.shallow_size_of(ops);
+        n += self.font_feature_values.shallow_size_of(ops);
+        n += self.counter_styles.shallow_size_of(ops);
+        n += self.pages.shallow_size_of(ops);
         n
     }
 }
 
 /// SelectorMapEntry implementation for use in our revalidation selector map.
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[derive(Clone, Debug)]
 struct RevalidationSelectorAndHashes {
+    #[cfg_attr(feature = "gecko",
+               ignore_malloc_size_of = "CssRules have primary refs, we measure there")]
     selector: Selector<SelectorImpl>,
     selector_offset: usize,
     hashes: AncestorHashes,
@@ -2029,35 +2024,22 @@ impl CascadeData {
 
     /// Measures heap usage.
     #[cfg(feature = "gecko")]
-    pub fn malloc_add_size_of_children(&self, malloc_size_of: MallocSizeOfFn,
-                                       malloc_enclosing_size_of: MallocEnclosingSizeOfFn,
-                                       sizes: &mut ServoStyleSetSizes) {
-        sizes.mStylistElementAndPseudosMaps +=
-            self.element_map.malloc_size_of_children(malloc_size_of, malloc_enclosing_size_of);
+    pub fn add_size_of_children(&self, ops: &mut MallocSizeOfOps, sizes: &mut ServoStyleSetSizes) {
+        sizes.mStylistElementAndPseudosMaps += self.element_map.size_of(ops);
 
         for elem in self.pseudos_map.iter() {
             if let Some(ref elem) = *elem {
-                sizes.mStylistElementAndPseudosMaps +=
-                    elem.malloc_shallow_size_of_box(malloc_size_of) +
-                    elem.malloc_size_of_children(malloc_size_of, malloc_enclosing_size_of)
+                sizes.mStylistElementAndPseudosMaps += <Box<_> as MallocSizeOf>::size_of(elem, ops);
             }
         }
 
-        sizes.mStylistOther +=
-            self.animations.malloc_shallow_size_of_hash(malloc_enclosing_size_of);
-        for val in self.animations.values() {
-            sizes.mStylistOther += val.malloc_size_of_children(malloc_size_of);
-        }
+        sizes.mStylistOther += self.animations.size_of(ops);
 
-        sizes.mStylistInvalidationMap +=
-            self.invalidation_map.malloc_size_of_children(malloc_size_of, malloc_enclosing_size_of);
+        sizes.mStylistInvalidationMap += self.invalidation_map.size_of(ops);
 
-        sizes.mStylistRevalidationSelectors +=
-            self.selectors_for_cache_revalidation.malloc_size_of_children(malloc_size_of,
-                                                                          malloc_enclosing_size_of);
+        sizes.mStylistRevalidationSelectors += self.selectors_for_cache_revalidation.size_of(ops);
 
-        sizes.mStylistOther +=
-            self.effective_media_query_results.malloc_size_of_children(malloc_enclosing_size_of);
+        sizes.mStylistOther += self.effective_media_query_results.size_of(ops);
     }
 }
 
@@ -2069,6 +2051,7 @@ impl Default for CascadeData {
 
 /// A rule, that wraps a style rule, but represents a single selector of the
 /// rule.
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, Debug)]
 pub struct Rule {
@@ -2076,16 +2059,24 @@ pub struct Rule {
     /// any_{important,normal} booleans inline in the Rule to avoid
     /// pointer-chasing when gathering applicable declarations, which
     /// can ruin performance when there are a lot of rules.
+    #[cfg_attr(feature = "gecko",
+               ignore_malloc_size_of = "CssRules have primary refs, we measure there")]
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
     pub selector: Selector<SelectorImpl>,
+
     /// The ancestor hashes associated with the selector.
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "No heap data")]
     pub hashes: AncestorHashes,
+
     /// The source order this style rule appears in. Note that we only use
     /// three bytes to store this value in ApplicableDeclarationsBlock, so
     /// we could repurpose that storage here if we needed to.
     pub source_order: u32,
+
     /// The actual style rule.
+    #[cfg_attr(feature = "gecko",
+               ignore_malloc_size_of =
+                   "Secondary ref. Primary ref is in StyleRule under Stylesheet.")]
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
     pub style_rule: Arc<Locked<StyleRule>>,
 }

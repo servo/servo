@@ -6,6 +6,8 @@
 
 use cssparser::{BasicParseError, ParseError as CssParseError, ParserInput};
 use cssparser::{Delimiter, parse_important, Parser, SourceLocation, Token};
+#[cfg(feature = "gecko")]
+use malloc_size_of::MallocSizeOfOps;
 use parser::ParserContext;
 use properties::{PropertyId, PropertyDeclaration, PropertyParserContext, SourcePropertyDeclaration};
 use selectors::parser::SelectorParseError;
@@ -13,7 +15,7 @@ use servo_arc::Arc;
 use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt;
 use style_traits::{ToCss, ParseError, StyleParseError};
-use stylesheets::{CssRuleType, CssRules, MallocSizeOfFn, MallocSizeOfWithGuard};
+use stylesheets::{CssRuleType, CssRules};
 
 /// An [`@supports`][supports] rule.
 ///
@@ -32,10 +34,10 @@ pub struct SupportsRule {
 
 impl SupportsRule {
     /// Measure heap usage.
-    pub fn malloc_size_of_children(&self, guard: &SharedRwLockReadGuard,
-                                   malloc_size_of: MallocSizeOfFn) -> usize {
+    #[cfg(feature = "gecko")]
+    pub fn size_of(&self, guard: &SharedRwLockReadGuard, ops: &mut MallocSizeOfOps) -> usize {
         // Measurement of other fields may be added later.
-        self.rules.read_with(guard).malloc_size_of_children(guard, malloc_size_of)
+        self.rules.read_with(guard).size_of(guard, ops)
     }
 }
 

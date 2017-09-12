@@ -9,6 +9,8 @@ use error_reporting::{ParseErrorReporter, ContextualParseError};
 use fallible::FallibleVec;
 use fnv::FnvHashMap;
 use invalidation::media_queries::{MediaListKey, ToMediaListKey};
+#[cfg(feature = "gecko")]
+use malloc_size_of::MallocSizeOfOps;
 use media_queries::{MediaList, Device};
 use parking_lot::RwLock;
 use parser::{ParserContext, ParserErrorContext};
@@ -19,7 +21,6 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use style_traits::PARSING_MODE_DEFAULT;
 use stylesheets::{CssRule, CssRules, Origin, UrlExtraData};
 use stylesheets::loader::StylesheetLoader;
-use stylesheets::memory::{MallocSizeOfFn, MallocSizeOfWithGuard};
 use stylesheets::rule_parser::{State, TopLevelRuleParser};
 use stylesheets::rules_iterator::{EffectiveRules, EffectiveRulesIterator, NestedRuleIterationCondition, RulesIterator};
 use values::specified::NamespaceId;
@@ -116,6 +117,13 @@ impl StylesheetContents {
             &self.rules.read_with(guard)
         )
     }
+
+    /// Measure heap usage.
+    #[cfg(feature = "gecko")]
+    pub fn size_of(&self, guard: &SharedRwLockReadGuard, ops: &mut MallocSizeOfOps) -> usize {
+        // Measurement of other fields may be added later.
+        self.rules.read_with(guard).size_of(guard, ops)
+    }
 }
 
 impl DeepCloneWithLock for StylesheetContents {
@@ -138,17 +146,6 @@ impl DeepCloneWithLock for StylesheetContents {
             namespaces: RwLock::new((*self.namespaces.read()).clone()),
             source_map_url: RwLock::new((*self.source_map_url.read()).clone()),
         }
-    }
-}
-
-impl MallocSizeOfWithGuard for StylesheetContents {
-    fn malloc_size_of_children(
-        &self,
-        guard: &SharedRwLockReadGuard,
-        malloc_size_of: MallocSizeOfFn
-    ) -> usize {
-        // Measurement of other fields may be added later.
-        self.rules.read_with(guard).malloc_size_of_children(guard, malloc_size_of)
     }
 }
 

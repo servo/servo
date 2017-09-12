@@ -7,12 +7,13 @@
 //! [page]: https://drafts.csswg.org/css2/page.html#page-box
 
 use cssparser::SourceLocation;
+#[cfg(feature = "gecko")]
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use properties::PropertyDeclarationBlock;
 use servo_arc::Arc;
 use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt;
 use style_traits::ToCss;
-use stylesheets::{MallocSizeOf, MallocSizeOfFn};
 
 /// A [`@page`][page] rule.
 ///
@@ -33,10 +34,10 @@ pub struct PageRule {
 
 impl PageRule {
     /// Measure heap usage.
-    pub fn malloc_size_of_children(&self, guard: &SharedRwLockReadGuard,
-                                   malloc_size_of: MallocSizeOfFn) -> usize {
+    #[cfg(feature = "gecko")]
+    pub fn size_of(&self, guard: &SharedRwLockReadGuard, ops: &mut MallocSizeOfOps) -> usize {
         // Measurement of other fields may be added later.
-        self.block.read_with(guard).malloc_size_of_children(malloc_size_of)
+        self.block.read_with(guard).size_of(ops)
     }
 }
 

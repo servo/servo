@@ -19,7 +19,7 @@ use shared_lock::{DeepCloneParams, DeepCloneWithLock, SharedRwLock, SharedRwLock
 use std::fmt;
 use style_traits::{PARSING_MODE_DEFAULT, ToCss, ParseError, StyleParseError};
 use style_traits::PropertyDeclarationParseError;
-use stylesheets::{CssRuleType, MallocSizeOfFn, MallocSizeOfVec, StylesheetContents};
+use stylesheets::{CssRuleType, StylesheetContents};
 use stylesheets::rule_parser::{VendorPrefix, get_location_with_offset};
 use values::{KeyframesName, serialize_percentage};
 
@@ -100,6 +100,7 @@ impl DeepCloneWithLock for KeyframesRule {
 /// A number from 0 to 1, indicating the percentage of the animation when this
 /// keyframe should run.
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct KeyframePercentage(pub f32);
 
@@ -263,11 +264,14 @@ impl DeepCloneWithLock for Keyframe {
 ///
 /// TODO: Find a better name for this?
 #[derive(Debug)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum KeyframesStepValue {
     /// A step formed by a declaration block specified by the CSS.
     Declarations {
         /// The declaration block per se.
+        #[cfg_attr(feature = "gecko",
+                   ignore_malloc_size_of = "XXX: Primary ref, measure if DMD says it's worthwhile")]
         #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
         block: Arc<Locked<PropertyDeclarationBlock>>
     },
@@ -278,6 +282,7 @@ pub enum KeyframesStepValue {
 
 /// A single step from a keyframe animation.
 #[derive(Debug)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct KeyframesStep {
     /// The percentage of the animation duration when this step starts.
@@ -349,6 +354,7 @@ impl KeyframesStep {
 ///
 /// It only takes into account animable properties.
 #[derive(Debug)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct KeyframesAnimation {
     /// The difference steps of the animation.
@@ -441,14 +447,6 @@ impl KeyframesAnimation {
         }
 
         result
-    }
-
-    /// Measure heap usage.
-    pub fn malloc_size_of_children(&self, malloc_size_of: MallocSizeOfFn) -> usize {
-        let mut n = 0;
-        n += self.steps.malloc_shallow_size_of_vec(malloc_size_of);
-        n += self.properties_changed.malloc_shallow_size_of_vec(malloc_size_of);
-        n
     }
 }
 
