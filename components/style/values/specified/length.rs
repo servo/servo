@@ -96,8 +96,8 @@ impl FontBaseSize {
     pub fn resolve(&self, context: &Context) -> Au {
         match *self {
             FontBaseSize::Custom(size) => size,
-            FontBaseSize::CurrentStyle => Au::from(context.style().get_font().clone_font_size()),
-            FontBaseSize::InheritedStyle => Au::from(context.style().get_parent_font().clone_font_size()),
+            FontBaseSize::CurrentStyle => context.style().get_font().clone_font_size().size(),
+            FontBaseSize::InheritedStyle => context.style().get_parent_font().clone_font_size().size(),
         }
     }
 }

@@ -596,7 +596,7 @@ ${helpers.single_keyword_system("font-variant-caps",
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="font-size" animation_value_type="NonNegativeLength"
+<%helpers:longhand name="font-size" animation_value_type="ComputedValue"
                    flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER"
                    allow_quirks="True" spec="https://drafts.csswg.org/css-fonts/#propdef-font-size">
     use app_units::Au;
@@ -648,13 +648,56 @@ ${helpers.single_keyword_system("font-variant-caps",
     }
 
     pub mod computed_value {
+        use app_units::Au;
+        use std::fmt;
+        use style_traits::ToCss;
         use values::computed::NonNegativeLength;
-        pub type T = NonNegativeLength;
+
+        #[derive(Copy, Clone, PartialEq, Debug)]
+        #[derive(ToAnimatedValue, Animate, ToAnimatedZero, ComputeSquaredDistance)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        pub struct T {
+            pub size: NonNegativeLength,
+            pub info: Option<KeywordInfo>,
+        }
+
+        #[derive(Copy, Clone, PartialEq, Debug)]
+        #[derive(ToAnimatedValue, Animate, ToAnimatedZero, ComputeSquaredDistance)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        pub struct KeywordInfo {
+            pub kw: super::KeywordSize,
+            pub factor: f32,
+            pub offset: NonNegativeLength,
+        }
+
+        impl KeywordInfo {
+            /// Given a parent keyword info (self), apply an additional factor/offset to it
+            pub fn compose(self, factor: f32, offset: NonNegativeLength) -> Self {
+                KeywordInfo {
+                    kw: self.kw,
+                    factor: self.factor * factor,
+                    offset: self.offset.scale_by(factor) + offset,
+                }
+            }
+        }
+
+        impl T {
+            pub fn size(self) -> Au {
+                self.size.into()
+            }
+        }
+
+        impl ToCss for T {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                self.size.to_css(dest)
+            }
+        }
     }
 
     /// CSS font keywords
     #[derive(Clone, Copy, Debug, PartialEq)]
     #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
+    #[derive(ToAnimatedValue, Animate, ToAnimatedZero, ComputeSquaredDistance)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum KeywordSize {
         XXSmall = 1, // This is to enable the NonZero optimization
@@ -727,7 +770,7 @@ ${helpers.single_keyword_system("font-variant-caps",
         impl ToComputedValue for KeywordSize {
             type ComputedValue = NonNegativeLength;
             #[inline]
-            fn to_computed_value(&self, _: &Context) -> computed_value::T {
+            fn to_computed_value(&self, _: &Context) -> NonNegativeLength {
                 // https://drafts.csswg.org/css-fonts-3/#font-size-prop
                 use values::FONT_MEDIUM_PX;
                 match *self {
@@ -743,7 +786,7 @@ ${helpers.single_keyword_system("font-variant-caps",
             }
 
             #[inline]
-            fn from_computed_value(_: &computed_value::T) -> Self {
+            fn from_computed_value(_: &NonNegativeLength) -> Self {
                 unreachable!()
             }
         }
@@ -751,7 +794,7 @@ ${helpers.single_keyword_system("font-variant-caps",
         impl ToComputedValue for KeywordSize {
             type ComputedValue = NonNegativeLength;
             #[inline]
-            fn to_computed_value(&self, cx: &Context) -> computed_value::T {
+            fn to_computed_value(&self, cx: &Context) -> NonNegativeLength {
                 use gecko_bindings::structs::nsIAtom;
                 use values::specified::length::au_to_int_px;
                 // Data from nsRuleNode.cpp in Gecko
@@ -792,7 +835,7 @@ ${helpers.single_keyword_system("font-variant-caps",
             }
 
             #[inline]
-            fn from_computed_value(_: &computed_value::T) -> Self {
+            fn from_computed_value(_: &NonNegativeLength) -> Self {
                 unreachable!()
             }
         }
@@ -863,11 +906,18 @@ ${helpers.single_keyword_system("font-variant-caps",
             &self,
             context: &Context,
             base_size: FontBaseSize,
-        ) -> NonNegativeLength {
+        ) -> computed_value::T {
             use values::specified::length::FontRelativeLength;
-            match *self {
+            let mut info = None;
+            let size = match *self {
                 SpecifiedValue::Length(LengthOrPercentage::Length(
                         NoCalcLength::FontRelative(value))) => {
+                    if let FontRelativeLength::Em(em) = value {
+                        // If the parent font was keyword-derived, this is too.
+                        // Tack the em unit onto the factor
+                        info = context.style().get_parent_font()
+                                      .clone_font_size().info.map(|i| i.compose(em, Au(0).into()));
+                    }
                     value.to_computed_value(context, base_size).into()
                 }
                 SpecifiedValue::Length(LengthOrPercentage::Length(
@@ -876,21 +926,45 @@ ${helpers.single_keyword_system("font-variant-caps",
                 }
                 SpecifiedValue::Length(LengthOrPercentage::Length(
                         NoCalcLength::Absolute(ref l))) => {
-                    context.maybe_zoom_text(l.to_computed_value(context)).into()
+                    context.maybe_zoom_text(l.to_computed_value(context).into())
                 }
                 SpecifiedValue::Length(LengthOrPercentage::Length(ref l)) => {
                     l.to_computed_value(context).into()
                 }
                 SpecifiedValue::Length(LengthOrPercentage::Percentage(pc)) => {
+                    // If the parent font was keyword-derived, this is too.
+                    // Tack the % onto the factor
+                    info = context.style().get_parent_font().clone_font_size().info.map(|i| i.compose(pc.0, Au(0).into()));
                     base_size.resolve(context).scale_by(pc.0).into()
                 }
                 SpecifiedValue::Length(LengthOrPercentage::Calc(ref calc)) => {
+                    let parent = context.style().get_parent_font().clone_font_size();
+                    // if we contain em/% units and the parent was keyword derived, this is too
+                    // Extract the ratio/offset and compose it
+                    if (calc.em.is_some() || calc.percentage.is_some()) && parent.info.is_some() {
+                        let ratio = calc.em.unwrap_or(0.) + calc.percentage.map_or(0., |pc| pc.0);
+                        // Compute it, but shave off the font-relative part (em, %)
+                        // This will mean that other font-relative units like ex and ch will be computed against
+                        // the old font even when the font changes. There's no particular "right answer" for what
+                        // to do here -- Gecko recascades as if the font had changed, we instead track the changes
+                        // and reapply, which means that we carry over old computed ex/ch values whilst Gecko
+                        // recomputes new ones. This is enough of an edge case to not really matter.
+                        let abs = calc.to_computed_value_zoomed(context, FontBaseSize::Custom(Au(0).into()))
+                                      .length_component().into();
+                        info = parent.info.map(|i| i.compose(ratio, abs));
+                    }
                     let calc = calc.to_computed_value_zoomed(context, base_size);
                     calc.to_used_value(Some(base_size.resolve(context))).unwrap().into()
                 }
-                SpecifiedValue::Keyword(ref key, fraction, offset) => {
+                SpecifiedValue::Keyword(key, fraction, offset) => {
+                    // As a specified keyword, this is keyword derived
+                    info = Some(computed_value::KeywordInfo {
+                        kw: key,
+                        factor: fraction,
+                        offset: offset,
+                    });
                     let key_len = key.to_computed_value(context).scale_by(fraction) + offset;
-                    context.maybe_zoom_text(key_len.0).into()
+                    context.maybe_zoom_text(key_len).into()
                 }
                 SpecifiedValue::Smaller => {
                     FontRelativeLength::Em(1. / LARGER_FONT_SIZE_RATIO)
@@ -903,17 +977,25 @@ ${helpers.single_keyword_system("font-variant-caps",
 
                 SpecifiedValue::System(_) => {
                     <%self:nongecko_unreachable>
-                        context.cached_system_font.as_ref().unwrap().font_size
+                        context.cached_system_font.as_ref().unwrap().font_size.size
                     </%self:nongecko_unreachable>
                 }
-            }
+            };
+            computed_value::T { size, info }
         }
     }
 
     #[inline]
     #[allow(missing_docs)]
     pub fn get_initial_value() -> computed_value::T {
-        NonNegativeLength::new(FONT_MEDIUM_PX as f32)
+        computed_value::T {
+            size: Au::from_px(FONT_MEDIUM_PX).into(),
+            info: Some(computed_value::KeywordInfo {
+                kw: KeywordSize::Medium,
+                factor: 1.,
+                offset: Au(0).into(),
+            })
+        }
     }
 
     #[inline]
@@ -933,7 +1015,7 @@ ${helpers.single_keyword_system("font-variant-caps",
         #[inline]
         fn from_computed_value(computed: &computed_value::T) -> Self {
             SpecifiedValue::Length(LengthOrPercentage::Length(
-                ToComputedValue::from_computed_value(&computed.0)
+                ToComputedValue::from_computed_value(&computed.size.0)
             ))
         }
     }
@@ -980,7 +1062,7 @@ ${helpers.single_keyword_system("font-variant-caps",
     #[allow(unused_mut)]
     pub fn cascade_specified_font_size(context: &mut Context,
                                        specified_value: &SpecifiedValue,
-                                       mut computed: NonNegativeLength) {
+                                       mut computed: computed_value::T) {
         if let SpecifiedValue::Keyword(kw, fraction, offset) = *specified_value {
             context.builder.font_size_keyword = Some((kw, fraction, offset));
         } else if let Some((ratio, abs)) = specified_value.as_font_ratio(context) {
@@ -1011,8 +1093,15 @@ ${helpers.single_keyword_system("font-variant-caps",
                context.builder.get_font().gecko().mGenericID !=
                context.builder.get_parent_font().gecko().mGenericID {
                 if let Some((kw, ratio, offset)) = context.builder.font_size_keyword {
-                    let len = kw.to_computed_value(context).scale_by(ratio) + offset;
-                    computed = context.maybe_zoom_text(len.0).into();
+                    let len = context.maybe_zoom_text(kw.to_computed_value(context).scale_by(ratio) + offset);
+                    computed = computed_value::T {
+                        size: len,
+                        info: Some(computed_value::KeywordInfo {
+                            kw: kw,
+                            factor: ratio,
+                            offset: offset
+                        }),
+                    }
                 }
             }
         % endif
@@ -1031,7 +1120,7 @@ ${helpers.single_keyword_system("font-variant-caps",
                     .to_computed_value_against(context, FontBaseSize::Custom(Au::from(parent)));
             context.builder
                    .mutate_font()
-                   .apply_unconstrained_font_size(new_unconstrained);
+                   .apply_unconstrained_font_size(new_unconstrained.size);
         }
     }
 
@@ -1042,8 +1131,7 @@ ${helpers.single_keyword_system("font-variant-caps",
         // changes using the font_size_keyword. We also need to do this to
         // handle mathml scriptlevel changes
         let kw_inherited_size = context.builder.font_size_keyword.map(|(kw, ratio, offset)| {
-            let len = SpecifiedValue::Keyword(kw, ratio, offset).to_computed_value(context);
-            context.maybe_zoom_text(len.0).into()
+            context.maybe_zoom_text(SpecifiedValue::Keyword(kw, ratio, offset).to_computed_value(context).size)
         });
         let parent_kw;
         let device = context.builder.device;
@@ -1068,10 +1156,9 @@ ${helpers.single_keyword_system("font-variant-caps",
     pub fn cascade_initial_font_size(context: &mut Context) {
         // font-size's default ("medium") does not always
         // compute to the same value and depends on the font
-        let computed = context.maybe_zoom_text(
-                            longhands::font_size::get_initial_specified_value()
-                                .to_computed_value(context).0
-                        ).into();
+        let mut computed = longhands::font_size::get_initial_specified_value()
+                                            .to_computed_value(context);
+        computed.size = context.maybe_zoom_text(computed.size);
         context.builder.mutate_font().set_font_size(computed);
         % if product == "gecko":
             let device = context.builder.device;
@@ -2552,7 +2639,7 @@ ${helpers.single_keyword("-moz-math-variant",
                 let weight = longhands::font_weight::computed_value::T::from_gecko_weight(system.weight);
                 let ret = ComputedSystemFont {
                     font_family: longhands::font_family::computed_value::T(family),
-                    font_size: Au(system.size).into(),
+                    font_size: longhands::font_size::computed_value::T { size: Au(system.size).into(), info: None },
                     font_weight: weight,
                     font_size_adjust: longhands::font_size_adjust::computed_value
                                                ::T::from_gecko_adjust(system.sizeAdjust),
