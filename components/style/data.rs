@@ -15,7 +15,7 @@ use properties::longhands::display::computed_value as display;
 use rule_tree::StrongRuleNode;
 use selector_parser::{EAGER_PSEUDO_COUNT, PseudoElement, RestyleDamage};
 use servo_arc::Arc;
-use shared_lock::StylesheetGuards;
+use shared_lock::StyleSheetGuards;
 use std::fmt;
 use std::ops::{Deref, DerefMut};
 
@@ -430,7 +430,7 @@ impl ElementData {
     pub fn important_rules_are_different(
         &self,
         rules: &StrongRuleNode,
-        guards: &StylesheetGuards
+        guards: &StyleSheetGuards
     ) -> bool {
         debug_assert!(self.has_styles());
         let (important_rules, _custom) =

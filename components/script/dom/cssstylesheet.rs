@@ -17,7 +17,7 @@ use dom_struct::dom_struct;
 use servo_arc::Arc;
 use std::cell::Cell;
 use style::shared_lock::SharedRwLock;
-use style::stylesheets::Stylesheet as StyleStyleSheet;
+use style::stylesheets::StyleSheet as StyleStyleSheet;
 
 #[dom_struct]
 pub struct CSSStyleSheet {

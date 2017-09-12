@@ -27,13 +27,13 @@ use std::sync::atomic::AtomicBool;
 use style::attr::AttrValue;
 use style::media_queries::MediaList;
 use style::str::HTML_SPACE_CHARACTERS;
-use style::stylesheets::{Stylesheet, StylesheetContents, CssRule, CssRules, Origin, ViewportRule};
+use style::stylesheets::{StyleSheet, StyleSheetContents, CssRule, CssRules, Origin, ViewportRule};
 
 #[dom_struct]
 pub struct HTMLMetaElement {
     htmlelement: HTMLElement,
     #[ignore_heap_size_of = "Arc"]
-    stylesheet: DOMRefCell<Option<Arc<Stylesheet>>>,
+    stylesheet: DOMRefCell<Option<Arc<StyleSheet>>>,
     cssom_stylesheet: MutNullableJS<CSSStyleSheet>,
 }
 
@@ -57,7 +57,7 @@ impl HTMLMetaElement {
                            HTMLMetaElementBinding::Wrap)
     }
 
-    pub fn get_stylesheet(&self) -> Option<Arc<Stylesheet>> {
+    pub fn get_stylesheet(&self) -> Option<Arc<StyleSheet>> {
         self.stylesheet.borrow().clone()
     }
 
@@ -102,8 +102,8 @@ impl HTMLMetaElement {
                     let document = document_from_node(self);
                     let shared_lock = document.style_shared_lock();
                     let rule = CssRule::Viewport(Arc::new(shared_lock.wrap(translated_rule)));
-                    let sheet = Arc::new(Stylesheet {
-                        contents: StylesheetContents {
+                    let sheet = Arc::new(StyleSheet {
+                        contents: StyleSheetContents {
                             rules: CssRules::new(vec![rule], shared_lock),
                             origin: Origin::Author,
                             namespaces: Default::default(),

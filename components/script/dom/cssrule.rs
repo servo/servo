@@ -143,7 +143,7 @@ impl CSSRuleMethods for CSSRule {
 pub trait SpecificCSSRule {
     fn ty(&self) -> u16;
     fn get_css(&self) -> DOMString;
-    /// Remove parentStylesheet from all transitive children
+    /// Remove parentStyleSheet from all transitive children
     fn deparent_children(&self) {
         // most CSSRules do nothing here
     }

@@ -37,7 +37,7 @@ use properties::animated_properties::AnimatableLonghand;
 use selector_parser::PseudoElement;
 use selectors::parser::SelectorParseError;
 #[cfg(feature = "servo")] use servo_config::prefs::PREFS;
-use shared_lock::StylesheetGuards;
+use shared_lock::StyleSheetGuards;
 use style_traits::{PARSING_MODE_DEFAULT, ToCss, ParseError};
 use style_traits::{PropertyDeclarationParseError, StyleParseError, ValueParseError};
 use stylesheets::{CssRuleType, Origin, UrlExtraData};
@@ -3002,7 +3002,7 @@ pub fn cascade(
     device: &Device,
     pseudo: Option<<&PseudoElement>,
     rule_node: &StrongRuleNode,
-    guards: &StylesheetGuards,
+    guards: &StyleSheetGuards,
     parent_style: Option<<&ComputedValues>,
     parent_style_ignoring_first_line: Option<<&ComputedValues>,
     layout_parent_style: Option<<&ComputedValues>,

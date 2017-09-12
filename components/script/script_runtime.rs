@@ -79,7 +79,7 @@ pub enum ScriptThreadEventCategory {
     ScriptEvent,
     SetScrollState,
     SetViewport,
-    StylesheetLoad,
+    StyleSheetLoad,
     TimerEvent,
     UpdateReplacedElement,
     WebSocketEvent,

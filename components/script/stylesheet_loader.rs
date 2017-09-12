@@ -32,12 +32,12 @@ use std::sync::atomic::AtomicBool;
 use style::media_queries::MediaList;
 use style::parser::ParserContext;
 use style::shared_lock::{Locked, SharedRwLock};
-use style::stylesheets::{CssRules, ImportRule, Namespaces, Stylesheet, StylesheetContents, Origin};
-use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
+use style::stylesheets::{CssRules, ImportRule, Namespaces, StyleSheet, StyleSheetContents, Origin};
+use style::stylesheets::StyleSheetLoader as StyleStyleSheetLoader;
 use style::stylesheets::import_rule::ImportSheet;
 use style::values::specified::url::SpecifiedUrl;
 
-pub trait StylesheetOwner {
+pub trait StyleSheetOwner {
     /// Returns whether this element was inserted by the parser (i.e., it should
     /// trigger a document-load-blocking load).
     fn parser_inserted(&self) -> bool;
@@ -57,17 +57,17 @@ pub trait StylesheetOwner {
     fn set_origin_clean(&self, origin_clean: bool);
 }
 
-pub enum StylesheetContextSource {
+pub enum StyleSheetContextSource {
     // NB: `media` is just an option so we avoid cloning it.
     LinkElement { media: Option<MediaList>, },
-    Import(Arc<Stylesheet>),
+    Import(Arc<StyleSheet>),
 }
 
 /// The context required for asynchronously loading an external stylesheet.
-pub struct StylesheetContext {
+pub struct StyleSheetContext {
     /// The element that initiated the request.
     elem: Trusted<HTMLElement>,
-    source: StylesheetContextSource,
+    source: StyleSheetContextSource,
     url: ServoUrl,
     metadata: Option<Metadata>,
     /// The response body received to date.
@@ -80,9 +80,9 @@ pub struct StylesheetContext {
     request_generation_id: Option<RequestGenerationId>,
 }
 
-impl PreInvoke for StylesheetContext {}
+impl PreInvoke for StyleSheetContext {}
 
-impl FetchResponseListener for StylesheetContext {
+impl FetchResponseListener for StyleSheetContext {
     fn process_request_body(&mut self) {}
 
     fn process_request_eof(&mut self) {}
@@ -133,9 +133,9 @@ impl FetchResponseListener for StylesheetContext {
 
             let win = window_from_node(&*elem);
 
-            let loader = StylesheetLoader::for_element(&elem);
+            let loader = StyleSheetLoader::for_element(&elem);
             match self.source {
-                StylesheetContextSource::LinkElement { ref mut media } => {
+                StyleSheetContextSource::LinkElement { ref mut media } => {
                     let link = elem.downcast::<HTMLLinkElement>().unwrap();
                     // We must first check whether the generations of the context and the element match up,
                     // else we risk applying the wrong stylesheet when responses come out-of-order.
@@ -144,7 +144,7 @@ impl FetchResponseListener for StylesheetContext {
                     if is_stylesheet_load_applicable {
                         let shared_lock = document.style_shared_lock().clone();
                         let sheet =
-                            Arc::new(Stylesheet::from_bytes(&data, final_url,
+                            Arc::new(StyleSheet::from_bytes(&data, final_url,
                                                             protocol_encoding_label,
                                                             Some(environment_encoding),
                                                             Origin::Author,
@@ -161,8 +161,8 @@ impl FetchResponseListener for StylesheetContext {
                         link.set_stylesheet(sheet);
                     }
                 }
-                StylesheetContextSource::Import(ref stylesheet) => {
-                    Stylesheet::update_from_bytes(&stylesheet,
+                StyleSheetContextSource::Import(ref stylesheet) => {
+                    StyleSheet::update_from_bytes(&stylesheet,
                                                   &data,
                                                   protocol_encoding_label,
                                                   Some(environment_encoding),
@@ -180,13 +180,13 @@ impl FetchResponseListener for StylesheetContext {
         }
 
         let owner = elem.upcast::<Element>().as_stylesheet_owner()
-            .expect("Stylesheet not loaded by <style> or <link> element!");
+            .expect("StyleSheet not loaded by <style> or <link> element!");
         owner.set_origin_clean(self.origin_clean);
         if owner.parser_inserted() {
             document.decrement_script_blocking_stylesheet_count();
         }
 
-        document.finish_load(LoadType::Stylesheet(self.url.clone()));
+        document.finish_load(LoadType::StyleSheet(self.url.clone()));
 
         if let Some(any_failed) = owner.load_finished(successful) {
             let event = if any_failed { atom!("error") } else { atom!("load") };
@@ -195,26 +195,26 @@ impl FetchResponseListener for StylesheetContext {
     }
 }
 
-pub struct StylesheetLoader<'a> {
+pub struct StyleSheetLoader<'a> {
     elem: &'a HTMLElement,
 }
 
-impl<'a> StylesheetLoader<'a> {
+impl<'a> StyleSheetLoader<'a> {
     pub fn for_element(element: &'a HTMLElement) -> Self {
-        StylesheetLoader {
+        StyleSheetLoader {
             elem: element,
         }
     }
 }
 
-impl<'a> StylesheetLoader<'a> {
-    pub fn load(&self, source: StylesheetContextSource, url: ServoUrl,
+impl<'a> StyleSheetLoader<'a> {
+    pub fn load(&self, source: StyleSheetContextSource, url: ServoUrl,
                 cors_setting: Option<CorsSettings>,
                 integrity_metadata: String) {
         let document = document_from_node(self.elem);
         let gen = self.elem.downcast::<HTMLLinkElement>()
                            .map(HTMLLinkElement::get_request_generation_id);
-        let context = ::std::sync::Arc::new(Mutex::new(StylesheetContext {
+        let context = ::std::sync::Arc::new(Mutex::new(StyleSheetContext {
             elem: Trusted::new(&*self.elem),
             source: source,
             url: url.clone(),
@@ -237,7 +237,7 @@ impl<'a> StylesheetLoader<'a> {
 
 
         let owner = self.elem.upcast::<Element>().as_stylesheet_owner()
-            .expect("Stylesheet not loaded by <style> or <link> element!");
+            .expect("StyleSheet not loaded by <style> or <link> element!");
         let referrer_policy = owner.referrer_policy()
             .or_else(|| document.get_referrer_policy());
         owner.increment_pending_loads_count();
@@ -269,11 +269,11 @@ impl<'a> StylesheetLoader<'a> {
             .. RequestInit::default()
         };
 
-        document.fetch_async(LoadType::Stylesheet(url), request, action_sender);
+        document.fetch_async(LoadType::StyleSheet(url), request, action_sender);
     }
 }
 
-impl<'a> StyleStylesheetLoader for StylesheetLoader<'a> {
+impl<'a> StyleStyleSheetLoader for StyleSheetLoader<'a> {
     /// Request a stylesheet after parsing a given `@import` rule, and return
     /// the constructed `@import` rule.
     fn request_stylesheet(
@@ -284,8 +284,8 @@ impl<'a> StyleStylesheetLoader for StylesheetLoader<'a> {
         lock: &SharedRwLock,
         media: Arc<Locked<MediaList>>,
     ) -> Arc<Locked<ImportRule>> {
-        let sheet = Arc::new(Stylesheet {
-            contents: StylesheetContents {
+        let sheet = Arc::new(StyleSheet {
+            contents: StyleSheetContents {
                 rules: CssRules::new(Vec::new(), lock),
                 origin: context.stylesheet_origin,
                 url_data: RwLock::new(context.url_data.clone()),
@@ -308,7 +308,7 @@ impl<'a> StyleStylesheetLoader for StylesheetLoader<'a> {
 
         // TODO (mrnayak) : Whether we should use the original loader's CORS
         // setting? Fix this when spec has more details.
-        let source = StylesheetContextSource::Import(sheet.clone());
+        let source = StyleSheetContextSource::Import(sheet.clone());
         self.load(source, url, None, "".to_owned());
 
         Arc::new(lock.wrap(import))

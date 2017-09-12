@@ -9,9 +9,9 @@ use malloc_size_of::{MallocShallowSizeOf, MallocSizeOfOps};
 use servo_arc::{Arc, RawOffsetArc};
 use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard};
 use stylesheets::{CssRule, RulesMutateError};
-use stylesheets::loader::StylesheetLoader;
+use stylesheets::loader::StyleSheetLoader;
 use stylesheets::rule_parser::State;
-use stylesheets::stylesheet::StylesheetContents;
+use stylesheets::stylesheet::StyleSheetContents;
 
 /// A list of CSS rules.
 #[derive(Debug)]
@@ -103,10 +103,10 @@ pub trait CssRulesHelpers {
     fn insert_rule(&self,
                    lock: &SharedRwLock,
                    rule: &str,
-                   parent_stylesheet_contents: &StylesheetContents,
+                   parent_stylesheet_contents: &StyleSheetContents,
                    index: usize,
                    nested: bool,
-                   loader: Option<&StylesheetLoader>)
+                   loader: Option<&StyleSheetLoader>)
                    -> Result<CssRule, RulesMutateError>;
 }
 
@@ -114,10 +114,10 @@ impl CssRulesHelpers for RawOffsetArc<Locked<CssRules>> {
     fn insert_rule(&self,
                    lock: &SharedRwLock,
                    rule: &str,
-                   parent_stylesheet_contents: &StylesheetContents,
+                   parent_stylesheet_contents: &StyleSheetContents,
                    index: usize,
                    nested: bool,
-                   loader: Option<&StylesheetLoader>)
+                   loader: Option<&StyleSheetLoader>)
                    -> Result<CssRule, RulesMutateError> {
         let state = {
             let read_guard = lock.read();

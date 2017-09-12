@@ -9,7 +9,7 @@ use fnv::FnvHashSet;
 use media_queries::Device;
 use shared_lock::SharedRwLockReadGuard;
 use stylesheets::{DocumentRule, ImportRule, MediaRule};
-use stylesheets::{NestedRuleIterationCondition, Stylesheet, SupportsRule};
+use stylesheets::{NestedRuleIterationCondition, StyleSheet, SupportsRule};
 
 /// A key for a given media query result.
 ///
@@ -47,7 +47,7 @@ pub trait ToMediaListKey : Sized {
     }
 }
 
-impl ToMediaListKey for Stylesheet {}
+impl ToMediaListKey for StyleSheet {}
 impl ToMediaListKey for ImportRule {}
 impl ToMediaListKey for MediaRule {}
 

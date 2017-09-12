@@ -20,19 +20,19 @@ use std::mem;
 use std::sync::atomic::{AtomicBool, Ordering};
 use style_traits::PARSING_MODE_DEFAULT;
 use stylesheets::{CssRule, CssRules, Origin, UrlExtraData};
-use stylesheets::loader::StylesheetLoader;
+use stylesheets::loader::StyleSheetLoader;
 use stylesheets::rule_parser::{State, TopLevelRuleParser};
 use stylesheets::rules_iterator::{EffectiveRules, EffectiveRulesIterator, NestedRuleIterationCondition, RulesIterator};
 use values::specified::NamespaceId;
 
 /// This structure holds the user-agent and user stylesheets.
-pub struct UserAgentStylesheets {
+pub struct UserAgentStyleSheets {
     /// The lock used for user-agent stylesheets.
     pub shared_lock: SharedRwLock,
     /// The user or user agent stylesheets.
-    pub user_or_user_agent_stylesheets: Vec<Stylesheet>,
+    pub user_or_user_agent_stylesheets: Vec<StyleSheet>,
     /// The quirks mode stylesheet.
-    pub quirks_mode_stylesheet: Stylesheet,
+    pub quirks_mode_stylesheet: StyleSheet,
 }
 
 /// A set of namespaces applying to a given stylesheet.
@@ -48,7 +48,7 @@ pub struct Namespaces {
 /// The contents of a given stylesheet. This effectively maps to a
 /// StyleSheetInner in Gecko.
 #[derive(Debug)]
-pub struct StylesheetContents {
+pub struct StyleSheetContents {
     /// List of rules in the order they were found (important for
     /// cascading order)
     pub rules: Arc<Locked<CssRules>>,
@@ -64,7 +64,7 @@ pub struct StylesheetContents {
     pub source_map_url: RwLock<Option<String>>,
 }
 
-impl StylesheetContents {
+impl StyleSheetContents {
     /// Parse a given CSS string, with a given url-data, origin, and
     /// quirks mode.
     pub fn from_str<R: ParseErrorReporter>(
@@ -72,13 +72,13 @@ impl StylesheetContents {
         url_data: UrlExtraData,
         origin: Origin,
         shared_lock: &SharedRwLock,
-        stylesheet_loader: Option<&StylesheetLoader>,
+        stylesheet_loader: Option<&StyleSheetLoader>,
         error_reporter: &R,
         quirks_mode: QuirksMode,
         line_number_offset: u32
     ) -> Self {
         let namespaces = RwLock::new(Namespaces::default());
-        let (rules, source_map_url) = Stylesheet::parse_rules(
+        let (rules, source_map_url) = StyleSheet::parse_rules(
             css,
             &url_data,
             origin,
@@ -126,7 +126,7 @@ impl StylesheetContents {
     }
 }
 
-impl DeepCloneWithLock for StylesheetContents {
+impl DeepCloneWithLock for StyleSheetContents {
     fn deep_clone_with_lock(
         &self,
         lock: &SharedRwLock,
@@ -151,12 +151,12 @@ impl DeepCloneWithLock for StylesheetContents {
 
 /// The structure servo uses to represent a stylesheet.
 #[derive(Debug)]
-pub struct Stylesheet {
+pub struct StyleSheet {
     /// The contents of this stylesheet.
-    pub contents: StylesheetContents,
+    pub contents: StyleSheetContents,
     /// The lock used for objects inside this stylesheet
     pub shared_lock: SharedRwLock,
-    /// List of media associated with the Stylesheet.
+    /// List of media associated with the StyleSheet.
     pub media: Arc<Locked<MediaList>>,
     /// Whether this stylesheet should be disabled.
     pub disabled: AtomicBool,
@@ -183,9 +183,9 @@ macro_rules! rule_filter {
 }
 
 /// A trait to represent a given stylesheet in a document.
-pub trait StylesheetInDocument {
+pub trait StyleSheetInDocument {
     /// Get the contents of this stylesheet.
-    fn contents(&self, guard: &SharedRwLockReadGuard) -> &StylesheetContents;
+    fn contents(&self, guard: &SharedRwLockReadGuard) -> &StyleSheetContents;
 
     /// Get the stylesheet origin.
     fn origin(&self, guard: &SharedRwLockReadGuard) -> Origin {
@@ -253,8 +253,8 @@ pub trait StylesheetInDocument {
     }
 }
 
-impl StylesheetInDocument for Stylesheet {
-    fn contents(&self, _: &SharedRwLockReadGuard) -> &StylesheetContents {
+impl StyleSheetInDocument for StyleSheet {
+    fn contents(&self, _: &SharedRwLockReadGuard) -> &StyleSheetContents {
         &self.contents
     }
 
@@ -267,13 +267,13 @@ impl StylesheetInDocument for Stylesheet {
     }
 }
 
-/// A simple wrapper over an `Arc<Stylesheet>`, with pointer comparison, and
-/// suitable for its use in a `StylesheetSet`.
+/// A simple wrapper over an `Arc<StyleSheet>`, with pointer comparison, and
+/// suitable for its use in a `StyleSheetSet`.
 #[derive(Clone)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct DocumentStyleSheet(
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
-    pub Arc<Stylesheet>
+    pub Arc<StyleSheet>
 );
 
 impl PartialEq for DocumentStyleSheet {
@@ -288,8 +288,8 @@ impl ToMediaListKey for DocumentStyleSheet {
     }
 }
 
-impl StylesheetInDocument for DocumentStyleSheet {
-    fn contents(&self, guard: &SharedRwLockReadGuard) -> &StylesheetContents {
+impl StyleSheetInDocument for DocumentStyleSheet {
+    fn contents(&self, guard: &SharedRwLockReadGuard) -> &StyleSheetContents {
         self.0.contents(guard)
     }
 
@@ -302,19 +302,19 @@ impl StylesheetInDocument for DocumentStyleSheet {
     }
 }
 
-impl Stylesheet {
+impl StyleSheet {
     /// Updates an empty stylesheet from a given string of text.
-    pub fn update_from_str<R>(existing: &Stylesheet,
+    pub fn update_from_str<R>(existing: &StyleSheet,
                               css: &str,
                               url_data: UrlExtraData,
-                              stylesheet_loader: Option<&StylesheetLoader>,
+                              stylesheet_loader: Option<&StyleSheetLoader>,
                               error_reporter: &R,
                               line_number_offset: u32)
         where R: ParseErrorReporter
     {
         let namespaces = RwLock::new(Namespaces::default());
         let (rules, source_map_url) =
-            Stylesheet::parse_rules(
+            StyleSheet::parse_rules(
                 css,
                 &url_data,
                 existing.contents.origin,
@@ -344,7 +344,7 @@ impl Stylesheet {
         origin: Origin,
         namespaces: &mut Namespaces,
         shared_lock: &SharedRwLock,
-        stylesheet_loader: Option<&StylesheetLoader>,
+        stylesheet_loader: Option<&StyleSheetLoader>,
         error_reporter: &R,
         quirks_mode: QuirksMode,
         line_number_offset: u32
@@ -405,20 +405,20 @@ impl Stylesheet {
     /// and media.
     ///
     /// Effectively creates a new stylesheet and forwards the hard work to
-    /// `Stylesheet::update_from_str`.
+    /// `StyleSheet::update_from_str`.
     pub fn from_str<R: ParseErrorReporter>(
         css: &str,
         url_data: UrlExtraData,
         origin: Origin,
         media: Arc<Locked<MediaList>>,
         shared_lock: SharedRwLock,
-        stylesheet_loader: Option<&StylesheetLoader>,
+        stylesheet_loader: Option<&StyleSheetLoader>,
         error_reporter: &R,
         quirks_mode: QuirksMode,
         line_number_offset: u32)
-        -> Stylesheet
+        -> StyleSheet
     {
-        let contents = StylesheetContents::from_str(
+        let contents = StyleSheetContents::from_str(
             css,
             url_data,
             origin,
@@ -429,7 +429,7 @@ impl Stylesheet {
             line_number_offset
         );
 
-        Stylesheet {
+        StyleSheet {
             contents,
             shared_lock,
             media,
@@ -456,7 +456,7 @@ impl Stylesheet {
 }
 
 #[cfg(feature = "servo")]
-impl Clone for Stylesheet {
+impl Clone for StyleSheet {
     fn clone(&self) -> Self {
         // Create a new lock for our clone.
         let lock = self.shared_lock.clone();
@@ -471,7 +471,7 @@ impl Clone for Stylesheet {
             &DeepCloneParams
         );
 
-        Stylesheet {
+        StyleSheet {
             contents,
             media: media,
             shared_lock: lock,

@@ -261,7 +261,7 @@ pub trait DeepCloneWithLock : Sized {
 
 /// Guards for a document
 #[derive(Clone)]
-pub struct StylesheetGuards<'a> {
+pub struct StyleSheetGuards<'a> {
     /// For author-origin stylesheets
     pub author: &'a SharedRwLockReadGuard<'a>,
 
@@ -269,10 +269,10 @@ pub struct StylesheetGuards<'a> {
     pub ua_or_user: &'a SharedRwLockReadGuard<'a>,
 }
 
-impl<'a> StylesheetGuards<'a> {
+impl<'a> StyleSheetGuards<'a> {
     /// Same guard for all origins
     pub fn same(guard: &'a SharedRwLockReadGuard<'a>) -> Self {
-        StylesheetGuards {
+        StyleSheetGuards {
             author: guard,
             ua_or_user: guard,
         }

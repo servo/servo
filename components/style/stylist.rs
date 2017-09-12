@@ -35,19 +35,19 @@ use selectors::parser::{SelectorIter, SelectorMethods};
 use selectors::sink::Push;
 use selectors::visitor::SelectorVisitor;
 use servo_arc::{Arc, ArcBorrow};
-use shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
+use shared_lock::{Locked, SharedRwLockReadGuard, StyleSheetGuards};
 use smallbitvec::SmallBitVec;
 use smallvec::VecLike;
 use std::fmt::Debug;
 use std::ops;
 use style_traits::viewport::ViewportConstraints;
-use stylesheet_set::{OriginValidity, SheetRebuildKind, StylesheetSet, StylesheetIterator, StylesheetFlusher};
+use stylesheet_set::{OriginValidity, SheetRebuildKind, StyleSheetSet, StyleSheetIterator, StyleSheetFlusher};
 #[cfg(feature = "gecko")]
 use stylesheets::{CounterStyleRule, FontFaceRule, FontFeatureValuesRule, PageRule};
 use stylesheets::{CssRule, Origin, OriginSet, PerOrigin, PerOriginIter};
 use stylesheets::StyleRule;
-use stylesheets::StylesheetInDocument;
-use stylesheets::UserAgentStylesheets;
+use stylesheets::StyleSheetInDocument;
+use stylesheets::UserAgentStyleSheets;
 use stylesheets::keyframes_rule::KeyframesAnimation;
 use stylesheets::viewport_rule::{self, MaybeNew, ViewportRule};
 use thread_state;
@@ -92,14 +92,14 @@ impl DocumentCascadeData {
         &mut self,
         device: &Device,
         quirks_mode: QuirksMode,
-        flusher: StylesheetFlusher<'a, 'b, S>,
-        guards: &StylesheetGuards,
-        ua_stylesheets: Option<&UserAgentStylesheets>,
+        flusher: StyleSheetFlusher<'a, 'b, S>,
+        guards: &StyleSheetGuards,
+        ua_stylesheets: Option<&UserAgentStyleSheets>,
         extra_data: &mut PerOrigin<ExtraStyleData>,
     ) -> Result<(), FailedAllocationError>
     where
         'b: 'a,
-        S: StylesheetInDocument + ToMediaListKey + PartialEq + 'static,
+        S: StyleSheetInDocument + ToMediaListKey + PartialEq + 'static,
     {
         debug_assert!(!flusher.nothing_to_do());
 
@@ -213,7 +213,7 @@ impl DocumentCascadeData {
         rebuild_kind: SheetRebuildKind,
     ) -> Result<(), FailedAllocationError>
     where
-        S: StylesheetInDocument + ToMediaListKey + 'static,
+        S: StyleSheetInDocument + ToMediaListKey + 'static,
     {
         if !stylesheet.enabled() ||
            !stylesheet.is_effective_for_device(device, guard) {
@@ -390,28 +390,28 @@ impl DocumentCascadeData {
     }
 }
 
-/// A wrapper over a StylesheetSet that can be `Sync`, since it's only used and
+/// A wrapper over a StyleSheetSet that can be `Sync`, since it's only used and
 /// exposed via mutable methods in the `Stylist`.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-struct StylistStylesheetSet(StylesheetSet<StylistSheet>);
+struct StylistStyleSheetSet(StyleSheetSet<StylistSheet>);
 // Read above to see why this is fine.
-unsafe impl Sync for StylistStylesheetSet {}
+unsafe impl Sync for StylistStyleSheetSet {}
 
-impl StylistStylesheetSet {
+impl StylistStyleSheetSet {
     fn new() -> Self {
-        StylistStylesheetSet(StylesheetSet::new())
+        StylistStyleSheetSet(StyleSheetSet::new())
     }
 }
 
-impl ops::Deref for StylistStylesheetSet {
-    type Target = StylesheetSet<StylistSheet>;
+impl ops::Deref for StylistStyleSheetSet {
+    type Target = StyleSheetSet<StylistSheet>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl ops::DerefMut for StylistStylesheetSet {
+impl ops::DerefMut for StylistStyleSheetSet {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
@@ -444,7 +444,7 @@ pub struct Stylist {
     viewport_constraints: Option<ViewportConstraints>,
 
     /// The list of stylesheets.
-    stylesheets: StylistStylesheetSet,
+    stylesheets: StylistStyleSheetSet,
 
     /// If true, the quirks-mode stylesheet is applied.
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "defined in selectors")]
@@ -493,7 +493,7 @@ impl Stylist {
             viewport_constraints: None,
             device,
             quirks_mode,
-            stylesheets: StylistStylesheetSet::new(),
+            stylesheets: StylistStyleSheetSet::new(),
             cascade_data: Default::default(),
             rule_tree: RuleTree::new(),
             num_rebuilds: 0,
@@ -546,8 +546,8 @@ impl Stylist {
     /// FIXME(emilio): Move the `ua_sheets` to the Stylist too?
     pub fn flush<E>(
         &mut self,
-        guards: &StylesheetGuards,
-        ua_sheets: Option<&UserAgentStylesheets>,
+        guards: &StyleSheetGuards,
+        ua_sheets: Option<&UserAgentStyleSheets>,
         extra_data: &mut PerOrigin<ExtraStyleData>,
         document_element: Option<E>,
     ) -> bool
@@ -638,7 +638,7 @@ impl Stylist {
     ///
     /// This is very intentionally exposed only on `&mut self`, since we don't
     /// want to give access to the stylesheet list from worker threads.
-    pub fn iter_stylesheets(&mut self) -> StylesheetIterator<StylistSheet> {
+    pub fn iter_stylesheets(&mut self) -> StyleSheetIterator<StylistSheet> {
         self.stylesheets.iter()
     }
 
@@ -710,7 +710,7 @@ impl Stylist {
     /// flows.
     pub fn precomputed_values_for_pseudo(
         &self,
-        guards: &StylesheetGuards,
+        guards: &StyleSheetGuards,
         pseudo: &PseudoElement,
         parent: Option<&ComputedValues>,
         cascade_flags: CascadeFlags,
@@ -738,7 +738,7 @@ impl Stylist {
     /// given rule node.
     pub fn precomputed_values_for_pseudo_with_rule_node(
         &self,
-        guards: &StylesheetGuards,
+        guards: &StyleSheetGuards,
         pseudo: &PseudoElement,
         parent: Option<&ComputedValues>,
         cascade_flags: CascadeFlags,
@@ -781,7 +781,7 @@ impl Stylist {
     /// argument. This is useful for providing extra @page rules.
     pub fn rule_node_for_precomputed_pseudo(
         &self,
-        guards: &StylesheetGuards,
+        guards: &StyleSheetGuards,
         pseudo: &PseudoElement,
         extra_declarations: Option<Vec<ApplicableDeclarationBlock>>,
     ) -> StrongRuleNode {
@@ -815,7 +815,7 @@ impl Stylist {
     #[cfg(feature = "servo")]
     pub fn style_for_anonymous(
         &self,
-        guards: &StylesheetGuards,
+        guards: &StyleSheetGuards,
         pseudo: &PseudoElement,
         parent_style: &ComputedValues
     ) -> Arc<ComputedValues> {
@@ -863,7 +863,7 @@ impl Stylist {
     /// docs/components/style.md
     pub fn lazily_compute_pseudo_element_style<E>(
         &self,
-        guards: &StylesheetGuards,
+        guards: &StyleSheetGuards,
         element: &E,
         pseudo: &PseudoElement,
         rule_inclusion: RuleInclusion,
@@ -893,7 +893,7 @@ impl Stylist {
         &self,
         inputs: &CascadeInputs,
         pseudo: &PseudoElement,
-        guards: &StylesheetGuards,
+        guards: &StyleSheetGuards,
         parent_style: &ComputedValues,
         font_metrics: &FontMetricsProvider
     ) -> Option<Arc<ComputedValues>> {
@@ -939,7 +939,7 @@ impl Stylist {
         &self,
         inputs: &CascadeInputs,
         pseudo: Option<&PseudoElement>,
-        guards: &StylesheetGuards,
+        guards: &StyleSheetGuards,
         parent_style: &ComputedValues,
         parent_style_ignoring_first_line: &ComputedValues,
         layout_parent_style: &ComputedValues,
@@ -1027,7 +1027,7 @@ impl Stylist {
     /// docs/components/style.md
     pub fn lazy_pseudo_rules<E>(
         &self,
-        guards: &StylesheetGuards,
+        guards: &StyleSheetGuards,
         element: &E,
         pseudo: &PseudoElement,
         is_probe: bool,
@@ -1215,7 +1215,7 @@ impl Stylist {
                     .was_effective(stylesheet);
 
             if effective_now != effective_then {
-                debug!(" > Stylesheet changed -> {}, {}",
+                debug!(" > StyleSheet changed -> {}, {}",
                        effective_then, effective_now);
                 origins |= origin;
                 continue;
@@ -1593,7 +1593,7 @@ impl Stylist {
     /// Computes styles for a given declaration with parent_style.
     pub fn compute_for_declarations(
         &self,
-        guards: &StylesheetGuards,
+        guards: &StyleSheetGuards,
         parent_style: &ComputedValues,
         declarations: Arc<Locked<PropertyDeclarationBlock>>,
     ) -> Arc<ComputedValues> {
@@ -2076,7 +2076,7 @@ pub struct Rule {
     /// The actual style rule.
     #[cfg_attr(feature = "gecko",
                ignore_malloc_size_of =
-                   "Secondary ref. Primary ref is in StyleRule under Stylesheet.")]
+                   "Secondary ref. Primary ref is in StyleRule under StyleSheet.")]
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
     pub style_rule: Arc<Locked<StyleRule>>,
 }

@@ -24,15 +24,15 @@ use servo_arc::Arc;
 use std::cell::Cell;
 use style::media_queries::parse_media_query_list;
 use style::parser::ParserContext as CssParserContext;
-use style::stylesheets::{CssRuleType, Stylesheet, Origin};
+use style::stylesheets::{CssRuleType, StyleSheet, Origin};
 use style_traits::PARSING_MODE_DEFAULT;
-use stylesheet_loader::{StylesheetLoader, StylesheetOwner};
+use stylesheet_loader::{StyleSheetLoader, StyleSheetOwner};
 
 #[dom_struct]
 pub struct HTMLStyleElement {
     htmlelement: HTMLElement,
     #[ignore_heap_size_of = "Arc"]
-    stylesheet: DOMRefCell<Option<Arc<Stylesheet>>>,
+    stylesheet: DOMRefCell<Option<Arc<StyleSheet>>>,
     cssom_stylesheet: MutNullableJS<CSSStyleSheet>,
     /// https://html.spec.whatwg.org/multipage/#a-style-sheet-that-is-blocking-scripts
     parser_inserted: Cell<bool>,
@@ -95,8 +95,8 @@ impl HTMLStyleElement {
         let mq = Arc::new(shared_lock.wrap(parse_media_query_list(&context,
                                                                   &mut CssParser::new(&mut input),
                                                                   css_error_reporter)));
-        let loader = StylesheetLoader::for_element(self.upcast());
-        let sheet = Stylesheet::from_str(&data, window.get_url(),
+        let loader = StyleSheetLoader::for_element(self.upcast());
+        let sheet = StyleSheet::from_str(&data, window.get_url(),
                                          Origin::Author, mq,
                                          shared_lock, Some(&loader),
                                          css_error_reporter,
@@ -114,7 +114,7 @@ impl HTMLStyleElement {
     }
 
     // FIXME(emilio): This is duplicated with HTMLLinkElement::set_stylesheet.
-    pub fn set_stylesheet(&self, s: Arc<Stylesheet>) {
+    pub fn set_stylesheet(&self, s: Arc<StyleSheet>) {
         let doc = document_from_node(self);
         if let Some(ref s) = *self.stylesheet.borrow() {
             doc.remove_stylesheet(self.upcast(), s)
@@ -124,7 +124,7 @@ impl HTMLStyleElement {
         doc.add_stylesheet(self.upcast(), s);
     }
 
-    pub fn get_stylesheet(&self) -> Option<Arc<Stylesheet>> {
+    pub fn get_stylesheet(&self) -> Option<Arc<StyleSheet>> {
         self.stylesheet.borrow().clone()
     }
 
@@ -198,7 +198,7 @@ impl VirtualMethods for HTMLStyleElement {
     }
 }
 
-impl StylesheetOwner for HTMLStyleElement {
+impl StyleSheetOwner for HTMLStyleElement {
     fn increment_pending_loads_count(&self) {
         self.pending_loads.set(self.pending_loads.get() + 1)
     }

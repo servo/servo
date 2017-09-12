@@ -140,8 +140,8 @@ use style::media_queries::{Device, MediaList, MediaType};
 use style::selector_parser::{RestyleDamage, Snapshot};
 use style::shared_lock::{SharedRwLock as StyleSharedRwLock, SharedRwLockReadGuard};
 use style::str::{HTML_SPACE_CHARACTERS, split_html_space_chars, str_join};
-use style::stylesheet_set::StylesheetSet;
-use style::stylesheets::{Stylesheet, StylesheetContents, OriginSet};
+use style::stylesheet_set::StyleSheetSet;
+use style::stylesheets::{StyleSheet, StyleSheetContents, OriginSet};
 use task_source::TaskSource;
 use time;
 use timers::OneshotTimerCallback;
@@ -196,7 +196,7 @@ impl PendingRestyle {
 #[must_root]
 struct StyleSheetInDocument {
     #[ignore_heap_size_of = "Arc"]
-    sheet: Arc<Stylesheet>,
+    sheet: Arc<StyleSheet>,
     owner: JS<Element>,
 }
 
@@ -206,8 +206,8 @@ impl PartialEq for StyleSheetInDocument {
     }
 }
 
-impl ::style::stylesheets::StylesheetInDocument for StyleSheetInDocument {
-    fn contents(&self, guard: &SharedRwLockReadGuard) -> &StylesheetContents {
+impl ::style::stylesheets::StyleSheetInDocument for StyleSheetInDocument {
+    fn contents(&self, guard: &SharedRwLockReadGuard) -> &StyleSheetContents {
         self.sheet.contents(guard)
     }
 
@@ -252,7 +252,7 @@ pub struct Document {
     /// Can be acquired once for accessing many objects.
     style_shared_lock: StyleSharedRwLock,
     /// List of stylesheets associated with nodes in this document. |None| if the list needs to be refreshed.
-    stylesheets: DOMRefCell<StylesheetSet<StyleSheetInDocument>>,
+    stylesheets: DOMRefCell<StyleSheetSet<StyleSheetInDocument>>,
     stylesheet_list: MutNullableJS<StyleSheetList>,
     ready_state: Cell<DocumentReadyState>,
     /// Whether the DOMContentLoaded event has already been dispatched.
@@ -1523,7 +1523,7 @@ impl Document {
 
         // Mark the document element dirty so a reflow will be performed.
         //
-        // FIXME(emilio): Use the StylesheetSet invalidation stuff.
+        // FIXME(emilio): Use the StyleSheetSet invalidation stuff.
         if let Some(element) = self.GetDocumentElement() {
             element.upcast::<Node>().dirty(NodeDamage::NodeStyleDamaged);
         }
@@ -1659,7 +1659,7 @@ impl Document {
         self.loader.borrow_mut().finish_load(&load);
 
         match load {
-            LoadType::Stylesheet(_) => {
+            LoadType::StyleSheet(_) => {
                 // A stylesheet finishing to load may unblock any pending
                 // parsing-blocking script or deferred script.
                 self.process_pending_parsing_blocking_script();
@@ -2217,7 +2217,7 @@ impl Document {
                 PER_PROCESS_AUTHOR_SHARED_LOCK.clone()
                 //StyleSharedRwLock::new()
             },
-            stylesheets: DOMRefCell::new(StylesheetSet::new()),
+            stylesheets: DOMRefCell::new(StyleSheetSet::new()),
             stylesheet_list: MutNullableJS::new(None),
             ready_state: Cell::new(ready_state),
             domcontentloaded_dispatched: Cell::new(domcontentloaded_dispatched),
@@ -2367,10 +2367,10 @@ impl Document {
 
     /// Remove a stylesheet owned by `owner` from the list of document sheets.
     #[allow(unrooted_must_root)] // Owner needs to be rooted already necessarily.
-    pub fn remove_stylesheet(&self, owner: &Element, s: &Arc<Stylesheet>) {
+    pub fn remove_stylesheet(&self, owner: &Element, s: &Arc<StyleSheet>) {
         self.window()
             .layout_chan()
-            .send(Msg::RemoveStylesheet(s.clone()))
+            .send(Msg::RemoveStyleSheet(s.clone()))
             .unwrap();
 
         let guard = s.shared_lock.read();
@@ -2389,9 +2389,9 @@ impl Document {
     /// Add a stylesheet owned by `owner` to the list of document sheets, in the
     /// correct tree position.
     #[allow(unrooted_must_root)] // Owner needs to be rooted already necessarily.
-    pub fn add_stylesheet(&self, owner: &Element, sheet: Arc<Stylesheet>) {
+    pub fn add_stylesheet(&self, owner: &Element, sheet: Arc<StyleSheet>) {
         // FIXME(emilio): It'd be nice to unify more code between the elements
-        // that own stylesheets, but StylesheetOwner is more about loading
+        // that own stylesheets, but StyleSheetOwner is more about loading
         // them...
         debug_assert!(owner.as_stylesheet_owner().is_some() ||
                       owner.is::<HTMLMetaElement>(), "Wat");
@@ -2403,7 +2403,7 @@ impl Document {
 
         self.window()
             .layout_chan()
-            .send(Msg::AddStylesheet(
+            .send(Msg::AddStyleSheet(
                 sheet.clone(),
                 insertion_point.as_ref().map(|s| s.sheet.clone())
             ))
@@ -3770,7 +3770,7 @@ impl DocumentMethods for Document {
         self.scripts.set(None);
         self.anchors.set(None);
         self.applets.set(None);
-        *self.stylesheets.borrow_mut() = StylesheetSet::new();
+        *self.stylesheets.borrow_mut() = StyleSheetSet::new();
         self.animation_frame_ident.set(0);
         self.animation_frame_list.borrow_mut().clear();
         self.pending_restyles.borrow_mut().clear();

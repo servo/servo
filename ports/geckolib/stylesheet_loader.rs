@@ -11,21 +11,21 @@ use style::gecko_bindings::sugar::ownership::FFIArcHelpers;
 use style::media_queries::MediaList;
 use style::parser::ParserContext;
 use style::shared_lock::{Locked, SharedRwLock};
-use style::stylesheets::{ImportRule, StylesheetLoader as StyleStylesheetLoader};
+use style::stylesheets::{ImportRule, StyleSheetLoader as StyleStyleSheetLoader};
 use style::stylesheets::import_rule::ImportSheet;
 use style::values::specified::url::SpecifiedUrl;
 
-pub struct StylesheetLoader(*mut Loader, *mut ServoStyleSheet, *mut LoaderReusableStyleSheets);
+pub struct StyleSheetLoader(*mut Loader, *mut ServoStyleSheet, *mut LoaderReusableStyleSheets);
 
-impl StylesheetLoader {
+impl StyleSheetLoader {
     pub fn new(loader: *mut Loader,
                parent: *mut ServoStyleSheet,
                reusable_sheets: *mut LoaderReusableStyleSheets) -> Self {
-        StylesheetLoader(loader, parent, reusable_sheets)
+        StyleSheetLoader(loader, parent, reusable_sheets)
     }
 }
 
-impl StyleStylesheetLoader for StylesheetLoader {
+impl StyleStyleSheetLoader for StyleSheetLoader {
     fn request_stylesheet(
         &self,
         url: SpecifiedUrl,

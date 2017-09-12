@@ -39,7 +39,7 @@ pub use self::font_face_rule::FontFaceRule;
 pub use self::font_feature_values_rule::FontFeatureValuesRule;
 pub use self::import_rule::ImportRule;
 pub use self::keyframes_rule::KeyframesRule;
-pub use self::loader::StylesheetLoader;
+pub use self::loader::StyleSheetLoader;
 pub use self::media_rule::MediaRule;
 pub use self::namespace_rule::NamespaceRule;
 pub use self::origin::{Origin, OriginSet, PerOrigin, PerOriginIter};
@@ -47,8 +47,8 @@ pub use self::page_rule::PageRule;
 pub use self::rule_parser::{State, TopLevelRuleParser};
 pub use self::rule_list::{CssRules, CssRulesHelpers};
 pub use self::rules_iterator::{AllRules, EffectiveRules, NestedRuleIterationCondition, RulesIterator};
-pub use self::stylesheet::{Namespaces, Stylesheet, DocumentStyleSheet};
-pub use self::stylesheet::{StylesheetContents, StylesheetInDocument, UserAgentStylesheets};
+pub use self::stylesheet::{Namespaces, StyleSheet, DocumentStyleSheet};
+pub use self::stylesheet::{StyleSheetContents, StyleSheetInDocument, UserAgentStyleSheets};
 pub use self::style_rule::StyleRule;
 pub use self::supports_rule::SupportsRule;
 pub use self::viewport_rule::ViewportRule;
@@ -225,10 +225,10 @@ impl CssRule {
     /// Input state is None for a nested rule
     pub fn parse(
         css: &str,
-        parent_stylesheet_contents: &StylesheetContents,
+        parent_stylesheet_contents: &StyleSheetContents,
         shared_lock: &SharedRwLock,
         state: Option<State>,
-        loader: Option<&StylesheetLoader>
+        loader: Option<&StyleSheetLoader>
     ) -> Result<(Self, State), SingleRuleParseError> {
         let url_data = parent_stylesheet_contents.url_data.read();
         let error_reporter = NullReporter;

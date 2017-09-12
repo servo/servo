@@ -118,14 +118,14 @@ use style::properties::animated_properties::compare_property_priority;
 use style::properties::parse_one_declaration_into;
 use style::rule_tree::{CascadeLevel, StyleSource};
 use style::selector_parser::PseudoElementCascadeType;
-use style::shared_lock::{SharedRwLockReadGuard, StylesheetGuards, ToCssWithGuard, Locked};
+use style::shared_lock::{SharedRwLockReadGuard, StyleSheetGuards, ToCssWithGuard, Locked};
 use style::string_cache::Atom;
 use style::style_adjuster::StyleAdjuster;
 use style::stylesheets::{CssRule, CssRules, CssRuleType, CssRulesHelpers, DocumentRule};
 use style::stylesheets::{FontFeatureValuesRule, ImportRule, KeyframesRule, MediaRule};
 use style::stylesheets::{NamespaceRule, Origin, OriginSet, PageRule, StyleRule};
-use style::stylesheets::{StylesheetContents, SupportsRule};
-use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
+use style::stylesheets::{StyleSheetContents, SupportsRule};
+use style::stylesheets::StyleSheetLoader as StyleStyleSheetLoader;
 use style::stylesheets::keyframes_rule::{Keyframe, KeyframeSelector, KeyframesStepValue};
 use style::stylesheets::supports_rule::parse_condition_or_declaration;
 use style::stylist::RuleInclusion;
@@ -140,7 +140,7 @@ use style::values::computed::Context;
 use style::values::distance::ComputeSquaredDistance;
 use style_traits::{PARSING_MODE_DEFAULT, ToCss};
 use super::error_reporter::ErrorReporter;
-use super::stylesheet_loader::StylesheetLoader;
+use super::stylesheet_loader::StyleSheetLoader;
 
 /*
  * For Gecko->Servo function calls, we need to redeclare the same signature that was declared in
@@ -200,7 +200,7 @@ fn create_shared_context<'a>(global_style_data: &GlobalStyleData,
         stylist: &per_doc_data.stylist,
         visited_styles_enabled: per_doc_data.visited_styles_enabled(),
         options: global_style_data.options.clone(),
-        guards: StylesheetGuards::same(guard),
+        guards: StyleSheetGuards::same(guard),
         timer: Timer::new(),
         traversal_flags: traversal_flags,
         snapshot_map: snapshot_map,
@@ -847,7 +847,7 @@ pub extern "C" fn Servo_StyleSheet_Empty(mode: SheetParsingMode) -> RawServoStyl
     };
     let shared_lock = &global_style_data.shared_lock;
     Arc::new(
-        StylesheetContents::from_str(
+        StyleSheetContents::from_str(
             "",
             unsafe { dummy_url_data() }.clone(),
             origin,
@@ -887,17 +887,17 @@ pub extern "C" fn Servo_StyleSheet_FromUTF8Bytes(
     let loader = if loader.is_null() {
         None
     } else {
-        Some(StylesheetLoader::new(loader, stylesheet, reusable_sheets))
+        Some(StyleSheetLoader::new(loader, stylesheet, reusable_sheets))
     };
 
     // FIXME(emilio): loader.as_ref() doesn't typecheck for some reason?
-    let loader: Option<&StyleStylesheetLoader> = match loader {
+    let loader: Option<&StyleStyleSheetLoader> = match loader {
         None => None,
         Some(ref s) => Some(s),
     };
 
 
-    Arc::new(StylesheetContents::from_str(
+    Arc::new(StyleSheetContents::from_str(
         input, url_data.clone(), origin,
         &global_style_data.shared_lock, loader, &reporter,
         quirks_mode.into(), line_number_offset)
@@ -1049,7 +1049,7 @@ pub extern "C" fn Servo_StyleSheet_HasRules(
 ) -> bool {
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
-    !StylesheetContents::as_arc(&raw_contents)
+    !StyleSheetContents::as_arc(&raw_contents)
         .rules.read_with(&guard).0.is_empty()
 }
 
@@ -1057,7 +1057,7 @@ pub extern "C" fn Servo_StyleSheet_HasRules(
 pub extern "C" fn Servo_StyleSheet_GetRules(
     sheet: RawServoStyleSheetContentsBorrowed
 ) -> ServoCssRulesStrong {
-    StylesheetContents::as_arc(&sheet).rules.clone().into_strong()
+    StyleSheetContents::as_arc(&sheet).rules.clone().into_strong()
 }
 
 #[no_mangle]
@@ -1068,7 +1068,7 @@ pub extern "C" fn Servo_StyleSheet_Clone(
     use style::shared_lock::{DeepCloneParams, DeepCloneWithLock};
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
-    let contents = StylesheetContents::as_arc(&raw_sheet);
+    let contents = StyleSheetContents::as_arc(&raw_sheet);
     let params = DeepCloneParams { reference_sheet };
 
     Arc::new(contents.deep_clone_with_lock(
@@ -1086,14 +1086,14 @@ pub extern "C" fn Servo_StyleSheet_SizeOfIncludingThis(
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
     let mut ops = MallocSizeOfOps::new(malloc_size_of.unwrap(), None, None);
-    StylesheetContents::as_arc(&sheet).size_of(&guard, &mut ops)
+    StyleSheetContents::as_arc(&sheet).size_of(&guard, &mut ops)
 }
 
 #[no_mangle]
 pub extern "C" fn Servo_StyleSheet_GetOrigin(
     sheet: RawServoStyleSheetContentsBorrowed
 ) -> u8 {
-    let origin = match StylesheetContents::as_arc(&sheet).origin {
+    let origin = match StyleSheetContents::as_arc(&sheet).origin {
         Origin::UserAgent => OriginFlags_UserAgent,
         Origin::User => OriginFlags_User,
         Origin::Author => OriginFlags_Author,
@@ -1109,7 +1109,7 @@ pub extern "C" fn Servo_StyleSheet_GetSourceMapURL(
     sheet: RawServoStyleSheetContentsBorrowed,
     result: *mut nsAString
 ) {
-    let contents = StylesheetContents::as_arc(&sheet);
+    let contents = StyleSheetContents::as_arc(&sheet);
     let url_opt = contents.source_map_url.read();
     if let Some(ref url) = *url_opt {
         write!(unsafe { &mut *result }, "{}", url).unwrap();
@@ -1172,13 +1172,13 @@ pub extern "C" fn Servo_CssRules_InsertRule(
     let loader = if loader.is_null() {
         None
     } else {
-        Some(StylesheetLoader::new(loader, gecko_stylesheet, ptr::null_mut()))
+        Some(StyleSheetLoader::new(loader, gecko_stylesheet, ptr::null_mut()))
     };
-    let loader = loader.as_ref().map(|loader| loader as &StyleStylesheetLoader);
+    let loader = loader.as_ref().map(|loader| loader as &StyleStyleSheetLoader);
     let rule = unsafe { rule.as_ref().unwrap().as_str_unchecked() };
 
     let global_style_data = &*GLOBAL_STYLE_DATA;
-    let contents = StylesheetContents::as_arc(&contents);
+    let contents = StyleSheetContents::as_arc(&contents);
     let result = Locked::<CssRules>::as_arc(&rules).insert_rule(
         &global_style_data.shared_lock,
         rule,
@@ -1573,7 +1573,7 @@ pub extern "C" fn Servo_KeyframesRule_AppendRule(
     css: *const nsACString
 ) -> bool {
     let css = unsafe { css.as_ref().unwrap().as_str_unchecked() };
-    let contents = StylesheetContents::as_arc(&contents);
+    let contents = StyleSheetContents::as_arc(&contents);
     let global_style_data = &*GLOBAL_STYLE_DATA;
 
     match Keyframe::parse(css, &contents, &global_style_data.shared_lock) {
@@ -1668,7 +1668,7 @@ pub extern "C" fn Servo_ComputedValues_GetForAnonymousBox(parent_style_or_null: 
      -> ServoStyleContextStrong {
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
-    let guards = StylesheetGuards::same(&guard);
+    let guards = StyleSheetGuards::same(&guard);
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
     let atom = Atom::from(pseudo_tag);
     let pseudo = PseudoElement::from_anon_box_atom(&atom)
@@ -1798,7 +1798,7 @@ pub extern "C" fn Servo_HasAuthorSpecifiedRules(element: RawGeckoElementBorrowed
     let primary_style = data.styles.primary();
 
     let guard = (*GLOBAL_STYLE_DATA).shared_lock.read();
-    let guards = StylesheetGuards::same(&guard);
+    let guards = StyleSheetGuards::same(&guard);
 
     primary_style.rules().has_author_specified_rules(element,
                                                      &guards,
@@ -1828,7 +1828,7 @@ fn get_pseudo_style(
                         // the computed style case is a bit unclear.
                         let inherited_styles =
                             inherited_styles.unwrap_or(styles.primary());
-                        let guards = StylesheetGuards::same(guard);
+                        let guards = StyleSheetGuards::same(guard);
                         let metrics = get_metrics_provider_for_product();
                         let inputs = CascadeInputs::new_from_style(pseudo_styles);
                         doc_data.stylist
@@ -1877,7 +1877,7 @@ fn get_pseudo_style(
             } else {
                 styles.primary()
             };
-            let guards = StylesheetGuards::same(guard);
+            let guards = StyleSheetGuards::same(guard);
             let metrics = get_metrics_provider_for_product();
             doc_data.stylist
                 .lazily_compute_pseudo_element_style(
@@ -2143,7 +2143,7 @@ pub extern "C" fn Servo_GetProperties_Overriding_Animation(element: RawGeckoElem
     };
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
-    let guards = StylesheetGuards::same(&guard);
+    let guards = StyleSheetGuards::same(&guard);
     let (overridden, custom) =
         element_data.styles.primary().rules().get_properties_overriding_animations(&guards);
     for p in list.iter() {
@@ -3156,7 +3156,7 @@ pub extern "C" fn Servo_ReparentStyle(style_to_reparent: ServoStyleContextBorrow
     doc_data.stylist
         .compute_style_with_inputs(&inputs,
                                    pseudo.as_ref(),
-                                   &StylesheetGuards::same(&guard),
+                                   &StyleSheetGuards::same(&guard),
                                    parent_style,
                                    parent_style_ignoring_first_line,
                                    layout_parent_style,
@@ -3685,7 +3685,7 @@ pub extern "C" fn Servo_StyleSet_ResolveForDeclarations(
     let doc_data = PerDocumentStyleData::from_ffi(raw_data).borrow();
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
-    let guards = StylesheetGuards::same(&guard);
+    let guards = StyleSheetGuards::same(&guard);
 
     let parent_style = match parent_style_context {
         Some(parent) => &*parent,

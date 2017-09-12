@@ -25,7 +25,7 @@ use selector_parser::{EAGER_PSEUDO_COUNT, SnapshotMap};
 use selectors::matching::ElementSelectorFlags;
 use servo_arc::Arc;
 #[cfg(feature = "servo")] use servo_atoms::Atom;
-use shared_lock::StylesheetGuards;
+use shared_lock::StyleSheetGuards;
 use sharing::StyleSharingCache;
 use std::fmt;
 use std::ops;
@@ -132,7 +132,7 @@ pub struct SharedStyleContext<'a> {
     pub options: StyleSystemOptions,
 
     /// Guards for pre-acquired locks
-    pub guards: StylesheetGuards<'a>,
+    pub guards: StyleSheetGuards<'a>,
 
     /// The current timer for transitions and animations. This is needed to test
     /// them.

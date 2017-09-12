@@ -19,7 +19,7 @@ use shared_lock::{DeepCloneParams, DeepCloneWithLock, SharedRwLock, SharedRwLock
 use std::fmt;
 use style_traits::{PARSING_MODE_DEFAULT, ToCss, ParseError, StyleParseError};
 use style_traits::PropertyDeclarationParseError;
-use stylesheets::{CssRuleType, StylesheetContents};
+use stylesheets::{CssRuleType, StyleSheetContents};
 use stylesheets::rule_parser::{VendorPrefix, get_location_with_offset};
 use values::{KeyframesName, serialize_percentage};
 
@@ -213,7 +213,7 @@ impl Keyframe {
     /// Parse a CSS keyframe.
     pub fn parse<'i>(
         css: &'i str,
-        parent_stylesheet_contents: &StylesheetContents,
+        parent_stylesheet_contents: &StyleSheetContents,
         lock: &SharedRwLock,
     ) -> Result<Arc<Locked<Self>>, ParseError<'i>> {
         let url_data = parent_stylesheet_contents.url_data.read();

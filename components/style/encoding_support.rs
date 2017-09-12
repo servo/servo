@@ -14,7 +14,7 @@ use self::encoding::{EncodingRef, DecoderTrap};
 use servo_arc::Arc;
 use shared_lock::SharedRwLock;
 use std::str;
-use stylesheets::{Stylesheet, StylesheetLoader, Origin, UrlExtraData};
+use stylesheets::{StyleSheet, StyleSheetLoader, Origin, UrlExtraData};
 
 struct RustEncoding;
 
@@ -43,12 +43,12 @@ fn decode_stylesheet_bytes(css: &[u8], protocol_encoding_label: Option<&str>,
     (result.unwrap(), used_encoding)
 }
 
-impl Stylesheet {
+impl StyleSheet {
     /// Parse a stylesheet from a set of bytes, potentially received over the
     /// network.
     ///
     /// Takes care of decoding the network bytes and forwards the resulting
-    /// string to `Stylesheet::from_str`.
+    /// string to `StyleSheet::from_str`.
     pub fn from_bytes<R>(bytes: &[u8],
                          url_data: UrlExtraData,
                          protocol_encoding_label: Option<&str>,
@@ -56,15 +56,15 @@ impl Stylesheet {
                          origin: Origin,
                          media: MediaList,
                          shared_lock: SharedRwLock,
-                         stylesheet_loader: Option<&StylesheetLoader>,
+                         stylesheet_loader: Option<&StyleSheetLoader>,
                          error_reporter: &R,
                          quirks_mode: QuirksMode)
-                         -> Stylesheet
+                         -> StyleSheet
         where R: ParseErrorReporter
     {
         let (string, _) = decode_stylesheet_bytes(
             bytes, protocol_encoding_label, environment_encoding);
-        Stylesheet::from_str(&string,
+        StyleSheet::from_str(&string,
                              url_data,
                              origin,
                              Arc::new(shared_lock.wrap(media)),
@@ -77,12 +77,12 @@ impl Stylesheet {
 
     /// Updates an empty stylesheet with a set of bytes that reached over the
     /// network.
-    pub fn update_from_bytes<R>(existing: &Stylesheet,
+    pub fn update_from_bytes<R>(existing: &StyleSheet,
                                 bytes: &[u8],
                                 protocol_encoding_label: Option<&str>,
                                 environment_encoding: Option<EncodingRef>,
                                 url_data: UrlExtraData,
-                                stylesheet_loader: Option<&StylesheetLoader>,
+                                stylesheet_loader: Option<&StyleSheetLoader>,
                                 error_reporter: &R)
         where R: ParseErrorReporter
     {

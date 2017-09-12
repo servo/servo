@@ -85,7 +85,7 @@ use std::ops::Range;
 use style::context::QuirksMode;
 use style::dom::OpaqueNode;
 use style::selector_parser::{SelectorImpl, SelectorParser};
-use style::stylesheets::Stylesheet;
+use style::stylesheets::StyleSheet;
 use style::thread_state;
 use uuid::Uuid;
 
@@ -937,7 +937,7 @@ impl Node {
         Ok(())
     }
 
-    pub fn get_stylesheet(&self) -> Option<Arc<Stylesheet>> {
+    pub fn get_stylesheet(&self) -> Option<Arc<StyleSheet>> {
         if let Some(node) = self.downcast::<HTMLStyleElement>() {
             node.get_stylesheet()
         } else if let Some(node) = self.downcast::<HTMLLinkElement>() {

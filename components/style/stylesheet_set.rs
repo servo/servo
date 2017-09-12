@@ -5,40 +5,40 @@
 //! A centralized set of stylesheets for a document.
 
 use dom::TElement;
-use invalidation::stylesheets::StylesheetInvalidationSet;
+use invalidation::stylesheets::StyleSheetInvalidationSet;
 use media_queries::Device;
 use shared_lock::SharedRwLockReadGuard;
 use std::slice;
-use stylesheets::{Origin, OriginSet, PerOrigin, StylesheetInDocument};
+use stylesheets::{Origin, OriginSet, PerOrigin, StyleSheetInDocument};
 
-/// Entry for a StylesheetSet.
+/// Entry for a StyleSheetSet.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-struct StylesheetSetEntry<S>
+struct StyleSheetSetEntry<S>
 where
-    S: StylesheetInDocument + PartialEq + 'static,
+    S: StyleSheetInDocument + PartialEq + 'static,
 {
     sheet: S,
     dirty: bool,
 }
 
-impl<S> StylesheetSetEntry<S>
+impl<S> StyleSheetSetEntry<S>
 where
-    S: StylesheetInDocument + PartialEq + 'static,
+    S: StyleSheetInDocument + PartialEq + 'static,
 {
     fn new(sheet: S) -> Self {
         Self { sheet, dirty: true }
     }
 }
 
-/// A iterator over the stylesheets of a list of entries in the StylesheetSet.
+/// A iterator over the stylesheets of a list of entries in the StyleSheetSet.
 #[derive(Clone)]
-pub struct StylesheetIterator<'a, S>(slice::Iter<'a, StylesheetSetEntry<S>>)
+pub struct StyleSheetIterator<'a, S>(slice::Iter<'a, StyleSheetSetEntry<S>>)
 where
-    S: StylesheetInDocument + PartialEq + 'static;
+    S: StyleSheetInDocument + PartialEq + 'static;
 
-impl<'a, S> Iterator for StylesheetIterator<'a, S>
+impl<'a, S> Iterator for StyleSheetIterator<'a, S>
 where
-    S: StylesheetInDocument + PartialEq + 'static,
+    S: StyleSheetInDocument + PartialEq + 'static,
 {
     type Item = &'a S;
 
@@ -70,12 +70,12 @@ impl Default for OriginValidity {
 }
 
 /// A struct to iterate over the different stylesheets to be flushed.
-pub struct StylesheetFlusher<'a, 'b, S>
+pub struct StyleSheetFlusher<'a, 'b, S>
 where
     'b: 'a,
-    S: StylesheetInDocument + PartialEq + 'static,
+    S: StyleSheetInDocument + PartialEq + 'static,
 {
-    iter: slice::IterMut<'a, StylesheetSetEntry<S>>,
+    iter: slice::IterMut<'a, StyleSheetSetEntry<S>>,
     guard: &'a SharedRwLockReadGuard<'b>,
     origins_dirty: OriginSet,
     origin_data_validity: PerOrigin<OriginValidity>,
@@ -98,10 +98,10 @@ impl SheetRebuildKind {
     }
 }
 
-impl<'a, 'b, S> StylesheetFlusher<'a, 'b, S>
+impl<'a, 'b, S> StyleSheetFlusher<'a, 'b, S>
 where
     'b: 'a,
-    S: StylesheetInDocument + PartialEq + 'static,
+    S: StyleSheetInDocument + PartialEq + 'static,
 {
     /// The data validity for a given origin.
     pub fn origin_validity(&self, origin: Origin) -> OriginValidity {
@@ -121,10 +121,10 @@ where
 }
 
 #[cfg(debug_assertions)]
-impl<'a, 'b, S> Drop for StylesheetFlusher<'a, 'b, S>
+impl<'a, 'b, S> Drop for StyleSheetFlusher<'a, 'b, S>
 where
     'b: 'a,
-    S: StylesheetInDocument + PartialEq + 'static,
+    S: StyleSheetInDocument + PartialEq + 'static,
 {
     fn drop(&mut self) {
         debug_assert!(
@@ -134,10 +134,10 @@ where
     }
 }
 
-impl<'a, 'b, S> Iterator for StylesheetFlusher<'a, 'b, S>
+impl<'a, 'b, S> Iterator for StyleSheetFlusher<'a, 'b, S>
 where
     'b: 'a,
-    S: StylesheetInDocument + PartialEq + 'static,
+    S: StyleSheetInDocument + PartialEq + 'static,
 {
     type Item = (&'a S, SheetRebuildKind);
 
@@ -179,19 +179,19 @@ where
 
 /// The set of stylesheets effective for a given document.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub struct StylesheetSet<S>
+pub struct StyleSheetSet<S>
 where
-    S: StylesheetInDocument + PartialEq + 'static,
+    S: StyleSheetInDocument + PartialEq + 'static,
 {
     /// The actual list of all the stylesheets that apply to the given document,
     /// each stylesheet associated with a unique ID.
     ///
     /// This is only a list of top-level stylesheets, and as such it doesn't
     /// include recursive `@import` rules.
-    entries: Vec<StylesheetSetEntry<S>>,
+    entries: Vec<StyleSheetSetEntry<S>>,
 
     /// The invalidations for stylesheets added or removed from this document.
-    invalidations: StylesheetInvalidationSet,
+    invalidations: StyleSheetInvalidationSet,
 
     /// The origins whose stylesheets have changed so far.
     origins_dirty: OriginSet,
@@ -208,15 +208,15 @@ where
     author_style_disabled: bool,
 }
 
-impl<S> StylesheetSet<S>
+impl<S> StyleSheetSet<S>
 where
-    S: StylesheetInDocument + PartialEq + 'static,
+    S: StyleSheetInDocument + PartialEq + 'static,
 {
-    /// Create a new empty StylesheetSet.
+    /// Create a new empty StyleSheetSet.
     pub fn new() -> Self {
-        StylesheetSet {
+        StyleSheetSet {
             entries: vec![],
-            invalidations: StylesheetInvalidationSet::new(),
+            invalidations: StyleSheetInvalidationSet::new(),
             origins_dirty: OriginSet::empty(),
             origin_data_validity: Default::default(),
             author_style_disabled: false,
@@ -282,12 +282,12 @@ where
         sheet: S,
         guard: &SharedRwLockReadGuard
     ) {
-        debug!("StylesheetSet::append_stylesheet");
+        debug!("StyleSheetSet::append_stylesheet");
         self.remove_stylesheet_if_present(&sheet);
         self.collect_invalidations_for(device, &sheet, guard);
         // Appending sheets doesn't alter the validity of the existing data, so
         // we don't need to change `origin_data_validity` here.
-        self.entries.push(StylesheetSetEntry::new(sheet));
+        self.entries.push(StyleSheetSetEntry::new(sheet));
     }
 
     /// Prepend a new stylesheet to the current set.
@@ -297,7 +297,7 @@ where
         sheet: S,
         guard: &SharedRwLockReadGuard
     ) {
-        debug!("StylesheetSet::prepend_stylesheet");
+        debug!("StyleSheetSet::prepend_stylesheet");
         self.remove_stylesheet_if_present(&sheet);
         self.collect_invalidations_for(device, &sheet, guard);
 
@@ -305,7 +305,7 @@ where
         // of the cascade data, but not the invalidation data.
         self.set_data_validity_at_least(sheet.contents(guard).origin, OriginValidity::CascadeInvalid);
 
-        self.entries.insert(0, StylesheetSetEntry::new(sheet));
+        self.entries.insert(0, StyleSheetSetEntry::new(sheet));
     }
 
     /// Insert a given stylesheet before another stylesheet in the document.
@@ -316,7 +316,7 @@ where
         before_sheet: S,
         guard: &SharedRwLockReadGuard,
     ) {
-        debug!("StylesheetSet::insert_stylesheet_before");
+        debug!("StyleSheetSet::insert_stylesheet_before");
         self.remove_stylesheet_if_present(&sheet);
         let index = self.entries.iter().position(|entry| {
             entry.sheet == before_sheet
@@ -326,7 +326,7 @@ where
         // Inserting stylesheets somewhere but at the end changes the validity
         // of the cascade data, but not the invalidation data.
         self.set_data_validity_at_least(sheet.contents(guard).origin, OriginValidity::CascadeInvalid);
-        self.entries.insert(index, StylesheetSetEntry::new(sheet));
+        self.entries.insert(index, StyleSheetSetEntry::new(sheet));
     }
 
     /// Remove a given stylesheet from the set.
@@ -336,7 +336,7 @@ where
         sheet: S,
         guard: &SharedRwLockReadGuard,
     ) {
-        debug!("StylesheetSet::remove_stylesheet");
+        debug!("StyleSheetSet::remove_stylesheet");
         self.remove_stylesheet_if_present(&sheet);
 
         self.collect_invalidations_for(device, &sheet, guard);
@@ -348,7 +348,7 @@ where
 
     /// Notes that the author style has been disabled for this document.
     pub fn set_author_style_disabled(&mut self, disabled: bool) {
-        debug!("StylesheetSet::set_author_style_disabled");
+        debug!("StyleSheetSet::set_author_style_disabled");
         if self.author_style_disabled == disabled {
             return;
         }
@@ -363,25 +363,25 @@ where
     }
 
     /// Flush the current set, unmarking it as dirty, and returns a
-    /// `StylesheetFlusher` in order to rebuild the stylist.
+    /// `StyleSheetFlusher` in order to rebuild the stylist.
     pub fn flush<'a, 'b, E>(
         &'a mut self,
         document_element: Option<E>,
         guard: &'a SharedRwLockReadGuard<'b>,
-    ) -> StylesheetFlusher<'a, 'b, S>
+    ) -> StyleSheetFlusher<'a, 'b, S>
     where
         E: TElement,
     {
         use std::mem;
 
-        debug!("StylesheetSet::flush");
+        debug!("StyleSheetSet::flush");
 
         let had_invalidations = self.invalidations.flush(document_element);
         let origins_dirty = mem::replace(&mut self.origins_dirty, OriginSet::empty());
         let origin_data_validity =
             mem::replace(&mut self.origin_data_validity, Default::default());
 
-        StylesheetFlusher {
+        StyleSheetFlusher {
             iter: self.entries.iter_mut(),
             author_style_disabled: self.author_style_disabled,
             had_invalidations,
@@ -396,15 +396,15 @@ where
     pub fn flush_without_invalidation(&mut self) -> OriginSet {
         use std::mem;
 
-        debug!("StylesheetSet::flush_without_invalidation");
+        debug!("StyleSheetSet::flush_without_invalidation");
 
         self.invalidations.clear();
         mem::replace(&mut self.origins_dirty, OriginSet::empty())
     }
 
     /// Returns an iterator over the current list of stylesheets.
-    pub fn iter(&self) -> StylesheetIterator<S> {
-        StylesheetIterator(self.entries.iter())
+    pub fn iter(&self) -> StyleSheetIterator<S> {
+        StyleSheetIterator(self.entries.iter())
     }
 
     /// Mark the stylesheets for the specified origin as dirty, because

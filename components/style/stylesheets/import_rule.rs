@@ -11,7 +11,7 @@ use media_queries::MediaList;
 use shared_lock::{DeepCloneWithLock, DeepCloneParams, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt;
 use style_traits::ToCss;
-use stylesheets::{StylesheetContents, StylesheetInDocument};
+use stylesheets::{StyleSheetContents, StyleSheetInDocument};
 use values::specified::url::SpecifiedUrl;
 
 /// A sheet that is held from an import rule.
@@ -42,15 +42,15 @@ impl DeepCloneWithLock for ImportSheet {
 /// A sheet that is held from an import rule.
 #[cfg(feature = "servo")]
 #[derive(Debug)]
-pub struct ImportSheet(pub ::servo_arc::Arc<::stylesheets::Stylesheet>);
+pub struct ImportSheet(pub ::servo_arc::Arc<::stylesheets::StyleSheet>);
 
-impl StylesheetInDocument for ImportSheet {
+impl StyleSheetInDocument for ImportSheet {
     /// Get the media associated with this stylesheet.
     fn media<'a>(&'a self, guard: &'a SharedRwLockReadGuard) -> Option<&'a MediaList> {
         self.0.media(guard)
     }
 
-    fn contents(&self, guard: &SharedRwLockReadGuard) -> &StylesheetContents {
+    fn contents(&self, guard: &SharedRwLockReadGuard) -> &StyleSheetContents {
         self.0.contents(guard)
     }
 

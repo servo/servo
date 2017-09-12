@@ -26,7 +26,7 @@ use std::iter::Enumerate;
 use std::str::Chars;
 use style_traits::{PinchZoomFactor, ToCss, ParseError, StyleParseError};
 use style_traits::viewport::{Orientation, UserZoom, ViewportConstraints, Zoom};
-use stylesheets::{StylesheetInDocument, Origin};
+use stylesheets::{StyleSheetInDocument, Origin};
 use values::computed::{Context, ToComputedValue};
 use values::specified::{NoCalcLength, LengthOrPercentageOrAuto, ViewportPercentageLength};
 
@@ -574,7 +574,7 @@ impl Cascade {
     ) -> Self
     where
         I: Iterator<Item = &'a S>,
-        S: StylesheetInDocument + 'static,
+        S: StyleSheetInDocument + 'static,
     {
         let mut cascade = Self::new();
         for stylesheet in stylesheets {

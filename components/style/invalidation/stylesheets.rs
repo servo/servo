@@ -16,7 +16,7 @@ use selector_parser::SelectorImpl;
 use selectors::attr::CaseSensitivity;
 use selectors::parser::{Component, Selector};
 use shared_lock::SharedRwLockReadGuard;
-use stylesheets::{CssRule, StylesheetInDocument};
+use stylesheets::{CssRule, StyleSheetInDocument};
 
 /// An invalidation scope represents a kind of subtree that may need to be
 /// restyled.
@@ -56,15 +56,15 @@ impl InvalidationScope {
 /// TODO(emilio): We might be able to do the same analysis for media query
 /// changes too (or even selector changes?).
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub struct StylesheetInvalidationSet {
+pub struct StyleSheetInvalidationSet {
     /// The style scopes we know we have to restyle so far.
     invalid_scopes: FnvHashSet<InvalidationScope>,
     /// Whether the whole document should be invalid.
     fully_invalid: bool,
 }
 
-impl StylesheetInvalidationSet {
-    /// Create an empty `StylesheetInvalidationSet`.
+impl StyleSheetInvalidationSet {
+    /// Create an empty `StyleSheetInvalidationSet`.
     pub fn new() -> Self {
         Self {
             invalid_scopes: FnvHashSet::default(),
@@ -74,7 +74,7 @@ impl StylesheetInvalidationSet {
 
     /// Mark the DOM tree styles' as fully invalid.
     pub fn invalidate_fully(&mut self) {
-        debug!("StylesheetInvalidationSet::invalidate_fully");
+        debug!("StyleSheetInvalidationSet::invalidate_fully");
         self.invalid_scopes.clear();
         self.fully_invalid = true;
     }
@@ -89,9 +89,9 @@ impl StylesheetInvalidationSet {
         guard: &SharedRwLockReadGuard
     )
     where
-        S: StylesheetInDocument,
+        S: StyleSheetInDocument,
     {
-        debug!("StylesheetInvalidationSet::collect_invalidations_for");
+        debug!("StyleSheetInvalidationSet::collect_invalidations_for");
         if self.fully_invalid {
             debug!(" > Fully invalid already");
             return;
@@ -99,7 +99,7 @@ impl StylesheetInvalidationSet {
 
         if !stylesheet.enabled() ||
            !stylesheet.is_effective_for_device(device, guard) {
-            debug!(" > Stylesheet was not effective");
+            debug!(" > StyleSheet was not effective");
             return; // Nothing to do here.
         }
 
@@ -244,7 +244,7 @@ impl StylesheetInvalidationSet {
     /// We prefer id scopes to class scopes, and outermost scopes to innermost
     /// scopes (to reduce the amount of traversal we need to do).
     fn collect_scopes(&mut self, selector: &Selector<SelectorImpl>) {
-        debug!("StylesheetInvalidationSet::collect_scopes({:?})", selector);
+        debug!("StyleSheetInvalidationSet::collect_scopes({:?})", selector);
 
         let mut scope: Option<InvalidationScope> = None;
 
@@ -287,7 +287,7 @@ impl StylesheetInvalidationSet {
         guard: &SharedRwLockReadGuard)
     {
         use stylesheets::CssRule::*;
-        debug!("StylesheetInvalidationSet::collect_invalidations_for_rule");
+        debug!("StyleSheetInvalidationSet::collect_invalidations_for_rule");
         debug_assert!(!self.fully_invalid, "Not worth to be here!");
 
         match *rule {

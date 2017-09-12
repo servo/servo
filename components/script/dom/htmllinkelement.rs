@@ -34,9 +34,9 @@ use style::attr::AttrValue;
 use style::media_queries::parse_media_query_list;
 use style::parser::ParserContext as CssParserContext;
 use style::str::HTML_SPACE_CHARACTERS;
-use style::stylesheets::{CssRuleType, Stylesheet};
+use style::stylesheets::{CssRuleType, StyleSheet};
 use style_traits::PARSING_MODE_DEFAULT;
-use stylesheet_loader::{StylesheetLoader, StylesheetContextSource, StylesheetOwner};
+use stylesheet_loader::{StyleSheetLoader, StyleSheetContextSource, StyleSheetOwner};
 
 #[derive(Clone, Copy, HeapSizeOf, JSTraceable, PartialEq)]
 pub struct RequestGenerationId(u32);
@@ -52,7 +52,7 @@ pub struct HTMLLinkElement {
     htmlelement: HTMLElement,
     rel_list: MutNullableJS<DOMTokenList>,
     #[ignore_heap_size_of = "Arc"]
-    stylesheet: DOMRefCell<Option<Arc<Stylesheet>>>,
+    stylesheet: DOMRefCell<Option<Arc<StyleSheet>>>,
     cssom_stylesheet: MutNullableJS<CSSStyleSheet>,
 
     /// https://html.spec.whatwg.org/multipage/#a-style-sheet-that-is-blocking-scripts
@@ -97,7 +97,7 @@ impl HTMLLinkElement {
 
     // FIXME(emilio): These methods are duplicated with
     // HTMLStyleElement::set_stylesheet.
-    pub fn set_stylesheet(&self, s: Arc<Stylesheet>) {
+    pub fn set_stylesheet(&self, s: Arc<StyleSheet>) {
         let doc = document_from_node(self);
         if let Some(ref s) = *self.stylesheet.borrow() {
             doc.remove_stylesheet(self.upcast(), s)
@@ -107,7 +107,7 @@ impl HTMLLinkElement {
         doc.add_stylesheet(self.upcast(), s);
     }
 
-    pub fn get_stylesheet(&self) -> Option<Arc<Stylesheet>> {
+    pub fn get_stylesheet(&self) -> Option<Arc<StyleSheet>> {
         self.stylesheet.borrow().clone()
     }
 
@@ -304,8 +304,8 @@ impl HTMLLinkElement {
 
         // TODO: #8085 - Don't load external stylesheets if the node's mq
         // doesn't match.
-        let loader = StylesheetLoader::for_element(self.upcast());
-        loader.load(StylesheetContextSource::LinkElement {
+        let loader = StyleSheetLoader::for_element(self.upcast());
+        loader.load(StyleSheetContextSource::LinkElement {
             media: Some(media),
         }, link_url, cors_setting, integrity_metadata.to_owned());
     }
@@ -328,7 +328,7 @@ impl HTMLLinkElement {
     }
 }
 
-impl StylesheetOwner for HTMLLinkElement {
+impl StyleSheetOwner for HTMLLinkElement {
     fn increment_pending_loads_count(&self) {
         self.pending_loads.set(self.pending_loads.get() + 1)
     }

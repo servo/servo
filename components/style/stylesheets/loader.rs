@@ -15,7 +15,7 @@ use values::specified::url::SpecifiedUrl;
 
 /// The stylesheet loader is the abstraction used to trigger network requests
 /// for `@import` rules.
-pub trait StylesheetLoader {
+pub trait StyleSheetLoader {
     /// Request a stylesheet after parsing a given `@import` rule, and return
     /// the constructed `@import` rule.
     fn request_stylesheet(

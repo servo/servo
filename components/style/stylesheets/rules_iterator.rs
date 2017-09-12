@@ -10,7 +10,7 @@ use shared_lock::SharedRwLockReadGuard;
 use smallvec::SmallVec;
 use std::slice;
 use stylesheets::{CssRule, CssRules, DocumentRule, ImportRule, MediaRule, SupportsRule};
-use stylesheets::StylesheetInDocument;
+use stylesheets::StyleSheetInDocument;
 
 /// An iterator over a list of rules.
 pub struct RulesIterator<'a, 'b, C>
