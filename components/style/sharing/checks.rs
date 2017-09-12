@@ -40,8 +40,7 @@ pub fn can_share_style_across_parents<E>(first: Option<E>, second: Option<E>) ->
     //
     // This is a somewhat conservative check. We could tighten it by having the
     // invalidation logic explicitly flag elements for which it ellided styling.
-    if first_data.restyle.traversed_without_styling() ||
-       second_data.restyle.traversed_without_styling() {
+    if first_data.traversed_without_styling() || second_data.traversed_without_styling() {
         return false;
     }
 

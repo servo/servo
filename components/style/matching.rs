@@ -8,7 +8,7 @@
 #![deny(missing_docs)]
 
 use context::{ElementCascadeInputs, SelectorFlagsMap, SharedStyleContext, StyleContext};
-use data::{ElementData, ElementStyles, RestyleData};
+use data::{ElementData, ElementStyles};
 use dom::TElement;
 use invalidation::element::restyle_hints::{RESTYLE_CSS_ANIMATIONS, RESTYLE_CSS_TRANSITIONS};
 use invalidation::element::restyle_hints::{RESTYLE_SMIL, RESTYLE_STYLE_ATTRIBUTE};
@@ -352,10 +352,11 @@ trait PrivateMatchMethods: TElement {
     fn accumulate_damage_for(
         &self,
         shared_context: &SharedStyleContext,
-        restyle: &mut RestyleData,
+        skip_applying_damage: bool,
+        damage: &mut RestyleDamage,
         old_values: &ComputedValues,
         new_values: &ComputedValues,
-        pseudo: Option<&PseudoElement>
+        pseudo: Option<&PseudoElement>,
     ) -> ChildCascadeRequirement {
         debug!("accumulate_damage_for: {:?}", self);
 
@@ -365,21 +366,11 @@ trait PrivateMatchMethods: TElement {
             return ChildCascadeRequirement::MustCascadeChildren;
         }
 
-        // If an ancestor is already getting reconstructed by Gecko's top-down
-        // frame constructor, no need to apply damage.  Similarly if we already
-        // have an explicitly stored ReconstructFrame hint.
-        //
-        // See https://bugzilla.mozilla.org/show_bug.cgi?id=1301258#c12
-        // for followup work to make the optimization here more optimal by considering
-        // each bit individually.
-        let skip_applying_damage =
-            cfg!(feature = "gecko") && restyle.reconstructed_self_or_ancestor();
-
         let difference =
             self.compute_style_difference(old_values, new_values, pseudo);
 
         if !skip_applying_damage {
-            restyle.damage |= difference.damage;
+            *damage |= difference.damage;
         }
 
         debug!(" > style difference: {:?}", difference);
@@ -552,7 +543,7 @@ pub trait MatchMethods : TElement {
             context,
             &mut data.styles.primary,
             &mut new_styles.primary.as_mut().unwrap(),
-            data.restyle.hint,
+            data.hint,
             important_rules_changed,
         );
 
@@ -615,7 +606,8 @@ pub trait MatchMethods : TElement {
             cascade_requirement,
             self.accumulate_damage_for(
                 context.shared,
-                &mut data.restyle,
+                data.skip_applying_damage(),
+                &mut data.damage,
                 &old_primary_style,
                 new_primary_style,
                 None,
@@ -636,7 +628,8 @@ pub trait MatchMethods : TElement {
                 (&Some(ref old), &Some(ref new)) => {
                     self.accumulate_damage_for(
                         context.shared,
-                        &mut data.restyle,
+                        data.skip_applying_damage(),
+                        &mut data.damage,
                         old,
                         new,
                         Some(&PseudoElement::from_eager_index(i)),
@@ -656,7 +649,7 @@ pub trait MatchMethods : TElement {
                         old.as_ref().map_or(false,
                                             |s| pseudo.should_exist(s));
                     if new_pseudo_should_exist != old_pseudo_should_exist {
-                        data.restyle.damage |= RestyleDamage::reconstruct();
+                        data.damage |= RestyleDamage::reconstruct();
                         return cascade_requirement;
                     }
                 }

@@ -209,7 +209,7 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
             // We can't just return here because there may also be attribute
             // changes as well that imply additional hints.
             let data = self.data.as_mut().unwrap();
-            data.restyle.hint.insert(RestyleHint::restyle_subtree());
+            data.hint.insert(RestyleHint::restyle_subtree());
         }
 
         let mut classes_removed = SmallVec::<[Atom; 8]>::new();
@@ -287,7 +287,7 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
 
         if invalidated_self {
             if let Some(ref mut data) = self.data {
-                data.restyle.hint.insert(RESTYLE_SELF);
+                data.hint.insert(RESTYLE_SELF);
             }
         }
 
@@ -499,7 +499,7 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
             Some(ref data) => {
                 // FIXME(emilio): Only needs to check RESTYLE_DESCENDANTS,
                 // really.
-                if data.restyle.hint.contains_subtree() {
+                if data.hint.contains_subtree() {
                     return false;
                 }
             }
@@ -507,7 +507,7 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
 
         if let Some(checker) = self.stack_limit_checker {
             if checker.limit_exceeded() {
-                self.data.as_mut().unwrap().restyle.hint.insert(RESTYLE_DESCENDANTS);
+                self.data.as_mut().unwrap().hint.insert(RESTYLE_DESCENDANTS);
                 return true;
             }
         }
@@ -799,7 +799,7 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
 
         if invalidated_self {
             if let Some(ref mut data) = self.data {
-                data.restyle.hint.insert(RESTYLE_SELF);
+                data.hint.insert(RESTYLE_SELF);
             }
         }
 

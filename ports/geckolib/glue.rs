@@ -292,12 +292,12 @@ pub extern "C" fn Servo_TraverseSubtree(
                      traversal_flags,
                      unsafe { &*snapshots });
 
-    debug!("Servo_TraverseSubtree complete (dd={}, aodd={}, lfcd={}, lfc={}, restyle={:?})",
+    debug!("Servo_TraverseSubtree complete (dd={}, aodd={}, lfcd={}, lfc={}, data={:?})",
            element.has_dirty_descendants(),
            element.has_animation_only_dirty_descendants(),
            element.descendants_need_frames(),
            element.needs_frame(),
-           element.borrow_data().unwrap().restyle);
+           element.borrow_data().unwrap());
 
     element.needs_post_traversal()
 }
@@ -2980,9 +2980,9 @@ pub extern "C" fn Servo_TakeChangeHint(element: RawGeckoElementBorrowed,
 
     let damage = match element.mutate_data() {
         Some(mut data) => {
-            *was_restyled = data.restyle.is_restyle();
+            *was_restyled = data.is_restyle();
 
-            let damage = data.restyle.damage;
+            let damage = data.damage;
             data.clear_restyle_state();
             damage
         }
@@ -3859,7 +3859,7 @@ pub extern "C" fn Servo_HasPendingRestyleAncestor(element: RawGeckoElementBorrow
     let mut element = Some(GeckoElement(element));
     while let Some(e) = element {
         if let Some(data) = e.borrow_data() {
-            if !data.restyle.hint.is_empty() {
+            if !data.hint.is_empty() {
                 return true;
             }
         }

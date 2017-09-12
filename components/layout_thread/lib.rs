@@ -1168,7 +1168,7 @@ impl LayoutThread {
             }
             if had_used_viewport_units {
                 if let Some(mut data) = element.mutate_data() {
-                    data.restyle.hint.insert(RestyleHint::recascade_subtree());
+                    data.hint.insert(RestyleHint::recascade_subtree());
                 }
             }
         }
@@ -1250,9 +1250,9 @@ impl LayoutThread {
             let mut style_data = style_data.borrow_mut();
 
             // Stash the data on the element for processing by the style system.
-            style_data.restyle.hint.insert(restyle.hint.into());
-            style_data.restyle.damage = restyle.damage;
-            debug!("Noting restyle for {:?}: {:?}", el, style_data.restyle);
+            style_data.hint.insert(restyle.hint.into());
+            style_data.damage = restyle.damage;
+            debug!("Noting restyle for {:?}: {:?}", el, style_data);
         }
 
         // Create a layout context for use throughout the following passes.

@@ -148,7 +148,7 @@ impl StylesheetInvalidationSet {
             if self.fully_invalid {
                 debug!("process_invalidations: fully_invalid({:?})",
                        element);
-                data.restyle.hint.insert(RestyleHint::restyle_subtree());
+                data.hint.insert(RestyleHint::restyle_subtree());
                 return true;
             }
         }
@@ -179,7 +179,7 @@ impl StylesheetInvalidationSet {
             return false;
         }
 
-        if data.restyle.hint.contains_subtree() {
+        if data.hint.contains_subtree() {
             debug!("process_invalidations_in_subtree: {:?} was already invalid",
                    element);
             return false;
@@ -189,7 +189,7 @@ impl StylesheetInvalidationSet {
             if scope.matches(element) {
                 debug!("process_invalidations_in_subtree: {:?} matched {:?}",
                        element, scope);
-                data.restyle.hint.insert(RestyleHint::restyle_subtree());
+                data.hint.insert(RestyleHint::restyle_subtree());
                 return true;
             }
         }
