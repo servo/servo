@@ -316,7 +316,7 @@
 
             % if not property.derived_from:
                 match value {
-                    DeclaredValue::Value(ref specified_value) => {
+                    DeclaredValue::Value(specified_value) => {
                         % if property.ident in SYSTEM_FONT_LONGHANDS and product == "gecko":
                             if let Some(sf) = specified_value.get_system() {
                                 longhands::system_font::resolve_system_font(sf, context);
@@ -341,7 +341,11 @@
                             }
                             context.builder.put_${data.current_style_struct.name_lower}(s);
                         % else:
+                            % if property.boxed:
+                            let computed = (**specified_value).to_computed_value(context);
+                            % else:
                             let computed = specified_value.to_computed_value(context);
+                            % endif
                             % if property.ident == "font_size":
                                  longhands::font_size::cascade_specified_font_size(
                                      context,

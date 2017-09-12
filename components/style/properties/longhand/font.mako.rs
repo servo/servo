@@ -2014,14 +2014,9 @@ https://drafts.csswg.org/css-fonts-4/#low-level-font-variation-settings-control-
                    animation_value_type="ComputedValue"
                    flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER"
                    spec="${variation_spec}">
-    use values::computed::ComputedValueAsSpecified;
     use values::generics::FontSettings;
 
-    impl ComputedValueAsSpecified for SpecifiedValue {}
-
     pub type SpecifiedValue = computed_value::T;
-
-
 
     pub mod computed_value {
         use values::generics::{FontSettings, FontSettingTagFloat};

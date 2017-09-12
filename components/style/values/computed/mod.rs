@@ -296,6 +296,22 @@ impl<T> ToComputedValue for Vec<T>
     }
 }
 
+impl<T> ToComputedValue for Box<T>
+    where T: ToComputedValue
+{
+    type ComputedValue = Box<<T as ToComputedValue>::ComputedValue>;
+
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
+        Box::new(T::to_computed_value(self, context))
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        Box::new(T::from_computed_value(computed))
+    }
+}
+
 impl<T> ToComputedValue for Box<[T]>
     where T: ToComputedValue
 {
@@ -312,32 +328,13 @@ impl<T> ToComputedValue for Box<[T]>
     }
 }
 
-/// A marker trait to represent that the specified value is also the computed
-/// value.
-pub trait ComputedValueAsSpecified {}
-
-impl<T> ToComputedValue for T
-    where T: ComputedValueAsSpecified + Clone,
-{
-    type ComputedValue = T;
-
-    #[inline]
-    fn to_computed_value(&self, _context: &Context) -> T {
-        self.clone()
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &T) -> Self {
-        computed.clone()
-    }
-}
-
 trivial_to_computed_value!(());
 trivial_to_computed_value!(bool);
 trivial_to_computed_value!(f32);
 trivial_to_computed_value!(i32);
 trivial_to_computed_value!(u8);
 trivial_to_computed_value!(u16);
+trivial_to_computed_value!(u32);
 trivial_to_computed_value!(Atom);
 trivial_to_computed_value!(BorderStyle);
 trivial_to_computed_value!(Cursor);
