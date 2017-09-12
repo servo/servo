@@ -1259,9 +1259,9 @@ None
     }
 
     /// Constructs an atom from a string of text, and whether we're in a
-    /// user-agent style_sheet.
+    /// user-agent style sheet.
     ///
-    /// If we're not in a user-agent style_sheet, we will never parse anonymous
+    /// If we're not in a user-agent style sheet, we will never parse anonymous
     /// box pseudo-elements.
     ///
     /// Returns `None` if the pseudo-element is not recognised.

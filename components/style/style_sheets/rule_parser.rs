@@ -34,13 +34,13 @@ use values::CustomIdent;
 use values::KeyframesName;
 use values::specified::url::SpecifiedUrl;
 
-/// The parser for the top-level rules in a style_sheet.
+/// The parser for the top-level rules in a style sheet.
 pub struct TopLevelRuleParser<'a, R: 'a> {
-    /// The origin of the style_sheet we're parsing.
+    /// The origin of the style sheet we're parsing.
     pub style_sheet_origin: Origin,
     /// A reference to the lock we need to use to create rules.
     pub shared_lock: &'a SharedRwLock,
-    /// A reference to a style_sheet loader if applicable, for `@import` rules.
+    /// A reference to a style sheet loader if applicable, for `@import` rules.
     pub loader: Option<&'a StyleSheetLoader>,
     /// The top-level parser context.
     ///
@@ -97,7 +97,7 @@ pub enum State {
     Imports = 2,
     /// We're parsing `@namespace` rules.
     Namespaces = 3,
-    /// We're parsing the main body of the style_sheet.
+    /// We're parsing the main body of the style sheet.
     Body = 4,
 }
 
@@ -205,7 +205,7 @@ impl<'a, 'i, R: ParseErrorReporter> AtRuleParser<'i> for TopLevelRuleParser<'a, 
                 let prelude = AtRuleNonBlockPrelude::Namespace(prefix, url, location);
                 return Ok(AtRuleType::WithoutBlock(prelude));
             },
-            // @charset is removed by rust-cssparser if it’s the first rule in the style_sheet
+            // @charset is removed by rust-cssparser if it’s the first rule in the style sheet
             // anything left is invalid.
             "charset" => {
                 self.had_hierarchy_error = true;

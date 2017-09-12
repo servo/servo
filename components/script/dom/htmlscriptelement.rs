@@ -449,7 +449,7 @@ impl HTMLScriptElement {
             if was_parser_inserted &&
                doc.get_current_parser().map_or(false, |parser| parser.script_nesting_level() <= 1) &&
                doc.get_script_blocking_style_sheets_count() > 0 {
-                // Step 23.h: classic, has no src, was parser-inserted, is blocked on style_sheet.
+                // Step 23.h: classic, has no src, was parser-inserted, is blocked on style sheet.
                 doc.set_pending_parsing_blocking_script(self, Some(result));
             } else {
                 // Step 23.i: otherwise.

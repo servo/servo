@@ -30,8 +30,8 @@ pub struct CSSRule {
     parent_style_sheet: JS<CSSStyleSheet>,
 
     /// Whether the parentStyleSheet attribute should return null.
-    /// We keep parent_style_sheet in that case because insertRule needs it
-    /// for the style_sheet’s base URL and namespace prefixes.
+    /// We keep parent_style sheet in that case because insertRule needs it
+    /// for the style sheet’s base URL and namespace prefixes.
     parent_style_sheet_removed: Cell<bool>,
 }
 
@@ -120,7 +120,7 @@ impl CSSRuleMethods for CSSRule {
         self.as_specific().ty()
     }
 
-    // https://drafts.csswg.org/cssom/#dom-cssrule-parentstyle_sheet
+    // https://drafts.csswg.org/cssom/#dom-cssrule-parentstyle sheet
     fn GetParentStyleSheet(&self) -> Option<Root<CSSStyleSheet>> {
         if self.parent_style_sheet_removed.get() {
             None

@@ -269,7 +269,7 @@ impl NestedRuleIterationCondition for AllRules {
     }
 }
 
-/// An iterator over all the effective rules of a style_sheet.
+/// An iterator over all the effective rules of a style sheet.
 ///
 /// NOTE: This iterator recurses into `@import` rules.
 pub type EffectiveRulesIterator<'a, 'b> = RulesIterator<'a, 'b, EffectiveRules>;

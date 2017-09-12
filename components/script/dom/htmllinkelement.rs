@@ -62,7 +62,7 @@ pub struct HTMLLinkElement {
     pending_loads: Cell<u32>,
     /// Whether any of the loads have failed.
     any_failed_load: Cell<bool>,
-    /// A monotonically increasing counter that keeps track of which style_sheet to apply.
+    /// A monotonically increasing counter that keeps track of which style sheet to apply.
     request_generation_id: Cell<RequestGenerationId>,
 }
 
@@ -96,7 +96,7 @@ impl HTMLLinkElement {
     }
 
     // FIXME(emilio): These methods are duplicated with
-    // HTMLStyleElement::set_style_sheet.
+    // HTMLStyleElement::set_style sheet.
     pub fn set_style_sheet(&self, s: Arc<StyleSheet>) {
         let doc = document_from_node(self);
         if let Some(ref s) = *self.style_sheet.borrow() {
@@ -302,7 +302,7 @@ impl HTMLLinkElement {
 
         self.request_generation_id.set(self.request_generation_id.get().increment());
 
-        // TODO: #8085 - Don't load external style_sheets if the node's mq
+        // TODO: #8085 - Don't load external style sheets if the node's mq
         // doesn't match.
         let loader = StyleSheetLoader::for_element(self.upcast());
         loader.load(StyleSheetContextSource::LinkElement {

@@ -382,7 +382,7 @@
                     cascade_property_custom(declaration, context);
                 % endif
             % else:
-                // Do not allow style_sheets to set derived properties.
+                // Do not allow style sheets to set derived properties.
             % endif
         }
         % if not property.derived_from:

@@ -219,7 +219,7 @@ pub struct LayoutThread {
     /// The root of the flow tree.
     root_flow: RefCell<Option<FlowRef>>,
 
-    /// The document-specific shared lock used for author-origin style_sheets
+    /// The document-specific shared lock used for author-origin style sheets
     document_shared_lock: Option<SharedRwLock>,
 
     /// The list of currently-running animations.
@@ -879,7 +879,7 @@ impl LayoutThread {
         }
     }
 
-    /// Sets quirks mode for the document, causing the quirks mode style_sheet to be used.
+    /// Sets quirks mode for the document, causing the quirks mode style sheet to be used.
     fn handle_set_quirks_mode<'a, 'b>(&mut self, quirks_mode: QuirksMode) {
         self.stylist.set_quirks_mode(quirks_mode);
     }

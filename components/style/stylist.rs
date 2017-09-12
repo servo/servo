@@ -54,15 +54,15 @@ use thread_state;
 
 pub use ::fnv::FnvHashMap;
 
-/// The type of the style_sheets that the stylist contains.
+/// The type of the style sheets that the stylist contains.
 #[cfg(feature = "servo")]
 pub type StylistSheet = ::style_sheets::DocumentStyleSheet;
 
-/// The type of the style_sheets that the stylist contains.
+/// The type of the style sheets that the stylist contains.
 #[cfg(feature = "gecko")]
 pub type StylistSheet = ::gecko::data::GeckoStyleSheet;
 
-/// All the computed information for a style_sheet.
+/// All the computed information for a style sheet.
 #[derive(Default)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 struct DocumentCascadeData {
@@ -74,7 +74,7 @@ struct DocumentCascadeData {
     /// These are eagerly computed once, and then used to resolve the new
     /// computed values on the fly on layout.
     ///
-    /// These are only filled from UA style_sheets.
+    /// These are only filled from UA style sheets.
     ///
     /// FIXME(emilio): Use the rule tree!
     precomputed_pseudo_element_decls: PerPseudoElementMap<Vec<ApplicableDeclarationBlock>>,
@@ -85,8 +85,8 @@ impl DocumentCascadeData {
         self.per_origin.iter_origins()
     }
 
-    /// Rebuild the cascade data for the given document style_sheets, and
-    /// optionally with a set of user agent style_sheets.  Returns Err(..)
+    /// Rebuild the cascade data for the given document style sheets, and
+    /// optionally with a set of user agent style sheets.  Returns Err(..)
     /// to signify OOM.
     fn rebuild<'a, 'b, S>(
         &mut self,
@@ -315,7 +315,7 @@ impl DocumentCascadeData {
                             .saw_effective(import_rule);
                     }
 
-                    // NOTE: effective_rules visits the inner style_sheet if
+                    // NOTE: effective_rules visits the inner style sheet if
                     // appropriate.
                 }
                 CssRule::Media(ref lock) => {
@@ -419,7 +419,7 @@ impl ops::DerefMut for StylistStyleSheetSet {
 
 /// This structure holds all the selectors and device characteristics
 /// for a given document. The selectors are converted into `Rule`s
-/// and sorted into `SelectorMap`s keyed off style_sheet origin and
+/// and sorted into `SelectorMap`s keyed off style sheet origin and
 /// pseudo-element (see `CascadeData`).
 ///
 /// This structure is effectively created once per pipeline, in the
@@ -443,10 +443,10 @@ pub struct Stylist {
     /// Viewport constraints based on the current device.
     viewport_constraints: Option<ViewportConstraints>,
 
-    /// The list of style_sheets.
+    /// The list of style sheets.
     style_sheets: StylistStyleSheetSet,
 
-    /// If true, the quirks-mode style_sheet is applied.
+    /// If true, the quirks-mode style sheet is applied.
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "defined in selectors")]
     quirks_mode: QuirksMode,
 
@@ -540,7 +540,7 @@ impl Stylist {
         }
     }
 
-    /// Flush the list of style_sheets if they changed, ensuring the stylist is
+    /// Flush the list of style sheets if they changed, ensuring the stylist is
     /// up-to-date.
     ///
     /// FIXME(emilio): Move the `ua_sheets` to the Stylist too?
@@ -567,7 +567,7 @@ impl Stylist {
             // TODO(emilio): This doesn't look so efficient.
             //
             // Presumably when we properly implement this we can at least have a
-            // bit on the style_sheet that says whether it contains viewport
+            // bit on the style sheet that says whether it contains viewport
             // rules to skip it entirely?
             //
             // Processing it with the rest of rules seems tricky since it
@@ -610,7 +610,7 @@ impl Stylist {
         had_invalidations
     }
 
-    /// Insert a given style_sheet before another style_sheet in the document.
+    /// Insert a given style_sheet before another style sheet in the document.
     pub fn insert_style_sheet_before(
         &mut self,
         sheet: StylistSheet,
@@ -625,7 +625,7 @@ impl Stylist {
         )
     }
 
-    /// Marks a given style_sheet origin as dirty, due to, for example, changes
+    /// Marks a given style sheet origin as dirty, due to, for example, changes
     /// in the declarations that affect a given rule.
     ///
     /// FIXME(emilio): Eventually it'd be nice for this to become more
@@ -634,10 +634,10 @@ impl Stylist {
         self.style_sheets.force_dirty(origins)
     }
 
-    /// Iterate over the given set of style_sheets.
+    /// Iterate over the given set of style sheets.
     ///
     /// This is very intentionally exposed only on `&mut self`, since we don't
-    /// want to give access to the style_sheet list from worker threads.
+    /// want to give access to the style sheet list from worker threads.
     pub fn iter_style_sheets(&mut self) -> StyleSheetIterator<StylistSheet> {
         self.style_sheets.iter()
     }
@@ -647,22 +647,22 @@ impl Stylist {
         self.style_sheets.set_author_style_disabled(disabled);
     }
 
-    /// Returns whether we've recorded any style_sheet change so far.
+    /// Returns whether we've recorded any style sheet change so far.
     pub fn style_sheets_have_changed(&self) -> bool {
         self.style_sheets.has_changed()
     }
 
-    /// Appends a new style_sheet to the current set.
+    /// Appends a new style sheet to the current set.
     pub fn append_style_sheet(&mut self, sheet: StylistSheet, guard: &SharedRwLockReadGuard) {
         self.style_sheets.append_style_sheet(Some(&self.device), sheet, guard)
     }
 
-    /// Appends a new style_sheet to the current set.
+    /// Appends a new style sheet to the current set.
     pub fn prepend_style_sheet(&mut self, sheet: StylistSheet, guard: &SharedRwLockReadGuard) {
         self.style_sheets.prepend_style_sheet(Some(&self.device), sheet, guard)
     }
 
-    /// Remove a given style_sheet to the current set.
+    /// Remove a given style sheet to the current set.
     pub fn remove_style_sheet(&mut self, sheet: StylistSheet, guard: &SharedRwLockReadGuard) {
         self.style_sheets.remove_style_sheet(Some(&self.device), sheet, guard)
     }
@@ -1146,7 +1146,7 @@ impl Stylist {
     /// Returns the sheet origins that were actually affected.
     ///
     /// This means that we may need to rebuild style data even if the
-    /// style_sheets haven't changed.
+    /// style sheets haven't changed.
     ///
     /// Also, the device that arrives here may need to take the viewport rules
     /// into account.
@@ -1316,7 +1316,7 @@ impl Stylist {
     }
 
     /// Returns the applicable CSS declarations for the given element by
-    /// treating us as an XBL style_sheet-only stylist.
+    /// treating us as an XBL style sheet-only stylist.
     pub fn push_applicable_declarations_as_xbl_only_stylist<E, V>(
         &self,
         element: &E,
@@ -1654,7 +1654,7 @@ impl Stylist {
 }
 
 /// This struct holds data which users of Stylist may want to extract
-/// from style_sheets which can be done at the same time as updating.
+/// from style sheets which can be done at the same time as updating.
 #[derive(Default)]
 pub struct ExtraStyleData {
     /// A list of effective font-face rules and their origin.
@@ -1905,10 +1905,10 @@ impl<'a> SelectorVisitor for StylistSelectorVisitor<'a> {
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Debug)]
 struct CascadeData {
-    /// Rules from style_sheets at this `CascadeData`'s origin.
+    /// Rules from style sheets at this `CascadeData`'s origin.
     element_map: SelectorMap<Rule>,
 
-    /// Rules from style_sheets at this `CascadeData`'s origin that correspond
+    /// Rules from style sheets at this `CascadeData`'s origin that correspond
     /// to a given pseudo-element.
     ///
     /// FIXME(emilio): There are a bunch of wasted entries here in practice.
@@ -1960,7 +1960,7 @@ struct CascadeData {
     effective_media_query_results: EffectiveMediaQueryResults,
 
     /// A monotonically increasing counter to represent the order on which a
-    /// style rule appears in a style_sheet, needed to sort them by source order.
+    /// style rule appears in a style sheet, needed to sort them by source order.
     rules_source_order: u32,
 
     /// The total number of selectors.

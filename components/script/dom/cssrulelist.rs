@@ -130,7 +130,7 @@ impl CSSRuleList {
         }
     }
 
-    // Remove parent style_sheets from all children
+    // Remove parent style sheets from all children
     pub fn deparent_all(&self) {
         for rule in self.dom_rules.borrow().iter() {
             rule.get().map(|r| Root::upcast(r).deparent());

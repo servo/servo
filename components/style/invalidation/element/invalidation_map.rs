@@ -40,7 +40,7 @@ pub fn dir_selector_to_state(s: &[u16]) -> ElementState {
 /// Mapping between (partial) CompoundSelectors (and the combinator to their
 /// right) and the states and attributes they depend on.
 ///
-/// In general, for all selectors in all applicable style_sheets of the form:
+/// In general, for all selectors in all applicable style sheets of the form:
 ///
 /// |a _ b _ c _ d _ e|
 ///
@@ -51,7 +51,7 @@ pub fn dir_selector_to_state(s: &[u16]) -> ElementState {
 ///     state or attributes.
 ///
 /// We generate a Dependency for both |a _ b:X _| and |a _ b:X _ c _ d:Y _|,
-/// even though those selectors may not appear on their own in any style_sheet.
+/// even though those selectors may not appear on their own in any style sheet.
 /// This allows us to quickly scan through the dependency sites of all style
 /// rules and determine the maximum effect that a given state or attribute
 /// change may have on the style of elements in the document.
@@ -147,7 +147,7 @@ pub struct InvalidationMap {
     /// selector.
     pub class_to_selector: MaybeCaseInsensitiveHashMap<Atom, SmallVec<[Dependency; 1]>>,
     /// A map from a given id to all the selectors with that ID in the
-    /// style_sheets currently applying to the document.
+    /// style sheets currently applying to the document.
     pub id_to_selector: MaybeCaseInsensitiveHashMap<Atom, SmallVec<[Dependency; 1]>>,
     /// A map of all the state dependencies.
     pub state_affecting_selectors: SelectorMap<StateDependency>,

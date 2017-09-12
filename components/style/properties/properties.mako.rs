@@ -758,7 +758,7 @@ impl ShorthandId {
 /// declared value for that property.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum DeclaredValue<'a, T: 'a> {
-    /// A known specified value from the style_sheet.
+    /// A known specified value from the style sheet.
     Value(&'a T),
     /// An unparsed value that contains `var()` functions.
     WithVariables(&'a Arc<UnparsedValue>),
@@ -772,7 +772,7 @@ pub enum DeclaredValue<'a, T: 'a> {
 /// PropertyDeclaration instances as needed.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum DeclaredValueOwned<T> {
-    /// A known specified value from the style_sheet.
+    /// A known specified value from the style sheet.
     Value(T),
     /// An unparsed value that contains `var()` functions.
     WithVariables(Arc<UnparsedValue>),
@@ -981,7 +981,7 @@ impl PropertyId {
     /// Returns Err(()) for unknown non-custom properties
     /// If caller wants to provide a different context, it can be provided with
     /// Some(context), if None is given, default setting for PropertyParserContext
-    /// will be used. It is `Origin::Author` for style_sheet_origin and
+    /// will be used. It is `Origin::Author` for style sheet_origin and
     /// `CssRuleType::Style` for rule_type.
     pub fn parse(property_name: &str, context: Option< &PropertyParserContext>) -> Result<Self, ()> {
         // FIXME(https://github.com/rust-lang/rust/issues/33156): remove this enum and use PropertyId
@@ -1236,15 +1236,15 @@ impl PropertyId {
 
 /// Parsing Context for PropertyId.
 pub struct PropertyParserContext {
-    /// The Origin of the style_sheet, whether it's a user,
-    /// author or user-agent style_sheet.
+    /// The Origin of the style sheet, whether it's a user,
+    /// author or user-agent style sheet.
     pub style_sheet_origin: Origin,
     /// The current rule type, if any.
     pub rule_type: CssRuleType,
 }
 
 impl PropertyParserContext {
-    /// Creates a PropertyParserContext with given style_sheet origin and rule type.
+    /// Creates a PropertyParserContext with given style sheet origin and rule type.
     pub fn new(context: &ParserContext) -> Self {
         Self {
             style_sheet_origin: context.style_sheet_origin,

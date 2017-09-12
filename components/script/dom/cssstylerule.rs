@@ -87,7 +87,7 @@ impl CSSStyleRuleMethods for CSSStyleRule {
 
     // https://drafts.csswg.org/cssom/#dom-cssstylerule-selectortext
     fn SetSelectorText(&self, value: DOMString) {
-        // It's not clear from the spec if we should use the style_sheet's namespaces.
+        // It's not clear from the spec if we should use the style sheet's namespaces.
         // https://github.com/w3c/csswg-drafts/issues/1511
         let namespaces = self.cssrule.parent_style_sheet().style_style_sheet().contents.namespaces.read();
         let parser = SelectorParser {
@@ -103,7 +103,7 @@ impl CSSStyleRuleMethods for CSSStyleRule {
             let stylerule = self.stylerule.write_with(&mut guard);
             mem::swap(&mut stylerule.selectors, &mut s);
             // It seems like we will want to avoid having to invalidate all
-            // style_sheets eventually!
+            // style sheets eventually!
             self.global().as_window().Document().invalidate_style_sheets();
         }
     }

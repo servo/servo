@@ -101,7 +101,7 @@ impl StyleSheetInDocument for GeckoStyleSheet {
         }
     }
 
-    // All the style_sheets Servo knows about are enabled, because that state is
+    // All the style sheets Servo knows about are enabled, because that state is
     // handled externally by Gecko.
     fn enabled(&self) -> bool {
         true
@@ -148,7 +148,7 @@ impl PerDocumentStyleData {
 }
 
 impl PerDocumentStyleDataImpl {
-    /// Recreate the style data if the style_sheets have changed.
+    /// Recreate the style data if the style sheets have changed.
     pub fn flush_style_sheets<E>(
         &mut self,
         guard: &SharedRwLockReadGuard,

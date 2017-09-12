@@ -248,10 +248,10 @@ pub struct Document {
     scripts: MutNullableJS<HTMLCollection>,
     anchors: MutNullableJS<HTMLCollection>,
     applets: MutNullableJS<HTMLCollection>,
-    /// Lock use for style attributes and author-origin style_sheet objects in this document.
+    /// Lock use for style attributes and author-origin style sheet objects in this document.
     /// Can be acquired once for accessing many objects.
     style_shared_lock: StyleSharedRwLock,
-    /// List of style_sheets associated with nodes in this document. |None| if the list needs to be refreshed.
+    /// List of style sheets associated with nodes in this document. |None| if the list needs to be refreshed.
     style_sheets: DOMRefCell<StyleSheetSet<StyleSheetInDocument>>,
     style_sheet_list: MutNullableJS<StyleSheetList>,
     ready_state: Cell<DocumentReadyState>,
@@ -265,7 +265,7 @@ pub struct Document {
     current_script: MutNullableJS<HTMLScriptElement>,
     /// https://html.spec.whatwg.org/multipage/#pending-parsing-blocking-script
     pending_parsing_blocking_script: DOMRefCell<Option<PendingScript>>,
-    /// Number of style_sheets that block executing the next parser-inserted script
+    /// Number of style sheets that block executing the next parser-inserted script
     script_blocking_style_sheets_count: Cell<u32>,
     /// https://html.spec.whatwg.org/multipage/#list-of-scripts-that-will-execute-when-the-document-has-finished-parsing
     deferred_scripts: PendingInOrderScriptVec,
@@ -1660,7 +1660,7 @@ impl Document {
 
         match load {
             LoadType::StyleSheet(_) => {
-                // A style_sheet finishing to load may unblock any pending
+                // A style sheet finishing to load may unblock any pending
                 // parsing-blocking script or deferred script.
                 self.process_pending_parsing_blocking_script();
 
@@ -2204,7 +2204,7 @@ impl Document {
             applets: Default::default(),
             style_shared_lock: {
                 lazy_static! {
-                    /// Per-process shared lock for author-origin style_sheets
+                    /// Per-process shared lock for author-origin style sheets
                     ///
                     /// FIXME: make it per-document or per-pipeline instead:
                     /// https://github.com/servo/servo/issues/16027
@@ -2328,18 +2328,18 @@ impl Document {
         self.GetDocumentElement().and_then(Root::downcast)
     }
 
-    /// Return a reference to the per-document shared lock used in style_sheets.
+    /// Return a reference to the per-document shared lock used in style sheets.
     pub fn style_shared_lock(&self) -> &StyleSharedRwLock {
         &self.style_shared_lock
     }
 
-    /// Flushes the style_sheet list, and returns whether any style_sheet changed.
+    /// Flushes the style_sheet list, and returns whether any style sheet changed.
     pub fn flush_style_sheets_for_reflow(&self) -> bool {
         // NOTE(emilio): The invalidation machinery is used on the replicated
         // list on the layout thread.
         //
         // FIXME(emilio): This really should differentiate between CSSOM changes
-        // and normal style_sheets additions / removals, because in the last case
+        // and normal style sheets additions / removals, because in the last case
         // the layout thread already has that information and we could avoid
         // dirtying the whole thing.
         let mut style_sheets = self.style_sheets.borrow_mut();
@@ -2365,7 +2365,7 @@ impl Document {
         Some(Device::new(MediaType::screen(), viewport_size, device_pixel_ratio))
     }
 
-    /// Remove a style_sheet owned by `owner` from the list of document sheets.
+    /// Remove a style sheet owned by `owner` from the list of document sheets.
     #[allow(unrooted_must_root)] // Owner needs to be rooted already necessarily.
     pub fn remove_style_sheet(&self, owner: &Element, s: &Arc<StyleSheet>) {
         self.window()
@@ -2386,12 +2386,12 @@ impl Document {
         );
     }
 
-    /// Add a style_sheet owned by `owner` to the list of document sheets, in the
+    /// Add a style sheet owned by `owner` to the list of document sheets, in the
     /// correct tree position.
     #[allow(unrooted_must_root)] // Owner needs to be rooted already necessarily.
     pub fn add_style_sheet(&self, owner: &Element, sheet: Arc<StyleSheet>) {
         // FIXME(emilio): It'd be nice to unify more code between the elements
-        // that own style_sheets, but StyleSheetOwner is more about loading
+        // that own style sheets, but StyleSheetOwner is more about loading
         // them...
         debug_assert!(owner.as_style_sheet_owner().is_some() ||
                       owner.is::<HTMLMetaElement>(), "Wat");
@@ -2427,7 +2427,7 @@ impl Document {
         }
     }
 
-    /// Returns the number of document style_sheets.
+    /// Returns the number of document style sheets.
     pub fn style_sheet_count(&self) -> usize {
         self.style_sheets.borrow().len()
     }
@@ -2696,7 +2696,7 @@ impl Element {
 }
 
 impl DocumentMethods for Document {
-    // https://drafts.csswg.org/cssom/#dom-document-style_sheets
+    // https://drafts.csswg.org/cssom/#dom-document-style sheets
     fn StyleSheets(&self) -> Root<StyleSheetList> {
         self.style_sheet_list.or_init(|| StyleSheetList::new(&self.window, JS::from_ref(&self)))
     }

@@ -63,7 +63,7 @@ pub enum StyleSheetContextSource {
     Import(Arc<StyleSheet>),
 }
 
-/// The context required for asynchronously loading an external style_sheet.
+/// The context required for asynchronously loading an external style sheet.
 pub struct StyleSheetContext {
     /// The element that initiated the request.
     elem: Trusted<HTMLElement>,
@@ -75,7 +75,7 @@ pub struct StyleSheetContext {
     /// The node document for elem when the load was initiated.
     document: Trusted<Document>,
     origin_clean: bool,
-    /// A token which must match the generation id of the `HTMLLinkElement` for it to load the style_sheet.
+    /// A token which must match the generation id of the `HTMLLinkElement` for it to load the style sheet.
     /// This is ignored for `HTMLStyleElement` and imports.
     request_generation_id: Option<RequestGenerationId>,
 }
@@ -138,7 +138,7 @@ impl FetchResponseListener for StyleSheetContext {
                 StyleSheetContextSource::LinkElement { ref mut media } => {
                     let link = elem.downcast::<HTMLLinkElement>().unwrap();
                     // We must first check whether the generations of the context and the element match up,
-                    // else we risk applying the wrong style_sheet when responses come out-of-order.
+                    // else we risk applying the wrong style sheet when responses come out-of-order.
                     let is_style_sheet_load_applicable =
                         self.request_generation_id.map_or(true, |gen| gen == link.get_request_generation_id());
                     if is_style_sheet_load_applicable {
@@ -274,7 +274,7 @@ impl<'a> StyleSheetLoader<'a> {
 }
 
 impl<'a> StyleStyleSheetLoader for StyleSheetLoader<'a> {
-    /// Request a style_sheet after parsing a given `@import` rule, and return
+    /// Request a style sheet after parsing a given `@import` rule, and return
     /// the constructed `@import` rule.
     fn request_style_sheet(
         &self,

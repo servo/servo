@@ -13,10 +13,10 @@ use shared_lock::{Locked, SharedRwLock};
 use style_sheets::import_rule::ImportRule;
 use values::specified::url::SpecifiedUrl;
 
-/// The style_sheet loader is the abstraction used to trigger network requests
+/// The style sheet loader is the abstraction used to trigger network requests
 /// for `@import` rules.
 pub trait StyleSheetLoader {
-    /// Request a style_sheet after parsing a given `@import` rule, and return
+    /// Request a style sheet after parsing a given `@import` rule, and return
     /// the constructed `@import` rule.
     fn request_style_sheet(
         &self,

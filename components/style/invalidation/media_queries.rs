@@ -17,7 +17,7 @@ use style_sheets::{NestedRuleIterationCondition, StyleSheet, SupportsRule};
 /// happen to have a stable address, so we can just use an opaque pointer to
 /// represent them.
 ///
-/// Also, note that right now when a rule or style_sheet is removed, we do a full
+/// Also, note that right now when a rule or style sheet is removed, we do a full
 /// style flush, so there's no need to worry about other item created with the
 /// same pointer address.
 ///
@@ -87,7 +87,7 @@ impl EffectiveMediaQueryResults {
         where T: ToMediaListKey,
     {
         // NOTE(emilio): We can't assert that we don't cache the same item twice
-        // because of style_sheet reusing... shrug.
+        // because of style sheet reusing... shrug.
         self.set.insert(item.to_media_list_key());
     }
 }

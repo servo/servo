@@ -2043,7 +2043,7 @@ pub extern "C" fn Servo_StyleSet_Drop(data: RawServoStyleSetOwned) {
 }
 
 
-/// Updating the style_sheets and redoing selector matching is always happens
+/// Updating the style sheets and redoing selector matching is always happens
 /// before the document element is inserted. Therefore we don't need to call
 /// `force_dirty` here.
 #[no_mangle]
@@ -2949,7 +2949,7 @@ pub extern "C" fn Servo_CSSSupports(cond: *const nsACString) -> bool {
     let cond = input.parse_entirely(|i| parse_condition_or_declaration(i));
     if let Ok(cond) = cond {
         let url_data = unsafe { dummy_url_data() };
-        // NOTE(emilio): The supports API is not associated to any style_sheet,
+        // NOTE(emilio): The supports API is not associated to any style sheet,
         // so the fact that there are no namespace map here is fine.
         let context =
             ParserContext::new_for_cssom(

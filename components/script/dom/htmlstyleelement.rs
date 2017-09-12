@@ -113,7 +113,7 @@ impl HTMLStyleElement {
         self.set_style_sheet(sheet);
     }
 
-    // FIXME(emilio): This is duplicated with HTMLLinkElement::set_style_sheet.
+    // FIXME(emilio): This is duplicated with HTMLLinkElement::set_style sheet.
     pub fn set_style_sheet(&self, s: Arc<StyleSheet>) {
         let doc = document_from_node(self);
         if let Some(ref s) = *self.style_sheet.borrow() {

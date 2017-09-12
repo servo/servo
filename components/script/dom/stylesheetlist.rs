@@ -34,12 +34,12 @@ impl StyleSheetList {
 }
 
 impl StyleSheetListMethods for StyleSheetList {
-    // https://drafts.csswg.org/cssom/#dom-style_sheetlist-length
+    // https://drafts.csswg.org/cssom/#dom-style sheetlist-length
     fn Length(&self) -> u32 {
        self.document.style_sheet_count() as u32
     }
 
-    // https://drafts.csswg.org/cssom/#dom-style_sheetlist-item
+    // https://drafts.csswg.org/cssom/#dom-style sheetlist-item
     fn Item(&self, index: u32) -> Option<Root<StyleSheet>> {
         // XXXManishearth this  doesn't handle the origin clean flag and is a
         // cors vulnerability

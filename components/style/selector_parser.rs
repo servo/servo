@@ -38,11 +38,11 @@ pub use gecko::restyle_damage::GeckoRestyleDamage as RestyleDamage;
 /// Servo's selector parser.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct SelectorParser<'a> {
-    /// The origin of the style_sheet we're parsing.
+    /// The origin of the style sheet we're parsing.
     pub style_sheet_origin: Origin,
-    /// The namespace set of the style_sheet.
+    /// The namespace set of the style sheet.
     pub namespaces: &'a Namespaces,
-    /// The extra URL data of the style_sheet, which is used to look up
+    /// The extra URL data of the style sheet, which is used to look up
     /// whether we are parsing a chrome:// URL style sheet.
     pub url_data: Option<&'a UrlExtraData>,
 }
@@ -64,12 +64,12 @@ impl<'a> SelectorParser<'a> {
         SelectorList::parse(&parser, &mut CssParser::new(&mut input))
     }
 
-    /// Whether we're parsing selectors in a user-agent style_sheet.
+    /// Whether we're parsing selectors in a user-agent style sheet.
     pub fn in_user_agent_style_sheet(&self) -> bool {
         matches!(self.style_sheet_origin, Origin::UserAgent)
     }
 
-    /// Whether we're parsing selectors in a style_sheet that has chrome
+    /// Whether we're parsing selectors in a style sheet that has chrome
     /// privilege.
     pub fn in_chrome_style_sheet(&self) -> bool {
         self.url_data.map_or(false, |d| d.is_chrome())

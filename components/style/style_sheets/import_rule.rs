@@ -45,7 +45,7 @@ impl DeepCloneWithLock for ImportSheet {
 pub struct ImportSheet(pub ::servo_arc::Arc<::style_sheets::StyleSheet>);
 
 impl StyleSheetInDocument for ImportSheet {
-    /// Get the media associated with this style_sheet.
+    /// Get the media associated with this style sheet.
     fn media<'a>(&'a self, guard: &'a SharedRwLockReadGuard) -> Option<&'a MediaList> {
         self.0.media(guard)
     }
@@ -81,7 +81,7 @@ pub struct ImportRule {
     /// The `<url>` this `@import` rule is loading.
     pub url: SpecifiedUrl,
 
-    /// The style_sheet is always present.
+    /// The style sheet is always present.
     ///
     /// It contains an empty list of rules and namespace set that is updated
     /// when it loads.

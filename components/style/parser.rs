@@ -44,10 +44,10 @@ pub struct ParserErrorContext<'a, R: 'a> {
     pub error_reporter: &'a R,
 }
 
-/// The data that the parser needs from outside in order to parse a style_sheet.
+/// The data that the parser needs from outside in order to parse a style sheet.
 pub struct ParserContext<'a> {
-    /// The `Origin` of the style_sheet, whether it's a user, author or
-    /// user-agent style_sheet.
+    /// The `Origin` of the style sheet, whether it's a user, author or
+    /// user-agent style sheet.
     pub style_sheet_origin: Origin,
     /// The extra data we need for resolving url values.
     pub url_data: &'a UrlExtraData,
@@ -55,7 +55,7 @@ pub struct ParserContext<'a> {
     pub rule_type: Option<CssRuleType>,
     /// The mode to use when parsing.
     pub parsing_mode: ParsingMode,
-    /// The quirks mode of this style_sheet.
+    /// The quirks mode of this style sheet.
     pub quirks_mode: QuirksMode,
     /// The currently active namespaces.
     pub namespaces: Option<&'a Namespaces>,

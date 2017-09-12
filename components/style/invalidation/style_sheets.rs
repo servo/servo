@@ -51,7 +51,7 @@ impl InvalidationScope {
     }
 }
 
-/// A set of invalidations due to style_sheet.additions.
+/// A set of invalidations due to style sheet.additions.
 ///
 /// TODO(emilio): We might be able to do the same analysis for media query
 /// changes too (or even selector changes?).
@@ -79,7 +79,7 @@ impl StyleSheetInvalidationSet {
         self.fully_invalid = true;
     }
 
-    /// Analyze the given style_sheet. and collect invalidations from their
+    /// Analyze the given style sheet. and collect invalidations from their
     /// rules, in order to avoid doing a full restyle when we style the document
     /// next time.
     pub fn collect_invalidations_for<S>(

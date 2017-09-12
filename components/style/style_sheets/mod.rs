@@ -116,7 +116,7 @@ impl CssRule {
 
             CssRule::Namespace(_) => 0,
 
-            // We don't need to measure ImportRule::style_sheet because we measure
+            // We don't need to measure ImportRule::style sheet because we measure
             // it on the C++ side in the child list of the ServoStyleSheet.
             CssRule::Import(_) => 0,
 

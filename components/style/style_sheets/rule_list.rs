@@ -95,7 +95,7 @@ pub trait CssRulesHelpers {
     /// https://drafts.csswg.org/cssom/#insert-a-css-rule
     ///
     /// Written in this funky way because parsing an @import rule may cause us
-    /// to clone a style_sheet from the same document due to caching in the CSS
+    /// to clone a style sheet from the same document due to caching in the CSS
     /// loader.
     ///
     /// TODO(emilio): We could also pass the write guard down into the loader
