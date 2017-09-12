@@ -1163,6 +1163,9 @@ impl ToAnimatedZero for TransformOperation {
             TransformOperation::ScaleX(_) => Ok(TransformOperation::ScaleX(1.)),
             TransformOperation::ScaleY(_) => Ok(TransformOperation::ScaleY(1.)),
             TransformOperation::ScaleZ(_) => Ok(TransformOperation::ScaleZ(1.)),
+            TransformOperation::RotateX(_) => Ok(TransformOperation::RotateX(Angle::zero())),
+            TransformOperation::RotateY(_) => Ok(TransformOperation::RotateY(Angle::zero())),
+            TransformOperation::RotateZ(_) => Ok(TransformOperation::RotateZ(Angle::zero())),
             TransformOperation::Rotate(x, y, z, a) => {
                 let (x, y, z, _) = TransformList::get_normalized_vector_and_angle(x, y, z, a);
                 Ok(TransformOperation::Rotate(x, y, z, Angle::zero()))

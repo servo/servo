@@ -3077,6 +3077,9 @@ fn static_assert() {
                 ${transform_function_arm("ScaleY", "scaley", ["number"])}
                 ${transform_function_arm("ScaleZ", "scalez", ["number"])}
                 ${transform_function_arm("Scale", "scale3d", ["number"] * 3)}
+                ${transform_function_arm("RotateX", "rotatex", ["angle"])}
+                ${transform_function_arm("RotateY", "rotatey", ["angle"])}
+                ${transform_function_arm("RotateZ", "rotatez", ["angle"])}
                 ${transform_function_arm("Rotate", "rotate3d", ["number"] * 3 + ["angle"])}
                 ${transform_function_arm("Perspective", "perspective", ["length"])}
                 ${transform_function_arm("InterpolateMatrix", "interpolatematrix",
@@ -3204,6 +3207,9 @@ fn static_assert() {
                 ${computed_operation_arm("ScaleY", "scaley", ["number"])}
                 ${computed_operation_arm("ScaleZ", "scalez", ["number"])}
                 ${computed_operation_arm("Scale", "scale3d", ["number"] * 3)}
+                ${computed_operation_arm("RotateX", "rotatex", ["angle"])}
+                ${computed_operation_arm("RotateY", "rotatey", ["angle"])}
+                ${computed_operation_arm("RotateZ", "rotatez", ["angle"])}
                 ${computed_operation_arm("Rotate", "rotate3d", ["number"] * 3 + ["angle"])}
                 ${computed_operation_arm("Perspective", "perspective", ["length"])}
                 ${computed_operation_arm("InterpolateMatrix", "interpolatematrix",

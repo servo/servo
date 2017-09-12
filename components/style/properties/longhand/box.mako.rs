@@ -693,6 +693,9 @@ ${helpers.predefined_type(
             ScaleY(CSSFloat),
             ScaleZ(CSSFloat),
             Scale(CSSFloat, CSSFloat, CSSFloat),
+            RotateX(computed::Angle),
+            RotateY(computed::Angle),
+            RotateZ(computed::Angle),
             Rotate(CSSFloat, CSSFloat, CSSFloat, computed::Angle),
             Perspective(computed::Length),
             // For mismatched transform lists.
@@ -1317,15 +1320,15 @@ ${helpers.predefined_type(
                     }
                     SpecifiedOperation::RotateX(theta) => {
                         let theta = theta.to_computed_value(context);
-                        result.push(computed_value::ComputedOperation::Rotate(1.0, 0.0, 0.0, theta));
+                        result.push(computed_value::ComputedOperation::RotateX(theta));
                     }
                     SpecifiedOperation::RotateY(theta) => {
                         let theta = theta.to_computed_value(context);
-                        result.push(computed_value::ComputedOperation::Rotate(0.0, 1.0, 0.0, theta));
+                        result.push(computed_value::ComputedOperation::RotateY(theta));
                     }
                     SpecifiedOperation::RotateZ(theta) => {
                         let theta = theta.to_computed_value(context);
-                        result.push(computed_value::ComputedOperation::Rotate(0.0, 0.0, 1.0, theta));
+                        result.push(computed_value::ComputedOperation::RotateZ(theta));
                     }
                     SpecifiedOperation::Rotate3D(ax, ay, az, theta) => {
                         let ax = ax.to_computed_value(context);
@@ -1455,6 +1458,18 @@ ${helpers.predefined_type(
                                     Number::from_computed_value(sx),
                                     Number::from_computed_value(sy),
                                     Number::from_computed_value(sz)));
+                        }
+                        computed_value::ComputedOperation::RotateX(ref rx) => {
+                            result.push(SpecifiedOperation::RotateX(
+                                              ToComputedValue::from_computed_value(rx)));
+                        }
+                        computed_value::ComputedOperation::RotateY(ref ry) => {
+                            result.push(SpecifiedOperation::RotateY(
+                                              ToComputedValue::from_computed_value(ry)));
+                        }
+                        computed_value::ComputedOperation::RotateZ(ref rz) => {
+                            result.push(SpecifiedOperation::RotateZ(
+                                              ToComputedValue::from_computed_value(rz)));
                         }
                         computed_value::ComputedOperation::Rotate(ref ax, ref ay, ref az, ref theta) => {
                             result.push(SpecifiedOperation::Rotate3D(

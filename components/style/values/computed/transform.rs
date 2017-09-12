@@ -80,6 +80,18 @@ impl TransformList {
 
         for operation in list {
             let matrix = match *operation {
+                ComputedOperation::RotateX(theta) => {
+                    let theta = Angle::from_radians(2.0f32 * f32::consts::PI - theta.radians());
+                    Transform3D::create_rotation(1., 0., 0., theta.into())
+                }
+                ComputedOperation::RotateY(theta) => {
+                    let theta = Angle::from_radians(2.0f32 * f32::consts::PI - theta.radians());
+                    Transform3D::create_rotation(0., 1., 0., theta.into())
+                }
+                ComputedOperation::RotateZ(theta) => {
+                    let theta = Angle::from_radians(2.0f32 * f32::consts::PI - theta.radians());
+                    Transform3D::create_rotation(0., 0., 1., theta.into())
+                }
                 ComputedOperation::Rotate(ax, ay, az, theta) => {
                     let theta = Angle::from_radians(2.0f32 * f32::consts::PI - theta.radians());
                     let (ax, ay, az, theta) =
