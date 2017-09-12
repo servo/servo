@@ -582,7 +582,7 @@ impl<E: TElement> StyleSharingCache<E> {
             return None;
         }
 
-        if target.traversal_parent().is_none() {
+        if target.inheritance_parent().is_none() {
             debug!("{:?} Cannot share style: element has no parent",
                    target.element);
             return None;
@@ -615,8 +615,8 @@ impl<E: TElement> StyleSharingCache<E> {
         // share styles and permit sharing across their children. The latter
         // check allows us to share style between cousins if the parents
         // shared style.
-        let parent = target.traversal_parent();
-        let candidate_parent = candidate.element.traversal_parent();
+        let parent = target.inheritance_parent();
+        let candidate_parent = candidate.element.inheritance_parent();
         if parent != candidate_parent &&
            !checks::can_share_style_across_parents(parent, candidate_parent) {
             trace!("Miss: Parent");
