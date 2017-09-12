@@ -53,7 +53,7 @@ use logical_geometry::WritingMode;
 use media_queries::Device;
 use properties::animated_properties::TransitionProperty;
 use properties::computed_value_flags::ComputedValueFlags;
-use properties::{longhands, FontComputationData, Importance, LonghandId};
+use properties::{default_font_size_keyword, longhands, FontComputationData, Importance, LonghandId};
 use properties::{PropertyDeclaration, PropertyDeclarationBlock, PropertyDeclarationId};
 use rule_tree::StrongRuleNode;
 use selector_parser::PseudoElement;
@@ -85,7 +85,7 @@ impl ComputedValues {
         pseudo: Option<<&PseudoElement>,
         custom_properties: Option<Arc<CustomPropertiesMap>>,
         writing_mode: WritingMode,
-        font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>,
+        font_size_keyword: FontComputationData,
         flags: ComputedValueFlags,
         rules: Option<StrongRuleNode>,
         visited_style: Option<Arc<ComputedValues>>,
@@ -114,7 +114,7 @@ impl ComputedValues {
         ComputedValuesInner::new(
             /* custom_properties = */ None,
             /* writing_mode = */ WritingMode::empty(), // FIXME(bz): This seems dubious
-            FontComputationData::default_font_size_keyword(),
+            default_font_size_keyword(),
             ComputedValueFlags::empty(),
             /* rules = */ None,
             /* visited_style = */ None,
@@ -188,7 +188,7 @@ type ParentStyleContextInfo<'a> = Option< &'a ComputedValues>;
 impl ComputedValuesInner {
     pub fn new(custom_properties: Option<Arc<CustomPropertiesMap>>,
                writing_mode: WritingMode,
-               font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>,
+               font_size_keyword: FontComputationData,
                flags: ComputedValueFlags,
                rules: Option<StrongRuleNode>,
                visited_style: Option<Arc<ComputedValues>>,
@@ -199,7 +199,7 @@ impl ComputedValuesInner {
         ComputedValuesInner {
             custom_properties: custom_properties,
             writing_mode: writing_mode,
-            font_computation_data: FontComputationData::new(font_size_keyword),
+            font_computation_data: font_size_keyword,
             rules: rules,
             visited_style: visited_style.map(|x| Arc::into_raw_offset(x)),
             flags: flags,

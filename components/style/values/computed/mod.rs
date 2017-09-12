@@ -14,8 +14,7 @@ use properties;
 use properties::{ComputedValues, StyleBuilder};
 #[cfg(feature = "servo")]
 use servo_url::ServoUrl;
-use std::f32;
-use std::fmt;
+use std::{f32, fmt, ops};
 #[cfg(feature = "servo")]
 use std::sync::Arc;
 use style_traits::ToCss;
@@ -560,6 +559,13 @@ impl NonNegativeAu {
     pub fn scale_by(self, factor: f32) -> Self {
         // scale this by zero if factor is negative.
         NonNegative::<Au>(self.0.scale_by(factor.max(0.)))
+    }
+}
+
+impl ops::Add<NonNegativeAu> for NonNegativeAu {
+    type Output = NonNegativeAu;
+    fn add(self, other: Self) -> Self {
+        (self.0 + other.0).into()
     }
 }
 
