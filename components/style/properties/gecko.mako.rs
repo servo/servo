@@ -2167,8 +2167,27 @@ fn static_assert() {
     }
 
     pub fn set_font_size(&mut self, v: longhands::font_size::computed_value::T) {
+        use self::longhands::font_size::KeywordSize;
         self.gecko.mSize = v.size().0;
         self.gecko.mScriptUnconstrainedSize = v.size().0;
+        if let Some(info) = v.info {
+            self.gecko.mFontSizeKeyword = match info.kw {
+                KeywordSize::XXSmall => structs::NS_STYLE_FONT_SIZE_XXSMALL,
+                KeywordSize::XSmall => structs::NS_STYLE_FONT_SIZE_XSMALL,
+                KeywordSize::Small => structs::NS_STYLE_FONT_SIZE_SMALL,
+                KeywordSize::Medium => structs::NS_STYLE_FONT_SIZE_MEDIUM,
+                KeywordSize::Large => structs::NS_STYLE_FONT_SIZE_LARGE,
+                KeywordSize::XLarge => structs::NS_STYLE_FONT_SIZE_XLARGE,
+                KeywordSize::XXLarge => structs::NS_STYLE_FONT_SIZE_XXLARGE,
+                KeywordSize::XXXLarge => structs::NS_STYLE_FONT_SIZE_XXXLARGE,
+            } as u8;
+            self.gecko.mFontSizeFactor = info.factor;
+            self.gecko.mFontSizeOffset = info.offset.0.to_i32_au();
+        } else {
+            self.gecko.mFontSizeKeyword = structs::NS_STYLE_FONT_SIZE_NO_KEYWORD as u8;
+            self.gecko.mFontSizeFactor = 1.;
+            self.gecko.mFontSizeOffset = 0;
+        }
     }
 
     /// Set font size, taking into account scriptminsize and scriptlevel
@@ -2327,12 +2346,24 @@ fn static_assert() {
             // In the case that MathML has given us an adjusted size, apply it.
             // Keep track of the unconstrained adjusted size.
             self.gecko.mSize = adjusted_size.0;
+
+            // Technically the MathML constrained size may also be keyword-derived
+            // but we ignore this since it would be too complicated
+            // to correctly track and it's mostly unnecessary.
+            self.gecko.mFontSizeKeyword = structs::NS_STYLE_FONT_SIZE_NO_KEYWORD as u8;
+            self.gecko.mFontSizeFactor = 1.;
+            self.gecko.mFontSizeOffset = 0;
+
             self.gecko.mScriptUnconstrainedSize = adjusted_unconstrained_size.0;
             self.fixup_font_min_size(device);
             false
         } else if let Some(size) = kw_inherited_size {
             // Parent element was a keyword-derived size.
             self.gecko.mSize = size.0.to_i32_au();
+            // Copy keyword info over.
+            self.gecko.mFontSizeFactor = parent.gecko.mFontSizeFactor;
+            self.gecko.mFontSizeOffset = parent.gecko.mFontSizeOffset;
+            self.gecko.mFontSizeKeyword = parent.gecko.mFontSizeKeyword;
             // MathML constraints didn't apply here, so we can ignore this.
             self.gecko.mScriptUnconstrainedSize = size.0.to_i32_au();
             self.fixup_font_min_size(device);
@@ -2341,6 +2372,10 @@ fn static_assert() {
             // MathML isn't affecting us, and our parent element does not
             // have a keyword-derived size. Set things normally.
             self.gecko.mSize = parent.gecko.mSize;
+            // copy keyword info over
+            self.gecko.mFontSizeKeyword = structs::NS_STYLE_FONT_SIZE_NO_KEYWORD as u8;
+            self.gecko.mFontSizeFactor = 1.;
+            self.gecko.mFontSizeOffset = 0;
             self.gecko.mScriptUnconstrainedSize = parent.gecko.mScriptUnconstrainedSize;
             self.fixup_font_min_size(device);
             false
@@ -2348,9 +2383,32 @@ fn static_assert() {
     }
 
     pub fn clone_font_size(&self) -> longhands::font_size::computed_value::T {
+        use self::longhands::font_size::KeywordSize;
+        let size = Au(self.gecko.mSize).into();
+        let kw = match self.gecko.mFontSizeKeyword as u32 {
+            structs::NS_STYLE_FONT_SIZE_XXSMALL => KeywordSize::XXSmall,
+            structs::NS_STYLE_FONT_SIZE_XSMALL => KeywordSize::XSmall,
+            structs::NS_STYLE_FONT_SIZE_SMALL => KeywordSize::Small,
+            structs::NS_STYLE_FONT_SIZE_MEDIUM => KeywordSize::Medium,
+            structs::NS_STYLE_FONT_SIZE_LARGE => KeywordSize::Large,
+            structs::NS_STYLE_FONT_SIZE_XLARGE => KeywordSize::XLarge,
+            structs::NS_STYLE_FONT_SIZE_XXLARGE => KeywordSize::XXLarge,
+            structs::NS_STYLE_FONT_SIZE_XXXLARGE => KeywordSize::XXXLarge,
+            structs::NS_STYLE_FONT_SIZE_NO_KEYWORD => {
+                return longhands::font_size::computed_value::T {
+                    size: size,
+                    info: None,
+                }
+            }
+            _ => unreachable!("mFontSizeKeyword should be an absolute keyword or NO_KEYWORD")
+        };
         longhands::font_size::computed_value::T {
-            size: Au(self.gecko.mSize).into(),
-            info: None, // XXXManishearth this is a placeholder
+            size: size,
+            info: Some(longhands::font_size::computed_value::KeywordInfo {
+                kw: kw,
+                factor: self.gecko.mFontSizeFactor,
+                offset: Au(self.gecko.mFontSizeOffset).into()
+            })
         }
     }
 

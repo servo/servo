@@ -440,6 +440,7 @@ pub mod root {
     pub const NS_STYLE_FONT_SIZE_XXXLARGE: ::std::os::raw::c_uint = 7;
     pub const NS_STYLE_FONT_SIZE_LARGER: ::std::os::raw::c_uint = 8;
     pub const NS_STYLE_FONT_SIZE_SMALLER: ::std::os::raw::c_uint = 9;
+    pub const NS_STYLE_FONT_SIZE_NO_KEYWORD: ::std::os::raw::c_uint = 10;
     pub const NS_STYLE_FONT_STRETCH_ULTRA_CONDENSED: ::std::os::raw::c_int =
         -4;
     pub const NS_STYLE_FONT_STRETCH_EXTRA_CONDENSED: ::std::os::raw::c_int =
@@ -4528,7 +4529,7 @@ pub mod root {
         }
         #[test]
         fn bindgen_test_layout_GeckoFont() {
-            assert_eq!(::std::mem::size_of::<GeckoFont>() , 120usize , concat
+            assert_eq!(::std::mem::size_of::<GeckoFont>() , 128usize , concat
                        ! ( "Size of: " , stringify ! ( GeckoFont ) ));
             assert_eq! (::std::mem::align_of::<GeckoFont>() , 8usize , concat
                         ! ( "Alignment of " , stringify ! ( GeckoFont ) ));
@@ -12647,6 +12648,9 @@ pub mod root {
     pub struct nsStyleFont {
         pub mFont: root::nsFont,
         pub mSize: root::nscoord,
+        pub mFontSizeFactor: f32,
+        pub mFontSizeOffset: root::nscoord,
+        pub mFontSizeKeyword: u8,
         pub mGenericID: u8,
         pub mScriptLevel: i8,
         pub mMathVariant: u8,
@@ -12662,7 +12666,7 @@ pub mod root {
     pub const nsStyleFont_kHasFinishStyle: bool = false;
     #[test]
     fn bindgen_test_layout_nsStyleFont() {
-        assert_eq!(::std::mem::size_of::<nsStyleFont>() , 120usize , concat !
+        assert_eq!(::std::mem::size_of::<nsStyleFont>() , 128usize , concat !
                    ( "Size of: " , stringify ! ( nsStyleFont ) ));
         assert_eq! (::std::mem::align_of::<nsStyleFont>() , 8usize , concat !
                     ( "Alignment of " , stringify ! ( nsStyleFont ) ));
@@ -12677,60 +12681,75 @@ pub mod root {
                     "Alignment of field: " , stringify ! ( nsStyleFont ) ,
                     "::" , stringify ! ( mSize ) ));
         assert_eq! (unsafe {
+                    & ( * ( 0 as * const nsStyleFont ) ) . mFontSizeFactor as
+                    * const _ as usize } , 92usize , concat ! (
+                    "Alignment of field: " , stringify ! ( nsStyleFont ) ,
+                    "::" , stringify ! ( mFontSizeFactor ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const nsStyleFont ) ) . mFontSizeOffset as
+                    * const _ as usize } , 96usize , concat ! (
+                    "Alignment of field: " , stringify ! ( nsStyleFont ) ,
+                    "::" , stringify ! ( mFontSizeOffset ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const nsStyleFont ) ) . mFontSizeKeyword as
+                    * const _ as usize } , 100usize , concat ! (
+                    "Alignment of field: " , stringify ! ( nsStyleFont ) ,
+                    "::" , stringify ! ( mFontSizeKeyword ) ));
+        assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleFont ) ) . mGenericID as *
-                    const _ as usize } , 92usize , concat ! (
+                    const _ as usize } , 101usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleFont ) ,
                     "::" , stringify ! ( mGenericID ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleFont ) ) . mScriptLevel as *
-                    const _ as usize } , 93usize , concat ! (
+                    const _ as usize } , 102usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleFont ) ,
                     "::" , stringify ! ( mScriptLevel ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleFont ) ) . mMathVariant as *
-                    const _ as usize } , 94usize , concat ! (
+                    const _ as usize } , 103usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleFont ) ,
                     "::" , stringify ! ( mMathVariant ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleFont ) ) . mMathDisplay as *
-                    const _ as usize } , 95usize , concat ! (
+                    const _ as usize } , 104usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleFont ) ,
                     "::" , stringify ! ( mMathDisplay ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleFont ) ) . mMinFontSizeRatio
-                    as * const _ as usize } , 96usize , concat ! (
+                    as * const _ as usize } , 105usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleFont ) ,
                     "::" , stringify ! ( mMinFontSizeRatio ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleFont ) ) . mExplicitLanguage
-                    as * const _ as usize } , 97usize , concat ! (
+                    as * const _ as usize } , 106usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleFont ) ,
                     "::" , stringify ! ( mExplicitLanguage ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleFont ) ) . mAllowZoom as *
-                    const _ as usize } , 98usize , concat ! (
+                    const _ as usize } , 107usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleFont ) ,
                     "::" , stringify ! ( mAllowZoom ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleFont ) ) .
                     mScriptUnconstrainedSize as * const _ as usize } ,
-                    100usize , concat ! (
+                    108usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleFont ) ,
                     "::" , stringify ! ( mScriptUnconstrainedSize ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleFont ) ) . mScriptMinSize as *
-                    const _ as usize } , 104usize , concat ! (
+                    const _ as usize } , 112usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleFont ) ,
                     "::" , stringify ! ( mScriptMinSize ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleFont ) ) .
-                    mScriptSizeMultiplier as * const _ as usize } , 108usize ,
+                    mScriptSizeMultiplier as * const _ as usize } , 116usize ,
                     concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleFont ) ,
                     "::" , stringify ! ( mScriptSizeMultiplier ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleFont ) ) . mLanguage as *
-                    const _ as usize } , 112usize , concat ! (
+                    const _ as usize } , 120usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleFont ) ,
                     "::" , stringify ! ( mLanguage ) ));
     }
