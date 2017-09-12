@@ -8,7 +8,7 @@
 
 use cssparser::SourceLocation;
 #[cfg(feature = "gecko")]
-use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps, MallocUnconditionalShallowSizeOf};
 use properties::PropertyDeclarationBlock;
 use servo_arc::Arc;
 use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
@@ -37,7 +37,7 @@ impl PageRule {
     #[cfg(feature = "gecko")]
     pub fn size_of(&self, guard: &SharedRwLockReadGuard, ops: &mut MallocSizeOfOps) -> usize {
         // Measurement of other fields may be added later.
-        self.block.read_with(guard).size_of(ops)
+        self.block.unconditional_shallow_size_of(ops) + self.block.read_with(guard).size_of(ops)
     }
 }
 
