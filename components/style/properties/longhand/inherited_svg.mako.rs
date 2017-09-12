@@ -136,8 +136,6 @@ ${helpers.predefined_type("marker-end", "UrlOrNone", "Either::Second(None_)",
                    animation_value_type="discrete"
                    products="gecko"
                    spec="https://www.w3.org/TR/SVG2/painting.html#PaintOrder">
-
-    use values::computed::ComputedValueAsSpecified;
     use std::fmt;
     use style_traits::ToCss;
 
@@ -164,8 +162,8 @@ ${helpers.predefined_type("marker-end", "UrlOrNone", "Either::Second(None_)",
     ///
     /// Higher priority values, i.e. the values specified first,
     /// will be painted first (and may be covered by paintings of lower priority)
-    #[derive(Clone, Copy, Debug, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    #[derive(Clone, Copy, Debug, PartialEq, ToComputedValue)]
     pub struct SpecifiedValue(pub u8);
 
     pub mod computed_value {
@@ -258,10 +256,8 @@ ${helpers.predefined_type("marker-end", "UrlOrNone", "Either::Second(None_)",
             Ok(())
         }
     }
-
-
-    impl ComputedValueAsSpecified for SpecifiedValue { }
 </%helpers:longhand>
+
 <%helpers:vector_longhand name="-moz-context-properties"
                    animation_value_type="none"
                    products="gecko"

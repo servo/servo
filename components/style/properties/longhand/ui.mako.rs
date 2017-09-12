@@ -49,12 +49,10 @@ ${helpers.single_keyword("-moz-window-shadow", "none default menu tooltip sheet"
                    spec="None (Nonstandard Firefox-only property)">
     use std::fmt;
     use style_traits::ToCss;
-    use values::computed::ComputedValueAsSpecified;
-
 
     pub mod computed_value {
-        #[derive(Clone, Copy, Debug, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        #[derive(Clone, Copy, Debug, PartialEq, ToComputedValue)]
         pub struct T(pub bool);
     }
 
@@ -75,8 +73,6 @@ ${helpers.single_keyword("-moz-window-shadow", "none default menu tooltip sheet"
     pub fn get_initial_specified_value() -> SpecifiedValue {
         computed_value::T(false)
     }
-
-    impl ComputedValueAsSpecified for SpecifiedValue {}
 
     pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
                          -> Result<SpecifiedValue, ParseError<'i>> {

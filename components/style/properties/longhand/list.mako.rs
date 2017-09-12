@@ -33,7 +33,6 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
     <%helpers:longhand name="list-style-type" animation_value_type="discrete" boxed="True"
                        spec="https://drafts.csswg.org/css-lists/#propdef-list-style-type">
         use values::CustomIdent;
-        use values::computed::ComputedValueAsSpecified;
         use values::generics::CounterStyleOrNone;
 
         pub use self::computed_value::T as SpecifiedValue;
@@ -42,14 +41,12 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
             use values::generics::CounterStyleOrNone;
 
             /// <counter-style> | <string> | none
-            #[derive(Clone, Debug, Eq, PartialEq, ToCss)]
+            #[derive(Clone, Debug, Eq, PartialEq, ToComputedValue, ToCss)]
             pub enum T {
                 CounterStyle(CounterStyleOrNone),
                 String(String),
             }
         }
-
-        impl ComputedValueAsSpecified for SpecifiedValue {}
 
         #[cfg(feature = "gecko")]
         impl SpecifiedValue {
@@ -144,17 +141,14 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
     use cssparser::serialize_string;
     use std::fmt;
     use style_traits::ToCss;
-    use values::computed::ComputedValueAsSpecified;
 
     pub use self::computed_value::T as SpecifiedValue;
 
     pub mod computed_value {
-        #[derive(Clone, Debug, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub struct T(pub Vec<(String,String)>);
+        #[derive(Clone, Debug, PartialEq, ToComputedValue)]
+        pub struct T(pub Vec<(String, String)>);
     }
-
-    impl ComputedValueAsSpecified for SpecifiedValue {}
 
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
