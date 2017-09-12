@@ -70,7 +70,6 @@ use atomic_refcell::{AtomicRefCell, AtomicRefMut};
 use bloom::StyleBloom;
 use cache::LRUCache;
 use context::{SelectorFlagsMap, SharedStyleContext, StyleContext};
-use data::ElementStyles;
 use dom::{TElement, SendElement};
 use matching::MatchMethods;
 use owning_ref::OwningHandle;
@@ -377,7 +376,7 @@ impl<E: TElement> StyleSharingTarget<E> {
     pub fn share_style_if_possible(
         &mut self,
         context: &mut StyleContext<E>,
-    ) -> Option<ElementStyles> {
+    ) -> Option<E> {
         let cache = &mut context.thread_local.sharing_cache;
         let shared_context = &context.shared;
         let selector_flags_map = &mut context.thread_local.selector_flags;
@@ -435,7 +434,7 @@ impl<E: TElement> SharingCache<E> {
         });
     }
 
-    fn lookup<F>(&mut self, mut is_match: F) -> Option<ElementStyles>
+    fn lookup<F>(&mut self, mut is_match: F) -> Option<E>
     where
         F: FnMut(&mut StyleSharingCandidate<E>) -> bool
     {
@@ -453,7 +452,7 @@ impl<E: TElement> SharingCache<E> {
                 self.entries.touch(i);
                 let front = self.entries.front_mut().unwrap();
                 debug_assert!(is_match(front));
-                Some(front.element.borrow_data().unwrap().styles.clone())
+                Some(front.element)
             }
         }
     }
@@ -610,7 +609,7 @@ impl<E: TElement> StyleSharingCache<E> {
         selector_flags_map: &mut SelectorFlagsMap<E>,
         bloom_filter: &StyleBloom<E>,
         target: &mut StyleSharingTarget<E>,
-    ) -> Option<ElementStyles> {
+    ) -> Option<E> {
         if shared_context.options.disable_style_sharing_cache {
             debug!("{:?} Cannot share style: style sharing cache disabled",
                    target.element);

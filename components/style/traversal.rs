@@ -655,9 +655,10 @@ where
             // Now that our bloom filter is set up, try the style sharing
             // cache.
             match target.share_style_if_possible(context) {
-                Some(styles) => {
+                Some(shareable_element) => {
                     context.thread_local.statistics.styles_shared += 1;
-                    styles
+                    let shareable_data = shareable_element.borrow_data().unwrap();
+                    shareable_data.styles.clone()
                 }
                 None => {
                     context.thread_local.statistics.elements_matched += 1;
