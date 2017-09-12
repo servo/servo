@@ -8,7 +8,7 @@
 #![deny(missing_docs)]
 
 use context::{ElementCascadeInputs, SelectorFlagsMap, SharedStyleContext, StyleContext};
-use data::{ElementData, ElementStyles, RestyleData};
+use data::{ElementData, ElementStyles};
 use dom::TElement;
 use invalidation::element::restyle_hints::{RESTYLE_CSS_ANIMATIONS, RESTYLE_CSS_TRANSITIONS};
 use invalidation::element::restyle_hints::{RESTYLE_SMIL, RESTYLE_STYLE_ATTRIBUTE};
@@ -353,7 +353,7 @@ trait PrivateMatchMethods: TElement {
         &self,
         shared_context: &SharedStyleContext,
         skip_applying_damage: bool,
-        restyle: &mut RestyleData,
+        damage: &mut RestyleDamage,
         old_values: &ComputedValues,
         new_values: &ComputedValues,
         pseudo: Option<&PseudoElement>,
@@ -370,7 +370,7 @@ trait PrivateMatchMethods: TElement {
             self.compute_style_difference(old_values, new_values, pseudo);
 
         if !skip_applying_damage {
-            restyle.damage |= difference.damage;
+            *damage |= difference.damage;
         }
 
         debug!(" > style difference: {:?}", difference);
@@ -543,7 +543,7 @@ pub trait MatchMethods : TElement {
             context,
             &mut data.styles.primary,
             &mut new_styles.primary.as_mut().unwrap(),
-            data.restyle.hint,
+            data.hint,
             important_rules_changed,
         );
 
@@ -607,7 +607,7 @@ pub trait MatchMethods : TElement {
             self.accumulate_damage_for(
                 context.shared,
                 data.skip_applying_damage(),
-                &mut data.restyle,
+                &mut data.damage,
                 &old_primary_style,
                 new_primary_style,
                 None,
@@ -629,7 +629,7 @@ pub trait MatchMethods : TElement {
                     self.accumulate_damage_for(
                         context.shared,
                         data.skip_applying_damage(),
-                        &mut data.restyle,
+                        &mut data.damage,
                         old,
                         new,
                         Some(&PseudoElement::from_eager_index(i)),
@@ -649,7 +649,7 @@ pub trait MatchMethods : TElement {
                         old.as_ref().map_or(false,
                                             |s| pseudo.should_exist(s));
                     if new_pseudo_should_exist != old_pseudo_should_exist {
-                        data.restyle.damage |= RestyleDamage::reconstruct();
+                        data.damage |= RestyleDamage::reconstruct();
                         return cascade_requirement;
                     }
                 }

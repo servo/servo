@@ -38,35 +38,6 @@ bitflags! {
     }
 }
 
-/// Transient data used by the restyle algorithm. This structure is instantiated
-/// either before or during restyle traversal, and is cleared at the end of node
-/// processing.
-#[derive(Debug)]
-pub struct RestyleData {
-    /// The restyle damage, indicating what kind of layout changes are required
-    /// afte restyling.
-    pub damage: RestyleDamage,
-
-    /// The restyle hint, which indicates whether selectors need to be rematched
-    /// for this element, its children, and its descendants.
-    pub hint: RestyleHint,
-}
-
-impl Default for RestyleData {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl RestyleData {
-    fn new() -> Self {
-        Self {
-            damage: RestyleDamage::empty(),
-            hint: RestyleHint::empty(),
-        }
-    }
-}
-
 /// A lazily-allocated list of styles for eagerly-cascaded pseudo-elements.
 ///
 /// We use an Arc so that sharing these styles via the style sharing cache does
@@ -220,8 +191,13 @@ pub struct ElementData {
     /// The styles for the element and its pseudo-elements.
     pub styles: ElementStyles,
 
-    /// Restyle state.
-    pub restyle: RestyleData,
+    /// The restyle damage, indicating what kind of layout changes are required
+    /// afte restyling.
+    pub damage: RestyleDamage,
+
+    /// The restyle hint, which indicates whether selectors need to be rematched
+    /// for this element, its children, and its descendants.
+    pub hint: RestyleHint,
 
     /// Flags.
     flags: ElementDataFlags,
@@ -302,19 +278,18 @@ impl ElementData {
             return RestyleKind::MatchAndCascade;
         }
 
-        let hint = self.restyle.hint;
-        if hint.match_self() {
+        if self.hint.match_self() {
             return RestyleKind::MatchAndCascade;
         }
 
-        if hint.has_replacements() {
-            debug_assert!(!hint.has_animation_hint(),
+        if self.hint.has_replacements() {
+            debug_assert!(!self.hint.has_animation_hint(),
                           "Animation only restyle hint should have already processed");
-            return RestyleKind::CascadeWithReplacements(hint & RestyleHint::replacements());
+            return RestyleKind::CascadeWithReplacements(self.hint & RestyleHint::replacements());
         }
 
-        debug_assert!(hint.has_recascade_self(),
-                      "We definitely need to do something: {:?}!", hint);
+        debug_assert!(self.hint.has_recascade_self(),
+                      "We definitely need to do something: {:?}!", self.hint);
         return RestyleKind::CascadeOnly;
     }
 
@@ -331,9 +306,8 @@ impl ElementData {
         // return either CascadeWithReplacements or CascadeOnly in case of
         // animation-only restyle. I.e. animation-only restyle never does
         // selector matching.
-        let hint = self.restyle.hint;
-        if hint.has_animation_hint() {
-            return RestyleKind::CascadeWithReplacements(hint & RestyleHint::for_animations());
+        if self.hint.has_animation_hint() {
+            return RestyleKind::CascadeWithReplacements(self.hint & RestyleHint::for_animations());
         }
 
         return RestyleKind::CascadeOnly;
@@ -365,14 +339,14 @@ impl ElementData {
     /// the hint is empty and call clear_flags_and_damage().
     #[inline]
     pub fn clear_restyle_state(&mut self) {
-        self.restyle.hint = RestyleHint::empty();
+        self.hint = RestyleHint::empty();
         self.clear_restyle_flags_and_damage();
     }
 
     /// Drops restyle flags and damage from the element.
     #[inline]
     pub fn clear_restyle_flags_and_damage(&mut self) {
-        self.restyle.damage = RestyleDamage::empty();
+        self.damage = RestyleDamage::empty();
         self.flags.remove(WAS_RESTYLED | ANCESTOR_WAS_RECONSTRUCTED)
     }
 
@@ -384,7 +358,7 @@ impl ElementData {
 
     /// Returns whether this element is going to be reconstructed.
     pub fn reconstructed_self(&self) -> bool {
-        self.restyle.damage.contains(RestyleDamage::reconstruct())
+        self.damage.contains(RestyleDamage::reconstruct())
     }
 
     /// Returns whether any ancestor of this element is going to be
@@ -431,7 +405,7 @@ impl ElementData {
     /// Returns whether this element has been part of a restyle.
     #[inline]
     pub fn contains_restyle_data(&self) -> bool {
-        self.is_restyle() || !self.restyle.hint.is_empty() || !self.restyle.damage.is_empty()
+        self.is_restyle() || !self.hint.is_empty() || !self.damage.is_empty()
     }
 
     /// If an ancestor is already getting reconstructed by Gecko's top-down

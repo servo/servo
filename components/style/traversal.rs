@@ -214,7 +214,7 @@ pub trait DomTraversal<E: TElement> : Sync {
         if traversal_flags.for_animation_only() {
             return data.map_or(false, |d| d.has_styles()) &&
                    (el.has_animation_only_dirty_descendants() ||
-                    data.as_ref().unwrap().restyle.hint.has_animation_hint_or_recascade());
+                    data.as_ref().unwrap().hint.has_animation_hint_or_recascade());
         }
 
         // Non-incremental layout visits every node.
@@ -283,14 +283,14 @@ pub trait DomTraversal<E: TElement> : Sync {
         // since that can return true even if we have a restyle hint indicating
         // that the element's descendants (but not necessarily the element) need
         // restyling.
-        if !data.restyle.hint.is_empty() {
+        if !data.hint.is_empty() {
             return true;
         }
 
         // Servo uses the post-order traversal for flow construction, so we need
         // to traverse any element with damage so that we can perform fixup /
         // reconstruction on our way back up the tree.
-        if cfg!(feature = "servo") && !data.restyle.damage.is_empty() {
+        if cfg!(feature = "servo") && !data.damage.is_empty() {
             return true;
         }
 
@@ -510,10 +510,10 @@ where
         RestyleHint::empty()
     } else {
         debug_assert!(flags.for_animation_only() ||
-                      !data.restyle.hint.has_animation_hint(),
+                      !data.hint.has_animation_hint(),
                       "animation restyle hint should be handled during \
                        animation-only restyles");
-        data.restyle.hint.propagate(&flags)
+        data.hint.propagate(&flags)
     };
 
     trace!("propagated_hint={:?}, cascade_requirement={:?}, \
@@ -804,7 +804,7 @@ where
         let mut child_data = child_data.as_mut().map(|d| &mut **d);
         trace!(" > {:?} -> {:?} + {:?}, pseudo: {:?}",
                child,
-               child_data.as_ref().map(|d| d.restyle.hint),
+               child_data.as_ref().map(|d| d.hint),
                propagated_hint,
                child.implemented_pseudo_element());
 
@@ -830,7 +830,7 @@ where
                 }
             }
 
-            child_data.restyle.hint.insert(child_hint);
+            child_data.hint.insert(child_hint);
 
             // Handle element snapshots and invalidation of descendants and siblings
             // as needed.

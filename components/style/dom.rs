@@ -436,7 +436,7 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
             // animation in a SequentialTask) is processed after the normal
             // traversal in that we had elements that handled snapshot.
             return data.has_styles() &&
-                   !data.restyle.hint.has_animation_hint_or_recascade();
+                   !data.hint.has_animation_hint_or_recascade();
         }
 
         if traversal_flags.contains(traversal_flags::UnstyledOnly) {
@@ -448,7 +448,7 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
             return false;
         }
 
-        data.has_styles() && !data.restyle.hint.has_non_animation_invalidations()
+        data.has_styles() && !data.hint.has_non_animation_invalidations()
     }
 
     /// Returns whether the element's styles are up-to-date after traversal
@@ -470,7 +470,7 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
         //
         // https://bugzilla.mozilla.org/show_bug.cgi?id=1389675 tracks fixing
         // this.
-        !data.restyle.hint.has_non_animation_invalidations()
+        !data.hint.has_non_animation_invalidations()
     }
 
     /// Flag that this element has a descendant for style processing.
@@ -620,7 +620,7 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
             Some(d) => d,
             None => return false,
         };
-        return data.restyle.hint.has_animation_hint()
+        return data.hint.has_animation_hint()
     }
 
     /// Returns the anonymous content for the current element's XBL binding,

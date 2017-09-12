@@ -7,7 +7,7 @@ use servo_arc::Arc;
 use std::mem::{size_of, align_of};
 use style;
 use style::applicable_declarations::ApplicableDeclarationBlock;
-use style::data::{ElementData, ElementStyles, RestyleData};
+use style::data::{ElementData, ElementStyles};
 use style::gecko::selector_parser as real;
 use style::properties::ComputedValues;
 use style::rule_tree::{RuleNode, StrongRuleNode};
@@ -38,7 +38,6 @@ size_of_test!(test_size_of_option_arc_cv, Option<Arc<ComputedValues>>, 8);
 size_of_test!(test_size_of_option_rule_node, Option<StrongRuleNode>, 8);
 
 size_of_test!(test_size_of_element_styles, ElementStyles, 16);
-size_of_test!(test_size_of_restyle_data, RestyleData, 8);
 size_of_test!(test_size_of_element_data, ElementData, 24);
 
 size_of_test!(test_size_of_property_declaration, style::properties::PropertyDeclaration, 32);
