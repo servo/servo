@@ -469,7 +469,7 @@ pub enum CascadeLevel {
     PresHints,
     /// User normal rules.
     UserNormal,
-    /// XBL <style_sheet> rules.
+    /// XBL <stylesheet> rules.
     XBL,
     /// Author normal rules.
     AuthorNormal,
