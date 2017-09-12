@@ -708,41 +708,6 @@ pub trait MatchMethods : TElement {
         }
     }
 
-    /// Computes and applies restyle damage.
-    fn accumulate_damage(&self,
-                         shared_context: &SharedStyleContext,
-                         restyle: &mut RestyleData,
-                         old_values: Option<&ComputedValues>,
-                         new_values: &ComputedValues,
-                         pseudo: Option<&PseudoElement>)
-                         -> ChildCascadeRequirement {
-        let old_values = match old_values {
-            Some(v) => v,
-            None => return ChildCascadeRequirement::MustCascadeChildren,
-        };
-
-        // ::before and ::after are element-backed in Gecko, so they do the
-        // damage calculation for themselves, when there's an actual pseudo.
-        let is_existing_before_or_after =
-            cfg!(feature = "gecko") &&
-            pseudo.map_or(false, |p| {
-                (p.is_before() && self.before_pseudo_element().is_some()) ||
-                (p.is_after() && self.after_pseudo_element().is_some())
-            });
-
-        if is_existing_before_or_after {
-            return ChildCascadeRequirement::CanSkipCascade;
-        }
-
-        self.accumulate_damage_for(
-            shared_context,
-            restyle,
-            old_values,
-            new_values,
-            pseudo
-        )
-    }
-
     /// Updates the rule nodes without re-running selector matching, using just
     /// the rule tree.
     ///
