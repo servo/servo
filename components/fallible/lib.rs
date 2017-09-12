@@ -27,7 +27,7 @@ pub trait FallibleVec<T> {
 // Vec
 
 impl<T> FallibleVec<T> for Vec<T> {
-    #[inline]
+    #[inline(always)]
     fn try_push(&mut self, val: T) -> Result<(), FailedAllocationError> {
         #[cfg(feature = "known_system_malloc")]
         {
@@ -92,7 +92,7 @@ fn try_double_vec<T>(vec: &mut Vec<T>) -> Result<(), FailedAllocationError> {
 // SmallVec
 
 impl<T: Array> FallibleVec<T::Item> for SmallVec<T> {
-    #[inline]
+    #[inline(always)]
     fn try_push(&mut self, val: T::Item) -> Result<(), FailedAllocationError> {
         #[cfg(feature = "known_system_malloc")]
         {

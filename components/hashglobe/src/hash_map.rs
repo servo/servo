@@ -1002,6 +1002,7 @@ impl<K, V, S> HashMap<K, V, S>
         self.try_entry(key).unwrap()
     }
 
+    #[inline(always)]
     pub fn try_entry(&mut self, key: K) -> Result<Entry<K, V>, FailedAllocationError> {
         // Gotta resize now.
         self.try_reserve(1)?;
