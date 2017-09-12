@@ -37,10 +37,10 @@ use properties::animated_properties::AnimatableLonghand;
 use selector_parser::PseudoElement;
 use selectors::parser::SelectorParseError;
 #[cfg(feature = "servo")] use servo_config::prefs::PREFS;
-use shared_lock::StylesheetGuards;
+use shared_lock::StyleSheetGuards;
 use style_traits::{PARSING_MODE_DEFAULT, ToCss, ParseError};
 use style_traits::{PropertyDeclarationParseError, StyleParseError, ValueParseError};
-use stylesheets::{CssRuleType, Origin, UrlExtraData};
+use style_sheets::{CssRuleType, Origin, UrlExtraData};
 #[cfg(feature = "servo")] use values::Either;
 use values::generics::text::LineHeight;
 use values::computed;
@@ -758,7 +758,7 @@ impl ShorthandId {
 /// declared value for that property.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum DeclaredValue<'a, T: 'a> {
-    /// A known specified value from the stylesheet.
+    /// A known specified value from the style sheet.
     Value(&'a T),
     /// An unparsed value that contains `var()` functions.
     WithVariables(&'a Arc<UnparsedValue>),
@@ -772,7 +772,7 @@ pub enum DeclaredValue<'a, T: 'a> {
 /// PropertyDeclaration instances as needed.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum DeclaredValueOwned<T> {
-    /// A known specified value from the stylesheet.
+    /// A known specified value from the style sheet.
     Value(T),
     /// An unparsed value that contains `var()` functions.
     WithVariables(Arc<UnparsedValue>),
@@ -981,7 +981,7 @@ impl PropertyId {
     /// Returns Err(()) for unknown non-custom properties
     /// If caller wants to provide a different context, it can be provided with
     /// Some(context), if None is given, default setting for PropertyParserContext
-    /// will be used. It is `Origin::Author` for stylesheet_origin and
+    /// will be used. It is `Origin::Author` for style sheet_origin and
     /// `CssRuleType::Style` for rule_type.
     pub fn parse(property_name: &str, context: Option< &PropertyParserContext>) -> Result<Self, ()> {
         // FIXME(https://github.com/rust-lang/rust/issues/33156): remove this enum and use PropertyId
@@ -1015,7 +1015,7 @@ impl PropertyId {
             Some(context) => context,
             None => {
                 default = PropertyParserContext {
-                    stylesheet_origin: Origin::Author,
+                    style_sheet_origin: Origin::Author,
                     rule_type: CssRuleType::Style,
                 };
                 &default
@@ -1215,7 +1215,7 @@ impl PropertyId {
         };
 
         if INTERNAL.contains(id) {
-            if context.stylesheet_origin != Origin::UserAgent {
+            if context.style_sheet_origin != Origin::UserAgent {
                 if EXPERIMENTAL.contains(id) {
                     if !passes_pref_check() {
                         return Err(())
@@ -1236,18 +1236,18 @@ impl PropertyId {
 
 /// Parsing Context for PropertyId.
 pub struct PropertyParserContext {
-    /// The Origin of the stylesheet, whether it's a user,
-    /// author or user-agent stylesheet.
-    pub stylesheet_origin: Origin,
+    /// The Origin of the style sheet, whether it's a user,
+    /// author or user-agent style sheet.
+    pub style_sheet_origin: Origin,
     /// The current rule type, if any.
     pub rule_type: CssRuleType,
 }
 
 impl PropertyParserContext {
-    /// Creates a PropertyParserContext with given stylesheet origin and rule type.
+    /// Creates a PropertyParserContext with given style sheet origin and rule type.
     pub fn new(context: &ParserContext) -> Self {
         Self {
-            stylesheet_origin: context.stylesheet_origin,
+            style_sheet_origin: context.style_sheet_origin,
             rule_type: context.rule_type(),
         }
     }
@@ -3002,7 +3002,7 @@ pub fn cascade(
     device: &Device,
     pseudo: Option<<&PseudoElement>,
     rule_node: &StrongRuleNode,
-    guards: &StylesheetGuards,
+    guards: &StyleSheetGuards,
     parent_style: Option<<&ComputedValues>,
     parent_style_ignoring_first_line: Option<<&ComputedValues>,
     layout_parent_style: Option<<&ComputedValues>,

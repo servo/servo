@@ -12,7 +12,7 @@ use dom::window::Window;
 use dom_struct::dom_struct;
 use servo_arc::Arc;
 use style::shared_lock::{Locked, ToCssWithGuard};
-use style::stylesheets::FontFaceRule;
+use style::style_sheets::FontFaceRule;
 
 #[dom_struct]
 pub struct CSSFontFaceRule {
@@ -22,18 +22,18 @@ pub struct CSSFontFaceRule {
 }
 
 impl CSSFontFaceRule {
-    fn new_inherited(parent_stylesheet: &CSSStyleSheet, fontfacerule: Arc<Locked<FontFaceRule>>)
+    fn new_inherited(parent_style_sheet: &CSSStyleSheet, fontfacerule: Arc<Locked<FontFaceRule>>)
                      -> CSSFontFaceRule {
         CSSFontFaceRule {
-            cssrule: CSSRule::new_inherited(parent_stylesheet),
+            cssrule: CSSRule::new_inherited(parent_style_sheet),
             fontfacerule: fontfacerule,
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, parent_stylesheet: &CSSStyleSheet,
+    pub fn new(window: &Window, parent_style_sheet: &CSSStyleSheet,
                fontfacerule: Arc<Locked<FontFaceRule>>) -> Root<CSSFontFaceRule> {
-        reflect_dom_object(box CSSFontFaceRule::new_inherited(parent_stylesheet, fontfacerule),
+        reflect_dom_object(box CSSFontFaceRule::new_inherited(parent_style_sheet, fontfacerule),
                            window,
                            CSSFontFaceRuleBinding::Wrap)
     }

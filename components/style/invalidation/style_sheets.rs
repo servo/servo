@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-//! A collection of invalidations due to changes in which stylesheets affect a
+//! A collection of invalidations due to changes in which style_sheet. affect a
 //! document.
 
 #![deny(unsafe_code)]
@@ -16,7 +16,7 @@ use selector_parser::SelectorImpl;
 use selectors::attr::CaseSensitivity;
 use selectors::parser::{Component, Selector};
 use shared_lock::SharedRwLockReadGuard;
-use stylesheets::{CssRule, StylesheetInDocument};
+use style_sheets::{CssRule, StyleSheetInDocument};
 
 /// An invalidation scope represents a kind of subtree that may need to be
 /// restyled.
@@ -51,20 +51,20 @@ impl InvalidationScope {
     }
 }
 
-/// A set of invalidations due to stylesheet additions.
+/// A set of invalidations due to style sheet.additions.
 ///
 /// TODO(emilio): We might be able to do the same analysis for media query
 /// changes too (or even selector changes?).
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub struct StylesheetInvalidationSet {
+pub struct StyleSheetInvalidationSet {
     /// The style scopes we know we have to restyle so far.
     invalid_scopes: FnvHashSet<InvalidationScope>,
     /// Whether the whole document should be invalid.
     fully_invalid: bool,
 }
 
-impl StylesheetInvalidationSet {
-    /// Create an empty `StylesheetInvalidationSet`.
+impl StyleSheetInvalidationSet {
+    /// Create an empty `StyleSheetInvalidationSet`.
     pub fn new() -> Self {
         Self {
             invalid_scopes: FnvHashSet::default(),
@@ -74,36 +74,36 @@ impl StylesheetInvalidationSet {
 
     /// Mark the DOM tree styles' as fully invalid.
     pub fn invalidate_fully(&mut self) {
-        debug!("StylesheetInvalidationSet::invalidate_fully");
+        debug!("StyleSheetInvalidationSet::invalidate_fully");
         self.invalid_scopes.clear();
         self.fully_invalid = true;
     }
 
-    /// Analyze the given stylesheet, and collect invalidations from their
+    /// Analyze the given style sheet. and collect invalidations from their
     /// rules, in order to avoid doing a full restyle when we style the document
     /// next time.
     pub fn collect_invalidations_for<S>(
         &mut self,
         device: &Device,
-        stylesheet: &S,
+        style_sheet: &S,
         guard: &SharedRwLockReadGuard
     )
     where
-        S: StylesheetInDocument,
+        S: StyleSheetInDocument,
     {
-        debug!("StylesheetInvalidationSet::collect_invalidations_for");
+        debug!("StyleSheetInvalidationSet::collect_invalidations_for");
         if self.fully_invalid {
             debug!(" > Fully invalid already");
             return;
         }
 
-        if !stylesheet.enabled() ||
-           !stylesheet.is_effective_for_device(device, guard) {
-            debug!(" > Stylesheet was not effective");
+        if !style_sheet.enabled() ||
+           !style_sheet.is_effective_for_device(device, guard) {
+            debug!(" > StyleSheet was not effective");
             return; // Nothing to do here.
         }
 
-        for rule in stylesheet.effective_rules(device, guard) {
+        for rule in style_sheet.effective_rules(device, guard) {
             self.collect_invalidations_for_rule(rule, guard);
             if self.fully_invalid {
                 self.invalid_scopes.clear();
@@ -244,7 +244,7 @@ impl StylesheetInvalidationSet {
     /// We prefer id scopes to class scopes, and outermost scopes to innermost
     /// scopes (to reduce the amount of traversal we need to do).
     fn collect_scopes(&mut self, selector: &Selector<SelectorImpl>) {
-        debug!("StylesheetInvalidationSet::collect_scopes({:?})", selector);
+        debug!("StyleSheetInvalidationSet::collect_scopes({:?})", selector);
 
         let mut scope: Option<InvalidationScope> = None;
 
@@ -286,8 +286,8 @@ impl StylesheetInvalidationSet {
         rule: &CssRule,
         guard: &SharedRwLockReadGuard)
     {
-        use stylesheets::CssRule::*;
-        debug!("StylesheetInvalidationSet::collect_invalidations_for_rule");
+        use style_sheets::CssRule::*;
+        debug!("StyleSheetInvalidationSet::collect_invalidations_for_rule");
         debug_assert!(!self.fully_invalid, "Not worth to be here!");
 
         match *rule {

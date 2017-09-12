@@ -6,7 +6,7 @@
 <% from data import ALL_SIDES, maybe_moz_logical_alias %>
 <% data.new_style_struct("Padding", inherited=False) %>
 
-// APPLIES_TO_PLACEHOLDER so we can set it in UA  stylesheets.  But we use a
+// APPLIES_TO_PLACEHOLDER so we can set it in UA  style sheets.  But we use a
 // !important value there, so pages can't set it.
 % for side in ALL_SIDES:
     <%

@@ -90,7 +90,7 @@ use std::mem;
 use std::ops::DerefMut;
 use std::ptr;
 use string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
-use stylesheets::UrlExtraData;
+use style_sheets::UrlExtraData;
 use stylist::Stylist;
 
 /// A simple wrapper over a non-null Gecko node (`nsINode`) pointer.

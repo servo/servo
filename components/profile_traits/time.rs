@@ -80,7 +80,7 @@ pub enum ProfilerCategory {
     ScriptSetScrollState = 0x6e,
     ScriptSetViewport = 0x6f,
     ScriptTimerEvent = 0x70,
-    ScriptStylesheetLoad = 0x71,
+    ScriptStyleSheetLoad = 0x71,
     ScriptUpdateReplacedElement = 0x72,
     ScriptWebSocketEvent = 0x73,
     ScriptWorkerEvent = 0x74,

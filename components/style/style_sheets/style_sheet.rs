@@ -19,23 +19,23 @@ use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, Shar
 use std::mem;
 use std::sync::atomic::{AtomicBool, Ordering};
 use style_traits::PARSING_MODE_DEFAULT;
-use stylesheets::{CssRule, CssRules, Origin, UrlExtraData};
-use stylesheets::loader::StylesheetLoader;
-use stylesheets::rule_parser::{State, TopLevelRuleParser};
-use stylesheets::rules_iterator::{EffectiveRules, EffectiveRulesIterator, NestedRuleIterationCondition, RulesIterator};
+use style_sheets::{CssRule, CssRules, Origin, UrlExtraData};
+use style_sheets::loader::StyleSheetLoader;
+use style_sheets::rule_parser::{State, TopLevelRuleParser};
+use style_sheets::rules_iterator::{EffectiveRules, EffectiveRulesIterator, NestedRuleIterationCondition, RulesIterator};
 use values::specified::NamespaceId;
 
-/// This structure holds the user-agent and user stylesheets.
-pub struct UserAgentStylesheets {
-    /// The lock used for user-agent stylesheets.
+/// This structure holds the user-agent and user style sheets.
+pub struct UserAgentStyleSheets {
+    /// The lock used for user-agent style sheets.
     pub shared_lock: SharedRwLock,
-    /// The user or user agent stylesheets.
-    pub user_or_user_agent_stylesheets: Vec<Stylesheet>,
-    /// The quirks mode stylesheet.
-    pub quirks_mode_stylesheet: Stylesheet,
+    /// The user or user agent style sheets.
+    pub user_or_user_agent_style_sheets: Vec<StyleSheet>,
+    /// The quirks mode style sheet.
+    pub quirks_mode_style_sheet: StyleSheet,
 }
 
-/// A set of namespaces applying to a given stylesheet.
+/// A set of namespaces applying to a given style sheet.
 ///
 /// The namespace id is used in gecko
 #[derive(Clone, Debug, Default)]
@@ -45,26 +45,26 @@ pub struct Namespaces {
     pub prefixes: FnvHashMap<Prefix, (Namespace, NamespaceId)>,
 }
 
-/// The contents of a given stylesheet. This effectively maps to a
+/// The contents of a given style sheet. This effectively maps to a
 /// StyleSheetInner in Gecko.
 #[derive(Debug)]
-pub struct StylesheetContents {
+pub struct StyleSheetContents {
     /// List of rules in the order they were found (important for
     /// cascading order)
     pub rules: Arc<Locked<CssRules>>,
-    /// The origin of this stylesheet.
+    /// The origin of this style sheet.
     pub origin: Origin,
-    /// The url data this stylesheet should use.
+    /// The url data this style sheet should use.
     pub url_data: RwLock<UrlExtraData>,
-    /// The namespaces that apply to this stylesheet.
+    /// The namespaces that apply to this style sheet.
     pub namespaces: RwLock<Namespaces>,
-    /// The quirks mode of this stylesheet.
+    /// The quirks mode of this style sheet.
     pub quirks_mode: QuirksMode,
-    /// This stylesheet's source map URL.
+    /// This style sheet's source map URL.
     pub source_map_url: RwLock<Option<String>>,
 }
 
-impl StylesheetContents {
+impl StyleSheetContents {
     /// Parse a given CSS string, with a given url-data, origin, and
     /// quirks mode.
     pub fn from_str<R: ParseErrorReporter>(
@@ -72,19 +72,19 @@ impl StylesheetContents {
         url_data: UrlExtraData,
         origin: Origin,
         shared_lock: &SharedRwLock,
-        stylesheet_loader: Option<&StylesheetLoader>,
+        style_sheet_loader: Option<&StyleSheetLoader>,
         error_reporter: &R,
         quirks_mode: QuirksMode,
         line_number_offset: u32
     ) -> Self {
         let namespaces = RwLock::new(Namespaces::default());
-        let (rules, source_map_url) = Stylesheet::parse_rules(
+        let (rules, source_map_url) = StyleSheet::parse_rules(
             css,
             &url_data,
             origin,
             &mut *namespaces.write(),
             &shared_lock,
-            stylesheet_loader,
+            style_sheet_loader,
             error_reporter,
             quirks_mode,
             line_number_offset,
@@ -126,7 +126,7 @@ impl StylesheetContents {
     }
 }
 
-impl DeepCloneWithLock for StylesheetContents {
+impl DeepCloneWithLock for StyleSheetContents {
     fn deep_clone_with_lock(
         &self,
         lock: &SharedRwLock,
@@ -149,16 +149,16 @@ impl DeepCloneWithLock for StylesheetContents {
     }
 }
 
-/// The structure servo uses to represent a stylesheet.
+/// The structure servo uses to represent a style sheet.
 #[derive(Debug)]
-pub struct Stylesheet {
-    /// The contents of this stylesheet.
-    pub contents: StylesheetContents,
-    /// The lock used for objects inside this stylesheet
+pub struct StyleSheet {
+    /// The contents of this style sheet.
+    pub contents: StyleSheetContents,
+    /// The lock used for objects inside this style sheet
     pub shared_lock: SharedRwLock,
-    /// List of media associated with the Stylesheet.
+    /// List of media associated with the StyleSheet.
     pub media: Arc<Locked<MediaList>>,
-    /// Whether this stylesheet should be disabled.
+    /// Whether this style sheet should be disabled.
     pub disabled: AtomicBool,
 }
 
@@ -167,9 +167,9 @@ macro_rules! rule_filter {
         $(
             #[allow(missing_docs)]
             fn $method<F>(&self, device: &Device, guard: &SharedRwLockReadGuard, mut f: F)
-                where F: FnMut(&::stylesheets::$rule_type),
+                where F: FnMut(&::style_sheets::$rule_type),
             {
-                use stylesheets::CssRule;
+                use style_sheets::CssRule;
 
                 for rule in self.effective_rules(device, guard) {
                     if let CssRule::$variant(ref lock) = *rule {
@@ -182,22 +182,22 @@ macro_rules! rule_filter {
     }
 }
 
-/// A trait to represent a given stylesheet in a document.
-pub trait StylesheetInDocument {
-    /// Get the contents of this stylesheet.
-    fn contents(&self, guard: &SharedRwLockReadGuard) -> &StylesheetContents;
+/// A trait to represent a given style sheet in a document.
+pub trait StyleSheetInDocument {
+    /// Get the contents of this style sheet.
+    fn contents(&self, guard: &SharedRwLockReadGuard) -> &StyleSheetContents;
 
-    /// Get the stylesheet origin.
+    /// Get the style sheet origin.
     fn origin(&self, guard: &SharedRwLockReadGuard) -> Origin {
         self.contents(guard).origin
     }
 
-    /// Get the stylesheet quirks mode.
+    /// Get the style sheet quirks mode.
     fn quirks_mode(&self, guard: &SharedRwLockReadGuard) -> QuirksMode {
         self.contents(guard).quirks_mode
     }
 
-    /// Get the media associated with this stylesheet.
+    /// Get the media associated with this style sheet.
     fn media<'a>(&'a self, guard: &'a SharedRwLockReadGuard) -> Option<&'a MediaList>;
 
     /// Returns whether the style-sheet applies for the current device.
@@ -212,7 +212,7 @@ pub trait StylesheetInDocument {
         }
     }
 
-    /// Get whether this stylesheet is enabled.
+    /// Get whether this style sheet is enabled.
     fn enabled(&self) -> bool;
 
     /// Return an iterator using the condition `C`.
@@ -253,8 +253,8 @@ pub trait StylesheetInDocument {
     }
 }
 
-impl StylesheetInDocument for Stylesheet {
-    fn contents(&self, _: &SharedRwLockReadGuard) -> &StylesheetContents {
+impl StyleSheetInDocument for StyleSheet {
+    fn contents(&self, _: &SharedRwLockReadGuard) -> &StyleSheetContents {
         &self.contents
     }
 
@@ -267,13 +267,13 @@ impl StylesheetInDocument for Stylesheet {
     }
 }
 
-/// A simple wrapper over an `Arc<Stylesheet>`, with pointer comparison, and
-/// suitable for its use in a `StylesheetSet`.
+/// A simple wrapper over an `Arc<StyleSheet>`, with pointer comparison, and
+/// suitable for its use in a `StyleSheetSet`.
 #[derive(Clone)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct DocumentStyleSheet(
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
-    pub Arc<Stylesheet>
+    pub Arc<StyleSheet>
 );
 
 impl PartialEq for DocumentStyleSheet {
@@ -288,8 +288,8 @@ impl ToMediaListKey for DocumentStyleSheet {
     }
 }
 
-impl StylesheetInDocument for DocumentStyleSheet {
-    fn contents(&self, guard: &SharedRwLockReadGuard) -> &StylesheetContents {
+impl StyleSheetInDocument for DocumentStyleSheet {
+    fn contents(&self, guard: &SharedRwLockReadGuard) -> &StyleSheetContents {
         self.0.contents(guard)
     }
 
@@ -302,25 +302,25 @@ impl StylesheetInDocument for DocumentStyleSheet {
     }
 }
 
-impl Stylesheet {
-    /// Updates an empty stylesheet from a given string of text.
-    pub fn update_from_str<R>(existing: &Stylesheet,
+impl StyleSheet {
+    /// Updates an empty style sheet from a given string of text.
+    pub fn update_from_str<R>(existing: &StyleSheet,
                               css: &str,
                               url_data: UrlExtraData,
-                              stylesheet_loader: Option<&StylesheetLoader>,
+                              style_sheet_loader: Option<&StyleSheetLoader>,
                               error_reporter: &R,
                               line_number_offset: u32)
         where R: ParseErrorReporter
     {
         let namespaces = RwLock::new(Namespaces::default());
         let (rules, source_map_url) =
-            Stylesheet::parse_rules(
+            StyleSheet::parse_rules(
                 css,
                 &url_data,
                 existing.contents.origin,
                 &mut *namespaces.write(),
                 &existing.shared_lock,
-                stylesheet_loader,
+                style_sheet_loader,
                 error_reporter,
                 existing.contents.quirks_mode,
                 line_number_offset
@@ -344,7 +344,7 @@ impl Stylesheet {
         origin: Origin,
         namespaces: &mut Namespaces,
         shared_lock: &SharedRwLock,
-        stylesheet_loader: Option<&StylesheetLoader>,
+        style_sheet_loader: Option<&StyleSheetLoader>,
         error_reporter: &R,
         quirks_mode: QuirksMode,
         line_number_offset: u32
@@ -364,9 +364,9 @@ impl Stylesheet {
         let error_context = ParserErrorContext { error_reporter };
 
         let rule_parser = TopLevelRuleParser {
-            stylesheet_origin: origin,
+            style_sheet_origin: origin,
             shared_lock: shared_lock,
-            loader: stylesheet_loader,
+            loader: style_sheet_loader,
             context: context,
             error_context: error_context,
             state: State::Start,
@@ -401,35 +401,35 @@ impl Stylesheet {
         (rules, source_map_url)
     }
 
-    /// Creates an empty stylesheet and parses it with a given base url, origin
+    /// Creates an empty style sheet and parses it with a given base url, origin
     /// and media.
     ///
-    /// Effectively creates a new stylesheet and forwards the hard work to
-    /// `Stylesheet::update_from_str`.
+    /// Effectively creates a new style sheet and forwards the hard work to
+    /// `StyleSheet::update_from_str`.
     pub fn from_str<R: ParseErrorReporter>(
         css: &str,
         url_data: UrlExtraData,
         origin: Origin,
         media: Arc<Locked<MediaList>>,
         shared_lock: SharedRwLock,
-        stylesheet_loader: Option<&StylesheetLoader>,
+        style_sheet_loader: Option<&StyleSheetLoader>,
         error_reporter: &R,
         quirks_mode: QuirksMode,
         line_number_offset: u32)
-        -> Stylesheet
+        -> StyleSheet
     {
-        let contents = StylesheetContents::from_str(
+        let contents = StyleSheetContents::from_str(
             css,
             url_data,
             origin,
             &shared_lock,
-            stylesheet_loader,
+            style_sheet_loader,
             error_reporter,
             quirks_mode,
             line_number_offset
         );
 
-        Stylesheet {
+        StyleSheet {
             contents,
             shared_lock,
             media,
@@ -437,18 +437,18 @@ impl Stylesheet {
         }
     }
 
-    /// Returns whether the stylesheet has been explicitly disabled through the
+    /// Returns whether the style sheet has been explicitly disabled through the
     /// CSSOM.
     pub fn disabled(&self) -> bool {
         self.disabled.load(Ordering::SeqCst)
     }
 
-    /// Records that the stylesheet has been explicitly disabled through the
+    /// Records that the style sheet has been explicitly disabled through the
     /// CSSOM.
     ///
     /// Returns whether the the call resulted in a change in disabled state.
     ///
-    /// Disabled stylesheets remain in the document, but their rules are not
+    /// Disabled style sheets remain in the document, but their rules are not
     /// added to the Stylist.
     pub fn set_disabled(&self, disabled: bool) -> bool {
         self.disabled.swap(disabled, Ordering::SeqCst) != disabled
@@ -456,7 +456,7 @@ impl Stylesheet {
 }
 
 #[cfg(feature = "servo")]
-impl Clone for Stylesheet {
+impl Clone for StyleSheet {
     fn clone(&self) -> Self {
         // Create a new lock for our clone.
         let lock = self.shared_lock.clone();
@@ -471,7 +471,7 @@ impl Clone for Stylesheet {
             &DeepCloneParams
         );
 
-        Stylesheet {
+        StyleSheet {
             contents,
             media: media,
             shared_lock: lock,

@@ -178,21 +178,21 @@ impl PseudoElement {
     }
 
     /// Constructs an atom from a string of text, and whether we're in a
-    /// user-agent stylesheet.
+    /// user-agent style sheet.
     ///
-    /// If we're not in a user-agent stylesheet, we will never parse anonymous
+    /// If we're not in a user-agent style sheet, we will never parse anonymous
     /// box pseudo-elements.
     ///
     /// Returns `None` if the pseudo-element is not recognised.
     #[inline]
-    pub fn from_slice(s: &str, in_ua_stylesheet: bool) -> Option<Self> {
+    pub fn from_slice(s: &str, in_ua_style_sheet: bool) -> Option<Self> {
         use std::ascii::AsciiExt;
 
         // We don't need to support tree pseudos because functional
         // pseudo-elements needs arguments, and thus should be created
         // via other methods.
         % for pseudo in SIMPLE_PSEUDOS:
-            if in_ua_stylesheet || ${pseudo_element_variant(pseudo)}.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || ${pseudo_element_variant(pseudo)}.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("${pseudo.value[1:]}") {
                     return Some(${pseudo_element_variant(pseudo)});
                 }

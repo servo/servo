@@ -14,7 +14,7 @@ use dom::cssstylesheet::CSSStyleSheet;
 use dom_struct::dom_struct;
 use servo_arc::Arc;
 use style::shared_lock::{SharedRwLock, Locked};
-use style::stylesheets::CssRules as StyleCssRules;
+use style::style_sheets::CssRules as StyleCssRules;
 
 #[dom_struct]
 pub struct CSSGroupingRule {
@@ -25,24 +25,24 @@ pub struct CSSGroupingRule {
 }
 
 impl CSSGroupingRule {
-    pub fn new_inherited(parent_stylesheet: &CSSStyleSheet,
+    pub fn new_inherited(parent_style_sheet: &CSSStyleSheet,
                          rules: Arc<Locked<StyleCssRules>>) -> CSSGroupingRule {
         CSSGroupingRule {
-            cssrule: CSSRule::new_inherited(parent_stylesheet),
+            cssrule: CSSRule::new_inherited(parent_style_sheet),
             rules: rules,
             rulelist: MutNullableJS::new(None),
         }
     }
 
     fn rulelist(&self) -> Root<CSSRuleList> {
-        let parent_stylesheet = self.upcast::<CSSRule>().parent_stylesheet();
+        let parent_style_sheet = self.upcast::<CSSRule>().parent_style_sheet();
         self.rulelist.or_init(|| CSSRuleList::new(self.global().as_window(),
-                                                  parent_stylesheet,
+                                                  parent_style_sheet,
                                                   RulesSource::Rules(self.rules.clone())))
     }
 
-    pub fn parent_stylesheet(&self) -> &CSSStyleSheet {
-        self.cssrule.parent_stylesheet()
+    pub fn parent_style_sheet(&self) -> &CSSStyleSheet {
+        self.cssrule.parent_style_sheet()
     }
 
     pub fn shared_lock(&self) -> &SharedRwLock {

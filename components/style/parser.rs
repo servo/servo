@@ -10,7 +10,7 @@ use error_reporting::{ParseErrorReporter, ContextualParseError};
 use style_traits::{OneOrMoreSeparated, ParseError, ParsingMode, Separator};
 #[cfg(feature = "gecko")]
 use style_traits::{PARSING_MODE_DEFAULT, PARSING_MODE_ALLOW_UNITLESS_LENGTH, PARSING_MODE_ALLOW_ALL_NUMERIC_VALUES};
-use stylesheets::{CssRuleType, Origin, UrlExtraData, Namespaces};
+use style_sheets::{CssRuleType, Origin, UrlExtraData, Namespaces};
 
 /// Asserts that all ParsingMode flags have a matching ParsingMode value in gecko.
 #[cfg(feature = "gecko")]
@@ -44,18 +44,18 @@ pub struct ParserErrorContext<'a, R: 'a> {
     pub error_reporter: &'a R,
 }
 
-/// The data that the parser needs from outside in order to parse a stylesheet.
+/// The data that the parser needs from outside in order to parse a style sheet.
 pub struct ParserContext<'a> {
-    /// The `Origin` of the stylesheet, whether it's a user, author or
-    /// user-agent stylesheet.
-    pub stylesheet_origin: Origin,
+    /// The `Origin` of the style sheet, whether it's a user, author or
+    /// user-agent style sheet.
+    pub style_sheet_origin: Origin,
     /// The extra data we need for resolving url values.
     pub url_data: &'a UrlExtraData,
     /// The current rule type, if any.
     pub rule_type: Option<CssRuleType>,
     /// The mode to use when parsing.
     pub parsing_mode: ParsingMode,
-    /// The quirks mode of this stylesheet.
+    /// The quirks mode of this style sheet.
     pub quirks_mode: QuirksMode,
     /// The currently active namespaces.
     pub namespaces: Option<&'a Namespaces>,
@@ -64,14 +64,14 @@ pub struct ParserContext<'a> {
 impl<'a> ParserContext<'a> {
     /// Create a parser context.
     pub fn new(
-        stylesheet_origin: Origin,
+        style_sheet_origin: Origin,
         url_data: &'a UrlExtraData,
         rule_type: Option<CssRuleType>,
         parsing_mode: ParsingMode,
         quirks_mode: QuirksMode,
     ) -> ParserContext<'a> {
         ParserContext {
-            stylesheet_origin: stylesheet_origin,
+            style_sheet_origin: style_sheet_origin,
             url_data: url_data,
             rule_type: rule_type,
             parsing_mode: parsing_mode,
@@ -103,7 +103,7 @@ impl<'a> ParserContext<'a> {
         namespaces: &'a Namespaces,
     ) -> ParserContext<'a> {
         ParserContext {
-            stylesheet_origin: context.stylesheet_origin,
+            style_sheet_origin: context.style_sheet_origin,
             url_data: context.url_data,
             rule_type: Some(rule_type),
             parsing_mode: context.parsing_mode,

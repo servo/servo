@@ -11,7 +11,7 @@ use selectors::Element;
 use selectors::parser::SelectorList;
 use std::fmt::{self, Debug};
 use style_traits::ParseError;
-use stylesheets::{Origin, Namespaces, UrlExtraData};
+use style_sheets::{Origin, Namespaces, UrlExtraData};
 
 /// A convenient alias for the type that represents an attribute value used for
 /// selector parser implementation.
@@ -38,11 +38,11 @@ pub use gecko::restyle_damage::GeckoRestyleDamage as RestyleDamage;
 /// Servo's selector parser.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct SelectorParser<'a> {
-    /// The origin of the stylesheet we're parsing.
-    pub stylesheet_origin: Origin,
-    /// The namespace set of the stylesheet.
+    /// The origin of the style sheet we're parsing.
+    pub style_sheet_origin: Origin,
+    /// The namespace set of the style sheet.
     pub namespaces: &'a Namespaces,
-    /// The extra URL data of the stylesheet, which is used to look up
+    /// The extra URL data of the style sheet, which is used to look up
     /// whether we are parsing a chrome:// URL style sheet.
     pub url_data: Option<&'a UrlExtraData>,
 }
@@ -56,7 +56,7 @@ impl<'a> SelectorParser<'a> {
                                             -> Result<SelectorList<SelectorImpl>, ParseError> {
         let namespaces = Namespaces::default();
         let parser = SelectorParser {
-            stylesheet_origin: Origin::Author,
+            style_sheet_origin: Origin::Author,
             namespaces: &namespaces,
             url_data: None,
         };
@@ -64,14 +64,14 @@ impl<'a> SelectorParser<'a> {
         SelectorList::parse(&parser, &mut CssParser::new(&mut input))
     }
 
-    /// Whether we're parsing selectors in a user-agent stylesheet.
-    pub fn in_user_agent_stylesheet(&self) -> bool {
-        matches!(self.stylesheet_origin, Origin::UserAgent)
+    /// Whether we're parsing selectors in a user-agent style sheet.
+    pub fn in_user_agent_style_sheet(&self) -> bool {
+        matches!(self.style_sheet_origin, Origin::UserAgent)
     }
 
-    /// Whether we're parsing selectors in a stylesheet that has chrome
+    /// Whether we're parsing selectors in a style sheet that has chrome
     /// privilege.
-    pub fn in_chrome_stylesheet(&self) -> bool {
+    pub fn in_chrome_style_sheet(&self) -> bool {
         self.url_data.map_or(false, |d| d.is_chrome())
     }
 }

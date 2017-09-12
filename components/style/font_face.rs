@@ -107,7 +107,7 @@ impl Parse for FontWeight {
 
 /// Parse the block inside a `@font-face` rule.
 ///
-/// Note that the prelude parsing code lives in the `stylesheets` module.
+/// Note that the prelude parsing code lives in the `style sheets` module.
 pub fn parse_font_face_block<R>(context: &ParserContext,
                                 error_context: &ParserErrorContext<R>,
                                 input: &mut Parser,

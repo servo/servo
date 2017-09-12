@@ -21,27 +21,27 @@ use dom::window::Window;
 use dom_struct::dom_struct;
 use std::cell::Cell;
 use style::shared_lock::SharedRwLock;
-use style::stylesheets::CssRule as StyleCssRule;
+use style::style_sheets::CssRule as StyleCssRule;
 
 
 #[dom_struct]
 pub struct CSSRule {
     reflector_: Reflector,
-    parent_stylesheet: JS<CSSStyleSheet>,
+    parent_style_sheet: JS<CSSStyleSheet>,
 
     /// Whether the parentStyleSheet attribute should return null.
-    /// We keep parent_stylesheet in that case because insertRule needs it
-    /// for the stylesheet’s base URL and namespace prefixes.
-    parent_stylesheet_removed: Cell<bool>,
+    /// We keep parent_style sheet in that case because insertRule needs it
+    /// for the style sheet’s base URL and namespace prefixes.
+    parent_style_sheet_removed: Cell<bool>,
 }
 
 impl CSSRule {
     #[allow(unrooted_must_root)]
-    pub fn new_inherited(parent_stylesheet: &CSSStyleSheet) -> CSSRule {
+    pub fn new_inherited(parent_style_sheet: &CSSStyleSheet) -> CSSRule {
         CSSRule {
             reflector_: Reflector::new(),
-            parent_stylesheet: JS::from_ref(parent_stylesheet),
-            parent_stylesheet_removed: Cell::new(false),
+            parent_style_sheet: JS::from_ref(parent_style_sheet),
+            parent_style_sheet_removed: Cell::new(false),
         }
     }
 
@@ -71,20 +71,20 @@ impl CSSRule {
 
     // Given a StyleCssRule, create a new instance of a derived class of
     // CSSRule based on which rule it is
-    pub fn new_specific(window: &Window, parent_stylesheet: &CSSStyleSheet,
+    pub fn new_specific(window: &Window, parent_style_sheet: &CSSStyleSheet,
                         rule: StyleCssRule) -> Root<CSSRule> {
         // be sure to update the match in as_specific when this is updated
         match rule {
-            StyleCssRule::Import(s) => Root::upcast(CSSImportRule::new(window, parent_stylesheet, s)),
-            StyleCssRule::Style(s) => Root::upcast(CSSStyleRule::new(window, parent_stylesheet, s)),
-            StyleCssRule::FontFace(s) => Root::upcast(CSSFontFaceRule::new(window, parent_stylesheet, s)),
+            StyleCssRule::Import(s) => Root::upcast(CSSImportRule::new(window, parent_style_sheet, s)),
+            StyleCssRule::Style(s) => Root::upcast(CSSStyleRule::new(window, parent_style_sheet, s)),
+            StyleCssRule::FontFace(s) => Root::upcast(CSSFontFaceRule::new(window, parent_style_sheet, s)),
             StyleCssRule::FontFeatureValues(_) => unimplemented!(),
             StyleCssRule::CounterStyle(_) => unimplemented!(),
-            StyleCssRule::Keyframes(s) => Root::upcast(CSSKeyframesRule::new(window, parent_stylesheet, s)),
-            StyleCssRule::Media(s) => Root::upcast(CSSMediaRule::new(window, parent_stylesheet, s)),
-            StyleCssRule::Namespace(s) => Root::upcast(CSSNamespaceRule::new(window, parent_stylesheet, s)),
-            StyleCssRule::Viewport(s) => Root::upcast(CSSViewportRule::new(window, parent_stylesheet, s)),
-            StyleCssRule::Supports(s) => Root::upcast(CSSSupportsRule::new(window, parent_stylesheet, s)),
+            StyleCssRule::Keyframes(s) => Root::upcast(CSSKeyframesRule::new(window, parent_style_sheet, s)),
+            StyleCssRule::Media(s) => Root::upcast(CSSMediaRule::new(window, parent_style_sheet, s)),
+            StyleCssRule::Namespace(s) => Root::upcast(CSSNamespaceRule::new(window, parent_style_sheet, s)),
+            StyleCssRule::Viewport(s) => Root::upcast(CSSViewportRule::new(window, parent_style_sheet, s)),
+            StyleCssRule::Supports(s) => Root::upcast(CSSSupportsRule::new(window, parent_style_sheet, s)),
             StyleCssRule::Page(_) => unreachable!(),
             StyleCssRule::Document(_) => unimplemented!(), // TODO
         }
@@ -98,19 +98,19 @@ impl CSSRule {
 
     /// Sets owner sheet to null (and does the same for all children)
     pub fn deparent(&self) {
-        self.parent_stylesheet_removed.set(true);
+        self.parent_style_sheet_removed.set(true);
         // https://github.com/w3c/csswg-drafts/issues/722
         // Spec doesn't ask us to do this, but it makes sense
         // and browsers implement this behavior
         self.as_specific().deparent_children();
     }
 
-    pub fn parent_stylesheet(&self) -> &CSSStyleSheet {
-        &self.parent_stylesheet
+    pub fn parent_style_sheet(&self) -> &CSSStyleSheet {
+        &self.parent_style_sheet
     }
 
     pub fn shared_lock(&self) -> &SharedRwLock {
-        &self.parent_stylesheet.style_stylesheet().shared_lock
+        &self.parent_style_sheet.style_style_sheet().shared_lock
     }
 }
 
@@ -120,12 +120,12 @@ impl CSSRuleMethods for CSSRule {
         self.as_specific().ty()
     }
 
-    // https://drafts.csswg.org/cssom/#dom-cssrule-parentstylesheet
+    // https://drafts.csswg.org/cssom/#dom-cssrule-parentstyle sheet
     fn GetParentStyleSheet(&self) -> Option<Root<CSSStyleSheet>> {
-        if self.parent_stylesheet_removed.get() {
+        if self.parent_style_sheet_removed.get() {
             None
         } else {
-            Some(Root::from_ref(&*self.parent_stylesheet))
+            Some(Root::from_ref(&*self.parent_style_sheet))
         }
     }
 
@@ -143,7 +143,7 @@ impl CSSRuleMethods for CSSRule {
 pub trait SpecificCSSRule {
     fn ty(&self) -> u16;
     fn get_css(&self) -> DOMString;
-    /// Remove parentStylesheet from all transitive children
+    /// Remove parentStyleSheet from all transitive children
     fn deparent_children(&self) {
         // most CSSRules do nothing here
     }

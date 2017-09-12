@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 //! Calculate [specified][specified] and [computed values][computed] from a
-//! tree of DOM nodes and a set of stylesheets.
+//! tree of DOM nodes and a set of style_sheets.
 //!
 //! [computed]: https://drafts.csswg.org/css-cascade/#computed
 //! [specified]: https://drafts.csswg.org/css-cascade/#specified
@@ -135,8 +135,8 @@ pub mod stylist;
 #[cfg(feature = "servo")] #[allow(unsafe_code)] pub mod servo;
 pub mod str;
 pub mod style_adjuster;
-pub mod stylesheet_set;
-pub mod stylesheets;
+pub mod style_sheet_set;
+pub mod style_sheets;
 pub mod thread_state;
 pub mod timer;
 pub mod traversal;

@@ -11,8 +11,8 @@ use dom::window::Window;
 use dom_struct::dom_struct;
 use style::context::QuirksMode;
 use style::parser::ParserContext;
-use style::stylesheets::CssRuleType;
-use style::stylesheets::supports_rule::{Declaration, parse_condition_or_declaration};
+use style::style_sheets::CssRuleType;
+use style::style_sheets::supports_rule::{Declaration, parse_condition_or_declaration};
 use style_traits::PARSING_MODE_DEFAULT;
 
 #[dom_struct]

@@ -18,7 +18,7 @@ use dom::window::Window;
 use dom_struct::dom_struct;
 use servo_arc::Arc;
 use style::shared_lock::{Locked, ToCssWithGuard};
-use style::stylesheets::keyframes_rule::{KeyframesRule, Keyframe, KeyframeSelector};
+use style::style_sheets::keyframes_rule::{KeyframesRule, Keyframe, KeyframeSelector};
 use style::values::KeyframesName;
 
 #[dom_struct]
@@ -30,28 +30,28 @@ pub struct CSSKeyframesRule {
 }
 
 impl CSSKeyframesRule {
-    fn new_inherited(parent_stylesheet: &CSSStyleSheet, keyframesrule: Arc<Locked<KeyframesRule>>)
+    fn new_inherited(parent_style_sheet: &CSSStyleSheet, keyframesrule: Arc<Locked<KeyframesRule>>)
                      -> CSSKeyframesRule {
         CSSKeyframesRule {
-            cssrule: CSSRule::new_inherited(parent_stylesheet),
+            cssrule: CSSRule::new_inherited(parent_style_sheet),
             keyframesrule: keyframesrule,
             rulelist: MutNullableJS::new(None),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, parent_stylesheet: &CSSStyleSheet,
+    pub fn new(window: &Window, parent_style_sheet: &CSSStyleSheet,
                keyframesrule: Arc<Locked<KeyframesRule>>) -> Root<CSSKeyframesRule> {
-        reflect_dom_object(box CSSKeyframesRule::new_inherited(parent_stylesheet, keyframesrule),
+        reflect_dom_object(box CSSKeyframesRule::new_inherited(parent_style_sheet, keyframesrule),
                            window,
                            CSSKeyframesRuleBinding::Wrap)
     }
 
     fn rulelist(&self) -> Root<CSSRuleList> {
         self.rulelist.or_init(|| {
-            let parent_stylesheet = &self.upcast::<CSSRule>().parent_stylesheet();
+            let parent_style_sheet = &self.upcast::<CSSRule>().parent_style_sheet();
             CSSRuleList::new(self.global().as_window(),
-                             parent_stylesheet,
+                             parent_style_sheet,
                              RulesSource::Keyframes(self.keyframesrule.clone()))
         })
     }
@@ -82,11 +82,11 @@ impl CSSKeyframesRuleMethods for CSSKeyframesRule {
 
     // https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-appendrule
     fn AppendRule(&self, rule: DOMString) {
-        let style_stylesheet = self.cssrule.parent_stylesheet().style_stylesheet();
+        let style_style_sheet = self.cssrule.parent_style_sheet().style_style_sheet();
         let rule = Keyframe::parse(
             &rule,
-            &style_stylesheet.contents,
-            &style_stylesheet.shared_lock
+            &style_style_sheet.contents,
+            &style_style_sheet.shared_lock
         );
 
         if let Ok(rule) = rule {

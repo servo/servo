@@ -16,8 +16,8 @@ use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use media_queries::{Device, MediaList};
 use properties::ComputedValues;
 use servo_arc::Arc;
-use shared_lock::{Locked, StylesheetGuards, SharedRwLockReadGuard};
-use stylesheets::{PerOrigin, StylesheetContents, StylesheetInDocument};
+use shared_lock::{Locked, StyleSheetGuards, SharedRwLockReadGuard};
+use style_sheets::{PerOrigin, StyleSheetContents, StyleSheetInDocument};
 use stylist::{ExtraStyleData, Stylist};
 
 /// Little wrapper to a Gecko style sheet.
@@ -75,12 +75,12 @@ impl Clone for GeckoStyleSheet {
     }
 }
 
-impl StylesheetInDocument for GeckoStyleSheet {
-    fn contents(&self, _: &SharedRwLockReadGuard) -> &StylesheetContents {
+impl StyleSheetInDocument for GeckoStyleSheet {
+    fn contents(&self, _: &SharedRwLockReadGuard) -> &StyleSheetContents {
         debug_assert!(!self.inner().mContents.mRawPtr.is_null());
         unsafe {
             let contents =
-                (&**StylesheetContents::as_arc(&&*self.inner().mContents.mRawPtr)) as *const _;
+                (&**StyleSheetContents::as_arc(&&*self.inner().mContents.mRawPtr)) as *const _;
             &*contents
         }
     }
@@ -101,7 +101,7 @@ impl StylesheetInDocument for GeckoStyleSheet {
         }
     }
 
-    // All the stylesheets Servo knows about are enabled, because that state is
+    // All the style sheets Servo knows about are enabled, because that state is
     // handled externally by Gecko.
     fn enabled(&self) -> bool {
         true
@@ -148,8 +148,8 @@ impl PerDocumentStyleData {
 }
 
 impl PerDocumentStyleDataImpl {
-    /// Recreate the style data if the stylesheets have changed.
-    pub fn flush_stylesheets<E>(
+    /// Recreate the style data if the style sheets have changed.
+    pub fn flush_style_sheets<E>(
         &mut self,
         guard: &SharedRwLockReadGuard,
         document_element: Option<E>,
@@ -158,7 +158,7 @@ impl PerDocumentStyleDataImpl {
         E: TElement,
     {
         self.stylist.flush(
-            &StylesheetGuards::same(guard),
+            &StyleSheetGuards::same(guard),
             /* ua_sheets = */ None,
             &mut self.extra_style_data,
             document_element,

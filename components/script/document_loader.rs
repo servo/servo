@@ -18,7 +18,7 @@ pub enum LoadType {
     Image(ServoUrl),
     Script(ServoUrl),
     Subframe(ServoUrl),
-    Stylesheet(ServoUrl),
+    StyleSheet(ServoUrl),
     PageSource(ServoUrl),
     Media(ServoUrl),
 }
@@ -29,7 +29,7 @@ impl LoadType {
             LoadType::Image(ref url) |
             LoadType::Script(ref url) |
             LoadType::Subframe(ref url) |
-            LoadType::Stylesheet(ref url) |
+            LoadType::StyleSheet(ref url) |
             LoadType::Media(ref url) |
             LoadType::PageSource(ref url) => url,
         }

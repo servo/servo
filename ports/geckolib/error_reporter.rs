@@ -17,7 +17,7 @@ use style::gecko_bindings::structs::{Loader, ServoStyleSheet, nsIURI};
 use style::gecko_bindings::structs::ErrorReporter as GeckoErrorReporter;
 use style::gecko_bindings::structs::URLExtraData as RawUrlExtraData;
 use style::gecko_bindings::sugar::refptr::RefPtr;
-use style::stylesheets::UrlExtraData;
+use style::style_sheets::UrlExtraData;
 use style_traits::{ParseError, StyleParseError, PropertyDeclarationParseError, ValueParseError};
 
 /// Wrapper around an instance of Gecko's CSS error reporter.

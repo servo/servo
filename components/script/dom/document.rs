@@ -140,8 +140,8 @@ use style::media_queries::{Device, MediaList, MediaType};
 use style::selector_parser::{RestyleDamage, Snapshot};
 use style::shared_lock::{SharedRwLock as StyleSharedRwLock, SharedRwLockReadGuard};
 use style::str::{HTML_SPACE_CHARACTERS, split_html_space_chars, str_join};
-use style::stylesheet_set::StylesheetSet;
-use style::stylesheets::{Stylesheet, StylesheetContents, OriginSet};
+use style::style_sheet_set::StyleSheetSet;
+use style::style_sheets::{StyleSheet, StyleSheetContents, OriginSet};
 use task_source::TaskSource;
 use time;
 use timers::OneshotTimerCallback;
@@ -196,7 +196,7 @@ impl PendingRestyle {
 #[must_root]
 struct StyleSheetInDocument {
     #[ignore_heap_size_of = "Arc"]
-    sheet: Arc<Stylesheet>,
+    sheet: Arc<StyleSheet>,
     owner: JS<Element>,
 }
 
@@ -206,8 +206,8 @@ impl PartialEq for StyleSheetInDocument {
     }
 }
 
-impl ::style::stylesheets::StylesheetInDocument for StyleSheetInDocument {
-    fn contents(&self, guard: &SharedRwLockReadGuard) -> &StylesheetContents {
+impl ::style::style_sheets::StyleSheetInDocument for StyleSheetInDocument {
+    fn contents(&self, guard: &SharedRwLockReadGuard) -> &StyleSheetContents {
         self.sheet.contents(guard)
     }
 
@@ -248,12 +248,12 @@ pub struct Document {
     scripts: MutNullableJS<HTMLCollection>,
     anchors: MutNullableJS<HTMLCollection>,
     applets: MutNullableJS<HTMLCollection>,
-    /// Lock use for style attributes and author-origin stylesheet objects in this document.
+    /// Lock use for style attributes and author-origin style sheet objects in this document.
     /// Can be acquired once for accessing many objects.
     style_shared_lock: StyleSharedRwLock,
-    /// List of stylesheets associated with nodes in this document. |None| if the list needs to be refreshed.
-    stylesheets: DOMRefCell<StylesheetSet<StyleSheetInDocument>>,
-    stylesheet_list: MutNullableJS<StyleSheetList>,
+    /// List of style sheets associated with nodes in this document. |None| if the list needs to be refreshed.
+    style_sheets: DOMRefCell<StyleSheetSet<StyleSheetInDocument>>,
+    style_sheet_list: MutNullableJS<StyleSheetList>,
     ready_state: Cell<DocumentReadyState>,
     /// Whether the DOMContentLoaded event has already been dispatched.
     domcontentloaded_dispatched: Cell<bool>,
@@ -265,8 +265,8 @@ pub struct Document {
     current_script: MutNullableJS<HTMLScriptElement>,
     /// https://html.spec.whatwg.org/multipage/#pending-parsing-blocking-script
     pending_parsing_blocking_script: DOMRefCell<Option<PendingScript>>,
-    /// Number of stylesheets that block executing the next parser-inserted script
-    script_blocking_stylesheets_count: Cell<u32>,
+    /// Number of style sheets that block executing the next parser-inserted script
+    script_blocking_style_sheets_count: Cell<u32>,
     /// https://html.spec.whatwg.org/multipage/#list-of-scripts-that-will-execute-when-the-document-has-finished-parsing
     deferred_scripts: PendingInOrderScriptVec,
     /// https://html.spec.whatwg.org/multipage/#list-of-scripts-that-will-execute-in-order-as-soon-as-possible
@@ -516,7 +516,7 @@ impl Document {
         // FIXME: This should check the dirty bit on the document,
         // not the document element. Needs some layout changes to make
         // that workable.
-        self.stylesheets.borrow().has_changed() ||
+        self.style_sheets.borrow().has_changed() ||
         self.GetDocumentElement().map_or(false, |root| {
             root.upcast::<Node>().has_dirty_descendants() ||
             !self.pending_restyles.borrow().is_empty() ||
@@ -1503,27 +1503,27 @@ impl Document {
         self.current_script.set(script);
     }
 
-    pub fn get_script_blocking_stylesheets_count(&self) -> u32 {
-        self.script_blocking_stylesheets_count.get()
+    pub fn get_script_blocking_style_sheets_count(&self) -> u32 {
+        self.script_blocking_style_sheets_count.get()
     }
 
-    pub fn increment_script_blocking_stylesheet_count(&self) {
-        let count_cell = &self.script_blocking_stylesheets_count;
+    pub fn increment_script_blocking_style_sheet_count(&self) {
+        let count_cell = &self.script_blocking_style_sheets_count;
         count_cell.set(count_cell.get() + 1);
     }
 
-    pub fn decrement_script_blocking_stylesheet_count(&self) {
-        let count_cell = &self.script_blocking_stylesheets_count;
+    pub fn decrement_script_blocking_style_sheet_count(&self) {
+        let count_cell = &self.script_blocking_style_sheets_count;
         assert!(count_cell.get() > 0);
         count_cell.set(count_cell.get() - 1);
     }
 
-    pub fn invalidate_stylesheets(&self) {
-        self.stylesheets.borrow_mut().force_dirty(OriginSet::all());
+    pub fn invalidate_style_sheets(&self) {
+        self.style_sheets.borrow_mut().force_dirty(OriginSet::all());
 
         // Mark the document element dirty so a reflow will be performed.
         //
-        // FIXME(emilio): Use the StylesheetSet invalidation stuff.
+        // FIXME(emilio): Use the StyleSheetSet invalidation stuff.
         if let Some(element) = self.GetDocumentElement() {
             element.upcast::<Node>().dirty(NodeDamage::NodeStyleDamaged);
         }
@@ -1659,8 +1659,8 @@ impl Document {
         self.loader.borrow_mut().finish_load(&load);
 
         match load {
-            LoadType::Stylesheet(_) => {
-                // A stylesheet finishing to load may unblock any pending
+            LoadType::StyleSheet(_) => {
+                // A style sheet finishing to load may unblock any pending
                 // parsing-blocking script or deferred script.
                 self.process_pending_parsing_blocking_script();
 
@@ -1758,7 +1758,7 @@ impl Document {
     }
 
     fn process_pending_parsing_blocking_script(&self) {
-        if self.script_blocking_stylesheets_count.get() > 0 {
+        if self.script_blocking_style_sheets_count.get() > 0 {
             return;
         }
         let pair = self.pending_parsing_blocking_script
@@ -1822,7 +1822,7 @@ impl Document {
         }
         // Part of substep 1.
         loop {
-            if self.script_blocking_stylesheets_count.get() > 0 {
+            if self.script_blocking_style_sheets_count.get() > 0 {
                 return;
             }
             if let Some((element, result)) = self.deferred_scripts.take_next_ready_to_be_executed() {
@@ -1877,7 +1877,7 @@ impl Document {
         }
 
         // Step 2.
-        self.script_blocking_stylesheets_count.set(0);
+        self.script_blocking_style_sheets_count.set(0);
         *self.pending_parsing_blocking_script.borrow_mut() = None;
         *self.asap_scripts_set.borrow_mut() = vec![];
         self.asap_in_order_scripts_list.clear();
@@ -2204,7 +2204,7 @@ impl Document {
             applets: Default::default(),
             style_shared_lock: {
                 lazy_static! {
-                    /// Per-process shared lock for author-origin stylesheets
+                    /// Per-process shared lock for author-origin style sheets
                     ///
                     /// FIXME: make it per-document or per-pipeline instead:
                     /// https://github.com/servo/servo/issues/16027
@@ -2217,15 +2217,15 @@ impl Document {
                 PER_PROCESS_AUTHOR_SHARED_LOCK.clone()
                 //StyleSharedRwLock::new()
             },
-            stylesheets: DOMRefCell::new(StylesheetSet::new()),
-            stylesheet_list: MutNullableJS::new(None),
+            style_sheets: DOMRefCell::new(StyleSheetSet::new()),
+            style_sheet_list: MutNullableJS::new(None),
             ready_state: Cell::new(ready_state),
             domcontentloaded_dispatched: Cell::new(domcontentloaded_dispatched),
             possibly_focused: Default::default(),
             focused: Default::default(),
             current_script: Default::default(),
             pending_parsing_blocking_script: Default::default(),
-            script_blocking_stylesheets_count: Cell::new(0u32),
+            script_blocking_style_sheets_count: Cell::new(0u32),
             deferred_scripts: Default::default(),
             asap_in_order_scripts_list: Default::default(),
             asap_scripts_set: Default::default(),
@@ -2328,23 +2328,23 @@ impl Document {
         self.GetDocumentElement().and_then(Root::downcast)
     }
 
-    /// Return a reference to the per-document shared lock used in stylesheets.
+    /// Return a reference to the per-document shared lock used in style sheets.
     pub fn style_shared_lock(&self) -> &StyleSharedRwLock {
         &self.style_shared_lock
     }
 
-    /// Flushes the stylesheet list, and returns whether any stylesheet changed.
-    pub fn flush_stylesheets_for_reflow(&self) -> bool {
+    /// Flushes the style_sheet list, and returns whether any style sheet changed.
+    pub fn flush_style_sheets_for_reflow(&self) -> bool {
         // NOTE(emilio): The invalidation machinery is used on the replicated
         // list on the layout thread.
         //
         // FIXME(emilio): This really should differentiate between CSSOM changes
-        // and normal stylesheets additions / removals, because in the last case
+        // and normal style sheets additions / removals, because in the last case
         // the layout thread already has that information and we could avoid
         // dirtying the whole thing.
-        let mut stylesheets = self.stylesheets.borrow_mut();
-        let have_changed = stylesheets.has_changed();
-        stylesheets.flush_without_invalidation();
+        let mut style_sheets = self.style_sheets.borrow_mut();
+        let have_changed = style_sheets.has_changed();
+        style_sheets.flush_without_invalidation();
         have_changed
     }
 
@@ -2365,18 +2365,18 @@ impl Document {
         Some(Device::new(MediaType::screen(), viewport_size, device_pixel_ratio))
     }
 
-    /// Remove a stylesheet owned by `owner` from the list of document sheets.
+    /// Remove a style sheet owned by `owner` from the list of document sheets.
     #[allow(unrooted_must_root)] // Owner needs to be rooted already necessarily.
-    pub fn remove_stylesheet(&self, owner: &Element, s: &Arc<Stylesheet>) {
+    pub fn remove_style_sheet(&self, owner: &Element, s: &Arc<StyleSheet>) {
         self.window()
             .layout_chan()
-            .send(Msg::RemoveStylesheet(s.clone()))
+            .send(Msg::RemoveStyleSheet(s.clone()))
             .unwrap();
 
         let guard = s.shared_lock.read();
 
         // FIXME(emilio): Would be nice to remove the clone, etc.
-        self.stylesheets.borrow_mut().remove_stylesheet(
+        self.style_sheets.borrow_mut().remove_style_sheet(
             None,
             StyleSheetInDocument {
                 sheet: s.clone(),
@@ -2386,24 +2386,24 @@ impl Document {
         );
     }
 
-    /// Add a stylesheet owned by `owner` to the list of document sheets, in the
+    /// Add a style sheet owned by `owner` to the list of document sheets, in the
     /// correct tree position.
     #[allow(unrooted_must_root)] // Owner needs to be rooted already necessarily.
-    pub fn add_stylesheet(&self, owner: &Element, sheet: Arc<Stylesheet>) {
+    pub fn add_style_sheet(&self, owner: &Element, sheet: Arc<StyleSheet>) {
         // FIXME(emilio): It'd be nice to unify more code between the elements
-        // that own stylesheets, but StylesheetOwner is more about loading
+        // that own style sheets, but StyleSheetOwner is more about loading
         // them...
-        debug_assert!(owner.as_stylesheet_owner().is_some() ||
+        debug_assert!(owner.as_style_sheet_owner().is_some() ||
                       owner.is::<HTMLMetaElement>(), "Wat");
 
-        let mut stylesheets = self.stylesheets.borrow_mut();
-        let insertion_point = stylesheets.iter().find(|sheet_in_doc| {
+        let mut style_sheets = self.style_sheets.borrow_mut();
+        let insertion_point = style_sheets.iter().find(|sheet_in_doc| {
             owner.upcast::<Node>().is_before(sheet_in_doc.owner.upcast())
         }).cloned();
 
         self.window()
             .layout_chan()
-            .send(Msg::AddStylesheet(
+            .send(Msg::AddStyleSheet(
                 sheet.clone(),
                 insertion_point.as_ref().map(|s| s.sheet.clone())
             ))
@@ -2419,24 +2419,24 @@ impl Document {
 
         match insertion_point {
             Some(ip) => {
-                stylesheets.insert_stylesheet_before(None, sheet, ip, &guard);
+                style_sheets.insert_style_sheet_before(None, sheet, ip, &guard);
             }
             None => {
-                stylesheets.append_stylesheet(None, sheet, &guard);
+                style_sheets.append_style_sheet(None, sheet, &guard);
             }
         }
     }
 
-    /// Returns the number of document stylesheets.
-    pub fn stylesheet_count(&self) -> usize {
-        self.stylesheets.borrow().len()
+    /// Returns the number of document style sheets.
+    pub fn style_sheet_count(&self) -> usize {
+        self.style_sheets.borrow().len()
     }
 
-    pub fn stylesheet_at(&self, index: usize) -> Option<Root<CSSStyleSheet>> {
-        let stylesheets = self.stylesheets.borrow();
+    pub fn style_sheet_at(&self, index: usize) -> Option<Root<CSSStyleSheet>> {
+        let style_sheets = self.style_sheets.borrow();
 
-        stylesheets.get(index).and_then(|s| {
-            s.owner.upcast::<Node>().get_cssom_stylesheet()
+        style_sheets.get(index).and_then(|s| {
+            s.owner.upcast::<Node>().get_cssom_style_sheet()
         })
     }
 
@@ -2696,9 +2696,9 @@ impl Element {
 }
 
 impl DocumentMethods for Document {
-    // https://drafts.csswg.org/cssom/#dom-document-stylesheets
+    // https://drafts.csswg.org/cssom/#dom-document-style sheets
     fn StyleSheets(&self) -> Root<StyleSheetList> {
-        self.stylesheet_list.or_init(|| StyleSheetList::new(&self.window, JS::from_ref(&self)))
+        self.style_sheet_list.or_init(|| StyleSheetList::new(&self.window, JS::from_ref(&self)))
     }
 
     // https://dom.spec.whatwg.org/#dom-document-implementation
@@ -3770,7 +3770,7 @@ impl DocumentMethods for Document {
         self.scripts.set(None);
         self.anchors.set(None);
         self.applets.set(None);
-        *self.stylesheets.borrow_mut() = StylesheetSet::new();
+        *self.style_sheets.borrow_mut() = StyleSheetSet::new();
         self.animation_frame_ident.set(0);
         self.animation_frame_list.borrow_mut().clear();
         self.pending_restyles.borrow_mut().clear();

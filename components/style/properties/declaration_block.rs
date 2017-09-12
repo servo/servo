@@ -20,7 +20,7 @@ use std::fmt;
 use std::iter::{DoubleEndedIterator, Zip};
 use std::slice::Iter;
 use style_traits::{PARSING_MODE_DEFAULT, ToCss, ParseError, ParsingMode, StyleParseError};
-use stylesheets::{CssRuleType, Origin, UrlExtraData};
+use style_sheets::{CssRuleType, Origin, UrlExtraData};
 use super::*;
 use values::computed::Context;
 #[cfg(feature = "gecko")] use properties::animated_properties::AnimationValueMap;

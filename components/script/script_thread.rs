@@ -1190,7 +1190,7 @@ impl ScriptThread {
                 ScriptThreadEventCategory::UpdateReplacedElement => {
                     ProfilerCategory::ScriptUpdateReplacedElement
                 }
-                ScriptThreadEventCategory::StylesheetLoad => ProfilerCategory::ScriptStylesheetLoad,
+                ScriptThreadEventCategory::StyleSheetLoad => ProfilerCategory::ScriptStyleSheetLoad,
                 ScriptThreadEventCategory::SetViewport => ProfilerCategory::ScriptSetViewport,
                 ScriptThreadEventCategory::TimerEvent => ProfilerCategory::ScriptTimerEvent,
                 ScriptThreadEventCategory::WebSocketEvent => ProfilerCategory::ScriptWebSocketEvent,

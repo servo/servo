@@ -102,10 +102,10 @@ use style::media_queries::MediaList;
 use style::properties::PropertyDeclarationBlock;
 use style::selector_parser::{PseudoElement, Snapshot};
 use style::shared_lock::{SharedRwLock as StyleSharedRwLock, Locked as StyleLocked};
-use style::stylesheet_set::StylesheetSet;
-use style::stylesheets::{CssRules, FontFaceRule, KeyframesRule, MediaRule, Stylesheet};
-use style::stylesheets::{NamespaceRule, StyleRule, ImportRule, SupportsRule, ViewportRule};
-use style::stylesheets::keyframes_rule::Keyframe;
+use style::style_sheet_set::StyleSheetSet;
+use style::style_sheets::{CssRules, FontFaceRule, KeyframesRule, MediaRule, StyleSheet};
+use style::style_sheets::{NamespaceRule, StyleRule, ImportRule, SupportsRule, ViewportRule};
+use style::style_sheets::keyframes_rule::Keyframe;
 use style::values::specified::Length;
 use time::Duration;
 use uuid::Uuid;
@@ -375,7 +375,7 @@ unsafe_no_jsmanaged_fields!(AttrIdentifier);
 unsafe_no_jsmanaged_fields!(AttrValue);
 unsafe_no_jsmanaged_fields!(Snapshot);
 unsafe_no_jsmanaged_fields!(PendingRestyle);
-unsafe_no_jsmanaged_fields!(Stylesheet);
+unsafe_no_jsmanaged_fields!(StyleSheet);
 unsafe_no_jsmanaged_fields!(HttpsState);
 unsafe_no_jsmanaged_fields!(Request);
 unsafe_no_jsmanaged_fields!(RequestInit);
@@ -650,9 +650,9 @@ unsafe impl JSTraceable for StyleLocked<MediaList> {
     }
 }
 
-unsafe impl<S> JSTraceable for StylesheetSet<S>
+unsafe impl<S> JSTraceable for StyleSheetSet<S>
 where
-    S: JSTraceable + ::style::stylesheets::StylesheetInDocument + PartialEq + 'static,
+    S: JSTraceable + ::style::style_sheets::StyleSheetInDocument + PartialEq + 'static,
 {
     unsafe fn trace(&self, tracer: *mut JSTracer) {
         for s in self.iter() {

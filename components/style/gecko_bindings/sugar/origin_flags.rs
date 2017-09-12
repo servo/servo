@@ -8,11 +8,11 @@ use gecko_bindings::structs::OriginFlags;
 use gecko_bindings::structs::OriginFlags_Author;
 use gecko_bindings::structs::OriginFlags_User;
 use gecko_bindings::structs::OriginFlags_UserAgent;
-use stylesheets::OriginSet;
+use style_sheets::OriginSet;
 
 /// Checks that the values for OriginFlags are the ones we expect.
 pub fn assert_flags_match() {
-    use stylesheets::origin::*;
+    use style_sheets::origin::*;
     debug_assert_eq!(OriginFlags_UserAgent.0, ORIGIN_USER_AGENT.bits());
     debug_assert_eq!(OriginFlags_Author.0, ORIGIN_AUTHOR.bits());
     debug_assert_eq!(OriginFlags_User.0, ORIGIN_USER.bits());

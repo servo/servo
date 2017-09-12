@@ -8,10 +8,10 @@
 use malloc_size_of::{MallocShallowSizeOf, MallocSizeOfOps};
 use servo_arc::{Arc, RawOffsetArc};
 use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard};
-use stylesheets::{CssRule, RulesMutateError};
-use stylesheets::loader::StylesheetLoader;
-use stylesheets::rule_parser::State;
-use stylesheets::stylesheet::StylesheetContents;
+use style_sheets::{CssRule, RulesMutateError};
+use style_sheets::loader::StyleSheetLoader;
+use style_sheets::rule_parser::State;
+use style_sheets::style_sheet::StyleSheetContents;
 
 /// A list of CSS rules.
 #[derive(Debug)]
@@ -95,7 +95,7 @@ pub trait CssRulesHelpers {
     /// https://drafts.csswg.org/cssom/#insert-a-css-rule
     ///
     /// Written in this funky way because parsing an @import rule may cause us
-    /// to clone a stylesheet from the same document due to caching in the CSS
+    /// to clone a style sheet from the same document due to caching in the CSS
     /// loader.
     ///
     /// TODO(emilio): We could also pass the write guard down into the loader
@@ -103,10 +103,10 @@ pub trait CssRulesHelpers {
     fn insert_rule(&self,
                    lock: &SharedRwLock,
                    rule: &str,
-                   parent_stylesheet_contents: &StylesheetContents,
+                   parent_style_sheet_contents: &StyleSheetContents,
                    index: usize,
                    nested: bool,
-                   loader: Option<&StylesheetLoader>)
+                   loader: Option<&StyleSheetLoader>)
                    -> Result<CssRule, RulesMutateError>;
 }
 
@@ -114,10 +114,10 @@ impl CssRulesHelpers for RawOffsetArc<Locked<CssRules>> {
     fn insert_rule(&self,
                    lock: &SharedRwLock,
                    rule: &str,
-                   parent_stylesheet_contents: &StylesheetContents,
+                   parent_style_sheet_contents: &StyleSheetContents,
                    index: usize,
                    nested: bool,
-                   loader: Option<&StylesheetLoader>)
+                   loader: Option<&StyleSheetLoader>)
                    -> Result<CssRule, RulesMutateError> {
         let state = {
             let read_guard = lock.read();
@@ -143,7 +143,7 @@ impl CssRulesHelpers for RawOffsetArc<Locked<CssRules>> {
         let (new_rule, new_state) =
             CssRule::parse(
                 &rule,
-                parent_stylesheet_contents,
+                parent_style_sheet_contents,
                 lock,
                 state,
                 loader

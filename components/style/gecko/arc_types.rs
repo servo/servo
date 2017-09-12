@@ -23,9 +23,9 @@ use rule_tree::StrongRuleNode;
 use servo_arc::{Arc, ArcBorrow};
 use shared_lock::Locked;
 use std::{mem, ptr};
-use stylesheets::{CssRules, StylesheetContents, StyleRule, ImportRule, KeyframesRule, MediaRule};
-use stylesheets::{FontFeatureValuesRule, NamespaceRule, PageRule, SupportsRule, DocumentRule};
-use stylesheets::keyframes_rule::Keyframe;
+use style_sheets::{CssRules, StyleSheetContents, StyleRule, ImportRule, KeyframesRule, MediaRule};
+use style_sheets::{FontFeatureValuesRule, NamespaceRule, PageRule, SupportsRule, DocumentRule};
+use style_sheets::keyframes_rule::Keyframe;
 
 macro_rules! impl_arc_ffi {
     ($servo_type:ty => $gecko_type:ty [$addref:ident, $release:ident]) => {
@@ -49,7 +49,7 @@ macro_rules! impl_arc_ffi {
 impl_arc_ffi!(Locked<CssRules> => ServoCssRules
               [Servo_CssRules_AddRef, Servo_CssRules_Release]);
 
-impl_arc_ffi!(StylesheetContents => RawServoStyleSheetContents
+impl_arc_ffi!(StyleSheetContents => RawServoStyleSheetContents
               [Servo_StyleSheetContents_AddRef, Servo_StyleSheetContents_Release]);
 
 impl_arc_ffi!(Locked<PropertyDeclarationBlock> => RawServoDeclarationBlock

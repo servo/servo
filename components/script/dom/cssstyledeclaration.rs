@@ -106,7 +106,7 @@ impl CSSStyleOwner {
                 if changed {
                     // If this is changed, see also
                     // CSSStyleRule::SetSelectorText, which does the same thing.
-                    rule.global().as_window().Document().invalidate_stylesheets();
+                    rule.global().as_window().Document().invalidate_style_sheets();
                 }
                 result
             }
@@ -148,7 +148,7 @@ impl CSSStyleOwner {
         match *self {
             CSSStyleOwner::Element(ref el) => window_from_node(&**el).Document().base_url(),
             CSSStyleOwner::CSSRule(ref rule, _) => {
-                (*rule.parent_stylesheet().style_stylesheet().contents.url_data.read()).clone()
+                (*rule.parent_style_sheet().style_style_sheet().contents.url_data.read()).clone()
             }
         }
     }

@@ -8,8 +8,8 @@ use context::QuirksMode;
 use fnv::FnvHashSet;
 use media_queries::Device;
 use shared_lock::SharedRwLockReadGuard;
-use stylesheets::{DocumentRule, ImportRule, MediaRule};
-use stylesheets::{NestedRuleIterationCondition, Stylesheet, SupportsRule};
+use style_sheets::{DocumentRule, ImportRule, MediaRule};
+use style_sheets::{NestedRuleIterationCondition, StyleSheet, SupportsRule};
 
 /// A key for a given media query result.
 ///
@@ -17,7 +17,7 @@ use stylesheets::{NestedRuleIterationCondition, Stylesheet, SupportsRule};
 /// happen to have a stable address, so we can just use an opaque pointer to
 /// represent them.
 ///
-/// Also, note that right now when a rule or stylesheet is removed, we do a full
+/// Also, note that right now when a rule or style sheet is removed, we do a full
 /// style flush, so there's no need to worry about other item created with the
 /// same pointer address.
 ///
@@ -47,7 +47,7 @@ pub trait ToMediaListKey : Sized {
     }
 }
 
-impl ToMediaListKey for Stylesheet {}
+impl ToMediaListKey for StyleSheet {}
 impl ToMediaListKey for ImportRule {}
 impl ToMediaListKey for MediaRule {}
 
@@ -87,7 +87,7 @@ impl EffectiveMediaQueryResults {
         where T: ToMediaListKey,
     {
         // NOTE(emilio): We can't assert that we don't cache the same item twice
-        // because of stylesheet reusing... shrug.
+        // because of style sheet reusing... shrug.
         self.set.insert(item.to_media_list_key());
     }
 }
@@ -125,7 +125,7 @@ impl NestedRuleIterationCondition for PotentiallyEffectiveMediaRules {
         rule: &DocumentRule)
         -> bool
     {
-        use stylesheets::EffectiveRules;
+        use style_sheets::EffectiveRules;
         EffectiveRules::process_document(guard, device, quirks_mode, rule)
     }
 
@@ -137,7 +137,7 @@ impl NestedRuleIterationCondition for PotentiallyEffectiveMediaRules {
         rule: &SupportsRule)
         -> bool
     {
-        use stylesheets::EffectiveRules;
+        use style_sheets::EffectiveRules;
         EffectiveRules::process_supports(guard, device, quirks_mode, rule)
     }
 }

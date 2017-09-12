@@ -16,8 +16,8 @@ use dom_struct::dom_struct;
 use servo_arc::Arc;
 use style::parser::ParserContext;
 use style::shared_lock::{Locked, ToCssWithGuard};
-use style::stylesheets::{CssRuleType, SupportsRule};
-use style::stylesheets::supports_rule::SupportsCondition;
+use style::style_sheets::{CssRuleType, SupportsRule};
+use style::style_sheets::supports_rule::SupportsCondition;
 use style_traits::{PARSING_MODE_DEFAULT, ToCss};
 
 #[dom_struct]
@@ -28,20 +28,20 @@ pub struct CSSSupportsRule {
 }
 
 impl CSSSupportsRule {
-    fn new_inherited(parent_stylesheet: &CSSStyleSheet, supportsrule: Arc<Locked<SupportsRule>>)
+    fn new_inherited(parent_style_sheet: &CSSStyleSheet, supportsrule: Arc<Locked<SupportsRule>>)
                      -> CSSSupportsRule {
-        let guard = parent_stylesheet.shared_lock().read();
+        let guard = parent_style_sheet.shared_lock().read();
         let list = supportsrule.read_with(&guard).rules.clone();
         CSSSupportsRule {
-            cssconditionrule: CSSConditionRule::new_inherited(parent_stylesheet, list),
+            cssconditionrule: CSSConditionRule::new_inherited(parent_style_sheet, list),
             supportsrule: supportsrule,
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, parent_stylesheet: &CSSStyleSheet,
+    pub fn new(window: &Window, parent_style_sheet: &CSSStyleSheet,
                supportsrule: Arc<Locked<SupportsRule>>) -> Root<CSSSupportsRule> {
-        reflect_dom_object(box CSSSupportsRule::new_inherited(parent_stylesheet, supportsrule),
+        reflect_dom_object(box CSSSupportsRule::new_inherited(parent_style_sheet, supportsrule),
                            window,
                            CSSSupportsRuleBinding::Wrap)
     }

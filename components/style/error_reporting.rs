@@ -11,7 +11,7 @@ use cssparser::ParseError as CssParseError;
 use log;
 use std::fmt;
 use style_traits::ParseError;
-use stylesheets::UrlExtraData;
+use style_sheets::UrlExtraData;
 
 /// Errors that can be encountered while parsing CSS.
 pub enum ContextualParseError<'a> {

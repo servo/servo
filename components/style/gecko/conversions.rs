@@ -16,7 +16,7 @@ use gecko_bindings::structs::{self, nsCSSUnit, nsStyleCoord_CalcValue};
 use gecko_bindings::structs::{nsStyleImage, nsresult, SheetType};
 use gecko_bindings::sugar::ns_style_coord::{CoordDataValue, CoordData, CoordDataMut};
 use std::f32::consts::PI;
-use stylesheets::{Origin, RulesMutateError};
+use style_sheets::{Origin, RulesMutateError};
 use values::computed::{Angle, CalcLengthOrPercentage, Gradient, Image};
 use values::computed::{Integer, LengthOrPercentage, LengthOrPercentageOrAuto, Percentage};
 use values::generics::box_::VerticalAlign;

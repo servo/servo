@@ -13,13 +13,13 @@ use heapsize::HeapSizeOf;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use properties::{Importance, LonghandIdSet, PropertyDeclarationBlock};
 use servo_arc::{Arc, ArcBorrow, NonZeroPtrMut};
-use shared_lock::{Locked, StylesheetGuards, SharedRwLockReadGuard};
+use shared_lock::{Locked, StyleSheetGuards, SharedRwLockReadGuard};
 use smallvec::SmallVec;
 use std::io::{self, Write};
 use std::mem;
 use std::ptr;
 use std::sync::atomic::{AtomicPtr, AtomicUsize, Ordering};
-use stylesheets::StyleRule;
+use style_sheets::StyleRule;
 use thread_state;
 
 /// The rule tree, the structure servo uses to preserve the results of selector
@@ -165,13 +165,13 @@ impl RuleTree {
         &self.root
     }
 
-    fn dump<W: Write>(&self, guards: &StylesheetGuards, writer: &mut W) {
+    fn dump<W: Write>(&self, guards: &StyleSheetGuards, writer: &mut W) {
         let _ = writeln!(writer, " + RuleTree");
         self.root.get().dump(guards, writer, 0);
     }
 
     /// Dump the rule tree to stdout.
-    pub fn dump_stdout(&self, guards: &StylesheetGuards) {
+    pub fn dump_stdout(&self, guards: &StyleSheetGuards) {
         let mut stdout = io::stdout();
         self.dump(guards, &mut stdout);
     }
@@ -185,7 +185,7 @@ impl RuleTree {
     pub fn insert_ordered_rules_with_important<'a, I>(
         &self,
         iter: I,
-        guards: &StylesheetGuards
+        guards: &StyleSheetGuards
     ) -> StrongRuleNode
     where
         I: Iterator<Item=(StyleSource, CascadeLevel)>,
@@ -283,7 +283,7 @@ impl RuleTree {
     pub fn compute_rule_node(
         &self,
         applicable_declarations: &mut ApplicableDeclarationList,
-        guards: &StylesheetGuards
+        guards: &StyleSheetGuards
     ) -> StrongRuleNode {
         let rules = applicable_declarations.drain().map(|d| d.order_and_level());
         let rule_node = self.insert_ordered_rules_with_important(rules, guards);
@@ -331,7 +331,7 @@ impl RuleTree {
                                 level: CascadeLevel,
                                 pdb: Option<ArcBorrow<Locked<PropertyDeclarationBlock>>>,
                                 path: &StrongRuleNode,
-                                guards: &StylesheetGuards,
+                                guards: &StyleSheetGuards,
                                 important_rules_changed: &mut bool)
                                 -> Option<StrongRuleNode> {
         debug_assert!(level.is_unique_per_element());
@@ -501,7 +501,7 @@ impl CascadeLevel {
     }
 
     /// Select a lock guard for this level
-    pub fn guard<'a>(&self, guards: &'a StylesheetGuards<'a>) -> &'a SharedRwLockReadGuard<'a> {
+    pub fn guard<'a>(&self, guards: &'a StyleSheetGuards<'a>) -> &'a SharedRwLockReadGuard<'a> {
         match *self {
             CascadeLevel::UANormal |
             CascadeLevel::UserNormal |
@@ -758,7 +758,7 @@ impl RuleNode {
         }
     }
 
-    fn dump<W: Write>(&self, guards: &StylesheetGuards, writer: &mut W, indent: usize) {
+    fn dump<W: Write>(&self, guards: &StyleSheetGuards, writer: &mut W, indent: usize) {
         const INDENT_INCREMENT: usize = 4;
 
         for _ in 0..indent {
@@ -1077,7 +1077,7 @@ impl StrongRuleNode {
     #[cfg(feature = "gecko")]
     pub fn has_author_specified_rules<E>(&self,
                                          mut element: E,
-                                         guards: &StylesheetGuards,
+                                         guards: &StyleSheetGuards,
                                          rule_type_mask: u32,
                                          author_colors_allowed: bool)
         -> bool
@@ -1319,7 +1319,7 @@ impl StrongRuleNode {
     /// If there are any custom properties, we set the boolean value of the
     /// returned tuple to true.
     pub fn get_properties_overriding_animations(&self,
-                                                guards: &StylesheetGuards)
+                                                guards: &StyleSheetGuards)
                                                 -> (LonghandIdSet, bool) {
         use properties::PropertyDeclarationId;
 

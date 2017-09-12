@@ -19,8 +19,8 @@ use shared_lock::{DeepCloneParams, DeepCloneWithLock, SharedRwLock, SharedRwLock
 use std::fmt;
 use style_traits::{PARSING_MODE_DEFAULT, ToCss, ParseError, StyleParseError};
 use style_traits::PropertyDeclarationParseError;
-use stylesheets::{CssRuleType, StylesheetContents};
-use stylesheets::rule_parser::{VendorPrefix, get_location_with_offset};
+use style_sheets::{CssRuleType, StyleSheetContents};
+use style_sheets::rule_parser::{VendorPrefix, get_location_with_offset};
 use values::{KeyframesName, serialize_percentage};
 
 /// A [`@keyframes`][keyframes] rule.
@@ -213,18 +213,18 @@ impl Keyframe {
     /// Parse a CSS keyframe.
     pub fn parse<'i>(
         css: &'i str,
-        parent_stylesheet_contents: &StylesheetContents,
+        parent_style_sheet_contents: &StyleSheetContents,
         lock: &SharedRwLock,
     ) -> Result<Arc<Locked<Self>>, ParseError<'i>> {
-        let url_data = parent_stylesheet_contents.url_data.read();
+        let url_data = parent_style_sheet_contents.url_data.read();
         let error_reporter = NullReporter;
-        let namespaces = parent_stylesheet_contents.namespaces.read();
+        let namespaces = parent_style_sheet_contents.namespaces.read();
         let mut context = ParserContext::new(
-            parent_stylesheet_contents.origin,
+            parent_style_sheet_contents.origin,
             &url_data,
             Some(CssRuleType::Keyframe),
             PARSING_MODE_DEFAULT,
-            parent_stylesheet_contents.quirks_mode
+            parent_style_sheet_contents.quirks_mode
         );
         let error_context = ParserErrorContext { error_reporter: &error_reporter };
         context.namespaces = Some(&*namespaces);

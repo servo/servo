@@ -12,7 +12,7 @@ use dom::window::Window;
 use dom_struct::dom_struct;
 use servo_arc::Arc;
 use style::shared_lock::{Locked, ToCssWithGuard};
-use style::stylesheets::ViewportRule;
+use style::style_sheets::ViewportRule;
 
 #[dom_struct]
 pub struct CSSViewportRule {
@@ -22,17 +22,17 @@ pub struct CSSViewportRule {
 }
 
 impl CSSViewportRule {
-    fn new_inherited(parent_stylesheet: &CSSStyleSheet, viewportrule: Arc<Locked<ViewportRule>>) -> CSSViewportRule {
+    fn new_inherited(parent_style_sheet: &CSSStyleSheet, viewportrule: Arc<Locked<ViewportRule>>) -> CSSViewportRule {
         CSSViewportRule {
-            cssrule: CSSRule::new_inherited(parent_stylesheet),
+            cssrule: CSSRule::new_inherited(parent_style_sheet),
             viewportrule: viewportrule,
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, parent_stylesheet: &CSSStyleSheet,
+    pub fn new(window: &Window, parent_style_sheet: &CSSStyleSheet,
                viewportrule: Arc<Locked<ViewportRule>>) -> Root<CSSViewportRule> {
-        reflect_dom_object(box CSSViewportRule::new_inherited(parent_stylesheet, viewportrule),
+        reflect_dom_object(box CSSViewportRule::new_inherited(parent_style_sheet, viewportrule),
                            window,
                            CSSViewportRuleBinding::Wrap)
     }

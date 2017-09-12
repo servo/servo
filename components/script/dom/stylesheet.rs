@@ -45,27 +45,27 @@ impl StyleSheet {
 
 
 impl StyleSheetMethods for StyleSheet {
-    // https://drafts.csswg.org/cssom/#dom-stylesheet-type
+    // https://drafts.csswg.org/cssom/#dom-style sheet-type
     fn Type_(&self) -> DOMString {
         self.type_.clone()
     }
 
-    // https://drafts.csswg.org/cssom/#dom-stylesheet-href
+    // https://drafts.csswg.org/cssom/#dom-style sheet-href
     fn GetHref(&self) -> Option<DOMString> {
         self.href.clone()
     }
 
-    // https://drafts.csswg.org/cssom/#dom-stylesheet-title
+    // https://drafts.csswg.org/cssom/#dom-style sheet-title
     fn GetTitle(&self) -> Option<DOMString> {
         self.title.clone()
     }
 
-    // https://drafts.csswg.org/cssom/#dom-stylesheet-disabled
+    // https://drafts.csswg.org/cssom/#dom-style sheet-disabled
     fn Disabled(&self) -> bool {
         self.downcast::<CSSStyleSheet>().unwrap().disabled()
     }
 
-    // https://drafts.csswg.org/cssom/#dom-stylesheet-disabled
+    // https://drafts.csswg.org/cssom/#dom-style sheet-disabled
     fn SetDisabled(&self, disabled: bool) {
         self.downcast::<CSSStyleSheet>().unwrap().set_disabled(disabled)
     }

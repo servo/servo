@@ -19,7 +19,7 @@ mod rule_list;
 mod rule_parser;
 mod rules_iterator;
 mod style_rule;
-mod stylesheet;
+mod style_sheet;
 pub mod supports_rule;
 pub mod viewport_rule;
 
@@ -39,7 +39,7 @@ pub use self::font_face_rule::FontFaceRule;
 pub use self::font_feature_values_rule::FontFeatureValuesRule;
 pub use self::import_rule::ImportRule;
 pub use self::keyframes_rule::KeyframesRule;
-pub use self::loader::StylesheetLoader;
+pub use self::loader::StyleSheetLoader;
 pub use self::media_rule::MediaRule;
 pub use self::namespace_rule::NamespaceRule;
 pub use self::origin::{Origin, OriginSet, PerOrigin, PerOriginIter};
@@ -47,8 +47,8 @@ pub use self::page_rule::PageRule;
 pub use self::rule_parser::{State, TopLevelRuleParser};
 pub use self::rule_list::{CssRules, CssRulesHelpers};
 pub use self::rules_iterator::{AllRules, EffectiveRules, NestedRuleIterationCondition, RulesIterator};
-pub use self::stylesheet::{Namespaces, Stylesheet, DocumentStyleSheet};
-pub use self::stylesheet::{StylesheetContents, StylesheetInDocument, UserAgentStylesheets};
+pub use self::style_sheet::{Namespaces, StyleSheet, DocumentStyleSheet};
+pub use self::style_sheet::{StyleSheetContents, StyleSheetInDocument, UserAgentStyleSheets};
 pub use self::style_rule::StyleRule;
 pub use self::supports_rule::SupportsRule;
 pub use self::viewport_rule::ViewportRule;
@@ -116,7 +116,7 @@ impl CssRule {
 
             CssRule::Namespace(_) => 0,
 
-            // We don't need to measure ImportRule::stylesheet because we measure
+            // We don't need to measure ImportRule::style sheet because we measure
             // it on the C++ side in the child list of the ServoStyleSheet.
             CssRule::Import(_) => 0,
 
@@ -225,30 +225,30 @@ impl CssRule {
     /// Input state is None for a nested rule
     pub fn parse(
         css: &str,
-        parent_stylesheet_contents: &StylesheetContents,
+        parent_style_sheet_contents: &StyleSheetContents,
         shared_lock: &SharedRwLock,
         state: Option<State>,
-        loader: Option<&StylesheetLoader>
+        loader: Option<&StyleSheetLoader>
     ) -> Result<(Self, State), SingleRuleParseError> {
-        let url_data = parent_stylesheet_contents.url_data.read();
+        let url_data = parent_style_sheet_contents.url_data.read();
         let error_reporter = NullReporter;
         let context = ParserContext::new(
-            parent_stylesheet_contents.origin,
+            parent_style_sheet_contents.origin,
             &url_data,
             None,
             PARSING_MODE_DEFAULT,
-            parent_stylesheet_contents.quirks_mode,
+            parent_style_sheet_contents.quirks_mode,
         );
 
         let mut input = ParserInput::new(css);
         let mut input = Parser::new(&mut input);
 
-        let mut guard = parent_stylesheet_contents.namespaces.write();
+        let mut guard = parent_style_sheet_contents.namespaces.write();
 
         // nested rules are in the body state
         let state = state.unwrap_or(State::Body);
         let mut rule_parser = TopLevelRuleParser {
-            stylesheet_origin: parent_stylesheet_contents.origin,
+            style_sheet_origin: parent_style_sheet_contents.origin,
             context: context,
             error_context: ParserErrorContext { error_reporter: &error_reporter },
             shared_lock: &shared_lock,

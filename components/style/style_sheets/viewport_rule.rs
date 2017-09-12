@@ -26,7 +26,7 @@ use std::iter::Enumerate;
 use std::str::Chars;
 use style_traits::{PinchZoomFactor, ToCss, ParseError, StyleParseError};
 use style_traits::viewport::{Orientation, UserZoom, ViewportConstraints, Zoom};
-use stylesheets::{StylesheetInDocument, Origin};
+use style_sheets::{StyleSheetInDocument, Origin};
 use values::computed::{Context, ToComputedValue};
 use values::specified::{NoCalcLength, LengthOrPercentageOrAuto, ViewportPercentageLength};
 
@@ -290,7 +290,7 @@ impl<'a, 'b, 'i> DeclarationParser<'i> for ViewportRuleParser<'a, 'b> {
             };
             ($declaration:ident(value: $value:expr, important: $important:expr)) => {
                 ViewportDescriptorDeclaration::new(
-                    self.context.stylesheet_origin,
+                    self.context.style_sheet_origin,
                     ViewportDescriptor::$declaration($value),
                     $important)
             }
@@ -567,18 +567,18 @@ impl Cascade {
         }
     }
 
-    pub fn from_stylesheets<'a, I, S>(
-        stylesheets: I,
+    pub fn from_style_sheets<'a, I, S>(
+        style_sheets: I,
         guard: &SharedRwLockReadGuard,
         device: &Device
     ) -> Self
     where
         I: Iterator<Item = &'a S>,
-        S: StylesheetInDocument + 'static,
+        S: StyleSheetInDocument + 'static,
     {
         let mut cascade = Self::new();
-        for stylesheet in stylesheets {
-            stylesheet.effective_viewport_rules(device, guard, |rule| {
+        for style_sheet in style_sheets {
+            style_sheet.effective_viewport_rules(device, guard, |rule| {
                 for declaration in &rule.declarations {
                     cascade.add(Cow::Borrowed(declaration))
                 }

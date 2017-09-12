@@ -34,9 +34,9 @@ use style::attr::AttrValue;
 use style::media_queries::parse_media_query_list;
 use style::parser::ParserContext as CssParserContext;
 use style::str::HTML_SPACE_CHARACTERS;
-use style::stylesheets::{CssRuleType, Stylesheet};
+use style::style_sheets::{CssRuleType, StyleSheet};
 use style_traits::PARSING_MODE_DEFAULT;
-use stylesheet_loader::{StylesheetLoader, StylesheetContextSource, StylesheetOwner};
+use style_sheet_loader::{StyleSheetLoader, StyleSheetContextSource, StyleSheetOwner};
 
 #[derive(Clone, Copy, HeapSizeOf, JSTraceable, PartialEq)]
 pub struct RequestGenerationId(u32);
@@ -52,8 +52,8 @@ pub struct HTMLLinkElement {
     htmlelement: HTMLElement,
     rel_list: MutNullableJS<DOMTokenList>,
     #[ignore_heap_size_of = "Arc"]
-    stylesheet: DOMRefCell<Option<Arc<Stylesheet>>>,
-    cssom_stylesheet: MutNullableJS<CSSStyleSheet>,
+    style_sheet: DOMRefCell<Option<Arc<StyleSheet>>>,
+    cssom_style_sheet: MutNullableJS<CSSStyleSheet>,
 
     /// https://html.spec.whatwg.org/multipage/#a-style-sheet-that-is-blocking-scripts
     parser_inserted: Cell<bool>,
@@ -62,7 +62,7 @@ pub struct HTMLLinkElement {
     pending_loads: Cell<u32>,
     /// Whether any of the loads have failed.
     any_failed_load: Cell<bool>,
-    /// A monotonically increasing counter that keeps track of which stylesheet to apply.
+    /// A monotonically increasing counter that keeps track of which style sheet to apply.
     request_generation_id: Cell<RequestGenerationId>,
 }
 
@@ -73,8 +73,8 @@ impl HTMLLinkElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             rel_list: Default::default(),
             parser_inserted: Cell::new(creator.is_parser_created()),
-            stylesheet: DOMRefCell::new(None),
-            cssom_stylesheet: MutNullableJS::new(None),
+            style_sheet: DOMRefCell::new(None),
+            cssom_style_sheet: MutNullableJS::new(None),
             pending_loads: Cell::new(0),
             any_failed_load: Cell::new(false),
             request_generation_id: Cell::new(RequestGenerationId(0)),
@@ -96,24 +96,24 @@ impl HTMLLinkElement {
     }
 
     // FIXME(emilio): These methods are duplicated with
-    // HTMLStyleElement::set_stylesheet.
-    pub fn set_stylesheet(&self, s: Arc<Stylesheet>) {
+    // HTMLStyleElement::set_style sheet.
+    pub fn set_style_sheet(&self, s: Arc<StyleSheet>) {
         let doc = document_from_node(self);
-        if let Some(ref s) = *self.stylesheet.borrow() {
-            doc.remove_stylesheet(self.upcast(), s)
+        if let Some(ref s) = *self.style_sheet.borrow() {
+            doc.remove_style_sheet(self.upcast(), s)
         }
-        *self.stylesheet.borrow_mut() = Some(s.clone());
-        self.cssom_stylesheet.set(None);
-        doc.add_stylesheet(self.upcast(), s);
+        *self.style_sheet.borrow_mut() = Some(s.clone());
+        self.cssom_style_sheet.set(None);
+        doc.add_style_sheet(self.upcast(), s);
     }
 
-    pub fn get_stylesheet(&self) -> Option<Arc<Stylesheet>> {
-        self.stylesheet.borrow().clone()
+    pub fn get_style_sheet(&self) -> Option<Arc<StyleSheet>> {
+        self.style_sheet.borrow().clone()
     }
 
-    pub fn get_cssom_stylesheet(&self) -> Option<Root<CSSStyleSheet>> {
-        self.get_stylesheet().map(|sheet| {
-            self.cssom_stylesheet.or_init(|| {
+    pub fn get_cssom_style_sheet(&self) -> Option<Root<CSSStyleSheet>> {
+        self.get_style_sheet().map(|sheet| {
+            self.cssom_style_sheet.or_init(|| {
                 CSSStyleSheet::new(&window_from_node(self),
                                    self.upcast::<Element>(),
                                    "text/css".into(),
@@ -144,11 +144,11 @@ fn get_attr(element: &Element, local_name: &LocalName) -> Option<String> {
     })
 }
 
-fn string_is_stylesheet(value: &Option<String>) -> bool {
+fn string_is_style_sheet(value: &Option<String>) -> bool {
     match *value {
         Some(ref value) => {
             value.split(HTML_SPACE_CHARACTERS)
-                .any(|s| s.eq_ignore_ascii_case("stylesheet"))
+                .any(|s| s.eq_ignore_ascii_case("style_sheet"))
         },
         None => false,
     }
@@ -181,8 +181,8 @@ impl VirtualMethods for HTMLLinkElement {
         let rel = get_attr(self.upcast(), &local_name!("rel"));
         match attr.local_name() {
             &local_name!("href") => {
-                if string_is_stylesheet(&rel) {
-                    self.handle_stylesheet_url(&attr.value());
+                if string_is_style_sheet(&rel) {
+                    self.handle_style_sheet_url(&attr.value());
                 } else if is_favicon(&rel) {
                     let sizes = get_attr(self.upcast(), &local_name!("sizes"));
                     self.handle_favicon_url(rel.as_ref().unwrap(), &attr.value(), &sizes);
@@ -196,9 +196,9 @@ impl VirtualMethods for HTMLLinkElement {
                 }
             },
             &local_name!("media") => {
-                if string_is_stylesheet(&rel) {
+                if string_is_style_sheet(&rel) {
                     if let Some(href) = self.upcast::<Element>().get_attribute(&ns!(), &local_name!("href")) {
-                        self.handle_stylesheet_url(&href.value());
+                        self.handle_style_sheet_url(&href.value());
                     }
                 }
             },
@@ -226,8 +226,8 @@ impl VirtualMethods for HTMLLinkElement {
             let sizes = get_attr(self.upcast(), &local_name!("sizes"));
 
             match href {
-                Some(ref href) if string_is_stylesheet(&rel) => {
-                    self.handle_stylesheet_url(href);
+                Some(ref href) if string_is_style_sheet(&rel) => {
+                    self.handle_style_sheet_url(href);
                 }
                 Some(ref href) if is_favicon(&rel) => {
                     self.handle_favicon_url(rel.as_ref().unwrap(), href, &sizes);
@@ -242,8 +242,8 @@ impl VirtualMethods for HTMLLinkElement {
             s.unbind_from_tree(context);
         }
 
-        if let Some(ref s) = *self.stylesheet.borrow() {
-            document_from_node(self).remove_stylesheet(self.upcast(), s);
+        if let Some(ref s) = *self.style_sheet.borrow() {
+            document_from_node(self).remove_style_sheet(self.upcast(), s);
         }
     }
 }
@@ -251,7 +251,7 @@ impl VirtualMethods for HTMLLinkElement {
 
 impl HTMLLinkElement {
     /// https://html.spec.whatwg.org/multipage/#concept-link-obtain
-    fn handle_stylesheet_url(&self, href: &str) {
+    fn handle_style_sheet_url(&self, href: &str) {
         let document = document_from_node(self);
         if document.browsing_context().is_none() {
             return;
@@ -302,10 +302,10 @@ impl HTMLLinkElement {
 
         self.request_generation_id.set(self.request_generation_id.get().increment());
 
-        // TODO: #8085 - Don't load external stylesheets if the node's mq
+        // TODO: #8085 - Don't load external style sheets if the node's mq
         // doesn't match.
-        let loader = StylesheetLoader::for_element(self.upcast());
-        loader.load(StylesheetContextSource::LinkElement {
+        let loader = StyleSheetLoader::for_element(self.upcast());
+        loader.load(StyleSheetContextSource::LinkElement {
             media: Some(media),
         }, link_url, cors_setting, integrity_metadata.to_owned());
     }
@@ -328,7 +328,7 @@ impl HTMLLinkElement {
     }
 }
 
-impl StylesheetOwner for HTMLLinkElement {
+impl StyleSheetOwner for HTMLLinkElement {
     fn increment_pending_loads_count(&self) {
         self.pending_loads.set(self.pending_loads.get() + 1)
     }
@@ -362,8 +362,8 @@ impl StylesheetOwner for HTMLLinkElement {
     }
 
     fn set_origin_clean(&self, origin_clean: bool) {
-        if let Some(stylesheet) = self.get_cssom_stylesheet() {
-            stylesheet.set_origin_clean(origin_clean);
+        if let Some(style_sheet) = self.get_cssom_style_sheet() {
+            style_sheet.set_origin_clean(origin_clean);
         }
     }
 }
@@ -442,6 +442,6 @@ impl HTMLLinkElementMethods for HTMLLinkElement {
 
     // https://drafts.csswg.org/cssom/#dom-linkstyle-sheet
     fn GetSheet(&self) -> Option<Root<DOMStyleSheet>> {
-        self.get_cssom_stylesheet().map(Root::upcast)
+        self.get_cssom_style_sheet().map(Root::upcast)
     }
 }

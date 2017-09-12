@@ -11,22 +11,22 @@ use style::gecko_bindings::sugar::ownership::FFIArcHelpers;
 use style::media_queries::MediaList;
 use style::parser::ParserContext;
 use style::shared_lock::{Locked, SharedRwLock};
-use style::stylesheets::{ImportRule, StylesheetLoader as StyleStylesheetLoader};
-use style::stylesheets::import_rule::ImportSheet;
+use style::style_sheets::{ImportRule, StyleSheetLoader as StyleStyleSheetLoader};
+use style::style_sheets::import_rule::ImportSheet;
 use style::values::specified::url::SpecifiedUrl;
 
-pub struct StylesheetLoader(*mut Loader, *mut ServoStyleSheet, *mut LoaderReusableStyleSheets);
+pub struct StyleSheetLoader(*mut Loader, *mut ServoStyleSheet, *mut LoaderReusableStyleSheets);
 
-impl StylesheetLoader {
+impl StyleSheetLoader {
     pub fn new(loader: *mut Loader,
                parent: *mut ServoStyleSheet,
                reusable_sheets: *mut LoaderReusableStyleSheets) -> Self {
-        StylesheetLoader(loader, parent, reusable_sheets)
+        StyleSheetLoader(loader, parent, reusable_sheets)
     }
 }
 
-impl StyleStylesheetLoader for StylesheetLoader {
-    fn request_stylesheet(
+impl StyleStyleSheetLoader for StyleSheetLoader {
+    fn request_style_sheet(
         &self,
         url: SpecifiedUrl,
         source_location: SourceLocation,
@@ -53,9 +53,9 @@ impl StyleStylesheetLoader for StylesheetLoader {
 
         debug_assert!(!child_sheet.is_null(),
                       "Import rules should always have a strong sheet");
-        let stylesheet = unsafe {
+        let style_sheet = unsafe {
             ImportSheet(GeckoStyleSheet::from_addrefed(child_sheet))
         };
-        Arc::new(lock.wrap(ImportRule { url, source_location, stylesheet }))
+        Arc::new(lock.wrap(ImportRule { url, source_location, style_sheet }))
     }
 }
