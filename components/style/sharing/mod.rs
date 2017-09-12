@@ -68,7 +68,7 @@ use Atom;
 use applicable_declarations::ApplicableDeclarationBlock;
 use atomic_refcell::{AtomicRefCell, AtomicRefMut};
 use bloom::StyleBloom;
-use cache::LRUCache;
+use cache::{LRUCache, Entry};
 use context::{SelectorFlagsMap, SharedStyleContext, StyleContext};
 use dom::{TElement, SendElement};
 use matching::MatchMethods;
@@ -409,7 +409,7 @@ impl<E: TElement> StyleSharingTarget<E> {
 }
 
 struct SharingCacheBase<Candidate> {
-    entries: LRUCache<[Candidate; SHARING_CACHE_BACKING_STORE_SIZE]>,
+    entries: LRUCache<Candidate, [Entry<Candidate>; SHARING_CACHE_BACKING_STORE_SIZE]>,
 }
 
 impl<Candidate> Default for SharingCacheBase<Candidate> {
@@ -448,7 +448,7 @@ impl<E: TElement> SharingCache<E> {
         F: FnMut(&mut StyleSharingCandidate<E>) -> bool
     {
         let mut index = None;
-        for (i, candidate) in self.entries.iter_mut().enumerate() {
+        for (i, candidate) in self.entries.iter_mut() {
             if is_match(candidate) {
                 index = Some(i);
                 break;
