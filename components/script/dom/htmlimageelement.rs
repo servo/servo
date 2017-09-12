@@ -68,11 +68,6 @@ enum ParseState {
     InParens,
     AfterDescriptor,
 }
-#[derive(Clone)]
-enum Error {
-    Yes,
-    No,
-}
 #[derive(Clone, Copy, JSTraceable, HeapSizeOf)]
 #[allow(dead_code)]
 enum State {
@@ -1077,9 +1072,10 @@ pub fn collect_sequence_characters<F>(s: &str, predicate: F) -> (&str, &str)
         return (s, "");
         }
 
+// https://html.spec.whatwg.org/multipage/#parsing-a-srcset-attribute.
 pub fn parse_a_srcset_attribute(input: String) -> Vec<ImageSource> {
     let mut start = 0;
-    let mut candidates: Vec<ImageSource> = Vec::new();
+    let mut candidates: Vec<ImageSource> = vec![];
     while start < input.len() {
         let position = &input[start..];
         let(spaces, position) = collect_sequence_characters(position, |c| *c ==',' || char::is_whitespace(*c));
@@ -1198,6 +1194,7 @@ pub fn parse_a_srcset_attribute(input: String) -> Vec<ImageSource> {
         let mut density: Option<f64> = None;
         let mut future_compat_h: Option<u32> = None;
         for descriptor in descriptors {
+            println!("descriptor:{:?}", descriptor);
             let char_iter = descriptor.chars();
             let (digits, remaining) = collect_sequence_characters(&descriptor, is_ascii_digit);
             let valid_non_negative_integer = parse_unsigned_integer(digits.chars());
@@ -1206,26 +1203,18 @@ pub fn parse_a_srcset_attribute(input: String) -> Vec<ImageSource> {
             let has_x = remaining == "x";
             let has_h = remaining == "h";
             if valid_non_negative_integer.is_ok() && has_w {
-                //not support sizes attribute
-                error = width.is_some() && density.is_some();
                 let result = parse_unsigned_integer(char_iter.clone());
                 error = result.is_err();
                 if let Ok(w) = result {
                     width = Some(w);
                 }
             } else if valid_floating_point.is_ok() && has_x {
-                if width.is_some() && density.is_some() && future_compat_h.is_some() {
-                    error = true;
-                }
-                let result = parse_double(char_iter.as_str());
+                let result = parse_double(digits);
                 error = result.is_err();
                 if let Ok(x) = result {
                     density = Some(x);
                 }
             } else if valid_non_negative_integer.is_ok() && has_h {
-                if density.is_some() && future_compat_h.is_some() {
-                    error = true;
-                }
                 let result = parse_unsigned_integer(char_iter.clone());
                 error = result.is_err();
                 if let Ok(h) = result {
@@ -1234,7 +1223,12 @@ pub fn parse_a_srcset_attribute(input: String) -> Vec<ImageSource> {
             } else {
                 error = true;
             }
-        }
+            if (width.is_some() && density.is_some()) ||
+                (width.is_some() && density.is_some() && future_compat_h.is_some()) ||
+                (density.is_some() && future_compat_h.is_some()) {
+                error=true;
+            }
+        }   
         if future_compat_h.is_some() && width.is_none() {
             error = true;
         }
@@ -1242,8 +1236,9 @@ pub fn parse_a_srcset_attribute(input: String) -> Vec<ImageSource> {
             let descriptor = Descriptor { wid: width, den: density };
             let imageSource = ImageSource { url: url, descriptor: descriptor };
             candidates.push(imageSource);
+            println!("candidates: {:?}", candidates);
         } else {
-            println!("Parse error")
+            debug!("Parse error")
         }
     }
     candidates

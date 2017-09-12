@@ -41,8 +41,8 @@ fn width_three_value() {
     sources.push(second_imagesource);
     sources.push(third_imagesource);
     assert_eq!(parse_a_srcset_attribute(String::from("small-image.jpg 320w,
-                                                      medium-image.jpg 480w,
-                                                      large-image.jpg 800w")), sources);
+                                                     medium-image.jpg 480w,
+                                                     large-image.jpg 800w")), sources);
 }
 
 #[test]
@@ -55,18 +55,19 @@ fn density_value() {
 }
 
 #[test]
-fn width_density_value() {
-    let first_descriptor = Descriptor { wid: Some(100), den: Some(2.0) };
-    let first_imagesource = ImageSource { url: "large-image.jpg".to_string(), descriptor: first_descriptor };
-    let mut sources = Vec::new();
-    sources.push(first_imagesource);
-    assert_eq!(parse_a_srcset_attribute(String::from("large-image.jpg 100w 2x")), sources);
-}
-#[test]
 fn without_descriptor() {
     let first_descriptor = Descriptor { wid: None, den: None };
     let first_imagesource = ImageSource { url: "small-image.jpg".to_string(), descriptor: first_descriptor };
     let mut sources = Vec::new();
     sources.push(first_imagesource);
     assert_eq!(parse_a_srcset_attribute(String::from("small-image.jpg")), sources);
+}
+// Return empty vector when pass two descriptor
+#[test]
+fn two_descriptor() {
+    let first_descriptor = Descriptor { wid: Some(380), den: Some(22.0) };
+    let first_imagesource = ImageSource { url: "small-image.jpg".to_string(), descriptor: first_descriptor };
+    let mut sources = Vec::new();
+    sources.push(first_imagesource);
+    assert_ne!(parse_a_srcset_attribute(String::from("small-image.jpg 380w 22x")), sources);
 }
