@@ -121,6 +121,12 @@ impl<E: TElement> StyleBloom<E> {
     /// Create an empty `StyleBloom`. Because StyleBloom acquires the thread-
     /// local filter buffer, creating multiple live StyleBloom instances at
     /// the same time on the same thread will panic.
+
+    // Forced out of line to limit stack frame sizes after extra inlining from
+    // https://github.com/rust-lang/rust/pull/43931
+    //
+    // See https://github.com/servo/servo/pull/18420#issuecomment-328769322
+    #[inline(never)]
     pub fn new() -> Self {
         let bloom_arc = BLOOM_KEY.with(|b| b.clone());
         let filter = OwningHandle::new_with_fn(bloom_arc, |x| unsafe { x.as_ref() }.unwrap().borrow_mut());

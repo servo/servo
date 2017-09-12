@@ -262,7 +262,7 @@ class MachCommands(CommandBase):
              description='Update the Rust version to latest Nightly',
              category='devenv')
     def rustup(self):
-        url = "https://static.rust-lang.org/dist/channel-rust-nightly-date.txt"
+        url = "https://static-rust-lang-org.s3.amazonaws.com/dist/channel-rust-nightly-date.txt"
         nightly_date = urllib2.urlopen(url).read()
         filename = path.join(self.context.topdir, "rust-toolchain")
         with open(filename, "w") as f:

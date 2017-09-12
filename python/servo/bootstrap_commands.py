@@ -90,12 +90,8 @@ class MachCommands(CommandBase):
                 base_url = static_s3
             else:
                 import toml
-                import re
                 channel = "%s/%s/channel-rust-nightly.toml" % (static_s3, self.rust_nightly_date())
-                version_string = toml.load(urllib2.urlopen(channel))["pkg"]["rustc"]["version"]
-                short_commit = re.search("\(([0-9a-f]+) ", version_string).group(1)
-                commit_api = "https://api.github.com/repos/rust-lang/rust/commits/" + short_commit
-                nightly_commit_hash = json.load(urllib2.urlopen(commit_api))["sha"]
+                nightly_commit_hash = toml.load(urllib2.urlopen(channel))["pkg"]["rustc"]["git_commit_hash"]
 
                 base_url = "https://s3.amazonaws.com/rust-lang-ci/rustc-builds"
                 if not self.config["build"]["llvm-assertions"]:
