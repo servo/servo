@@ -8,6 +8,8 @@ use context::{SharedStyleContext, StackLimitChecker};
 use dom::TElement;
 use invalidation::element::invalidator::InvalidationResult;
 use invalidation::element::restyle_hints::RestyleHint;
+#[cfg(feature = "gecko")]
+use malloc_size_of::MallocSizeOfOps;
 use properties::ComputedValues;
 use properties::longhands::display::computed_value as display;
 use rule_tree::StrongRuleNode;
@@ -16,8 +18,6 @@ use servo_arc::Arc;
 use shared_lock::StylesheetGuards;
 use std::fmt;
 use std::ops::{Deref, DerefMut};
-#[cfg(feature = "gecko")]
-use stylesheets::SizeOfState;
 
 bitflags! {
     flags RestyleFlags: u8 {
@@ -272,7 +272,7 @@ impl ElementStyles {
     }
 
     #[cfg(feature = "gecko")]
-    fn malloc_size_of_children_excluding_cvs(&self, _state: &mut SizeOfState) -> usize {
+    fn size_of_excluding_cvs(&self, _ops: &mut MallocSizeOfOps) -> usize {
         // As the method name suggests, we don't measures the ComputedValues
         // here, because they are measured on the C++ side.
 
@@ -453,8 +453,8 @@ impl ElementData {
 
     /// Measures memory usage.
     #[cfg(feature = "gecko")]
-    pub fn malloc_size_of_children_excluding_cvs(&self, state: &mut SizeOfState) -> usize {
-        let n = self.styles.malloc_size_of_children_excluding_cvs(state);
+    pub fn size_of_excluding_cvs(&self, ops: &mut MallocSizeOfOps) -> usize {
+        let n = self.styles.size_of_excluding_cvs(ops);
 
         // We may measure more fields in the future if DMD says it's worth it.
 

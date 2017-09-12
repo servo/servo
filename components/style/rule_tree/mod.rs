@@ -9,6 +9,8 @@
 use applicable_declarations::ApplicableDeclarationList;
 #[cfg(feature = "servo")]
 use heapsize::HeapSizeOf;
+#[cfg(feature = "gecko")]
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use properties::{Importance, LonghandIdSet, PropertyDeclarationBlock};
 use servo_arc::{Arc, ArcBorrow, NonZeroPtrMut};
 use shared_lock::{Locked, StylesheetGuards, SharedRwLockReadGuard};
@@ -17,7 +19,7 @@ use std::io::{self, Write};
 use std::mem;
 use std::ptr;
 use std::sync::atomic::{AtomicPtr, AtomicUsize, Ordering};
-use stylesheets::{MallocSizeOf, MallocSizeOfFn, StyleRule};
+use stylesheets::StyleRule;
 use thread_state;
 
 /// The rule tree, the structure servo uses to preserve the results of selector
@@ -62,9 +64,12 @@ impl Drop for RuleTree {
     }
 }
 
+#[cfg(feature = "gecko")]
 impl MallocSizeOf for RuleTree {
-    fn malloc_size_of_children(&self, malloc_size_of: MallocSizeOfFn) -> usize {
-        self.root.get().malloc_size_of_including_self(malloc_size_of)
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        let mut n = ops.malloc_size_of(self.root.ptr());
+        n += self.root.get().size_of(ops);
+        n
     }
 }
 
@@ -794,11 +799,15 @@ impl RuleNode {
             }
         }
     }
+}
 
-    fn malloc_size_of_including_self(&self, malloc_size_of: MallocSizeOfFn) -> usize {
-        let mut n = unsafe { (malloc_size_of.0)(self as *const _ as *const _) };
+#[cfg(feature = "gecko")]
+impl MallocSizeOf for RuleNode {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        let mut n = 0;
         for child in self.iter_children() {
-            n += unsafe { (*child.ptr()).malloc_size_of_including_self(malloc_size_of) };
+            n += ops.malloc_size_of(child.ptr());
+            n += unsafe { (*child.ptr()).size_of(ops) };
         }
         n
     }

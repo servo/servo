@@ -29,6 +29,7 @@ use font_metrics::FontMetricsProvider;
 #[cfg(feature = "gecko")] use gecko_bindings::structs::{self, nsCSSPropertyID};
 #[cfg(feature = "servo")] use logical_geometry::{LogicalMargin, PhysicalSide};
 use logical_geometry::WritingMode;
+#[cfg(feature = "gecko")] use malloc_size_of::{MallocShallowSizeOf, MallocSizeOf, MallocSizeOfOps};
 use media_queries::Device;
 use parser::ParserContext;
 use properties::animated_properties::AnimatableLonghand;
@@ -39,8 +40,7 @@ use selectors::parser::SelectorParseError;
 use shared_lock::StylesheetGuards;
 use style_traits::{PARSING_MODE_DEFAULT, ToCss, ParseError};
 use style_traits::{PropertyDeclarationParseError, StyleParseError, ValueParseError};
-use stylesheets::{CssRuleType, MallocSizeOf, MallocSizeOfBox, MallocSizeOfFn, MallocSizeOfVec};
-use stylesheets::{Origin, UrlExtraData};
+use stylesheets::{CssRuleType, Origin, UrlExtraData};
 #[cfg(feature = "servo")] use values::Either;
 use values::generics::text::LineHeight;
 use values::computed;
@@ -276,6 +276,7 @@ static ${name}: LonghandIdSet = LonghandIdSet {
 </%def>
 
 /// A set of longhand properties
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[derive(Clone, PartialEq)]
 pub struct LonghandIdSet {
     storage: [u32; (${len(data.longhands)} - 1 + 32) / 32]
@@ -1313,19 +1314,20 @@ impl ToCss for PropertyDeclaration {
     }
 }
 
+#[cfg(feature = "gecko")]
 impl MallocSizeOf for PropertyDeclaration {
-    fn malloc_size_of_children(&self, malloc_size_of: MallocSizeOfFn) -> usize {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         match *self {
             % for property in data.longhands:
                 % if property.boxed and property.is_vector:
                     <% raise Exception("this should not happen! not smart to box a vector here") %>
                 % elif property.boxed:
                     PropertyDeclaration::${property.camel_case}(ref sv_box) => {
-                        sv_box.malloc_shallow_size_of_box(malloc_size_of)
+                        <Box<_> as MallocShallowSizeOf>::shallow_size_of(sv_box, ops)
                     }
                 % elif property.is_vector:
                     PropertyDeclaration::${property.camel_case}(ref sv_vec) => {
-                        sv_vec.0.malloc_shallow_size_of_vec(malloc_size_of)
+                        sv_vec.0.shallow_size_of(ops)
                     }
                 % endif
             % endfor

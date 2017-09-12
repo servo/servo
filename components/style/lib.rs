@@ -59,6 +59,8 @@ extern crate itoa;
 extern crate lazy_static;
 #[macro_use]
 extern crate log;
+#[cfg(feature = "gecko")] #[macro_use] extern crate malloc_size_of;
+#[cfg(feature = "gecko")] #[macro_use] extern crate malloc_size_of_derive;
 #[allow(unused_extern_crates)]
 #[macro_use]
 extern crate matches;

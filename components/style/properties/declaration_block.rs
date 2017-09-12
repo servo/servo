@@ -21,7 +21,6 @@ use std::iter::{DoubleEndedIterator, Zip};
 use std::slice::Iter;
 use style_traits::{PARSING_MODE_DEFAULT, ToCss, ParseError, ParsingMode, StyleParseError};
 use stylesheets::{CssRuleType, Origin, UrlExtraData};
-use stylesheets::{MallocSizeOf, MallocSizeOfFn};
 use super::*;
 use values::computed::Context;
 #[cfg(feature = "gecko")] use properties::animated_properties::AnimationValueMap;
@@ -43,6 +42,7 @@ impl AnimationRules {
 /// A declaration [importance][importance].
 ///
 /// [importance]: https://drafts.csswg.org/css-cascade/#importance
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum Importance {
@@ -51,12 +51,6 @@ pub enum Importance {
 
     /// Indicates a declaration with `!important`.
     Important,
-}
-
-impl MallocSizeOf for Importance {
-    fn malloc_size_of_children(&self, _malloc_size_of: MallocSizeOfFn) -> usize {
-        0
-    }
 }
 
 impl Importance {
@@ -70,6 +64,7 @@ impl Importance {
 }
 
 /// Overridden declarations are skipped.
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[derive(Clone)]
 pub struct PropertyDeclarationBlock {
     /// The group of declarations, along with their importance.
@@ -81,12 +76,6 @@ pub struct PropertyDeclarationBlock {
     declarations_importance: SmallBitVec,
 
     longhands: LonghandIdSet,
-}
-
-impl MallocSizeOf for PropertyDeclarationBlock {
-    fn malloc_size_of_children(&self, malloc_size_of: MallocSizeOfFn) -> usize {
-        self.declarations.malloc_size_of_children(malloc_size_of)
-    }
 }
 
 /// Iterator over `(PropertyDeclaration, Importance)` pairs.

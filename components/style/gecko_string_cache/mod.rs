@@ -388,3 +388,5 @@ impl From<*mut nsIAtom> for Atom {
         }
     }
 }
+
+size_of_is_0!(Atom);

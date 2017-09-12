@@ -5,6 +5,8 @@
 //! A style rule.
 
 use cssparser::SourceLocation;
+#[cfg(feature = "gecko")]
+use malloc_size_of::{MallocShallowSizeOf, MallocSizeOf, MallocSizeOfOps};
 use properties::PropertyDeclarationBlock;
 use selector_parser::SelectorImpl;
 use selectors::SelectorList;
@@ -12,7 +14,6 @@ use servo_arc::Arc;
 use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt;
 use style_traits::ToCss;
-use stylesheets::{MallocSizeOf, MallocSizeOfFn, MallocSizeOfVec, MallocSizeOfWithGuard};
 
 /// A style rule, with selectors and declarations.
 #[derive(Debug)]
@@ -41,26 +42,23 @@ impl DeepCloneWithLock for StyleRule {
     }
 }
 
-impl MallocSizeOfWithGuard for StyleRule {
-    fn malloc_size_of_children(
-        &self,
-        guard: &SharedRwLockReadGuard,
-        malloc_size_of: MallocSizeOfFn
-    ) -> usize {
+impl StyleRule {
+    /// Measure heap usage.
+    #[cfg(feature = "gecko")]
+    pub fn size_of(&self, guard: &SharedRwLockReadGuard, ops: &mut MallocSizeOfOps) -> usize {
         let mut n = 0;
 
         // We may add measurement of things hanging off the embedded Components
         // later.
-        n += self.selectors.0.malloc_shallow_size_of_vec(malloc_size_of);
+        n += self.selectors.0.shallow_size_of(ops);
         for selector in self.selectors.0.iter() {
             // It's safe to measure this ThinArc directly because it's the
             // "primary" reference. (The secondary references are on the
             // Stylist.)
-            let ptr = selector.thin_arc_heap_ptr();
-            n += unsafe { (malloc_size_of.0)(ptr) };
+            n += ops.malloc_size_of(selector.thin_arc_heap_ptr());
         }
 
-        n += self.block.read_with(guard).malloc_size_of_children(malloc_size_of);
+        n += self.block.read_with(guard).size_of(ops);
 
         n
     }
