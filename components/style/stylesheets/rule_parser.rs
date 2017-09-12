@@ -167,7 +167,7 @@ impl<'a, 'i, R: ParseErrorReporter> AtRuleParser<'i> for TopLevelRuleParser<'a, 
         name: CowRcStr<'i>,
         input: &mut Parser<'i, 't>
     ) -> Result<AtRuleType<AtRuleNonBlockPrelude, AtRuleBlockPrelude>, ParseError<'i>> {
-        let location = get_location_with_offset(input.current_source_location());
+        let location = input.current_source_location();
         match_ignore_ascii_case! { &*name,
             "import" => {
                 if self.state > State::Imports {
@@ -352,7 +352,7 @@ impl<'a, 'b, 'i, R: ParseErrorReporter> AtRuleParser<'i> for NestedRuleParser<'a
         name: CowRcStr<'i>,
         input: &mut Parser<'i, 't>
     ) -> Result<AtRuleType<AtRuleNonBlockPrelude, AtRuleBlockPrelude>, ParseError<'i>> {
-        let location = get_location_with_offset(input.current_source_location());
+        let location = input.current_source_location();
 
         match_ignore_ascii_case! { &*name,
             "media" => {
@@ -560,7 +560,7 @@ impl<'a, 'b, 'i, R: ParseErrorReporter> QualifiedRuleParser<'i> for NestedRulePa
             url_data: Some(self.context.url_data),
         };
 
-        let location = get_location_with_offset(input.current_source_location());
+        let location = input.current_source_location();
         let selectors = SelectorList::parse(&selector_parser, input)?;
 
         Ok(QualifiedRuleParserPrelude {
@@ -586,14 +586,5 @@ impl<'a, 'b, 'i, R: ParseErrorReporter> QualifiedRuleParser<'i> for NestedRulePa
             block: Arc::new(self.shared_lock.wrap(declarations)),
             source_location: prelude.source_location,
         }))))
-    }
-}
-
-/// Adjust a location's column to accommodate DevTools.
-pub fn get_location_with_offset(location: SourceLocation) -> SourceLocation {
-    SourceLocation {
-        line: location.line,
-        // Column offsets are not yet supported, but Gecko devtools expect 1-based columns.
-        column: location.column + 1,
     }
 }
