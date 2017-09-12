@@ -16,7 +16,7 @@ use std::ascii::AsciiExt;
 use std::ops::{Add, Mul};
 use style_traits::{ToCss, ParseError, StyleParseError};
 use style_traits::values::specified::AllowedLengthType;
-use stylesheets::CssRuleType;
+use style_sheets::CssRuleType;
 use super::{AllowQuirks, Number, ToComputedValue, Percentage};
 use values::{Auto, CSSFloat, Either, FONT_MEDIUM_PX, None_, Normal};
 use values::{ExtremumLength, serialize_dimension};

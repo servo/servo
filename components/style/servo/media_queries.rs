@@ -119,7 +119,7 @@ impl Device {
         self.device_pixel_ratio
     }
 
-    /// Take into account a viewport rule taken from the stylesheets.
+    /// Take into account a viewport rule taken from the style_sheets.
     pub fn account_for_viewport_rule(&mut self, constraints: &ViewportConstraints) {
         self.viewport_size = constraints.size;
     }

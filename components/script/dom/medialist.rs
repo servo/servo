@@ -17,39 +17,39 @@ use style::media_queries::{MediaQuery, parse_media_query_list};
 use style::media_queries::MediaList as StyleMediaList;
 use style::parser::ParserContext;
 use style::shared_lock::{SharedRwLock, Locked};
-use style::stylesheets::CssRuleType;
+use style::style_sheets::CssRuleType;
 use style_traits::{PARSING_MODE_DEFAULT, ToCss};
 
 #[dom_struct]
 pub struct MediaList {
     reflector_: Reflector,
-    parent_stylesheet: JS<CSSStyleSheet>,
+    parent_style_sheet: JS<CSSStyleSheet>,
     #[ignore_heap_size_of = "Arc"]
     media_queries: Arc<Locked<StyleMediaList>>,
 }
 
 impl MediaList {
     #[allow(unrooted_must_root)]
-    pub fn new_inherited(parent_stylesheet: &CSSStyleSheet,
+    pub fn new_inherited(parent_style_sheet: &CSSStyleSheet,
                          media_queries: Arc<Locked<StyleMediaList>>) -> MediaList {
         MediaList {
-            parent_stylesheet: JS::from_ref(parent_stylesheet),
+            parent_style_sheet: JS::from_ref(parent_style_sheet),
             reflector_: Reflector::new(),
             media_queries: media_queries,
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, parent_stylesheet: &CSSStyleSheet,
+    pub fn new(window: &Window, parent_style_sheet: &CSSStyleSheet,
                media_queries: Arc<Locked<StyleMediaList>>)
         -> Root<MediaList> {
-        reflect_dom_object(box MediaList::new_inherited(parent_stylesheet, media_queries),
+        reflect_dom_object(box MediaList::new_inherited(parent_style_sheet, media_queries),
                            window,
                            MediaListBinding::Wrap)
     }
 
     fn shared_lock(&self) -> &SharedRwLock {
-        &self.parent_stylesheet.style_stylesheet().shared_lock
+        &self.parent_style_sheet.style_style_sheet().shared_lock
     }
 }
 

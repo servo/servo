@@ -2550,10 +2550,10 @@ cfg_if! {
             pub static nsGkAtoms_strong: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms5styleE"]
             pub static nsGkAtoms_style: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms10stylesheetE"]
-            pub static nsGkAtoms_stylesheet: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms16stylesheetPrefixE"]
-            pub static nsGkAtoms_stylesheetPrefix: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms10style_sheetE"]
+            pub static nsGkAtoms_style_sheet: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms16style_sheetPrefixE"]
+            pub static nsGkAtoms_style_sheetPrefix: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms7subjectE"]
             pub static nsGkAtoms_subject: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms6submitE"]
@@ -2844,8 +2844,8 @@ cfg_if! {
             pub static nsGkAtoms_x_western: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms3xmlE"]
             pub static nsGkAtoms_xml: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms14xml_stylesheetE"]
-            pub static nsGkAtoms_xml_stylesheet: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms14xml_style_sheetE"]
+            pub static nsGkAtoms_xml_style_sheet: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms5xmlnsE"]
             pub static nsGkAtoms_xmlns: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms3xmpE"]
@@ -7713,10 +7713,10 @@ cfg_if! {
             pub static nsGkAtoms_strong: *mut nsIAtom;
             #[link_name = "?style@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_style: *mut nsIAtom;
-            #[link_name = "?stylesheet@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_stylesheet: *mut nsIAtom;
-            #[link_name = "?stylesheetPrefix@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_stylesheetPrefix: *mut nsIAtom;
+            #[link_name = "?style_sheet@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_style_sheet: *mut nsIAtom;
+            #[link_name = "?style_sheetPrefix@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_style_sheetPrefix: *mut nsIAtom;
             #[link_name = "?subject@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_subject: *mut nsIAtom;
             #[link_name = "?submit@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -8007,8 +8007,8 @@ cfg_if! {
             pub static nsGkAtoms_x_western: *mut nsIAtom;
             #[link_name = "?xml@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_xml: *mut nsIAtom;
-            #[link_name = "?xml_stylesheet@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_xml_stylesheet: *mut nsIAtom;
+            #[link_name = "?xml_style_sheet@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_xml_style_sheet: *mut nsIAtom;
             #[link_name = "?xmlns@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_xmlns: *mut nsIAtom;
             #[link_name = "?xmp@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -12876,10 +12876,10 @@ cfg_if! {
             pub static nsGkAtoms_strong: *mut nsIAtom;
             #[link_name = "\x01?style@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_style: *mut nsIAtom;
-            #[link_name = "\x01?stylesheet@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_stylesheet: *mut nsIAtom;
-            #[link_name = "\x01?stylesheetPrefix@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_stylesheetPrefix: *mut nsIAtom;
+            #[link_name = "\x01?style_sheet@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_style_sheet: *mut nsIAtom;
+            #[link_name = "\x01?style_sheetPrefix@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_style_sheetPrefix: *mut nsIAtom;
             #[link_name = "\x01?subject@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_subject: *mut nsIAtom;
             #[link_name = "\x01?submit@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -13170,8 +13170,8 @@ cfg_if! {
             pub static nsGkAtoms_x_western: *mut nsIAtom;
             #[link_name = "\x01?xml@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_xml: *mut nsIAtom;
-            #[link_name = "\x01?xml_stylesheet@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_xml_stylesheet: *mut nsIAtom;
+            #[link_name = "\x01?xml_style_sheet@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_xml_style_sheet: *mut nsIAtom;
             #[link_name = "\x01?xmlns@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_xmlns: *mut nsIAtom;
             #[link_name = "\x01?xmp@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -18042,10 +18042,10 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_strong as *mut _) } };
 ("style") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_style as *mut _) } };
-("stylesheet") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_stylesheet as *mut _) } };
-("stylesheet-prefix") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_stylesheetPrefix as *mut _) } };
+("style_sheet") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_style_sheet as *mut _) } };
+("style_sheet-prefix") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_style_sheetPrefix as *mut _) } };
 ("subject") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_subject as *mut _) } };
 ("submit") =>
@@ -18336,8 +18336,8 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_x_western as *mut _) } };
 ("xml") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_xml as *mut _) } };
-("xml-stylesheet") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_xml_stylesheet as *mut _) } };
+("xml-style_sheet") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_xml_style_sheet as *mut _) } };
 ("xmlns") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_xmlns as *mut _) } };
 ("xmp") =>

@@ -1259,370 +1259,370 @@ None
     }
 
     /// Constructs an atom from a string of text, and whether we're in a
-    /// user-agent stylesheet.
+    /// user-agent style_sheet.
     ///
-    /// If we're not in a user-agent stylesheet, we will never parse anonymous
+    /// If we're not in a user-agent style_sheet, we will never parse anonymous
     /// box pseudo-elements.
     ///
     /// Returns `None` if the pseudo-element is not recognised.
     #[inline]
-    pub fn from_slice(s: &str, in_ua_stylesheet: bool) -> Option<Self> {
+    pub fn from_slice(s: &str, in_ua_style_sheet: bool) -> Option<Self> {
         use std::ascii::AsciiExt;
 
         // We don't need to support tree pseudos because functional
         // pseudo-elements needs arguments, and thus should be created
         // via other methods.
-            if in_ua_stylesheet || PseudoElement::After.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::After.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("after") {
                     return Some(PseudoElement::After);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::Before.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::Before.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("before") {
                     return Some(PseudoElement::Before);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::Backdrop.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::Backdrop.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("backdrop") {
                     return Some(PseudoElement::Backdrop);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::Cue.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::Cue.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("cue") {
                     return Some(PseudoElement::Cue);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::FirstLetter.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::FirstLetter.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("first-letter") {
                     return Some(PseudoElement::FirstLetter);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::FirstLine.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::FirstLine.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("first-line") {
                     return Some(PseudoElement::FirstLine);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::MozSelection.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::MozSelection.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-selection") {
                     return Some(PseudoElement::MozSelection);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::MozFocusInner.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::MozFocusInner.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-focus-inner") {
                     return Some(PseudoElement::MozFocusInner);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::MozFocusOuter.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::MozFocusOuter.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-focus-outer") {
                     return Some(PseudoElement::MozFocusOuter);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::MozListBullet.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::MozListBullet.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-list-bullet") {
                     return Some(PseudoElement::MozListBullet);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::MozListNumber.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::MozListNumber.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-list-number") {
                     return Some(PseudoElement::MozListNumber);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::MozMathAnonymous.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::MozMathAnonymous.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-math-anonymous") {
                     return Some(PseudoElement::MozMathAnonymous);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::MozNumberWrapper.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::MozNumberWrapper.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-number-wrapper") {
                     return Some(PseudoElement::MozNumberWrapper);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::MozNumberText.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::MozNumberText.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-number-text") {
                     return Some(PseudoElement::MozNumberText);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::MozNumberSpinBox.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::MozNumberSpinBox.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-number-spin-box") {
                     return Some(PseudoElement::MozNumberSpinBox);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::MozNumberSpinUp.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::MozNumberSpinUp.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-number-spin-up") {
                     return Some(PseudoElement::MozNumberSpinUp);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::MozNumberSpinDown.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::MozNumberSpinDown.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-number-spin-down") {
                     return Some(PseudoElement::MozNumberSpinDown);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::MozProgressBar.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::MozProgressBar.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-progress-bar") {
                     return Some(PseudoElement::MozProgressBar);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::MozRangeTrack.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::MozRangeTrack.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-range-track") {
                     return Some(PseudoElement::MozRangeTrack);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::MozRangeProgress.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::MozRangeProgress.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-range-progress") {
                     return Some(PseudoElement::MozRangeProgress);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::MozRangeThumb.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::MozRangeThumb.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-range-thumb") {
                     return Some(PseudoElement::MozRangeThumb);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::MozMeterBar.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::MozMeterBar.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-meter-bar") {
                     return Some(PseudoElement::MozMeterBar);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::MozPlaceholder.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::MozPlaceholder.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-placeholder") {
                     return Some(PseudoElement::MozPlaceholder);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::Placeholder.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::Placeholder.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("placeholder") {
                     return Some(PseudoElement::Placeholder);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::MozColorSwatch.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::MozColorSwatch.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-color-swatch") {
                     return Some(PseudoElement::MozColorSwatch);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::MozText.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::MozText.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-text") {
                     return Some(PseudoElement::MozText);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::OofPlaceholder.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::OofPlaceholder.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-oof-placeholder") {
                     return Some(PseudoElement::OofPlaceholder);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::FirstLetterContinuation.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::FirstLetterContinuation.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-first-letter-continuation") {
                     return Some(PseudoElement::FirstLetterContinuation);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::MozBlockInsideInlineWrapper.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::MozBlockInsideInlineWrapper.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-block-inside-inline-wrapper") {
                     return Some(PseudoElement::MozBlockInsideInlineWrapper);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::MozMathMLAnonymousBlock.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::MozMathMLAnonymousBlock.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-mathml-anonymous-block") {
                     return Some(PseudoElement::MozMathMLAnonymousBlock);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::MozXULAnonymousBlock.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::MozXULAnonymousBlock.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-xul-anonymous-block") {
                     return Some(PseudoElement::MozXULAnonymousBlock);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::HorizontalFramesetBorder.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::HorizontalFramesetBorder.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-hframeset-border") {
                     return Some(PseudoElement::HorizontalFramesetBorder);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::VerticalFramesetBorder.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::VerticalFramesetBorder.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-vframeset-border") {
                     return Some(PseudoElement::VerticalFramesetBorder);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::MozLineFrame.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::MozLineFrame.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-line-frame") {
                     return Some(PseudoElement::MozLineFrame);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::ButtonContent.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::ButtonContent.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-button-content") {
                     return Some(PseudoElement::ButtonContent);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::CellContent.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::CellContent.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-cell-content") {
                     return Some(PseudoElement::CellContent);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::DropDownList.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::DropDownList.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-dropdown-list") {
                     return Some(PseudoElement::DropDownList);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::FieldsetContent.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::FieldsetContent.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-fieldset-content") {
                     return Some(PseudoElement::FieldsetContent);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::FramesetBlank.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::FramesetBlank.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-frameset-blank") {
                     return Some(PseudoElement::FramesetBlank);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::MozDisplayComboboxControlFrame.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::MozDisplayComboboxControlFrame.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-display-comboboxcontrol-frame") {
                     return Some(PseudoElement::MozDisplayComboboxControlFrame);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::HtmlCanvasContent.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::HtmlCanvasContent.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-html-canvas-content") {
                     return Some(PseudoElement::HtmlCanvasContent);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::InlineTable.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::InlineTable.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-inline-table") {
                     return Some(PseudoElement::InlineTable);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::Table.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::Table.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-table") {
                     return Some(PseudoElement::Table);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::TableCell.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::TableCell.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-table-cell") {
                     return Some(PseudoElement::TableCell);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::TableColGroup.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::TableColGroup.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-table-column-group") {
                     return Some(PseudoElement::TableColGroup);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::TableCol.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::TableCol.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-table-column") {
                     return Some(PseudoElement::TableCol);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::TableWrapper.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::TableWrapper.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-table-wrapper") {
                     return Some(PseudoElement::TableWrapper);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::TableRowGroup.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::TableRowGroup.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-table-row-group") {
                     return Some(PseudoElement::TableRowGroup);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::TableRow.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::TableRow.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-table-row") {
                     return Some(PseudoElement::TableRow);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::Canvas.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::Canvas.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-canvas") {
                     return Some(PseudoElement::Canvas);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::PageBreak.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::PageBreak.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-pagebreak") {
                     return Some(PseudoElement::PageBreak);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::Page.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::Page.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-page") {
                     return Some(PseudoElement::Page);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::PageContent.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::PageContent.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-pagecontent") {
                     return Some(PseudoElement::PageContent);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::PageSequence.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::PageSequence.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-page-sequence") {
                     return Some(PseudoElement::PageSequence);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::ScrolledContent.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::ScrolledContent.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-scrolled-content") {
                     return Some(PseudoElement::ScrolledContent);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::ScrolledCanvas.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::ScrolledCanvas.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-scrolled-canvas") {
                     return Some(PseudoElement::ScrolledCanvas);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::ScrolledPageSequence.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::ScrolledPageSequence.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-scrolled-page-sequence") {
                     return Some(PseudoElement::ScrolledPageSequence);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::ColumnContent.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::ColumnContent.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-column-content") {
                     return Some(PseudoElement::ColumnContent);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::Viewport.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::Viewport.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-viewport") {
                     return Some(PseudoElement::Viewport);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::ViewportScroll.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::ViewportScroll.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-viewport-scroll") {
                     return Some(PseudoElement::ViewportScroll);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::AnonymousFlexItem.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::AnonymousFlexItem.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-anonymous-flex-item") {
                     return Some(PseudoElement::AnonymousFlexItem);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::AnonymousGridItem.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::AnonymousGridItem.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-anonymous-grid-item") {
                     return Some(PseudoElement::AnonymousGridItem);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::Ruby.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::Ruby.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-ruby") {
                     return Some(PseudoElement::Ruby);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::RubyBase.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::RubyBase.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-ruby-base") {
                     return Some(PseudoElement::RubyBase);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::RubyBaseContainer.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::RubyBaseContainer.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-ruby-base-container") {
                     return Some(PseudoElement::RubyBaseContainer);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::RubyText.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::RubyText.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-ruby-text") {
                     return Some(PseudoElement::RubyText);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::RubyTextContainer.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::RubyTextContainer.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-ruby-text-container") {
                     return Some(PseudoElement::RubyTextContainer);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::MozSVGMarkerAnonChild.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::MozSVGMarkerAnonChild.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-svg-marker-anon-child") {
                     return Some(PseudoElement::MozSVGMarkerAnonChild);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::MozSVGOuterSVGAnonChild.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::MozSVGOuterSVGAnonChild.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-svg-outer-svg-anon-child") {
                     return Some(PseudoElement::MozSVGOuterSVGAnonChild);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::MozSVGForeignContent.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::MozSVGForeignContent.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-svg-foreign-content") {
                     return Some(PseudoElement::MozSVGForeignContent);
                 }
             }
-            if in_ua_stylesheet || PseudoElement::MozSVGText.exposed_in_non_ua_sheets() {
+            if in_ua_style_sheet || PseudoElement::MozSVGText.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-svg-text") {
                     return Some(PseudoElement::MozSVGText);
                 }

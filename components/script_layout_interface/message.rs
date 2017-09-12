@@ -23,17 +23,17 @@ use std::sync::mpsc::{Receiver, Sender};
 use style::context::{QuirksMode, ReflowGoal};
 use style::properties::PropertyId;
 use style::selector_parser::PseudoElement;
-use style::stylesheets::Stylesheet;
+use style::style_sheets::StyleSheet;
 
 /// Asynchronous messages that script can send to layout.
 pub enum Msg {
-    /// Adds the given stylesheet to the document. The second stylesheet is the
+    /// Adds the given style_sheet to the document. The second style_sheet is the
     /// insertion point (if it exists, the sheet needs to be inserted before
     /// it).
-    AddStylesheet(ServoArc<Stylesheet>, Option<ServoArc<Stylesheet>>),
+    AddStyleSheet(ServoArc<StyleSheet>, Option<ServoArc<StyleSheet>>),
 
-    /// Removes a stylesheet from the document.
-    RemoveStylesheet(ServoArc<Stylesheet>),
+    /// Removes a style_sheet from the document.
+    RemoveStyleSheet(ServoArc<StyleSheet>),
 
     /// Change the quirks mode.
     SetQuirksMode(QuirksMode),
@@ -142,8 +142,8 @@ pub struct ScriptReflow {
     pub reflow_info: Reflow,
     /// The document node.
     pub document: TrustedNodeAddress,
-    /// Whether the document's stylesheets have changed since the last script reflow.
-    pub stylesheets_changed: bool,
+    /// Whether the document's style_sheets have changed since the last script reflow.
+    pub style_sheets_changed: bool,
     /// The current window size.
     pub window_size: WindowSizeData,
     /// The channel that we send a notification to.

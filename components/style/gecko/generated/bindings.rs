@@ -1932,7 +1932,7 @@ extern "C" {
 }
 extern "C" {
     pub fn Servo_StyleSheet_FromUTF8Bytes(loader: *mut Loader,
-                                          gecko_stylesheet:
+                                          gecko_style_sheet:
                                               *mut ServoStyleSheet,
                                           data: *const u8, data_len: usize,
                                           parsing_mode: SheetParsingMode,
@@ -2107,7 +2107,7 @@ extern "C" {
                                          RawServoStyleSheetContentsBorrowed,
                                      rule: *const nsACString, index: u32,
                                      nested: bool, loader: *mut Loader,
-                                     gecko_stylesheet: *mut ServoStyleSheet,
+                                     gecko_style_sheet: *mut ServoStyleSheet,
                                      rule_type: *mut u16) -> nsresult;
 }
 extern "C" {

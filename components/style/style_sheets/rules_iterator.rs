@@ -9,8 +9,8 @@ use media_queries::Device;
 use shared_lock::SharedRwLockReadGuard;
 use smallvec::SmallVec;
 use std::slice;
-use stylesheets::{CssRule, CssRules, DocumentRule, ImportRule, MediaRule, SupportsRule};
-use stylesheets::StyleSheetInDocument;
+use style_sheets::{CssRule, CssRules, DocumentRule, ImportRule, MediaRule, SupportsRule};
+use style_sheets::StyleSheetInDocument;
 
 /// An iterator over a list of rules.
 pub struct RulesIterator<'a, 'b, C>
@@ -99,7 +99,7 @@ impl<'a, 'b, C> Iterator for RulesIterator<'a, 'b, C>
                             continue;
                         }
                         import_rule
-                            .stylesheet.contents(self.guard).rules
+                            .style_sheet.contents(self.guard).rules
                             .read_with(self.guard).0.iter()
                     }
                     CssRule::Document(ref doc_rule) => {
@@ -190,7 +190,7 @@ impl NestedRuleIterationCondition for EffectiveRules {
         rule: &ImportRule)
         -> bool
     {
-        rule.stylesheet.is_effective_for_device(device, guard)
+        rule.style_sheet.is_effective_for_device(device, guard)
     }
 
     fn process_media(
@@ -269,7 +269,7 @@ impl NestedRuleIterationCondition for AllRules {
     }
 }
 
-/// An iterator over all the effective rules of a stylesheet.
+/// An iterator over all the effective rules of a style_sheet.
 ///
 /// NOTE: This iterator recurses into `@import` rules.
 pub type EffectiveRulesIterator<'a, 'b> = RulesIterator<'a, 'b, EffectiveRules>;

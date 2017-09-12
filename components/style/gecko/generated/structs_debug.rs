@@ -5786,7 +5786,7 @@ pub mod root {
             fn clone(&self) -> Self { *self }
         }
         #[repr(i32)]
-        /// The different changes that a stylesheet may go through.
+        /// The different changes that a style_sheet may go through.
         ///
         /// Used by the StyleSets in order to handle more efficiently some kinds of
         /// changes.

@@ -286,9 +286,9 @@ impl<'a> SelectorParser<'a> {
                                pseudo_class: &NonTSPseudoClass)
                                -> bool {
         pseudo_class.is_enabled_in_content() ||
-            (self.in_user_agent_stylesheet() &&
+            (self.in_user_agent_style_sheet() &&
              pseudo_class.has_any_flag(PSEUDO_CLASS_ENABLED_IN_UA_SHEETS)) ||
-            (self.in_chrome_stylesheet() &&
+            (self.in_chrome_style_sheet() &&
              pseudo_class.has_any_flag(PSEUDO_CLASS_ENABLED_IN_CHROME))
     }
 }
@@ -369,7 +369,7 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
     }
 
     fn parse_pseudo_element(&self, name: CowRcStr<'i>) -> Result<PseudoElement, ParseError<'i>> {
-        PseudoElement::from_slice(&name, self.in_user_agent_stylesheet())
+        PseudoElement::from_slice(&name, self.in_user_agent_style_sheet())
             .ok_or(SelectorParseError::UnsupportedPseudoClassOrElement(name.clone()).into())
     }
 

@@ -15,7 +15,7 @@ use dom::window::Window;
 use dom_struct::dom_struct;
 use servo_arc::Arc;
 use style::shared_lock::Locked;
-use style::stylesheets::{CssRules, CssRulesHelpers, KeyframesRule, RulesMutateError};
+use style::style_sheets::{CssRules, CssRulesHelpers, KeyframesRule, RulesMutateError};
 
 #[allow(unsafe_code)]
 unsafe_no_jsmanaged_fields!(RulesSource);
@@ -36,7 +36,7 @@ impl From<RulesMutateError> for Error {
 #[dom_struct]
 pub struct CSSRuleList {
     reflector_: Reflector,
-    parent_stylesheet: JS<CSSStyleSheet>,
+    parent_style_sheet: JS<CSSStyleSheet>,
     #[ignore_heap_size_of = "Arc"]
     rules: RulesSource,
     dom_rules: DOMRefCell<Vec<MutNullableJS<CSSRule>>>
@@ -49,8 +49,8 @@ pub enum RulesSource {
 
 impl CSSRuleList {
     #[allow(unrooted_must_root)]
-    pub fn new_inherited(parent_stylesheet: &CSSStyleSheet, rules: RulesSource) -> CSSRuleList {
-        let guard = parent_stylesheet.shared_lock().read();
+    pub fn new_inherited(parent_style_sheet: &CSSStyleSheet, rules: RulesSource) -> CSSRuleList {
+        let guard = parent_style_sheet.shared_lock().read();
         let dom_rules = match rules {
             RulesSource::Rules(ref rules) => {
                 rules.read_with(&guard).0.iter().map(|_| MutNullableJS::new(None)).collect()
@@ -62,16 +62,16 @@ impl CSSRuleList {
 
         CSSRuleList {
             reflector_: Reflector::new(),
-            parent_stylesheet: JS::from_ref(parent_stylesheet),
+            parent_style_sheet: JS::from_ref(parent_style_sheet),
             rules: rules,
             dom_rules: DOMRefCell::new(dom_rules),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, parent_stylesheet: &CSSStyleSheet,
+    pub fn new(window: &Window, parent_style_sheet: &CSSStyleSheet,
                rules: RulesSource) -> Root<CSSRuleList> {
-        reflect_dom_object(box CSSRuleList::new_inherited(parent_stylesheet, rules),
+        reflect_dom_object(box CSSRuleList::new_inherited(parent_style_sheet, rules),
                            window,
                            CSSRuleListBinding::Wrap)
     }
@@ -89,19 +89,19 @@ impl CSSRuleList {
         let window = global.as_window();
         let index = idx as usize;
 
-        let parent_stylesheet = self.parent_stylesheet.style_stylesheet();
+        let parent_style_sheet = self.parent_style_sheet.style_style_sheet();
         let new_rule = css_rules.with_raw_offset_arc(|arc| {
-            arc.insert_rule(&parent_stylesheet.shared_lock,
+            arc.insert_rule(&parent_style_sheet.shared_lock,
                             rule,
-                            &parent_stylesheet.contents,
+                            &parent_style_sheet.contents,
                             index,
                             nested,
                             None)
         })?;
 
 
-        let parent_stylesheet = &*self.parent_stylesheet;
-        let dom_rule = CSSRule::new_specific(&window, parent_stylesheet, new_rule);
+        let parent_style_sheet = &*self.parent_style_sheet;
+        let dom_rule = CSSRule::new_specific(&window, parent_style_sheet, new_rule);
         self.dom_rules.borrow_mut().insert(index, MutNullableJS::new(Some(&*dom_rule)));
         Ok((idx))
     }
@@ -109,7 +109,7 @@ impl CSSRuleList {
     // In case of a keyframe rule, index must be valid.
     pub fn remove_rule(&self, index: u32) -> ErrorResult {
         let index = index as usize;
-        let mut guard = self.parent_stylesheet.shared_lock().write();
+        let mut guard = self.parent_style_sheet.shared_lock().write();
 
         match self.rules {
             RulesSource::Rules(ref css_rules) => {
@@ -130,7 +130,7 @@ impl CSSRuleList {
         }
     }
 
-    // Remove parent stylesheets from all children
+    // Remove parent style_sheets from all children
     pub fn deparent_all(&self) {
         for rule in self.dom_rules.borrow().iter() {
             rule.get().map(|r| Root::upcast(r).deparent());
@@ -140,17 +140,17 @@ impl CSSRuleList {
     pub fn item(&self, idx: u32) -> Option<Root<CSSRule>> {
         self.dom_rules.borrow().get(idx as usize).map(|rule| {
             rule.or_init(|| {
-                let parent_stylesheet = &self.parent_stylesheet;
-                let guard = parent_stylesheet.shared_lock().read();
+                let parent_style_sheet = &self.parent_style_sheet;
+                let guard = parent_style_sheet.shared_lock().read();
                 match self.rules {
                     RulesSource::Rules(ref rules) => {
                         CSSRule::new_specific(self.global().as_window(),
-                                             parent_stylesheet,
+                                             parent_style_sheet,
                                              rules.read_with(&guard).0[idx as usize].clone())
                     }
                     RulesSource::Keyframes(ref rules) => {
                         Root::upcast(CSSKeyframeRule::new(self.global().as_window(),
-                                                          parent_stylesheet,
+                                                          parent_style_sheet,
                                                           rules.read_with(&guard)
                                                                 .keyframes[idx as usize]
                                                                 .clone()))

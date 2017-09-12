@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-//! Parsing of the stylesheet contents.
+//! Parsing of the style_sheet contents.
 
 use {Namespace, Prefix};
 use computed_values::font_family::FamilyName;
@@ -21,26 +21,26 @@ use servo_arc::Arc;
 use shared_lock::{Locked, SharedRwLock};
 use str::starts_with_ignore_ascii_case;
 use style_traits::{StyleParseError, ParseError};
-use stylesheets::{CssRule, CssRules, CssRuleType, Origin, StyleSheetLoader};
-use stylesheets::{DocumentRule, FontFeatureValuesRule, KeyframesRule, MediaRule};
-use stylesheets::{NamespaceRule, PageRule, StyleRule, SupportsRule, ViewportRule};
-use stylesheets::document_rule::DocumentCondition;
-use stylesheets::font_feature_values_rule::parse_family_name_list;
-use stylesheets::keyframes_rule::parse_keyframe_list;
-use stylesheets::stylesheet::Namespaces;
-use stylesheets::supports_rule::SupportsCondition;
-use stylesheets::viewport_rule;
+use style_sheets::{CssRule, CssRules, CssRuleType, Origin, StyleSheetLoader};
+use style_sheets::{DocumentRule, FontFeatureValuesRule, KeyframesRule, MediaRule};
+use style_sheets::{NamespaceRule, PageRule, StyleRule, SupportsRule, ViewportRule};
+use style_sheets::document_rule::DocumentCondition;
+use style_sheets::font_feature_values_rule::parse_family_name_list;
+use style_sheets::keyframes_rule::parse_keyframe_list;
+use style_sheets::style_sheet::Namespaces;
+use style_sheets::supports_rule::SupportsCondition;
+use style_sheets::viewport_rule;
 use values::CustomIdent;
 use values::KeyframesName;
 use values::specified::url::SpecifiedUrl;
 
-/// The parser for the top-level rules in a stylesheet.
+/// The parser for the top-level rules in a style_sheet.
 pub struct TopLevelRuleParser<'a, R: 'a> {
-    /// The origin of the stylesheet we're parsing.
-    pub stylesheet_origin: Origin,
+    /// The origin of the style_sheet we're parsing.
+    pub style_sheet_origin: Origin,
     /// A reference to the lock we need to use to create rules.
     pub shared_lock: &'a SharedRwLock,
-    /// A reference to a stylesheet loader if applicable, for `@import` rules.
+    /// A reference to a style_sheet loader if applicable, for `@import` rules.
     pub loader: Option<&'a StyleSheetLoader>,
     /// The top-level parser context.
     ///
@@ -64,7 +64,7 @@ pub struct TopLevelRuleParser<'a, R: 'a> {
 impl<'b, R> TopLevelRuleParser<'b, R> {
     fn nested<'a: 'b>(&'a self) -> NestedRuleParser<'a, 'b, R> {
         NestedRuleParser {
-            stylesheet_origin: self.stylesheet_origin,
+            style_sheet_origin: self.style_sheet_origin,
             shared_lock: self.shared_lock,
             context: &self.context,
             error_context: &self.error_context,
@@ -97,7 +97,7 @@ pub enum State {
     Imports = 2,
     /// We're parsing `@namespace` rules.
     Namespaces = 3,
-    /// We're parsing the main body of the stylesheet.
+    /// We're parsing the main body of the style_sheet.
     Body = 4,
 }
 
@@ -205,7 +205,7 @@ impl<'a, 'i, R: ParseErrorReporter> AtRuleParser<'i> for TopLevelRuleParser<'a, 
                 let prelude = AtRuleNonBlockPrelude::Namespace(prefix, url, location);
                 return Ok(AtRuleType::WithoutBlock(prelude));
             },
-            // @charset is removed by rust-cssparser if it’s the first rule in the stylesheet
+            // @charset is removed by rust-cssparser if it’s the first rule in the style_sheet
             // anything left is invalid.
             "charset" => {
                 self.had_hierarchy_error = true;
@@ -232,9 +232,9 @@ impl<'a, 'i, R: ParseErrorReporter> AtRuleParser<'i> for TopLevelRuleParser<'a, 
         match prelude {
             AtRuleNonBlockPrelude::Import(specified_url, media, location) => {
                 let loader =
-                    self.loader.expect("Expected a stylesheet loader for @import");
+                    self.loader.expect("Expected a style_sheet loader for @import");
 
-                let import_rule = loader.request_stylesheet(
+                let import_rule = loader.request_style_sheet(
                     specified_url,
                     location,
                     &self.context,
@@ -302,7 +302,7 @@ impl<'a, 'i, R: ParseErrorReporter> QualifiedRuleParser<'i> for TopLevelRulePars
 
 #[derive(Clone)]  // shallow, relatively cheap .clone
 struct NestedRuleParser<'a, 'b: 'a, R: 'b> {
-    stylesheet_origin: Origin,
+    style_sheet_origin: Origin,
     shared_lock: &'a SharedRwLock,
     context: &'a ParserContext<'b>,
     error_context: &'a ParserErrorContext<'b, R>,
@@ -319,7 +319,7 @@ impl<'a, 'b, R: ParseErrorReporter> NestedRuleParser<'a, 'b, R> {
             ParserContext::new_with_rule_type(self.context, rule_type, self.namespaces);
 
         let nested_parser = NestedRuleParser {
-            stylesheet_origin: self.stylesheet_origin,
+            style_sheet_origin: self.style_sheet_origin,
             shared_lock: self.shared_lock,
             context: &context,
             error_context: &self.error_context,
@@ -555,7 +555,7 @@ impl<'a, 'b, 'i, R: ParseErrorReporter> QualifiedRuleParser<'i> for NestedRulePa
         input: &mut Parser<'i, 't>
     ) -> Result<QualifiedRuleParserPrelude, ParseError<'i>> {
         let selector_parser = SelectorParser {
-            stylesheet_origin: self.stylesheet_origin,
+            style_sheet_origin: self.style_sheet_origin,
             namespaces: self.namespaces,
             url_data: Some(self.context.url_data),
         };

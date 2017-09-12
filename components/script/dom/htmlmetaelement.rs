@@ -27,14 +27,14 @@ use std::sync::atomic::AtomicBool;
 use style::attr::AttrValue;
 use style::media_queries::MediaList;
 use style::str::HTML_SPACE_CHARACTERS;
-use style::stylesheets::{StyleSheet, StyleSheetContents, CssRule, CssRules, Origin, ViewportRule};
+use style::style_sheets::{StyleSheet, StyleSheetContents, CssRule, CssRules, Origin, ViewportRule};
 
 #[dom_struct]
 pub struct HTMLMetaElement {
     htmlelement: HTMLElement,
     #[ignore_heap_size_of = "Arc"]
-    stylesheet: DOMRefCell<Option<Arc<StyleSheet>>>,
-    cssom_stylesheet: MutNullableJS<CSSStyleSheet>,
+    style_sheet: DOMRefCell<Option<Arc<StyleSheet>>>,
+    cssom_style_sheet: MutNullableJS<CSSStyleSheet>,
 }
 
 impl HTMLMetaElement {
@@ -43,8 +43,8 @@ impl HTMLMetaElement {
                      document: &Document) -> HTMLMetaElement {
         HTMLMetaElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
-            stylesheet: DOMRefCell::new(None),
-            cssom_stylesheet: MutNullableJS::new(None),
+            style_sheet: DOMRefCell::new(None),
+            cssom_style_sheet: MutNullableJS::new(None),
         }
     }
 
@@ -57,13 +57,13 @@ impl HTMLMetaElement {
                            HTMLMetaElementBinding::Wrap)
     }
 
-    pub fn get_stylesheet(&self) -> Option<Arc<StyleSheet>> {
-        self.stylesheet.borrow().clone()
+    pub fn get_style_sheet(&self) -> Option<Arc<StyleSheet>> {
+        self.style_sheet.borrow().clone()
     }
 
-    pub fn get_cssom_stylesheet(&self) -> Option<Root<CSSStyleSheet>> {
-        self.get_stylesheet().map(|sheet| {
-            self.cssom_stylesheet.or_init(|| {
+    pub fn get_cssom_style_sheet(&self) -> Option<Root<CSSStyleSheet>> {
+        self.get_style_sheet().map(|sheet| {
+            self.cssom_style_sheet.or_init(|| {
                 CSSStyleSheet::new(&window_from_node(self),
                                    self.upcast::<Element>(),
                                    "text/css".into(),
@@ -115,8 +115,8 @@ impl HTMLMetaElement {
                         shared_lock: shared_lock.clone(),
                         disabled: AtomicBool::new(false),
                     });
-                    *self.stylesheet.borrow_mut() = Some(sheet.clone());
-                    document.add_stylesheet(self.upcast(), sheet);
+                    *self.style_sheet.borrow_mut() = Some(sheet.clone());
+                    document.add_style_sheet(self.upcast(), sheet);
                 }
             }
         }
@@ -196,8 +196,8 @@ impl VirtualMethods for HTMLMetaElement {
         if context.tree_in_doc {
             self.process_referrer_attribute();
 
-            if let Some(ref s) = *self.stylesheet.borrow() {
-                document_from_node(self).remove_stylesheet(self.upcast(), s);
+            if let Some(ref s) = *self.style_sheet.borrow() {
+                document_from_node(self).remove_style_sheet(self.upcast(), s);
             }
         }
     }

@@ -118,7 +118,7 @@ use style::shared_lock::{SharedRwLock, Locked};
 use style::thread_state;
 use style::values::{CSSFloat, Either};
 use style::values::{specified, computed};
-use stylesheet_loader::StyleSheetOwner;
+use style_sheet_loader::StyleSheetOwner;
 
 // TODO: Update focus state when the top-level browsing context gains or loses system focus,
 // and when the element enters or leaves a browsing context container.
@@ -2680,7 +2680,7 @@ impl Element {
         })
     }
 
-    pub fn as_stylesheet_owner(&self) -> Option<&StyleSheetOwner> {
+    pub fn as_style_sheet_owner(&self) -> Option<&StyleSheetOwner> {
         if let Some(s) = self.downcast::<HTMLStyleElement>() {
             return Some(s as &StyleSheetOwner)
         }

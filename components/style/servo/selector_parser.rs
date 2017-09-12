@@ -417,7 +417,7 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
             "target" => Target,
             "visited" => Visited,
             "-servo-nonzero-border" => {
-                if !self.in_user_agent_stylesheet() {
+                if !self.in_user_agent_style_sheet() {
                     return Err(SelectorParseError::UnexpectedIdent(
                         "-servo-nonzero-border".into()).into());
                 }
@@ -439,7 +439,7 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
                 Lang(parser.expect_ident_or_string()?.as_ref().into())
             }
             "-servo-case-sensitive-type-attr" => {
-                if !self.in_user_agent_stylesheet() {
+                if !self.in_user_agent_style_sheet() {
                     return Err(SelectorParseError::UnexpectedIdent(name.clone()).into());
                 }
                 ServoCaseSensitiveTypeAttr(Atom::from(parser.expect_ident()?.as_ref()))
@@ -457,73 +457,73 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
             "after" => After,
             "selection" => Selection,
             "-servo-details-summary" => {
-                if !self.in_user_agent_stylesheet() {
+                if !self.in_user_agent_style_sheet() {
                     return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
                 }
                 DetailsSummary
             },
             "-servo-details-content" => {
-                if !self.in_user_agent_stylesheet() {
+                if !self.in_user_agent_style_sheet() {
                     return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
                 }
                 DetailsContent
             },
             "-servo-text" => {
-                if !self.in_user_agent_stylesheet() {
+                if !self.in_user_agent_style_sheet() {
                     return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
                 }
                 ServoText
             },
             "-servo-input-text" => {
-                if !self.in_user_agent_stylesheet() {
+                if !self.in_user_agent_style_sheet() {
                     return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
                 }
                 ServoInputText
             },
             "-servo-table-wrapper" => {
-                if !self.in_user_agent_stylesheet() {
+                if !self.in_user_agent_style_sheet() {
                     return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
                 }
                 ServoTableWrapper
             },
             "-servo-anonymous-table-wrapper" => {
-                if !self.in_user_agent_stylesheet() {
+                if !self.in_user_agent_style_sheet() {
                     return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
                 }
                 ServoAnonymousTableWrapper
             },
             "-servo-anonymous-table" => {
-                if !self.in_user_agent_stylesheet() {
+                if !self.in_user_agent_style_sheet() {
                     return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
                 }
                 ServoAnonymousTable
             },
             "-servo-anonymous-table-row" => {
-                if !self.in_user_agent_stylesheet() {
+                if !self.in_user_agent_style_sheet() {
                     return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
                 }
                 ServoAnonymousTableRow
             },
             "-servo-anonymous-table-cell" => {
-                if !self.in_user_agent_stylesheet() {
+                if !self.in_user_agent_style_sheet() {
                     return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
                 }
                 ServoAnonymousTableCell
             },
             "-servo-anonymous-block" => {
-                if !self.in_user_agent_stylesheet() {
+                if !self.in_user_agent_style_sheet() {
                     return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
                 }
                 ServoAnonymousBlock
             },
             "-servo-inline-block-wrapper" => {
-                if !self.in_user_agent_stylesheet() {
+                if !self.in_user_agent_style_sheet() {
                     return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
                 }
                 ServoInlineBlockWrapper
             },
             "-servo-input-absolute" => {
-                if !self.in_user_agent_stylesheet() {
+                if !self.in_user_agent_style_sheet() {
                     return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
                 }
                 ServoInlineAbsolute

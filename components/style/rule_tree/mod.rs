@@ -19,7 +19,7 @@ use std::io::{self, Write};
 use std::mem;
 use std::ptr;
 use std::sync::atomic::{AtomicPtr, AtomicUsize, Ordering};
-use stylesheets::StyleRule;
+use style_sheets::StyleRule;
 use thread_state;
 
 /// The rule tree, the structure servo uses to preserve the results of selector
@@ -469,7 +469,7 @@ pub enum CascadeLevel {
     PresHints,
     /// User normal rules.
     UserNormal,
-    /// XBL <stylesheet> rules.
+    /// XBL <style_sheet> rules.
     XBL,
     /// Author normal rules.
     AuthorNormal,

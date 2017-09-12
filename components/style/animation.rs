@@ -18,7 +18,7 @@ use properties::longhands::animation_play_state::computed_value::single_value::T
 use rule_tree::CascadeLevel;
 use servo_arc::Arc;
 use std::sync::mpsc::Sender;
-use stylesheets::keyframes_rule::{KeyframesStep, KeyframesStepValue};
+use style_sheets::keyframes_rule::{KeyframesStep, KeyframesStepValue};
 use timer::Timer;
 use values::computed::Time;
 use values::computed::transform::TimingFunction;

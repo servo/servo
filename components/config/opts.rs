@@ -63,7 +63,7 @@ pub struct Opts {
     /// won't be loaded
     pub userscripts: Option<String>,
 
-    pub user_stylesheets: Vec<(Vec<u8>, ServoUrl)>,
+    pub user_style_sheets: Vec<(Vec<u8>, ServoUrl)>,
 
     pub output_file: Option<String>,
 
@@ -506,7 +506,7 @@ pub fn default_opts() -> Opts {
         mem_profiler_period: None,
         nonincremental_layout: false,
         userscripts: None,
-        user_stylesheets: Vec::new(),
+        user_style_sheets: Vec::new(),
         output_file: None,
         replace_surrogates: false,
         gc_profile: false,
@@ -781,7 +781,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         None => default_user_agent_string(DEFAULT_USER_AGENT).into(),
     };
 
-    let user_stylesheets = opt_match.opt_strs("user-stylesheet").iter().map(|filename| {
+    let user_style_sheets = opt_match.opt_strs("user-stylesheet").iter().map(|filename| {
         let path = cwd.join(filename);
         let url = ServoUrl::from_url(Url::from_file_path(&path).unwrap());
         let mut contents = Vec::new();
@@ -808,7 +808,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         mem_profiler_period: mem_profiler_period,
         nonincremental_layout: nonincremental_layout,
         userscripts: opt_match.opt_default("userscripts", ""),
-        user_stylesheets: user_stylesheets,
+        user_style_sheets: user_style_sheets,
         output_file: opt_match.opt_str("o"),
         replace_surrogates: debug_options.replace_surrogates,
         gc_profile: debug_options.gc_profile,

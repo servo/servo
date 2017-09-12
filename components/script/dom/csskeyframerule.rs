@@ -14,7 +14,7 @@ use dom::window::Window;
 use dom_struct::dom_struct;
 use servo_arc::Arc;
 use style::shared_lock::{Locked, ToCssWithGuard};
-use style::stylesheets::keyframes_rule::Keyframe;
+use style::style_sheets::keyframes_rule::Keyframe;
 
 #[dom_struct]
 pub struct CSSKeyframeRule {
@@ -25,19 +25,19 @@ pub struct CSSKeyframeRule {
 }
 
 impl CSSKeyframeRule {
-    fn new_inherited(parent_stylesheet: &CSSStyleSheet, keyframerule: Arc<Locked<Keyframe>>)
+    fn new_inherited(parent_style_sheet: &CSSStyleSheet, keyframerule: Arc<Locked<Keyframe>>)
                      -> CSSKeyframeRule {
         CSSKeyframeRule {
-            cssrule: CSSRule::new_inherited(parent_stylesheet),
+            cssrule: CSSRule::new_inherited(parent_style_sheet),
             keyframerule: keyframerule,
             style_decl: Default::default(),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, parent_stylesheet: &CSSStyleSheet,
+    pub fn new(window: &Window, parent_style_sheet: &CSSStyleSheet,
                keyframerule: Arc<Locked<Keyframe>>) -> Root<CSSKeyframeRule> {
-        reflect_dom_object(box CSSKeyframeRule::new_inherited(parent_stylesheet, keyframerule),
+        reflect_dom_object(box CSSKeyframeRule::new_inherited(parent_style_sheet, keyframerule),
                            window,
                            CSSKeyframeRuleBinding::Wrap)
     }

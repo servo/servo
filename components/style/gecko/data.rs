@@ -17,7 +17,7 @@ use media_queries::{Device, MediaList};
 use properties::ComputedValues;
 use servo_arc::Arc;
 use shared_lock::{Locked, StyleSheetGuards, SharedRwLockReadGuard};
-use stylesheets::{PerOrigin, StyleSheetContents, StyleSheetInDocument};
+use style_sheets::{PerOrigin, StyleSheetContents, StyleSheetInDocument};
 use stylist::{ExtraStyleData, Stylist};
 
 /// Little wrapper to a Gecko style sheet.
@@ -101,7 +101,7 @@ impl StyleSheetInDocument for GeckoStyleSheet {
         }
     }
 
-    // All the stylesheets Servo knows about are enabled, because that state is
+    // All the style_sheets Servo knows about are enabled, because that state is
     // handled externally by Gecko.
     fn enabled(&self) -> bool {
         true
@@ -148,8 +148,8 @@ impl PerDocumentStyleData {
 }
 
 impl PerDocumentStyleDataImpl {
-    /// Recreate the style data if the stylesheets have changed.
-    pub fn flush_stylesheets<E>(
+    /// Recreate the style data if the style_sheets have changed.
+    pub fn flush_style_sheets<E>(
         &mut self,
         guard: &SharedRwLockReadGuard,
         document_element: Option<E>,

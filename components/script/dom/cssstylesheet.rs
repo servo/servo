@@ -17,15 +17,15 @@ use dom_struct::dom_struct;
 use servo_arc::Arc;
 use std::cell::Cell;
 use style::shared_lock::SharedRwLock;
-use style::stylesheets::StyleSheet as StyleStyleSheet;
+use style::style_sheets::StyleSheet as StyleStyleSheet;
 
 #[dom_struct]
 pub struct CSSStyleSheet {
-    stylesheet: StyleSheet,
+    style_sheet: StyleSheet,
     owner: JS<Element>,
     rulelist: MutNullableJS<CSSRuleList>,
     #[ignore_heap_size_of = "Arc"]
-    style_stylesheet: Arc<StyleStyleSheet>,
+    style_style_sheet: Arc<StyleStyleSheet>,
     origin_clean: Cell<bool>,
 }
 
@@ -34,12 +34,12 @@ impl CSSStyleSheet {
                      type_: DOMString,
                      href: Option<DOMString>,
                      title: Option<DOMString>,
-                     stylesheet: Arc<StyleStyleSheet>) -> CSSStyleSheet {
+                     style_sheet: Arc<StyleStyleSheet>) -> CSSStyleSheet {
         CSSStyleSheet {
-            stylesheet: StyleSheet::new_inherited(type_, href, title),
+            style_sheet: StyleSheet::new_inherited(type_, href, title),
             owner: JS::from_ref(owner),
             rulelist: MutNullableJS::new(None),
-            style_stylesheet: stylesheet,
+            style_style_sheet: style_sheet,
             origin_clean: Cell::new(true),
         }
     }
@@ -50,15 +50,15 @@ impl CSSStyleSheet {
                type_: DOMString,
                href: Option<DOMString>,
                title: Option<DOMString>,
-               stylesheet: Arc<StyleStyleSheet>) -> Root<CSSStyleSheet> {
-        reflect_dom_object(box CSSStyleSheet::new_inherited(owner, type_, href, title, stylesheet),
+               style_sheet: Arc<StyleStyleSheet>) -> Root<CSSStyleSheet> {
+        reflect_dom_object(box CSSStyleSheet::new_inherited(owner, type_, href, title, style_sheet),
                            window,
                            CSSStyleSheetBinding::Wrap)
     }
 
     fn rulelist(&self) -> Root<CSSRuleList> {
         self.rulelist.or_init(|| {
-            let rules = self.style_stylesheet.contents.rules.clone();
+            let rules = self.style_style_sheet.contents.rules.clone();
             CSSRuleList::new(
                 self.global().as_window(),
                 self,
@@ -68,21 +68,21 @@ impl CSSStyleSheet {
     }
 
     pub fn disabled(&self) -> bool {
-        self.style_stylesheet.disabled()
+        self.style_style_sheet.disabled()
     }
 
     pub fn set_disabled(&self, disabled: bool) {
-        if self.style_stylesheet.set_disabled(disabled) {
-            self.global().as_window().Document().invalidate_stylesheets();
+        if self.style_style_sheet.set_disabled(disabled) {
+            self.global().as_window().Document().invalidate_style_sheets();
         }
     }
 
     pub fn shared_lock(&self) -> &SharedRwLock {
-        &self.style_stylesheet.shared_lock
+        &self.style_style_sheet.shared_lock
     }
 
-    pub fn style_stylesheet(&self) -> &StyleStyleSheet {
-        &self.style_stylesheet
+    pub fn style_style_sheet(&self) -> &StyleStyleSheet {
+        &self.style_style_sheet
     }
 
     pub fn set_origin_clean(&self, origin_clean: bool) {

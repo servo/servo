@@ -108,7 +108,7 @@ use style::properties::PropertyId;
 use style::properties::longhands::overflow_x;
 use style::selector_parser::PseudoElement;
 use style::str::HTML_SPACE_CHARACTERS;
-use style::stylesheets::CssRuleType;
+use style::style_sheets::CssRuleType;
 use style_traits::PARSING_MODE_DEFAULT;
 use task_source::dom_manipulation::DOMManipulationTaskSource;
 use task_source::file_reading::FileReadingTaskSource;
@@ -1239,7 +1239,7 @@ impl Window {
 
         let document = self.Document();
 
-        let stylesheets_changed = document.flush_stylesheets_for_reflow();
+        let style_sheets_changed = document.flush_style_sheets_for_reflow();
 
         // Send new document and relevant styles to layout.
         let reflow = ScriptReflow {
@@ -1248,7 +1248,7 @@ impl Window {
                 page_clip_rect: self.page_clip_rect.get(),
             },
             document: self.Document().upcast::<Node>().to_trusted_node_address(),
-            stylesheets_changed,
+            style_sheets_changed,
             window_size,
             query_type,
             script_join_chan: join_chan,

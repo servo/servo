@@ -135,8 +135,8 @@ use style::media_queries::{Device, MediaList, MediaType};
 use style::properties::PropertyId;
 use style::selector_parser::SnapshotMap;
 use style::servo::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, REPOSITION, STORE_OVERFLOW};
-use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, StylesheetGuards};
-use style::stylesheets::{Origin, OriginSet, Stylesheet, DocumentStyleSheet, StylesheetInDocument, UserAgentStylesheets};
+use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, StyleSheetGuards};
+use style::style_sheets::{Origin, OriginSet, StyleSheet, DocumentStyleSheet, StyleSheetInDocument, UserAgentStyleSheets};
 use style::stylist::Stylist;
 use style::thread_state;
 use style::timer::Timer;
@@ -219,7 +219,7 @@ pub struct LayoutThread {
     /// The root of the flow tree.
     root_flow: RefCell<Option<FlowRef>>,
 
-    /// The document-specific shared lock used for author-origin stylesheets
+    /// The document-specific shared lock used for author-origin style_sheets
     document_shared_lock: Option<SharedRwLock>,
 
     /// The list of currently-running animations.
@@ -404,7 +404,7 @@ impl<'a, 'b: 'a> RwData<'a, 'b> {
     }
 }
 
-fn add_font_face_rules(stylesheet: &Stylesheet,
+fn add_font_face_rules(style_sheet: &StyleSheet,
                        guard: &SharedRwLockReadGuard,
                        device: &Device,
                        font_cache_thread: &FontCacheThread,
@@ -412,7 +412,7 @@ fn add_font_face_rules(stylesheet: &Stylesheet,
                        outstanding_web_fonts_counter: &Arc<AtomicUsize>) {
     if opts::get().load_webfonts_synchronously {
         let (sender, receiver) = ipc::channel().unwrap();
-        stylesheet.effective_font_face_rules(&device, guard, |rule| {
+        style_sheet.effective_font_face_rules(&device, guard, |rule| {
             if let Some(font_face) = rule.font_face() {
                 let effective_sources = font_face.effective_sources();
                 font_cache_thread.add_web_font(font_face.family().clone(),
@@ -422,7 +422,7 @@ fn add_font_face_rules(stylesheet: &Stylesheet,
             }
         })
     } else {
-        stylesheet.effective_font_face_rules(&device, guard, |rule| {
+        style_sheet.effective_font_face_rules(&device, guard, |rule| {
             if let Some(font_face) = rule.font_face() {
                 let effective_sources = font_face.effective_sources();
                 outstanding_web_fonts_counter.fetch_add(1, Ordering::SeqCst);
@@ -560,7 +560,7 @@ impl LayoutThread {
 
     // Create a layout context for use in building display lists, hit testing, &c.
     fn build_layout_context<'a>(&'a self,
-                                guards: StylesheetGuards<'a>,
+                                guards: StyleSheetGuards<'a>,
                                 script_initiated_layout: bool,
                                 snapshot_map: &'a SnapshotMap)
                                 -> LayoutContext<'a> {
@@ -659,30 +659,30 @@ impl LayoutThread {
         possibly_locked_rw_data: &mut RwData<'a, 'b>,
     ) -> bool {
         match request {
-            Msg::AddStylesheet(stylesheet, before_stylesheet) => {
-                let guard = stylesheet.shared_lock.read();
-                self.handle_add_stylesheet(&stylesheet, &guard);
+            Msg::AddStyleSheet(style_sheet, before_style_sheet) => {
+                let guard = style_sheet.shared_lock.read();
+                self.handle_add_style_sheet(&style_sheet, &guard);
 
-                match before_stylesheet {
+                match before_style_sheet {
                     Some(insertion_point) => {
-                        self.stylist.insert_stylesheet_before(
-                            DocumentStyleSheet(stylesheet.clone()),
+                        self.stylist.insert_style_sheet_before(
+                            DocumentStyleSheet(style_sheet.clone()),
                             DocumentStyleSheet(insertion_point),
                             &guard,
                         )
                     }
                     None => {
-                        self.stylist.append_stylesheet(
-                            DocumentStyleSheet(stylesheet.clone()),
+                        self.stylist.append_style_sheet(
+                            DocumentStyleSheet(style_sheet.clone()),
                             &guard,
                         )
                     }
                 }
             }
-            Msg::RemoveStylesheet(stylesheet) => {
-                let guard = stylesheet.shared_lock.read();
-                self.stylist.remove_stylesheet(
-                    DocumentStyleSheet(stylesheet.clone()),
+            Msg::RemoveStyleSheet(style_sheet) => {
+                let guard = style_sheet.shared_lock.read();
+                self.stylist.remove_style_sheet(
+                    DocumentStyleSheet(style_sheet.clone()),
                     &guard,
                 );
             }
@@ -851,15 +851,15 @@ impl LayoutThread {
         let _ = self.parallel_traversal.take();
     }
 
-    fn handle_add_stylesheet(
+    fn handle_add_style_sheet(
         &self,
-        stylesheet: &Stylesheet,
+        style_sheet: &StyleSheet,
         guard: &SharedRwLockReadGuard,
     ) {
         // Find all font-face rules and notify the font cache of them.
         // GWTODO: Need to handle unloading web fonts.
-        if stylesheet.is_effective_for_device(self.stylist.device(), &guard) {
-            add_font_face_rules(&*stylesheet,
+        if style_sheet.is_effective_for_device(self.stylist.device(), &guard) {
+            add_font_face_rules(&*style_sheet,
                                 &guard,
                                 self.stylist.device(),
                                 &self.font_cache_thread,
@@ -879,7 +879,7 @@ impl LayoutThread {
         }
     }
 
-    /// Sets quirks mode for the document, causing the quirks mode stylesheet to be used.
+    /// Sets quirks mode for the document, causing the quirks mode style_sheet to be used.
     fn handle_set_quirks_mode<'a, 'b>(&mut self, quirks_mode: QuirksMode) {
         self.stylist.set_quirks_mode(quirks_mode);
     }
@@ -1148,7 +1148,7 @@ impl LayoutThread {
         let sheet_origins_affected_by_device_change =
             self.stylist.set_device(device, &author_guard);
 
-        self.stylist.force_stylesheet_origins_dirty(sheet_origins_affected_by_device_change);
+        self.stylist.force_style_sheet_origins_dirty(sheet_origins_affected_by_device_change);
         self.viewport_size =
             self.stylist.viewport_constraints().map_or(current_screen_size, |constraints| {
                 debug!("Viewport constraints: {:?}", constraints);
@@ -1174,9 +1174,9 @@ impl LayoutThread {
         }
 
         // If the entire flow tree is invalid, then it will be reflowed anyhow.
-        let ua_stylesheets = &*UA_STYLESHEETS;
-        let ua_or_user_guard = ua_stylesheets.shared_lock.read();
-        let guards = StylesheetGuards {
+        let ua_style_sheets = &*UA_STYLESHEETS;
+        let ua_or_user_guard = ua_style_sheets.shared_lock.read();
+        let guards = StyleSheetGuards {
             author: &author_guard,
             ua_or_user: &ua_or_user_guard,
         };
@@ -1187,21 +1187,21 @@ impl LayoutThread {
                 let mut ua_and_user = OriginSet::empty();
                 ua_and_user |= Origin::User;
                 ua_and_user |= Origin::UserAgent;
-                self.stylist.force_stylesheet_origins_dirty(ua_and_user);
-                for stylesheet in &ua_stylesheets.user_or_user_agent_stylesheets {
-                    self.handle_add_stylesheet(stylesheet, &ua_or_user_guard);
+                self.stylist.force_style_sheet_origins_dirty(ua_and_user);
+                for style_sheet in &ua_style_sheets.user_or_user_agent_style_sheets {
+                    self.handle_add_style_sheet(style_sheet, &ua_or_user_guard);
                 }
             }
 
-            if data.stylesheets_changed {
+            if data.style_sheets_changed {
                 debug!("Doc sheets changed, flushing author sheets too");
-                self.stylist.force_stylesheet_origins_dirty(Origin::Author.into());
+                self.stylist.force_style_sheet_origins_dirty(Origin::Author.into());
             }
 
             let mut extra_data = Default::default();
             self.stylist.flush(
                 &guards,
-                Some(ua_stylesheets),
+                Some(ua_style_sheets),
                 &mut extra_data,
                 Some(element),
             );
@@ -1489,7 +1489,7 @@ impl LayoutThread {
             let author_shared_lock = self.document_shared_lock.clone().unwrap();
             let author_guard = author_shared_lock.read();
             let ua_or_user_guard = UA_STYLESHEETS.shared_lock.read();
-            let guards = StylesheetGuards {
+            let guards = StyleSheetGuards {
                 author: &author_guard,
                 ua_or_user: &ua_or_user_guard,
             };
@@ -1707,11 +1707,11 @@ fn get_root_flow_background_color(flow: &mut Flow) -> webrender_api::ColorF {
                   .to_gfx_color()
 }
 
-fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
-    fn parse_ua_stylesheet(shared_lock: &SharedRwLock, filename: &'static str)
-                           -> Result<Stylesheet, &'static str> {
+fn get_ua_style_sheets() -> Result<UserAgentStyleSheets, &'static str> {
+    fn parse_ua_style_sheet(shared_lock: &SharedRwLock, filename: &'static str)
+                           -> Result<StyleSheet, &'static str> {
         let res = read_resource_file(filename).map_err(|_| filename)?;
-        Ok(Stylesheet::from_bytes(
+        Ok(StyleSheet::from_bytes(
             &res,
             ServoUrl::parse(&format!("chrome://resources/{:?}", filename)).unwrap(),
             None,
@@ -1725,24 +1725,24 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
     }
 
     let shared_lock = SharedRwLock::new();
-    let mut user_or_user_agent_stylesheets = vec!();
+    let mut user_or_user_agent_style_sheets = vec!();
     // FIXME: presentational-hints.css should be at author origin with zero specificity.
     //        (Does it make a difference?)
     for &filename in &["user-agent.css", "servo.css", "presentational-hints.css"] {
-        user_or_user_agent_stylesheets.push(parse_ua_stylesheet(&shared_lock, filename)?);
+        user_or_user_agent_style_sheets.push(parse_ua_style_sheet(&shared_lock, filename)?);
     }
-    for &(ref contents, ref url) in &opts::get().user_stylesheets {
-        user_or_user_agent_stylesheets.push(Stylesheet::from_bytes(
+    for &(ref contents, ref url) in &opts::get().user_style_sheets {
+        user_or_user_agent_style_sheets.push(StyleSheet::from_bytes(
             &contents, url.clone(), None, None, Origin::User, MediaList::empty(),
             shared_lock.clone(), None, &RustLogReporter, QuirksMode::NoQuirks));
     }
 
-    let quirks_mode_stylesheet = parse_ua_stylesheet(&shared_lock, "quirks-mode.css")?;
+    let quirks_mode_style_sheet = parse_ua_style_sheet(&shared_lock, "quirks-mode.css")?;
 
-    Ok(UserAgentStylesheets {
+    Ok(UserAgentStyleSheets {
         shared_lock: shared_lock,
-        user_or_user_agent_stylesheets: user_or_user_agent_stylesheets,
-        quirks_mode_stylesheet: quirks_mode_stylesheet,
+        user_or_user_agent_style_sheets: user_or_user_agent_style_sheets,
+        quirks_mode_style_sheet: quirks_mode_style_sheet,
     })
 }
 
@@ -1761,11 +1761,11 @@ fn reflow_query_type_needs_display_list(query_type: &ReflowQueryType) -> bool {
 }
 
 lazy_static! {
-    static ref UA_STYLESHEETS: UserAgentStylesheets = {
-        match get_ua_stylesheets() {
-            Ok(stylesheets) => stylesheets,
+    static ref UA_STYLESHEETS: UserAgentStyleSheets = {
+        match get_ua_style_sheets() {
+            Ok(style_sheets) => style_sheets,
             Err(filename) => {
-                error!("Failed to load UA stylesheet {}!", filename);
+                error!("Failed to load UA style_sheet {}!", filename);
                 process::exit(1);
             }
         }

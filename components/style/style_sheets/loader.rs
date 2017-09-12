@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-//! The stylesheet loader is the abstraction used to trigger network requests
+//! The style_sheet loader is the abstraction used to trigger network requests
 //! for `@import` rules.
 
 use cssparser::SourceLocation;
@@ -10,15 +10,15 @@ use media_queries::MediaList;
 use parser::ParserContext;
 use servo_arc::Arc;
 use shared_lock::{Locked, SharedRwLock};
-use stylesheets::import_rule::ImportRule;
+use style_sheets::import_rule::ImportRule;
 use values::specified::url::SpecifiedUrl;
 
-/// The stylesheet loader is the abstraction used to trigger network requests
+/// The style_sheet loader is the abstraction used to trigger network requests
 /// for `@import` rules.
 pub trait StyleSheetLoader {
-    /// Request a stylesheet after parsing a given `@import` rule, and return
+    /// Request a style_sheet after parsing a given `@import` rule, and return
     /// the constructed `@import` rule.
-    fn request_stylesheet(
+    fn request_style_sheet(
         &self,
         url: SpecifiedUrl,
         location: SourceLocation,

@@ -13,7 +13,7 @@ use dom::window::Window;
 use dom_struct::dom_struct;
 use servo_arc::Arc;
 use style::shared_lock::{Locked, ToCssWithGuard};
-use style::stylesheets::NamespaceRule;
+use style::style_sheets::NamespaceRule;
 
 #[dom_struct]
 pub struct CSSNamespaceRule {
@@ -23,18 +23,18 @@ pub struct CSSNamespaceRule {
 }
 
 impl CSSNamespaceRule {
-    fn new_inherited(parent_stylesheet: &CSSStyleSheet, namespacerule: Arc<Locked<NamespaceRule>>)
+    fn new_inherited(parent_style_sheet: &CSSStyleSheet, namespacerule: Arc<Locked<NamespaceRule>>)
                      -> CSSNamespaceRule {
         CSSNamespaceRule {
-            cssrule: CSSRule::new_inherited(parent_stylesheet),
+            cssrule: CSSRule::new_inherited(parent_style_sheet),
             namespacerule: namespacerule,
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, parent_stylesheet: &CSSStyleSheet,
+    pub fn new(window: &Window, parent_style_sheet: &CSSStyleSheet,
                namespacerule: Arc<Locked<NamespaceRule>>) -> Root<CSSNamespaceRule> {
-        reflect_dom_object(box CSSNamespaceRule::new_inherited(parent_stylesheet, namespacerule),
+        reflect_dom_object(box CSSNamespaceRule::new_inherited(parent_style_sheet, namespacerule),
                            window,
                            CSSNamespaceRuleBinding::Wrap)
     }

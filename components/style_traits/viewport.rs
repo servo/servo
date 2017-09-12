@@ -113,7 +113,7 @@ impl Zoom {
             // TODO: This parse() method should take ParserContext as an
             // argument, and pass ParsingMode owned by the ParserContext to
             // is_ok() instead of using PARSING_MODE_DEFAULT directly.
-            // In order to do so, we might want to move these stuff into style::stylesheets::viewport_rule.
+            // In order to do so, we might want to move these stuff into style::style_sheets::viewport_rule.
             Token::Percentage { unit_value, .. } if NonNegative.is_ok(PARSING_MODE_DEFAULT, unit_value) => {
                 Ok(Zoom::Percentage(unit_value))
             }

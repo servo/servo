@@ -20,7 +20,7 @@ use selectors::parser::SelectorParseError;
 use shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt;
 use style_traits::{ParseError, StyleParseError, ToCss};
-use stylesheets::CssRuleType;
+use style_sheets::CssRuleType;
 
 /// A @font-feature-values block declaration.
 /// It is `<ident>: <integer>+`.

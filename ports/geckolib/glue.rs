@@ -121,13 +121,13 @@ use style::selector_parser::PseudoElementCascadeType;
 use style::shared_lock::{SharedRwLockReadGuard, StyleSheetGuards, ToCssWithGuard, Locked};
 use style::string_cache::Atom;
 use style::style_adjuster::StyleAdjuster;
-use style::stylesheets::{CssRule, CssRules, CssRuleType, CssRulesHelpers, DocumentRule};
-use style::stylesheets::{FontFeatureValuesRule, ImportRule, KeyframesRule, MediaRule};
-use style::stylesheets::{NamespaceRule, Origin, OriginSet, PageRule, StyleRule};
-use style::stylesheets::{StyleSheetContents, SupportsRule};
-use style::stylesheets::StyleSheetLoader as StyleStyleSheetLoader;
-use style::stylesheets::keyframes_rule::{Keyframe, KeyframeSelector, KeyframesStepValue};
-use style::stylesheets::supports_rule::parse_condition_or_declaration;
+use style::style_sheets::{CssRule, CssRules, CssRuleType, CssRulesHelpers, DocumentRule};
+use style::style_sheets::{FontFeatureValuesRule, ImportRule, KeyframesRule, MediaRule};
+use style::style_sheets::{NamespaceRule, Origin, OriginSet, PageRule, StyleRule};
+use style::style_sheets::{StyleSheetContents, SupportsRule};
+use style::style_sheets::StyleSheetLoader as StyleStyleSheetLoader;
+use style::style_sheets::keyframes_rule::{Keyframe, KeyframeSelector, KeyframesStepValue};
+use style::style_sheets::supports_rule::parse_condition_or_declaration;
 use style::stylist::RuleInclusion;
 use style::thread_state;
 use style::timer::Timer;
@@ -140,7 +140,7 @@ use style::values::computed::Context;
 use style::values::distance::ComputeSquaredDistance;
 use style_traits::{PARSING_MODE_DEFAULT, ToCss};
 use super::error_reporter::ErrorReporter;
-use super::stylesheet_loader::StyleSheetLoader;
+use super::style_sheet_loader::StyleSheetLoader;
 
 /*
  * For Gecko->Servo function calls, we need to redeclare the same signature that was declared in
@@ -221,7 +221,7 @@ fn traverse_subtree(element: GeckoElement,
     }
 
     let per_doc_data = PerDocumentStyleData::from_ffi(raw_data).borrow();
-    debug_assert!(!per_doc_data.stylist.stylesheets_have_changed());
+    debug_assert!(!per_doc_data.stylist.style_sheets_have_changed());
 
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
@@ -863,7 +863,7 @@ pub extern "C" fn Servo_StyleSheet_Empty(mode: SheetParsingMode) -> RawServoStyl
 #[no_mangle]
 pub extern "C" fn Servo_StyleSheet_FromUTF8Bytes(
     loader: *mut Loader,
-    stylesheet: *mut ServoStyleSheet,
+    style_sheet: *mut ServoStyleSheet,
     data: *const u8,
     data_len: usize,
     mode: SheetParsingMode,
@@ -882,12 +882,12 @@ pub extern "C" fn Servo_StyleSheet_FromUTF8Bytes(
         SheetParsingMode::eSafeAgentSheetFeatures => Origin::UserAgent,
     };
 
-    let reporter = ErrorReporter::new(stylesheet, loader, extra_data);
+    let reporter = ErrorReporter::new(style_sheet, loader, extra_data);
     let url_data = unsafe { RefPtr::from_ptr_ref(&extra_data) };
     let loader = if loader.is_null() {
         None
     } else {
-        Some(StyleSheetLoader::new(loader, stylesheet, reusable_sheets))
+        Some(StyleSheetLoader::new(loader, style_sheet, reusable_sheets))
     };
 
     // FIXME(emilio): loader.as_ref() doesn't typecheck for some reason?
@@ -914,7 +914,7 @@ pub extern "C" fn Servo_StyleSet_AppendStyleSheet(
     let data = &mut *data;
     let guard = global_style_data.shared_lock.read();
     let sheet = unsafe { GeckoStyleSheet::new(sheet) };
-    data.stylist.append_stylesheet(sheet, &guard);
+    data.stylist.append_style_sheet(sheet, &guard);
 }
 
 #[no_mangle]
@@ -979,7 +979,7 @@ pub extern "C" fn Servo_StyleSet_PrependStyleSheet(
     let data = &mut *data;
     let guard = global_style_data.shared_lock.read();
     let sheet = unsafe { GeckoStyleSheet::new(sheet) };
-    data.stylist.prepend_stylesheet(sheet, &guard);
+    data.stylist.prepend_style_sheet(sheet, &guard);
 }
 
 #[no_mangle]
@@ -993,7 +993,7 @@ pub extern "C" fn Servo_StyleSet_InsertStyleSheetBefore(
     let data = &mut *data;
     let guard = global_style_data.shared_lock.read();
     let sheet = unsafe { GeckoStyleSheet::new(sheet) };
-    data.stylist.insert_stylesheet_before(
+    data.stylist.insert_style_sheet_before(
         sheet,
         unsafe { GeckoStyleSheet::new(before_sheet) },
         &guard,
@@ -1010,7 +1010,7 @@ pub extern "C" fn Servo_StyleSet_RemoveStyleSheet(
     let data = &mut *data;
     let guard = global_style_data.shared_lock.read();
     let sheet = unsafe { GeckoStyleSheet::new(sheet) };
-    data.stylist.remove_stylesheet(sheet, &guard);
+    data.stylist.remove_style_sheet(sheet, &guard);
 }
 
 #[no_mangle]
@@ -1022,7 +1022,7 @@ pub extern "C" fn Servo_StyleSet_FlushStyleSheets(
     let guard = global_style_data.shared_lock.read();
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
     let doc_element = doc_element.map(GeckoElement);
-    let have_invalidations = data.flush_stylesheets(&guard, doc_element);
+    let have_invalidations = data.flush_style_sheets(&guard, doc_element);
     if have_invalidations && doc_element.is_some() {
         // The invalidation machinery propagates the bits up, but we still
         // need to tell the gecko restyle root machinery about it.
@@ -1039,7 +1039,7 @@ pub extern "C" fn Servo_StyleSet_NoteStyleSheetsChanged(
     changed_origins: OriginFlags,
 ) {
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
-    data.stylist.force_stylesheet_origins_dirty(OriginSet::from(changed_origins));
+    data.stylist.force_style_sheet_origins_dirty(OriginSet::from(changed_origins));
     data.stylist.set_author_style_disabled(author_style_disabled);
 }
 
@@ -1166,13 +1166,13 @@ pub extern "C" fn Servo_CssRules_InsertRule(
     index: u32,
     nested: bool,
     loader: *mut Loader,
-    gecko_stylesheet: *mut ServoStyleSheet,
+    gecko_style_sheet: *mut ServoStyleSheet,
     rule_type: *mut u16,
 ) -> nsresult {
     let loader = if loader.is_null() {
         None
     } else {
-        Some(StyleSheetLoader::new(loader, gecko_stylesheet, ptr::null_mut()))
+        Some(StyleSheetLoader::new(loader, gecko_style_sheet, ptr::null_mut()))
     };
     let loader = loader.as_ref().map(|loader| loader as &StyleStyleSheetLoader);
     let rule = unsafe { rule.as_ref().unwrap().as_str_unchecked() };
@@ -1483,7 +1483,7 @@ pub extern "C" fn Servo_ImportRule_GetSheet(
     rule: RawServoImportRuleBorrowed
 ) -> *const ServoStyleSheet {
     read_locked_arc(rule, |rule: &ImportRule| {
-        rule.stylesheet.0.raw() as *const ServoStyleSheet
+        rule.style_sheet.0.raw() as *const ServoStyleSheet
     })
 }
 
@@ -2043,7 +2043,7 @@ pub extern "C" fn Servo_StyleSet_Drop(data: RawServoStyleSetOwned) {
 }
 
 
-/// Updating the stylesheets and redoing selector matching is always happens
+/// Updating the style_sheets and redoing selector matching is always happens
 /// before the document element is inserted. Therefore we don't need to call
 /// `force_dirty` here.
 #[no_mangle]
@@ -2949,7 +2949,7 @@ pub extern "C" fn Servo_CSSSupports(cond: *const nsACString) -> bool {
     let cond = input.parse_entirely(|i| parse_condition_or_declaration(i));
     if let Ok(cond) = cond {
         let url_data = unsafe { dummy_url_data() };
-        // NOTE(emilio): The supports API is not associated to any stylesheet,
+        // NOTE(emilio): The supports API is not associated to any style_sheet,
         // so the fact that there are no namespace map here is fine.
         let context =
             ParserContext::new_for_cssom(

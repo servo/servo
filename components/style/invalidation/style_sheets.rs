@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-//! A collection of invalidations due to changes in which style_sheets affect a
+//! A collection of invalidations due to changes in which style_sheet. affect a
 //! document.
 
 #![deny(unsafe_code)]
@@ -51,7 +51,7 @@ impl InvalidationScope {
     }
 }
 
-/// A set of invalidations due to style_sheet additions.
+/// A set of invalidations due to style_sheet.additions.
 ///
 /// TODO(emilio): We might be able to do the same analysis for media query
 /// changes too (or even selector changes?).
@@ -79,7 +79,7 @@ impl StyleSheetInvalidationSet {
         self.fully_invalid = true;
     }
 
-    /// Analyze the given style_sheet, and collect invalidations from their
+    /// Analyze the given style_sheet. and collect invalidations from their
     /// rules, in order to avoid doing a full restyle when we style the document
     /// next time.
     pub fn collect_invalidations_for<S>(

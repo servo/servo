@@ -20,7 +20,7 @@ use servo_arc::Arc;
 use std::mem;
 use style::selector_parser::SelectorParser;
 use style::shared_lock::{Locked, ToCssWithGuard};
-use style::stylesheets::{StyleRule, Origin};
+use style::style_sheets::{StyleRule, Origin};
 
 #[dom_struct]
 pub struct CSSStyleRule {
@@ -31,19 +31,19 @@ pub struct CSSStyleRule {
 }
 
 impl CSSStyleRule {
-    fn new_inherited(parent_stylesheet: &CSSStyleSheet, stylerule: Arc<Locked<StyleRule>>)
+    fn new_inherited(parent_style_sheet: &CSSStyleSheet, stylerule: Arc<Locked<StyleRule>>)
                      -> CSSStyleRule {
         CSSStyleRule {
-            cssrule: CSSRule::new_inherited(parent_stylesheet),
+            cssrule: CSSRule::new_inherited(parent_style_sheet),
             stylerule: stylerule,
             style_decl: Default::default(),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, parent_stylesheet: &CSSStyleSheet,
+    pub fn new(window: &Window, parent_style_sheet: &CSSStyleSheet,
                stylerule: Arc<Locked<StyleRule>>) -> Root<CSSStyleRule> {
-        reflect_dom_object(box CSSStyleRule::new_inherited(parent_stylesheet, stylerule),
+        reflect_dom_object(box CSSStyleRule::new_inherited(parent_style_sheet, stylerule),
                            window,
                            CSSStyleRuleBinding::Wrap)
     }
@@ -87,11 +87,11 @@ impl CSSStyleRuleMethods for CSSStyleRule {
 
     // https://drafts.csswg.org/cssom/#dom-cssstylerule-selectortext
     fn SetSelectorText(&self, value: DOMString) {
-        // It's not clear from the spec if we should use the stylesheet's namespaces.
+        // It's not clear from the spec if we should use the style_sheet's namespaces.
         // https://github.com/w3c/csswg-drafts/issues/1511
-        let namespaces = self.cssrule.parent_stylesheet().style_stylesheet().contents.namespaces.read();
+        let namespaces = self.cssrule.parent_style_sheet().style_style_sheet().contents.namespaces.read();
         let parser = SelectorParser {
-            stylesheet_origin: Origin::Author,
+            style_sheet_origin: Origin::Author,
             namespaces: &namespaces,
             url_data: None,
         };
@@ -103,8 +103,8 @@ impl CSSStyleRuleMethods for CSSStyleRule {
             let stylerule = self.stylerule.write_with(&mut guard);
             mem::swap(&mut stylerule.selectors, &mut s);
             // It seems like we will want to avoid having to invalidate all
-            // stylesheets eventually!
-            self.global().as_window().Document().invalidate_stylesheets();
+            // style_sheets eventually!
+            self.global().as_window().Document().invalidate_style_sheets();
         }
     }
 }

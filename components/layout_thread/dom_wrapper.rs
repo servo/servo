@@ -804,7 +804,7 @@ pub struct ServoThreadSafeLayoutNode<'ln> {
     node: ServoLayoutNode<'ln>,
 
     /// The pseudo-element type, with (optionally)
-    /// a specified display value to override the stylesheet.
+    /// a specified display value to override the style_sheet.
     pseudo: PseudoElementType<Option<display::T>>,
 }
 
@@ -1096,7 +1096,7 @@ pub struct ServoThreadSafeLayoutElement<'le> {
     element: ServoLayoutElement<'le>,
 
     /// The pseudo-element type, with (optionally)
-    /// a specified display value to override the stylesheet.
+    /// a specified display value to override the style_sheet.
     pseudo: PseudoElementType<Option<display::T>>,
 }
 

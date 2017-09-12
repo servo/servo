@@ -146,7 +146,7 @@ impl Formattable for ProfilerCategory {
             ProfilerCategory::ScriptSetScrollState => "Script Set Scroll State",
             ProfilerCategory::ScriptSetViewport => "Script Set Viewport",
             ProfilerCategory::ScriptTimerEvent => "Script Timer Event",
-            ProfilerCategory::ScriptStylesheetLoad => "Script Stylesheet Load",
+            ProfilerCategory::ScriptStyleSheetLoad => "Script Style Sheet Load",
             ProfilerCategory::ScriptWebSocketEvent => "Script Web Socket Event",
             ProfilerCategory::ScriptWorkerEvent => "Script Worker Event",
             ProfilerCategory::ScriptServiceWorkerEvent => "Script Service Worker Event",

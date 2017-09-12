@@ -12,7 +12,7 @@ use dom::window::Window;
 use dom_struct::dom_struct;
 use servo_arc::Arc;
 use style::shared_lock::{Locked, ToCssWithGuard};
-use style::stylesheets::ImportRule;
+use style::style_sheets::ImportRule;
 
 #[dom_struct]
 pub struct CSSImportRule {
@@ -22,20 +22,20 @@ pub struct CSSImportRule {
 }
 
 impl CSSImportRule {
-    fn new_inherited(parent_stylesheet: &CSSStyleSheet,
+    fn new_inherited(parent_style_sheet: &CSSStyleSheet,
                      import_rule: Arc<Locked<ImportRule>>)
                      -> Self {
         CSSImportRule {
-            cssrule: CSSRule::new_inherited(parent_stylesheet),
+            cssrule: CSSRule::new_inherited(parent_style_sheet),
             import_rule: import_rule,
         }
     }
 
     #[allow(unrooted_must_root)]
     pub fn new(window: &Window,
-               parent_stylesheet: &CSSStyleSheet,
+               parent_style_sheet: &CSSStyleSheet,
                import_rule: Arc<Locked<ImportRule>>) -> Root<Self> {
-        reflect_dom_object(box Self::new_inherited(parent_stylesheet, import_rule),
+        reflect_dom_object(box Self::new_inherited(parent_style_sheet, import_rule),
                            window,
                            CSSImportRuleBinding::Wrap)
     }

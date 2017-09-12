@@ -12,7 +12,7 @@ use dom::csssupportsrule::CSSSupportsRule;
 use dom_struct::dom_struct;
 use servo_arc::Arc;
 use style::shared_lock::{SharedRwLock, Locked};
-use style::stylesheets::CssRules as StyleCssRules;
+use style::style_sheets::CssRules as StyleCssRules;
 
 #[dom_struct]
 pub struct CSSConditionRule {
@@ -20,15 +20,15 @@ pub struct CSSConditionRule {
 }
 
 impl CSSConditionRule {
-    pub fn new_inherited(parent_stylesheet: &CSSStyleSheet,
+    pub fn new_inherited(parent_style_sheet: &CSSStyleSheet,
                          rules: Arc<Locked<StyleCssRules>>) -> CSSConditionRule {
         CSSConditionRule {
-            cssgroupingrule: CSSGroupingRule::new_inherited(parent_stylesheet, rules),
+            cssgroupingrule: CSSGroupingRule::new_inherited(parent_style_sheet, rules),
         }
     }
 
-    pub fn parent_stylesheet(&self) -> &CSSStyleSheet {
-        self.cssgroupingrule.parent_stylesheet()
+    pub fn parent_style_sheet(&self) -> &CSSStyleSheet {
+        self.cssgroupingrule.parent_style_sheet()
     }
 
     pub fn shared_lock(&self) -> &SharedRwLock {

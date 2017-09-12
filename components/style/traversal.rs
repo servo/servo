@@ -319,7 +319,7 @@ pub trait DomTraversal<E: TElement> : Sync {
         // If we're computing initial styles and the parent has a Gecko XBL
         // binding, that binding may inject anonymous children and remap the
         // explicit children to an insertion point (or hide them entirely). It
-        // may also specify a scoped stylesheet, which changes the rules that
+        // may also specify a scoped style_sheet, which changes the rules that
         // apply within the subtree. These two effects can invalidate the result
         // of property inheritance and selector matching (respectively) within
         // the subtree.

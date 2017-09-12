@@ -378,7 +378,7 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
         if self.get_local_name() == &local_name!("details") &&
            self.get_namespace() == &ns!(html) {
             let display = if self.get_attr(&ns!(), &local_name!("open")).is_some() {
-                None // Specified by the stylesheet
+                None // Specified by the style_sheet
             } else {
                 Some(display::T::none)
             };

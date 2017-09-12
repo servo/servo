@@ -85,7 +85,7 @@ use std::ops::Range;
 use style::context::QuirksMode;
 use style::dom::OpaqueNode;
 use style::selector_parser::{SelectorImpl, SelectorParser};
-use style::stylesheets::StyleSheet;
+use style::style_sheets::StyleSheet;
 use style::thread_state;
 use uuid::Uuid;
 
@@ -937,25 +937,25 @@ impl Node {
         Ok(())
     }
 
-    pub fn get_stylesheet(&self) -> Option<Arc<StyleSheet>> {
+    pub fn get_style_sheet(&self) -> Option<Arc<StyleSheet>> {
         if let Some(node) = self.downcast::<HTMLStyleElement>() {
-            node.get_stylesheet()
+            node.get_style_sheet()
         } else if let Some(node) = self.downcast::<HTMLLinkElement>() {
-            node.get_stylesheet()
+            node.get_style_sheet()
         } else if let Some(node) = self.downcast::<HTMLMetaElement>() {
-            node.get_stylesheet()
+            node.get_style_sheet()
         } else {
             None
         }
     }
 
-    pub fn get_cssom_stylesheet(&self) -> Option<Root<CSSStyleSheet>> {
+    pub fn get_cssom_style_sheet(&self) -> Option<Root<CSSStyleSheet>> {
         if let Some(node) = self.downcast::<HTMLStyleElement>() {
-            node.get_cssom_stylesheet()
+            node.get_cssom_style_sheet()
         } else if let Some(node) = self.downcast::<HTMLLinkElement>() {
-            node.get_cssom_stylesheet()
+            node.get_cssom_style_sheet()
         } else if let Some(node) = self.downcast::<HTMLMetaElement>() {
-            node.get_cssom_stylesheet()
+            node.get_cssom_style_sheet()
         } else {
             None
         }

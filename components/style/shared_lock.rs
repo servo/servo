@@ -262,10 +262,10 @@ pub trait DeepCloneWithLock : Sized {
 /// Guards for a document
 #[derive(Clone)]
 pub struct StyleSheetGuards<'a> {
-    /// For author-origin stylesheets
+    /// For author-origin style_sheets
     pub author: &'a SharedRwLockReadGuard<'a>,
 
-    /// For user-agent-origin and user-origin stylesheets
+    /// For user-agent-origin and user-origin style_sheets
     pub ua_or_user: &'a SharedRwLockReadGuard<'a>,
 }
 

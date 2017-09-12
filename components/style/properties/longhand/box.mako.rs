@@ -12,7 +12,7 @@
 // TODO(SimonSapin): don't parse `inline-table`, since we don't support it
 //
 // We allow "display" to apply to placeholders because we need to make the
-// placeholder pseudo-element an inline-block in the UA stylesheet in Gecko.
+// placeholder pseudo-element an inline-block in the UA style_sheet in Gecko.
 <%helpers:longhand name="display"
                    need_clone="True"
                    animation_value_type="discrete"

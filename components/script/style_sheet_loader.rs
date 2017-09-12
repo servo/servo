@@ -32,9 +32,9 @@ use std::sync::atomic::AtomicBool;
 use style::media_queries::MediaList;
 use style::parser::ParserContext;
 use style::shared_lock::{Locked, SharedRwLock};
-use style::stylesheets::{CssRules, ImportRule, Namespaces, StyleSheet, StyleSheetContents, Origin};
-use style::stylesheets::StyleSheetLoader as StyleStyleSheetLoader;
-use style::stylesheets::import_rule::ImportSheet;
+use style::style_sheets::{CssRules, ImportRule, Namespaces, StyleSheet, StyleSheetContents, Origin};
+use style::style_sheets::StyleSheetLoader as StyleStyleSheetLoader;
+use style::style_sheets::import_rule::ImportSheet;
 use style::values::specified::url::SpecifiedUrl;
 
 pub trait StyleSheetOwner {
@@ -63,7 +63,7 @@ pub enum StyleSheetContextSource {
     Import(Arc<StyleSheet>),
 }
 
-/// The context required for asynchronously loading an external stylesheet.
+/// The context required for asynchronously loading an external style_sheet.
 pub struct StyleSheetContext {
     /// The element that initiated the request.
     elem: Trusted<HTMLElement>,
@@ -75,7 +75,7 @@ pub struct StyleSheetContext {
     /// The node document for elem when the load was initiated.
     document: Trusted<Document>,
     origin_clean: bool,
-    /// A token which must match the generation id of the `HTMLLinkElement` for it to load the stylesheet.
+    /// A token which must match the generation id of the `HTMLLinkElement` for it to load the style_sheet.
     /// This is ignored for `HTMLStyleElement` and imports.
     request_generation_id: Option<RequestGenerationId>,
 }
@@ -138,10 +138,10 @@ impl FetchResponseListener for StyleSheetContext {
                 StyleSheetContextSource::LinkElement { ref mut media } => {
                     let link = elem.downcast::<HTMLLinkElement>().unwrap();
                     // We must first check whether the generations of the context and the element match up,
-                    // else we risk applying the wrong stylesheet when responses come out-of-order.
-                    let is_stylesheet_load_applicable =
+                    // else we risk applying the wrong style_sheet when responses come out-of-order.
+                    let is_style_sheet_load_applicable =
                         self.request_generation_id.map_or(true, |gen| gen == link.get_request_generation_id());
-                    if is_stylesheet_load_applicable {
+                    if is_style_sheet_load_applicable {
                         let shared_lock = document.style_shared_lock().clone();
                         let sheet =
                             Arc::new(StyleSheet::from_bytes(&data, final_url,
@@ -158,11 +158,11 @@ impl FetchResponseListener for StyleSheetContext {
                             sheet.set_disabled(true);
                         }
 
-                        link.set_stylesheet(sheet);
+                        link.set_style_sheet(sheet);
                     }
                 }
-                StyleSheetContextSource::Import(ref stylesheet) => {
-                    StyleSheet::update_from_bytes(&stylesheet,
+                StyleSheetContextSource::Import(ref style_sheet) => {
+                    StyleSheet::update_from_bytes(&style_sheet,
                                                   &data,
                                                   protocol_encoding_label,
                                                   Some(environment_encoding),
@@ -172,18 +172,18 @@ impl FetchResponseListener for StyleSheetContext {
                 }
             }
 
-            document.invalidate_stylesheets();
+            document.invalidate_style_sheets();
 
             // FIXME: Revisit once consensus is reached at:
             // https://github.com/whatwg/html/issues/1142
             successful = metadata.status.map_or(false, |(code, _)| code == 200);
         }
 
-        let owner = elem.upcast::<Element>().as_stylesheet_owner()
+        let owner = elem.upcast::<Element>().as_style_sheet_owner()
             .expect("StyleSheet not loaded by <style> or <link> element!");
         owner.set_origin_clean(self.origin_clean);
         if owner.parser_inserted() {
-            document.decrement_script_blocking_stylesheet_count();
+            document.decrement_script_blocking_style_sheet_count();
         }
 
         document.finish_load(LoadType::StyleSheet(self.url.clone()));
@@ -236,13 +236,13 @@ impl<'a> StyleSheetLoader<'a> {
         });
 
 
-        let owner = self.elem.upcast::<Element>().as_stylesheet_owner()
+        let owner = self.elem.upcast::<Element>().as_style_sheet_owner()
             .expect("StyleSheet not loaded by <style> or <link> element!");
         let referrer_policy = owner.referrer_policy()
             .or_else(|| document.get_referrer_policy());
         owner.increment_pending_loads_count();
         if owner.parser_inserted() {
-            document.increment_script_blocking_stylesheet_count();
+            document.increment_script_blocking_style_sheet_count();
         }
 
         let request = RequestInit {
@@ -274,9 +274,9 @@ impl<'a> StyleSheetLoader<'a> {
 }
 
 impl<'a> StyleStyleSheetLoader for StyleSheetLoader<'a> {
-    /// Request a stylesheet after parsing a given `@import` rule, and return
+    /// Request a style_sheet after parsing a given `@import` rule, and return
     /// the constructed `@import` rule.
-    fn request_stylesheet(
+    fn request_style_sheet(
         &self,
         url: SpecifiedUrl,
         source_location: SourceLocation,
@@ -287,7 +287,7 @@ impl<'a> StyleStyleSheetLoader for StyleSheetLoader<'a> {
         let sheet = Arc::new(StyleSheet {
             contents: StyleSheetContents {
                 rules: CssRules::new(Vec::new(), lock),
-                origin: context.stylesheet_origin,
+                origin: context.style_sheet_origin,
                 url_data: RwLock::new(context.url_data.clone()),
                 quirks_mode: context.quirks_mode,
                 namespaces: RwLock::new(Namespaces::default()),
@@ -298,8 +298,8 @@ impl<'a> StyleStyleSheetLoader for StyleSheetLoader<'a> {
             disabled: AtomicBool::new(false),
         });
 
-        let stylesheet = ImportSheet(sheet.clone());
-        let import = ImportRule { url, source_location, stylesheet };
+        let style_sheet = ImportSheet(sheet.clone());
+        let import = ImportRule { url, source_location, style_sheet };
 
         let url = match import.url.url().cloned() {
             Some(url) => url,

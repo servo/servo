@@ -19,7 +19,7 @@ use servo_arc::Arc;
 use style::media_queries::parse_media_query_list;
 use style::parser::ParserContext;
 use style::shared_lock::{Locked, ToCssWithGuard};
-use style::stylesheets::{CssRuleType, MediaRule};
+use style::style_sheets::{CssRuleType, MediaRule};
 use style_traits::{PARSING_MODE_DEFAULT, ToCss};
 
 #[dom_struct]
@@ -31,21 +31,21 @@ pub struct CSSMediaRule {
 }
 
 impl CSSMediaRule {
-    fn new_inherited(parent_stylesheet: &CSSStyleSheet, mediarule: Arc<Locked<MediaRule>>)
+    fn new_inherited(parent_style_sheet: &CSSStyleSheet, mediarule: Arc<Locked<MediaRule>>)
                      -> CSSMediaRule {
-        let guard = parent_stylesheet.shared_lock().read();
+        let guard = parent_style_sheet.shared_lock().read();
         let list = mediarule.read_with(&guard).rules.clone();
         CSSMediaRule {
-            cssconditionrule: CSSConditionRule::new_inherited(parent_stylesheet, list),
+            cssconditionrule: CSSConditionRule::new_inherited(parent_style_sheet, list),
             mediarule: mediarule,
             medialist: MutNullableJS::new(None),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, parent_stylesheet: &CSSStyleSheet,
+    pub fn new(window: &Window, parent_style_sheet: &CSSStyleSheet,
                mediarule: Arc<Locked<MediaRule>>) -> Root<CSSMediaRule> {
-        reflect_dom_object(box CSSMediaRule::new_inherited(parent_stylesheet, mediarule),
+        reflect_dom_object(box CSSMediaRule::new_inherited(parent_style_sheet, mediarule),
                            window,
                            CSSMediaRuleBinding::Wrap)
     }
@@ -54,7 +54,7 @@ impl CSSMediaRule {
         self.medialist.or_init(|| {
             let guard = self.cssconditionrule.shared_lock().read();
             MediaList::new(self.global().as_window(),
-                           self.cssconditionrule.parent_stylesheet(),
+                           self.cssconditionrule.parent_style_sheet(),
                            self.mediarule.read_with(&guard).media_queries.clone())
         })
     }

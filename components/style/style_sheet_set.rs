@@ -2,14 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-//! A centralized set of stylesheets for a document.
+//! A centralized set of style_sheets for a document.
 
 use dom::TElement;
-use invalidation::stylesheets::StyleSheetInvalidationSet;
+use invalidation::style_sheets::StyleSheetInvalidationSet;
 use media_queries::Device;
 use shared_lock::SharedRwLockReadGuard;
 use std::slice;
-use stylesheets::{Origin, OriginSet, PerOrigin, StyleSheetInDocument};
+use style_sheets::{Origin, OriginSet, PerOrigin, StyleSheetInDocument};
 
 /// Entry for a StyleSheetSet.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -30,7 +30,7 @@ where
     }
 }
 
-/// A iterator over the stylesheets of a list of entries in the StyleSheetSet.
+/// A iterator over the style_sheets of a list of entries in the StyleSheetSet.
 #[derive(Clone)]
 pub struct StyleSheetIterator<'a, S>(slice::Iter<'a, StyleSheetSetEntry<S>>)
 where
@@ -69,7 +69,7 @@ impl Default for OriginValidity {
     }
 }
 
-/// A struct to iterate over the different stylesheets to be flushed.
+/// A struct to iterate over the different style_sheets to be flushed.
 pub struct StyleSheetFlusher<'a, 'b, S>
 where
     'b: 'a,
@@ -83,7 +83,7 @@ where
     had_invalidations: bool,
 }
 
-/// The type of rebuild that we need to do for a given stylesheet.
+/// The type of rebuild that we need to do for a given style_sheet.
 pub enum SheetRebuildKind {
     /// A full rebuild, of both cascade data and invalidation data.
     Full,
@@ -92,7 +92,7 @@ pub enum SheetRebuildKind {
 }
 
 impl SheetRebuildKind {
-    /// Whether the stylesheet invalidation data should be rebuilt.
+    /// Whether the style_sheet invalidation data should be rebuilt.
     pub fn should_rebuild_invalidation(&self) -> bool {
         matches!(*self, SheetRebuildKind::Full)
     }
@@ -114,7 +114,7 @@ where
     }
 
     /// Returns whether any DOM invalidations were processed as a result of the
-    /// stylesheet flush.
+    /// style_sheet flush.
     pub fn had_invalidations(&self) -> bool {
         self.had_invalidations
     }
@@ -177,23 +177,23 @@ where
     }
 }
 
-/// The set of stylesheets effective for a given document.
+/// The set of style_sheets effective for a given document.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct StyleSheetSet<S>
 where
     S: StyleSheetInDocument + PartialEq + 'static,
 {
-    /// The actual list of all the stylesheets that apply to the given document,
-    /// each stylesheet associated with a unique ID.
+    /// The actual list of all the style_sheets that apply to the given document,
+    /// each style_sheet associated with a unique ID.
     ///
-    /// This is only a list of top-level stylesheets, and as such it doesn't
+    /// This is only a list of top-level style_sheets, and as such it doesn't
     /// include recursive `@import` rules.
     entries: Vec<StyleSheetSetEntry<S>>,
 
-    /// The invalidations for stylesheets added or removed from this document.
+    /// The invalidations for style_sheets added or removed from this document.
     invalidations: StyleSheetInvalidationSet,
 
-    /// The origins whose stylesheets have changed so far.
+    /// The origins whose style_sheets have changed so far.
     origins_dirty: OriginSet,
 
     /// The validity of the data that was already there for a given origin.
@@ -223,23 +223,23 @@ where
         }
     }
 
-    /// Returns the number of stylesheets in the set.
+    /// Returns the number of style_sheets in the set.
     pub fn len(&self) -> usize {
         self.entries.len()
     }
 
-    /// Returns the number of stylesheets in the set.
+    /// Returns the number of style_sheets in the set.
     pub fn get(&self, index: usize) -> Option<&S> {
         self.entries.get(index).map(|s| &s.sheet)
     }
 
     /// Returns whether author styles have been disabled for the current
-    /// stylesheet set.
+    /// style_sheet set.
     pub fn author_style_disabled(&self) -> bool {
         self.author_style_disabled
     }
 
-    fn remove_stylesheet_if_present(&mut self, sheet: &S) {
+    fn remove_style_sheet_if_present(&mut self, sheet: &S) {
         self.entries.retain(|entry| entry.sheet != *sheet);
     }
 
@@ -273,71 +273,71 @@ where
         *existing_validity = cmp::max(*existing_validity, validity);
     }
 
-    /// Appends a new stylesheet to the current set.
+    /// Appends a new style_sheet to the current set.
     ///
     /// No device implies not computing invalidations.
-    pub fn append_stylesheet(
+    pub fn append_style_sheet(
         &mut self,
         device: Option<&Device>,
         sheet: S,
         guard: &SharedRwLockReadGuard
     ) {
-        debug!("StyleSheetSet::append_stylesheet");
-        self.remove_stylesheet_if_present(&sheet);
+        debug!("StyleSheetSet::append_style_sheet");
+        self.remove_style_sheet_if_present(&sheet);
         self.collect_invalidations_for(device, &sheet, guard);
         // Appending sheets doesn't alter the validity of the existing data, so
         // we don't need to change `origin_data_validity` here.
         self.entries.push(StyleSheetSetEntry::new(sheet));
     }
 
-    /// Prepend a new stylesheet to the current set.
-    pub fn prepend_stylesheet(
+    /// Prepend a new style_sheet to the current set.
+    pub fn prepend_style_sheet(
         &mut self,
         device: Option<&Device>,
         sheet: S,
         guard: &SharedRwLockReadGuard
     ) {
-        debug!("StyleSheetSet::prepend_stylesheet");
-        self.remove_stylesheet_if_present(&sheet);
+        debug!("StyleSheetSet::prepend_style_sheet");
+        self.remove_style_sheet_if_present(&sheet);
         self.collect_invalidations_for(device, &sheet, guard);
 
-        // Inserting stylesheets somewhere but at the end changes the validity
+        // Inserting style_sheets somewhere but at the end changes the validity
         // of the cascade data, but not the invalidation data.
         self.set_data_validity_at_least(sheet.contents(guard).origin, OriginValidity::CascadeInvalid);
 
         self.entries.insert(0, StyleSheetSetEntry::new(sheet));
     }
 
-    /// Insert a given stylesheet before another stylesheet in the document.
-    pub fn insert_stylesheet_before(
+    /// Insert a given style_sheet before another style_sheet in the document.
+    pub fn insert_style_sheet_before(
         &mut self,
         device: Option<&Device>,
         sheet: S,
         before_sheet: S,
         guard: &SharedRwLockReadGuard,
     ) {
-        debug!("StyleSheetSet::insert_stylesheet_before");
-        self.remove_stylesheet_if_present(&sheet);
+        debug!("StyleSheetSet::insert_style_sheet_before");
+        self.remove_style_sheet_if_present(&sheet);
         let index = self.entries.iter().position(|entry| {
             entry.sheet == before_sheet
-        }).expect("`before_sheet` stylesheet not found");
+        }).expect("`before_sheet` style_sheet not found");
         self.collect_invalidations_for(device, &sheet, guard);
 
-        // Inserting stylesheets somewhere but at the end changes the validity
+        // Inserting style_sheets somewhere but at the end changes the validity
         // of the cascade data, but not the invalidation data.
         self.set_data_validity_at_least(sheet.contents(guard).origin, OriginValidity::CascadeInvalid);
         self.entries.insert(index, StyleSheetSetEntry::new(sheet));
     }
 
-    /// Remove a given stylesheet from the set.
-    pub fn remove_stylesheet(
+    /// Remove a given style_sheet from the set.
+    pub fn remove_style_sheet(
         &mut self,
         device: Option<&Device>,
         sheet: S,
         guard: &SharedRwLockReadGuard,
     ) {
-        debug!("StyleSheetSet::remove_stylesheet");
-        self.remove_stylesheet_if_present(&sheet);
+        debug!("StyleSheetSet::remove_style_sheet");
+        self.remove_style_sheet_if_present(&sheet);
 
         self.collect_invalidations_for(device, &sheet, guard);
 
@@ -391,7 +391,7 @@ where
         }
     }
 
-    /// Flush stylesheets, but without running any of the invalidation passes.
+    /// Flush style_sheets, but without running any of the invalidation passes.
     #[cfg(feature = "servo")]
     pub fn flush_without_invalidation(&mut self) -> OriginSet {
         use std::mem;
@@ -402,12 +402,12 @@ where
         mem::replace(&mut self.origins_dirty, OriginSet::empty())
     }
 
-    /// Returns an iterator over the current list of stylesheets.
+    /// Returns an iterator over the current list of style_sheets.
     pub fn iter(&self) -> StyleSheetIterator<S> {
         StyleSheetIterator(self.entries.iter())
     }
 
-    /// Mark the stylesheets for the specified origin as dirty, because
+    /// Mark the style_sheets for the specified origin as dirty, because
     /// something external may have invalidated it.
     pub fn force_dirty(&mut self, origins: OriginSet) {
         self.invalidations.invalidate_fully();

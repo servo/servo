@@ -11,7 +11,7 @@ use media_queries::MediaList;
 use shared_lock::{DeepCloneWithLock, DeepCloneParams, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt;
 use style_traits::ToCss;
-use stylesheets::{StyleSheetContents, StyleSheetInDocument};
+use style_sheets::{StyleSheetContents, StyleSheetInDocument};
 use values::specified::url::SpecifiedUrl;
 
 /// A sheet that is held from an import rule.
@@ -42,10 +42,10 @@ impl DeepCloneWithLock for ImportSheet {
 /// A sheet that is held from an import rule.
 #[cfg(feature = "servo")]
 #[derive(Debug)]
-pub struct ImportSheet(pub ::servo_arc::Arc<::stylesheets::StyleSheet>);
+pub struct ImportSheet(pub ::servo_arc::Arc<::style_sheets::StyleSheet>);
 
 impl StyleSheetInDocument for ImportSheet {
-    /// Get the media associated with this stylesheet.
+    /// Get the media associated with this style_sheet.
     fn media<'a>(&'a self, guard: &'a SharedRwLockReadGuard) -> Option<&'a MediaList> {
         self.0.media(guard)
     }
@@ -81,11 +81,11 @@ pub struct ImportRule {
     /// The `<url>` this `@import` rule is loading.
     pub url: SpecifiedUrl,
 
-    /// The stylesheet is always present.
+    /// The style_sheet is always present.
     ///
     /// It contains an empty list of rules and namespace set that is updated
     /// when it loads.
-    pub stylesheet: ImportSheet,
+    pub style_sheet: ImportSheet,
 
     /// The line and column of the rule's source code.
     pub source_location: SourceLocation,
@@ -100,7 +100,7 @@ impl DeepCloneWithLock for ImportRule {
     ) -> Self {
         ImportRule {
             url: self.url.clone(),
-            stylesheet: self.stylesheet.deep_clone_with_lock(lock, guard, params),
+            style_sheet: self.style_sheet.deep_clone_with_lock(lock, guard, params),
             source_location: self.source_location.clone(),
         }
     }
@@ -113,7 +113,7 @@ impl ToCssWithGuard for ImportRule {
         dest.write_str("@import ")?;
         self.url.to_css(dest)?;
 
-        match self.stylesheet.media(guard) {
+        match self.style_sheet.media(guard) {
             Some(media) if !media.is_empty() => {
                 dest.write_str(" ")?;
                 media.to_css(dest)?;
