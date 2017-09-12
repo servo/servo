@@ -19,6 +19,16 @@ use style::values::generics::effects::Filter as GenericFilter;
 use webrender_api::{self, ClipAndScrollInfo, ComplexClipRegion, DisplayListBuilder};
 use webrender_api::{ExtendMode, LayoutTransform};
 
+fn prim_info(local_rect: Rect<Au>,
+             local_clip: Option<webrender_api::LocalClip>) -> webrender_api::LayoutPrimitiveInfo {
+    webrender_api::LayoutPrimitiveInfo {
+        rect: local_rect.to_rectf(),
+        local_clip,
+        // TODO(gw): Make use of the WR backface visibility functionality.
+        is_backface_visible: true,
+    }
+}
+
 pub trait WebRenderDisplayListConverter {
     fn convert_to_webrender(&self, pipeline_id: PipelineId) -> DisplayListBuilder;
 }
@@ -251,8 +261,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
             DisplayItem::SolidColor(ref item) => {
                 let color = item.color;
                 if color.a > 0.0 {
-                    builder.push_rect(item.base.bounds.to_rectf(),
-                                      Some(item.base.local_clip),
+                    builder.push_rect(&prim_info(item.base.bounds, Some(item.base.local_clip)),
                                       color);
                 }
             }
@@ -283,8 +292,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                 }
 
                 if glyphs.len() > 0 {
-                    builder.push_text(item.base.bounds.to_rectf(),
-                                      Some(item.base.local_clip),
+                    builder.push_text(&prim_info(item.base.bounds, Some(item.base.local_clip)),
                                       &glyphs,
                                       item.text_run.font_key,
                                       item.text_color,
@@ -295,8 +303,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                 if let Some(id) = item.webrender_image.key {
                     if item.stretch_size.width > Au(0) &&
                        item.stretch_size.height > Au(0) {
-                        builder.push_image(item.base.bounds.to_rectf(),
-                                           Some(item.base.local_clip),
+                        builder.push_image(&prim_info(item.base.bounds, Some(item.base.local_clip)),
                                            item.stretch_size.to_sizef(),
                                            item.tile_spacing.to_sizef(),
                                            item.image_rendering.to_image_rendering(),
@@ -305,7 +312,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                 }
             }
             DisplayItem::Border(ref item) => {
-                let rect = item.base.bounds.to_rectf();
+                let rect = item.base.bounds;
                 let widths = item.border_widths.to_border_widths();
 
                 let details = match item.details {
@@ -386,10 +393,10 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                     }
                 };
 
-                builder.push_border(rect, Some(item.base.local_clip), widths, details);
+                builder.push_border(&prim_info(rect, Some(item.base.local_clip)), widths, details);
             }
             DisplayItem::Gradient(ref item) => {
-                let rect = item.base.bounds.to_rectf();
+                let rect = item.base.bounds;
                 let start_point = item.gradient.start_point.to_pointf();
                 let end_point = item.gradient.end_point.to_pointf();
                 let extend_mode = if item.gradient.repeating {
@@ -401,14 +408,13 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                                        end_point,
                                                        item.gradient.stops.clone(),
                                                        extend_mode);
-                builder.push_gradient(rect,
-                                      Some(item.base.local_clip),
+                builder.push_gradient(&prim_info(rect, Some(item.base.local_clip)),
                                       gradient,
-                                      rect.size,
+                                      rect.size.to_sizef(),
                                       webrender_api::LayoutSize::zero());
             }
             DisplayItem::RadialGradient(ref item) => {
-                let rect = item.base.bounds.to_rectf();
+                let rect = item.base.bounds;
                 let center = item.gradient.center.to_pointf();
                 let radius = item.gradient.radius.to_sizef();
                 let extend_mode = if item.gradient.repeating {
@@ -420,15 +426,14 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                                               radius,
                                                               item.gradient.stops.clone(),
                                                               extend_mode);
-                builder.push_radial_gradient(rect,
-                                             Some(item.base.local_clip),
+                builder.push_radial_gradient(&prim_info(rect, Some(item.base.local_clip)),
                                              gradient,
-                                             rect.size,
+                                             rect.size.to_sizef(),
                                              webrender_api::LayoutSize::zero());
             }
             DisplayItem::Line(ref item) => {
                 let box_bounds = item.base.bounds.to_rectf();
-                builder.push_line(Some(item.base.local_clip),
+                builder.push_line(&prim_info(item.base.bounds, Some(item.base.local_clip)),
                                   box_bounds.origin.y + box_bounds.size.height,
                                   box_bounds.origin.x,
                                   box_bounds.origin.x + box_bounds.size.width,
@@ -438,10 +443,9 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                   item.style);
             }
             DisplayItem::BoxShadow(ref item) => {
-                let rect = item.base.bounds.to_rectf();
+                let rect = item.base.bounds;
                 let box_bounds = item.box_bounds.to_rectf();
-                builder.push_box_shadow(rect,
-                                        Some(item.base.local_clip),
+                builder.push_box_shadow(&prim_info(rect, Some(item.base.local_clip)),
                                         box_bounds,
                                         item.offset.to_vectorf(),
                                         item.color,
@@ -451,9 +455,8 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                         item.clip_mode.to_clip_mode());
             }
             DisplayItem::PushTextShadow(ref item) => {
-                let rect = item.base.bounds.to_rectf();
-                builder.push_text_shadow(rect,
-                                         Some(item.base.local_clip),
+                let rect = item.base.bounds;
+                builder.push_text_shadow(&prim_info(rect, Some(item.base.local_clip)),
                                          webrender_api::TextShadow {
                                              blur_radius: item.blur_radius.to_f32_px(),
                                              offset: item.offset.to_vectorf(),
@@ -464,9 +467,9 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                 builder.pop_text_shadow();
             }
             DisplayItem::Iframe(ref item) => {
-                let rect = item.base.bounds.to_rectf();
+                let rect = item.base.bounds;
                 let pipeline_id = item.iframe.to_webrender();
-                builder.push_iframe(rect, Some(item.base.local_clip), pipeline_id);
+                builder.push_iframe(&prim_info(rect, Some(item.base.local_clip)), pipeline_id);
             }
             DisplayItem::PushStackingContext(ref item) => {
                 let stacking_context = &item.stacking_context;
@@ -479,8 +482,8 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                     LayoutTransform::from_untyped(&perspective)
                 });
 
-                builder.push_stacking_context(stacking_context.scroll_policy,
-                                              stacking_context.bounds.to_rectf(),
+                builder.push_stacking_context(&prim_info(stacking_context.bounds, None),
+                                              stacking_context.scroll_policy,
                                               transform,
                                               stacking_context.transform_style,
                                               perspective,
