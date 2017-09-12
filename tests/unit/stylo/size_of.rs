@@ -31,6 +31,9 @@ fn size_of_selectors_dummy_types() {
 // selectors (with the inline hashes) with as few cache misses as possible.
 size_of_test!(test_size_of_rule, style::stylist::Rule, 32);
 
+// Large pages generate tens of thousands of ComputedValues.
+size_of_test!(test_size_of_cv, ComputedValues, 272);
+
 size_of_test!(test_size_of_option_arc_cv, Option<Arc<ComputedValues>>, 8);
 size_of_test!(test_size_of_option_rule_node, Option<StrongRuleNode>, 8);
 

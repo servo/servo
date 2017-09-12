@@ -624,7 +624,6 @@ where
     E: TElement,
 {
     use data::RestyleKind::*;
-    use sharing::StyleSharingResult::*;
 
     context.thread_local.statistics.elements_styled += 1;
     let kind = data.restyle_kind(context.shared);
@@ -656,12 +655,11 @@ where
             // Now that our bloom filter is set up, try the style sharing
             // cache.
             match target.share_style_if_possible(context) {
-                StyleWasShared(index, styles) => {
+                Some(styles) => {
                     context.thread_local.statistics.styles_shared += 1;
-                    context.thread_local.style_sharing_candidate_cache.touch(index);
                     styles
                 }
-                CannotShare => {
+                None => {
                     context.thread_local.statistics.elements_matched += 1;
                     // Perform the matching and cascading.
                     let new_styles = {
@@ -677,11 +675,11 @@ where
                     };
 
                     context.thread_local
-                        .style_sharing_candidate_cache
+                        .sharing_cache
                         .insert_if_possible(
                             &element,
                             new_styles.primary(),
-                            target.take_validation_data(),
+                            &mut target,
                             context.thread_local.bloom_filter.matching_depth(),
                         );
 

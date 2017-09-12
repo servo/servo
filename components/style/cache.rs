@@ -39,11 +39,20 @@ impl<K: Array> LRUCache<K> {
     #[inline]
     /// Touch a given entry, putting it first in the list.
     pub fn touch(&mut self, pos: usize) {
-        let last_index = self.entries.len() - 1;
-        if pos != last_index {
+        if pos != 0 {
             let entry = self.entries.remove(pos).unwrap();
             self.entries.push_front(entry);
         }
+    }
+
+    /// Returns the front entry in the list (most recently used).
+    pub fn front(&self) -> Option<&K::Item> {
+        self.entries.get(0)
+    }
+
+    /// Returns a mutable reference to the front entry in the list (most recently used).
+    pub fn front_mut(&mut self) -> Option<&mut K::Item> {
+        self.entries.get_mut(0)
     }
 
     /// Iterate over the contents of this cache, from more to less recently
