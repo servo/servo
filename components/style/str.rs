@@ -60,7 +60,7 @@ pub fn split_commas<'a>(s: &'a str) -> Filter<Split<'a, char>, fn(&&str) -> bool
 /// ascii digit
 pub fn is_ascii_digit(c: &char) -> bool {
     match *c {
-        '0'...'9'|'.' => true,
+        '0'...'9' => true,
         _ => false,
     }
 }

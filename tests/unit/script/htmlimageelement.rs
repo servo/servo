@@ -62,7 +62,7 @@ fn without_descriptor() {
     sources.push(first_imagesource);
     assert_eq!(parse_a_srcset_attribute(String::from("small-image.jpg")), sources);
 }
-// Return empty vector when pass two descriptor
+//Does not parse an ImageSource when both width and density descriptor present
 #[test]
 fn two_descriptor() {
     let first_descriptor = Descriptor { wid: Some(380), den: Some(22.0) };
@@ -70,4 +70,12 @@ fn two_descriptor() {
     let mut sources = Vec::new();
     sources.push(first_imagesource);
     assert_ne!(parse_a_srcset_attribute(String::from("small-image.jpg 380w 22x")), sources);
+}
+#[test]
+fn decimal_descriptor() {
+    let first_descriptor = Descriptor { wid: None, den: Some(2.2) };
+    let first_imagesource = ImageSource { url: "small-image.jpg".to_string(), descriptor: first_descriptor };
+    let mut sources = Vec::new();
+    sources.push(first_imagesource);
+    assert_eq!(parse_a_srcset_attribute(String::from("small-image.jpg 2.2x")), sources);
 }

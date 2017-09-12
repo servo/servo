@@ -1194,9 +1194,8 @@ pub fn parse_a_srcset_attribute(input: String) -> Vec<ImageSource> {
         let mut density: Option<f64> = None;
         let mut future_compat_h: Option<u32> = None;
         for descriptor in descriptors {
-            println!("descriptor:{:?}", descriptor);
             let char_iter = descriptor.chars();
-            let (digits, remaining) = collect_sequence_characters(&descriptor, is_ascii_digit);
+            let (digits, remaining) = collect_sequence_characters(&descriptor, |c| is_ascii_digit(c) || *c == '.');
             let valid_non_negative_integer = parse_unsigned_integer(digits.chars());
             let has_w = remaining == "w";
             let valid_floating_point = parse_double(digits);
@@ -1226,9 +1225,9 @@ pub fn parse_a_srcset_attribute(input: String) -> Vec<ImageSource> {
             if (width.is_some() && density.is_some()) ||
                 (width.is_some() && density.is_some() && future_compat_h.is_some()) ||
                 (density.is_some() && future_compat_h.is_some()) {
-                error=true;
+                error = true;
             }
-        }   
+        }
         if future_compat_h.is_some() && width.is_none() {
             error = true;
         }
@@ -1236,7 +1235,6 @@ pub fn parse_a_srcset_attribute(input: String) -> Vec<ImageSource> {
             let descriptor = Descriptor { wid: width, den: density };
             let imageSource = ImageSource { url: url, descriptor: descriptor };
             candidates.push(imageSource);
-            println!("candidates: {:?}", candidates);
         } else {
             debug!("Parse error")
         }
