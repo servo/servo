@@ -515,7 +515,8 @@ pub struct ScriptThread {
 
     content_process_shutdown_chan: IpcSender<()>,
 
-    microtask_queue: MicrotaskQueue,
+    /// https://html.spec.whatwg.org/multipage/#microtask-queue
+    microtask_queue: Rc<MicrotaskQueue>,
 
     /// Microtask Queue for adding support for mutation observer microtasks
     mutation_observer_compound_microtask_queued: Cell<bool>,
@@ -843,7 +844,7 @@ impl ScriptThread {
         // Ask the router to proxy IPC messages from the control port to us.
         let control_port = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(state.control_port);
 
-        let boxed_script_sender = MainThreadScriptChan(chan.clone()).clone();
+        let boxed_script_sender = box MainThreadScriptChan(chan.clone());
 
         let (image_cache_channel, image_cache_port) = channel();
 
@@ -892,7 +893,7 @@ impl ScriptThread {
 
             content_process_shutdown_chan: state.content_process_shutdown_chan,
 
-            microtask_queue: MicrotaskQueue::default(),
+            microtask_queue: Default::default(),
 
             mutation_observer_compound_microtask_queued: Default::default(),
 
@@ -2038,34 +2039,37 @@ impl ScriptThread {
         };
 
         // Create the window and document objects.
-        let window = Window::new(self.js_runtime.clone(),
-                                 MainThreadScriptChan(sender.clone()),
-                                 DOMManipulationTaskSource(dom_sender.clone()),
-                                 UserInteractionTaskSource(user_sender.clone()),
-                                 self.networking_task_source.clone(),
-                                 HistoryTraversalTaskSource(history_sender.clone()),
-                                 self.file_reading_task_source.clone(),
-                                 self.performance_timeline_task_source.clone(),
-                                 self.image_cache_channel.clone(),
-                                 self.image_cache.clone(),
-                                 self.resource_threads.clone(),
-                                 self.bluetooth_thread.clone(),
-                                 self.mem_profiler_chan.clone(),
-                                 self.time_profiler_chan.clone(),
-                                 self.devtools_chan.clone(),
-                                 script_to_constellation_chan,
-                                 self.control_chan.clone(),
-                                 self.scheduler_chan.clone(),
-                                 ipc_timer_event_chan,
-                                 incomplete.layout_chan,
-                                 incomplete.pipeline_id,
-                                 incomplete.parent_info,
-                                 incomplete.window_size,
-                                 origin,
-                                 incomplete.navigation_start,
-                                 incomplete.navigation_start_precise,
-                                 self.webgl_chan.channel(),
-                                 self.webvr_chan.clone());
+        let window = Window::new(
+            self.js_runtime.clone(),
+            MainThreadScriptChan(sender.clone()),
+            DOMManipulationTaskSource(dom_sender.clone()),
+            UserInteractionTaskSource(user_sender.clone()),
+            self.networking_task_source.clone(),
+            HistoryTraversalTaskSource(history_sender.clone()),
+            self.file_reading_task_source.clone(),
+            self.performance_timeline_task_source.clone(),
+            self.image_cache_channel.clone(),
+            self.image_cache.clone(),
+            self.resource_threads.clone(),
+            self.bluetooth_thread.clone(),
+            self.mem_profiler_chan.clone(),
+            self.time_profiler_chan.clone(),
+            self.devtools_chan.clone(),
+            script_to_constellation_chan,
+            self.control_chan.clone(),
+            self.scheduler_chan.clone(),
+            ipc_timer_event_chan,
+            incomplete.layout_chan,
+            incomplete.pipeline_id,
+            incomplete.parent_info,
+            incomplete.window_size,
+            origin,
+            incomplete.navigation_start,
+            incomplete.navigation_start_precise,
+            self.webgl_chan.channel(),
+            self.webvr_chan.clone(),
+            self.microtask_queue.clone(),
+        );
 
         // Initialize the browsing context for the window.
         let window_proxy = self.local_window_proxy(&window,

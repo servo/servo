@@ -17,8 +17,6 @@ use ipc_channel::ipc::IpcSender;
 use js::jsapi::JSContext;
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
-use microtask::Microtask;
-use microtask::MicrotaskQueue;
 use msg::constellation_msg::PipelineId;
 use net_traits::ResourceThreads;
 use net_traits::image_cache::ImageCache;
@@ -46,8 +44,6 @@ pub struct WorkletGlobalScope {
     globalscope: GlobalScope,
     /// The base URL for this worklet.
     base_url: ServoUrl,
-    /// The microtask queue for this worklet
-    microtask_queue: MicrotaskQueue,
     /// Sender back to the script thread
     #[ignore_heap_size_of = "channels are hard"]
     to_script_thread_sender: Sender<MainThreadScriptMsg>,
@@ -57,31 +53,34 @@ pub struct WorkletGlobalScope {
 
 impl WorkletGlobalScope {
     /// Create a new stack-allocated `WorkletGlobalScope`.
-    pub fn new_inherited(pipeline_id: PipelineId,
-                         base_url: ServoUrl,
-                         executor: WorkletExecutor,
-                         init: &WorkletGlobalScopeInit)
-                         -> WorkletGlobalScope {
+    pub fn new_inherited(
+        pipeline_id: PipelineId,
+        base_url: ServoUrl,
+        executor: WorkletExecutor,
+        init: &WorkletGlobalScopeInit,
+    ) -> Self {
         // Any timer events fired on this global are ignored.
         let (timer_event_chan, _) = ipc::channel().unwrap();
         let script_to_constellation_chan = ScriptToConstellationChan {
             sender: init.to_constellation_sender.clone(),
-            pipeline_id: pipeline_id,
+            pipeline_id,
         };
-        WorkletGlobalScope {
-            globalscope: GlobalScope::new_inherited(pipeline_id,
-                                                    init.devtools_chan.clone(),
-                                                    init.mem_profiler_chan.clone(),
-                                                    init.time_profiler_chan.clone(),
-                                                    script_to_constellation_chan,
-                                                    init.scheduler_chan.clone(),
-                                                    init.resource_threads.clone(),
-                                                    timer_event_chan,
-                                                    MutableOrigin::new(ImmutableOrigin::new_opaque())),
-            base_url: base_url,
-            microtask_queue: MicrotaskQueue::default(),
+        Self {
+            globalscope: GlobalScope::new_inherited(
+                pipeline_id,
+                init.devtools_chan.clone(),
+                init.mem_profiler_chan.clone(),
+                init.time_profiler_chan.clone(),
+                script_to_constellation_chan,
+                init.scheduler_chan.clone(),
+                init.resource_threads.clone(),
+                timer_event_chan,
+                MutableOrigin::new(ImmutableOrigin::new_opaque()),
+                Default::default(),
+            ),
+            base_url,
             to_script_thread_sender: init.to_script_thread_sender.clone(),
-            executor: executor,
+            executor,
         }
     }
 
@@ -126,20 +125,6 @@ impl WorkletGlobalScope {
     /// The worklet executor.
     pub fn executor(&self) -> WorkletExecutor {
         self.executor.clone()
-    }
-
-    /// Queue up a microtask to be executed in this global.
-    pub fn enqueue_microtask(&self, job: Microtask) {
-        self.microtask_queue.enqueue(job);
-    }
-
-    /// Perform any queued microtasks.
-    pub fn perform_a_microtask_checkpoint(&self) {
-        self.microtask_queue.checkpoint(|id| {
-            let global = self.upcast::<GlobalScope>();
-            assert_eq!(global.pipeline_id(), id);
-            Some(Root::from_ref(global))
-        });
     }
 
     /// Perform a worklet task

@@ -45,29 +45,36 @@ pub struct DissimilarOriginWindow {
 
 impl DissimilarOriginWindow {
     #[allow(unsafe_code)]
-    pub fn new(global_to_clone_from: &GlobalScope, window_proxy: &WindowProxy) -> Root<DissimilarOriginWindow> {
+    pub fn new(
+        global_to_clone_from: &GlobalScope,
+        window_proxy: &WindowProxy,
+    ) -> Root<Self> {
         let cx = global_to_clone_from.get_cx();
         // Any timer events fired on this window are ignored.
         let (timer_event_chan, _) = ipc::channel().unwrap();
-        let win = box DissimilarOriginWindow {
-            globalscope: GlobalScope::new_inherited(PipelineId::new(),
-                                                    global_to_clone_from.devtools_chan().cloned(),
-                                                    global_to_clone_from.mem_profiler_chan().clone(),
-                                                    global_to_clone_from.time_profiler_chan().clone(),
-                                                    global_to_clone_from.script_to_constellation_chan().clone(),
-                                                    global_to_clone_from.scheduler_chan().clone(),
-                                                    global_to_clone_from.resource_threads().clone(),
-                                                    timer_event_chan,
-                                                    global_to_clone_from.origin().clone()),
+        let win = box Self {
+            globalscope: GlobalScope::new_inherited(
+                PipelineId::new(),
+                global_to_clone_from.devtools_chan().cloned(),
+                global_to_clone_from.mem_profiler_chan().clone(),
+                global_to_clone_from.time_profiler_chan().clone(),
+                global_to_clone_from.script_to_constellation_chan().clone(),
+                global_to_clone_from.scheduler_chan().clone(),
+                global_to_clone_from.resource_threads().clone(),
+                timer_event_chan,
+                global_to_clone_from.origin().clone(),
+                // FIXME(nox): The microtask queue is probably not important
+                // here, but this whole DOM interface is a hack anyway.
+                global_to_clone_from.microtask_queue().clone(),
+            ),
             window_proxy: JS::from_ref(window_proxy),
-            location: MutNullableJS::new(None),
+            location: Default::default(),
         };
         unsafe { DissimilarOriginWindowBinding::Wrap(cx, win) }
     }
 
-    #[allow(dead_code)]
     pub fn origin(&self) -> &MutableOrigin {
-        self.globalscope.origin()
+        self.upcast::<GlobalScope>().origin()
     }
 }
 

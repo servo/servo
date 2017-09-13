@@ -30,7 +30,6 @@ use js::jsapi::{HandleValue, JSAutoCompartment, JSContext, JSRuntime};
 use js::jsval::UndefinedValue;
 use js::panic::maybe_resume_unwind;
 use js::rust::Runtime;
-use microtask::{MicrotaskQueue, Microtask};
 use net_traits::{IpcSend, load_whole_resource};
 use net_traits::request::{CredentialsMode, Destination, RequestInit as NetRequestInit, Type as RequestType};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
@@ -91,41 +90,40 @@ pub struct WorkerGlobalScope {
     /// `IpcSender` doesn't exist
     from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
 
-    microtask_queue: MicrotaskQueue,
-
     navigation_start_precise: f64,
     performance: MutNullableJS<Performance>,
 }
 
 impl WorkerGlobalScope {
-    pub fn new_inherited(init: WorkerGlobalScopeInit,
-                         worker_url: ServoUrl,
-                         runtime: Runtime,
-                         from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
-                         timer_event_chan: IpcSender<TimerEvent>,
-                         closing: Option<Arc<AtomicBool>>)
-                         -> WorkerGlobalScope {
-        WorkerGlobalScope {
-            globalscope:
-                GlobalScope::new_inherited(
-                    init.pipeline_id,
-                    init.to_devtools_sender,
-                    init.mem_profiler_chan,
-                    init.time_profiler_chan,
-                    init.script_to_constellation_chan,
-                    init.scheduler_chan,
-                    init.resource_threads,
-                    timer_event_chan,
-                    MutableOrigin::new(init.origin)),
+    pub fn new_inherited(
+        init: WorkerGlobalScopeInit,
+        worker_url: ServoUrl,
+        runtime: Runtime,
+        from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
+        timer_event_chan: IpcSender<TimerEvent>,
+        closing: Option<Arc<AtomicBool>>,
+    ) -> Self {
+        Self {
+            globalscope: GlobalScope::new_inherited(
+                init.pipeline_id,
+                init.to_devtools_sender,
+                init.mem_profiler_chan,
+                init.time_profiler_chan,
+                init.script_to_constellation_chan,
+                init.scheduler_chan,
+                init.resource_threads,
+                timer_event_chan,
+                MutableOrigin::new(init.origin),
+                Default::default(),
+            ),
             worker_id: init.worker_id,
-            worker_url: worker_url,
-            closing: closing,
-            runtime: runtime,
+            worker_url,
+            closing,
+            runtime,
             location: Default::default(),
             navigator: Default::default(),
             from_devtools_sender: init.from_devtools_sender,
-            from_devtools_receiver: from_devtools_receiver,
-            microtask_queue: MicrotaskQueue::default(),
+            from_devtools_receiver,
             navigation_start_precise: precise_time_ns() as f64,
             performance: Default::default(),
         }
@@ -167,18 +165,6 @@ impl WorkerGlobalScope {
         RunnableWrapper {
             cancelled: self.closing.clone(),
         }
-    }
-
-    pub fn enqueue_microtask(&self, job: Microtask) {
-        self.microtask_queue.enqueue(job);
-    }
-
-    pub fn perform_a_microtask_checkpoint(&self) {
-        self.microtask_queue.checkpoint(|id| {
-            let global = self.upcast::<GlobalScope>();
-            assert_eq!(global.pipeline_id(), id);
-            Some(Root::from_ref(global))
-        });
     }
 }
 
