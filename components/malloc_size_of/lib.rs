@@ -103,13 +103,20 @@ impl MallocSizeOfOps {
 
     /// Check if an allocation is empty. This relies on knowledge of how Rust
     /// handles empty allocations, which may change in the future.
-    fn is_empty<T>(ptr: *const T) -> bool {
-        return ptr as usize <= ::std::mem::align_of::<T>();
+    fn is_empty<T: ?Sized>(ptr: *const T) -> bool {
+        // The correct condition is this:
+        //   `ptr as usize <= ::std::mem::align_of::<T>()`
+        // But we can't call align_of() on a ?Sized T. So we approximate it
+        // with the following. 256 is large enough that it should always be
+        // larger than the required alignment, but small enough that it is
+        // always in the first page of memory and therefore not a legitimate
+        // address.
+        return ptr as *const usize as usize <= 256
     }
 
     /// Call `size_of_op` on `ptr`, first checking that the allocation isn't
     /// empty, because some types (such as `Vec`) utilize empty allocations.
-    pub unsafe fn malloc_size_of<T>(&self, ptr: *const T) -> usize {
+    pub unsafe fn malloc_size_of<T: ?Sized>(&self, ptr: *const T) -> usize {
         if MallocSizeOfOps::is_empty(ptr) {
             0
         } else {
@@ -179,13 +186,13 @@ pub trait MallocConditionalShallowSizeOf {
     fn conditional_shallow_size_of(&self, ops: &mut MallocSizeOfOps) -> usize;
 }
 
-impl<T> MallocShallowSizeOf for Box<T> {
+impl<T: ?Sized> MallocShallowSizeOf for Box<T> {
     fn shallow_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         unsafe { ops.malloc_size_of(&**self) }
     }
 }
 
-impl<T: MallocSizeOf> MallocSizeOf for Box<T> {
+impl<T: MallocSizeOf + ?Sized> MallocSizeOf for Box<T> {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         self.shallow_size_of(ops) + (**self).size_of(ops)
     }
@@ -204,6 +211,16 @@ impl<T: MallocSizeOf> MallocSizeOf for Option<T> {
         } else {
             0
         }
+    }
+}
+
+impl<T: MallocSizeOf> MallocSizeOf for [T] {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        let mut n = 0;
+        for elem in self.iter() {
+            n += elem.size_of(ops);
+        }
+        n
     }
 }
 
