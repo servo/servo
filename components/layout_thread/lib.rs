@@ -1198,11 +1198,9 @@ impl LayoutThread {
                 self.stylist.force_stylesheet_origins_dirty(Origin::Author.into());
             }
 
-            let mut extra_data = Default::default();
             self.stylist.flush(
                 &guards,
                 Some(ua_stylesheets),
-                &mut extra_data,
                 Some(element),
             );
         }
