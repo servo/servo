@@ -140,33 +140,18 @@ where
             None
         };
 
-        let mut visited_style = None;
-        let should_compute_visited_style =
-            relevant_link_found ||
-            parent_style.and_then(|s| s.get_visited_style()).is_some();
-
-        if should_compute_visited_style {
-            visited_style = Some(self.cascade_style(
-                visited_rules.as_ref().or(Some(&primary_results.rule_node)),
-                /* style_if_visited = */ None,
+        PrimaryStyle {
+            style: self.cascade_style_and_visited(
+                CascadeInputs {
+                    rules: Some(primary_results.rule_node),
+                    visited_rules,
+                },
                 parent_style,
                 layout_parent_style,
-                CascadeVisitedMode::Visited,
                 /* pseudo = */ None,
-            ));
+            ),
         }
-        let style = self.cascade_style(
-            Some(&primary_results.rule_node),
-            visited_style,
-            parent_style,
-            layout_parent_style,
-            CascadeVisitedMode::Unvisited,
-            /* pseudo = */ None,
-        );
-
-        PrimaryStyle { style, }
     }
-
 
     /// Resolve the style of a given element, and all its eager pseudo-elements.
     pub fn resolve_style(
