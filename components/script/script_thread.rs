@@ -2068,6 +2068,7 @@ impl ScriptThread {
             incomplete.navigation_start_precise,
             self.webgl_chan.channel(),
             self.webvr_chan.clone(),
+            self.microtask_queue.clone(),
         );
 
         // Initialize the browsing context for the window.

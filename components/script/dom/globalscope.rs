@@ -479,8 +479,8 @@ impl GlobalScope {
 
     /// Perform a microtask checkpoint.
     pub fn perform_a_microtask_checkpoint(&self) {
-        if self.is::<Window>() {
-            return ScriptThread::invoke_perform_a_microtask_checkpoint();
+        if let Some(window) = self.downcast::<Window>() {
+            return window.perform_a_microtask_checkpoint();
         }
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             return worker.perform_a_microtask_checkpoint();
@@ -493,8 +493,8 @@ impl GlobalScope {
 
     /// Enqueue a microtask for subsequent execution.
     pub fn enqueue_microtask(&self, job: Microtask) {
-        if self.is::<Window>() {
-            return ScriptThread::enqueue_microtask(job);
+        if let Some(window) = self.downcast::<Window>() {
+            return window.enqueue_microtask(job);
         }
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             return worker.enqueue_microtask(job);
