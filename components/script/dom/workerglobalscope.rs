@@ -98,34 +98,35 @@ pub struct WorkerGlobalScope {
 }
 
 impl WorkerGlobalScope {
-    pub fn new_inherited(init: WorkerGlobalScopeInit,
-                         worker_url: ServoUrl,
-                         runtime: Runtime,
-                         from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
-                         timer_event_chan: IpcSender<TimerEvent>,
-                         closing: Option<Arc<AtomicBool>>)
-                         -> WorkerGlobalScope {
-        WorkerGlobalScope {
-            globalscope:
-                GlobalScope::new_inherited(
-                    init.pipeline_id,
-                    init.to_devtools_sender,
-                    init.mem_profiler_chan,
-                    init.time_profiler_chan,
-                    init.script_to_constellation_chan,
-                    init.scheduler_chan,
-                    init.resource_threads,
-                    timer_event_chan,
-                    MutableOrigin::new(init.origin)),
+    pub fn new_inherited(
+        init: WorkerGlobalScopeInit,
+        worker_url: ServoUrl,
+        runtime: Runtime,
+        from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
+        timer_event_chan: IpcSender<TimerEvent>,
+        closing: Option<Arc<AtomicBool>>,
+    ) -> Self {
+        Self {
+            globalscope: GlobalScope::new_inherited(
+                init.pipeline_id,
+                init.to_devtools_sender,
+                init.mem_profiler_chan,
+                init.time_profiler_chan,
+                init.script_to_constellation_chan,
+                init.scheduler_chan,
+                init.resource_threads,
+                timer_event_chan,
+                MutableOrigin::new(init.origin),
+            ),
             worker_id: init.worker_id,
-            worker_url: worker_url,
-            closing: closing,
-            runtime: runtime,
+            worker_url,
+            closing,
+            runtime,
             location: Default::default(),
             navigator: Default::default(),
             from_devtools_sender: init.from_devtools_sender,
-            from_devtools_receiver: from_devtools_receiver,
-            microtask_queue: MicrotaskQueue::default(),
+            from_devtools_receiver,
+            microtask_queue: Default::default(),
             navigation_start_precise: precise_time_ns() as f64,
             performance: Default::default(),
         }
