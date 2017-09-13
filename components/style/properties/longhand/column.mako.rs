@@ -39,12 +39,12 @@ ${helpers.single_keyword("column-fill", "balance auto", extra_prefixes="moz",
 
 ${helpers.predefined_type("column-rule-width",
                           "BorderSideWidth",
-                          "::values::computed::NonNegativeAu::from_px(3)",
+                          "::values::computed::NonNegativeLength::new(3.)",
                           initial_specified_value="specified::BorderSideWidth::Medium",
-                          computed_type="::values::computed::NonNegativeAu",
+                          computed_type="::values::computed::NonNegativeLength",
                           products="gecko",
                           spec="https://drafts.csswg.org/css-multicol/#propdef-column-rule-width",
-                          animation_value_type="NonNegativeAu",
+                          animation_value_type="NonNegativeLength",
                           extra_prefixes="moz")}
 
 // https://drafts.csswg.org/css-multicol-1/#crc

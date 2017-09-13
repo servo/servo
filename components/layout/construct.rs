@@ -14,7 +14,6 @@
 #![deny(unsafe_code)]
 
 use ServoArc;
-use app_units::Au;
 use block::BlockFlow;
 use context::{LayoutContext, with_thread_local_font_context};
 use data::{HAS_NEWLY_CONSTRUCTED_FLOW, LayoutData};
@@ -1852,10 +1851,10 @@ impl ComputedValueUtils for ComputedValues {
            !padding.padding_right.is_definitely_zero() ||
            !padding.padding_bottom.is_definitely_zero() ||
            !padding.padding_left.is_definitely_zero() ||
-           border.border_top_width.0 != Au(0) ||
-           border.border_right_width.0 != Au(0) ||
-           border.border_bottom_width.0 != Au(0) ||
-           border.border_left_width.0 != Au(0)
+           border.border_top_width.px() != 0. ||
+           border.border_right_width.px() != 0. ||
+           border.border_bottom_width.px() != 0. ||
+           border.border_left_width.px() != 0.
     }
 }
 

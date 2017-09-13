@@ -27,13 +27,13 @@ ${helpers.single_keyword("caption-side", "top bottom",
 
     pub mod computed_value {
         use values::animated::{ToAnimatedValue, ToAnimatedZero};
-        use values::computed::NonNegativeAu;
+        use values::computed::NonNegativeLength;
 
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         #[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, PartialEq, ToCss)]
         pub struct T {
-            pub horizontal: NonNegativeAu,
-            pub vertical: NonNegativeAu,
+            pub horizontal: NonNegativeLength,
+            pub vertical: NonNegativeLength,
         }
 
         impl ToAnimatedZero for T {
@@ -68,10 +68,10 @@ ${helpers.single_keyword("caption-side", "top bottom",
 
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
-        use values::computed::NonNegativeAu;
+        use values::computed::NonNegativeLength as ComputedNonNegativeLength;
         computed_value::T {
-            horizontal: NonNegativeAu::zero(),
-            vertical: NonNegativeAu::zero(),
+            horizontal: ComputedNonNegativeLength::zero(),
+            vertical: ComputedNonNegativeLength::zero(),
         }
     }
 

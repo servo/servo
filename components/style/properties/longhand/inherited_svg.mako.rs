@@ -65,7 +65,7 @@ ${helpers.predefined_type(
 
 ${helpers.predefined_type(
     "stroke-width", "SVGWidth",
-    "::values::computed::NonNegativeAu::from_px(1).into()",
+    "::values::computed::NonNegativeLength::new(1.).into()",
     products="gecko",
     boxed="True",
     animation_value_type="::values::computed::SVGWidth",

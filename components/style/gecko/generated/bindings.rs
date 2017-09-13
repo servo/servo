@@ -1377,6 +1377,10 @@ extern "C" {
                                         percent: f32);
 }
 extern "C" {
+    pub fn Gecko_CSSValue_SetPixelLength(aCSSValue: nsCSSValueBorrowedMut,
+                                         aLen: f32);
+}
+extern "C" {
     pub fn Gecko_CSSValue_SetCalc(css_value: nsCSSValueBorrowedMut,
                                   calc: nsStyleCoord_CalcValue);
 }

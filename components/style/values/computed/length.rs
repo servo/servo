@@ -7,12 +7,13 @@
 use app_units::{Au, AU_PER_PX};
 use ordered_float::NotNaN;
 use std::fmt;
+use std::ops::Add;
 use style_traits::ToCss;
 use style_traits::values::specified::AllowedLengthType;
 use super::{Number, ToComputedValue, Context, Percentage};
 use values::{Auto, CSSFloat, Either, ExtremumLength, None_, Normal, specified};
 use values::animated::{Animate, Procedure, ToAnimatedZero};
-use values::computed::{NonNegativeAu, NonNegativeNumber};
+use values::computed::NonNegativeNumber;
 use values::distance::{ComputeSquaredDistance, SquaredDistance};
 use values::generics::NonNegative;
 use values::specified::length::{AbsoluteLength, FontBaseSize, FontRelativeLength};
@@ -22,10 +23,10 @@ pub use super::image::Image;
 pub use values::specified::{Angle, BorderStyle, Time, UrlOrNone};
 
 impl ToComputedValue for specified::NoCalcLength {
-    type ComputedValue = Au;
+    type ComputedValue = CSSPixelLength;
 
     #[inline]
-    fn to_computed_value(&self, context: &Context) -> Au {
+    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
         match *self {
             specified::NoCalcLength::Absolute(length) =>
                 length.to_computed_value(context),
@@ -34,7 +35,7 @@ impl ToComputedValue for specified::NoCalcLength {
             specified::NoCalcLength::ViewportPercentage(length) =>
                 length.to_computed_value(context.viewport_size_for_viewport_unit_resolution()),
             specified::NoCalcLength::ServoCharacterWidth(length) =>
-                length.to_computed_value(context.style().get_font().clone_font_size().0),
+                length.to_computed_value(Au::from(context.style().get_font().clone_font_size())),
             #[cfg(feature = "gecko")]
             specified::NoCalcLength::Physical(length) =>
                 length.to_computed_value(context),
@@ -42,24 +43,24 @@ impl ToComputedValue for specified::NoCalcLength {
     }
 
     #[inline]
-    fn from_computed_value(computed: &Au) -> Self {
-        specified::NoCalcLength::Absolute(AbsoluteLength::Px(computed.to_f32_px()))
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        specified::NoCalcLength::Absolute(AbsoluteLength::Px(computed.px()))
     }
 }
 
 impl ToComputedValue for specified::Length {
-    type ComputedValue = Au;
+    type ComputedValue = CSSPixelLength;
 
     #[inline]
-    fn to_computed_value(&self, context: &Context) -> Au {
+    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
         match *self {
             specified::Length::NoCalc(l) => l.to_computed_value(context),
-            specified::Length::Calc(ref calc) => calc.to_computed_value(context).length(),
+            specified::Length::Calc(ref calc) => calc.to_computed_value(context).length().into(),
         }
     }
 
     #[inline]
-    fn from_computed_value(computed: &Au) -> Self {
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
         specified::Length::NoCalc(specified::NoCalcLength::from_computed_value(computed))
     }
 }
@@ -229,7 +230,7 @@ impl specified::CalcLengthOrPercentage {
         let mut length = Au(0);
 
         if let Some(absolute) = self.absolute {
-            length += zoom_fn(absolute.to_computed_value(context));
+            length += zoom_fn(Au::from(absolute.to_computed_value(context)));
         }
 
         for val in &[self.vw.map(ViewportPercentageLength::Vw),
@@ -237,7 +238,8 @@ impl specified::CalcLengthOrPercentage {
                      self.vmin.map(ViewportPercentageLength::Vmin),
                      self.vmax.map(ViewportPercentageLength::Vmax)] {
             if let Some(val) = *val {
-                length += val.to_computed_value(context.viewport_size_for_viewport_unit_resolution());
+                let viewport_size = context.viewport_size_for_viewport_unit_resolution();
+                length += Au::from(val.to_computed_value(viewport_size));
             }
         }
 
@@ -246,7 +248,7 @@ impl specified::CalcLengthOrPercentage {
                      self.ex.map(FontRelativeLength::Ex),
                      self.rem.map(FontRelativeLength::Rem)] {
             if let Some(val) = *val {
-                length += val.to_computed_value(context, base_size);
+                length += Au::from(val.to_computed_value(context, base_size));
             }
         }
 
@@ -259,7 +261,7 @@ impl specified::CalcLengthOrPercentage {
 
     /// Compute font-size or line-height taking into account text-zoom if necessary.
     pub fn to_computed_value_zoomed(&self, context: &Context, base_size: FontBaseSize) -> CalcLengthOrPercentage {
-        self.to_computed_value_with_zoom(context, |abs| context.maybe_zoom_text(abs.into()).0, base_size)
+        self.to_computed_value_with_zoom(context, |abs| Au::from(context.maybe_zoom_text(abs.into())), base_size)
     }
 }
 
@@ -275,7 +277,7 @@ impl ToComputedValue for specified::CalcLengthOrPercentage {
     fn from_computed_value(computed: &CalcLengthOrPercentage) -> Self {
         specified::CalcLengthOrPercentage {
             clamping_mode: computed.clamping_mode,
-            absolute: Some(AbsoluteLength::from_computed_value(&computed.length)),
+            absolute: Some(AbsoluteLength::from_computed_value(&computed.length.into())),
             percentage: computed.percentage,
             ..Default::default()
         }
@@ -402,7 +404,7 @@ impl ToComputedValue for specified::LengthOrPercentage {
     fn to_computed_value(&self, context: &Context) -> LengthOrPercentage {
         match *self {
             specified::LengthOrPercentage::Length(ref value) => {
-                LengthOrPercentage::Length(value.to_computed_value(context))
+                LengthOrPercentage::Length(Au::from(value.to_computed_value(context)))
             }
             specified::LengthOrPercentage::Percentage(value) => {
                 LengthOrPercentage::Percentage(value)
@@ -417,7 +419,7 @@ impl ToComputedValue for specified::LengthOrPercentage {
         match *computed {
             LengthOrPercentage::Length(value) => {
                 specified::LengthOrPercentage::Length(
-                    ToComputedValue::from_computed_value(&value)
+                    ToComputedValue::from_computed_value(&value.into())
                 )
             }
             LengthOrPercentage::Percentage(value) => {
@@ -493,7 +495,7 @@ impl ToComputedValue for specified::LengthOrPercentageOrAuto {
     fn to_computed_value(&self, context: &Context) -> LengthOrPercentageOrAuto {
         match *self {
             specified::LengthOrPercentageOrAuto::Length(ref value) => {
-                LengthOrPercentageOrAuto::Length(value.to_computed_value(context))
+                LengthOrPercentageOrAuto::Length(Au::from(value.to_computed_value(context)))
             }
             specified::LengthOrPercentageOrAuto::Percentage(value) => {
                 LengthOrPercentageOrAuto::Percentage(value)
@@ -513,7 +515,7 @@ impl ToComputedValue for specified::LengthOrPercentageOrAuto {
             LengthOrPercentageOrAuto::Auto => specified::LengthOrPercentageOrAuto::Auto,
             LengthOrPercentageOrAuto::Length(value) => {
                 specified::LengthOrPercentageOrAuto::Length(
-                    ToComputedValue::from_computed_value(&value)
+                    ToComputedValue::from_computed_value(&value.into())
                 )
             }
             LengthOrPercentageOrAuto::Percentage(value) => {
@@ -585,7 +587,7 @@ impl ToComputedValue for specified::LengthOrPercentageOrNone {
     fn to_computed_value(&self, context: &Context) -> LengthOrPercentageOrNone {
         match *self {
             specified::LengthOrPercentageOrNone::Length(ref value) => {
-                LengthOrPercentageOrNone::Length(value.to_computed_value(context))
+                LengthOrPercentageOrNone::Length(Au::from(value.to_computed_value(context)))
             }
             specified::LengthOrPercentageOrNone::Percentage(value) => {
                 LengthOrPercentageOrNone::Percentage(value)
@@ -605,7 +607,7 @@ impl ToComputedValue for specified::LengthOrPercentageOrNone {
             LengthOrPercentageOrNone::None => specified::LengthOrPercentageOrNone::None,
             LengthOrPercentageOrNone::Length(value) => {
                 specified::LengthOrPercentageOrNone::Length(
-                    ToComputedValue::from_computed_value(&value)
+                    ToComputedValue::from_computed_value(&value.into())
                 )
             }
             LengthOrPercentageOrNone::Percentage(value) => {
@@ -623,10 +625,10 @@ impl ToComputedValue for specified::LengthOrPercentageOrNone {
 /// A wrapper of LengthOrPercentage, whose value must be >= 0.
 pub type NonNegativeLengthOrPercentage = NonNegative<LengthOrPercentage>;
 
-impl From<NonNegativeAu> for NonNegativeLengthOrPercentage {
+impl From<NonNegativeLength> for NonNegativeLengthOrPercentage {
     #[inline]
-    fn from(length: NonNegativeAu) -> Self {
-        LengthOrPercentage::Length(length.0).into()
+    fn from(length: NonNegativeLength) -> Self {
+        LengthOrPercentage::Length(Au::from(length.0)).into()
     }
 }
 
@@ -664,8 +666,56 @@ impl NonNegativeLengthOrPercentage {
     }
 }
 
-/// A computed `<length>` value.
-pub type Length = Au;
+/// The computed `<length>` value.
+#[cfg_attr(feature = "servo", derive(Deserialize, HeapSizeOf, Serialize))]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, PartialEq, PartialOrd)]
+#[derive(ToAnimatedValue, ToAnimatedZero)]
+pub struct CSSPixelLength(CSSFloat);
+
+impl CSSPixelLength {
+    /// Return a new CSSPixelLength.
+    #[inline]
+    pub fn new(px: CSSFloat) -> Self {
+        CSSPixelLength(px)
+    }
+
+    /// Return the containing pixel value.
+    #[inline]
+    pub fn px(&self) -> CSSFloat {
+        self.0
+    }
+
+    /// Return the length with app_unit i32 type.
+    #[inline]
+    pub fn to_i32_au(&self) -> i32 {
+        Au::from(*self).0
+    }
+}
+
+impl ToCss for CSSPixelLength {
+    #[inline]
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        self.0.to_css(dest)?;
+        dest.write_str("px")
+    }
+}
+
+impl From<CSSPixelLength> for Au {
+    #[inline]
+    fn from(len: CSSPixelLength) -> Self {
+        Au::from_f32_px(len.0)
+    }
+}
+
+impl From<Au> for CSSPixelLength {
+    #[inline]
+    fn from(len: Au) -> Self {
+        CSSPixelLength::new(len.to_f32_px())
+    }
+}
+
+/// An alias of computed `<length>` value.
+pub type Length = CSSPixelLength;
 
 /// Either a computed `<length>` or the `none` keyword.
 pub type LengthOrNone = Either<Length, None_>;
@@ -688,7 +738,63 @@ impl LengthOrNumber {
 pub type LengthOrNormal = Either<Length, Normal>;
 
 /// A wrapper of Length, whose value must be >= 0.
-pub type NonNegativeLength = NonNegativeAu;
+pub type NonNegativeLength = NonNegative<Length>;
+
+impl NonNegativeLength {
+    /// Create a NonNegativeLength.
+    #[inline]
+    pub fn new(px: CSSFloat) -> Self {
+        NonNegative(Length::new(px.max(0.)))
+    }
+
+    /// Return a zero value.
+    #[inline]
+    pub fn zero() -> Self {
+        Self::new(0.)
+    }
+
+    /// Return the pixel value of |NonNegativeLength|.
+    #[inline]
+    pub fn px(&self) -> CSSFloat {
+        self.0.px()
+    }
+
+    /// Scale this NonNegativeLength.
+    /// We scale NonNegativeLength by zero if the factor is negative because it doesn't
+    /// make sense to scale a negative factor on a non-negative length.
+    #[inline]
+    pub fn scale_by(&self, factor: f32) -> Self {
+        Self::new(self.0.px() * factor.max(0.))
+    }
+}
+
+impl Add<NonNegativeLength> for NonNegativeLength {
+    type Output = Self;
+    fn add(self, other: Self) -> Self {
+        NonNegativeLength::new(self.px() + other.px())
+    }
+}
+
+impl From<Length> for NonNegativeLength {
+    #[inline]
+    fn from(len: Length) -> Self {
+        NonNegative(len)
+    }
+}
+
+impl From<Au> for NonNegativeLength {
+    #[inline]
+    fn from(au: Au) -> Self {
+        NonNegative(au.into())
+    }
+}
+
+impl From<NonNegativeLength> for Au {
+    #[inline]
+    fn from(non_negative_len: NonNegativeLength) -> Self {
+        Au::from(non_negative_len.0)
+    }
+}
 
 /// Either a computed NonNegativeLength or the `auto` keyword.
 pub type NonNegativeLengthOrAuto = Either<NonNegativeLength, Auto>;

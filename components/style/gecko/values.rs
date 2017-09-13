@@ -17,10 +17,10 @@ use media_queries::Device;
 use nsstring::{nsACString, nsCString};
 use std::cmp::max;
 use values::{Auto, Either, ExtremumLength, None_, Normal};
-use values::computed::{Angle, LengthOrPercentage, LengthOrPercentageOrAuto};
+use values::computed::{Angle, Length, LengthOrPercentage, LengthOrPercentageOrAuto};
 use values::computed::{LengthOrPercentageOrNone, Number, NumberOrPercentage};
 use values::computed::{MaxLength, MozLength, Percentage};
-use values::computed::{NonNegativeAu, NonNegativeLengthOrPercentage, NonNegativeNumber};
+use values::computed::{NonNegativeLength, NonNegativeLengthOrPercentage, NonNegativeNumber};
 use values::computed::basic_shape::ShapeRadius as ComputedShapeRadius;
 use values::generics::{CounterStyleOrNone, NonNegative};
 use values::generics::basic_shape::ShapeRadius;
@@ -133,26 +133,26 @@ impl GeckoStyleCoordConvertible for NonNegativeLengthOrPercentage {
     }
 }
 
-impl GeckoStyleCoordConvertible for Au {
+impl GeckoStyleCoordConvertible for Length {
     fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
-        coord.set_value(CoordDataValue::Coord(self.0));
+        coord.set_value(CoordDataValue::Coord(self.to_i32_au()));
     }
 
     fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
         match coord.as_value() {
-            CoordDataValue::Coord(coord) => Some(Au(coord)),
+            CoordDataValue::Coord(coord) => Some(Au(coord).into()),
             _ => None,
         }
     }
 }
 
-impl GeckoStyleCoordConvertible for NonNegativeAu {
+impl GeckoStyleCoordConvertible for NonNegativeLength {
     fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
         self.0.to_gecko_style_coord(coord);
     }
 
     fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
-        Au::from_gecko_style_coord(coord).map(NonNegative::<Au>)
+        Length::from_gecko_style_coord(coord).map(NonNegative::<Length>)
     }
 }
 

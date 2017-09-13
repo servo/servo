@@ -7,7 +7,7 @@
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use style_traits::ParseError;
-use values::computed::{Context, NonNegativeAu, ToComputedValue};
+use values::computed::{Context, NonNegativeLength, ToComputedValue};
 use values::generics::border::BorderCornerRadius as GenericBorderCornerRadius;
 use values::generics::border::BorderImageSideWidth as GenericBorderImageSideWidth;
 use values::generics::border::BorderImageSlice as GenericBorderImageSlice;
@@ -71,7 +71,7 @@ impl Parse for BorderSideWidth {
 }
 
 impl ToComputedValue for BorderSideWidth {
-    type ComputedValue = NonNegativeAu;
+    type ComputedValue = NonNegativeLength;
 
     #[inline]
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
@@ -82,7 +82,7 @@ impl ToComputedValue for BorderSideWidth {
             BorderSideWidth::Thin => Length::from_px(1.).to_computed_value(context),
             BorderSideWidth::Medium => Length::from_px(3.).to_computed_value(context),
             BorderSideWidth::Thick => Length::from_px(5.).to_computed_value(context),
-            BorderSideWidth::Length(ref length) => length.to_computed_value(context)
+            BorderSideWidth::Length(ref length) => length.to_computed_value(context),
         }.into()
     }
 

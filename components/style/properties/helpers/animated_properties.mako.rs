@@ -48,7 +48,7 @@ use values::animated::effects::TextShadowList as AnimatedTextShadowList;
 use values::computed::{Angle, BorderCornerRadius, CalcLengthOrPercentage};
 use values::computed::{ClipRect, Context, ComputedUrl};
 use values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
-use values::computed::{LengthOrPercentageOrNone, MaxLength, NonNegativeAu};
+use values::computed::{LengthOrPercentageOrNone, MaxLength, NonNegativeLength};
 use values::computed::{NonNegativeNumber, Number, NumberOrPercentage, Percentage};
 use values::computed::{PositiveIntegerOrAuto, ToComputedValue};
 #[cfg(feature = "gecko")] use values::computed::MozLength;
@@ -1094,7 +1094,8 @@ impl<H, V> RepeatableListAnimatable for generic_position::Position<H, V>
 impl Animate for ClipRect {
     #[inline]
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        let animate_component = |this: &Option<Au>, other: &Option<Au>| {
+        use values::computed::Length;
+        let animate_component = |this: &Option<Length>, other: &Option<Length>| {
             match (this.animate(other, procedure)?, procedure) {
                 (None, Procedure::Interpolate { .. }) => Ok(None),
                 (None, _) => Err(()),
@@ -1244,11 +1245,11 @@ impl Animate for TransformOperation {
             ) => {
                 let mut fd_matrix = ComputedMatrix::identity();
                 let mut td_matrix = ComputedMatrix::identity();
-                if fd.0 > 0 {
-                    fd_matrix.m34 = -1. / fd.to_f32_px();
+                if fd.px() > 0. {
+                    fd_matrix.m34 = -1. / fd.px();
                 }
-                if td.0 > 0 {
-                    td_matrix.m34 = -1. / td.to_f32_px();
+                if td.px() > 0. {
+                    td_matrix.m34 = -1. / td.px();
                 }
                 Ok(TransformOperation::Matrix(
                     fd_matrix.animate(&td_matrix, procedure)?,
@@ -2327,7 +2328,7 @@ impl ComputeSquaredDistance for TransformOperation {
                 Ok(
                     fx.compute_squared_distance(&tx)? +
                     fy.compute_squared_distance(&ty)? +
-                    fz.to_f64_px().compute_squared_distance(&tz.to_f64_px())?,
+                    fz.compute_squared_distance(&tz)?,
                 )
             },
             (
@@ -2364,12 +2365,12 @@ impl ComputeSquaredDistance for TransformOperation {
             ) => {
                 let mut fd_matrix = ComputedMatrix::identity();
                 let mut td_matrix = ComputedMatrix::identity();
-                if fd.0 > 0 {
-                    fd_matrix.m34 = -1. / fd.to_f32_px();
+                if fd.px() > 0. {
+                    fd_matrix.m34 = -1. / fd.px();
                 }
 
-                if td.0 > 0 {
-                    td_matrix.m34 = -1. / td.to_f32_px();
+                if td.px() > 0. {
+                    td_matrix.m34 = -1. / td.px();
                 }
                 fd_matrix.compute_squared_distance(&td_matrix)
             }
@@ -2381,8 +2382,8 @@ impl ComputeSquaredDistance for TransformOperation {
                 &TransformOperation::Perspective(ref p),
             ) => {
                 let mut p_matrix = ComputedMatrix::identity();
-                if p.0 > 0 {
-                    p_matrix.m34 = -1. / p.to_f32_px();
+                if p.px() > 0. {
+                    p_matrix.m34 = -1. / p.px();
                 }
                 p_matrix.compute_squared_distance(&m)
             }

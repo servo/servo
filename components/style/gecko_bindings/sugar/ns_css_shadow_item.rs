@@ -15,7 +15,7 @@ impl nsCSSShadowItem {
     #[inline]
     pub fn set_from_box_shadow(&mut self, shadow: BoxShadow) {
         self.set_from_simple_shadow(shadow.base);
-        self.mSpread = shadow.spread.0;
+        self.mSpread = shadow.spread.to_i32_au();
         self.mInset = shadow.inset;
     }
 
@@ -24,7 +24,7 @@ impl nsCSSShadowItem {
     pub fn to_box_shadow(&self) -> BoxShadow {
         BoxShadow {
             base: self.extract_simple_shadow(),
-            spread: Au(self.mSpread),
+            spread: Au(self.mSpread).into(),
             inset: self.mInset,
         }
     }
@@ -32,9 +32,9 @@ impl nsCSSShadowItem {
     /// Sets this item from the given simple shadow.
     #[inline]
     pub fn set_from_simple_shadow(&mut self, shadow: SimpleShadow) {
-        self.mXOffset = shadow.horizontal.0;
-        self.mYOffset = shadow.vertical.0;
-        self.mRadius = shadow.blur.value();
+        self.mXOffset = shadow.horizontal.to_i32_au();
+        self.mYOffset = shadow.vertical.to_i32_au();
+        self.mRadius = shadow.blur.0.to_i32_au();
         self.mSpread = 0;
         self.mInset = false;
         if let Some(color) = shadow.color {
@@ -62,8 +62,8 @@ impl nsCSSShadowItem {
     fn extract_simple_shadow(&self) -> SimpleShadow {
         SimpleShadow {
             color: self.extract_color(),
-            horizontal: Au(self.mXOffset),
-            vertical: Au(self.mYOffset),
+            horizontal: Au(self.mXOffset).into(),
+            vertical: Au(self.mYOffset).into(),
             blur: Au(self.mRadius).into(),
         }
     }
