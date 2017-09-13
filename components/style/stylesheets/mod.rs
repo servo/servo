@@ -42,7 +42,7 @@ pub use self::keyframes_rule::KeyframesRule;
 pub use self::loader::StylesheetLoader;
 pub use self::media_rule::MediaRule;
 pub use self::namespace_rule::NamespaceRule;
-pub use self::origin::{Origin, OriginSet, PerOrigin, PerOriginIter};
+pub use self::origin::{Origin, OriginSet, OriginSetIterator, PerOrigin, PerOriginIter};
 pub use self::page_rule::PageRule;
 pub use self::rule_parser::{State, TopLevelRuleParser};
 pub use self::rule_list::{CssRules, CssRulesHelpers};

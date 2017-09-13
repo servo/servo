@@ -78,6 +78,7 @@ impl BitOrAssign<Origin> for OriginSet {
 
 /// Iterates over the origins present in an `OriginSet`, in order from
 /// highest priority (author) to lower (user agent).
+#[derive(Clone)]
 pub struct OriginSetIterator {
     set: OriginSet,
     cur: i8,
