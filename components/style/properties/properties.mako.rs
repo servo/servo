@@ -3199,6 +3199,7 @@ where
         cached_system_font: None,
         in_media_query: false,
         for_smil_animation: false,
+        for_non_inherited_property: None,
         font_metrics_provider,
         quirks_mode,
         rule_cache_conditions: RefCell::new(rule_cache_conditions),

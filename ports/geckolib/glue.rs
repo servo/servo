@@ -3203,6 +3203,7 @@ fn create_context<'a>(
         in_media_query: false,
         quirks_mode: per_doc_data.stylist.quirks_mode(),
         for_smil_animation,
+        for_non_inherited_property: None,
         rule_cache_conditions: RefCell::new(rule_cache_conditions),
     }
 }

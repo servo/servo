@@ -718,6 +718,7 @@ impl MaybeNew for ViewportConstraints {
             in_media_query: false,
             quirks_mode: quirks_mode,
             for_smil_animation: false,
+            for_non_inherited_property: None,
             rule_cache_conditions: RefCell::new(&mut conditions),
         };
 

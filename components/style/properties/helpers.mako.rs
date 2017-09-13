@@ -314,6 +314,13 @@
                 _ => panic!("entered the wrong cascade_property() implementation"),
             };
 
+            context.for_non_inherited_property =
+                % if property.style_struct.inherited:
+                    None;
+                % else:
+                    Some(LonghandId::${property.camel_case});
+                % endif
+
             % if not property.derived_from:
                 match value {
                     DeclaredValue::Value(specified_value) => {

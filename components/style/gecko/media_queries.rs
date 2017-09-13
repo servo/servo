@@ -706,6 +706,7 @@ impl Expression {
             // TODO: pass the correct value here.
             quirks_mode: quirks_mode,
             for_smil_animation: false,
+            for_non_inherited_property: None,
             rule_cache_conditions: RefCell::new(&mut conditions),
         };
 
