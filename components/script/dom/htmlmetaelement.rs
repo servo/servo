@@ -196,8 +196,8 @@ impl VirtualMethods for HTMLMetaElement {
         if context.tree_in_doc {
             self.process_referrer_attribute();
 
-            if let Some(ref s) = *self.stylesheet.borrow() {
-                document_from_node(self).remove_stylesheet(self.upcast(), s);
+            if let Some(s) = self.stylesheet.borrow_mut().take() {
+                document_from_node(self).remove_stylesheet(self.upcast(), &s);
             }
         }
     }
