@@ -70,9 +70,8 @@ impl DissimilarOriginWindow {
         unsafe { DissimilarOriginWindowBinding::Wrap(cx, win) }
     }
 
-    #[allow(dead_code)]
     pub fn origin(&self) -> &MutableOrigin {
-        self.globalscope.origin()
+        self.upcast::<GlobalScope>().origin()
     }
 }
 
