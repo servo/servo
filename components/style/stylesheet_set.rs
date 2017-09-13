@@ -282,7 +282,13 @@ where
     fn remove(&mut self, sheet: &S) {
         let old_len = self.entries.len();
         self.entries.retain(|entry| entry.sheet != *sheet);
-        debug_assert!(self.entries.len() != old_len, "Sheet not found?");
+        if cfg!(feature = "servo") {
+            // FIXME(emilio): Make Gecko's PresShell::AddUserSheet not suck.
+            //
+            // Hopefully that's not necessary for correctness, just somewhat
+            // overkill.
+            debug_assert!(self.entries.len() != old_len, "Sheet not found?");
+        }
         // Removing sheets makes us tear down the whole cascade and invalidation
         // data.
         self.set_data_validity_at_least(OriginValidity::FullyInvalid);
