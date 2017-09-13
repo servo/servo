@@ -103,32 +103,32 @@ pub struct GlobalScope {
 
 impl GlobalScope {
     pub fn new_inherited(
-            pipeline_id: PipelineId,
-            devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
-            mem_profiler_chan: mem::ProfilerChan,
-            time_profiler_chan: time::ProfilerChan,
-            script_to_constellation_chan: ScriptToConstellationChan,
-            scheduler_chan: IpcSender<TimerSchedulerMsg>,
-            resource_threads: ResourceThreads,
-            timer_event_chan: IpcSender<TimerEvent>,
-            origin: MutableOrigin)
-            -> Self {
-        GlobalScope {
+        pipeline_id: PipelineId,
+        devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
+        mem_profiler_chan: mem::ProfilerChan,
+        time_profiler_chan: time::ProfilerChan,
+        script_to_constellation_chan: ScriptToConstellationChan,
+        scheduler_chan: IpcSender<TimerSchedulerMsg>,
+        resource_threads: ResourceThreads,
+        timer_event_chan: IpcSender<TimerEvent>,
+        origin: MutableOrigin,
+    ) -> Self {
+        Self {
             eventtarget: EventTarget::new_inherited(),
             crypto: Default::default(),
             next_worker_id: Cell::new(WorkerId(0)),
-            pipeline_id: pipeline_id,
+            pipeline_id,
             devtools_wants_updates: Default::default(),
             console_timers: DOMRefCell::new(Default::default()),
-            devtools_chan: devtools_chan,
-            mem_profiler_chan: mem_profiler_chan,
-            time_profiler_chan: time_profiler_chan,
-            script_to_constellation_chan: script_to_constellation_chan,
+            devtools_chan,
+            mem_profiler_chan,
+            time_profiler_chan,
+            script_to_constellation_chan,
             scheduler_chan: scheduler_chan.clone(),
             in_error_reporting_mode: Default::default(),
-            resource_threads: resource_threads,
+            resource_threads,
             timers: OneshotTimers::new(timer_event_chan, scheduler_chan),
-            origin: origin,
+            origin,
         }
     }
 
