@@ -247,7 +247,7 @@ impl DedicatedWorkerGlobalScope {
                     global.handle_event(event);
                     // Step 6
                     let _ar = AutoWorkerReset::new(&global, worker.clone());
-                    global.upcast::<WorkerGlobalScope>().perform_a_microtask_checkpoint();
+                    global.upcast::<GlobalScope>().perform_a_microtask_checkpoint();
                 }
             }, reporter_name, parent_sender, CommonScriptMsg::CollectReports);
         }).expect("Thread spawning failed");
