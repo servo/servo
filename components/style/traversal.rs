@@ -419,9 +419,9 @@ where
                     layout_parent_style.as_ref().map(|s| &**s)
                 );
 
-        let is_display_contents = primary_style.style.is_display_contents();
+        let is_display_contents = primary_style.style().is_display_contents();
 
-        style = Some(primary_style.style);
+        style = Some(primary_style.0.into());
         if !is_display_contents {
             layout_parent_style = style.clone();
         }
@@ -434,7 +434,7 @@ where
         .resolve_style(
             style.as_ref().map(|s| &**s),
             layout_parent_style.as_ref().map(|s| &**s)
-        )
+        ).into()
 }
 
 /// Calculates the style for a single node.
@@ -657,8 +657,7 @@ where
             match target.share_style_if_possible(context) {
                 Some(shareable_element) => {
                     context.thread_local.statistics.styles_shared += 1;
-                    let shareable_data = shareable_element.borrow_data().unwrap();
-                    shareable_data.styles.clone()
+                    shareable_element.borrow_data().unwrap().share_styles()
                 }
                 None => {
                     context.thread_local.statistics.elements_matched += 1;
@@ -679,7 +678,7 @@ where
                         .sharing_cache
                         .insert_if_possible(
                             &element,
-                            new_styles.primary(),
+                            new_styles.primary.style(),
                             &mut target,
                             context.thread_local.bloom_filter.matching_depth(),
                         );

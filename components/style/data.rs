@@ -17,7 +17,9 @@ use selector_parser::{EAGER_PSEUDO_COUNT, PseudoElement, RestyleDamage};
 use servo_arc::Arc;
 use shared_lock::StylesheetGuards;
 use std::fmt;
+use std::mem;
 use std::ops::{Deref, DerefMut};
+use style_resolver::{PrimaryStyle, ResolvedElementStyles, ResolvedStyle};
 
 bitflags! {
     #[derive(Default)]
@@ -262,6 +264,24 @@ impl ElementData {
     #[inline]
     pub fn has_styles(&self) -> bool {
         self.styles.primary.is_some()
+    }
+
+    /// Returns this element's styles as resolved styles to use for sharing.
+    pub fn share_styles(&self) -> ResolvedElementStyles {
+        ResolvedElementStyles {
+            primary: self.share_primary_style(),
+            pseudos: self.styles.pseudos.clone(),
+        }
+    }
+
+    /// Returns this element's primary style as a resolved style to use for sharing.
+    pub fn share_primary_style(&self) -> PrimaryStyle {
+        PrimaryStyle(ResolvedStyle::new(self.styles.primary().clone()))
+    }
+
+    /// Sets a new set of styles, returning the old ones.
+    pub fn set_styles(&mut self, new_styles: ResolvedElementStyles) -> ElementStyles {
+        mem::replace(&mut self.styles, new_styles.into())
     }
 
     /// Returns the kind of restyling that we're going to need to do on this
