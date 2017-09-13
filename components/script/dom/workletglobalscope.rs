@@ -57,31 +57,34 @@ pub struct WorkletGlobalScope {
 
 impl WorkletGlobalScope {
     /// Create a new stack-allocated `WorkletGlobalScope`.
-    pub fn new_inherited(pipeline_id: PipelineId,
-                         base_url: ServoUrl,
-                         executor: WorkletExecutor,
-                         init: &WorkletGlobalScopeInit)
-                         -> WorkletGlobalScope {
+    pub fn new_inherited(
+        pipeline_id: PipelineId,
+        base_url: ServoUrl,
+        executor: WorkletExecutor,
+        init: &WorkletGlobalScopeInit,
+    ) -> Self {
         // Any timer events fired on this global are ignored.
         let (timer_event_chan, _) = ipc::channel().unwrap();
         let script_to_constellation_chan = ScriptToConstellationChan {
             sender: init.to_constellation_sender.clone(),
-            pipeline_id: pipeline_id,
+            pipeline_id,
         };
-        WorkletGlobalScope {
-            globalscope: GlobalScope::new_inherited(pipeline_id,
-                                                    init.devtools_chan.clone(),
-                                                    init.mem_profiler_chan.clone(),
-                                                    init.time_profiler_chan.clone(),
-                                                    script_to_constellation_chan,
-                                                    init.scheduler_chan.clone(),
-                                                    init.resource_threads.clone(),
-                                                    timer_event_chan,
-                                                    MutableOrigin::new(ImmutableOrigin::new_opaque())),
-            base_url: base_url,
-            microtask_queue: MicrotaskQueue::default(),
+        Self {
+            globalscope: GlobalScope::new_inherited(
+                pipeline_id,
+                init.devtools_chan.clone(),
+                init.mem_profiler_chan.clone(),
+                init.time_profiler_chan.clone(),
+                script_to_constellation_chan,
+                init.scheduler_chan.clone(),
+                init.resource_threads.clone(),
+                timer_event_chan,
+                MutableOrigin::new(ImmutableOrigin::new_opaque()),
+            ),
+            base_url,
+            microtask_queue: Default::default(),
             to_script_thread_sender: init.to_script_thread_sender.clone(),
-            executor: executor,
+            executor,
         }
     }
 
