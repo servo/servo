@@ -55,7 +55,7 @@ impl StyleRule {
             // It's safe to measure this ThinArc directly because it's the
             // "primary" reference. (The secondary references are on the
             // Stylist.)
-            n += ops.malloc_size_of(selector.thin_arc_heap_ptr());
+            n += unsafe { ops.malloc_size_of(selector.thin_arc_heap_ptr()) };
         }
 
         n += self.block.unconditional_shallow_size_of(ops) +

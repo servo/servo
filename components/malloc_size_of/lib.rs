@@ -109,19 +109,19 @@ impl MallocSizeOfOps {
 
     /// Call `size_of_op` on `ptr`, first checking that the allocation isn't
     /// empty, because some types (such as `Vec`) utilize empty allocations.
-    pub fn malloc_size_of<T>(&self, ptr: *const T) -> usize {
+    pub unsafe fn malloc_size_of<T>(&self, ptr: *const T) -> usize {
         if MallocSizeOfOps::is_empty(ptr) {
             0
         } else {
-            unsafe { (self.size_of_op)(ptr as *const c_void) }
+            (self.size_of_op)(ptr as *const c_void)
         }
     }
 
     /// Call `enclosing_size_of_op` on `ptr`, which must not be empty.
-    pub fn malloc_enclosing_size_of<T>(&self, ptr: *const T) -> usize {
+    pub unsafe fn malloc_enclosing_size_of<T>(&self, ptr: *const T) -> usize {
         assert!(!MallocSizeOfOps::is_empty(ptr));
         let enclosing_size_of_op = self.enclosing_size_of_op.expect("missing enclosing_size_of_op");
-        unsafe { enclosing_size_of_op(ptr as *const c_void) }
+        enclosing_size_of_op(ptr as *const c_void)
     }
 
     /// Call `have_seen_ptr_op` on `ptr`.
@@ -181,7 +181,7 @@ pub trait MallocConditionalShallowSizeOf {
 
 impl<T> MallocShallowSizeOf for Box<T> {
     fn shallow_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        ops.malloc_size_of(&**self)
+        unsafe { ops.malloc_size_of(&**self) }
     }
 }
 
@@ -209,7 +209,7 @@ impl<T: MallocSizeOf> MallocSizeOf for Option<T> {
 
 impl<T> MallocShallowSizeOf for Vec<T> {
     fn shallow_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        ops.malloc_size_of(self.as_ptr())
+        unsafe { ops.malloc_size_of(self.as_ptr()) }
     }
 }
 
@@ -226,7 +226,7 @@ impl<T: MallocSizeOf> MallocSizeOf for Vec<T> {
 impl<A: Array> MallocShallowSizeOf for SmallVec<A> {
     fn shallow_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         if self.spilled() {
-            ops.malloc_size_of(self.as_ptr())
+            unsafe { ops.malloc_size_of(self.as_ptr()) }
         } else {
             0
         }
@@ -255,7 +255,7 @@ impl<T, S> MallocShallowSizeOf for HashSet<T, S>
         // `ops.malloc_enclosing_size_of()` then gives us the storage size.
         // This assumes that the `HashSet`'s contents (values and hashes) are
         // all stored in a single contiguous heap allocation.
-        self.iter().next().map_or(0, |t| ops.malloc_enclosing_size_of(t))
+        self.iter().next().map_or(0, |t| unsafe { ops.malloc_enclosing_size_of(t) })
     }
 }
 
@@ -281,7 +281,7 @@ impl<K, V, S> MallocShallowSizeOf for HashMap<K, V, S>
         // `ops.malloc_enclosing_size_of()` then gives us the storage size.
         // This assumes that the `HashMap`'s contents (keys, values, and
         // hashes) are all stored in a single contiguous heap allocation.
-        self.values().next().map_or(0, |v| ops.malloc_enclosing_size_of(v))
+        self.values().next().map_or(0, |v| unsafe { ops.malloc_enclosing_size_of(v) })
     }
 }
 
@@ -309,7 +309,7 @@ impl<K, V, S> MallocSizeOf for HashMap<K, V, S>
 
 impl<T> MallocUnconditionalShallowSizeOf for Arc<T> {
     fn unconditional_shallow_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        ops.malloc_size_of(self.heap_ptr())
+        unsafe { ops.malloc_size_of(self.heap_ptr()) }
     }
 }
 
