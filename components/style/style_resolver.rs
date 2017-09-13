@@ -145,7 +145,6 @@ where
             relevant_link_found ||
             parent_style.and_then(|s| s.get_visited_style()).is_some();
 
-        let pseudo = self.element.implemented_pseudo_element();
         if should_compute_visited_style {
             visited_style = Some(self.cascade_style(
                 visited_rules.as_ref().or(Some(&primary_results.rule_node)),
@@ -153,7 +152,7 @@ where
                 parent_style,
                 layout_parent_style,
                 CascadeVisitedMode::Visited,
-                /* pseudo = */ pseudo.as_ref(),
+                /* pseudo = */ None,
             ));
         }
         let style = self.cascade_style(
@@ -162,7 +161,7 @@ where
             parent_style,
             layout_parent_style,
             CascadeVisitedMode::Unvisited,
-            /* pseudo = */ pseudo.as_ref(),
+            /* pseudo = */ None,
         );
 
         PrimaryStyle { style, }
@@ -485,6 +484,12 @@ where
         cascade_visited: CascadeVisitedMode,
         pseudo: Option<&PseudoElement>,
     ) -> Arc<ComputedValues> {
+        debug_assert!(
+            self.element.implemented_pseudo_element().is_none() || pseudo.is_none(),
+            "Pseudo-elements can't have other pseudos!"
+        );
+        debug_assert!(pseudo.map_or(true, |p| p.is_eager()));
+
         let mut cascade_flags = CascadeFlags::empty();
 
         if self.element.skip_root_and_item_based_display_fixup() ||
