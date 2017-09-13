@@ -3298,6 +3298,10 @@ where
         for (declaration, cascade_level) in iter_declarations() {
             let mut declaration = match *declaration {
                 PropertyDeclaration::WithVariables(id, ref unparsed) => {
+                    if !id.inherited() {
+                        context.rule_cache_conditions.borrow_mut()
+                            .set_uncacheable();
+                    }
                     Cow::Owned(unparsed.substitute_variables(
                         id,
                         &context.builder.custom_properties,
