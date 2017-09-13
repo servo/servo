@@ -17,8 +17,6 @@ use ipc_channel::ipc::IpcSender;
 use js::jsapi::JSContext;
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
-use microtask::Microtask;
-use microtask::MicrotaskQueue;
 use msg::constellation_msg::PipelineId;
 use net_traits::ResourceThreads;
 use net_traits::image_cache::ImageCache;
@@ -36,7 +34,6 @@ use script_traits::TimerSchedulerMsg;
 use servo_url::ImmutableOrigin;
 use servo_url::MutableOrigin;
 use servo_url::ServoUrl;
-use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::mpsc::Sender;
 
@@ -47,9 +44,6 @@ pub struct WorkletGlobalScope {
     globalscope: GlobalScope,
     /// The base URL for this worklet.
     base_url: ServoUrl,
-    /// https://html.spec.whatwg.org/multipage/#microtask-queue
-    #[ignore_heap_size_of = "Rc<T> is hard"]
-    microtask_queue: Rc<MicrotaskQueue>,
     /// Sender back to the script thread
     #[ignore_heap_size_of = "channels are hard"]
     to_script_thread_sender: Sender<MainThreadScriptMsg>,
@@ -82,9 +76,9 @@ impl WorkletGlobalScope {
                 init.resource_threads.clone(),
                 timer_event_chan,
                 MutableOrigin::new(ImmutableOrigin::new_opaque()),
+                Default::default(),
             ),
             base_url,
-            microtask_queue: Default::default(),
             to_script_thread_sender: init.to_script_thread_sender.clone(),
             executor,
         }
@@ -131,20 +125,6 @@ impl WorkletGlobalScope {
     /// The worklet executor.
     pub fn executor(&self) -> WorkletExecutor {
         self.executor.clone()
-    }
-
-    /// Queue up a microtask to be executed in this global.
-    pub fn enqueue_microtask(&self, job: Microtask) {
-        self.microtask_queue.enqueue(job);
-    }
-
-    /// Perform any queued microtasks.
-    pub fn perform_a_microtask_checkpoint(&self) {
-        self.microtask_queue.checkpoint(|id| {
-            let global = self.upcast::<GlobalScope>();
-            assert_eq!(global.pipeline_id(), id);
-            Some(Root::from_ref(global))
-        });
     }
 
     /// Perform a worklet task

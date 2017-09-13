@@ -59,7 +59,7 @@ use js::jsapi::{JS_GC, JS_GetRuntime};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use layout_image::fetch_image_for_layout;
-use microtask::{Microtask, MicrotaskQueue};
+use microtask::MicrotaskQueue;
 use msg::constellation_msg::{FrameType, PipelineId};
 use net_traits::{ResourceThreads, ReferrerPolicy};
 use net_traits::image_cache::{ImageCache, ImageResponder, ImageResponse};
@@ -288,10 +288,6 @@ pub struct Window {
     test_worklet: MutNullableJS<Worklet>,
     /// https://drafts.css-houdini.org/css-paint-api-1/#paint-worklet
     paint_worklet: MutNullableJS<Worklet>,
-
-    /// https://html.spec.whatwg.org/multipage/#microtask-queue
-    #[ignore_heap_size_of = "Rc<T> is hard"]
-    microtask_queue: Rc<MicrotaskQueue>,
 }
 
 impl Window {
@@ -1790,16 +1786,6 @@ impl Window {
             .send(msg)
             .unwrap();
     }
-
-    pub fn enqueue_microtask(&self, job: Microtask) {
-        self.microtask_queue.enqueue(job);
-    }
-
-    pub fn perform_a_microtask_checkpoint(&self) {
-        self.microtask_queue.checkpoint(|_| {
-            Some(Root::from_ref(self.upcast::<GlobalScope>()))
-        });
-    }
 }
 
 impl Window {
@@ -1855,6 +1841,7 @@ impl Window {
                 resource_threads,
                 timer_event_chan,
                 origin,
+                microtask_queue,
             ),
             script_chan,
             dom_manipulation_task_source,
@@ -1906,7 +1893,6 @@ impl Window {
             unminified_js_dir: Default::default(),
             test_worklet: Default::default(),
             paint_worklet: Default::default(),
-            microtask_queue,
         };
 
         unsafe {

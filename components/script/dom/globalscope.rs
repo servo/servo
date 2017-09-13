@@ -33,7 +33,7 @@ use js::jsapi::{JS_GetObjectRuntime, MutableHandleValue};
 use js::panic::maybe_resume_unwind;
 use js::rust::{CompileOptionsWrapper, Runtime, get_object_class};
 use libc;
-use microtask::Microtask;
+use microtask::{Microtask, MicrotaskQueue};
 use msg::constellation_msg::PipelineId;
 use net_traits::{CoreResourceThread, ResourceThreads, IpcSend};
 use profile_traits::{mem, time};
@@ -46,6 +46,7 @@ use std::cell::Cell;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::ffi::CString;
+use std::rc::Rc;
 use task_source::file_reading::FileReadingTaskSource;
 use task_source::networking::NetworkingTaskSource;
 use task_source::performance_timeline::PerformanceTimelineTaskSource;
@@ -99,6 +100,15 @@ pub struct GlobalScope {
 
     /// The origin of the globalscope
     origin: MutableOrigin,
+
+    /// The microtask queue associated with this global.
+    ///
+    /// It is refcounted because windows in the same script thread share the
+    /// same microtask queue.
+    ///
+    /// https://html.spec.whatwg.org/multipage/#microtask-queue
+    #[ignore_heap_size_of = "Rc<T> is hard"]
+    microtask_queue: Rc<MicrotaskQueue>,
 }
 
 impl GlobalScope {
@@ -112,6 +122,7 @@ impl GlobalScope {
         resource_threads: ResourceThreads,
         timer_event_chan: IpcSender<TimerEvent>,
         origin: MutableOrigin,
+        microtask_queue: Rc<MicrotaskQueue>,
     ) -> Self {
         Self {
             eventtarget: EventTarget::new_inherited(),
@@ -129,6 +140,7 @@ impl GlobalScope {
             resource_threads,
             timers: OneshotTimers::new(timer_event_chan, scheduler_chan),
             origin,
+            microtask_queue,
         }
     }
 
@@ -479,30 +491,12 @@ impl GlobalScope {
 
     /// Perform a microtask checkpoint.
     pub fn perform_a_microtask_checkpoint(&self) {
-        if let Some(window) = self.downcast::<Window>() {
-            return window.perform_a_microtask_checkpoint();
-        }
-        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
-            return worker.perform_a_microtask_checkpoint();
-        }
-        if let Some(worker) = self.downcast::<WorkletGlobalScope>() {
-            return worker.perform_a_microtask_checkpoint();
-        }
-        unreachable!();
+        self.microtask_queue.checkpoint(|_| Some(Root::from_ref(self)));
     }
 
     /// Enqueue a microtask for subsequent execution.
     pub fn enqueue_microtask(&self, job: Microtask) {
-        if let Some(window) = self.downcast::<Window>() {
-            return window.enqueue_microtask(job);
-        }
-        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
-            return worker.enqueue_microtask(job);
-        }
-        if let Some(worker) = self.downcast::<WorkletGlobalScope>() {
-            return worker.enqueue_microtask(job);
-        }
-        unreachable!();
+        self.microtask_queue.enqueue(job);
     }
 
     /// Create a new sender/receiver pair that can be used to implement an on-demand
@@ -516,6 +510,11 @@ impl GlobalScope {
             return worker.new_script_pair();
         }
         unreachable!();
+    }
+
+    /// Returns the microtask queue of this global.
+    pub fn microtask_queue(&self) -> &Rc<MicrotaskQueue> {
+        &self.microtask_queue
     }
 
     /// Process a single event as if it were the next event

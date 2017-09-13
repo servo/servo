@@ -30,7 +30,6 @@ use js::jsapi::{HandleValue, JSAutoCompartment, JSContext, JSRuntime};
 use js::jsval::UndefinedValue;
 use js::panic::maybe_resume_unwind;
 use js::rust::Runtime;
-use microtask::{MicrotaskQueue, Microtask};
 use net_traits::{IpcSend, load_whole_resource};
 use net_traits::request::{CredentialsMode, Destination, RequestInit as NetRequestInit, Type as RequestType};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
@@ -91,10 +90,6 @@ pub struct WorkerGlobalScope {
     /// `IpcSender` doesn't exist
     from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
 
-    /// https://html.spec.whatwg.org/multipage/#microtask-queue
-    #[ignore_heap_size_of = "Rc<T> is hard"]
-    microtask_queue: Rc<MicrotaskQueue>,
-
     navigation_start_precise: f64,
     performance: MutNullableJS<Performance>,
 }
@@ -119,6 +114,7 @@ impl WorkerGlobalScope {
                 init.resource_threads,
                 timer_event_chan,
                 MutableOrigin::new(init.origin),
+                Default::default(),
             ),
             worker_id: init.worker_id,
             worker_url,
@@ -128,7 +124,6 @@ impl WorkerGlobalScope {
             navigator: Default::default(),
             from_devtools_sender: init.from_devtools_sender,
             from_devtools_receiver,
-            microtask_queue: Default::default(),
             navigation_start_precise: precise_time_ns() as f64,
             performance: Default::default(),
         }
@@ -170,18 +165,6 @@ impl WorkerGlobalScope {
         RunnableWrapper {
             cancelled: self.closing.clone(),
         }
-    }
-
-    pub fn enqueue_microtask(&self, job: Microtask) {
-        self.microtask_queue.enqueue(job);
-    }
-
-    pub fn perform_a_microtask_checkpoint(&self) {
-        self.microtask_queue.checkpoint(|id| {
-            let global = self.upcast::<GlobalScope>();
-            assert_eq!(global.pipeline_id(), id);
-            Some(Root::from_ref(global))
-        });
     }
 }
 
