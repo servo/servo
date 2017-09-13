@@ -30,7 +30,7 @@ impl TransformOrigin {
         Self::new(
             LengthOrPercentage::Percentage(Percentage(0.5)),
             LengthOrPercentage::Percentage(Percentage(0.5)),
-            Length::from_px(0),
+            Length::new(0.),
         )
     }
 }
@@ -87,7 +87,7 @@ impl TransformList {
                     Transform3D::create_rotation(ax, ay, az, theta.into())
                 }
                 ComputedOperation::Perspective(d) => {
-                    Self::create_perspective_matrix(d)
+                    Self::create_perspective_matrix(d.px())
                 }
                 ComputedOperation::Scale(sx, sy, sz) => {
                     Transform3D::create_scale(sx, sy, sz)
@@ -105,7 +105,7 @@ impl TransformList {
                             (extract_pixel_length(&tx), extract_pixel_length(&ty))
                         }
                     };
-                    let tz = tz.to_f32_px();
+                    let tz = tz.px();
                     Transform3D::create_translation(tx, ty, tz)
                 }
                 ComputedOperation::Matrix(m) => {
@@ -137,7 +137,7 @@ impl TransformList {
 
     /// Return the transform matrix from a perspective length.
     #[inline]
-    pub fn create_perspective_matrix(d: Au) -> Transform3D<f32> {
+    pub fn create_perspective_matrix(d: CSSFloat) -> Transform3D<f32> {
         // TODO(gw): The transforms spec says that perspective length must
         // be positive. However, there is some confusion between the spec
         // and browser implementations as to handling the case of 0 for the
@@ -145,7 +145,6 @@ impl TransformList {
         // that a provided perspective value of <= 0.0 doesn't cause panics
         // and behaves as it does in other browsers.
         // See https://lists.w3.org/Archives/Public/www-style/2016Jan/0020.html for more details.
-        let d = d.to_f32_px();
         if d <= 0.0 {
             Transform3D::identity()
         } else {

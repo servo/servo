@@ -84,6 +84,7 @@ impl ToComputedValue for LineHeight {
 
     #[inline]
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
+        use app_units::Au;
         use values::specified::length::FontBaseSize;
         match *self {
             GenericLineHeight::Normal => {
@@ -99,7 +100,7 @@ impl ToComputedValue for LineHeight {
             GenericLineHeight::Length(ref non_negative_lop) => {
                 let result = match non_negative_lop.0 {
                     LengthOrPercentage::Length(NoCalcLength::Absolute(ref abs)) => {
-                        context.maybe_zoom_text(abs.to_computed_value(context).into())
+                        context.maybe_zoom_text(abs.to_computed_value(context)).into()
                     }
                     LengthOrPercentage::Length(ref length) => {
                         length.to_computed_value(context).into()
@@ -123,7 +124,7 @@ impl ToComputedValue for LineHeight {
                         let absolute_length = computed_calc.unclamped_length();
                         computed_calc
                             .clamping_mode
-                            .clamp(absolute_length + font_relative_length)
+                            .clamp(absolute_length + Au::from(font_relative_length))
                             .into()
                     }
                 };

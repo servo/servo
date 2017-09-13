@@ -450,10 +450,14 @@ impl FragmentBorderBoxIterator for FragmentLocatingFragmentIterator {
             border_left_width: left_width,
             ..
         } = *fragment.style.get_border();
-        self.client_rect.origin.y = top_width.0.to_px();
-        self.client_rect.origin.x = left_width.0.to_px();
-        self.client_rect.size.width = (border_box.size.width - left_width.0 - right_width.0).to_px();
-        self.client_rect.size.height = (border_box.size.height - top_width.0 - bottom_width.0).to_px();
+        let (left_width, right_width) = (left_width.px(), right_width.px());
+        let (top_width, bottom_width) = (top_width.px(), bottom_width.px());
+        self.client_rect.origin.y = top_width as i32;
+        self.client_rect.origin.x = left_width as i32;
+        self.client_rect.size.width =
+            (border_box.size.width.to_f32_px() - left_width - right_width) as i32;
+        self.client_rect.size.height =
+            (border_box.size.height.to_f32_px() - top_width - bottom_width) as i32;
     }
 
     fn should_process(&mut self, fragment: &Fragment) -> bool {
@@ -476,10 +480,12 @@ impl FragmentBorderBoxIterator for UnioningFragmentScrollAreaIterator {
             border_left_width: left_border,
             ..
         } = *fragment.style.get_border();
-        let right_padding = (border_box.size.width - right_border.0 - left_border.0).to_px();
-        let bottom_padding = (border_box.size.height - bottom_border.0 - top_border.0).to_px();
-        let top_padding = top_border.0.to_px();
-        let left_padding = left_border.0.to_px();
+        let (left_border, right_border) = (left_border.px(), right_border.px());
+        let (top_border, bottom_border) = (top_border.px(), bottom_border.px());
+        let right_padding = (border_box.size.width.to_f32_px() - right_border - left_border) as i32;
+        let bottom_padding = (border_box.size.height.to_f32_px() - bottom_border - top_border) as i32;
+        let top_padding = top_border as i32;
+        let left_padding = left_border as i32;
 
         match self.level {
             Some(start_level) if level <= start_level => { self.is_child = false; }

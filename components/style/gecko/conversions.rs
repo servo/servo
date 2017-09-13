@@ -328,8 +328,9 @@ impl nsStyleImage {
                 match shape {
                     EndingShape::Circle(Circle::Radius(length)) => {
                         unsafe {
-                            (*gecko_gradient).mRadiusX.set_value(CoordDataValue::Coord(length.0));
-                            (*gecko_gradient).mRadiusY.set_value(CoordDataValue::Coord(length.0));
+                            let au = length.to_i32_au();
+                            (*gecko_gradient).mRadiusX.set_value(CoordDataValue::Coord(au));
+                            (*gecko_gradient).mRadiusY.set_value(CoordDataValue::Coord(au));
                         }
                     },
                     EndingShape::Ellipse(Ellipse::Radii(x, y)) => {

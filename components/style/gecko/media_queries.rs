@@ -71,7 +71,7 @@ impl Device {
             pres_context: pres_context,
             default_values: ComputedValues::default_values(unsafe { &*pres_context }),
             // FIXME(bz): Seems dubious?
-            root_font_size: AtomicIsize::new(font_size::get_initial_value().value() as isize),
+            root_font_size: AtomicIsize::new(font_size::get_initial_value().0.to_i32_au() as isize),
             used_root_font_size: AtomicBool::new(false),
             used_viewport_size: AtomicBool::new(false),
         }
@@ -713,7 +713,7 @@ impl Expression {
                 return match *actual_value {
                     BoolInteger(v) => v,
                     Integer(v) => v != 0,
-                    Length(ref l) => l.to_computed_value(&context) != Au(0),
+                    Length(ref l) => l.to_computed_value(&context).px() != 0.,
                     _ => true,
                 }
             }
@@ -722,8 +722,8 @@ impl Expression {
         // FIXME(emilio): Handle the possible floating point errors?
         let cmp = match (required_value, actual_value) {
             (&Length(ref one), &Length(ref other)) => {
-                one.to_computed_value(&context)
-                    .cmp(&other.to_computed_value(&context))
+                one.to_computed_value(&context).to_i32_au()
+                    .cmp(&other.to_computed_value(&context).to_i32_au())
             }
             (&Integer(one), &Integer(ref other)) => one.cmp(other),
             (&BoolInteger(one), &BoolInteger(ref other)) => one.cmp(other),

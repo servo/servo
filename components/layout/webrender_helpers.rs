@@ -200,7 +200,7 @@ impl ToFilterOps for Vec<Filter> {
         let mut result = Vec::with_capacity(self.len());
         for filter in self.iter() {
             match *filter {
-                GenericFilter::Blur(radius) => result.push(webrender_api::FilterOp::Blur(radius.0.to_f32_px())),
+                GenericFilter::Blur(radius) => result.push(webrender_api::FilterOp::Blur(radius.px())),
                 GenericFilter::Brightness(amount) => result.push(webrender_api::FilterOp::Brightness(amount.0)),
                 GenericFilter::Contrast(amount) => result.push(webrender_api::FilterOp::Contrast(amount.0)),
                 GenericFilter::Grayscale(amount) => result.push(webrender_api::FilterOp::Grayscale(amount.0)),
