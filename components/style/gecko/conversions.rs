@@ -50,9 +50,9 @@ impl From<nsStyleCoord_CalcValue> for CalcLengthOrPercentage {
 impl From<LengthOrPercentage> for nsStyleCoord_CalcValue {
     fn from(other: LengthOrPercentage) -> nsStyleCoord_CalcValue {
         match other {
-            LengthOrPercentage::Length(au) => {
+            LengthOrPercentage::Length(px) => {
                 nsStyleCoord_CalcValue {
-                    mLength: au.0,
+                    mLength: px.to_i32_au(),
                     mPercent: 0.0,
                     mHasPercent: false,
                 }
@@ -73,9 +73,9 @@ impl LengthOrPercentageOrAuto {
     /// Convert this value in an appropriate `nsStyleCoord::CalcValue`.
     pub fn to_calc_value(&self) -> Option<nsStyleCoord_CalcValue> {
         match *self {
-            LengthOrPercentageOrAuto::Length(au) => {
+            LengthOrPercentageOrAuto::Length(px) => {
                 Some(nsStyleCoord_CalcValue {
-                    mLength: au.0,
+                    mLength: px.to_i32_au(),
                     mPercent: 0.0,
                     mHasPercent: false,
                 })
@@ -96,7 +96,7 @@ impl LengthOrPercentageOrAuto {
 impl From<nsStyleCoord_CalcValue> for LengthOrPercentage {
     fn from(other: nsStyleCoord_CalcValue) -> LengthOrPercentage {
         match (other.mHasPercent, other.mLength) {
-            (false, _) => LengthOrPercentage::Length(Au(other.mLength)),
+            (false, _) => LengthOrPercentage::Length(Au(other.mLength).into()),
             (true, 0) => LengthOrPercentage::Percentage(Percentage(other.mPercent)),
             _ => LengthOrPercentage::Calc(other.into()),
         }
@@ -106,7 +106,7 @@ impl From<nsStyleCoord_CalcValue> for LengthOrPercentage {
 impl From<nsStyleCoord_CalcValue> for LengthOrPercentageOrAuto {
     fn from(other: nsStyleCoord_CalcValue) -> LengthOrPercentageOrAuto {
         match (other.mHasPercent, other.mLength) {
-            (false, _) => LengthOrPercentageOrAuto::Length(Au(other.mLength)),
+            (false, _) => LengthOrPercentageOrAuto::Length(Au(other.mLength).into()),
             (true, 0) => LengthOrPercentageOrAuto::Percentage(Percentage(other.mPercent)),
             _ => LengthOrPercentageOrAuto::Calc(other.into()),
         }

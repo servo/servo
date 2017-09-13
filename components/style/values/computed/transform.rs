@@ -72,7 +72,7 @@ impl TransformList {
 
         let extract_pixel_length = |lop: &LengthOrPercentage| {
             match *lop {
-                LengthOrPercentage::Length(au) => au.to_f32_px(),
+                LengthOrPercentage::Length(px) => px.px(),
                 LengthOrPercentage::Percentage(_) => 0.,
                 LengthOrPercentage::Calc(calc) => calc.length().px(),
             }

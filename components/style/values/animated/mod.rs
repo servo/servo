@@ -363,12 +363,12 @@ impl ToAnimatedValue for ComputedMaxLength {
 
     #[inline]
     fn from_animated_value(animated: Self::AnimatedValue) -> Self {
-        use values::computed::{LengthOrPercentageOrNone, Percentage};
+        use values::computed::{Length, LengthOrPercentageOrNone, Percentage};
         match animated {
             ComputedMaxLength::LengthOrPercentageOrNone(lopn) => {
                 let result = match lopn {
-                    LengthOrPercentageOrNone::Length(au) => {
-                        LengthOrPercentageOrNone::Length(max(au, Au(0)))
+                    LengthOrPercentageOrNone::Length(px) => {
+                        LengthOrPercentageOrNone::Length(Length::new(px.px().max(0.)))
                     },
                     LengthOrPercentageOrNone::Percentage(percentage) => {
                         LengthOrPercentageOrNone::Percentage(Percentage(percentage.0.max(0.)))
@@ -392,12 +392,12 @@ impl ToAnimatedValue for ComputedMozLength {
 
     #[inline]
     fn from_animated_value(animated: Self::AnimatedValue) -> Self {
-        use values::computed::{LengthOrPercentageOrAuto, Percentage};
+        use values::computed::{Length, LengthOrPercentageOrAuto, Percentage};
         match animated {
             ComputedMozLength::LengthOrPercentageOrAuto(lopa) => {
                 let result = match lopa {
-                    LengthOrPercentageOrAuto::Length(au) => {
-                        LengthOrPercentageOrAuto::Length(max(au, Au(0)))
+                    LengthOrPercentageOrAuto::Length(px) => {
+                        LengthOrPercentageOrAuto::Length(Length::new(px.px().max(0.)))
                     },
                     LengthOrPercentageOrAuto::Percentage(percentage) => {
                         LengthOrPercentageOrAuto::Percentage(Percentage(percentage.0.max(0.)))

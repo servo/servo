@@ -203,7 +203,7 @@ impl<S: Side> ToComputedValue for PositionComponent<S> {
                 match length.to_computed_value(context) {
                     ComputedLengthOrPercentage::Length(length) => {
                         ComputedLengthOrPercentage::Calc(
-                            CalcLengthOrPercentage::new((-length).into(), Some(Percentage::hundred())))
+                            CalcLengthOrPercentage::new(-length, Some(Percentage::hundred())))
                     },
                     ComputedLengthOrPercentage::Percentage(p) => {
                         ComputedLengthOrPercentage::Percentage(Percentage(1.0 - p.0))

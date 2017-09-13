@@ -305,7 +305,7 @@ impl Flow for TableRowFlow {
                         LengthOrPercentageOrAuto::Percentage(_) => {
                             child_base.intrinsic_inline_sizes.minimum_inline_size
                         }
-                        LengthOrPercentageOrAuto::Length(length) => length,
+                        LengthOrPercentageOrAuto::Length(length) => Au::from(length),
                     },
                     percentage: match child_specified_inline_size {
                         LengthOrPercentageOrAuto::Auto |

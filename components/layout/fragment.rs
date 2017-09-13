@@ -51,7 +51,7 @@ use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::RECONSTRUCT_FLOW;
 use style::str::char_is_whitespace;
 use style::values::{self, Either, Auto};
-use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
+use style::values::computed::{Length, LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::generics::box_::VerticalAlign;
 use text;
 use text::TextRunScanner;
@@ -1516,7 +1516,7 @@ impl Fragment {
                         let (result_inline, _) = self.calculate_replaced_sizes(None, None);
                         result_inline
                     }
-                    LengthOrPercentageOrAuto::Length(length) => length,
+                    LengthOrPercentageOrAuto::Length(length) => Au::from(length),
                     LengthOrPercentageOrAuto::Calc(calc) => {
                         // TODO(nox): This is probably wrong, because it accounts neither for
                         // clamping (not sure if necessary here) nor percentage.
@@ -2261,7 +2261,7 @@ impl Fragment {
                     }
                 }
                 VerticalAlign::Length(LengthOrPercentage::Length(length)) => {
-                    offset -= length
+                    offset -= Au::from(length)
                 }
                 VerticalAlign::Length(LengthOrPercentage::Percentage(percentage)) => {
                     offset -= minimum_line_metrics.space_needed().scale_by(percentage.0)
@@ -2336,11 +2336,11 @@ impl Fragment {
                             continue
                         }
                         if inline_context_node.style.logical_margin().inline_end !=
-                                LengthOrPercentageOrAuto::Length(Au(0)) {
+                                LengthOrPercentageOrAuto::Length(Length::new(0.)) {
                             return false
                         }
                         if inline_context_node.style.logical_padding().inline_end !=
-                                LengthOrPercentage::Length(Au(0)) {
+                                LengthOrPercentage::Length(Length::new(0.)) {
                             return false
                         }
                         if inline_context_node.style.logical_border_width().inline_end != Au(0) {
@@ -2357,11 +2357,11 @@ impl Fragment {
                             continue
                         }
                         if inline_context_node.style.logical_margin().inline_start !=
-                                LengthOrPercentageOrAuto::Length(Au(0)) {
+                                LengthOrPercentageOrAuto::Length(Length::new(0.)) {
                             return false
                         }
                         if inline_context_node.style.logical_padding().inline_start !=
-                                LengthOrPercentage::Length(Au(0)) {
+                                LengthOrPercentage::Length(Length::new(0.)) {
                             return false
                         }
                         if inline_context_node.style.logical_border_width().inline_start != Au(0) {

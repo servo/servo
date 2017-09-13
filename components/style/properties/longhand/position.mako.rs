@@ -209,7 +209,7 @@ ${helpers.predefined_type("order", "Integer", "0",
                                   animation_value_type="ComputedValue", logical = logical)}
         ${helpers.predefined_type("min-%s" % size,
                                   "LengthOrPercentage",
-                                  "computed::LengthOrPercentage::Length(Au(0))",
+                                  "computed::LengthOrPercentage::Length(computed::Length::new(0.))",
                                   "parse_non_negative",
                                   spec=spec % ("min-%s" % size),
                                   animation_value_type="ComputedValue",

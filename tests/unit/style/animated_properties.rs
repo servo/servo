@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use app_units::Au;
 use cssparser::RGBA;
 use style::properties::longhands::transform::computed_value::ComputedOperation as TransformOperation;
 use style::properties::longhands::transform::computed_value::T as TransformList;
@@ -68,18 +67,18 @@ fn test_transform_interpolation_on_translate() {
     use style::values::computed::{CalcLengthOrPercentage, Length, LengthOrPercentage};
 
     let from = TransformList(Some(vec![
-        TransformOperation::Translate(LengthOrPercentage::Length(Au(0)),
-                                      LengthOrPercentage::Length(Au(100)),
+        TransformOperation::Translate(LengthOrPercentage::Length(Length::new(0.)),
+                                      LengthOrPercentage::Length(Length::new(100.)),
                                       Length::new(25.))]));
     let to = TransformList(Some(vec![
-        TransformOperation::Translate(LengthOrPercentage::Length(Au(100)),
-                                      LengthOrPercentage::Length(Au(0)),
+        TransformOperation::Translate(LengthOrPercentage::Length(Length::new(100.)),
+                                      LengthOrPercentage::Length(Length::new(0.)),
                                       Length::new(75.))]));
     assert_eq!(
         from.animate(&to, Procedure::Interpolate { progress: 0.5 }).unwrap(),
         TransformList(Some(vec![TransformOperation::Translate(
-            LengthOrPercentage::Length(Au(50)),
-            LengthOrPercentage::Length(Au(50)),
+            LengthOrPercentage::Length(Length::new(50.)),
+            LengthOrPercentage::Length(Length::new(50.)),
             Length::new(50.),
         )]))
     );
@@ -90,8 +89,8 @@ fn test_transform_interpolation_on_translate() {
         Length::new(25.),
     )]));
     let to = TransformList(Some(vec![
-        TransformOperation::Translate(LengthOrPercentage::Length(Au::from_px(100)),
-                                      LengthOrPercentage::Length(Au::from_px(50)),
+        TransformOperation::Translate(LengthOrPercentage::Length(Length::new(100.)),
+                                      LengthOrPercentage::Length(Length::new(50.)),
                                       Length::new(75.))]));
     assert_eq!(
         from.animate(&to, Procedure::Interpolate { progress: 0.5 }).unwrap(),
@@ -157,8 +156,8 @@ fn test_transform_interpolation_on_mismatched_lists() {
     let from = TransformList(Some(vec![TransformOperation::Rotate(0.0, 0.0, 1.0,
                                                                   Angle::from_radians(100.0))]));
     let to = TransformList(Some(vec![
-        TransformOperation::Translate(LengthOrPercentage::Length(Au(100)),
-                                      LengthOrPercentage::Length(Au(0)),
+        TransformOperation::Translate(LengthOrPercentage::Length(Length::new(100.)),
+                                      LengthOrPercentage::Length(Length::new(0.)),
                                       Length::new(0.))]));
     assert_eq!(
         from.animate(&to, Procedure::Interpolate { progress: 0.5 }).unwrap(),

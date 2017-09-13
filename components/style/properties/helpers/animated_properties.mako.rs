@@ -6,7 +6,6 @@
 
 <% from data import to_idl_name, SYSTEM_FONT_LONGHANDS %>
 
-use app_units::Au;
 use cssparser::Parser;
 #[cfg(feature = "gecko")] use gecko_bindings::bindings::RawServoAnimationValueMap;
 #[cfg(feature = "gecko")] use gecko_bindings::structs::RawGeckoGfxMatrix4x4;
@@ -47,7 +46,7 @@ use values::animated::effects::FilterList as AnimatedFilterList;
 use values::animated::effects::TextShadowList as AnimatedTextShadowList;
 use values::computed::{Angle, BorderCornerRadius, CalcLengthOrPercentage};
 use values::computed::{ClipRect, Context, ComputedUrl};
-use values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
+use values::computed::{Length, LengthOrPercentage, LengthOrPercentageOrAuto};
 use values::computed::{LengthOrPercentageOrNone, MaxLength, NonNegativeLength};
 use values::computed::{NonNegativeNumber, Number, NumberOrPercentage, Percentage};
 use values::computed::{PositiveIntegerOrAuto, ToComputedValue};
@@ -813,7 +812,7 @@ impl ToAnimatedZero for LengthOrPercentageOrAuto {
             LengthOrPercentageOrAuto::Length(_) |
             LengthOrPercentageOrAuto::Percentage(_) |
             LengthOrPercentageOrAuto::Calc(_) => {
-                Ok(LengthOrPercentageOrAuto::Length(Au(0)))
+                Ok(LengthOrPercentageOrAuto::Length(Length::new(0.)))
             },
             LengthOrPercentageOrAuto::Auto => Err(()),
         }
@@ -827,7 +826,7 @@ impl ToAnimatedZero for LengthOrPercentageOrNone {
             LengthOrPercentageOrNone::Length(_) |
             LengthOrPercentageOrNone::Percentage(_) |
             LengthOrPercentageOrNone::Calc(_) => {
-                Ok(LengthOrPercentageOrNone::Length(Au(0)))
+                Ok(LengthOrPercentageOrNone::Length(Length::new(0.)))
             },
             LengthOrPercentageOrNone::None => Err(()),
         }
@@ -2314,9 +2313,9 @@ impl ComputeSquaredDistance for TransformOperation {
                 // convert Au into px.
                 let extract_pixel_length = |lop: &LengthOrPercentage| {
                     match *lop {
-                        LengthOrPercentage::Length(au) => au.to_f64_px(),
+                        LengthOrPercentage::Length(px) => px.px(),
                         LengthOrPercentage::Percentage(_) => 0.,
-                        LengthOrPercentage::Calc(calc) => calc.length().px() as f64,
+                        LengthOrPercentage::Calc(calc) => calc.length().px(),
                     }
                 };
 
@@ -2465,7 +2464,7 @@ impl From<NonNegativeNumber> for NumberOrPercentage {
 impl From<LengthOrPercentage> for NumberOrPercentage {
     fn from(lop: LengthOrPercentage) -> NumberOrPercentage {
         match lop {
-            LengthOrPercentage::Length(len) => NumberOrPercentage::Number(len.to_f32_px()),
+            LengthOrPercentage::Length(len) => NumberOrPercentage::Number(len.px()),
             LengthOrPercentage::Percentage(p) => NumberOrPercentage::Percentage(p),
             LengthOrPercentage::Calc(_) => {
                 panic!("We dont't expected calc interpolation for SvgLengthOrPercentageOrNumber");

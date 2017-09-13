@@ -39,7 +39,7 @@ ${helpers.single_keyword("-moz-text-size-adjust", "auto none",
 
 ${helpers.predefined_type("text-indent",
                           "LengthOrPercentage",
-                          "computed::LengthOrPercentage::Length(Au(0))",
+                          "computed::LengthOrPercentage::Length(computed::Length::new(0.))",
                           animation_value_type="ComputedValue",
                           spec="https://drafts.csswg.org/css-text/#propdef-text-indent",
                           allow_quirks=True)}

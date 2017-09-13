@@ -1480,11 +1480,10 @@ ${helpers.predefined_type(
     }
 
     // Converts computed LengthOrPercentageOrNumber into computed
-    // LengthOrPercentage. Number maps into Length
+    // LengthOrPercentage. Number maps into Length (pixel unit)
     fn lopon_to_lop(value: &ComputedLoPoNumber) -> ComputedLoP {
-        use app_units::Au;
         match *value {
-            Either::First(number) => ComputedLoP::Length(Au::from_f32_px(number)),
+            Either::First(number) => ComputedLoP::Length(ComputedLength::new(number)),
             Either::Second(length_or_percentage) => length_or_percentage,
         }
     }

@@ -136,9 +136,9 @@ impl Flow for MulticolFlow {
             available_block_size: {
                 let style = &self.block_flow.fragment.style;
                 if let LengthOrPercentageOrAuto::Length(length) = style.content_block_size() {
-                    length
+                    Au::from(length)
                 } else if let LengthOrPercentageOrNone::Length(length) = style.max_block_size() {
-                    length
+                    Au::from(length)
                 } else {
                     // FIXME: do column balancing instead
                     // FIXME: (until column balancing) substract margins/borders/padding

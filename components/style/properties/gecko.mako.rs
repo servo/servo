@@ -633,7 +633,7 @@ def set_gecko_property(ffi_name, expr):
                 SvgLengthOrPercentageOrNumber::Number(number),
             CoordDataValue::Coord(coord) =>
                 SvgLengthOrPercentageOrNumber::LengthOrPercentage(
-                    LengthOrPercentage::Length(Au(coord))),
+                    LengthOrPercentage::Length(Au(coord).into())),
             CoordDataValue::Percent(p) =>
                 SvgLengthOrPercentageOrNumber::LengthOrPercentage(
                     LengthOrPercentage::Percentage(Percentage(p))),
@@ -5210,7 +5210,7 @@ clip-path
                     vec.push(SvgLengthOrPercentageOrNumber::Number(number.into())),
                 CoordDataValue::Coord(coord) =>
                     vec.push(SvgLengthOrPercentageOrNumber::LengthOrPercentage(
-                        LengthOrPercentage::Length(Au(coord)).into())),
+                        LengthOrPercentage::Length(Au(coord).into()).into())),
                 CoordDataValue::Percent(p) =>
                     vec.push(SvgLengthOrPercentageOrNumber::LengthOrPercentage(
                         LengthOrPercentage::Percentage(Percentage(p)).into())),

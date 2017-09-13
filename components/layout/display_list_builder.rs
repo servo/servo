@@ -3039,7 +3039,7 @@ struct StopRun {
 
 fn position_to_offset(position: LengthOrPercentage, total_length: Au) -> f32 {
     match position {
-        LengthOrPercentage::Length(Au(length)) => length as f32 / total_length.0 as f32,
+        LengthOrPercentage::Length(l) => l.to_i32_au() as f32 / total_length.0 as f32,
         LengthOrPercentage::Percentage(percentage) => percentage.0 as f32,
         LengthOrPercentage::Calc(calc) => {
             calc.to_used_value(Some(total_length)).unwrap().0 as f32 / total_length.0 as f32

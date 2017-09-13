@@ -248,7 +248,7 @@ impl Flow for TableFlow {
                         LengthOrPercentageOrAuto::Auto |
                         LengthOrPercentageOrAuto::Calc(_) |
                         LengthOrPercentageOrAuto::Percentage(_) => Au(0),
-                        LengthOrPercentageOrAuto::Length(length) => length,
+                        LengthOrPercentageOrAuto::Length(length) => Au::from(length),
                     },
                     percentage: match *specified_inline_size {
                         LengthOrPercentageOrAuto::Auto |
