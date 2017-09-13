@@ -430,11 +430,16 @@ impl<Candidate> SharingCacheBase<Candidate> {
 }
 
 impl<E: TElement> SharingCache<E> {
-    fn insert(&mut self, el: E, validation_data_holder: &mut StyleSharingTarget<E>) {
-        self.entries.insert(StyleSharingCandidate {
-            element: el,
-            validation_data: validation_data_holder.take_validation_data(),
-        });
+    fn insert(
+        &mut self,
+        element: E,
+        validation_data_holder: Option<&mut StyleSharingTarget<E>>,
+    ) {
+        let validation_data = match validation_data_holder {
+            Some(v) => v.take_validation_data(),
+            None => ValidationData::default(),
+        };
+        self.entries.insert(StyleSharingCandidate { element, validation_data });
     }
 
     fn lookup<F>(&mut self, mut is_match: F) -> Option<E>
@@ -544,7 +549,7 @@ impl<E: TElement> StyleSharingCache<E> {
     pub fn insert_if_possible(&mut self,
                               element: &E,
                               style: &ComputedValues,
-                              validation_data_holder: &mut StyleSharingTarget<E>,
+                              validation_data_holder: Option<&mut StyleSharingTarget<E>>,
                               dom_depth: usize) {
         let parent = match element.traversal_parent() {
             Some(element) => element,

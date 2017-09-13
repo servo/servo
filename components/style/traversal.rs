@@ -646,6 +646,10 @@ where
                                               traversal_data.current_dom_depth);
 
             context.thread_local.bloom_filter.assert_complete(element);
+            debug_assert_eq!(
+                context.thread_local.bloom_filter.matching_depth(),
+                traversal_data.current_dom_depth
+            );
 
             // This is only relevant for animations as of right now.
             important_rules_changed = true;
@@ -679,8 +683,8 @@ where
                         .insert_if_possible(
                             &element,
                             new_styles.primary.style(),
-                            &mut target,
-                            context.thread_local.bloom_filter.matching_depth(),
+                            Some(&mut target),
+                            traversal_data.current_dom_depth,
                         );
 
                     new_styles
@@ -709,15 +713,25 @@ where
             let cascade_inputs =
                 ElementCascadeInputs::new_from_element_data(data);
 
-            let mut resolver =
-                StyleResolverForElement::new(
-                    element,
-                    context,
-                    RuleInclusion::All,
-                    PseudoElementResolution::IfApplicable
-                );
+            let new_styles = {
+                let mut resolver =
+                    StyleResolverForElement::new(
+                        element,
+                        context,
+                        RuleInclusion::All,
+                        PseudoElementResolution::IfApplicable
+                    );
 
-            resolver.cascade_styles_with_default_parents(cascade_inputs)
+                resolver.cascade_styles_with_default_parents(cascade_inputs)
+            };
+            context.thread_local.sharing_cache.insert_if_possible(
+                &element,
+                new_styles.primary.style(),
+                None,
+                traversal_data.current_dom_depth,
+            );
+
+            new_styles
         }
     };
 
