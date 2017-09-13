@@ -626,6 +626,36 @@ impl LonghandId {
             LonghandId::Direction
         )
     }
+
+    /// Whether computed values of this property lossily convert any complex
+    /// colors into RGBA colors.
+    ///
+    /// In Gecko, there are some properties still that compute currentcolor
+    /// down to an RGBA color at computed value time, instead of as
+    /// `StyleComplexColor`s. For these properties, we must return `false`,
+    /// so that we correctly avoid caching style data in the rule tree.
+    pub fn stores_complex_colors_lossily(&self) -> bool {
+        % if product == "gecko":
+        matches!(*self,
+            % for property in data.longhands:
+            % if property.predefined_type == "RGBAColor":
+            LonghandId::${property.camel_case} |
+            % endif
+            % endfor
+            LonghandId::BackgroundImage |
+            LonghandId::BorderImageSource |
+            LonghandId::BoxShadow |
+            LonghandId::MaskImage |
+            LonghandId::MozBorderBottomColors |
+            LonghandId::MozBorderLeftColors |
+            LonghandId::MozBorderRightColors |
+            LonghandId::MozBorderTopColors |
+            LonghandId::TextShadow
+        )
+        % else:
+        false
+        % endif
+    }
 }
 
 /// An identifier for a given shorthand property.
