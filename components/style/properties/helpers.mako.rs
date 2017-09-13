@@ -322,7 +322,7 @@
                                 longhands::system_font::resolve_system_font(sf, context);
                             }
                         % endif
-                        % if property.logical:
+                        % if not property.style_struct.inherited and property.logical:
                             context.rule_cache_conditions.borrow_mut()
                                 .set_writing_mode_dependency(context.builder.writing_mode);
                         % endif
@@ -367,7 +367,6 @@
                         CSSWideKeyword::Unset |
                         % endif
                         CSSWideKeyword::Initial => {
-                            context.rule_cache_conditions.borrow_mut().set_uncacheable();
                             % if property.ident == "font_size":
                                 longhands::font_size::cascade_initial_font_size(context);
                             % else:
@@ -378,6 +377,9 @@
                         CSSWideKeyword::Unset |
                         % endif
                         CSSWideKeyword::Inherit => {
+                            % if not property.style_struct.inherited:
+                                context.rule_cache_conditions.borrow_mut().set_uncacheable();
+                            % endif
                             % if property.ident == "font_size":
                                 longhands::font_size::cascade_inherit_font_size(context);
                             % else:
