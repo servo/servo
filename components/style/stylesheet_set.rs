@@ -115,6 +115,8 @@ where
 {
     guard: &'a SharedRwLockReadGuard<'b>,
     origins_dirty: OriginSetIterator,
+    // NB: Bound to the StylesheetSet lifetime when constructed, see
+    // StylesheetSet::flush.
     collections: *mut PerOrigin<SheetCollection<S>>,
     current: Option<slice::IterMut<'a, StylesheetSetEntry<S>>>,
     origin_data_validity: PerOrigin<OriginValidity>,
