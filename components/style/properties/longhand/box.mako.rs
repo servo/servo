@@ -620,7 +620,6 @@ ${helpers.predefined_type(
                    animation_value_type="ComputedValue"
                    flags="CREATES_STACKING_CONTEXT FIXPOS_CB"
                    spec="https://drafts.csswg.org/css-transforms/#propdef-transform">
-    use app_units::Au;
     use values::computed::{LengthOrPercentageOrNumber as ComputedLoPoNumber, LengthOrNumber as ComputedLoN};
     use values::computed::{LengthOrPercentage as ComputedLoP, Length as ComputedLength};
     use values::generics::transform::Matrix;
@@ -631,7 +630,6 @@ ${helpers.predefined_type(
     use std::fmt;
 
     pub mod computed_value {
-        use app_units::Au;
         use values::CSSFloat;
         use values::computed;
         use values::computed::{Length, LengthOrPercentage};
@@ -673,7 +671,7 @@ ${helpers.predefined_type(
                     m21: 0.0, m22: 1.0, m23: 0.0, m24: 0.0,
                     m31: 0.0, m32: 0.0, m33: 1.0, m34: 0.0,
                     m41: LengthOrPercentage::zero(), m42: LengthOrPercentage::zero(),
-                    m43: Au(0), m44: 1.0
+                    m43: Length::new(0.), m44: 1.0
                 }
             }
         }
@@ -1252,7 +1250,7 @@ ${helpers.predefined_type(
                         result.push(computed_value::ComputedOperation::Translate(
                             tx,
                             computed::length::LengthOrPercentage::zero(),
-                            computed::length::Length::new(0)));
+                            computed::length::Length::new(0.)));
                     }
                     SpecifiedOperation::Translate(ref tx, Some(ref ty)) => {
                         let tx = tx.to_computed_value(context);
@@ -1260,21 +1258,21 @@ ${helpers.predefined_type(
                         result.push(computed_value::ComputedOperation::Translate(
                             tx,
                             ty,
-                            computed::length::Length::new(0)));
+                            computed::length::Length::new(0.)));
                     }
                     SpecifiedOperation::TranslateX(ref tx) => {
                         let tx = tx.to_computed_value(context);
                         result.push(computed_value::ComputedOperation::Translate(
                             tx,
                             computed::length::LengthOrPercentage::zero(),
-                            computed::length::Length::new(0)));
+                            computed::length::Length::new(0.)));
                     }
                     SpecifiedOperation::TranslateY(ref ty) => {
                         let ty = ty.to_computed_value(context);
                         result.push(computed_value::ComputedOperation::Translate(
                             computed::length::LengthOrPercentage::zero(),
                             ty,
-                            computed::length::Length::new(0)));
+                            computed::length::Length::new(0.)));
                     }
                     SpecifiedOperation::TranslateZ(ref tz) => {
                         let tz = tz.to_computed_value(context);
@@ -1482,10 +1480,10 @@ ${helpers.predefined_type(
     }
 
     // Converts computed LengthOrPercentageOrNumber into computed
-    // LengthOrPercentage. Number maps into Length
+    // LengthOrPercentage. Number maps into Length (pixel unit)
     fn lopon_to_lop(value: &ComputedLoPoNumber) -> ComputedLoP {
         match *value {
-            Either::First(number) => ComputedLoP::Length(Au::from_f32_px(number)),
+            Either::First(number) => ComputedLoP::Length(ComputedLength::new(number)),
             Either::Second(length_or_percentage) => length_or_percentage,
         }
     }
@@ -1495,7 +1493,7 @@ ${helpers.predefined_type(
     fn lon_to_length(value: &ComputedLoN) -> ComputedLength {
         match *value {
             Either::First(length) => length,
-            Either::Second(number) => Au::from_f32_px(number),
+            Either::Second(number) => ComputedLength::new(number),
         }
     }
 </%helpers:longhand>

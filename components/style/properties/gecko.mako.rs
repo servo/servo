@@ -61,7 +61,7 @@ use servo_arc::{Arc, RawOffsetArc};
 use std::mem::{forget, uninitialized, transmute, zeroed};
 use std::{cmp, ops, ptr};
 use values::{self, Auto, CustomIdent, Either, KeyframesName, None_};
-use values::computed::{NonNegativeAu, ToComputedValue, Percentage};
+use values::computed::{NonNegativeLength, ToComputedValue, Percentage};
 use values::computed::effects::{BoxShadow, Filter, SimpleShadow};
 use computed_values::border_style;
 
@@ -530,13 +530,13 @@ def set_gecko_property(ffi_name, expr):
 <%def name="impl_absolute_length(ident, gecko_ffi_name, need_clone=False)">
     #[allow(non_snake_case)]
     pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
-        ${set_gecko_property(gecko_ffi_name, "v.0")}
+        ${set_gecko_property(gecko_ffi_name, "v.to_i32_au()")}
     }
     <%call expr="impl_simple_copy(ident, gecko_ffi_name)"></%call>
     % if need_clone:
         #[allow(non_snake_case)]
         pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
-            Au(self.gecko.${gecko_ffi_name})
+            Au(self.gecko.${gecko_ffi_name}).into()
         }
     % endif
 </%def>
@@ -633,7 +633,7 @@ def set_gecko_property(ffi_name, expr):
                 SvgLengthOrPercentageOrNumber::Number(number),
             CoordDataValue::Coord(coord) =>
                 SvgLengthOrPercentageOrNumber::LengthOrPercentage(
-                    LengthOrPercentage::Length(Au(coord))),
+                    LengthOrPercentage::Length(Au(coord).into())),
             CoordDataValue::Percent(p) =>
                 SvgLengthOrPercentageOrNumber::LengthOrPercentage(
                     LengthOrPercentage::Percentage(Percentage(p))),
@@ -810,16 +810,16 @@ def set_gecko_property(ffi_name, expr):
     }
 </%def>
 
-<%def name="impl_non_negative_app_units(ident, gecko_ffi_name, need_clone, inherit_from=None,
-                                        round_to_pixels=False)">
+<%def name="impl_non_negative_length(ident, gecko_ffi_name, need_clone, inherit_from=None,
+                                     round_to_pixels=False)">
     #[allow(non_snake_case)]
     pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
         let value = {
             % if round_to_pixels:
             let au_per_device_px = Au(self.gecko.mTwipsPerPixel);
-            round_border_to_device_pixels(v.0, au_per_device_px).0
+            round_border_to_device_pixels(Au::from(v), au_per_device_px).0
             % else:
-            v.value()
+            v.0.to_i32_au()
             % endif
         };
 
@@ -1385,11 +1385,11 @@ fn static_assert() {
 
     <% impl_color("border_%s_color" % side.ident, "(mBorderColor)[%s]" % side.index, need_clone=True) %>
 
-    <% impl_non_negative_app_units("border_%s_width" % side.ident,
-                                   "mComputedBorder.%s" % side.ident,
-                                   inherit_from="mBorder.%s" % side.ident,
-                                   need_clone=True,
-                                   round_to_pixels=True) %>
+    <% impl_non_negative_length("border_%s_width" % side.ident,
+                                "mComputedBorder.%s" % side.ident,
+                                inherit_from="mBorder.%s" % side.ident,
+                                need_clone=True,
+                                round_to_pixels=True) %>
 
     pub fn border_${side.ident}_has_nonzero_width(&self) -> bool {
         self.gecko.mComputedBorder.${side.ident} != 0
@@ -2110,9 +2110,9 @@ fn static_assert() {
         }
     }
 
-    <% impl_non_negative_app_units("outline_width", "mActualOutlineWidth",
-                                   inherit_from="mOutlineWidth",
-                                   need_clone=True, round_to_pixels=True) %>
+    <% impl_non_negative_length("outline_width", "mActualOutlineWidth",
+                                inherit_from="mOutlineWidth",
+                                need_clone=True, round_to_pixels=True) %>
 
     % for corner in CORNERS:
     <% impl_corner_style_coord("_moz_outline_radius_%s" % corner.ident.replace("_", ""),
@@ -2248,15 +2248,15 @@ fn static_assert() {
     }
 
     pub fn set_font_size(&mut self, v: longhands::font_size::computed_value::T) {
-        self.gecko.mSize = v.value();
-        self.gecko.mScriptUnconstrainedSize = v.value();
+        self.gecko.mSize = v.0.to_i32_au();
+        self.gecko.mScriptUnconstrainedSize = v.0.to_i32_au();
     }
 
     /// Set font size, taking into account scriptminsize and scriptlevel
     /// Returns Some(size) if we have to recompute the script unconstrained size
     pub fn apply_font_size(&mut self, v: longhands::font_size::computed_value::T,
                            parent: &Self,
-                           device: &Device) -> Option<NonNegativeAu> {
+                           device: &Device) -> Option<NonNegativeLength> {
         let (adjusted_size, adjusted_unconstrained_size) =
             self.calculate_script_level_size(parent, device);
         // In this case, we have been unaffected by scriptminsize, ignore it
@@ -2266,7 +2266,7 @@ fn static_assert() {
             self.fixup_font_min_size(device);
             None
         } else {
-            self.gecko.mSize = v.value();
+            self.gecko.mSize = v.0.to_i32_au();
             self.fixup_font_min_size(device);
             Some(Au(parent.gecko.mScriptUnconstrainedSize).into())
         }
@@ -2276,8 +2276,8 @@ fn static_assert() {
         unsafe { bindings::Gecko_nsStyleFont_FixupMinFontSize(&mut self.gecko, device.pres_context()) }
     }
 
-    pub fn apply_unconstrained_font_size(&mut self, v: NonNegativeAu) {
-        self.gecko.mScriptUnconstrainedSize = v.value();
+    pub fn apply_unconstrained_font_size(&mut self, v: NonNegativeLength) {
+        self.gecko.mScriptUnconstrainedSize = v.0.to_i32_au();
     }
 
     /// Calculates the constrained and unconstrained font sizes to be inherited
@@ -2387,7 +2387,7 @@ fn static_assert() {
     ///
     /// Returns true if the inherited keyword size was actually used
     pub fn inherit_font_size_from(&mut self, parent: &Self,
-                                  kw_inherited_size: Option<NonNegativeAu>,
+                                  kw_inherited_size: Option<NonNegativeLength>,
                                   device: &Device) -> bool {
         let (adjusted_size, adjusted_unconstrained_size)
             = self.calculate_script_level_size(parent, device);
@@ -2413,9 +2413,9 @@ fn static_assert() {
             false
         } else if let Some(size) = kw_inherited_size {
             // Parent element was a keyword-derived size.
-            self.gecko.mSize = size.value();
+            self.gecko.mSize = size.0.to_i32_au();
             // MathML constraints didn't apply here, so we can ignore this.
-            self.gecko.mScriptUnconstrainedSize = size.value();
+            self.gecko.mScriptUnconstrainedSize = size.0.to_i32_au();
             self.fixup_font_min_size(device);
             true
         } else {
@@ -3020,7 +3020,7 @@ fn static_assert() {
             # First %s substituted with the call to GetArrayItem, the second
             # %s substituted with the corresponding variable
             css_value_setters = {
-                "length" : "bindings::Gecko_CSSValue_SetAbsoluteLength(%s, %s.0)",
+                "length" : "bindings::Gecko_CSSValue_SetPixelLength(%s, %s.px())",
                 "percentage" : "bindings::Gecko_CSSValue_SetPercentage(%s, %s.0)",
                 # Note: This is an integer type, but we use it as a percentage value in Gecko, so
                 #       need to cast it to f32.
@@ -3122,7 +3122,7 @@ fn static_assert() {
         <%
             # %s is substituted with the call to GetArrayItem.
             css_value_getters = {
-                "length" : "Au(bindings::Gecko_CSSValue_GetAbsoluteLength(%s))",
+                "length" : "Length::new(bindings::Gecko_CSSValue_GetNumber(%s))",
                 "lop" : "%s.get_lop()",
                 "angle" : "%s.get_angle()",
                 "number" : "bindings::Gecko_CSSValue_GetNumber(%s)",
@@ -3166,7 +3166,7 @@ fn static_assert() {
         use properties::longhands::transform::computed_value::ComputedMatrix;
         use properties::longhands::transform::computed_value::ComputedOperation;
         use properties::longhands::transform::computed_value::T as TransformList;
-        use values::computed::Percentage;
+        use values::computed::{Length, Percentage};
 
         let convert_shared_list_to_operations = |value: &structs::nsCSSValue|
                                                 -> Vec<ComputedOperation> {
@@ -3460,13 +3460,13 @@ fn static_assert() {
 
     pub fn clone_transform_origin(&self) -> longhands::transform_origin::computed_value::T {
         use properties::longhands::transform_origin::computed_value::T;
-        use values::computed::LengthOrPercentage;
+        use values::computed::{Length, LengthOrPercentage};
         T {
             horizontal: LengthOrPercentage::from_gecko_style_coord(&self.gecko.mTransformOrigin[0])
                 .expect("clone for LengthOrPercentage failed"),
             vertical: LengthOrPercentage::from_gecko_style_coord(&self.gecko.mTransformOrigin[1])
                 .expect("clone for LengthOrPercentage failed"),
-            depth: Au::from_gecko_style_coord(&self.gecko.mTransformOrigin[2])
+            depth: Length::from_gecko_style_coord(&self.gecko.mTransformOrigin[2])
                 .expect("clone for Length failed"),
         }
     }
@@ -4205,14 +4205,14 @@ fn static_assert() {
                 self.gecko.mImageRegion.height = 0;
             }
             Either::First(rect) => {
-                self.gecko.mImageRegion.x = rect.left.unwrap_or(Au(0)).0;
-                self.gecko.mImageRegion.y = rect.top.unwrap_or(Au(0)).0;
+                self.gecko.mImageRegion.x = rect.left.map(Au::from).unwrap_or(Au(0)).0;
+                self.gecko.mImageRegion.y = rect.top.map(Au::from).unwrap_or(Au(0)).0;
                 self.gecko.mImageRegion.height = match rect.bottom {
-                    Some(value) => value.0 - self.gecko.mImageRegion.y,
+                    Some(value) => (Au::from(value) - Au(self.gecko.mImageRegion.y)).0,
                     None => 0,
                 };
                 self.gecko.mImageRegion.width = match rect.right {
-                    Some(value) => value.0 - self.gecko.mImageRegion.x,
+                    Some(value) => (Au::from(value) - Au(self.gecko.mImageRegion.x)).0,
                     None => 0,
                 };
             }
@@ -4234,10 +4234,10 @@ fn static_assert() {
         }
 
         Either::First(ClipRect {
-            top: Some(Au(self.gecko.mImageRegion.y)),
-            right: Some(Au(self.gecko.mImageRegion.width) + Au(self.gecko.mImageRegion.x)),
-            bottom: Some(Au(self.gecko.mImageRegion.height) + Au(self.gecko.mImageRegion.y)),
-            left: Some(Au(self.gecko.mImageRegion.x)),
+            top: Some(Au(self.gecko.mImageRegion.y).into()),
+            right: Some(Au(self.gecko.mImageRegion.width + self.gecko.mImageRegion.x).into()),
+            bottom: Some(Au(self.gecko.mImageRegion.height + self.gecko.mImageRegion.y).into()),
+            left: Some(Au(self.gecko.mImageRegion.x).into()),
         })
     }
 
@@ -4293,28 +4293,28 @@ fn static_assert() {
             Either::First(rect) => {
                 self.gecko.mClipFlags = NS_STYLE_CLIP_RECT as u8;
                 if let Some(left) = rect.left {
-                    self.gecko.mClip.x = left.0;
+                    self.gecko.mClip.x = left.to_i32_au();
                 } else {
                     self.gecko.mClip.x = 0;
                     self.gecko.mClipFlags |= NS_STYLE_CLIP_LEFT_AUTO as u8;
                 }
 
                 if let Some(top) = rect.top {
-                    self.gecko.mClip.y = top.0;
+                    self.gecko.mClip.y = top.to_i32_au();
                 } else {
                     self.gecko.mClip.y = 0;
                     self.gecko.mClipFlags |= NS_STYLE_CLIP_TOP_AUTO as u8;
                 }
 
                 if let Some(bottom) = rect.bottom {
-                    self.gecko.mClip.height = (bottom - Au(self.gecko.mClip.y)).0;
+                    self.gecko.mClip.height = (Au::from(bottom) - Au(self.gecko.mClip.y)).0;
                 } else {
                     self.gecko.mClip.height = 1 << 30; // NS_MAXSIZE
                     self.gecko.mClipFlags |= NS_STYLE_CLIP_BOTTOM_AUTO as u8;
                 }
 
                 if let Some(right) = rect.right {
-                    self.gecko.mClip.width = (right - Au(self.gecko.mClip.x)).0;
+                    self.gecko.mClip.width = (Au::from(right) - Au(self.gecko.mClip.x)).0;
                 } else {
                     self.gecko.mClip.width = 1 << 30; // NS_MAXSIZE
                     self.gecko.mClipFlags |= NS_STYLE_CLIP_RIGHT_AUTO as u8;
@@ -4355,28 +4355,28 @@ fn static_assert() {
                 debug_assert!(self.gecko.mClip.x == 0);
                 None
             } else {
-                Some(Au(self.gecko.mClip.x))
+                Some(Au(self.gecko.mClip.x).into())
             };
 
             let top = if self.gecko.mClipFlags & NS_STYLE_CLIP_TOP_AUTO as u8 != 0 {
                 debug_assert!(self.gecko.mClip.y == 0);
                 None
             } else {
-                Some(Au(self.gecko.mClip.y))
+                Some(Au(self.gecko.mClip.y).into())
             };
 
             let bottom = if self.gecko.mClipFlags & NS_STYLE_CLIP_BOTTOM_AUTO as u8 != 0 {
                 debug_assert!(self.gecko.mClip.height == 1 << 30); // NS_MAXSIZE
                 None
             } else {
-                Some(Au(self.gecko.mClip.y + self.gecko.mClip.height))
+                Some(Au(self.gecko.mClip.y + self.gecko.mClip.height).into())
             };
 
             let right = if self.gecko.mClipFlags & NS_STYLE_CLIP_RIGHT_AUTO as u8 != 0 {
                 debug_assert!(self.gecko.mClip.width == 1 << 30); // NS_MAXSIZE
                 None
             } else {
-                Some(Au(self.gecko.mClip.x + self.gecko.mClip.width))
+                Some(Au(self.gecko.mClip.x + self.gecko.mClip.width).into())
             };
 
             Either::First(ClipRect { top: top, right: right, bottom: bottom, left: left, })
@@ -4430,7 +4430,7 @@ fn static_assert() {
                                                gecko_filter),
                 % endfor
                 Blur(length) => fill_filter(NS_STYLE_FILTER_BLUR,
-                                            CoordDataValue::Coord(length.value()),
+                                            CoordDataValue::Coord(length.0.to_i32_au()),
                                             gecko_filter),
 
                 HueRotate(angle) => fill_filter(NS_STYLE_FILTER_HUE_ROTATE,
@@ -4498,7 +4498,7 @@ fn static_assert() {
                 },
                 % endfor
                 NS_STYLE_FILTER_BLUR => {
-                    filters.push(Filter::Blur(NonNegativeAu::from_gecko_style_coord(
+                    filters.push(Filter::Blur(NonNegativeLength::from_gecko_style_coord(
                         &filter.mFilterParameter).unwrap()));
                 },
                 NS_STYLE_FILTER_HUE_ROTATE => {
@@ -4590,8 +4590,8 @@ fn static_assert() {
                   skip_longhands="border-spacing">
 
     pub fn set_border_spacing(&mut self, v: longhands::border_spacing::computed_value::T) {
-        self.gecko.mBorderSpacingCol = v.horizontal.value();
-        self.gecko.mBorderSpacingRow = v.vertical.value();
+        self.gecko.mBorderSpacingCol = v.horizontal.0.to_i32_au();
+        self.gecko.mBorderSpacingRow = v.vertical.0.to_i32_au();
     }
 
     pub fn copy_border_spacing_from(&mut self, other: &Self) {
@@ -4651,7 +4651,7 @@ fn static_assert() {
         // FIXME: Align binary representations and ditch |match| for cast + static_asserts
         let en = match v {
             LineHeight::Normal => CoordDataValue::Normal,
-            LineHeight::Length(val) => CoordDataValue::Coord(val.value()),
+            LineHeight::Length(val) => CoordDataValue::Coord(val.0.to_i32_au()),
             LineHeight::Number(val) => CoordDataValue::Factor(val.0),
             LineHeight::MozBlockHeight =>
                     CoordDataValue::Enumerated(structs::NS_STYLE_LINE_HEIGHT_BLOCK_HEIGHT),
@@ -4682,13 +4682,14 @@ fn static_assert() {
     }
 
     pub fn clone_letter_spacing(&self) -> longhands::letter_spacing::computed_value::T {
+        use values::computed::Length;
         use values::generics::text::Spacing;
         debug_assert!(
             matches!(self.gecko.mLetterSpacing.as_value(),
                      CoordDataValue::Normal |
                      CoordDataValue::Coord(_)),
             "Unexpected computed value for letter-spacing");
-        Au::from_gecko_style_coord(&self.gecko.mLetterSpacing).map_or(Spacing::Normal, Spacing::Value)
+        Length::from_gecko_style_coord(&self.gecko.mLetterSpacing).map_or(Spacing::Normal, Spacing::Value)
     }
 
     <%call expr="impl_coord_copy('letter_spacing', 'mLetterSpacing')"></%call>
@@ -4798,9 +4799,9 @@ fn static_assert() {
         })
     }
 
-    <%call expr="impl_non_negative_app_units('_webkit_text_stroke_width',
-                                             'mWebkitTextStrokeWidth',
-                                             need_clone=True)"></%call>
+    <%call expr="impl_non_negative_length('_webkit_text_stroke_width',
+                                          'mWebkitTextStrokeWidth',
+                                          need_clone=True)"></%call>
 
     #[allow(non_snake_case)]
     pub fn set__moz_tab_size(&mut self, v: longhands::_moz_tab_size::computed_value::T) {
@@ -4810,8 +4811,8 @@ fn static_assert() {
             Either::Second(non_negative_number) => {
                 self.gecko.mTabSize.set_value(CoordDataValue::Factor(non_negative_number.0));
             }
-            Either::First(non_negative_au) => {
-                self.gecko.mTabSize.set(non_negative_au.0);
+            Either::First(non_negative_length) => {
+                self.gecko.mTabSize.set(non_negative_length);
             }
         }
     }
@@ -5209,7 +5210,7 @@ clip-path
                     vec.push(SvgLengthOrPercentageOrNumber::Number(number.into())),
                 CoordDataValue::Coord(coord) =>
                     vec.push(SvgLengthOrPercentageOrNumber::LengthOrPercentage(
-                        LengthOrPercentage::Length(Au(coord)).into())),
+                        LengthOrPercentage::Length(Au(coord).into()).into())),
                 CoordDataValue::Percent(p) =>
                     vec.push(SvgLengthOrPercentageOrNumber::LengthOrPercentage(
                         LengthOrPercentage::Percentage(Percentage(p)).into())),
@@ -5461,8 +5462,8 @@ clip-path
         }
     }
 
-    <% impl_non_negative_app_units("column_rule_width", "mColumnRuleWidth", need_clone=True,
-                                   round_to_pixels=True) %>
+    <% impl_non_negative_length("column_rule_width", "mColumnRuleWidth", need_clone=True,
+                                round_to_pixels=True) %>
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Counters"

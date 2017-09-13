@@ -42,11 +42,11 @@
 
     ${helpers.predefined_type("border-%s-width" % side_name,
                               "BorderSideWidth",
-                              "::values::computed::NonNegativeAu::from_px(3)",
-                              computed_type="::values::computed::NonNegativeAu",
+                              "::values::computed::NonNegativeLength::new(3.)",
+                              computed_type="::values::computed::NonNegativeLength",
                               alias=maybe_moz_logical_alias(product, side, "-moz-border-%s-width"),
                               spec=maybe_logical_spec(side, "width"),
-                              animation_value_type="NonNegativeAu",
+                              animation_value_type="NonNegativeLength",
                               logical=is_logical,
                               flags="APPLIES_TO_FIRST_LETTER",
                               allow_quirks=not is_logical)}

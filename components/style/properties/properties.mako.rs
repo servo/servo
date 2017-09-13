@@ -44,7 +44,7 @@ use stylesheets::{CssRuleType, Origin, UrlExtraData};
 #[cfg(feature = "servo")] use values::Either;
 use values::generics::text::LineHeight;
 use values::computed;
-use values::computed::NonNegativeAu;
+use values::computed::NonNegativeLength;
 use rule_tree::{CascadeLevel, StrongRuleNode};
 use self::computed_value_flags::ComputedValueFlags;
 use style_adjuster::StyleAdjuster;
@@ -110,7 +110,7 @@ pub trait MaybeBoxed<Out> {
 /// When this is Some, we compute font sizes by computing the keyword against
 /// the generic font, and then multiplying it by the ratio (as well as adding any
 /// absolute offset from calcs)
-pub type FontComputationData = Option<(longhands::font_size::KeywordSize, f32, NonNegativeAu)>;
+pub type FontComputationData = Option<(longhands::font_size::KeywordSize, f32, NonNegativeLength)>;
 
 /// Default value for FontComputationData
 pub fn default_font_size_keyword() -> FontComputationData {
@@ -1690,7 +1690,7 @@ pub mod style_structs {
     use std::hash::{Hash, Hasher};
     use logical_geometry::WritingMode;
     use media_queries::Device;
-    use values::computed::NonNegativeAu;
+    use values::computed::NonNegativeLength;
 
     % for style_struct in data.active_style_structs():
         % if style_struct.name == "Font":
@@ -1790,7 +1790,7 @@ pub mod style_structs {
                     /// Whether the border-${side} property has nonzero width.
                     #[allow(non_snake_case)]
                     pub fn border_${side}_has_nonzero_width(&self) -> bool {
-                        self.border_${side}_width != NonNegativeAu::zero()
+                        self.border_${side}_width != NonNegativeLength::zero()
                     }
                 % endfor
             % elif style_struct.name == "Font":
@@ -1808,7 +1808,7 @@ pub mod style_structs {
 
                 /// (Servo does not handle MathML, so this just calls copy_font_size_from)
                 pub fn inherit_font_size_from(&mut self, parent: &Self,
-                                              _: Option<NonNegativeAu>,
+                                              _: Option<NonNegativeLength>,
                                               _: &Device) -> bool {
                     self.copy_font_size_from(parent);
                     false
@@ -1817,19 +1817,19 @@ pub mod style_structs {
                 pub fn apply_font_size(&mut self,
                                        v: longhands::font_size::computed_value::T,
                                        _: &Self,
-                                       _: &Device) -> Option<NonNegativeAu> {
+                                       _: &Device) -> Option<NonNegativeLength> {
                     self.set_font_size(v);
                     None
                 }
                 /// (Servo does not handle MathML, so this does nothing)
-                pub fn apply_unconstrained_font_size(&mut self, _: NonNegativeAu) {
+                pub fn apply_unconstrained_font_size(&mut self, _: NonNegativeLength) {
                 }
 
             % elif style_struct.name == "Outline":
                 /// Whether the outline-width property is non-zero.
                 #[inline]
                 pub fn outline_has_nonzero_width(&self) -> bool {
-                    self.outline_width != NonNegativeAu::zero()
+                    self.outline_width != NonNegativeLength::zero()
                 }
             % elif style_struct.name == "Text":
                 /// Whether the text decoration has an underline.
@@ -2241,10 +2241,10 @@ impl ComputedValuesInner {
     pub fn border_width_for_writing_mode(&self, writing_mode: WritingMode) -> LogicalMargin<Au> {
         let border_style = self.get_border();
         LogicalMargin::from_physical(writing_mode, SideOffsets2D::new(
-            border_style.border_top_width.0,
-            border_style.border_right_width.0,
-            border_style.border_bottom_width.0,
-            border_style.border_left_width.0,
+            Au::from(border_style.border_top_width),
+            Au::from(border_style.border_right_width),
+            Au::from(border_style.border_bottom_width),
+            Au::from(border_style.border_left_width),
         ))
     }
 
@@ -2326,7 +2326,7 @@ impl ComputedValuesInner {
                         }
                     }
                     computed_values::transform::ComputedOperation::Translate(_, _, z) => {
-                        if z != Au(0) {
+                        if z.px() != 0. {
                             return true;
                         }
                     }
@@ -3407,7 +3407,7 @@ pub fn adjust_border_width(style: &mut StyleBuilder) {
         // Like calling to_computed_value, which wouldn't type check.
         if style.get_border().clone_border_${side}_style().none_or_hidden() &&
            style.get_border().border_${side}_has_nonzero_width() {
-            style.set_border_${side}_width(NonNegativeAu::zero());
+            style.set_border_${side}_width(NonNegativeLength::zero());
         }
     % endfor
 }
@@ -3431,7 +3431,7 @@ pub fn modify_border_style_for_inline_sides(style: &mut Arc<ComputedValues>,
                 PhysicalSide::Top =>    (border.border_top_width,    border.border_top_style),
                 PhysicalSide::Bottom => (border.border_bottom_width, border.border_bottom_style),
             };
-            if current_style == (NonNegativeAu::zero(), BorderStyle::none) {
+            if current_style == (NonNegativeLength::zero(), BorderStyle::none) {
                 return;
             }
         }
@@ -3439,19 +3439,19 @@ pub fn modify_border_style_for_inline_sides(style: &mut Arc<ComputedValues>,
         let border = Arc::make_mut(&mut style.border);
         match side {
             PhysicalSide::Left => {
-                border.border_left_width = NonNegativeAu::zero();
+                border.border_left_width = NonNegativeLength::zero();
                 border.border_left_style = BorderStyle::none;
             }
             PhysicalSide::Right => {
-                border.border_right_width = NonNegativeAu::zero();
+                border.border_right_width = NonNegativeLength::zero();
                 border.border_right_style = BorderStyle::none;
             }
             PhysicalSide::Bottom => {
-                border.border_bottom_width = NonNegativeAu::zero();
+                border.border_bottom_width = NonNegativeLength::zero();
                 border.border_bottom_style = BorderStyle::none;
             }
             PhysicalSide::Top => {
-                border.border_top_width = NonNegativeAu::zero();
+                border.border_top_width = NonNegativeLength::zero();
                 border.border_top_style = BorderStyle::none;
             }
         }

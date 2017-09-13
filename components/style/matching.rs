@@ -533,6 +533,7 @@ pub trait MatchMethods : TElement {
         mut new_styles: ElementStyles,
         important_rules_changed: bool,
     ) -> ChildCascadeRequirement {
+        use app_units::Au;
         use dom::TNode;
         use std::cmp;
         use std::mem;
@@ -581,7 +582,7 @@ pub trait MatchMethods : TElement {
 
             if old_styles.primary.as_ref().map_or(true, |s| s.get_font().clone_font_size() != new_font_size) {
                 debug_assert!(self.owner_doc_matches_for_testing(device));
-                device.set_root_font_size(new_font_size.0);
+                device.set_root_font_size(Au::from(new_font_size));
                 // If the root font-size changed since last time, and something
                 // in the document did use rem units, ensure we recascade the
                 // entire tree.

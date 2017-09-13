@@ -84,6 +84,7 @@ impl ToComputedValue for LineHeight {
 
     #[inline]
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
+        use values::computed::Length as ComputedLength;
         use values::specified::length::FontBaseSize;
         match *self {
             GenericLineHeight::Normal => {
@@ -99,35 +100,36 @@ impl ToComputedValue for LineHeight {
             GenericLineHeight::Length(ref non_negative_lop) => {
                 let result = match non_negative_lop.0 {
                     LengthOrPercentage::Length(NoCalcLength::Absolute(ref abs)) => {
-                        context.maybe_zoom_text(abs.to_computed_value(context).into())
+                        context.maybe_zoom_text(abs.to_computed_value(context))
                     }
                     LengthOrPercentage::Length(ref length) => {
-                        length.to_computed_value(context).into()
+                        length.to_computed_value(context)
                     },
                     LengthOrPercentage::Percentage(ref p) => {
                         FontRelativeLength::Em(p.0)
                             .to_computed_value(
                                 context,
                                 FontBaseSize::CurrentStyle,
-                            ).into()
+                            )
                     }
                     LengthOrPercentage::Calc(ref calc) => {
-                        let computed_calc = calc.to_computed_value_zoomed(context, FontBaseSize::CurrentStyle);
+                        let computed_calc =
+                            calc.to_computed_value_zoomed(context, FontBaseSize::CurrentStyle);
                         let font_relative_length =
                             FontRelativeLength::Em(computed_calc.percentage())
                                 .to_computed_value(
                                     context,
                                     FontBaseSize::CurrentStyle,
-                                );
+                                ).px();
 
-                        let absolute_length = computed_calc.unclamped_length();
-                        computed_calc
+                        let absolute_length = computed_calc.unclamped_length().px();
+                        let pixel = computed_calc
                             .clamping_mode
-                            .clamp(absolute_length + font_relative_length)
-                            .into()
+                            .clamp(absolute_length + font_relative_length);
+                        ComputedLength::new(pixel)
                     }
                 };
-                GenericLineHeight::Length(result)
+                GenericLineHeight::Length(result.into())
             }
         }
     }

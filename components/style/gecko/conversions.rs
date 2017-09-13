@@ -29,7 +29,7 @@ impl From<CalcLengthOrPercentage> for nsStyleCoord_CalcValue {
     fn from(other: CalcLengthOrPercentage) -> nsStyleCoord_CalcValue {
         let has_percentage = other.percentage.is_some();
         nsStyleCoord_CalcValue {
-            mLength: other.unclamped_length().0,
+            mLength: other.unclamped_length().to_i32_au(),
             mPercent: other.percentage.map_or(0., |p| p.0),
             mHasPercent: has_percentage,
         }
@@ -43,16 +43,16 @@ impl From<nsStyleCoord_CalcValue> for CalcLengthOrPercentage {
         } else {
             None
         };
-        Self::new(Au(other.mLength), percentage)
+        Self::new(Au(other.mLength).into(), percentage)
     }
 }
 
 impl From<LengthOrPercentage> for nsStyleCoord_CalcValue {
     fn from(other: LengthOrPercentage) -> nsStyleCoord_CalcValue {
         match other {
-            LengthOrPercentage::Length(au) => {
+            LengthOrPercentage::Length(px) => {
                 nsStyleCoord_CalcValue {
-                    mLength: au.0,
+                    mLength: px.to_i32_au(),
                     mPercent: 0.0,
                     mHasPercent: false,
                 }
@@ -73,9 +73,9 @@ impl LengthOrPercentageOrAuto {
     /// Convert this value in an appropriate `nsStyleCoord::CalcValue`.
     pub fn to_calc_value(&self) -> Option<nsStyleCoord_CalcValue> {
         match *self {
-            LengthOrPercentageOrAuto::Length(au) => {
+            LengthOrPercentageOrAuto::Length(px) => {
                 Some(nsStyleCoord_CalcValue {
-                    mLength: au.0,
+                    mLength: px.to_i32_au(),
                     mPercent: 0.0,
                     mHasPercent: false,
                 })
@@ -96,7 +96,7 @@ impl LengthOrPercentageOrAuto {
 impl From<nsStyleCoord_CalcValue> for LengthOrPercentage {
     fn from(other: nsStyleCoord_CalcValue) -> LengthOrPercentage {
         match (other.mHasPercent, other.mLength) {
-            (false, _) => LengthOrPercentage::Length(Au(other.mLength)),
+            (false, _) => LengthOrPercentage::Length(Au(other.mLength).into()),
             (true, 0) => LengthOrPercentage::Percentage(Percentage(other.mPercent)),
             _ => LengthOrPercentage::Calc(other.into()),
         }
@@ -106,7 +106,7 @@ impl From<nsStyleCoord_CalcValue> for LengthOrPercentage {
 impl From<nsStyleCoord_CalcValue> for LengthOrPercentageOrAuto {
     fn from(other: nsStyleCoord_CalcValue) -> LengthOrPercentageOrAuto {
         match (other.mHasPercent, other.mLength) {
-            (false, _) => LengthOrPercentageOrAuto::Length(Au(other.mLength)),
+            (false, _) => LengthOrPercentageOrAuto::Length(Au(other.mLength).into()),
             (true, 0) => LengthOrPercentageOrAuto::Percentage(Percentage(other.mPercent)),
             _ => LengthOrPercentageOrAuto::Calc(other.into()),
         }
@@ -328,8 +328,9 @@ impl nsStyleImage {
                 match shape {
                     EndingShape::Circle(Circle::Radius(length)) => {
                         unsafe {
-                            (*gecko_gradient).mRadiusX.set_value(CoordDataValue::Coord(length.0));
-                            (*gecko_gradient).mRadiusY.set_value(CoordDataValue::Coord(length.0));
+                            let au = length.to_i32_au();
+                            (*gecko_gradient).mRadiusX.set_value(CoordDataValue::Coord(au));
+                            (*gecko_gradient).mRadiusY.set_value(CoordDataValue::Coord(au));
                         }
                     },
                     EndingShape::Ellipse(Ellipse::Radii(x, y)) => {

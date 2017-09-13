@@ -329,7 +329,7 @@ impl CandidateBSizeIterator {
             }
             (LengthOrPercentageOrAuto::Percentage(_), None) |
             (LengthOrPercentageOrAuto::Auto, _) => MaybeAuto::Auto,
-            (LengthOrPercentageOrAuto::Length(length), _) => MaybeAuto::Specified(length),
+            (LengthOrPercentageOrAuto::Length(length), _) => MaybeAuto::Specified(Au::from(length)),
         };
         let max_block_size = match (fragment.style.max_block_size(), block_container_block_size) {
             (LengthOrPercentageOrNone::Percentage(percent), Some(block_container_block_size)) => {
@@ -340,7 +340,7 @@ impl CandidateBSizeIterator {
             }
             (LengthOrPercentageOrNone::Percentage(_), None) |
             (LengthOrPercentageOrNone::None, _) => None,
-            (LengthOrPercentageOrNone::Length(length), _) => Some(length),
+            (LengthOrPercentageOrNone::Length(length), _) => Some(Au::from(length)),
         };
         let min_block_size = match (fragment.style.min_block_size(), block_container_block_size) {
             (LengthOrPercentage::Percentage(percent), Some(block_container_block_size)) => {
@@ -350,7 +350,7 @@ impl CandidateBSizeIterator {
                 calc.to_used_value(block_container_block_size).unwrap_or(Au(0))
             }
             (LengthOrPercentage::Percentage(_), None) => Au(0),
-            (LengthOrPercentage::Length(length), _) => length,
+            (LengthOrPercentage::Length(length), _) => Au::from(length),
         };
 
         // If the style includes `box-sizing: border-box`, subtract the border and padding.
@@ -1172,7 +1172,7 @@ impl BlockFlow {
             (LengthOrPercentageOrAuto::Calc(calc), _) => {
                 calc.to_used_value(containing_block_size)
             }
-            (LengthOrPercentageOrAuto::Length(length), _) => Some(length),
+            (LengthOrPercentageOrAuto::Length(length), _) => Some(Au::from(length)),
             (LengthOrPercentageOrAuto::Percentage(percent), Some(container_size)) => {
                 Some(container_size.scale_by(percent.0))
             }

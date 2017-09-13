@@ -6,7 +6,7 @@
 
 use values::{CSSInteger, CSSFloat};
 use values::animated::ToAnimatedZero;
-use values::computed::{NonNegativeAu, NonNegativeNumber};
+use values::computed::{NonNegativeLength, NonNegativeNumber};
 use values::computed::length::{Length, LengthOrPercentage};
 use values::generics::text::InitialLetter as GenericInitialLetter;
 use values::generics::text::LineHeight as GenericLineHeight;
@@ -22,7 +22,7 @@ pub type LetterSpacing = Spacing<Length>;
 pub type WordSpacing = Spacing<LengthOrPercentage>;
 
 /// A computed value for the `line-height` property.
-pub type LineHeight = GenericLineHeight<NonNegativeNumber, NonNegativeAu>;
+pub type LineHeight = GenericLineHeight<NonNegativeNumber, NonNegativeLength>;
 
 impl ToAnimatedZero for LineHeight {
     #[inline]

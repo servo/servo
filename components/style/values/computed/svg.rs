@@ -6,7 +6,7 @@
 
 use app_units::Au;
 use values::RGBA;
-use values::computed::{ComputedUrl, LengthOrPercentage, NonNegativeAu};
+use values::computed::{ComputedUrl, LengthOrPercentage, NonNegativeLength};
 use values::computed::{NonNegativeNumber, NonNegativeLengthOrPercentage, Number};
 use values::computed::Opacity;
 use values::generics::svg as generic;
@@ -72,8 +72,8 @@ impl Into<NonNegativeSvgLengthOrPercentageOrNumber> for SvgLengthOrPercentageOrN
 /// An non-negative wrapper of SVGLength.
 pub type SVGWidth = generic::SVGLength<NonNegativeSvgLengthOrPercentageOrNumber>;
 
-impl From<NonNegativeAu> for SVGWidth {
-    fn from(length: NonNegativeAu) -> Self {
+impl From<NonNegativeLength> for SVGWidth {
+    fn from(length: NonNegativeLength) -> Self {
         generic::SVGLength::Length(
             generic::SvgLengthOrPercentageOrNumber::LengthOrPercentage(length.into()))
     }

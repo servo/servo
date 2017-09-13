@@ -210,7 +210,8 @@ impl<S: Side> ToComputedValue for PositionComponent<S> {
                     },
                     ComputedLengthOrPercentage::Calc(calc) => {
                         let p = Percentage(1. - calc.percentage.map_or(0., |p| p.0));
-                        ComputedLengthOrPercentage::Calc(CalcLengthOrPercentage::new(-calc.unclamped_length(), Some(p)))
+                        let l = -calc.unclamped_length();
+                        ComputedLengthOrPercentage::Calc(CalcLengthOrPercentage::new(l, Some(p)))
                     },
                 }
             },

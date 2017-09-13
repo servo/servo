@@ -1325,6 +1325,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                   center.vertical.to_used_value(bounds.size.height));
         let radius = match *shape {
             GenericEndingShape::Circle(Circle::Radius(length)) => {
+                let length = Au::from(length);
                 Size2D::new(length, length)
             },
             GenericEndingShape::Circle(Circle::Extent(extent)) => {
@@ -1409,11 +1410,11 @@ impl FragmentDisplayListBuilding for Fragment {
         for box_shadow in style.get_effects().box_shadow.0.iter().rev() {
             let bounds = shadow_bounds(
                 &absolute_bounds.translate(&Vector2D::new(
-                    box_shadow.base.horizontal,
-                    box_shadow.base.vertical,
+                    Au::from(box_shadow.base.horizontal),
+                    Au::from(box_shadow.base.vertical),
                 )),
-                box_shadow.base.blur.0,
-                box_shadow.spread,
+                Au::from(box_shadow.base.blur),
+                Au::from(box_shadow.spread),
             );
 
             // TODO(pcwalton): Multiple border radii; elliptical border radii.
@@ -1426,9 +1427,10 @@ impl FragmentDisplayListBuilding for Fragment {
                 base: base,
                 box_bounds: *absolute_bounds,
                 color: box_shadow.base.color.unwrap_or(style.get_color().color).to_gfx_color(),
-                offset: Vector2D::new(box_shadow.base.horizontal, box_shadow.base.vertical),
-                blur_radius: box_shadow.base.blur.0,
-                spread_radius: box_shadow.spread,
+                offset: Vector2D::new(Au::from(box_shadow.base.horizontal),
+                                      Au::from(box_shadow.base.vertical)),
+                blur_radius: Au::from(box_shadow.base.blur),
+                spread_radius: Au::from(box_shadow.spread),
                 border_radius: model::specified_border_radius(style.get_border()
                                                                    .border_top_left_radius,
                                                               absolute_bounds.size).width,
@@ -1596,7 +1598,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                     clip: &Rect<Au>) {
         use style::values::Either;
 
-        let width = style.get_outline().outline_width.0;
+        let width = Au::from(style.get_outline().outline_width);
         if width == Au(0) {
             return
         }
@@ -1610,7 +1612,7 @@ impl FragmentDisplayListBuilding for Fragment {
         // Outlines are not accounted for in the dimensions of the border box, so adjust the
         // absolute bounds.
         let mut bounds = *bounds;
-        let offset = width + style.get_outline().outline_offset;
+        let offset = width + Au::from(style.get_outline().outline_offset);
         bounds.origin.x = bounds.origin.x - offset;
         bounds.origin.y = bounds.origin.y - offset;
         bounds.size.width = bounds.size.width + offset + offset;
@@ -2139,8 +2141,8 @@ impl FragmentDisplayListBuilding for Fragment {
         for shadow in text_shadows.iter().rev() {
             state.add_display_item(DisplayItem::PushTextShadow(box PushTextShadowDisplayItem {
                 base: base.clone(),
-                blur_radius: shadow.blur.0,
-                offset: Vector2D::new(shadow.horizontal, shadow.vertical),
+                blur_radius: Au::from(shadow.blur),
+                offset: Vector2D::new(Au::from(shadow.horizontal), Au::from(shadow.vertical)),
                 color: shadow.color.unwrap_or(self.style().get_color().color).to_gfx_color(),
             }));
         }
@@ -2690,11 +2692,13 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         }
 
         let clip_origin = Point2D::new(stacking_relative_border_box.origin.x +
-                                       style_clip_rect.left.unwrap_or(Au(0)),
+                                       style_clip_rect.left.map(Au::from).unwrap_or(Au(0)),
                                        stacking_relative_border_box.origin.y +
-                                       style_clip_rect.top.unwrap_or(Au(0)));
-        let right = style_clip_rect.right.unwrap_or(stacking_relative_border_box.size.width);
-        let bottom = style_clip_rect.bottom.unwrap_or(stacking_relative_border_box.size.height);
+                                       style_clip_rect.top.map(Au::from).unwrap_or(Au(0)));
+        let right = style_clip_rect.right.map(Au::from)
+            .unwrap_or(stacking_relative_border_box.size.width);
+        let bottom = style_clip_rect.bottom.map(Au::from)
+            .unwrap_or(stacking_relative_border_box.size.height);
         let clip_size = Size2D::new(right - clip_origin.x, bottom - clip_origin.y);
 
         // We use the node id to create scroll roots for overflow properties, so we
@@ -3035,7 +3039,7 @@ struct StopRun {
 
 fn position_to_offset(position: LengthOrPercentage, total_length: Au) -> f32 {
     match position {
-        LengthOrPercentage::Length(Au(length)) => length as f32 / total_length.0 as f32,
+        LengthOrPercentage::Length(l) => l.to_i32_au() as f32 / total_length.0 as f32,
         LengthOrPercentage::Percentage(percentage) => percentage.0 as f32,
         LengthOrPercentage::Calc(calc) => {
             calc.to_used_value(Some(total_length)).unwrap().0 as f32 / total_length.0 as f32

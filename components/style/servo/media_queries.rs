@@ -65,7 +65,7 @@ impl Device {
             viewport_size,
             device_pixel_ratio,
             // FIXME(bz): Seems dubious?
-            root_font_size: AtomicIsize::new(font_size::get_initial_value().value() as isize),
+            root_font_size: AtomicIsize::new(font_size::get_initial_value().0.to_i32_au() as isize),
             used_root_font_size: AtomicBool::new(false),
             used_viewport_units: AtomicBool::new(false),
         }
@@ -260,9 +260,9 @@ impl Range<specified::Length> {
         };
 
         match *self {
-            Range::Min(ref width) => Range::Min(width.to_computed_value(&context)),
-            Range::Max(ref width) => Range::Max(width.to_computed_value(&context)),
-            Range::Eq(ref width) => Range::Eq(width.to_computed_value(&context))
+            Range::Min(ref width) => Range::Min(Au::from(width.to_computed_value(&context))),
+            Range::Max(ref width) => Range::Max(Au::from(width.to_computed_value(&context))),
+            Range::Eq(ref width) => Range::Eq(Au::from(width.to_computed_value(&context)))
         }
     }
 }

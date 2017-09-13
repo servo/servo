@@ -51,7 +51,7 @@ use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::RECONSTRUCT_FLOW;
 use style::str::char_is_whitespace;
 use style::values::{self, Either, Auto};
-use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
+use style::values::computed::{Length, LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::generics::box_::VerticalAlign;
 use text;
 use text::TextRunScanner;
@@ -1516,11 +1516,11 @@ impl Fragment {
                         let (result_inline, _) = self.calculate_replaced_sizes(None, None);
                         result_inline
                     }
-                    LengthOrPercentageOrAuto::Length(length) => length,
+                    LengthOrPercentageOrAuto::Length(length) => Au::from(length),
                     LengthOrPercentageOrAuto::Calc(calc) => {
                         // TODO(nox): This is probably wrong, because it accounts neither for
                         // clamping (not sure if necessary here) nor percentage.
-                        calc.unclamped_length()
+                        Au::from(calc.unclamped_length())
                     },
                 };
 
@@ -2261,7 +2261,7 @@ impl Fragment {
                     }
                 }
                 VerticalAlign::Length(LengthOrPercentage::Length(length)) => {
-                    offset -= length
+                    offset -= Au::from(length)
                 }
                 VerticalAlign::Length(LengthOrPercentage::Percentage(percentage)) => {
                     offset -= minimum_line_metrics.space_needed().scale_by(percentage.0)
@@ -2336,11 +2336,11 @@ impl Fragment {
                             continue
                         }
                         if inline_context_node.style.logical_margin().inline_end !=
-                                LengthOrPercentageOrAuto::Length(Au(0)) {
+                                LengthOrPercentageOrAuto::Length(Length::new(0.)) {
                             return false
                         }
                         if inline_context_node.style.logical_padding().inline_end !=
-                                LengthOrPercentage::Length(Au(0)) {
+                                LengthOrPercentage::Length(Length::new(0.)) {
                             return false
                         }
                         if inline_context_node.style.logical_border_width().inline_end != Au(0) {
@@ -2357,11 +2357,11 @@ impl Fragment {
                             continue
                         }
                         if inline_context_node.style.logical_margin().inline_start !=
-                                LengthOrPercentageOrAuto::Length(Au(0)) {
+                                LengthOrPercentageOrAuto::Length(Length::new(0.)) {
                             return false
                         }
                         if inline_context_node.style.logical_padding().inline_start !=
-                                LengthOrPercentage::Length(Au(0)) {
+                                LengthOrPercentage::Length(Length::new(0.)) {
                             return false
                         }
                         if inline_context_node.style.logical_border_width().inline_start != Au(0) {
@@ -2574,14 +2574,16 @@ impl Fragment {
 
         // Box shadows cause us to draw outside our border box.
         for box_shadow in &self.style().get_effects().box_shadow.0 {
-            let offset = Vector2D::new(box_shadow.base.horizontal, box_shadow.base.vertical);
-            let inflation = box_shadow.spread + box_shadow.base.blur.0 * BLUR_INFLATION_FACTOR;
+            let offset = Vector2D::new(Au::from(box_shadow.base.horizontal),
+                                       Au::from(box_shadow.base.vertical));
+            let inflation = Au::from(box_shadow.spread) +
+                            Au::from(box_shadow.base.blur) * BLUR_INFLATION_FACTOR;
             overflow.paint = overflow.paint.union(&border_box.translate(&offset)
                                                              .inflate(inflation, inflation))
         }
 
         // Outlines cause us to draw outside our border box.
-        let outline_width = self.style.get_outline().outline_width.0;
+        let outline_width = Au::from(self.style.get_outline().outline_width);
         if outline_width != Au(0) {
             overflow.paint = overflow.paint.union(&border_box.inflate(outline_width,
                                                                       outline_width))
@@ -2880,7 +2882,7 @@ impl Fragment {
             transform_origin.vertical
                 .to_used_value(stacking_relative_border_box.size.height)
                 .to_f32_px();
-        let transform_origin_z = transform_origin.depth.to_f32_px();
+        let transform_origin_z = transform_origin.depth.px();
 
         let pre_transform = Transform3D::create_translation(transform_origin_x,
                                                             transform_origin_y,
@@ -2913,7 +2915,7 @@ impl Fragment {
                                                                      -perspective_origin.y,
                                                                      0.0);
 
-                let perspective_matrix = TransformList::create_perspective_matrix(length);
+                let perspective_matrix = TransformList::create_perspective_matrix(length.px());
 
                 Some(pre_transform.pre_mul(&perspective_matrix).pre_mul(&post_transform))
             }

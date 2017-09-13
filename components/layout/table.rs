@@ -28,7 +28,7 @@ use style::logical_geometry::LogicalSize;
 use style::properties::ComputedValues;
 use style::servo::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW};
 use style::values::CSSFloat;
-use style::values::computed::{LengthOrPercentageOrAuto, NonNegativeAu};
+use style::values::computed::{LengthOrPercentageOrAuto, NonNegativeLength};
 use table_row::{self, CellIntrinsicInlineSize, CollapsedBorder, CollapsedBorderProvenance};
 use table_row::TableRowFlow;
 use table_wrapper::TableLayout;
@@ -191,8 +191,8 @@ impl TableFlow {
             border_collapse::T::separate => style.get_inheritedtable().border_spacing,
             border_collapse::T::collapse => {
                 border_spacing::T {
-                    horizontal: NonNegativeAu::zero(),
-                    vertical: NonNegativeAu::zero(),
+                    horizontal: NonNegativeLength::zero(),
+                    vertical: NonNegativeLength::zero(),
                 }
             }
         }
@@ -203,7 +203,7 @@ impl TableFlow {
         if num_columns == 0 {
             return Au(0);
         }
-        self.spacing().horizontal.0 * (num_columns as i32 + 1)
+        Au::from(self.spacing().horizontal) * (num_columns as i32 + 1)
     }
 }
 
@@ -248,7 +248,7 @@ impl Flow for TableFlow {
                         LengthOrPercentageOrAuto::Auto |
                         LengthOrPercentageOrAuto::Calc(_) |
                         LengthOrPercentageOrAuto::Percentage(_) => Au(0),
-                        LengthOrPercentageOrAuto::Length(length) => length,
+                        LengthOrPercentageOrAuto::Length(length) => Au::from(length),
                     },
                     percentage: match *specified_inline_size {
                         LengthOrPercentageOrAuto::Auto |
@@ -471,7 +471,7 @@ impl Flow for TableFlow {
     fn assign_block_size(&mut self, _: &LayoutContext) {
         debug!("assign_block_size: assigning block_size for table");
         let vertical_spacing = self.spacing().vertical.0;
-        self.block_flow.assign_block_size_for_table_like_flow(vertical_spacing)
+        self.block_flow.assign_block_size_for_table_like_flow(Au::from(vertical_spacing))
     }
 
     fn compute_stacking_relative_position(&mut self, layout_context: &LayoutContext) {

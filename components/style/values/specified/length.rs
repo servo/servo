@@ -15,12 +15,12 @@ use std::{cmp, fmt, mem};
 use std::ascii::AsciiExt;
 use std::ops::{Add, Mul};
 use style_traits::{ToCss, ParseError, StyleParseError};
-use style_traits::values::specified::AllowedLengthType;
+use style_traits::values::specified::AllowedNumericType;
 use stylesheets::CssRuleType;
 use super::{AllowQuirks, Number, ToComputedValue, Percentage};
 use values::{Auto, CSSFloat, Either, FONT_MEDIUM_PX, None_, Normal};
 use values::{ExtremumLength, serialize_dimension};
-use values::computed::{self, Context};
+use values::computed::{self, CSSPixelLength, Context};
 use values::generics::NonNegative;
 use values::specified::NonNegativeNumber;
 use values::specified::calc::CalcNode;
@@ -95,16 +95,30 @@ impl FontBaseSize {
     pub fn resolve(&self, context: &Context) -> Au {
         match *self {
             FontBaseSize::Custom(size) => size,
-            FontBaseSize::CurrentStyle => context.style().get_font().clone_font_size().0,
-            FontBaseSize::InheritedStyle => context.style().get_parent_font().clone_font_size().0,
+            FontBaseSize::CurrentStyle => Au::from(context.style().get_font().clone_font_size()),
+            FontBaseSize::InheritedStyle => Au::from(context.style().get_parent_font().clone_font_size()),
         }
     }
 }
 
 impl FontRelativeLength {
-    /// Computes the font-relative length. We use the base_size
-    /// flag to pass a different size for computing font-size and unconstrained font-size
-    pub fn to_computed_value(&self, context: &Context, base_size: FontBaseSize) -> Au {
+    /// Computes the font-relative length.
+    pub fn to_computed_value(&self, context: &Context, base_size: FontBaseSize) -> CSSPixelLength {
+        use std::f32;
+        let (reference_size, length) = self.reference_font_size_and_length(context, base_size);
+        let pixel = (length * reference_size.to_f32_px()).min(f32::MAX).max(f32::MIN);
+        CSSPixelLength::new(pixel)
+    }
+
+    /// Return reference font size. We use the base_size flag to pass a different size
+    /// for computing font-size and unconstrained font-size.
+    /// This returns a pair, the first one is the reference font size, and the second one is the
+    /// unpacked relative length.
+    fn reference_font_size_and_length(
+        &self,
+        context: &Context,
+        base_size: FontBaseSize,
+    ) -> (Au, CSSFloat) {
         fn query_font_metrics(context: &Context, reference_font_size: Au) -> FontMetricsQueryResult {
             context.font_metrics_provider.query(context.style().get_font(),
                                                 reference_font_size,
@@ -116,22 +130,31 @@ impl FontRelativeLength {
         let reference_font_size = base_size.resolve(context);
 
         match *self {
-            FontRelativeLength::Em(length) => reference_font_size.scale_by(length),
+            FontRelativeLength::Em(length) => {
+                (reference_font_size, length)
+            },
             FontRelativeLength::Ex(length) => {
-                match query_font_metrics(context, reference_font_size) {
-                    FontMetricsQueryResult::Available(metrics) => metrics.x_height.scale_by(length),
+                let reference_size = match query_font_metrics(context, reference_font_size) {
+                    FontMetricsQueryResult::Available(metrics) => {
+                        metrics.x_height
+                    },
                     // https://drafts.csswg.org/css-values/#ex
                     //
                     //     In the cases where it is impossible or impractical to
                     //     determine the x-height, a value of 0.5em must be
                     //     assumed.
                     //
-                    FontMetricsQueryResult::NotAvailable => reference_font_size.scale_by(0.5 * length),
-                }
+                    FontMetricsQueryResult::NotAvailable => {
+                        reference_font_size.scale_by(0.5)
+                    },
+                };
+                (reference_size, length)
             },
             FontRelativeLength::Ch(length) => {
-                match query_font_metrics(context, reference_font_size) {
-                    FontMetricsQueryResult::Available(metrics) => metrics.zero_advance_measure.scale_by(length),
+                let reference_size = match query_font_metrics(context, reference_font_size) {
+                    FontMetricsQueryResult::Available(metrics) => {
+                        metrics.zero_advance_measure
+                    },
                     // https://drafts.csswg.org/css-values/#ch
                     //
                     //     In the cases where it is impossible or impractical to
@@ -144,12 +167,13 @@ impl FontRelativeLength {
                     //
                     FontMetricsQueryResult::NotAvailable => {
                         if context.style().writing_mode.is_vertical() {
-                            reference_font_size.scale_by(length)
+                            reference_font_size
                         } else {
-                            reference_font_size.scale_by(0.5 * length)
+                            reference_font_size.scale_by(0.5)
                         }
                     }
-                }
+                };
+                (reference_size, length)
             }
             FontRelativeLength::Rem(length) => {
                 // https://drafts.csswg.org/css-values/#rem:
@@ -158,11 +182,12 @@ impl FontRelativeLength {
                 //     element, the rem units refer to the property’s initial
                 //     value.
                 //
-                if context.is_root_element {
-                    reference_font_size.scale_by(length)
+                let reference_size = if context.is_root_element {
+                    reference_font_size
                 } else {
-                    context.device().root_font_size().scale_by(length)
-                }
+                    context.device().root_font_size()
+                };
+                (reference_size, length)
             }
         }
     }
@@ -197,7 +222,7 @@ impl ToCss for ViewportPercentageLength {
 
 impl ViewportPercentageLength {
     /// Computes the given viewport-relative length for the given viewport size.
-    pub fn to_computed_value(&self, viewport_size: Size2D<Au>) -> Au {
+    pub fn to_computed_value(&self, viewport_size: Size2D<Au>) -> CSSPixelLength {
         let (factor, length) = match *self {
             ViewportPercentageLength::Vw(length) =>
                 (length, viewport_size.width),
@@ -209,10 +234,11 @@ impl ViewportPercentageLength {
                 (length, cmp::max(viewport_size.width, viewport_size.height)),
         };
 
+        // FIXME: Bug 1396535, we need to fix the extremely small viewport length for transform.
         // See bug 989802. We truncate so that adding multiple viewport units
         // that add up to 100 does not overflow due to rounding differences
         let trunc_scaled = ((length.0 as f64) * factor as f64 / 100.).trunc();
-        Au::from_f64_au(trunc_scaled)
+        Au::from_f64_au(trunc_scaled).into()
     }
 }
 
@@ -223,14 +249,15 @@ pub struct CharacterWidth(pub i32);
 
 impl CharacterWidth {
     /// Computes the given character width.
-    pub fn to_computed_value(&self, reference_font_size: Au) -> Au {
+    pub fn to_computed_value(&self, reference_font_size: Au) -> CSSPixelLength {
         // This applies the *converting a character width to pixels* algorithm as specified
         // in HTML5 § 14.5.4.
         //
         // TODO(pcwalton): Find these from the font.
         let average_advance = reference_font_size.scale_by(0.5);
         let max_advance = reference_font_size;
-        average_advance.scale_by(self.0 as CSSFloat - 1.0) + max_advance
+        let au = average_advance.scale_by(self.0 as CSSFloat - 1.0) + max_advance;
+        au.into()
     }
 }
 
@@ -286,32 +313,14 @@ impl AbsoluteLength {
 }
 
 impl ToComputedValue for AbsoluteLength {
-    type ComputedValue = Au;
+    type ComputedValue = CSSPixelLength;
 
-    fn to_computed_value(&self, _: &Context) -> Au {
-        Au::from(*self)
+    fn to_computed_value(&self, _: &Context) -> Self::ComputedValue {
+        CSSPixelLength::new(self.to_px())
     }
 
-    fn from_computed_value(computed: &Au) -> AbsoluteLength {
-        AbsoluteLength::Px(computed.to_f32_px())
-    }
-}
-
-fn au_from_f32_round(x: f32) -> Au {
-    Au::from_f64_au((x as f64).round())
-}
-
-impl From<AbsoluteLength> for Au {
-    fn from(length: AbsoluteLength) -> Au {
-        match length {
-            AbsoluteLength::Px(value) => au_from_f32_round((value * AU_PER_PX)),
-            AbsoluteLength::In(value) => au_from_f32_round((value * AU_PER_IN)),
-            AbsoluteLength::Cm(value) => au_from_f32_round((value * AU_PER_CM)),
-            AbsoluteLength::Mm(value) => au_from_f32_round((value * AU_PER_MM)),
-            AbsoluteLength::Q(value) => au_from_f32_round((value * AU_PER_Q)),
-            AbsoluteLength::Pt(value) => au_from_f32_round((value * AU_PER_PT)),
-            AbsoluteLength::Pc(value) => au_from_f32_round((value * AU_PER_PC)),
-        }
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        AbsoluteLength::Px(computed.px())
     }
 }
 
@@ -376,18 +385,20 @@ impl PhysicalLength {
     }
 
     /// Computes the given character width.
-    pub fn to_computed_value(&self, context: &Context) -> Au {
+    pub fn to_computed_value(&self, context: &Context) -> CSSPixelLength {
         use gecko_bindings::bindings;
-        // Same as Gecko
-        const MM_PER_INCH: f32 = 25.4;
+        use std::f32;
 
-        let physical_inch = unsafe {
-            bindings::Gecko_GetAppUnitsPerPhysicalInch(context.device().pres_context())
+        // Same as Gecko
+        const INCH_PER_MM: f32 = 1. / 25.4;
+
+        let au_per_physical_inch = unsafe {
+            bindings::Gecko_GetAppUnitsPerPhysicalInch(context.device().pres_context()) as f32
         };
 
-        let inch = self.0 / MM_PER_INCH;
-
-        au_from_f32_round(inch * physical_inch as f32)
+        let px_per_physical_inch = au_per_physical_inch / AU_PER_PX;
+        let pixel = self.0 * px_per_physical_inch * INCH_PER_MM;
+        CSSPixelLength::new(pixel.min(f32::MAX).max(f32::MIN))
     }
 }
 
@@ -631,7 +642,7 @@ impl Length {
     #[inline]
     fn parse_internal<'i, 't>(context: &ParserContext,
                               input: &mut Parser<'i, 't>,
-                              num_context: AllowedLengthType,
+                              num_context: AllowedNumericType,
                               allow_quirks: AllowQuirks)
                               -> Result<Length, ParseError<'i>> {
         // FIXME: remove early returns when lifetimes are non-lexical
@@ -672,7 +683,7 @@ impl Length {
                                              input: &mut Parser<'i, 't>,
                                              allow_quirks: AllowQuirks)
                                              -> Result<Length, ParseError<'i>> {
-        Self::parse_internal(context, input, AllowedLengthType::NonNegative, allow_quirks)
+        Self::parse_internal(context, input, AllowedNumericType::NonNegative, allow_quirks)
     }
 
     /// Get an absolute length from a px value.
@@ -702,7 +713,7 @@ impl Length {
                                 input: &mut Parser<'i, 't>,
                                 allow_quirks: AllowQuirks)
                                 -> Result<Self, ParseError<'i>> {
-        Self::parse_internal(context, input, AllowedLengthType::All, allow_quirks)
+        Self::parse_internal(context, input, AllowedNumericType::All, allow_quirks)
     }
 }
 
@@ -714,7 +725,7 @@ impl<T: Parse> Either<Length, T> {
         if let Ok(v) = input.try(|input| T::parse(context, input)) {
             return Ok(Either::Second(v));
         }
-        Length::parse_internal(context, input, AllowedLengthType::NonNegative, AllowQuirks::No).map(Either::First)
+        Length::parse_internal(context, input, AllowedNumericType::NonNegative, AllowQuirks::No).map(Either::First)
     }
 }
 
@@ -741,7 +752,7 @@ impl<T: Parse> Parse for Either<NonNegativeLength, T> {
         if let Ok(v) = input.try(|input| T::parse(context, input)) {
             return Ok(Either::Second(v));
         }
-        Length::parse_internal(context, input, AllowedLengthType::NonNegative, AllowQuirks::No)
+        Length::parse_internal(context, input, AllowedNumericType::NonNegative, AllowQuirks::No)
             .map(NonNegative::<Length>).map(Either::First)
     }
 }
@@ -825,7 +836,7 @@ impl LengthOrPercentage {
 
     fn parse_internal<'i, 't>(context: &ParserContext,
                               input: &mut Parser<'i, 't>,
-                              num_context: AllowedLengthType,
+                              num_context: AllowedNumericType,
                               allow_quirks: AllowQuirks)
                               -> Result<LengthOrPercentage, ParseError<'i>>
     {
@@ -874,7 +885,7 @@ impl LengthOrPercentage {
                                              input: &mut Parser<'i, 't>,
                                              allow_quirks: AllowQuirks)
                                              -> Result<LengthOrPercentage, ParseError<'i>> {
-        Self::parse_internal(context, input, AllowedLengthType::NonNegative, allow_quirks)
+        Self::parse_internal(context, input, AllowedNumericType::NonNegative, allow_quirks)
     }
 
     /// Parse a length, treating dimensionless numbers as pixels
@@ -935,7 +946,7 @@ impl LengthOrPercentage {
     pub fn parse_quirky<'i, 't>(context: &ParserContext,
                                 input: &mut Parser<'i, 't>,
                                 allow_quirks: AllowQuirks) -> Result<Self, ParseError<'i>> {
-        Self::parse_internal(context, input, AllowedLengthType::All, allow_quirks)
+        Self::parse_internal(context, input, AllowedNumericType::All, allow_quirks)
     }
 }
 
@@ -967,7 +978,7 @@ impl From<computed::Percentage> for LengthOrPercentageOrAuto {
 impl LengthOrPercentageOrAuto {
     fn parse_internal<'i, 't>(context: &ParserContext,
                               input: &mut Parser<'i, 't>,
-                              num_context: AllowedLengthType,
+                              num_context: AllowedNumericType,
                               allow_quirks: AllowQuirks)
                               -> Result<Self, ParseError<'i>> {
         // FIXME: remove early returns when lifetimes are non-lexical
@@ -1019,7 +1030,7 @@ impl LengthOrPercentageOrAuto {
                                              input: &mut Parser<'i, 't>,
                                              allow_quirks: AllowQuirks)
                                              -> Result<Self, ParseError<'i>> {
-        Self::parse_internal(context, input, AllowedLengthType::NonNegative, allow_quirks)
+        Self::parse_internal(context, input, AllowedNumericType::NonNegative, allow_quirks)
     }
 
     /// Returns the `auto` value.
@@ -1052,7 +1063,7 @@ impl LengthOrPercentageOrAuto {
                                 input: &mut Parser<'i, 't>,
                                 allow_quirks: AllowQuirks)
                                 -> Result<Self, ParseError<'i>> {
-        Self::parse_internal(context, input, AllowedLengthType::All, allow_quirks)
+        Self::parse_internal(context, input, AllowedNumericType::All, allow_quirks)
     }
 }
 
@@ -1070,7 +1081,7 @@ pub enum LengthOrPercentageOrNone {
 impl LengthOrPercentageOrNone {
     fn parse_internal<'i, 't>(context: &ParserContext,
                               input: &mut Parser<'i, 't>,
-                              num_context: AllowedLengthType,
+                              num_context: AllowedNumericType,
                               allow_quirks: AllowQuirks)
                               -> Result<LengthOrPercentageOrNone, ParseError<'i>>
     {
@@ -1122,14 +1133,14 @@ impl LengthOrPercentageOrNone {
                                              input: &mut Parser<'i, 't>,
                                              allow_quirks: AllowQuirks)
                                              -> Result<Self, ParseError<'i>> {
-        Self::parse_internal(context, input, AllowedLengthType::NonNegative, allow_quirks)
+        Self::parse_internal(context, input, AllowedNumericType::NonNegative, allow_quirks)
     }
 }
 
 impl Parse for LengthOrPercentageOrNone {
     #[inline]
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        Self::parse_internal(context, input, AllowedLengthType::All, AllowQuirks::No)
+        Self::parse_internal(context, input, AllowedNumericType::All, AllowQuirks::No)
     }
 }
 

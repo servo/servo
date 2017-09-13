@@ -735,7 +735,7 @@ impl MaybeNew for ViewportConstraints {
                     match *$value {
                         ViewportLength::Specified(ref length) => match *length {
                             LengthOrPercentageOrAuto::Length(ref value) =>
-                                Some(value.to_computed_value(&context)),
+                                Some(Au::from(value.to_computed_value(&context))),
                             LengthOrPercentageOrAuto::Percentage(value) =>
                                 Some(initial_viewport.$dimension.scale_by(value.0)),
                             LengthOrPercentageOrAuto::Auto => None,

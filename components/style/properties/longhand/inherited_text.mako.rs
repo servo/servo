@@ -39,7 +39,7 @@ ${helpers.single_keyword("-moz-text-size-adjust", "auto none",
 
 ${helpers.predefined_type("text-indent",
                           "LengthOrPercentage",
-                          "computed::LengthOrPercentage::Length(Au(0))",
+                          "computed::LengthOrPercentage::Length(computed::Length::new(0.))",
                           animation_value_type="ComputedValue",
                           spec="https://drafts.csswg.org/css-text/#propdef-text-indent",
                           allow_quirks=True)}
@@ -741,9 +741,9 @@ ${helpers.predefined_type(
 
 ${helpers.predefined_type("-webkit-text-stroke-width",
                           "BorderSideWidth",
-                          "::values::computed::NonNegativeAu::from_px(0)",
+                          "::values::computed::NonNegativeLength::new(0.)",
                           initial_specified_value="specified::BorderSideWidth::Length(specified::Length::zero())",
-                          computed_type="::values::computed::NonNegativeAu",
+                          computed_type="::values::computed::NonNegativeLength",
                           products="gecko",
                           flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
                           spec="https://compat.spec.whatwg.org/#the-webkit-text-stroke-width",

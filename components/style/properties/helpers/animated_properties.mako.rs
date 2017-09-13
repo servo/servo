@@ -6,7 +6,6 @@
 
 <% from data import to_idl_name, SYSTEM_FONT_LONGHANDS %>
 
-use app_units::Au;
 use cssparser::Parser;
 #[cfg(feature = "gecko")] use gecko_bindings::bindings::RawServoAnimationValueMap;
 #[cfg(feature = "gecko")] use gecko_bindings::structs::RawGeckoGfxMatrix4x4;
@@ -47,8 +46,8 @@ use values::animated::effects::FilterList as AnimatedFilterList;
 use values::animated::effects::TextShadowList as AnimatedTextShadowList;
 use values::computed::{Angle, BorderCornerRadius, CalcLengthOrPercentage};
 use values::computed::{ClipRect, Context, ComputedUrl};
-use values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
-use values::computed::{LengthOrPercentageOrNone, MaxLength, NonNegativeAu};
+use values::computed::{Length, LengthOrPercentage, LengthOrPercentageOrAuto};
+use values::computed::{LengthOrPercentageOrNone, MaxLength, NonNegativeLength};
 use values::computed::{NonNegativeNumber, Number, NumberOrPercentage, Percentage};
 use values::computed::{PositiveIntegerOrAuto, ToComputedValue};
 #[cfg(feature = "gecko")] use values::computed::MozLength;
@@ -813,7 +812,7 @@ impl ToAnimatedZero for LengthOrPercentageOrAuto {
             LengthOrPercentageOrAuto::Length(_) |
             LengthOrPercentageOrAuto::Percentage(_) |
             LengthOrPercentageOrAuto::Calc(_) => {
-                Ok(LengthOrPercentageOrAuto::Length(Au(0)))
+                Ok(LengthOrPercentageOrAuto::Length(Length::new(0.)))
             },
             LengthOrPercentageOrAuto::Auto => Err(()),
         }
@@ -827,7 +826,7 @@ impl ToAnimatedZero for LengthOrPercentageOrNone {
             LengthOrPercentageOrNone::Length(_) |
             LengthOrPercentageOrNone::Percentage(_) |
             LengthOrPercentageOrNone::Calc(_) => {
-                Ok(LengthOrPercentageOrNone::Length(Au(0)))
+                Ok(LengthOrPercentageOrNone::Length(Length::new(0.)))
             },
             LengthOrPercentageOrNone::None => Err(()),
         }
@@ -1094,7 +1093,8 @@ impl<H, V> RepeatableListAnimatable for generic_position::Position<H, V>
 impl Animate for ClipRect {
     #[inline]
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        let animate_component = |this: &Option<Au>, other: &Option<Au>| {
+        use values::computed::Length;
+        let animate_component = |this: &Option<Length>, other: &Option<Length>| {
             match (this.animate(other, procedure)?, procedure) {
                 (None, Procedure::Interpolate { .. }) => Ok(None),
                 (None, _) => Err(()),
@@ -1244,11 +1244,11 @@ impl Animate for TransformOperation {
             ) => {
                 let mut fd_matrix = ComputedMatrix::identity();
                 let mut td_matrix = ComputedMatrix::identity();
-                if fd.0 > 0 {
-                    fd_matrix.m34 = -1. / fd.to_f32_px();
+                if fd.px() > 0. {
+                    fd_matrix.m34 = -1. / fd.px();
                 }
-                if td.0 > 0 {
-                    td_matrix.m34 = -1. / td.to_f32_px();
+                if td.px() > 0. {
+                    td_matrix.m34 = -1. / td.px();
                 }
                 Ok(TransformOperation::Matrix(
                     fd_matrix.animate(&td_matrix, procedure)?,
@@ -2313,9 +2313,9 @@ impl ComputeSquaredDistance for TransformOperation {
                 // convert Au into px.
                 let extract_pixel_length = |lop: &LengthOrPercentage| {
                     match *lop {
-                        LengthOrPercentage::Length(au) => au.to_f64_px(),
+                        LengthOrPercentage::Length(px) => px.px(),
                         LengthOrPercentage::Percentage(_) => 0.,
-                        LengthOrPercentage::Calc(calc) => calc.length().to_f64_px(),
+                        LengthOrPercentage::Calc(calc) => calc.length().px(),
                     }
                 };
 
@@ -2327,7 +2327,7 @@ impl ComputeSquaredDistance for TransformOperation {
                 Ok(
                     fx.compute_squared_distance(&tx)? +
                     fy.compute_squared_distance(&ty)? +
-                    fz.to_f64_px().compute_squared_distance(&tz.to_f64_px())?,
+                    fz.compute_squared_distance(&tz)?,
                 )
             },
             (
@@ -2364,12 +2364,12 @@ impl ComputeSquaredDistance for TransformOperation {
             ) => {
                 let mut fd_matrix = ComputedMatrix::identity();
                 let mut td_matrix = ComputedMatrix::identity();
-                if fd.0 > 0 {
-                    fd_matrix.m34 = -1. / fd.to_f32_px();
+                if fd.px() > 0. {
+                    fd_matrix.m34 = -1. / fd.px();
                 }
 
-                if td.0 > 0 {
-                    td_matrix.m34 = -1. / td.to_f32_px();
+                if td.px() > 0. {
+                    td_matrix.m34 = -1. / td.px();
                 }
                 fd_matrix.compute_squared_distance(&td_matrix)
             }
@@ -2381,8 +2381,8 @@ impl ComputeSquaredDistance for TransformOperation {
                 &TransformOperation::Perspective(ref p),
             ) => {
                 let mut p_matrix = ComputedMatrix::identity();
-                if p.0 > 0 {
-                    p_matrix.m34 = -1. / p.to_f32_px();
+                if p.px() > 0. {
+                    p_matrix.m34 = -1. / p.px();
                 }
                 p_matrix.compute_squared_distance(&m)
             }
@@ -2464,7 +2464,7 @@ impl From<NonNegativeNumber> for NumberOrPercentage {
 impl From<LengthOrPercentage> for NumberOrPercentage {
     fn from(lop: LengthOrPercentage) -> NumberOrPercentage {
         match lop {
-            LengthOrPercentage::Length(len) => NumberOrPercentage::Number(len.to_f32_px()),
+            LengthOrPercentage::Length(len) => NumberOrPercentage::Number(len.px()),
             LengthOrPercentage::Percentage(p) => NumberOrPercentage::Percentage(p),
             LengthOrPercentage::Calc(_) => {
                 panic!("We dont't expected calc interpolation for SvgLengthOrPercentageOrNumber");

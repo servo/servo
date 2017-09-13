@@ -1343,10 +1343,6 @@ extern "C" {
                                             index: i32) -> nsCSSValueBorrowed;
 }
 extern "C" {
-    pub fn Gecko_CSSValue_GetAbsoluteLength(css_value: nsCSSValueBorrowed)
-     -> nscoord;
-}
-extern "C" {
     pub fn Gecko_CSSValue_GetKeyword(aCSSValue: nsCSSValueBorrowed)
      -> nsCSSKeyword;
 }
@@ -1361,10 +1357,6 @@ extern "C" {
      -> nsStyleCoord_CalcValue;
 }
 extern "C" {
-    pub fn Gecko_CSSValue_SetAbsoluteLength(css_value: nsCSSValueBorrowedMut,
-                                            len: nscoord);
-}
-extern "C" {
     pub fn Gecko_CSSValue_SetNumber(css_value: nsCSSValueBorrowedMut,
                                     number: f32);
 }
@@ -1375,6 +1367,10 @@ extern "C" {
 extern "C" {
     pub fn Gecko_CSSValue_SetPercentage(css_value: nsCSSValueBorrowedMut,
                                         percent: f32);
+}
+extern "C" {
+    pub fn Gecko_CSSValue_SetPixelLength(aCSSValue: nsCSSValueBorrowedMut,
+                                         aLen: f32);
 }
 extern "C" {
     pub fn Gecko_CSSValue_SetCalc(css_value: nsCSSValueBorrowedMut,
