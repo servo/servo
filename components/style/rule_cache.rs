@@ -9,6 +9,7 @@ use fnv::FnvHashMap;
 use logical_geometry::WritingMode;
 use properties::{ComputedValues, StyleBuilder};
 use rule_tree::StrongRuleNode;
+use selector_parser::PseudoElement;
 use servo_arc::Arc;
 use smallvec::SmallVec;
 use values::computed::NonNegativeLength;
@@ -93,6 +94,14 @@ impl RuleCache {
             return None;
         }
 
+        // A pseudo-element with property restrictions can result in different
+        // computed values if it's also used for a non-pseudo.
+        if builder_with_early_props.pseudo
+           .and_then(|p| p.property_restriction())
+           .is_some() {
+            return None;
+        }
+
         let rules = match builder_with_early_props.rules {
             Some(ref rules) => rules,
             None => return None,
@@ -115,6 +124,7 @@ impl RuleCache {
     pub fn insert_if_possible(
         &mut self,
         style: &Arc<ComputedValues>,
+        pseudo: Option<&PseudoElement>,
         conditions: &RuleCacheConditions,
     ) -> bool {
         if !conditions.cacheable() {
@@ -123,6 +133,12 @@ impl RuleCache {
 
         if style.is_style_if_visited() {
             // FIXME(emilio): We can probably do better, does it matter much?
+            return false;
+        }
+
+        // A pseudo-element with property restrictions can result in different
+        // computed values if it's also used for a non-pseudo.
+        if pseudo.and_then(|p| p.property_restriction()).is_some() {
             return false;
         }
 

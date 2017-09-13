@@ -574,11 +574,13 @@ where
         }
 
         let implemented_pseudo = self.element.implemented_pseudo_element();
+        let pseudo = pseudo.or(implemented_pseudo.as_ref());
+
         let mut conditions = Default::default();
         let values =
             cascade(
                 self.context.shared.stylist.device(),
-                pseudo.or(implemented_pseudo.as_ref()),
+                pseudo,
                 rules.unwrap_or(self.context.shared.stylist.rule_tree().root()),
                 &self.context.shared.guards,
                 parent_style,
@@ -595,7 +597,7 @@ where
         self.context
             .thread_local
             .rule_cache
-            .insert_if_possible(&values, &conditions);
+            .insert_if_possible(&values, pseudo, &conditions);
 
         values
     }

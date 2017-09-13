@@ -2600,7 +2600,7 @@ pub struct StyleBuilder<'a> {
     custom_properties: Option<Arc<::custom_properties::CustomPropertiesMap>>,
 
     /// The pseudo-element this style will represent.
-    pseudo: Option<<&'a PseudoElement>,
+    pub pseudo: Option<<&'a PseudoElement>,
 
     /// Whether we have mutated any reset structs since the the last time
     /// `clear_modified_reset` was called.  This is used to tell whether the
