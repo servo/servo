@@ -1231,6 +1231,30 @@ impl Animate for TransformOperation {
                 ))
             },
             (
+                &TransformOperation::TranslateX(ref from),
+                &TransformOperation::TranslateX(ref to),
+            ) => {
+                Ok(TransformOperation::TranslateX(
+                    from.animate(to, procedure)?,
+                ))
+            },
+            (
+                &TransformOperation::TranslateY(ref from),
+                &TransformOperation::TranslateY(ref to),
+            ) => {
+                Ok(TransformOperation::TranslateY(
+                    from.animate(to, procedure)?,
+                ))
+            },
+            (
+                &TransformOperation::TranslateZ(ref from),
+                &TransformOperation::TranslateZ(ref to),
+            ) => {
+                Ok(TransformOperation::TranslateZ(
+                    from.animate(to, procedure)?,
+                ))
+            },
+            (
                 &TransformOperation::Scale(ref fx, ref fy, ref fz),
                 &TransformOperation::Scale(ref tx, ref ty, ref tz),
             ) => {
@@ -1239,6 +1263,48 @@ impl Animate for TransformOperation {
                     animate_multiplicative_factor(*fy, *ty, procedure)?,
                     animate_multiplicative_factor(*fz, *tz, procedure)?,
                 ))
+            },
+            (
+                &TransformOperation::ScaleX(ref from),
+                &TransformOperation::ScaleX(ref to),
+            ) => {
+                Ok(TransformOperation::ScaleX(
+                    animate_multiplicative_factor(*from, *to, procedure)?,
+                ))
+            },
+            (
+                &TransformOperation::ScaleY(ref from),
+                &TransformOperation::ScaleY(ref to),
+            ) => {
+                Ok(TransformOperation::ScaleY(
+                    animate_multiplicative_factor(*from, *to, procedure)?,
+                ))
+            },
+            (
+                &TransformOperation::ScaleZ(ref from),
+                &TransformOperation::ScaleZ(ref to),
+            ) => {
+                Ok(TransformOperation::ScaleZ(
+                    animate_multiplicative_factor(*from, *to, procedure)?,
+                ))
+            },
+            (
+                &TransformOperation::RotateX(ref from),
+                &TransformOperation::RotateX(ref to),
+            ) => {
+                Ok(TransformOperation::RotateX(from.animate(to, procedure)?))
+            },
+            (
+                &TransformOperation::RotateY(ref from),
+                &TransformOperation::RotateY(ref to),
+            ) => {
+                Ok(TransformOperation::RotateY(from.animate(to, procedure)?))
+            },
+            (
+                &TransformOperation::RotateZ(ref from),
+                &TransformOperation::RotateZ(ref to),
+            ) => {
+                Ok(TransformOperation::RotateZ(from.animate(to, procedure)?))
             },
             (
                 &TransformOperation::Rotate(fx, fy, fz, fa),

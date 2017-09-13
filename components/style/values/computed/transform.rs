@@ -128,7 +128,7 @@ impl TransformList {
                     Transform3D::create_translation(0., ty, 0.)
                 }
                 ComputedOperation::TranslateZ(tz) => {
-                    Transform3D::create_translation(0., 0., tz.to_f32_px())
+                    Transform3D::create_translation(0., 0., tz.px())
                 }
                 ComputedOperation::Translate(tx, ty, tz) => {
                     let (tx, ty) = match reference_box {
