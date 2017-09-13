@@ -63,6 +63,9 @@ impl DissimilarOriginWindow {
                 global_to_clone_from.resource_threads().clone(),
                 timer_event_chan,
                 global_to_clone_from.origin().clone(),
+                // FIXME(nox): The microtask queue is probably not important
+                // here, but this whole DOM interface is a hack anyway.
+                global_to_clone_from.microtask_queue().clone(),
             ),
             window_proxy: JS::from_ref(window_proxy),
             location: Default::default(),
@@ -70,9 +73,8 @@ impl DissimilarOriginWindow {
         unsafe { DissimilarOriginWindowBinding::Wrap(cx, win) }
     }
 
-    #[allow(dead_code)]
     pub fn origin(&self) -> &MutableOrigin {
-        self.globalscope.origin()
+        self.upcast::<GlobalScope>().origin()
     }
 }
 
