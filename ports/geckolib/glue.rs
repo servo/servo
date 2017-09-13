@@ -1685,7 +1685,7 @@ pub extern "C" fn Servo_ComputedValues_GetForAnonymousBox(parent_style_or_null: 
     let page_decls = match pseudo {
         PseudoElement::PageContent => {
             let mut declarations = vec![];
-            let iter = data.extra_style_data.iter_origins_rev();
+            let iter = data.stylist.iter_extra_data_origins_rev();
             for (data, origin) in iter {
                 let level = match origin {
                     Origin::UserAgent => CascadeLevel::UANormal,
@@ -3610,15 +3610,17 @@ pub extern "C" fn Servo_StyleSet_GetFontFaceRules(raw_data: RawServoStyleSetBorr
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
 
-    let len: u32 = data.extra_style_data
-        .iter_origins()
+    let len: u32 = data
+        .stylist
+        .iter_extra_data_origins()
         .map(|(d, _)| d.font_faces.len() as u32)
         .sum();
 
     // Reversed iterator because Gecko expects rules to appear sorted
     // UserAgent first, Author last.
-    let font_face_iter = data.extra_style_data
-        .iter_origins_rev()
+    let font_face_iter = data
+        .stylist
+        .iter_extra_data_origins_rev()
         .flat_map(|(d, o)| d.font_faces.iter().zip(iter::repeat(o)));
 
     unsafe { rules.set_len(len) };
@@ -3632,12 +3634,11 @@ pub extern "C" fn Servo_StyleSet_GetFontFaceRules(raw_data: RawServoStyleSetBorr
 pub extern "C" fn Servo_StyleSet_GetCounterStyleRule(raw_data: RawServoStyleSetBorrowed,
                                                      name: *mut nsIAtom) -> *mut nsCSSCounterStyleRule {
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
-    let extra_data = &data.extra_style_data;
 
     unsafe {
         Atom::with(name, |name| {
-            extra_data
-                .iter_origins()
+            data.stylist
+                .iter_extra_data_origins()
                 .filter_map(|(d, _)| d.counter_styles.get(name))
                 .next()
         })
@@ -3656,17 +3657,19 @@ pub extern "C" fn Servo_StyleSet_BuildFontFeatureValueSet(
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
 
-    let has_rule = data.extra_style_data
-                  .iter_origins()
-                  .any(|(d, _)| !d.font_feature_values.is_empty());
+    let has_rule =
+        data.stylist
+            .iter_extra_data_origins()
+            .any(|(d, _)| !d.font_feature_values.is_empty());
 
     if !has_rule {
       return ptr::null_mut();
     }
 
-    let font_feature_values_iter = data.extra_style_data
-        .iter_origins_rev()
-        .flat_map(|(d, _)| d.font_feature_values.iter());
+    let font_feature_values_iter =
+        data.stylist
+            .iter_extra_data_origins_rev()
+            .flat_map(|(d, _)| d.font_feature_values.iter());
 
     let set = unsafe { Gecko_ConstructFontFeatureValueSet() };
     for src in font_feature_values_iter {
