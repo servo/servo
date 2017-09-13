@@ -36,6 +36,7 @@ use script_traits::TimerSchedulerMsg;
 use servo_url::ImmutableOrigin;
 use servo_url::MutableOrigin;
 use servo_url::ServoUrl;
+use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::mpsc::Sender;
 
@@ -46,8 +47,9 @@ pub struct WorkletGlobalScope {
     globalscope: GlobalScope,
     /// The base URL for this worklet.
     base_url: ServoUrl,
-    /// The microtask queue for this worklet
-    microtask_queue: MicrotaskQueue,
+    /// https://html.spec.whatwg.org/multipage/#microtask-queue
+    #[ignore_heap_size_of = "Rc<T> is hard"]
+    microtask_queue: Rc<MicrotaskQueue>,
     /// Sender back to the script thread
     #[ignore_heap_size_of = "channels are hard"]
     to_script_thread_sender: Sender<MainThreadScriptMsg>,

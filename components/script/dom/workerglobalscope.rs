@@ -91,7 +91,9 @@ pub struct WorkerGlobalScope {
     /// `IpcSender` doesn't exist
     from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
 
-    microtask_queue: MicrotaskQueue,
+    /// https://html.spec.whatwg.org/multipage/#microtask-queue
+    #[ignore_heap_size_of = "Rc<T> is hard"]
+    microtask_queue: Rc<MicrotaskQueue>,
 
     navigation_start_precise: f64,
     performance: MutNullableJS<Performance>,

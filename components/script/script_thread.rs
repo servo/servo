@@ -515,7 +515,8 @@ pub struct ScriptThread {
 
     content_process_shutdown_chan: IpcSender<()>,
 
-    microtask_queue: MicrotaskQueue,
+    /// https://html.spec.whatwg.org/multipage/#microtask-queue
+    microtask_queue: Rc<MicrotaskQueue>,
 
     /// Microtask Queue for adding support for mutation observer microtasks
     mutation_observer_compound_microtask_queued: Cell<bool>,
@@ -892,7 +893,7 @@ impl ScriptThread {
 
             content_process_shutdown_chan: state.content_process_shutdown_chan,
 
-            microtask_queue: MicrotaskQueue::default(),
+            microtask_queue: Default::default(),
 
             mutation_observer_compound_microtask_queued: Default::default(),
 
