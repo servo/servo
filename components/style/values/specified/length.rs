@@ -140,6 +140,9 @@ impl FontRelativeLength {
                 (reference_font_size, length)
             },
             FontRelativeLength::Ex(length) => {
+                if context.for_non_inherited_property.is_some() {
+                    context.rule_cache_conditions.borrow_mut().set_uncacheable();
+                }
                 let reference_size = match query_font_metrics(context, reference_font_size) {
                     FontMetricsQueryResult::Available(metrics) => {
                         metrics.x_height
@@ -157,6 +160,9 @@ impl FontRelativeLength {
                 (reference_size, length)
             },
             FontRelativeLength::Ch(length) => {
+                if context.for_non_inherited_property.is_some() {
+                    context.rule_cache_conditions.borrow_mut().set_uncacheable();
+                }
                 let reference_size = match query_font_metrics(context, reference_font_size) {
                     FontMetricsQueryResult::Available(metrics) => {
                         metrics.zero_advance_measure
