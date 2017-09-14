@@ -195,14 +195,12 @@ ${helpers.gecko_keyword_conversion(Keyword('border-style',
 
 ${helpers.single_keyword("box-decoration-break", "slice clone",
                          gecko_enum_prefix="StyleBoxDecorationBreak",
-                         gecko_inexhaustive=True,
                          spec="https://drafts.csswg.org/css-break/#propdef-box-decoration-break",
                          products="gecko", animation_value_type="discrete")}
 
 ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
                          gecko_ffi_name="mFloatEdge",
                          gecko_enum_prefix="StyleFloatEdge",
-                         gecko_inexhaustive=True,
                          products="gecko",
                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-float-edge)",
                          animation_value_type="discrete")}

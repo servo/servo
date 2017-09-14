@@ -22,7 +22,6 @@ ${helpers.single_keyword("-moz-user-select", "auto text none all element element
                          alias="-webkit-user-select",
                          gecko_ffi_name="mUserSelect",
                          gecko_enum_prefix="StyleUserSelect",
-                         gecko_inexhaustive=True,
                          gecko_strip_moz_prefix=False,
                          aliases="-moz-none=none",
                          animation_value_type="discrete",
@@ -31,14 +30,12 @@ ${helpers.single_keyword("-moz-user-select", "auto text none all element element
 ${helpers.single_keyword("-moz-window-dragging", "default drag no-drag", products="gecko",
                          gecko_ffi_name="mWindowDragging",
                          gecko_enum_prefix="StyleWindowDragging",
-                         gecko_inexhaustive=True,
                          animation_value_type="discrete",
                          spec="None (Nonstandard Firefox-only property)")}
 
 ${helpers.single_keyword("-moz-window-shadow", "none default menu tooltip sheet", products="gecko",
                          gecko_ffi_name="mWindowShadow",
                          gecko_constant_prefix="NS_STYLE_WINDOW_SHADOW",
-                         gecko_inexhaustive=True,
                          animation_value_type="discrete",
                          internal=True,
                          spec="None (Nonstandard internal property)")}

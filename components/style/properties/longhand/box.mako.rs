@@ -1793,7 +1793,6 @@ ${helpers.single_keyword("-moz-orient",
                           gecko_ffi_name="mOrient",
                           gecko_enum_prefix="StyleOrient",
                           spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-orient)",
-                          gecko_inexhaustive="True",
                           animation_value_type="discrete")}
 
 <%helpers:longhand name="will-change" products="gecko" animation_value_type="discrete"
