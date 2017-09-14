@@ -419,9 +419,9 @@ where
                     layout_parent_style.as_ref().map(|s| &**s)
                 );
 
-        let is_display_contents = primary_style.style.is_display_contents();
+        let is_display_contents = primary_style.style().is_display_contents();
 
-        style = Some(primary_style.style);
+        style = Some(primary_style.0.into());
         if !is_display_contents {
             layout_parent_style = style.clone();
         }
@@ -434,7 +434,7 @@ where
         .resolve_style(
             style.as_ref().map(|s| &**s),
             layout_parent_style.as_ref().map(|s| &**s)
-        )
+        ).into()
 }
 
 /// Calculates the style for a single node.
@@ -646,6 +646,10 @@ where
                                               traversal_data.current_dom_depth);
 
             context.thread_local.bloom_filter.assert_complete(element);
+            debug_assert_eq!(
+                context.thread_local.bloom_filter.matching_depth(),
+                traversal_data.current_dom_depth
+            );
 
             // This is only relevant for animations as of right now.
             important_rules_changed = true;
@@ -655,9 +659,9 @@ where
             // Now that our bloom filter is set up, try the style sharing
             // cache.
             match target.share_style_if_possible(context) {
-                Some(styles) => {
+                Some(shareable_element) => {
                     context.thread_local.statistics.styles_shared += 1;
-                    styles
+                    shareable_element.borrow_data().unwrap().share_styles()
                 }
                 None => {
                     context.thread_local.statistics.elements_matched += 1;
@@ -678,9 +682,9 @@ where
                         .sharing_cache
                         .insert_if_possible(
                             &element,
-                            new_styles.primary(),
-                            &mut target,
-                            context.thread_local.bloom_filter.matching_depth(),
+                            new_styles.primary.style(),
+                            Some(&mut target),
+                            traversal_data.current_dom_depth,
                         );
 
                     new_styles
@@ -709,15 +713,25 @@ where
             let cascade_inputs =
                 ElementCascadeInputs::new_from_element_data(data);
 
-            let mut resolver =
-                StyleResolverForElement::new(
-                    element,
-                    context,
-                    RuleInclusion::All,
-                    PseudoElementResolution::IfApplicable
-                );
+            let new_styles = {
+                let mut resolver =
+                    StyleResolverForElement::new(
+                        element,
+                        context,
+                        RuleInclusion::All,
+                        PseudoElementResolution::IfApplicable
+                    );
 
-            resolver.cascade_styles_with_default_parents(cascade_inputs)
+                resolver.cascade_styles_with_default_parents(cascade_inputs)
+            };
+            context.thread_local.sharing_cache.insert_if_possible(
+                &element,
+                new_styles.primary.style(),
+                None,
+                traversal_data.current_dom_depth,
+            );
+
+            new_styles
         }
     };
 

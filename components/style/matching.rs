@@ -8,7 +8,7 @@
 #![deny(missing_docs)]
 
 use context::{ElementCascadeInputs, SelectorFlagsMap, SharedStyleContext, StyleContext};
-use data::{ElementData, ElementStyles};
+use data::ElementData;
 use dom::TElement;
 use invalidation::element::restyle_hints::{RESTYLE_CSS_ANIMATIONS, RESTYLE_CSS_TRANSITIONS};
 use invalidation::element::restyle_hints::{RESTYLE_SMIL, RESTYLE_STYLE_ATTRIBUTE};
@@ -18,6 +18,7 @@ use rule_tree::{CascadeLevel, StrongRuleNode};
 use selector_parser::{PseudoElement, RestyleDamage};
 use selectors::matching::ElementSelectorFlags;
 use servo_arc::{Arc, ArcBorrow};
+use style_resolver::ResolvedElementStyles;
 use traversal_flags;
 
 /// Represents the result of comparing an element's old and new style.
@@ -156,7 +157,7 @@ trait PrivateMatchMethods: TElement {
             StyleResolverForElement::new(*self, context, RuleInclusion::All, PseudoElementResolution::IfApplicable)
                 .cascade_style_and_visited_with_default_parents(inputs);
 
-        Some(style)
+        Some(style.into())
     }
 
     #[cfg(feature = "gecko")]
@@ -530,26 +531,23 @@ pub trait MatchMethods : TElement {
         &self,
         context: &mut StyleContext<Self>,
         data: &mut ElementData,
-        mut new_styles: ElementStyles,
+        mut new_styles: ResolvedElementStyles,
         important_rules_changed: bool,
     ) -> ChildCascadeRequirement {
         use app_units::Au;
         use dom::TNode;
         use std::cmp;
-        use std::mem;
-
-        debug_assert!(new_styles.primary.is_some(), "How did that happen?");
 
         self.process_animations(
             context,
             &mut data.styles.primary,
-            &mut new_styles.primary.as_mut().unwrap(),
+            &mut new_styles.primary.0.style,
             data.hint,
             important_rules_changed,
         );
 
         // First of all, update the styles.
-        let old_styles = mem::replace(&mut data.styles, new_styles);
+        let old_styles = data.set_styles(new_styles);
 
         // Propagate the "can be fragmented" bit. It would be nice to
         // encapsulate this better.
