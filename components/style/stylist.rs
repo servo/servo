@@ -47,7 +47,6 @@ use stylesheets::{CounterStyleRule, FontFaceRule, FontFeatureValuesRule, PageRul
 use stylesheets::{CssRule, Origin, OriginSet, PerOrigin, PerOriginIter};
 use stylesheets::StyleRule;
 use stylesheets::StylesheetInDocument;
-use stylesheets::UserAgentStylesheets;
 use stylesheets::keyframes_rule::KeyframesAnimation;
 use stylesheets::viewport_rule::{self, MaybeNew, ViewportRule};
 use thread_state;
@@ -95,16 +94,14 @@ impl DocumentCascadeData {
     /// Rebuild the cascade data for the given document stylesheets, and
     /// optionally with a set of user agent stylesheets.  Returns Err(..)
     /// to signify OOM.
-    fn rebuild<'a, 'b, S>(
+    fn rebuild<'a, S>(
         &mut self,
         device: &Device,
         quirks_mode: QuirksMode,
-        flusher: StylesheetFlusher<'a, 'b, S>,
+        flusher: StylesheetFlusher<'a, S>,
         guards: &StylesheetGuards,
-        ua_stylesheets: Option<&UserAgentStylesheets>,
     ) -> Result<(), FailedAllocationError>
     where
-        'b: 'a,
         S: StylesheetInDocument + ToMediaListKey + PartialEq + 'static,
     {
         debug_assert!(!flusher.nothing_to_do());
@@ -128,84 +125,16 @@ impl DocumentCascadeData {
             }
         }
 
-        if let Some(ua_stylesheets) = ua_stylesheets {
-            debug_assert!(cfg!(feature = "servo"));
-
-            for stylesheet in &ua_stylesheets.user_or_user_agent_stylesheets {
-                let sheet_origin =
-                    stylesheet.contents(guards.ua_or_user).origin;
-
-                debug_assert!(matches!(
-                    sheet_origin,
-                    Origin::UserAgent | Origin::User
-                ));
-
-                let validity = flusher.origin_validity(sheet_origin);
-
-                // Servo doesn't support to incrementally mutate UA sheets.
-                debug_assert!(matches!(
-                    validity,
-                    OriginValidity::Valid | OriginValidity::FullyInvalid
-                ));
-
-                if validity == OriginValidity::Valid {
-                    continue;
-                }
-
-                self.per_origin
-                    .borrow_mut_for_origin(&sheet_origin)
-                    .add_stylesheet(
-                        device,
-                        quirks_mode,
-                        stylesheet,
-                        guards.ua_or_user,
-                        SheetRebuildKind::Full,
-                        &mut self.precomputed_pseudo_element_decls,
-                    )?;
-            }
-
-            if quirks_mode != QuirksMode::NoQuirks {
-                let stylesheet = &ua_stylesheets.quirks_mode_stylesheet;
-                let sheet_origin =
-                    stylesheet.contents(guards.ua_or_user).origin;
-
-                debug_assert!(matches!(
-                    sheet_origin,
-                    Origin::UserAgent | Origin::User
-                ));
-
-                let validity = flusher.origin_validity(sheet_origin);
-
-                // Servo doesn't support to incrementally mutate UA sheets.
-                debug_assert!(matches!(
-                    validity,
-                    OriginValidity::Valid | OriginValidity::FullyInvalid
-                ));
-
-                if validity != OriginValidity::Valid {
-                    self.per_origin
-                        .borrow_mut_for_origin(&sheet_origin)
-                        .add_stylesheet(
-                            device,
-                            quirks_mode,
-                            &ua_stylesheets.quirks_mode_stylesheet,
-                            guards.ua_or_user,
-                            SheetRebuildKind::Full,
-                            &mut self.precomputed_pseudo_element_decls,
-                        )?;
-                }
-            }
-        }
-
-        for (stylesheet, rebuild_kind) in flusher {
-            let origin = stylesheet.origin(guards.author);
+        for (stylesheet, origin, rebuild_kind) in flusher {
+            let guard = guards.for_origin(origin);
+            let origin = stylesheet.origin(guard);
             self.per_origin
                 .borrow_mut_for_origin(&origin)
                 .add_stylesheet(
                     device,
                     quirks_mode,
                     stylesheet,
-                    guards.author,
+                    guard,
                     rebuild_kind,
                     &mut self.precomputed_pseudo_element_decls,
                 )?;
@@ -398,7 +327,6 @@ impl Stylist {
     pub fn flush<E>(
         &mut self,
         guards: &StylesheetGuards,
-        ua_sheets: Option<&UserAgentStylesheets>,
         document_element: Option<E>,
     ) -> bool
     where
@@ -427,7 +355,7 @@ impl Stylist {
             let cascaded_rule = ViewportRule {
                 declarations: viewport_rule::Cascade::from_stylesheets(
                     self.stylesheets.iter(),
-                    guards.author,
+                    guards,
                     &self.device,
                 ).finish()
             };
@@ -444,7 +372,7 @@ impl Stylist {
             }
         }
 
-        let flusher = self.stylesheets.flush(document_element, &guards.author);
+        let flusher = self.stylesheets.flush(document_element);
 
         let had_invalidations = flusher.had_invalidations();
 
@@ -453,7 +381,6 @@ impl Stylist {
             self.quirks_mode,
             flusher,
             guards,
-            ua_sheets,
         ).unwrap_or_else(|_| warn!("OOM in Stylist::flush"));
 
         had_invalidations
@@ -1003,7 +930,7 @@ impl Stylist {
     pub fn set_device(
         &mut self,
         mut device: Device,
-        guard: &SharedRwLockReadGuard,
+        guards: &StylesheetGuards,
     ) -> OriginSet {
         if viewport_rule::enabled() {
             let cascaded_rule = {
@@ -1012,7 +939,7 @@ impl Stylist {
                 ViewportRule {
                     declarations: viewport_rule::Cascade::from_stylesheets(
                         stylesheets.clone(),
-                        guard,
+                        guards,
                         &device
                     ).finish(),
                 }
@@ -1027,14 +954,14 @@ impl Stylist {
         }
 
         self.device = device;
-        self.media_features_change_changed_style(guard)
+        self.media_features_change_changed_style(guards)
     }
 
     /// Returns whether, given a media feature change, any previously-applicable
     /// style has become non-applicable, or vice-versa for each origin.
     pub fn media_features_change_changed_style(
         &self,
-        guard: &SharedRwLockReadGuard,
+        guards: &StylesheetGuards,
     ) -> OriginSet {
         use invalidation::media_queries::PotentiallyEffectiveMediaRules;
 
@@ -1043,11 +970,10 @@ impl Stylist {
         let mut origins = OriginSet::empty();
         let stylesheets = self.stylesheets.iter();
 
-        'stylesheets_loop: for stylesheet in stylesheets {
+        'stylesheets_loop: for (stylesheet, origin) in stylesheets {
+            let guard = guards.for_origin(origin);
             let effective_now =
                 stylesheet.is_effective_for_device(&self.device, guard);
-
-            let origin = stylesheet.origin(guard);
 
             if origins.contains(origin.into()) {
                 continue;

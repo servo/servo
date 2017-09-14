@@ -59,14 +59,14 @@ where
 {
     origins: OriginSetIterator,
     collections: &'a PerOrigin<SheetCollection<S>>,
-    current: Option<StylesheetCollectionIterator<'a, S>>,
+    current: Option<(Origin, StylesheetCollectionIterator<'a, S>)>,
 }
 
 impl<'a, S> Iterator for StylesheetIterator<'a, S>
 where
     S: StylesheetInDocument + PartialEq + 'static,
 {
-    type Item = &'a S;
+    type Item = (&'a S, Origin);
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
@@ -77,11 +77,14 @@ where
                 };
 
                 self.current =
-                    Some(self.collections.borrow_for_origin(&next_origin).iter());
+                    Some((next_origin, self.collections.borrow_for_origin(&next_origin).iter()));
             }
 
-            if let Some(s) = self.current.as_mut().unwrap().next() {
-                return Some(s)
+            {
+                let (origin, ref mut iter) = *self.current.as_mut().unwrap();
+                if let Some(s) = iter.next() {
+                    return Some((s, origin))
+                }
             }
 
             self.current = None;
@@ -112,17 +115,15 @@ impl Default for OriginValidity {
 }
 
 /// A struct to iterate over the different stylesheets to be flushed.
-pub struct StylesheetFlusher<'a, 'b, S>
+pub struct StylesheetFlusher<'a, S>
 where
-    'b: 'a,
     S: StylesheetInDocument + PartialEq + 'static,
 {
-    guard: &'a SharedRwLockReadGuard<'b>,
     origins_dirty: OriginSetIterator,
     // NB: Bound to the StylesheetSet lifetime when constructed, see
     // StylesheetSet::flush.
     collections: *mut PerOrigin<SheetCollection<S>>,
-    current: Option<slice::IterMut<'a, StylesheetSetEntry<S>>>,
+    current: Option<(Origin, slice::IterMut<'a, StylesheetSetEntry<S>>)>,
     origin_data_validity: PerOrigin<OriginValidity>,
     author_style_disabled: bool,
     had_invalidations: bool,
@@ -143,9 +144,8 @@ impl SheetRebuildKind {
     }
 }
 
-impl<'a, 'b, S> StylesheetFlusher<'a, 'b, S>
+impl<'a, S> StylesheetFlusher<'a, S>
 where
-    'b: 'a,
     S: StylesheetInDocument + PartialEq + 'static,
 {
     /// The data validity for a given origin.
@@ -166,9 +166,8 @@ where
 }
 
 #[cfg(debug_assertions)]
-impl<'a, 'b, S> Drop for StylesheetFlusher<'a, 'b, S>
+impl<'a, S> Drop for StylesheetFlusher<'a, S>
 where
-    'b: 'a,
     S: StylesheetInDocument + PartialEq + 'static,
 {
     fn drop(&mut self) {
@@ -179,12 +178,11 @@ where
     }
 }
 
-impl<'a, 'b, S> Iterator for StylesheetFlusher<'a, 'b, S>
+impl<'a, S> Iterator for StylesheetFlusher<'a, S>
 where
-    'b: 'a,
     S: StylesheetInDocument + PartialEq + 'static,
 {
-    type Item = (&'a S, SheetRebuildKind);
+    type Item = (&'a S, Origin, SheetRebuildKind);
 
     fn next(&mut self) -> Option<Self::Item> {
         use std::mem;
@@ -205,10 +203,16 @@ where
                 );
 
                 self.current =
-                    Some(unsafe { &mut *self.collections }.borrow_mut_for_origin(&next_origin).entries.iter_mut());
+                    Some((
+                        next_origin,
+                        unsafe { &mut *self.collections }
+                            .borrow_mut_for_origin(&next_origin)
+                            .entries
+                            .iter_mut()
+                    ));
             }
 
-            let potential_sheet = match self.current.as_mut().unwrap().next() {
+            let potential_sheet = match self.current.as_mut().unwrap().1.next() {
                 Some(s) => s,
                 None => {
                     self.current = None;
@@ -216,14 +220,15 @@ where
                 }
             };
 
+            let origin = self.current.as_ref().unwrap().0;
+
             let dirty = mem::replace(&mut potential_sheet.dirty, false);
 
             if dirty {
                 // If the sheet was dirty, we need to do a full rebuild anyway.
-                return Some((&potential_sheet.sheet, SheetRebuildKind::Full))
+                return Some((&potential_sheet.sheet, origin, SheetRebuildKind::Full))
             }
 
-            let origin = potential_sheet.sheet.contents(self.guard).origin;
             if self.author_style_disabled && matches!(origin, Origin::Author) {
                 continue;
             }
@@ -234,7 +239,7 @@ where
                 OriginValidity::FullyInvalid => SheetRebuildKind::Full,
             };
 
-            return Some((&potential_sheet.sheet, rebuild_kind));
+            return Some((&potential_sheet.sheet, origin, rebuild_kind));
         }
     }
 }
@@ -483,11 +488,10 @@ where
 
     /// Flush the current set, unmarking it as dirty, and returns a
     /// `StylesheetFlusher` in order to rebuild the stylist.
-    pub fn flush<'a, 'b, E>(
+    pub fn flush<'a, E>(
         &'a mut self,
         document_element: Option<E>,
-        guard: &'a SharedRwLockReadGuard<'b>,
-    ) -> StylesheetFlusher<'a, 'b, S>
+    ) -> StylesheetFlusher<'a, S>
     where
         E: TElement,
     {
@@ -512,7 +516,6 @@ where
             had_invalidations,
             origins_dirty,
             origin_data_validity,
-            guard,
             current: None,
         }
     }

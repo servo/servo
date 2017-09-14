@@ -13,6 +13,7 @@ use std::cell::UnsafeCell;
 use std::fmt;
 #[cfg(feature = "gecko")]
 use std::ptr;
+use stylesheets::Origin;
 
 /// A shared read/write lock that can protect multiple objects.
 ///
@@ -262,7 +263,7 @@ pub trait DeepCloneWithLock : Sized {
 /// Guards for a document
 #[derive(Clone)]
 pub struct StylesheetGuards<'a> {
-    /// For author-origin stylesheets
+    /// For author-origin stylesheets.
     pub author: &'a SharedRwLockReadGuard<'a>,
 
     /// For user-agent-origin and user-origin stylesheets
@@ -270,6 +271,14 @@ pub struct StylesheetGuards<'a> {
 }
 
 impl<'a> StylesheetGuards<'a> {
+    /// Get the guard for a given stylesheet origin.
+    pub fn for_origin(&self, origin: Origin) -> &SharedRwLockReadGuard<'a> {
+        match origin {
+            Origin::Author => &self.author,
+            _ => &self.ua_or_user,
+        }
+    }
+
     /// Same guard for all origins
     pub fn same(guard: &'a SharedRwLockReadGuard<'a>) -> Self {
         StylesheetGuards {
