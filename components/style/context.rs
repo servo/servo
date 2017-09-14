@@ -8,7 +8,7 @@
 #[cfg(feature = "servo")] use animation::PropertyAnimation;
 use app_units::Au;
 use bloom::StyleBloom;
-use cache::LRUCache;
+use cache::{Entry, LRUCache};
 use data::{EagerPseudoStyles, ElementData};
 use dom::{OpaqueNode, TNode, TElement, SendElement};
 use euclid::ScaleFactor;
@@ -522,6 +522,8 @@ impl<E: TElement> SequentialTask<E> {
     }
 }
 
+type CacheItem<E> = (SendElement<E>, ElementSelectorFlags);
+
 /// Map from Elements to ElementSelectorFlags. Used to defer applying selector
 /// flags until after the traversal.
 pub struct SelectorFlagsMap<E: TElement> {
@@ -529,7 +531,7 @@ pub struct SelectorFlagsMap<E: TElement> {
     map: FnvHashMap<SendElement<E>, ElementSelectorFlags>,
     /// An LRU cache to avoid hashmap lookups, which can be slow if the map
     /// gets big.
-    cache: LRUCache<[(SendElement<E>, ElementSelectorFlags); 4 + 1]>,
+    cache: LRUCache<CacheItem<E>, [Entry<CacheItem<E>>; 4 + 1]>,
 }
 
 #[cfg(debug_assertions)]
@@ -552,8 +554,8 @@ impl<E: TElement> SelectorFlagsMap<E> {
     pub fn insert_flags(&mut self, element: E, flags: ElementSelectorFlags) {
         let el = unsafe { SendElement::new(element) };
         // Check the cache. If the flags have already been noted, we're done.
-        if self.cache.iter().find(|x| x.0 == el)
-               .map_or(ElementSelectorFlags::empty(), |x| x.1)
+        if self.cache.iter().find(|&(_, ref x)| x.0 == el)
+               .map_or(ElementSelectorFlags::empty(), |(_, x)| x.1)
                .contains(flags) {
             return;
         }
