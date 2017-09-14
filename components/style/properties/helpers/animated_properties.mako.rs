@@ -32,6 +32,7 @@ use selectors::parser::SelectorParseError;
 use smallvec::SmallVec;
 use std::borrow::Cow;
 use std::cmp;
+use std::fmt;
 #[cfg(feature = "gecko")] use hash::FnvHashMap;
 use style_traits::ParseError;
 use super::ComputedValues;
@@ -72,7 +73,7 @@ pub trait RepeatableListAnimatable: Animate {}
 /// NOTE: This includes the 'display' property since it is animatable from SMIL even though it is
 /// not animatable from CSS animations or Web Animations. CSS transitions also does not allow
 /// animating 'display', but for CSS transitions we have the separate TransitionProperty type.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum AnimatableLonghand {
@@ -82,6 +83,19 @@ pub enum AnimatableLonghand {
             ${prop.camel_case},
         % endif
     % endfor
+}
+
+impl fmt::Debug for AnimatableLonghand {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        let name = match *self {
+            % for property in data.longhands:
+                % if property.animatable:
+                    AnimatableLonghand::${property.camel_case} => "${property.camel_case}",
+                % endif
+            % endfor
+        };
+        formatter.write_str(name)
+    }
 }
 
 impl AnimatableLonghand {
@@ -204,7 +218,7 @@ pub fn nscsspropertyid_is_animatable(property: nsCSSPropertyID) -> bool {
 // beforehand.
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Debug, Eq, Hash, PartialEq, ToCss, ToComputedValue)]
+#[derive(Clone, Eq, Hash, PartialEq, ToCss, ToComputedValue)]
 pub enum TransitionProperty {
     /// All, any transitionable property changing should generate a transition.
     All,
@@ -217,6 +231,25 @@ pub enum TransitionProperty {
     /// Unrecognized property which could be any non-transitionable, custom property, or
     /// unknown property.
     Unsupported(CustomIdent)
+}
+
+impl fmt::Debug for TransitionProperty {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        let name = match *self {
+            % for property in data.longhands + data.shorthands_except_all():
+                % if property.transitionable:
+                    TransitionProperty::${property.camel_case} => "${property.camel_case}",
+                % endif
+            % endfor
+            TransitionProperty::All => "All",
+            TransitionProperty::Unsupported(ref ident) => {
+                formatter.write_str("Unsupported(")?;
+                ident.fmt(formatter)?;
+                return formatter.write_str(")");
+            }
+        };
+        formatter.write_str(name)
+    }
 }
 
 impl TransitionProperty {
@@ -316,19 +349,20 @@ impl<'a> From< &'a TransitionProperty> for nsCSSPropertyID {
 #[allow(non_upper_case_globals)]
 impl From<nsCSSPropertyID> for TransitionProperty {
     fn from(property: nsCSSPropertyID) -> TransitionProperty {
-        match property {
+        let unsupported = match property {
             % for prop in data.longhands + data.shorthands_except_all():
                 % if prop.transitionable:
                     ${helpers.to_nscsspropertyid(prop.ident)}
-                        => TransitionProperty::${prop.camel_case},
+                        => return TransitionProperty::${prop.camel_case},
                 % else:
                     ${helpers.to_nscsspropertyid(prop.ident)}
-                        => TransitionProperty::Unsupported(CustomIdent(Atom::from("${prop.ident}"))),
+                        => "${prop.ident}",
                 % endif
             % endfor
-            nsCSSPropertyID::eCSSPropertyExtra_all_properties => TransitionProperty::All,
+            nsCSSPropertyID::eCSSPropertyExtra_all_properties => return TransitionProperty::All,
             _ => panic!("Unconvertable nsCSSPropertyID: {:?}", property),
-        }
+        };
+        TransitionProperty::Unsupported(CustomIdent(Atom::from(unsupported)))
     }
 }
 
@@ -483,7 +517,7 @@ unsafe impl HasSimpleFFI for AnimationValueMap {}
 ///
 /// FIXME: We need to add a path for custom properties, but that's trivial after
 /// this (is a similar path to that of PropertyDeclaration).
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum AnimationValue {
     % for prop in data.longhands:
@@ -496,6 +530,19 @@ pub enum AnimationValue {
             % endif
         % endif
     % endfor
+}
+
+impl fmt::Debug for AnimationValue {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        let name = match *self {
+        % for prop in data.longhands:
+            % if prop.animatable:
+                AnimationValue::${prop.camel_case}(..) => "${prop.camel_case}",
+            % endif
+        % endfor
+        };
+        formatter.write_str(name)
+    }
 }
 
 impl AnimationValue {
