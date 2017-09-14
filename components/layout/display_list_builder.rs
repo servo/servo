@@ -2648,6 +2648,9 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
 
         let new_clip_scroll_node_id = ClipId::new(self.fragment.unique_id(IdType::OverflowClip),
                                                   state.pipeline_id.to_webrender());
+        if state.has_clip_scroll_node(new_clip_scroll_node_id) {
+             return;
+        }
         let parent_id = self.clip_and_scroll_info(state.pipeline_id).scroll_node_id;
         state.add_clip_scroll_node(
             ClipScrollNode {
