@@ -110,6 +110,7 @@ impl HTMLMetaElement {
                             quirks_mode: document.quirks_mode(),
                             url_data: RwLock::new(window_from_node(self).get_url()),
                             source_map_url: RwLock::new(None),
+                            source_url: RwLock::new(None),
                         },
                         media: Arc::new(shared_lock.wrap(MediaList::empty())),
                         shared_lock: shared_lock.clone(),
