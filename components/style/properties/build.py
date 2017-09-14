@@ -53,7 +53,7 @@ def render(filename, **context):
         lookup = TemplateLookup(directories=[BASE],
                                 input_encoding="utf8",
                                 strict_undefined=True)
-        template = Template(open(filename, "rb").read(),
+        template = Template(open(filename, "r").read(),
                             filename=filename,
                             input_encoding="utf8",
                             lookup=lookup,
