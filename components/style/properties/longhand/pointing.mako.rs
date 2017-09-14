@@ -155,7 +155,6 @@ ${helpers.single_keyword("pointer-events", "auto none", animation_value_type="di
 ${helpers.single_keyword("-moz-user-input", "auto none enabled disabled",
                          products="gecko", gecko_ffi_name="mUserInput",
                          gecko_enum_prefix="StyleUserInput",
-                         gecko_inexhaustive=True,
                          animation_value_type="discrete",
                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-user-input)")}
 
@@ -163,7 +162,6 @@ ${helpers.single_keyword("-moz-user-modify", "read-only read-write write-only",
                          products="gecko", gecko_ffi_name="mUserModify",
                          gecko_enum_prefix="StyleUserModify",
                          needs_conversion=True,
-                         gecko_inexhaustive=True,
                          animation_value_type="discrete",
                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-user-modify)")}
 
@@ -171,7 +169,6 @@ ${helpers.single_keyword("-moz-user-focus",
                          "none ignore normal select-after select-before select-menu select-same select-all",
                          products="gecko", gecko_ffi_name="mUserFocus",
                          gecko_enum_prefix="StyleUserFocus",
-                         gecko_inexhaustive=True,
                          animation_value_type="discrete",
                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-user-focus)")}
 

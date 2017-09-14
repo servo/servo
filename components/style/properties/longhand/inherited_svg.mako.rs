@@ -45,7 +45,6 @@ ${helpers.predefined_type("fill-opacity", "SVGOpacity", "Default::default()",
 
 ${helpers.single_keyword("fill-rule", "nonzero evenodd",
                          gecko_enum_prefix="StyleFillRule",
-                         gecko_inexhaustive=True,
                          products="gecko", animation_value_type="discrete",
                          spec="https://www.w3.org/TR/SVG11/painting.html#FillRuleProperty")}
 
@@ -110,7 +109,6 @@ ${helpers.predefined_type(
 ${helpers.single_keyword("clip-rule", "nonzero evenodd",
                          products="gecko",
                          gecko_enum_prefix="StyleFillRule",
-                         gecko_inexhaustive=True,
                          animation_value_type="discrete",
                          spec="https://www.w3.org/TR/SVG11/masking.html#ClipRuleProperty")}
 
