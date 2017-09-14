@@ -53,6 +53,7 @@ ${helpers.predefined_type("background-image", "ImageLayer",
                              "round" => Round,
                              "no-repeat" => NoRepeat);
 
+    #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     #[derive(Clone, Debug, PartialEq, ToCss)]
     pub enum SpecifiedValue {
@@ -65,6 +66,7 @@ ${helpers.predefined_type("background-image", "ImageLayer",
         pub use super::RepeatKeyword;
 
         #[derive(Clone, Debug, PartialEq)]
+        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T(pub RepeatKeyword, pub RepeatKeyword);
     }

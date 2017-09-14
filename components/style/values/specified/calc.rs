@@ -64,6 +64,7 @@ pub enum CalcUnit {
 
 /// A struct to hold a simplified `<length>` or `<percentage>` expression.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
 pub struct CalcLengthOrPercentage {

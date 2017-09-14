@@ -50,6 +50,7 @@ pub type GradientKind = GenericGradientKind<
 
 /// A computed gradient line direction.
 #[derive(Clone, Copy, Debug, PartialEq)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum LineDirection {
     /// An angle.

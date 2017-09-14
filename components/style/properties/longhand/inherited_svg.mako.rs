@@ -162,6 +162,7 @@ ${helpers.predefined_type("marker-end", "UrlOrNone", "Either::Second(None_)",
     ///
     /// Higher priority values, i.e. the values specified first,
     /// will be painted first (and may be covered by paintings of lower priority)
+    #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     #[derive(Clone, Copy, Debug, PartialEq, ToComputedValue)]
     pub struct SpecifiedValue(pub u8);

@@ -36,6 +36,7 @@ pub type Filter = GenericFilter<Angle, Factor, NonNegativeLength, Impossible>;
 
 /// A value for the `<factor>` parts in `Filter`.
 #[derive(Clone, Debug, PartialEq, ToCss)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct Factor(NumberOrPercentage);
 

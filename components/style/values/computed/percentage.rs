@@ -9,6 +9,7 @@ use style_traits::ToCss;
 use values::{CSSFloat, serialize_percentage};
 
 /// A computed percentage.
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(Deserialize, HeapSizeOf, Serialize))]
 #[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, Default)]
 #[derive(PartialEq, PartialOrd, ToAnimatedZero)]

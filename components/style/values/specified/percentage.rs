@@ -17,6 +17,7 @@ use values::specified::calc::CalcNode;
 
 /// A percentage value.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct Percentage {
     /// The percentage value as a float.

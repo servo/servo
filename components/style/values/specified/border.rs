@@ -17,6 +17,7 @@ use values::specified::{AllowQuirks, Number, NumberOrPercentage};
 use values::specified::length::{Length, LengthOrPercentage};
 
 /// A specified value for a single side of the `border-width` property.
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, Debug, PartialEq, ToCss)]
 pub enum BorderSideWidth {

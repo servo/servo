@@ -53,6 +53,7 @@ pub fn au_to_int_px(au: f32) -> i32 {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 /// A font relative length.
 pub enum FontRelativeLength {
@@ -194,6 +195,7 @@ impl FontRelativeLength {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 /// A viewport-relative length.
 ///
@@ -244,6 +246,7 @@ impl ViewportPercentageLength {
 
 /// HTML5 "character width", as defined in HTML5 § 14.5.4.
 #[derive(Clone, Copy, Debug, PartialEq)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct CharacterWidth(pub i32);
 
@@ -263,6 +266,7 @@ impl CharacterWidth {
 
 /// Represents an absolute length with its unit
 #[derive(Clone, Copy, Debug, PartialEq)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum AbsoluteLength {
     /// An absolute length in pixels (px)
@@ -376,6 +380,7 @@ impl Add<AbsoluteLength> for AbsoluteLength {
 /// Represents a physical length (mozmm) based on DPI
 #[derive(Clone, Copy, Debug, PartialEq)]
 #[cfg(feature = "gecko")]
+#[derive(MallocSizeOf)]
 pub struct PhysicalLength(pub CSSFloat);
 
 #[cfg(feature = "gecko")]
@@ -423,6 +428,7 @@ impl Mul<CSSFloat> for PhysicalLength {
 ///
 /// https://drafts.csswg.org/css-values/#lengths
 #[derive(Clone, Copy, Debug, PartialEq)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum NoCalcLength {
     /// An absolute length
@@ -568,6 +574,7 @@ impl NoCalcLength {
 /// This is commonly used for the `<length>` values.
 ///
 /// https://drafts.csswg.org/css-values/#lengths
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, Debug, PartialEq, ToCss)]
 pub enum Length {
@@ -782,6 +789,7 @@ pub type NonNegativeLengthOrNumber = Either<NonNegativeLength, NonNegativeNumber
 
 /// A length or a percentage value.
 #[allow(missing_docs)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, Debug, PartialEq, ToCss)]
 pub enum LengthOrPercentage {
@@ -952,6 +960,7 @@ impl LengthOrPercentage {
 
 /// Either a `<length>`, a `<percentage>`, or the `auto` keyword.
 #[allow(missing_docs)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, Debug, PartialEq, ToCss)]
 pub enum LengthOrPercentageOrAuto {
@@ -1068,6 +1077,7 @@ impl LengthOrPercentageOrAuto {
 }
 
 /// Either a `<length>`, a `<percentage>`, or the `none` keyword.
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, Debug, PartialEq, ToCss)]
 #[allow(missing_docs)]
@@ -1216,6 +1226,7 @@ impl LengthOrNumber {
 /// Unlike `max-width` or `max-height` properties, a MozLength can be
 /// `auto`, and cannot be `none`.
 #[allow(missing_docs)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, Debug, PartialEq, ToCss)]
 pub enum MozLength {
@@ -1242,6 +1253,7 @@ impl MozLength {
 
 /// A value suitable for a `max-width` or `max-height` property.
 #[allow(missing_docs)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, Debug, PartialEq, ToCss)]
 pub enum MaxLength {

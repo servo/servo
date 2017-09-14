@@ -342,6 +342,7 @@ impl ToCss for System {
 }
 
 /// https://drafts.csswg.org/css-counter-styles/#typedef-symbol
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[derive(Clone, Debug, Eq, PartialEq, ToComputedValue)]
 pub enum Symbol {
     /// <string>
@@ -489,6 +490,7 @@ impl Parse for Fallback {
 }
 
 /// https://drafts.csswg.org/css-counter-styles/#descdef-counter-style-symbols
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[derive(Clone, Debug, Eq, PartialEq, ToComputedValue)]
 pub struct Symbols(pub Vec<Symbol>);
 

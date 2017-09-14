@@ -71,6 +71,7 @@ ${helpers.single_keyword("image-rendering",
     const TWO_PI: f64 = 2.0 * PI;
 
     #[derive(Clone, Copy, Debug, PartialEq)]
+    #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue {
         pub angle: Option<Angle>,
@@ -102,6 +103,7 @@ ${helpers.single_keyword("image-rendering",
         use values::specified::Angle;
 
         #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub enum Orientation {
             Angle0 = 0,
@@ -134,6 +136,7 @@ ${helpers.single_keyword("image-rendering",
         }
 
         #[derive(Clone, Copy, Debug, PartialEq)]
+        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub enum T {
             FromImage,
@@ -257,6 +260,7 @@ ${helpers.single_keyword("image-rendering",
     use std::fmt;
     use style_traits::ToCss;
 
+    #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
     #[cfg_attr(feature = "servo", derive(Deserialize, HeapSizeOf, Serialize))]
     #[derive(Clone, Copy, Debug, Eq, PartialEq, ToComputedValue)]
     pub struct SpecifiedValue(pub bool);

@@ -15,6 +15,7 @@ use style_traits::ToCss;
 /// An [image].
 ///
 /// [image]: https://drafts.csswg.org/css-images/#image-values
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, PartialEq, ToComputedValue)]
 pub enum Image<Gradient, MozImageRect, ImageUrl> {
@@ -35,6 +36,7 @@ pub enum Image<Gradient, MozImageRect, ImageUrl> {
 
 /// A CSS gradient.
 /// https://drafts.csswg.org/css-images/#gradients
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, Debug, PartialEq, ToComputedValue)]
 pub struct Gradient<LineDirection, Length, LengthOrPercentage, Position, Color, Angle> {
@@ -51,6 +53,7 @@ pub struct Gradient<LineDirection, Length, LengthOrPercentage, Position, Color, 
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, ToComputedValue)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 /// Whether we used the modern notation or the compatibility `-webkit`, `-moz` prefixes.
 pub enum CompatMode {
@@ -63,6 +66,7 @@ pub enum CompatMode {
 }
 
 /// A gradient kind.
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, Copy, Debug, PartialEq, ToComputedValue)]
 pub enum GradientKind<LineDirection, Length, LengthOrPercentage, Position, Angle> {
@@ -74,6 +78,7 @@ pub enum GradientKind<LineDirection, Length, LengthOrPercentage, Position, Angle
 
 /// A radial gradient's ending shape.
 #[derive(Clone, Copy, Debug, PartialEq, ToComputedValue, ToCss)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum EndingShape<Length, LengthOrPercentage> {
     /// A circular gradient.
@@ -84,6 +89,7 @@ pub enum EndingShape<Length, LengthOrPercentage> {
 
 /// A circle shape.
 #[derive(Clone, Copy, Debug, PartialEq, ToComputedValue)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum Circle<Length> {
     /// A circle radius.
@@ -94,6 +100,7 @@ pub enum Circle<Length> {
 
 /// An ellipse shape.
 #[derive(Clone, Copy, Debug, PartialEq, ToComputedValue, ToCss)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum Ellipse<LengthOrPercentage> {
     /// An ellipse pair of radii.
@@ -115,6 +122,7 @@ add_impls_for_keyword_enum!(ShapeExtent);
 
 /// A gradient item.
 /// https://drafts.csswg.org/css-images-4/#color-stop-syntax
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, Copy, Debug, PartialEq, ToComputedValue, ToCss)]
 pub enum GradientItem<Color, LengthOrPercentage> {
@@ -127,6 +135,7 @@ pub enum GradientItem<Color, LengthOrPercentage> {
 /// A color stop.
 /// https://drafts.csswg.org/css-images/#typedef-color-stop-list
 #[derive(Clone, Copy, PartialEq, ToComputedValue, ToCss)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct ColorStop<Color, LengthOrPercentage> {
     /// The color of this stop.
@@ -165,6 +174,7 @@ impl ToCss for PaintWorklet {
 ///
 /// `-moz-image-rect(<uri>, top, right, bottom, left);`
 #[allow(missing_docs)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[css(comma, function)]
 #[derive(Clone, Debug, PartialEq, ToComputedValue, ToCss)]

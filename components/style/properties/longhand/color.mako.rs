@@ -67,6 +67,10 @@ pub mod system_colors {
 
     pub type SystemColor = LookAndFeel_ColorID;
 
+    // It's hard to implement MallocSizeOf for LookAndFeel_ColorID because it
+    // is a bindgen type. So we implement it on the typedef instead.
+    size_of_is_0!(SystemColor);
+
     impl ToCss for SystemColor {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             let s = match *self {

@@ -15,19 +15,22 @@ use std::fmt;
 use style_traits::{ToCss, ParseError};
 
 /// A specified url() value for gecko. Gecko does not eagerly resolve SpecifiedUrls.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
 pub struct SpecifiedUrl {
     /// The URL in unresolved string form.
     ///
     /// Refcounted since cloning this should be cheap and data: uris can be
     /// really large.
+    #[ignore_malloc_size_of = "XXX: do this once bug 1397971 lands"]
     serialization: Arc<String>,
 
     /// The URL extra data.
+    #[ignore_malloc_size_of = "RefPtr is tricky, and there aren't many of these in practise"]
     pub extra_data: RefPtr<URLExtraData>,
 
     /// Cache ImageValue, if any, so that we can reuse it while rematching a
     /// a property with this specified url value.
+    #[ignore_malloc_size_of = "XXX: do this once bug 1397971 lands"]
     pub image_value: Option<RefPtr<ImageValue>>,
 }
 trivial_to_computed_value!(SpecifiedUrl);

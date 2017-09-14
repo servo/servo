@@ -117,6 +117,7 @@
             use values::computed::ComputedVecIter;
 
             /// The computed value, effectively a list of single values.
+            #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
             #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
             #[derive(Clone, Debug, PartialEq)]
             % if need_animatable or animation_value_type == "ComputedValue":
@@ -178,6 +179,7 @@
 
         /// The specified value of ${name}.
         #[derive(Clone, Debug, PartialEq)]
+        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct SpecifiedValue(pub Vec<single_value::SpecifiedValue>);
 
@@ -443,6 +445,7 @@
             ${gecko_keyword_conversion(keyword, keyword.values_for(product), type="T", cast_to="i32")}
         }
 
+        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
         #[derive(Clone, Copy, Debug, Eq, PartialEq, ToCss)]
         pub enum SpecifiedValue {
             Keyword(computed_value::T),
@@ -941,6 +944,7 @@
             pub type T = ::values::computed::${length_type};
         }
 
+        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         #[derive(Clone, Debug, PartialEq, ToCss)]
         pub struct SpecifiedValue(pub ${length_type});

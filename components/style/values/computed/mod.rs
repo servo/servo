@@ -383,6 +383,7 @@ impl From<GreaterThanOrEqualToOneNumber> for CSSFloat {
 }
 
 #[allow(missing_docs)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, ComputeSquaredDistance, Copy, Debug, PartialEq, ToCss)]
 pub enum NumberOrPercentage {

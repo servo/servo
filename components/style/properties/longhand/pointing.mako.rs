@@ -21,6 +21,7 @@
         #[cfg(feature = "gecko")]
         use values::specified::url::SpecifiedUrl;
 
+        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         #[derive(Clone, Copy, Debug, PartialEq, ToComputedValue, ToCss)]
         pub enum Keyword {
@@ -32,14 +33,14 @@
         pub type T = Keyword;
 
         #[cfg(feature = "gecko")]
-        #[derive(Clone, Debug, PartialEq, ToComputedValue)]
+        #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue)]
         pub struct Image {
             pub url: SpecifiedUrl,
             pub hotspot: Option<(f32, f32)>,
         }
 
         #[cfg(feature = "gecko")]
-        #[derive(Clone, Debug, PartialEq, ToComputedValue)]
+        #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue)]
         pub struct T {
             pub images: Vec<Image>,
             pub keyword: Keyword,

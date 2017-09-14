@@ -18,7 +18,7 @@ macro_rules! ns {
 }
 
 /// A Gecko namespace is just a wrapped atom.
-#[derive(Clone, Debug, Default, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, Hash, MallocSizeOf, PartialEq)]
 pub struct Namespace(pub Atom);
 
 impl PrecomputedHash for Namespace {

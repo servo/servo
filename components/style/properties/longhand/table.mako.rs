@@ -20,6 +20,7 @@ ${helpers.single_keyword("table-layout", "auto fixed",
         use style_traits::ToCss;
 
         #[derive(Clone, Copy, Debug, PartialEq, ToComputedValue)]
+        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T(pub i32);
 

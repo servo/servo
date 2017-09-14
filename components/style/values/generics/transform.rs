@@ -10,6 +10,7 @@ use values::CSSFloat;
 
 /// A generic 2D transformation matrix.
 #[allow(missing_docs)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, Copy, Debug, PartialEq, ToComputedValue, ToCss)]
 #[css(comma, function)]
@@ -23,6 +24,7 @@ pub struct Matrix<T, U = T> {
 }
 
 /// A generic transform origin.
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug)]
 #[derive(PartialEq, ToAnimatedZero, ToComputedValue, ToCss)]
@@ -38,6 +40,7 @@ pub struct TransformOrigin<H, V, Depth> {
 /// A generic timing function.
 ///
 /// https://drafts.csswg.org/css-timing-1/#single-timing-function-production
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum TimingFunction<Integer, Number> {

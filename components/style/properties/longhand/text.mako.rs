@@ -19,6 +19,7 @@
     use style_traits::ToCss;
 
 
+    #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     #[derive(Clone, Debug, Eq, PartialEq, ToCss)]
     pub enum Side {
@@ -27,6 +28,7 @@
         String(Box<str>),
     }
 
+    #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     #[derive(Clone, Debug, Eq, PartialEq, ToCss)]
     pub struct SpecifiedValue {
@@ -38,6 +40,7 @@
         pub use super::Side;
 
         #[derive(Clone, Debug, PartialEq)]
+        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T {
             // When the specified value only has one side, that's the "second"
@@ -148,6 +151,7 @@ ${helpers.single_keyword("unicode-bidi",
     use style_traits::ToCss;
 
     bitflags! {
+        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         #[derive(ToComputedValue)]
         pub flags SpecifiedValue: u8 {

@@ -66,6 +66,7 @@ impl ToComputedValue for specified::Length {
 }
 
 #[allow(missing_docs)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, Copy, Debug, PartialEq, ToAnimatedZero)]
 pub struct CalcLengthOrPercentage {
@@ -293,6 +294,7 @@ impl ToComputedValue for specified::CalcLengthOrPercentage {
 
 #[allow(missing_docs)]
 #[animate(fallback = "Self::animate_fallback")]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[css(derive_debug)]
 #[derive(Animate, Clone, ComputeSquaredDistance, Copy, PartialEq)]
@@ -450,6 +452,7 @@ impl ToComputedValue for specified::LengthOrPercentage {
 
 #[allow(missing_docs)]
 #[animate(fallback = "Self::animate_fallback")]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[css(derive_debug)]
 #[derive(Animate, Clone, ComputeSquaredDistance, Copy, PartialEq, ToCss)]
@@ -681,6 +684,7 @@ impl NonNegativeLengthOrPercentage {
 }
 
 /// The computed `<length>` value.
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(Deserialize, HeapSizeOf, Serialize))]
 #[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, PartialEq, PartialOrd)]
 #[derive(ToAnimatedValue, ToAnimatedZero)]
