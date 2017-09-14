@@ -30,7 +30,7 @@
 use app_units::{Au, MAX_AU};
 use context::LayoutContext;
 use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode};
-use display_list_builder::{DisplayListBuildState, EstablishContainingBlock};
+use display_list_builder::{DisplayListBuildState, StackingContextCollectionFlags};
 use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
 use floats::{ClearType, FloatKind, Floats, PlacementInfo};
 use flow::{self, BaseFlow, EarlyAbsolutePositionInfo, Flow, FlowClass, ForceNonfloatedFlag};
@@ -2151,7 +2151,7 @@ impl Flow for BlockFlow {
     }
 
     fn collect_stacking_contexts(&mut self, state: &mut DisplayListBuildState) {
-        self.collect_stacking_contexts_for_block(state, EstablishContainingBlock::Yes);
+        self.collect_stacking_contexts_for_block(state, StackingContextCollectionFlags::empty());
     }
 
     fn build_display_list(&mut self, state: &mut DisplayListBuildState) {
