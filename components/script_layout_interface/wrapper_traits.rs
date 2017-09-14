@@ -275,12 +275,12 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Debug + GetLayoutData + NodeInfo 
     fn svg_data(&self) -> Option<SVGSVGData>;
 
     /// If this node is an iframe element, returns its browsing context ID. If this node is
-    /// not an iframe element, fails.
-    fn iframe_browsing_context_id(&self) -> BrowsingContextId;
+    /// not an iframe element, fails. Returns None if there is no nested browsing context.
+    fn iframe_browsing_context_id(&self) -> Option<BrowsingContextId>;
 
     /// If this node is an iframe element, returns its pipeline ID. If this node is
-    /// not an iframe element, fails.
-    fn iframe_pipeline_id(&self) -> PipelineId;
+    /// not an iframe element, fails. Returns None if there is no nested browsing context.
+    fn iframe_pipeline_id(&self) -> Option<PipelineId>;
 
     fn get_colspan(&self) -> u32;
 

@@ -2022,6 +2022,15 @@ impl FragmentDisplayListBuilding for Fragment {
             }
             SpecificFragmentInfo::Iframe(ref fragment_info) => {
                 if !stacking_relative_content_box.is_empty() {
+                    let browsing_context_id = match fragment_info.browsing_context_id {
+                        Some(browsing_context_id) => browsing_context_id,
+                        None => return warn!("No browsing context id for iframe."),
+                    };
+                    let pipeline_id = match fragment_info.pipeline_id {
+                        Some(pipeline_id) => pipeline_id,
+                        None => return warn!("No pipeline id for iframe {}.", browsing_context_id),
+                    };
+
                     let base = state.create_base_display_item(
                         &stacking_relative_content_box,
                         build_local_clip(&self.style),
@@ -2030,12 +2039,12 @@ impl FragmentDisplayListBuilding for Fragment {
                         DisplayListSection::Content);
                     let item = DisplayItem::Iframe(box IframeDisplayItem {
                         base: base,
-                        iframe: fragment_info.pipeline_id,
+                        iframe: pipeline_id,
                     });
 
                     let size = Size2D::new(item.bounds().size.width.to_f32_px(),
                                            item.bounds().size.height.to_f32_px());
-                    state.iframe_sizes.push((fragment_info.browsing_context_id,
+                    state.iframe_sizes.push((browsing_context_id,
                                              TypedSize2D::from_untyped(&size)));
 
                     state.add_display_item(item);

@@ -488,10 +488,10 @@ impl ImageFragmentInfo {
 /// size of this iframe can be communicated via the constellation to the iframe's own layout thread.
 #[derive(Clone)]
 pub struct IframeFragmentInfo {
-    /// The frame ID of this iframe.
-    pub browsing_context_id: BrowsingContextId,
-    /// The pipelineID of this iframe.
-    pub pipeline_id: PipelineId,
+    /// The frame ID of this iframe. None if there is no nested browsing context.
+    pub browsing_context_id: Option<BrowsingContextId>,
+    /// The pipelineID of this iframe. None if there is no nested browsing context.
+    pub pipeline_id: Option<PipelineId>,
 }
 
 impl IframeFragmentInfo {
