@@ -29,7 +29,7 @@ use js::rust::Runtime;
 use msg::constellation_msg::TopLevelBrowsingContextId;
 use net_traits::{IpcSend, load_whole_resource};
 use net_traits::request::{CredentialsMode, Destination, RequestInit, Type as RequestType};
-use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, StackRootTLS, get_reports, new_rt_and_cx};
+use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, StackRootTLS, new_rt_and_cx};
 use script_runtime::ScriptThreadEventCategory::WorkerEvent;
 use script_traits::{TimerEvent, TimerSource, WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
 use servo_rand::random;
@@ -269,10 +269,6 @@ impl DedicatedWorkerGlobalScope {
         (chan, box rx)
     }
 
-    pub fn process_event(&self, msg: CommonScriptMsg) {
-        self.handle_script_event(WorkerScriptMsg::Common(msg));
-    }
-
     #[allow(unsafe_code)]
     fn receive_event(&self) -> Result<MixedMessage, RecvError> {
         let scope = self.upcast::<WorkerGlobalScope>();
@@ -314,16 +310,9 @@ impl DedicatedWorkerGlobalScope {
                 data.read(scope.upcast(), message.handle_mut());
                 MessageEvent::dispatch_jsval(target, scope.upcast(), message.handle());
             },
-            WorkerScriptMsg::Common(CommonScriptMsg::RunnableMsg(_, runnable)) => {
-                runnable.handler()
+            WorkerScriptMsg::Common(msg) => {
+                self.upcast::<WorkerGlobalScope>().process_event(msg);
             },
-            WorkerScriptMsg::Common(CommonScriptMsg::CollectReports(reports_chan)) => {
-                let scope = self.upcast::<WorkerGlobalScope>();
-                let cx = scope.get_cx();
-                let path_seg = format!("url({})", scope.get_url());
-                let reports = get_reports(cx, path_seg);
-                reports_chan.send(reports);
-            }
         }
     }
 

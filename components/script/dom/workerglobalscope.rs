@@ -32,7 +32,7 @@ use js::panic::maybe_resume_unwind;
 use js::rust::Runtime;
 use net_traits::{IpcSend, load_whole_resource};
 use net_traits::request::{CredentialsMode, Destination, RequestInit as NetRequestInit, Type as RequestType};
-use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
+use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, get_reports};
 use script_thread::RunnableWrapper;
 use script_traits::{TimerEvent, TimerEventId};
 use script_traits::WorkerGlobalScopeInit;
@@ -386,17 +386,19 @@ impl WorkerGlobalScope {
     }
 
     pub fn process_event(&self, msg: CommonScriptMsg) {
-        let dedicated = self.downcast::<DedicatedWorkerGlobalScope>();
-        let service_worker = self.downcast::<ServiceWorkerGlobalScope>();
-        if let Some(dedicated) = dedicated {
-            return dedicated.process_event(msg);
-        } else if let Some(service_worker) = service_worker {
-            return service_worker.process_event(msg);
-        } else {
-            panic!("need to implement a sender for SharedWorker")
+        match msg {
+            CommonScriptMsg::RunnableMsg(_, runnable) => {
+                runnable.handler()
+            },
+            CommonScriptMsg::CollectReports(reports_chan) => {
+                let cx = self.get_cx();
+                let path_seg = format!("url({})", self.get_url());
+                let reports = get_reports(cx, path_seg);
+                reports_chan.send(reports);
+            },
         }
 
-        //XXXjdm should we do a microtask checkpoint here?
+        // FIXME(jdm): Should we do a microtask checkpoint here?
     }
 
     pub fn handle_fire_timer(&self, timer_id: TimerEventId) {

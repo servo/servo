@@ -25,7 +25,7 @@ use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use net_traits::{load_whole_resource, IpcSend, CustomResponseMediator};
 use net_traits::request::{CredentialsMode, Destination, RequestInit, Type as RequestType};
-use script_runtime::{CommonScriptMsg, StackRootTLS, get_reports, new_rt_and_cx, ScriptChan};
+use script_runtime::{CommonScriptMsg, ScriptChan, StackRootTLS, new_rt_and_cx};
 use script_traits::{TimerEvent, WorkerGlobalScopeInit, ScopeThings, ServiceWorkerMsg, WorkerScriptLoadOrigin};
 use servo_config::prefs::PREFS;
 use servo_rand::random;
@@ -262,15 +262,8 @@ impl ServiceWorkerGlobalScope {
                 data.read(scope.upcast(), message.handle_mut());
                 ExtendableMessageEvent::dispatch_jsval(target, scope.upcast(), message.handle());
             },
-            CommonWorker(WorkerScriptMsg::Common(CommonScriptMsg::RunnableMsg(_, runnable))) => {
-                runnable.handler()
-            },
-            CommonWorker(WorkerScriptMsg::Common(CommonScriptMsg::CollectReports(reports_chan))) => {
-                let scope = self.upcast::<WorkerGlobalScope>();
-                let cx = scope.get_cx();
-                let path_seg = format!("url({})", scope.get_url());
-                let reports = get_reports(cx, path_seg);
-                reports_chan.send(reports);
+            CommonWorker(WorkerScriptMsg::Common(msg)) => {
+                self.upcast::<WorkerGlobalScope>().process_event(msg);
             },
             Response(mediator) => {
                 // TODO XXXcreativcoder This will eventually use a FetchEvent interface to fire event
@@ -311,10 +304,6 @@ impl ServiceWorkerGlobalScope {
         } else {
             panic!("unexpected select result!")
         }
-    }
-
-    pub fn process_event(&self, msg: CommonScriptMsg) {
-        self.handle_script_event(ServiceWorkerScriptMsg::CommonWorker(WorkerScriptMsg::Common(msg)));
     }
 
     pub fn script_chan(&self) -> Box<ScriptChan + Send> {
