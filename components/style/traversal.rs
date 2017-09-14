@@ -678,14 +678,14 @@ where
                         resolver.resolve_style_with_default_parents()
                     };
 
-                    context.thread_local
-                        .sharing_cache
-                        .insert_if_possible(
+                    if !new_styles.primary.0.reused_via_rule_node {
+                        context.thread_local.sharing_cache.insert_if_possible(
                             &element,
                             new_styles.primary.style(),
                             Some(&mut target),
                             traversal_data.current_dom_depth,
                         );
+                    }
 
                     new_styles
                 }
@@ -724,12 +724,15 @@ where
 
                 resolver.cascade_styles_with_default_parents(cascade_inputs)
             };
-            context.thread_local.sharing_cache.insert_if_possible(
-                &element,
-                new_styles.primary.style(),
-                None,
-                traversal_data.current_dom_depth,
-            );
+
+            if !new_styles.primary.0.reused_via_rule_node {
+                context.thread_local.sharing_cache.insert_if_possible(
+                    &element,
+                    new_styles.primary.style(),
+                    None,
+                    traversal_data.current_dom_depth,
+                );
+            }
 
             new_styles
         }
