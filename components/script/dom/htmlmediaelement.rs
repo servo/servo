@@ -9,7 +9,6 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::HTMLMediaElementBinding::CanPlayTypeResult;
 use dom::bindings::codegen::Bindings::HTMLMediaElementBinding::HTMLMediaElementConstants;
-use dom::bindings::codegen::Bindings::HTMLMediaElementBinding::HTMLMediaElementConstants::*;
 use dom::bindings::codegen::Bindings::HTMLMediaElementBinding::HTMLMediaElementMethods;
 use dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorConstants::*;
 use dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorMethods;
@@ -51,7 +50,7 @@ pub struct HTMLMediaElement {
     network_state: Cell<NetworkState>,
     /// https://html.spec.whatwg.org/multipage/#dom-media-readystate
     // FIXME(nox): Use an enum.
-    ready_state: Cell<u16>,
+    ready_state: Cell<ReadyState>,
     /// https://html.spec.whatwg.org/multipage/#dom-media-currentsrc
     current_src: DOMRefCell<String>,
     // FIXME(nox): Document this one, I have no idea what it is used for.
@@ -81,6 +80,17 @@ enum NetworkState {
     NoSource = HTMLMediaElementConstants::NETWORK_NO_SOURCE as u8,
 }
 
+/// https://html.spec.whatwg.org/multipage/#dom-media-readystate
+#[derive(Clone, Copy, HeapSizeOf, JSTraceable, PartialEq, PartialOrd)]
+#[repr(u8)]
+enum ReadyState {
+    HaveNothing = HTMLMediaElementConstants::HAVE_NOTHING as u8,
+    HaveMetadata = HTMLMediaElementConstants::HAVE_METADATA as u8,
+    HaveCurrentData = HTMLMediaElementConstants::HAVE_CURRENT_DATA as u8,
+    HaveFutureData = HTMLMediaElementConstants::HAVE_FUTURE_DATA as u8,
+    HaveEnoughData = HTMLMediaElementConstants::HAVE_ENOUGH_DATA as u8,
+}
+
 #[derive(HeapSizeOf, JSTraceable)]
 pub struct VideoMedia {
     format: String,
@@ -101,7 +111,7 @@ impl HTMLMediaElement {
         Self {
             htmlelement: HTMLElement::new_inherited(tag_name, prefix, document),
             network_state: Cell::new(NetworkState::Empty),
-            ready_state: Cell::new(HAVE_NOTHING),
+            ready_state: Cell::new(ReadyState::HaveNothing),
             current_src: DOMRefCell::new("".to_owned()),
             generation_id: Cell::new(0),
             fired_loadeddata_event: Cell::new(false),
@@ -184,7 +194,7 @@ impl HTMLMediaElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#ready-states
-    fn change_ready_state(&self, ready_state: u16) {
+    fn change_ready_state(&self, ready_state: ReadyState) {
         let old_ready_state = self.ready_state.get();
         self.ready_state.set(ready_state);
 
@@ -197,9 +207,9 @@ impl HTMLMediaElement {
 
         // Step 1
         match (old_ready_state, ready_state) {
-            // previous ready state was HAVE_NOTHING, and the new ready state is
-            // HAVE_METADATA
-            (HAVE_NOTHING, HAVE_METADATA) => {
+            // Previous ready state was ReadyState::HaveNothing,
+            // and the new ready state is ReadyState::HaveMetadata.
+            (ReadyState::HaveNothing, ReadyState::HaveMetadata) => {
                 task_source.queue_simple_event(
                     self.upcast(),
                     atom!("loadedmetadata"),
@@ -207,11 +217,11 @@ impl HTMLMediaElement {
                 );
             }
 
-            // previous ready state was HAVE_METADATA and the new ready state is
-            // HAVE_CURRENT_DATA or greater
-            (HAVE_METADATA, HAVE_CURRENT_DATA) |
-            (HAVE_METADATA, HAVE_FUTURE_DATA) |
-            (HAVE_METADATA, HAVE_ENOUGH_DATA) => {
+            // Previous ready state was ReadyState::HaveMetadata, and the new
+            // ready state is ReadyState::HaveCurrentData or greater.
+            (ReadyState::HaveMetadata, ReadyState::HaveCurrentData) |
+            (ReadyState::HaveMetadata, ReadyState::HaveFutureData) |
+            (ReadyState::HaveMetadata, ReadyState::HaveEnoughData) => {
                 if !self.fired_loadeddata_event.get() {
                     self.fired_loadeddata_event.set(true);
                     task_source.queue_simple_event(
@@ -222,29 +232,29 @@ impl HTMLMediaElement {
                 }
             }
 
-            // previous ready state was HAVE_FUTURE_DATA or more, and the new ready
-            // state is HAVE_CURRENT_DATA or less
-            (HAVE_FUTURE_DATA, HAVE_CURRENT_DATA) |
-            (HAVE_ENOUGH_DATA, HAVE_CURRENT_DATA) |
-            (HAVE_FUTURE_DATA, HAVE_METADATA) |
-            (HAVE_ENOUGH_DATA, HAVE_METADATA) |
-            (HAVE_FUTURE_DATA, HAVE_NOTHING) |
-            (HAVE_ENOUGH_DATA, HAVE_NOTHING) => {
+            // previous ready state was ReadyState::HaveFutureData or more,
+            // and the new ready state is ReadyState::HaveCurrentData or less.
+            (ReadyState::HaveFutureData, ReadyState::HaveCurrentData) |
+            (ReadyState::HaveEnoughData, ReadyState::HaveCurrentData) |
+            (ReadyState::HaveFutureData, ReadyState::HaveMetadata) |
+            (ReadyState::HaveEnoughData, ReadyState::HaveMetadata) |
+            (ReadyState::HaveFutureData, ReadyState::HaveNothing) |
+            (ReadyState::HaveEnoughData, ReadyState::HaveNothing) => {
                 // TODO: timeupdate event logic + waiting
             }
 
             _ => (),
         }
 
-        // Step 1
-        // If the new ready state is HAVE_FUTURE_DATA or HAVE_ENOUGH_DATA,
+        // Step 1.
+        // If the new ready state is ReadyState::HaveFutureData or ReadyState::HaveEnoughData,
         // then the relevant steps below must then be run also.
         match (old_ready_state, ready_state) {
-            // previous ready state was HAVE_CURRENT_DATA or less, and the new ready
-            // state is HAVE_FUTURE_DATA
-            (HAVE_CURRENT_DATA, HAVE_FUTURE_DATA) |
-            (HAVE_METADATA, HAVE_FUTURE_DATA) |
-            (HAVE_NOTHING, HAVE_FUTURE_DATA) => {
+            // Previous ready state was ReadyState::HaveCurrentData or less,
+            // and the new ready state is ReadyState::HaveFutureData.
+            (ReadyState::HaveCurrentData, ReadyState::HaveFutureData) |
+            (ReadyState::HaveMetadata, ReadyState::HaveFutureData) |
+            (ReadyState::HaveNothing, ReadyState::HaveFutureData) => {
                 task_source.queue_simple_event(
                     self.upcast(),
                     atom!("canplay"),
@@ -256,9 +266,9 @@ impl HTMLMediaElement {
                 }
             }
 
-            // new ready state is HAVE_ENOUGH_DATA
-            (_, HAVE_ENOUGH_DATA) => {
-                if old_ready_state <= HAVE_CURRENT_DATA {
+            // New ready state is ReadyState::HaveEnoughData.
+            (_, ReadyState::HaveEnoughData) => {
+                if old_ready_state <= ReadyState::HaveCurrentData {
                     task_source.queue_simple_event(
                         self.upcast(),
                         atom!("canplay"),
@@ -518,8 +528,8 @@ impl HTMLMediaElement {
             // TODO 4.4 (forget resource tracks)
 
             // 4.5
-            if self.ready_state.get() != HAVE_NOTHING {
-                self.change_ready_state(HAVE_NOTHING);
+            if self.ready_state.get() != ReadyState::HaveNothing {
+                self.change_ready_state(ReadyState::HaveNothing);
             }
 
             // 4.6
@@ -552,7 +562,7 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-media-readystate
     fn ReadyState(&self) -> u16 {
-        self.ready_state.get()
+        self.ready_state.get() as u16
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-media-autoplay
@@ -629,9 +639,9 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
             task_source.queue_simple_event(self.upcast(), atom!("play"), &window);
 
             // 7.4
-            if state == HAVE_NOTHING ||
-               state == HAVE_METADATA ||
-               state == HAVE_CURRENT_DATA {
+            if state == ReadyState::HaveNothing ||
+               state == ReadyState::HaveMetadata ||
+               state == ReadyState::HaveCurrentData {
                 task_source.queue_simple_event(
                     self.upcast(),
                     atom!("waiting"),
@@ -642,7 +652,7 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
             }
         }
         // Step 8
-        else if state == HAVE_FUTURE_DATA || state == HAVE_ENOUGH_DATA {
+        else if state == ReadyState::HaveFutureData || state == ReadyState::HaveEnoughData {
             // TODO resolve pending play promises
         }
 
@@ -819,7 +829,7 @@ impl FetchResponseListener for HTMLMediaElementContext {
         if !self.have_metadata {
             self.check_metadata(&elem);
         } else {
-            elem.change_ready_state(HAVE_CURRENT_DATA);
+            elem.change_ready_state(ReadyState::HaveCurrentData);
         }
 
         // https://html.spec.whatwg.org/multipage/#concept-media-load-resource step 4,
@@ -846,7 +856,7 @@ impl FetchResponseListener for HTMLMediaElementContext {
         }
         // => "Once the entire media resource has been fetched..."
         else if status.is_ok() {
-            elem.change_ready_state(HAVE_ENOUGH_DATA);
+            elem.change_ready_state(ReadyState::HaveEnoughData);
 
             elem.upcast::<EventTarget>().fire_event(atom!("progress"));
 
@@ -855,7 +865,7 @@ impl FetchResponseListener for HTMLMediaElementContext {
             elem.upcast::<EventTarget>().fire_event(atom!("suspend"));
         }
         // => "If the connection is interrupted after some media data has been received..."
-        else if elem.ready_state.get() != HAVE_NOTHING {
+        else if elem.ready_state.get() != ReadyState::HaveNothing {
             // Step 2
             elem.error.set(Some(&*MediaError::new(&*window_from_node(&*elem),
                                                   MEDIA_ERR_NETWORK)));
@@ -912,7 +922,7 @@ impl HTMLMediaElementContext {
                     audio: meta.audio.audio,
                 });
                 // Step 6
-                elem.change_ready_state(HAVE_METADATA);
+                elem.change_ready_state(ReadyState::HaveMetadata);
                 self.have_metadata = true;
             }
             _ => {}
