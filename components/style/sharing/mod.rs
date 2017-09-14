@@ -82,6 +82,7 @@ use smallvec::SmallVec;
 use std::marker::PhantomData;
 use std::mem;
 use std::ops::Deref;
+use style_resolver::PrimaryStyle;
 use stylist::Stylist;
 
 mod checks;
@@ -549,10 +550,15 @@ impl<E: TElement> StyleSharingCache<E> {
     pub fn insert_if_possible(
         &mut self,
         element: &E,
-        style: &ComputedValues,
+        style: &PrimaryStyle,
         validation_data_holder: Option<&mut StyleSharingTarget<E>>,
         dom_depth: usize,
     ) {
+        if style.0.reused_via_rule_node {
+            debug!("Failing to insert into the cached: this was a cached style");
+            return;
+        }
+
         let parent = match element.traversal_parent() {
             Some(element) => element,
             None => {
@@ -585,7 +591,7 @@ impl<E: TElement> StyleSharingCache<E> {
         //
         // These are things we don't check in the candidate match because they
         // are either uncommon or expensive.
-        let box_style = style.get_box();
+        let box_style = style.style().get_box();
         if box_style.specifies_transitions() {
             debug!("Failing to insert to the cache: transitions");
             return;
