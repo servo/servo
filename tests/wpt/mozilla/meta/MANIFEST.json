@@ -6353,6 +6353,18 @@
      {}
     ]
    ],
+   "css/truncated_text_fragment_stacking_context.html": [
+    [
+     "/_mozilla/css/truncated_text_fragment_stacking_context.html",
+     [
+      [
+       "/_mozilla/css/truncated_text_fragment_stacking_context_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "css/upper_id_attr.html": [
     [
      "/_mozilla/css/upper_id_attr.html",
@@ -10543,6 +10555,11 @@
     ]
    ],
    "css/translate_clip_ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/truncated_text_fragment_stacking_context_ref.html": [
     [
      {}
     ]
@@ -26891,6 +26908,14 @@
   ],
   "css/translate_clip_ref.html": [
    "c62420cce19d1d6a7d8700275daaa5ecc10d14c7",
+   "support"
+  ],
+  "css/truncated_text_fragment_stacking_context.html": [
+   "453b01aec6ffd3c854fda854cf81250a332cd55c",
+   "reftest"
+  ],
+  "css/truncated_text_fragment_stacking_context_ref.html": [
+   "4cb902bb7b058748d1702b5033e8cec729431640",
    "support"
   ],
   "css/upper_id_attr.html": [
