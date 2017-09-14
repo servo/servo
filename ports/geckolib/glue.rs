@@ -945,8 +945,9 @@ pub extern "C" fn Servo_StyleSet_MediumFeaturesChanged(
         *viewport_units_used = data.stylist.device().used_viewport_size();
     }
     data.stylist.device_mut().reset_computed_values();
+    let guards = StylesheetGuards::same(&guard);
     let origins_in_which_rules_changed =
-        data.stylist.media_features_change_changed_style(&guard);
+        data.stylist.media_features_change_changed_style(&guards);
 
     // We'd like to return `OriginFlags` here, but bindgen bitfield enums don't
     // work as return values with the Linux 32-bit ABI at the moment because
@@ -964,8 +965,9 @@ pub extern "C" fn Servo_StyleSet_SetDevice(
 
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
     let device = Device::new(pres_context);
+    let guards = StylesheetGuards::same(&guard);
     let origins_in_which_rules_changed =
-        data.stylist.set_device(device, &guard);
+        data.stylist.set_device(device, &guards);
 
     // We'd like to return `OriginFlags` here, but bindgen bitfield enums don't
     // work as return values with the Linux 32-bit ABI at the moment because

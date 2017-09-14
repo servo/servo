@@ -19,7 +19,7 @@ use parser::{ParserContext, ParserErrorContext};
 use properties::StyleBuilder;
 use rule_cache::RuleCacheConditions;
 use selectors::parser::SelectorParseError;
-use shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
+use shared_lock::{SharedRwLockReadGuard, StylesheetGuards, ToCssWithGuard};
 use std::ascii::AsciiExt;
 use std::borrow::Cow;
 use std::cell::RefCell;
@@ -571,16 +571,16 @@ impl Cascade {
 
     pub fn from_stylesheets<'a, I, S>(
         stylesheets: I,
-        guard: &SharedRwLockReadGuard,
+        guards: &StylesheetGuards,
         device: &Device
     ) -> Self
     where
-        I: Iterator<Item = &'a S>,
+        I: Iterator<Item = (&'a S, Origin)>,
         S: StylesheetInDocument + 'static,
     {
         let mut cascade = Self::new();
-        for stylesheet in stylesheets {
-            stylesheet.effective_viewport_rules(device, guard, |rule| {
+        for (stylesheet, origin) in stylesheets {
+            stylesheet.effective_viewport_rules(device, guards.for_origin(origin), |rule| {
                 for declaration in &rule.declarations {
                     cascade.add(Cow::Borrowed(declaration))
                 }

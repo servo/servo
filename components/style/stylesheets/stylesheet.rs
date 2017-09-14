@@ -30,9 +30,9 @@ pub struct UserAgentStylesheets {
     /// The lock used for user-agent stylesheets.
     pub shared_lock: SharedRwLock,
     /// The user or user agent stylesheets.
-    pub user_or_user_agent_stylesheets: Vec<Stylesheet>,
+    pub user_or_user_agent_stylesheets: Vec<DocumentStyleSheet>,
     /// The quirks mode stylesheet.
-    pub quirks_mode_stylesheet: Stylesheet,
+    pub quirks_mode_stylesheet: DocumentStyleSheet,
 }
 
 /// A set of namespaces applying to a given stylesheet.

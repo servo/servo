@@ -136,7 +136,7 @@ use style::properties::PropertyId;
 use style::selector_parser::SnapshotMap;
 use style::servo::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, REPOSITION, STORE_OVERFLOW};
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, StylesheetGuards};
-use style::stylesheets::{Origin, OriginSet, Stylesheet, DocumentStyleSheet, StylesheetInDocument, UserAgentStylesheets};
+use style::stylesheets::{Origin, Stylesheet, DocumentStyleSheet, StylesheetInDocument, UserAgentStylesheets};
 use style::stylist::Stylist;
 use style::thread_state;
 use style::timer::Timer;
@@ -1139,14 +1139,22 @@ impl LayoutThread {
                                               Au::from_f32_px(initial_viewport.height));
 
         // Calculate the actual viewport as per DEVICE-ADAPT § 6
-
+        // If the entire flow tree is invalid, then it will be reflowed anyhow.
         let document_shared_lock = document.style_shared_lock();
         self.document_shared_lock = Some(document_shared_lock.clone());
         let author_guard = document_shared_lock.read();
+
+        let ua_stylesheets = &*UA_STYLESHEETS;
+        let ua_or_user_guard = ua_stylesheets.shared_lock.read();
+        let guards = StylesheetGuards {
+            author: &author_guard,
+            ua_or_user: &ua_or_user_guard,
+        };
+
         let had_used_viewport_units = self.stylist.device().used_viewport_units();
         let device = Device::new(MediaType::screen(), initial_viewport, device_pixel_ratio);
         let sheet_origins_affected_by_device_change =
-            self.stylist.set_device(device, &author_guard);
+            self.stylist.set_device(device, &guards);
 
         self.stylist.force_stylesheet_origins_dirty(sheet_origins_affected_by_device_change);
         self.viewport_size =
@@ -1173,23 +1181,23 @@ impl LayoutThread {
             }
         }
 
-        // If the entire flow tree is invalid, then it will be reflowed anyhow.
-        let ua_stylesheets = &*UA_STYLESHEETS;
-        let ua_or_user_guard = ua_stylesheets.shared_lock.read();
-        let guards = StylesheetGuards {
-            author: &author_guard,
-            ua_or_user: &ua_or_user_guard,
-        };
-
         {
             if self.first_reflow.get() {
                 debug!("First reflow, rebuilding user and UA rules");
-                let mut ua_and_user = OriginSet::empty();
-                ua_and_user |= Origin::User;
-                ua_and_user |= Origin::UserAgent;
-                self.stylist.force_stylesheet_origins_dirty(ua_and_user);
                 for stylesheet in &ua_stylesheets.user_or_user_agent_stylesheets {
-                    self.handle_add_stylesheet(stylesheet, &ua_or_user_guard);
+                    self.stylist.append_stylesheet(stylesheet.clone(), &ua_or_user_guard);
+                    self.handle_add_stylesheet(&stylesheet.0, &ua_or_user_guard);
+                }
+
+                if self.stylist.quirks_mode() != QuirksMode::NoQuirks {
+                    self.stylist.append_stylesheet(
+                        ua_stylesheets.quirks_mode_stylesheet.clone(),
+                        &ua_or_user_guard,
+                    );
+                    self.handle_add_stylesheet(
+                        &ua_stylesheets.quirks_mode_stylesheet.0,
+                        &ua_or_user_guard,
+                    );
                 }
             }
 
@@ -1198,11 +1206,7 @@ impl LayoutThread {
                 self.stylist.force_stylesheet_origins_dirty(Origin::Author.into());
             }
 
-            self.stylist.flush(
-                &guards,
-                Some(ua_stylesheets),
-                Some(element),
-            );
+            self.stylist.flush(&guards, Some(element));
         }
 
         if viewport_size_changed {
@@ -1706,10 +1710,12 @@ fn get_root_flow_background_color(flow: &mut Flow) -> webrender_api::ColorF {
 }
 
 fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
-    fn parse_ua_stylesheet(shared_lock: &SharedRwLock, filename: &'static str)
-                           -> Result<Stylesheet, &'static str> {
+    fn parse_ua_stylesheet(
+        shared_lock: &SharedRwLock,
+        filename: &'static str,
+    ) -> Result<DocumentStyleSheet, &'static str> {
         let res = read_resource_file(filename).map_err(|_| filename)?;
-        Ok(Stylesheet::from_bytes(
+        Ok(DocumentStyleSheet(ServoArc::new(Stylesheet::from_bytes(
             &res,
             ServoUrl::parse(&format!("chrome://resources/{:?}", filename)).unwrap(),
             None,
@@ -1719,7 +1725,8 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
             shared_lock.clone(),
             None,
             &NullReporter,
-            QuirksMode::NoQuirks))
+            QuirksMode::NoQuirks,
+        ))))
     }
 
     let shared_lock = SharedRwLock::new();
@@ -1730,9 +1737,20 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
         user_or_user_agent_stylesheets.push(parse_ua_stylesheet(&shared_lock, filename)?);
     }
     for &(ref contents, ref url) in &opts::get().user_stylesheets {
-        user_or_user_agent_stylesheets.push(Stylesheet::from_bytes(
-            &contents, url.clone(), None, None, Origin::User, MediaList::empty(),
-            shared_lock.clone(), None, &RustLogReporter, QuirksMode::NoQuirks));
+        user_or_user_agent_stylesheets.push(
+            DocumentStyleSheet(ServoArc::new(Stylesheet::from_bytes(
+                &contents,
+                url.clone(),
+                None,
+                None,
+                Origin::User,
+                MediaList::empty(),
+                shared_lock.clone(),
+                None,
+                &RustLogReporter,
+                QuirksMode::NoQuirks,
+            )))
+        );
     }
 
     let quirks_mode_stylesheet = parse_ua_stylesheet(&shared_lock, "quirks-mode.css")?;
