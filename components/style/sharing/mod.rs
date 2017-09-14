@@ -546,11 +546,13 @@ impl<E: TElement> StyleSharingCache<E> {
     ///
     /// NB: We pass a source for the validation data, rather than the data itself,
     /// to avoid memmoving at each function call. See rust issue #42763.
-    pub fn insert_if_possible(&mut self,
-                              element: &E,
-                              style: &ComputedValues,
-                              validation_data_holder: Option<&mut StyleSharingTarget<E>>,
-                              dom_depth: usize) {
+    pub fn insert_if_possible(
+        &mut self,
+        element: &E,
+        style: &ComputedValues,
+        validation_data_holder: Option<&mut StyleSharingTarget<E>>,
+        dom_depth: usize,
+    ) {
         let parent = match element.traversal_parent() {
             Some(element) => element,
             None => {
