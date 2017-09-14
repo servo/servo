@@ -131,6 +131,10 @@ impl UserAgentCascadeDataCache {
     fn expire_unused(&mut self) {
         self.entries.retain(|e| !e.is_unique())
     }
+
+    fn clear(&mut self) {
+        self.entries.clear();
+    }
 }
 
 type PrecomputedPseudoElementDeclarations =
@@ -1497,6 +1501,11 @@ impl Stylist {
         sizes.mStylistRuleTree += self.rule_tree.size_of(ops);
 
         // We may measure other fields in the future if DMD says it's worth it.
+    }
+
+    /// Shutdown the static data that this module stores.
+    pub fn shutdown() {
+        UA_CASCADE_DATA_CACHE.lock().unwrap().clear()
     }
 }
 
