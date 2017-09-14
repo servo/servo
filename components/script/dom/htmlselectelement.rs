@@ -440,4 +440,12 @@ impl<I, J, K, T> Iterator for Choice3<I, J, K>
             Choice3::Third(ref mut k) => k.next(),
         }
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        match *self {
+            Choice3::First(ref i) => i.size_hint(),
+            Choice3::Second(ref j) => j.size_hint(),
+            Choice3::Third(ref k) => k.size_hint(),
+        }
+    }
 }

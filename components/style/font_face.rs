@@ -170,6 +170,10 @@ impl Iterator for EffectiveSources {
     fn next(&mut self) -> Option<Source> {
         self.0.pop()
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (self.0.len(), Some(self.0.len()))
+    }
 }
 
 struct FontFaceRuleParser<'a, 'b: 'a> {

@@ -45,6 +45,10 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         self.0.next().map(|entry| &entry.sheet)
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.0.size_hint()
+    }
 }
 
 /// An iterator over the flattened view of the stylesheet collections.
