@@ -45,13 +45,13 @@ use time::{self, Timespec, Duration};
 #[dom_struct]
 pub struct HTMLMediaElement {
     htmlelement: HTMLElement,
-    /// https://html.spec.whatwg.org/multipage/#dom-media-networkstate-2
+    /// https://html.spec.whatwg.org/multipage/#dom-media-networkstate
     // FIXME(nox): Use an enum.
     network_state: Cell<u16>,
-    /// https://html.spec.whatwg.org/multipage/#dom-media-readystate-2
+    /// https://html.spec.whatwg.org/multipage/#dom-media-readystate
     // FIXME(nox): Use an enum.
     ready_state: Cell<u16>,
-    /// https://html.spec.whatwg.org/multipage/#dom-media-currentsrc-2
+    /// https://html.spec.whatwg.org/multipage/#dom-media-currentsrc
     current_src: DOMRefCell<String>,
     // FIXME(nox): Document this one, I have no idea what it is used for.
     generation_id: Cell<u32>,
@@ -59,9 +59,9 @@ pub struct HTMLMediaElement {
     ///
     /// Reset to false every time the load algorithm is invoked.
     fired_loadeddata_event: Cell<bool>,
-    /// https://html.spec.whatwg.org/multipage/#dom-media-error-2
+    /// https://html.spec.whatwg.org/multipage/#dom-media-error
     error: MutNullableJS<MediaError>,
-    /// https://html.spec.whatwg.org/multipage/#dom-media-paused-2
+    /// https://html.spec.whatwg.org/multipage/#dom-media-paused
     paused: Cell<bool>,
     /// https://html.spec.whatwg.org/multipage/#attr-media-autoplay
     autoplaying: Cell<bool>,
