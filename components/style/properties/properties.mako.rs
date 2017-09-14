@@ -3529,7 +3529,13 @@ where
     StyleAdjuster::new(&mut builder)
         .adjust(layout_parent_style, flags);
 
-    if builder.modified_reset() {
+    if builder.modified_reset() || !apply_reset {
+        // If we adjusted any reset structs, we can't cache this ComputedValues.
+        //
+        // Also, if we re-used existing reset structs, don't bother caching it
+        // back again. (Aside from being wasted effort, it will be wrong, since
+        // context.rule_cache_conditions won't be set appropriately if we
+        // didn't compute those reset properties.)
         context.rule_cache_conditions.borrow_mut()
             .set_uncacheable();
     }
