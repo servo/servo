@@ -2957,6 +2957,10 @@ extern "C" {
                                           *const ServoElementSnapshotTable);
 }
 extern "C" {
+    pub fn Servo_HasPendingRestyleAncestor(element: RawGeckoElementBorrowed)
+     -> bool;
+}
+extern "C" {
     pub fn Gecko_CreateCSSErrorReporter(sheet: *mut ServoStyleSheet,
                                         loader: *mut Loader, uri: *mut nsIURI)
      -> *mut ErrorReporter;
