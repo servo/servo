@@ -137,6 +137,7 @@
 
     #[allow(non_camel_case_types)]
     #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, ToComputedValue)]
+    #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
     pub enum SpecifiedValue {
         % for value in values:
@@ -407,6 +408,7 @@ ${helpers.predefined_type("transition-delay",
     }
 
     #[derive(Clone, Debug, Eq, Hash, PartialEq, ToComputedValue)]
+    #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue(pub Option<KeyframesName>);
 
@@ -500,6 +502,7 @@ ${helpers.predefined_type("animation-timing-function",
     }
 
     // https://drafts.csswg.org/css-animations/#animation-iteration-count
+    #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     #[derive(Clone, Debug, PartialEq, ToCss, ToComputedValue)]
     pub enum SpecifiedValue {
@@ -635,6 +638,7 @@ ${helpers.predefined_type(
         use values::computed::{Length, LengthOrPercentage};
 
         #[derive(Clone, Copy, Debug, PartialEq)]
+        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct ComputedMatrix {
             pub m11: CSSFloat, pub m12: CSSFloat, pub m13: CSSFloat, pub m14: CSSFloat,
@@ -644,6 +648,7 @@ ${helpers.predefined_type(
         }
 
         #[derive(Clone, Copy, Debug, PartialEq)]
+        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct ComputedMatrixWithPercents {
             pub m11: CSSFloat, pub m12: CSSFloat, pub m13: CSSFloat, pub m14: CSSFloat,
@@ -677,6 +682,7 @@ ${helpers.predefined_type(
         }
 
         #[derive(Clone, Debug, PartialEq)]
+        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub enum ComputedOperation {
             Matrix(ComputedMatrix),
@@ -710,6 +716,7 @@ ${helpers.predefined_type(
         }
 
         #[derive(Clone, Debug, PartialEq)]
+        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T(pub Option<Vec<ComputedOperation>>);
     }
@@ -721,6 +728,7 @@ ${helpers.predefined_type(
     ///
     /// Some transformations can be expressed by other more general functions.
     #[derive(Clone, Debug, PartialEq)]
+    #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SpecifiedOperation {
         /// Represents a 2D 2x3 matrix.
@@ -911,6 +919,7 @@ ${helpers.predefined_type(
     }
 
     #[derive(Clone, Debug, PartialEq)]
+    #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue(Vec<SpecifiedOperation>);
 
@@ -1628,6 +1637,7 @@ ${helpers.predefined_type("transform-origin",
 
     bitflags! {
         #[derive(ToComputedValue)]
+        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub flags SpecifiedValue: u8 {
             const LAYOUT = 0x01,
@@ -1769,6 +1779,7 @@ ${helpers.single_keyword("-moz-orient",
     }
 
     #[derive(Clone, Debug, PartialEq, ToComputedValue)]
+    #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SpecifiedValue {
         Auto,
@@ -1840,6 +1851,7 @@ ${helpers.predefined_type(
 
     bitflags! {
         /// These constants match Gecko's `NS_STYLE_TOUCH_ACTION_*` constants.
+        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
         #[derive(ToComputedValue)]
         pub flags SpecifiedValue: u8 {
             const TOUCH_ACTION_NONE = structs::NS_STYLE_TOUCH_ACTION_NONE as u8,

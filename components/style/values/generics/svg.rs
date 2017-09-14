@@ -16,6 +16,7 @@ use values::distance::{ComputeSquaredDistance, SquaredDistance};
 /// An SVG paint value
 ///
 /// https://www.w3.org/TR/SVG2/painting.html#SpecifyingPaint
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Animate, Clone, ComputeSquaredDistance, Debug, PartialEq)]
 #[derive(ToAnimatedValue, ToComputedValue, ToCss)]
@@ -31,6 +32,7 @@ pub struct SVGPaint<ColorType, UrlPaintServer> {
 /// Whereas the spec only allows PaintServer
 /// to have a fallback, Gecko lets the context
 /// properties have a fallback as well.
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Animate, Clone, ComputeSquaredDistance, Debug, PartialEq)]
 #[derive(ToAnimatedValue, ToAnimatedZero, ToComputedValue, ToCss)]
@@ -109,6 +111,7 @@ impl<ColorType: Parse, UrlPaintServer: Parse> Parse for SVGPaint<ColorType, UrlP
 
 /// A value of <length> | <percentage> | <number> for svg which allow unitless length.
 /// https://www.w3.org/TR/SVG11/painting.html#StrokeProperties
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, Copy, Debug, PartialEq, ToAnimatedValue)]
 #[derive(ToAnimatedZero, ToComputedValue, ToCss)]
@@ -191,6 +194,7 @@ impl <LengthOrPercentageType: Parse, NumberType: Parse> Parse for
 }
 
 /// An SVG length value supports `context-value` in addition to length.
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, ComputeSquaredDistance, Copy, Debug, PartialEq)]
 #[derive(ToAnimatedValue, ToAnimatedZero)]
@@ -203,6 +207,7 @@ pub enum SVGLength<LengthType> {
 }
 
 /// Generic value for stroke-dasharray.
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, ComputeSquaredDistance, Debug, PartialEq, ToAnimatedValue, ToComputedValue)]
 pub enum SVGStrokeDashArray<LengthType> {
@@ -237,6 +242,7 @@ impl<LengthType> ToCss for SVGStrokeDashArray<LengthType> where LengthType: ToCs
 
 /// An SVG opacity value accepts `context-{fill,stroke}-opacity` in
 /// addition to opacity value.
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, ComputeSquaredDistance, Copy, Debug)]
 #[derive(PartialEq, ToAnimatedZero, ToComputedValue, ToCss)]

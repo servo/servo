@@ -415,9 +415,12 @@ macro_rules! __define_css_keyword_enum__add_optional_traits {
 #[cfg(not(feature = "servo"))]
 #[macro_export]
 macro_rules! __define_css_keyword_enum__add_optional_traits {
-    ($name: ident [ $( $css: expr => $variant: ident ),+ ] [ $( $alias: expr => $alias_variant: ident),* ]) => {
+    ($name: ident [ $( $css: expr => $variant: ident ),+ ]
+                  [ $( $alias: expr => $alias_variant: ident),* ]) => {
         __define_css_keyword_enum__actual! {
-            $name [] [ $( $css => $variant ),+ ] [ $( $alias => $alias_variant ),* ]
+            $name [ MallocSizeOf ]
+                  [ $( $css => $variant ),+ ]
+                  [ $( $alias => $alias_variant ),* ]
         }
     };
 }
@@ -472,6 +475,7 @@ pub mod specified {
 
     /// Whether to allow negative lengths or not.
     #[repr(u8)]
+    #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     #[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd)]
     pub enum AllowedNumericType {

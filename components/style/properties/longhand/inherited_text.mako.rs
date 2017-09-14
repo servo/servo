@@ -175,6 +175,7 @@ ${helpers.single_keyword("text-align-last",
         use std::fmt;
         use style_traits::ToCss;
 
+        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
         #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
         pub enum SpecifiedValue {
             Keyword(computed_value::T),
@@ -288,6 +289,7 @@ ${helpers.predefined_type("word-spacing",
     use style_traits::ToCss;
 
     #[derive(Clone, Copy, Debug, PartialEq)]
+    #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue {
         pub underline: Option<RGBA>,
@@ -430,6 +432,7 @@ ${helpers.predefined_type(
 
     pub mod computed_value {
         #[derive(Clone, Debug, PartialEq, ToCss)]
+        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf, ToComputedValue))]
         pub enum T {
             Keyword(KeywordValue),
@@ -438,6 +441,7 @@ ${helpers.predefined_type(
         }
 
         #[derive(Clone, Debug, PartialEq)]
+        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct KeywordValue {
             pub fill: bool,
@@ -446,6 +450,7 @@ ${helpers.predefined_type(
     }
 
     #[derive(Clone, Debug, PartialEq, ToCss)]
+    #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SpecifiedValue {
         Keyword(KeywordValue),
@@ -454,6 +459,7 @@ ${helpers.predefined_type(
     }
 
     #[derive(Clone, Debug, PartialEq)]
+    #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum KeywordValue {
         Fill(bool),
@@ -621,6 +627,7 @@ ${helpers.predefined_type(
                              "left" => Left);
     add_impls_for_keyword_enum!(HorizontalWritingModeValue);
 
+    #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     #[derive(Clone, Debug, PartialEq, ToComputedValue, ToCss)]
     pub struct SpecifiedValue(pub HorizontalWritingModeValue, pub VerticalWritingModeValue);

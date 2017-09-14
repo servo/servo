@@ -19,6 +19,7 @@ use values::computed::{Color as ComputedColor, Context, ToComputedValue};
 
 /// Specified color value
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum Color {
     /// The 'currentColor' keyword
@@ -301,6 +302,7 @@ impl ToComputedValue for Color {
 /// Specified color value, but resolved to just RGBA for computed value
 /// with value from color property at the same context.
 #[derive(Clone, Debug, PartialEq, ToCss)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct RGBAColor(pub Color);
 
@@ -332,6 +334,7 @@ impl From<Color> for RGBAColor {
 
 /// Specified value for the "color" property, which resolves the `currentcolor`
 /// keyword to the parent color instead of self's color.
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[derive(Clone, Debug, PartialEq, ToCss)]
 pub struct ColorPropertyValue(pub Color);
 

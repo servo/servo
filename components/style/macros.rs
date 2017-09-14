@@ -45,6 +45,7 @@ macro_rules! define_numbered_css_keyword_enum {
     ($name: ident: $( $css: expr => $variant: ident = $value: expr ),+) => {
         #[allow(non_camel_case_types, missing_docs)]
         #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
         pub enum $name {
             $( $variant = $value ),+
@@ -99,6 +100,7 @@ macro_rules! add_impls_for_keyword_enum {
 macro_rules! define_keyword_type {
     ($name: ident, $css: expr) => {
         #[allow(missing_docs)]
+        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         #[derive(Animate, Clone, ComputeSquaredDistance, Copy, PartialEq)]
         #[derive(ToAnimatedZero, ToComputedValue, ToCss)]

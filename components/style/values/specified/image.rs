@@ -86,6 +86,7 @@ pub type GradientKind = GenericGradientKind<
 
 /// A specified gradient line direction.
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum LineDirection {
     /// An angular direction.
@@ -105,7 +106,7 @@ pub enum LineDirection {
 }
 
 /// A binary enum to hold either Position or LegacyPosition.
-#[derive(Clone, Debug, PartialEq, ToCss)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
 #[cfg(feature = "gecko")]
 pub enum GradientPosition {
     /// 1, 2, 3, 4-valued <position>.

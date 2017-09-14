@@ -29,6 +29,7 @@ ${helpers.single_keyword("caption-side", "top bottom",
         use values::animated::{ToAnimatedValue, ToAnimatedZero};
         use values::computed::NonNegativeLength;
 
+        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         #[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, PartialEq, ToCss)]
         pub struct T {
@@ -59,6 +60,7 @@ ${helpers.single_keyword("caption-side", "top bottom",
         }
     }
 
+    #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     #[derive(Clone, Debug, PartialEq, ToCss)]
     pub struct SpecifiedValue {

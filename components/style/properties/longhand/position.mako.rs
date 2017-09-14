@@ -296,6 +296,7 @@ ${helpers.predefined_type("object-position",
 
     pub mod computed_value {
         #[derive(Clone, Copy, Debug, Eq, PartialEq, ToComputedValue)]
+        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub enum AutoFlow {
             Row,
@@ -303,6 +304,7 @@ ${helpers.predefined_type("object-position",
         }
 
         #[derive(Clone, Copy, Debug, Eq, PartialEq, ToComputedValue)]
+        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T {
             pub autoflow: AutoFlow,
@@ -435,6 +437,7 @@ ${helpers.predefined_type("object-position",
         SpecifiedValue::parse(context, input)
     }
 
+    #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
     #[derive(Clone, Debug, PartialEq)]
     pub struct TemplateAreas {
         pub areas: Box<[NamedArea]>,
@@ -442,6 +445,7 @@ ${helpers.predefined_type("object-position",
         pub width: u32,
     }
 
+    #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
     #[derive(Clone, Debug, PartialEq)]
     pub struct NamedArea {
         pub name: Box<str>,

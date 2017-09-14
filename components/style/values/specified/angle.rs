@@ -19,6 +19,7 @@ use values::specified::calc::CalcNode;
 /// Computed angles are essentially same as specified ones except for `calc()`
 /// value serialization. Therefore we are storing a computed angle inside
 /// to hold the actual value and its unit.
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Angle {

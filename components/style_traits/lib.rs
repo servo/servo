@@ -19,6 +19,8 @@ extern crate app_units;
 extern crate euclid;
 #[cfg(feature = "servo")] extern crate heapsize;
 #[cfg(feature = "servo")] #[macro_use] extern crate heapsize_derive;
+#[cfg(feature = "gecko")] extern crate malloc_size_of;
+#[cfg(feature = "gecko")] #[macro_use] extern crate malloc_size_of_derive;
 extern crate selectors;
 #[cfg(feature = "servo")] #[macro_use] extern crate serde;
 #[cfg(feature = "servo")] extern crate webrender_api;

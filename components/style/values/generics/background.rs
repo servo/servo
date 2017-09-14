@@ -5,6 +5,7 @@
 //! Generic types for CSS values related to backgrounds.
 
 /// A generic value for the `background-size` property.
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug)]
 #[derive(PartialEq, ToComputedValue, ToCss)]

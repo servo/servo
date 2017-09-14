@@ -41,7 +41,7 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
             use values::generics::CounterStyleOrNone;
 
             /// <counter-style> | <string> | none
-            #[derive(Clone, Debug, Eq, PartialEq, ToComputedValue, ToCss)]
+            #[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
             pub enum T {
                 CounterStyle(CounterStyleOrNone),
                 String(String),
@@ -104,6 +104,7 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
     pub mod computed_value {
         use values::specified::UrlOrNone;
 
+        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         #[derive(Clone, Debug, PartialEq, ToCss)]
         pub struct T(pub UrlOrNone);
@@ -145,6 +146,7 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
     pub use self::computed_value::T as SpecifiedValue;
 
     pub mod computed_value {
+        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         #[derive(Clone, Debug, PartialEq, ToComputedValue)]
         pub struct T(pub Vec<(String, String)>);

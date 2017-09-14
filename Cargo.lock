@@ -1748,6 +1748,9 @@ dependencies = [
 name = "malloc_size_of"
 version = "0.0.1"
 dependencies = [
+ "app_units 0.5.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cssparser 0.21.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "euclid 0.15.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "hashglobe 0.1.0",
  "servo_arc 0.0.1",
  "smallbitvec 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3212,6 +3215,8 @@ dependencies = [
  "euclid 0.15.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_derive 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "malloc_size_of 0.0.1",
+ "malloc_size_of_derive 0.0.1",
  "selectors 0.19.0",
  "serde 1.0.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_atoms 0.0.1",

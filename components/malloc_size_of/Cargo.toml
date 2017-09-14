@@ -9,6 +9,9 @@ publish = false
 path = "lib.rs"
 
 [dependencies]
+app_units = "0.5.5"
+cssparser = "0.21.0"
+euclid = "0.15"
 hashglobe = { path = "../hashglobe" }
 servo_arc = { path = "../servo_arc" }
 smallbitvec = "1.0.3"

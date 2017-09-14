@@ -67,6 +67,7 @@ impl Parse for Impossible {
 }
 
 /// A struct representing one of two kinds of values.
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Animate, Clone, ComputeSquaredDistance, Copy)]
 #[derive(PartialEq, ToAnimatedValue, ToAnimatedZero, ToComputedValue, ToCss)]
@@ -99,6 +100,7 @@ impl<A: Parse, B: Parse> Parse for Either<A, B> {
 
 /// https://drafts.csswg.org/css-values-4/#custom-idents
 #[derive(Clone, Debug, Eq, Hash, PartialEq, ToComputedValue)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct CustomIdent(pub Atom);
 
@@ -128,6 +130,7 @@ impl ToCss for CustomIdent {
 
 /// https://drafts.csswg.org/css-animations/#typedef-keyframes-name
 #[derive(Clone, Debug, ToComputedValue)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum KeyframesName {
     /// <custom-ident>

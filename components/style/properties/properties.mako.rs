@@ -29,7 +29,6 @@ use font_metrics::FontMetricsProvider;
 #[cfg(feature = "gecko")] use gecko_bindings::structs::{self, nsCSSPropertyID};
 #[cfg(feature = "servo")] use logical_geometry::{LogicalMargin, PhysicalSide};
 use logical_geometry::WritingMode;
-#[cfg(feature = "gecko")] use malloc_size_of::{MallocShallowSizeOf, MallocSizeOf, MallocSizeOfOps};
 use media_queries::Device;
 use parser::ParserContext;
 use properties::animated_properties::AnimatableLonghand;
@@ -380,6 +379,7 @@ impl PropertyDeclarationIdSet {
 }
 
 /// An enum to represent a CSS Wide keyword.
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, ToCss)]
 pub enum CSSWideKeyword {
@@ -445,6 +445,7 @@ bitflags! {
 
 /// An identifier for a given longhand property.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum LonghandId {
     % for i, property in enumerate(data.longhands):
@@ -783,12 +784,16 @@ pub enum DeclaredValue<'a, T: 'a> {
 /// that PropertyDeclaration can avoid embedding a DeclaredValue (and its
 /// extra discriminant word) and synthesize dependent DeclaredValues for
 /// PropertyDeclaration instances as needed.
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum DeclaredValueOwned<T> {
     /// A known specified value from the stylesheet.
     Value(T),
     /// An unparsed value that contains `var()` functions.
-    WithVariables(Arc<UnparsedValue>),
+    WithVariables(
+        #[cfg_attr(feature = "gecko", ignore_malloc_size_of = "XXX: how to handle this?")]
+        Arc<UnparsedValue>
+    ),
     /// An CSS-wide keyword.
     CSSWideKeyword(CSSWideKeyword),
 }
@@ -1267,6 +1272,7 @@ impl PropertyParserContext {
 }
 
 /// Servo's representation for a property declaration.
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[derive(Clone, PartialEq)]
 pub enum PropertyDeclaration {
     % for property in data.longhands:
@@ -1280,7 +1286,11 @@ pub enum PropertyDeclaration {
     /// A css-wide keyword.
     CSSWideKeyword(LonghandId, CSSWideKeyword),
     /// An unparsed value that contains `var()` functions.
-    WithVariables(LonghandId, Arc<UnparsedValue>),
+    WithVariables(
+        LonghandId,
+        #[cfg_attr(feature = "gecko", ignore_malloc_size_of = "XXX: how to handle this?")]
+        Arc<UnparsedValue>
+    ),
     /// A custom property declaration, with the property name and the declared
     /// value.
     Custom(::custom_properties::Name, DeclaredValueOwned<Box<::custom_properties::SpecifiedValue>>),
@@ -1323,31 +1333,6 @@ impl ToCss for PropertyDeclaration {
             % if any(property.derived_from for property in data.longhands):
                 _ => Err(fmt::Error),
             % endif
-        }
-    }
-}
-
-#[cfg(feature = "gecko")]
-impl MallocSizeOf for PropertyDeclaration {
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        match *self {
-            % for property in data.longhands:
-                % if property.boxed and property.is_vector:
-                    <% raise Exception("this should not happen! not smart to box a vector here") %>
-                % elif property.boxed:
-                    PropertyDeclaration::${property.camel_case}(ref sv_box) => {
-                        <Box<_> as MallocShallowSizeOf>::shallow_size_of(sv_box, ops)
-                    }
-                % elif property.is_vector:
-                    PropertyDeclaration::${property.camel_case}(ref sv_vec) => {
-                        sv_vec.0.shallow_size_of(ops)
-                    }
-                % endif
-            % endfor
-            PropertyDeclaration::CSSWideKeyword(..) => 0,
-            PropertyDeclaration::WithVariables(..) => 0,
-            PropertyDeclaration::Custom(..) => 0,
-            _ => 0,
         }
     }
 }
@@ -1711,6 +1696,7 @@ pub mod style_structs {
         % else:
         #[derive(Clone, Debug, PartialEq)]
         % endif
+        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         /// The ${style_struct.name} style struct.
         pub struct ${style_struct.name} {

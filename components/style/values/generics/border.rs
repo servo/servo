@@ -10,6 +10,7 @@ use style_traits::ToCss;
 use values::generics::rect::Rect;
 
 /// A generic value for a single side of a `border-image-width` property.
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, Copy, Debug, PartialEq, ToComputedValue, ToCss)]
 pub enum BorderImageSideWidth<LengthOrPercentage, Number> {
@@ -23,6 +24,7 @@ pub enum BorderImageSideWidth<LengthOrPercentage, Number> {
 
 /// A generic value for the `border-image-slice` property.
 #[derive(Clone, Copy, Debug, PartialEq, ToComputedValue)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct BorderImageSlice<NumberOrPercentage> {
     /// The offsets.
@@ -34,6 +36,7 @@ pub struct BorderImageSlice<NumberOrPercentage> {
 /// A generic value for `border-radius`, `outline-radius` and `inset()`.
 ///
 /// https://drafts.csswg.org/css-backgrounds-3/#border-radius
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug)]
 #[derive(PartialEq, ToComputedValue)]
@@ -49,6 +52,7 @@ pub struct BorderRadius<LengthOrPercentage> {
 }
 
 /// A generic value for `border-*-radius` longhand properties.
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug)]
 #[derive(PartialEq, ToComputedValue)]
