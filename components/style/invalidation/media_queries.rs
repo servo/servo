@@ -53,7 +53,7 @@ impl ToMediaListKey for MediaRule {}
 
 /// A struct that holds the result of a media query evaluation pass for the
 /// media queries that evaluated successfully.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct EffectiveMediaQueryResults {
