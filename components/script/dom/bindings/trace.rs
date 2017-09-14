@@ -655,7 +655,7 @@ where
     S: JSTraceable + ::style::stylesheets::StylesheetInDocument + PartialEq + 'static,
 {
     unsafe fn trace(&self, tracer: *mut JSTracer) {
-        for s in self.iter() {
+        for (s, _origin) in self.iter() {
             s.trace(tracer)
         }
     }

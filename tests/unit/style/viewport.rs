@@ -12,7 +12,7 @@ use servo_url::ServoUrl;
 use style::context::QuirksMode;
 use style::media_queries::{Device, MediaList, MediaType};
 use style::parser::{ParserContext, ParserErrorContext};
-use style::shared_lock::SharedRwLock;
+use style::shared_lock::{SharedRwLock, StylesheetGuards};
 use style::stylesheets::{CssRuleType, Stylesheet, StylesheetInDocument, Origin};
 use style::stylesheets::viewport_rule::*;
 use style::values::specified::LengthOrPercentageOrAuto::{self, Auto};
@@ -271,8 +271,8 @@ fn multiple_stylesheets_cascading() {
     ];
 
     let declarations = Cascade::from_stylesheets(
-        stylesheets.iter().map(|s| &**s),
-        &shared_lock.read(),
+        stylesheets.iter().map(|s| (&**s, Origin::Author)),
+        &StylesheetGuards::same(&shared_lock.read()),
         &device,
     ).finish();
     assert_decl_len!(declarations == 3);
@@ -289,8 +289,8 @@ fn multiple_stylesheets_cascading() {
                     Author, error_reporter, shared_lock.clone())
     ];
     let declarations = Cascade::from_stylesheets(
-        stylesheets.iter().map(|s| &**s),
-        &shared_lock.read(),
+        stylesheets.iter().map(|s| (&**s, Origin::Author)),
+        &StylesheetGuards::same(&shared_lock.read()),
         &device,
     ).finish();
     assert_decl_len!(declarations == 3);

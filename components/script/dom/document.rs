@@ -2397,9 +2397,13 @@ impl Document {
                       owner.is::<HTMLMetaElement>(), "Wat");
 
         let mut stylesheets = self.stylesheets.borrow_mut();
-        let insertion_point = stylesheets.iter().find(|sheet_in_doc| {
-            owner.upcast::<Node>().is_before(sheet_in_doc.owner.upcast())
-        }).cloned();
+        let insertion_point =
+            stylesheets
+                .iter()
+                .map(|(sheet, _origin)| sheet)
+                .find(|sheet_in_doc| {
+                    owner.upcast::<Node>().is_before(sheet_in_doc.owner.upcast())
+                }).cloned();
 
         self.window()
             .layout_chan()
