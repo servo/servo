@@ -2594,6 +2594,10 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
 
         let new_scroll_root_id = ClipId::new(self.fragment.unique_id(IdType::OverflowClip),
                                              state.layout_context.id.to_webrender());
+        if state.has_scroll_root(new_scroll_root_id) {
+            return;
+        }
+
         let parent_id = self.clip_and_scroll_info(state.layout_context.id).scroll_node_id;
         state.add_scroll_root(
             ScrollRoot {
