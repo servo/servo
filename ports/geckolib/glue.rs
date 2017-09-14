@@ -9,6 +9,7 @@ use malloc_size_of::MallocSizeOfOps;
 use selectors::Element;
 use selectors::matching::{MatchingContext, MatchingMode, matches_selector};
 use servo_arc::{Arc, ArcBorrow, RawOffsetArc};
+use std::cell::RefCell;
 use std::env;
 use std::fmt::Write;
 use std::iter;
@@ -116,6 +117,7 @@ use style::properties::PROHIBIT_DISPLAY_CONTENTS;
 use style::properties::animated_properties::{AnimatableLonghand, AnimationValue};
 use style::properties::animated_properties::compare_property_priority;
 use style::properties::parse_one_declaration_into;
+use style::rule_cache::RuleCacheConditions;
 use style::rule_tree::{CascadeLevel, StyleSource};
 use style::selector_parser::PseudoElementCascadeType;
 use style::shared_lock::{SharedRwLockReadGuard, StylesheetGuards, ToCssWithGuard, Locked};
@@ -3186,6 +3188,7 @@ fn create_context<'a>(
     parent_style: Option<&'a ComputedValues>,
     pseudo: Option<&'a PseudoElement>,
     for_smil_animation: bool,
+    rule_cache_conditions: &'a mut RuleCacheConditions,
 ) -> Context<'a> {
     Context {
         is_root_element: false,
@@ -3200,6 +3203,8 @@ fn create_context<'a>(
         in_media_query: false,
         quirks_mode: per_doc_data.stylist.quirks_mode(),
         for_smil_animation,
+        for_non_inherited_property: None,
+        rule_cache_conditions: RefCell::new(rule_cache_conditions),
     }
 }
 
@@ -3269,6 +3274,7 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeLis
     let parent_style = parent_data.as_ref().map(|d| d.styles.primary()).map(|x| &**x);
 
     let pseudo = style.pseudo();
+    let mut conditions = Default::default();
     let mut context = create_context(
         &data,
         &metrics,
@@ -3276,6 +3282,7 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeLis
         parent_style,
         pseudo.as_ref(),
         /* for_smil_animation = */ false,
+        &mut conditions,
     );
 
     let global_style_data = &*GLOBAL_STYLE_DATA;
@@ -3356,13 +3363,15 @@ pub extern "C" fn Servo_GetAnimationValues(declarations: RawServoDeclarationBloc
     let parent_style = parent_data.as_ref().map(|d| d.styles.primary()).map(|x| &**x);
 
     let pseudo = style.pseudo();
+    let mut conditions = Default::default();
     let mut context = create_context(
         &data,
         &metrics,
         &style,
         parent_style,
         pseudo.as_ref(),
-        /* for_smil_animation = */ true
+        /* for_smil_animation = */ true,
+        &mut conditions,
     );
 
     let default_values = data.default_computed_values();
@@ -3392,13 +3401,15 @@ pub extern "C" fn Servo_AnimationValue_Compute(element: RawGeckoElementBorrowed,
     let parent_style = parent_data.as_ref().map(|d| d.styles.primary()).map(|x| &**x);
 
     let pseudo = style.pseudo();
+    let mut conditions = Default::default();
     let mut context = create_context(
         &data,
         &metrics,
         style,
         parent_style,
         pseudo.as_ref(),
-        /* for_smil_animation = */ false
+        /* for_smil_animation = */ false,
+        &mut conditions,
     );
 
     let default_values = data.default_computed_values();

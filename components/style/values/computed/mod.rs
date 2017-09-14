@@ -11,10 +11,12 @@ use font_metrics::FontMetricsProvider;
 use media_queries::Device;
 #[cfg(feature = "gecko")]
 use properties;
-use properties::{ComputedValues, StyleBuilder};
+use properties::{ComputedValues, LonghandId, StyleBuilder};
+use rule_cache::RuleCacheConditions;
 #[cfg(feature = "servo")]
 use servo_url::ServoUrl;
 use std::{f32, fmt};
+use std::cell::RefCell;
 #[cfg(feature = "servo")]
 use std::sync::Arc;
 use style_traits::ToCss;
@@ -116,6 +118,17 @@ pub struct Context<'a> {
     /// This is used to allow certain properties to generate out-of-range
     /// values, which SMIL allows.
     pub for_smil_animation: bool,
+
+    /// The property we are computing a value for, if it is a non-inherited
+    /// property.  None if we are computed a value for an inherited property
+    /// or not computing for a property at all (e.g. in a media query
+    /// evaluation).
+    pub for_non_inherited_property: Option<LonghandId>,
+
+    /// The conditions to cache a rule node on the rule cache.
+    ///
+    /// FIXME(emilio): Drop the refcell.
+    pub rule_cache_conditions: RefCell<&'a mut RuleCacheConditions>,
 }
 
 impl<'a> Context<'a> {

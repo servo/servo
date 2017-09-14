@@ -23,7 +23,9 @@ use media_queries::MediaType;
 use parser::ParserContext;
 use properties::{ComputedValues, StyleBuilder};
 use properties::longhands::font_size;
+use rule_cache::RuleCacheConditions;
 use servo_arc::Arc;
+use std::cell::RefCell;
 use std::fmt::{self, Write};
 use std::sync::atomic::{AtomicBool, AtomicIsize, Ordering};
 use str::starts_with_ignore_ascii_case;
@@ -694,6 +696,7 @@ impl Expression {
 
         // http://dev.w3.org/csswg/mediaqueries3/#units
         // em units are relative to the initial font-size.
+        let mut conditions = RuleCacheConditions::default();
         let context = computed::Context {
             is_root_element: false,
             builder: StyleBuilder::for_derived_style(device, default_values, None, None),
@@ -703,6 +706,8 @@ impl Expression {
             // TODO: pass the correct value here.
             quirks_mode: quirks_mode,
             for_smil_animation: false,
+            for_non_inherited_property: None,
+            rule_cache_conditions: RefCell::new(&mut conditions),
         };
 
         let required_value = match self.value {

@@ -866,6 +866,10 @@ impl ToComputedValue for specified::MozLength {
                 MozLength::LengthOrPercentageOrAuto(lopoa.to_computed_value(context))
             }
             specified::MozLength::ExtremumLength(ref ext) => {
+                debug_assert!(context.for_non_inherited_property.is_some(),
+                              "should check whether we're a non-inherited property");
+                context.rule_cache_conditions.borrow_mut()
+                    .set_writing_mode_dependency(context.builder.writing_mode);
                 MozLength::ExtremumLength(ext.clone())
             }
         }

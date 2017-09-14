@@ -226,10 +226,24 @@ ${helpers.single_keyword("position", "static absolute relative fixed sticky",
             let ltr = context.style().writing_mode.is_bidi_ltr();
             // https://drafts.csswg.org/css-logical-props/#float-clear
             match *self {
-                SpecifiedValue::inline_start if ltr => computed_value::T::left,
-                SpecifiedValue::inline_start => computed_value::T::right,
-                SpecifiedValue::inline_end if ltr => computed_value::T::right,
-                SpecifiedValue::inline_end => computed_value::T::left,
+                SpecifiedValue::inline_start => {
+                    context.rule_cache_conditions.borrow_mut()
+                        .set_writing_mode_dependency(context.builder.writing_mode);
+                    if ltr {
+                        computed_value::T::left
+                    } else {
+                        computed_value::T::right
+                    }
+                }
+                SpecifiedValue::inline_end => {
+                    context.rule_cache_conditions.borrow_mut()
+                        .set_writing_mode_dependency(context.builder.writing_mode);
+                    if ltr {
+                        computed_value::T::right
+                    } else {
+                        computed_value::T::left
+                    }
+                }
                 % for value in "none left right".split():
                     SpecifiedValue::${value} => computed_value::T::${value},
                 % endfor
@@ -264,10 +278,24 @@ ${helpers.single_keyword("position", "static absolute relative fixed sticky",
             let ltr = context.style().writing_mode.is_bidi_ltr();
             // https://drafts.csswg.org/css-logical-props/#float-clear
             match *self {
-                SpecifiedValue::inline_start if ltr => computed_value::T::left,
-                SpecifiedValue::inline_start => computed_value::T::right,
-                SpecifiedValue::inline_end if ltr => computed_value::T::right,
-                SpecifiedValue::inline_end => computed_value::T::left,
+                SpecifiedValue::inline_start => {
+                    context.rule_cache_conditions.borrow_mut()
+                        .set_writing_mode_dependency(context.builder.writing_mode);
+                    if ltr {
+                        computed_value::T::left
+                    } else {
+                        computed_value::T::right
+                    }
+                }
+                SpecifiedValue::inline_end => {
+                    context.rule_cache_conditions.borrow_mut()
+                        .set_writing_mode_dependency(context.builder.writing_mode);
+                    if ltr {
+                        computed_value::T::right
+                    } else {
+                        computed_value::T::left
+                    }
+                }
                 % for value in "none left right both".split():
                     SpecifiedValue::${value} => computed_value::T::${value},
                 % endfor

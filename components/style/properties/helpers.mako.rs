@@ -316,6 +316,13 @@
                 _ => panic!("entered the wrong cascade_property() implementation"),
             };
 
+            context.for_non_inherited_property =
+                % if property.style_struct.inherited:
+                    None;
+                % else:
+                    Some(LonghandId::${property.camel_case});
+                % endif
+
             % if not property.derived_from:
                 match value {
                     DeclaredValue::Value(specified_value) => {
@@ -323,6 +330,10 @@
                             if let Some(sf) = specified_value.get_system() {
                                 longhands::system_font::resolve_system_font(sf, context);
                             }
+                        % endif
+                        % if not property.style_struct.inherited and property.logical:
+                            context.rule_cache_conditions.borrow_mut()
+                                .set_writing_mode_dependency(context.builder.writing_mode);
                         % endif
                         % if property.is_vector:
                             // In the case of a vector property we want to pass
@@ -375,6 +386,9 @@
                         CSSWideKeyword::Unset |
                         % endif
                         CSSWideKeyword::Inherit => {
+                            % if not property.style_struct.inherited:
+                                context.rule_cache_conditions.borrow_mut().set_uncacheable();
+                            % endif
                             % if property.ident == "font_size":
                                 longhands::font_size::cascade_inherit_font_size(context);
                             % else:

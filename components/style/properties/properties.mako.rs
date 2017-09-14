@@ -16,6 +16,7 @@ use smallbitvec::SmallBitVec;
 use std::borrow::Cow;
 use hash::HashSet;
 use std::{fmt, mem, ops};
+use std::cell::RefCell;
 #[cfg(feature = "gecko")] use std::ptr;
 
 #[cfg(feature = "servo")] use cssparser::RGBA;
@@ -33,6 +34,7 @@ use media_queries::Device;
 use parser::ParserContext;
 use properties::animated_properties::AnimatableLonghand;
 #[cfg(feature = "gecko")] use properties::longhands::system_font::SystemFont;
+use rule_cache::{RuleCache, RuleCacheConditions};
 use selector_parser::PseudoElement;
 use selectors::parser::SelectorParseError;
 #[cfg(feature = "servo")] use servo_config::prefs::PREFS;
@@ -45,7 +47,7 @@ use values::generics::text::LineHeight;
 use values::computed;
 use values::computed::NonNegativeLength;
 use rule_tree::{CascadeLevel, StrongRuleNode};
-use self::computed_value_flags::ComputedValueFlags;
+use self::computed_value_flags::*;
 use style_adjuster::StyleAdjuster;
 #[cfg(feature = "servo")] use values::specified::BorderStyle;
 
@@ -624,6 +626,36 @@ impl LonghandId {
             LonghandId::WritingMode |
             LonghandId::Direction
         )
+    }
+
+    /// Whether computed values of this property lossily convert any complex
+    /// colors into RGBA colors.
+    ///
+    /// In Gecko, there are some properties still that compute currentcolor
+    /// down to an RGBA color at computed value time, instead of as
+    /// `StyleComplexColor`s. For these properties, we must return `false`,
+    /// so that we correctly avoid caching style data in the rule tree.
+    pub fn stores_complex_colors_lossily(&self) -> bool {
+        % if product == "gecko":
+        matches!(*self,
+            % for property in data.longhands:
+            % if property.predefined_type == "RGBAColor":
+            LonghandId::${property.camel_case} |
+            % endif
+            % endfor
+            LonghandId::BackgroundImage |
+            LonghandId::BorderImageSource |
+            LonghandId::BoxShadow |
+            LonghandId::MaskImage |
+            LonghandId::MozBorderBottomColors |
+            LonghandId::MozBorderLeftColors |
+            LonghandId::MozBorderRightColors |
+            LonghandId::MozBorderTopColors |
+            LonghandId::TextShadow
+        )
+        % else:
+        false
+        % endif
     }
 }
 
@@ -2142,6 +2174,11 @@ impl ComputedValuesInner {
     /// Servo for obvious reasons.
     pub fn has_moz_binding(&self) -> bool { false }
 
+    /// Whether we're a visited style.
+    pub fn is_style_if_visited(&self) -> bool {
+        self.flags.contains(IS_STYLE_IF_VISITED)
+    }
+
     /// Returns whether this style's display value is equal to contents.
     ///
     /// Since this isn't supported in Servo, this is always false for Servo.
@@ -2544,12 +2581,17 @@ pub struct StyleBuilder<'a> {
 
     /// The rule node representing the ordered list of rules matched for this
     /// node.
-    rules: Option<StrongRuleNode>,
+    pub rules: Option<StrongRuleNode>,
 
     custom_properties: Option<Arc<::custom_properties::CustomPropertiesMap>>,
 
     /// The pseudo-element this style will represent.
-    pseudo: Option<<&'a PseudoElement>,
+    pub pseudo: Option<<&'a PseudoElement>,
+
+    /// Whether we have mutated any reset structs since the the last time
+    /// `clear_modified_reset` was called.  This is used to tell whether the
+    /// `StyleAdjuster` did any work.
+    modified_reset: bool,
 
     /// The writing mode flags.
     ///
@@ -2580,7 +2622,7 @@ impl<'a> StyleBuilder<'a> {
         custom_properties: Option<Arc<::custom_properties::CustomPropertiesMap>>,
         writing_mode: WritingMode,
         font_size_keyword: FontComputationData,
-        flags: ComputedValueFlags,
+        mut flags: ComputedValueFlags,
         visited_style: Option<Arc<ComputedValues>>,
     ) -> Self {
         debug_assert_eq!(parent_style.is_some(), parent_style_ignoring_first_line.is_some());
@@ -2602,6 +2644,10 @@ impl<'a> StyleBuilder<'a> {
             reset_style
         };
 
+        if cascade_flags.contains(VISITED_DEPENDENT_ONLY) {
+            flags.insert(IS_STYLE_IF_VISITED);
+        }
+
         StyleBuilder {
             device,
             parent_style,
@@ -2610,6 +2656,7 @@ impl<'a> StyleBuilder<'a> {
             reset_style,
             pseudo,
             rules,
+            modified_reset: false,
             custom_properties,
             writing_mode,
             font_size_keyword,
@@ -2623,6 +2670,11 @@ impl<'a> StyleBuilder<'a> {
             % endif
             % endfor
         }
+    }
+
+    /// Whether we're a visited style.
+    pub fn is_style_if_visited(&self) -> bool {
+        self.flags.contains(IS_STYLE_IF_VISITED)
     }
 
     /// Creates a StyleBuilder holding only references to the structs of `s`, in
@@ -2646,6 +2698,7 @@ impl<'a> StyleBuilder<'a> {
             inherited_style_ignoring_first_line: inherited_style,
             reset_style,
             pseudo,
+            modified_reset: false,
             rules: None, // FIXME(emilio): Dubious...
             custom_properties: style_to_derive_from.custom_properties(),
             writing_mode: style_to_derive_from.writing_mode,
@@ -2660,6 +2713,16 @@ impl<'a> StyleBuilder<'a> {
         }
     }
 
+    /// Copy the reset properties from `style`.
+    pub fn copy_reset_from(&mut self, style: &'a ComputedValues) {
+        % for style_struct in data.active_style_structs():
+        % if not style_struct.inherited:
+        self.${style_struct.ident} =
+            StyleStructRef::Borrowed(style.${style_struct.name_lower}_arc());
+        % endif
+        % endfor
+    }
+
     % for property in data.longhands:
     % if property.ident != "font_size":
     /// Inherit `${property.ident}` from our parent style.
@@ -2669,11 +2732,13 @@ impl<'a> StyleBuilder<'a> {
         % if property.style_struct.inherited:
             self.inherited_style.get_${property.style_struct.name_lower}();
         % else:
-            self.inherited_style_ignoring_first_line.get_${property.style_struct.name_lower}();
+            self.inherited_style_ignoring_first_line
+                .get_${property.style_struct.name_lower}();
         % endif
 
         % if not property.style_struct.inherited:
         self.flags.insert(::properties::computed_value_flags::INHERITS_RESET_STYLE);
+        self.modified_reset = true;
         % endif
 
         % if property.ident == "content":
@@ -2699,6 +2764,10 @@ impl<'a> StyleBuilder<'a> {
         let reset_struct =
             self.reset_style.get_${property.style_struct.name_lower}();
 
+        % if not property.style_struct.inherited:
+        self.modified_reset = true;
+        % endif
+
         self.${property.style_struct.ident}.mutate()
             .reset_${property.ident}(
                 reset_struct,
@@ -2715,6 +2784,10 @@ impl<'a> StyleBuilder<'a> {
         &mut self,
         value: longhands::${property.ident}::computed_value::T
     ) {
+        % if not property.style_struct.inherited:
+        self.modified_reset = true;
+        % endif
+
         <% props_need_device = ["content", "list_style_type", "font_variant_alternates"] %>
         self.${property.style_struct.ident}.mutate()
             .set_${property.ident}(
@@ -2778,11 +2851,17 @@ impl<'a> StyleBuilder<'a> {
 
         /// Gets a mutable view of the current `${style_struct.name}` style.
         pub fn mutate_${style_struct.name_lower}(&mut self) -> &mut style_structs::${style_struct.name} {
+            % if not property.style_struct.inherited:
+            self.modified_reset = true;
+            % endif
             self.${style_struct.ident}.mutate()
         }
 
         /// Gets a mutable view of the current `${style_struct.name}` style.
         pub fn take_${style_struct.name_lower}(&mut self) -> UniqueArc<style_structs::${style_struct.name}> {
+            % if not property.style_struct.inherited:
+            self.modified_reset = true;
+            % endif
             self.${style_struct.ident}.take()
         }
 
@@ -2831,6 +2910,16 @@ impl<'a> StyleBuilder<'a> {
                  longhands::_moz_top_layer::computed_value::T::top)
     }
 
+    /// Clears the "have any reset structs been modified" flag.
+    fn clear_modified_reset(&mut self) {
+        self.modified_reset = false;
+    }
+
+    /// Returns whether we have mutated any reset structs since the the last
+    /// time `clear_modified_reset` was called.
+    fn modified_reset(&self) -> bool {
+        self.modified_reset
+    }
 
     /// Turns this `StyleBuilder` into a proper `ComputedValues` instance.
     pub fn build(self) -> Arc<ComputedValues> {
@@ -3015,7 +3104,9 @@ pub fn cascade(
     visited_style: Option<Arc<ComputedValues>>,
     font_metrics_provider: &FontMetricsProvider,
     flags: CascadeFlags,
-    quirks_mode: QuirksMode
+    quirks_mode: QuirksMode,
+    rule_cache: Option<<&RuleCache>,
+    rule_cache_conditions: &mut RuleCacheConditions,
 ) -> Arc<ComputedValues> {
     debug_assert_eq!(parent_style.is_some(), parent_style_ignoring_first_line.is_some());
     #[cfg(feature = "gecko")]
@@ -3075,6 +3166,8 @@ pub fn cascade(
         font_metrics_provider,
         flags,
         quirks_mode,
+        rule_cache,
+        rule_cache_conditions,
     )
 }
 
@@ -3093,6 +3186,8 @@ pub fn apply_declarations<'a, F, I>(
     font_metrics_provider: &FontMetricsProvider,
     flags: CascadeFlags,
     quirks_mode: QuirksMode,
+    rule_cache: Option<<&RuleCache>,
+    rule_cache_conditions: &mut RuleCacheConditions,
 ) -> Arc<ComputedValues>
 where
     F: Fn() -> I,
@@ -3149,11 +3244,13 @@ where
             ComputedValueFlags::empty(),
             visited_style,
         ),
-        font_metrics_provider: font_metrics_provider,
         cached_system_font: None,
         in_media_query: false,
-        quirks_mode: quirks_mode,
         for_smil_animation: false,
+        for_non_inherited_property: None,
+        font_metrics_provider,
+        quirks_mode,
+        rule_cache_conditions: RefCell::new(rule_cache_conditions),
     };
 
     let ignore_colors = !device.use_document_colors();
@@ -3176,6 +3273,7 @@ where
     //
     // To improve i-cache behavior, we outline the individual functions and use
     // virtual dispatch instead.
+    let mut apply_reset = true;
     % for category_to_cascade_now in ["early", "other"]:
         % if category_to_cascade_now == "early":
             // Pull these out so that we can compute them in a specific order
@@ -3186,6 +3284,10 @@ where
         for (declaration, cascade_level) in iter_declarations() {
             let mut declaration = match *declaration {
                 PropertyDeclaration::WithVariables(id, ref unparsed) => {
+                    if !id.inherited() {
+                        context.rule_cache_conditions.borrow_mut()
+                            .set_uncacheable();
+                    }
                     Cow::Owned(unparsed.substitute_variables(
                         id,
                         &context.builder.custom_properties,
@@ -3206,6 +3308,10 @@ where
             if flags.contains(VISITED_DEPENDENT_ONLY) &&
                !longhand_id.is_visited_dependent() {
                 continue
+            }
+
+            if !apply_reset && !longhand_id.inherited() {
+                continue;
             }
 
             // When document colors are disabled, skip properties that are
@@ -3375,15 +3481,15 @@ where
                 (CASCADE_PROPERTY[discriminant])(&size, &mut context);
             % endif
             }
-        % endif
+
+            if let Some(style) = rule_cache.and_then(|c| c.find(&context.builder)) {
+                context.builder.copy_reset_from(style);
+                apply_reset = false;
+            }
+        % endif // category == "early"
     % endfor
 
     let mut builder = context.builder;
-
-    {
-        StyleAdjuster::new(&mut builder)
-            .adjust(layout_parent_style, flags);
-    }
 
     % if product == "gecko":
         if let Some(ref mut bg) = builder.get_background_if_mutated() {
@@ -3403,6 +3509,22 @@ where
             builder.mutate_font().compute_font_hash();
         }
     % endif
+
+    builder.clear_modified_reset();
+
+    StyleAdjuster::new(&mut builder)
+        .adjust(layout_parent_style, flags);
+
+    if builder.modified_reset() || !apply_reset {
+        // If we adjusted any reset structs, we can't cache this ComputedValues.
+        //
+        // Also, if we re-used existing reset structs, don't bother caching it
+        // back again. (Aside from being wasted effort, it will be wrong, since
+        // context.rule_cache_conditions won't be set appropriately if we
+        // didn't compute those reset properties.)
+        context.rule_cache_conditions.borrow_mut()
+            .set_uncacheable();
+    }
 
     builder.build()
 }

@@ -13,7 +13,9 @@ use media_queries::MediaType;
 use parser::ParserContext;
 use properties::{ComputedValues, StyleBuilder};
 use properties::longhands::font_size;
+use rule_cache::RuleCacheConditions;
 use selectors::parser::SelectorParseError;
+use std::cell::RefCell;
 use std::fmt;
 use std::sync::atomic::{AtomicBool, AtomicIsize, Ordering};
 use style_traits::{CSSPixel, DevicePixel, ToCss, ParseError};
@@ -244,6 +246,7 @@ pub enum Range<T> {
 impl Range<specified::Length> {
     fn to_computed_range(&self, device: &Device, quirks_mode: QuirksMode) -> Range<Au> {
         let default_values = device.default_computed_values();
+        let mut conditions = RuleCacheConditions::default();
         // http://dev.w3.org/csswg/mediaqueries3/#units
         // em units are relative to the initial font-size.
         let context = computed::Context {
@@ -257,6 +260,8 @@ impl Range<specified::Length> {
             cached_system_font: None,
             quirks_mode: quirks_mode,
             for_smil_animation: false,
+            for_non_inherited_property: None,
+            rule_cache_conditions: RefCell::new(&mut conditions),
         };
 
         match *self {

@@ -17,10 +17,12 @@ use font_metrics::get_metrics_provider_for_product;
 use media_queries::Device;
 use parser::{ParserContext, ParserErrorContext};
 use properties::StyleBuilder;
+use rule_cache::RuleCacheConditions;
 use selectors::parser::SelectorParseError;
 use shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
 use std::ascii::AsciiExt;
 use std::borrow::Cow;
+use std::cell::RefCell;
 use std::fmt;
 use std::iter::Enumerate;
 use std::str::Chars;
@@ -707,6 +709,7 @@ impl MaybeNew for ViewportConstraints {
 
         let default_values = device.default_computed_values();
 
+        let mut conditions = RuleCacheConditions::default();
         let context = Context {
             is_root_element: false,
             builder: StyleBuilder::for_derived_style(device, default_values, None, None),
@@ -715,6 +718,8 @@ impl MaybeNew for ViewportConstraints {
             in_media_query: false,
             quirks_mode: quirks_mode,
             for_smil_animation: false,
+            for_non_inherited_property: None,
+            rule_cache_conditions: RefCell::new(&mut conditions),
         };
 
         // DEVICE-ADAPT § 9.3 Resolving 'extend-to-zoom'

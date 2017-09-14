@@ -249,18 +249,36 @@ fn convert_nscolor_to_computedcolor(color: nscolor) -> ComputedColor {
 impl ToComputedValue for Color {
     type ComputedValue = ComputedColor;
 
-    fn to_computed_value(&self, _context: &Context) -> ComputedColor {
+    fn to_computed_value(&self, context: &Context) -> ComputedColor {
         match *self {
-            Color::CurrentColor => ComputedColor::currentcolor(),
+            Color::CurrentColor => {
+                if let Some(longhand) = context.for_non_inherited_property {
+                    if longhand.stores_complex_colors_lossily() {
+                        context.rule_cache_conditions.borrow_mut()
+                            .set_uncacheable();
+                    }
+                }
+                ComputedColor::currentcolor()
+            }
             Color::Numeric { ref parsed, .. } => ComputedColor::rgba(*parsed),
-            Color::Complex(ref complex) => *complex,
+            Color::Complex(ref complex) => {
+                if complex.foreground_ratio != 0 {
+                    if let Some(longhand) = context.for_non_inherited_property {
+                        if longhand.stores_complex_colors_lossily() {
+                            context.rule_cache_conditions.borrow_mut()
+                                .set_uncacheable();
+                        }
+                    }
+                }
+                *complex
+            }
             #[cfg(feature = "gecko")]
             Color::System(system) =>
-                convert_nscolor_to_computedcolor(system.to_computed_value(_context)),
+                convert_nscolor_to_computedcolor(system.to_computed_value(context)),
             #[cfg(feature = "gecko")]
             Color::Special(special) => {
                 use self::gecko::SpecialColorKeyword as Keyword;
-                let pres_context = _context.device().pres_context();
+                let pres_context = context.device().pres_context();
                 convert_nscolor_to_computedcolor(match special {
                     Keyword::MozDefaultColor => pres_context.mDefaultColor,
                     Keyword::MozDefaultBackgroundColor => pres_context.mBackgroundColor,
@@ -274,7 +292,7 @@ impl ToComputedValue for Color {
                 use dom::TElement;
                 use gecko::wrapper::GeckoElement;
                 use gecko_bindings::bindings::Gecko_GetBody;
-                let pres_context = _context.device().pres_context();
+                let pres_context = context.device().pres_context();
                 let body = unsafe { Gecko_GetBody(pres_context) }.map(GeckoElement);
                 let data = body.as_ref().and_then(|wrap| wrap.borrow_data());
                 if let Some(data) = data {
