@@ -752,7 +752,9 @@ impl Expression {
             (&BoolInteger(one), &BoolInteger(ref other)) => one.cmp(other),
             (&Float(one), &Float(ref other)) => one.partial_cmp(other).unwrap(),
             (&IntRatio(one_num, one_den), &IntRatio(other_num, other_den)) => {
-                (one_num * other_den).partial_cmp(&(other_num * one_den)).unwrap()
+                // Extend to avoid overflow.
+                (one_num as u64 * other_den as u64).cmp(
+                    &(other_num as u64 * one_den as u64))
             }
             (&Resolution(ref one), &Resolution(ref other)) => {
                 let actual_dpi = unsafe {
