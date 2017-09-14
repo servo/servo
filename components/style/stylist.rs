@@ -963,107 +963,33 @@ impl Stylist {
         &self,
         guards: &StylesheetGuards,
     ) -> OriginSet {
-        use invalidation::media_queries::PotentiallyEffectiveMediaRules;
-
         debug!("Stylist::media_features_change_changed_style");
 
         let mut origins = OriginSet::empty();
         let stylesheets = self.stylesheets.iter();
 
-        'stylesheets_loop: for (stylesheet, origin) in stylesheets {
-            let guard = guards.for_origin(origin);
-            let effective_now =
-                stylesheet.is_effective_for_device(&self.device, guard);
-
+        for (stylesheet, origin) in stylesheets {
             if origins.contains(origin.into()) {
                 continue;
             }
 
+            let guard = guards.for_origin(origin);
             let origin_cascade_data =
                 self.cascade_data.per_origin.borrow_for_origin(&origin);
 
-            let effective_then =
-                origin_cascade_data
-                    .effective_media_query_results
-                    .was_effective(stylesheet);
+            let affected_changed = !origin_cascade_data.media_feature_affected_matches(
+                stylesheet,
+                guard,
+                &self.device,
+                self.quirks_mode
+            );
 
-            if effective_now != effective_then {
-                debug!(" > Stylesheet changed -> {}, {}",
-                       effective_then, effective_now);
+            if affected_changed {
                 origins |= origin;
-                continue;
-            }
-
-            if !effective_now {
-                continue;
-            }
-
-            let mut iter =
-                stylesheet.iter_rules::<PotentiallyEffectiveMediaRules>(
-                    &self.device,
-                    guard
-                );
-
-            while let Some(rule) = iter.next() {
-                match *rule {
-                    CssRule::Style(..) |
-                    CssRule::Namespace(..) |
-                    CssRule::FontFace(..) |
-                    CssRule::CounterStyle(..) |
-                    CssRule::Supports(..) |
-                    CssRule::Keyframes(..) |
-                    CssRule::Page(..) |
-                    CssRule::Viewport(..) |
-                    CssRule::Document(..) |
-                    CssRule::FontFeatureValues(..) => {
-                        // Not affected by device changes.
-                        continue;
-                    }
-                    CssRule::Import(ref lock) => {
-                        let import_rule = lock.read_with(guard);
-                        let effective_now =
-                            import_rule.stylesheet
-                                .is_effective_for_device(&self.device, guard);
-                        let effective_then =
-                            origin_cascade_data
-                                .effective_media_query_results
-                                .was_effective(import_rule);
-                        if effective_now != effective_then {
-                            debug!(" > @import rule changed {} -> {}",
-                                   effective_then, effective_now);
-                            origins |= origin;
-                            continue 'stylesheets_loop;
-                        }
-
-                        if !effective_now {
-                            iter.skip_children();
-                        }
-                    }
-                    CssRule::Media(ref lock) => {
-                        let media_rule = lock.read_with(guard);
-                        let mq = media_rule.media_queries.read_with(guard);
-                        let effective_now =
-                            mq.evaluate(&self.device, self.quirks_mode);
-                        let effective_then =
-                            origin_cascade_data
-                                .effective_media_query_results
-                                .was_effective(media_rule);
-                        if effective_now != effective_then {
-                            debug!(" > @media rule changed {} -> {}",
-                                   effective_then, effective_now);
-                            origins |= origin;
-                            continue 'stylesheets_loop;
-                        }
-
-                        if !effective_now {
-                            iter.skip_children();
-                        }
-                    }
-                }
             }
         }
 
-        return origins
+        origins
     }
 
     /// Returns the viewport constraints that apply to this document because of
@@ -1943,6 +1869,93 @@ impl CascadeData {
         Ok(())
     }
 
+    /// Returns whether all the media-feature affected values matched before and
+    /// match now in the given stylesheet.
+    fn media_feature_affected_matches<S>(
+        &self,
+        stylesheet: &S,
+        guard: &SharedRwLockReadGuard,
+        device: &Device,
+        quirks_mode: QuirksMode,
+    ) -> bool
+    where
+        S: StylesheetInDocument + ToMediaListKey + 'static,
+    {
+        use invalidation::media_queries::PotentiallyEffectiveMediaRules;
+
+        let effective_now =
+            stylesheet.is_effective_for_device(device, guard);
+
+        let effective_then =
+            self.effective_media_query_results.was_effective(stylesheet);
+
+        if effective_now != effective_then {
+            debug!(" > Stylesheet changed -> {}, {}",
+                   effective_then, effective_now);
+            return false;
+        }
+
+        if !effective_now {
+            return true;
+        }
+
+        let mut iter =
+            stylesheet.iter_rules::<PotentiallyEffectiveMediaRules>(device, guard);
+
+        while let Some(rule) = iter.next() {
+            match *rule {
+                CssRule::Style(..) |
+                CssRule::Namespace(..) |
+                CssRule::FontFace(..) |
+                CssRule::CounterStyle(..) |
+                CssRule::Supports(..) |
+                CssRule::Keyframes(..) |
+                CssRule::Page(..) |
+                CssRule::Viewport(..) |
+                CssRule::Document(..) |
+                CssRule::FontFeatureValues(..) => {
+                    // Not affected by device changes.
+                    continue;
+                }
+                CssRule::Import(ref lock) => {
+                    let import_rule = lock.read_with(guard);
+                    let effective_now =
+                        import_rule.stylesheet
+                            .is_effective_for_device(&device, guard);
+                    let effective_then =
+                        self.effective_media_query_results.was_effective(import_rule);
+                    if effective_now != effective_then {
+                        debug!(" > @import rule changed {} -> {}",
+                               effective_then, effective_now);
+                        return false;
+                    }
+
+                    if !effective_now {
+                        iter.skip_children();
+                    }
+                }
+                CssRule::Media(ref lock) => {
+                    let media_rule = lock.read_with(guard);
+                    let mq = media_rule.media_queries.read_with(guard);
+                    let effective_now = mq.evaluate(device, quirks_mode);
+                    let effective_then =
+                        self.effective_media_query_results.was_effective(media_rule);
+
+                    if effective_now != effective_then {
+                        debug!(" > @media rule changed {} -> {}",
+                               effective_then, effective_now);
+                        return false;
+                    }
+
+                    if !effective_now {
+                        iter.skip_children();
+                    }
+                }
+            }
+        }
+
+        true
+    }
 
     #[inline]
     fn borrow_for_pseudo(&self, pseudo: Option<&PseudoElement>) -> Option<&SelectorMap<Rule>> {
