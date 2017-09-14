@@ -198,6 +198,10 @@ impl<'a, 'cx, 'cx_a: 'cx, S: ToComputedValue + 'a> Iterator for ComputedVecIter<
             None
         }
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (self.values.len(), Some(self.values.len()))
+    }
 }
 
 /// A trait to represent the conversion between computed and specified values.

@@ -99,6 +99,10 @@ impl<'a> Iterator for DeclarationImportanceIterator<'a> {
         self.iter.next().map(|(decl, important)|
             (decl, if important { Importance::Important } else { Importance::Normal }))
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.iter.size_hint()
+    }
 }
 
 impl<'a> DoubleEndedIterator for DeclarationImportanceIterator<'a> {

@@ -765,6 +765,10 @@ impl<'a> Iterator for AbsoluteDescendantIter<'a> {
     fn next(&mut self) -> Option<&'a mut Flow> {
         self.iter.next().map(|info| FlowRef::deref_mut(&mut info.flow))
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.iter.size_hint()
+    }
 }
 
 pub type AbsoluteDescendantOffsetIter<'a> = Zip<AbsoluteDescendantIter<'a>, IterMut<'a, Au>>;

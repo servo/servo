@@ -487,6 +487,10 @@ impl<I> Iterator for FragmentParsingResult<I>
         next.remove_self();
         Some(next)
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.inner.size_hint()
+    }
 }
 
 #[derive(HeapSizeOf, JSTraceable, PartialEq)]
