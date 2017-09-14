@@ -496,7 +496,6 @@ pub struct IframeFragmentInfo {
 
 impl IframeFragmentInfo {
     /// Creates the information specific to an iframe fragment.
-    /// Returns None if the node has no nested browsing context.
     pub fn new<N: ThreadSafeLayoutNode>(node: &N) -> IframeFragmentInfo {
         let browsing_context_id = node.iframe_browsing_context_id();
         let pipeline_id = node.iframe_pipeline_id();
