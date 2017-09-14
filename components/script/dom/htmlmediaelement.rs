@@ -8,6 +8,7 @@ use dom::attr::Attr;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::HTMLMediaElementBinding::CanPlayTypeResult;
+use dom::bindings::codegen::Bindings::HTMLMediaElementBinding::HTMLMediaElementConstants;
 use dom::bindings::codegen::Bindings::HTMLMediaElementBinding::HTMLMediaElementConstants::*;
 use dom::bindings::codegen::Bindings::HTMLMediaElementBinding::HTMLMediaElementMethods;
 use dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorConstants::*;
@@ -47,7 +48,7 @@ pub struct HTMLMediaElement {
     htmlelement: HTMLElement,
     /// https://html.spec.whatwg.org/multipage/#dom-media-networkstate
     // FIXME(nox): Use an enum.
-    network_state: Cell<u16>,
+    network_state: Cell<NetworkState>,
     /// https://html.spec.whatwg.org/multipage/#dom-media-readystate
     // FIXME(nox): Use an enum.
     ready_state: Cell<u16>,
@@ -70,6 +71,16 @@ pub struct HTMLMediaElement {
     video: DOMRefCell<Option<VideoMedia>>,
 }
 
+/// https://html.spec.whatwg.org/multipage/#dom-media-networkstate
+#[derive(Clone, Copy, HeapSizeOf, JSTraceable, PartialEq)]
+#[repr(u8)]
+enum NetworkState {
+    Empty = HTMLMediaElementConstants::NETWORK_EMPTY as u8,
+    Idle = HTMLMediaElementConstants::NETWORK_IDLE as u8,
+    Loading = HTMLMediaElementConstants::NETWORK_LOADING as u8,
+    NoSource = HTMLMediaElementConstants::NETWORK_NO_SOURCE as u8,
+}
+
 #[derive(HeapSizeOf, JSTraceable)]
 pub struct VideoMedia {
     format: String,
@@ -89,7 +100,7 @@ impl HTMLMediaElement {
     ) -> Self {
         Self {
             htmlelement: HTMLElement::new_inherited(tag_name, prefix, document),
-            network_state: Cell::new(NETWORK_EMPTY),
+            network_state: Cell::new(NetworkState::Empty),
             ready_state: Cell::new(HAVE_NOTHING),
             current_src: DOMRefCell::new("".to_owned()),
             generation_id: Cell::new(0),
@@ -177,7 +188,7 @@ impl HTMLMediaElement {
         let old_ready_state = self.ready_state.get();
         self.ready_state.set(ready_state);
 
-        if self.network_state.get() == NETWORK_EMPTY {
+        if self.network_state.get() == NetworkState::Empty {
             return;
         }
 
@@ -294,7 +305,7 @@ impl HTMLMediaElement {
     // https://html.spec.whatwg.org/multipage/#concept-media-load-algorithm
     fn invoke_resource_selection_algorithm(&self) {
         // Step 1
-        self.network_state.set(NETWORK_NO_SOURCE);
+        self.network_state.set(NetworkState::NoSource);
 
         // TODO step 2 (show poster)
         // TODO step 3 (delay load event)
@@ -323,12 +334,12 @@ impl HTMLMediaElement {
             // TODO <source> child
             ResourceSelectionMode::Children(panic!())
         } else {
-            self.network_state.set(NETWORK_EMPTY);
+            self.network_state.set(NetworkState::Empty);
             return;
         };
 
         // Step 7
-        self.network_state.set(NETWORK_LOADING);
+        self.network_state.set(NetworkState::Loading);
 
         // Step 8
         let window = window_from_node(self);
@@ -384,7 +395,7 @@ impl HTMLMediaElement {
             // 4.1
             if self.Preload() == "none" && !self.autoplaying.get() {
                 // 4.1.1
-                self.network_state.set(NETWORK_IDLE);
+                self.network_state.set(NetworkState::Idle);
 
                 // 4.1.2
                 let window = window_from_node(self);
@@ -460,7 +471,7 @@ impl HTMLMediaElement {
         // TODO step 2 (forget resource tracks)
 
         // Step 3
-        self.network_state.set(NETWORK_NO_SOURCE);
+        self.network_state.set(NetworkState::NoSource);
 
         // TODO step 4 (show poster)
 
@@ -487,8 +498,8 @@ impl HTMLMediaElement {
         let task_source = window.dom_manipulation_task_source();
 
         // Step 3
-        let network_state = self.NetworkState();
-        if network_state == NETWORK_LOADING || network_state == NETWORK_IDLE {
+        let network_state = self.network_state.get();
+        if network_state == NetworkState::Loading || network_state == NetworkState::Idle {
             task_source.queue_simple_event(
                 self.upcast(),
                 atom!("abort"),
@@ -497,7 +508,7 @@ impl HTMLMediaElement {
         }
 
         // Step 4
-        if network_state != NETWORK_EMPTY {
+        if network_state != NetworkState::Empty {
             // 4.1
             task_source.queue_simple_event(self.upcast(), atom!("emptied"), &window);
 
@@ -536,7 +547,7 @@ impl HTMLMediaElement {
 impl HTMLMediaElementMethods for HTMLMediaElement {
     // https://html.spec.whatwg.org/multipage/#dom-media-networkstate
     fn NetworkState(&self) -> u16 {
-        self.network_state.get()
+        self.network_state.get() as u16
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-media-readystate
@@ -594,7 +605,7 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
         // TODO step 3
 
         // Step 4
-        if self.network_state.get() == NETWORK_EMPTY {
+        if self.network_state.get() == NetworkState::Empty {
             self.invoke_resource_selection_algorithm();
         }
 
@@ -646,7 +657,7 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
     // https://html.spec.whatwg.org/multipage/#dom-media-pause
     fn Pause(&self) {
         // Step 1
-        if self.network_state.get() == NETWORK_EMPTY {
+        if self.network_state.get() == NetworkState::Empty {
             self.invoke_resource_selection_algorithm();
         }
 
@@ -839,7 +850,7 @@ impl FetchResponseListener for HTMLMediaElementContext {
 
             elem.upcast::<EventTarget>().fire_event(atom!("progress"));
 
-            elem.network_state.set(NETWORK_IDLE);
+            elem.network_state.set(NetworkState::Idle);
 
             elem.upcast::<EventTarget>().fire_event(atom!("suspend"));
         }
@@ -850,7 +861,7 @@ impl FetchResponseListener for HTMLMediaElementContext {
                                                   MEDIA_ERR_NETWORK)));
 
             // Step 3
-            elem.network_state.set(NETWORK_IDLE);
+            elem.network_state.set(NetworkState::Idle);
 
             // TODO: Step 4 - update delay load flag
 
