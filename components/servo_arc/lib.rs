@@ -337,7 +337,7 @@ impl<T: ?Sized> Arc<T> {
     }
 
     #[inline]
-    fn is_unique(&self) -> bool {
+    pub fn is_unique(&self) -> bool {
         // We can use Relaxed here, but the justification is a bit subtle.
         //
         // The reason to use Acquire would be to synchronize with other threads
