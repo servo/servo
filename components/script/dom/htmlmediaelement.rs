@@ -199,23 +199,19 @@ impl HTMLMediaElement {
         let window = window_from_node(self);
         let task_source = window.dom_manipulation_task_source();
 
-        // Step 1
+        // Step 1.
         match (old_ready_state, ready_state) {
-            // Previous ready state was ReadyState::HaveNothing,
-            // and the new ready state is ReadyState::HaveMetadata.
             (ReadyState::HaveNothing, ReadyState::HaveMetadata) => {
                 task_source.queue_simple_event(
                     self.upcast(),
                     atom!("loadedmetadata"),
                     &window,
                 );
-            }
 
-            // Previous ready state was ReadyState::HaveMetadata, and the new
-            // ready state is ReadyState::HaveCurrentData or greater.
-            (ReadyState::HaveMetadata, ReadyState::HaveCurrentData) |
-            (ReadyState::HaveMetadata, ReadyState::HaveFutureData) |
-            (ReadyState::HaveMetadata, ReadyState::HaveEnoughData) => {
+                // No other steps are applicable in this case.
+                return;
+            },
+            (ReadyState::HaveMetadata, new) if new >= ReadyState::HaveCurrentData => {
                 if !self.fired_loadeddata_event.get() {
                     self.fired_loadeddata_event.set(true);
                     task_source.queue_simple_event(
@@ -224,86 +220,68 @@ impl HTMLMediaElement {
                         &window,
                     );
                 }
-            }
 
-            // previous ready state was ReadyState::HaveFutureData or more,
-            // and the new ready state is ReadyState::HaveCurrentData or less.
-            (ReadyState::HaveFutureData, ReadyState::HaveCurrentData) |
-            (ReadyState::HaveEnoughData, ReadyState::HaveCurrentData) |
-            (ReadyState::HaveFutureData, ReadyState::HaveMetadata) |
-            (ReadyState::HaveEnoughData, ReadyState::HaveMetadata) |
-            (ReadyState::HaveFutureData, ReadyState::HaveNothing) |
-            (ReadyState::HaveEnoughData, ReadyState::HaveNothing) => {
-                // TODO: timeupdate event logic + waiting
-            }
+                // Steps for the transition from HaveMetadata to HaveCurrentData
+                // or HaveFutureData also apply here, as per the next match
+                // expression.
+            },
+            (ReadyState::HaveFutureData, new) if new <= ReadyState::HaveCurrentData => {
+                // FIXME(nox): Queue a task to fire timeupdate and waiting
+                // events if the conditions call from the spec are met.
 
-            _ => (),
-        }
-
-        // Step 1.
-        // If the new ready state is ReadyState::HaveFutureData or ReadyState::HaveEnoughData,
-        // then the relevant steps below must then be run also.
-        match (old_ready_state, ready_state) {
-            // Previous ready state was ReadyState::HaveCurrentData or less,
-            // and the new ready state is ReadyState::HaveFutureData.
-            (ReadyState::HaveCurrentData, ReadyState::HaveFutureData) |
-            (ReadyState::HaveMetadata, ReadyState::HaveFutureData) |
-            (ReadyState::HaveNothing, ReadyState::HaveFutureData) => {
-                task_source.queue_simple_event(
-                    self.upcast(),
-                    atom!("canplay"),
-                    &window,
-                );
-
-                if !self.Paused() {
-                    self.notify_about_playing();
-                }
-            }
-
-            // New ready state is ReadyState::HaveEnoughData.
-            (_, ReadyState::HaveEnoughData) => {
-                if old_ready_state <= ReadyState::HaveCurrentData {
-                    task_source.queue_simple_event(
-                        self.upcast(),
-                        atom!("canplay"),
-                        &window,
-                    );
-
-                    if !self.Paused() {
-                        self.notify_about_playing();
-                    }
-                }
-
-                //TODO: check sandboxed automatic features browsing context flag
-                if self.autoplaying.get() &&
-                   self.Paused() &&
-                   self.Autoplay() {
-                    // Step 1
-                    self.paused.set(false);
-                    // TODO step 2: show poster
-                    // Step 3
-                    task_source.queue_simple_event(
-                        self.upcast(),
-                        atom!("play"),
-                        &window,
-                    );
-                    // Step 4
-                    self.notify_about_playing();
-                    // Step 5
-                    self.autoplaying.set(false);
-                }
-
-                task_source.queue_simple_event(
-                    self.upcast(),
-                    atom!("canplaythrough"),
-                    &window,
-                );
-            }
+                // No other steps are applicable in this case.
+                return;
+            },
 
             _ => (),
         }
 
-        // TODO Step 2: media controller
+        if old_ready_state <= ReadyState::HaveCurrentData && ready_state >= ReadyState::HaveFutureData {
+            task_source.queue_simple_event(
+                self.upcast(),
+                atom!("canplay"),
+                &window,
+            );
+
+            if !self.Paused() {
+                self.notify_about_playing();
+            }
+        }
+
+        if ready_state == ReadyState::HaveEnoughData {
+            // TODO: Check sandboxed automatic features browsing context flag.
+            // FIXME(nox): I have no idea what this TODO is about.
+
+            // FIXME(nox): Review this block.
+            if self.autoplaying.get() &&
+                self.Paused() &&
+                self.Autoplay() {
+                // Step 1
+                self.paused.set(false);
+                // TODO step 2: show poster
+                // Step 3
+                task_source.queue_simple_event(
+                    self.upcast(),
+                    atom!("play"),
+                    &window,
+                );
+                // Step 4
+                self.notify_about_playing();
+                // Step 5
+                self.autoplaying.set(false);
+            }
+
+            // FIXME(nox): According to the spec, this should come *before* the
+            // "play" event.
+            task_source.queue_simple_event(
+                self.upcast(),
+                atom!("canplaythrough"),
+                &window,
+            );
+        }
+
+        // TODO Step 2: Media controller.
+        // FIXME(nox): There is no step 2 in the spec.
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-media-load-algorithm
