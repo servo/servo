@@ -661,65 +661,70 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-media-play
+    // FIXME(nox): This should return a promise.
     fn Play(&self) {
-        // TODO step 1
+        // Step 1.
+        // FIXME(nox): Return a rejected promise if not allowed to play.
 
-        // Step 2
+        // Step 2.
         if self.error.get().map_or(false, |e| e.Code() == MEDIA_ERR_SRC_NOT_SUPPORTED) {
-            // TODO return rejected promise
+            // FIXME(nox): This should return a rejected promise.
             return;
         }
 
-        // TODO step 3
+        // Step 3.
+        // Create promise and add it to list of pending play promises.
 
-        // Step 4
+        // Step 4.
         if self.network_state.get() == NetworkState::Empty {
             self.invoke_resource_selection_algorithm();
         }
 
-        // TODO step 5 (seek backwards)
-
-        // TODO step 6 (media controller)
+        // Step 5.
+        // FIXME(nox): Seek to earliest possible position if playback has ended
+        // and direction of playback is forwards.
 
         let state = self.ready_state.get();
 
-        // Step 7
         if self.Paused() {
-            // 7.1
+            // Step 6.1.
             self.paused.set(false);
 
-            // TODO 7.2 (show poster)
+            // Step 6.2.
+            // FIXME(nox): Set show poster flag to false and run time marches on
+            // steps if show poster flag is true.
 
+            // Step 6.3.
             let window = window_from_node(self);
             let task_source = window.dom_manipulation_task_source();
-
-            // 7.3
             task_source.queue_simple_event(self.upcast(), atom!("play"), &window);
 
-            // 7.4
-            if state == ReadyState::HaveNothing ||
-               state == ReadyState::HaveMetadata ||
-               state == ReadyState::HaveCurrentData {
-                task_source.queue_simple_event(
-                    self.upcast(),
-                    atom!("waiting"),
-                    &window,
-                );
-            } else {
-                self.notify_about_playing();
+            // Step 7.4.
+            match state {
+                ReadyState::HaveNothing |
+                ReadyState::HaveMetadata |
+                ReadyState::HaveCurrentData => {
+                    task_source.queue_simple_event(
+                        self.upcast(),
+                        atom!("waiting"),
+                        &window,
+                    );
+                },
+                ReadyState::HaveFutureData |
+                ReadyState::HaveEnoughData => {
+                    self.notify_about_playing();
+                }
             }
-        }
-        // Step 8
-        else if state == ReadyState::HaveFutureData || state == ReadyState::HaveEnoughData {
-            // TODO resolve pending play promises
+        } else if state == ReadyState::HaveFutureData || state == ReadyState::HaveEnoughData {
+            // Step 7.
+            // FIXME(nox): Queue a task to resolve pending play promises.
         }
 
-        // Step 9
+        // Step 8.
         self.autoplaying.set(false);
 
-        // TODO step 10 (media controller)
-
-        // TODO return promise
+        // Step 9.
+        // FIXME(nox): Return promise created in step 3.
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-media-pause
@@ -820,12 +825,12 @@ struct HTMLMediaElementContext {
     ignore_response: bool,
 }
 
+// https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
 impl FetchResponseListener for HTMLMediaElementContext {
     fn process_request_body(&mut self) {}
 
     fn process_request_eof(&mut self) {}
 
-    // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
     fn process_response(&mut self, metadata: Result<FetchMetadata, NetworkError>) {
         self.metadata = metadata.ok().map(|m| {
             match m {
@@ -834,23 +839,24 @@ impl FetchResponseListener for HTMLMediaElementContext {
             }
         });
 
+        let status_is_ok = self.metadata.as_ref()
+            .and_then(|m| m.status.as_ref())
+            .map_or(true, |s| s.0 >= 200 && s.0 < 300);
+
         // => "If the media data cannot be fetched at all..."
-        let is_failure = self.metadata
-                             .as_ref()
-                             .and_then(|m| m.status
-                                            .as_ref()
-                                            .map(|&(s, _)| s < 200 || s >= 300))
-                             .unwrap_or(false);
-        if is_failure {
+        if !status_is_ok {
             // Ensure that the element doesn't receive any further notifications
-            // of the aborted fetch. The dedicated failure steps will be executed
-            // when response_complete runs.
+            // of the aborted fetch. The dedicated failure steps will be
+            // executed when response_complete runs.
+            // FIXME(nox): According to the spec, we shouldn't wait to receive
+            // the whole response before running the dedicated failure steps.
             self.ignore_response = true;
         }
     }
 
     fn process_response_chunk(&mut self, mut payload: Vec<u8>) {
         if self.ignore_response {
+            // An error was received previously, skip processing the payload.
             return;
         }
 
