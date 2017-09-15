@@ -593,6 +593,10 @@ impl<'le> GeckoElement<'le> {
         self.as_node().node_info().mInner.mNamespaceID
     }
 
+    fn is_html_element(&self) -> bool {
+        self.namespace_id() == (structs::root::kNameSpaceID_XHTML as i32)
+    }
+
     fn is_xul_element(&self) -> bool {
         self.namespace_id() == (structs::root::kNameSpaceID_XUL as i32)
     }
@@ -1502,6 +1506,18 @@ impl<'le> TElement for GeckoElement<'le> {
             Gecko_MatchLang(self.0, override_lang_ptr, override_lang.is_some(), value.as_ptr())
         }
     }
+
+    fn is_html_document_body_element(&self) -> bool {
+        if self.get_local_name() != &*local_name!("body") {
+            return false;
+        }
+
+        if !self.is_html_element() {
+            return false;
+        }
+
+        unsafe { bindings::Gecko_IsDocumentBody(self.0) }
+    }
 }
 
 impl<'le> PartialEq for GeckoElement<'le> {
@@ -2011,10 +2027,8 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
     }
 
     fn is_html_element_in_html_document(&self) -> bool {
-        let node = self.as_node();
-        let node_info = node.node_info();
-        node_info.mInner.mNamespaceID == (structs::root::kNameSpaceID_XHTML as i32) &&
-        node.owner_doc().mType == structs::root::nsIDocument_Type::eHTML
+        self.is_html_element() &&
+        self.as_node().owner_doc().mType == structs::root::nsIDocument_Type::eHTML
     }
 
     fn ignores_nth_child_selectors(&self) -> bool {
