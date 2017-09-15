@@ -102,6 +102,7 @@ use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use std::cell::Cell;
 use std::collections::{hash_map, HashMap, HashSet};
 use std::default::Default;
+use std::fmt;
 use std::intrinsics;
 use std::ops::Deref;
 use std::option::Option;
@@ -256,6 +257,12 @@ pub trait Runnable {
         panic!("This should probably be redefined.")
     }
     fn main_thread_handler(self: Box<Self>, _script_thread: &ScriptThread) { self.handler(); }
+}
+
+impl fmt::Debug for Runnable + Send {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt.debug_tuple(self.name()).field(&format_args!("...")).finish()
+    }
 }
 
 #[derive(Debug)]
