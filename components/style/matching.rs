@@ -552,10 +552,6 @@ pub trait MatchMethods : TElement {
 
         // Propagate the "can be fragmented" bit. It would be nice to
         // encapsulate this better.
-        //
-        // Note that this is technically not needed for pseudos since we already
-        // do that when we resolve the non-pseudo style, but it doesn't hurt
-        // anyway.
         if cfg!(feature = "servo") {
             let layout_parent =
                 self.inheritance_parent().map(|e| e.layout_parent());
