@@ -1915,6 +1915,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "msg_tests"
+version = "0.0.1"
+dependencies = [
+ "msg 0.0.1",
+ "size_of_test 0.0.1",
+]
+
+[[package]]
 name = "multistr"
 version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2792,6 +2800,7 @@ dependencies = [
  "libservo 0.0.1",
  "log 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "metrics_tests 0.0.1",
+ "msg_tests 0.0.1",
  "net_tests 0.0.1",
  "net_traits_tests 0.0.1",
  "plugin_compiletest 0.0.1",
