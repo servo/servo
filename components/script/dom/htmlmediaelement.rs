@@ -12,6 +12,8 @@ use dom::bindings::codegen::Bindings::HTMLMediaElementBinding::HTMLMediaElementC
 use dom::bindings::codegen::Bindings::HTMLMediaElementBinding::HTMLMediaElementMethods;
 use dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorConstants::*;
 use dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorMethods;
+use dom::bindings::codegen::InheritTypes::{ElementTypeId, HTMLElementTypeId};
+use dom::bindings::codegen::InheritTypes::{HTMLMediaElementTypeId, NodeTypeId};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{MutNullableJS, Root};
 use dom::bindings::refcounted::Trusted;
@@ -20,10 +22,8 @@ use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{Element, AttributeMutation};
 use dom::eventtarget::EventTarget;
-use dom::htmlaudioelement::HTMLAudioElement;
 use dom::htmlelement::HTMLElement;
 use dom::htmlsourceelement::HTMLSourceElement;
-use dom::htmlvideoelement::HTMLVideoElement;
 use dom::mediaerror::MediaError;
 use dom::node::{window_from_node, document_from_node, Node, UnbindContext};
 use dom::virtualmethods::VirtualMethods;
@@ -120,6 +120,17 @@ impl HTMLMediaElement {
             // FIXME(nox): Why is this initialised to true?
             autoplaying: Cell::new(true),
             video: DOMRefCell::new(None),
+        }
+    }
+
+    fn media_type_id(&self) -> HTMLMediaElementTypeId {
+        match self.upcast::<Node>().type_id() {
+            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                HTMLElementTypeId::HTMLMediaElement(media_type_id),
+            )) => {
+                media_type_id
+            },
+            _ => unreachable!(),
         }
     }
 
@@ -397,71 +408,81 @@ impl HTMLMediaElement {
 
     // https://html.spec.whatwg.org/multipage/#concept-media-load-resource
     fn resource_fetch_algorithm(&self, resource: Resource) {
-        // TODO step 3 (remove text tracks)
+        // Steps 1-2.
+        // Unapplicable, the `resource` variable already conveys which mode
+        // is in use.
 
-        // Step 4
-        if let Resource::Url(url) = resource {
-            // 4.1
-            if self.Preload() == "none" && !self.autoplaying.get() {
-                // 4.1.1
-                self.network_state.set(NetworkState::Idle);
+        // Step 3.
+        // FIXME(nox): Remove all media-resource-specific text tracks.
 
-                // 4.1.2
+        // Step 4.
+        match resource {
+            Resource::Url(url) => {
+                // Step 4.remote.1.
+                if self.Preload() == "none" && !self.autoplaying.get() {
+                    // Step 4.remote.1.1.
+                    self.network_state.set(NetworkState::Idle);
+
+                    // Step 4.remote.1.2.
+                    let window = window_from_node(self);
+                    window.dom_manipulation_task_source().queue_simple_event(
+                        self.upcast(),
+                        atom!("suspend"),
+                        &window,
+                    );
+
+                    // Step 4.remote.1.3.
+                    // FIXME(nox): Queue a task to set the delaying-the-load-event
+                    // flag to false.
+
+                    // Steps 4.remote.1.4.
+                    // FIXME(nox): Somehow we should wait for the task from previous
+                    // step to be ran before continuing.
+
+                    // Steps 4.remote.1.5-4.remote.1.7.
+                    // FIXME(nox): Wait for an implementation-defined event and
+                    // then continue with the normal set of steps instead of just
+                    // returning.
+                    return;
+                }
+
+                // Step 4.remote.2.
+                // FIXME(nox): Handle CORS setting from crossorigin attribute.
+                let document = document_from_node(self);
+                let type_ = match self.media_type_id() {
+                    HTMLMediaElementTypeId::HTMLAudioElement => RequestType::Audio,
+                    HTMLMediaElementTypeId::HTMLVideoElement => RequestType::Video,
+                };
+                let request = RequestInit {
+                    url: url.clone(),
+                    type_,
+                    destination: Destination::Media,
+                    credentials_mode: CredentialsMode::Include,
+                    use_url_credentials: true,
+                    origin: document.origin().immutable().clone(),
+                    pipeline_id: Some(self.global().pipeline_id()),
+                    referrer_url: Some(document.url()),
+                    referrer_policy: document.get_referrer_policy(),
+                    .. RequestInit::default()
+                };
+
+                let context = Arc::new(Mutex::new(HTMLMediaElementContext::new(self, url.clone())));
+                let (action_sender, action_receiver) = ipc::channel().unwrap();
                 let window = window_from_node(self);
-                window.dom_manipulation_task_source().queue_simple_event(
-                    self.upcast(),
-                    atom!("suspend"),
-                    &window,
-                );
-
-                // TODO 4.1.3 (delay load flag)
-
-                // TODO 4.1.5-7 (state for load that initiates later)
-                return;
-            }
-
-            // 4.2
-            let context = Arc::new(Mutex::new(HTMLMediaElementContext::new(self, url.clone())));
-            let (action_sender, action_receiver) = ipc::channel().unwrap();
-            let window = window_from_node(self);
-            let listener = NetworkListener {
-                context: context,
-                task_source: window.networking_task_source(),
-                canceller: Some(window.task_canceller())
-            };
-
-            ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
-                listener.notify_fetch(message.to().unwrap());
-            });
-
-            // FIXME: we're supposed to block the load event much earlier than now
-            let document = document_from_node(self);
-
-            let ty = if self.is::<HTMLAudioElement>() {
-                RequestType::Audio
-            } else if self.is::<HTMLVideoElement>() {
-                RequestType::Video
-            } else {
-                unreachable!("Unexpected HTMLMediaElement")
-            };
-
-            let request = RequestInit {
-                url: url.clone(),
-                type_: ty,
-                destination: Destination::Media,
-                credentials_mode: CredentialsMode::Include,
-                use_url_credentials: true,
-                origin: document.origin().immutable().clone(),
-                pipeline_id: Some(self.global().pipeline_id()),
-                referrer_url: Some(document.url()),
-                referrer_policy: document.get_referrer_policy(),
-                .. RequestInit::default()
-            };
-
-            document.fetch_async(LoadType::Media(url), request, action_sender);
-        } else {
-            // TODO local resource fetch
-            self.queue_dedicated_media_source_failure_steps();
+                let listener = NetworkListener {
+                    context: context,
+                    task_source: window.networking_task_source(),
+                    canceller: Some(window.task_canceller())
+                };
+                ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
+                    listener.notify_fetch(message.to().unwrap());
+                });
+                document.fetch_async(LoadType::Media(url), request, action_sender);
+            },
+            Resource::Object => {
+                // FIXME(nox): Use the current media resource.
+                self.queue_dedicated_media_source_failure_steps();
+            },
         }
     }
 
