@@ -8,7 +8,7 @@ use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use style_traits::ParseError;
 use values::computed::{Context, NonNegativeLength, ToComputedValue};
-use values::generics::border::BorderCornerRadius as GenericBorderCornerRadius;
+use values::generics::size::Size;
 use values::generics::border::BorderImageSideWidth as GenericBorderImageSideWidth;
 use values::generics::border::BorderImageSlice as GenericBorderImageSlice;
 use values::generics::border::BorderRadius as GenericBorderRadius;
@@ -44,7 +44,7 @@ pub type BorderImageSlice = GenericBorderImageSlice<NumberOrPercentage>;
 pub type BorderRadius = GenericBorderRadius<LengthOrPercentage>;
 
 /// A specified value for the `border-*-radius` longhand properties.
-pub type BorderCornerRadius = GenericBorderCornerRadius<LengthOrPercentage>;
+pub type BorderCornerRadius = Size<LengthOrPercentage>;
 
 impl BorderSideWidth {
     /// Parses, with quirks.
