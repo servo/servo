@@ -23,7 +23,6 @@ use net_traits::image_cache::ImageCache;
 use profile_traits::mem;
 use profile_traits::time;
 use script_layout_interface::message::Msg;
-use script_runtime::CommonScriptMsg;
 use script_runtime::ScriptThreadEventCategory;
 use script_thread::MainThreadScriptMsg;
 use script_thread::Runnable;
@@ -100,9 +99,12 @@ impl WorkletGlobalScope {
     pub fn run_in_script_thread<R>(&self, runnable: R) where
         R: 'static + Send + Runnable,
     {
-        let msg = CommonScriptMsg::RunnableMsg(ScriptThreadEventCategory::WorkletEvent, box runnable);
-        let msg = MainThreadScriptMsg::Common(msg);
-        self.to_script_thread_sender.send(msg).expect("Worklet thread outlived script thread.");
+        self.to_script_thread_sender
+            .send(MainThreadScriptMsg::MainThreadRunnable(
+                ScriptThreadEventCategory::WorkletEvent,
+                box runnable,
+            ))
+            .expect("Worklet thread outlived script thread.");
     }
 
     /// Send a message to layout.

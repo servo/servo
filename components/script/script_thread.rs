@@ -274,7 +274,7 @@ enum MixedMessage {
     FromScheduler(TimerEvent),
 }
 
-/// Messages used to control the script event loop
+/// Messages used to control the script event loop.
 #[derive(Debug)]
 pub enum MainThreadScriptMsg {
     /// Common variants associated with the script messages
@@ -289,6 +289,8 @@ pub enum MainThreadScriptMsg {
     /// Notifies the script thread that a new worklet has been loaded, and thus the page should be
     /// reflowed.
     WorkletLoaded(PipelineId),
+    /// Runs a Runnable in the main thread.
+    MainThreadRunnable(ScriptThreadEventCategory, Box<Runnable + Send>),
 }
 
 impl OpaqueSender<CommonScriptMsg> for Box<ScriptChan + Send> {
@@ -1167,9 +1169,9 @@ impl ScriptThread {
             MixedMessage::FromImageCache(_) => ScriptThreadEventCategory::ImageCacheMsg,
             MixedMessage::FromScript(ref inner_msg) => {
                 match *inner_msg {
-                    MainThreadScriptMsg::Common(CommonScriptMsg::RunnableMsg(ref category, _)) =>
-                        *category,
-                    _ => ScriptThreadEventCategory::ScriptEvent
+                    MainThreadScriptMsg::Common(CommonScriptMsg::RunnableMsg(category, _)) |
+                    MainThreadScriptMsg::MainThreadRunnable(category, _) => category,
+                    _ => ScriptThreadEventCategory::ScriptEvent,
                 }
             },
             MixedMessage::FromScheduler(_) => ScriptThreadEventCategory::TimerEvent
@@ -1299,13 +1301,16 @@ impl ScriptThread {
                 self.handle_exit_window_msg(id)
             },
             MainThreadScriptMsg::Common(CommonScriptMsg::RunnableMsg(_, runnable)) => {
-                runnable.main_thread_handler(self)
+                runnable.handler()
             }
             MainThreadScriptMsg::Common(CommonScriptMsg::CollectReports(chan)) => {
                 self.collect_reports(chan)
             },
             MainThreadScriptMsg::WorkletLoaded(pipeline_id) => {
                 self.handle_worklet_loaded(pipeline_id)
+            },
+            MainThreadScriptMsg::MainThreadRunnable(_, runnable) => {
+                runnable.main_thread_handler(self)
             },
         }
     }
