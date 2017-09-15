@@ -550,7 +550,8 @@ mod bindings {
     }
 
     fn generate_atoms() {
-        let script = Path::new(file!()).parent().unwrap().join("gecko").join("regen_atoms.py");
+        let script = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap())
+            .join("gecko").join("regen_atoms.py");
         println!("cargo:rerun-if-changed={}", script.display());
         let status = Command::new(&*PYTHON)
             .arg(&script)
@@ -596,11 +597,12 @@ mod bindings {
 
 #[cfg(not(feature = "bindgen"))]
 mod bindings {
-    use std::path::Path;
+    use std::env;
+    use std::path::PathBuf;
     use super::common::*;
 
     pub fn generate() {
-        let dir = Path::new(file!()).parent().unwrap().join("gecko/generated");
+        let dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap()).join("gecko/generated");
         println!("cargo:rerun-if-changed={}", dir.display());
         copy_dir(&dir, &*OUTDIR_PATH, |path| {
             println!("cargo:rerun-if-changed={}", path.display());
