@@ -32,6 +32,7 @@ use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use microtask::{Microtask, MicrotaskRunnable};
+use mime::{Mime, SubLevel, TopLevel};
 use net_traits::{FetchResponseListener, FetchMetadata, Metadata, NetworkError};
 use net_traits::request::{CredentialsMode, Destination, RequestInit, Type as RequestType};
 use network_listener::{NetworkListener, PreInvoke};
@@ -644,9 +645,14 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator-canplaytype
-    fn CanPlayType(&self, _type_: DOMString) -> CanPlayTypeResult {
-        // TODO: application/octet-stream
-        CanPlayTypeResult::Maybe
+    fn CanPlayType(&self, type_: DOMString) -> CanPlayTypeResult {
+        match type_.parse::<Mime>() {
+            Ok(Mime(TopLevel::Application, SubLevel::OctetStream, _)) |
+            Err(_) => {
+                CanPlayTypeResult::_empty
+            },
+            _ => CanPlayTypeResult::Maybe
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-media-error
