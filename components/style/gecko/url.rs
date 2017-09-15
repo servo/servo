@@ -6,12 +6,13 @@
 
 use gecko_bindings::structs::{ServoBundledURI, URLExtraData};
 use gecko_bindings::structs::mozilla::css::URLValueData;
+use gecko_bindings::structs::root::{nsStyleImageRequest, RustString};
 use gecko_bindings::structs::root::mozilla::css::ImageValue;
-use gecko_bindings::structs::root::nsStyleImageRequest;
 use gecko_bindings::sugar::refptr::RefPtr;
 use parser::ParserContext;
-use servo_arc::Arc;
+use servo_arc::{Arc, RawOffsetArc};
 use std::fmt;
+use std::mem;
 use style_traits::{ToCss, ParseError};
 
 /// A specified url() value for gecko. Gecko does not eagerly resolve SpecifiedUrls.
@@ -61,7 +62,14 @@ impl SpecifiedUrl {
     pub unsafe fn from_url_value_data(url: &URLValueData)
                                        -> Result<SpecifiedUrl, ()> {
         Ok(SpecifiedUrl {
-            serialization: Arc::new(url.mString.to_string()),
+            serialization: if url.mUsingRustString {
+                let arc_type = url.mStrings.mRustString.as_ref()
+                    as *const _ as
+                    *const RawOffsetArc<String>;
+                Arc::from_raw_offset((*arc_type).clone())
+            } else {
+                Arc::new(url.mStrings.mString.as_ref().to_string())
+            },
             extra_data: url.mExtraData.to_safe(),
             image_value: None,
         })
@@ -117,7 +125,10 @@ impl SpecifiedUrl {
         debug_assert_eq!(self.image_value, None);
         self.image_value = {
             unsafe {
-                let ptr = Gecko_ImageValue_Create(self.for_ffi());
+                let arc_offset = Arc::into_raw_offset(self.serialization.clone());
+                let ptr = Gecko_ImageValue_Create(
+                    self.for_ffi(),
+                    mem::transmute::<_, RawOffsetArc<RustString>>(arc_offset));
                 // We do not expect Gecko_ImageValue_Create returns null.
                 debug_assert!(!ptr.is_null());
                 Some(RefPtr::from_addrefed(ptr))
