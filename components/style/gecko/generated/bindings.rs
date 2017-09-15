@@ -1547,8 +1547,7 @@ extern "C" {
                                                  *mut nsCSSCounterStyleRule);
 }
 extern "C" {
-    pub fn Gecko_GetBody(pres_context: RawGeckoPresContextBorrowed)
-     -> RawGeckoElementBorrowedOrNull;
+    pub fn Gecko_IsDocumentBody(element: RawGeckoElementBorrowed) -> bool;
 }
 extern "C" {
     pub fn Gecko_GetLookAndFeelSystemColor(color_id: i32,
