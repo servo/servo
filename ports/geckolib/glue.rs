@@ -1124,6 +1124,18 @@ pub extern "C" fn Servo_StyleSheet_GetSourceMapURL(
     }
 }
 
+#[no_mangle]
+pub extern "C" fn Servo_StyleSheet_GetSourceURL(
+    sheet: RawServoStyleSheetContentsBorrowed,
+    result: *mut nsAString
+) {
+    let contents = StylesheetContents::as_arc(&sheet);
+    let url_opt = contents.source_url.read();
+    if let Some(ref url) = *url_opt {
+        write!(unsafe { &mut *result }, "{}", url).unwrap();
+    }
+}
+
 fn read_locked_arc<T, R, F>(raw: &<Locked<T> as HasFFI>::FFIType, func: F) -> R
     where Locked<T>: HasArcFFI, F: FnOnce(&T) -> R
 {

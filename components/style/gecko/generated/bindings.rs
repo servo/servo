@@ -1978,6 +1978,10 @@ extern "C" {
                                             result: *mut nsAString);
 }
 extern "C" {
+    pub fn Servo_StyleSheet_GetSourceURL(sheet: RawServoStyleSheetContentsBorrowed,
+                                         result: *mut nsAString);
+}
+extern "C" {
     pub fn Servo_StyleSheet_GetOrigin(sheet:
                                           RawServoStyleSheetContentsBorrowed)
      -> u8;
