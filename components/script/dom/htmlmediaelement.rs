@@ -531,59 +531,78 @@ impl HTMLMediaElement {
         // this invokation of the load algorithm.
         self.fired_loadeddata_event.set(false);
 
-        // TODO Step 1 (abort resource selection algorithm instances)
+        // Step 1.
+        // FIXME(nox): Abort any already-running instance of the
+        // resource selection algorithm.
 
-        // Step 2
+        // Steps 2-4.
+        // FIXME(nox): Cancel all tasks related to this element and resolve or
+        // reject all pending play promises.
         self.generation_id.set(self.generation_id.get() + 1);
-        // TODO reject pending play promises
 
         let window = window_from_node(self);
         let task_source = window.dom_manipulation_task_source();
 
-        // Step 3
+        // Step 5.
         let network_state = self.network_state.get();
         if network_state == NetworkState::Loading || network_state == NetworkState::Idle {
-            task_source.queue_simple_event(
-                self.upcast(),
-                atom!("abort"),
-                &window,
-            );
+            task_source.queue_simple_event(self.upcast(), atom!("abort"), &window);
         }
 
-        // Step 4
+        // Step 6.
         if network_state != NetworkState::Empty {
-            // 4.1
+            // Step 6.1.
             task_source.queue_simple_event(self.upcast(), atom!("emptied"), &window);
 
-            // TODO 4.2 (abort in-progress fetch)
+            // Step 6.2.
+            // FIXME(nox): Abort in-progress fetching process.
 
-            // TODO 4.3 (detach media provider object)
-            // TODO 4.4 (forget resource tracks)
+            // Step 6.3.
+            // FIXME(nox): Detach MediaSource media provider object.
 
-            // 4.5
+            // Step 6.4.
+            // FIXME(nox): Forget the media-resource-specific tracks.
+
+            // Step 6.5.
             if self.ready_state.get() != ReadyState::HaveNothing {
                 self.change_ready_state(ReadyState::HaveNothing);
             }
 
-            // 4.6
+            // Step 6.6.
             if !self.Paused() {
+                // Step 6.6.1.
                 self.paused.set(true);
+
+                // Step 6.6.2.
+                // FIXME(nox): Reject pending play promises.
             }
-            // TODO 4.7 (seeking)
-            // TODO 4.8 (playback position)
-            // TODO 4.9 (timeline offset)
-            // TODO 4.10 (duration)
+
+            // Step 6.7.
+            // FIXME(nox): If seeking is true, set it to false.
+
+            // Step 6.8.
+            // FIXME(nox): Set current and official playback position to 0 and
+            // maybe queue a task to fire a timeupdate event.
+
+            // Step 6.9.
+            // FIXME(nox): Set timeline offset to NaN.
+
+            // Step 6.10.
+            // FIXME(nox): Set duration to NaN.
         }
 
-        // TODO step 5 (playback rate)
-        // Step 6
+        // Step 7.
+        // FIXME(nox): Set playbackRate to defaultPlaybackRate.
+
+        // Step 8.
         self.error.set(None);
         self.autoplaying.set(true);
 
-        // Step 7
+        // Step 9.
         self.invoke_resource_selection_algorithm();
 
-        // TODO step 8 (stop previously playing resource)
+        // Step 10.
+        // FIXME(nox): Stop playback of any previously running media resource.
     }
 }
 
