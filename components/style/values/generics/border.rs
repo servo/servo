@@ -151,13 +151,18 @@ impl<L: Clone> From<L> for BorderCornerRadius<L> {
 }
 
 impl<L> ToCss for BorderCornerRadius<L>
-    where L: ToCss,
+    where L: ToCss + PartialEq,
 {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result
         where W: fmt::Write
     {
         self.0.width.to_css(dest)?;
-        dest.write_str(" ")?;
-        self.0.height.to_css(dest)
+
+        if self.0.height != self.0.width {
+            dest.write_str(" ")?;
+            self.0.height.to_css(dest)?;
+        }
+
+        Ok(())
     }
 }
