@@ -547,6 +547,14 @@ impl<'le> TElement for ServoLayoutElement<'le> {
         };
         extended_filtering(&element_lang, &*value)
     }
+
+    fn is_html_document_body_element(&self) -> bool {
+        // This is only used for the "tables inherit from body" quirk, which we
+        // don't implement.
+        //
+        // FIXME(emilio): We should be able to give the right answer though!
+        false
+    }
 }
 
 impl<'le> PartialEq for ServoLayoutElement<'le> {
