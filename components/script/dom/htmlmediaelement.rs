@@ -286,44 +286,61 @@ impl HTMLMediaElement {
 
     // https://html.spec.whatwg.org/multipage/#concept-media-load-algorithm
     fn invoke_resource_selection_algorithm(&self) {
-        // Step 1
+        // Step 1.
         self.network_state.set(NetworkState::NoSource);
 
-        // TODO step 2 (show poster)
-        // TODO step 3 (delay load event)
+        // Step 2.
+        // FIXME(nox): Set show poster flag to true.
 
-        // Step 4
+        // Step 3.
+        // FIXME(nox): Set the delaying-the-load-event flag to true.
+
+        // Step 4.
+        // If the resource selection mode in the synchronous section is
+        // "attribute", the URL of the resource to fetch is relative to the
+        // media element's node document when the src attribute was last
+        // changed, which is why we need to pass the base URL in the task
+        // right here.
         let doc = document_from_node(self);
         let task = MediaElementMicrotask::ResourceSelectionTask {
             elem: Root::from_ref(self),
             base_url: doc.base_url()
         };
+
+        // FIXME(nox): This will later call the resource_selection_algorith_sync
+        // method from below, if microtasks were trait objects, we would be able
+        // to put the code directly in this method, without the boilerplate
+        // indirections.
         ScriptThread::await_stable_state(Microtask::MediaElement(task));
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-media-load-algorithm
-    #[allow(unreachable_code)]
+    // FIXME(nox): Why does this need to be passed the base URL?
     fn resource_selection_algorithm_sync(&self, base_url: ServoUrl) {
-        // TODO step 5 (populate pending text tracks)
+        // Step 5.
+        // FIXME(nox): Maybe populate the list of pending text tracks.
 
-        // Step 6
-        let mode = if false {
-            // TODO media provider object
-            ResourceSelectionMode::Object
-        } else if let Some(attr) = self.upcast::<Element>().get_attribute(&ns!(), &local_name!("src")) {
-            ResourceSelectionMode::Attribute(attr.Value().to_string())
-        } else if false {  // TODO: when implementing this remove #[allow(unreachable_code)] above.
-            // TODO <source> child
-            ResourceSelectionMode::Children(panic!())
+        // Step 6.
+        enum Mode {
+            // FIXME(nox): Support media object provider.
+            #[allow(dead_code)]
+            Object,
+            Attribute(String),
+            // FIXME(nox): Support source element child.
+            #[allow(dead_code)]
+            Children(Root<HTMLSourceElement>),
+        }
+        let mode = if let Some(attr) = self.upcast::<Element>().get_attribute(&ns!(), &local_name!("src")) {
+            Mode::Attribute(attr.Value().into())
         } else {
             self.network_state.set(NetworkState::Empty);
             return;
         };
 
-        // Step 7
+        // Step 7.
         self.network_state.set(NetworkState::Loading);
 
-        // Step 8
+        // Step 8.
         let window = window_from_node(self);
         window.dom_manipulation_task_source().queue_simple_event(
             self.upcast(),
@@ -331,40 +348,50 @@ impl HTMLMediaElement {
             &window,
         );
 
-        // Step 9
+        // Step 9.
         match mode {
-            ResourceSelectionMode::Object => {
-                // Step 1
+            // Step 9.obj.
+            Mode::Object => {
+                // Step 9.obj.1.
                 *self.current_src.borrow_mut() = "".to_owned();
 
-                // Step 4
-                self.resource_fetch_algorithm(Resource::Object);
-            }
+                // Step 9.obj.2.
+                // FIXME(nox): The rest of the steps should be ran in parallel.
 
-            ResourceSelectionMode::Attribute(src) => {
-                // Step 1
+                // Step 9.obj.3.
+                // Note that the resource fetch algorithm itself takes care
+                // of the cleanup in case of failure itself.
+                // FIXME(nox): Pass the assigned media provider here.
+                self.resource_fetch_algorithm(Resource::Object);
+            },
+            Mode::Attribute(src) => {
+                // Step 9.attr.1.
                 if src.is_empty() {
                     self.queue_dedicated_media_source_failure_steps();
                     return;
                 }
 
-                // Step 2
-                let absolute_url = base_url.join(&src).map_err(|_| ());
+                // Step 9.attr.2.
+                let url_record = match base_url.join(&src) {
+                    Ok(url) => url,
+                    Err(_) => {
+                        self.queue_dedicated_media_source_failure_steps();
+                        return;
+                    }
+                };
 
-                // Step 3
-                if let Ok(url) = absolute_url {
-                    *self.current_src.borrow_mut() = url.as_str().into();
-                    // Step 4
-                    self.resource_fetch_algorithm(Resource::Url(url));
-                } else {
-                    self.queue_dedicated_media_source_failure_steps();
-                }
-            }
+                // Step 9.attr.3.
+                *self.current_src.borrow_mut() = url_record.as_str().into();
 
-            ResourceSelectionMode::Children(_child) => {
-                // TODO
+                // Step 9.attr.4.
+                // Note that the resource fetch algorithm itself takes care
+                // of the cleanup in case of failure itself.
+                self.resource_fetch_algorithm(Resource::Url(url_record));
+            },
+            Mode::Children(_source) => {
+                // Step 9.children.
                 self.queue_dedicated_media_source_failure_steps()
-            }
+            },
         }
     }
 
@@ -721,12 +748,6 @@ impl MicrotaskRunnable for MediaElementMicrotask {
             },
         }
     }
-}
-
-enum ResourceSelectionMode {
-    Object,
-    Attribute(String),
-    Children(Root<HTMLSourceElement>),
 }
 
 enum Resource {
