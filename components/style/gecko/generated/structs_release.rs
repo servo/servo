@@ -1691,17 +1691,52 @@ pub mod root {
                 pub vtable_: *const URLValueData__bindgen_vtable,
                 pub mRefCnt: root::mozilla::ThreadSafeAutoRefCnt,
                 pub mURI: root::nsMainThreadPtrHandle<root::nsIURI>,
-                pub mString: ::nsstring::nsStringRepr,
                 pub mExtraData: root::RefPtr<root::mozilla::URLExtraData>,
                 pub mURIResolved: bool,
                 pub mIsLocalRef: [u8; 2usize],
                 pub mMightHaveRef: [u8; 2usize],
+                pub mStrings: root::mozilla::css::URLValueData_RustOrGeckoString,
+                pub mUsingRustString: bool,
             }
             pub type URLValueData_HasThreadSafeRefCnt =
                 root::mozilla::TrueType;
+            #[repr(C)]
+            #[derive(Debug)]
+            pub struct URLValueData_RustOrGeckoString {
+                pub mString: root::__BindgenUnionField<::nsstring::nsStringRepr>,
+                pub mRustString: root::__BindgenUnionField<::gecko_bindings::structs::ServoRawOffsetArc<root::RustString>>,
+                pub bindgen_union_field: [u64; 2usize],
+            }
+            #[test]
+            fn bindgen_test_layout_URLValueData_RustOrGeckoString() {
+                assert_eq!(::std::mem::size_of::<URLValueData_RustOrGeckoString>()
+                           , 16usize , concat ! (
+                           "Size of: " , stringify ! (
+                           URLValueData_RustOrGeckoString ) ));
+                assert_eq! (::std::mem::align_of::<URLValueData_RustOrGeckoString>()
+                            , 8usize , concat ! (
+                            "Alignment of " , stringify ! (
+                            URLValueData_RustOrGeckoString ) ));
+                assert_eq! (unsafe {
+                            & (
+                            * ( 0 as * const URLValueData_RustOrGeckoString )
+                            ) . mString as * const _ as usize } , 0usize ,
+                            concat ! (
+                            "Alignment of field: " , stringify ! (
+                            URLValueData_RustOrGeckoString ) , "::" ,
+                            stringify ! ( mString ) ));
+                assert_eq! (unsafe {
+                            & (
+                            * ( 0 as * const URLValueData_RustOrGeckoString )
+                            ) . mRustString as * const _ as usize } , 0usize ,
+                            concat ! (
+                            "Alignment of field: " , stringify ! (
+                            URLValueData_RustOrGeckoString ) , "::" ,
+                            stringify ! ( mRustString ) ));
+            }
             #[test]
             fn bindgen_test_layout_URLValueData() {
-                assert_eq!(::std::mem::size_of::<URLValueData>() , 56usize ,
+                assert_eq!(::std::mem::size_of::<URLValueData>() , 64usize ,
                            concat ! (
                            "Size of: " , stringify ! ( URLValueData ) ));
                 assert_eq! (::std::mem::align_of::<URLValueData>() , 8usize ,
@@ -1719,38 +1754,45 @@ pub mod root {
                             "Alignment of field: " , stringify ! (
                             URLValueData ) , "::" , stringify ! ( mURI ) ));
                 assert_eq! (unsafe {
-                            & ( * ( 0 as * const URLValueData ) ) . mString as
-                            * const _ as usize } , 24usize , concat ! (
-                            "Alignment of field: " , stringify ! (
-                            URLValueData ) , "::" , stringify ! ( mString )
-                            ));
-                assert_eq! (unsafe {
                             & ( * ( 0 as * const URLValueData ) ) . mExtraData
-                            as * const _ as usize } , 40usize , concat ! (
+                            as * const _ as usize } , 24usize , concat ! (
                             "Alignment of field: " , stringify ! (
                             URLValueData ) , "::" , stringify ! ( mExtraData )
                             ));
                 assert_eq! (unsafe {
                             & ( * ( 0 as * const URLValueData ) ) .
-                            mURIResolved as * const _ as usize } , 48usize ,
+                            mURIResolved as * const _ as usize } , 32usize ,
                             concat ! (
                             "Alignment of field: " , stringify ! (
                             URLValueData ) , "::" , stringify ! ( mURIResolved
                             ) ));
                 assert_eq! (unsafe {
                             & ( * ( 0 as * const URLValueData ) ) .
-                            mIsLocalRef as * const _ as usize } , 49usize ,
+                            mIsLocalRef as * const _ as usize } , 33usize ,
                             concat ! (
                             "Alignment of field: " , stringify ! (
                             URLValueData ) , "::" , stringify ! ( mIsLocalRef
                             ) ));
                 assert_eq! (unsafe {
                             & ( * ( 0 as * const URLValueData ) ) .
-                            mMightHaveRef as * const _ as usize } , 51usize ,
+                            mMightHaveRef as * const _ as usize } , 35usize ,
                             concat ! (
                             "Alignment of field: " , stringify ! (
                             URLValueData ) , "::" , stringify ! (
                             mMightHaveRef ) ));
+                assert_eq! (unsafe {
+                            & ( * ( 0 as * const URLValueData ) ) . mStrings
+                            as * const _ as usize } , 40usize , concat ! (
+                            "Alignment of field: " , stringify ! (
+                            URLValueData ) , "::" , stringify ! ( mStrings )
+                            ));
+                assert_eq! (unsafe {
+                            & ( * ( 0 as * const URLValueData ) ) .
+                            mUsingRustString as * const _ as usize } , 56usize
+                            , concat ! (
+                            "Alignment of field: " , stringify ! (
+                            URLValueData ) , "::" , stringify ! (
+                            mUsingRustString ) ));
             }
             #[repr(C)]
             #[derive(Debug)]
@@ -1759,7 +1801,7 @@ pub mod root {
             }
             #[test]
             fn bindgen_test_layout_URLValue() {
-                assert_eq!(::std::mem::size_of::<URLValue>() , 56usize ,
+                assert_eq!(::std::mem::size_of::<URLValue>() , 64usize ,
                            concat ! ( "Size of: " , stringify ! ( URLValue )
                            ));
                 assert_eq! (::std::mem::align_of::<URLValue>() , 8usize ,
@@ -1775,7 +1817,7 @@ pub mod root {
             }
             #[test]
             fn bindgen_test_layout_ImageValue() {
-                assert_eq!(::std::mem::size_of::<ImageValue>() , 104usize ,
+                assert_eq!(::std::mem::size_of::<ImageValue>() , 112usize ,
                            concat ! ( "Size of: " , stringify ! ( ImageValue )
                            ));
                 assert_eq! (::std::mem::align_of::<ImageValue>() , 8usize ,
@@ -1783,12 +1825,12 @@ pub mod root {
                             "Alignment of " , stringify ! ( ImageValue ) ));
                 assert_eq! (unsafe {
                             & ( * ( 0 as * const ImageValue ) ) . mRequests as
-                            * const _ as usize } , 56usize , concat ! (
+                            * const _ as usize } , 64usize , concat ! (
                             "Alignment of field: " , stringify ! ( ImageValue
                             ) , "::" , stringify ! ( mRequests ) ));
                 assert_eq! (unsafe {
                             & ( * ( 0 as * const ImageValue ) ) . mLoadedImage
-                            as * const _ as usize } , 96usize , concat ! (
+                            as * const _ as usize } , 104usize , concat ! (
                             "Alignment of field: " , stringify ! ( ImageValue
                             ) , "::" , stringify ! ( mLoadedImage ) ));
             }
@@ -28445,6 +28487,11 @@ pub mod root {
                   } | ((mHadListener as u8 as u8) << 5usize) & (32u64 as u8))
              } | ((mHadDispatch as u8 as u8) << 6usize) & (64u64 as u8))
         }
+    }
+    #[repr(C)]
+    #[derive(Debug, Copy, Clone)]
+    pub struct RustString {
+        _unused: [u8; 0],
     }
     #[repr(u32)]
     #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]

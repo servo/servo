@@ -13,6 +13,7 @@ use std::cell::RefCell;
 use std::env;
 use std::fmt::Write;
 use std::iter;
+use std::mem;
 use std::ptr;
 use style::applicable_declarations::ApplicableDeclarationBlock;
 use style::context::{CascadeInputs, QuirksMode, SharedStyleContext, StyleContext};
@@ -77,7 +78,7 @@ use style::gecko_bindings::bindings::nsTimingFunctionBorrowedMut;
 use style::gecko_bindings::structs;
 use style::gecko_bindings::structs::{CSSPseudoElementType, CompositeOperation};
 use style::gecko_bindings::structs::{Loader, LoaderReusableStyleSheets};
-use style::gecko_bindings::structs::{RawServoStyleRule, ServoStyleContextStrong};
+use style::gecko_bindings::structs::{RawServoStyleRule, ServoStyleContextStrong, RustString};
 use style::gecko_bindings::structs::{ServoStyleSheet, SheetParsingMode, nsIAtom, nsCSSPropertyID};
 use style::gecko_bindings::structs::{nsCSSFontFaceRule, nsCSSCounterStyleRule};
 use style::gecko_bindings::structs::{nsRestyleHint, nsChangeHint, PropertyValuePair};
@@ -3832,6 +3833,31 @@ pub extern "C" fn Servo_GetCustomPropertyNameAt(computed_values: ServoStyleConte
     name.assign(&*property_name.as_slice());
 
     true
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Servo_ReleaseArcStringData(string: *const RawOffsetArc<RustString>) {
+    let string = string as *const RawOffsetArc<String>;
+    // Cause RawOffsetArc::drop to run, releasing the strong reference to the string data.
+    let _ = ptr::read(string);
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Servo_CloneArcStringData(string: *const RawOffsetArc<RustString>)
+                                                  -> RawOffsetArc<RustString> {
+    let string = string as *const RawOffsetArc<String>;
+    let cloned = (*string).clone();
+    mem::transmute::<_, RawOffsetArc<RustString>>(cloned)
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Servo_GetArcStringData(string: *const RustString,
+                                                utf8_chars: *mut *const u8,
+                                                utf8_len: *mut u32)
+{
+    let string = &*(string as *const String);
+    *utf8_len = string.len() as u32;
+    *utf8_chars = string.as_ptr();
 }
 
 #[no_mangle]
