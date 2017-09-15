@@ -33,6 +33,34 @@ pub struct BorderImageSlice<NumberOrPercentage> {
     pub fill: bool,
 }
 
+/// A generic value for the `border-*-radius` longhand properties.
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug)]
+#[derive(PartialEq, ToCss, ToComputedValue)]
+pub struct BorderCornerRadius<L>(pub Size<L>);
+
+impl<L> BorderCornerRadius<L> {
+    /// Trivially create a `BorderCornerRadius`.
+    pub fn new(w: L, h: L) -> Self {
+        BorderCornerRadius(Size::new(w, h))
+    }
+}
+
+/// A generic value for the `border-spacing` property.
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug)]
+#[derive(PartialEq, ToAnimatedValue, ToCss, ToComputedValue)]
+pub struct BorderSpacing<L>(pub Size<L>);
+
+impl<L> BorderSpacing<L> {
+    /// Trivially create a `BorderCornerRadius`.
+    pub fn new(w: L, h: L) -> Self {
+        BorderSpacing(Size::new(w, h))
+    }
+}
+
 /// A generic value for `border-radius`, `outline-radius` and `inset()`.
 ///
 /// https://drafts.csswg.org/css-backgrounds-3/#border-radius
@@ -42,13 +70,13 @@ pub struct BorderImageSlice<NumberOrPercentage> {
 #[derive(PartialEq, ToComputedValue)]
 pub struct BorderRadius<LengthOrPercentage> {
     /// The top left radius.
-    pub top_left: Size<LengthOrPercentage>,
+    pub top_left: BorderCornerRadius<LengthOrPercentage>,
     /// The top right radius.
-    pub top_right: Size<LengthOrPercentage>,
+    pub top_right: BorderCornerRadius<LengthOrPercentage>,
     /// The bottom right radius.
-    pub bottom_right: Size<LengthOrPercentage>,
+    pub bottom_right: BorderCornerRadius<LengthOrPercentage>,
     /// The bottom left radius.
-    pub bottom_left: Size<LengthOrPercentage>,
+    pub bottom_left: BorderCornerRadius<LengthOrPercentage>,
 }
 
 impl<N> From<N> for BorderImageSlice<N>
@@ -80,7 +108,12 @@ impl<N> ToCss for BorderImageSlice<N>
 impl<L> BorderRadius<L> {
     /// Returns a new `BorderRadius<L>`.
     #[inline]
-    pub fn new(tl: Size<L>, tr: Size<L>, br: Size<L>, bl: Size<L>) -> Self {
+    pub fn new(
+        tl: BorderCornerRadius<L>,
+        tr: BorderCornerRadius<L>,
+        br: BorderCornerRadius<L>,
+        bl: BorderCornerRadius<L>
+    ) -> Self {
         BorderRadius {
             top_left: tl,
             top_right: tr,
@@ -112,10 +145,10 @@ impl<L> ToCss for BorderRadius<L>
 {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         let BorderRadius {
-            top_left: ref tl,
-            top_right: ref tr,
-            bottom_right: ref br,
-            bottom_left: ref bl,
+            top_left: BorderCornerRadius(ref tl),
+            top_right: BorderCornerRadius(ref tr),
+            bottom_right: BorderCornerRadius(ref br),
+            bottom_left: BorderCornerRadius(ref bl),
         } = *self;
 
         let widths = Rect::new(&tl.0.width, &tr.0.width, &br.0.width, &bl.0.width);

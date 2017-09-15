@@ -35,7 +35,7 @@ pub use self::align::{AlignItems, AlignJustifyContent, AlignJustifySelf, Justify
 pub use self::angle::Angle;
 pub use self::background::BackgroundSize;
 pub use self::border::{BorderImageSlice, BorderImageWidth, BorderImageSideWidth};
-pub use self::border::{BorderRadius, BorderCornerRadius};
+pub use self::border::{BorderRadius, BorderCornerRadius, BorderSpacing};
 pub use self::box_::VerticalAlign;
 pub use self::color::{Color, ColorPropertyValue, RGBAColor};
 pub use self::effects::{BoxShadow, Filter, SimpleShadow};

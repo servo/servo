@@ -27,7 +27,7 @@ use style::computed_values::{border_collapse, border_spacing, border_top_style};
 use style::logical_geometry::{LogicalSize, PhysicalSide, WritingMode};
 use style::properties::ComputedValues;
 use style::servo::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW};
-use style::values::computed::{Color, LengthOrPercentageOrAuto, NonNegativeLength};
+use style::values::computed::{Color, LengthOrPercentageOrAuto};
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, InternalTable, VecExt};
 use table_cell::{CollapsedBordersForCell, TableCellFlow};
 
@@ -94,10 +94,7 @@ impl TableRowFlow {
             cell_intrinsic_inline_sizes: Vec::new(),
             column_computed_inline_sizes: Vec::new(),
             incoming_rowspan: Vec::new(),
-            spacing: border_spacing::T {
-                horizontal: NonNegativeLength::zero(),
-                vertical: NonNegativeLength::zero(),
-            },
+            spacing: border_spacing::T::zero(),
             table_writing_mode: writing_mode,
             preliminary_collapsed_borders: CollapsedBordersForRow::new(),
             final_collapsed_borders: CollapsedBordersForRow::new(),
@@ -397,7 +394,7 @@ impl Flow for TableRowFlow {
                         None => break,
                     };
                 column_computed_inline_size.size = column_computed_inline_size.size +
-                    extra_column_computed_inline_size.size + Au::from(self.spacing.horizontal);
+                    extra_column_computed_inline_size.size + self.spacing.horizontal();
                 col += 1;
             }
 
@@ -828,7 +825,7 @@ fn set_inline_position_of_child_flow(
         let column_inline_size = column_computed_inline_sizes[*column_index].size;
         let border_inline_size = match *border_collapse_info {
             Some(_) => Au(0), // FIXME: Make collapsed borders account for colspan/rowspan.
-            None => Au::from(border_spacing.horizontal),
+            None => border_spacing.horizontal(),
         };
         if reverse_column_order {
             *inline_end_margin_edge += column_inline_size + border_inline_size;
@@ -883,9 +880,9 @@ fn set_inline_position_of_child_flow(
         None => {
             // Take spacing into account.
             if reverse_column_order {
-                *inline_end_margin_edge += Au::from(border_spacing.horizontal);
+                *inline_end_margin_edge += border_spacing.horizontal();
             } else {
-                *inline_start_margin_edge += Au::from(border_spacing.horizontal);
+                *inline_start_margin_edge += border_spacing.horizontal();
             }
         }
     }
