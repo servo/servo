@@ -348,8 +348,8 @@ impl ToAnimatedValue for ComputedBorderCornerRadius {
 
     #[inline]
     fn from_animated_value(animated: Self::AnimatedValue) -> Self {
-        ComputedBorderCornerRadius::new(animated.0.width.clamp_to_non_negative(),
-                                        animated.0.height.clamp_to_non_negative())
+        ComputedBorderCornerRadius::new((animated.0).0.width.clamp_to_non_negative(),
+                                        (animated.0).0.height.clamp_to_non_negative())
     }
 }
 

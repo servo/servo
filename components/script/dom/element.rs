@@ -581,10 +581,12 @@ impl LayoutElementHelpers for LayoutJS<Element> {
             hints.push(from_declaration(
                 shared_lock,
                 PropertyDeclaration::BorderSpacing(
-                    Box::new(border_spacing::SpecifiedValue {
-                        horizontal: width_value.into(),
-                        vertical: None,
-                    }))));
+                    Box::new(border_spacing::SpecifiedValue::new(
+                        width_value.clone().into(),
+                        width_value.into()
+                    ))
+                )
+            ));
         }
 
 

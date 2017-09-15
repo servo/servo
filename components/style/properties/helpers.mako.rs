@@ -489,12 +489,6 @@
             }
         }
 
-        impl From<computed_value::T> for SpecifiedValue {
-            fn from(other: computed_value::T) -> Self {
-                SpecifiedValue::Keyword(other)
-            }
-        }
-
         #[inline]
         pub fn get_initial_value() -> computed_value::T {
             computed_value::T::${to_rust_ident(values.split()[0])}
