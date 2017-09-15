@@ -1484,11 +1484,11 @@ impl<'le> TElement for GeckoElement<'le> {
         }
     }
 
-    fn match_element_lang(&self,
-                          override_lang: Option<Option<AttrValue>>,
-                          value: &PseudoClassStringArg)
-                          -> bool
-    {
+    fn match_element_lang(
+        &self,
+        override_lang: Option<Option<AttrValue>>,
+        value: &PseudoClassStringArg
+    ) -> bool {
         // Gecko supports :lang() from CSS Selectors 3, which only accepts a
         // single language tag, and which performs simple dash-prefix matching
         // on it.
@@ -1722,11 +1722,12 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
         None
     }
 
-    fn attr_matches(&self,
-                    ns: &NamespaceConstraint<&Namespace>,
-                    local_name: &Atom,
-                    operation: &AttrSelectorOperation<&Atom>)
-                    -> bool {
+    fn attr_matches(
+        &self,
+        ns: &NamespaceConstraint<&Namespace>,
+        local_name: &Atom,
+        operation: &AttrSelectorOperation<&Atom>
+    ) -> bool {
         unsafe {
             match *operation {
                 AttrSelectorOperation::Exists => {
