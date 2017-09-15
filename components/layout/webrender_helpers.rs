@@ -9,8 +9,8 @@
 
 use app_units::Au;
 use euclid::{Point2D, Vector2D, Rect, SideOffsets2D, Size2D};
-use gfx::display_list::{BorderDetails, BorderRadii, BoxShadowClipMode, ClippingRegion};
-use gfx::display_list::{DisplayItem, DisplayList, DisplayListTraversal, ScrollRootType};
+use gfx::display_list::{BorderDetails, BorderRadii, BoxShadowClipMode, ClipScrollNodeType};
+use gfx::display_list::{ClippingRegion, DisplayItem, DisplayList, DisplayListTraversal};
 use gfx::display_list::StackingContextType;
 use msg::constellation_msg::PipelineId;
 use style::computed_values::{image_rendering, mix_blend_mode, transform_style};
@@ -491,27 +491,27 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                               stacking_context.filters.to_filter_ops());
             }
             DisplayItem::PopStackingContext(_) => builder.pop_stacking_context(),
-            DisplayItem::DefineClip(ref item) => {
-                builder.push_clip_id(item.scroll_root.parent_id);
+            DisplayItem::DefineClipScrollNode(ref item) => {
+                builder.push_clip_id(item.node.parent_id);
 
-                let our_id = item.scroll_root.id;
-                let item_rect = item.scroll_root.clip.main.to_rectf();
-                let webrender_id = match item.scroll_root.root_type {
-                   ScrollRootType::Clip => {
+                let our_id = item.node.id;
+                let item_rect = item.node.clip.main.to_rectf();
+                let webrender_id = match item.node.node_type {
+                   ClipScrollNodeType::Clip => {
                         builder.define_clip(Some(our_id),
                                             item_rect,
-                                            item.scroll_root.clip.get_complex_clips(),
+                                            item.node.clip.get_complex_clips(),
                                             None)
                     }
-                    ScrollRootType::ScrollFrame(scroll_sensitivity) => {
+                    ClipScrollNodeType::ScrollFrame(scroll_sensitivity) => {
                         builder.define_scroll_frame(Some(our_id),
-                                                    item.scroll_root.content_rect.to_rectf(),
-                                                    item.scroll_root.clip.main.to_rectf(),
-                                                    item.scroll_root.clip.get_complex_clips(),
+                                                    item.node.content_rect.to_rectf(),
+                                                    item.node.clip.main.to_rectf(),
+                                                    item.node.clip.get_complex_clips(),
                                                     None,
                                                     scroll_sensitivity)
                     }
-                    ScrollRootType::StickyFrame(sticky_frame_info) => {
+                    ClipScrollNodeType::StickyFrame(sticky_frame_info) => {
                         builder.define_sticky_frame(Some(our_id), item_rect, sticky_frame_info)
                     }
                 };

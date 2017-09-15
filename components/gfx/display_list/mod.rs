@@ -77,7 +77,7 @@ impl<'a> ScrollOffsetLookup<'a> {
             None => return None,
         };
 
-        let scroll_offset = self.full_offset_for_scroll_root(&clip_id);
+        let scroll_offset = self.full_offset_for_clip_scroll_node(&clip_id);
         *point = Point2D::new(point.x - Au::from_f32_px(scroll_offset.x),
                               point.y - Au::from_f32_px(scroll_offset.y));
         let frac_point = inv_transform.transform_point2d(&Point2D::new(point.x.to_f32_px(),
@@ -93,18 +93,18 @@ impl<'a> ScrollOffsetLookup<'a> {
         Some(sublookup)
     }
 
-    fn add_scroll_root(&mut self, scroll_root: &ScrollRoot) {
-        self.parents.insert(scroll_root.id, scroll_root.parent_id);
+    fn add_clip_scroll_node(&mut self, clip_scroll_node: &ClipScrollNode) {
+        self.parents.insert(clip_scroll_node.id, clip_scroll_node.parent_id);
     }
 
-    fn full_offset_for_scroll_root(&mut self, id: &ClipId) -> Vector2D<f32> {
+    fn full_offset_for_clip_scroll_node(&mut self, id: &ClipId) -> Vector2D<f32> {
         if let Some(offset) = self.calculated_total_offsets.get(id) {
             return *offset;
         }
 
         let parent_offset = if !id.is_root_scroll_node() {
             let parent_id = *self.parents.get(id).unwrap();
-            self.full_offset_for_scroll_root(&parent_id)
+            self.full_offset_for_clip_scroll_node(&parent_id)
         } else {
             Vector2D::zero()
         };
@@ -160,8 +160,8 @@ impl DisplayList {
                                                      offset_lookup,
                                                      result);
                 }
-                &DisplayItem::DefineClip(ref item) => {
-                    offset_lookup.add_scroll_root(&item.scroll_root);
+                &DisplayItem::DefineClipScrollNode(ref item) => {
+                    offset_lookup.add_clip_scroll_node(&item.node);
                 }
                 &DisplayItem::PopStackingContext(_) => return,
                 &DisplayItem::Text(ref text) => {
@@ -237,8 +237,8 @@ impl DisplayList {
                                                    result);
                 }
                 &DisplayItem::PopStackingContext(_) => return,
-                &DisplayItem::DefineClip(ref item) => {
-                    offset_lookup.add_scroll_root(&item.scroll_root);
+                &DisplayItem::DefineClipScrollNode(ref item) => {
+                    offset_lookup.add_clip_scroll_node(&item.node);
                 }
                 _ => {
                     if let Some(meta) = item.hit_test(*point, offset_lookup) {
@@ -558,20 +558,20 @@ impl fmt::Debug for StackingContext {
 }
 
 #[derive(Clone, Debug, Deserialize, HeapSizeOf, Serialize)]
-pub enum ScrollRootType {
+pub enum ClipScrollNodeType {
     ScrollFrame(ScrollSensitivity),
     StickyFrame(StickyFrameInfo),
     Clip,
 }
 
-/// Defines a stacking context.
+/// Defines a clip scroll node.
 #[derive(Clone, Debug, Deserialize, HeapSizeOf, Serialize)]
-pub struct ScrollRoot {
+pub struct ClipScrollNode {
     /// The WebRender clip id of this scroll root based on the source of this clip
     /// and information about the fragment.
     pub id: ClipId,
 
-    /// The unique ID of the parent of this ScrollRoot.
+    /// The unique ID of the parent of this ClipScrollNode.
     pub parent_id: ClipId,
 
     /// The position of this scroll root's frame in the parent stacking context.
@@ -580,15 +580,15 @@ pub struct ScrollRoot {
     /// The rect of the contents that can be scrolled inside of the scroll root.
     pub content_rect: Rect<Au>,
 
-    /// The type of this ScrollRoot.
-    pub root_type: ScrollRootType
+    /// The type of this ClipScrollNode.
+    pub node_type: ClipScrollNodeType,
 }
 
-impl ScrollRoot {
+impl ClipScrollNode {
     pub fn to_define_item(&self, pipeline_id: PipelineId) -> DisplayItem {
-        DisplayItem::DefineClip(box DefineClipItem {
+        DisplayItem::DefineClipScrollNode(box DefineClipScrollNodeItem {
             base: BaseDisplayItem::empty(pipeline_id),
-            scroll_root: self.clone(),
+            node: self.clone(),
         })
     }
 }
@@ -610,7 +610,7 @@ pub enum DisplayItem {
     Iframe(Box<IframeDisplayItem>),
     PushStackingContext(Box<PushStackingContextItem>),
     PopStackingContext(Box<PopStackingContextItem>),
-    DefineClip(Box<DefineClipItem>),
+    DefineClipScrollNode(Box<DefineClipScrollNodeItem>),
 }
 
 /// Information common to all display items.
@@ -1215,12 +1215,12 @@ pub struct PopStackingContextItem {
 
 /// Starts a group of items inside a particular scroll root.
 #[derive(Clone, Deserialize, HeapSizeOf, Serialize)]
-pub struct DefineClipItem {
+pub struct DefineClipScrollNodeItem {
     /// Fields common to all display items.
     pub base: BaseDisplayItem,
 
     /// The scroll root that this item starts.
-    pub scroll_root: ScrollRoot,
+    pub node: ClipScrollNode,
 }
 
 /// How a box shadow should be clipped.
@@ -1252,7 +1252,7 @@ impl DisplayItem {
             DisplayItem::Iframe(ref iframe) => &iframe.base,
             DisplayItem::PushStackingContext(ref stacking_context) => &stacking_context.base,
             DisplayItem::PopStackingContext(ref item) => &item.base,
-            DisplayItem::DefineClip(ref item) => &item.base,
+            DisplayItem::DefineClipScrollNode(ref item) => &item.base,
         }
     }
 
@@ -1292,7 +1292,7 @@ impl DisplayItem {
         // test elements with `border-radius`, for example.
         let base_item = self.base();
 
-        let scroll_offset = offset_lookup.full_offset_for_scroll_root(&self.scroll_node_id());
+        let scroll_offset = offset_lookup.full_offset_for_clip_scroll_node(&self.scroll_node_id());
         let point = Point2D::new(point.x - Au::from_f32_px(scroll_offset.x),
                                  point.y - Au::from_f32_px(scroll_offset.y));
 
@@ -1349,8 +1349,8 @@ impl fmt::Debug for DisplayItem {
             return write!(f, "PopStackingContext({:?}", item.stacking_context_id);
         }
 
-        if let DisplayItem::DefineClip(ref item) = *self {
-            return write!(f, "DefineClip({:?}", item.scroll_root);
+        if let DisplayItem::DefineClipScrollNode(ref item) = *self {
+            return write!(f, "DefineClipScrollNode({:?}", item.node);
         }
 
         write!(f, "{} @ {:?} {:?}",
@@ -1377,7 +1377,7 @@ impl fmt::Debug for DisplayItem {
                 DisplayItem::Iframe(_) => "Iframe".to_owned(),
                 DisplayItem::PushStackingContext(_) |
                 DisplayItem::PopStackingContext(_) |
-                DisplayItem::DefineClip(_) => "".to_owned(),
+                DisplayItem::DefineClipScrollNode(_) => "".to_owned(),
             },
             self.bounds(),
             self.base().local_clip
