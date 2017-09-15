@@ -1502,6 +1502,14 @@ impl<'le> TElement for GeckoElement<'le> {
             Gecko_MatchLang(self.0, override_lang_ptr, override_lang.is_some(), value.as_ptr())
         }
     }
+
+    fn is_html_document_body_element(&self) -> bool {
+        if self.get_local_name() != &*local_name!("body") {
+            return false;
+        }
+
+        unsafe { bindings::Gecko_IsBody(self.0) }
+    }
 }
 
 impl<'le> PartialEq for GeckoElement<'le> {

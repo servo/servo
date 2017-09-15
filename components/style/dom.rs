@@ -727,6 +727,10 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
         override_lang: Option<Option<AttrValue>>,
         value: &PseudoClassStringArg
     ) -> bool;
+
+    /// Returns whether this element is the body element of the HTML document
+    /// its on.
+    fn is_html_document_body_element(&self) -> bool;
 }
 
 /// TNode and TElement aren't Send because we want to be careful and explicit
