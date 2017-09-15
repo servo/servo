@@ -6,30 +6,31 @@
 
 use gecko_bindings::structs::{ServoBundledURI, URLExtraData};
 use gecko_bindings::structs::mozilla::css::URLValueData;
-use gecko_bindings::structs::root::{nsStyleImageRequest, RustString};
 use gecko_bindings::structs::root::mozilla::css::ImageValue;
+use gecko_bindings::structs::root::nsStyleImageRequest;
 use gecko_bindings::sugar::refptr::RefPtr;
-use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use parser::ParserContext;
-use servo_arc::{Arc, RawOffsetArc};
+use servo_arc::Arc;
 use std::fmt;
-use std::mem;
 use style_traits::{ToCss, ParseError};
 
 /// A specified url() value for gecko. Gecko does not eagerly resolve SpecifiedUrls.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
 pub struct SpecifiedUrl {
     /// The URL in unresolved string form.
     ///
     /// Refcounted since cloning this should be cheap and data: uris can be
     /// really large.
+    #[ignore_malloc_size_of = "XXX: do this once bug 1397971 lands"]
     serialization: Arc<String>,
 
     /// The URL extra data.
+    #[ignore_malloc_size_of = "RefPtr is tricky, and there aren't many of these in practise"]
     pub extra_data: RefPtr<URLExtraData>,
 
     /// Cache ImageValue, if any, so that we can reuse it while rematching a
     /// a property with this specified url value.
+    #[ignore_malloc_size_of = "XXX: do this once bug 1397971 lands"]
     pub image_value: Option<RefPtr<ImageValue>>,
 }
 trivial_to_computed_value!(SpecifiedUrl);
@@ -60,14 +61,7 @@ impl SpecifiedUrl {
     pub unsafe fn from_url_value_data(url: &URLValueData)
                                        -> Result<SpecifiedUrl, ()> {
         Ok(SpecifiedUrl {
-            serialization: if url.mUsingRustString {
-                let arc_type = url.mStrings.mRustString.as_ref()
-                    as *const _ as
-                    *const RawOffsetArc<String>;
-                Arc::from_raw_offset((*arc_type).clone())
-            } else {
-                Arc::new(url.mStrings.mString.as_ref().to_string())
-            },
+            serialization: Arc::new(url.mString.to_string()),
             extra_data: url.mExtraData.to_safe(),
             image_value: None,
         })
@@ -123,10 +117,7 @@ impl SpecifiedUrl {
         debug_assert_eq!(self.image_value, None);
         self.image_value = {
             unsafe {
-                let arc_offset = Arc::into_raw_offset(self.serialization.clone());
-                let ptr = Gecko_ImageValue_Create(
-                    self.for_ffi(),
-                    mem::transmute::<_, RawOffsetArc<RustString>>(arc_offset));
+                let ptr = Gecko_ImageValue_Create(self.for_ffi());
                 // We do not expect Gecko_ImageValue_Create returns null.
                 debug_assert!(!ptr.is_null());
                 Some(RefPtr::from_addrefed(ptr))
@@ -140,27 +131,5 @@ impl ToCss for SpecifiedUrl {
         dest.write_str("url(")?;
         self.serialization.to_css(dest)?;
         dest.write_str(")")
-    }
-}
-
-impl MallocSizeOf for SpecifiedUrl {
-    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
-        use gecko_bindings::bindings::Gecko_ImageValue_SizeOfIncludingThis;
-
-        let mut n = 0;
-
-        // XXX: measure `serialization` once bug 1397971 lands
-
-        // We ignore `extra_data`, because RefPtr is tricky, and there aren't
-        // many of them in practise (sharing is common).
-
-        if let Some(ref image_value) = self.image_value {
-            // Although this is a RefPtr, this is the primary reference because
-            // SpecifiedUrl is responsible for creating the image_value. So we
-            // measure unconditionally here.
-            n += unsafe { Gecko_ImageValue_SizeOfIncludingThis(image_value.clone().get()) };
-        }
-
-        n
     }
 }
