@@ -10,7 +10,6 @@ pub type ServoUnsafeCell<T> = ::std::cell::UnsafeCell<T>;
 pub type ServoCell<T> = ::std::cell::Cell<T>;
 pub type ServoNodeData = AtomicRefCell<ElementData>;
 pub type ServoWritingMode = ::logical_geometry::WritingMode;
-pub type ServoFontComputationData = ::properties::FontComputationData;
 pub type ServoCustomPropertiesMap = Option<::servo_arc::Arc<::custom_properties::CustomPropertiesMap>>;
 pub type ServoRuleNode = Option<::rule_tree::StrongRuleNode>;
 pub type ServoVisitedStyle = Option<::servo_arc::RawOffsetArc<::properties::ComputedValues>>;
@@ -4383,19 +4382,6 @@ pub mod root {
             FirstLetterContinuation = 1,
             PlaceholderFrame = 2,
         }
-        #[repr(u32)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-        pub enum ServoKeywordSize {
-            Empty = 0,
-            XXSmall = 1,
-            XSmall = 2,
-            Small = 3,
-            Medium = 4,
-            Large = 5,
-            XLarge = 6,
-            XXLarge = 7,
-            XXXLarge = 8,
-        }
         #[repr(C)]
         #[derive(Debug)]
         pub struct ServoStyleContext {
@@ -4407,7 +4393,7 @@ pub mod root {
         }
         #[test]
         fn bindgen_test_layout_ServoStyleContext() {
-            assert_eq!(::std::mem::size_of::<ServoStyleContext>() , 272usize ,
+            assert_eq!(::std::mem::size_of::<ServoStyleContext>() , 256usize ,
                        concat ! (
                        "Size of: " , stringify ! ( ServoStyleContext ) ));
             assert_eq! (::std::mem::align_of::<ServoStyleContext>() , 8usize ,
@@ -4430,14 +4416,14 @@ pub mod root {
             assert_eq! (unsafe {
                         & ( * ( 0 as * const ServoStyleContext ) ) .
                         mNextInheritingAnonBoxStyle as * const _ as usize } ,
-                        256usize , concat ! (
+                        240usize , concat ! (
                         "Alignment of field: " , stringify ! (
                         ServoStyleContext ) , "::" , stringify ! (
                         mNextInheritingAnonBoxStyle ) ));
             assert_eq! (unsafe {
                         & ( * ( 0 as * const ServoStyleContext ) ) .
                         mNextLazyPseudoStyle as * const _ as usize } ,
-                        264usize , concat ! (
+                        248usize , concat ! (
                         "Alignment of field: " , stringify ! (
                         ServoStyleContext ) , "::" , stringify ! (
                         mNextLazyPseudoStyle ) ));
@@ -14675,11 +14661,10 @@ pub mod root {
         /// /// relevant link for this element. A element's "relevant link" is the
         /// /// element being matched if it is a link or the nearest ancestor link.
         pub visited_style: ::gecko_bindings::structs::ServoVisitedStyle,
-        pub font_computation_data: ::gecko_bindings::structs::ServoFontComputationData,
     }
     #[test]
     fn bindgen_test_layout_ServoComputedData() {
-        assert_eq!(::std::mem::size_of::<ServoComputedData>() , 232usize ,
+        assert_eq!(::std::mem::size_of::<ServoComputedData>() , 216usize ,
                    concat ! ( "Size of: " , stringify ! ( ServoComputedData )
                    ));
         assert_eq! (::std::mem::align_of::<ServoComputedData>() , 8usize ,
@@ -14826,12 +14811,6 @@ pub mod root {
                     as * const _ as usize } , 208usize , concat ! (
                     "Alignment of field: " , stringify ! ( ServoComputedData )
                     , "::" , stringify ! ( visited_style ) ));
-        assert_eq! (unsafe {
-                    & ( * ( 0 as * const ServoComputedData ) ) .
-                    font_computation_data as * const _ as usize } , 216usize ,
-                    concat ! (
-                    "Alignment of field: " , stringify ! ( ServoComputedData )
-                    , "::" , stringify ! ( font_computation_data ) ));
     }
     #[repr(u32)]
     #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]

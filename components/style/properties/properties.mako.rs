@@ -10,6 +10,7 @@
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
+#[cfg(feature = "servo")]
 use app_units::Au;
 use servo_arc::{Arc, UniqueArc};
 use smallbitvec::SmallBitVec;
@@ -90,32 +91,6 @@ pub mod declaration_block;
 pub trait MaybeBoxed<Out> {
     /// Convert
     fn maybe_boxed(self) -> Out;
-}
-
-
-/// This is where we store extra font data while
-/// while computing font sizes.
-///
-/// font-size keyword values (and font-size-relative values applied
-/// to keyword values) need to preserve their identity as originating
-/// from keywords and relative font sizes. We store this information
-/// out of band in the ComputedValues. When None, the font size on the
-/// current struct was computed from a value that was not a keyword
-/// or a chain of font-size-relative values applying to successive parents
-/// terminated by a keyword. When Some, this means the font-size was derived
-/// from a keyword value or a keyword value on some ancestor with only
-/// font-size-relative keywords and regular inheritance in between. The
-/// integer stores the final ratio of the chain of font size relative values.
-/// and is 1 when there was just a keyword and no relative values.
-///
-/// When this is Some, we compute font sizes by computing the keyword against
-/// the generic font, and then multiplying it by the ratio (as well as adding any
-/// absolute offset from calcs)
-pub type FontComputationData = Option<(longhands::font_size::KeywordSize, f32, NonNegativeLength)>;
-
-/// Default value for FontComputationData
-pub fn default_font_size_keyword() -> FontComputationData {
-    Some((Default::default(), 1., Au(0).into()))
 }
 
 impl<T> MaybeBoxed<T> for T {
@@ -1845,9 +1820,8 @@ pub mod style_structs {
                 /// (Servo does not handle MathML, so this just calls copy_font_size_from)
                 pub fn inherit_font_size_from(&mut self, parent: &Self,
                                               _: Option<NonNegativeLength>,
-                                              _: &Device) -> bool {
+                                              _: &Device) {
                     self.copy_font_size_from(parent);
-                    false
                 }
                 /// (Servo does not handle MathML, so this just calls set_font_size)
                 pub fn apply_font_size(&mut self,
@@ -1985,9 +1959,6 @@ pub struct ComputedValuesInner {
     /// The writing mode of this computed values struct.
     pub writing_mode: WritingMode,
 
-    /// The keyword behind the current font-size property, if any
-    pub font_computation_data: FontComputationData,
-
     /// A set of flags we use to store misc information regarding this style.
     pub flags: ComputedValueFlags,
 
@@ -2043,7 +2014,6 @@ impl ComputedValues {
         _: Option<<&PseudoElement>,
         custom_properties: Option<Arc<::custom_properties::CustomPropertiesMap>>,
         writing_mode: WritingMode,
-        font_size_keyword: FontComputationData,
         flags: ComputedValueFlags,
         rules: Option<StrongRuleNode>,
         visited_style: Option<Arc<ComputedValues>>,
@@ -2055,7 +2025,6 @@ impl ComputedValues {
             inner: ComputedValuesInner::new(
                 custom_properties,
                 writing_mode,
-                font_size_keyword,
                 flags,
                 rules,
                 visited_style,
@@ -2076,7 +2045,6 @@ impl ComputedValuesInner {
     pub fn new(
         custom_properties: Option<Arc<::custom_properties::CustomPropertiesMap>>,
         writing_mode: WritingMode,
-        font_size_keyword: FontComputationData,
         flags: ComputedValueFlags,
         rules: Option<StrongRuleNode>,
         visited_style: Option<Arc<ComputedValues>>,
@@ -2087,7 +2055,6 @@ impl ComputedValuesInner {
         ComputedValuesInner {
             custom_properties: custom_properties,
             writing_mode: writing_mode,
-            font_computation_data: font_size_keyword,
             rules: rules,
             visited_style: visited_style,
             flags: flags,
@@ -2609,8 +2576,6 @@ pub struct StyleBuilder<'a> {
     ///
     /// TODO(emilio): Make private.
     pub writing_mode: WritingMode,
-    /// The keyword behind the current font-size property, if any.
-    pub font_size_keyword: FontComputationData,
     /// Flags for the computed value.
     pub flags: ComputedValueFlags,
     /// The element's style if visited, only computed if there's a relevant link
@@ -2633,7 +2598,6 @@ impl<'a> StyleBuilder<'a> {
         rules: Option<StrongRuleNode>,
         custom_properties: Option<Arc<::custom_properties::CustomPropertiesMap>>,
         writing_mode: WritingMode,
-        font_size_keyword: FontComputationData,
         mut flags: ComputedValueFlags,
         visited_style: Option<Arc<ComputedValues>>,
     ) -> Self {
@@ -2671,7 +2635,6 @@ impl<'a> StyleBuilder<'a> {
             modified_reset: false,
             custom_properties,
             writing_mode,
-            font_size_keyword,
             flags,
             visited_style,
             % for style_struct in data.active_style_structs():
@@ -2714,7 +2677,6 @@ impl<'a> StyleBuilder<'a> {
             rules: None, // FIXME(emilio): Dubious...
             custom_properties: style_to_derive_from.custom_properties(),
             writing_mode: style_to_derive_from.writing_mode,
-            font_size_keyword: style_to_derive_from.font_computation_data,
             flags: style_to_derive_from.flags,
             visited_style: style_to_derive_from.clone_visited_style(),
             % for style_struct in data.active_style_structs():
@@ -2834,7 +2796,6 @@ impl<'a> StyleBuilder<'a> {
             /* rules = */ None,
             parent.custom_properties(),
             parent.writing_mode,
-            parent.font_computation_data,
             parent.flags,
             parent.clone_visited_style()
         )
@@ -2941,7 +2902,6 @@ impl<'a> StyleBuilder<'a> {
             self.pseudo,
             self.custom_properties,
             self.writing_mode,
-            self.font_size_keyword,
             self.flags,
             self.rules,
             self.visited_style,
@@ -2963,11 +2923,6 @@ impl<'a> StyleBuilder<'a> {
     /// expose an inherited ComputedValues directly, because in the
     /// ::first-line case some of the inherited information needs to come from
     /// one ComputedValues instance and some from a different one.
-
-    /// Inherited font bits.
-    pub fn inherited_font_computation_data(&self) -> &FontComputationData {
-        &self.inherited_style.font_computation_data
-    }
 
     /// Inherited writing-mode.
     pub fn inherited_writing_mode(&self) -> &WritingMode {
@@ -3006,7 +2961,6 @@ mod lazy_static_module {
     use logical_geometry::WritingMode;
     use servo_arc::Arc;
     use super::{ComputedValues, ComputedValuesInner, longhands, style_structs};
-    use super::default_font_size_keyword;
     use super::computed_value_flags::ComputedValueFlags;
 
     /// The initial values for all style structs as defined by the specification.
@@ -3025,7 +2979,6 @@ mod lazy_static_module {
                 % endfor
                 custom_properties: None,
                 writing_mode: WritingMode::empty(),
-                font_computation_data: default_font_size_keyword(),
                 rules: None,
                 visited_style: None,
                 flags: ComputedValueFlags::empty(),
@@ -3252,7 +3205,6 @@ where
             Some(rules.clone()),
             custom_properties,
             WritingMode::empty(),
-            inherited_style.font_computation_data,
             ComputedValueFlags::empty(),
             visited_style,
         ),

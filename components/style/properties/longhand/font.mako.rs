@@ -605,7 +605,7 @@ ${helpers.single_keyword_system("font-variant-caps",
     use style_traits::ToCss;
     use values::FONT_MEDIUM_PX;
     use values::computed::NonNegativeLength;
-    use values::specified::{AllowQuirks, FontRelativeLength, LengthOrPercentage, NoCalcLength};
+    use values::specified::{AllowQuirks, LengthOrPercentage, NoCalcLength};
     use values::specified::length::FontBaseSize;
 
     impl ToCss for SpecifiedValue {
@@ -861,46 +861,6 @@ ${helpers.single_keyword_system("font-variant-caps",
             }, 1., Au(0).into())
         }
 
-        /// If this value is specified as a ratio of the parent font (em units
-        /// or percent) return the ratio
-        pub fn as_font_ratio(&self, context: &Context) -> Option<(f32, NonNegativeLength)> {
-            match *self {
-                SpecifiedValue::Length(ref lop) => {
-                    match *lop {
-                        LengthOrPercentage::Percentage(pc) => {
-                            Some((pc.0, NonNegativeLength::zero()))
-                        }
-                        LengthOrPercentage::Length(ref nocalc) => {
-                            match *nocalc {
-                                NoCalcLength::FontRelative(FontRelativeLength::Em(em)) => {
-                                    Some((em, NonNegativeLength::zero()))
-                                }
-                                _ => None,
-                            }
-                        }
-                        LengthOrPercentage::Calc(ref calc) => {
-                            if calc.em.is_none() && calc.percentage.is_none() {
-                                return None;
-                            }
-                            let ratio = calc.em.unwrap_or(0.) + calc.percentage.map_or(0., |pc| pc.0);
-                            // Compute it, but shave off the font-relative part (em, %)
-                            // This will mean that other font-relative units like ex and ch will be computed against
-                            // the old font even when the font changes. There's no particular "right answer" for what
-                            // to do here -- Gecko recascades as if the font had changed, we instead track the changes
-                            // and reapply, which means that we carry over old computed ex/ch values whilst Gecko
-                            // recomputes new ones. This is enough of an edge case to not really matter.
-                            let abs = calc.to_computed_value_zoomed(context, FontBaseSize::Custom(Au(0)))
-                                          .length_component().into();
-                            Some((ratio, abs))
-                        }
-                    }
-                }
-                SpecifiedValue::Larger => Some((LARGER_FONT_SIZE_RATIO, Au(0).into())),
-                SpecifiedValue::Smaller => Some((1. / LARGER_FONT_SIZE_RATIO, Au(0).into())),
-                _ => None,
-            }
-        }
-
         /// Compute it against a given base font size
         pub fn to_computed_value_against(
             &self,
@@ -908,6 +868,11 @@ ${helpers.single_keyword_system("font-variant-caps",
             base_size: FontBaseSize,
         ) -> computed_value::T {
             use values::specified::length::FontRelativeLength;
+            let compose_keyword = |factor| {
+                context.style().get_parent_font()
+                       .clone_font_size().info
+                       .map(|i| i.compose(factor, Au(0).into()))
+            };
             let mut info = None;
             let size = match *self {
                 SpecifiedValue::Length(LengthOrPercentage::Length(
@@ -915,8 +880,7 @@ ${helpers.single_keyword_system("font-variant-caps",
                     if let FontRelativeLength::Em(em) = value {
                         // If the parent font was keyword-derived, this is too.
                         // Tack the em unit onto the factor
-                        info = context.style().get_parent_font()
-                                      .clone_font_size().info.map(|i| i.compose(em, Au(0).into()));
+                        info = compose_keyword(em);
                     }
                     value.to_computed_value(context, base_size).into()
                 }
@@ -934,7 +898,7 @@ ${helpers.single_keyword_system("font-variant-caps",
                 SpecifiedValue::Length(LengthOrPercentage::Percentage(pc)) => {
                     // If the parent font was keyword-derived, this is too.
                     // Tack the % onto the factor
-                    info = context.style().get_parent_font().clone_font_size().info.map(|i| i.compose(pc.0, Au(0).into()));
+                    info = compose_keyword(pc.0);
                     base_size.resolve(context).scale_by(pc.0).into()
                 }
                 SpecifiedValue::Length(LengthOrPercentage::Calc(ref calc)) => {
@@ -967,10 +931,12 @@ ${helpers.single_keyword_system("font-variant-caps",
                     context.maybe_zoom_text(key_len).into()
                 }
                 SpecifiedValue::Smaller => {
+                    info = compose_keyword(1. / LARGER_FONT_SIZE_RATIO);
                     FontRelativeLength::Em(1. / LARGER_FONT_SIZE_RATIO)
                         .to_computed_value(context, base_size).into()
                 }
                 SpecifiedValue::Larger => {
+                    info = compose_keyword(LARGER_FONT_SIZE_RATIO);
                     FontRelativeLength::Em(LARGER_FONT_SIZE_RATIO)
                         .to_computed_value(context, base_size).into()
                 }
@@ -1063,25 +1029,6 @@ ${helpers.single_keyword_system("font-variant-caps",
     pub fn cascade_specified_font_size(context: &mut Context,
                                        specified_value: &SpecifiedValue,
                                        mut computed: computed_value::T) {
-        if let SpecifiedValue::Keyword(kw, fraction, offset) = *specified_value {
-            context.builder.font_size_keyword = Some((kw, fraction, offset));
-        } else if let Some((ratio, abs)) = specified_value.as_font_ratio(context) {
-            // In case a font-size-relative value was applied to a keyword
-            // value, we must preserve this fact in case the generic font family
-            // changes. relative values (em and %) applied to keywords must be
-            // recomputed from the base size for the keyword and the relative size.
-            //
-            // See bug 1355707
-            if let Some((kw, fraction, old_abs)) = *context.builder.inherited_font_computation_data() {
-                context.builder.font_size_keyword =
-                    Some((kw, fraction * ratio, abs + old_abs.scale_by(ratio)));
-            } else {
-                context.builder.font_size_keyword = None;
-            }
-        } else {
-            context.builder.font_size_keyword = None;
-        }
-
         // we could use clone_language and clone_font_family() here but that's
         // expensive. Do it only in gecko mode for now.
         % if product == "gecko":
@@ -1092,16 +1039,9 @@ ${helpers.single_keyword_system("font-variant-caps",
                context.builder.get_parent_font().gecko().mLanguage.raw::<nsIAtom>() ||
                context.builder.get_font().gecko().mGenericID !=
                context.builder.get_parent_font().gecko().mGenericID {
-                if let Some((kw, ratio, offset)) = context.builder.font_size_keyword {
-                    let len = context.maybe_zoom_text(kw.to_computed_value(context).scale_by(ratio) + offset);
-                    computed = computed_value::T {
-                        size: len,
-                        info: Some(computed_value::KeywordInfo {
-                            kw: kw,
-                            factor: ratio,
-                            offset: offset
-                        }),
-                    }
+                if let Some(info) = computed.info {
+                    computed.size = context.maybe_zoom_text(info.kw.to_computed_value(context)
+                                                                .scale_by(info.factor) + info.offset)
                 }
             }
         % endif
@@ -1130,21 +1070,17 @@ ${helpers.single_keyword_system("font-variant-caps",
         // If inheriting, we must recompute font-size in case of language
         // changes using the font_size_keyword. We also need to do this to
         // handle mathml scriptlevel changes
-        let kw_inherited_size = context.builder.font_size_keyword.map(|(kw, ratio, offset)| {
-            context.maybe_zoom_text(SpecifiedValue::Keyword(kw, ratio, offset).to_computed_value(context).size)
+        let kw_inherited_size = context.builder.get_parent_font()
+                                       .clone_font_size()
+                                       .info.map(|info| {
+            context.maybe_zoom_text(SpecifiedValue::Keyword(info.kw, info.factor, info.offset)
+                  .to_computed_value(context).size)
         });
-        let parent_kw;
-        let device = context.builder.device;
         let mut font = context.builder.take_font();
-        let used_kw = {
-            let parent_font = context.builder.get_parent_font();
-            parent_kw = *context.builder.inherited_font_computation_data();
-
-            font.inherit_font_size_from(parent_font, kw_inherited_size, device)
-        };
+        font.inherit_font_size_from(context.builder.get_parent_font(),
+                                    kw_inherited_size,
+                                    context.builder.device);
         context.builder.put_font(font);
-        context.builder.font_size_keyword =
-            if used_kw { parent_kw } else { None };
     }
 
     /// Cascade the initial value for the `font-size` property.
@@ -1164,7 +1100,6 @@ ${helpers.single_keyword_system("font-variant-caps",
             let device = context.builder.device;
             context.builder.mutate_font().fixup_font_min_size(device);
         % endif
-        context.builder.font_size_keyword = Some((Default::default(), 1., Au(0).into()));
     }
 </%helpers:longhand>
 
