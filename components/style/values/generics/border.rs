@@ -4,10 +4,10 @@
 
 //! Generic types for CSS values related to borders.
 
-use euclid::Size2D;
 use std::fmt;
 use style_traits::ToCss;
 use values::generics::rect::Rect;
+use values::generics::size::Size;
 
 /// A generic value for a single side of a `border-image-width` property.
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
@@ -42,21 +42,14 @@ pub struct BorderImageSlice<NumberOrPercentage> {
 #[derive(PartialEq, ToComputedValue)]
 pub struct BorderRadius<LengthOrPercentage> {
     /// The top left radius.
-    pub top_left: BorderCornerRadius<LengthOrPercentage>,
+    pub top_left: Size<LengthOrPercentage>,
     /// The top right radius.
-    pub top_right: BorderCornerRadius<LengthOrPercentage>,
+    pub top_right: Size<LengthOrPercentage>,
     /// The bottom right radius.
-    pub bottom_right: BorderCornerRadius<LengthOrPercentage>,
+    pub bottom_right: Size<LengthOrPercentage>,
     /// The bottom left radius.
-    pub bottom_left: BorderCornerRadius<LengthOrPercentage>,
+    pub bottom_left: Size<LengthOrPercentage>,
 }
-
-/// A generic value for `border-*-radius` longhand properties.
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug)]
-#[derive(PartialEq, ToComputedValue)]
-pub struct BorderCornerRadius<L>(pub Size2D<L>);
 
 impl<N> From<N> for BorderImageSlice<N>
     where N: Clone,
@@ -87,11 +80,7 @@ impl<N> ToCss for BorderImageSlice<N>
 impl<L> BorderRadius<L> {
     /// Returns a new `BorderRadius<L>`.
     #[inline]
-    pub fn new(tl: BorderCornerRadius<L>,
-               tr: BorderCornerRadius<L>,
-               br: BorderCornerRadius<L>,
-               bl: BorderCornerRadius<L>)
-               -> Self {
+    pub fn new(tl: Size<L>, tr: Size<L>, br: Size<L>, bl: Size<L>) -> Self {
         BorderRadius {
             top_left: tl,
             top_right: tr,
@@ -133,36 +122,5 @@ impl<L> ToCss for BorderRadius<L>
         let heights = Rect::new(&tl.0.height, &tr.0.height, &br.0.height, &bl.0.height);
 
         Self::serialize_rects(widths, heights, dest)
-    }
-}
-
-impl<L> BorderCornerRadius<L> {
-    #[inline]
-    /// Create a new `BorderCornerRadius` for an area of given width and height.
-    pub fn new(width: L, height: L) -> BorderCornerRadius<L> {
-        BorderCornerRadius(Size2D::new(width, height))
-    }
-}
-
-impl<L: Clone> From<L> for BorderCornerRadius<L> {
-    fn from(radius: L) -> Self {
-        Self::new(radius.clone(), radius)
-    }
-}
-
-impl<L> ToCss for BorderCornerRadius<L>
-    where L: ToCss + PartialEq,
-{
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-        where W: fmt::Write
-    {
-        self.0.width.to_css(dest)?;
-
-        if self.0.height != self.0.width {
-            dest.write_str(" ")?;
-            self.0.height.to_css(dest)?;
-        }
-
-        Ok(())
     }
 }

@@ -7,11 +7,11 @@
 use values::animated::ToAnimatedZero;
 use values::computed::{Number, NumberOrPercentage};
 use values::computed::length::LengthOrPercentage;
-use values::generics::border::BorderCornerRadius as GenericBorderCornerRadius;
 use values::generics::border::BorderImageSideWidth as GenericBorderImageSideWidth;
 use values::generics::border::BorderImageSlice as GenericBorderImageSlice;
 use values::generics::border::BorderRadius as GenericBorderRadius;
 use values::generics::rect::Rect;
+use values::generics::size::Size;
 
 /// A computed value for the `border-image-width` property.
 pub type BorderImageWidth = Rect<BorderImageSideWidth>;
@@ -26,7 +26,7 @@ pub type BorderImageSlice = GenericBorderImageSlice<NumberOrPercentage>;
 pub type BorderRadius = GenericBorderRadius<LengthOrPercentage>;
 
 /// A computed value for the `border-*-radius` longhand properties.
-pub type BorderCornerRadius = GenericBorderCornerRadius<LengthOrPercentage>;
+pub type BorderCornerRadius = Size<LengthOrPercentage>;
 
 impl BorderImageSideWidth {
     /// Returns `1`.
