@@ -593,10 +593,6 @@ impl<'le> GeckoElement<'le> {
         self.as_node().node_info().mInner.mNamespaceID
     }
 
-    fn is_html_element(&self) -> bool {
-        self.namespace_id() == (structs::root::kNameSpaceID_XHTML as i32)
-    }
-
     fn is_xul_element(&self) -> bool {
         self.namespace_id() == (structs::root::kNameSpaceID_XUL as i32)
     }
@@ -1488,11 +1484,11 @@ impl<'le> TElement for GeckoElement<'le> {
         }
     }
 
-    fn match_element_lang(
-        &self,
-        override_lang: Option<Option<AttrValue>>,
-        value: &PseudoClassStringArg
-    ) -> bool {
+    fn match_element_lang(&self,
+                          override_lang: Option<Option<AttrValue>>,
+                          value: &PseudoClassStringArg)
+                          -> bool
+    {
         // Gecko supports :lang() from CSS Selectors 3, which only accepts a
         // single language tag, and which performs simple dash-prefix matching
         // on it.
@@ -1505,18 +1501,6 @@ impl<'le> TElement for GeckoElement<'le> {
         unsafe {
             Gecko_MatchLang(self.0, override_lang_ptr, override_lang.is_some(), value.as_ptr())
         }
-    }
-
-    fn is_html_document_body_element(&self) -> bool {
-        if self.get_local_name() != &*local_name!("body") {
-            return false;
-        }
-
-        if !self.is_html_element() {
-            return false;
-        }
-
-        unsafe { bindings::Gecko_IsDocumentBody(self.0) }
     }
 }
 
@@ -1738,12 +1722,11 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
         None
     }
 
-    fn attr_matches(
-        &self,
-        ns: &NamespaceConstraint<&Namespace>,
-        local_name: &Atom,
-        operation: &AttrSelectorOperation<&Atom>
-    ) -> bool {
+    fn attr_matches(&self,
+                    ns: &NamespaceConstraint<&Namespace>,
+                    local_name: &Atom,
+                    operation: &AttrSelectorOperation<&Atom>)
+                    -> bool {
         unsafe {
             match *operation {
                 AttrSelectorOperation::Exists => {
@@ -2027,8 +2010,10 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
     }
 
     fn is_html_element_in_html_document(&self) -> bool {
-        self.is_html_element() &&
-        self.as_node().owner_doc().mType == structs::root::nsIDocument_Type::eHTML
+        let node = self.as_node();
+        let node_info = node.node_info();
+        node_info.mInner.mNamespaceID == (structs::root::kNameSpaceID_XHTML as i32) &&
+        node.owner_doc().mType == structs::root::nsIDocument_Type::eHTML
     }
 
     fn ignores_nth_child_selectors(&self) -> bool {

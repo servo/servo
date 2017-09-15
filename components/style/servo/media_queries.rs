@@ -92,13 +92,6 @@ impl Device {
         self.root_font_size.store(size.0 as isize, Ordering::Relaxed)
     }
 
-    /// Sets the body text color for the "inherit color from body" quirk.
-    ///
-    /// https://quirks.spec.whatwg.org/#the-tables-inherit-color-from-body-quirk
-    pub fn set_body_text_color(&self, _color: RGBA) {
-        // Servo doesn't implement this quirk (yet)
-    }
-
     /// Returns whether we ever looked up the root font size of the Device.
     pub fn used_root_font_size(&self) -> bool {
         self.used_root_font_size.load(Ordering::Relaxed)
