@@ -40,6 +40,7 @@ use smallbitvec::SmallBitVec;
 use smallvec::VecLike;
 use std::fmt::Debug;
 use std::ops;
+use std::sync::Mutex;
 use style_traits::viewport::ViewportConstraints;
 use stylesheet_set::{OriginValidity, SheetRebuildKind, StylesheetSet, StylesheetFlusher};
 #[cfg(feature = "gecko")]
@@ -61,15 +62,87 @@ pub type StylistSheet = ::stylesheets::DocumentStyleSheet;
 #[cfg(feature = "gecko")]
 pub type StylistSheet = ::gecko::data::GeckoStyleSheet;
 
+/// A cache of computed user-agent data, to be shared across documents.
+lazy_static! {
+    static ref UA_CASCADE_DATA_CACHE: Mutex<UserAgentCascadeDataCache> =
+        Mutex::new(UserAgentCascadeDataCache::new());
+}
+
+struct UserAgentCascadeDataCache {
+    entries: Vec<Arc<UserAgentCascadeData>>,
+}
+
+impl UserAgentCascadeDataCache {
+    fn new() -> Self {
+        Self {
+            entries: vec![],
+        }
+    }
+
+    fn lookup<'a, I, S>(
+        &'a mut self,
+        sheets: I,
+        device: &Device,
+        quirks_mode: QuirksMode,
+        guard: &SharedRwLockReadGuard,
+    ) -> Result<Arc<UserAgentCascadeData>, FailedAllocationError>
+    where
+        I: Iterator<Item = &'a S> + Clone,
+        S: StylesheetInDocument + ToMediaListKey + PartialEq + 'static,
+    {
+        let mut key = EffectiveMediaQueryResults::new();
+        for sheet in sheets.clone() {
+            CascadeData::collect_applicable_media_query_results_into(
+                device,
+                sheet,
+                guard,
+                &mut key,
+            )
+        }
+
+        for entry in &self.entries {
+            if entry.cascade_data.effective_media_query_results == key {
+                return Ok(entry.clone());
+            }
+        }
+
+        let mut new_data = UserAgentCascadeData {
+            cascade_data: CascadeData::new(),
+            precomputed_pseudo_element_decls: PrecomputedPseudoElementDeclarations::default(),
+        };
+
+        for sheet in sheets {
+            new_data.cascade_data.add_stylesheet(
+                device,
+                quirks_mode,
+                sheet,
+                guard,
+                SheetRebuildKind::Full,
+                Some(&mut new_data.precomputed_pseudo_element_decls),
+            )?;
+        }
+
+        let new_data = Arc::new(new_data);
+
+        self.entries.push(new_data.clone());
+        Ok(new_data)
+    }
+
+    fn expire_unused(&mut self) {
+        self.entries.retain(|e| !e.is_unique())
+    }
+
+    fn clear(&mut self) {
+        self.entries.clear();
+    }
+}
+
 type PrecomputedPseudoElementDeclarations =
     PerPseudoElementMap<Vec<ApplicableDeclarationBlock>>;
 
-/// All the computed information for a stylesheet.
 #[derive(Default)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-struct DocumentCascadeData {
-    /// Common data for all the origins.
-    per_origin: PerOrigin<CascadeData>,
+struct UserAgentCascadeData {
+    cascade_data: CascadeData,
 
     /// Applicable declarations for a given non-eagerly cascaded pseudo-element.
     ///
@@ -77,18 +150,98 @@ struct DocumentCascadeData {
     /// computed values on the fly on layout.
     ///
     /// These are only filled from UA stylesheets.
-    ///
-    /// FIXME(emilio): Use the rule tree!
     precomputed_pseudo_element_decls: PrecomputedPseudoElementDeclarations,
 }
 
+/// All the computed information for a stylesheet.
+#[derive(Default)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+struct DocumentCascadeData {
+    #[cfg_attr(
+        feature = "servo",
+        ignore_heap_size_of = "Arc, owned by UserAgentCascadeDataCache"
+    )]
+    user_agent: Arc<UserAgentCascadeData>,
+    user: CascadeData,
+    author: CascadeData,
+    per_origin: PerOrigin<()>,
+}
+
+struct DocumentCascadeDataIter<'a> {
+    iter: PerOriginIter<'a, ()>,
+    cascade_data: &'a DocumentCascadeData,
+}
+
+impl<'a> Iterator for DocumentCascadeDataIter<'a> {
+    type Item = (&'a CascadeData, Origin);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let (_, origin) = match self.iter.next() {
+            Some(o) => o,
+            None => return None,
+        };
+
+        Some((self.cascade_data.borrow_for_origin(origin), origin))
+    }
+}
+
 impl DocumentCascadeData {
-    fn iter_origins(&self) -> PerOriginIter<CascadeData> {
-        self.per_origin.iter_origins()
+    fn borrow_for_origin(&self, origin: Origin) -> &CascadeData {
+        match origin {
+            Origin::UserAgent => &self.user_agent.cascade_data,
+            Origin::Author => &self.author,
+            Origin::User => &self.user,
+        }
     }
 
-    fn iter_origins_rev(&self) -> PerOriginIter<CascadeData> {
-        self.per_origin.iter_origins_rev()
+    fn iter_origins(&self) -> DocumentCascadeDataIter {
+        DocumentCascadeDataIter {
+            iter: self.per_origin.iter_origins(),
+            cascade_data: self,
+        }
+    }
+
+    fn iter_origins_rev(&self) -> DocumentCascadeDataIter {
+        DocumentCascadeDataIter {
+            iter: self.per_origin.iter_origins_rev(),
+            cascade_data: self,
+        }
+    }
+
+    fn rebuild_origin<'a, S>(
+        device: &Device,
+        quirks_mode: QuirksMode,
+        flusher: &mut StylesheetFlusher<'a, S>,
+        guards: &StylesheetGuards,
+        origin: Origin,
+        cascade_data: &mut CascadeData,
+    ) -> Result<(), FailedAllocationError>
+    where
+        S: StylesheetInDocument + ToMediaListKey + PartialEq + 'static,
+    {
+        debug_assert_ne!(origin, Origin::UserAgent);
+
+        let validity = flusher.origin_validity(origin);
+
+        match validity {
+            OriginValidity::Valid => {},
+            OriginValidity::CascadeInvalid => cascade_data.clear_cascade_data(),
+            OriginValidity::FullyInvalid => cascade_data.clear(),
+        }
+
+        let guard = guards.for_origin(origin);
+        for (stylesheet, rebuild_kind) in flusher.origin_sheets(origin) {
+            cascade_data.add_stylesheet(
+                device,
+                quirks_mode,
+                stylesheet,
+                guard,
+                rebuild_kind,
+                /* precomputed_pseudo_element_decls = */ None,
+            )?;
+        }
+
+        Ok(())
     }
 
     /// Rebuild the cascade data for the given document stylesheets, and
@@ -98,7 +251,7 @@ impl DocumentCascadeData {
         &mut self,
         device: &Device,
         quirks_mode: QuirksMode,
-        flusher: StylesheetFlusher<'a, S>,
+        mut flusher: StylesheetFlusher<'a, S>,
         guards: &StylesheetGuards,
     ) -> Result<(), FailedAllocationError>
     where
@@ -106,39 +259,44 @@ impl DocumentCascadeData {
     {
         debug_assert!(!flusher.nothing_to_do());
 
-        for (cascade_data, origin) in self.per_origin.iter_mut_origins() {
-            let validity = flusher.origin_validity(origin);
+        // First do UA sheets.
+        {
+            if flusher.origin_dirty(Origin::UserAgent) {
+                let mut ua_cache = UA_CASCADE_DATA_CACHE.lock().unwrap();
+                let origin_sheets =
+                    flusher.manual_origin_sheets(Origin::UserAgent);
 
-            if validity == OriginValidity::Valid {
-                continue;
-            }
-
-            if origin == Origin::UserAgent {
-                self.precomputed_pseudo_element_decls.clear();
-            }
-
-            if validity == OriginValidity::CascadeInvalid {
-                cascade_data.clear_cascade_data()
-            } else {
-                debug_assert_eq!(validity, OriginValidity::FullyInvalid);
-                cascade_data.clear();
-            }
-        }
-
-        for (stylesheet, origin, rebuild_kind) in flusher {
-            let guard = guards.for_origin(origin);
-            let origin = stylesheet.origin(guard);
-            self.per_origin
-                .borrow_mut_for_origin(&origin)
-                .add_stylesheet(
+                let ua_cascade_data = ua_cache.lookup(
+                    origin_sheets,
                     device,
                     quirks_mode,
-                    stylesheet,
-                    guard,
-                    rebuild_kind,
-                    &mut self.precomputed_pseudo_element_decls,
+                    guards.ua_or_user
                 )?;
+
+                ua_cache.expire_unused();
+                self.user_agent = ua_cascade_data;
+            }
         }
+
+        // Now do the user sheets.
+        Self::rebuild_origin(
+            device,
+            quirks_mode,
+            &mut flusher,
+            guards,
+            Origin::User,
+            &mut self.user,
+        )?;
+
+        // And now the author sheets.
+        Self::rebuild_origin(
+            device,
+            quirks_mode,
+            &mut flusher,
+            guards,
+            Origin::Author,
+            &mut self.author,
+        )?;
 
         Ok(())
     }
@@ -146,15 +304,11 @@ impl DocumentCascadeData {
     /// Measures heap usage.
     #[cfg(feature = "gecko")]
     pub fn add_size_of_children(&self, ops: &mut MallocSizeOfOps, sizes: &mut ServoStyleSetSizes) {
-        self.per_origin.user_agent.add_size_of_children(ops, sizes);
-        self.per_origin.user.add_size_of_children(ops, sizes);
-        self.per_origin.author.add_size_of_children(ops, sizes);
+        self.user.add_size_of_children(ops, sizes);
+        self.author.add_size_of_children(ops, sizes);
 
-        for elem in self.precomputed_pseudo_element_decls.iter() {
-            if let Some(ref elem) = *elem {
-                sizes.mStylistPrecomputedPseudos += elem.shallow_size_of(ops);
-            }
-        }
+        // FIXME(emilio): UA_CASCADE_DATA_CACHE is shared, we should do whatever
+        // we do for RuleProcessorCache in Gecko.
     }
 }
 
@@ -556,7 +710,7 @@ impl Stylist {
         extra_declarations: Option<Vec<ApplicableDeclarationBlock>>,
     ) -> StrongRuleNode {
         let mut decl;
-        let declarations = match self.cascade_data.precomputed_pseudo_element_decls.get(pseudo) {
+        let declarations = match self.cascade_data.user_agent.precomputed_pseudo_element_decls.get(pseudo) {
             Some(declarations) => {
                 match extra_declarations {
                     Some(mut extra_decls) => {
@@ -963,107 +1117,33 @@ impl Stylist {
         &self,
         guards: &StylesheetGuards,
     ) -> OriginSet {
-        use invalidation::media_queries::PotentiallyEffectiveMediaRules;
-
         debug!("Stylist::media_features_change_changed_style");
 
         let mut origins = OriginSet::empty();
         let stylesheets = self.stylesheets.iter();
 
-        'stylesheets_loop: for (stylesheet, origin) in stylesheets {
-            let guard = guards.for_origin(origin);
-            let effective_now =
-                stylesheet.is_effective_for_device(&self.device, guard);
-
+        for (stylesheet, origin) in stylesheets {
             if origins.contains(origin.into()) {
                 continue;
             }
 
+            let guard = guards.for_origin(origin);
             let origin_cascade_data =
-                self.cascade_data.per_origin.borrow_for_origin(&origin);
+                self.cascade_data.borrow_for_origin(origin);
 
-            let effective_then =
-                origin_cascade_data
-                    .effective_media_query_results
-                    .was_effective(stylesheet);
+            let affected_changed = !origin_cascade_data.media_feature_affected_matches(
+                stylesheet,
+                guard,
+                &self.device,
+                self.quirks_mode
+            );
 
-            if effective_now != effective_then {
-                debug!(" > Stylesheet changed -> {}, {}",
-                       effective_then, effective_now);
+            if affected_changed {
                 origins |= origin;
-                continue;
-            }
-
-            if !effective_now {
-                continue;
-            }
-
-            let mut iter =
-                stylesheet.iter_rules::<PotentiallyEffectiveMediaRules>(
-                    &self.device,
-                    guard
-                );
-
-            while let Some(rule) = iter.next() {
-                match *rule {
-                    CssRule::Style(..) |
-                    CssRule::Namespace(..) |
-                    CssRule::FontFace(..) |
-                    CssRule::CounterStyle(..) |
-                    CssRule::Supports(..) |
-                    CssRule::Keyframes(..) |
-                    CssRule::Page(..) |
-                    CssRule::Viewport(..) |
-                    CssRule::Document(..) |
-                    CssRule::FontFeatureValues(..) => {
-                        // Not affected by device changes.
-                        continue;
-                    }
-                    CssRule::Import(ref lock) => {
-                        let import_rule = lock.read_with(guard);
-                        let effective_now =
-                            import_rule.stylesheet
-                                .is_effective_for_device(&self.device, guard);
-                        let effective_then =
-                            origin_cascade_data
-                                .effective_media_query_results
-                                .was_effective(import_rule);
-                        if effective_now != effective_then {
-                            debug!(" > @import rule changed {} -> {}",
-                                   effective_then, effective_now);
-                            origins |= origin;
-                            continue 'stylesheets_loop;
-                        }
-
-                        if !effective_now {
-                            iter.skip_children();
-                        }
-                    }
-                    CssRule::Media(ref lock) => {
-                        let media_rule = lock.read_with(guard);
-                        let mq = media_rule.media_queries.read_with(guard);
-                        let effective_now =
-                            mq.evaluate(&self.device, self.quirks_mode);
-                        let effective_then =
-                            origin_cascade_data
-                                .effective_media_query_results
-                                .was_effective(media_rule);
-                        if effective_now != effective_then {
-                            debug!(" > @media rule changed {} -> {}",
-                                   effective_then, effective_now);
-                            origins |= origin;
-                            continue 'stylesheets_loop;
-                        }
-
-                        if !effective_now {
-                            iter.skip_children();
-                        }
-                    }
-                }
             }
         }
 
-        return origins
+        origins
     }
 
     /// Returns the viewport constraints that apply to this document because of
@@ -1108,7 +1188,7 @@ impl Stylist {
 
         // nsXBLPrototypeResources::LoadResources() loads Chrome XBL style
         // sheets under eAuthorSheetFeatures level.
-        if let Some(map) = self.cascade_data.per_origin.author.borrow_for_pseudo(pseudo_element) {
+        if let Some(map) = self.cascade_data.author.borrow_for_pseudo(pseudo_element) {
             map.get_all_matching_rules(
                 element,
                 &rule_hash_target,
@@ -1156,7 +1236,7 @@ impl Stylist {
         let only_default_rules = rule_inclusion == RuleInclusion::DefaultOnly;
 
         // Step 1: Normal user-agent rules.
-        if let Some(map) = self.cascade_data.per_origin.user_agent.borrow_for_pseudo(pseudo_element) {
+        if let Some(map) = self.cascade_data.user_agent.cascade_data.borrow_for_pseudo(pseudo_element) {
             map.get_all_matching_rules(
                 element,
                 &rule_hash_target,
@@ -1194,7 +1274,7 @@ impl Stylist {
         // Which may be more what you would probably expect.
         if rule_hash_target.matches_user_and_author_rules() {
             // Step 3a: User normal rules.
-            if let Some(map) = self.cascade_data.per_origin.user.borrow_for_pseudo(pseudo_element) {
+            if let Some(map) = self.cascade_data.user.borrow_for_pseudo(pseudo_element) {
                 map.get_all_matching_rules(
                     element,
                     &rule_hash_target,
@@ -1221,7 +1301,7 @@ impl Stylist {
             // See nsStyleSet::FileRules().
             if !cut_off_inheritance {
                 // Step 3c: Author normal rules.
-                if let Some(map) = self.cascade_data.per_origin.author.borrow_for_pseudo(pseudo_element) {
+                if let Some(map) = self.cascade_data.author.borrow_for_pseudo(pseudo_element) {
                     map.get_all_matching_rules(
                         element,
                         &rule_hash_target,
@@ -1426,6 +1506,11 @@ impl Stylist {
 
         // We may measure other fields in the future if DMD says it's worth it.
     }
+
+    /// Shutdown the static data that this module stores.
+    pub fn shutdown() {
+        UA_CASCADE_DATA_CACHE.lock().unwrap().clear()
+    }
 }
 
 /// This struct holds data which users of Stylist may want to extract
@@ -1454,6 +1539,8 @@ pub struct ExtraStyleData {
 // nsCSSFontFaceRules or nsCSSCounterStyleRules OMT (which we don't).
 #[cfg(feature = "gecko")]
 unsafe impl Sync for ExtraStyleData {}
+#[cfg(feature = "gecko")]
+unsafe impl Send for ExtraStyleData {}
 
 #[cfg(feature = "gecko")]
 impl ExtraStyleData {
@@ -1496,7 +1583,7 @@ impl ExtraStyleData {
 }
 
 /// An iterator over the different ExtraStyleData.
-pub struct ExtraStyleDataIterator<'a>(PerOriginIter<'a, CascadeData>);
+pub struct ExtraStyleDataIterator<'a>(DocumentCascadeDataIter<'a>);
 
 impl<'a> Iterator for ExtraStyleDataIterator<'a> {
     type Item = (&'a ExtraStyleData, Origin);
@@ -1786,6 +1873,45 @@ impl CascadeData {
         }
     }
 
+    /// Collects all the applicable media query results into `results`.
+    ///
+    /// This duplicates part of the logic in `add_stylesheet`, which is
+    /// a bit unfortunate.
+    ///
+    /// FIXME(emilio): With a bit of smartness in
+    /// `media_feature_affected_matches`, we could convert
+    /// `EffectiveMediaQueryResults` into a vector without too much effort.
+    fn collect_applicable_media_query_results_into<S>(
+        device: &Device,
+        stylesheet: &S,
+        guard: &SharedRwLockReadGuard,
+        results: &mut EffectiveMediaQueryResults,
+    )
+    where
+        S: StylesheetInDocument + ToMediaListKey + 'static,
+    {
+        if !stylesheet.enabled() ||
+           !stylesheet.is_effective_for_device(device, guard) {
+           return;
+        }
+
+        results.saw_effective(stylesheet);
+
+        for rule in stylesheet.effective_rules(device, guard) {
+            match *rule {
+                CssRule::Import(ref lock) => {
+                    let import_rule = lock.read_with(guard);
+                    results.saw_effective(import_rule);
+                }
+                CssRule::Media(ref lock) => {
+                    let media_rule = lock.read_with(guard);
+                    results.saw_effective(media_rule);
+                }
+                _ => {},
+            }
+        }
+    }
+
     // Returns Err(..) to signify OOM
     fn add_stylesheet<S>(
         &mut self,
@@ -1794,7 +1920,7 @@ impl CascadeData {
         stylesheet: &S,
         guard: &SharedRwLockReadGuard,
         rebuild_kind: SheetRebuildKind,
-        precomputed_pseudo_element_decls: &mut PrecomputedPseudoElementDeclarations,
+        mut precomputed_pseudo_element_decls: Option<&mut PrecomputedPseudoElementDeclarations>,
     ) -> Result<(), FailedAllocationError>
     where
         S: StylesheetInDocument + ToMediaListKey + 'static,
@@ -1830,6 +1956,8 @@ impl CascadeData {
                                 }
 
                                 precomputed_pseudo_element_decls
+                                    .as_mut()
+                                    .expect("Expected precomputed declarations for the UA level")
                                     .get_or_insert_with(&pseudo.canonical(), Vec::new)
                                     .expect("Unexpected tree pseudo-element?")
                                     .push(ApplicableDeclarationBlock::new(
@@ -1943,6 +2071,93 @@ impl CascadeData {
         Ok(())
     }
 
+    /// Returns whether all the media-feature affected values matched before and
+    /// match now in the given stylesheet.
+    fn media_feature_affected_matches<S>(
+        &self,
+        stylesheet: &S,
+        guard: &SharedRwLockReadGuard,
+        device: &Device,
+        quirks_mode: QuirksMode,
+    ) -> bool
+    where
+        S: StylesheetInDocument + ToMediaListKey + 'static,
+    {
+        use invalidation::media_queries::PotentiallyEffectiveMediaRules;
+
+        let effective_now =
+            stylesheet.is_effective_for_device(device, guard);
+
+        let effective_then =
+            self.effective_media_query_results.was_effective(stylesheet);
+
+        if effective_now != effective_then {
+            debug!(" > Stylesheet changed -> {}, {}",
+                   effective_then, effective_now);
+            return false;
+        }
+
+        if !effective_now {
+            return true;
+        }
+
+        let mut iter =
+            stylesheet.iter_rules::<PotentiallyEffectiveMediaRules>(device, guard);
+
+        while let Some(rule) = iter.next() {
+            match *rule {
+                CssRule::Style(..) |
+                CssRule::Namespace(..) |
+                CssRule::FontFace(..) |
+                CssRule::CounterStyle(..) |
+                CssRule::Supports(..) |
+                CssRule::Keyframes(..) |
+                CssRule::Page(..) |
+                CssRule::Viewport(..) |
+                CssRule::Document(..) |
+                CssRule::FontFeatureValues(..) => {
+                    // Not affected by device changes.
+                    continue;
+                }
+                CssRule::Import(ref lock) => {
+                    let import_rule = lock.read_with(guard);
+                    let effective_now =
+                        import_rule.stylesheet
+                            .is_effective_for_device(&device, guard);
+                    let effective_then =
+                        self.effective_media_query_results.was_effective(import_rule);
+                    if effective_now != effective_then {
+                        debug!(" > @import rule changed {} -> {}",
+                               effective_then, effective_now);
+                        return false;
+                    }
+
+                    if !effective_now {
+                        iter.skip_children();
+                    }
+                }
+                CssRule::Media(ref lock) => {
+                    let media_rule = lock.read_with(guard);
+                    let mq = media_rule.media_queries.read_with(guard);
+                    let effective_now = mq.evaluate(device, quirks_mode);
+                    let effective_then =
+                        self.effective_media_query_results.was_effective(media_rule);
+
+                    if effective_now != effective_then {
+                        debug!(" > @media rule changed {} -> {}",
+                               effective_then, effective_now);
+                        return false;
+                    }
+
+                    if !effective_now {
+                        iter.skip_children();
+                    }
+                }
+            }
+        }
+
+        true
+    }
 
     #[inline]
     fn borrow_for_pseudo(&self, pseudo: Option<&PseudoElement>) -> Option<&SelectorMap<Rule>> {
