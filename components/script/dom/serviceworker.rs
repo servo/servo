@@ -16,7 +16,7 @@ use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use js::jsapi::{HandleValue, JSContext};
-use script_thread::Runnable;
+use script_thread::Task;
 use script_traits::{ScriptMsg, DOMMessage};
 use servo_url::ServoUrl;
 use std::cell::Cell;
@@ -104,9 +104,9 @@ impl ServiceWorkerMethods for ServiceWorker {
     event_handler!(statechange, GetOnstatechange, SetOnstatechange);
 }
 
-impl Runnable for SimpleWorkerErrorHandler<ServiceWorker> {
+impl Task for SimpleWorkerErrorHandler<ServiceWorker> {
     #[allow(unrooted_must_root)]
-    fn handler(self: Box<SimpleWorkerErrorHandler<ServiceWorker>>) {
+    fn run(self: Box<Self>) {
         let this = *self;
         ServiceWorker::dispatch_simple_error(this.addr);
     }

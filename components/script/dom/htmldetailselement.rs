@@ -16,7 +16,7 @@ use dom::node::{Node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
-use script_thread::Runnable;
+use script_thread::Task;
 use std::cell::Cell;
 use task_source::TaskSource;
 
@@ -74,22 +74,22 @@ impl VirtualMethods for HTMLDetailsElement {
             let window = window_from_node(self);
             let task_source = window.dom_manipulation_task_source();
             let details = Trusted::new(self);
-            let runnable = box DetailsNotificationRunnable {
+            let task = box DetailsNotificationTask {
                 element: details,
                 toggle_number: counter
             };
-            let _ = task_source.queue(runnable, window.upcast());
+            let _ = task_source.queue(task, window.upcast());
         }
     }
 }
 
-pub struct DetailsNotificationRunnable {
+pub struct DetailsNotificationTask {
     element: Trusted<HTMLDetailsElement>,
     toggle_number: u32
 }
 
-impl Runnable for DetailsNotificationRunnable {
-    fn handler(self: Box<DetailsNotificationRunnable>) {
+impl Task for DetailsNotificationTask {
+    fn run(self: Box<Self>) {
         let target = self.element.root();
         if target.check_toggle_count(self.toggle_number) {
             target.upcast::<EventTarget>().fire_event(atom!("toggle"));

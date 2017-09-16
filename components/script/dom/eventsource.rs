@@ -27,7 +27,7 @@ use net_traits::{CoreResourceMsg, FetchMetadata, FetchResponseMsg, FetchResponse
 use net_traits::request::{CacheMode, CorsSettings, CredentialsMode};
 use net_traits::request::{RequestInit, RequestMode};
 use network_listener::{NetworkListener, PreInvoke};
-use script_thread::Runnable;
+use script_thread::Task;
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use std::cell::Cell;
@@ -96,10 +96,10 @@ impl EventSourceContext {
         if self.gen_id != event_source.generation_id.get() {
             return;
         }
-        let runnable = box AnnounceConnectionRunnable {
+        let task = box AnnounceConnectionTask {
             event_source: self.event_source.clone()
         };
-        let _ = event_source.global().networking_task_source().queue(runnable, &*event_source.global());
+        let _ = event_source.global().networking_task_source().queue(task, &*event_source.global());
     }
 
     fn fail_the_connection(&self) {
@@ -107,10 +107,10 @@ impl EventSourceContext {
         if self.gen_id != event_source.generation_id.get() {
             return;
         }
-        let runnable = box FailConnectionRunnable {
+        let task = box FailConnectionTask {
             event_source: self.event_source.clone()
         };
-        let _ = event_source.global().networking_task_source().queue(runnable, &*event_source.global());
+        let _ = event_source.global().networking_task_source().queue(task, &*event_source.global());
     }
 
     // https://html.spec.whatwg.org/multipage/#reestablish-the-connection
@@ -122,11 +122,11 @@ impl EventSourceContext {
         }
 
         // Step 1
-        let runnable = box ReestablishConnectionRunnable {
+        let task = box ReestablishConnectionTask {
             event_source: self.event_source.clone(),
             action_sender: self.action_sender.clone()
         };
-        let _ = event_source.global().networking_task_source().queue(runnable, &*event_source.global());
+        let _ = event_source.global().networking_task_source().queue(task, &*event_source.global());
     }
 
     // https://html.spec.whatwg.org/multipage/#processField
@@ -186,11 +186,11 @@ impl EventSourceContext {
         self.event_type.clear();
         self.data.clear();
         // Step 8
-        let runnable = box DispatchEventRunnable {
+        let task = box DispatchEventTask {
             event_source: self.event_source.clone(),
             event: Trusted::new(&event)
         };
-        let _ = event_source.global().networking_task_source().queue(runnable, &*event_source.global());
+        let _ = event_source.global().networking_task_source().queue(task, &*event_source.global());
     }
 
     // https://html.spec.whatwg.org/multipage/#event-stream-interpretation
@@ -425,7 +425,7 @@ impl EventSource {
         let listener = NetworkListener {
             context: Arc::new(Mutex::new(context)),
             task_source: global.networking_task_source(),
-            wrapper: Some(global.get_runnable_wrapper())
+            canceller: Some(global.task_canceller())
         };
         ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
             listener.notify_fetch(message.to().unwrap());
@@ -469,13 +469,13 @@ impl EventSourceMethods for EventSource {
     }
 }
 
-pub struct AnnounceConnectionRunnable {
+pub struct AnnounceConnectionTask {
     event_source: Trusted<EventSource>,
 }
 
-impl Runnable for AnnounceConnectionRunnable {
+impl Task for AnnounceConnectionTask {
     // https://html.spec.whatwg.org/multipage/#announce-the-connection
-    fn handler(self: Box<AnnounceConnectionRunnable>) {
+    fn run(self: Box<Self>) {
         let event_source = self.event_source.root();
         if event_source.ready_state.get() != ReadyState::Closed {
             event_source.ready_state.set(ReadyState::Open);
@@ -484,13 +484,13 @@ impl Runnable for AnnounceConnectionRunnable {
     }
 }
 
-pub struct FailConnectionRunnable {
+pub struct FailConnectionTask {
     event_source: Trusted<EventSource>,
 }
 
-impl Runnable for FailConnectionRunnable {
+impl Task for FailConnectionTask {
     // https://html.spec.whatwg.org/multipage/#fail-the-connection
-    fn handler(self: Box<FailConnectionRunnable>) {
+    fn run(self: Box<Self>) {
         let event_source = self.event_source.root();
         if event_source.ready_state.get() != ReadyState::Closed {
             event_source.ready_state.set(ReadyState::Closed);
@@ -499,14 +499,14 @@ impl Runnable for FailConnectionRunnable {
     }
 }
 
-pub struct ReestablishConnectionRunnable {
+pub struct ReestablishConnectionTask {
     event_source: Trusted<EventSource>,
     action_sender: ipc::IpcSender<FetchResponseMsg>,
 }
 
-impl Runnable for ReestablishConnectionRunnable {
+impl Task for ReestablishConnectionTask {
     // https://html.spec.whatwg.org/multipage/#reestablish-the-connection
-    fn handler(self: Box<ReestablishConnectionRunnable>) {
+    fn run(self: Box<Self>) {
         let event_source = self.event_source.root();
         // Step 1.1
         if event_source.ready_state.get() == ReadyState::Closed {
@@ -556,14 +556,14 @@ impl EventSourceTimeoutCallback {
     }
 }
 
-pub struct DispatchEventRunnable {
+pub struct DispatchEventTask {
     event_source: Trusted<EventSource>,
     event: Trusted<MessageEvent>,
 }
 
-impl Runnable for DispatchEventRunnable {
+impl Task for DispatchEventTask {
     // https://html.spec.whatwg.org/multipage/#dispatchMessage
-    fn handler(self: Box<DispatchEventRunnable>) {
+    fn run(self: Box<Self>) {
         let event_source = self.event_source.root();
         // Step 8
         if event_source.ready_state.get() != ReadyState::Closed {

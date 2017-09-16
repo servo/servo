@@ -32,8 +32,7 @@ use dom::promise::Promise;
 use js::jsapi::JSAutoCompartment;
 use js::jsapi::JSTracer;
 use libc;
-use script_thread::Runnable;
-use script_thread::ScriptThread;
+use script_thread::{ScriptThread, Task};
 use std::cell::RefCell;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::hash_map::HashMap;
@@ -121,12 +120,12 @@ impl TrustedPromise {
         })
     }
 
-    /// A runnable which will reject the promise.
+    /// A task which will reject the promise.
     #[allow(unrooted_must_root)]
-    pub fn reject_runnable(self, error: Error) -> impl Runnable + Send {
+    pub fn reject_task(self, error: Error) -> impl Send + Task {
         struct RejectPromise(TrustedPromise, Error);
-        impl Runnable for RejectPromise {
-            fn main_thread_handler(self: Box<Self>, script_thread: &ScriptThread) {
+        impl Task for RejectPromise {
+            fn run_with_script_thread(self: Box<Self>, script_thread: &ScriptThread) {
                 debug!("Rejecting promise.");
                 let this = *self;
                 let cx = script_thread.get_cx();
@@ -138,14 +137,15 @@ impl TrustedPromise {
         RejectPromise(self, error)
     }
 
-    /// A runnable which will resolve the promise.
+    /// A task which will resolve the promise.
     #[allow(unrooted_must_root)]
-    pub fn resolve_runnable<T>(self, value: T) -> impl Runnable + Send where
-        T: ToJSValConvertible + Send
+    pub fn resolve_task<T>(self, value: T) -> impl Send + Task
+    where
+        T: ToJSValConvertible + Send,
     {
         struct ResolvePromise<T>(TrustedPromise, T);
-        impl<T: ToJSValConvertible> Runnable for ResolvePromise<T> {
-            fn main_thread_handler(self: Box<Self>, script_thread: &ScriptThread) {
+        impl<T: ToJSValConvertible> Task for ResolvePromise<T> {
+            fn run_with_script_thread(self: Box<Self>, script_thread: &ScriptThread) {
                 debug!("Resolving promise.");
                 let this = *self;
                 let cx = script_thread.get_cx();

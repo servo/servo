@@ -24,9 +24,7 @@ use profile_traits::mem;
 use profile_traits::time;
 use script_layout_interface::message::Msg;
 use script_runtime::ScriptThreadEventCategory;
-use script_thread::MainThreadScriptMsg;
-use script_thread::Runnable;
-use script_thread::ScriptThread;
+use script_thread::{MainThreadScriptMsg, ScriptThread, Task};
 use script_traits::ScriptMsg;
 use script_traits::ScriptToConstellationChan;
 use script_traits::TimerSchedulerMsg;
@@ -95,28 +93,29 @@ impl WorkletGlobalScope {
         self.globalscope.evaluate_js_on_global_with_result(&*script, rval.handle_mut())
     }
 
-    /// Run a runnable in the main script thread.
-    pub fn run_in_script_thread<R>(&self, runnable: R) where
-        R: 'static + Send + Runnable,
+    /// Run a task in the main script thread.
+    pub fn run_in_script_thread<T>(&self, task: T)
+    where
+        T: 'static + Send + Task,
     {
         self.to_script_thread_sender
-            .send(MainThreadScriptMsg::MainThreadRunnable(
+            .send(MainThreadScriptMsg::MainThreadTask(
                 ScriptThreadEventCategory::WorkletEvent,
-                box runnable,
+                box task,
             ))
             .expect("Worklet thread outlived script thread.");
     }
 
     /// Send a message to layout.
     pub fn send_to_layout(&self, msg: Msg) {
-        struct RunnableMsg(PipelineId, Msg);
-        impl Runnable for RunnableMsg {
-            fn main_thread_handler(self: Box<Self>, script_thread: &ScriptThread) {
+        struct SendToLayoutTask(PipelineId, Msg);
+        impl Task for SendToLayoutTask {
+            fn run_with_script_thread(self: Box<Self>, script_thread: &ScriptThread) {
                 script_thread.send_to_layout(self.0, self.1);
             }
         }
         let pipeline_id = self.globalscope.pipeline_id();
-        self.run_in_script_thread(RunnableMsg(pipeline_id, msg));
+        self.run_in_script_thread(SendToLayoutTask(pipeline_id, msg));
     }
 
     /// The base URL of this global.

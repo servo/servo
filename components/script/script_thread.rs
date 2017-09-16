@@ -203,29 +203,32 @@ impl InProgressLoad {
     }
 }
 
-/// Encapsulated state required to create cancellable runnables from non-script threads.
-pub struct RunnableWrapper {
+/// Encapsulated state required to create cancellable tasks from non-script threads.
+pub struct TaskCanceller {
     pub cancelled: Option<Arc<AtomicBool>>,
 }
 
-impl RunnableWrapper {
-    pub fn wrap_runnable<T: Runnable + Send + 'static>(&self, runnable: Box<T>) -> Box<Runnable + Send> {
-        box CancellableRunnable {
+impl TaskCanceller {
+    pub fn wrap_task<T>(&self, task: Box<T>) -> Box<Task + Send>
+    where
+        T: Send + Task + 'static,
+    {
+        box CancellableTask {
             cancelled: self.cancelled.clone(),
-            inner: runnable,
+            inner: task,
         }
     }
 }
 
-/// A runnable that can be discarded by toggling a shared flag.
-pub struct CancellableRunnable<T: Runnable + Send> {
+/// A task that can be discarded by toggling a shared flag.
+pub struct CancellableTask<T: Send + Task> {
     cancelled: Option<Arc<AtomicBool>>,
     inner: Box<T>,
 }
 
-impl<T> CancellableRunnable<T>
+impl<T> CancellableTask<T>
 where
-    T: Runnable + Send,
+    T: Send + Task,
 {
     fn is_cancelled(&self) -> bool {
         self.cancelled.as_ref().map_or(false, |cancelled| {
@@ -234,32 +237,34 @@ where
     }
 }
 
-impl<T> Runnable for CancellableRunnable<T>
+impl<T> Task for CancellableTask<T>
 where
-    T: Runnable + Send,
+    T: Send + Task,
 {
-    fn main_thread_handler(self: Box<CancellableRunnable<T>>, script_thread: &ScriptThread) {
+    fn run_with_script_thread(self: Box<CancellableTask<T>>, script_thread: &ScriptThread) {
         if !self.is_cancelled() {
-            self.inner.main_thread_handler(script_thread);
+            self.inner.run_with_script_thread(script_thread);
         }
     }
 
-    fn handler(self: Box<CancellableRunnable<T>>) {
+    fn run(self: Box<Self>) {
         if !self.is_cancelled() {
-            self.inner.handler()
+            self.inner.run()
         }
     }
 }
 
-pub trait Runnable {
+pub trait Task {
     fn name(&self) -> &'static str { unsafe { intrinsics::type_name::<Self>() } }
-    fn handler(self: Box<Self>) {
+    fn run(self: Box<Self>) {
         panic!("This should probably be redefined.")
     }
-    fn main_thread_handler(self: Box<Self>, _script_thread: &ScriptThread) { self.handler(); }
+    fn run_with_script_thread(self: Box<Self>, _script_thread: &ScriptThread) {
+        self.run();
+    }
 }
 
-impl fmt::Debug for Runnable + Send {
+impl fmt::Debug for Task + Send {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         fmt.debug_tuple(self.name()).field(&format_args!("...")).finish()
     }
@@ -289,8 +294,8 @@ pub enum MainThreadScriptMsg {
     /// Notifies the script thread that a new worklet has been loaded, and thus the page should be
     /// reflowed.
     WorkletLoaded(PipelineId),
-    /// Runs a Runnable in the main thread.
-    MainThreadRunnable(ScriptThreadEventCategory, Box<Runnable + Send>),
+    /// Runs a Task in the main thread.
+    MainThreadTask(ScriptThreadEventCategory, Box<Task + Send>),
 }
 
 impl OpaqueSender<CommonScriptMsg> for Box<ScriptChan + Send> {
@@ -1169,8 +1174,8 @@ impl ScriptThread {
             MixedMessage::FromImageCache(_) => ScriptThreadEventCategory::ImageCacheMsg,
             MixedMessage::FromScript(ref inner_msg) => {
                 match *inner_msg {
-                    MainThreadScriptMsg::Common(CommonScriptMsg::RunnableMsg(category, _)) |
-                    MainThreadScriptMsg::MainThreadRunnable(category, _) => category,
+                    MainThreadScriptMsg::Common(CommonScriptMsg::Task(category, _)) |
+                    MainThreadScriptMsg::MainThreadTask(category, _) => category,
                     _ => ScriptThreadEventCategory::ScriptEvent,
                 }
             },
@@ -1300,8 +1305,8 @@ impl ScriptThread {
             MainThreadScriptMsg::ExitWindow(id) => {
                 self.handle_exit_window_msg(id)
             },
-            MainThreadScriptMsg::Common(CommonScriptMsg::RunnableMsg(_, runnable)) => {
-                runnable.handler()
+            MainThreadScriptMsg::Common(CommonScriptMsg::Task(_, task)) => {
+                task.run()
             }
             MainThreadScriptMsg::Common(CommonScriptMsg::CollectReports(chan)) => {
                 self.collect_reports(chan)
@@ -1309,8 +1314,8 @@ impl ScriptThread {
             MainThreadScriptMsg::WorkletLoaded(pipeline_id) => {
                 self.handle_worklet_loaded(pipeline_id)
             },
-            MainThreadScriptMsg::MainThreadRunnable(_, runnable) => {
-                runnable.main_thread_handler(self)
+            MainThreadScriptMsg::MainThreadTask(_, task) => {
+                task.run_with_script_thread(self)
             },
         }
     }

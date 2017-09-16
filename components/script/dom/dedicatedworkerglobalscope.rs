@@ -190,7 +190,7 @@ impl DedicatedWorkerGlobalScope {
                                                               &init.resource_threads.sender()) {
                 Err(_) => {
                     println!("error loading script {}", serialized_worker_url);
-                    parent_sender.send(CommonScriptMsg::RunnableMsg(WorkerEvent,
+                    parent_sender.send(CommonScriptMsg::Task(WorkerEvent,
                         box SimpleWorkerErrorHandler::new(worker))).unwrap();
                     return;
                 }
@@ -352,7 +352,7 @@ impl DedicatedWorkerGlobalScope {
         let worker = self.worker.borrow().as_ref().unwrap().clone();
         // TODO: Should use the DOM manipulation task source.
         self.parent_sender
-            .send(CommonScriptMsg::RunnableMsg(WorkerEvent,
+            .send(CommonScriptMsg::Task(WorkerEvent,
                                                box WorkerErrorHandler::new(worker, error_info)))
             .unwrap();
     }
@@ -376,7 +376,7 @@ impl DedicatedWorkerGlobalScopeMethods for DedicatedWorkerGlobalScope {
         let data = StructuredCloneData::write(cx, message)?;
         let worker = self.worker.borrow().as_ref().unwrap().clone();
         self.parent_sender
-            .send(CommonScriptMsg::RunnableMsg(WorkerEvent,
+            .send(CommonScriptMsg::Task(WorkerEvent,
                                                box WorkerMessageHandler::new(worker, data)))
             .unwrap();
         Ok(())

@@ -4,11 +4,11 @@
 
 use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::Trusted;
-use dom::event::{EventBubbles, EventCancelable, EventRunnable};
+use dom::event::{EventBubbles, EventCancelable, EventTask};
 use dom::eventtarget::EventTarget;
 use dom::window::Window;
 use script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
-use script_thread::{MainThreadScriptMsg, Runnable, RunnableWrapper};
+use script_thread::{MainThreadScriptMsg, Task, TaskCanceller};
 use servo_atoms::Atom;
 use std::fmt;
 use std::result::Result;
@@ -25,17 +25,17 @@ impl fmt::Debug for UserInteractionTaskSource {
 }
 
 impl TaskSource for UserInteractionTaskSource {
-    fn queue_with_wrapper<T>(
+    fn queue_with_canceller<T>(
         &self,
         msg: Box<T>,
-        wrapper: &RunnableWrapper,
+        canceller: &TaskCanceller,
     ) -> Result<(), ()>
     where
-        T: Runnable + Send + 'static,
+        T: Task + Send + 'static,
     {
-        let msg = MainThreadScriptMsg::Common(CommonScriptMsg::RunnableMsg(
+        let msg = MainThreadScriptMsg::Common(CommonScriptMsg::Task(
             ScriptThreadEventCategory::InputEvent,
-            wrapper.wrap_runnable(msg),
+            canceller.wrap_task(msg),
         ));
         self.0.send(msg).map_err(|_| ())
     }
@@ -49,12 +49,7 @@ impl UserInteractionTaskSource {
                        cancelable: EventCancelable,
                        window: &Window) {
         let target = Trusted::new(target);
-        let runnable = box EventRunnable {
-            target: target,
-            name: name,
-            bubbles: bubbles,
-            cancelable: cancelable,
-        };
-        let _ = self.queue(runnable, window.upcast());
+        let task = box EventTask { target, name, bubbles, cancelable };
+        let _ = self.queue(task, window.upcast());
     }
 }

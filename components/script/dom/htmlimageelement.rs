@@ -48,7 +48,7 @@ use net_traits::image_cache::UsePlaceholder;
 use net_traits::request::{RequestInit, Type as RequestType};
 use network_listener::{NetworkListener, PreInvoke};
 use num_traits::ToPrimitive;
-use script_thread::{Runnable, ScriptThread};
+use script_thread::{ScriptThread, Task};
 use servo_url::ServoUrl;
 use servo_url::origin::ImmutableOrigin;
 use std::cell::{Cell, RefMut};
@@ -99,16 +99,16 @@ impl HTMLImageElement {
     }
 }
 
-struct ImageResponseHandlerRunnable {
+struct ImageResponseHandlerTask {
     element: Trusted<HTMLImageElement>,
     image: ImageResponse,
     generation: u32,
 }
 
-impl ImageResponseHandlerRunnable {
+impl ImageResponseHandlerTask {
     fn new(element: Trusted<HTMLImageElement>, image: ImageResponse, generation: u32)
-           -> ImageResponseHandlerRunnable {
-        ImageResponseHandlerRunnable {
+           -> ImageResponseHandlerTask {
+        ImageResponseHandlerTask {
             element: element,
             image: image,
             generation: generation,
@@ -116,8 +116,8 @@ impl ImageResponseHandlerRunnable {
     }
 }
 
-impl Runnable for ImageResponseHandlerRunnable {
-    fn handler(self: Box<Self>) {
+impl Task for ImageResponseHandlerTask {
+    fn run(self: Box<Self>) {
         let element = self.element.root();
         // Ignore any image response for a previous request that has been discarded.
         if element.generation.get() == self.generation {
@@ -191,15 +191,18 @@ impl HTMLImageElement {
 
             let window = window_from_node(elem);
             let task_source = window.networking_task_source();
-            let wrapper = window.get_runnable_wrapper();
+            let wrapper = window.task_canceller();
             let generation = elem.generation.get();
             ROUTER.add_route(responder_receiver.to_opaque(), box move |message| {
                 debug!("Got image {:?}", message);
                 // Return the image via a message to the script thread, which marks
                 // the element as dirty and triggers a reflow.
-                let runnable = ImageResponseHandlerRunnable::new(
-                    trusted_node.clone(), message.to().unwrap(), generation);
-                let _ = task_source.queue_with_wrapper(box runnable, &wrapper);
+                let task = ImageResponseHandlerTask::new(
+                    trusted_node.clone(),
+                    message.to().unwrap(),
+                    generation,
+                );
+                let _ = task_source.queue_with_canceller(box task, &wrapper);
             });
 
             image_cache.add_listener(id, ImageResponder::new(responder_sender, id));
@@ -249,7 +252,7 @@ impl HTMLImageElement {
         let listener = NetworkListener {
             context: context,
             task_source: window.networking_task_source(),
-            wrapper: Some(window.get_runnable_wrapper()),
+            canceller: Some(window.task_canceller()),
         };
         ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
             listener.notify_fetch(message.to().unwrap());
@@ -354,12 +357,12 @@ impl HTMLImageElement {
 
     /// Step 11.4 of https://html.spec.whatwg.org/multipage/#update-the-image-data
     fn set_current_request_url_to_selected_fire_error_and_loadend(&self, src: DOMString) {
-        struct Task {
+        struct SetCurrentRequestUrlTask {
             img: Trusted<HTMLImageElement>,
             src: String,
         }
-        impl Runnable for Task {
-            fn handler(self: Box<Self>) {
+        impl Task for SetCurrentRequestUrlTask {
+            fn run(self: Box<Self>) {
                 let img = self.img.root();
                 {
                     let mut current_request = img.current_request.borrow_mut();
@@ -372,7 +375,7 @@ impl HTMLImageElement {
             }
         }
 
-        let task = box Task {
+        let task = box SetCurrentRequestUrlTask {
             img: Trusted::new(self),
             src: src.into()
         };
@@ -387,21 +390,21 @@ impl HTMLImageElement {
         struct FireprogressEventTask {
             img: Trusted<HTMLImageElement>,
         }
-        impl Runnable for FireprogressEventTask {
-            fn handler(self: Box<Self>) {
+        impl Task for FireprogressEventTask {
+            fn run(self: Box<Self>) {
                 let progressevent = ProgressEvent::new(&self.img.root().global(),
                     atom!("loadstart"), EventBubbles::DoesNotBubble, EventCancelable::NotCancelable,
                     false, 0, 0);
                 progressevent.upcast::<Event>().fire(self.img.root().upcast());
             }
         }
-        let runnable = box FireprogressEventTask {
+        let task = box FireprogressEventTask {
             img: Trusted::new(self),
         };
         let document = document_from_node(self);
         let window = document.window();
-        let task = window.dom_manipulation_task_source();
-        let _ = task.queue(runnable, window.upcast());
+        let task_source = window.dom_manipulation_task_source();
+        let _ = task_source.queue(task, window.upcast());
     }
 
     /// https://html.spec.whatwg.org/multipage/#update-the-source-set
@@ -426,8 +429,8 @@ impl HTMLImageElement {
         struct SetUrlToNoneTask {
             img: Trusted<HTMLImageElement>,
         }
-        impl Runnable for SetUrlToNoneTask {
-            fn handler(self: Box<Self>) {
+        impl Task for SetUrlToNoneTask {
+            fn run(self: Box<Self>) {
                 let img = self.img.root();
                 {
                     let mut current_request = img.current_request.borrow_mut();
@@ -459,8 +462,8 @@ impl HTMLImageElement {
             src: String,
             url: ServoUrl
         }
-        impl Runnable for SetUrlToStringTask {
-            fn handler(self: Box<Self>) {
+        impl Task for SetUrlToStringTask {
+            fn run(self: Box<Self>) {
                 let img = self.img.root();
                 {
                     let mut current_request = img.current_request.borrow_mut();
@@ -471,15 +474,15 @@ impl HTMLImageElement {
                 img.upcast::<EventTarget>().fire_event(atom!("load"));
             }
         }
-        let runnable = box SetUrlToStringTask {
+        let task = box SetUrlToStringTask {
             img: Trusted::new(self),
             src: src.into(),
             url: url
         };
         let document = document_from_node(self);
         let window = document.window();
-        let task = window.dom_manipulation_task_source();
-        let _ = task.queue(runnable, window.upcast());
+        let task_source = window.dom_manipulation_task_source();
+        let _ = task_source.queue(task, window.upcast());
     }
 
     fn init_image_request(&self,

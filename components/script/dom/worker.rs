@@ -25,7 +25,7 @@ use dom_struct::dom_struct;
 use ipc_channel::ipc;
 use js::jsapi::{HandleValue, JSAutoCompartment, JSContext, NullHandleValue};
 use js::jsval::UndefinedValue;
-use script_thread::Runnable;
+use script_thread::Task;
 use script_traits::WorkerScriptLoadOrigin;
 use std::cell::Cell;
 use std::sync::{Arc, Mutex};
@@ -212,16 +212,16 @@ impl WorkerMessageHandler {
     }
 }
 
-impl Runnable for WorkerMessageHandler {
-    fn handler(self: Box<WorkerMessageHandler>) {
+impl Task for WorkerMessageHandler {
+    fn run(self: Box<Self>) {
         let this = *self;
         Worker::handle_message(this.addr, this.data);
     }
 }
 
-impl Runnable for SimpleWorkerErrorHandler<Worker> {
+impl Task for SimpleWorkerErrorHandler<Worker> {
     #[allow(unrooted_must_root)]
-    fn handler(self: Box<SimpleWorkerErrorHandler<Worker>>) {
+    fn run(self: Box<Self>) {
         let this = *self;
         Worker::dispatch_simple_error(this.addr);
     }
@@ -241,8 +241,8 @@ impl WorkerErrorHandler {
     }
 }
 
-impl Runnable for WorkerErrorHandler {
-    fn handler(self: Box<Self>) {
+impl Task for WorkerErrorHandler {
+    fn run(self: Box<Self>) {
         let this = *self;
         this.address.root().dispatch_error(this.error_info);
     }

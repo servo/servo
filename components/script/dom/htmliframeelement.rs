@@ -43,7 +43,7 @@ use js::jsval::{NullValue, UndefinedValue};
 use msg::constellation_msg::{FrameType, BrowsingContextId, PipelineId, TopLevelBrowsingContextId, TraversalDirection};
 use net_traits::response::HttpsState;
 use script_layout_interface::message::ReflowQueryType;
-use script_thread::{ScriptThread, Runnable};
+use script_thread::{ScriptThread, Task};
 use script_traits::{IFrameLoadInfo, IFrameLoadInfoWithData, JsEvalResult, LoadData, UpdatePipelineIdReason};
 use script_traits::{MozBrowserEvent, NewLayoutInfo, ScriptMsg};
 use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
@@ -849,8 +849,8 @@ impl IFrameLoadEventSteps {
     }
 }
 
-impl Runnable for IFrameLoadEventSteps {
-    fn handler(self: Box<IFrameLoadEventSteps>) {
+impl Task for IFrameLoadEventSteps {
+    fn run(self: Box<Self>) {
         let this = self.frame_element.root();
         this.iframe_load_event_steps(self.pipeline_id);
     }

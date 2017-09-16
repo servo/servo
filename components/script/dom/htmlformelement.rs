@@ -49,7 +49,7 @@ use html5ever::{LocalName, Prefix};
 use hyper::header::{Charset, ContentDisposition, ContentType, DispositionParam, DispositionType};
 use hyper::method::Method;
 use msg::constellation_msg::PipelineId;
-use script_thread::{MainThreadScriptMsg, Runnable};
+use script_thread::{MainThreadScriptMsg, Task};
 use script_traits::LoadData;
 use servo_rand::random;
 use std::borrow::ToOwned;
@@ -432,8 +432,8 @@ impl HTMLFormElement {
         let window = window_from_node(self);
 
         // Step 1
-        // Each planned navigation runnable is tagged with a generation ID, and
-        // before the runnable is handled, it first checks whether the HTMLFormElement's
+        // Each planned navigation task is tagged with a generation ID, and
+        // before the task is handled, it first checks whether the HTMLFormElement's
         // generation ID is the same as its own generation ID.
         let GenerationId(prev_id) = self.generation_id.get();
         self.generation_id.set(GenerationId(prev_id + 1));
@@ -1115,8 +1115,8 @@ struct PlannedNavigation {
     form: Trusted<HTMLFormElement>
 }
 
-impl Runnable for PlannedNavigation {
-    fn handler(self: Box<PlannedNavigation>) {
+impl Task for PlannedNavigation {
+    fn run(self: Box<Self>) {
         if self.generation_id == self.form.root().generation_id.get() {
             let script_chan = self.script_chan.clone();
             script_chan.send(MainThreadScriptMsg::Navigate(self.pipeline_id, self.load_data, false)).unwrap();

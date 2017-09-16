@@ -38,7 +38,7 @@ use msg::constellation_msg::PipelineId;
 use net_traits::{CoreResourceThread, ResourceThreads, IpcSend};
 use profile_traits::{mem, time};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
-use script_thread::{MainThreadScriptChan, RunnableWrapper, ScriptThread};
+use script_thread::{MainThreadScriptChan, ScriptThread, TaskCanceller};
 use script_traits::{MsDuration, ScriptToConstellationChan, TimerEvent};
 use script_traits::{TimerEventId, TimerSchedulerMsg, TimerSource};
 use servo_url::{MutableOrigin, ServoUrl};
@@ -477,14 +477,14 @@ impl GlobalScope {
         unreachable!();
     }
 
-    /// Returns a wrapper for runnables to ensure they are cancelled if
-    /// the global scope is being destroyed.
-    pub fn get_runnable_wrapper(&self) -> RunnableWrapper {
+    /// Returns the task canceller of this global to ensure that everything is
+    /// properly cancelled when the global scope is destroyed.
+    pub fn task_canceller(&self) -> TaskCanceller {
         if let Some(window) = self.downcast::<Window>() {
-            return window.get_runnable_wrapper();
+            return window.task_canceller();
         }
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
-            return worker.get_runnable_wrapper();
+            return worker.task_canceller();
         }
         unreachable!();
     }

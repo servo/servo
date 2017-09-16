@@ -36,7 +36,7 @@ use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::JSContext;
 use script_runtime::CommonScriptMsg;
 use script_runtime::ScriptThreadEventCategory::WebVREvent;
-use script_thread::Runnable;
+use script_thread::Task;
 use std::cell::Cell;
 use std::mem;
 use std::rc::Rc;
@@ -515,7 +515,7 @@ impl VRDisplay {
                     address: address.clone(),
                     sender: raf_sender.clone()
                 };
-                js_sender.send(CommonScriptMsg::RunnableMsg(WebVREvent, msg)).unwrap();
+                js_sender.send(CommonScriptMsg::Task(WebVREvent, msg)).unwrap();
 
                 // Run Sync Poses in parallell on Render thread
                 let msg = WebVRCommand::SyncPoses(display_id, near, far, sync_sender.clone());
@@ -613,8 +613,8 @@ struct NotifyDisplayRAF {
     sender: mpsc::Sender<Result<(f64, f64), ()>>
 }
 
-impl Runnable for NotifyDisplayRAF {
-    fn handler(self: Box<Self>) {
+impl Task for NotifyDisplayRAF {
+    fn run(self: Box<Self>) {
         let display = self.address.root();
         display.handle_raf(&self.sender);
     }

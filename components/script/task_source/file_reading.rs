@@ -5,7 +5,7 @@
 use dom::domexception::DOMErrorName;
 use dom::filereader::{FileReader, TrustedFileReader, GenerationId, ReadMetaData};
 use script_runtime::{CommonScriptMsg, ScriptThreadEventCategory, ScriptChan};
-use script_thread::{Runnable, RunnableWrapper};
+use script_thread::{Task, TaskCanceller};
 use std::sync::Arc;
 use task_source::TaskSource;
 
@@ -19,13 +19,18 @@ impl Clone for FileReadingTaskSource {
 }
 
 impl TaskSource for FileReadingTaskSource {
-    fn queue_with_wrapper<T>(&self,
-                             msg: Box<T>,
-                             wrapper: &RunnableWrapper)
-                             -> Result<(), ()>
-                             where T: Runnable + Send + 'static {
-        self.0.send(CommonScriptMsg::RunnableMsg(ScriptThreadEventCategory::FileRead,
-                                                 wrapper.wrap_runnable(msg)))
+    fn queue_with_canceller<T>(
+        &self,
+        msg: Box<T>,
+        canceller: &TaskCanceller,
+    ) -> Result<(), ()>
+    where
+        T: Send + Task + 'static,
+    {
+        self.0.send(CommonScriptMsg::Task(
+            ScriptThreadEventCategory::FileRead,
+            canceller.wrap_task(msg),
+        ))
     }
 }
 
@@ -41,8 +46,8 @@ impl FileReadingRunnable {
     }
 }
 
-impl Runnable for FileReadingRunnable {
-    fn handler(self: Box<FileReadingRunnable>) {
+impl Task for FileReadingRunnable {
+    fn run(self: Box<FileReadingRunnable>) {
         self.task.handle_task();
     }
 }

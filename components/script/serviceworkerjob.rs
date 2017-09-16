@@ -18,7 +18,7 @@ use dom::promise::Promise;
 use dom::serviceworkerregistration::ServiceWorkerRegistration;
 use dom::urlhelper::UrlHelper;
 use js::jsapi::JSAutoCompartment;
-use script_thread::{ScriptThread, Runnable};
+use script_thread::{ScriptThread, Task};
 use servo_url::ServoUrl;
 use std::cmp::PartialEq;
 use std::collections::HashMap;
@@ -105,9 +105,9 @@ impl AsyncJobHandler {
     }
 }
 
-impl Runnable for AsyncJobHandler {
+impl Task for AsyncJobHandler {
     #[allow(unrooted_must_root)]
-    fn main_thread_handler(self: Box<AsyncJobHandler>, script_thread: &ScriptThread) {
+    fn run_with_script_thread(self: Box<AsyncJobHandler>, script_thread: &ScriptThread) {
         script_thread.dispatch_job_queue(self);
     }
 }
@@ -292,9 +292,9 @@ struct AsyncPromiseSettle {
     settle_type: SettleType,
 }
 
-impl Runnable for AsyncPromiseSettle {
+impl Task for AsyncPromiseSettle {
     #[allow(unrooted_must_root)]
-    fn handler(self: Box<AsyncPromiseSettle>) {
+    fn run(self: Box<Self>) {
         let global = self.global.root();
         let settle_type = self.settle_type.clone();
         let promise = self.promise.root();

@@ -23,7 +23,7 @@ use js::panic::wrap_panic;
 use js::rust::Runtime;
 use microtask::{EnqueuedPromiseCallback, Microtask};
 use profile_traits::mem::{Report, ReportKind, ReportsChan};
-use script_thread::{Runnable, STACK_ROOTS, trace_thread};
+use script_thread::{STACK_ROOTS, Task, trace_thread};
 use servo_config::opts;
 use servo_config::prefs::PREFS;
 use std::cell::Cell;
@@ -43,15 +43,15 @@ pub enum CommonScriptMsg {
     /// supplied channel.
     CollectReports(ReportsChan),
     /// Generic message that encapsulates event handling.
-    RunnableMsg(ScriptThreadEventCategory, Box<Runnable + Send>),
+    Task(ScriptThreadEventCategory, Box<Task + Send>),
 }
 
 impl fmt::Debug for CommonScriptMsg {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             CommonScriptMsg::CollectReports(_) => write!(f, "CollectReports(...)"),
-            CommonScriptMsg::RunnableMsg(ref category, ref runnable) => {
-                f.debug_tuple("RunnableMsg").field(category).field(runnable).finish()
+            CommonScriptMsg::Task(ref category, ref task) => {
+                f.debug_tuple("Task").field(category).field(task).finish()
             },
         }
     }

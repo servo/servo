@@ -35,7 +35,7 @@ use microtask::{Microtask, MicrotaskRunnable};
 use net_traits::{FetchResponseListener, FetchMetadata, Metadata, NetworkError};
 use net_traits::request::{CredentialsMode, Destination, RequestInit, Type as RequestType};
 use network_listener::{NetworkListener, PreInvoke};
-use script_thread::{Runnable, ScriptThread};
+use script_thread::{ScriptThread, Task};
 use servo_url::ServoUrl;
 use std::cell::Cell;
 use std::sync::{Arc, Mutex};
@@ -145,8 +145,8 @@ impl HTMLMediaElement {
                 window.upcast(),
             );
             struct InternalPauseStepsTask(Trusted<EventTarget>);
-            impl Runnable for InternalPauseStepsTask {
-                fn handler(self: Box<Self>) {
+            impl Task for InternalPauseStepsTask {
+                fn run(self: Box<Self>) {
                     let target = self.0.root();
 
                     // Step 2.3.1.
@@ -180,8 +180,8 @@ impl HTMLMediaElement {
             window.upcast(),
         );
         struct NotifyAboutPlayingTask(Trusted<EventTarget>);
-        impl Runnable for NotifyAboutPlayingTask {
-            fn handler(self: Box<Self>) {
+        impl Task for NotifyAboutPlayingTask {
+            fn run(self: Box<Self>) {
                 let target = self.0.root();
 
                 // Step 2.1.
@@ -428,7 +428,7 @@ impl HTMLMediaElement {
             let listener = NetworkListener {
                 context: context,
                 task_source: window.networking_task_source(),
-                wrapper: Some(window.get_runnable_wrapper())
+                canceller: Some(window.task_canceller())
             };
 
             ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
@@ -750,8 +750,8 @@ impl DedicatedMediaSourceFailureTask {
     }
 }
 
-impl Runnable for DedicatedMediaSourceFailureTask {
-    fn handler(self: Box<DedicatedMediaSourceFailureTask>) {
+impl Task for DedicatedMediaSourceFailureTask {
+    fn run(self: Box<Self>) {
         self.elem.root().dedicated_media_source_failure();
     }
 }

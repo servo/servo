@@ -87,7 +87,7 @@ use js::jsval::JSVal;
 use net_traits::request::CorsSettings;
 use ref_filter_map::ref_filter_map;
 use script_layout_interface::message::ReflowQueryType;
-use script_thread::{Runnable, ScriptThread};
+use script_thread::{ScriptThread, Task};
 use selectors::attr::{AttrSelectorOperation, NamespaceConstraint, CaseSensitivity};
 use selectors::matching::{ElementSelectorFlags, LocalMatchingContext, MatchingContext, MatchingMode};
 use selectors::matching::{HAS_EDGE_CHILD_SELECTOR, HAS_SLOW_SELECTOR, HAS_SLOW_SELECTOR_LATER_SIBLINGS};
@@ -3044,9 +3044,9 @@ impl ElementPerformFullscreenEnter {
     }
 }
 
-impl Runnable for ElementPerformFullscreenEnter {
+impl Task for ElementPerformFullscreenEnter {
     #[allow(unrooted_must_root)]
-    fn handler(self: Box<ElementPerformFullscreenEnter>) {
+    fn run(self: Box<Self>) {
         let element = self.element.root();
         let document = document_from_node(element.r());
 
@@ -3097,9 +3097,9 @@ impl ElementPerformFullscreenExit {
     }
 }
 
-impl Runnable for ElementPerformFullscreenExit {
+impl Task for ElementPerformFullscreenExit {
     #[allow(unrooted_must_root)]
-    fn handler(self: Box<ElementPerformFullscreenExit>) {
+    fn run(self: Box<Self>) {
         let element = self.element.root();
         let document = document_from_node(element.r());
         // TODO Step 9.1-5

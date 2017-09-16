@@ -17,7 +17,7 @@ use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcSender};
 use net_traits::IpcSend;
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
-use script_thread::Runnable;
+use script_thread::Task;
 use script_traits::ScriptMsg;
 use servo_url::ServoUrl;
 use task_source::TaskSource;
@@ -167,7 +167,7 @@ impl Storage {
     ) {
         let global = self.global();
         global.as_window().dom_manipulation_task_source().queue(
-            box StorageEventRunnable {
+            box StorageEventTask {
                 element: Trusted::new(self),
                 url,
                 key,
@@ -176,15 +176,15 @@ impl Storage {
             },
             global.upcast(),
         ).unwrap();
-        struct StorageEventRunnable {
+        struct StorageEventTask {
             element: Trusted<Storage>,
             url: ServoUrl,
             key: Option<String>,
             old_value: Option<String>,
             new_value: Option<String>
         }
-        impl Runnable for StorageEventRunnable {
-            fn handler(self: Box<Self>) {
+        impl Task for StorageEventTask {
+            fn run(self: Box<Self>) {
                 let this = *self;
                 let storage = this.element.root();
                 let global = storage.global();

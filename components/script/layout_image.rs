@@ -62,7 +62,7 @@ pub fn fetch_image_for_layout(url: ServoUrl,
     let listener = NetworkListener {
         context: context,
         task_source: window.networking_task_source(),
-        wrapper: Some(window.get_runnable_wrapper()),
+        canceller: Some(window.task_canceller()),
     };
     ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
         listener.notify_fetch(message.to().unwrap());

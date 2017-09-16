@@ -261,7 +261,7 @@ impl XMLHttpRequest {
         let listener = NetworkListener {
             context: context,
             task_source: task_source,
-            wrapper: Some(global.get_runnable_wrapper())
+            canceller: Some(global.task_canceller())
         };
         ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
             listener.notify_fetch(message.to().unwrap());

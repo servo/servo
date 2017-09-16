@@ -76,8 +76,8 @@ use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse, Lay
 use script_layout_interface::rpc::{MarginStyleResponse, NodeScrollRootIdResponse};
 use script_layout_interface::rpc::{ResolvedStyleResponse, TextIndexResponse};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, ScriptThreadEventCategory};
-use script_thread::{ImageCacheMsg, MainThreadScriptChan, MainThreadScriptMsg, Runnable};
-use script_thread::{RunnableWrapper, ScriptThread, SendableMainThreadScriptChan};
+use script_thread::{ImageCacheMsg, MainThreadScriptChan, MainThreadScriptMsg, Task};
+use script_thread::{ScriptThread, SendableMainThreadScriptChan, TaskCanceller};
 use script_traits::{ConstellationControlMsg, DocumentState, LoadData, MozBrowserEvent};
 use script_traits::{ScriptToConstellationChan, ScriptMsg, ScrollState, TimerEvent, TimerEventId};
 use script_traits::{TimerSchedulerMsg, UntrustedNodeAddress, WindowSizeData, WindowSizeType};
@@ -1038,8 +1038,8 @@ impl WindowMethods for Window {
 }
 
 impl Window {
-    pub fn get_runnable_wrapper(&self) -> RunnableWrapper {
-        RunnableWrapper {
+    pub fn task_canceller(&self) -> TaskCanceller {
+        TaskCanceller {
             cancelled: Some(self.ignore_further_async_events.borrow().clone()),
         }
     }
@@ -1986,9 +1986,9 @@ impl PostMessageHandler {
     }
 }
 
-impl Runnable for PostMessageHandler {
+impl Task for PostMessageHandler {
     // https://html.spec.whatwg.org/multipage/#dom-window-postmessage steps 10-12.
-    fn handler(self: Box<PostMessageHandler>) {
+    fn run(self: Box<Self>) {
         let this = *self;
         let window = this.destination.root();
 
@@ -2017,9 +2017,9 @@ impl Runnable for PostMessageHandler {
 
 impl Window {
     pub fn post_message(&self, origin: Option<ImmutableOrigin>, data: StructuredCloneData) {
-        let runnable = PostMessageHandler::new(self, origin, data);
-        let runnable = self.get_runnable_wrapper().wrap_runnable(box runnable);
-        let msg = CommonScriptMsg::RunnableMsg(ScriptThreadEventCategory::DomEvent, runnable);
+        let task = PostMessageHandler::new(self, origin, data);
+        let task = self.task_canceller().wrap_task(box task);
+        let msg = CommonScriptMsg::Task(ScriptThreadEventCategory::DomEvent, task);
         // TODO(#12718): Use the "posted message task source".
         let _ = self.script_chan.send(msg);
     }
