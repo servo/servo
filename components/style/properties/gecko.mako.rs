@@ -1146,13 +1146,6 @@ impl Clone for ${style_struct.gecko_struct_name} {
     longhands = [x for x in style_struct.longhands
                 if not (skip_longhands == "*" or x.name in skip_longhands.split())]
 
-    #
-    # Make a list of types we can't auto-generate.
-    #
-    force_stub = [];
-    # These have unusual representations in gecko.
-    force_stub += ["list-style-type"]
-
     # Types used with predefined_type()-defined properties that we can auto-generate.
     predefined_types = {
         "length::LengthOrAuto": impl_style_coord,
@@ -1200,30 +1193,10 @@ impl Clone for ${style_struct.gecko_struct_name} {
 
         method(**args)
 
-    picked_longhands, stub_longhands = [], []
+    picked_longhands = []
     for x in longhands:
-        if (x.keyword or x.predefined_type in predefined_types or x.logical) and x.name not in force_stub:
+        if x.keyword or x.predefined_type in predefined_types or x.logical:
             picked_longhands.append(x)
-        else:
-            stub_longhands.append(x)
-
-    # If one of the longhands is not handled
-    # by either:
-    # - being a keyword
-    # - being a predefined longhand
-    # - being a longhand with manual glue code (i.e. in skip_longhands)
-    # - being generated as a stub
-    #
-    # then we raise an error here.
-    #
-    # If you hit this error, please add `product="servo"` to the longhand.
-    # In case the longhand is used in a shorthand, add it to the force_stub
-    # list above.
-
-    for stub in stub_longhands:
-       if stub.name not in force_stub:
-           raise Exception("Don't know what to do with longhand %s in style struct %s"
-                           % (stub.name,style_struct. gecko_struct_name))
 %>
 impl ${style_struct.gecko_struct_name} {
     /*
@@ -1238,35 +1211,6 @@ impl ${style_struct.gecko_struct_name} {
     for longhand in picked_longhands:
         longhand_method(longhand)
     %>
-
-    /*
-     * Stubs.
-     */
-    % for longhand in stub_longhands:
-    #[allow(non_snake_case)]
-    pub fn set_${longhand.ident}(&mut self, _: longhands::${longhand.ident}::computed_value::T) {
-        warn!("stylo: Unimplemented property setter: ${longhand.name}");
-    }
-    #[allow(non_snake_case)]
-    pub fn copy_${longhand.ident}_from(&mut self, _: &Self) {
-        warn!("stylo: Unimplemented property setter: ${longhand.name}");
-    }
-    #[allow(non_snake_case)]
-    pub fn reset_${longhand.ident}(&mut self, other: &Self) {
-        self.copy_${longhand.ident}_from(other)
-    }
-    #[allow(non_snake_case)]
-    pub fn clone_${longhand.ident}(&self) -> longhands::${longhand.ident}::computed_value::T {
-        unimplemented!()
-    }
-    % if longhand.need_index:
-    pub fn ${longhand.ident}_count(&self) -> usize { 0 }
-    pub fn ${longhand.ident}_at(&self, _index: usize)
-                                -> longhands::${longhand.ident}::computed_value::SingleComputedValue {
-        unimplemented!()
-    }
-    % endif
-    % endfor
 }
 </%def>
 
@@ -5690,7 +5634,7 @@ clip-path
     ${impl_simple_copy("_moz_box_ordinal_group", "mBoxOrdinal")}
 
     #[allow(non_snake_case)]
-    pub fn clone__moz_box_ordinal_group(&self) -> i32{
+    pub fn clone__moz_box_ordinal_group(&self) -> i32 {
         self.gecko.mBoxOrdinal as i32
     }
 </%self:impl_trait>
