@@ -34,21 +34,9 @@ impl TaskSource for FileReadingTaskSource {
     }
 }
 
-pub struct FileReadingRunnable {
-    task: FileReadingTask,
-}
-
-impl FileReadingRunnable {
-    pub fn new(task: FileReadingTask) -> Box<FileReadingRunnable> {
-        box FileReadingRunnable {
-            task: task
-        }
-    }
-}
-
-impl Task for FileReadingRunnable {
-    fn run(self: Box<FileReadingRunnable>) {
-        self.task.handle_task();
+impl Task for FileReadingTask {
+    fn run(self: Box<Self>) {
+        self.handle_task();
     }
 }
 

@@ -36,7 +36,7 @@ use std::ptr;
 use std::sync::Arc;
 use std::thread;
 use task_source::TaskSource;
-use task_source::file_reading::{FileReadingTaskSource, FileReadingRunnable, FileReadingTask};
+use task_source::file_reading::{FileReadingTask, FileReadingTaskSource};
 
 #[derive(Clone, Copy, HeapSizeOf, JSTraceable, PartialEq)]
 pub enum FileReaderFunction {
@@ -415,12 +415,12 @@ fn perform_annotated_read_operation(
     canceller: TaskCanceller,
 ) {
     // Step 4
-    let task = FileReadingRunnable::new(FileReadingTask::ProcessRead(filereader.clone(), gen_id));
-    task_source.queue_with_canceller(task, &canceller).unwrap();
+    let task = FileReadingTask::ProcessRead(filereader.clone(), gen_id);
+    task_source.queue_with_canceller(box task, &canceller).unwrap();
 
-    let task = FileReadingRunnable::new(FileReadingTask::ProcessReadData(filereader.clone(), gen_id));
-    task_source.queue_with_canceller(task, &canceller).unwrap();
+    let task = FileReadingTask::ProcessReadData(filereader.clone(), gen_id);
+    task_source.queue_with_canceller(box task, &canceller).unwrap();
 
-    let task = FileReadingRunnable::new(FileReadingTask::ProcessReadEOF(filereader, gen_id, data, blob_contents));
-    task_source.queue_with_canceller(task, &canceller).unwrap();
+    let task = FileReadingTask::ProcessReadEOF(filereader, gen_id, data, blob_contents);
+    task_source.queue_with_canceller(box task, &canceller).unwrap();
 }
