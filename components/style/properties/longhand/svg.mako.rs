@@ -167,5 +167,4 @@ ${helpers.predefined_type("mask-image", "ImageLayer",
     products="gecko",
     extra_prefixes="webkit",
     animation_value_type="discrete",
-    flags="CREATES_STACKING_CONTEXT",
-    has_uncacheable_values="True" if product == "gecko" else "False")}
+    flags="CREATES_STACKING_CONTEXT")}

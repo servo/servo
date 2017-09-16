@@ -155,7 +155,7 @@ class Longhand(object):
                  predefined_type=None, custom_cascade=False, experimental=False, internal=False,
                  need_clone=False, need_index=False, gecko_ffi_name=None,
                  allowed_in_keyframe_block=True, cast_type='u8',
-                 has_uncacheable_values=False, logical=False, alias=None, extra_prefixes=None, boxed=False,
+                 logical=False, alias=None, extra_prefixes=None, boxed=False,
                  flags=None, allowed_in_page_rule=False, allow_quirks=False, ignored_when_colors_disabled=False,
                  gecko_pref_ident=None, vector=False, need_animatable=False):
         self.name = name
@@ -171,7 +171,6 @@ class Longhand(object):
         self.custom_cascade = custom_cascade
         self.internal = internal
         self.need_index = need_index
-        self.has_uncacheable_values = has_uncacheable_values
         self.gecko_ffi_name = gecko_ffi_name or "m" + self.camel_case
         self.derived_from = (derived_from or "").split()
         self.cast_type = cast_type

@@ -211,7 +211,6 @@ ${helpers.predefined_type("border-image-source", "ImageLayer",
     spec="https://drafts.csswg.org/css-backgrounds/#the-background-image",
     vector=False,
     animation_value_type="discrete",
-    has_uncacheable_values=False,
     flags="APPLIES_TO_FIRST_LETTER",
     boxed="True")}
 
