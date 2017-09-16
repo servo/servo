@@ -723,12 +723,29 @@ where
                 resolver.cascade_styles_with_default_parents(cascade_inputs)
             };
 
-            context.thread_local.sharing_cache.insert_if_possible(
-                &element,
-                &new_styles.primary,
-                None,
-                traversal_data.current_dom_depth,
-            );
+            // Insert into the cache, but only if this style isn't reused from a
+            // sibling or cousin. Otherwise, recascading a bunch of identical
+            // elements would unnecessarily flood the cache with identical entries.
+            //
+            // This is analagous to the obvious "don't insert an element that just
+            // got a hit in the style sharing cache" behavior in the MatchAndCascade
+            // handling above.
+            //
+            // Note that, for the MatchAndCascade path, we still insert elements that
+            // shared styles via the rule node, because we know that there's something
+            // different about them that caused them to miss the sharing cache before
+            // selector matching. If we didn't, we would still end up with the same
+            // number of eventual styles, but would potentially miss out on various
+            // opportunities for skipping selector matching, which could hurt
+            // performance.
+            if !new_styles.primary.0.reused_via_rule_node {
+                context.thread_local.sharing_cache.insert_if_possible(
+                    &element,
+                    &new_styles.primary,
+                    None,
+                    traversal_data.current_dom_depth,
+                );
+            }
 
             new_styles
         }

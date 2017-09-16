@@ -554,11 +554,6 @@ impl<E: TElement> StyleSharingCache<E> {
         validation_data_holder: Option<&mut StyleSharingTarget<E>>,
         dom_depth: usize,
     ) {
-        if style.0.reused_via_rule_node {
-            debug!("Failing to insert into the cached: this was a cached style");
-            return;
-        }
-
         let parent = match element.traversal_parent() {
             Some(element) => element,
             None => {
