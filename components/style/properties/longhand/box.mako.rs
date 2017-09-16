@@ -185,7 +185,6 @@
                                    context: &mut computed::Context) {
             longhands::_servo_display_for_hypothetical_box::derive_from_display(context);
             longhands::_servo_text_decorations_in_effect::derive_from_display(context);
-            longhands::_servo_under_display_none::derive_from_display(context);
         }
     % endif
 

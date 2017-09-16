@@ -2026,6 +2026,13 @@ impl ComputedValues {
     pub fn visited_rules(&self) -> Option<<&StrongRuleNode> {
         self.visited_style.as_ref().and_then(|s| s.rules.as_ref())
     }
+
+    /// Returns whether we're in a display: none subtree.
+    pub fn is_in_display_none_subtree(&self) -> bool {
+        use properties::computed_value_flags::IS_IN_DISPLAY_NONE_SUBTREE;
+
+        self.flags.contains(IS_IN_DISPLAY_NONE_SUBTREE)
+    }
 }
 
 #[cfg(feature = "servo")]

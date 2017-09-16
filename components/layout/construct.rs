@@ -1451,7 +1451,7 @@ impl<'a, ConcreteThreadSafeLayoutNode> PostorderNodeMutTraversal<ConcreteThreadS
         node.insert_flags(HAS_NEWLY_CONSTRUCTED_FLOW);
 
         // Bail out if this node has an ancestor with display: none.
-        if node.style(self.style_context()).get_inheritedbox()._servo_under_display_none.0 {
+        if node.style(self.style_context()).is_in_display_none_subtree() {
             self.set_flow_construction_result(node, ConstructionResult::None);
             return;
         }
