@@ -15,13 +15,10 @@ use cssparser::Parser;
 use itertools::{EitherOrBoth, Itertools};
 use properties::{CSSWideKeyword, PropertyDeclaration};
 use properties::longhands;
-use properties::longhands::background_size::computed_value::T as BackgroundSizeList;
-use properties::longhands::border_spacing::computed_value::T as BorderSpacing;
 use properties::longhands::font_weight::computed_value::T as FontWeight;
 use properties::longhands::font_stretch::computed_value::T as FontStretch;
 #[cfg(feature = "gecko")]
 use properties::longhands::font_variation_settings::computed_value::T as FontVariationSettings;
-use properties::longhands::line_height::computed_value::T as LineHeight;
 use properties::longhands::transform::computed_value::ComputedMatrix;
 use properties::longhands::transform::computed_value::ComputedOperation as TransformOperation;
 use properties::longhands::transform::computed_value::T as TransformList;
@@ -36,24 +33,18 @@ use std::fmt;
 #[cfg(feature = "gecko")] use hash::FnvHashMap;
 use style_traits::ParseError;
 use super::ComputedValues;
-#[cfg(feature = "gecko")]
-use values::Auto;
 use values::{CSSFloat, CustomIdent, Either};
 use values::animated::{Animate, Procedure, ToAnimatedValue, ToAnimatedZero};
-use values::animated::color::{Color as AnimatedColor, RGBA as AnimatedRGBA};
-use values::animated::effects::BoxShadowList as AnimatedBoxShadowList;
+use values::animated::color::RGBA as AnimatedRGBA;
 use values::animated::effects::Filter as AnimatedFilter;
 use values::animated::effects::FilterList as AnimatedFilterList;
-use values::animated::effects::TextShadowList as AnimatedTextShadowList;
-use values::computed::{Angle, BorderCornerRadius, CalcLengthOrPercentage};
+use values::computed::{Angle, CalcLengthOrPercentage};
 use values::computed::{ClipRect, Context, ComputedUrl};
 use values::computed::{Length, LengthOrPercentage, LengthOrPercentageOrAuto};
-use values::computed::{LengthOrPercentageOrNone, MaxLength, NonNegativeLength};
+use values::computed::{LengthOrPercentageOrNone, MaxLength};
 use values::computed::{NonNegativeNumber, Number, NumberOrPercentage, Percentage};
-use values::computed::{PositiveIntegerOrAuto, ToComputedValue};
-#[cfg(feature = "gecko")] use values::computed::MozLength;
-use values::computed::length::{NonNegativeLengthOrAuto, NonNegativeLengthOrNormal};
 use values::computed::length::NonNegativeLengthOrPercentage;
+use values::computed::ToComputedValue;
 use values::computed::transform::DirectionVector;
 use values::distance::{ComputeSquaredDistance, SquaredDistance};
 #[cfg(feature = "gecko")] use values::generics::FontSettings as GenericFontSettings;
@@ -388,10 +379,9 @@ pub enum AnimatedProperty {
     % for prop in data.longhands:
         % if prop.animatable:
             <%
-                if prop.is_animatable_with_computed_value:
-                    value_type = "longhands::{}::computed_value::T".format(prop.ident)
-                else:
-                    value_type = prop.animation_value_type
+                value_type = "longhands::{}::computed_value::T".format(prop.ident)
+                if not prop.is_animatable_with_computed_value:
+                    value_type = "<{} as ToAnimatedValue>::AnimatedValue".format(value_type)
             %>
             /// ${prop.name}
             ${prop.camel_case}(${value_type}, ${value_type}),
@@ -526,7 +516,7 @@ pub enum AnimationValue {
             % if prop.is_animatable_with_computed_value:
                 ${prop.camel_case}(longhands::${prop.ident}::computed_value::T),
             % else:
-                ${prop.camel_case}(${prop.animation_value_type}),
+                ${prop.camel_case}(<longhands::${prop.ident}::computed_value::T as ToAnimatedValue>::AnimatedValue),
             % endif
         % endif
     % endfor
