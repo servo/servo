@@ -1744,7 +1744,7 @@ dependencies = [
  "euclid 0.15.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "hashglobe 0.1.0",
  "servo_arc 0.0.1",
- "smallbitvec 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "smallbitvec 1.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "smallvec 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -3055,7 +3055,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "smallbitvec"
-version = "1.0.3"
+version = "1.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -3152,7 +3152,7 @@ dependencies = [
  "servo_atoms 0.0.1",
  "servo_config 0.0.1",
  "servo_url 0.0.1",
- "smallbitvec 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "smallbitvec 1.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "smallvec 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "style_derive 0.0.1",
  "style_traits 0.0.1",
@@ -3992,7 +3992,7 @@ dependencies = [
 "checksum siphasher 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "0df90a788073e8d0235a67e50441d47db7c8ad9debd91cbf43736a2a92d36537"
 "checksum skeptic 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)" = "dd7d8dc1315094150052d0ab767840376335a98ac66ef313ff911cdf439a5b69"
 "checksum slab 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "17b4fcaed89ab08ef143da37bc52adbcc04d4a69014f4c1208d6b51f0c47bc23"
-"checksum smallbitvec 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)" = "c1ebf4681dc284c22efb7248986bbdf8aa23c2749ea85a0107e0e787038d303e"
+"checksum smallbitvec 1.0.6 (registry+https://github.com/rust-lang/crates.io-index)" = "79b776f00dfe01df905fa3b2eaa1659522e99e3fc4a7b1334171622205c4bdcf"
 "checksum smallvec 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)" = "8fcd03faf178110ab0334d74ca9631d77f94c8c11cc77fcb59538abf0025695d"
 "checksum stable_deref_trait 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "15132e0e364248108c5e2c02e3ab539be8d6f5d52a01ca9bbf27ed657316f02b"
 "checksum string_cache 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)" = "413fc7852aeeb5472f1986ef755f561ddf0c789d3d796e65f0b6fe293ecd4ef8"
