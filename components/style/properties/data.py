@@ -153,7 +153,7 @@ def arg_to_bool(arg):
 class Longhand(object):
     def __init__(self, style_struct, name, spec=None, animation_value_type=None, derived_from=None, keyword=None,
                  predefined_type=None, custom_cascade=False, experimental=False, internal=False,
-                 need_clone=False, need_index=False, gecko_ffi_name=None,
+                 need_index=False, gecko_ffi_name=None,
                  allowed_in_keyframe_block=True, cast_type='u8',
                  logical=False, alias=None, extra_prefixes=None, boxed=False,
                  flags=None, allowed_in_page_rule=False, allow_quirks=False, ignored_when_colors_disabled=False,
@@ -209,11 +209,6 @@ class Longhand(object):
             self.animatable = False
             self.transitionable = False
             self.animation_type = None
-        # NB: Animate implies clone because a property animation requires a
-        # copy of the computed value.
-        #
-        # See components/style/helpers/animated_properties.mako.rs.
-        self.need_clone = need_clone or self.animatable
 
 
 class Shorthand(object):

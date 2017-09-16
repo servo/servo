@@ -56,7 +56,6 @@ ${helpers.predefined_type(
     products="gecko",
     animation_value_type="AnimatedColor",
     extra_prefixes="moz",
-    need_clone=True,
     ignored_when_colors_disabled=True,
     spec="https://drafts.csswg.org/css-multicol/#propdef-column-rule-color",
 )}

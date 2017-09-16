@@ -16,7 +16,6 @@ ${helpers.predefined_type(
     "computed_value::T::currentcolor()",
     initial_specified_value="specified::Color::currentcolor()",
     animation_value_type="AnimatedColor",
-    need_clone=True,
     ignored_when_colors_disabled=True,
     spec="https://drafts.csswg.org/css-ui/#propdef-outline-color",
 )}

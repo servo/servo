@@ -279,7 +279,7 @@ ${helpers.predefined_type("word-spacing",
 
 <%helpers:longhand name="-servo-text-decorations-in-effect"
                    derived_from="display text-decoration"
-                   need_clone="True" products="servo"
+                   products="servo"
                    animation_value_type="none"
                    spec="Nonstandard (Internal property used by Servo)">
     use std::fmt;
@@ -685,7 +685,6 @@ ${helpers.predefined_type(
     initial_specified_value="specified::Color::currentcolor()",
     products="gecko",
     animation_value_type="AnimatedColor",
-    need_clone=True,
     ignored_when_colors_disabled=True,
     spec="https://drafts.csswg.org/css-text-decor/#propdef-text-emphasis-color",
 )}
@@ -705,7 +704,6 @@ ${helpers.predefined_type(
     "computed_value::T::currentcolor()",
     products="gecko",
     animation_value_type="AnimatedColor",
-    need_clone=True,
     ignored_when_colors_disabled=True,
     flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
     spec="https://compat.spec.whatwg.org/#the-webkit-text-fill-color",
@@ -718,7 +716,7 @@ ${helpers.predefined_type(
     initial_specified_value="specified::Color::currentcolor()",
     products="gecko",
     animation_value_type="AnimatedColor",
-    need_clone=True, ignored_when_colors_disabled=True,
+    ignored_when_colors_disabled=True,
     flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
     spec="https://compat.spec.whatwg.org/#the-webkit-text-stroke-color",
 )}
