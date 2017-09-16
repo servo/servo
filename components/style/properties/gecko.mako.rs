@@ -1274,13 +1274,11 @@ impl ${style_struct.gecko_struct_name} {
 }
 </%def>
 
-<% data.manual_style_structs = [] %>
 <%def name="impl_trait(style_struct_name, skip_longhands='', skip_additionals='')">
 <%self:raw_impl_trait style_struct="${next(x for x in data.style_structs if x.name == style_struct_name)}"
                       skip_longhands="${skip_longhands}" skip_additionals="${skip_additionals}">
 ${caller.body()}
 </%self:raw_impl_trait>
-<% data.manual_style_structs.append(style_struct_name) %>
 </%def>
 
 <%!
@@ -5719,7 +5717,4 @@ clip-path
 % for style_struct in data.style_structs:
 ${declare_style_struct(style_struct)}
 ${impl_style_struct(style_struct)}
-% if not style_struct.name in data.manual_style_structs:
-<%self:raw_impl_trait style_struct="${style_struct}"></%self:raw_impl_trait>
-% endif
 % endfor
