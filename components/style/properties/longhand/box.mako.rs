@@ -717,19 +717,10 @@ ${helpers.predefined_type(
             // For `-moz-transform` matrix and matrix3d.
             MatrixWithPercents(ComputedMatrixWithPercents),
             Skew(computed::Angle, computed::Angle),
-            TranslateX(LengthOrPercentage),
-            TranslateY(LengthOrPercentage),
-            TranslateZ(Length),
             Translate(computed::LengthOrPercentage,
                       computed::LengthOrPercentage,
                       computed::Length),
-            ScaleX(CSSFloat),
-            ScaleY(CSSFloat),
-            ScaleZ(CSSFloat),
             Scale(CSSFloat, CSSFloat, CSSFloat),
-            RotateX(computed::Angle),
-            RotateY(computed::Angle),
-            RotateZ(computed::Angle),
             Rotate(CSSFloat, CSSFloat, CSSFloat, computed::Angle),
             Perspective(computed::Length),
             // For mismatched transform lists.
@@ -1308,15 +1299,24 @@ ${helpers.predefined_type(
                     }
                     SpecifiedOperation::TranslateX(ref tx) => {
                         let tx = tx.to_computed_value(context);
-                        result.push(computed_value::ComputedOperation::TranslateX(tx));
+                        result.push(computed_value::ComputedOperation::Translate(
+                            tx,
+                            computed::length::LengthOrPercentage::zero(),
+                            computed::length::Length::new(0.)));
                     }
                     SpecifiedOperation::TranslateY(ref ty) => {
                         let ty = ty.to_computed_value(context);
-                        result.push(computed_value::ComputedOperation::TranslateY(ty));
+                        result.push(computed_value::ComputedOperation::Translate(
+                            computed::length::LengthOrPercentage::zero(),
+                            ty,
+                            computed::length::Length::new(0.)));
                     }
                     SpecifiedOperation::TranslateZ(ref tz) => {
                         let tz = tz.to_computed_value(context);
-                        result.push(computed_value::ComputedOperation::TranslateZ(tz));
+                        result.push(computed_value::ComputedOperation::Translate(
+                            computed::length::LengthOrPercentage::zero(),
+                            computed::length::LengthOrPercentage::zero(),
+                            tz));
                     }
                     SpecifiedOperation::Translate3D(ref tx, ref ty, ref tz) => {
                         let tx = tx.to_computed_value(context);
@@ -1335,15 +1335,15 @@ ${helpers.predefined_type(
                     }
                     SpecifiedOperation::ScaleX(sx) => {
                         let sx = sx.to_computed_value(context);
-                        result.push(computed_value::ComputedOperation::ScaleX(sx));
+                        result.push(computed_value::ComputedOperation::Scale(sx, 1.0, 1.0));
                     }
                     SpecifiedOperation::ScaleY(sy) => {
                         let sy = sy.to_computed_value(context);
-                        result.push(computed_value::ComputedOperation::ScaleY(sy));
+                        result.push(computed_value::ComputedOperation::Scale(1.0, sy, 1.0));
                     }
                     SpecifiedOperation::ScaleZ(sz) => {
                         let sz = sz.to_computed_value(context);
-                        result.push(computed_value::ComputedOperation::ScaleZ(sz));
+                        result.push(computed_value::ComputedOperation::Scale(1.0, 1.0, sz));
                     }
                     SpecifiedOperation::Scale3D(sx, sy, sz) => {
                         let sx = sx.to_computed_value(context);
@@ -1357,15 +1357,15 @@ ${helpers.predefined_type(
                     }
                     SpecifiedOperation::RotateX(theta) => {
                         let theta = theta.to_computed_value(context);
-                        result.push(computed_value::ComputedOperation::RotateX(theta));
+                        result.push(computed_value::ComputedOperation::Rotate(1.0, 0.0, 0.0, theta));
                     }
                     SpecifiedOperation::RotateY(theta) => {
                         let theta = theta.to_computed_value(context);
-                        result.push(computed_value::ComputedOperation::RotateY(theta));
+                        result.push(computed_value::ComputedOperation::Rotate(0.0, 1.0, 0.0, theta));
                     }
                     SpecifiedOperation::RotateZ(theta) => {
                         let theta = theta.to_computed_value(context);
-                        result.push(computed_value::ComputedOperation::RotateZ(theta));
+                        result.push(computed_value::ComputedOperation::Rotate(0.0, 0.0, 1.0, theta));
                     }
                     SpecifiedOperation::Rotate3D(ax, ay, az, theta) => {
                         let ax = ax.to_computed_value(context);
@@ -1460,53 +1460,19 @@ ${helpers.predefined_type(
                                 m44: Number::from_computed_value(&computed.m44),
                             });
                         }
-                        computed_value::ComputedOperation::TranslateX(ref tx) => {
-                            result.push(SpecifiedOperation::TranslateX(
-                                              ToComputedValue::from_computed_value(tx)));
-                        }
-                        computed_value::ComputedOperation::TranslateY(ref ty) => {
-                            result.push(SpecifiedOperation::TranslateY(
-                                              ToComputedValue::from_computed_value(ty)));
-                        }
-                        computed_value::ComputedOperation::TranslateZ(ref tz) => {
-                            result.push(SpecifiedOperation::TranslateZ(
-                                              ToComputedValue::from_computed_value(tz)));
-                        }
                         computed_value::ComputedOperation::Translate(ref tx, ref ty, ref tz) => {
+                            // XXXManishearth we lose information here; perhaps we should try to
+                            // recover the original function? Not sure if this can be observed.
                             result.push(SpecifiedOperation::Translate3D(
                                               ToComputedValue::from_computed_value(tx),
                                               ToComputedValue::from_computed_value(ty),
                                               ToComputedValue::from_computed_value(tz)));
-                        }
-                        computed_value::ComputedOperation::ScaleX(ref sx) => {
-                            result.push(SpecifiedOperation::ScaleX(
-                                              ToComputedValue::from_computed_value(sx)));
-                        }
-                        computed_value::ComputedOperation::ScaleY(ref sy) => {
-                            result.push(SpecifiedOperation::ScaleY(
-                                              ToComputedValue::from_computed_value(sy)));
-                        }
-                        computed_value::ComputedOperation::ScaleZ(ref sz) => {
-                            result.push(SpecifiedOperation::ScaleZ(
-                                              ToComputedValue::from_computed_value(sz)));
                         }
                         computed_value::ComputedOperation::Scale(ref sx, ref sy, ref sz) => {
                             result.push(SpecifiedOperation::Scale3D(
                                     Number::from_computed_value(sx),
                                     Number::from_computed_value(sy),
                                     Number::from_computed_value(sz)));
-                        }
-                        computed_value::ComputedOperation::RotateX(ref rx) => {
-                            result.push(SpecifiedOperation::RotateX(
-                                              ToComputedValue::from_computed_value(rx)));
-                        }
-                        computed_value::ComputedOperation::RotateY(ref ry) => {
-                            result.push(SpecifiedOperation::RotateY(
-                                              ToComputedValue::from_computed_value(ry)));
-                        }
-                        computed_value::ComputedOperation::RotateZ(ref rz) => {
-                            result.push(SpecifiedOperation::RotateZ(
-                                              ToComputedValue::from_computed_value(rz)));
                         }
                         computed_value::ComputedOperation::Rotate(ref ax, ref ay, ref az, ref theta) => {
                             result.push(SpecifiedOperation::Rotate3D(
