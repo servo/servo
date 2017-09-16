@@ -141,7 +141,6 @@ impl <T: FromJSValConvertible + JSTraceable> FromJSValConvertible for RootedTrac
 /// Panics if `id` is not string-valued.
 pub fn string_jsid_to_string(cx: *mut JSContext, id: HandleId) -> DOMString {
     unsafe {
-        println!("{:?}", id);
         assert!(RUST_JSID_IS_STRING(id));
         jsstring_to_str(cx, RUST_JSID_TO_STRING(id))
     }
