@@ -1140,8 +1140,9 @@ impl Clone for ${style_struct.gecko_struct_name} {
     }
 </%def>
 
-<%def name="raw_impl_trait(style_struct, skip_longhands='', skip_additionals='')">
+<%def name="impl_trait(style_struct_name, skip_longhands='', skip_additionals='')">
 <%
+    style_struct = next(x for x in data.style_structs if x.name == style_struct_name)
     longhands = [x for x in style_struct.longhands
                 if not (skip_longhands == "*" or x.name in skip_longhands.split())]
 
@@ -1272,13 +1273,6 @@ impl ${style_struct.gecko_struct_name} {
     ${additional.stub()}
     % endfor
 }
-</%def>
-
-<%def name="impl_trait(style_struct_name, skip_longhands='', skip_additionals='')">
-<%self:raw_impl_trait style_struct="${next(x for x in data.style_structs if x.name == style_struct_name)}"
-                      skip_longhands="${skip_longhands}" skip_additionals="${skip_additionals}">
-${caller.body()}
-</%self:raw_impl_trait>
 </%def>
 
 <%!
