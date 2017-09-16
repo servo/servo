@@ -32,7 +32,7 @@ use dom::promise::Promise;
 use js::jsapi::JSAutoCompartment;
 use js::jsapi::JSTracer;
 use libc;
-use script_thread::{ScriptThread, Task};
+use script_thread::Task;
 use std::cell::RefCell;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::hash_map::HashMap;
@@ -125,11 +125,11 @@ impl TrustedPromise {
     pub fn reject_task(self, error: Error) -> impl Send + Task {
         struct RejectPromise(TrustedPromise, Error);
         impl Task for RejectPromise {
-            fn run_with_script_thread(self: Box<Self>, script_thread: &ScriptThread) {
+            fn run(self: Box<Self>) {
                 debug!("Rejecting promise.");
                 let this = *self;
-                let cx = script_thread.get_cx();
                 let promise = this.0.root();
+                let cx = promise.global().get_cx();
                 let _ac = JSAutoCompartment::new(cx, promise.reflector().get_jsobject().get());
                 promise.reject_error(cx, this.1);
             }
@@ -145,11 +145,11 @@ impl TrustedPromise {
     {
         struct ResolvePromise<T>(TrustedPromise, T);
         impl<T: ToJSValConvertible> Task for ResolvePromise<T> {
-            fn run_with_script_thread(self: Box<Self>, script_thread: &ScriptThread) {
+            fn run(self: Box<Self>) {
                 debug!("Resolving promise.");
                 let this = *self;
-                let cx = script_thread.get_cx();
                 let promise = this.0.root();
+                let cx = promise.global().get_cx();
                 let _ac = JSAutoCompartment::new(cx, promise.reflector().get_jsobject().get());
                 promise.resolve_native(cx, &this.1);
             }
