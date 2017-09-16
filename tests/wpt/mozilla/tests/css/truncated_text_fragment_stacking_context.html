@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>Truncated text and inline-blocks combined should not cause a panic</title>
+<link rel="match" href="truncated_text_fragment_stacking_context_ref.html" />
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#sticky-pos" />
+<meta name="assert" content="This test checks that truncated text and inline-blocks don't cause a panic." />
+
+<!-- We are using transparent text here to avoid having to deal with subpixel text rendering issues. -->
+<style>
+  a {
+    float: left;
+    color: transparent;
+  }
+  p, em {
+    overflow:hidden
+  }
+
+  em {
+    display: inline-block;
+    text-overflow: ellipsis;
+    color: transparent;
+  }
+
+  div {
+    position: absolute
+  }
+</style>
+
+<div style="height: 100px; width: 100px; background: green;"></div>
+
+<div>
+  <a>LINK</a>
+  <p><em>TEXT</em></p>
+</div>

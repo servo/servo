@@ -436,6 +436,10 @@ pub enum IdType {
 }
 
 pub trait FragmentDisplayListBuilding {
+    fn collect_stacking_contexts_for_blocklike_fragment(&mut self,
+                                                        state: &mut StackingContextCollectionState)
+                                                        -> bool;
+
     /// Adds the display items necessary to paint the background of this fragment to the display
     /// list if necessary.
     fn build_display_list_for_background_if_applicable(&self,
@@ -907,6 +911,33 @@ fn convert_ellipse_size_keyword(keyword: ShapeExtent,
 }
 
 impl FragmentDisplayListBuilding for Fragment {
+    fn collect_stacking_contexts_for_blocklike_fragment(&mut self,
+                                                        state: &mut StackingContextCollectionState)
+                                                        -> bool {
+        match self.specific {
+            SpecificFragmentInfo::InlineBlock(ref mut block_flow) => {
+                let block_flow = FlowRef::deref_mut(&mut block_flow.flow_ref);
+                block_flow.collect_stacking_contexts(state);
+                true
+            }
+            SpecificFragmentInfo::InlineAbsoluteHypothetical(ref mut block_flow) => {
+                let block_flow = FlowRef::deref_mut(&mut block_flow.flow_ref);
+                block_flow.collect_stacking_contexts(state);
+                true
+            }
+            SpecificFragmentInfo::InlineAbsolute(ref mut block_flow) => {
+                let block_flow = FlowRef::deref_mut(&mut block_flow.flow_ref);
+                block_flow.collect_stacking_contexts(state);
+                true
+            }
+            // FIXME: In the future, if #15144 is fixed we can remove this case. See #18510.
+            SpecificFragmentInfo::TruncatedFragment(ref mut info) => {
+                info.full.collect_stacking_contexts_for_blocklike_fragment(state)
+            }
+            _ => false,
+        }
+    }
+
     fn build_display_list_for_background_if_applicable(&self,
                                                        state: &mut DisplayListBuildState,
                                                        style: &ComputedValues,
@@ -2899,34 +2930,24 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
                 state.containing_block_clip_and_scroll_info = state.current_clip_and_scroll_info;
             }
 
-            match fragment.specific {
-                SpecificFragmentInfo::InlineBlock(ref mut block_flow) => {
-                    let block_flow = FlowRef::deref_mut(&mut block_flow.flow_ref);
-                    block_flow.collect_stacking_contexts(state);
-                }
-                SpecificFragmentInfo::InlineAbsoluteHypothetical(ref mut block_flow) => {
-                    let block_flow = FlowRef::deref_mut(&mut block_flow.flow_ref);
-                    block_flow.collect_stacking_contexts(state);
-                }
-                SpecificFragmentInfo::InlineAbsolute(ref mut block_flow) => {
-                    let block_flow = FlowRef::deref_mut(&mut block_flow.flow_ref);
-                    block_flow.collect_stacking_contexts(state);
-                }
-                _ if fragment.establishes_stacking_context() => {
+            if !fragment.collect_stacking_contexts_for_blocklike_fragment(state) {
+                if fragment.establishes_stacking_context() {
                     fragment.stacking_context_id = fragment.stacking_context_id();
 
                     let current_stacking_context_id = state.current_stacking_context_id;
-                    let stacking_context = fragment.create_stacking_context(fragment.stacking_context_id,
-                                                                            &self.base,
-                                                                            ScrollPolicy::Scrollable,
-                                                                            StackingContextType::Real,
-                                                                            state.current_clip_and_scroll_info);
+                    let stacking_context =
+                        fragment.create_stacking_context(fragment.stacking_context_id,
+                                                         &self.base,
+                                                         ScrollPolicy::Scrollable,
+                                                         StackingContextType::Real,
+                                                         state.current_clip_and_scroll_info);
 
-                    state.add_stacking_context(current_stacking_context_id,
-                                               stacking_context);
+                    state.add_stacking_context(current_stacking_context_id, stacking_context);
+                } else {
+                    fragment.stacking_context_id = state.current_stacking_context_id;
                 }
-                _ => fragment.stacking_context_id = state.current_stacking_context_id,
             }
+
             state.containing_block_clip_and_scroll_info = previous_cb_clip_scroll_info;
         }
 
