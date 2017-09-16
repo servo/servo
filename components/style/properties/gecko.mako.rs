@@ -1140,7 +1140,7 @@ impl Clone for ${style_struct.gecko_struct_name} {
     }
 </%def>
 
-<%def name="impl_trait(style_struct_name, skip_longhands='', skip_additionals='')">
+<%def name="impl_trait(style_struct_name, skip_longhands='')">
 <%
     style_struct = next(x for x in data.style_structs if x.name == style_struct_name)
     longhands = [x for x in style_struct.longhands
@@ -1267,11 +1267,6 @@ impl ${style_struct.gecko_struct_name} {
     }
     % endif
     % endfor
-    <% additionals = [x for x in style_struct.additional_methods
-                      if skip_additionals != "*" and not x.name in skip_additionals.split()] %>
-    % for additional in additionals:
-    ${additional.stub()}
-    % endfor
 }
 </%def>
 
@@ -1331,8 +1326,7 @@ fn static_assert() {
 <%self:impl_trait style_struct_name="Border"
                   skip_longhands="${skip_border_longhands} border-image-source border-image-outset
                                   border-image-repeat border-image-width border-image-slice
-                                  ${skip_moz_border_color_longhands}"
-                  skip_additionals="*">
+                                  ${skip_moz_border_color_longhands}">
 
     % for side in SIDES:
     <% impl_keyword("border_%s_style" % side.ident,
@@ -2045,8 +2039,7 @@ fn static_assert() {
                                      ["-moz-outline-radius-{0}".format(x.ident.replace("_", ""))
                                       for x in CORNERS]) %>
 <%self:impl_trait style_struct_name="Outline"
-                  skip_longhands="${skip_outline_longhands}"
-                  skip_additionals="*">
+                  skip_longhands="${skip_outline_longhands}">
 
     #[allow(non_snake_case)]
     pub fn set_outline_style(&mut self, v: longhands::outline_style::computed_value::T) {
@@ -2117,8 +2110,7 @@ fn static_assert() {
                              -moz-min-font-size-ratio -x-text-zoom"""
 %>
 <%self:impl_trait style_struct_name="Font"
-    skip_longhands="${skip_font_longhands}"
-    skip_additionals="*">
+    skip_longhands="${skip_font_longhands}">
 
     <% impl_font_settings("font_feature_settings", "FontSettingTagInt") %>
     <% impl_font_settings("font_variation_settings", "FontSettingTagFloat") %>
@@ -4043,8 +4035,7 @@ fn static_assert() {
                                   background-position-x
                                   background-position-y""" %>
 <%self:impl_trait style_struct_name="Background"
-                  skip_longhands="${skip_background_longhands}"
-                  skip_additionals="*">
+                  skip_longhands="${skip_background_longhands}">
 
     <% impl_common_image_layer_properties("background") %>
     <% impl_simple_image_array_property("attachment", "background", "mImage", "mAttachment", "Background") %>
@@ -4052,8 +4043,7 @@ fn static_assert() {
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="List"
-                  skip_longhands="list-style-image list-style-type quotes -moz-image-region"
-                  skip_additionals="*">
+                  skip_longhands="list-style-image list-style-type quotes -moz-image-region">
 
     pub fn set_list_style_image(&mut self, image: longhands::list_style_image::computed_value::T) {
         use values::Either;
@@ -4809,8 +4799,7 @@ fn static_assert() {
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Text"
-                  skip_longhands="text-decoration-line text-overflow initial-letter"
-                  skip_additionals="*">
+                  skip_longhands="text-decoration-line text-overflow initial-letter">
 
     ${impl_simple_type_with_conversion("text_decoration_line")}
 
@@ -5068,8 +5057,7 @@ clip-path
 """
 %>
 <%self:impl_trait style_struct_name="SVG"
-                  skip_longhands="${skip_svg_longhands}"
-                  skip_additionals="*">
+                  skip_longhands="${skip_svg_longhands}">
 
     <% impl_common_image_layer_properties("mask") %>
     <% impl_simple_image_array_property("mode", "mask", "mMask", "mMaskMode", "SVG") %>
@@ -5078,8 +5066,7 @@ clip-path
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="InheritedSVG"
-                  skip_longhands="paint-order stroke-dasharray -moz-context-properties"
-                  skip_additionals="*">
+                  skip_longhands="paint-order stroke-dasharray -moz-context-properties">
     pub fn set_paint_order(&mut self, v: longhands::paint_order::computed_value::T) {
         use self::longhands::paint_order;
 
