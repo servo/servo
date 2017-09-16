@@ -85,7 +85,7 @@ impl<N> From<N> for BorderImageSlice<N>
     #[inline]
     fn from(value: N) -> Self {
         Self {
-            offsets: value.into(),
+            offsets: Rect::all(value),
             fill: false,
         }
     }
