@@ -133,8 +133,10 @@ impl JobQueue {
         if job_queue.is_empty() {
             let scope_url = job.scope_url.clone();
             job_queue.push(job);
-            let run_job_handler = box AsyncJobHandler::new(scope_url);
-            let _ = script_thread.dom_manipulation_task_source().queue(run_job_handler, global);
+            let _ = script_thread.dom_manipulation_task_source().queue_main_thread_task(
+                box AsyncJobHandler::new(scope_url),
+                global,
+            );
             debug!("queued task to run newly-queued job");
         } else {
             // Step 2
