@@ -685,31 +685,33 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
     /// we can perform the more thoroughgoing check, needs_transitions_update, to further
     /// reduce the possibility of false positives.
     #[cfg(feature = "gecko")]
-    fn might_need_transitions_update(&self,
-                                     old_values: Option<&ComputedValues>,
-                                     new_values: &ComputedValues)
-                                     -> bool;
+    fn might_need_transitions_update(
+        &self,
+        old_values: Option<&ComputedValues>,
+        new_values: &ComputedValues
+    ) -> bool;
 
     /// Returns true if one of the transitions needs to be updated on this element. We check all
     /// the transition properties to make sure that updating transitions is necessary.
     /// This method should only be called if might_needs_transitions_update returns true when
     /// passed the same parameters.
     #[cfg(feature = "gecko")]
-    fn needs_transitions_update(&self,
-                                before_change_style: &ComputedValues,
-                                after_change_style: &ComputedValues)
-                                -> bool;
+    fn needs_transitions_update(
+        &self,
+        before_change_style: &ComputedValues,
+        after_change_style: &ComputedValues
+    ) -> bool;
 
     /// Returns true if we need to update transitions for the specified property on this element.
     #[cfg(feature = "gecko")]
-    fn needs_transitions_update_per_property(&self,
-                                             property: &TransitionProperty,
-                                             combined_duration: f32,
-                                             before_change_style: &ComputedValues,
-                                             after_change_style: &ComputedValues,
-                                             existing_transitions: &HashMap<TransitionProperty,
-                                                                            Arc<AnimationValue>>)
-                                             -> bool;
+    fn needs_transitions_update_per_property(
+        &self,
+        property: &TransitionProperty,
+        combined_duration: f32,
+        before_change_style: &ComputedValues,
+        after_change_style: &ComputedValues,
+        existing_transitions: &HashMap<TransitionProperty, Arc<AnimationValue>>
+    ) -> bool;
 
     /// Returns the value of the `xml:lang=""` attribute (or, if appropriate,
     /// the `lang=""` attribute) on this element.
@@ -720,10 +722,15 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
     /// of the `xml:lang=""` or `lang=""` attribute to use in place of
     /// looking at the element and its ancestors.  (This argument is used
     /// to implement matching of `:lang()` against snapshots.)
-    fn match_element_lang(&self,
-                          override_lang: Option<Option<AttrValue>>,
-                          value: &PseudoClassStringArg)
-                          -> bool;
+    fn match_element_lang(
+        &self,
+        override_lang: Option<Option<AttrValue>>,
+        value: &PseudoClassStringArg
+    ) -> bool;
+
+    /// Returns whether this element is the main body element of the HTML
+    /// document it is on.
+    fn is_html_document_body_element(&self) -> bool;
 }
 
 /// TNode and TElement aren't Send because we want to be careful and explicit

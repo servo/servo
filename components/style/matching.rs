@@ -7,7 +7,8 @@
 #![allow(unsafe_code)]
 #![deny(missing_docs)]
 
-use context::{ElementCascadeInputs, SelectorFlagsMap, SharedStyleContext, StyleContext};
+use context::{ElementCascadeInputs, QuirksMode, SelectorFlagsMap};
+use context::{SharedStyleContext, StyleContext};
 use data::ElementData;
 use dom::TElement;
 use invalidation::element::restyle_hints::{RESTYLE_CSS_ANIMATIONS, RESTYLE_CSS_TRANSITIONS};
@@ -551,10 +552,6 @@ pub trait MatchMethods : TElement {
 
         // Propagate the "can be fragmented" bit. It would be nice to
         // encapsulate this better.
-        //
-        // Note that this is technically not needed for pseudos since we already
-        // do that when we resolve the non-pseudo style, but it doesn't hurt
-        // anyway.
         if cfg!(feature = "servo") {
             let layout_parent =
                 self.inheritance_parent().map(|e| e.layout_parent());
@@ -587,6 +584,21 @@ pub trait MatchMethods : TElement {
                 if device.used_root_font_size() {
                     cascade_requirement = ChildCascadeRequirement::MustCascadeDescendants;
                 }
+            }
+        }
+
+        if context.shared.stylist.quirks_mode() == QuirksMode::Quirks {
+            if self.is_html_document_body_element() {
+                // NOTE(emilio): We _could_ handle dynamic changes to it if it
+                // changes and before we reach our children the cascade stops,
+                // but we don't track right now whether we use the document body
+                // color, and nobody else handles that properly anyway.
+
+                let device = context.shared.stylist.device();
+
+                // Needed for the "inherit from body" quirk.
+                let text_color = new_primary_style.get_color().clone_color();
+                device.set_body_text_color(text_color);
             }
         }
 
