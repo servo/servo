@@ -37,7 +37,7 @@ pub struct BorderImageSlice<NumberOrPercentage> {
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug)]
-#[derive(PartialEq, ToCss, ToComputedValue)]
+#[derive(PartialEq, ToComputedValue, ToCss)]
 pub struct BorderCornerRadius<L>(pub Size<L>);
 
 impl<L> BorderCornerRadius<L> {
@@ -51,7 +51,7 @@ impl<L> BorderCornerRadius<L> {
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug)]
-#[derive(PartialEq, ToAnimatedValue, ToCss, ToComputedValue)]
+#[derive(PartialEq, ToAnimatedValue, ToComputedValue, ToCss)]
 pub struct BorderSpacing<L>(pub Size<L>);
 
 impl<L> BorderSpacing<L> {

@@ -234,8 +234,8 @@ pub fn parse_border<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
             } = *self;
 
 
-            let widths = Rect::new(&tl.0.width, &tr.0.width, &br.0.width, &bl.0.width);
-            let heights = Rect::new(&tl.0.height, &tr.0.height, &br.0.height, &bl.0.height);
+            let widths = Rect::new(tl.width(), tr.width(), br.width(), bl.width());
+            let heights = Rect::new(tl.height(), tr.height(), br.height(), bl.height());
 
             BorderRadius::serialize_rects(widths, heights, dest)
         }

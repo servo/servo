@@ -77,15 +77,17 @@
 
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            use values::generics::border::BorderCornerRadius;
+
             let LonghandsToSerialize {
-                _moz_outline_radius_topleft: ref tl,
-                _moz_outline_radius_topright: ref tr,
-                _moz_outline_radius_bottomright: ref br,
-                _moz_outline_radius_bottomleft: ref bl,
+                _moz_outline_radius_topleft: &BorderCornerRadius(ref tl),
+                _moz_outline_radius_topright: &BorderCornerRadius(ref tr),
+                _moz_outline_radius_bottomright: &BorderCornerRadius(ref br),
+                _moz_outline_radius_bottomleft: &BorderCornerRadius(ref bl),
             } = *self;
 
-            let widths = Rect::new(&tl.0.width, &tr.0.width, &br.0.width, &bl.0.width);
-            let heights = Rect::new(&tl.0.height, &tr.0.height, &br.0.height, &bl.0.height);
+            let widths = Rect::new(tl.width(), tr.width(), br.width(), bl.width());
+            let heights = Rect::new(tl.height(), tr.height(), br.height(), bl.height());
 
             BorderRadius::serialize_rects(widths, heights, dest)
         }
