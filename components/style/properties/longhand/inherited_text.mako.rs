@@ -282,17 +282,16 @@ ${helpers.predefined_type("word-spacing",
                    need_clone="True" products="servo"
                    animation_value_type="none"
                    spec="Nonstandard (Internal property used by Servo)">
-    use cssparser::RGBA;
     use std::fmt;
     use style_traits::ToCss;
 
-    #[derive(Clone, Copy, Debug, PartialEq)]
+    #[derive(Clone, Copy, Debug, Default, PartialEq)]
     #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue {
-        pub underline: Option<RGBA>,
-        pub overline: Option<RGBA>,
-        pub line_through: Option<RGBA>,
+        pub underline: bool,
+        pub overline: bool,
+        pub line_through: bool,
     }
 
     trivial_to_computed_value!(SpecifiedValue);
@@ -310,19 +309,7 @@ ${helpers.predefined_type("word-spacing",
 
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
-        SpecifiedValue {
-            underline: None,
-            overline: None,
-            line_through: None,
-        }
-    }
-
-    fn maybe(flag: bool, context: &Context) -> Option<RGBA> {
-        if flag {
-            Some(context.style().get_color().clone_color())
-        } else {
-            None
-        }
+        SpecifiedValue::default()
     }
 
     fn derive(context: &Context) -> computed_value::T {
@@ -330,20 +317,13 @@ ${helpers.predefined_type("word-spacing",
         // declarations in effect and add in the text decorations that this block specifies.
         let mut result = match context.style().get_box().clone_display() {
             super::display::computed_value::T::inline_block |
-            super::display::computed_value::T::inline_table => SpecifiedValue {
-                underline: None,
-                overline: None,
-                line_through: None,
-            },
+            super::display::computed_value::T::inline_table => get_initial_value(),
             _ => context.builder.get_parent_inheritedtext().clone__servo_text_decorations_in_effect()
         };
 
-        result.underline = maybe(context.style().get_text().has_underline()
-                                 || result.underline.is_some(), context);
-        result.overline = maybe(context.style().get_text().has_overline()
-                                || result.overline.is_some(), context);
-        result.line_through = maybe(context.style().get_text().has_line_through()
-                                    || result.line_through.is_some(), context);
+        result.underline |= context.style().get_text().has_underline();
+        result.overline |= context.style().get_text().has_overline();
+        result.line_through |= context.style().get_text().has_line_through();
 
         result
     }
