@@ -80,6 +80,18 @@ impl TransformList {
 
         for operation in list {
             let matrix = match *operation {
+                ComputedOperation::RotateX(theta) => {
+                    let theta = Angle::from_radians(2.0f32 * f32::consts::PI - theta.radians());
+                    Transform3D::create_rotation(1., 0., 0., theta.into())
+                }
+                ComputedOperation::RotateY(theta) => {
+                    let theta = Angle::from_radians(2.0f32 * f32::consts::PI - theta.radians());
+                    Transform3D::create_rotation(0., 1., 0., theta.into())
+                }
+                ComputedOperation::RotateZ(theta) => {
+                    let theta = Angle::from_radians(2.0f32 * f32::consts::PI - theta.radians());
+                    Transform3D::create_rotation(0., 0., 1., theta.into())
+                }
                 ComputedOperation::Rotate(ax, ay, az, theta) => {
                     let theta = Angle::from_radians(2.0f32 * f32::consts::PI - theta.radians());
                     let (ax, ay, az, theta) =
@@ -89,8 +101,34 @@ impl TransformList {
                 ComputedOperation::Perspective(d) => {
                     Self::create_perspective_matrix(d.px())
                 }
+                ComputedOperation::ScaleX(sx) => {
+                    Transform3D::create_scale(sx, 1., 1.)
+                }
+                ComputedOperation::ScaleY(sy) => {
+                    Transform3D::create_scale(1., sy, 1.)
+                }
+                ComputedOperation::ScaleZ(sz) => {
+                    Transform3D::create_scale(1., 1., sz)
+                }
                 ComputedOperation::Scale(sx, sy, sz) => {
                     Transform3D::create_scale(sx, sy, sz)
+                }
+                ComputedOperation::TranslateX(tx) => {
+                    let tx =  match reference_box {
+                        Some(relative_border_box) => tx.to_used_value(relative_border_box.size.width).to_f32_px(),
+                        None => extract_pixel_length(&tx),
+                    };
+                    Transform3D::create_translation(tx, 0., 0.)
+                }
+                ComputedOperation::TranslateY(ty) => {
+                    let ty =  match reference_box {
+                        Some(relative_border_box) => ty.to_used_value(relative_border_box.size.height).to_f32_px(),
+                        None => extract_pixel_length(&ty),
+                    };
+                    Transform3D::create_translation(0., ty, 0.)
+                }
+                ComputedOperation::TranslateZ(tz) => {
+                    Transform3D::create_translation(0., 0., tz.px())
                 }
                 ComputedOperation::Translate(tx, ty, tz) => {
                     let (tx, ty) = match reference_box {

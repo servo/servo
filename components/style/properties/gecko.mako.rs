@@ -3084,8 +3084,17 @@ fn static_assert() {
                 ${transform_function_arm("MatrixWithPercents", "matrix3d", ["number"] * 12 + ["lop"] * 2
                                          + ["length"] + ["number"])}
                 ${transform_function_arm("Skew", "skew", ["angle"] * 2)}
+                ${transform_function_arm("TranslateX", "translatex", ["lop"])}
+                ${transform_function_arm("TranslateY", "translatey", ["lop"])}
+                ${transform_function_arm("TranslateZ", "translatez", ["length"])}
                 ${transform_function_arm("Translate", "translate3d", ["lop", "lop", "length"])}
+                ${transform_function_arm("ScaleX", "scalex", ["number"])}
+                ${transform_function_arm("ScaleY", "scaley", ["number"])}
+                ${transform_function_arm("ScaleZ", "scalez", ["number"])}
                 ${transform_function_arm("Scale", "scale3d", ["number"] * 3)}
+                ${transform_function_arm("RotateX", "rotatex", ["angle"])}
+                ${transform_function_arm("RotateY", "rotatey", ["angle"])}
+                ${transform_function_arm("RotateZ", "rotatez", ["angle"])}
                 ${transform_function_arm("Rotate", "rotate3d", ["number"] * 3 + ["angle"])}
                 ${transform_function_arm("Perspective", "perspective", ["length"])}
                 ${transform_function_arm("InterpolateMatrix", "interpolatematrix",
@@ -3204,8 +3213,18 @@ fn static_assert() {
             match transform_function {
                 ${computed_operation_arm("Matrix", "matrix3d", ["number"] * 16)}
                 ${computed_operation_arm("Skew", "skew", ["angle"] * 2)}
+
+                ${computed_operation_arm("TranslateX", "translatex", ["lop"])}
+                ${computed_operation_arm("TranslateY", "translatey", ["lop"])}
+                ${computed_operation_arm("TranslateZ", "translatez", ["length"])}
                 ${computed_operation_arm("Translate", "translate3d", ["lop", "lop", "length"])}
+                ${computed_operation_arm("ScaleX", "scalex", ["number"])}
+                ${computed_operation_arm("ScaleY", "scaley", ["number"])}
+                ${computed_operation_arm("ScaleZ", "scalez", ["number"])}
                 ${computed_operation_arm("Scale", "scale3d", ["number"] * 3)}
+                ${computed_operation_arm("RotateX", "rotatex", ["angle"])}
+                ${computed_operation_arm("RotateY", "rotatey", ["angle"])}
+                ${computed_operation_arm("RotateZ", "rotatez", ["angle"])}
                 ${computed_operation_arm("Rotate", "rotate3d", ["number"] * 3 + ["angle"])}
                 ${computed_operation_arm("Perspective", "perspective", ["length"])}
                 ${computed_operation_arm("InterpolateMatrix", "interpolatematrix",
