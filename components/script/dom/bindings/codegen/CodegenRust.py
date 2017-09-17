@@ -4750,7 +4750,7 @@ class CGProxyNamedOperation(CGProxySpecialOperation):
     def define(self):
         # Our first argument is the id we're getting.
         argName = self.arguments[0].identifier.name
-        return ("let %s = string_jsid_to_string(cx, id);\n"
+        return ("let %s = jsid_to_string(cx, id).expect(\"Not a string-convertible JSID?\");\n"
                 "let this = UnwrapProxy(proxy);\n"
                 "let this = &*this;\n" % argName +
                 CGProxySpecialOperation.define(self))
@@ -4868,7 +4868,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
             # ResolveOwnProperty or EnumerateOwnProperties filter out named
             # properties that shadow prototype properties.
             namedGet = """
-if RUST_JSID_IS_STRING(id) {
+if RUST_JSID_IS_STRING(id) || RUST_JSID_IS_INT(id) {
     let mut has_on_proto = false;
     if !has_property_on_prototype(cx, proxy, id, &mut has_on_proto) {
         return false;
@@ -4935,12 +4935,12 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
             if self.descriptor.hasUnforgeableMembers:
                 raise TypeError("Can't handle a named setter on an interface that has "
                                 "unforgeables. Figure out how that should work!")
-            set += ("if RUST_JSID_IS_STRING(id) {\n" +
+            set += ("if RUST_JSID_IS_STRING(id) || RUST_JSID_IS_INT(id) {\n" +
                     CGIndenter(CGProxyNamedSetter(self.descriptor)).define() +
                     "    return (*opresult).succeed();\n" +
                     "}\n")
         else:
-            set += ("if RUST_JSID_IS_STRING(id) {\n" +
+            set += ("if RUST_JSID_IS_STRING(id) || RUST_JSID_IS_INT(id) {\n" +
                     CGIndenter(CGProxyNamedGetter(self.descriptor)).define() +
                     "    if result.is_some() {\n"
                     "        return (*opresult).failNoNamedSetter();\n"
@@ -5095,7 +5095,7 @@ class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
         namedGetter = self.descriptor.operations['NamedGetter']
         if namedGetter:
             named = """\
-if RUST_JSID_IS_STRING(id) {
+if RUST_JSID_IS_STRING(id) || RUST_JSID_IS_INT(id) {
     let mut has_on_proto = false;
     if !has_property_on_prototype(cx, proxy, id, &mut has_on_proto) {
         return false;
@@ -5175,7 +5175,7 @@ if !expando.is_null() {
 
         namedGetter = self.descriptor.operations['NamedGetter']
         if namedGetter:
-            getNamed = ("if RUST_JSID_IS_STRING(id) {\n" +
+            getNamed = ("if RUST_JSID_IS_STRING(id) || RUST_JSID_IS_INT(id) {\n" +
                         CGIndenter(CGProxyNamedGetter(self.descriptor, templateValues)).define() +
                         "}\n")
         else:
@@ -5633,6 +5633,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::glue::GetProxyPrivate',
         'js::glue::NewProxyObject',
         'js::glue::ProxyTraps',
+        'js::glue::RUST_JSID_IS_INT',
         'js::glue::RUST_JSID_IS_STRING',
         'js::glue::RUST_SYMBOL_TO_JSID',
         'js::glue::int_to_jsid',
@@ -5720,6 +5721,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'dom::bindings::conversions::root_from_handlevalue',
         'dom::bindings::conversions::root_from_object',
         'dom::bindings::conversions::string_jsid_to_string',
+        'dom::bindings::conversions::jsid_to_string',
         'dom::bindings::codegen::PrototypeList',
         'dom::bindings::codegen::RegisterBindings',
         'dom::bindings::codegen::UnionTypes',
