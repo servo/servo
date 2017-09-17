@@ -5,8 +5,8 @@
 use dom::domexception::DOMErrorName;
 use dom::filereader::{FileReader, TrustedFileReader, GenerationId, ReadMetaData};
 use script_runtime::{CommonScriptMsg, ScriptThreadEventCategory, ScriptChan};
-use script_thread::{Task, TaskCanceller};
 use std::sync::Arc;
+use task::{Task, TaskCanceller};
 use task_source::TaskSource;
 
 #[derive(JSTraceable)]

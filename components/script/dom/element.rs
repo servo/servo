@@ -87,7 +87,7 @@ use js::jsval::JSVal;
 use net_traits::request::CorsSettings;
 use ref_filter_map::ref_filter_map;
 use script_layout_interface::message::ReflowQueryType;
-use script_thread::{ScriptThread, Task};
+use script_thread::ScriptThread;
 use selectors::attr::{AttrSelectorOperation, NamespaceConstraint, CaseSensitivity};
 use selectors::matching::{ElementSelectorFlags, LocalMatchingContext, MatchingContext, MatchingMode};
 use selectors::matching::{HAS_EDGE_CHILD_SELECTOR, HAS_SLOW_SELECTOR, HAS_SLOW_SELECTOR_LATER_SIBLINGS};
@@ -119,6 +119,7 @@ use style::thread_state;
 use style::values::{CSSFloat, Either};
 use style::values::{specified, computed};
 use stylesheet_loader::StylesheetOwner;
+use task::Task;
 
 // TODO: Update focus state when the top-level browsing context gains or loses system focus,
 // and when the element enters or leaves a browsing context container.

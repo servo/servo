@@ -29,12 +29,12 @@ use js::jsapi::JSAutoCompartment;
 use js::jsapi::JSContext;
 use js::jsval::{self, JSVal};
 use js::typedarray::{ArrayBuffer, CreateWith};
-use script_thread::TaskCanceller;
 use servo_atoms::Atom;
 use std::cell::Cell;
 use std::ptr;
 use std::sync::Arc;
 use std::thread;
+use task::TaskCanceller;
 use task_source::TaskSource;
 use task_source::file_reading::{FileReadingTask, FileReadingTaskSource};
 

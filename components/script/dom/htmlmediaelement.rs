@@ -35,10 +35,11 @@ use microtask::{Microtask, MicrotaskRunnable};
 use net_traits::{FetchResponseListener, FetchMetadata, Metadata, NetworkError};
 use net_traits::request::{CredentialsMode, Destination, RequestInit, Type as RequestType};
 use network_listener::{NetworkListener, PreInvoke};
-use script_thread::{ScriptThread, Task};
+use script_thread::ScriptThread;
 use servo_url::ServoUrl;
 use std::cell::Cell;
 use std::sync::{Arc, Mutex};
+use task::Task;
 use task_source::TaskSource;
 use time::{self, Timespec, Duration};
 

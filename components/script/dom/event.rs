@@ -20,10 +20,10 @@ use dom::node::Node;
 use dom::virtualmethods::vtable_for;
 use dom::window::Window;
 use dom_struct::dom_struct;
-use script_thread::Task;
 use servo_atoms::Atom;
 use std::cell::Cell;
 use std::default::Default;
+use task::Task;
 use time;
 
 #[dom_struct]

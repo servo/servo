@@ -32,7 +32,6 @@ use dom::promise::Promise;
 use js::jsapi::JSAutoCompartment;
 use js::jsapi::JSTracer;
 use libc;
-use script_thread::Task;
 use std::cell::RefCell;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::hash_map::HashMap;
@@ -41,6 +40,7 @@ use std::marker::PhantomData;
 use std::os;
 use std::rc::Rc;
 use std::sync::{Arc, Weak};
+use task::Task;
 
 
 #[allow(missing_docs)]  // FIXME

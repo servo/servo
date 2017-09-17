@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
-use script_thread::{Task, TaskCanceller};
+use task::{Task, TaskCanceller};
 use task_source::TaskSource;
 
 #[derive(JSTraceable)]

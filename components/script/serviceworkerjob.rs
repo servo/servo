@@ -18,11 +18,12 @@ use dom::promise::Promise;
 use dom::serviceworkerregistration::ServiceWorkerRegistration;
 use dom::urlhelper::UrlHelper;
 use js::jsapi::JSAutoCompartment;
-use script_thread::{ScriptThread, Task};
+use script_thread::ScriptThread;
 use servo_url::ServoUrl;
 use std::cmp::PartialEq;
 use std::collections::HashMap;
 use std::rc::Rc;
+use task::Task;
 use task_source::TaskSource;
 use task_source::dom_manipulation::DOMManipulationTaskSource;
 

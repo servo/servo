@@ -48,7 +48,7 @@ use net_traits::image_cache::UsePlaceholder;
 use net_traits::request::{RequestInit, Type as RequestType};
 use network_listener::{NetworkListener, PreInvoke};
 use num_traits::ToPrimitive;
-use script_thread::{ScriptThread, Task};
+use script_thread::ScriptThread;
 use servo_url::ServoUrl;
 use servo_url::origin::ImmutableOrigin;
 use std::cell::{Cell, RefMut};
@@ -56,6 +56,7 @@ use std::default::Default;
 use std::i32;
 use std::sync::{Arc, Mutex};
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
+use task::Task;
 use task_source::TaskSource;
 
 #[derive(Clone, Copy, HeapSizeOf, JSTraceable)]

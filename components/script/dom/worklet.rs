@@ -51,7 +51,7 @@ use script_runtime::CommonScriptMsg;
 use script_runtime::ScriptThreadEventCategory;
 use script_runtime::StackRootTLS;
 use script_runtime::new_rt_and_cx;
-use script_thread::{MainThreadScriptMsg, ScriptThread, Task};
+use script_thread::{MainThreadScriptMsg, ScriptThread};
 use servo_rand;
 use servo_url::ImmutableOrigin;
 use servo_url::ServoUrl;
@@ -69,6 +69,7 @@ use std::thread;
 use style::thread_state;
 use swapper::Swapper;
 use swapper::swapper;
+use task::Task;
 use uuid::Uuid;
 
 // Magic numbers

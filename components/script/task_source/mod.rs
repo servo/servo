@@ -10,8 +10,8 @@ pub mod performance_timeline;
 pub mod user_interaction;
 
 use dom::globalscope::GlobalScope;
-use script_thread::{Task, TaskCanceller};
 use std::result::Result;
+use task::{Task, TaskCanceller};
 
 pub trait TaskSource {
     fn queue_with_canceller<T>(

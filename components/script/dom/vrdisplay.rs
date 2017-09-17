@@ -36,12 +36,12 @@ use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::JSContext;
 use script_runtime::CommonScriptMsg;
 use script_runtime::ScriptThreadEventCategory::WebVREvent;
-use script_thread::Task;
 use std::cell::Cell;
 use std::mem;
 use std::rc::Rc;
 use std::sync::mpsc;
 use std::thread;
+use task::Task;
 use webvr_traits::{WebVRDisplayData, WebVRDisplayEvent, WebVRFrameData, WebVRLayer, WebVRMsg};
 
 #[dom_struct]

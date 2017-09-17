@@ -16,10 +16,10 @@ use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use js::jsapi::{HandleValue, JSContext};
-use script_thread::Task;
 use script_traits::{ScriptMsg, DOMMessage};
 use servo_url::ServoUrl;
 use std::cell::Cell;
+use task::Task;
 
 pub type TrustedServiceWorkerAddress = Trusted<ServiceWorker>;
 

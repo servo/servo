@@ -31,13 +31,13 @@ use net_traits::CoreResourceMsg::WebsocketConnect;
 use net_traits::MessageData;
 use script_runtime::CommonScriptMsg;
 use script_runtime::ScriptThreadEventCategory::WebSocketEvent;
-use script_thread::{Task, TaskCanceller};
 use servo_url::ServoUrl;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::ptr;
 use std::thread;
+use task::{Task, TaskCanceller};
 use task_source::TaskSource;
 use task_source::networking::NetworkingTaskSource;
 

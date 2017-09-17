@@ -113,7 +113,7 @@ use net_traits::response::HttpsState;
 use num_traits::ToPrimitive;
 use script_layout_interface::message::{Msg, ReflowQueryType};
 use script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
-use script_thread::{MainThreadScriptMsg, ScriptThread, Task};
+use script_thread::{MainThreadScriptMsg, ScriptThread};
 use script_traits::{AnimationState, CompositorEvent, DocumentActivity};
 use script_traits::{MouseButton, MouseEventType, MozBrowserEvent};
 use script_traits::{MsDuration, ScriptMsg, TouchpadPressurePhase};
@@ -142,6 +142,7 @@ use style::shared_lock::{SharedRwLock as StyleSharedRwLock, SharedRwLockReadGuar
 use style::str::{HTML_SPACE_CHARACTERS, split_html_space_chars, str_join};
 use style::stylesheet_set::StylesheetSet;
 use style::stylesheets::{Stylesheet, StylesheetContents, Origin, OriginSet};
+use task::Task;
 use task_source::TaskSource;
 use time;
 use timers::OneshotTimerCallback;

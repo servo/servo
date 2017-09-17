@@ -35,12 +35,12 @@ use ipc_channel::router::ROUTER;
 use js::conversions::ConversionResult;
 use js::jsapi::{JSAutoCompartment, JSContext, JSObject};
 use js::jsval::{ObjectValue, UndefinedValue};
-use script_thread::Task;
 use std::cell::Ref;
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::str::FromStr;
 use std::sync::{Arc, Mutex};
+use task::Task;
 
 const KEY_CONVERSION_ERROR: &'static str = "This `manufacturerData` key can not be parsed as unsigned short:";
 const FILTER_EMPTY_ERROR: &'static str = "'filters' member, if present, must be nonempty to find any devices.";

@@ -76,8 +76,8 @@ use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse, Lay
 use script_layout_interface::rpc::{MarginStyleResponse, NodeScrollRootIdResponse};
 use script_layout_interface::rpc::{ResolvedStyleResponse, TextIndexResponse};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, ScriptThreadEventCategory};
-use script_thread::{ImageCacheMsg, MainThreadScriptChan, MainThreadScriptMsg, Task};
-use script_thread::{ScriptThread, SendableMainThreadScriptChan, TaskCanceller};
+use script_thread::{ImageCacheMsg, MainThreadScriptChan, MainThreadScriptMsg};
+use script_thread::{ScriptThread, SendableMainThreadScriptChan};
 use script_traits::{ConstellationControlMsg, DocumentState, LoadData, MozBrowserEvent};
 use script_traits::{ScriptToConstellationChan, ScriptMsg, ScrollState, TimerEvent, TimerEventId};
 use script_traits::{TimerSchedulerMsg, UntrustedNodeAddress, WindowSizeData, WindowSizeType};
@@ -111,6 +111,7 @@ use style::selector_parser::PseudoElement;
 use style::str::HTML_SPACE_CHARACTERS;
 use style::stylesheets::CssRuleType;
 use style_traits::PARSING_MODE_DEFAULT;
+use task::{Task, TaskCanceller};
 use task_source::dom_manipulation::DOMManipulationTaskSource;
 use task_source::file_reading::FileReadingTaskSource;
 use task_source::history_traversal::HistoryTraversalTaskSource;

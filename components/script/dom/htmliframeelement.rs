@@ -43,7 +43,7 @@ use js::jsval::{NullValue, UndefinedValue};
 use msg::constellation_msg::{FrameType, BrowsingContextId, PipelineId, TopLevelBrowsingContextId, TraversalDirection};
 use net_traits::response::HttpsState;
 use script_layout_interface::message::ReflowQueryType;
-use script_thread::{ScriptThread, Task};
+use script_thread::ScriptThread;
 use script_traits::{IFrameLoadInfo, IFrameLoadInfoWithData, JsEvalResult, LoadData, UpdatePipelineIdReason};
 use script_traits::{MozBrowserEvent, NewLayoutInfo, ScriptMsg};
 use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
@@ -54,6 +54,7 @@ use servo_url::ServoUrl;
 use std::cell::Cell;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use style::context::ReflowGoal;
+use task::Task;
 use task_source::TaskSource;
 
 bitflags! {

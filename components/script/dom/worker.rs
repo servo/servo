@@ -25,12 +25,12 @@ use dom_struct::dom_struct;
 use ipc_channel::ipc;
 use js::jsapi::{HandleValue, JSAutoCompartment, JSContext, NullHandleValue};
 use js::jsval::UndefinedValue;
-use script_thread::Task;
 use script_traits::WorkerScriptLoadOrigin;
 use std::cell::Cell;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Sender, channel};
+use task::Task;
 
 pub type TrustedWorkerAddress = Trusted<Worker>;
 

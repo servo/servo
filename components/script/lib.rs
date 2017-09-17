@@ -123,6 +123,7 @@ pub mod script_thread;
 mod serviceworker_manager;
 mod serviceworkerjob;
 mod stylesheet_loader;
+mod task;
 mod task_source;
 pub mod test;
 pub mod textinput;

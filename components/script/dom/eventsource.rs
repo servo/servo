@@ -27,13 +27,13 @@ use net_traits::{CoreResourceMsg, FetchMetadata, FetchResponseMsg, FetchResponse
 use net_traits::request::{CacheMode, CorsSettings, CredentialsMode};
 use net_traits::request::{RequestInit, RequestMode};
 use network_listener::{NetworkListener, PreInvoke};
-use script_thread::Task;
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use std::cell::Cell;
 use std::mem;
 use std::str::{Chars, FromStr};
 use std::sync::{Arc, Mutex};
+use task::Task;
 use task_source::TaskSource;
 use timers::OneshotTimerCallback;
 use utf8;

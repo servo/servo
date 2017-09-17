@@ -10,9 +10,9 @@ use dom::bindings::refcounted::Trusted;
 use dom::globalscope::GlobalScope;
 use dom::performance::Performance;
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
-use script_thread::{Task, TaskCanceller};
 use std::fmt;
 use std::result::Result;
+use task::{Task, TaskCanceller};
 use task_source::TaskSource;
 
 pub struct NotifyPerformanceObserverTask {

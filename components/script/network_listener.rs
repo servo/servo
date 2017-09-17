@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use net_traits::{Action, FetchResponseListener, FetchResponseMsg};
-use script_thread::{Task, TaskCanceller};
 use std::sync::{Arc, Mutex};
+use task::{Task, TaskCanceller};
 use task_source::TaskSource;
 use task_source::networking::NetworkingTaskSource;
 

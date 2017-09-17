@@ -105,15 +105,12 @@ use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use std::cell::Cell;
 use std::collections::{hash_map, HashMap, HashSet};
 use std::default::Default;
-use std::fmt;
-use std::intrinsics;
 use std::ops::Deref;
 use std::option::Option;
 use std::ptr;
 use std::rc::Rc;
 use std::result::Result;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Receiver, Select, Sender, channel};
 use std::thread;
 use style::context::ReflowGoal;
@@ -203,62 +200,6 @@ impl InProgressLoad {
             navigation_start: (current_time.sec * 1000 + current_time.nsec as i64 / 1000000) as u64,
             navigation_start_precise: navigation_start_precise,
         }
-    }
-}
-
-/// Encapsulated state required to create cancellable tasks from non-script threads.
-pub struct TaskCanceller {
-    pub cancelled: Option<Arc<AtomicBool>>,
-}
-
-impl TaskCanceller {
-    pub fn wrap_task<T>(&self, task: Box<T>) -> Box<Task + Send>
-    where
-        T: Send + Task + 'static,
-    {
-        box CancellableTask {
-            cancelled: self.cancelled.clone(),
-            inner: task,
-        }
-    }
-}
-
-/// A task that can be discarded by toggling a shared flag.
-pub struct CancellableTask<T: Send + Task> {
-    cancelled: Option<Arc<AtomicBool>>,
-    inner: Box<T>,
-}
-
-impl<T> CancellableTask<T>
-where
-    T: Send + Task,
-{
-    fn is_cancelled(&self) -> bool {
-        self.cancelled.as_ref().map_or(false, |cancelled| {
-            cancelled.load(Ordering::SeqCst)
-        })
-    }
-}
-
-impl<T> Task for CancellableTask<T>
-where
-    T: Send + Task,
-{
-    fn run(self: Box<Self>) {
-        if !self.is_cancelled() {
-            self.inner.run()
-        }
-    }
-}
-
-pub trait Task {
-    fn name(&self) -> &'static str { unsafe { intrinsics::type_name::<Self>() } }
-    fn run(self: Box<Self>);
-}
-
-impl fmt::Debug for Task + Send {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        fmt.debug_tuple(self.name()).field(&format_args!("...")).finish()
     }
 }
 

@@ -49,7 +49,7 @@ use html5ever::{LocalName, Prefix};
 use hyper::header::{Charset, ContentDisposition, ContentType, DispositionParam, DispositionType};
 use hyper::method::Method;
 use msg::constellation_msg::PipelineId;
-use script_thread::{MainThreadScriptMsg, Task};
+use script_thread::MainThreadScriptMsg;
 use script_traits::LoadData;
 use servo_rand::random;
 use std::borrow::ToOwned;
@@ -57,6 +57,7 @@ use std::cell::Cell;
 use std::sync::mpsc::Sender;
 use style::attr::AttrValue;
 use style::str::split_html_space_chars;
+use task::Task;
 use task_source::TaskSource;
 
 #[derive(Clone, Copy, HeapSizeOf, JSTraceable, PartialEq)]

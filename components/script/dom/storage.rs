@@ -17,9 +17,9 @@ use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcSender};
 use net_traits::IpcSend;
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
-use script_thread::Task;
 use script_traits::ScriptMsg;
 use servo_url::ServoUrl;
+use task::Task;
 use task_source::TaskSource;
 
 #[dom_struct]

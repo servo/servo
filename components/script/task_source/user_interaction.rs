@@ -8,11 +8,12 @@ use dom::event::{EventBubbles, EventCancelable, EventTask};
 use dom::eventtarget::EventTarget;
 use dom::window::Window;
 use script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
-use script_thread::{MainThreadScriptMsg, Task, TaskCanceller};
+use script_thread::MainThreadScriptMsg;
 use servo_atoms::Atom;
 use std::fmt;
 use std::result::Result;
 use std::sync::mpsc::Sender;
+use task::{Task, TaskCanceller};
 use task_source::TaskSource;
 
 #[derive(Clone, JSTraceable)]
