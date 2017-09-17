@@ -132,20 +132,6 @@ impl <T: FromJSValConvertible + JSTraceable> FromJSValConvertible for RootedTrac
     }
 }
 
-/// Convert `id` to a `DOMString`, assuming it is string-valued.
-///
-/// Handling of invalid UTF-16 in strings depends on the relevant option.
-///
-/// # Panics
-///
-/// Panics if `id` is not string-valued.
-pub fn string_jsid_to_string(cx: *mut JSContext, id: HandleId) -> DOMString {
-    unsafe {
-        assert!(RUST_JSID_IS_STRING(id));
-        jsstring_to_str(cx, RUST_JSID_TO_STRING(id))
-    }
-}
-
 /// Convert `id` to a `DOMString`. Returns `None` if `id` is not a string or
 /// integer.
 ///
