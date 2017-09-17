@@ -9,6 +9,26 @@ use std::intrinsics;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
+macro_rules! task {
+    ($name:ident: move || $body:tt) => {{
+        #[allow(non_camel_case_types)]
+        struct $name<F>(F);
+        impl<F> ::task::Task for $name<F>
+        where
+            F: ::std::ops::FnOnce(),
+        {
+            fn name(&self) -> &'static str {
+                stringify!($name)
+            }
+
+            fn run(self: Box<Self>) {
+                (self.0)();
+            }
+        }
+        $name(move || $body)
+    }};
+}
+
 /// A task that can be run. The name method is for profiling purposes.
 pub trait Task {
     #[allow(unsafe_code)]

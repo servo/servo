@@ -106,6 +106,9 @@ extern crate webrender_api;
 extern crate webvr_traits;
 extern crate xml5ever;
 
+#[macro_use]
+mod task;
+
 mod body;
 pub mod clipboard_provider;
 mod devtools;
@@ -123,7 +126,6 @@ pub mod script_thread;
 mod serviceworker_manager;
 mod serviceworkerjob;
 mod stylesheet_loader;
-mod task;
 mod task_source;
 pub mod test;
 pub mod textinput;

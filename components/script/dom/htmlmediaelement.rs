@@ -140,15 +140,11 @@ impl HTMLMediaElement {
 
             // Step 2.3.
             let window = window_from_node(self);
+            let target = Trusted::new(self.upcast::<EventTarget>());
             // FIXME(nox): Why are errors silenced here?
             let _ = window.dom_manipulation_task_source().queue(
-                box InternalPauseStepsTask(Trusted::new(self.upcast())),
-                window.upcast(),
-            );
-            struct InternalPauseStepsTask(Trusted<EventTarget>);
-            impl Task for InternalPauseStepsTask {
-                fn run(self: Box<Self>) {
-                    let target = self.0.root();
+                box task!(internal_pause_steps: move || {
+                    let target = target.root();
 
                     // Step 2.3.1.
                     target.fire_event(atom!("timeupdate"));
@@ -159,8 +155,9 @@ impl HTMLMediaElement {
                     // Step 2.3.3.
                     // FIXME(nox): Reject pending play promises with promises
                     // and an "AbortError" DOMException.
-                }
-            }
+                }),
+                window.upcast(),
+            );
 
             // Step 2.4.
             // FIXME(nox): Set the official playback position to the current
