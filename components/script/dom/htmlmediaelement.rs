@@ -171,24 +171,21 @@ impl HTMLMediaElement {
         // TODO(nox): Take pending play promises and let promises be the result.
 
         // Step 2.
+        let target = Trusted::new(self.upcast::<EventTarget>());
         let window = window_from_node(self);
         // FIXME(nox): Why are errors silenced here?
         let _ = window.dom_manipulation_task_source().queue(
-            box NotifyAboutPlayingTask(Trusted::new(self.upcast())),
-            window.upcast(),
-        );
-        struct NotifyAboutPlayingTask(Trusted<EventTarget>);
-        impl Task for NotifyAboutPlayingTask {
-            fn run(self: Box<Self>) {
-                let target = self.0.root();
+            box task!(notify_about_playing: move || {
+                let target = target.root();
 
                 // Step 2.1.
                 target.fire_event(atom!("playing"));
 
                 // Step 2.2.
                 // FIXME(nox): Resolve pending play promises with promises.
-            }
-        }
+            }),
+            window.upcast(),
+        );
     }
 
     // https://html.spec.whatwg.org/multipage/#ready-states
