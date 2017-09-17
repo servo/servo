@@ -64,7 +64,7 @@ class Keyword(object):
                  gecko_enum_prefix=None, custom_consts=None,
                  extra_gecko_values=None, extra_servo_values=None,
                  aliases=None,
-                 extra_gecko_aliases=None, extra_servo_aliases=None,
+                 extra_gecko_aliases=None,
                  gecko_strip_moz_prefix=None,
                  gecko_inexhaustive=None):
         self.name = name
@@ -78,7 +78,6 @@ class Keyword(object):
         self.extra_servo_values = (extra_servo_values or "").split()
         self.aliases = parse_aliases(aliases or "")
         self.extra_gecko_aliases = parse_aliases(extra_gecko_aliases or "")
-        self.extra_servo_aliases = parse_aliases(extra_servo_aliases or "")
         self.consts_map = {} if custom_consts is None else custom_consts
         self.gecko_strip_moz_prefix = True \
             if gecko_strip_moz_prefix is None else gecko_strip_moz_prefix
@@ -95,11 +94,6 @@ class Keyword(object):
         aliases.update(self.extra_gecko_aliases)
         return aliases
 
-    def servo_aliases(self):
-        aliases = self.aliases.copy()
-        aliases.update(self.extra_servo_aliases)
-        return aliases
-
     def values_for(self, product):
         if product == "gecko":
             return self.gecko_values()
@@ -112,7 +106,7 @@ class Keyword(object):
         if product == "gecko":
             return self.gecko_aliases()
         elif product == "servo":
-            return self.servo_aliases()
+            return self.aliases
         else:
             raise Exception("Bad product: " + product)
 
@@ -153,9 +147,9 @@ def arg_to_bool(arg):
 class Longhand(object):
     def __init__(self, style_struct, name, spec=None, animation_value_type=None, derived_from=None, keyword=None,
                  predefined_type=None, custom_cascade=False, experimental=False, internal=False,
-                 need_clone=False, need_index=False, gecko_ffi_name=None, depend_on_viewport_size=False,
+                 need_index=False, gecko_ffi_name=None,
                  allowed_in_keyframe_block=True, cast_type='u8',
-                 has_uncacheable_values=False, logical=False, alias=None, extra_prefixes=None, boxed=False,
+                 logical=False, alias=None, extra_prefixes=None, boxed=False,
                  flags=None, allowed_in_page_rule=False, allow_quirks=False, ignored_when_colors_disabled=False,
                  gecko_pref_ident=None, vector=False, need_animatable=False):
         self.name = name
@@ -171,9 +165,7 @@ class Longhand(object):
         self.custom_cascade = custom_cascade
         self.internal = internal
         self.need_index = need_index
-        self.has_uncacheable_values = has_uncacheable_values
         self.gecko_ffi_name = gecko_ffi_name or "m" + self.camel_case
-        self.depend_on_viewport_size = depend_on_viewport_size
         self.derived_from = (derived_from or "").split()
         self.cast_type = cast_type
         self.logical = arg_to_bool(logical)
@@ -211,11 +203,6 @@ class Longhand(object):
             self.animatable = False
             self.transitionable = False
             self.animation_type = None
-        # NB: Animate implies clone because a property animation requires a
-        # copy of the computed value.
-        #
-        # See components/style/helpers/animated_properties.mako.rs.
-        self.need_clone = need_clone or self.animatable
 
 
 class Shorthand(object):

@@ -1797,14 +1797,13 @@ pub mod style_structs {
                     pub fn reset_${longhand.ident}(&mut self, other: &Self) {
                         self.copy_${longhand.ident}_from(other)
                     }
-                    % if longhand.need_clone:
-                        /// Get the computed value for ${longhand.name}.
-                        #[allow(non_snake_case)]
-                        #[inline]
-                        pub fn clone_${longhand.ident}(&self) -> longhands::${longhand.ident}::computed_value::T {
-                            self.${longhand.ident}.clone()
-                        }
-                    % endif
+
+                    /// Get the computed value for ${longhand.name}.
+                    #[allow(non_snake_case)]
+                    #[inline]
+                    pub fn clone_${longhand.ident}(&self) -> longhands::${longhand.ident}::computed_value::T {
+                        self.${longhand.ident}.clone()
+                    }
                 % endif
                 % if longhand.need_index:
                     /// If this longhand is indexed, get the number of elements.
@@ -2025,6 +2024,13 @@ impl ComputedValues {
     /// Returns the visited rules, if applicable.
     pub fn visited_rules(&self) -> Option<<&StrongRuleNode> {
         self.visited_style.as_ref().and_then(|s| s.rules.as_ref())
+    }
+
+    /// Returns whether we're in a display: none subtree.
+    pub fn is_in_display_none_subtree(&self) -> bool {
+        use properties::computed_value_flags::IS_IN_DISPLAY_NONE_SUBTREE;
+
+        self.flags.contains(IS_IN_DISPLAY_NONE_SUBTREE)
     }
 }
 

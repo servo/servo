@@ -14,7 +14,6 @@
 // We allow "display" to apply to placeholders because we need to make the
 // placeholder pseudo-element an inline-block in the UA stylesheet in Gecko.
 <%helpers:longhand name="display"
-                   need_clone="True"
                    animation_value_type="discrete"
                    custom_cascade="${product == 'servo'}"
                    flags="APPLIES_TO_PLACEHOLDER"
@@ -185,7 +184,6 @@
                                    context: &mut computed::Context) {
             longhands::_servo_display_for_hypothetical_box::derive_from_display(context);
             longhands::_servo_text_decorations_in_effect::derive_from_display(context);
-            longhands::_servo_under_display_none::derive_from_display(context);
         }
     % endif
 
@@ -197,7 +195,7 @@
 
 ${helpers.single_keyword("-moz-top-layer", "none top",
                          gecko_constant_prefix="NS_STYLE_TOP_LAYER",
-                         gecko_ffi_name="mTopLayer", need_clone=True,
+                         gecko_ffi_name="mTopLayer",
                          products="gecko", animation_value_type="none", internal=True,
                          spec="Internal (not web-exposed)")}
 
@@ -361,7 +359,7 @@ ${helpers.single_keyword("overflow-clip-box", "padding-box content-box",
 
 // FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
 ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
-                         need_clone=True, animation_value_type="discrete",
+                         animation_value_type="discrete",
                          extra_gecko_values="-moz-hidden-unscrollable",
                          custom_consts=overflow_custom_consts,
                          gecko_constant_prefix="NS_STYLE_OVERFLOW",
@@ -369,7 +367,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                          spec="https://drafts.csswg.org/css-overflow/#propdef-overflow-x")}
 
 // FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
-<%helpers:longhand name="overflow-y" need_clone="True" animation_value_type="discrete"
+<%helpers:longhand name="overflow-y" animation_value_type="discrete"
                    flags="APPLIES_TO_PLACEHOLDER",
                    spec="https://drafts.csswg.org/css-overflow/#propdef-overflow-y">
     pub use super::overflow_x::{SpecifiedValue, parse, get_initial_value, computed_value};
@@ -588,7 +586,6 @@ ${helpers.single_keyword("animation-direction",
 
 ${helpers.single_keyword("animation-play-state",
                          "running paused",
-                         need_clone=True,
                          need_index=True,
                          animation_value_type="none",
                          vector=True,
@@ -1653,7 +1650,7 @@ ${helpers.predefined_type("transform-origin",
 // FIXME: `size` and `content` values are not implemented and `strict` is implemented
 // like `content`(layout style paint) in gecko. We should implement `size` and `content`,
 // also update the glue once they are implemented in gecko.
-<%helpers:longhand name="contain" animation_value_type="discrete" products="gecko" need_clone="True"
+<%helpers:longhand name="contain" animation_value_type="discrete" products="gecko"
                    flags="FIXPOS_CB"
                    spec="https://drafts.csswg.org/css-contain/#contain-property">
     use std::fmt;

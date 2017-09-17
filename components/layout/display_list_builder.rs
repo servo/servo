@@ -2230,13 +2230,10 @@ impl FragmentDisplayListBuilding for Fragment {
 
 
         // Create display items for text decorations.
-        let mut text_decorations = self.style()
-                                       .get_inheritedtext()
-                                       ._servo_text_decorations_in_effect;
-        // Note that the text decoration colors are always the same as the text color.
-        text_decorations.underline = text_decorations.underline.map(|_| text_color);
-        text_decorations.overline = text_decorations.overline.map(|_| text_color);
-        text_decorations.line_through = text_decorations.line_through.map(|_| text_color);
+        let text_decorations =
+            self.style()
+                .get_inheritedtext()
+                ._servo_text_decorations_in_effect;
 
         let stacking_relative_content_box =
             LogicalRect::from_physical(self.style.writing_mode,
@@ -2244,25 +2241,29 @@ impl FragmentDisplayListBuilding for Fragment {
                                        container_size);
 
         // Underline
-        if let Some(ref underline_color) = text_decorations.underline {
+        if text_decorations.underline {
             let mut stacking_relative_box = stacking_relative_content_box;
             stacking_relative_box.start.b = stacking_relative_content_box.start.b +
                 metrics.ascent - metrics.underline_offset;
             stacking_relative_box.size.block = metrics.underline_size;
-            self.build_display_list_for_text_decoration(state,
-                                                        underline_color,
-                                                        &stacking_relative_box,
-                                                        clip);
+            self.build_display_list_for_text_decoration(
+                state,
+                &text_color,
+                &stacking_relative_box,
+                clip,
+            );
         }
 
         // Overline
-        if let Some(ref overline_color) = text_decorations.overline {
+        if text_decorations.overline {
             let mut stacking_relative_box = stacking_relative_content_box;
             stacking_relative_box.size.block = metrics.underline_size;
-            self.build_display_list_for_text_decoration(state,
-                                                        overline_color,
-                                                        &stacking_relative_box,
-                                                        clip);
+            self.build_display_list_for_text_decoration(
+                state,
+                &text_color,
+                &stacking_relative_box,
+                clip,
+            );
         }
 
         // Text
@@ -2281,15 +2282,17 @@ impl FragmentDisplayListBuilding for Fragment {
 
 
         // Line-Through
-        if let Some(ref line_through_color) = text_decorations.line_through {
+        if text_decorations.line_through {
             let mut stacking_relative_box = stacking_relative_content_box;
             stacking_relative_box.start.b = stacking_relative_box.start.b + metrics.ascent -
                 metrics.strikeout_offset;
             stacking_relative_box.size.block = metrics.strikeout_size;
-            self.build_display_list_for_text_decoration(state,
-                                                        line_through_color,
-                                                        &stacking_relative_box,
-                                                        clip);
+            self.build_display_list_for_text_decoration(
+                state,
+                &text_color,
+                &stacking_relative_box,
+                clip,
+            );
         }
 
         // Pair all the PushTextShadows

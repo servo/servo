@@ -24,7 +24,6 @@ ${helpers.predefined_type("background-image", "ImageLayer",
     spec="https://drafts.csswg.org/css-backgrounds/#the-background-image",
     vector="True",
     animation_value_type="discrete",
-    has_uncacheable_values="True" if product == "gecko" else "False",
     ignored_when_colors_disabled="True",
     flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER")}
 

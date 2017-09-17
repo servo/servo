@@ -138,12 +138,10 @@
 ${helpers.single_keyword("unicode-bidi",
                          "normal embed isolate bidi-override isolate-override plaintext",
                          animation_value_type="discrete",
-                         need_clone="True",
                          spec="https://drafts.csswg.org/css-writing-modes/#propdef-unicode-bidi")}
 
 <%helpers:longhand name="text-decoration-line"
                    custom_cascade="${product == 'servo'}"
-                   need_clone=True
                    animation_value_type="discrete"
                    flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
                    spec="https://drafts.csswg.org/css-text-decor/#propdef-text-decoration-line">

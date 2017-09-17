@@ -68,7 +68,7 @@ macro_rules! impl_gecko_keyword_conversions {
     }
 </%def>
 
-<%helpers:longhand name="font-family" animation_value_type="discrete" need_index="True"  boxed="${product == 'gecko'}"
+<%helpers:longhand name="font-family" animation_value_type="discrete" boxed="${product == 'gecko'}"
                    flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-family">
     use properties::longhands::system_font::SystemFont;
@@ -429,7 +429,7 @@ ${helpers.single_keyword_system("font-variant-caps",
                                flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
                                animation_value_type="discrete")}
 
-<%helpers:longhand name="font-weight" need_clone="True" animation_value_type="ComputedValue"
+<%helpers:longhand name="font-weight" animation_value_type="ComputedValue"
                    flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-weight">
     use properties::longhands::system_font::SystemFont;
@@ -596,7 +596,7 @@ ${helpers.single_keyword_system("font-variant-caps",
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="font-size" need_clone="True" animation_value_type="NonNegativeLength"
+<%helpers:longhand name="font-size" animation_value_type="NonNegativeLength"
                    flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER"
                    allow_quirks="True" spec="https://drafts.csswg.org/css-fonts/#propdef-font-size">
     use app_units::Au;
@@ -2276,7 +2276,7 @@ https://drafts.csswg.org/css-fonts-4/#low-level-font-variation-settings-control-
 <%helpers:longhand name="-moz-script-level" products="gecko" animation_value_type="none"
                    predefined_type="Integer" gecko_ffi_name="mScriptLevel"
                    spec="Internal (not web-exposed)"
-                   internal="True" need_clone="True">
+                   internal="True">
     use std::fmt;
     use style_traits::ToCss;
 
@@ -2356,8 +2356,7 @@ ${helpers.single_keyword("-moz-math-display",
                          gecko_ffi_name="mMathDisplay",
                          products="gecko",
                          spec="Internal (not web-exposed)",
-                         animation_value_type="none",
-                         need_clone="True")}
+                         animation_value_type="none")}
 
 ${helpers.single_keyword("-moz-math-variant",
                          """none normal bold italic bold-italic script bold-script
@@ -2369,7 +2368,6 @@ ${helpers.single_keyword("-moz-math-variant",
                          products="gecko",
                          spec="Internal (not web-exposed)",
                          animation_value_type="none",
-                         need_clone="True",
                          needs_conversion=True)}
 
 <%helpers:longhand name="-moz-script-min-size" products="gecko" animation_value_type="none"
