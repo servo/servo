@@ -139,7 +139,7 @@ use style::traversal::resolve_style;
 use style::traversal_flags::{TraversalFlags, self};
 use style::values::{CustomIdent, KeyframesName};
 use style::values::animated::{Animate, Procedure, ToAnimatedZero};
-use style::values::computed::Context;
+use style::values::computed::{Context, ToComputedValue};
 use style::values::distance::ComputeSquaredDistance;
 use style_traits::{PARSING_MODE_DEFAULT, ToCss};
 use super::error_reporter::ErrorReporter;
@@ -2636,7 +2636,9 @@ pub extern "C" fn Servo_DeclarationBlock_SetKeywordValue(declarations:
             // We rely on Gecko passing in font-size values (0...7) here.
             longhands::font_size::SpecifiedValue::from_html_size(value as u8)
         },
-        FontStyle => longhands::font_style::computed_value::T::from_gecko_keyword(value).into(),
+        FontStyle => {
+            ToComputedValue::from_computed_value(&longhands::font_style::computed_value::T::from_gecko_keyword(value))
+        },
         FontWeight => longhands::font_weight::SpecifiedValue::from_gecko_keyword(value),
         ListStyleType => Box::new(longhands::list_style_type::SpecifiedValue::from_gecko_keyword(value)),
         MozMathVariant => longhands::_moz_math_variant::SpecifiedValue::from_gecko_keyword(value),
@@ -2680,9 +2682,8 @@ pub extern "C" fn Servo_DeclarationBlock_SetPixelValue(declarations:
     use style::properties::longhands::border_spacing::SpecifiedValue as BorderSpacing;
     use style::properties::longhands::height::SpecifiedValue as Height;
     use style::properties::longhands::width::SpecifiedValue as Width;
-    use style::values::specified::BorderSideWidth;
-    use style::values::specified::MozLength;
-    use style::values::specified::length::{NoCalcLength, LengthOrPercentage};
+    use style::values::specified::{BorderSideWidth, MozLength, BorderCornerRadius};
+    use style::values::specified::length::{NoCalcLength, NonNegativeLength, LengthOrPercentage};
 
     let long = get_longhand_from_id!(property);
     let nocalc = NoCalcLength::from_px(value);
@@ -2702,16 +2703,26 @@ pub extern "C" fn Servo_DeclarationBlock_SetPixelValue(declarations:
         PaddingRight => nocalc.into(),
         PaddingBottom => nocalc.into(),
         PaddingLeft => nocalc.into(),
-        BorderSpacing => Box::new(
-            BorderSpacing {
-                horizontal: nocalc.into(),
-                vertical: None,
-            }
-        ),
-        BorderTopLeftRadius => Box::new(LengthOrPercentage::from(nocalc).into()),
-        BorderTopRightRadius => Box::new(LengthOrPercentage::from(nocalc).into()),
-        BorderBottomLeftRadius => Box::new(LengthOrPercentage::from(nocalc).into()),
-        BorderBottomRightRadius => Box::new(LengthOrPercentage::from(nocalc).into()),
+        BorderSpacing => {
+            let v = NonNegativeLength::from(nocalc);
+            Box::new(BorderSpacing::new(v.clone(), v))
+        },
+        BorderTopLeftRadius => {
+            let length = LengthOrPercentage::from(nocalc);
+            Box::new(BorderCornerRadius::new(length.clone(), length))
+        },
+        BorderTopRightRadius => {
+            let length = LengthOrPercentage::from(nocalc);
+            Box::new(BorderCornerRadius::new(length.clone(), length))
+        },
+        BorderBottomLeftRadius => {
+            let length = LengthOrPercentage::from(nocalc);
+            Box::new(BorderCornerRadius::new(length.clone(), length))
+        },
+        BorderBottomRightRadius => {
+            let length = LengthOrPercentage::from(nocalc);
+            Box::new(BorderCornerRadius::new(length.clone(), length))
+        },
     };
     write_locked_arc(declarations, |decls: &mut PropertyDeclarationBlock| {
         decls.push(prop, Importance::Normal);

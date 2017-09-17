@@ -166,8 +166,8 @@ ${helpers.single_keyword("background-origin",
                          flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER")}
 
 ${helpers.predefined_type("background-size", "BackgroundSize",
-    initial_value="computed::LengthOrPercentageOrAuto::Auto.into()",
-    initial_specified_value="specified::LengthOrPercentageOrAuto::Auto.into()",
+    initial_value="computed::BackgroundSize::auto()",
+    initial_specified_value="specified::BackgroundSize::auto()",
     spec="https://drafts.csswg.org/css-backgrounds/#the-background-size",
     vector=True,
     animation_value_type="BackgroundSizeList",

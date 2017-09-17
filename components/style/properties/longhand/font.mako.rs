@@ -420,14 +420,14 @@ ${helpers.single_keyword_system("font-style",
                                       "titling-caps": "TITLING" } %>
 
 ${helpers.single_keyword_system("font-variant-caps",
-                               "normal small-caps",
-                               extra_gecko_values="all-small-caps petite-caps all-petite-caps unicase titling-caps",
-                               gecko_constant_prefix="NS_FONT_VARIANT_CAPS",
-                               gecko_ffi_name="mFont.variantCaps",
-                               spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-caps",
-                               custom_consts=font_variant_caps_custom_consts,
-                               flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
-                               animation_value_type="discrete")}
+                                "normal small-caps",
+                                extra_gecko_values="all-small-caps petite-caps all-petite-caps unicase titling-caps",
+                                gecko_constant_prefix="NS_FONT_VARIANT_CAPS",
+                                gecko_ffi_name="mFont.variantCaps",
+                                spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-caps",
+                                custom_consts=font_variant_caps_custom_consts,
+                                flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
+                                animation_value_type="discrete")}
 
 <%helpers:longhand name="font-weight" animation_value_type="ComputedValue"
                    flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER"

@@ -943,8 +943,8 @@ def set_gecko_property(ffi_name, expr):
 <%def name="impl_corner_style_coord(ident, gecko_ffi_name, x_index, y_index)">
     #[allow(non_snake_case)]
     pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
-        v.0.width.to_gecko_style_coord(&mut self.gecko.${gecko_ffi_name}.data_at_mut(${x_index}));
-        v.0.height.to_gecko_style_coord(&mut self.gecko.${gecko_ffi_name}.data_at_mut(${y_index}));
+        v.0.width().to_gecko_style_coord(&mut self.gecko.${gecko_ffi_name}.data_at_mut(${x_index}));
+        v.0.height().to_gecko_style_coord(&mut self.gecko.${gecko_ffi_name}.data_at_mut(${y_index}));
     }
     #[allow(non_snake_case)]
     pub fn copy_${ident}_from(&mut self, other: &Self) {
@@ -4503,8 +4503,8 @@ fn static_assert() {
                   skip_longhands="border-spacing">
 
     pub fn set_border_spacing(&mut self, v: longhands::border_spacing::computed_value::T) {
-        self.gecko.mBorderSpacingCol = v.horizontal.0.to_i32_au();
-        self.gecko.mBorderSpacingRow = v.vertical.0.to_i32_au();
+        self.gecko.mBorderSpacingCol = v.horizontal().0;
+        self.gecko.mBorderSpacingRow = v.vertical().0;
     }
 
     pub fn copy_border_spacing_from(&mut self, other: &Self) {
@@ -4517,10 +4517,10 @@ fn static_assert() {
     }
 
     pub fn clone_border_spacing(&self) -> longhands::border_spacing::computed_value::T {
-        longhands::border_spacing::computed_value::T {
-            horizontal: Au(self.gecko.mBorderSpacingCol).into(),
-            vertical: Au(self.gecko.mBorderSpacingRow).into()
-        }
+        longhands::border_spacing::computed_value::T::new(
+            Au(self.gecko.mBorderSpacingCol).into(),
+            Au(self.gecko.mBorderSpacingRow).into()
+        )
     }
 </%self:impl_trait>
 

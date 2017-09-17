@@ -719,8 +719,8 @@ pub mod basic_shape {
         /// Set this `BorderRadius` into a given `nsStyleCoord`.
         pub fn set_corners(&self, other: &mut nsStyleCorners) {
             let mut set_corner = |field: &BorderCornerRadius, index| {
-                field.0.width.to_gecko_style_coord(&mut other.data_at_mut(index));
-                field.0.height.to_gecko_style_coord(&mut other.data_at_mut(index + 1));
+                field.0.width().to_gecko_style_coord(&mut other.data_at_mut(index));
+                field.0.height().to_gecko_style_coord(&mut other.data_at_mut(index + 1));
             };
             set_corner(&self.top_left, 0);
             set_corner(&self.top_right, 2);

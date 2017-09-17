@@ -77,7 +77,7 @@ ${helpers.predefined_type("outline-width",
 // The -moz-outline-radius-* properties are non-standard and not on a standards track.
 % for corner in ["topleft", "topright", "bottomright", "bottomleft"]:
     ${helpers.predefined_type("-moz-outline-radius-" + corner, "BorderCornerRadius",
-        "computed::LengthOrPercentage::zero().into()",
+        "computed::BorderCornerRadius::zero()",
         products="gecko",
         boxed=True,
         animation_value_type="BorderCornerRadius",
