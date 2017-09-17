@@ -100,33 +100,6 @@ impl HTMLImageElement {
     }
 }
 
-struct ImageResponseHandlerTask {
-    element: Trusted<HTMLImageElement>,
-    image: ImageResponse,
-    generation: u32,
-}
-
-impl ImageResponseHandlerTask {
-    fn new(element: Trusted<HTMLImageElement>, image: ImageResponse, generation: u32)
-           -> ImageResponseHandlerTask {
-        ImageResponseHandlerTask {
-            element: element,
-            image: image,
-            generation: generation,
-        }
-    }
-}
-
-impl Task for ImageResponseHandlerTask {
-    fn run(self: Box<Self>) {
-        let element = self.element.root();
-        // Ignore any image response for a previous request that has been discarded.
-        if element.generation.get() == self.generation {
-            element.process_image_response(self.image);
-        }
-    }
-}
-
 /// The context required for asynchronously loading an external image.
 struct ImageContext {
     /// Reference to the script thread image cache.
@@ -192,18 +165,25 @@ impl HTMLImageElement {
 
             let window = window_from_node(elem);
             let task_source = window.networking_task_source();
-            let wrapper = window.task_canceller();
+            let task_canceller = window.task_canceller();
             let generation = elem.generation.get();
             ROUTER.add_route(responder_receiver.to_opaque(), box move |message| {
                 debug!("Got image {:?}", message);
                 // Return the image via a message to the script thread, which marks
                 // the element as dirty and triggers a reflow.
-                let task = ImageResponseHandlerTask::new(
-                    trusted_node.clone(),
-                    message.to().unwrap(),
-                    generation,
+                let element = trusted_node.clone();
+                let image = message.to().unwrap();
+                // FIXME(nox): Why are errors silenced here?
+                let _ = task_source.queue_with_canceller(
+                    box task!(process_image_response: move || {
+                        let element = element.root();
+                        // Ignore any image response for a previous request that has been discarded.
+                        if generation == element.generation.get() {
+                            element.process_image_response(image);
+                        }
+                    }),
+                    &task_canceller,
                 );
-                let _ = task_source.queue_with_canceller(box task, &wrapper);
             });
 
             image_cache.add_listener(id, ImageResponder::new(responder_sender, id));
