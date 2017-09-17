@@ -84,13 +84,13 @@ impl<T: Float + FromJSValConvertible<Config=()>> FromJSValConvertible for Finite
                          value: HandleValue,
                          option: ())
                          -> Result<ConversionResult<Finite<T>>, ()> {
-        let result = match FromJSValConvertible::from_jsval(cx, value, option) {
-            Ok(ConversionResult::Success(v)) => v,
-            Ok(ConversionResult::Failure(error)) => {
+        let result = match FromJSValConvertible::from_jsval(cx, value, option)? {
+            ConversionResult::Success(v) => v,
+            ConversionResult::Failure(error) => {
+                // FIXME(emilio): Why throwing instead of propagating the error?
                 throw_type_error(cx, &error);
                 return Err(());
             }
-            _ => return Err(()),
         };
         match Finite::new(result) {
             Some(v) => Ok(ConversionResult::Success(v)),
