@@ -39,7 +39,6 @@ use script_thread::ScriptThread;
 use servo_url::ServoUrl;
 use std::cell::Cell;
 use std::sync::{Arc, Mutex};
-use task::Task;
 use task_source::TaskSource;
 use time::{self, Timespec, Duration};
 
@@ -461,30 +460,43 @@ impl HTMLMediaElement {
         }
     }
 
+    /// Queues the [dedicated media source failure steps][steps].
+    ///
+    /// [steps]: https://html.spec.whatwg.org/multipage/#dedicated-media-source-failure-steps
     fn queue_dedicated_media_source_failure_steps(&self) {
+        let this = Trusted::new(self);
         let window = window_from_node(self);
+        // FIXME(nox): Why are errors silenced here?
         let _ = window.dom_manipulation_task_source().queue(
-            box DedicatedMediaSourceFailureTask::new(self), window.upcast());
-    }
+            box task!(dedicated_media_source_failure_steps: move || {
+                let this = this.root();
 
-    // https://html.spec.whatwg.org/multipage/#dedicated-media-source-failure-steps
-    fn dedicated_media_source_failure(&self) {
-        // Step 1
-        self.error.set(Some(&*MediaError::new(&*window_from_node(self),
-                                              MEDIA_ERR_SRC_NOT_SUPPORTED)));
+                // Step 1.
+                this.error.set(Some(&*MediaError::new(
+                    &window_from_node(&*this),
+                    MEDIA_ERR_SRC_NOT_SUPPORTED,
+                )));
 
-        // TODO step 2 (forget resource tracks)
+                // Step 2.
+                // FIXME(nox): Forget the media-resource-specific tracks.
 
-        // Step 3
-        self.network_state.set(NetworkState::NoSource);
+                // Step 3.
+                this.network_state.set(NetworkState::NoSource);
 
-        // TODO step 4 (show poster)
+                // Step 4.
+                // FIXME(nox): Set show poster flag to true.
 
-        // Step 5
-        self.upcast::<EventTarget>().fire_event(atom!("error"));
+                // Step 5.
+                this.upcast::<EventTarget>().fire_event(atom!("error"));
 
-        // TODO step 6 (resolve pending play promises)
-        // TODO step 7 (delay load event)
+                // Step 6.
+                // FIXME(nox): Reject pending play promises.
+
+                // Step 7.
+                // FIXME(nox): Set the delaying-the-load-event flag to false.
+            }),
+            window.upcast(),
+        );
     }
 
     // https://html.spec.whatwg.org/multipage/#media-element-load-algorithm
@@ -730,24 +742,6 @@ impl MicrotaskRunnable for MediaElementMicrotask {
                 }
             },
         }
-    }
-}
-
-struct DedicatedMediaSourceFailureTask {
-    elem: Trusted<HTMLMediaElement>,
-}
-
-impl DedicatedMediaSourceFailureTask {
-    fn new(elem: &HTMLMediaElement) -> DedicatedMediaSourceFailureTask {
-        DedicatedMediaSourceFailureTask {
-            elem: Trusted::new(elem),
-        }
-    }
-}
-
-impl Task for DedicatedMediaSourceFailureTask {
-    fn run(self: Box<Self>) {
-        self.elem.root().dedicated_media_source_failure();
     }
 }
 
