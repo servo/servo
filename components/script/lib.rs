@@ -6,6 +6,8 @@
 #![feature(box_syntax)]
 #![feature(conservative_impl_trait)]
 #![feature(const_fn)]
+#![feature(const_ptr_null)]
+#![feature(const_ptr_null_mut)]
 #![feature(core_intrinsics)]
 #![feature(mpsc_select)]
 #![feature(nonzero)]
