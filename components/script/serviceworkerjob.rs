@@ -108,7 +108,7 @@ impl AsyncJobHandler {
 impl Task for AsyncJobHandler {
     #[allow(unrooted_must_root)]
     fn run_with_script_thread(self: Box<AsyncJobHandler>, script_thread: &ScriptThread) {
-        script_thread.dispatch_job_queue(self);
+        script_thread.dispatch_job_queue(self.scope_url);
     }
 }
 
@@ -157,30 +157,29 @@ impl JobQueue {
 
     #[allow(unrooted_must_root)]
     // https://w3c.github.io/ServiceWorker/#run-job-algorithm
-    pub fn run_job(&self, run_job_handler: Box<AsyncJobHandler>, script_thread: &ScriptThread) {
+    pub fn run_job(&self, scope_url: ServoUrl, script_thread: &ScriptThread) {
         debug!("running a job");
         let url = {
             let queue_ref = self.0.borrow();
             let front_job = {
-                let job_vec = queue_ref.get(&run_job_handler.scope_url);
+                let job_vec = queue_ref.get(&scope_url);
                 job_vec.unwrap().first().unwrap()
             };
-            let scope_url = front_job.scope_url.clone();
+            let front_scope_url = front_job.scope_url.clone();
             match front_job.job_type {
-                JobType::Register => self.run_register(front_job, run_job_handler, script_thread),
+                JobType::Register => self.run_register(front_job, scope_url, script_thread),
                 JobType::Update => self.update(front_job, script_thread),
                 JobType::Unregister => unreachable!(),
             };
-            scope_url
+            front_scope_url
         };
         self.finish_job(url, script_thread);
     }
 
     #[allow(unrooted_must_root)]
     // https://w3c.github.io/ServiceWorker/#register-algorithm
-    fn run_register(&self, job: &Job, register_job_handler: Box<AsyncJobHandler>, script_thread: &ScriptThread) {
+    fn run_register(&self, job: &Job, scope_url: ServoUrl, script_thread: &ScriptThread) {
         debug!("running register job");
-        let AsyncJobHandler { scope_url, .. } = *register_job_handler;
         // Step 1-3
         if !UrlHelper::is_origin_trustworthy(&job.script_url) {
             // Step 1.1
@@ -239,8 +238,7 @@ impl JobQueue {
 
         if run_job {
             debug!("further jobs in queue after finishing");
-            let handler = box AsyncJobHandler::new(scope_url);
-            self.run_job(handler, script_thread);
+            self.run_job(scope_url, script_thread);
         }
     }
 

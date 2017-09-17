@@ -98,7 +98,7 @@ use script_traits::{UpdatePipelineIdReason, WindowSizeData, WindowSizeType};
 use script_traits::CompositorEvent::{KeyEvent, MouseButtonEvent, MouseMoveEvent, ResizeEvent};
 use script_traits::CompositorEvent::{TouchEvent, TouchpadPressureEvent};
 use script_traits::webdriver_msg::WebDriverScriptCommand;
-use serviceworkerjob::{Job, JobQueue, AsyncJobHandler};
+use serviceworkerjob::{Job, JobQueue};
 use servo_atoms::Atom;
 use servo_config::opts;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
@@ -1787,8 +1787,8 @@ impl ScriptThread {
         let _ = self.script_sender.send((pipeline_id, ScriptMsg::RegisterServiceWorker(scope_things, scope.clone())));
     }
 
-    pub fn dispatch_job_queue(&self, job_handler: Box<AsyncJobHandler>) {
-        self.job_queue_map.run_job(job_handler, self);
+    pub fn dispatch_job_queue(&self, scope_url: ServoUrl) {
+        self.job_queue_map.run_job(scope_url, self);
     }
 
     pub fn dom_manipulation_task_source(&self) -> &DOMManipulationTaskSource {
