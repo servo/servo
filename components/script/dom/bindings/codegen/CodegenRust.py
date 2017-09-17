@@ -4750,8 +4750,7 @@ class CGProxyNamedOperation(CGProxySpecialOperation):
     def define(self):
         # Our first argument is the id we're getting.
         argName = self.arguments[0].identifier.name
-        return ("println!(\"===DEBUG-o-o-o-7 {:?}\", jsid_to_string(cx, id) );\n"
-                "if jsid_to_string(cx, id).is_none() {\n"
+        return ("if !RUST_JSID_IS_STRING(id) {\n"
                 "    return false\n"
                 "}\n"
                 "let %s = string_jsid_to_string(cx, id);\n"
