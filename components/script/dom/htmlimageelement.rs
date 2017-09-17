@@ -403,37 +403,6 @@ impl HTMLImageElement {
         self.update_source_set().first().cloned()
     }
 
-    /// Step 9.2 of https://html.spec.whatwg.org/multipage/#update-the-image-data
-    fn set_current_request_url_to_none_fire_error(&self) {
-        struct SetUrlToNoneTask {
-            img: Trusted<HTMLImageElement>,
-        }
-        impl Task for SetUrlToNoneTask {
-            fn run(self: Box<Self>) {
-                let img = self.img.root();
-                {
-                    let mut current_request = img.current_request.borrow_mut();
-                    current_request.source_url = None;
-                    current_request.parsed_url = None;
-                }
-                let elem = img.upcast::<Element>();
-                if elem.has_attribute(&local_name!("src")) {
-                    img.upcast::<EventTarget>().fire_event(atom!("error"));
-                }
-                img.abort_request(State::Broken, ImageRequestPhase::Current);
-                img.abort_request(State::Broken, ImageRequestPhase::Pending);
-            }
-        }
-
-        let task = box SetUrlToNoneTask {
-            img: Trusted::new(self),
-        };
-        let document = document_from_node(self);
-        let window = document.window();
-        let task_source = window.dom_manipulation_task_source();
-        let _ = task_source.queue(task, window.upcast());
-    }
-
     /// Step 5.3.7 of https://html.spec.whatwg.org/multipage/#update-the-image-data
     fn set_current_request_url_to_string_and_fire_load(&self, src: DOMString, url: ServoUrl) {
         struct SetUrlToStringTask {
@@ -524,49 +493,72 @@ impl HTMLImageElement {
     /// Step 8-12 of html.spec.whatwg.org/multipage/#update-the-image-data
     fn update_the_image_data_sync_steps(&self) {
         let document = document_from_node(self);
-        // Step 8
-        // TODO: take pixel density into account
-        match self.select_image_source() {
+        let window = document.window();
+        let task_source = window.dom_manipulation_task_source();
+        let this = Trusted::new(self);
+        let src = match self.select_image_source() {
             Some(src) => {
-                // Step 10.
-                let window = document.window();
-                let this = Trusted::new(self);
+                // Step 8.
+                // TODO: Handle pixel density.
+                src
+            },
+            None => {
+                // Step 9.
                 // FIXME(nox): Why are errors silenced here?
-                let _ = window.dom_manipulation_task_source().queue(
-                    box task!(fire_progress_event: move || {
+                let _ = task_source.queue(
+                    box task!(image_null_source_error: move || {
                         let this = this.root();
-
-                        let event = ProgressEvent::new(
-                            &this.global(),
-                            atom!("loadstart"),
-                            EventBubbles::DoesNotBubble,
-                            EventCancelable::NotCancelable,
-                            false,
-                            0,
-                            0,
-                        );
-                        event.upcast::<Event>().fire(this.upcast());
+                        {
+                            let mut current_request =
+                                this.current_request.borrow_mut();
+                            current_request.source_url = None;
+                            current_request.parsed_url = None;
+                        }
+                        if this.upcast::<Element>().has_attribute(&local_name!("src")) {
+                            this.upcast::<EventTarget>().fire_event(atom!("error"));
+                        }
+                        // FIXME(nox): According to the spec, setting the current
+                        // request to the broken state is done prior to queuing a
+                        // task, why is this here?
+                        this.abort_request(State::Broken, ImageRequestPhase::Current);
+                        this.abort_request(State::Broken, ImageRequestPhase::Pending);
                     }),
                     window.upcast(),
                 );
-                // Step 11
-                let base_url = document.base_url();
-                let parsed_url = base_url.join(&src);
-                match parsed_url {
-                    Ok(url) => {
-                         // Step 12
-                        self.prepare_image_request(&url, &src);
-                    },
-                    Err(_) => {
-                        // Step 11.1-11.5
-                        self.set_current_request_url_to_selected_fire_error_and_loadend(src);
-                    }
-                }
+                return;
             },
-            None => {
-                // Step 9
-                self.set_current_request_url_to_none_fire_error();
+        };
+        // Step 10.
+        // FIXME(nox): Why are errors silenced here?
+        let _ = task_source.queue(
+            box task!(fire_progress_event: move || {
+                let this = this.root();
+
+                let event = ProgressEvent::new(
+                    &this.global(),
+                    atom!("loadstart"),
+                    EventBubbles::DoesNotBubble,
+                    EventCancelable::NotCancelable,
+                    false,
+                    0,
+                    0,
+                );
+                event.upcast::<Event>().fire(this.upcast());
+            }),
+            window.upcast(),
+        );
+        // Step 11
+        let base_url = document.base_url();
+        let parsed_url = base_url.join(&src);
+        match parsed_url {
+            Ok(url) => {
+                    // Step 12
+                self.prepare_image_request(&url, &src);
             },
+            Err(_) => {
+                // Step 11.1-11.5
+                self.set_current_request_url_to_selected_fire_error_and_loadend(src);
+            }
         }
     }
 
