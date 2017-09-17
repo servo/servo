@@ -701,7 +701,8 @@ pub mod basic_shape {
                     LengthOrPercentage::from_gecko_style_coord(&other.data_at(index))
                         .expect("<border-radius> should be a length, percentage, or calc value"),
                     LengthOrPercentage::from_gecko_style_coord(&other.data_at(index + 1))
-                        .expect("<border-radius> should be a length, percentage, or calc value"))
+                        .expect("<border-radius> should be a length, percentage, or calc value"),
+                    true /* height specified */)
             };
 
             GenericBorderRadius {

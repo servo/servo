@@ -983,7 +983,7 @@ def set_gecko_property(ffi_name, expr):
             let height = GeckoStyleCoordConvertible::from_gecko_style_coord(
                             &self.gecko.${gecko_ffi_name}.data_at(${y_index}))
                             .expect("Failed to clone ${ident}");
-            BorderCornerRadius::new(width, height)
+            BorderCornerRadius::new(width, height, true /* height specified */)
         }
     % endif
 </%def>
