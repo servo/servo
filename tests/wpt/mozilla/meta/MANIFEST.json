@@ -14739,6 +14739,12 @@
      {}
     ]
    ],
+   "mozilla/invalid-this.html": [
+    [
+     "/_mozilla/mozilla/invalid-this.html",
+     {}
+    ]
+   ],
    "mozilla/iterable.html": [
     [
      "/_mozilla/mozilla/iterable.html",
@@ -28072,6 +28078,10 @@
   ],
   "mozilla/interfaces.worker.js": [
    "c9dcc4f24540914b3be1ef18f13b721773eb76be",
+   "testharness"
+  ],
+  "mozilla/invalid-this.html": [
+   "4ed18511e6399b356fe196b92f72dd16a9019f55",
    "testharness"
   ],
   "mozilla/iterable.html": [
