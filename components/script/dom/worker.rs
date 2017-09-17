@@ -198,27 +198,6 @@ impl WorkerMethods for Worker {
     event_handler!(error, GetOnerror, SetOnerror);
 }
 
-pub struct WorkerMessageHandler {
-    addr: TrustedWorkerAddress,
-    data: StructuredCloneData,
-}
-
-impl WorkerMessageHandler {
-    pub fn new(addr: TrustedWorkerAddress, data: StructuredCloneData) -> WorkerMessageHandler {
-        WorkerMessageHandler {
-            addr: addr,
-            data: data,
-        }
-    }
-}
-
-impl Task for WorkerMessageHandler {
-    fn run(self: Box<Self>) {
-        let this = *self;
-        Worker::handle_message(this.addr, this.data);
-    }
-}
-
 impl Task for SimpleWorkerErrorHandler<Worker> {
     #[allow(unrooted_must_root)]
     fn run(self: Box<Self>) {

@@ -17,7 +17,7 @@ use dom::bindings::str::DOMString;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::globalscope::GlobalScope;
 use dom::messageevent::MessageEvent;
-use dom::worker::{TrustedWorkerAddress, WorkerErrorHandler, WorkerMessageHandler};
+use dom::worker::{TrustedWorkerAddress, Worker, WorkerErrorHandler};
 use dom::workerglobalscope::WorkerGlobalScope;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
@@ -375,10 +375,10 @@ impl DedicatedWorkerGlobalScopeMethods for DedicatedWorkerGlobalScope {
     unsafe fn PostMessage(&self, cx: *mut JSContext, message: HandleValue) -> ErrorResult {
         let data = StructuredCloneData::write(cx, message)?;
         let worker = self.worker.borrow().as_ref().unwrap().clone();
-        self.parent_sender
-            .send(CommonScriptMsg::Task(WorkerEvent,
-                                               box WorkerMessageHandler::new(worker, data)))
-            .unwrap();
+        let task = box task!(post_worker_message: move || {
+            Worker::handle_message(worker, data);
+        });
+        self.parent_sender.send(CommonScriptMsg::Task(WorkerEvent, task)).unwrap();
         Ok(())
     }
 
