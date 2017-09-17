@@ -4938,8 +4938,6 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
             set += ("if RUST_JSID_IS_STRING(id) {\n" +
                     CGIndenter(CGProxyNamedSetter(self.descriptor)).define() +
                     "    return (*opresult).succeed();\n" +
-                    "} else {\n" +
-                    "    return false;\n" +
                     "}\n")
         else:
             set += ("if RUST_JSID_IS_STRING(id) {\n" +
@@ -4948,7 +4946,7 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
                     "        return (*opresult).failNoNamedSetter();\n"
                     "    }\n"
                     "}\n")
-            set += "return proxyhandler::define_property(%s);" % ", ".join(a.name for a in self.args)
+        set += "return proxyhandler::define_property(%s);" % ", ".join(a.name for a in self.args)
         return set
 
     def definition_body(self):
