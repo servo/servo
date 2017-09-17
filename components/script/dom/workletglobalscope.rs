@@ -22,12 +22,10 @@ use net_traits::ResourceThreads;
 use net_traits::image_cache::ImageCache;
 use profile_traits::mem;
 use profile_traits::time;
-use script_layout_interface::message::Msg;
-use script_runtime::ScriptThreadEventCategory;
-use script_thread::{MainThreadScriptMsg, ScriptThread, Task};
-use script_traits::ScriptMsg;
-use script_traits::ScriptToConstellationChan;
-use script_traits::TimerSchedulerMsg;
+use script_thread::MainThreadScriptMsg;
+use script_traits::{Painter, ScriptMsg};
+use script_traits::{ScriptToConstellationChan, TimerSchedulerMsg};
+use servo_atoms::Atom;
 use servo_url::ImmutableOrigin;
 use servo_url::MutableOrigin;
 use servo_url::ServoUrl;
@@ -93,29 +91,21 @@ impl WorkletGlobalScope {
         self.globalscope.evaluate_js_on_global_with_result(&*script, rval.handle_mut())
     }
 
-    /// Run a task in the main script thread.
-    pub fn run_in_script_thread<T>(&self, task: T)
-    where
-        T: 'static + Send + Task,
-    {
+    /// Register a paint worklet to the script thread.
+    pub fn register_paint_worklet(
+        &self,
+        name: Atom,
+        properties: Vec<Atom>,
+        painter: Box<Painter>,
+    ) {
         self.to_script_thread_sender
-            .send(MainThreadScriptMsg::MainThreadTask(
-                ScriptThreadEventCategory::WorkletEvent,
-                box task,
-            ))
+            .send(MainThreadScriptMsg::RegisterPaintWorklet {
+                pipeline_id: self.globalscope.pipeline_id(),
+                name,
+                properties,
+                painter,
+            })
             .expect("Worklet thread outlived script thread.");
-    }
-
-    /// Send a message to layout.
-    pub fn send_to_layout(&self, msg: Msg) {
-        struct SendToLayoutTask(PipelineId, Msg);
-        impl Task for SendToLayoutTask {
-            fn run_with_script_thread(self: Box<Self>, script_thread: &ScriptThread) {
-                script_thread.send_to_layout(self.0, self.1);
-            }
-        }
-        let pipeline_id = self.globalscope.pipeline_id();
-        self.run_in_script_thread(SendToLayoutTask(pipeline_id, msg));
     }
 
     /// The base URL of this global.

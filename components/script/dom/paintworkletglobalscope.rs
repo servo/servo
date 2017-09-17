@@ -46,7 +46,6 @@ use js::rust::Runtime;
 use msg::constellation_msg::PipelineId;
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache::ImageCache;
-use script_layout_interface::message::Msg;
 use script_traits::DrawAPaintImageResult;
 use script_traits::Painter;
 use servo_atoms::Atom;
@@ -443,8 +442,7 @@ impl PaintWorkletGlobalScopeMethods for PaintWorkletGlobalScope {
         // Inform layout that there is a registered paint worklet.
         // TODO: layout will end up getting this message multiple times.
         let painter = self.painter(name.clone());
-        let msg = Msg::RegisterPaint(name, properties, painter);
-        self.worklet_global.send_to_layout(msg);
+        self.worklet_global.register_paint_worklet(name, properties, painter);
 
         Ok(())
     }

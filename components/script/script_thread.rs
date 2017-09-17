@@ -87,16 +87,19 @@ use profile_traits::time::{self, ProfilerCategory, profile};
 use script_layout_interface::message::{self, Msg, NewLayoutThreadInfo, ReflowQueryType};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
 use script_runtime::{ScriptPort, StackRootTLS, get_reports, new_rt_and_cx};
-use script_traits::{CompositorEvent, ConstellationControlMsg, PaintMetricType};
-use script_traits::{DocumentActivity, DiscardBrowsingContext, EventResult};
-use script_traits::{InitialScriptState, JsEvalResult, LayoutMsg, LoadData, MouseButton, MouseEventType};
-use script_traits::{MozBrowserEvent, NewLayoutInfo, ScriptToConstellationChan, ScriptMsg, UpdatePipelineIdReason};
-use script_traits::{ScriptThreadFactory, TimerEvent, TimerSchedulerMsg, TimerSource};
-use script_traits::{TouchEventType, TouchId, UntrustedNodeAddress, WindowSizeData, WindowSizeType};
+use script_traits::{CompositorEvent, ConstellationControlMsg};
+use script_traits::{DiscardBrowsingContext, DocumentActivity, EventResult};
+use script_traits::{InitialScriptState, JsEvalResult, LayoutMsg, LoadData};
+use script_traits::{MouseButton, MouseEventType, MozBrowserEvent, NewLayoutInfo};
+use script_traits::{PaintMetricType, Painter, ScriptMsg, ScriptThreadFactory};
+use script_traits::{ScriptToConstellationChan, TimerEvent, TimerSchedulerMsg};
+use script_traits::{TimerSource, TouchEventType, TouchId, UntrustedNodeAddress};
+use script_traits::{UpdatePipelineIdReason, WindowSizeData, WindowSizeType};
 use script_traits::CompositorEvent::{KeyEvent, MouseButtonEvent, MouseMoveEvent, ResizeEvent};
 use script_traits::CompositorEvent::{TouchEvent, TouchpadPressureEvent};
 use script_traits::webdriver_msg::WebDriverScriptCommand;
 use serviceworkerjob::{Job, JobQueue, AsyncJobHandler};
+use servo_atoms::Atom;
 use servo_config::opts;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use std::cell::Cell;
@@ -294,6 +297,13 @@ pub enum MainThreadScriptMsg {
     /// Notifies the script thread that a new worklet has been loaded, and thus the page should be
     /// reflowed.
     WorkletLoaded(PipelineId),
+    /// Notifies the script thread that a new paint worklet has been registered.
+    RegisterPaintWorklet {
+        pipeline_id: PipelineId,
+        name: Atom,
+        properties: Vec<Atom>,
+        painter: Box<Painter>
+    },
     /// Runs a Task in the main thread.
     MainThreadTask(ScriptThreadEventCategory, Box<Task + Send>),
 }
@@ -780,13 +790,21 @@ impl ScriptThread {
         })
     }
 
-    pub fn send_to_layout(&self, pipeline_id: PipelineId, msg: Msg) {
+    fn handle_register_paint_worklet(
+        &self,
+        pipeline_id: PipelineId,
+        name: Atom,
+        properties: Vec<Atom>,
+        painter: Box<Painter>,
+    ) {
         let window = self.documents.borrow().find_window(pipeline_id);
         let window = match window {
             Some(window) => window,
-            None => return warn!("Message sent to layout after pipeline {} closed.", pipeline_id),
+            None => return warn!("Paint worklet registered after pipeline {} closed.", pipeline_id),
         };
-        let _ = window.layout_chan().send(msg);
+        let _ = window.layout_chan().send(
+            Msg::RegisterPaint(name, properties, painter),
+        );
     }
 
     pub fn push_new_element_queue() {
@@ -1176,6 +1194,9 @@ impl ScriptThread {
                 match *inner_msg {
                     MainThreadScriptMsg::Common(CommonScriptMsg::Task(category, _)) |
                     MainThreadScriptMsg::MainThreadTask(category, _) => category,
+                    MainThreadScriptMsg::RegisterPaintWorklet { .. } => {
+                        ScriptThreadEventCategory::WorkletEvent
+                    },
                     _ => ScriptThreadEventCategory::ScriptEvent,
                 }
             },
@@ -1313,6 +1334,19 @@ impl ScriptThread {
             },
             MainThreadScriptMsg::WorkletLoaded(pipeline_id) => {
                 self.handle_worklet_loaded(pipeline_id)
+            },
+            MainThreadScriptMsg::RegisterPaintWorklet {
+                pipeline_id,
+                name,
+                properties,
+                painter,
+            } => {
+                self.handle_register_paint_worklet(
+                    pipeline_id,
+                    name,
+                    properties,
+                    painter,
+                )
             },
             MainThreadScriptMsg::MainThreadTask(_, task) => {
                 task.run_with_script_thread(self)

@@ -860,6 +860,12 @@ pub trait Painter: SpeculativePainter {
                           -> DrawAPaintImageResult;
 }
 
+impl fmt::Debug for Painter {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt.debug_tuple("Painter").field(&format_args!("..")).finish()
+    }
+}
+
 /// The result of executing paint code: the image together with any image URLs that need to be loaded.
 /// TODO: this should return a WR display list. https://github.com/servo/servo/issues/17497
 #[derive(Clone, Debug, Deserialize, HeapSizeOf, Serialize)]
