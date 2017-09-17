@@ -17,7 +17,6 @@ use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use std::cell::Cell;
-use task::Task;
 use task_source::TaskSource;
 
 #[dom_struct]
@@ -45,10 +44,6 @@ impl HTMLDetailsElement {
                            document,
                            HTMLDetailsElementBinding::Wrap)
     }
-
-    pub fn check_toggle_count(&self, number: u32) -> bool {
-        number == self.toggle_counter.get()
-    }
 }
 
 impl HTMLDetailsElementMethods for HTMLDetailsElement {
@@ -72,27 +67,17 @@ impl VirtualMethods for HTMLDetailsElement {
             self.toggle_counter.set(counter);
 
             let window = window_from_node(self);
-            let task_source = window.dom_manipulation_task_source();
-            let details = Trusted::new(self);
-            let task = box DetailsNotificationTask {
-                element: details,
-                toggle_number: counter
-            };
-            let _ = task_source.queue(task, window.upcast());
-        }
-    }
-}
-
-pub struct DetailsNotificationTask {
-    element: Trusted<HTMLDetailsElement>,
-    toggle_number: u32
-}
-
-impl Task for DetailsNotificationTask {
-    fn run(self: Box<Self>) {
-        let target = self.element.root();
-        if target.check_toggle_count(self.toggle_number) {
-            target.upcast::<EventTarget>().fire_event(atom!("toggle"));
+            let this = Trusted::new(self);
+            // FIXME(nox): Why are errors silenced here?
+            let _ = window.dom_manipulation_task_source().queue(
+                box task!(details_notification_task_steps: move || {
+                    let this = this.root();
+                    if counter == this.toggle_counter.get() {
+                        this.upcast::<EventTarget>().fire_event(atom!("toggle"));
+                    }
+                }),
+                window.upcast(),
+            );
         }
     }
 }
