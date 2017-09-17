@@ -4750,13 +4750,22 @@ class CGProxyNamedOperation(CGProxySpecialOperation):
     def define(self):
         # Our first argument is the id we're getting.
         argName = self.arguments[0].identifier.name
-        return ("println!(\"==========-o-o-o1 {:?}\", id);\n"
-                "match "
+        return ("println!(\"===DEBUG-o-o-o-7 {:?}\", jsid_to_string(cx, id) );\n"
+                "if jsid_to_string(cx, id).is_none() {\n"
+                "    return false\n"
+                "}\n"
                 "let %s = string_jsid_to_string(cx, id);\n"
                 "let this = UnwrapProxy(proxy);\n"
                 "let this = &*this;\n" % argName +
                 CGProxySpecialOperation.define(self))
 
+# "//let mut this;\n"
+# "//let mut %s;\n"
+# "//match jsid_to_string(cx, id) {\n"
+# "//   None => return false,\n"
+# "//   Some(str_name) => {\n"
+# "    },\n"
+# "//}\n" % argName +
 
 class CGProxyNamedGetter(CGProxyNamedOperation):
     """
@@ -5724,6 +5733,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'dom::bindings::conversions::root_from_handlevalue',
         'dom::bindings::conversions::root_from_object',
         'dom::bindings::conversions::string_jsid_to_string',
+        'dom::bindings::conversions::jsid_to_string',
         'dom::bindings::codegen::PrototypeList',
         'dom::bindings::codegen::RegisterBindings',
         'dom::bindings::codegen::UnionTypes',
