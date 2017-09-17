@@ -56,7 +56,6 @@ use std::default::Default;
 use std::i32;
 use std::sync::{Arc, Mutex};
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
-use task::Task;
 use task_source::TaskSource;
 
 #[derive(Clone, Copy, HeapSizeOf, JSTraceable)]
@@ -336,36 +335,6 @@ impl HTMLImageElement {
         request.metadata = None;
     }
 
-    /// Step 11.4 of https://html.spec.whatwg.org/multipage/#update-the-image-data
-    fn set_current_request_url_to_selected_fire_error_and_loadend(&self, src: DOMString) {
-        struct SetCurrentRequestUrlTask {
-            img: Trusted<HTMLImageElement>,
-            src: String,
-        }
-        impl Task for SetCurrentRequestUrlTask {
-            fn run(self: Box<Self>) {
-                let img = self.img.root();
-                {
-                    let mut current_request = img.current_request.borrow_mut();
-                    current_request.source_url = Some(DOMString::from_string(self.src));
-                }
-                img.upcast::<EventTarget>().fire_event(atom!("error"));
-                img.upcast::<EventTarget>().fire_event(atom!("loadend"));
-                img.abort_request(State::Broken, ImageRequestPhase::Current);
-                img.abort_request(State::Broken, ImageRequestPhase::Pending);
-            }
-        }
-
-        let task = box SetCurrentRequestUrlTask {
-            img: Trusted::new(self),
-            src: src.into()
-        };
-        let document = document_from_node(self);
-        let window = document.window();
-        let task_source = window.dom_manipulation_task_source();
-        let _ = task_source.queue(task, window.upcast());
-    }
-
     /// https://html.spec.whatwg.org/multipage/#update-the-source-set
     fn update_source_set(&self) -> Vec<DOMString> {
         let elem = self.upcast::<Element>();
@@ -479,13 +448,14 @@ impl HTMLImageElement {
             },
         };
         // Step 10.
+        let target = Trusted::new(self.upcast::<EventTarget>());
         // FIXME(nox): Why are errors silenced here?
         let _ = task_source.queue(
             box task!(fire_progress_event: move || {
-                let this = this.root();
+                let target = target.root();
 
                 let event = ProgressEvent::new(
-                    &this.global(),
+                    &target.global(),
                     atom!("loadstart"),
                     EventBubbles::DoesNotBubble,
                     EventCancelable::NotCancelable,
@@ -493,7 +463,7 @@ impl HTMLImageElement {
                     0,
                     0,
                 );
-                event.upcast::<Event>().fire(this.upcast());
+                event.upcast::<Event>().fire(&target);
             }),
             window.upcast(),
         );
@@ -506,8 +476,28 @@ impl HTMLImageElement {
                 self.prepare_image_request(&url, &src);
             },
             Err(_) => {
-                // Step 11.1-11.5
-                self.set_current_request_url_to_selected_fire_error_and_loadend(src);
+                // Step 11.1-11.5.
+                let src = String::from(src);
+                // FIXME(nox): Why are errors silenced here?
+                let _ = task_source.queue(
+                    box task!(image_selected_source_error: move || {
+                        let this = this.root();
+                        {
+                            let mut current_request =
+                                this.current_request.borrow_mut();
+                            current_request.source_url = Some(src.into());
+                        }
+                        this.upcast::<EventTarget>().fire_event(atom!("error"));
+                        this.upcast::<EventTarget>().fire_event(atom!("loadend"));
+
+                        // FIXME(nox): According to the spec, setting the current
+                        // request to the broken state is done prior to queuing a
+                        // task, why is this here?
+                        this.abort_request(State::Broken, ImageRequestPhase::Current);
+                        this.abort_request(State::Broken, ImageRequestPhase::Pending);
+                    }),
+                    window.upcast(),
+                );
             }
         }
     }
