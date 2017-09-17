@@ -403,36 +403,6 @@ impl HTMLImageElement {
         self.update_source_set().first().cloned()
     }
 
-    /// Step 5.3.7 of https://html.spec.whatwg.org/multipage/#update-the-image-data
-    fn set_current_request_url_to_string_and_fire_load(&self, src: DOMString, url: ServoUrl) {
-        struct SetUrlToStringTask {
-            img: Trusted<HTMLImageElement>,
-            src: String,
-            url: ServoUrl
-        }
-        impl Task for SetUrlToStringTask {
-            fn run(self: Box<Self>) {
-                let img = self.img.root();
-                {
-                    let mut current_request = img.current_request.borrow_mut();
-                    current_request.parsed_url = Some(self.url.clone());
-                    current_request.source_url = Some(self.src.into());
-                }
-                // TODO: restart animation, if set
-                img.upcast::<EventTarget>().fire_event(atom!("load"));
-            }
-        }
-        let task = box SetUrlToStringTask {
-            img: Trusted::new(self),
-            src: src.into(),
-            url: url
-        };
-        let document = document_from_node(self);
-        let window = document.window();
-        let task_source = window.dom_manipulation_task_source();
-        let _ = task_source.queue(task, window.upcast());
-    }
-
     fn init_image_request(&self,
                           request: &mut RefMut<ImageRequest>,
                           url: &ServoUrl,
@@ -606,8 +576,23 @@ impl HTMLImageElement {
                     current_request.final_url = Some(url);
                     current_request.image = Some(image.clone());
                     current_request.metadata = Some(metadata);
-                    self.set_current_request_url_to_string_and_fire_load(src, img_url);
-                    return
+                    let this = Trusted::new(self);
+                    let src = String::from(src);
+                    let _ = window.dom_manipulation_task_source().queue(
+                        box task!(image_load_event: move || {
+                            let this = this.root();
+                            {
+                                let mut current_request =
+                                    this.current_request.borrow_mut();
+                                current_request.parsed_url = Some(img_url);
+                                current_request.source_url = Some(src.into());
+                            }
+                            // TODO: restart animation, if set.
+                            this.upcast::<EventTarget>().fire_event(atom!("load"));
+                        }),
+                        window.upcast(),
+                    );
+                    return;
                 }
             }
         }
