@@ -19,7 +19,6 @@ use net_traits::IpcSend;
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
 use script_traits::ScriptMsg;
 use servo_url::ServoUrl;
-use task::Task;
 use task_source::TaskSource;
 
 #[dom_struct]
@@ -166,41 +165,25 @@ impl Storage {
         new_value: Option<String>,
     ) {
         let global = self.global();
+        let this = Trusted::new(self);
         global.as_window().dom_manipulation_task_source().queue(
-            box StorageEventTask {
-                element: Trusted::new(self),
-                url,
-                key,
-                old_value,
-                new_value,
-            },
-            global.upcast(),
-        ).unwrap();
-        struct StorageEventTask {
-            element: Trusted<Storage>,
-            url: ServoUrl,
-            key: Option<String>,
-            old_value: Option<String>,
-            new_value: Option<String>
-        }
-        impl Task for StorageEventTask {
-            fn run(self: Box<Self>) {
-                let this = *self;
-                let storage = this.element.root();
-                let global = storage.global();
-                let storage_event = StorageEvent::new(
+            box task!(send_storage_notification: move || {
+                let this = this.root();
+                let global = this.global();
+                let event = StorageEvent::new(
                     global.as_window(),
                     atom!("storage"),
                     EventBubbles::DoesNotBubble,
                     EventCancelable::NotCancelable,
-                    this.key.map(DOMString::from),
-                    this.old_value.map(DOMString::from),
-                    this.new_value.map(DOMString::from),
-                    DOMString::from(this.url.into_string()),
-                    Some(&storage)
+                    key.map(DOMString::from),
+                    old_value.map(DOMString::from),
+                    new_value.map(DOMString::from),
+                    DOMString::from(url.into_string()),
+                    Some(&this),
                 );
-                storage_event.upcast::<Event>().fire(global.upcast());
-            }
-        }
+                event.upcast::<Event>().fire(global.upcast());
+            }),
+            global.upcast(),
+        ).unwrap();
     }
 }
