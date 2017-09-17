@@ -386,28 +386,6 @@ impl HTMLImageElement {
         let _ = task_source.queue(task, window.upcast());
     }
 
-    /// Step 10 of html.spec.whatwg.org/multipage/#update-the-image-data
-    fn dispatch_loadstart_progress_event(&self) {
-        struct FireprogressEventTask {
-            img: Trusted<HTMLImageElement>,
-        }
-        impl Task for FireprogressEventTask {
-            fn run(self: Box<Self>) {
-                let progressevent = ProgressEvent::new(&self.img.root().global(),
-                    atom!("loadstart"), EventBubbles::DoesNotBubble, EventCancelable::NotCancelable,
-                    false, 0, 0);
-                progressevent.upcast::<Event>().fire(self.img.root().upcast());
-            }
-        }
-        let task = box FireprogressEventTask {
-            img: Trusted::new(self),
-        };
-        let document = document_from_node(self);
-        let window = document.window();
-        let task_source = window.dom_manipulation_task_source();
-        let _ = task_source.queue(task, window.upcast());
-    }
-
     /// https://html.spec.whatwg.org/multipage/#update-the-source-set
     fn update_source_set(&self) -> Vec<DOMString> {
         let elem = self.upcast::<Element>();
@@ -550,8 +528,27 @@ impl HTMLImageElement {
         // TODO: take pixel density into account
         match self.select_image_source() {
             Some(src) => {
-                // Step 10
-                self.dispatch_loadstart_progress_event();
+                // Step 10.
+                let window = document.window();
+                let this = Trusted::new(self);
+                // FIXME(nox): Why are errors silenced here?
+                let _ = window.dom_manipulation_task_source().queue(
+                    box task!(fire_progress_event: move || {
+                        let this = this.root();
+
+                        let event = ProgressEvent::new(
+                            &this.global(),
+                            atom!("loadstart"),
+                            EventBubbles::DoesNotBubble,
+                            EventCancelable::NotCancelable,
+                            false,
+                            0,
+                            0,
+                        );
+                        event.upcast::<Event>().fire(this.upcast());
+                    }),
+                    window.upcast(),
+                );
                 // Step 11
                 let base_url = document.base_url();
                 let parsed_url = base_url.join(&src);
