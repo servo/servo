@@ -244,12 +244,6 @@ impl<T> Task for CancellableTask<T>
 where
     T: Send + Task,
 {
-    fn run_with_script_thread(self: Box<CancellableTask<T>>, script_thread: &ScriptThread) {
-        if !self.is_cancelled() {
-            self.inner.run_with_script_thread(script_thread);
-        }
-    }
-
     fn run(self: Box<Self>) {
         if !self.is_cancelled() {
             self.inner.run()
@@ -259,12 +253,7 @@ where
 
 pub trait Task {
     fn name(&self) -> &'static str { unsafe { intrinsics::type_name::<Self>() } }
-    fn run(self: Box<Self>) {
-        panic!("This should probably be redefined.")
-    }
-    fn run_with_script_thread(self: Box<Self>, _script_thread: &ScriptThread) {
-        self.run();
-    }
+    fn run(self: Box<Self>);
 }
 
 impl fmt::Debug for Task + Send {
@@ -304,8 +293,8 @@ pub enum MainThreadScriptMsg {
         properties: Vec<Atom>,
         painter: Box<Painter>
     },
-    /// Runs a Task in the main thread.
-    MainThreadTask(ScriptThreadEventCategory, Box<Task + Send>),
+    /// Dispatches a job queue.
+    DispatchJobQueue { scope_url: ServoUrl },
 }
 
 impl OpaqueSender<CommonScriptMsg> for Box<ScriptChan + Send> {
@@ -718,11 +707,11 @@ impl ScriptThread {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn schedule_job(job: Job, global: &GlobalScope) {
+    pub fn schedule_job(job: Job) {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
             let job_queue = &*script_thread.job_queue_map;
-            job_queue.schedule_job(job, global, &script_thread);
+            job_queue.schedule_job(job, &script_thread);
         });
     }
 
@@ -1192,8 +1181,9 @@ impl ScriptThread {
             MixedMessage::FromImageCache(_) => ScriptThreadEventCategory::ImageCacheMsg,
             MixedMessage::FromScript(ref inner_msg) => {
                 match *inner_msg {
-                    MainThreadScriptMsg::Common(CommonScriptMsg::Task(category, _)) |
-                    MainThreadScriptMsg::MainThreadTask(category, _) => category,
+                    MainThreadScriptMsg::Common(CommonScriptMsg::Task(category, _)) => {
+                        category
+                    },
                     MainThreadScriptMsg::RegisterPaintWorklet { .. } => {
                         ScriptThreadEventCategory::WorkletEvent
                     },
@@ -1348,9 +1338,9 @@ impl ScriptThread {
                     painter,
                 )
             },
-            MainThreadScriptMsg::MainThreadTask(_, task) => {
-                task.run_with_script_thread(self)
-            },
+            MainThreadScriptMsg::DispatchJobQueue { scope_url } => {
+                self.job_queue_map.run_job(scope_url, self)
+            }
         }
     }
 
@@ -1787,8 +1777,8 @@ impl ScriptThread {
         let _ = self.script_sender.send((pipeline_id, ScriptMsg::RegisterServiceWorker(scope_things, scope.clone())));
     }
 
-    pub fn dispatch_job_queue(&self, scope_url: ServoUrl) {
-        self.job_queue_map.run_job(scope_url, self);
+    pub fn schedule_job_queue(&self, scope_url: ServoUrl) {
+        let _ = self.chan.0.send(MainThreadScriptMsg::DispatchJobQueue { scope_url });
     }
 
     pub fn dom_manipulation_task_source(&self) -> &DOMManipulationTaskSource {

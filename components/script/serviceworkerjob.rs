@@ -93,25 +93,6 @@ impl PartialEq for Job {
     }
 }
 
-pub struct AsyncJobHandler {
-    pub scope_url: ServoUrl,
-}
-
-impl AsyncJobHandler {
-    fn new(scope_url: ServoUrl) -> AsyncJobHandler {
-        AsyncJobHandler {
-            scope_url: scope_url,
-        }
-    }
-}
-
-impl Task for AsyncJobHandler {
-    #[allow(unrooted_must_root)]
-    fn run_with_script_thread(self: Box<AsyncJobHandler>, script_thread: &ScriptThread) {
-        script_thread.dispatch_job_queue(self.scope_url);
-    }
-}
-
 #[must_root]
 #[derive(JSTraceable)]
 pub struct JobQueue(pub DOMRefCell<HashMap<ServoUrl, Vec<Job>>>);
@@ -122,10 +103,7 @@ impl JobQueue {
     }
     #[allow(unrooted_must_root)]
     // https://w3c.github.io/ServiceWorker/#schedule-job-algorithm
-    pub fn schedule_job(&self,
-                        job: Job,
-                        global: &GlobalScope,
-                        script_thread: &ScriptThread) {
+    pub fn schedule_job(&self, job: Job, script_thread: &ScriptThread) {
         debug!("scheduling {:?} job", job.job_type);
         let mut queue_ref = self.0.borrow_mut();
         let job_queue = queue_ref.entry(job.scope_url.clone()).or_insert(vec![]);
@@ -133,10 +111,7 @@ impl JobQueue {
         if job_queue.is_empty() {
             let scope_url = job.scope_url.clone();
             job_queue.push(job);
-            let _ = script_thread.dom_manipulation_task_source().queue_main_thread_task(
-                box AsyncJobHandler::new(scope_url),
-                global,
-            );
+            let _ = script_thread.schedule_job_queue(scope_url);
             debug!("queued task to run newly-queued job");
         } else {
             // Step 2

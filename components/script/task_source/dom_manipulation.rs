@@ -6,7 +6,6 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::Trusted;
 use dom::event::{EventBubbles, EventCancelable, EventTask, SimpleEventTask};
 use dom::eventtarget::EventTarget;
-use dom::globalscope::GlobalScope;
 use dom::window::Window;
 use script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
 use script_thread::{MainThreadScriptMsg, Task, TaskCanceller};
@@ -43,21 +42,6 @@ impl TaskSource for DOMManipulationTaskSource {
 }
 
 impl DOMManipulationTaskSource {
-    pub fn queue_main_thread_task<T>(
-        &self,
-        task: Box<T>,
-        global: &GlobalScope,
-    ) -> Result<(), ()>
-    where
-        T: Task + Send + 'static,
-    {
-        let msg = MainThreadScriptMsg::MainThreadTask(
-            ScriptThreadEventCategory::ScriptEvent,
-            global.task_canceller().wrap_task(task),
-        );
-        self.0.send(msg).map_err(|_| ())
-    }
-
     pub fn queue_event(&self,
                        target: &EventTarget,
                        name: Atom,
