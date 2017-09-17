@@ -52,8 +52,6 @@ use stylesheets::keyframes_rule::KeyframesAnimation;
 use stylesheets::viewport_rule::{self, MaybeNew, ViewportRule};
 use thread_state;
 
-pub use ::fnv::FnvHashMap;
-
 /// The type of the stylesheets that the stylist contains.
 #[cfg(feature = "servo")]
 pub type StylistSheet = ::stylesheets::DocumentStyleSheet;
