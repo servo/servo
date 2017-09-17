@@ -7,7 +7,6 @@ extern crate bitflags;
 extern crate bluetooth_traits;
 extern crate device;
 extern crate ipc_channel;
-#[cfg(target_os = "linux")]
 extern crate servo_config;
 extern crate servo_rand;
 #[cfg(target_os = "linux")]
@@ -26,6 +25,7 @@ use device::bluetooth::{BluetoothGATTDescriptor, BluetoothGATTService};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 #[cfg(target_os = "linux")]
 use servo_config::opts;
+use servo_config::prefs::PREFS;
 use servo_rand::Rng;
 use std::borrow::ToOwned;
 use std::collections::{HashMap, HashSet};
@@ -75,7 +75,11 @@ pub trait BluetoothThreadFactory {
 impl BluetoothThreadFactory for IpcSender<BluetoothRequest> {
     fn new() -> IpcSender<BluetoothRequest> {
         let (sender, receiver) = ipc::channel().unwrap();
-        let adapter = BluetoothAdapter::init().ok();
+        let adapter = if Some(true) == PREFS.get("dom.bluetooth.enabled").as_boolean() {
+            BluetoothAdapter::init()
+        } else {
+            BluetoothAdapter::init_mock()
+        }.ok();
         thread::Builder::new().name("BluetoothThread".to_owned()).spawn(move || {
             BluetoothManager::new(receiver, adapter).start();
         }).expect("Thread spawning failed");
