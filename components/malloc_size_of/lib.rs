@@ -39,8 +39,8 @@
 //! - If you need an additional synchronization argument, provide a function
 //!   that is like the standard trait method, but with the extra argument.
 //! - If you need multiple measurements for a type, provide a function named
-//!   `add_size_of_children` that takes a mutable reference to a struct that
-//!   contains the multiple measurement fields.
+//!   `add_size_of` that takes a mutable reference to a struct that contains
+//!   the multiple measurement fields.
 //! - When deep measurement (via `MallocSizeOf`) cannot be implemented for a
 //!   type, shallow measurement (via `MallocShallowSizeOf`) in combination with
 //!   iteration can be a useful substitute.

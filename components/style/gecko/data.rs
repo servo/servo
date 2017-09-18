@@ -181,8 +181,8 @@ impl PerDocumentStyleDataImpl {
     }
 
     /// Measure heap usage.
-    pub fn add_size_of_children(&self, ops: &mut MallocSizeOfOps, sizes: &mut ServoStyleSetSizes) {
-        self.stylist.add_size_of_children(ops, sizes);
+    pub fn add_size_of(&self, ops: &mut MallocSizeOfOps, sizes: &mut ServoStyleSetSizes) {
+        self.stylist.add_size_of(ops, sizes);
     }
 }
 
