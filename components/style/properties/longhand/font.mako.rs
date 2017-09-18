@@ -603,6 +603,7 @@ ${helpers.single_keyword_system("font-variant-caps",
     use values::specified::AllowQuirks;
     use values::specified::length::FontBaseSize;
     use values::specified::font::{FONT_MEDIUM_PX, KeywordSize};
+    use values::computed::font::{KeywordInfo};
 
     pub mod computed_value {
         use values::computed::font;
@@ -616,17 +617,13 @@ ${helpers.single_keyword_system("font-variant-caps",
     pub fn get_initial_value() -> computed_value::T {
         computed_value::T {
             size: Au::from_px(FONT_MEDIUM_PX).into(),
-            info: Some(::values::computed::font::KeywordInfo {
-                kw: KeywordSize::Medium,
-                factor: 1.,
-                offset: Au(0).into(),
-            })
+            keyword_info: Some(KeywordInfo::medium())
         }
     }
 
     #[inline]
     pub fn get_initial_specified_value() -> SpecifiedValue {
-        SpecifiedValue::Keyword(KeywordSize::Medium, 1., Au(0).into())
+        SpecifiedValue::Keyword(KeywordInfo::medium())
     }
 
 
@@ -647,7 +644,7 @@ ${helpers.single_keyword_system("font-variant-caps",
         }
 
         if let Ok(kw) = input.try(KeywordSize::parse) {
-            return Ok(SpecifiedValue::Keyword(kw, 1., Au(0).into()))
+            return Ok(SpecifiedValue::Keyword(kw.into()))
         }
 
         try_match_ident_ignore_ascii_case! { input.expect_ident()?,
@@ -670,7 +667,7 @@ ${helpers.single_keyword_system("font-variant-caps",
                context.builder.get_parent_font().gecko().mLanguage.raw::<nsIAtom>() ||
                context.builder.get_font().gecko().mGenericID !=
                context.builder.get_parent_font().gecko().mGenericID {
-                if let Some(info) = computed.info {
+                if let Some(info) = computed.keyword_info {
                     computed.size = context.maybe_zoom_text(info.kw.to_computed_value(context)
                                                                 .scale_by(info.factor) + info.offset)
                 }
@@ -703,8 +700,8 @@ ${helpers.single_keyword_system("font-variant-caps",
         // handle mathml scriptlevel changes
         let kw_inherited_size = context.builder.get_parent_font()
                                        .clone_font_size()
-                                       .info.map(|info| {
-            context.maybe_zoom_text(SpecifiedValue::Keyword(info.kw, info.factor, info.offset)
+                                       .keyword_info.map(|info| {
+            context.maybe_zoom_text(SpecifiedValue::Keyword(info)
                   .to_computed_value(context).size)
         });
         let mut font = context.builder.take_font();
@@ -2205,7 +2202,10 @@ ${helpers.single_keyword("-moz-math-variant",
                 let weight = longhands::font_weight::computed_value::T::from_gecko_weight(system.weight);
                 let ret = ComputedSystemFont {
                     font_family: longhands::font_family::computed_value::T(family),
-                    font_size: longhands::font_size::computed_value::T { size: Au(system.size).into(), info: None },
+                    font_size: longhands::font_size::computed_value::T {
+                            size: Au(system.size).into(),
+                            keyword_info: None
+                    },
                     font_weight: weight,
                     font_size_adjust: longhands::font_size_adjust::computed_value
                                                ::T::from_gecko_adjust(system.sizeAdjust),

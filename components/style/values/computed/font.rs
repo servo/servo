@@ -10,8 +10,8 @@ use style_traits::ToCss;
 use values::computed::NonNegativeLength;
 use values::specified::font as specified;
 
-#[derive(Copy, Clone, PartialEq, Debug)]
-#[derive(ToAnimatedValue, Animate, ToAnimatedZero, ComputeSquaredDistance)]
+#[derive(Animate, ComputeSquaredDistance, ToAnimatedValue, ToAnimatedZero)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 /// The computed value of font-size
@@ -19,11 +19,11 @@ pub struct FontSize {
     /// The size.
     pub size: NonNegativeLength,
     /// If derived from a keyword, the keyword and additional transformations applied to it
-    pub info: Option<KeywordInfo>,
+    pub keyword_info: Option<KeywordInfo>,
 }
 
-#[derive(Copy, Clone, PartialEq, Debug)]
-#[derive(ToAnimatedValue, Animate, ToAnimatedZero, ComputeSquaredDistance)]
+#[derive(Animate, ComputeSquaredDistance, ToAnimatedValue, ToAnimatedZero)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 /// Additional information for keyword-derived font sizes.
@@ -43,6 +43,21 @@ impl KeywordInfo {
             kw: self.kw,
             factor: self.factor * factor,
             offset: self.offset.scale_by(factor) + offset,
+        }
+    }
+
+    /// KeywordInfo value for font-size: medium
+    pub fn medium() -> Self {
+        specified::KeywordSize::Medium.into()
+    }
+}
+
+impl From<specified::KeywordSize> for KeywordInfo {
+    fn from(x: specified::KeywordSize) -> Self {
+        KeywordInfo {
+            kw: x,
+            factor: 1.,
+            offset: Au(0).into(),
         }
     }
 }

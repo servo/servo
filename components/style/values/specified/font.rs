@@ -32,7 +32,7 @@ pub enum FontSize {
     /// go into the ratio, and the remaining units all computed together
     /// will go into the offset.
     /// See bug 1355707.
-    Keyword(KeywordSize, f32, NonNegativeLength),
+    Keyword(computed::KeywordInfo),
     /// font-size: smaller
     Smaller,
     /// font-size: larger
@@ -45,7 +45,7 @@ impl ToCss for FontSize {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
             FontSize::Length(ref lop) => lop.to_css(dest),
-            FontSize::Keyword(kw, _, _) => kw.to_css(dest),
+            FontSize::Keyword(info) => info.kw.to_css(dest),
             FontSize::Smaller => dest.write_str("smaller"),
             FontSize::Larger => dest.write_str("larger"),
             FontSize::System(sys) => sys.to_css(dest),
@@ -60,8 +60,8 @@ impl From<LengthOrPercentage> for FontSize {
 }
 
 /// CSS font keywords
+#[derive(Animate, ComputeSquaredDistance, ToAnimatedValue, ToAnimatedZero)]
 #[derive(Clone, Copy, Debug, PartialEq)]
-#[derive(ToAnimatedValue, Animate, ToAnimatedZero, ComputeSquaredDistance)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[allow(missing_docs)]
@@ -226,7 +226,7 @@ impl FontSize {
             6 => KeywordSize::XXLarge,
             // If value is greater than 7, let it be 7.
             _ => KeywordSize::XXXLarge,
-        }, 1., Au(0).into())
+        }.into())
     }
 
     /// Compute it against a given base font size
@@ -239,7 +239,7 @@ impl FontSize {
 
         let compose_keyword = |factor| {
             context.style().get_parent_font()
-                   .clone_font_size().info
+                   .clone_font_size().keyword_info
                    .map(|i| i.compose(factor, Au(0).into()))
         };
         let mut info = None;
@@ -274,7 +274,7 @@ impl FontSize {
                 let parent = context.style().get_parent_font().clone_font_size();
                 // if we contain em/% units and the parent was keyword derived, this is too
                 // Extract the ratio/offset and compose it
-                if (calc.em.is_some() || calc.percentage.is_some()) && parent.info.is_some() {
+                if (calc.em.is_some() || calc.percentage.is_some()) && parent.keyword_info.is_some() {
                     let ratio = calc.em.unwrap_or(0.) + calc.percentage.map_or(0., |pc| pc.0);
                     // Compute it, but shave off the font-relative part (em, %)
                     // This will mean that other font-relative units like ex and ch will be computed against
@@ -284,19 +284,15 @@ impl FontSize {
                     // recomputes new ones. This is enough of an edge case to not really matter.
                     let abs = calc.to_computed_value_zoomed(context, FontBaseSize::Custom(Au(0).into()))
                                   .length_component().into();
-                    info = parent.info.map(|i| i.compose(ratio, abs));
+                    info = parent.keyword_info.map(|i| i.compose(ratio, abs));
                 }
                 let calc = calc.to_computed_value_zoomed(context, base_size);
                 calc.to_used_value(Some(base_size.resolve(context))).unwrap().into()
             }
-            FontSize::Keyword(key, fraction, offset) => {
+            FontSize::Keyword(i) => {
                 // As a specified keyword, this is keyword derived
-                info = Some(computed::KeywordInfo {
-                    kw: key,
-                    factor: fraction,
-                    offset: offset,
-                });
-                context.maybe_zoom_text(key.to_computed_value(context).scale_by(fraction) + offset)
+                info = Some(i);
+                context.maybe_zoom_text(i.kw.to_computed_value(context).scale_by(i.factor) + i.offset)
             }
             FontSize::Smaller => {
                 info = compose_keyword(1. / LARGER_FONT_SIZE_RATIO);
@@ -318,7 +314,10 @@ impl FontSize {
                 }
             }
         };
-        computed::FontSize { size, info }
+        computed::FontSize {
+            size: size,
+            keyword_info: info,
+        }
     }
 }
 

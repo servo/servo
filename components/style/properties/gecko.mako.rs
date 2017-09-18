@@ -2164,7 +2164,7 @@ fn static_assert() {
         use values::specified::font::KeywordSize;
         self.gecko.mSize = v.size().0;
         self.gecko.mScriptUnconstrainedSize = v.size().0;
-        if let Some(info) = v.info {
+        if let Some(info) = v.keyword_info {
             self.gecko.mFontSizeKeyword = match info.kw {
                 KeywordSize::XXSmall => structs::NS_STYLE_FONT_SIZE_XXSMALL,
                 KeywordSize::XSmall => structs::NS_STYLE_FONT_SIZE_XSMALL,
@@ -2385,14 +2385,14 @@ fn static_assert() {
             structs::NS_STYLE_FONT_SIZE_NO_KEYWORD => {
                 return longhands::font_size::computed_value::T {
                     size: size,
-                    info: None,
+                    keyword_info: None,
                 }
             }
             _ => unreachable!("mFontSizeKeyword should be an absolute keyword or NO_KEYWORD")
         };
         longhands::font_size::computed_value::T {
             size: size,
-            info: Some(KeywordInfo {
+            keyword_info: Some(KeywordInfo {
                 kw: kw,
                 factor: self.gecko.mFontSizeFactor,
                 offset: Au(self.gecko.mFontSizeOffset).into()
