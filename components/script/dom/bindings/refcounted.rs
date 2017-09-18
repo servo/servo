@@ -123,18 +123,14 @@ impl TrustedPromise {
     /// A task which will reject the promise.
     #[allow(unrooted_must_root)]
     pub fn reject_task(self, error: Error) -> impl Send + Task {
-        struct RejectPromise(TrustedPromise, Error);
-        impl Task for RejectPromise {
-            fn run(self: Box<Self>) {
-                debug!("Rejecting promise.");
-                let this = *self;
-                let promise = this.0.root();
-                let cx = promise.global().get_cx();
-                let _ac = JSAutoCompartment::new(cx, promise.reflector().get_jsobject().get());
-                promise.reject_error(cx, this.1);
-            }
-        }
-        RejectPromise(self, error)
+        let this = self;
+        task!(reject_promise: move || {
+            debug!("Rejecting promise.");
+            let this = this.root();
+            let cx = this.global().get_cx();
+            let _ac = JSAutoCompartment::new(cx, this.reflector().get_jsobject().get());
+            this.reject_error(cx, error);
+        })
     }
 
     /// A task which will resolve the promise.
