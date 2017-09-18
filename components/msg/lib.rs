@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![feature(const_fn)]
-#![feature(nonzero)]
 #![feature(const_nonzero_new)]
+#![feature(nonzero)]
 #![deny(unsafe_code)]
 
 #[macro_use]
