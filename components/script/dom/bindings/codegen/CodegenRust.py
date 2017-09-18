@@ -4868,7 +4868,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
             # ResolveOwnProperty or EnumerateOwnProperties filter out named
             # properties that shadow prototype properties.
             namedGet = """
-if RUST_JSID_IS_STRING(id) {
+if RUST_JSID_IS_STRING(id) || RUST_JSID_IS_INT(id) {
     let mut has_on_proto = false;
     if !has_property_on_prototype(cx, proxy, id, &mut has_on_proto) {
         return false;
