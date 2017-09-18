@@ -284,13 +284,18 @@ impl ElementData {
 
     /// Returns this element's primary style as a resolved style to use for sharing.
     pub fn share_primary_style(&self) -> PrimaryStyle {
-        let primary_is_reused = self.flags.contains(PRIMARY_STYLE_REUSED_VIA_RULE_NODE);
-        PrimaryStyle(ResolvedStyle::new(self.styles.primary().clone(), primary_is_reused))
+        let reused_via_rule_node =
+            self.flags.contains(PRIMARY_STYLE_REUSED_VIA_RULE_NODE);
+
+        PrimaryStyle {
+            style: ResolvedStyle(self.styles.primary().clone()),
+            reused_via_rule_node,
+        }
     }
 
     /// Sets a new set of styles, returning the old ones.
     pub fn set_styles(&mut self, new_styles: ResolvedElementStyles) -> ElementStyles {
-        if new_styles.primary.0.reused_via_rule_node {
+        if new_styles.primary.reused_via_rule_node {
             self.flags.insert(PRIMARY_STYLE_REUSED_VIA_RULE_NODE);
         } else {
             self.flags.remove(PRIMARY_STYLE_REUSED_VIA_RULE_NODE);

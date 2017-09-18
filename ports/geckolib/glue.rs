@@ -731,11 +731,9 @@ pub extern "C" fn Servo_StyleSet_GetBaseComputedValuesForElement(raw_data: RawSe
         };
 
     // Actually `PseudoElementResolution` doesn't matter.
-    let style: Arc<ComputedValues> =
-        StyleResolverForElement::new(element, &mut context, RuleInclusion::All, PseudoElementResolution::IfApplicable)
+    StyleResolverForElement::new(element, &mut context, RuleInclusion::All, PseudoElementResolution::IfApplicable)
         .cascade_style_and_visited_with_default_parents(inputs)
-        .into();
-    style.into()
+        .0.into()
 }
 
 #[no_mangle]

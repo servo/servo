@@ -158,7 +158,7 @@ trait PrivateMatchMethods: TElement {
             StyleResolverForElement::new(*self, context, RuleInclusion::All, PseudoElementResolution::IfApplicable)
                 .cascade_style_and_visited_with_default_parents(inputs);
 
-        Some(style.into())
+        Some(style.0)
     }
 
     #[cfg(feature = "gecko")]
@@ -542,7 +542,7 @@ pub trait MatchMethods : TElement {
         self.process_animations(
             context,
             &mut data.styles.primary,
-            &mut new_styles.primary.0.style,
+            &mut new_styles.primary.style.0,
             data.hint,
             important_rules_changed,
         );
