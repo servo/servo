@@ -33,7 +33,6 @@ use std::cell::Cell;
 use std::mem;
 use std::str::{Chars, FromStr};
 use std::sync::{Arc, Mutex};
-use task::Task;
 use task_source::TaskSource;
 use timers::OneshotTimerCallback;
 use utf8;
@@ -91,15 +90,25 @@ struct EventSourceContext {
 }
 
 impl EventSourceContext {
+    /// https://html.spec.whatwg.org/multipage/#announce-the-connection
     fn announce_the_connection(&self) {
         let event_source = self.event_source.root();
         if self.gen_id != event_source.generation_id.get() {
             return;
         }
-        let task = box AnnounceConnectionTask {
-            event_source: self.event_source.clone()
-        };
-        let _ = event_source.global().networking_task_source().queue(task, &*event_source.global());
+        let global = event_source.global();
+        let event_source = self.event_source.clone();
+        // FIXME(nox): Why are errors silenced here?
+        let _ = global.networking_task_source().queue(
+            box task!(announce_the_event_source_connection: move || {
+                let event_source = event_source.root();
+                if event_source.ready_state.get() != ReadyState::Closed {
+                    event_source.ready_state.set(ReadyState::Open);
+                    event_source.upcast::<EventTarget>().fire_event(atom!("open"));
+                }
+            }),
+            &global,
+        );
     }
 
     /// https://html.spec.whatwg.org/multipage/#fail-the-connection
@@ -516,21 +525,6 @@ impl EventSourceMethods for EventSource {
         let GenerationId(prev_id) = self.generation_id.get();
         self.generation_id.set(GenerationId(prev_id + 1));
         self.ready_state.set(ReadyState::Closed);
-    }
-}
-
-pub struct AnnounceConnectionTask {
-    event_source: Trusted<EventSource>,
-}
-
-impl Task for AnnounceConnectionTask {
-    // https://html.spec.whatwg.org/multipage/#announce-the-connection
-    fn run(self: Box<Self>) {
-        let event_source = self.event_source.root();
-        if event_source.ready_state.get() != ReadyState::Closed {
-            event_source.ready_state.set(ReadyState::Open);
-            event_source.upcast::<EventTarget>().fire_event(atom!("open"));
-        }
     }
 }
 
