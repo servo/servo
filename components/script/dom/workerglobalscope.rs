@@ -33,7 +33,6 @@ use js::rust::Runtime;
 use net_traits::{IpcSend, load_whole_resource};
 use net_traits::request::{CredentialsMode, Destination, RequestInit as NetRequestInit, Type as RequestType};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, get_reports};
-use script_thread::RunnableWrapper;
 use script_traits::{TimerEvent, TimerEventId};
 use script_traits::WorkerGlobalScopeInit;
 use servo_url::{MutableOrigin, ServoUrl};
@@ -42,6 +41,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::Receiver;
+use task::TaskCanceller;
 use task_source::file_reading::FileReadingTaskSource;
 use task_source::networking::NetworkingTaskSource;
 use task_source::performance_timeline::PerformanceTimelineTaskSource;
@@ -161,8 +161,8 @@ impl WorkerGlobalScope {
         self.worker_id.clone()
     }
 
-    pub fn get_runnable_wrapper(&self) -> RunnableWrapper {
-        RunnableWrapper {
+    pub fn task_canceller(&self) -> TaskCanceller {
+        TaskCanceller {
             cancelled: self.closing.clone(),
         }
     }
@@ -387,8 +387,8 @@ impl WorkerGlobalScope {
 
     pub fn process_event(&self, msg: CommonScriptMsg) {
         match msg {
-            CommonScriptMsg::RunnableMsg(_, runnable) => {
-                runnable.handler()
+            CommonScriptMsg::Task(_, task) => {
+                task.run()
             },
             CommonScriptMsg::CollectReports(reports_chan) => {
                 let cx = self.get_cx();

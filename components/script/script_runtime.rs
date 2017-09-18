@@ -23,7 +23,7 @@ use js::panic::wrap_panic;
 use js::rust::Runtime;
 use microtask::{EnqueuedPromiseCallback, Microtask};
 use profile_traits::mem::{Report, ReportKind, ReportsChan};
-use script_thread::{Runnable, STACK_ROOTS, trace_thread};
+use script_thread::{STACK_ROOTS, trace_thread};
 use servo_config::opts;
 use servo_config::prefs::PREFS;
 use std::cell::Cell;
@@ -35,6 +35,7 @@ use std::os::raw::c_void;
 use std::panic::AssertUnwindSafe;
 use std::ptr;
 use style::thread_state;
+use task::Task;
 use time::{Tm, now};
 
 /// Common messages used to control the event loops in both the script and the worker
@@ -43,14 +44,16 @@ pub enum CommonScriptMsg {
     /// supplied channel.
     CollectReports(ReportsChan),
     /// Generic message that encapsulates event handling.
-    RunnableMsg(ScriptThreadEventCategory, Box<Runnable + Send>),
+    Task(ScriptThreadEventCategory, Box<Task + Send>),
 }
 
 impl fmt::Debug for CommonScriptMsg {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             CommonScriptMsg::CollectReports(_) => write!(f, "CollectReports(...)"),
-            CommonScriptMsg::RunnableMsg(category, _) => write!(f, "RunnableMsg({:?}, ...)", category),
+            CommonScriptMsg::Task(ref category, ref task) => {
+                f.debug_tuple("Task").field(category).field(task).finish()
+            },
         }
     }
 }

@@ -114,7 +114,7 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
 
         // B: Step 8
         let job = Job::create_job(JobType::Register, scope, script_url, promise.clone(), &*self.client);
-        ScriptThread::schedule_job(job, &*self.global());
+        ScriptThread::schedule_job(job);
         promise
     }
 }

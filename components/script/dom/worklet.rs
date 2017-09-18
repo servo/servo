@@ -51,9 +51,7 @@ use script_runtime::CommonScriptMsg;
 use script_runtime::ScriptThreadEventCategory;
 use script_runtime::StackRootTLS;
 use script_runtime::new_rt_and_cx;
-use script_thread::MainThreadScriptMsg;
-use script_thread::Runnable;
-use script_thread::ScriptThread;
+use script_thread::{MainThreadScriptMsg, ScriptThread};
 use servo_rand;
 use servo_url::ImmutableOrigin;
 use servo_url::ServoUrl;
@@ -71,6 +69,7 @@ use std::thread;
 use style::thread_state;
 use swapper::Swapper;
 use swapper::swapper;
+use task::Task;
 use uuid::Uuid;
 
 // Magic numbers
@@ -600,7 +599,7 @@ impl WorkletThread {
             debug!("Failed to load script.");
             let old_counter = pending_tasks_struct.set_counter_to(-1);
             if old_counter > 0 {
-                self.run_in_script_thread(promise.reject_runnable(Error::Abort));
+                self.run_in_script_thread(promise.reject_task(Error::Abort));
             }
         } else {
             // Step 5.
@@ -610,7 +609,7 @@ impl WorkletThread {
                 debug!("Resolving promise.");
                 let msg = MainThreadScriptMsg::WorkletLoaded(pipeline_id);
                 self.global_init.to_script_thread_sender.send(msg).expect("Worklet thread outlived script thread.");
-                self.run_in_script_thread(promise.resolve_runnable(()));
+                self.run_in_script_thread(promise.resolve_task(()));
             }
         }
     }
@@ -645,11 +644,11 @@ impl WorkletThread {
         }
     }
 
-    /// Run a runnable in the main script thread.
-    fn run_in_script_thread<R>(&self, runnable: R) where
-        R: 'static + Send + Runnable,
+    /// Run a task in the main script thread.
+    fn run_in_script_thread<T>(&self, task: T) where
+        T: 'static + Send + Task,
     {
-        let msg = CommonScriptMsg::RunnableMsg(ScriptThreadEventCategory::WorkletEvent, box runnable);
+        let msg = CommonScriptMsg::Task(ScriptThreadEventCategory::WorkletEvent, box task);
         let msg = MainThreadScriptMsg::Common(msg);
         self.global_init.to_script_thread_sender.send(msg).expect("Worklet thread outlived script thread.");
     }

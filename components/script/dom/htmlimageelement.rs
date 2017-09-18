@@ -48,7 +48,7 @@ use net_traits::image_cache::UsePlaceholder;
 use net_traits::request::{RequestInit, Type as RequestType};
 use network_listener::{NetworkListener, PreInvoke};
 use num_traits::ToPrimitive;
-use script_thread::{Runnable, ScriptThread};
+use script_thread::ScriptThread;
 use servo_url::ServoUrl;
 use servo_url::origin::ImmutableOrigin;
 use std::cell::{Cell, RefMut};
@@ -96,33 +96,6 @@ pub struct HTMLImageElement {
 impl HTMLImageElement {
     pub fn get_url(&self) -> Option<ServoUrl> {
         self.current_request.borrow().parsed_url.clone()
-    }
-}
-
-struct ImageResponseHandlerRunnable {
-    element: Trusted<HTMLImageElement>,
-    image: ImageResponse,
-    generation: u32,
-}
-
-impl ImageResponseHandlerRunnable {
-    fn new(element: Trusted<HTMLImageElement>, image: ImageResponse, generation: u32)
-           -> ImageResponseHandlerRunnable {
-        ImageResponseHandlerRunnable {
-            element: element,
-            image: image,
-            generation: generation,
-        }
-    }
-}
-
-impl Runnable for ImageResponseHandlerRunnable {
-    fn handler(self: Box<Self>) {
-        let element = self.element.root();
-        // Ignore any image response for a previous request that has been discarded.
-        if element.generation.get() == self.generation {
-            element.process_image_response(self.image);
-        }
     }
 }
 
@@ -191,15 +164,25 @@ impl HTMLImageElement {
 
             let window = window_from_node(elem);
             let task_source = window.networking_task_source();
-            let wrapper = window.get_runnable_wrapper();
+            let task_canceller = window.task_canceller();
             let generation = elem.generation.get();
             ROUTER.add_route(responder_receiver.to_opaque(), box move |message| {
                 debug!("Got image {:?}", message);
                 // Return the image via a message to the script thread, which marks
                 // the element as dirty and triggers a reflow.
-                let runnable = ImageResponseHandlerRunnable::new(
-                    trusted_node.clone(), message.to().unwrap(), generation);
-                let _ = task_source.queue_with_wrapper(box runnable, &wrapper);
+                let element = trusted_node.clone();
+                let image = message.to().unwrap();
+                // FIXME(nox): Why are errors silenced here?
+                let _ = task_source.queue_with_canceller(
+                    box task!(process_image_response: move || {
+                        let element = element.root();
+                        // Ignore any image response for a previous request that has been discarded.
+                        if generation == element.generation.get() {
+                            element.process_image_response(image);
+                        }
+                    }),
+                    &task_canceller,
+                );
             });
 
             image_cache.add_listener(id, ImageResponder::new(responder_sender, id));
@@ -249,7 +232,7 @@ impl HTMLImageElement {
         let listener = NetworkListener {
             context: context,
             task_source: window.networking_task_source(),
-            wrapper: Some(window.get_runnable_wrapper()),
+            canceller: Some(window.task_canceller()),
         };
         ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
             listener.notify_fetch(message.to().unwrap());
@@ -352,58 +335,6 @@ impl HTMLImageElement {
         request.metadata = None;
     }
 
-    /// Step 11.4 of https://html.spec.whatwg.org/multipage/#update-the-image-data
-    fn set_current_request_url_to_selected_fire_error_and_loadend(&self, src: DOMString) {
-        struct Task {
-            img: Trusted<HTMLImageElement>,
-            src: String,
-        }
-        impl Runnable for Task {
-            fn handler(self: Box<Self>) {
-                let img = self.img.root();
-                {
-                    let mut current_request = img.current_request.borrow_mut();
-                    current_request.source_url = Some(DOMString::from_string(self.src));
-                }
-                img.upcast::<EventTarget>().fire_event(atom!("error"));
-                img.upcast::<EventTarget>().fire_event(atom!("loadend"));
-                img.abort_request(State::Broken, ImageRequestPhase::Current);
-                img.abort_request(State::Broken, ImageRequestPhase::Pending);
-            }
-        }
-
-        let task = box Task {
-            img: Trusted::new(self),
-            src: src.into()
-        };
-        let document = document_from_node(self);
-        let window = document.window();
-        let task_source = window.dom_manipulation_task_source();
-        let _ = task_source.queue(task, window.upcast());
-    }
-
-    /// Step 10 of html.spec.whatwg.org/multipage/#update-the-image-data
-    fn dispatch_loadstart_progress_event(&self) {
-        struct FireprogressEventTask {
-            img: Trusted<HTMLImageElement>,
-        }
-        impl Runnable for FireprogressEventTask {
-            fn handler(self: Box<Self>) {
-                let progressevent = ProgressEvent::new(&self.img.root().global(),
-                    atom!("loadstart"), EventBubbles::DoesNotBubble, EventCancelable::NotCancelable,
-                    false, 0, 0);
-                progressevent.upcast::<Event>().fire(self.img.root().upcast());
-            }
-        }
-        let runnable = box FireprogressEventTask {
-            img: Trusted::new(self),
-        };
-        let document = document_from_node(self);
-        let window = document.window();
-        let task = window.dom_manipulation_task_source();
-        let _ = task.queue(runnable, window.upcast());
-    }
-
     /// https://html.spec.whatwg.org/multipage/#update-the-source-set
     fn update_source_set(&self) -> Vec<DOMString> {
         let elem = self.upcast::<Element>();
@@ -419,67 +350,6 @@ impl HTMLImageElement {
     fn select_image_source(&self) -> Option<DOMString> {
         // TODO: select an image source from source set
         self.update_source_set().first().cloned()
-    }
-
-    /// Step 9.2 of https://html.spec.whatwg.org/multipage/#update-the-image-data
-    fn set_current_request_url_to_none_fire_error(&self) {
-        struct SetUrlToNoneTask {
-            img: Trusted<HTMLImageElement>,
-        }
-        impl Runnable for SetUrlToNoneTask {
-            fn handler(self: Box<Self>) {
-                let img = self.img.root();
-                {
-                    let mut current_request = img.current_request.borrow_mut();
-                    current_request.source_url = None;
-                    current_request.parsed_url = None;
-                }
-                let elem = img.upcast::<Element>();
-                if elem.has_attribute(&local_name!("src")) {
-                    img.upcast::<EventTarget>().fire_event(atom!("error"));
-                }
-                img.abort_request(State::Broken, ImageRequestPhase::Current);
-                img.abort_request(State::Broken, ImageRequestPhase::Pending);
-            }
-        }
-
-        let task = box SetUrlToNoneTask {
-            img: Trusted::new(self),
-        };
-        let document = document_from_node(self);
-        let window = document.window();
-        let task_source = window.dom_manipulation_task_source();
-        let _ = task_source.queue(task, window.upcast());
-    }
-
-    /// Step 5.3.7 of https://html.spec.whatwg.org/multipage/#update-the-image-data
-    fn set_current_request_url_to_string_and_fire_load(&self, src: DOMString, url: ServoUrl) {
-        struct SetUrlToStringTask {
-            img: Trusted<HTMLImageElement>,
-            src: String,
-            url: ServoUrl
-        }
-        impl Runnable for SetUrlToStringTask {
-            fn handler(self: Box<Self>) {
-                let img = self.img.root();
-                {
-                    let mut current_request = img.current_request.borrow_mut();
-                    current_request.parsed_url = Some(self.url.clone());
-                    current_request.source_url = Some(self.src.into());
-                }
-                // TODO: restart animation, if set
-                img.upcast::<EventTarget>().fire_event(atom!("load"));
-            }
-        }
-        let runnable = box SetUrlToStringTask {
-            img: Trusted::new(self),
-            src: src.into(),
-            url: url
-        };
-        let document = document_from_node(self);
-        let window = document.window();
-        let task = window.dom_manipulation_task_source();
-        let _ = task.queue(runnable, window.upcast());
     }
 
     fn init_image_request(&self,
@@ -542,30 +412,93 @@ impl HTMLImageElement {
     /// Step 8-12 of html.spec.whatwg.org/multipage/#update-the-image-data
     fn update_the_image_data_sync_steps(&self) {
         let document = document_from_node(self);
-        // Step 8
-        // TODO: take pixel density into account
-        match self.select_image_source() {
+        let window = document.window();
+        let task_source = window.dom_manipulation_task_source();
+        let this = Trusted::new(self);
+        let src = match self.select_image_source() {
             Some(src) => {
-                // Step 10
-                self.dispatch_loadstart_progress_event();
-                // Step 11
-                let base_url = document.base_url();
-                let parsed_url = base_url.join(&src);
-                match parsed_url {
-                    Ok(url) => {
-                         // Step 12
-                        self.prepare_image_request(&url, &src);
-                    },
-                    Err(_) => {
-                        // Step 11.1-11.5
-                        self.set_current_request_url_to_selected_fire_error_and_loadend(src);
-                    }
-                }
+                // Step 8.
+                // TODO: Handle pixel density.
+                src
             },
             None => {
-                // Step 9
-                self.set_current_request_url_to_none_fire_error();
+                // Step 9.
+                // FIXME(nox): Why are errors silenced here?
+                let _ = task_source.queue(
+                    box task!(image_null_source_error: move || {
+                        let this = this.root();
+                        {
+                            let mut current_request =
+                                this.current_request.borrow_mut();
+                            current_request.source_url = None;
+                            current_request.parsed_url = None;
+                        }
+                        if this.upcast::<Element>().has_attribute(&local_name!("src")) {
+                            this.upcast::<EventTarget>().fire_event(atom!("error"));
+                        }
+                        // FIXME(nox): According to the spec, setting the current
+                        // request to the broken state is done prior to queuing a
+                        // task, why is this here?
+                        this.abort_request(State::Broken, ImageRequestPhase::Current);
+                        this.abort_request(State::Broken, ImageRequestPhase::Pending);
+                    }),
+                    window.upcast(),
+                );
+                return;
             },
+        };
+        // Step 10.
+        let target = Trusted::new(self.upcast::<EventTarget>());
+        // FIXME(nox): Why are errors silenced here?
+        let _ = task_source.queue(
+            box task!(fire_progress_event: move || {
+                let target = target.root();
+
+                let event = ProgressEvent::new(
+                    &target.global(),
+                    atom!("loadstart"),
+                    EventBubbles::DoesNotBubble,
+                    EventCancelable::NotCancelable,
+                    false,
+                    0,
+                    0,
+                );
+                event.upcast::<Event>().fire(&target);
+            }),
+            window.upcast(),
+        );
+        // Step 11
+        let base_url = document.base_url();
+        let parsed_url = base_url.join(&src);
+        match parsed_url {
+            Ok(url) => {
+                    // Step 12
+                self.prepare_image_request(&url, &src);
+            },
+            Err(_) => {
+                // Step 11.1-11.5.
+                let src = String::from(src);
+                // FIXME(nox): Why are errors silenced here?
+                let _ = task_source.queue(
+                    box task!(image_selected_source_error: move || {
+                        let this = this.root();
+                        {
+                            let mut current_request =
+                                this.current_request.borrow_mut();
+                            current_request.source_url = Some(src.into());
+                        }
+                        this.upcast::<EventTarget>().fire_event(atom!("error"));
+                        this.upcast::<EventTarget>().fire_event(atom!("loadend"));
+
+                        // FIXME(nox): According to the spec, setting the current
+                        // request to the broken state is done prior to queuing a
+                        // task, why is this here?
+                        this.abort_request(State::Broken, ImageRequestPhase::Current);
+                        this.abort_request(State::Broken, ImageRequestPhase::Pending);
+                    }),
+                    window.upcast(),
+                );
+            }
         }
     }
 
@@ -613,8 +546,23 @@ impl HTMLImageElement {
                     current_request.final_url = Some(url);
                     current_request.image = Some(image.clone());
                     current_request.metadata = Some(metadata);
-                    self.set_current_request_url_to_string_and_fire_load(src, img_url);
-                    return
+                    let this = Trusted::new(self);
+                    let src = String::from(src);
+                    let _ = window.dom_manipulation_task_source().queue(
+                        box task!(image_load_event: move || {
+                            let this = this.root();
+                            {
+                                let mut current_request =
+                                    this.current_request.borrow_mut();
+                                current_request.parsed_url = Some(img_url);
+                                current_request.source_url = Some(src.into());
+                            }
+                            // TODO: restart animation, if set.
+                            this.upcast::<EventTarget>().fire_event(atom!("load"));
+                        }),
+                        window.upcast(),
+                    );
+                    return;
                 }
             }
         }

@@ -29,14 +29,14 @@ use js::jsapi::JSAutoCompartment;
 use js::jsapi::JSContext;
 use js::jsval::{self, JSVal};
 use js::typedarray::{ArrayBuffer, CreateWith};
-use script_thread::RunnableWrapper;
 use servo_atoms::Atom;
 use std::cell::Cell;
 use std::ptr;
 use std::sync::Arc;
 use std::thread;
+use task::TaskCanceller;
 use task_source::TaskSource;
-use task_source::file_reading::{FileReadingTaskSource, FileReadingRunnable, FileReadingTask};
+use task_source::file_reading::{FileReadingTask, FileReadingTaskSource};
 
 #[derive(Clone, Copy, HeapSizeOf, JSTraceable, PartialEq)]
 pub enum FileReaderFunction {
@@ -383,11 +383,18 @@ impl FileReader {
         let gen_id = self.generation_id.get();
 
         let global = self.global();
-        let wrapper = global.get_runnable_wrapper();
+        let canceller = global.task_canceller();
         let task_source = global.file_reading_task_source();
 
         thread::Builder::new().name("file reader async operation".to_owned()).spawn(move || {
-            perform_annotated_read_operation(gen_id, load_data, blob_contents, fr, task_source, wrapper)
+            perform_annotated_read_operation(
+                gen_id,
+                load_data,
+                blob_contents,
+                fr,
+                task_source,
+                canceller,
+            )
         }).expect("Thread spawning failed");
 
         Ok(())
@@ -399,19 +406,21 @@ impl FileReader {
 }
 
 // https://w3c.github.io/FileAPI/#thread-read-operation
-fn perform_annotated_read_operation(gen_id: GenerationId,
-                                    data: ReadMetaData,
-                                    blob_contents: Arc<Vec<u8>>,
-                                    filereader: TrustedFileReader,
-                                    task_source: FileReadingTaskSource,
-                                    wrapper: RunnableWrapper) {
+fn perform_annotated_read_operation(
+    gen_id: GenerationId,
+    data: ReadMetaData,
+    blob_contents: Arc<Vec<u8>>,
+    filereader: TrustedFileReader,
+    task_source: FileReadingTaskSource,
+    canceller: TaskCanceller,
+) {
     // Step 4
-    let task = FileReadingRunnable::new(FileReadingTask::ProcessRead(filereader.clone(), gen_id));
-    task_source.queue_with_wrapper(task, &wrapper).unwrap();
+    let task = FileReadingTask::ProcessRead(filereader.clone(), gen_id);
+    task_source.queue_with_canceller(box task, &canceller).unwrap();
 
-    let task = FileReadingRunnable::new(FileReadingTask::ProcessReadData(filereader.clone(), gen_id));
-    task_source.queue_with_wrapper(task, &wrapper).unwrap();
+    let task = FileReadingTask::ProcessReadData(filereader.clone(), gen_id);
+    task_source.queue_with_canceller(box task, &canceller).unwrap();
 
-    let task = FileReadingRunnable::new(FileReadingTask::ProcessReadEOF(filereader, gen_id, data, blob_contents));
-    task_source.queue_with_wrapper(task, &wrapper).unwrap();
+    let task = FileReadingTask::ProcessReadEOF(filereader, gen_id, data, blob_contents);
+    task_source.queue_with_canceller(box task, &canceller).unwrap();
 }

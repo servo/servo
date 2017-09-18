@@ -113,7 +113,7 @@ use net_traits::response::HttpsState;
 use num_traits::ToPrimitive;
 use script_layout_interface::message::{Msg, ReflowQueryType};
 use script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
-use script_thread::{MainThreadScriptMsg, Runnable, ScriptThread};
+use script_thread::{MainThreadScriptMsg, ScriptThread};
 use script_traits::{AnimationState, CompositorEvent, DocumentActivity};
 use script_traits::{MouseButton, MouseEventType, MozBrowserEvent};
 use script_traits::{MsDuration, ScriptMsg, TouchpadPressurePhase};
@@ -1714,8 +1714,57 @@ impl Document {
         // The rest will ever run only once per document.
         // Step 7.
         debug!("Document loads are complete.");
-        let handler = box DocumentProgressHandler::new(Trusted::new(self));
-        self.window.dom_manipulation_task_source().queue(handler, self.window.upcast()).unwrap();
+        let document = Trusted::new(self);
+        self.window.dom_manipulation_task_source().queue(
+            box task!(fire_load_event: move || {
+                let document = document.root();
+                let window = document.window();
+                if !window.is_alive() {
+                    return;
+                }
+
+                // Step 7.1.
+                document.set_ready_state(DocumentReadyState::Complete);
+
+                // Step 7.2.
+                if document.browsing_context().is_none() {
+                    return;
+                }
+                let event = Event::new(
+                    window.upcast(),
+                    atom!("load"),
+                    EventBubbles::DoesNotBubble,
+                    EventCancelable::NotCancelable,
+                );
+                event.set_trusted(true);
+
+                // http://w3c.github.io/navigation-timing/#widl-PerformanceNavigationTiming-loadEventStart
+                update_with_current_time_ms(&document.load_event_start);
+
+                debug!("About to dispatch load for {:?}", document.url());
+                // FIXME(nox): Why are errors silenced here?
+                let _ = window.upcast::<EventTarget>().dispatch_event_with_target(
+                    document.upcast(),
+                    &event,
+                );
+
+                // http://w3c.github.io/navigation-timing/#widl-PerformanceNavigationTiming-loadEventEnd
+                update_with_current_time_ms(&document.load_event_end);
+
+                window.reflow(
+                    ReflowGoal::ForDisplay,
+                    ReflowQueryType::NoQuery,
+                    ReflowReason::DocumentLoaded,
+                );
+
+                document.notify_constellation_load();
+
+                if let Some(fragment) = document.url().fragment() {
+                    document.check_and_scroll_fragment(fragment);
+                }
+            }),
+            self.window.upcast(),
+        ).unwrap();
 
         // Step 8.
         // TODO: pageshow event.
@@ -2609,7 +2658,7 @@ impl Document {
         let trusted_pending = Trusted::new(pending);
         let trusted_promise = TrustedPromise::new(promise.clone());
         let handler = ElementPerformFullscreenEnter::new(trusted_pending, trusted_promise, error);
-        let script_msg = CommonScriptMsg::RunnableMsg(ScriptThreadEventCategory::EnterFullscreen, handler);
+        let script_msg = CommonScriptMsg::Task(ScriptThreadEventCategory::EnterFullscreen, handler);
         let msg = MainThreadScriptMsg::Common(script_msg);
         window.main_thread_script_chan().send(msg).unwrap();
 
@@ -2641,7 +2690,7 @@ impl Document {
         let trusted_element = Trusted::new(element.r());
         let trusted_promise = TrustedPromise::new(promise.clone());
         let handler = ElementPerformFullscreenExit::new(trusted_element, trusted_promise);
-        let script_msg = CommonScriptMsg::RunnableMsg(ScriptThreadEventCategory::ExitFullscreen, handler);
+        let script_msg = CommonScriptMsg::Task(ScriptThreadEventCategory::ExitFullscreen, handler);
         let msg = MainThreadScriptMsg::Common(script_msg);
         window.main_thread_script_chan().send(msg).unwrap();
 
@@ -3967,66 +4016,6 @@ pub fn determine_policy_for_token(token: &str) -> Option<ReferrerPolicy> {
         "always" | "unsafe-url" => Some(ReferrerPolicy::UnsafeUrl),
         "" => Some(ReferrerPolicy::NoReferrer),
         _ => None,
-    }
-}
-
-pub struct DocumentProgressHandler {
-    addr: Trusted<Document>
-}
-
-impl DocumentProgressHandler {
-     pub fn new(addr: Trusted<Document>) -> DocumentProgressHandler {
-        DocumentProgressHandler {
-            addr: addr
-        }
-    }
-
-    fn set_ready_state_complete(&self) {
-        let document = self.addr.root();
-        document.set_ready_state(DocumentReadyState::Complete);
-    }
-
-    fn dispatch_load(&self) {
-        let document = self.addr.root();
-        if document.browsing_context().is_none() {
-            return;
-        }
-        let window = document.window();
-        let event = Event::new(window.upcast(),
-                               atom!("load"),
-                               EventBubbles::DoesNotBubble,
-                               EventCancelable::NotCancelable);
-        let wintarget = window.upcast::<EventTarget>();
-        event.set_trusted(true);
-
-        // http://w3c.github.io/navigation-timing/#widl-PerformanceNavigationTiming-loadEventStart
-        update_with_current_time_ms(&document.load_event_start);
-
-        debug!("About to dispatch load for {:?}", document.url());
-        let _ = wintarget.dispatch_event_with_target(document.upcast(), &event);
-
-        // http://w3c.github.io/navigation-timing/#widl-PerformanceNavigationTiming-loadEventEnd
-        update_with_current_time_ms(&document.load_event_end);
-
-        window.reflow(ReflowGoal::ForDisplay,
-                      ReflowQueryType::NoQuery,
-                      ReflowReason::DocumentLoaded);
-
-        document.notify_constellation_load();
-    }
-}
-
-impl Runnable for DocumentProgressHandler {
-    fn handler(self: Box<DocumentProgressHandler>) {
-        let document = self.addr.root();
-        let window = document.window();
-        if window.is_alive() {
-            self.set_ready_state_complete();
-            self.dispatch_load();
-            if let Some(fragment) = document.url().fragment() {
-                document.check_and_scroll_fragment(fragment);
-            }
-        }
     }
 }
 

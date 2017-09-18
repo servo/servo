@@ -20,10 +20,10 @@ use dom::node::Node;
 use dom::virtualmethods::vtable_for;
 use dom::window::Window;
 use dom_struct::dom_struct;
-use script_thread::Runnable;
 use servo_atoms::Atom;
 use std::cell::Cell;
 use std::default::Default;
+use task::Task;
 use time;
 
 #[dom_struct]
@@ -381,15 +381,15 @@ pub enum EventStatus {
 }
 
 // https://dom.spec.whatwg.org/#concept-event-fire
-pub struct EventRunnable {
+pub struct EventTask {
     pub target: Trusted<EventTarget>,
     pub name: Atom,
     pub bubbles: EventBubbles,
     pub cancelable: EventCancelable,
 }
 
-impl Runnable for EventRunnable {
-    fn handler(self: Box<EventRunnable>) {
+impl Task for EventTask {
+    fn run(self: Box<Self>) {
         let target = self.target.root();
         let bubbles = self.bubbles;
         let cancelable = self.cancelable;
@@ -398,13 +398,13 @@ impl Runnable for EventRunnable {
 }
 
 // https://html.spec.whatwg.org/multipage/#fire-a-simple-event
-pub struct SimpleEventRunnable {
+pub struct SimpleEventTask {
     pub target: Trusted<EventTarget>,
     pub name: Atom,
 }
 
-impl Runnable for SimpleEventRunnable {
-    fn handler(self: Box<SimpleEventRunnable>) {
+impl Task for SimpleEventTask {
+    fn run(self: Box<Self>) {
         let target = self.target.root();
         target.fire_event(self.name);
     }

@@ -43,7 +43,7 @@ use js::jsval::{NullValue, UndefinedValue};
 use msg::constellation_msg::{FrameType, BrowsingContextId, PipelineId, TopLevelBrowsingContextId, TraversalDirection};
 use net_traits::response::HttpsState;
 use script_layout_interface::message::ReflowQueryType;
-use script_thread::{ScriptThread, Runnable};
+use script_thread::ScriptThread;
 use script_traits::{IFrameLoadInfo, IFrameLoadInfoWithData, JsEvalResult, LoadData, UpdatePipelineIdReason};
 use script_traits::{MozBrowserEvent, NewLayoutInfo, ScriptMsg};
 use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
@@ -232,9 +232,15 @@ impl HTMLIFrameElement {
 
         // https://github.com/whatwg/html/issues/490
         if mode == ProcessingMode::FirstTime && !self.upcast::<Element>().has_attribute(&local_name!("src")) {
-            let event_loop = window.dom_manipulation_task_source();
-            let _ = event_loop.queue(box IFrameLoadEventSteps::new(self),
-                                     window.upcast());
+            let this = Trusted::new(self);
+            let pipeline_id = self.pipeline_id().unwrap();
+            // FIXME(nox): Why are errors silenced here?
+            let _ = window.dom_manipulation_task_source().queue(
+                box task!(iframe_load_event_steps: move || {
+                    this.root().iframe_load_event_steps(pipeline_id);
+                }),
+                window.upcast(),
+            );
             return;
         }
 
@@ -832,26 +838,5 @@ impl VirtualMethods for HTMLIFrameElement {
         // a new iframe. Without this, the constellation gets very
         // confused.
         self.destroy_nested_browsing_context();
-    }
-}
-
-struct IFrameLoadEventSteps {
-    frame_element: Trusted<HTMLIFrameElement>,
-    pipeline_id: PipelineId,
-}
-
-impl IFrameLoadEventSteps {
-    fn new(frame_element: &HTMLIFrameElement) -> IFrameLoadEventSteps {
-        IFrameLoadEventSteps {
-            frame_element: Trusted::new(frame_element),
-            pipeline_id: frame_element.pipeline_id().unwrap(),
-        }
-    }
-}
-
-impl Runnable for IFrameLoadEventSteps {
-    fn handler(self: Box<IFrameLoadEventSteps>) {
-        let this = self.frame_element.root();
-        this.iframe_load_event_steps(self.pipeline_id);
     }
 }

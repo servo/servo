@@ -108,6 +108,9 @@ extern crate webrender_api;
 extern crate webvr_traits;
 extern crate xml5ever;
 
+#[macro_use]
+mod task;
+
 mod body;
 pub mod clipboard_provider;
 mod devtools;

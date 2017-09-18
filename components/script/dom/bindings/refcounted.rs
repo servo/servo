@@ -32,8 +32,6 @@ use dom::promise::Promise;
 use js::jsapi::JSAutoCompartment;
 use js::jsapi::JSTracer;
 use libc;
-use script_thread::Runnable;
-use script_thread::ScriptThread;
 use std::cell::RefCell;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::hash_map::HashMap;
@@ -42,6 +40,7 @@ use std::marker::PhantomData;
 use std::os;
 use std::rc::Rc;
 use std::sync::{Arc, Weak};
+use task::Task;
 
 
 #[allow(missing_docs)]  // FIXME
@@ -121,40 +120,33 @@ impl TrustedPromise {
         })
     }
 
-    /// A runnable which will reject the promise.
+    /// A task which will reject the promise.
     #[allow(unrooted_must_root)]
-    pub fn reject_runnable(self, error: Error) -> impl Runnable + Send {
-        struct RejectPromise(TrustedPromise, Error);
-        impl Runnable for RejectPromise {
-            fn main_thread_handler(self: Box<Self>, script_thread: &ScriptThread) {
-                debug!("Rejecting promise.");
-                let this = *self;
-                let cx = script_thread.get_cx();
-                let promise = this.0.root();
-                let _ac = JSAutoCompartment::new(cx, promise.reflector().get_jsobject().get());
-                promise.reject_error(cx, this.1);
-            }
-        }
-        RejectPromise(self, error)
+    pub fn reject_task(self, error: Error) -> impl Send + Task {
+        let this = self;
+        task!(reject_promise: move || {
+            debug!("Rejecting promise.");
+            let this = this.root();
+            let cx = this.global().get_cx();
+            let _ac = JSAutoCompartment::new(cx, this.reflector().get_jsobject().get());
+            this.reject_error(cx, error);
+        })
     }
 
-    /// A runnable which will resolve the promise.
+    /// A task which will resolve the promise.
     #[allow(unrooted_must_root)]
-    pub fn resolve_runnable<T>(self, value: T) -> impl Runnable + Send where
-        T: ToJSValConvertible + Send
+    pub fn resolve_task<T>(self, value: T) -> impl Send + Task
+    where
+        T: ToJSValConvertible + Send,
     {
-        struct ResolvePromise<T>(TrustedPromise, T);
-        impl<T: ToJSValConvertible> Runnable for ResolvePromise<T> {
-            fn main_thread_handler(self: Box<Self>, script_thread: &ScriptThread) {
-                debug!("Resolving promise.");
-                let this = *self;
-                let cx = script_thread.get_cx();
-                let promise = this.0.root();
-                let _ac = JSAutoCompartment::new(cx, promise.reflector().get_jsobject().get());
-                promise.resolve_native(cx, &this.1);
-            }
-        }
-        ResolvePromise(self, value)
+        let this = self;
+        task!(resolve_promise: move || {
+            debug!("Resolving promise.");
+            let this = this.root();
+            let cx = this.global().get_cx();
+            let _ac = JSAutoCompartment::new(cx, this.reflector().get_jsobject().get());
+            this.resolve_native(cx, &value);
+        })
     }
 }
 

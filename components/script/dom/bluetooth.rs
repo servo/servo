@@ -35,12 +35,12 @@ use ipc_channel::router::ROUTER;
 use js::conversions::ConversionResult;
 use js::jsapi::{JSAutoCompartment, JSContext, JSObject};
 use js::jsval::{ObjectValue, UndefinedValue};
-use script_thread::Runnable;
 use std::cell::Ref;
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::str::FromStr;
 use std::sync::{Arc, Mutex};
+use task::Task;
 
 const KEY_CONVERSION_ERROR: &'static str = "This `manufacturerData` key can not be parsed as unsigned short:";
 const FILTER_EMPTY_ERROR: &'static str = "'filters' member, if present, must be nonempty to find any devices.";
@@ -224,25 +224,28 @@ pub fn response_async<T: AsyncBluetoothListener + DomObject + 'static>(
         receiver: Trusted::new(receiver),
     }));
     ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
-        struct ListenerRunnable<T: AsyncBluetoothListener + DomObject> {
+        struct ListenerTask<T: AsyncBluetoothListener + DomObject> {
             context: Arc<Mutex<BluetoothContext<T>>>,
             action: BluetoothResponseResult,
         }
 
-        impl<T: AsyncBluetoothListener + DomObject> Runnable for ListenerRunnable<T> {
-            fn handler(self: Box<Self>) {
+        impl<T> Task for ListenerTask<T>
+        where
+            T: AsyncBluetoothListener + DomObject,
+        {
+            fn run(self: Box<Self>) {
                 let this = *self;
                 let mut context = this.context.lock().unwrap();
                 context.response(this.action);
             }
         }
 
-        let runnable = box ListenerRunnable {
+        let task = box ListenerTask {
             context: context.clone(),
             action: message.to().unwrap(),
         };
 
-        let result = task_source.queue_wrapperless(runnable);
+        let result = task_source.queue_unconditionally(task);
         if let Err(err) = result {
             warn!("failed to deliver network data: {:?}", err);
         }

@@ -36,7 +36,6 @@ use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::JSContext;
 use script_runtime::CommonScriptMsg;
 use script_runtime::ScriptThreadEventCategory::WebVREvent;
-use script_thread::Runnable;
 use std::cell::Cell;
 use std::mem;
 use std::rc::Rc;
@@ -511,11 +510,12 @@ impl VRDisplay {
             api_sender.send_vr(WebVRCommand::Create(display_id)).unwrap();
             loop {
                 // Run RAF callbacks on JavaScript thread
-                let msg = box NotifyDisplayRAF {
-                    address: address.clone(),
-                    sender: raf_sender.clone()
-                };
-                js_sender.send(CommonScriptMsg::RunnableMsg(WebVREvent, msg)).unwrap();
+                let this = address.clone();
+                let sender = raf_sender.clone();
+                let task = box task!(handle_vrdisplay_raf: move || {
+                    this.root().handle_raf(&sender);
+                });
+                js_sender.send(CommonScriptMsg::Task(WebVREvent, task)).unwrap();
 
                 // Run Sync Poses in parallell on Render thread
                 let msg = WebVRCommand::SyncPoses(display_id, near, far, sync_sender.clone());
@@ -607,19 +607,6 @@ impl VRDisplay {
         }
     }
 }
-
-struct NotifyDisplayRAF {
-    address: Trusted<VRDisplay>,
-    sender: mpsc::Sender<Result<(f64, f64), ()>>
-}
-
-impl Runnable for NotifyDisplayRAF {
-    fn handler(self: Box<Self>) {
-        let display = self.address.root();
-        display.handle_raf(&self.sender);
-    }
-}
-
 
 // WebVR Spec: If the number of values in the leftBounds/rightBounds arrays
 // is not 0 or 4 for any of the passed layers the promise is rejected

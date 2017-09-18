@@ -87,29 +87,30 @@ use profile_traits::time::{self, ProfilerCategory, profile};
 use script_layout_interface::message::{self, Msg, NewLayoutThreadInfo, ReflowQueryType};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
 use script_runtime::{ScriptPort, StackRootTLS, get_reports, new_rt_and_cx};
-use script_traits::{CompositorEvent, ConstellationControlMsg, PaintMetricType};
-use script_traits::{DocumentActivity, DiscardBrowsingContext, EventResult};
-use script_traits::{InitialScriptState, JsEvalResult, LayoutMsg, LoadData, MouseButton, MouseEventType};
-use script_traits::{MozBrowserEvent, NewLayoutInfo, ScriptToConstellationChan, ScriptMsg, UpdatePipelineIdReason};
-use script_traits::{ScriptThreadFactory, TimerEvent, TimerSchedulerMsg, TimerSource};
-use script_traits::{TouchEventType, TouchId, UntrustedNodeAddress, WindowSizeData, WindowSizeType};
+use script_traits::{CompositorEvent, ConstellationControlMsg};
+use script_traits::{DiscardBrowsingContext, DocumentActivity, EventResult};
+use script_traits::{InitialScriptState, JsEvalResult, LayoutMsg, LoadData};
+use script_traits::{MouseButton, MouseEventType, MozBrowserEvent, NewLayoutInfo};
+use script_traits::{PaintMetricType, Painter, ScriptMsg, ScriptThreadFactory};
+use script_traits::{ScriptToConstellationChan, TimerEvent, TimerSchedulerMsg};
+use script_traits::{TimerSource, TouchEventType, TouchId, UntrustedNodeAddress};
+use script_traits::{UpdatePipelineIdReason, WindowSizeData, WindowSizeType};
 use script_traits::CompositorEvent::{KeyEvent, MouseButtonEvent, MouseMoveEvent, ResizeEvent};
 use script_traits::CompositorEvent::{TouchEvent, TouchpadPressureEvent};
 use script_traits::webdriver_msg::WebDriverScriptCommand;
-use serviceworkerjob::{Job, JobQueue, AsyncJobHandler};
+use serviceworkerjob::{Job, JobQueue};
+use servo_atoms::Atom;
 use servo_config::opts;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use std::cell::Cell;
 use std::collections::{hash_map, HashMap, HashSet};
 use std::default::Default;
-use std::intrinsics;
 use std::ops::Deref;
 use std::option::Option;
 use std::ptr;
 use std::rc::Rc;
 use std::result::Result;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Receiver, Select, Sender, channel};
 use std::thread;
 use style::context::ReflowGoal;
@@ -202,62 +203,6 @@ impl InProgressLoad {
     }
 }
 
-/// Encapsulated state required to create cancellable runnables from non-script threads.
-pub struct RunnableWrapper {
-    pub cancelled: Option<Arc<AtomicBool>>,
-}
-
-impl RunnableWrapper {
-    pub fn wrap_runnable<T: Runnable + Send + 'static>(&self, runnable: Box<T>) -> Box<Runnable + Send> {
-        box CancellableRunnable {
-            cancelled: self.cancelled.clone(),
-            inner: runnable,
-        }
-    }
-}
-
-/// A runnable that can be discarded by toggling a shared flag.
-pub struct CancellableRunnable<T: Runnable + Send> {
-    cancelled: Option<Arc<AtomicBool>>,
-    inner: Box<T>,
-}
-
-impl<T> CancellableRunnable<T>
-where
-    T: Runnable + Send,
-{
-    fn is_cancelled(&self) -> bool {
-        self.cancelled.as_ref().map_or(false, |cancelled| {
-            cancelled.load(Ordering::SeqCst)
-        })
-    }
-}
-
-impl<T> Runnable for CancellableRunnable<T>
-where
-    T: Runnable + Send,
-{
-    fn main_thread_handler(self: Box<CancellableRunnable<T>>, script_thread: &ScriptThread) {
-        if !self.is_cancelled() {
-            self.inner.main_thread_handler(script_thread);
-        }
-    }
-
-    fn handler(self: Box<CancellableRunnable<T>>) {
-        if !self.is_cancelled() {
-            self.inner.handler()
-        }
-    }
-}
-
-pub trait Runnable {
-    fn name(&self) -> &'static str { unsafe { intrinsics::type_name::<Self>() } }
-    fn handler(self: Box<Self>) {
-        panic!("This should probably be redefined.")
-    }
-    fn main_thread_handler(self: Box<Self>, _script_thread: &ScriptThread) { self.handler(); }
-}
-
 #[derive(Debug)]
 enum MixedMessage {
     FromConstellation(ConstellationControlMsg),
@@ -267,7 +212,7 @@ enum MixedMessage {
     FromScheduler(TimerEvent),
 }
 
-/// Messages used to control the script event loop
+/// Messages used to control the script event loop.
 #[derive(Debug)]
 pub enum MainThreadScriptMsg {
     /// Common variants associated with the script messages
@@ -282,6 +227,15 @@ pub enum MainThreadScriptMsg {
     /// Notifies the script thread that a new worklet has been loaded, and thus the page should be
     /// reflowed.
     WorkletLoaded(PipelineId),
+    /// Notifies the script thread that a new paint worklet has been registered.
+    RegisterPaintWorklet {
+        pipeline_id: PipelineId,
+        name: Atom,
+        properties: Vec<Atom>,
+        painter: Box<Painter>
+    },
+    /// Dispatches a job queue.
+    DispatchJobQueue { scope_url: ServoUrl },
 }
 
 impl OpaqueSender<CommonScriptMsg> for Box<ScriptChan + Send> {
@@ -694,11 +648,11 @@ impl ScriptThread {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn schedule_job(job: Job, global: &GlobalScope) {
+    pub fn schedule_job(job: Job) {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
             let job_queue = &*script_thread.job_queue_map;
-            job_queue.schedule_job(job, global, &script_thread);
+            job_queue.schedule_job(job, &script_thread);
         });
     }
 
@@ -766,13 +720,21 @@ impl ScriptThread {
         })
     }
 
-    pub fn send_to_layout(&self, pipeline_id: PipelineId, msg: Msg) {
+    fn handle_register_paint_worklet(
+        &self,
+        pipeline_id: PipelineId,
+        name: Atom,
+        properties: Vec<Atom>,
+        painter: Box<Painter>,
+    ) {
         let window = self.documents.borrow().find_window(pipeline_id);
         let window = match window {
             Some(window) => window,
-            None => return warn!("Message sent to layout after pipeline {} closed.", pipeline_id),
+            None => return warn!("Paint worklet registered after pipeline {} closed.", pipeline_id),
         };
-        let _ = window.layout_chan().send(msg);
+        let _ = window.layout_chan().send(
+            Msg::RegisterPaint(name, properties, painter),
+        );
     }
 
     pub fn push_new_element_queue() {
@@ -1160,9 +1122,13 @@ impl ScriptThread {
             MixedMessage::FromImageCache(_) => ScriptThreadEventCategory::ImageCacheMsg,
             MixedMessage::FromScript(ref inner_msg) => {
                 match *inner_msg {
-                    MainThreadScriptMsg::Common(CommonScriptMsg::RunnableMsg(ref category, _)) =>
-                        *category,
-                    _ => ScriptThreadEventCategory::ScriptEvent
+                    MainThreadScriptMsg::Common(CommonScriptMsg::Task(category, _)) => {
+                        category
+                    },
+                    MainThreadScriptMsg::RegisterPaintWorklet { .. } => {
+                        ScriptThreadEventCategory::WorkletEvent
+                    },
+                    _ => ScriptThreadEventCategory::ScriptEvent,
                 }
             },
             MixedMessage::FromScheduler(_) => ScriptThreadEventCategory::TimerEvent
@@ -1291,8 +1257,8 @@ impl ScriptThread {
             MainThreadScriptMsg::ExitWindow(id) => {
                 self.handle_exit_window_msg(id)
             },
-            MainThreadScriptMsg::Common(CommonScriptMsg::RunnableMsg(_, runnable)) => {
-                runnable.main_thread_handler(self)
+            MainThreadScriptMsg::Common(CommonScriptMsg::Task(_, task)) => {
+                task.run()
             }
             MainThreadScriptMsg::Common(CommonScriptMsg::CollectReports(chan)) => {
                 self.collect_reports(chan)
@@ -1300,6 +1266,22 @@ impl ScriptThread {
             MainThreadScriptMsg::WorkletLoaded(pipeline_id) => {
                 self.handle_worklet_loaded(pipeline_id)
             },
+            MainThreadScriptMsg::RegisterPaintWorklet {
+                pipeline_id,
+                name,
+                properties,
+                painter,
+            } => {
+                self.handle_register_paint_worklet(
+                    pipeline_id,
+                    name,
+                    properties,
+                    painter,
+                )
+            },
+            MainThreadScriptMsg::DispatchJobQueue { scope_url } => {
+                self.job_queue_map.run_job(scope_url, self)
+            }
         }
     }
 
@@ -1736,8 +1718,8 @@ impl ScriptThread {
         let _ = self.script_sender.send((pipeline_id, ScriptMsg::RegisterServiceWorker(scope_things, scope.clone())));
     }
 
-    pub fn dispatch_job_queue(&self, job_handler: Box<AsyncJobHandler>) {
-        self.job_queue_map.run_job(job_handler, self);
+    pub fn schedule_job_queue(&self, scope_url: ServoUrl) {
+        let _ = self.chan.0.send(MainThreadScriptMsg::DispatchJobQueue { scope_url });
     }
 
     pub fn dom_manipulation_task_source(&self) -> &DOMManipulationTaskSource {

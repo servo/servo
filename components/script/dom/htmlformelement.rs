@@ -48,13 +48,11 @@ use encoding::label::encoding_from_whatwg_label;
 use html5ever::{LocalName, Prefix};
 use hyper::header::{Charset, ContentDisposition, ContentType, DispositionParam, DispositionType};
 use hyper::method::Method;
-use msg::constellation_msg::PipelineId;
-use script_thread::{MainThreadScriptMsg, Runnable};
+use script_thread::MainThreadScriptMsg;
 use script_traits::LoadData;
 use servo_rand::random;
 use std::borrow::ToOwned;
 use std::cell::Cell;
-use std::sync::mpsc::Sender;
 use style::attr::AttrValue;
 use style::str::split_html_space_chars;
 use task_source::TaskSource;
@@ -432,23 +430,29 @@ impl HTMLFormElement {
         let window = window_from_node(self);
 
         // Step 1
-        // Each planned navigation runnable is tagged with a generation ID, and
-        // before the runnable is handled, it first checks whether the HTMLFormElement's
+        // Each planned navigation task is tagged with a generation ID, and
+        // before the task is handled, it first checks whether the HTMLFormElement's
         // generation ID is the same as its own generation ID.
-        let GenerationId(prev_id) = self.generation_id.get();
-        self.generation_id.set(GenerationId(prev_id + 1));
+        let generation_id = GenerationId(self.generation_id.get().0 + 1);
+        self.generation_id.set(generation_id);
 
-        // Step 2
-        let nav = box PlannedNavigation {
-            load_data: load_data,
-            pipeline_id: window.upcast::<GlobalScope>().pipeline_id(),
-            script_chan: window.main_thread_script_chan().clone(),
-            generation_id: self.generation_id.get(),
-            form: Trusted::new(self)
-        };
+        // Step 2.
+        let pipeline_id = window.upcast::<GlobalScope>().pipeline_id();
+        let script_chan = window.main_thread_script_chan().clone();
+        let this = Trusted::new(self);
+        let task = box task!(navigate_to_form_planned_navigation: move || {
+            if generation_id != this.root().generation_id.get() {
+                return;
+            }
+            script_chan.send(MainThreadScriptMsg::Navigate(
+                pipeline_id,
+                load_data,
+                false,
+            )).unwrap();
+        });
 
-        // Step 3
-        window.dom_manipulation_task_source().queue(nav, window.upcast()).unwrap();
+        // Step 3.
+        window.dom_manipulation_task_source().queue(task, window.upcast()).unwrap();
     }
 
     /// Interactively validate the constraints of form elements
@@ -1106,24 +1110,6 @@ impl FormControlElementHelpers for Element {
         }
     }
 }
-
-struct PlannedNavigation {
-    load_data: LoadData,
-    pipeline_id: PipelineId,
-    script_chan: Sender<MainThreadScriptMsg>,
-    generation_id: GenerationId,
-    form: Trusted<HTMLFormElement>
-}
-
-impl Runnable for PlannedNavigation {
-    fn handler(self: Box<PlannedNavigation>) {
-        if self.generation_id == self.form.root().generation_id.get() {
-            let script_chan = self.script_chan.clone();
-            script_chan.send(MainThreadScriptMsg::Navigate(self.pipeline_id, self.load_data, false)).unwrap();
-        }
-    }
-}
-
 
 // https://html.spec.whatwg.org/multipage/#multipart/form-data-encoding-algorithm
 pub fn encode_multipart_form_data(form_data: &mut Vec<FormDatum>,

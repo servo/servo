@@ -17,7 +17,6 @@ use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcSender};
 use net_traits::IpcSend;
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
-use script_thread::{Runnable, ScriptThread};
 use script_traits::ScriptMsg;
 use servo_url::ServoUrl;
 use task_source::TaskSource;
@@ -158,50 +157,33 @@ impl Storage {
     }
 
     /// https://html.spec.whatwg.org/multipage/#send-a-storage-notification
-    pub fn queue_storage_event(&self, url: ServoUrl,
-                               key: Option<String>, old_value: Option<String>, new_value: Option<String>) {
+    pub fn queue_storage_event(
+        &self,
+        url: ServoUrl,
+        key: Option<String>,
+        old_value: Option<String>,
+        new_value: Option<String>,
+    ) {
         let global = self.global();
-        let window = global.as_window();
-        let task_source = window.dom_manipulation_task_source();
-        let trusted_storage = Trusted::new(self);
-        task_source
-            .queue(
-                box StorageEventRunnable::new(trusted_storage, url, key, old_value, new_value), &global)
-            .unwrap();
-    }
-}
-
-pub struct StorageEventRunnable {
-    element: Trusted<Storage>,
-    url: ServoUrl,
-    key: Option<String>,
-    old_value: Option<String>,
-    new_value: Option<String>
-}
-
-impl StorageEventRunnable {
-    fn new(storage: Trusted<Storage>, url: ServoUrl,
-           key: Option<String>, old_value: Option<String>, new_value: Option<String>) -> StorageEventRunnable {
-        StorageEventRunnable { element: storage, url: url, key: key, old_value: old_value, new_value: new_value }
-    }
-}
-
-impl Runnable for StorageEventRunnable {
-    fn main_thread_handler(self: Box<StorageEventRunnable>, _: &ScriptThread) {
-        let this = *self;
-        let storage = this.element.root();
-        let global = storage.global();
-        let window = global.as_window();
-
-        let storage_event = StorageEvent::new(
-            &window,
-            atom!("storage"),
-            EventBubbles::DoesNotBubble, EventCancelable::NotCancelable,
-            this.key.map(DOMString::from), this.old_value.map(DOMString::from), this.new_value.map(DOMString::from),
-            DOMString::from(this.url.into_string()),
-            Some(&storage)
-        );
-
-        storage_event.upcast::<Event>().fire(window.upcast());
+        let this = Trusted::new(self);
+        global.as_window().dom_manipulation_task_source().queue(
+            box task!(send_storage_notification: move || {
+                let this = this.root();
+                let global = this.global();
+                let event = StorageEvent::new(
+                    global.as_window(),
+                    atom!("storage"),
+                    EventBubbles::DoesNotBubble,
+                    EventCancelable::NotCancelable,
+                    key.map(DOMString::from),
+                    old_value.map(DOMString::from),
+                    new_value.map(DOMString::from),
+                    DOMString::from(url.into_string()),
+                    Some(&this),
+                );
+                event.upcast::<Event>().fire(global.upcast());
+            }),
+            global.upcast(),
+        ).unwrap();
     }
 }

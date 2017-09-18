@@ -4,15 +4,16 @@
 
 use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::Trusted;
-use dom::event::{EventBubbles, EventCancelable, EventRunnable, SimpleEventRunnable};
+use dom::event::{EventBubbles, EventCancelable, EventTask, SimpleEventTask};
 use dom::eventtarget::EventTarget;
 use dom::window::Window;
 use script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
-use script_thread::{MainThreadScriptMsg, Runnable, RunnableWrapper};
+use script_thread::MainThreadScriptMsg;
 use servo_atoms::Atom;
 use std::fmt;
 use std::result::Result;
 use std::sync::mpsc::Sender;
+use task::{Task, TaskCanceller};
 use task_source::TaskSource;
 
 #[derive(Clone, JSTraceable)]
@@ -25,17 +26,17 @@ impl fmt::Debug for DOMManipulationTaskSource {
 }
 
 impl TaskSource for DOMManipulationTaskSource {
-    fn queue_with_wrapper<T>(
+    fn queue_with_canceller<T>(
         &self,
         msg: Box<T>,
-        wrapper: &RunnableWrapper,
+        canceller: &TaskCanceller,
     ) -> Result<(), ()>
     where
-        T: Runnable + Send + 'static,
+        T: Task + Send + 'static,
     {
-        let msg = MainThreadScriptMsg::Common(CommonScriptMsg::RunnableMsg(
+        let msg = MainThreadScriptMsg::Common(CommonScriptMsg::Task(
             ScriptThreadEventCategory::ScriptEvent,
-            wrapper.wrap_runnable(msg),
+            canceller.wrap_task(msg),
         ));
         self.0.send(msg).map_err(|_| ())
     }
@@ -49,21 +50,17 @@ impl DOMManipulationTaskSource {
                        cancelable: EventCancelable,
                        window: &Window) {
         let target = Trusted::new(target);
-        let runnable = box EventRunnable {
+        let task = box EventTask {
             target: target,
             name: name,
             bubbles: bubbles,
             cancelable: cancelable,
         };
-        let _ = self.queue(runnable, window.upcast());
+        let _ = self.queue(task, window.upcast());
     }
 
     pub fn queue_simple_event(&self, target: &EventTarget, name: Atom, window: &Window) {
         let target = Trusted::new(target);
-        let runnable = box SimpleEventRunnable {
-            target: target,
-            name: name,
-        };
-        let _ = self.queue(runnable, window.upcast());
+        let _ = self.queue(box SimpleEventTask { target, name }, window.upcast());
     }
 }

@@ -7,7 +7,7 @@ use dom::abstractworker::{SharedRt, SimpleWorkerErrorHandler};
 use dom::abstractworker::WorkerScriptMsg;
 use dom::bindings::codegen::Bindings::WorkerBinding;
 use dom::bindings::codegen::Bindings::WorkerBinding::WorkerMethods;
-use dom::bindings::error::{Error, ErrorResult, Fallible, ErrorInfo};
+use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::refcounted::Trusted;
@@ -15,22 +15,20 @@ use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
-use dom::errorevent::ErrorEvent;
-use dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom::messageevent::MessageEvent;
 use dom::workerglobalscope::prepare_workerscope_init;
 use dom_struct::dom_struct;
 use ipc_channel::ipc;
-use js::jsapi::{HandleValue, JSAutoCompartment, JSContext, NullHandleValue};
+use js::jsapi::{HandleValue, JSAutoCompartment, JSContext};
 use js::jsval::UndefinedValue;
-use script_thread::Runnable;
 use script_traits::WorkerScriptLoadOrigin;
 use std::cell::Cell;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Sender, channel};
+use task::Task;
 
 pub type TrustedWorkerAddress = Trusted<Worker>;
 
@@ -139,27 +137,6 @@ impl Worker {
         let worker = address.root();
         worker.upcast().fire_event(atom!("error"));
     }
-
-    #[allow(unsafe_code)]
-    fn dispatch_error(&self, error_info: ErrorInfo) {
-        let global = self.global();
-        let event = ErrorEvent::new(&global,
-                                    atom!("error"),
-                                    EventBubbles::DoesNotBubble,
-                                    EventCancelable::Cancelable,
-                                    error_info.message.as_str().into(),
-                                    error_info.filename.as_str().into(),
-                                    error_info.lineno,
-                                    error_info.column,
-                                    unsafe { NullHandleValue });
-
-        let event_status = event.upcast::<Event>().fire(self.upcast::<EventTarget>());
-        if event_status == EventStatus::Canceled {
-            return;
-        }
-
-        global.report_an_error(error_info, unsafe { NullHandleValue });
-    }
 }
 
 impl WorkerMethods for Worker {
@@ -198,52 +175,10 @@ impl WorkerMethods for Worker {
     event_handler!(error, GetOnerror, SetOnerror);
 }
 
-pub struct WorkerMessageHandler {
-    addr: TrustedWorkerAddress,
-    data: StructuredCloneData,
-}
-
-impl WorkerMessageHandler {
-    pub fn new(addr: TrustedWorkerAddress, data: StructuredCloneData) -> WorkerMessageHandler {
-        WorkerMessageHandler {
-            addr: addr,
-            data: data,
-        }
-    }
-}
-
-impl Runnable for WorkerMessageHandler {
-    fn handler(self: Box<WorkerMessageHandler>) {
-        let this = *self;
-        Worker::handle_message(this.addr, this.data);
-    }
-}
-
-impl Runnable for SimpleWorkerErrorHandler<Worker> {
+impl Task for SimpleWorkerErrorHandler<Worker> {
     #[allow(unrooted_must_root)]
-    fn handler(self: Box<SimpleWorkerErrorHandler<Worker>>) {
+    fn run(self: Box<Self>) {
         let this = *self;
         Worker::dispatch_simple_error(this.addr);
-    }
-}
-
-pub struct WorkerErrorHandler {
-    address: Trusted<Worker>,
-    error_info: ErrorInfo,
-}
-
-impl WorkerErrorHandler {
-    pub fn new(address: Trusted<Worker>, error_info: ErrorInfo) -> WorkerErrorHandler {
-        WorkerErrorHandler {
-            address: address,
-            error_info: error_info,
-        }
-    }
-}
-
-impl Runnable for WorkerErrorHandler {
-    fn handler(self: Box<Self>) {
-        let this = *self;
-        this.address.root().dispatch_error(this.error_info);
     }
 }

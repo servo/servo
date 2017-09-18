@@ -22,15 +22,10 @@ use net_traits::ResourceThreads;
 use net_traits::image_cache::ImageCache;
 use profile_traits::mem;
 use profile_traits::time;
-use script_layout_interface::message::Msg;
-use script_runtime::CommonScriptMsg;
-use script_runtime::ScriptThreadEventCategory;
 use script_thread::MainThreadScriptMsg;
-use script_thread::Runnable;
-use script_thread::ScriptThread;
-use script_traits::ScriptMsg;
-use script_traits::ScriptToConstellationChan;
-use script_traits::TimerSchedulerMsg;
+use script_traits::{Painter, ScriptMsg};
+use script_traits::{ScriptToConstellationChan, TimerSchedulerMsg};
+use servo_atoms::Atom;
 use servo_url::ImmutableOrigin;
 use servo_url::MutableOrigin;
 use servo_url::ServoUrl;
@@ -96,25 +91,21 @@ impl WorkletGlobalScope {
         self.globalscope.evaluate_js_on_global_with_result(&*script, rval.handle_mut())
     }
 
-    /// Run a runnable in the main script thread.
-    pub fn run_in_script_thread<R>(&self, runnable: R) where
-        R: 'static + Send + Runnable,
-    {
-        let msg = CommonScriptMsg::RunnableMsg(ScriptThreadEventCategory::WorkletEvent, box runnable);
-        let msg = MainThreadScriptMsg::Common(msg);
-        self.to_script_thread_sender.send(msg).expect("Worklet thread outlived script thread.");
-    }
-
-    /// Send a message to layout.
-    pub fn send_to_layout(&self, msg: Msg) {
-        struct RunnableMsg(PipelineId, Msg);
-        impl Runnable for RunnableMsg {
-            fn main_thread_handler(self: Box<Self>, script_thread: &ScriptThread) {
-                script_thread.send_to_layout(self.0, self.1);
-            }
-        }
-        let pipeline_id = self.globalscope.pipeline_id();
-        self.run_in_script_thread(RunnableMsg(pipeline_id, msg));
+    /// Register a paint worklet to the script thread.
+    pub fn register_paint_worklet(
+        &self,
+        name: Atom,
+        properties: Vec<Atom>,
+        painter: Box<Painter>,
+    ) {
+        self.to_script_thread_sender
+            .send(MainThreadScriptMsg::RegisterPaintWorklet {
+                pipeline_id: self.globalscope.pipeline_id(),
+                name,
+                properties,
+                painter,
+            })
+            .expect("Worklet thread outlived script thread.");
     }
 
     /// The base URL of this global.

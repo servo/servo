@@ -76,8 +76,8 @@ use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse, Lay
 use script_layout_interface::rpc::{MarginStyleResponse, NodeScrollRootIdResponse};
 use script_layout_interface::rpc::{ResolvedStyleResponse, TextIndexResponse};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, ScriptThreadEventCategory};
-use script_thread::{ImageCacheMsg, MainThreadScriptChan, MainThreadScriptMsg, Runnable};
-use script_thread::{RunnableWrapper, ScriptThread, SendableMainThreadScriptChan};
+use script_thread::{ImageCacheMsg, MainThreadScriptChan, MainThreadScriptMsg};
+use script_thread::{ScriptThread, SendableMainThreadScriptChan};
 use script_traits::{ConstellationControlMsg, DocumentState, LoadData, MozBrowserEvent};
 use script_traits::{ScriptToConstellationChan, ScriptMsg, ScrollState, TimerEvent, TimerEventId};
 use script_traits::{TimerSchedulerMsg, UntrustedNodeAddress, WindowSizeData, WindowSizeType};
@@ -111,6 +111,7 @@ use style::selector_parser::PseudoElement;
 use style::str::HTML_SPACE_CHARACTERS;
 use style::stylesheets::CssRuleType;
 use style_traits::PARSING_MODE_DEFAULT;
+use task::TaskCanceller;
 use task_source::dom_manipulation::DOMManipulationTaskSource;
 use task_source::file_reading::FileReadingTaskSource;
 use task_source::history_traversal::HistoryTraversalTaskSource;
@@ -1038,8 +1039,8 @@ impl WindowMethods for Window {
 }
 
 impl Window {
-    pub fn get_runnable_wrapper(&self) -> RunnableWrapper {
-        RunnableWrapper {
+    pub fn task_canceller(&self) -> TaskCanceller {
+        TaskCanceller {
             cancelled: Some(self.ignore_further_async_events.borrow().clone()),
         }
     }
@@ -1968,59 +1969,50 @@ fn debug_reflow_events(id: PipelineId, goal: &ReflowGoal, query_type: &ReflowQue
     println!("{}", debug_msg);
 }
 
-struct PostMessageHandler {
-    destination: Trusted<Window>,
-    origin: Option<ImmutableOrigin>,
-    message: StructuredCloneData,
-}
-
-impl PostMessageHandler {
-    fn new(window: &Window,
-           origin: Option<ImmutableOrigin>,
-           message: StructuredCloneData) -> PostMessageHandler {
-        PostMessageHandler {
-            destination: Trusted::new(window),
-            origin: origin,
-            message: message,
-        }
-    }
-}
-
-impl Runnable for PostMessageHandler {
-    // https://html.spec.whatwg.org/multipage/#dom-window-postmessage steps 10-12.
-    fn handler(self: Box<PostMessageHandler>) {
-        let this = *self;
-        let window = this.destination.root();
-
-        // Step 10.
-        let doc = window.Document();
-        if let Some(source) = this.origin {
-            if !source.same_origin(doc.origin()) {
-                return;
-            }
-        }
-
-        let cx = window.get_cx();
-        let globalhandle = window.reflector().get_jsobject();
-        let _ac = JSAutoCompartment::new(cx, globalhandle.get());
-
-        rooted!(in(cx) let mut message = UndefinedValue());
-        this.message.read(window.upcast(), message.handle_mut());
-
-        // Step 11-12.
-        // TODO(#12719): set the other attributes.
-        MessageEvent::dispatch_jsval(window.upcast(),
-                                     window.upcast(),
-                                     message.handle());
-    }
-}
-
 impl Window {
-    pub fn post_message(&self, origin: Option<ImmutableOrigin>, data: StructuredCloneData) {
-        let runnable = PostMessageHandler::new(self, origin, data);
-        let runnable = self.get_runnable_wrapper().wrap_runnable(box runnable);
-        let msg = CommonScriptMsg::RunnableMsg(ScriptThreadEventCategory::DomEvent, runnable);
+    // https://html.spec.whatwg.org/multipage/#dom-window-postmessage step 7.
+    pub fn post_message(
+        &self,
+        target_origin: Option<ImmutableOrigin>,
+        serialize_with_transfer_result: StructuredCloneData,
+    ) {
+        let this = Trusted::new(self);
+        let task = box task!(post_serialised_message: move || {
+            let this = this.root();
+
+            // Step 7.1.
+            if let Some(target_origin) = target_origin {
+                if !target_origin.same_origin(this.Document().origin()) {
+                    return;
+                }
+            }
+
+            // Steps 7.2.-7.5.
+            let cx = this.get_cx();
+            let obj = this.reflector().get_jsobject();
+            let _ac = JSAutoCompartment::new(cx, obj.get());
+            rooted!(in(cx) let mut message_clone = UndefinedValue());
+            serialize_with_transfer_result.read(
+                this.upcast(),
+                message_clone.handle_mut(),
+            );
+
+            // Step 7.6.
+            // TODO: MessagePort array.
+
+            // Step 7.7.
+            // TODO(#12719): Set the other attributes.
+            MessageEvent::dispatch_jsval(
+                this.upcast(),
+                this.upcast(),
+                message_clone.handle(),
+            );
+        });
+        // FIXME(nox): Why are errors silenced here?
         // TODO(#12718): Use the "posted message task source".
-        let _ = self.script_chan.send(msg);
+        let _ = self.script_chan.send(CommonScriptMsg::Task(
+            ScriptThreadEventCategory::DomEvent,
+            self.task_canceller().wrap_task(task),
+        ));
     }
 }

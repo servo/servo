@@ -15,15 +15,18 @@ use dom::bindings::js::{Root, RootCollection};
 use dom::bindings::reflector::DomObject;
 use dom::bindings::str::DOMString;
 use dom::bindings::structuredclone::StructuredCloneData;
+use dom::errorevent::ErrorEvent;
+use dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
+use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom::messageevent::MessageEvent;
-use dom::worker::{TrustedWorkerAddress, WorkerErrorHandler, WorkerMessageHandler};
+use dom::worker::{TrustedWorkerAddress, Worker};
 use dom::workerglobalscope::WorkerGlobalScope;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::jsapi::{HandleValue, JS_SetInterruptCallback};
-use js::jsapi::{JSAutoCompartment, JSContext};
+use js::jsapi::{JSAutoCompartment, JSContext, NullHandleValue};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use msg::constellation_msg::TopLevelBrowsingContextId;
@@ -190,7 +193,7 @@ impl DedicatedWorkerGlobalScope {
                                                               &init.resource_threads.sender()) {
                 Err(_) => {
                     println!("error loading script {}", serialized_worker_url);
-                    parent_sender.send(CommonScriptMsg::RunnableMsg(WorkerEvent,
+                    parent_sender.send(CommonScriptMsg::Task(WorkerEvent,
                         box SimpleWorkerErrorHandler::new(worker))).unwrap();
                     return;
                 }
@@ -348,13 +351,36 @@ impl DedicatedWorkerGlobalScope {
         }
     }
 
+    // https://html.spec.whatwg.org/multipage/#runtime-script-errors-2
+    #[allow(unsafe_code)]
     pub fn forward_error_to_worker_object(&self, error_info: ErrorInfo) {
         let worker = self.worker.borrow().as_ref().unwrap().clone();
+        let task = box task!(forward_error_to_worker_object: move || {
+            let worker = worker.root();
+            let global = worker.global();
+
+            // Step 1.
+            let event = ErrorEvent::new(
+                &global,
+                atom!("error"),
+                EventBubbles::DoesNotBubble,
+                EventCancelable::Cancelable,
+                error_info.message.as_str().into(),
+                error_info.filename.as_str().into(),
+                error_info.lineno,
+                error_info.column,
+                unsafe { NullHandleValue },
+            );
+            let event_status =
+                event.upcast::<Event>().fire(worker.upcast::<EventTarget>());
+
+            // Step 2.
+            if event_status == EventStatus::NotCanceled {
+                global.report_an_error(error_info, unsafe { NullHandleValue });
+            }
+        });
         // TODO: Should use the DOM manipulation task source.
-        self.parent_sender
-            .send(CommonScriptMsg::RunnableMsg(WorkerEvent,
-                                               box WorkerErrorHandler::new(worker, error_info)))
-            .unwrap();
+        self.parent_sender.send(CommonScriptMsg::Task(WorkerEvent, task)).unwrap();
     }
 }
 
@@ -375,10 +401,10 @@ impl DedicatedWorkerGlobalScopeMethods for DedicatedWorkerGlobalScope {
     unsafe fn PostMessage(&self, cx: *mut JSContext, message: HandleValue) -> ErrorResult {
         let data = StructuredCloneData::write(cx, message)?;
         let worker = self.worker.borrow().as_ref().unwrap().clone();
-        self.parent_sender
-            .send(CommonScriptMsg::RunnableMsg(WorkerEvent,
-                                               box WorkerMessageHandler::new(worker, data)))
-            .unwrap();
+        let task = box task!(post_worker_message: move || {
+            Worker::handle_message(worker, data);
+        });
+        self.parent_sender.send(CommonScriptMsg::Task(WorkerEvent, task)).unwrap();
         Ok(())
     }
 

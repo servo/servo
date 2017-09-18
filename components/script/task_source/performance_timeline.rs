@@ -8,30 +8,11 @@
 
 use dom::bindings::refcounted::Trusted;
 use dom::globalscope::GlobalScope;
-use dom::performance::Performance;
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
-use script_thread::{Runnable, RunnableWrapper};
 use std::fmt;
 use std::result::Result;
+use task::{Task, TaskCanceller};
 use task_source::TaskSource;
-
-pub struct NotifyPerformanceObserverRunnable {
-    owner: Trusted<Performance>,
-}
-
-impl NotifyPerformanceObserverRunnable {
-    pub fn new(owner: Trusted<Performance>) -> Self {
-        NotifyPerformanceObserverRunnable {
-            owner,
-        }
-    }
-}
-
-impl Runnable for NotifyPerformanceObserverRunnable {
-    fn handler(self: Box<NotifyPerformanceObserverRunnable>) {
-        self.owner.root().notify_observers();
-    }
-}
 
 #[derive(JSTraceable)]
 pub struct PerformanceTimelineTaskSource(pub Box<ScriptChan + Send + 'static>);
@@ -49,13 +30,17 @@ impl fmt::Debug for PerformanceTimelineTaskSource {
 }
 
 impl TaskSource for PerformanceTimelineTaskSource {
-    fn queue_with_wrapper<T>(&self,
-                             msg: Box<T>,
-                             wrapper: &RunnableWrapper) -> Result<(), ()>
-                             where T: Runnable + Send + 'static {
-        let msg = CommonScriptMsg::RunnableMsg(
+    fn queue_with_canceller<T>(
+        &self,
+        msg: Box<T>,
+        canceller: &TaskCanceller,
+    ) -> Result<(), ()>
+    where
+        T: Send + Task + 'static,
+    {
+        let msg = CommonScriptMsg::Task(
             ScriptThreadEventCategory::PerformanceTimelineTask,
-            wrapper.wrap_runnable(msg)
+            canceller.wrap_task(msg)
         );
         self.0.send(msg).map_err(|_| ())
     }
@@ -64,7 +49,12 @@ impl TaskSource for PerformanceTimelineTaskSource {
 impl PerformanceTimelineTaskSource {
     pub fn queue_notification(&self, global: &GlobalScope) {
         let owner = Trusted::new(&*global.performance());
-        let runnable = box NotifyPerformanceObserverRunnable::new(owner);
-        let _ = self.queue(runnable, global);
+        // FIXME(nox): Why are errors silenced here?
+        let _ = self.queue(
+            box task!(notify_performance_observers: move || {
+                owner.root().notify_observers();
+            }),
+            global,
+        );
     }
 }
