@@ -781,13 +781,16 @@ pub extern "C" fn Servo_Element_ClearData(element: RawGeckoElementBorrowed) {
 
 #[no_mangle]
 pub extern "C" fn Servo_Element_SizeOfExcludingThisAndCVs(malloc_size_of: GeckoMallocSizeOf,
+                                                          malloc_enclosing_size_of:
+                                                              GeckoMallocSizeOf,
                                                           seen_ptrs: *mut SeenPtrs,
                                                           element: RawGeckoElementBorrowed) -> usize {
     let element = GeckoElement(element);
     let borrow = element.borrow_data();
     if let Some(data) = borrow {
         let have_seen_ptr = move |ptr| { unsafe { Gecko_HaveSeenPtr(seen_ptrs, ptr) } };
-        let mut ops = MallocSizeOfOps::new(malloc_size_of.unwrap(), None,
+        let mut ops = MallocSizeOfOps::new(malloc_size_of.unwrap(),
+                                           malloc_enclosing_size_of.unwrap(),
                                            Some(Box::new(have_seen_ptr)));
         (*data).size_of_excluding_cvs(&mut ops)
     } else {
@@ -1087,11 +1090,14 @@ pub extern "C" fn Servo_StyleSheet_Clone(
 #[no_mangle]
 pub extern "C" fn Servo_StyleSheet_SizeOfIncludingThis(
     malloc_size_of: GeckoMallocSizeOf,
+    malloc_enclosing_size_of: GeckoMallocSizeOf,
     sheet: RawServoStyleSheetContentsBorrowed
 ) -> usize {
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
-    let mut ops = MallocSizeOfOps::new(malloc_size_of.unwrap(), None, None);
+    let mut ops = MallocSizeOfOps::new(malloc_size_of.unwrap(),
+                                       malloc_enclosing_size_of.unwrap(),
+                                       None);
     StylesheetContents::as_arc(&sheet).size_of(&guard, &mut ops)
 }
 
@@ -3751,7 +3757,8 @@ pub extern "C" fn Servo_StyleSet_AddSizeOfExcludingThis(
 ) {
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
     let mut ops = MallocSizeOfOps::new(malloc_size_of.unwrap(),
-                                       malloc_enclosing_size_of, None);
+                                       malloc_enclosing_size_of.unwrap(),
+                                       None);
     let sizes = unsafe { sizes.as_mut() }.unwrap();
     data.add_size_of_children(&mut ops, sizes);
 }

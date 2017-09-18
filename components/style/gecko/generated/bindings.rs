@@ -1898,7 +1898,10 @@ extern "C" {
     pub fn Servo_Element_ClearData(node: RawGeckoElementBorrowed);
 }
 extern "C" {
-    pub fn Servo_Element_SizeOfExcludingThisAndCVs(arg1: MallocSizeOf,
+    pub fn Servo_Element_SizeOfExcludingThisAndCVs(malloc_size_of:
+                                                       MallocSizeOf,
+                                                   malloc_enclosing_size_of:
+                                                       MallocSizeOf,
                                                    seen_ptrs: *mut SeenPtrs,
                                                    node:
                                                        RawGeckoElementBorrowed)
@@ -1964,6 +1967,8 @@ extern "C" {
 }
 extern "C" {
     pub fn Servo_StyleSheet_SizeOfIncludingThis(malloc_size_of: MallocSizeOf,
+                                                malloc_enclosing_size_of:
+                                                    MallocSizeOf,
                                                 sheet:
                                                     RawServoStyleSheetContentsBorrowed)
      -> usize;
