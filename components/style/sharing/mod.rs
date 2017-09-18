@@ -735,8 +735,8 @@ impl<E: TElement> StyleSharingCache<E> {
 
         debug_assert!(target.has_current_styles_for_traversal(
             &candidate.element.borrow_data().unwrap(),
-            shared.traversal_flags)
-        );
+            shared.traversal_flags,
+        ));
         debug!("Sharing allowed between {:?} and {:?}", target.element, candidate.element);
 
         true
@@ -751,6 +751,9 @@ impl<E: TElement> StyleSharingCache<E> {
         target: E,
     ) -> Option<E> {
         self.cache_mut().lookup(|candidate| {
+            if candidate.element == target {
+                return false;
+            }
             if !candidate.parent_style_identity().eq(inherited) {
                 return false;
             }
