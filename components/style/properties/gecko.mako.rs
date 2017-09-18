@@ -2161,7 +2161,7 @@ fn static_assert() {
     }
 
     pub fn set_font_size(&mut self, v: longhands::font_size::computed_value::T) {
-        use self::longhands::font_size::KeywordSize;
+        use values::specified::font::KeywordSize;
         self.gecko.mSize = v.size().0;
         self.gecko.mScriptUnconstrainedSize = v.size().0;
         if let Some(info) = v.info {
@@ -2370,7 +2370,8 @@ fn static_assert() {
     }
 
     pub fn clone_font_size(&self) -> longhands::font_size::computed_value::T {
-        use self::longhands::font_size::KeywordSize;
+        use values::computed::font::KeywordInfo;
+        use values::specified::font::KeywordSize;
         let size = Au(self.gecko.mSize).into();
         let kw = match self.gecko.mFontSizeKeyword as u32 {
             structs::NS_STYLE_FONT_SIZE_XXSMALL => KeywordSize::XXSmall,
@@ -2391,7 +2392,7 @@ fn static_assert() {
         };
         longhands::font_size::computed_value::T {
             size: size,
-            info: Some(longhands::font_size::computed_value::KeywordInfo {
+            info: Some(KeywordInfo {
                 kw: kw,
                 factor: self.gecko.mFontSizeFactor,
                 offset: Au(self.gecko.mFontSizeOffset).into()

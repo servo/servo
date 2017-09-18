@@ -65,6 +65,7 @@ pub mod calc;
 pub mod color;
 pub mod effects;
 pub mod flex;
+pub mod font;
 #[cfg(feature = "gecko")]
 pub mod gecko;
 pub mod grid;
