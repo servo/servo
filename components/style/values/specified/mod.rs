@@ -217,6 +217,15 @@ impl Number {
                                       -> Result<Number, ParseError<'i>> {
         parse_number_with_clamping_mode(context, input, AllowedNumericType::AtLeastOne)
     }
+
+    /// Clamp to 1.0 if the value is over 1.0.
+    #[inline]
+    pub fn clamp_to_one(self) -> Self {
+        Number {
+            value: self.value.min(1.),
+            calc_clamping_mode: self.calc_clamping_mode,
+        }
+    }
 }
 
 impl ToComputedValue for Number {

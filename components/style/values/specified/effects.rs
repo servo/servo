@@ -40,6 +40,30 @@ pub type Filter = GenericFilter<Angle, Factor, NonNegativeLength, Impossible>;
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct Factor(NumberOrPercentage);
 
+impl Factor {
+    /// Parse this factor but clamp to one if the value is over 100%.
+    #[inline]
+    pub fn parse_with_clamping_to_one<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>
+    ) -> Result<Self, ParseError<'i>> {
+        Factor::parse(context, input).map(|v| v.clamp_to_one())
+    }
+
+    /// Clamp the value to 1 if the value is over 100%.
+    #[inline]
+    fn clamp_to_one(self) -> Self {
+        match self.0 {
+            NumberOrPercentage::Percentage(percent) => {
+                Factor(NumberOrPercentage::Percentage(percent.clamp_to_hundred()))
+            },
+            NumberOrPercentage::Number(number) => {
+                Factor(NumberOrPercentage::Number(number.clamp_to_one()))
+            }
+        }
+    }
+}
+
 impl Parse for Factor {
     #[inline]
     fn parse<'i, 't>(
@@ -173,12 +197,28 @@ impl Parse for Filter {
                 "blur" => Ok(GenericFilter::Blur((Length::parse_non_negative(context, i)?).into())),
                 "brightness" => Ok(GenericFilter::Brightness(Factor::parse(context, i)?)),
                 "contrast" => Ok(GenericFilter::Contrast(Factor::parse(context, i)?)),
-                "grayscale" => Ok(GenericFilter::Grayscale(Factor::parse(context, i)?)),
+                "grayscale" => {
+                    // Values of amount over 100% are allowed but UAs must clamp the values to 1.
+                    // https://drafts.fxtf.org/filter-effects/#funcdef-filter-grayscale
+                    Ok(GenericFilter::Grayscale(Factor::parse_with_clamping_to_one(context, i)?))
+                },
                 "hue-rotate" => Ok(GenericFilter::HueRotate(Angle::parse(context, i)?)),
-                "invert" => Ok(GenericFilter::Invert(Factor::parse(context, i)?)),
-                "opacity" => Ok(GenericFilter::Opacity(Factor::parse(context, i)?)),
+                "invert" => {
+                    // Values of amount over 100% are allowed but UAs must clamp the values to 1.
+                    // https://drafts.fxtf.org/filter-effects/#funcdef-filter-invert
+                    Ok(GenericFilter::Invert(Factor::parse_with_clamping_to_one(context, i)?))
+                },
+                "opacity" => {
+                    // Values of amount over 100% are allowed but UAs must clamp the values to 1.
+                    // https://drafts.fxtf.org/filter-effects/#funcdef-filter-opacity
+                    Ok(GenericFilter::Opacity(Factor::parse_with_clamping_to_one(context, i)?))
+                },
                 "saturate" => Ok(GenericFilter::Saturate(Factor::parse(context, i)?)),
-                "sepia" => Ok(GenericFilter::Sepia(Factor::parse(context, i)?)),
+                "sepia" => {
+                    // Values of amount over 100% are allowed but UAs must clamp the values to 1.
+                    // https://drafts.fxtf.org/filter-effects/#funcdef-filter-sepia
+                    Ok(GenericFilter::Sepia(Factor::parse_with_clamping_to_one(context, i)?))
+                },
                 "drop-shadow" => Ok(GenericFilter::DropShadow(Parse::parse(context, i)?)),
                 _ => Err(ValueParseError::InvalidFilter(Token::Function(function.clone())).into()),
             }

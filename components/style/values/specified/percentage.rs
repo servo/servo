@@ -125,6 +125,15 @@ impl Percentage {
     ) -> Result<Self, ParseError<'i>> {
         Self::parse_with_clamping_mode(context, input, AllowedNumericType::NonNegative)
     }
+
+    /// Clamp to 100% if the value is over 100%.
+    #[inline]
+    pub fn clamp_to_hundred(self) -> Self {
+        Percentage {
+            value: self.value.min(1.),
+            calc_clamping_mode: self.calc_clamping_mode,
+        }
+    }
 }
 
 impl Parse for Percentage {
