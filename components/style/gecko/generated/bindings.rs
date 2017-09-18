@@ -1005,6 +1005,10 @@ extern "C" {
      -> *mut ImageValue;
 }
 extern "C" {
+    pub fn Gecko_ImageValue_SizeOfIncludingThis(aImageValue: *mut ImageValue)
+     -> usize;
+}
+extern "C" {
     pub fn Gecko_SetLayerImageImageValue(image: *mut nsStyleImage,
                                          aImageValue: *mut ImageValue);
 }
