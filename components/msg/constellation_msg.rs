@@ -288,7 +288,7 @@ impl fmt::Display for BrowsingContextId {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         let PipelineNamespaceId(namespace_id) = self.namespace_id;
         let BrowsingContextIndex(index) = self.index;
-        write!(fmt, "({},{})", namespace_id, index.get() )
+        write!(fmt, "({},{})", namespace_id, index.get())
     }
 }
 
