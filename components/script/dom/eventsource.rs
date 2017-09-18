@@ -121,12 +121,43 @@ impl EventSourceContext {
             return;
         }
 
-        // Step 1
-        let task = box ReestablishConnectionTask {
-            event_source: self.event_source.clone(),
-            action_sender: self.action_sender.clone()
-        };
-        let _ = event_source.global().networking_task_source().queue(task, &*event_source.global());
+        let trusted_event_source = self.event_source.clone();
+        let action_sender = self.action_sender.clone();
+        let global = event_source.global();
+        // FIXME(nox): Why are errors silenced here?
+        let _ = global.networking_task_source().queue(
+            box task!(reestablish_the_event_source_onnection: move || {
+                let event_source = trusted_event_source.root();
+
+                // Step 1.1.
+                if event_source.ready_state.get() == ReadyState::Closed {
+                    return;
+                }
+
+                // Step 1.2.
+                event_source.ready_state.set(ReadyState::Connecting);
+
+                // Step 1.3.
+                event_source.upcast::<EventTarget>().fire_event(atom!("error"));
+
+                // Step 2.
+                let duration = Length::new(event_source.reconnection_time.get());
+
+                // Step 3.
+                // TODO: Optionally wait some more.
+
+                // Steps 4-5.
+                let callback = OneshotTimerCallback::EventSourceTimeout(
+                    EventSourceTimeoutCallback {
+                        event_source: trusted_event_source,
+                        action_sender,
+                    }
+                );
+                // FIXME(nox): Why are errors silenced here?
+                let _ = event_source.global().schedule_callback(callback, duration);
+            }),
+            &global,
+        );
     }
 
     // https://html.spec.whatwg.org/multipage/#processField
@@ -496,35 +527,6 @@ impl Task for FailConnectionTask {
             event_source.ready_state.set(ReadyState::Closed);
             event_source.upcast::<EventTarget>().fire_event(atom!("error"));
         }
-    }
-}
-
-pub struct ReestablishConnectionTask {
-    event_source: Trusted<EventSource>,
-    action_sender: ipc::IpcSender<FetchResponseMsg>,
-}
-
-impl Task for ReestablishConnectionTask {
-    // https://html.spec.whatwg.org/multipage/#reestablish-the-connection
-    fn run(self: Box<Self>) {
-        let event_source = self.event_source.root();
-        // Step 1.1
-        if event_source.ready_state.get() == ReadyState::Closed {
-            return;
-        }
-        // Step 1.2
-        event_source.ready_state.set(ReadyState::Connecting);
-        // Step 1.3
-        event_source.upcast::<EventTarget>().fire_event(atom!("error"));
-        // Step 2
-        let duration = Length::new(event_source.reconnection_time.get());
-        // TODO Step 3: Optionally wait some more
-        // Steps 4-5
-        let callback = OneshotTimerCallback::EventSourceTimeout(EventSourceTimeoutCallback {
-            event_source: self.event_source.clone(),
-            action_sender: self.action_sender.clone()
-        });
-        let _ = event_source.global().schedule_callback(callback, duration);
     }
 }
 
