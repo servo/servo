@@ -19,3 +19,8 @@ opt-level = 3
 # crate, add that here. Use the form:
 #
 #     <crate> = { path = "/path/to/local/checkout" }
+#
+# Or for a git dependency:
+#
+#     [patch."https://github.com/servo/<repository>"]
+#     <crate> = { path = "/path/to/local/checkout" }
