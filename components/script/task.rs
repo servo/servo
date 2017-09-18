@@ -82,6 +82,10 @@ impl<T> Task for CancellableTask<T>
 where
     T: Send + Task,
 {
+    fn name(&self) -> &'static str {
+        self.inner.name()
+    }
+
     fn run(self: Box<Self>) {
         if !self.is_cancelled() {
             self.inner.run()
