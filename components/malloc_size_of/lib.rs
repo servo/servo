@@ -82,9 +82,8 @@ pub struct MallocSizeOfOps {
     /// A function that returns the size of a heap allocation.
     size_of_op: VoidPtrToSizeFn,
 
-    /// Like `size_of_op`, but can take an interior pointer. Optional, because
-    /// many places don't need it.
-    enclosing_size_of_op: Option<VoidPtrToSizeFn>,
+    /// Like `size_of_op`, but can take an interior pointer.
+    enclosing_size_of_op: VoidPtrToSizeFn,
 
     /// Check if a pointer has been seen before, and remember it for next time.
     /// Useful when measuring `Rc`s and `Arc`s. Optional, because many places
@@ -93,8 +92,7 @@ pub struct MallocSizeOfOps {
 }
 
 impl MallocSizeOfOps {
-    pub fn new(size_of: VoidPtrToSizeFn,
-               malloc_enclosing_size_of: Option<VoidPtrToSizeFn>,
+    pub fn new(size_of: VoidPtrToSizeFn, malloc_enclosing_size_of: VoidPtrToSizeFn,
                have_seen_ptr: Option<Box<VoidPtrToBoolFnMut>>) -> Self {
         MallocSizeOfOps {
             size_of_op: size_of,
@@ -129,8 +127,7 @@ impl MallocSizeOfOps {
     /// Call `enclosing_size_of_op` on `ptr`, which must not be empty.
     pub unsafe fn malloc_enclosing_size_of<T>(&self, ptr: *const T) -> usize {
         assert!(!MallocSizeOfOps::is_empty(ptr));
-        let enclosing_size_of_op = self.enclosing_size_of_op.expect("missing enclosing_size_of_op");
-        enclosing_size_of_op(ptr as *const c_void)
+        (self.enclosing_size_of_op)(ptr as *const c_void)
     }
 
     /// Call `have_seen_ptr_op` on `ptr`.
