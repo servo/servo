@@ -381,6 +381,16 @@ impl<T: MallocSizeOf> MallocConditionalSizeOf for Arc<T> {
     }
 }
 
+impl MallocSizeOf for smallbitvec::SmallBitVec {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        if let Some(ptr) = self.heap_ptr() {
+            unsafe { ops.malloc_size_of(ptr) }
+        } else {
+            0
+        }
+    }
+}
+
 impl<T: MallocSizeOf, U> MallocSizeOf for TypedSize2D<T, U> {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         let n = self.width.size_of(ops) + self.width.size_of(ops);
@@ -425,7 +435,3 @@ size_of_is_0!(Range<f32>, Range<f64>);
 
 size_of_is_0!(app_units::Au);
 size_of_is_0!(cssparser::RGBA, cssparser::TokenSerializationType);
-
-// XXX: once we upgrade smallbitvec to 1.0.4, use the new heap_ptr() method to
-// implement this properly
-size_of_is_0!(smallbitvec::SmallBitVec);
