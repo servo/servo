@@ -23,7 +23,6 @@ use servo_url::ServoUrl;
 use std::cmp::PartialEq;
 use std::collections::HashMap;
 use std::rc::Rc;
-use task::Task;
 use task_source::TaskSource;
 use task_source::dom_manipulation::DOMManipulationTaskSource;
 
@@ -262,33 +261,6 @@ impl JobQueue {
     }
 }
 
-struct AsyncPromiseSettle {
-    global: Trusted<GlobalScope>,
-    promise: TrustedPromise,
-    settle_type: SettleType,
-}
-
-impl Task for AsyncPromiseSettle {
-    #[allow(unrooted_must_root)]
-    fn run(self: Box<Self>) {
-        let global = self.global.root();
-        let settle_type = self.settle_type.clone();
-        let promise = self.promise.root();
-        settle_job_promise(&*global, &*promise, settle_type)
-    }
-}
-
-impl AsyncPromiseSettle {
-    #[allow(unrooted_must_root)]
-    fn new(promise: Rc<Promise>, settle_type: SettleType) -> AsyncPromiseSettle {
-        AsyncPromiseSettle {
-            global: Trusted::new(&*promise.global()),
-            promise: TrustedPromise::new(promise),
-            settle_type: settle_type,
-        }
-    }
-}
-
 fn settle_job_promise(global: &GlobalScope, promise: &Promise, settle: SettleType) {
     let _ac = JSAutoCompartment::new(global.get_cx(), promise.reflector().get_jsobject().get());
     match settle {
@@ -298,10 +270,16 @@ fn settle_job_promise(global: &GlobalScope, promise: &Promise, settle: SettleTyp
 }
 
 fn queue_settle_promise_for_job(job: &Job, settle: SettleType, task_source: &DOMManipulationTaskSource) {
-    let task = box AsyncPromiseSettle::new(job.promise.clone(), settle);
     let global = job.client.global();
-    let _ = task_source.queue(task, &*global);
-
+    let promise = TrustedPromise::new(job.promise.clone());
+    // FIXME(nox): Why are errors silenced here?
+    let _ = task_source.queue(
+        box task!(settle_promise_for_job: move || {
+            let promise = promise.root();
+            settle_job_promise(&promise.global(), &promise, settle)
+        }),
+        &*global,
+    );
 }
 
 // https://w3c.github.io/ServiceWorker/#reject-job-promise-algorithm
