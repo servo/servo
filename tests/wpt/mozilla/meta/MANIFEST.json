@@ -5921,6 +5921,18 @@
      {}
     ]
    ],
+   "css/table_with_position_sticky.html": [
+    [
+     "/_mozilla/css/table_with_position_sticky.html",
+     [
+      [
+       "/_mozilla/css/table_with_position_sticky_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "css/text_align_complex_a.html": [
     [
      "/_mozilla/css/text_align_complex_a.html",
@@ -10375,6 +10387,11 @@
     ]
    ],
    "css/table_width_attribute_ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/table_with_position_sticky_ref.html": [
     [
      {}
     ]
@@ -26610,6 +26627,14 @@
   ],
   "css/table_width_attribute_ref.html": [
    "0dc40b30f1d518d7c148535d9230a95417aadd56",
+   "support"
+  ],
+  "css/table_with_position_sticky.html": [
+   "30c4f54f51c8d35614d52d3702e58de8589acd2f",
+   "reftest"
+  ],
+  "css/table_with_position_sticky_ref.html": [
+   "da028fde51bd53b7c7a4314e998162ab10d8d359",
    "support"
   ],
   "css/test.jpeg": [

@@ -1,0 +1,7 @@
+<!DOCTYPE html>
+<title>Tables with position:sticky elements should not cause a panic</title>
+<link rel="match" href="table_with_position_sticky_ref.html" />
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#sticky-pos" />
+<meta name="assert" content="This test checks that tables with position:sticky dont' cause a panic" />
+<div style="width: 100px; height: 100px; background: green"></div>
+<table style="position: sticky; top: 0;">
