@@ -216,12 +216,21 @@ impl EventSourceContext {
         // Step 7
         self.event_type.clear();
         self.data.clear();
-        // Step 8
-        let task = box DispatchEventTask {
-            event_source: self.event_source.clone(),
-            event: Trusted::new(&event)
-        };
-        let _ = event_source.global().networking_task_source().queue(task, &*event_source.global());
+
+        // Step 8.
+        let global = event_source.global();
+        let event_source = self.event_source.clone();
+        let event = Trusted::new(&*event);
+        // FIXME(nox): Why are errors silenced here?
+        let _ = global.networking_task_source().queue(
+            box task!(dispatch_the_event_source_event: move || {
+                let event_source = event_source.root();
+                if event_source.ready_state.get() != ReadyState::Closed {
+                    event.root().upcast::<Event>().fire(&event_source.upcast());
+                }
+            }),
+            &global,
+        );
     }
 
     // https://html.spec.whatwg.org/multipage/#event-stream-interpretation
@@ -555,21 +564,5 @@ impl EventSourceTimeoutCallback {
         }
         // Step 5.4
         global.core_resource_thread().send(CoreResourceMsg::Fetch(request, self.action_sender)).unwrap();
-    }
-}
-
-pub struct DispatchEventTask {
-    event_source: Trusted<EventSource>,
-    event: Trusted<MessageEvent>,
-}
-
-impl Task for DispatchEventTask {
-    // https://html.spec.whatwg.org/multipage/#dispatchMessage
-    fn run(self: Box<Self>) {
-        let event_source = self.event_source.root();
-        // Step 8
-        if event_source.ready_state.get() != ReadyState::Closed {
-            self.event.root().upcast::<Event>().fire(&event_source.upcast());
-        }
     }
 }
