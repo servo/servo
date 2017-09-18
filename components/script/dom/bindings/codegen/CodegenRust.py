@@ -4817,15 +4817,14 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
                                         "bool", args)
         self.descriptor = descriptor
 
+    # https://heycam.github.io/webidl/#LegacyPlatformObjectGetOwnProperty
     def getBody(self):
         indexedGetter = self.descriptor.operations['IndexedGetter']
-        indexedSetter = self.descriptor.operations['IndexedSetter']
 
         get = ""
-        if indexedGetter or indexedSetter:
+        if indexedGetter:
             get = "let index = get_array_index_from_id(cx, id);\n"
 
-        if indexedGetter:
             attrs = "JSPROP_ENUMERATE"
             if self.descriptor.operations['IndexedSetter'] is None:
                 attrs += " | JSPROP_READONLY"
@@ -4864,11 +4863,16 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
                 'successCode': fillDescriptor,
                 'pre': 'rooted!(in(cx) let mut result_root = UndefinedValue());'
             }
+
+            # See the similar-looking in CGDOMJSProxyHandler_get for the spec quote.
+            condition = "RUST_JSID_IS_STRING(id) || RUST_JSID_IS_INT(id)"
+            if indexedGetter:
+                condition = "index.is_none() && (%s)" % condition
             # Once we start supporting OverrideBuiltins we need to make
             # ResolveOwnProperty or EnumerateOwnProperties filter out named
             # properties that shadow prototype properties.
             namedGet = """
-if RUST_JSID_IS_STRING(id) || RUST_JSID_IS_INT(id) {
+if %s {
     let mut has_on_proto = false;
     if !has_property_on_prototype(cx, proxy, id, &mut has_on_proto) {
         return false;
@@ -4877,7 +4881,7 @@ if RUST_JSID_IS_STRING(id) || RUST_JSID_IS_INT(id) {
         %s
     }
 }
-""" % CGIndenter(CGProxyNamedGetter(self.descriptor, templateValues), 8).define()
+""" % (condition, CGIndenter(CGProxyNamedGetter(self.descriptor, templateValues), 8).define())
         else:
             namedGet = ""
 
@@ -5093,9 +5097,12 @@ class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
             indexed = ""
 
         namedGetter = self.descriptor.operations['NamedGetter']
+        condition = "RUST_JSID_IS_STRING(id) || RUST_JSID_IS_INT(id)"
+        if indexedGetter:
+            condition = "index.is_none() && (%s)" % condition
         if namedGetter:
             named = """\
-if RUST_JSID_IS_STRING(id) || RUST_JSID_IS_INT(id) {
+if %s {
     let mut has_on_proto = false;
     if !has_property_on_prototype(cx, proxy, id, &mut has_on_proto) {
         return false;
@@ -5107,7 +5114,7 @@ if RUST_JSID_IS_STRING(id) || RUST_JSID_IS_INT(id) {
     }
 }
 
-""" % CGIndenter(CGProxyNamedGetter(self.descriptor), 8).define()
+""" % (condition, CGIndenter(CGProxyNamedGetter(self.descriptor), 8).define())
         else:
             named = ""
 
@@ -5136,6 +5143,7 @@ class CGDOMJSProxyHandler_get(CGAbstractExternMethod):
         CGAbstractExternMethod.__init__(self, descriptor, "get", "bool", args)
         self.descriptor = descriptor
 
+    # https://heycam.github.io/webidl/#LegacyPlatformObjectGetOwnProperty
     def getBody(self):
         getFromExpando = """\
 rooted!(in(cx) let mut expando = ptr::null_mut());
@@ -5175,9 +5183,16 @@ if !expando.is_null() {
 
         namedGetter = self.descriptor.operations['NamedGetter']
         if namedGetter:
-            getNamed = ("if RUST_JSID_IS_STRING(id) || RUST_JSID_IS_INT(id) {\n" +
+            condition = "RUST_JSID_IS_STRING(id) || RUST_JSID_IS_INT(id)"
+            # From step 1:
+            #     If O supports indexed properties and P is an array index, then:
+            #
+            #         3. Set ignoreNamedProps to true.
+            if indexedGetter:
+                condition = "index.is_none() && (%s)" % condition
+            getNamed = ("if %s {\n" +
                         CGIndenter(CGProxyNamedGetter(self.descriptor, templateValues)).define() +
-                        "}\n")
+                        "}\n") % condition
         else:
             getNamed = ""
 
