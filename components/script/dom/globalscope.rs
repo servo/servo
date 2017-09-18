@@ -313,30 +313,34 @@ impl GlobalScope {
         // Step 2.
         self.in_error_reporting_mode.set(true);
 
-        // Steps 3-12.
+        // Steps 3-6.
         // FIXME(#13195): muted errors.
-        let event = ErrorEvent::new(self,
-                                    atom!("error"),
-                                    EventBubbles::DoesNotBubble,
-                                    EventCancelable::Cancelable,
-                                    error_info.message.as_str().into(),
-                                    error_info.filename.as_str().into(),
-                                    error_info.lineno,
-                                    error_info.column,
-                                    value);
+        let event = ErrorEvent::new(
+            self,
+            atom!("error"),
+            EventBubbles::DoesNotBubble,
+            EventCancelable::Cancelable,
+            error_info.message.as_str().into(),
+            error_info.filename.as_str().into(),
+            error_info.lineno,
+            error_info.column,
+            value,
+        );
 
-        // Step 13.
+        // Step 7.
         let event_status = event.upcast::<Event>().fire(self.upcast::<EventTarget>());
 
-        // Step 15
+        // Step 8.
+        self.in_error_reporting_mode.set(false);
+
+        // Step 9.
         if event_status == EventStatus::NotCanceled {
+            // https://html.spec.whatwg.org/multipage/#runtime-script-errors-2
             if let Some(dedicated) = self.downcast::<DedicatedWorkerGlobalScope>() {
                 dedicated.forward_error_to_worker_object(error_info);
             }
         }
 
-        // Step 14
-        self.in_error_reporting_mode.set(false);
     }
 
     /// Get the `&ResourceThreads` for this global scope.

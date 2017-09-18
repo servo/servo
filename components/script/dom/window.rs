@@ -2005,7 +2005,7 @@ impl Window {
             MessageEvent::dispatch_jsval(
                 this.upcast(),
                 this.upcast(),
-                message.handle(),
+                message_clone.handle(),
             );
         });
         // FIXME(nox): Why are errors silenced here?
