@@ -137,7 +137,7 @@ impl<'a> InorderFlowTraversal for ResolveGeneratedContent<'a> {
 }
 
 /// The object that mutates the generated content fragments.
-struct ResolveGeneratedContentFragmentMutator<'a,'b:'a> {
+struct ResolveGeneratedContentFragmentMutator<'a, 'b: 'a> {
     /// The traversal.
     traversal: &'a mut ResolveGeneratedContent<'b>,
     /// The level we're at in the flow tree.
@@ -148,7 +148,7 @@ struct ResolveGeneratedContentFragmentMutator<'a,'b:'a> {
     incremented: bool,
 }
 
-impl<'a,'b> ResolveGeneratedContentFragmentMutator<'a,'b> {
+impl<'a, 'b> ResolveGeneratedContentFragmentMutator<'a, 'b> {
     fn mutate_fragment(&mut self, fragment: &mut Fragment) {
         // We only reset and/or increment counters once per flow. This avoids double-incrementing
         // counters on list items (once for the main fragment and once for the marker).
