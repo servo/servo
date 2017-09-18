@@ -4,7 +4,9 @@
 
 #![deny(unsafe_code)]
 #![feature(box_syntax)]
+#![feature(nonzero)]
 
+extern crate core;
 extern crate euclid;
 extern crate gfx_traits;
 extern crate gleam;
