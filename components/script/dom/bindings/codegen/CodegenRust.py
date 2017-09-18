@@ -4750,7 +4750,7 @@ class CGProxyNamedOperation(CGProxySpecialOperation):
     def define(self):
         # Our first argument is the id we're getting.
         argName = self.arguments[0].identifier.name
-        return ("let %s = string_jsid_to_string(cx, id);\n"
+        return ("let %s = jsid_to_string(cx, id).expect(\"Not a string-convertible JSID?\");\n"
                 "let this = UnwrapProxy(proxy);\n"
                 "let this = &*this;\n" % argName +
                 CGProxySpecialOperation.define(self))
@@ -4817,15 +4817,14 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
                                         "bool", args)
         self.descriptor = descriptor
 
+    # https://heycam.github.io/webidl/#LegacyPlatformObjectGetOwnProperty
     def getBody(self):
         indexedGetter = self.descriptor.operations['IndexedGetter']
-        indexedSetter = self.descriptor.operations['IndexedSetter']
 
         get = ""
-        if indexedGetter or indexedSetter:
+        if indexedGetter:
             get = "let index = get_array_index_from_id(cx, id);\n"
 
-        if indexedGetter:
             attrs = "JSPROP_ENUMERATE"
             if self.descriptor.operations['IndexedSetter'] is None:
                 attrs += " | JSPROP_READONLY"
@@ -4864,11 +4863,16 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
                 'successCode': fillDescriptor,
                 'pre': 'rooted!(in(cx) let mut result_root = UndefinedValue());'
             }
+
+            # See the similar-looking in CGDOMJSProxyHandler_get for the spec quote.
+            condition = "RUST_JSID_IS_STRING(id) || RUST_JSID_IS_INT(id)"
+            if indexedGetter:
+                condition = "index.is_none() && (%s)" % condition
             # Once we start supporting OverrideBuiltins we need to make
             # ResolveOwnProperty or EnumerateOwnProperties filter out named
             # properties that shadow prototype properties.
             namedGet = """
-if RUST_JSID_IS_STRING(id) {
+if %s {
     let mut has_on_proto = false;
     if !has_property_on_prototype(cx, proxy, id, &mut has_on_proto) {
         return false;
@@ -4877,7 +4881,7 @@ if RUST_JSID_IS_STRING(id) {
         %s
     }
 }
-""" % CGIndenter(CGProxyNamedGetter(self.descriptor, templateValues), 8).define()
+""" % (condition, CGIndenter(CGProxyNamedGetter(self.descriptor, templateValues), 8).define())
         else:
             namedGet = ""
 
@@ -4935,12 +4939,12 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
             if self.descriptor.hasUnforgeableMembers:
                 raise TypeError("Can't handle a named setter on an interface that has "
                                 "unforgeables. Figure out how that should work!")
-            set += ("if RUST_JSID_IS_STRING(id) {\n" +
+            set += ("if RUST_JSID_IS_STRING(id) || RUST_JSID_IS_INT(id) {\n" +
                     CGIndenter(CGProxyNamedSetter(self.descriptor)).define() +
                     "    return (*opresult).succeed();\n" +
                     "}\n")
         else:
-            set += ("if RUST_JSID_IS_STRING(id) {\n" +
+            set += ("if RUST_JSID_IS_STRING(id) || RUST_JSID_IS_INT(id) {\n" +
                     CGIndenter(CGProxyNamedGetter(self.descriptor)).define() +
                     "    if result.is_some() {\n"
                     "        return (*opresult).failNoNamedSetter();\n"
@@ -5093,9 +5097,12 @@ class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
             indexed = ""
 
         namedGetter = self.descriptor.operations['NamedGetter']
+        condition = "RUST_JSID_IS_STRING(id) || RUST_JSID_IS_INT(id)"
+        if indexedGetter:
+            condition = "index.is_none() && (%s)" % condition
         if namedGetter:
             named = """\
-if RUST_JSID_IS_STRING(id) {
+if %s {
     let mut has_on_proto = false;
     if !has_property_on_prototype(cx, proxy, id, &mut has_on_proto) {
         return false;
@@ -5107,7 +5114,7 @@ if RUST_JSID_IS_STRING(id) {
     }
 }
 
-""" % CGIndenter(CGProxyNamedGetter(self.descriptor), 8).define()
+""" % (condition, CGIndenter(CGProxyNamedGetter(self.descriptor), 8).define())
         else:
             named = ""
 
@@ -5136,6 +5143,7 @@ class CGDOMJSProxyHandler_get(CGAbstractExternMethod):
         CGAbstractExternMethod.__init__(self, descriptor, "get", "bool", args)
         self.descriptor = descriptor
 
+    # https://heycam.github.io/webidl/#LegacyPlatformObjectGetOwnProperty
     def getBody(self):
         getFromExpando = """\
 rooted!(in(cx) let mut expando = ptr::null_mut());
@@ -5175,9 +5183,16 @@ if !expando.is_null() {
 
         namedGetter = self.descriptor.operations['NamedGetter']
         if namedGetter:
-            getNamed = ("if RUST_JSID_IS_STRING(id) {\n" +
+            condition = "RUST_JSID_IS_STRING(id) || RUST_JSID_IS_INT(id)"
+            # From step 1:
+            #     If O supports indexed properties and P is an array index, then:
+            #
+            #         3. Set ignoreNamedProps to true.
+            if indexedGetter:
+                condition = "index.is_none() && (%s)" % condition
+            getNamed = ("if %s {\n" +
                         CGIndenter(CGProxyNamedGetter(self.descriptor, templateValues)).define() +
-                        "}\n")
+                        "}\n") % condition
         else:
             getNamed = ""
 
@@ -5633,6 +5648,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::glue::GetProxyPrivate',
         'js::glue::NewProxyObject',
         'js::glue::ProxyTraps',
+        'js::glue::RUST_JSID_IS_INT',
         'js::glue::RUST_JSID_IS_STRING',
         'js::glue::RUST_SYMBOL_TO_JSID',
         'js::glue::int_to_jsid',
@@ -5719,7 +5735,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'dom::bindings::conversions::root_from_handleobject',
         'dom::bindings::conversions::root_from_handlevalue',
         'dom::bindings::conversions::root_from_object',
-        'dom::bindings::conversions::string_jsid_to_string',
+        'dom::bindings::conversions::jsid_to_string',
         'dom::bindings::codegen::PrototypeList',
         'dom::bindings::codegen::RegisterBindings',
         'dom::bindings::codegen::UnionTypes',
