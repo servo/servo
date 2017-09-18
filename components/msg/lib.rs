@@ -4,6 +4,7 @@
 
 #![feature(const_fn)]
 #![feature(nonzero)]
+#![feature(const_nonzero_new)]
 #![deny(unsafe_code)]
 
 #[macro_use]
