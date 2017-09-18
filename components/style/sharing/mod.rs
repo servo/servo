@@ -751,6 +751,7 @@ impl<E: TElement> StyleSharingCache<E> {
         target: E,
     ) -> Option<PrimaryStyle> {
         self.cache_mut().lookup(|candidate| {
+            debug_assert_ne!(candidate.element, target);
             if !candidate.parent_style_identity().eq(inherited) {
                 return None;
             }
