@@ -43,7 +43,6 @@ use range::Range;
 use script_layout_interface::wrapper_traits::PseudoElementType;
 use servo_config::opts;
 use servo_geometry::max_rect;
-use servo_url::ServoUrl;
 use std::{cmp, f32};
 use std::default::Default;
 use std::mem;
@@ -455,17 +454,6 @@ pub trait FragmentDisplayListBuilding {
                                      image: &WebRenderImageInfo, index: usize)
                                      -> Size2D<Au>;
 
-    /// Adds the display items necessary to paint the background image of this fragment to the
-    /// appropriate section of the display list.
-    fn build_display_list_for_background_image(&self,
-                                               state: &mut DisplayListBuildState,
-                                               style: &ComputedValues,
-                                               display_list_section: DisplayListSection,
-                                               absolute_bounds: &Rect<Au>,
-                                               clip: &LocalClip,
-                                               image_url: &ServoUrl,
-                                               background_index: usize);
-
     /// Adds the display items necessary to paint a webrender image of this fragment to the
     /// appropriate section of the display list.
     fn build_display_list_for_webrender_image(&self,
@@ -477,16 +465,15 @@ pub trait FragmentDisplayListBuilding {
                                               webrender_image: WebRenderImageInfo,
                                               index: usize);
 
-    /// Adds the display items necessary to paint the background image created by this fragment's
-    /// worklet to the appropriate section of the display list.
-    fn build_display_list_for_background_paint_worklet(&self,
-                                                       state: &mut DisplayListBuildState,
-                                                       style: &ComputedValues,
-                                                       display_list_section: DisplayListSection,
-                                                       absolute_bounds: &Rect<Au>,
-                                                       clip: &LocalClip,
-                                                       paint_worklet: &PaintWorklet,
-                                                       index: usize);
+    /// Calculates the webrender image for a paint worklet.
+    /// Returns None if the worklet is not registered.
+    /// If the worklet has missing image URLs, it passes them to the image cache for loading.
+    fn get_webrender_image_for_paint_worklet(&self,
+                                             state: &mut DisplayListBuildState,
+                                             style: &ComputedValues,
+                                             paint_worklet: &PaintWorklet,
+                                             size: Size2D<Au>)
+                                             -> Option<WebRenderImageInfo>;
 
     fn convert_linear_gradient(&self,
                                bounds: &Rect<Au>,
@@ -1015,23 +1002,47 @@ impl FragmentDisplayListBuilding for Fragment {
                 }
                 Either::Second(Image::Url(ref image_url)) => {
                     if let Some(url) = image_url.url() {
-                        self.build_display_list_for_background_image(state,
-                                                                     style,
-                                                                     display_list_section,
-                                                                     &bounds,
-                                                                     &clip,
-                                                                     url,
-                                                                     i);
+                        let webrender_image =  state.layout_context
+                            .get_webrender_image_for_url(self.node,
+                                                         url.clone(),
+                                                         UsePlaceholder::No);
+                        if let Some(webrender_image) = webrender_image {
+                            self.build_display_list_for_webrender_image(state,
+                                                                        style,
+                                                                        display_list_section,
+                                                                        &bounds,
+                                                                        &clip,
+                                                                        webrender_image,
+                                                                        i);
+                        }
                     }
                 }
                 Either::Second(Image::PaintWorklet(ref paint_worklet)) => {
-                    self.build_display_list_for_background_paint_worklet(state,
-                                                                         style,
-                                                                         display_list_section,
-                                                                         &bounds,
-                                                                         &clip,
-                                                                         paint_worklet,
-                                                                         i);
+                    let bounding_box = self.border_box - style.logical_border_width();
+                    let bounding_box_size = bounding_box.size.to_physical(style.writing_mode);
+                    let background_size = get_cyclic(&style.get_background().background_size.0, i).clone();
+                    let size = match background_size {
+                        BackgroundSize::Explicit { width, height } => {
+                            Size2D::new(MaybeAuto::from_style(width, bounding_box_size.width)
+                                        .specified_or_default(bounding_box_size.width),
+                                        MaybeAuto::from_style(height, bounding_box_size.height)
+                                        .specified_or_default(bounding_box_size.height))
+                        },
+                        _ => bounding_box_size,
+                    };
+                    let webrender_image = self.get_webrender_image_for_paint_worklet(state,
+                                                                                     style,
+                                                                                     paint_worklet,
+                                                                                     size);
+                    if let Some(webrender_image) = webrender_image {
+                        self.build_display_list_for_webrender_image(state,
+                                                                    style,
+                                                                    display_list_section,
+                                                                    &bounds,
+                                                                    &clip,
+                                                                    webrender_image,
+                                                                    i);
+                    }
                 }
                 Either::Second(Image::Rect(_)) => {
                     // TODO: Implement `-moz-image-rect`
@@ -1085,30 +1096,6 @@ impl FragmentDisplayListBuilding for Fragment {
                        MaybeAuto::from_style(height, bounds.size.height)
                                  .specified_or_default(intrinsic_size.height))
             }
-        }
-    }
-
-    fn build_display_list_for_background_image(&self,
-                                               state: &mut DisplayListBuildState,
-                                               style: &ComputedValues,
-                                               display_list_section: DisplayListSection,
-                                               absolute_bounds: &Rect<Au>,
-                                               clip: &LocalClip,
-                                               image_url: &ServoUrl,
-                                               index: usize) {
-        let webrender_image = state.layout_context
-                                   .get_webrender_image_for_url(self.node,
-                                                                image_url.clone(),
-                                                                UsePlaceholder::No);
-
-        if let Some(webrender_image) = webrender_image {
-            self.build_display_list_for_webrender_image(state,
-                                                        style,
-                                                        display_list_section,
-                                                        absolute_bounds,
-                                                        clip,
-                                                        webrender_image,
-                                                        index);
         }
     }
 
@@ -1249,34 +1236,14 @@ impl FragmentDisplayListBuilding for Fragment {
 
     }
 
-    fn build_display_list_for_background_paint_worklet(&self,
-                                                       state: &mut DisplayListBuildState,
-                                                       style: &ComputedValues,
-                                                       display_list_section: DisplayListSection,
-                                                       absolute_bounds: &Rect<Au>,
-                                                       clip: &LocalClip,
-                                                       paint_worklet: &PaintWorklet,
-                                                       index: usize)
+    fn get_webrender_image_for_paint_worklet(&self,
+                                             state: &mut DisplayListBuildState,
+                                             style: &ComputedValues,
+                                             paint_worklet: &PaintWorklet,
+                                             size_in_au: Size2D<Au>)
+                                             -> Option<WebRenderImageInfo>
     {
-        // This should be the "concrete object size" of the fragment.
-        // https://drafts.css-houdini.org/css-paint-api/#draw-a-paint-image
-        // https://drafts.csswg.org/css-images-3/#concrete-object-size
-        // Experimentally, chrome is using the size in px of the box,
-        // including padding, but not border or margin, so we follow suit.
-        // https://github.com/w3c/css-houdini-drafts/issues/417
-        let unbordered_box = self.border_box - style.logical_border_width();
         let device_pixel_ratio = state.layout_context.style_context.device_pixel_ratio();
-        let unbordered_box_size_in_au = unbordered_box.size.to_physical(style.writing_mode);
-        let background_size = get_cyclic(&style.get_background().background_size.0, index).clone();
-        let size_in_au = match background_size {
-            BackgroundSize::Explicit { width, height } => {
-                Size2D::new(MaybeAuto::from_style(width, unbordered_box_size_in_au.width)
-                                 .specified_or_default(unbordered_box_size_in_au.width),
-                       MaybeAuto::from_style(height, unbordered_box_size_in_au.height)
-                                 .specified_or_default(unbordered_box_size_in_au.height))
-            },
-            _ => unbordered_box_size_in_au,
-        };
         let size_in_px = TypedSize2D::new(size_in_au.width.to_f32_px(), size_in_au.height.to_f32_px());
 
         // TODO: less copying.
@@ -1294,7 +1261,10 @@ impl FragmentDisplayListBuilding for Fragment {
                     .collect();
                 painter.draw_a_paint_image(size_in_px, device_pixel_ratio, properties, arguments)
             },
-            None => return debug!("Worklet {} called before registration.", name),
+            None => {
+                debug!("Worklet {} called before registration.", name);
+                return None;
+            },
         };
 
         let webrender_image = WebRenderImageInfo {
@@ -1309,13 +1279,7 @@ impl FragmentDisplayListBuilding for Fragment {
             state.layout_context.get_webrender_image_for_url(self.node, url, UsePlaceholder::No);
         }
 
-        self.build_display_list_for_webrender_image(state,
-                                                    style,
-                                                    display_list_section,
-                                                    absolute_bounds,
-                                                    clip,
-                                                    webrender_image,
-                                                    index);
+        Some(webrender_image)
     }
 
     fn convert_linear_gradient(&self,
@@ -1541,6 +1505,7 @@ impl FragmentDisplayListBuilding for Fragment {
             BorderPaintingMode::Hidden => return,
         }
         if border.is_zero() {
+            // TODO: check if image-border-outset is zero
             return
         }
 
@@ -1631,8 +1596,33 @@ impl FragmentDisplayListBuilding for Fragment {
                     }
                 }
             }
-            Either::Second(Image::PaintWorklet(..)) => {
-                // TODO: Handle border-image with `paint()`.
+            Either::Second(Image::PaintWorklet(ref paint_worklet)) => {
+                // TODO: this size should be increased by border-image-outset
+                let size = self.border_box.size.to_physical(style.writing_mode);
+                let webrender_image = self.get_webrender_image_for_paint_worklet(state,
+                                                                                 style,
+                                                                                 paint_worklet,
+                                                                                 size);
+                if let Some(webrender_image) = webrender_image {
+                    let corners = &border_style_struct.border_image_slice.offsets;
+
+                    state.add_display_item(DisplayItem::Border(box BorderDisplayItem {
+                        base: base,
+                        border_widths: border.to_physical(style.writing_mode),
+                        details: BorderDetails::Image(ImageBorder {
+                            image: webrender_image,
+                            fill: border_style_struct.border_image_slice.fill,
+                            slice: SideOffsets2D::new(corners.0.resolve(webrender_image.height),
+                                                      corners.1.resolve(webrender_image.width),
+                                                      corners.2.resolve(webrender_image.height),
+                                                      corners.3.resolve(webrender_image.width)),
+                            // TODO(gw): Support border-image-outset
+                            outset: SideOffsets2D::zero(),
+                            repeat_horizontal: convert_repeat_mode(border_style_struct.border_image_repeat.0),
+                            repeat_vertical: convert_repeat_mode(border_style_struct.border_image_repeat.1),
+                        }),
+                    }));
+                }
             }
             Either::Second(Image::Rect(..)) => {
                 // TODO: Handle border-image with `-moz-image-rect`.
