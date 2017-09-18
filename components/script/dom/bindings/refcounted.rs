@@ -139,18 +139,14 @@ impl TrustedPromise {
     where
         T: ToJSValConvertible + Send,
     {
-        struct ResolvePromise<T>(TrustedPromise, T);
-        impl<T: ToJSValConvertible> Task for ResolvePromise<T> {
-            fn run(self: Box<Self>) {
-                debug!("Resolving promise.");
-                let this = *self;
-                let promise = this.0.root();
-                let cx = promise.global().get_cx();
-                let _ac = JSAutoCompartment::new(cx, promise.reflector().get_jsobject().get());
-                promise.resolve_native(cx, &this.1);
-            }
-        }
-        ResolvePromise(self, value)
+        let this = self;
+        task!(resolve_promise: move || {
+            debug!("Resolving promise.");
+            let this = this.root();
+            let cx = this.global().get_cx();
+            let _ac = JSAutoCompartment::new(cx, this.reflector().get_jsobject().get());
+            this.resolve_native(cx, &value);
+        })
     }
 }
 
