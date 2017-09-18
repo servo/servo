@@ -102,15 +102,25 @@ impl EventSourceContext {
         let _ = event_source.global().networking_task_source().queue(task, &*event_source.global());
     }
 
+    /// https://html.spec.whatwg.org/multipage/#fail-the-connection
     fn fail_the_connection(&self) {
         let event_source = self.event_source.root();
         if self.gen_id != event_source.generation_id.get() {
             return;
         }
-        let task = box FailConnectionTask {
-            event_source: self.event_source.clone()
-        };
-        let _ = event_source.global().networking_task_source().queue(task, &*event_source.global());
+        let global = event_source.global();
+        let event_source = self.event_source.clone();
+        // FIXME(nox): Why are errors silenced here?
+        let _ = global.networking_task_source().queue(
+            box task!(fail_the_event_source_connection: move || {
+                let event_source = event_source.root();
+                if event_source.ready_state.get() != ReadyState::Closed {
+                    event_source.ready_state.set(ReadyState::Closed);
+                    event_source.upcast::<EventTarget>().fire_event(atom!("error"));
+                }
+            }),
+            &global,
+        );
     }
 
     // https://html.spec.whatwg.org/multipage/#reestablish-the-connection
@@ -520,21 +530,6 @@ impl Task for AnnounceConnectionTask {
         if event_source.ready_state.get() != ReadyState::Closed {
             event_source.ready_state.set(ReadyState::Open);
             event_source.upcast::<EventTarget>().fire_event(atom!("open"));
-        }
-    }
-}
-
-pub struct FailConnectionTask {
-    event_source: Trusted<EventSource>,
-}
-
-impl Task for FailConnectionTask {
-    // https://html.spec.whatwg.org/multipage/#fail-the-connection
-    fn run(self: Box<Self>) {
-        let event_source = self.event_source.root();
-        if event_source.ready_state.get() != ReadyState::Closed {
-            event_source.ready_state.set(ReadyState::Closed);
-            event_source.upcast::<EventTarget>().fire_event(atom!("error"));
         }
     }
 }
