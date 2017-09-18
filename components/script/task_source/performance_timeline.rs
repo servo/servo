@@ -8,30 +8,11 @@
 
 use dom::bindings::refcounted::Trusted;
 use dom::globalscope::GlobalScope;
-use dom::performance::Performance;
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
 use std::fmt;
 use std::result::Result;
 use task::{Task, TaskCanceller};
 use task_source::TaskSource;
-
-pub struct NotifyPerformanceObserverTask {
-    owner: Trusted<Performance>,
-}
-
-impl NotifyPerformanceObserverTask {
-    pub fn new(owner: Trusted<Performance>) -> Self {
-        NotifyPerformanceObserverTask {
-            owner,
-        }
-    }
-}
-
-impl Task for NotifyPerformanceObserverTask {
-    fn run(self: Box<Self>) {
-        self.owner.root().notify_observers();
-    }
-}
 
 #[derive(JSTraceable)]
 pub struct PerformanceTimelineTaskSource(pub Box<ScriptChan + Send + 'static>);
@@ -68,7 +49,12 @@ impl TaskSource for PerformanceTimelineTaskSource {
 impl PerformanceTimelineTaskSource {
     pub fn queue_notification(&self, global: &GlobalScope) {
         let owner = Trusted::new(&*global.performance());
-        let task = box NotifyPerformanceObserverTask::new(owner);
-        let _ = self.queue(task, global);
+        // FIXME(nox): Why are errors silenced here?
+        let _ = self.queue(
+            box task!(notify_performance_observers: move || {
+                owner.root().notify_observers();
+            }),
+            global,
+        );
     }
 }
