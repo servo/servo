@@ -39,7 +39,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "angle"
 version = "0.5.0"
-source = "git+https://github.com/servo/angle?branch=servo#c598aafe6a3bf8758f7564e41044d88ca2fd7af5"
+source = "git+https://github.com/servo/angle?branch=servo#1599c1d067b4ccbe502f660181d08d49d69e26eb"
 dependencies = [
  "cmake 0.1.22 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
