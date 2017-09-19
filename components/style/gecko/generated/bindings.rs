@@ -2090,6 +2090,11 @@ extern "C" {
                                                      RawServoStyleSetBorrowed);
 }
 extern "C" {
+    pub fn Servo_UACache_AddSizeOf(malloc_size_of: MallocSizeOf,
+                                   malloc_enclosing_size_of: MallocSizeOf,
+                                   sizes: *mut ServoStyleSetSizes);
+}
+extern "C" {
     pub fn Servo_StyleContext_AddRef(ctx: ServoStyleContextBorrowed);
 }
 extern "C" {

@@ -17,6 +17,8 @@ use invalidation::element::invalidation_map::InvalidationMap;
 use invalidation::media_queries::{EffectiveMediaQueryResults, ToMediaListKey};
 #[cfg(feature = "gecko")]
 use malloc_size_of::{MallocShallowSizeOf, MallocSizeOf, MallocSizeOfOps};
+#[cfg(feature = "gecko")]
+use malloc_size_of::MallocUnconditionalShallowSizeOf;
 use media_queries::Device;
 use properties::{self, CascadeFlags, ComputedValues};
 use properties::{AnimationRules, PropertyDeclarationBlock};
@@ -133,6 +135,23 @@ impl UserAgentCascadeDataCache {
     fn clear(&mut self) {
         self.entries.clear();
     }
+
+    #[cfg(feature = "gecko")]
+    pub fn add_size_of(&self, ops: &mut MallocSizeOfOps, sizes: &mut ServoStyleSetSizes) {
+        sizes.mOther += self.entries.shallow_size_of(ops);
+        for arc in self.entries.iter() {
+            // These are primary Arc references that can be measured
+            // unconditionally.
+            sizes.mOther += arc.unconditional_shallow_size_of(ops);
+            arc.add_size_of(ops, sizes);
+        }
+    }
+}
+
+/// Measure heap usage of UA_CASCADE_DATA_CACHE.
+#[cfg(feature = "gecko")]
+pub fn add_size_of_ua_cache(ops: &mut MallocSizeOfOps, sizes: &mut ServoStyleSetSizes) {
+    UA_CASCADE_DATA_CACHE.lock().unwrap().add_size_of(ops, sizes);
 }
 
 type PrecomputedPseudoElementDeclarations =
@@ -149,6 +168,14 @@ struct UserAgentCascadeData {
     ///
     /// These are only filled from UA stylesheets.
     precomputed_pseudo_element_decls: PrecomputedPseudoElementDeclarations,
+}
+
+impl UserAgentCascadeData {
+    #[cfg(feature = "gecko")]
+    fn add_size_of(&self, ops: &mut MallocSizeOfOps, sizes: &mut ServoStyleSetSizes) {
+        self.cascade_data.add_size_of_children(ops, sizes);
+        sizes.mPrecomputedPseudos += self.precomputed_pseudo_element_decls.size_of(ops);
+    }
 }
 
 /// All the computed information for a stylesheet.
@@ -304,9 +331,6 @@ impl DocumentCascadeData {
     pub fn add_size_of_children(&self, ops: &mut MallocSizeOfOps, sizes: &mut ServoStyleSetSizes) {
         self.user.add_size_of_children(ops, sizes);
         self.author.add_size_of_children(ops, sizes);
-
-        // FIXME(emilio): UA_CASCADE_DATA_CACHE is shared, we should do whatever
-        // we do for RuleProcessorCache in Gecko.
     }
 }
 
@@ -1500,7 +1524,7 @@ impl Stylist {
     #[cfg(feature = "gecko")]
     pub fn add_size_of_children(&self, ops: &mut MallocSizeOfOps, sizes: &mut ServoStyleSetSizes) {
         self.cascade_data.add_size_of_children(ops, sizes);
-        sizes.mStylistRuleTree += self.rule_tree.size_of(ops);
+        sizes.mRuleTree += self.rule_tree.size_of(ops);
 
         // We may measure other fields in the future if DMD says it's worth it.
     }
@@ -2194,22 +2218,22 @@ impl CascadeData {
     /// Measures heap usage.
     #[cfg(feature = "gecko")]
     pub fn add_size_of_children(&self, ops: &mut MallocSizeOfOps, sizes: &mut ServoStyleSetSizes) {
-        sizes.mStylistElementAndPseudosMaps += self.element_map.size_of(ops);
+        sizes.mElementAndPseudosMaps += self.element_map.size_of(ops);
 
         for elem in self.pseudos_map.iter() {
             if let Some(ref elem) = *elem {
-                sizes.mStylistElementAndPseudosMaps += <Box<_> as MallocSizeOf>::size_of(elem, ops);
+                sizes.mElementAndPseudosMaps += <Box<_> as MallocSizeOf>::size_of(elem, ops);
             }
         }
 
-        sizes.mStylistOther += self.animations.size_of(ops);
+        sizes.mOther += self.animations.size_of(ops);
 
-        sizes.mStylistInvalidationMap += self.invalidation_map.size_of(ops);
+        sizes.mInvalidationMap += self.invalidation_map.size_of(ops);
 
-        sizes.mStylistRevalidationSelectors += self.selectors_for_cache_revalidation.size_of(ops);
+        sizes.mRevalidationSelectors += self.selectors_for_cache_revalidation.size_of(ops);
 
-        sizes.mStylistOther += self.effective_media_query_results.size_of(ops);
-        sizes.mStylistOther += self.extra_data.size_of(ops);
+        sizes.mOther += self.effective_media_query_results.size_of(ops);
+        sizes.mOther += self.extra_data.size_of(ops);
     }
 }
 
