@@ -3483,6 +3483,11 @@ pub extern "C" fn Servo_AssertTreeIsClean(root: RawGeckoElementBorrowed) {
     assert_subtree_is_clean(root);
 }
 
+#[no_mangle]
+pub extern "C" fn Servo_IsWorkerThread() -> bool {
+    thread_state::get().is_worker()
+}
+
 enum Offset {
     Zero,
     One

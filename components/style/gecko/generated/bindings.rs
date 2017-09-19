@@ -2930,6 +2930,9 @@ extern "C" {
     pub fn Servo_AssertTreeIsClean(root: RawGeckoElementBorrowed);
 }
 extern "C" {
+    pub fn Servo_IsWorkerThread() -> bool;
+}
+extern "C" {
     pub fn Servo_MaybeGCRuleTree(set: RawServoStyleSetBorrowed);
 }
 extern "C" {
