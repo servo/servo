@@ -461,7 +461,8 @@ impl LayoutThread {
             ScaleFactor::new(opts::get().device_pixels_per_px.unwrap_or(1.0)));
 
         let configuration =
-            rayon::Configuration::new().num_threads(layout_threads);
+            rayon::Configuration::new().num_threads(layout_threads)
+                                       .start_handler(|_| thread_state::initialize_layout_worker_thread());
         let parallel_traversal = if layout_threads > 1 {
             Some(rayon::ThreadPool::new(configuration).expect("ThreadPool creation failed"))
         } else {

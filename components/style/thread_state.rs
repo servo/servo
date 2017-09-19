@@ -40,9 +40,6 @@ macro_rules! thread_types ( ( $( $fun:ident = $flag:ident ; )* ) => (
             }
         )*
     }
-
-    static TYPES: &'static [ThreadState] =
-        &[ $( $flag ),* ];
 ));
 
 thread_types! {
@@ -60,21 +57,22 @@ pub fn initialize(x: ThreadState) {
         }
         *k.borrow_mut() = Some(x);
     });
-    get(); // check the assertion below
+}
+
+/// Initializes the current thread as a layout worker thread.
+pub fn initialize_layout_worker_thread() {
+    initialize(LAYOUT | IN_WORKER);
 }
 
 /// Gets the current thread state.
 pub fn get() -> ThreadState {
     let state = STATE.with(|ref k| {
         match *k.borrow() {
-            // This is one of the layout threads, that use rayon.
-            None => LAYOUT | IN_WORKER,
+            None => ThreadState::empty(), // Unknown thread.
             Some(s) => s,
         }
     });
 
-    // Exactly one of the thread type flags should be set.
-    debug_assert_eq!(1, TYPES.iter().filter(|&&ty| state.contains(ty)).count());
     state
 }
 

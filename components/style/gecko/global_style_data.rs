@@ -15,6 +15,7 @@ use shared_lock::SharedRwLock;
 use std::cmp;
 use std::env;
 use std::ffi::CString;
+use thread_state;
 
 /// Global style data
 pub struct GlobalStyleData {
@@ -39,6 +40,7 @@ fn thread_name(index: usize) -> String {
 }
 
 fn thread_startup(index: usize) {
+    thread_state::initialize_layout_worker_thread();
     unsafe {
         Gecko_SetJemallocThreadLocalArena(true);
     }
