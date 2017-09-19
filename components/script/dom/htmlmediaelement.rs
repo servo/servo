@@ -47,10 +47,8 @@ use time::{self, Timespec, Duration};
 pub struct HTMLMediaElement {
     htmlelement: HTMLElement,
     /// https://html.spec.whatwg.org/multipage/#dom-media-networkstate
-    // FIXME(nox): Use an enum.
     network_state: Cell<NetworkState>,
     /// https://html.spec.whatwg.org/multipage/#dom-media-readystate
-    // FIXME(nox): Use an enum.
     ready_state: Cell<ReadyState>,
     /// https://html.spec.whatwg.org/multipage/#dom-media-currentsrc
     current_src: DOMRefCell<String>,
@@ -291,9 +289,6 @@ impl HTMLMediaElement {
                 &window,
             );
         }
-
-        // TODO Step 2: Media controller.
-        // FIXME(nox): There is no step 2 in the spec.
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-media-load-algorithm
@@ -327,7 +322,6 @@ impl HTMLMediaElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-media-load-algorithm
-    // FIXME(nox): Why does this need to be passed the base URL?
     fn resource_selection_algorithm_sync(&self, base_url: ServoUrl) {
         // Step 5.
         // FIXME(nox): Maybe populate the list of pending text tracks.
