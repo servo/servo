@@ -7,7 +7,7 @@
 
 #![deny(missing_docs)]
 
-pub use self::imp::{enter, exit, get, initialize};
+use std::cell::RefCell;
 
 bitflags! {
     /// A thread state flag, used for multiple assertions.
@@ -50,53 +50,48 @@ thread_types! {
     is_layout = LAYOUT;
 }
 
-mod imp {
-    use std::cell::RefCell;
-    use super::{TYPES, ThreadState};
+thread_local!(static STATE: RefCell<Option<ThreadState>> = RefCell::new(None));
 
-    thread_local!(static STATE: RefCell<Option<ThreadState>> = RefCell::new(None));
+/// Initializes the current thread state.
+pub fn initialize(x: ThreadState) {
+    STATE.with(|ref k| {
+        if let Some(ref s) = *k.borrow() {
+            panic!("Thread state already initialized as {:?}", s);
+        }
+        *k.borrow_mut() = Some(x);
+    });
+    get(); // check the assertion below
+}
 
-    /// Initialize the current thread state.
-    pub fn initialize(x: ThreadState) {
-        STATE.with(|ref k| {
-            if let Some(ref s) = *k.borrow() {
-                panic!("Thread state already initialized as {:?}", s);
-            }
-            *k.borrow_mut() = Some(x);
-        });
-        get(); // check the assertion below
-    }
+/// Gets the current thread state.
+pub fn get() -> ThreadState {
+    let state = STATE.with(|ref k| {
+        match *k.borrow() {
+            // This is one of the layout threads, that use rayon.
+            None => LAYOUT | IN_WORKER,
+            Some(s) => s,
+        }
+    });
 
-    /// Get the current thread state.
-    pub fn get() -> ThreadState {
-        let state = STATE.with(|ref k| {
-            match *k.borrow() {
-                // This is one of the layout threads, that use rayon.
-                None => super::LAYOUT | super::IN_WORKER,
-                Some(s) => s,
-            }
-        });
+    // Exactly one of the thread type flags should be set.
+    debug_assert_eq!(1, TYPES.iter().filter(|&&ty| state.contains(ty)).count());
+    state
+}
 
-        // Exactly one of the thread type flags should be set.
-        debug_assert_eq!(1, TYPES.iter().filter(|&&ty| state.contains(ty)).count());
-        state
-    }
+/// Enters into a given temporary state. Panics if re-entring.
+pub fn enter(x: ThreadState) {
+    let state = get();
+    debug_assert!(!state.intersects(x));
+    STATE.with(|ref k| {
+        *k.borrow_mut() = Some(state | x);
+    })
+}
 
-    /// Enter into a given temporary state. Panics if re-entring.
-    pub fn enter(x: ThreadState) {
-        let state = get();
-        debug_assert!(!state.intersects(x));
-        STATE.with(|ref k| {
-            *k.borrow_mut() = Some(state | x);
-        })
-    }
-
-    /// Exit a given temporary state.
-    pub fn exit(x: ThreadState) {
-        let state = get();
-        debug_assert!(state.contains(x));
-        STATE.with(|ref k| {
-            *k.borrow_mut() = Some(state & !x);
-        })
-    }
+/// Exits a given temporary state.
+pub fn exit(x: ThreadState) {
+    let state = get();
+    debug_assert!(state.contains(x));
+    STATE.with(|ref k| {
+        *k.borrow_mut() = Some(state & !x);
+    })
 }
