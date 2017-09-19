@@ -21,11 +21,13 @@ use webrender_api::{ExtendMode, LayoutTransform};
 
 fn prim_info(local_rect: Rect<Au>,
              local_clip: Option<webrender_api::LocalClip>) -> webrender_api::LayoutPrimitiveInfo {
-    webrender_api::LayoutPrimitiveInfo {
-        rect: local_rect.to_rectf(),
-        local_clip,
-        // TODO(gw): Make use of the WR backface visibility functionality.
-        is_backface_visible: true,
+    match local_clip {
+        Some(local_clip) => {
+            webrender_api::LayoutPrimitiveInfo::with_clip(local_rect.to_rectf(), local_clip)
+        }
+        None => {
+            webrender_api::LayoutPrimitiveInfo::new(local_rect.to_rectf())
+        }
     }
 }
 
