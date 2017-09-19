@@ -131,7 +131,7 @@ use style::stylesheets::{StylesheetContents, SupportsRule};
 use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
 use style::stylesheets::keyframes_rule::{Keyframe, KeyframeSelector, KeyframesStepValue};
 use style::stylesheets::supports_rule::parse_condition_or_declaration;
-use style::stylist::{RuleInclusion, Stylist};
+use style::stylist::{add_size_of_ua_cache, RuleInclusion, Stylist};
 use style::thread_state;
 use style::timer::Timer;
 use style::traversal::DomTraversal;
@@ -3766,6 +3766,19 @@ pub extern "C" fn Servo_StyleSet_AddSizeOfExcludingThis(
                                        None);
     let sizes = unsafe { sizes.as_mut() }.unwrap();
     data.add_size_of_children(&mut ops, sizes);
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_UACache_AddSizeOf(
+    malloc_size_of: GeckoMallocSizeOf,
+    malloc_enclosing_size_of: GeckoMallocSizeOf,
+    sizes: *mut ServoStyleSetSizes
+) {
+    let mut ops = MallocSizeOfOps::new(malloc_size_of.unwrap(),
+                                       malloc_enclosing_size_of.unwrap(),
+                                       None);
+    let sizes = unsafe { sizes.as_mut() }.unwrap();
+    add_size_of_ua_cache(&mut ops, sizes);
 }
 
 #[no_mangle]

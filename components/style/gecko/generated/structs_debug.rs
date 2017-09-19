@@ -4947,17 +4947,16 @@ pub mod root {
         #[repr(C)]
         #[derive(Debug, Copy)]
         pub struct ServoStyleSetSizes {
-            pub mStylistRuleTree: usize,
-            pub mStylistPrecomputedPseudos: usize,
-            pub mStylistElementAndPseudosMaps: usize,
-            pub mStylistInvalidationMap: usize,
-            pub mStylistRevalidationSelectors: usize,
-            pub mStylistOther: usize,
+            pub mRuleTree: usize,
+            pub mPrecomputedPseudos: usize,
+            pub mElementAndPseudosMaps: usize,
+            pub mInvalidationMap: usize,
+            pub mRevalidationSelectors: usize,
             pub mOther: usize,
         }
         #[test]
         fn bindgen_test_layout_ServoStyleSetSizes() {
-            assert_eq!(::std::mem::size_of::<ServoStyleSetSizes>() , 56usize ,
+            assert_eq!(::std::mem::size_of::<ServoStyleSetSizes>() , 48usize ,
                        concat ! (
                        "Size of: " , stringify ! ( ServoStyleSetSizes ) ));
             assert_eq! (::std::mem::align_of::<ServoStyleSetSizes>() , 8usize
@@ -4966,49 +4965,42 @@ pub mod root {
                         ));
             assert_eq! (unsafe {
                         & ( * ( 0 as * const ServoStyleSetSizes ) ) .
-                        mStylistRuleTree as * const _ as usize } , 0usize ,
+                        mRuleTree as * const _ as usize } , 0usize , concat !
+                        (
+                        "Alignment of field: " , stringify ! (
+                        ServoStyleSetSizes ) , "::" , stringify ! ( mRuleTree
+                        ) ));
+            assert_eq! (unsafe {
+                        & ( * ( 0 as * const ServoStyleSetSizes ) ) .
+                        mPrecomputedPseudos as * const _ as usize } , 8usize ,
                         concat ! (
                         "Alignment of field: " , stringify ! (
                         ServoStyleSetSizes ) , "::" , stringify ! (
-                        mStylistRuleTree ) ));
+                        mPrecomputedPseudos ) ));
             assert_eq! (unsafe {
                         & ( * ( 0 as * const ServoStyleSetSizes ) ) .
-                        mStylistPrecomputedPseudos as * const _ as usize } ,
-                        8usize , concat ! (
+                        mElementAndPseudosMaps as * const _ as usize } ,
+                        16usize , concat ! (
                         "Alignment of field: " , stringify ! (
                         ServoStyleSetSizes ) , "::" , stringify ! (
-                        mStylistPrecomputedPseudos ) ));
+                        mElementAndPseudosMaps ) ));
             assert_eq! (unsafe {
                         & ( * ( 0 as * const ServoStyleSetSizes ) ) .
-                        mStylistElementAndPseudosMaps as * const _ as usize }
-                        , 16usize , concat ! (
-                        "Alignment of field: " , stringify ! (
-                        ServoStyleSetSizes ) , "::" , stringify ! (
-                        mStylistElementAndPseudosMaps ) ));
-            assert_eq! (unsafe {
-                        & ( * ( 0 as * const ServoStyleSetSizes ) ) .
-                        mStylistInvalidationMap as * const _ as usize } ,
-                        24usize , concat ! (
-                        "Alignment of field: " , stringify ! (
-                        ServoStyleSetSizes ) , "::" , stringify ! (
-                        mStylistInvalidationMap ) ));
-            assert_eq! (unsafe {
-                        & ( * ( 0 as * const ServoStyleSetSizes ) ) .
-                        mStylistRevalidationSelectors as * const _ as usize }
-                        , 32usize , concat ! (
-                        "Alignment of field: " , stringify ! (
-                        ServoStyleSetSizes ) , "::" , stringify ! (
-                        mStylistRevalidationSelectors ) ));
-            assert_eq! (unsafe {
-                        & ( * ( 0 as * const ServoStyleSetSizes ) ) .
-                        mStylistOther as * const _ as usize } , 40usize ,
+                        mInvalidationMap as * const _ as usize } , 24usize ,
                         concat ! (
                         "Alignment of field: " , stringify ! (
                         ServoStyleSetSizes ) , "::" , stringify ! (
-                        mStylistOther ) ));
+                        mInvalidationMap ) ));
+            assert_eq! (unsafe {
+                        & ( * ( 0 as * const ServoStyleSetSizes ) ) .
+                        mRevalidationSelectors as * const _ as usize } ,
+                        32usize , concat ! (
+                        "Alignment of field: " , stringify ! (
+                        ServoStyleSetSizes ) , "::" , stringify ! (
+                        mRevalidationSelectors ) ));
             assert_eq! (unsafe {
                         & ( * ( 0 as * const ServoStyleSetSizes ) ) . mOther
-                        as * const _ as usize } , 48usize , concat ! (
+                        as * const _ as usize } , 40usize , concat ! (
                         "Alignment of field: " , stringify ! (
                         ServoStyleSetSizes ) , "::" , stringify ! ( mOther )
                         ));
