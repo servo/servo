@@ -256,7 +256,8 @@ impl HTMLIFrameElement {
 
         let document = document_from_node(self);
         let load_data = LoadData::new(url, creator_pipeline_id, document.get_referrer_policy(), Some(document.url()));
-        self.navigate_or_reload_child_browsing_context(Some(load_data), NavigationType::Regular, false);
+        let replace = mode == ProcessingMode::FirstTime;
+        self.navigate_or_reload_child_browsing_context(Some(load_data), NavigationType::Regular, replace);
     }
 
     #[allow(unsafe_code)]
