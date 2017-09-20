@@ -375,9 +375,13 @@ fn get_animated_properties(keyframes: &[Arc<Locked<Keyframe>>], guard: &SharedRw
     for keyframe in keyframes {
         let keyframe = keyframe.read_with(&guard);
         let block = keyframe.block.read_with(guard);
-        for (declaration, importance) in block.declaration_importance_iter() {
-            assert!(!importance.important());
-
+        // CSS Animations spec clearly defines that properties with !important
+        // in keyframe rules are invalid and ignored, but it's still ambiguous
+        // whether we should drop the !important properties or retain the
+        // properties when they are set via CSSOM. So we assume there might
+        // be properties with !important in keyframe rules here.
+        // See the spec issue https://github.com/w3c/csswg-drafts/issues/1824
+        for declaration in block.normal_declaration_iter() {
             if let Some(property) = AnimatableLonghand::from_declaration(declaration) {
                 // Skip the 'display' property because although it is animatable from SMIL,
                 // it should not be animatable from CSS Animations or Web Animations.
