@@ -1035,7 +1035,6 @@ pub fn parse_one_declaration_into<R>(declarations: &mut SourcePropertyDeclaratio
     let mut input = ParserInput::new(input);
     let mut parser = Parser::new(&mut input);
     let start_position = parser.position();
-    let start_location = parser.current_source_location();
     parser.parse_entirely(|parser| {
         let name = id.name().into();
         PropertyDeclaration::parse_into(declarations, id, name, &context, parser)
@@ -1044,7 +1043,7 @@ pub fn parse_one_declaration_into<R>(declarations: &mut SourcePropertyDeclaratio
         let error = ContextualParseError::UnsupportedPropertyDeclaration(
             parser.slice_from(start_position), err);
         let error_context = ParserErrorContext { error_reporter: error_reporter };
-        context.log_css_error(&error_context, start_location, error);
+        context.log_css_error(&error_context, parser.current_source_location(), error);
     })
 }
 
@@ -1133,7 +1132,8 @@ pub fn parse_property_declaration_list<R>(context: &ParserContext,
                 }
 
                 let error = ContextualParseError::UnsupportedPropertyDeclaration(err.slice, err.error);
-                context.log_css_error(error_context, err.location, error);
+                let location = iter.input.current_source_location();
+                context.log_css_error(error_context, location, error);
             }
         }
     }

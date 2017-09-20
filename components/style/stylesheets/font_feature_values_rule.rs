@@ -273,7 +273,8 @@ macro_rules! font_feature_values_blocks {
                     while let Some(result) = iter.next() {
                         if let Err(err) = result {
                             let error = ContextualParseError::UnsupportedRule(err.slice, err.error);
-                            context.log_css_error(error_context, err.location, error);
+                            let location = iter.input.current_source_location();
+                            context.log_css_error(error_context, location, error);
                         }
                     }
                 }
@@ -427,7 +428,8 @@ macro_rules! font_feature_values_blocks {
                                 if let Err(err) = declaration {
                                     let error = ContextualParseError::UnsupportedKeyframePropertyDeclaration(
                                         err.slice, err.error);
-                                    self.context.log_css_error(self.error_context, err.location, error);
+                                    let location = iter.input.current_source_location();
+                                    self.context.log_css_error(self.error_context, location, error);
                                 }
                             }
                         },
