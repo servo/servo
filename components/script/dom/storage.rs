@@ -167,7 +167,7 @@ impl Storage {
         let global = self.global();
         let this = Trusted::new(self);
         global.as_window().dom_manipulation_task_source().queue(
-            box task!(send_storage_notification: move || {
+            task!(send_storage_notification: move || {
                 let this = this.root();
                 let global = this.global();
                 let event = StorageEvent::new(

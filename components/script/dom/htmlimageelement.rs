@@ -174,7 +174,7 @@ impl HTMLImageElement {
                 let image = message.to().unwrap();
                 // FIXME(nox): Why are errors silenced here?
                 let _ = task_source.queue_with_canceller(
-                    box task!(process_image_response: move || {
+                    task!(process_image_response: move || {
                         let element = element.root();
                         // Ignore any image response for a previous request that has been discarded.
                         if generation == element.generation.get() {
@@ -425,7 +425,7 @@ impl HTMLImageElement {
                 // Step 9.
                 // FIXME(nox): Why are errors silenced here?
                 let _ = task_source.queue(
-                    box task!(image_null_source_error: move || {
+                    task!(image_null_source_error: move || {
                         let this = this.root();
                         {
                             let mut current_request =
@@ -451,7 +451,7 @@ impl HTMLImageElement {
         let target = Trusted::new(self.upcast::<EventTarget>());
         // FIXME(nox): Why are errors silenced here?
         let _ = task_source.queue(
-            box task!(fire_progress_event: move || {
+            task!(fire_progress_event: move || {
                 let target = target.root();
 
                 let event = ProgressEvent::new(
@@ -480,7 +480,7 @@ impl HTMLImageElement {
                 let src = String::from(src);
                 // FIXME(nox): Why are errors silenced here?
                 let _ = task_source.queue(
-                    box task!(image_selected_source_error: move || {
+                    task!(image_selected_source_error: move || {
                         let this = this.root();
                         {
                             let mut current_request =
@@ -549,7 +549,7 @@ impl HTMLImageElement {
                     let this = Trusted::new(self);
                     let src = String::from(src);
                     let _ = window.dom_manipulation_task_source().queue(
-                        box task!(image_load_event: move || {
+                        task!(image_load_event: move || {
                             let this = this.root();
                             {
                                 let mut current_request =

@@ -70,7 +70,7 @@ impl VirtualMethods for HTMLDetailsElement {
             let this = Trusted::new(self);
             // FIXME(nox): Why are errors silenced here?
             let _ = window.dom_manipulation_task_source().queue(
-                box task!(details_notification_task_steps: move || {
+                task!(details_notification_task_steps: move || {
                     let this = this.root();
                     if counter == this.toggle_counter.get() {
                         this.upcast::<EventTarget>().fire_event(atom!("toggle"));

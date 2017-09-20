@@ -1716,7 +1716,7 @@ impl Document {
         debug!("Document loads are complete.");
         let document = Trusted::new(self);
         self.window.dom_manipulation_task_source().queue(
-            box task!(fire_load_event: move || {
+            task!(fire_load_event: move || {
                 let document = document.root();
                 let window = document.window();
                 if !window.is_alive() {

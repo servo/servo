@@ -13,7 +13,7 @@ macro_rules! task {
     ($name:ident: move || $body:tt) => {{
         #[allow(non_camel_case_types)]
         struct $name<F>(F);
-        impl<F> ::task::TaskBox for $name<F>
+        impl<F> ::task::TaskOnce for $name<F>
         where
             F: ::std::ops::FnOnce() + Send,
         {
@@ -21,7 +21,7 @@ macro_rules! task {
                 stringify!($name)
             }
 
-            fn run_box(self: Box<Self>) {
+            fn run_once(self) {
                 (self.0)();
             }
         }
@@ -30,12 +30,33 @@ macro_rules! task {
 }
 
 /// A task that can be run. The name method is for profiling purposes.
-///
-/// All tasks must be boxed to be run.
-pub trait TaskBox: Send {
+pub trait TaskOnce: Send {
     #[allow(unsafe_code)]
-    fn name(&self) -> &'static str { unsafe { intrinsics::type_name::<Self>() } }
+    fn name(&self) -> &'static str {
+        unsafe { intrinsics::type_name::<Self>() }
+    }
+
+    fn run_once(self);
+}
+
+/// A boxed version of `TaskOnce`.
+pub trait TaskBox: Send {
+    fn name(&self) -> &'static str;
+
     fn run_box(self: Box<Self>);
+}
+
+impl<T> TaskBox for T
+where
+    T: TaskOnce,
+{
+    fn name(&self) -> &'static str {
+        TaskOnce::name(self)
+    }
+
+    fn run_box(self: Box<Self>) {
+        self.run_once()
+    }
 }
 
 impl fmt::Debug for TaskBox {
@@ -52,11 +73,11 @@ pub struct TaskCanceller {
 impl TaskCanceller {
     /// Returns a wrapped `task` that will be cancelled if the `TaskCanceller`
     /// says so.
-    pub fn wrap_task<T>(&self, task: Box<T>) -> Box<TaskBox>
+    pub fn wrap_task<T>(&self, task: T) -> impl TaskOnce
     where
-        T: TaskBox + 'static,
+        T: TaskOnce,
     {
-        box CancellableTask {
+        CancellableTask {
             cancelled: self.cancelled.clone(),
             inner: task,
         }
@@ -64,14 +85,14 @@ impl TaskCanceller {
 }
 
 /// A task that can be cancelled by toggling a shared flag.
-pub struct CancellableTask<T: TaskBox> {
+pub struct CancellableTask<T: TaskOnce> {
     cancelled: Option<Arc<AtomicBool>>,
-    inner: Box<T>,
+    inner: T,
 }
 
 impl<T> CancellableTask<T>
 where
-    T: TaskBox,
+    T: TaskOnce,
 {
     fn is_cancelled(&self) -> bool {
         self.cancelled.as_ref().map_or(false, |cancelled| {
@@ -80,17 +101,17 @@ where
     }
 }
 
-impl<T> TaskBox for CancellableTask<T>
+impl<T> TaskOnce for CancellableTask<T>
 where
-    T: TaskBox,
+    T: TaskOnce,
 {
     fn name(&self) -> &'static str {
         self.inner.name()
     }
 
-    fn run_box(self: Box<Self>) {
+    fn run_once(self) {
         if !self.is_cancelled() {
-            self.inner.run_box()
+            self.inner.run_once()
         }
     }
 }

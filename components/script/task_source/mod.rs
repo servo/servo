@@ -11,21 +11,21 @@ pub mod user_interaction;
 
 use dom::globalscope::GlobalScope;
 use std::result::Result;
-use task::{TaskBox, TaskCanceller};
+use task::{TaskCanceller, TaskOnce};
 
 pub trait TaskSource {
     fn queue_with_canceller<T>(
         &self,
-        msg: Box<T>,
+        task: T,
         canceller: &TaskCanceller,
     ) -> Result<(), ()>
     where
-        T: TaskBox + 'static;
+        T: TaskOnce + 'static;
 
-    fn queue<T>(&self, msg: Box<T>, global: &GlobalScope) -> Result<(), ()>
+    fn queue<T>(&self, task: T, global: &GlobalScope) -> Result<(), ()>
     where
-        T: TaskBox + 'static,
+        T: TaskOnce + 'static,
     {
-        self.queue_with_canceller(msg, &global.task_canceller())
+        self.queue_with_canceller(task, &global.task_canceller())
     }
 }

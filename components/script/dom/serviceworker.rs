@@ -19,7 +19,7 @@ use js::jsapi::{HandleValue, JSContext};
 use script_traits::{ScriptMsg, DOMMessage};
 use servo_url::ServoUrl;
 use std::cell::Cell;
-use task::TaskBox;
+use task::TaskOnce;
 
 pub type TrustedServiceWorkerAddress = Trusted<ServiceWorker>;
 
@@ -104,10 +104,9 @@ impl ServiceWorkerMethods for ServiceWorker {
     event_handler!(statechange, GetOnstatechange, SetOnstatechange);
 }
 
-impl TaskBox for SimpleWorkerErrorHandler<ServiceWorker> {
+impl TaskOnce for SimpleWorkerErrorHandler<ServiceWorker> {
     #[allow(unrooted_must_root)]
-    fn run_box(self: Box<Self>) {
-        let this = *self;
-        ServiceWorker::dispatch_simple_error(this.addr);
+    fn run_once(self) {
+        ServiceWorker::dispatch_simple_error(self.addr);
     }
 }

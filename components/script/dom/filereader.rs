@@ -416,11 +416,11 @@ fn perform_annotated_read_operation(
 ) {
     // Step 4
     let task = FileReadingTask::ProcessRead(filereader.clone(), gen_id);
-    task_source.queue_with_canceller(box task, &canceller).unwrap();
+    task_source.queue_with_canceller(task, &canceller).unwrap();
 
     let task = FileReadingTask::ProcessReadData(filereader.clone(), gen_id);
-    task_source.queue_with_canceller(box task, &canceller).unwrap();
+    task_source.queue_with_canceller(task, &canceller).unwrap();
 
     let task = FileReadingTask::ProcessReadEOF(filereader, gen_id, data, blob_contents);
-    task_source.queue_with_canceller(box task, &canceller).unwrap();
+    task_source.queue_with_canceller(task, &canceller).unwrap();
 }

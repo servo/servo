@@ -154,7 +154,7 @@ impl HTMLMediaElement {
             let target = Trusted::new(self.upcast::<EventTarget>());
             // FIXME(nox): Why are errors silenced here?
             let _ = window.dom_manipulation_task_source().queue(
-                box task!(internal_pause_steps: move || {
+                task!(internal_pause_steps: move || {
                     let target = target.root();
 
                     // Step 2.3.1.
@@ -186,7 +186,7 @@ impl HTMLMediaElement {
         let window = window_from_node(self);
         // FIXME(nox): Why are errors silenced here?
         let _ = window.dom_manipulation_task_source().queue(
-            box task!(notify_about_playing: move || {
+            task!(notify_about_playing: move || {
                 let target = target.root();
 
                 // Step 2.1.
@@ -495,7 +495,7 @@ impl HTMLMediaElement {
         let window = window_from_node(self);
         // FIXME(nox): Why are errors silenced here?
         let _ = window.dom_manipulation_task_source().queue(
-            box task!(dedicated_media_source_failure_steps: move || {
+            task!(dedicated_media_source_failure_steps: move || {
                 let this = this.root();
 
                 // Step 1.

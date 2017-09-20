@@ -1977,7 +1977,7 @@ impl Window {
         serialize_with_transfer_result: StructuredCloneData,
     ) {
         let this = Trusted::new(self);
-        let task = box task!(post_serialised_message: move || {
+        let task = task!(post_serialised_message: move || {
             let this = this.root();
 
             // Step 7.1.
@@ -2012,7 +2012,7 @@ impl Window {
         // TODO(#12718): Use the "posted message task source".
         let _ = self.script_chan.send(CommonScriptMsg::Task(
             ScriptThreadEventCategory::DomEvent,
-            self.task_canceller().wrap_task(task),
+            box self.task_canceller().wrap_task(task),
         ));
     }
 }

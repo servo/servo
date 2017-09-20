@@ -440,7 +440,7 @@ impl HTMLFormElement {
         let pipeline_id = window.upcast::<GlobalScope>().pipeline_id();
         let script_chan = window.main_thread_script_chan().clone();
         let this = Trusted::new(self);
-        let task = box task!(navigate_to_form_planned_navigation: move || {
+        let task = task!(navigate_to_form_planned_navigation: move || {
             if generation_id != this.root().generation_id.get() {
                 return;
             }
