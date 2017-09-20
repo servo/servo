@@ -183,6 +183,7 @@ pub struct Window {
     image_cache_chan: Sender<ImageCacheMsg>,
     window_proxy: MutNullableJS<WindowProxy>,
     document: MutNullableJS<Document>,
+    location: MutNullableJS<Location>,
     history: MutNullableJS<History>,
     custom_element_registry: MutNullableJS<CustomElementRegistry>,
     performance: MutNullableJS<Performance>,
@@ -568,7 +569,7 @@ impl WindowMethods for Window {
 
     // https://html.spec.whatwg.org/multipage/#dom-location
     fn Location(&self) -> Root<Location> {
-        self.Document().GetLocation().unwrap()
+        self.location.or_init(|| Location::new(self))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-sessionstorage
@@ -1854,6 +1855,7 @@ impl Window {
             image_cache_chan,
             image_cache,
             navigator: Default::default(),
+            location: Default::default(),
             history: Default::default(),
             custom_element_registry: Default::default(),
             window_proxy: Default::default(),
