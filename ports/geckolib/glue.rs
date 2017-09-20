@@ -183,6 +183,12 @@ pub extern "C" fn Servo_Initialize(dummy_url_data: *mut URLExtraData) {
 }
 
 #[no_mangle]
+pub extern "C" fn Servo_InitializeCooperativeThread() {
+    // Pretend that we're a Servo Layout thread to make some assertions happy.
+    thread_state::initialize(thread_state::LAYOUT);
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_Shutdown() {
     // The dummy url will be released after shutdown, so clear the
     // reference to avoid use-after-free.
