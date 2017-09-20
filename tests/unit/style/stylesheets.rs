@@ -324,13 +324,13 @@ fn test_report_error_stylesheet() {
         invalid: true;
     }
     @media (min-width: invalid 1000px) {}
-    @font-face { src: url(), invalid, url() }
+    @font-face { src: url(), invalid, url(); }
     @counter-style foo { symbols: a 0invalid b }
     @font-feature-values Sans Sans { @foo {} @swash { foo: 1 invalid 2 } }
     @invalid;
     @media screen { @invalid; }
     @supports (color: green) and invalid and (margin: 0) {}
-    @keyframes foo { from invalid {} to { margin: 0 invalid 0 } }
+    @keyframes foo { from invalid {} to { margin: 0 invalid 0; } }
     @viewport { width: 320px invalid auto; }
     ";
     let url = ServoUrl::parse("about::test").unwrap();
@@ -342,26 +342,26 @@ fn test_report_error_stylesheet() {
                          None, &error_reporter, QuirksMode::NoQuirks, 5);
 
     error_reporter.assert_messages_contain(&[
-        (8, 9, "Unsupported property declaration: 'display: invalid;'"),
-        (9, 9, "Unsupported property declaration: 'background-image:"),
-        (10, 9, "Unsupported property declaration: 'invalid: true;'"),
-        (12, 11, "Invalid media rule"),
-        (13, 18, "Unsupported @font-face descriptor declaration"),
+        (8, 26, "Unsupported property declaration: 'display: invalid;'"),
+        (9, 78, "Unsupported property declaration: 'background-image:"),
+        (10, 23, "Unsupported property declaration: 'invalid: true;'"),
+        (12, 40, "Invalid media rule"),
+        (13, 45, "Unsupported @font-face descriptor declaration"),
 
         // When @counter-style is supported, this should be replaced with two errors
-        (14, 5, "Invalid rule: '@counter-style "),
+        (14, 25, "Invalid rule: '@counter-style "),
 
         // When @font-feature-values is supported, this should be replaced with two errors
-        (15, 5, "Invalid rule: '@font-feature-values "),
+        (15, 37, "Invalid rule: '@font-feature-values "),
 
-        // FIXME: these two should be consistent
-        (16, 5, "Invalid rule: '@invalid'"),
-        (17, 21, "Unsupported rule: '@invalid'"),
+        // FIXME: the message of these two should be consistent
+        (16, 14, "Invalid rule: '@invalid'"),
+        (17, 30, "Unsupported rule: '@invalid'"),
 
-        (18, 5, "Invalid rule: '@supports "),
-        (19, 22, "Invalid keyframe rule: 'from invalid '"),
-        (19, 43, "Unsupported keyframe property declaration: 'margin: 0 invalid 0 '"),
-        (20, 17, "Unsupported @viewport descriptor declaration: 'width: 320px invalid auto;'"),
+        (18, 59, "Invalid rule: '@supports "),
+        (19, 35, "Invalid keyframe rule: 'from invalid '"),
+        (19, 63, "Unsupported keyframe property declaration: 'margin: 0 invalid 0;'"),
+        (20, 43, "Unsupported @viewport descriptor declaration: 'width: 320px invalid auto;'"),
     ]);
 
     assert_eq!(error_reporter.errors.borrow()[0].url, url);
@@ -385,7 +385,7 @@ fn test_no_report_unrecognized_vendor_properties() {
                          None, &error_reporter, QuirksMode::NoQuirks, 0);
 
     error_reporter.assert_messages_contain(&[
-        (4, 9, "Unsupported property declaration: '-moz-background-color: red;'"),
+        (4, 36, "Unsupported property declaration: '-moz-background-color: red;'"),
     ]);
 }
 

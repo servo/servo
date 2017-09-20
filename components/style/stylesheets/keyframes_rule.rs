@@ -526,7 +526,7 @@ impl<'a, 'i, R: ParseErrorReporter> QualifiedRuleParser<'i> for KeyframeListPars
             },
             Err(e) => {
                 let error = ContextualParseError::InvalidKeyframeRule(input.slice_from(start_position), e.clone());
-                self.context.log_css_error(self.error_context, start_location, error);
+                self.context.log_css_error(self.error_context, input.current_source_location(), error);
                 Err(e)
             }
         }
@@ -555,7 +555,7 @@ impl<'a, 'i, R: ParseErrorReporter> QualifiedRuleParser<'i> for KeyframeListPars
                 Err(err) => {
                     iter.parser.declarations.clear();
                     let error = ContextualParseError::UnsupportedKeyframePropertyDeclaration(err.slice, err.error);
-                    context.log_css_error(self.error_context, err.location, error);
+                    context.log_css_error(self.error_context, iter.input.current_source_location(), error);
                 }
             }
             // `parse_important` is not called here, `!important` is not allowed in keyframe blocks.

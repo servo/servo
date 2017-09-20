@@ -257,7 +257,6 @@ where
     let mut media_queries = vec![];
     loop {
         let start_position = input.position();
-        let start_location = input.current_source_location();
         match input.parse_until_before(Delimiter::Comma, |i| MediaQuery::parse(context, i)) {
             Ok(mq) => {
                 media_queries.push(mq);
@@ -267,7 +266,7 @@ where
                 let error = ContextualParseError::InvalidMediaRule(
                     input.slice_from(start_position), err);
                 let error_context = ParserErrorContext { error_reporter };
-                context.log_css_error(&error_context, start_location, error);
+                context.log_css_error(&error_context, input.current_source_location(), error);
             },
         }
 

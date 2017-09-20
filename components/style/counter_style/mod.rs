@@ -68,7 +68,7 @@ pub fn parse_counter_style_body<'i, 't, R>(name: CustomIdent,
         while let Some(declaration) = iter.next() {
             if let Err(err) = declaration {
                 let error = ContextualParseError::UnsupportedCounterStyleDescriptorDeclaration(err.slice, err.error);
-                context.log_css_error(error_context, err.location, error)
+                context.log_css_error(error_context, iter.input.current_source_location(), error)
             }
         }
     }

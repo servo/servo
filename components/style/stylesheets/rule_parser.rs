@@ -333,7 +333,8 @@ impl<'a, 'b, R: ParseErrorReporter> NestedRuleParser<'a, 'b, R> {
                 Ok(rule) => rules.push(rule),
                 Err(err) => {
                     let error = ContextualParseError::UnsupportedRule(err.slice, err.error);
-                    self.context.log_css_error(self.error_context, err.location, error);
+                    let location = iter.input.current_source_location();
+                    self.context.log_css_error(self.error_context, location, error);
                 }
             }
         }
