@@ -787,6 +787,27 @@ fn matches_generic_nth_child<E, F>(element: &E,
         HAS_SLOW_SELECTOR_LATER_SIBLINGS
     });
 
+    let index = nth_child_index(element, is_of_type, is_from_end);
+
+    // Is there a non-negative integer n such that An+B=index?
+    match index.checked_sub(b) {
+        None => false,
+        Some(an) => match an.checked_div(a) {
+            Some(n) => n >= 0 && a * n == an,
+            None /* a == 0 */ => an == 0,
+        },
+    }
+}
+
+#[inline]
+fn nth_child_index<E>(
+    element: &E,
+    is_of_type: bool,
+    is_from_end: bool,
+) -> i32
+where
+    E: Element,
+{
     let mut index: i32 = 1;
     let mut next_sibling = if is_from_end {
         element.next_sibling_element()
@@ -815,14 +836,7 @@ fn matches_generic_nth_child<E, F>(element: &E,
         };
     }
 
-    // Is there a non-negative integer n such that An+B=index?
-    match index.checked_sub(b) {
-        None => false,
-        Some(an) => match an.checked_div(a) {
-            Some(n) => n >= 0 && a * n == an,
-            None /* a == 0 */ => an == 0,
-        },
-    }
+    index
 }
 
 #[inline]
