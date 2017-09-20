@@ -15,7 +15,7 @@
 //!
 //! [glutin]: https://github.com/tomaka/glutin
 
-#![feature(start, core_intrinsics)]
+#![feature(core_intrinsics)]
 
 #[cfg(target_os = "android")]
 extern crate android_injected_glue;
