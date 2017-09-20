@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
-use task::{Task, TaskCanceller};
+use task::{TaskBox, TaskCanceller};
 use task_source::TaskSource;
 
 #[derive(JSTraceable)]
@@ -22,7 +22,7 @@ impl TaskSource for NetworkingTaskSource {
         canceller: &TaskCanceller,
     ) -> Result<(), ()>
     where
-        T: Task + 'static,
+        T: TaskBox + 'static,
     {
         self.0.send(CommonScriptMsg::Task(
             ScriptThreadEventCategory::NetworkEvent,
@@ -36,7 +36,7 @@ impl NetworkingTaskSource {
     /// global scope gets destroyed.
     pub fn queue_unconditionally<T>(&self, msg: Box<T>) -> Result<(), ()>
     where
-        T: Task + 'static,
+        T: TaskBox + 'static,
     {
         self.0.send(CommonScriptMsg::Task(ScriptThreadEventCategory::NetworkEvent, msg))
     }

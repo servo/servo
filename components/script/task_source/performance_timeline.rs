@@ -11,7 +11,7 @@ use dom::globalscope::GlobalScope;
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
 use std::fmt;
 use std::result::Result;
-use task::{Task, TaskCanceller};
+use task::{TaskBox, TaskCanceller};
 use task_source::TaskSource;
 
 #[derive(JSTraceable)]
@@ -36,7 +36,7 @@ impl TaskSource for PerformanceTimelineTaskSource {
         canceller: &TaskCanceller,
     ) -> Result<(), ()>
     where
-        T: Task + 'static,
+        T: TaskBox + 'static,
     {
         let msg = CommonScriptMsg::Task(
             ScriptThreadEventCategory::PerformanceTimelineTask,

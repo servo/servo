@@ -1258,7 +1258,7 @@ impl ScriptThread {
                 self.handle_exit_window_msg(id)
             },
             MainThreadScriptMsg::Common(CommonScriptMsg::Task(_, task)) => {
-                task.run()
+                task.run_box()
             }
             MainThreadScriptMsg::Common(CommonScriptMsg::CollectReports(chan)) => {
                 self.collect_reports(chan)

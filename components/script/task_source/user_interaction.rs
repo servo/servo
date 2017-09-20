@@ -13,7 +13,7 @@ use servo_atoms::Atom;
 use std::fmt;
 use std::result::Result;
 use std::sync::mpsc::Sender;
-use task::{Task, TaskCanceller};
+use task::{TaskBox, TaskCanceller};
 use task_source::TaskSource;
 
 #[derive(Clone, JSTraceable)]
@@ -32,7 +32,7 @@ impl TaskSource for UserInteractionTaskSource {
         canceller: &TaskCanceller,
     ) -> Result<(), ()>
     where
-        T: Task + 'static,
+        T: TaskBox + 'static,
     {
         let msg = MainThreadScriptMsg::Common(CommonScriptMsg::Task(
             ScriptThreadEventCategory::InputEvent,

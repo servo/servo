@@ -6,7 +6,7 @@ use dom::domexception::DOMErrorName;
 use dom::filereader::{FileReader, TrustedFileReader, GenerationId, ReadMetaData};
 use script_runtime::{CommonScriptMsg, ScriptThreadEventCategory, ScriptChan};
 use std::sync::Arc;
-use task::{Task, TaskCanceller};
+use task::{TaskBox, TaskCanceller};
 use task_source::TaskSource;
 
 #[derive(JSTraceable)]
@@ -25,7 +25,7 @@ impl TaskSource for FileReadingTaskSource {
         canceller: &TaskCanceller,
     ) -> Result<(), ()>
     where
-        T: Task + 'static,
+        T: TaskBox + 'static,
     {
         self.0.send(CommonScriptMsg::Task(
             ScriptThreadEventCategory::FileRead,
@@ -34,8 +34,8 @@ impl TaskSource for FileReadingTaskSource {
     }
 }
 
-impl Task for FileReadingTask {
-    fn run(self: Box<Self>) {
+impl TaskBox for FileReadingTask {
+    fn run_box(self: Box<Self>) {
         self.handle_task();
     }
 }
