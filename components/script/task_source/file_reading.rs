@@ -25,7 +25,7 @@ impl TaskSource for FileReadingTaskSource {
         canceller: &TaskCanceller,
     ) -> Result<(), ()>
     where
-        T: Send + Task + 'static,
+        T: Task + 'static,
     {
         self.0.send(CommonScriptMsg::Task(
             ScriptThreadEventCategory::FileRead,

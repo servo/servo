@@ -122,7 +122,7 @@ impl TrustedPromise {
 
     /// A task which will reject the promise.
     #[allow(unrooted_must_root)]
-    pub fn reject_task(self, error: Error) -> impl Send + Task {
+    pub fn reject_task(self, error: Error) -> impl Task {
         let this = self;
         task!(reject_promise: move || {
             debug!("Rejecting promise.");
@@ -135,7 +135,7 @@ impl TrustedPromise {
 
     /// A task which will resolve the promise.
     #[allow(unrooted_must_root)]
-    pub fn resolve_task<T>(self, value: T) -> impl Send + Task
+    pub fn resolve_task<T>(self, value: T) -> impl Task
     where
         T: ToJSValConvertible + Send,
     {

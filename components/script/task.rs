@@ -15,7 +15,7 @@ macro_rules! task {
         struct $name<F>(F);
         impl<F> ::task::Task for $name<F>
         where
-            F: ::std::ops::FnOnce(),
+            F: ::std::ops::FnOnce() + Send,
         {
             fn name(&self) -> &'static str {
                 stringify!($name)
@@ -30,13 +30,13 @@ macro_rules! task {
 }
 
 /// A task that can be run. The name method is for profiling purposes.
-pub trait Task {
+pub trait Task: Send {
     #[allow(unsafe_code)]
     fn name(&self) -> &'static str { unsafe { intrinsics::type_name::<Self>() } }
     fn run(self: Box<Self>);
 }
 
-impl fmt::Debug for Task + Send {
+impl fmt::Debug for Task {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         fmt.debug_tuple(self.name()).field(&format_args!("...")).finish()
     }
@@ -50,9 +50,9 @@ pub struct TaskCanceller {
 impl TaskCanceller {
     /// Returns a wrapped `task` that will be cancelled if the `TaskCanceller`
     /// says so.
-    pub fn wrap_task<T>(&self, task: Box<T>) -> Box<Task + Send>
+    pub fn wrap_task<T>(&self, task: Box<T>) -> Box<Task>
     where
-        T: Send + Task + 'static,
+        T: Task + 'static,
     {
         box CancellableTask {
             cancelled: self.cancelled.clone(),
@@ -62,14 +62,14 @@ impl TaskCanceller {
 }
 
 /// A task that can be cancelled by toggling a shared flag.
-pub struct CancellableTask<T: Send + Task> {
+pub struct CancellableTask<T: Task> {
     cancelled: Option<Arc<AtomicBool>>,
     inner: Box<T>,
 }
 
 impl<T> CancellableTask<T>
 where
-    T: Send + Task,
+    T: Task,
 {
     fn is_cancelled(&self) -> bool {
         self.cancelled.as_ref().map_or(false, |cancelled| {
@@ -80,7 +80,7 @@ where
 
 impl<T> Task for CancellableTask<T>
 where
-    T: Send + Task,
+    T: Task,
 {
     fn name(&self) -> &'static str {
         self.inner.name()

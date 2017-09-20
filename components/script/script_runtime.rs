@@ -44,7 +44,7 @@ pub enum CommonScriptMsg {
     /// supplied channel.
     CollectReports(ReportsChan),
     /// Generic message that encapsulates event handling.
-    Task(ScriptThreadEventCategory, Box<Task + Send>),
+    Task(ScriptThreadEventCategory, Box<Task>),
 }
 
 impl fmt::Debug for CommonScriptMsg {

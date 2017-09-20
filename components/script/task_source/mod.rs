@@ -20,9 +20,12 @@ pub trait TaskSource {
         canceller: &TaskCanceller,
     ) -> Result<(), ()>
     where
-        T: Send + Task + 'static;
+        T: Task + 'static;
 
-    fn queue<T: Task + Send + 'static>(&self, msg: Box<T>, global: &GlobalScope) -> Result<(), ()> {
+    fn queue<T>(&self, msg: Box<T>, global: &GlobalScope) -> Result<(), ()>
+    where
+        T: Task + 'static,
+    {
         self.queue_with_canceller(msg, &global.task_canceller())
     }
 }

@@ -32,7 +32,7 @@ impl TaskSource for DOMManipulationTaskSource {
         canceller: &TaskCanceller,
     ) -> Result<(), ()>
     where
-        T: Task + Send + 'static,
+        T: Task + 'static,
     {
         let msg = MainThreadScriptMsg::Common(CommonScriptMsg::Task(
             ScriptThreadEventCategory::ScriptEvent,

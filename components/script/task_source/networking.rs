@@ -22,7 +22,7 @@ impl TaskSource for NetworkingTaskSource {
         canceller: &TaskCanceller,
     ) -> Result<(), ()>
     where
-        T: Send + Task + 'static,
+        T: Task + 'static,
     {
         self.0.send(CommonScriptMsg::Task(
             ScriptThreadEventCategory::NetworkEvent,
@@ -36,7 +36,7 @@ impl NetworkingTaskSource {
     /// global scope gets destroyed.
     pub fn queue_unconditionally<T>(&self, msg: Box<T>) -> Result<(), ()>
     where
-        T: Task + Send + 'static,
+        T: Task + 'static,
     {
         self.0.send(CommonScriptMsg::Task(ScriptThreadEventCategory::NetworkEvent, msg))
     }

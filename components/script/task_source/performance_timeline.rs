@@ -36,7 +36,7 @@ impl TaskSource for PerformanceTimelineTaskSource {
         canceller: &TaskCanceller,
     ) -> Result<(), ()>
     where
-        T: Send + Task + 'static,
+        T: Task + 'static,
     {
         let msg = CommonScriptMsg::Task(
             ScriptThreadEventCategory::PerformanceTimelineTask,
