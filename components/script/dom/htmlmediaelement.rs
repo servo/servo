@@ -52,7 +52,7 @@ pub struct HTMLMediaElement {
     ready_state: Cell<ReadyState>,
     /// https://html.spec.whatwg.org/multipage/#dom-media-currentsrc
     current_src: DOMRefCell<String>,
-    // FIXME(nox): Document this one, I have no idea what it is used for.
+    /// Incremented whenever tasks associated with this element are cancelled.
     generation_id: Cell<u32>,
     /// https://html.spec.whatwg.org/multipage/#fire-loadeddata
     ///
@@ -149,17 +149,22 @@ impl HTMLMediaElement {
 
             // Step 2.3.
             let window = window_from_node(self);
-            let target = Trusted::new(self.upcast::<EventTarget>());
+            let this = Trusted::new(self);
+            let generation_id = self.generation_id.get();
             // FIXME(nox): Why are errors silenced here?
+            // FIXME(nox): Media element event task source should be used here.
             let _ = window.dom_manipulation_task_source().queue(
                 task!(internal_pause_steps: move || {
-                    let target = target.root();
+                    let this = this.root();
+                    if generation_id != this.generation_id.get() {
+                        return;
+                    }
 
                     // Step 2.3.1.
-                    target.fire_event(atom!("timeupdate"));
+                    this.upcast::<EventTarget>().fire_event(atom!("timeupdate"));
 
                     // Step 2.3.2.
-                    target.fire_event(atom!("pause"));
+                    this.upcast::<EventTarget>().fire_event(atom!("pause"));
 
                     // Step 2.3.3.
                     // FIXME(nox): Reject pending play promises with promises
@@ -180,15 +185,20 @@ impl HTMLMediaElement {
         // TODO(nox): Take pending play promises and let promises be the result.
 
         // Step 2.
-        let target = Trusted::new(self.upcast::<EventTarget>());
         let window = window_from_node(self);
+        let this = Trusted::new(self);
+        let generation_id = self.generation_id.get();
         // FIXME(nox): Why are errors silenced here?
+        // FIXME(nox): Media element event task source should be used here.
         let _ = window.dom_manipulation_task_source().queue(
             task!(notify_about_playing: move || {
-                let target = target.root();
+                let this = this.root();
+                if generation_id != this.generation_id.get() {
+                    return;
+                }
 
                 // Step 2.1.
-                target.fire_event(atom!("playing"));
+                this.upcast::<EventTarget>().fire_event(atom!("playing"));
 
                 // Step 2.2.
                 // FIXME(nox): Resolve pending play promises with promises.
@@ -481,16 +491,21 @@ impl HTMLMediaElement {
         }
     }
 
-    /// Queues the [dedicated media source failure steps][steps].
+    /// Queues a task to run the [dedicated media source failure steps][steps].
     ///
     /// [steps]: https://html.spec.whatwg.org/multipage/#dedicated-media-source-failure-steps
     fn queue_dedicated_media_source_failure_steps(&self) {
-        let this = Trusted::new(self);
         let window = window_from_node(self);
+        let this = Trusted::new(self);
+        let generation_id = self.generation_id.get();
         // FIXME(nox): Why are errors silenced here?
+        // FIXME(nox): Media element event task source should be used here.
         let _ = window.dom_manipulation_task_source().queue(
             task!(dedicated_media_source_failure_steps: move || {
                 let this = this.root();
+                if generation_id != this.generation_id.get() {
+                    return;
+                }
 
                 // Step 1.
                 this.error.set(Some(&*MediaError::new(
