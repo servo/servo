@@ -2,14 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![cfg_attr(not(target_os = "windows"), feature(alloc_jemalloc))]
 #![feature(box_syntax)]
 
 #![deny(unsafe_code)]
-
-#[allow(unused_extern_crates)]
-#[cfg(not(target_os = "windows"))]
-extern crate alloc_jemalloc;
 extern crate heartbeats_simple;
 extern crate influent;
 extern crate ipc_channel;
