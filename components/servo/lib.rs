@@ -222,7 +222,8 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
                                                                     supports_clipboard,
                                                                     &mut webrender,
                                                                     webrender_document,
-                                                                    webrender_api_sender);
+                                                                    webrender_api_sender,
+                                                                    window.gl());
 
         // Send the constellation's swmanager sender to service worker manager thread
         script::init_service_workers(sw_senders);
@@ -519,7 +520,8 @@ fn create_constellation(user_agent: Cow<'static, str>,
                         supports_clipboard: bool,
                         webrender: &mut webrender::Renderer,
                         webrender_document: webrender_api::DocumentId,
-                        webrender_api_sender: webrender_api::RenderApiSender)
+                        webrender_api_sender: webrender_api::RenderApiSender,
+                        window_gl: Rc<gl::Gl>)
                         -> (Sender<ConstellationMsg>, SWManagerSenders) {
     let bluetooth_thread: IpcSender<BluetoothRequest> = BluetoothThreadFactory::new();
 
@@ -552,6 +554,7 @@ fn create_constellation(user_agent: Cow<'static, str>,
 
     // Initialize WebGL Thread entry point.
     let (webgl_threads, image_handler) = WebGLThreads::new(gl_factory,
+                                                           window_gl,
                                                            webrender_api_sender.clone(),
                                                            webvr_compositor.map(|c| c as Box<_>));
     // Set webrender external image handler for WebGL textures

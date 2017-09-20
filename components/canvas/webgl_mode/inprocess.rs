@@ -8,7 +8,9 @@ use canvas_traits::webgl::{WebGLChan, WebGLContextId, WebGLMsg, WebGLPipeline, W
 use canvas_traits::webgl::{WebGLSender, WebVRCommand, WebVRRenderHandler};
 use canvas_traits::webgl::webgl_channel;
 use euclid::Size2D;
+use gleam::gl;
 use std::marker::PhantomData;
+use std::rc::Rc;
 use webrender;
 use webrender_api;
 
@@ -18,6 +20,7 @@ pub struct WebGLThreads(WebGLSender<WebGLMsg>);
 impl WebGLThreads {
     /// Creates a new WebGLThreads object
     pub fn new(gl_factory: GLContextFactory,
+               webrender_gl: Rc<gl::Gl>,
                webrender_api_sender: webrender_api::RenderApiSender,
                webvr_compositor: Option<Box<WebVRRenderHandler>>)
                -> (WebGLThreads, Box<webrender::ExternalImageHandler>) {
@@ -26,7 +29,7 @@ impl WebGLThreads {
                                          webrender_api_sender,
                                          webvr_compositor.map(|c| WebVRRenderWrapper(c)),
                                          PhantomData);
-        let external = WebGLExternalImageHandler::new(WebGLExternalImages::new(channel.clone()));
+        let external = WebGLExternalImageHandler::new(WebGLExternalImages::new(webrender_gl, channel.clone()));
         (WebGLThreads(channel), Box::new(external))
     }
 
@@ -44,14 +47,16 @@ impl WebGLThreads {
 
 /// Bridge between the webrender::ExternalImage callbacks and the WebGLThreads.
 struct WebGLExternalImages {
+    webrender_gl: Rc<gl::Gl>,
     webgl_channel: WebGLSender<WebGLMsg>,
     // Used to avoid creating a new channel on each received WebRender request.
-    lock_channel: (WebGLSender<(u32, Size2D<i32>)>, WebGLReceiver<(u32, Size2D<i32>)>),
+    lock_channel: (WebGLSender<(u32, Size2D<i32>, usize)>, WebGLReceiver<(u32, Size2D<i32>, usize)>),
 }
 
 impl WebGLExternalImages {
-    fn new(channel: WebGLSender<WebGLMsg>) -> Self {
+    fn new(webrender_gl: Rc<gl::Gl>, channel: WebGLSender<WebGLMsg>) -> Self {
         Self {
+            webrender_gl,
             webgl_channel: channel,
             lock_channel: webgl_channel().unwrap(),
         }
@@ -60,8 +65,15 @@ impl WebGLExternalImages {
 
 impl WebGLExternalImageApi for WebGLExternalImages {
     fn lock(&mut self, ctx_id: WebGLContextId) -> (u32, Size2D<i32>) {
+        // WebGL Thread has it's own GL command queue that we need to synchronize with the WR GL command queue.
+        // The WebGLMsg::Lock message inserts a fence in the WebGL command queue.
         self.webgl_channel.send(WebGLMsg::Lock(ctx_id, self.lock_channel.0.clone())).unwrap();
-        self.lock_channel.1.recv().unwrap()
+        let (image_id, size, gl_sync) = self.lock_channel.1.recv().unwrap();
+        // The next glWaitSync call is run on the WR thread and it's used to synchronize the two
+        // flows of OpenGL commands in order to avoid WR using a semi-ready WebGL texture.
+        // glWaitSync doesn't block WR thread, it affects only internal OpenGL subsystem.
+        self.webrender_gl.wait_sync(gl_sync as gl::GLsync, 0, gl::TIMEOUT_IGNORED);
+        (image_id, size)
     }
 
     fn unlock(&mut self, ctx_id: WebGLContextId) {
