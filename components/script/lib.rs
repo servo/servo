@@ -15,7 +15,6 @@
 #![feature(plugin)]
 #![feature(proc_macro)]
 #![feature(try_from)]
-#![feature(unboxed_closures)]
 #![feature(untagged_unions)]
 
 #![deny(unsafe_code)]
