@@ -164,7 +164,7 @@ impl Shaper {
                               Shaper::float_to_fixed(pt_size) as c_int);
 
             // configure static function callbacks.
-            hb_font_set_funcs(hb_font, HB_FONT_FUNCS.as_ptr(), font as *mut Font as *mut c_void, None);
+            hb_font_set_funcs(hb_font, HB_FONT_FUNCS.0, font as *mut Font as *mut c_void, None);
 
             Shaper {
                 hb_face: hb_face,
@@ -411,9 +411,13 @@ impl Shaper {
     }
 }
 
-// Callbacks from Harfbuzz when font map and glyph advance lookup needed.
+/// Callbacks from Harfbuzz when font map and glyph advance lookup needed.
+struct FontFuncs(*mut hb_font_funcs_t);
+
+unsafe impl Sync for FontFuncs {}
+
 lazy_static! {
-    static ref HB_FONT_FUNCS: ptr::Unique<hb_font_funcs_t> = unsafe {
+    static ref HB_FONT_FUNCS: FontFuncs = unsafe {
         let hb_funcs = hb_font_funcs_create();
         hb_font_funcs_set_glyph_func(hb_funcs, Some(glyph_func), ptr::null_mut(), None);
         hb_font_funcs_set_glyph_h_advance_func(
@@ -421,7 +425,7 @@ lazy_static! {
         hb_font_funcs_set_glyph_h_kerning_func(
             hb_funcs, Some(glyph_h_kerning_func), ptr::null_mut(), None);
 
-        ptr::Unique::new_unchecked(hb_funcs)
+        FontFuncs(hb_funcs)
     };
 }
 

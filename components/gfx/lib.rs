@@ -7,7 +7,6 @@
 #![feature(box_syntax)]
 #![feature(cfg_target_feature)]
 #![feature(range_contains)]
-#![feature(unique)]
 
 #![deny(unsafe_code)]
 
