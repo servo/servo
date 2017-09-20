@@ -226,7 +226,6 @@ pub struct Document {
     node: Node,
     window: JS<Window>,
     implementation: MutNullableJS<DOMImplementation>,
-    location: MutNullableJS<Location>,
     content_type: DOMString,
     last_modified: Option<String>,
     encoding: Cell<EncodingRef>,
@@ -2222,7 +2221,6 @@ impl Document {
             window: JS::from_ref(window),
             has_browsing_context: has_browsing_context == HasBrowsingContext::Yes,
             implementation: Default::default(),
-            location: Default::default(),
             content_type: match content_type {
                 Some(string) => string,
                 None => DOMString::from(match is_html_document {
@@ -3438,7 +3436,11 @@ impl DocumentMethods for Document {
 
     // https://html.spec.whatwg.org/multipage/#dom-document-location
     fn GetLocation(&self) -> Option<Root<Location>> {
-        self.browsing_context().map(|_| self.location.or_init(|| Location::new(&self.window)))
+        if self.is_fully_active() {
+            Some(self.window.Location())
+        } else {
+            None
+        }
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-children
@@ -3815,7 +3817,6 @@ impl DocumentMethods for Document {
 
         // Step 19.
         self.implementation.set(None);
-        self.location.set(None);
         self.images.set(None);
         self.embeds.set(None);
         self.links.set(None);
