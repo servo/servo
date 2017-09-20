@@ -10,7 +10,7 @@ use Atom;
 use bloom::StyleBloom;
 use context::{SelectorFlagsMap, SharedStyleContext};
 use dom::TElement;
-use selectors::context::NthIndexCache;
+use selectors::NthIndexCache;
 use sharing::{StyleSharingCandidate, StyleSharingTarget};
 
 /// Determines whether a target and a candidate have compatible parents for sharing.

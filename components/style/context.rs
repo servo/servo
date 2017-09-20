@@ -23,7 +23,7 @@ use properties::ComputedValues;
 use rule_cache::RuleCache;
 use rule_tree::StrongRuleNode;
 use selector_parser::{EAGER_PSEUDO_COUNT, SnapshotMap};
-use selectors::context::NthIndexCache;
+use selectors::NthIndexCache;
 use selectors::matching::ElementSelectorFlags;
 use servo_arc::Arc;
 #[cfg(feature = "servo")] use servo_atoms::Atom;

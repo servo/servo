@@ -630,6 +630,10 @@ fn as_element<'le>(node: LayoutJS<Node>) -> Option<ServoLayoutElement<'le>> {
 impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
     type Impl = SelectorImpl;
 
+    fn opaque(&self) -> ::selectors::OpaqueElement {
+        ::selectors::OpaqueElement::new(self.as_node().opaque().0 as *const ())
+    }
+
     fn parent_element(&self) -> Option<ServoLayoutElement<'le>> {
         unsafe {
             self.element.upcast().parent_node_ref().and_then(as_element)
@@ -1167,6 +1171,11 @@ impl<'le> ThreadSafeLayoutElement for ServoThreadSafeLayoutElement<'le> {
 /// not for inheritance (styles are inherited appropiately).
 impl<'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
     type Impl = SelectorImpl;
+
+    fn opaque(&self) -> ::selectors::OpaqueElement {
+        ::selectors::OpaqueElement::new(self.as_node().opaque().0 as *const ())
+    }
+
 
     fn parent_element(&self) -> Option<Self> {
         warn!("ServoThreadSafeLayoutElement::parent_element called");
