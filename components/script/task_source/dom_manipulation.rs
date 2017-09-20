@@ -13,7 +13,7 @@ use servo_atoms::Atom;
 use std::fmt;
 use std::result::Result;
 use std::sync::mpsc::Sender;
-use task::{Task, TaskCanceller};
+use task::{TaskCanceller, TaskOnce};
 use task_source::TaskSource;
 
 #[derive(Clone, JSTraceable)]
@@ -28,15 +28,15 @@ impl fmt::Debug for DOMManipulationTaskSource {
 impl TaskSource for DOMManipulationTaskSource {
     fn queue_with_canceller<T>(
         &self,
-        msg: Box<T>,
+        task: T,
         canceller: &TaskCanceller,
     ) -> Result<(), ()>
     where
-        T: Task + Send + 'static,
+        T: TaskOnce + 'static,
     {
         let msg = MainThreadScriptMsg::Common(CommonScriptMsg::Task(
             ScriptThreadEventCategory::ScriptEvent,
-            canceller.wrap_task(msg),
+            box canceller.wrap_task(task),
         ));
         self.0.send(msg).map_err(|_| ())
     }
@@ -50,7 +50,7 @@ impl DOMManipulationTaskSource {
                        cancelable: EventCancelable,
                        window: &Window) {
         let target = Trusted::new(target);
-        let task = box EventTask {
+        let task = EventTask {
             target: target,
             name: name,
             bubbles: bubbles,
@@ -61,6 +61,6 @@ impl DOMManipulationTaskSource {
 
     pub fn queue_simple_event(&self, target: &EventTarget, name: Atom, window: &Window) {
         let target = Trusted::new(target);
-        let _ = self.queue(box SimpleEventTask { target, name }, window.upcast());
+        let _ = self.queue(SimpleEventTask { target, name }, window.upcast());
     }
 }

@@ -11,7 +11,7 @@ use dom::globalscope::GlobalScope;
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
 use std::fmt;
 use std::result::Result;
-use task::{Task, TaskCanceller};
+use task::{TaskCanceller, TaskOnce};
 use task_source::TaskSource;
 
 #[derive(JSTraceable)]
@@ -32,15 +32,15 @@ impl fmt::Debug for PerformanceTimelineTaskSource {
 impl TaskSource for PerformanceTimelineTaskSource {
     fn queue_with_canceller<T>(
         &self,
-        msg: Box<T>,
+        task: T,
         canceller: &TaskCanceller,
     ) -> Result<(), ()>
     where
-        T: Send + Task + 'static,
+        T: TaskOnce + 'static,
     {
         let msg = CommonScriptMsg::Task(
             ScriptThreadEventCategory::PerformanceTimelineTask,
-            canceller.wrap_task(msg)
+            box canceller.wrap_task(task)
         );
         self.0.send(msg).map_err(|_| ())
     }
@@ -51,7 +51,7 @@ impl PerformanceTimelineTaskSource {
         let owner = Trusted::new(&*global.performance());
         // FIXME(nox): Why are errors silenced here?
         let _ = self.queue(
-            box task!(notify_performance_observers: move || {
+            task!(notify_performance_observers: move || {
                 owner.root().notify_observers();
             }),
             global,

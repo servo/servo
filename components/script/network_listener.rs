@@ -4,7 +4,7 @@
 
 use net_traits::{Action, FetchResponseListener, FetchResponseMsg};
 use std::sync::{Arc, Mutex};
-use task::{Task, TaskCanceller};
+use task::{TaskCanceller, TaskOnce};
 use task_source::TaskSource;
 use task_source::networking::NetworkingTaskSource;
 
@@ -18,7 +18,7 @@ pub struct NetworkListener<Listener: PreInvoke + Send + 'static> {
 
 impl<Listener: PreInvoke + Send + 'static> NetworkListener<Listener> {
     pub fn notify<A: Action<Listener> + Send + 'static>(&self, action: A) {
-        let task = box ListenerTask {
+        let task = ListenerTask {
             context: self.context.clone(),
             action: action,
         };
@@ -55,16 +55,15 @@ struct ListenerTask<A: Action<Listener> + Send + 'static, Listener: PreInvoke + 
     action: A,
 }
 
-impl<A, Listener> Task for ListenerTask<A, Listener>
+impl<A, Listener> TaskOnce for ListenerTask<A, Listener>
 where
     A: Action<Listener> + Send + 'static,
     Listener: PreInvoke + Send,
 {
-    fn run(self: Box<Self>) {
-        let this = *self;
-        let mut context = this.context.lock().unwrap();
+    fn run_once(self) {
+        let mut context = self.context.lock().unwrap();
         if context.should_invoke() {
-            this.action.process(&mut *context);
+            self.action.process(&mut *context);
         }
     }
 }

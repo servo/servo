@@ -69,7 +69,7 @@ use std::thread;
 use style::thread_state;
 use swapper::Swapper;
 use swapper::swapper;
-use task::Task;
+use task::TaskBox;
 use uuid::Uuid;
 
 // Magic numbers
@@ -645,8 +645,9 @@ impl WorkletThread {
     }
 
     /// Run a task in the main script thread.
-    fn run_in_script_thread<T>(&self, task: T) where
-        T: 'static + Send + Task,
+    fn run_in_script_thread<T>(&self, task: T)
+    where
+        T: TaskBox + 'static,
     {
         let msg = CommonScriptMsg::Task(ScriptThreadEventCategory::WorkletEvent, box task);
         let msg = MainThreadScriptMsg::Common(msg);

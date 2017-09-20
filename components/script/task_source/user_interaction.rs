@@ -13,7 +13,7 @@ use servo_atoms::Atom;
 use std::fmt;
 use std::result::Result;
 use std::sync::mpsc::Sender;
-use task::{Task, TaskCanceller};
+use task::{TaskCanceller, TaskOnce};
 use task_source::TaskSource;
 
 #[derive(Clone, JSTraceable)]
@@ -28,15 +28,15 @@ impl fmt::Debug for UserInteractionTaskSource {
 impl TaskSource for UserInteractionTaskSource {
     fn queue_with_canceller<T>(
         &self,
-        msg: Box<T>,
+        task: T,
         canceller: &TaskCanceller,
     ) -> Result<(), ()>
     where
-        T: Task + Send + 'static,
+        T: TaskOnce + 'static,
     {
         let msg = MainThreadScriptMsg::Common(CommonScriptMsg::Task(
             ScriptThreadEventCategory::InputEvent,
-            canceller.wrap_task(msg),
+            box canceller.wrap_task(task),
         ));
         self.0.send(msg).map_err(|_| ())
     }
@@ -50,7 +50,7 @@ impl UserInteractionTaskSource {
                        cancelable: EventCancelable,
                        window: &Window) {
         let target = Trusted::new(target);
-        let task = box EventTask { target, name, bubbles, cancelable };
+        let task = EventTask { target, name, bubbles, cancelable };
         let _ = self.queue(task, window.upcast());
     }
 }

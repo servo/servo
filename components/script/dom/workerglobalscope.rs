@@ -388,7 +388,7 @@ impl WorkerGlobalScope {
     pub fn process_event(&self, msg: CommonScriptMsg) {
         match msg {
             CommonScriptMsg::Task(_, task) => {
-                task.run()
+                task.run_box()
             },
             CommonScriptMsg::CollectReports(reports_chan) => {
                 let cx = self.get_cx();

@@ -100,7 +100,7 @@ impl EventSourceContext {
         let event_source = self.event_source.clone();
         // FIXME(nox): Why are errors silenced here?
         let _ = global.networking_task_source().queue(
-            box task!(announce_the_event_source_connection: move || {
+            task!(announce_the_event_source_connection: move || {
                 let event_source = event_source.root();
                 if event_source.ready_state.get() != ReadyState::Closed {
                     event_source.ready_state.set(ReadyState::Open);
@@ -121,7 +121,7 @@ impl EventSourceContext {
         let event_source = self.event_source.clone();
         // FIXME(nox): Why are errors silenced here?
         let _ = global.networking_task_source().queue(
-            box task!(fail_the_event_source_connection: move || {
+            task!(fail_the_event_source_connection: move || {
                 let event_source = event_source.root();
                 if event_source.ready_state.get() != ReadyState::Closed {
                     event_source.ready_state.set(ReadyState::Closed);
@@ -145,7 +145,7 @@ impl EventSourceContext {
         let global = event_source.global();
         // FIXME(nox): Why are errors silenced here?
         let _ = global.networking_task_source().queue(
-            box task!(reestablish_the_event_source_onnection: move || {
+            task!(reestablish_the_event_source_onnection: move || {
                 let event_source = trusted_event_source.root();
 
                 // Step 1.1.
@@ -242,7 +242,7 @@ impl EventSourceContext {
         let event = Trusted::new(&*event);
         // FIXME(nox): Why are errors silenced here?
         let _ = global.networking_task_source().queue(
-            box task!(dispatch_the_event_source_event: move || {
+            task!(dispatch_the_event_source_event: move || {
                 let event_source = event_source.root();
                 if event_source.ready_state.get() != ReadyState::Closed {
                     event.root().upcast::<Event>().fire(&event_source.upcast());

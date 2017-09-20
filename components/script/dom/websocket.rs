@@ -37,7 +37,7 @@ use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::ptr;
 use std::thread;
-use task::{Task, TaskCanceller};
+use task::{TaskOnce, TaskCanceller};
 use task_source::TaskSource;
 use task_source::networking::NetworkingTaskSource;
 
@@ -74,7 +74,7 @@ pub fn close_the_websocket_connection(
     code: Option<u16>,
     reason: String,
 ) {
-    let close_task = box CloseTask {
+    let close_task = CloseTask {
         address: address,
         failed: false,
         code: code,
@@ -88,7 +88,7 @@ pub fn fail_the_websocket_connection(
     task_source: &NetworkingTaskSource,
     canceller: &TaskCanceller,
 ) {
-    let close_task = box CloseTask {
+    let close_task = CloseTask {
         address: address,
         failed: true,
         code: Some(close_code::ABNORMAL),
@@ -206,14 +206,14 @@ impl WebSocket {
             while let Ok(event) = dom_event_receiver.recv() {
                 match event {
                     WebSocketNetworkEvent::ConnectionEstablished { protocol_in_use } => {
-                        let open_thread = box ConnectionEstablishedTask {
+                        let open_thread = ConnectionEstablishedTask {
                             address: address.clone(),
                             protocol_in_use,
                         };
                         task_source.queue_with_canceller(open_thread, &canceller).unwrap();
                     },
                     WebSocketNetworkEvent::MessageReceived(message) => {
-                        let message_thread = box MessageReceivedTask {
+                        let message_thread = MessageReceivedTask {
                             address: address.clone(),
                             message: message,
                         };
@@ -397,9 +397,9 @@ struct ConnectionEstablishedTask {
     protocol_in_use: Option<String>,
 }
 
-impl Task for ConnectionEstablishedTask {
+impl TaskOnce for ConnectionEstablishedTask {
     /// https://html.spec.whatwg.org/multipage/#feedback-from-the-protocol:concept-websocket-established
-    fn run(self: Box<Self>) {
+    fn run_once(self) {
         let ws = self.address.root();
 
         // Step 1.
@@ -422,13 +422,13 @@ struct BufferedAmountTask {
     address: Trusted<WebSocket>,
 }
 
-impl Task for BufferedAmountTask {
+impl TaskOnce for BufferedAmountTask {
     // See https://html.spec.whatwg.org/multipage/#dom-websocket-bufferedamount
     //
     // To be compliant with standards, we need to reset bufferedAmount only when the event loop
     // reaches step 1.  In our implementation, the bytes will already have been sent on a background
     // thread.
-    fn run(self: Box<Self>) {
+    fn run_once(self) {
         let ws = self.address.root();
 
         ws.buffered_amount.set(0);
@@ -443,8 +443,8 @@ struct CloseTask {
     reason: Option<String>,
 }
 
-impl Task for CloseTask {
-    fn run(self: Box<Self>) {
+impl TaskOnce for CloseTask {
+    fn run_once(self) {
         let ws = self.address.root();
 
         if ws.ready_state.get() == WebSocketRequestState::Closed {
@@ -483,9 +483,9 @@ struct MessageReceivedTask {
     message: MessageData,
 }
 
-impl Task for MessageReceivedTask {
+impl TaskOnce for MessageReceivedTask {
     #[allow(unsafe_code)]
-    fn run(self: Box<Self>) {
+    fn run_once(self) {
         let ws = self.address.root();
         debug!("MessageReceivedTask::handler({:p}): readyState={:?}", &*ws,
                ws.ready_state.get());

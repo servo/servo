@@ -275,7 +275,7 @@ fn queue_settle_promise_for_job(job: &Job, settle: SettleType, task_source: &DOM
     let promise = TrustedPromise::new(job.promise.clone());
     // FIXME(nox): Why are errors silenced here?
     let _ = task_source.queue(
-        box task!(settle_promise_for_job: move || {
+        task!(settle_promise_for_job: move || {
             let promise = promise.root();
             settle_job_promise(&promise.global(), &promise, settle)
         }),

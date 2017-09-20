@@ -40,7 +40,7 @@ use std::marker::PhantomData;
 use std::os;
 use std::rc::Rc;
 use std::sync::{Arc, Weak};
-use task::Task;
+use task::TaskOnce;
 
 
 #[allow(missing_docs)]  // FIXME
@@ -122,7 +122,7 @@ impl TrustedPromise {
 
     /// A task which will reject the promise.
     #[allow(unrooted_must_root)]
-    pub fn reject_task(self, error: Error) -> impl Send + Task {
+    pub fn reject_task(self, error: Error) -> impl TaskOnce {
         let this = self;
         task!(reject_promise: move || {
             debug!("Rejecting promise.");
@@ -135,7 +135,7 @@ impl TrustedPromise {
 
     /// A task which will resolve the promise.
     #[allow(unrooted_must_root)]
-    pub fn resolve_task<T>(self, value: T) -> impl Send + Task
+    pub fn resolve_task<T>(self, value: T) -> impl TaskOnce
     where
         T: ToJSValConvertible + Send,
     {

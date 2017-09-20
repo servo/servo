@@ -28,7 +28,7 @@ use std::cell::Cell;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Sender, channel};
-use task::Task;
+use task::TaskOnce;
 
 pub type TrustedWorkerAddress = Trusted<Worker>;
 
@@ -175,10 +175,9 @@ impl WorkerMethods for Worker {
     event_handler!(error, GetOnerror, SetOnerror);
 }
 
-impl Task for SimpleWorkerErrorHandler<Worker> {
+impl TaskOnce for SimpleWorkerErrorHandler<Worker> {
     #[allow(unrooted_must_root)]
-    fn run(self: Box<Self>) {
-        let this = *self;
-        Worker::dispatch_simple_error(this.addr);
+    fn run_once(self) {
+        Worker::dispatch_simple_error(self.addr);
     }
 }

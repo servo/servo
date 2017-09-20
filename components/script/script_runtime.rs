@@ -35,7 +35,7 @@ use std::os::raw::c_void;
 use std::panic::AssertUnwindSafe;
 use std::ptr;
 use style::thread_state;
-use task::Task;
+use task::TaskBox;
 use time::{Tm, now};
 
 /// Common messages used to control the event loops in both the script and the worker
@@ -44,7 +44,7 @@ pub enum CommonScriptMsg {
     /// supplied channel.
     CollectReports(ReportsChan),
     /// Generic message that encapsulates event handling.
-    Task(ScriptThreadEventCategory, Box<Task + Send>),
+    Task(ScriptThreadEventCategory, Box<TaskBox>),
 }
 
 impl fmt::Debug for CommonScriptMsg {

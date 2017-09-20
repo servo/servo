@@ -119,7 +119,7 @@ use style::thread_state;
 use style::values::{CSSFloat, Either};
 use style::values::{specified, computed};
 use stylesheet_loader::StylesheetOwner;
-use task::Task;
+use task::TaskOnce;
 
 // TODO: Update focus state when the top-level browsing context gains or loses system focus,
 // and when the element enters or leaves a browsing context container.
@@ -3047,9 +3047,9 @@ impl ElementPerformFullscreenEnter {
     }
 }
 
-impl Task for ElementPerformFullscreenEnter {
+impl TaskOnce for ElementPerformFullscreenEnter {
     #[allow(unrooted_must_root)]
-    fn run(self: Box<Self>) {
+    fn run_once(self) {
         let element = self.element.root();
         let document = document_from_node(element.r());
 
@@ -3100,9 +3100,9 @@ impl ElementPerformFullscreenExit {
     }
 }
 
-impl Task for ElementPerformFullscreenExit {
+impl TaskOnce for ElementPerformFullscreenExit {
     #[allow(unrooted_must_root)]
-    fn run(self: Box<Self>) {
+    fn run_once(self) {
         let element = self.element.root();
         let document = document_from_node(element.r());
         // TODO Step 9.1-5

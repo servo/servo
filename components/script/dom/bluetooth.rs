@@ -40,7 +40,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 use std::str::FromStr;
 use std::sync::{Arc, Mutex};
-use task::Task;
+use task::TaskOnce;
 
 const KEY_CONVERSION_ERROR: &'static str = "This `manufacturerData` key can not be parsed as unsigned short:";
 const FILTER_EMPTY_ERROR: &'static str = "'filters' member, if present, must be nonempty to find any devices.";
@@ -229,18 +229,17 @@ pub fn response_async<T: AsyncBluetoothListener + DomObject + 'static>(
             action: BluetoothResponseResult,
         }
 
-        impl<T> Task for ListenerTask<T>
+        impl<T> TaskOnce for ListenerTask<T>
         where
             T: AsyncBluetoothListener + DomObject,
         {
-            fn run(self: Box<Self>) {
-                let this = *self;
-                let mut context = this.context.lock().unwrap();
-                context.response(this.action);
+            fn run_once(self) {
+                let mut context = self.context.lock().unwrap();
+                context.response(self.action);
             }
         }
 
-        let task = box ListenerTask {
+        let task = ListenerTask {
             context: context.clone(),
             action: message.to().unwrap(),
         };

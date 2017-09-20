@@ -23,7 +23,7 @@ use dom_struct::dom_struct;
 use servo_atoms::Atom;
 use std::cell::Cell;
 use std::default::Default;
-use task::Task;
+use task::TaskOnce;
 use time;
 
 #[dom_struct]
@@ -388,8 +388,8 @@ pub struct EventTask {
     pub cancelable: EventCancelable,
 }
 
-impl Task for EventTask {
-    fn run(self: Box<Self>) {
+impl TaskOnce for EventTask {
+    fn run_once(self) {
         let target = self.target.root();
         let bubbles = self.bubbles;
         let cancelable = self.cancelable;
@@ -403,8 +403,8 @@ pub struct SimpleEventTask {
     pub name: Atom,
 }
 
-impl Task for SimpleEventTask {
-    fn run(self: Box<Self>) {
+impl TaskOnce for SimpleEventTask {
+    fn run_once(self) {
         let target = self.target.root();
         target.fire_event(self.name);
     }
