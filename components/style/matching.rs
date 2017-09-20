@@ -81,30 +81,6 @@ impl ChildCascadeRequirement {
     }
 }
 
-bitflags! {
-    /// Flags that represent the result of replace_rules.
-    pub flags RulesChanged: u8 {
-        /// Normal rules are changed.
-        const NORMAL_RULES_CHANGED = 0x01,
-        /// Important rules are changed.
-        const IMPORTANT_RULES_CHANGED = 0x02,
-    }
-}
-
-impl RulesChanged {
-    /// Return true if there are any normal rules changed.
-    #[inline]
-    pub fn normal_rules_changed(&self) -> bool {
-        self.contains(NORMAL_RULES_CHANGED)
-    }
-
-    /// Return true if there are any important rules changed.
-    #[inline]
-    pub fn important_rules_changed(&self) -> bool {
-        self.contains(IMPORTANT_RULES_CHANGED)
-    }
-}
-
 /// Determines which styles are being cascaded currently.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CascadeVisitedMode {
