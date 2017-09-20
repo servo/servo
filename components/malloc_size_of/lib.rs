@@ -64,7 +64,6 @@ extern crate servo_arc;
 extern crate smallbitvec;
 extern crate smallvec;
 
-use euclid::TypedSize2D;
 use servo_arc::Arc;
 use smallvec::{Array, SmallVec};
 use std::hash::{BuildHasher, Hash};
@@ -391,11 +390,9 @@ impl MallocSizeOf for smallbitvec::SmallBitVec {
     }
 }
 
-impl<T: MallocSizeOf, U> MallocSizeOf for TypedSize2D<T, U> {
+impl<T: MallocSizeOf, U> MallocSizeOf for euclid::TypedSize2D<T, U> {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        let n = self.width.size_of(ops) + self.width.size_of(ops);
-        assert!(n == 0);    // It would be very strange to have a non-zero value here...
-        n
+        self.width.size_of(ops) + self.height.size_of(ops)
     }
 }
 
