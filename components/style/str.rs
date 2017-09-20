@@ -58,7 +58,8 @@ pub fn split_commas<'a>(s: &'a str) -> Filter<Split<'a, char>, fn(&&str) -> bool
     s.split(',').filter(not_empty as fn(&&str) -> bool)
 }
 
-fn is_ascii_digit(c: &char) -> bool {
+/// Character is ascii digit
+pub fn is_ascii_digit(c: &char) -> bool {
     match *c {
         '0'...'9' => true,
         _ => false,
