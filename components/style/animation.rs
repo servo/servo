@@ -481,11 +481,13 @@ fn compute_style_for_animation_step(context: &SharedStyleContext,
         KeyframesStepValue::Declarations { block: ref declarations } => {
             let guard = declarations.read_with(context.guards.author);
 
-            // No !important in keyframes.
-            debug_assert!(!guard.any_important());
-
             let iter = || {
-                guard.declarations().iter().rev()
+                // It's possible to have !important properties in keyframes
+                // so we have to filter them out.
+                // See the spec issue https://github.com/w3c/csswg-drafts/issues/1824
+                // Also we filter our non-animatable properties.
+                guard.normal_declaration_iter()
+                     .filter(|declaration| declaration.is_animatable())
                      .map(|decl| (decl, CascadeLevel::Animations))
             };
 
