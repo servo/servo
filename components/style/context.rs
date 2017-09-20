@@ -23,6 +23,7 @@ use properties::ComputedValues;
 use rule_cache::RuleCache;
 use rule_tree::StrongRuleNode;
 use selector_parser::{EAGER_PSEUDO_COUNT, SnapshotMap};
+use selectors::context::NthIndexCache;
 use selectors::matching::ElementSelectorFlags;
 use servo_arc::Arc;
 #[cfg(feature = "servo")] use servo_atoms::Atom;
@@ -719,6 +720,8 @@ pub struct ThreadLocalStyleContext<E: TElement> {
     /// A checker used to ensure that parallel.rs does not recurse indefinitely
     /// even on arbitrarily deep trees.  See Gecko bug 1376883.
     pub stack_limit_checker: StackLimitChecker,
+    /// A cache for nth-index-like selectors.
+    pub nth_index_cache: NthIndexCache,
 }
 
 impl<E: TElement> ThreadLocalStyleContext<E> {
@@ -737,6 +740,7 @@ impl<E: TElement> ThreadLocalStyleContext<E> {
             font_metrics_provider: E::FontMetricsProvider::create_from(shared),
             stack_limit_checker: StackLimitChecker::new(
                 (STYLE_THREAD_STACK_SIZE_KB - STACK_SAFETY_MARGIN_KB) * 1024),
+            nth_index_cache: NthIndexCache::default(),
         }
     }
 
@@ -754,6 +758,7 @@ impl<E: TElement> ThreadLocalStyleContext<E> {
             font_metrics_provider: E::FontMetricsProvider::create_from(shared),
             stack_limit_checker: StackLimitChecker::new(
                 (STYLE_THREAD_STACK_SIZE_KB - STACK_SAFETY_MARGIN_KB) * 1024),
+            nth_index_cache: NthIndexCache::default(),
         }
     }
 

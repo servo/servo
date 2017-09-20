@@ -1503,7 +1503,7 @@ pub extern "C" fn Servo_StyleRule_SelectorMatchesElement(rule: RawServoStyleRule
         };
 
         let element = GeckoElement(element);
-        let mut ctx = MatchingContext::new(matching_mode, None, element.owner_document_quirks_mode());
+        let mut ctx = MatchingContext::new(matching_mode, None, None, element.owner_document_quirks_mode());
         matches_selector(selector, 0, None, &element, &mut ctx, &mut |_, _| {})
     })
 }

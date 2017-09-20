@@ -75,6 +75,7 @@ use matching::MatchMethods;
 use owning_ref::OwningHandle;
 use properties::ComputedValues;
 use rule_tree::StrongRuleNode;
+use selectors::context::NthIndexCache;
 use selectors::matching::{ElementSelectorFlags, VisitedHandlingMode};
 use servo_arc::{Arc, NonZeroPtrMut};
 use smallbitvec::SmallBitVec;
@@ -203,6 +204,7 @@ impl ValidationData {
         element: E,
         stylist: &Stylist,
         bloom: &StyleBloom<E>,
+        nth_index_cache: &mut NthIndexCache,
         bloom_known_valid: bool,
         flags_setter: &mut F
     ) -> &SmallBitVec
@@ -230,6 +232,7 @@ impl ValidationData {
             self.revalidation_match_results =
                 Some(stylist.match_revalidation_selectors(&element,
                                                           bloom_to_use,
+                                                          nth_index_cache,
                                                           flags_setter));
         }
 
@@ -289,11 +292,13 @@ impl<E: TElement> StyleSharingCandidate<E> {
         &mut self,
         stylist: &Stylist,
         bloom: &StyleBloom<E>,
+        nth_index_cache: &mut NthIndexCache,
     ) -> &SmallBitVec {
         self.validation_data.revalidation_match_results(
             self.element,
             stylist,
             bloom,
+            nth_index_cache,
             /* bloom_known_valid = */ false,
             &mut |_, _| {})
     }
@@ -346,6 +351,7 @@ impl<E: TElement> StyleSharingTarget<E> {
         &mut self,
         stylist: &Stylist,
         bloom: &StyleBloom<E>,
+        nth_index_cache: &mut NthIndexCache,
         selector_flags_map: &mut SelectorFlagsMap<E>
     ) -> &SmallBitVec {
         // It's important to set the selector flags. Otherwise, if we succeed in
@@ -372,6 +378,7 @@ impl<E: TElement> StyleSharingTarget<E> {
             self.element,
             stylist,
             bloom,
+            nth_index_cache,
             /* bloom_known_valid = */ true,
             &mut set_selector_flags)
     }
@@ -385,6 +392,7 @@ impl<E: TElement> StyleSharingTarget<E> {
         let shared_context = &context.shared;
         let selector_flags_map = &mut context.thread_local.selector_flags;
         let bloom_filter = &context.thread_local.bloom_filter;
+        let nth_index_cache = &mut context.thread_local.nth_index_cache;
 
         if cache.dom_depth != bloom_filter.matching_depth() {
             debug!("Can't share style, because DOM depth changed from {:?} to {:?}, element: {:?}",
@@ -398,6 +406,7 @@ impl<E: TElement> StyleSharingTarget<E> {
             shared_context,
             selector_flags_map,
             bloom_filter,
+            nth_index_cache,
             self
         )
     }
@@ -596,6 +605,7 @@ impl<E: TElement> StyleSharingCache<E> {
         shared_context: &SharedStyleContext,
         selector_flags_map: &mut SelectorFlagsMap<E>,
         bloom_filter: &StyleBloom<E>,
+        nth_index_cache: &mut NthIndexCache,
         target: &mut StyleSharingTarget<E>,
     ) -> Option<ResolvedElementStyles> {
         if shared_context.options.disable_style_sharing_cache {
@@ -621,6 +631,7 @@ impl<E: TElement> StyleSharingCache<E> {
                 candidate,
                 &shared_context,
                 bloom_filter,
+                nth_index_cache,
                 selector_flags_map
             )
         })
@@ -631,6 +642,7 @@ impl<E: TElement> StyleSharingCache<E> {
         candidate: &mut StyleSharingCandidate<E>,
         shared: &SharedStyleContext,
         bloom: &StyleBloom<E>,
+        nth_index_cache: &mut NthIndexCache,
         selector_flags_map: &mut SelectorFlagsMap<E>
     ) -> Option<ResolvedElementStyles> {
         // Check that we have the same parent, or at least that the parents
@@ -705,7 +717,7 @@ impl<E: TElement> StyleSharingCache<E> {
         }
 
         if !checks::revalidate(target, candidate, shared, bloom,
-                               selector_flags_map) {
+                               nth_index_cache, selector_flags_map) {
             trace!("Miss: Revalidation");
             return None;
         }

@@ -724,26 +724,26 @@ fn matches_simple_selector<E, F>(
             element.is_empty()
         }
         Component::NthChild(a, b) => {
-            matches_generic_nth_child(element, a, b, false, false, flags_setter)
+            matches_generic_nth_child(element, context, a, b, false, false, flags_setter)
         }
         Component::NthLastChild(a, b) => {
-            matches_generic_nth_child(element, a, b, false, true, flags_setter)
+            matches_generic_nth_child(element, context, a, b, false, true, flags_setter)
         }
         Component::NthOfType(a, b) => {
-            matches_generic_nth_child(element, a, b, true, false, flags_setter)
+            matches_generic_nth_child(element, context, a, b, true, false, flags_setter)
         }
         Component::NthLastOfType(a, b) => {
-            matches_generic_nth_child(element, a, b, true, true, flags_setter)
+            matches_generic_nth_child(element, context, a, b, true, true, flags_setter)
         }
         Component::FirstOfType => {
-            matches_generic_nth_child(element, 0, 1, true, false, flags_setter)
+            matches_generic_nth_child(element, context, 0, 1, true, false, flags_setter)
         }
         Component::LastOfType => {
-            matches_generic_nth_child(element, 0, 1, true, true, flags_setter)
+            matches_generic_nth_child(element, context, 0, 1, true, true, flags_setter)
         }
         Component::OnlyOfType => {
-            matches_generic_nth_child(element, 0, 1, true, false, flags_setter) &&
-            matches_generic_nth_child(element, 0, 1, true, true, flags_setter)
+            matches_generic_nth_child(element, context, 0, 1, true, false, flags_setter) &&
+            matches_generic_nth_child(element, context, 0, 1, true, true, flags_setter)
         }
         Component::Negation(ref negated) => {
             context.nesting_level += 1;
@@ -767,6 +767,7 @@ fn select_name<'a, T>(is_html: bool, local_name: &'a T, local_name_lower: &'a T)
 
 #[inline]
 fn matches_generic_nth_child<E, F>(element: &E,
+                                   context: &mut LocalMatchingContext<E::Impl>,
                                    a: i32,
                                    b: i32,
                                    is_of_type: bool,
