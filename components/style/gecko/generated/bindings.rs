@@ -1937,6 +1937,11 @@ extern "C" {
      -> bool;
 }
 extern "C" {
+    pub fn Servo_Element_IsPrimaryStyleReusedViaRuleNode(element:
+                                                             RawGeckoElementBorrowed)
+     -> bool;
+}
+extern "C" {
     pub fn Servo_StyleSheet_FromUTF8Bytes(loader: *mut Loader,
                                           gecko_stylesheet:
                                               *mut ServoStyleSheet,

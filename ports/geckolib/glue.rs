@@ -18,7 +18,7 @@ use std::ptr;
 use style::applicable_declarations::ApplicableDeclarationBlock;
 use style::context::{CascadeInputs, QuirksMode, SharedStyleContext, StyleContext};
 use style::context::ThreadLocalStyleContext;
-use style::data::ElementStyles;
+use style::data::{ElementStyles, self};
 use style::dom::{ShowSubtreeData, TElement, TNode};
 use style::driver;
 use style::element_state::ElementState;
@@ -842,11 +842,18 @@ pub extern "C" fn Servo_Element_GetPseudoComputedValues(element: RawGeckoElement
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_Element_IsDisplayNone(element: RawGeckoElementBorrowed) -> bool
-{
+pub extern "C" fn Servo_Element_IsDisplayNone(element: RawGeckoElementBorrowed) -> bool {
     let element = GeckoElement(element);
     let data = element.borrow_data().expect("Invoking Servo_Element_IsDisplayNone on unstyled element");
     data.styles.is_display_none()
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_Element_IsPrimaryStyleReusedViaRuleNode(element: RawGeckoElementBorrowed) -> bool {
+    let element = GeckoElement(element);
+    let data = element.borrow_data()
+                      .expect("Invoking Servo_Element_IsPrimaryStyleReusedViaRuleNode on unstyled element");
+    data.flags.contains(data::PRIMARY_STYLE_REUSED_VIA_RULE_NODE)
 }
 
 #[no_mangle]

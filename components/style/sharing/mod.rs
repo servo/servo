@@ -745,11 +745,16 @@ impl<E: TElement> StyleSharingCache<E> {
     /// Attempts to find an element in the cache with the given primary rule node and parent.
     pub fn lookup_by_rules(
         &mut self,
+        shared_context: &SharedStyleContext,
         inherited: &ComputedValues,
         rules: &StrongRuleNode,
         visited_rules: Option<&StrongRuleNode>,
         target: E,
     ) -> Option<PrimaryStyle> {
+        if shared_context.options.disable_style_sharing_cache {
+            return None;
+        }
+
         self.cache_mut().lookup(|candidate| {
             debug_assert_ne!(candidate.element, target);
             if !candidate.parent_style_identity().eq(inherited) {
