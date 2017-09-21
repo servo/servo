@@ -15,6 +15,7 @@ extern crate ipc_channel;
 #[macro_use] extern crate log;
 extern crate num_traits;
 extern crate offscreen_gl_context;
+extern crate servo_config;
 extern crate webrender;
 extern crate webrender_api;
 
