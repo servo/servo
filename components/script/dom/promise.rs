@@ -148,16 +148,14 @@ impl Promise {
         rooted!(in(cx) let mut v = UndefinedValue());
         unsafe {
             val.to_jsval(cx, v.handle_mut());
+            self.resolve(cx, v.handle());
         }
-        self.resolve(cx, v.handle());
     }
 
     #[allow(unrooted_must_root, unsafe_code)]
-    pub fn resolve(&self, cx: *mut JSContext, value: HandleValue) {
-        unsafe {
-            if !ResolvePromise(cx, self.promise_obj(), value) {
-                JS_ClearPendingException(cx);
-            }
+    pub unsafe fn resolve(&self, cx: *mut JSContext, value: HandleValue) {
+        if !ResolvePromise(cx, self.promise_obj(), value) {
+            JS_ClearPendingException(cx);
         }
     }
 
