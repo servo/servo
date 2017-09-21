@@ -2504,7 +2504,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
         // If the navigation is for a top-level browsing context, inform mozbrowser
         if change.browsing_context_id == change.top_level_browsing_context_id {
-            self.trigger_mozbrowserlocationchange(change.top_level_browsing_context_id);
+            // If this is a replacement then we've already triggered the event in traverse_to_entry
+            if change.replace_instant.is_none() {
+                self.trigger_mozbrowserlocationchange(change.top_level_browsing_context_id);
+            }
         }
 
         self.update_frame_tree_if_active(change.top_level_browsing_context_id);
