@@ -798,7 +798,6 @@ impl LayoutHTMLImageElementHelpers for LayoutJS<HTMLImageElement> {
 pub fn parse_a_sizes_attribute(input: DOMString, width: Option<u32>) -> Vec<Size> {
     let mut sizes = Vec::<Size>::new();
     let unparsed_sizes = input.split(',').collect::<Vec<_>>();
-
     for unparsed_size in &unparsed_sizes {
         let whitespace = unparsed_size.chars().rev().take_while(|c| char::is_whitespace(*c)).count();
         let trimmed: String = unparsed_size.chars().take(unparsed_size.chars().count() - whitespace).collect();
@@ -814,7 +813,6 @@ pub fn parse_a_sizes_attribute(input: DOMString, width: Option<u32>) -> Vec<Size
                                                    QuirksMode::NoQuirks);
         let mut parser = Parser::new(&mut input);
         let length = parser.try(|i| Length::parse_non_negative(&context, i));
-        println!("\n{:?}", length);
         match length {
             Ok(len) => sizes.push(Size {
                 length: len,
