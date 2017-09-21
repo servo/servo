@@ -82,7 +82,7 @@ use html5ever::serialize;
 use html5ever::serialize::SerializeOpts;
 use html5ever::serialize::TraversalScope;
 use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
-use js::jsapi::{HandleValue, Heap, JSAutoCompartment};
+use js::jsapi::Heap;
 use js::jsval::JSVal;
 use net_traits::request::CorsSettings;
 use ref_filter_map::ref_filter_map;
@@ -3075,12 +3075,7 @@ impl TaskOnce for ElementPerformFullscreenEnter {
         document.upcast::<EventTarget>().fire_event(atom!("fullscreenchange"));
 
         // Step 7.7
-        // JSAutoCompartment needs to be manually made.
-        // Otherwise, Servo will crash.
-        let promise = self.promise.root();
-        let promise_cx = promise.global().get_cx();
-        let _ac = JSAutoCompartment::new(promise_cx, promise.reflector().get_jsobject().get());
-        promise.resolve(promise.global().get_cx(), HandleValue::undefined());
+        promise.resolve_native(&());
     }
 }
 
@@ -3117,12 +3112,7 @@ impl TaskOnce for ElementPerformFullscreenExit {
         document.upcast::<EventTarget>().fire_event(atom!("fullscreenchange"));
 
         // Step 9.10
-        let promise = self.promise.root();
-        // JSAutoCompartment needs to be manually made.
-        // Otherwise, Servo will crash.
-        let promise_cx = promise.global().get_cx();
-        let _ac = JSAutoCompartment::new(promise_cx, promise.reflector().get_jsobject().get());
-        promise.resolve(promise.global().get_cx(), HandleValue::undefined());
+        self.promise.root().resolve_native(&());
     }
 }
 
