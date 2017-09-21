@@ -17,7 +17,6 @@ use gecko_bindings::structs::mozilla::css::URLValueData;
 use gecko_bindings::structs::mozilla::AnonymousCounterStyle;
 use gecko_bindings::structs::mozilla::MallocSizeOf;
 use gecko_bindings::structs::mozilla::OriginFlags;
-use gecko_bindings::structs::mozilla::Side;
 use gecko_bindings::structs::mozilla::UniquePtr;
 use gecko_bindings::structs::ServoRawOffsetArc;
 use gecko_bindings::structs::nsIContent;
@@ -71,7 +70,6 @@ use gecko_bindings::structs::StyleBasicShapeType;
 use gecko_bindings::structs::StyleShapeSource;
 use gecko_bindings::structs::StyleTransition;
 use gecko_bindings::structs::gfxFontFeatureValueSet;
-use gecko_bindings::structs::nsBorderColors;
 use gecko_bindings::structs::nsCSSCounterStyleRule;
 use gecko_bindings::structs::nsCSSFontFaceRule;
 use gecko_bindings::structs::nsCSSKeyword;
@@ -875,22 +873,6 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_EnsureMozBorderColors(aBorder: *mut nsStyleBorder);
-}
-extern "C" {
-    pub fn Gecko_ClearMozBorderColors(aBorder: *mut nsStyleBorder,
-                                      aSide: Side);
-}
-extern "C" {
-    pub fn Gecko_AppendMozBorderColors(aBorder: *mut nsStyleBorder,
-                                       aSide: Side, aColor: nscolor);
-}
-extern "C" {
-    pub fn Gecko_CopyMozBorderColors(aDest: *mut nsStyleBorder,
-                                     aSrc: *const nsStyleBorder, aSide: Side);
-}
-extern "C" {
-    pub fn Gecko_GetMozBorderColors(aBorder: *const nsStyleBorder,
-                                    aSide: Side) -> *const nsBorderColors;
 }
 extern "C" {
     pub fn Gecko_FontFamilyList_Clear(aList: *mut FontFamilyList);
