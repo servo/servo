@@ -145,14 +145,19 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
     }
 
     /// Handles a lock external callback received from webrender::ExternalImageHandler
-    fn handle_lock(&mut self, context_id: WebGLContextId, sender: WebGLSender<(u32, Size2D<i32>)>) {
+    fn handle_lock(&mut self, context_id: WebGLContextId, sender: WebGLSender<(u32, Size2D<i32>, usize)>) {
         let ctx = Self::make_current_if_needed(context_id, &self.contexts, &mut self.bound_context_id)
                         .expect("WebGLContext not found in a WebGLMsg::Lock message");
         let info = self.cached_context_info.get_mut(&context_id).unwrap();
-        // Use a OpenGL Fence to perform the lock.
-        info.gl_sync = Some(ctx.gl().fence_sync(gl::SYNC_GPU_COMMANDS_COMPLETE, 0));
+        // Insert a OpenGL Fence sync object that sends a signal when all the WebGL commands are finished.
+        // The related gl().wait_sync call is performed in the WR thread. See WebGLExternalImageApi for mor details.
+        let gl_sync = ctx.gl().fence_sync(gl::SYNC_GPU_COMMANDS_COMPLETE, 0);
+        info.gl_sync = Some(gl_sync);
+        // It is important that the fence sync is properly flushed into the GPU's command queue.
+        // Without proper flushing, the sync object may never be signaled.
+        ctx.gl().flush();
 
-        sender.send((info.texture_id, info.size)).unwrap();
+        sender.send((info.texture_id, info.size, gl_sync as usize)).unwrap();
     }
 
     /// Handles an unlock external callback received from webrender::ExternalImageHandler
@@ -161,10 +166,6 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
                         .expect("WebGLContext not found in a WebGLMsg::Unlock message");
         let info = self.cached_context_info.get_mut(&context_id).unwrap();
         if let Some(gl_sync) = info.gl_sync.take() {
-            // glFlush must be called before glWaitSync.
-            ctx.gl().flush();
-            // Wait until the GLSync object is signaled.
-            ctx.gl().wait_sync(gl_sync, 0, gl::TIMEOUT_IGNORED);
             // Release the GLSync object.
             ctx.gl().delete_sync(gl_sync);
         }
