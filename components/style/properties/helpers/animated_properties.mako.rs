@@ -1453,11 +1453,10 @@ impl Animate for ComputedMatrix {
                 (Ok(this), Ok(other)) => {
                     Ok(ComputedMatrix::from(this.animate(&other, procedure)?))
                 },
-                _ => {
-                    let (this_weight, other_weight) = procedure.weights();
-                    let result = if this_weight > other_weight { *self } else { *other };
-                    Ok(result)
-                },
+                // Matrices can be undecomposable due to couple reasons, e.g.,
+                // non-invertible matrices. In this case, we should report Err
+                // here, and let the caller do the fallback procedure.
+                _ => Err(())
             }
         } else {
             let this = MatrixDecomposed2D::from(*self);
@@ -1477,11 +1476,10 @@ impl Animate for ComputedMatrix {
             (Ok(from), Ok(to)) => {
                 Ok(ComputedMatrix::from(from.animate(&to, procedure)?))
             },
-            _ => {
-                let (this_weight, other_weight) = procedure.weights();
-                let result = if this_weight > other_weight { *self } else { *other };
-                Ok(result)
-            },
+            // Matrices can be undecomposable due to couple reasons, e.g.,
+            // non-invertible matrices. In this case, we should report Err here,
+            // and let the caller do the fallback procedure.
+            _ => Err(())
         }
     }
 }

@@ -2218,9 +2218,13 @@ pub extern "C" fn Servo_MatrixTransform_Operate(matrix_operator: MatrixTransform
     };
 
     let output = unsafe { output.as_mut() }.expect("not a valid 'output' matrix");
-    if let Ok(result) =  result {
+    if let Ok(result) = result {
         *output = result.into();
-    };
+    } else if progress < 0.5 {
+        *output = from.clone().into();
+    } else {
+        *output = to.clone().into();
+    }
 }
 
 #[no_mangle]
