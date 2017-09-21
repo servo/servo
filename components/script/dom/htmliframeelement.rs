@@ -305,13 +305,6 @@ impl HTMLIFrameElement {
 
         self.pipeline_id.set(Some(new_pipeline_id));
 
-        // Only terminate the load blocker if the pipeline id was updated due to a traversal.
-        // The load blocker will be terminated for a navigation in iframe_load_event_steps.
-        if reason == UpdatePipelineIdReason::Traversal {
-            let mut blocker = self.load_blocker.borrow_mut();
-            LoadBlocker::terminate(&mut blocker);
-        }
-
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
         let window = window_from_node(self);
         window.reflow(ReflowGoal::ForDisplay,
