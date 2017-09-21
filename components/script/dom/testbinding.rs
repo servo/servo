@@ -675,13 +675,13 @@ impl TestBindingMethods for TestBinding {
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
     unsafe fn ReturnResolvedPromise(&self, cx: *mut JSContext, v: HandleValue) -> Fallible<Rc<Promise>> {
-        Promise::Resolve(&self.global(), cx, v)
+        Promise::new_resolved(&self.global(), cx, v)
     }
 
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
     unsafe fn ReturnRejectedPromise(&self, cx: *mut JSContext, v: HandleValue) -> Fallible<Rc<Promise>> {
-        Promise::Reject(&self.global(), cx, v)
+        Promise::new_rejected(&self.global(), cx, v)
     }
 
     #[allow(unsafe_code)]
