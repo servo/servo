@@ -164,7 +164,7 @@ pub enum ExpressionKind {
 /// http://dev.w3.org/csswg/mediaqueries-3/#media1
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub struct Expression(ExpressionKind);
+pub struct Expression(pub ExpressionKind);
 
 impl Expression {
     /// The kind of expression we're, just for unit testing.
