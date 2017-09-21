@@ -87,7 +87,7 @@ impl VRMethods for VR {
         let displays: Vec<Root<VRDisplay>> = self.displays.borrow().iter()
                                                           .map(|d| Root::from_ref(&**d))
                                                           .collect();
-        promise.resolve_native(promise.global().get_cx(), &displays);
+        promise.resolve_native(&displays);
 
         promise
     }

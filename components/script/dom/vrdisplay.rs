@@ -320,7 +320,7 @@ impl VRDisplayMethods for VRDisplay {
         if self.presenting.get() {
             *self.layer.borrow_mut() = layer_bounds;
             self.layer_ctx.set(Some(&layer_ctx));
-            promise.resolve_native(promise.global().get_cx(), &());
+            promise.resolve_native(&());
             return promise;
         }
 
@@ -335,7 +335,7 @@ impl VRDisplayMethods for VRDisplay {
                 *self.layer.borrow_mut() = layer_bounds;
                 self.layer_ctx.set(Some(&layer_ctx));
                 self.init_present();
-                promise.resolve_native(promise.global().get_cx(), &());
+                promise.resolve_native(&());
             },
             Err(e) => {
                 promise.reject_native(promise.global().get_cx(), &e);
@@ -366,7 +366,7 @@ impl VRDisplayMethods for VRDisplay {
         match receiver.recv().unwrap() {
             Ok(()) => {
                 self.stop_present();
-                promise.resolve_native(promise.global().get_cx(), &());
+                promise.resolve_native(&());
             },
             Err(e) => {
                 promise.reject_native(promise.global().get_cx(), &e);

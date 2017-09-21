@@ -142,10 +142,7 @@ impl TrustedPromise {
         let this = self;
         task!(resolve_promise: move || {
             debug!("Resolving promise.");
-            let this = this.root();
-            let cx = this.global().get_cx();
-            let _ac = JSAutoCompartment::new(cx, this.reflector().get_jsobject().get());
-            this.resolve_native(cx, &value);
+            this.root().resolve_native(&value);
         })
     }
 }

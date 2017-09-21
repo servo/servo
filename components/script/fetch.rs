@@ -167,9 +167,7 @@ impl FetchResponseListener for FetchContext {
             }
         }
         // Step 4.3
-        promise.resolve_native(
-            promise_cx,
-            &self.response_object.root());
+        promise.resolve_native(&self.response_object.root());
         self.fetch_promise = Some(TrustedPromise::new(promise));
     }
 

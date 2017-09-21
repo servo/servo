@@ -264,7 +264,7 @@ impl JobQueue {
 fn settle_job_promise(global: &GlobalScope, promise: &Promise, settle: SettleType) {
     let _ac = JSAutoCompartment::new(global.get_cx(), promise.reflector().get_jsobject().get());
     match settle {
-        SettleType::Resolve(reg) => promise.resolve_native(global.get_cx(), &*reg.root()),
+        SettleType::Resolve(reg) => promise.resolve_native(&*reg.root()),
         SettleType::Reject(err) => promise.reject_error(global.get_cx(), err),
     };
 }

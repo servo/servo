@@ -35,7 +35,7 @@ use dom::promise::Promise;
 use dom::promisenativehandler::{PromiseNativeHandler, Callback};
 use dom::url::URL;
 use dom_struct::dom_struct;
-use js::jsapi::{HandleObject, HandleValue, Heap, JSContext, JSObject, JSAutoCompartment};
+use js::jsapi::{HandleObject, HandleValue, Heap, JSContext, JSObject};
 use js::jsapi::{JS_NewPlainObject, JS_NewUint8ClampedArray};
 use js::jsval::{JSVal, NullValue};
 use script_traits::MsDuration;
@@ -814,9 +814,6 @@ pub struct TestBindingCallback {
 impl TestBindingCallback {
     #[allow(unrooted_must_root)]
     pub fn invoke(self) {
-        let p = self.promise.root();
-        let cx = p.global().get_cx();
-        let _ac = JSAutoCompartment::new(cx, p.reflector().get_jsobject().get());
-        p.resolve_native(cx, &self.value);
+        self.promise.root().resolve_native(&self.value);
     }
 }

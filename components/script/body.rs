@@ -79,10 +79,10 @@ pub fn consume_body_with_promise<T: BodyOperations + DomObject>(object: &T,
     match pkg_data_results {
         Ok(results) => {
             match results {
-                FetchedData::Text(s) => promise.resolve_native(cx, &USVString(s)),
-                FetchedData::Json(j) => promise.resolve_native(cx, &j),
-                FetchedData::BlobData(b) => promise.resolve_native(cx, &b),
-                FetchedData::FormData(f) => promise.resolve_native(cx, &f),
+                FetchedData::Text(s) => promise.resolve_native(&USVString(s)),
+                FetchedData::Json(j) => promise.resolve_native(&j),
+                FetchedData::BlobData(b) => promise.resolve_native(&b),
+                FetchedData::FormData(f) => promise.resolve_native(&f),
             };
         },
         Err(err) => promise.reject_error(cx, err),
