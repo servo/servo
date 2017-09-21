@@ -8,7 +8,7 @@
 
 use app_units::Au;
 use context::LayoutContext;
-use display_list_builder::DisplayListBuildState;
+use display_list_builder::{DisplayListBuildState, StackingContextCollectionState};
 use euclid::Point2D;
 use flow::{BaseFlow, Flow, FlowClass, ForceNonfloatedFlag, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow, SpecificFragmentInfo};
@@ -92,7 +92,7 @@ impl Flow for TableColGroupFlow {
     // Table columns are invisible.
     fn build_display_list(&mut self, _: &mut DisplayListBuildState) { }
 
-    fn collect_stacking_contexts(&mut self, state: &mut DisplayListBuildState) {
+    fn collect_stacking_contexts(&mut self, state: &mut StackingContextCollectionState) {
         self.base.stacking_context_id = state.current_stacking_context_id;
         self.base.clip_and_scroll_info = Some(state.current_clip_and_scroll_info);
     }

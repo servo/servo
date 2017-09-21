@@ -4,10 +4,10 @@
 
 //! Generic types for CSS values related to borders.
 
-use euclid::Size2D;
 use std::fmt;
 use style_traits::ToCss;
 use values::generics::rect::Rect;
+use values::generics::size::Size;
 
 /// A generic value for a single side of a `border-image-width` property.
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
@@ -33,6 +33,34 @@ pub struct BorderImageSlice<NumberOrPercentage> {
     pub fill: bool,
 }
 
+/// A generic value for the `border-*-radius` longhand properties.
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug)]
+#[derive(PartialEq, ToComputedValue, ToCss)]
+pub struct BorderCornerRadius<L>(pub Size<L>);
+
+impl<L> BorderCornerRadius<L> {
+    /// Trivially create a `BorderCornerRadius`.
+    pub fn new(w: L, h: L) -> Self {
+        BorderCornerRadius(Size::new(w, h))
+    }
+}
+
+/// A generic value for the `border-spacing` property.
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug)]
+#[derive(PartialEq, ToAnimatedValue, ToComputedValue, ToCss)]
+pub struct BorderSpacing<L>(pub Size<L>);
+
+impl<L> BorderSpacing<L> {
+    /// Trivially create a `BorderCornerRadius`.
+    pub fn new(w: L, h: L) -> Self {
+        BorderSpacing(Size::new(w, h))
+    }
+}
+
 /// A generic value for `border-radius`, `outline-radius` and `inset()`.
 ///
 /// https://drafts.csswg.org/css-backgrounds-3/#border-radius
@@ -51,20 +79,13 @@ pub struct BorderRadius<LengthOrPercentage> {
     pub bottom_left: BorderCornerRadius<LengthOrPercentage>,
 }
 
-/// A generic value for `border-*-radius` longhand properties.
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug)]
-#[derive(PartialEq, ToComputedValue)]
-pub struct BorderCornerRadius<L>(pub Size2D<L>);
-
 impl<N> From<N> for BorderImageSlice<N>
     where N: Clone,
 {
     #[inline]
     fn from(value: N) -> Self {
         Self {
-            offsets: value.into(),
+            offsets: Rect::all(value),
             fill: false,
         }
     }
@@ -87,11 +108,12 @@ impl<N> ToCss for BorderImageSlice<N>
 impl<L> BorderRadius<L> {
     /// Returns a new `BorderRadius<L>`.
     #[inline]
-    pub fn new(tl: BorderCornerRadius<L>,
-               tr: BorderCornerRadius<L>,
-               br: BorderCornerRadius<L>,
-               bl: BorderCornerRadius<L>)
-               -> Self {
+    pub fn new(
+        tl: BorderCornerRadius<L>,
+        tr: BorderCornerRadius<L>,
+        br: BorderCornerRadius<L>,
+        bl: BorderCornerRadius<L>
+    ) -> Self {
         BorderRadius {
             top_left: tl,
             top_right: tr,
@@ -123,41 +145,15 @@ impl<L> ToCss for BorderRadius<L>
 {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         let BorderRadius {
-            top_left: ref tl,
-            top_right: ref tr,
-            bottom_right: ref br,
-            bottom_left: ref bl,
+            top_left: BorderCornerRadius(ref tl),
+            top_right: BorderCornerRadius(ref tr),
+            bottom_right: BorderCornerRadius(ref br),
+            bottom_left: BorderCornerRadius(ref bl),
         } = *self;
 
         let widths = Rect::new(&tl.0.width, &tr.0.width, &br.0.width, &bl.0.width);
         let heights = Rect::new(&tl.0.height, &tr.0.height, &br.0.height, &bl.0.height);
 
         Self::serialize_rects(widths, heights, dest)
-    }
-}
-
-impl<L> BorderCornerRadius<L> {
-    #[inline]
-    /// Create a new `BorderCornerRadius` for an area of given width and height.
-    pub fn new(width: L, height: L) -> BorderCornerRadius<L> {
-        BorderCornerRadius(Size2D::new(width, height))
-    }
-}
-
-impl<L: Clone> From<L> for BorderCornerRadius<L> {
-    fn from(radius: L) -> Self {
-        Self::new(radius.clone(), radius)
-    }
-}
-
-impl<L> ToCss for BorderCornerRadius<L>
-    where L: ToCss,
-{
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-        where W: fmt::Write
-    {
-        self.0.width.to_css(dest)?;
-        dest.write_str(" ")?;
-        self.0.height.to_css(dest)
     }
 }

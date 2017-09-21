@@ -6,7 +6,7 @@
 
 use app_units::Au;
 use context::LayoutContext;
-use display_list_builder::DisplayListBuildState;
+use display_list_builder::{DisplayListBuildState, StackingContextCollectionState};
 use euclid::{Point2D, Vector2D};
 use floats::SpeculatedFloatPlacement;
 use flow::{self, Flow, ImmutableFlowUtils, IS_ABSOLUTELY_POSITIONED};
@@ -69,9 +69,10 @@ pub fn reflow(root: &mut Flow, layout_context: &LayoutContext, relayout_mode: Re
 pub fn build_display_list_for_subtree<'a>(flow_root: &mut Flow,
                                           layout_context: &'a LayoutContext)
                                           -> DisplayListBuildState<'a> {
-    let mut state = DisplayListBuildState::new(layout_context);
+    let mut state = StackingContextCollectionState::new(layout_context.id);
     flow_root.collect_stacking_contexts(&mut state);
 
+    let state = DisplayListBuildState::new(layout_context, state);
     let mut build_display_list = BuildDisplayList {
         state: state,
     };

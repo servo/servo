@@ -5921,6 +5921,18 @@
      {}
     ]
    ],
+   "css/table_with_position_sticky.html": [
+    [
+     "/_mozilla/css/table_with_position_sticky.html",
+     [
+      [
+       "/_mozilla/css/table_with_position_sticky_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "css/text_align_complex_a.html": [
     [
      "/_mozilla/css/text_align_complex_a.html",
@@ -6347,6 +6359,18 @@
      [
       [
        "/_mozilla/css/translate_clip_nested_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/truncated_text_fragment_stacking_context.html": [
+    [
+     "/_mozilla/css/truncated_text_fragment_stacking_context.html",
+     [
+      [
+       "/_mozilla/css/truncated_text_fragment_stacking_context_ref.html",
        "=="
       ]
      ],
@@ -10367,6 +10391,11 @@
      {}
     ]
    ],
+   "css/table_with_position_sticky_ref.html": [
+    [
+     {}
+    ]
+   ],
    "css/test.jpeg": [
     [
      {}
@@ -10543,6 +10572,11 @@
     ]
    ],
    "css/translate_clip_ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/truncated_text_fragment_stacking_context_ref.html": [
     [
      {}
     ]
@@ -14719,6 +14753,12 @@
    "mozilla/interfaces.worker.js": [
     [
      "/_mozilla/mozilla/interfaces.worker.html",
+     {}
+    ]
+   ],
+   "mozilla/invalid-this.html": [
+    [
+     "/_mozilla/mozilla/invalid-this.html",
      {}
     ]
    ],
@@ -26589,6 +26629,14 @@
    "0dc40b30f1d518d7c148535d9230a95417aadd56",
    "support"
   ],
+  "css/table_with_position_sticky.html": [
+   "30c4f54f51c8d35614d52d3702e58de8589acd2f",
+   "reftest"
+  ],
+  "css/table_with_position_sticky_ref.html": [
+   "da028fde51bd53b7c7a4314e998162ab10d8d359",
+   "support"
+  ],
   "css/test.jpeg": [
    "b7329039658f91906338b4ec599633f966de1b46",
    "support"
@@ -26891,6 +26939,14 @@
   ],
   "css/translate_clip_ref.html": [
    "c62420cce19d1d6a7d8700275daaa5ecc10d14c7",
+   "support"
+  ],
+  "css/truncated_text_fragment_stacking_context.html": [
+   "453b01aec6ffd3c854fda854cf81250a332cd55c",
+   "reftest"
+  ],
+  "css/truncated_text_fragment_stacking_context_ref.html": [
+   "4cb902bb7b058748d1702b5033e8cec729431640",
    "support"
   ],
   "css/upper_id_attr.html": [
@@ -27270,7 +27326,7 @@
    "testharness"
   ],
   "mozilla/calc.html": [
-   "4f65929cacf623da2d3e310a6663d6165a1b0cdc",
+   "2b6f029f2393830ea8dce5f26a5c9caaae65944f",
    "testharness"
   ],
   "mozilla/canvas.initial.reset.2dstate.html": [
@@ -28047,6 +28103,10 @@
   ],
   "mozilla/interfaces.worker.js": [
    "c9dcc4f24540914b3be1ef18f13b721773eb76be",
+   "testharness"
+  ],
+  "mozilla/invalid-this.html": [
+   "4ed18511e6399b356fe196b92f72dd16a9019f55",
    "testharness"
   ],
   "mozilla/iterable.html": [

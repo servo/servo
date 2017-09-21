@@ -24,12 +24,3 @@ pub enum BackgroundSize<LengthOrPercentageOrAuto> {
     #[animation(error)]
     Contain,
 }
-
-impl<L> From<L> for BackgroundSize<L>
-    where L: Clone,
-{
-    #[inline]
-    fn from(value: L) -> Self {
-        BackgroundSize::Explicit { width: value.clone(), height: value }
-    }
-}

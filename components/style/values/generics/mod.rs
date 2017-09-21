@@ -25,6 +25,7 @@ pub mod grid;
 pub mod image;
 pub mod position;
 pub mod rect;
+pub mod size;
 pub mod svg;
 pub mod text;
 pub mod transform;

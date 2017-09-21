@@ -198,7 +198,6 @@ fn compute_damage(old: &ComputedValues, new: &ComputedValues) -> ServoRestyleDam
                        REFLOW, RECONSTRUCT_FLOW], [
         get_box.clear, get_box.float, get_box.display, get_box.position, get_counters.content,
         get_counters.counter_reset, get_counters.counter_increment,
-        get_inheritedbox._servo_under_display_none,
         get_list.quotes, get_list.list_style_type,
 
         // If these text or font properties change, we need to reconstruct the flow so that

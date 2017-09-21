@@ -112,6 +112,7 @@ pub trait ElementExt: Element<Impl=SelectorImpl> + Debug {
 }
 
 /// A per-functional-pseudo map, from a given pseudo to a `T`.
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct PerPseudoElementMap<T> {
     entries: [Option<T>; SIMPLE_PSEUDO_COUNT],

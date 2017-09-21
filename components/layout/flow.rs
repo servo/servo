@@ -28,7 +28,7 @@
 use app_units::Au;
 use block::{BlockFlow, FormattingContextType};
 use context::LayoutContext;
-use display_list_builder::DisplayListBuildState;
+use display_list_builder::{DisplayListBuildState, StackingContextCollectionState};
 use euclid::{Transform3D, Point2D, Vector2D, Rect, Size2D};
 use flex::FlexFlow;
 use floats::{Floats, SpeculatedFloatPlacement};
@@ -223,7 +223,7 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
         None
     }
 
-    fn collect_stacking_contexts(&mut self, state: &mut DisplayListBuildState);
+    fn collect_stacking_contexts(&mut self, state: &mut StackingContextCollectionState);
 
     /// If this is a float, places it. The default implementation does nothing.
     fn place_float_if_applicable<'a>(&mut self) {}
@@ -1110,7 +1110,8 @@ impl BaseFlow {
         return self as *const BaseFlow as usize;
     }
 
-    pub fn collect_stacking_contexts_for_children(&mut self, state: &mut DisplayListBuildState) {
+    pub fn collect_stacking_contexts_for_children(&mut self,
+                                                  state: &mut StackingContextCollectionState) {
         for kid in self.children.iter_mut() {
             kid.collect_stacking_contexts(state);
         }

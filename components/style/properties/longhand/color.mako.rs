@@ -15,8 +15,7 @@ ${helpers.predefined_type(
     animation_value_type="AnimatedRGBA",
     flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
     ignored_when_colors_disabled="True",
-    spec="https://drafts.csswg.org/css-color/#color",
-    need_clone="True"
+    spec="https://drafts.csswg.org/css-color/#color"
 )}
 
 // FIXME(#15973): Add servo support for system colors

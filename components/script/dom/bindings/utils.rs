@@ -414,18 +414,22 @@ unsafe fn generic_call(cx: *mut JSContext,
                                               -> bool)
                        -> bool {
     let args = CallArgs::from_vp(vp, argc);
+
+    let info = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp));
+    let proto_id = (*info).protoID;
+
     let thisobj = args.thisv();
     if !thisobj.get().is_null_or_undefined() && !thisobj.get().is_object() {
+        throw_invalid_this(cx, proto_id);
         return false;
     }
+
     let obj = if thisobj.get().is_object() {
         thisobj.get().to_object()
     } else {
         GetGlobalForObjectCrossCompartment(JS_CALLEE(cx, vp).to_object_or_null())
     };
     rooted!(in(cx) let obj = obj);
-    let info = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp));
-    let proto_id = (*info).protoID;
     let depth = (*info).depth;
     let proto_check = |class: &'static DOMClass| {
         class.interface_chain[depth as usize] as u16 == proto_id

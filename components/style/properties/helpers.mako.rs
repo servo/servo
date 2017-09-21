@@ -489,12 +489,6 @@
             }
         }
 
-        impl From<computed_value::T> for SpecifiedValue {
-            fn from(other: computed_value::T) -> Self {
-                SpecifiedValue::Keyword(other)
-            }
-        }
-
         #[inline]
         pub fn get_initial_value() -> computed_value::T {
             computed_value::T::${to_rust_ident(values.split()[0])}
@@ -617,8 +611,8 @@
         keyword_kwargs = {a: kwargs.pop(a, None) for a in [
             'gecko_constant_prefix', 'gecko_enum_prefix',
             'extra_gecko_values', 'extra_servo_values',
-            'aliases', 'extra_gecko_aliases', 'extra_servo_aliases',
-            'custom_consts', 'gecko_inexhaustive', 'gecko_strip_moz_prefix',
+            'aliases', 'extra_gecko_aliases', 'custom_consts',
+            'gecko_inexhaustive', 'gecko_strip_moz_prefix',
         ]}
     %>
 
@@ -882,7 +876,7 @@
     % endif
 </%def>
 
-<%def name="logical_setter(name, need_clone=False)">
+<%def name="logical_setter(name)">
     /// Set the appropriate physical property for ${name} given a writing mode.
     pub fn set_${to_rust_ident(name)}(&mut self,
                                       v: longhands::${to_rust_ident(name)}::computed_value::T,
@@ -914,18 +908,16 @@
         self.copy_${to_rust_ident(name)}_from(other, wm)
     }
 
-    % if need_clone:
-        /// Get the computed value for the appropriate physical property for
-        /// ${name} given a writing mode.
-        pub fn clone_${to_rust_ident(name)}(&self, wm: WritingMode)
-            -> longhands::${to_rust_ident(name)}::computed_value::T {
-        <%self:logical_setter_helper name="${name}">
-            <%def name="inner(physical_ident)">
-                self.clone_${physical_ident}()
-            </%def>
-        </%self:logical_setter_helper>
-        }
-    % endif
+    /// Get the computed value for the appropriate physical property for
+    /// ${name} given a writing mode.
+    pub fn clone_${to_rust_ident(name)}(&self, wm: WritingMode)
+        -> longhands::${to_rust_ident(name)}::computed_value::T {
+    <%self:logical_setter_helper name="${name}">
+        <%def name="inner(physical_ident)">
+            self.clone_${physical_ident}()
+        </%def>
+    </%self:logical_setter_helper>
+    }
 </%def>
 
 <%def name="alias_to_nscsspropertyid(alias)">

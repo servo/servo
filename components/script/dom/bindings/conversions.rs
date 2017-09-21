@@ -84,13 +84,13 @@ impl<T: Float + FromJSValConvertible<Config=()>> FromJSValConvertible for Finite
                          value: HandleValue,
                          option: ())
                          -> Result<ConversionResult<Finite<T>>, ()> {
-        let result = match FromJSValConvertible::from_jsval(cx, value, option) {
-            Ok(ConversionResult::Success(v)) => v,
-            Ok(ConversionResult::Failure(error)) => {
+        let result = match FromJSValConvertible::from_jsval(cx, value, option)? {
+            ConversionResult::Success(v) => v,
+            ConversionResult::Failure(error) => {
+                // FIXME(emilio): Why throwing instead of propagating the error?
                 throw_type_error(cx, &error);
                 return Err(());
             }
-            _ => return Err(()),
         };
         match Finite::new(result) {
             Some(v) => Ok(ConversionResult::Success(v)),
@@ -129,20 +129,6 @@ impl <T: FromJSValConvertible + JSTraceable> FromJSValConvertible for RootedTrac
                 ConversionResult::Failure(e) => ConversionResult::Failure(e),
             }
         })
-    }
-}
-
-/// Convert `id` to a `DOMString`, assuming it is string-valued.
-///
-/// Handling of invalid UTF-16 in strings depends on the relevant option.
-///
-/// # Panics
-///
-/// Panics if `id` is not string-valued.
-pub fn string_jsid_to_string(cx: *mut JSContext, id: HandleId) -> DOMString {
-    unsafe {
-        assert!(RUST_JSID_IS_STRING(id));
-        jsstring_to_str(cx, RUST_JSID_TO_STRING(id))
     }
 }
 

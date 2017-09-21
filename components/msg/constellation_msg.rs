@@ -5,6 +5,7 @@
 //! The high-level interface from script to constellation. Using this abstract interface helps
 //! reduce coupling between these two components.
 
+use core::nonzero::NonZero;
 use std::cell::Cell;
 use std::fmt;
 use webrender_api;
@@ -194,10 +195,9 @@ impl PipelineNamespace {
         });
     }
 
-    fn next_index(&mut self) -> u32 {
-        let result = self.index;
-        self.index = result + 1;
-        result
+    fn next_index(&mut self) -> NonZero<u32> {
+        self.index += 1;
+        NonZero::new(self.index).expect("pipeline id index wrapped!")
     }
 
     fn next_pipeline_id(&mut self) -> PipelineId {
@@ -220,8 +220,9 @@ thread_local!(pub static PIPELINE_NAMESPACE: Cell<Option<PipelineNamespace>> = C
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, HeapSizeOf, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct PipelineNamespaceId(pub u32);
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, HeapSizeOf, Ord, PartialEq, PartialOrd, Serialize)]
-pub struct PipelineIndex(pub u32);
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+pub struct PipelineIndex(pub NonZero<u32>);
+known_heap_size!(0, PipelineIndex);
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, HeapSizeOf, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct PipelineId {
@@ -242,7 +243,7 @@ impl PipelineId {
     pub fn to_webrender(&self) -> webrender_api::PipelineId {
         let PipelineNamespaceId(namespace_id) = self.namespace_id;
         let PipelineIndex(index) = self.index;
-        webrender_api::PipelineId(namespace_id, index)
+        webrender_api::PipelineId(namespace_id, index.get())
     }
 
     pub fn root_scroll_node(&self) -> webrender_api::ClipId {
@@ -258,17 +259,18 @@ impl fmt::Display for PipelineId {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         let PipelineNamespaceId(namespace_id) = self.namespace_id;
         let PipelineIndex(index) = self.index;
-        write!(fmt, "({},{})", namespace_id, index)
+        write!(fmt, "({},{})", namespace_id, index.get())
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, HeapSizeOf, Ord, PartialEq, PartialOrd, Serialize)]
-pub struct BrowsingContextIndex(pub u32);
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+pub struct BrowsingContextIndex(pub NonZero<u32>);
+known_heap_size!(0, BrowsingContextIndex);
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, HeapSizeOf, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct BrowsingContextId {
     pub namespace_id: PipelineNamespaceId,
-    pub index: BrowsingContextIndex
+    pub index: BrowsingContextIndex,
 }
 
 impl BrowsingContextId {
@@ -286,7 +288,7 @@ impl fmt::Display for BrowsingContextId {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         let PipelineNamespaceId(namespace_id) = self.namespace_id;
         let BrowsingContextIndex(index) = self.index;
-        write!(fmt, "({},{})", namespace_id, index)
+        write!(fmt, "({},{})", namespace_id, index.get())
     }
 }
 
@@ -336,9 +338,12 @@ impl PartialEq<BrowsingContextId> for TopLevelBrowsingContextId {
 
 // We provide ids just for unit testing.
 pub const TEST_NAMESPACE: PipelineNamespaceId = PipelineNamespaceId(1234);
-pub const TEST_PIPELINE_INDEX: PipelineIndex = PipelineIndex(5678);
+#[allow(unsafe_code)]
+pub const TEST_PIPELINE_INDEX: PipelineIndex = unsafe { PipelineIndex(NonZero::new_unchecked(5678)) };
 pub const TEST_PIPELINE_ID: PipelineId = PipelineId { namespace_id: TEST_NAMESPACE, index: TEST_PIPELINE_INDEX };
-pub const TEST_BROWSING_CONTEXT_INDEX: BrowsingContextIndex = BrowsingContextIndex(8765);
+#[allow(unsafe_code)]
+pub const TEST_BROWSING_CONTEXT_INDEX: BrowsingContextIndex =
+    unsafe { BrowsingContextIndex(NonZero::new_unchecked(8765)) };
 pub const TEST_BROWSING_CONTEXT_ID: BrowsingContextId =
     BrowsingContextId { namespace_id: TEST_NAMESPACE, index: TEST_BROWSING_CONTEXT_INDEX };
 

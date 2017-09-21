@@ -209,6 +209,7 @@ pub fn parse_border<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
      for corner in ['top-left', 'top-right', 'bottom-right', 'bottom-left']
 )}" extra_prefixes="webkit" spec="https://drafts.csswg.org/css-backgrounds/#border-radius">
     use values::generics::rect::Rect;
+    use values::generics::border::BorderCornerRadius;
     use values::specified::border::BorderRadius;
     use parser::Parse;
 
@@ -226,14 +227,15 @@ pub fn parse_border<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             let LonghandsToSerialize {
-                border_top_left_radius: ref tl,
-                border_top_right_radius: ref tr,
-                border_bottom_right_radius: ref br,
-                border_bottom_left_radius: ref bl,
+                border_top_left_radius: &BorderCornerRadius(ref tl),
+                border_top_right_radius: &BorderCornerRadius(ref tr),
+                border_bottom_right_radius: &BorderCornerRadius(ref br),
+                border_bottom_left_radius: &BorderCornerRadius(ref bl),
             } = *self;
 
-            let widths = Rect::new(&tl.0.width, &tr.0.width, &br.0.width, &bl.0.width);
-            let heights = Rect::new(&tl.0.height, &tr.0.height, &br.0.height, &bl.0.height);
+
+            let widths = Rect::new(tl.width(), tr.width(), br.width(), bl.width());
+            let heights = Rect::new(tl.height(), tr.height(), br.height(), bl.height());
 
             BorderRadius::serialize_rects(widths, heights, dest)
         }

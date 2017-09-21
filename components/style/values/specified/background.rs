@@ -20,7 +20,7 @@ impl Parse for BackgroundSize {
             let height = input
                 .try(|i| LengthOrPercentageOrAuto::parse_non_negative(context, i))
                 .unwrap_or(LengthOrPercentageOrAuto::Auto);
-            return Ok(GenericBackgroundSize::Explicit { width: width, height: height });
+            return Ok(GenericBackgroundSize::Explicit { width, height });
         }
         let ident = input.expect_ident()?;
         (match_ignore_ascii_case! { &ident,
@@ -28,5 +28,15 @@ impl Parse for BackgroundSize {
             "contain" => Ok(GenericBackgroundSize::Contain),
             _ => Err(()),
         }).map_err(|()| SelectorParseError::UnexpectedIdent(ident.clone()).into())
+    }
+}
+
+impl BackgroundSize {
+    /// Returns `auto auto`.
+    pub fn auto() -> Self {
+        GenericBackgroundSize::Explicit {
+            width: LengthOrPercentageOrAuto::Auto,
+            height: LengthOrPercentageOrAuto::Auto,
+        }
     }
 }

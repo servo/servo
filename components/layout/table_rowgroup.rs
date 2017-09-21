@@ -10,7 +10,7 @@ use app_units::Au;
 use block::{BlockFlow, ISizeAndMarginsComputer};
 use context::LayoutContext;
 use display_list_builder::{BlockFlowDisplayListBuilding, DisplayListBuildState};
-use display_list_builder::EstablishContainingBlock;
+use display_list_builder::{NEVER_CREATES_CONTAINING_BLOCK, StackingContextCollectionState};
 use euclid::Point2D;
 use flow::{Flow, FlowClass, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
@@ -22,7 +22,6 @@ use std::iter::{IntoIterator, Iterator, Peekable};
 use style::computed_values::{border_collapse, border_spacing};
 use style::logical_geometry::LogicalSize;
 use style::properties::ComputedValues;
-use style::values::computed::NonNegativeLength;
 use table::{ColumnIntrinsicInlineSize, InternalTable, TableLikeFlow};
 
 /// A table formatting context.
@@ -56,10 +55,7 @@ impl TableRowGroupFlow {
         TableRowGroupFlow {
             block_flow: BlockFlow::from_fragment(fragment),
             column_intrinsic_inline_sizes: Vec::new(),
-            spacing: border_spacing::T {
-                horizontal: NonNegativeLength::zero(),
-                vertical: NonNegativeLength::zero(),
-            },
+            spacing: border_spacing::T::zero(),
             collapsed_inline_direction_border_widths_for_table: Vec::new(),
             collapsed_block_direction_border_widths_for_table: Vec::new(),
         }
@@ -163,7 +159,7 @@ impl Flow for TableRowGroupFlow {
 
     fn assign_block_size(&mut self, _: &LayoutContext) {
         debug!("assign_block_size: assigning block_size for table_rowgroup");
-        self.block_flow.assign_block_size_for_table_like_flow(Au::from(self.spacing.vertical))
+        self.block_flow.assign_block_size_for_table_like_flow(self.spacing.vertical());
     }
 
     fn compute_stacking_relative_position(&mut self, layout_context: &LayoutContext) {
@@ -183,8 +179,8 @@ impl Flow for TableRowGroupFlow {
         self.block_flow.build_display_list(state);
     }
 
-    fn collect_stacking_contexts(&mut self, state: &mut DisplayListBuildState) {
-        self.block_flow.collect_stacking_contexts_for_block(state, EstablishContainingBlock::No);
+    fn collect_stacking_contexts(&mut self, state: &mut StackingContextCollectionState) {
+        self.block_flow.collect_stacking_contexts_for_block(state, NEVER_CREATES_CONTAINING_BLOCK);
     }
 
     fn repair_style(&mut self, new_style: &::ServoArc<ComputedValues>) {

@@ -102,7 +102,7 @@ pub fn Fetch(global: &GlobalScope, input: RequestInfo, init: RootedTraceableBox<
     let listener = NetworkListener {
         context: fetch_context,
         task_source: global.networking_task_source(),
-        wrapper: Some(global.get_runnable_wrapper())
+        canceller: Some(global.task_canceller())
     };
 
     ROUTER.add_route(action_receiver.to_opaque(), box move |message| {

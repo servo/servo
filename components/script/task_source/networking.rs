@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
-use script_thread::{Runnable, RunnableWrapper};
+use task::{TaskCanceller, TaskOnce};
 use task_source::TaskSource;
 
 #[derive(JSTraceable)]
@@ -16,18 +16,31 @@ impl Clone for NetworkingTaskSource {
 }
 
 impl TaskSource for NetworkingTaskSource {
-    fn queue_with_wrapper<T>(&self,
-                             msg: Box<T>,
-                             wrapper: &RunnableWrapper)
-                             -> Result<(), ()>
-                             where T: Runnable + Send + 'static {
-        self.0.send(CommonScriptMsg::RunnableMsg(ScriptThreadEventCategory::NetworkEvent,
-                                                 wrapper.wrap_runnable(msg)))
+    fn queue_with_canceller<T>(
+        &self,
+        task: T,
+        canceller: &TaskCanceller,
+    ) -> Result<(), ()>
+    where
+        T: TaskOnce + 'static,
+    {
+        self.0.send(CommonScriptMsg::Task(
+            ScriptThreadEventCategory::NetworkEvent,
+            box canceller.wrap_task(task),
+        ))
     }
 }
 
 impl NetworkingTaskSource {
-    pub fn queue_wrapperless<T: Runnable + Send + 'static>(&self, msg: Box<T>) -> Result<(), ()> {
-        self.0.send(CommonScriptMsg::RunnableMsg(ScriptThreadEventCategory::NetworkEvent, msg))
+    /// This queues a task that will not be cancelled when its associated
+    /// global scope gets destroyed.
+    pub fn queue_unconditionally<T>(&self, task: T) -> Result<(), ()>
+    where
+        T: TaskOnce + 'static,
+    {
+        self.0.send(CommonScriptMsg::Task(
+            ScriptThreadEventCategory::NetworkEvent,
+            box task,
+        ))
     }
 }

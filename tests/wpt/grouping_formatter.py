@@ -105,7 +105,7 @@ class GroupingFormatter(base.BaseFormatter):
             return new_display + "No tests running.\n"
 
     def suite_start(self, data):
-        self.number_of_tests = len(data["tests"])
+        self.number_of_tests = sum(len(tests) for tests in data["tests"].itervalues())
         self.start_time = data["time"]
 
         if self.number_of_tests == 0:

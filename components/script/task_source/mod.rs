@@ -10,16 +10,22 @@ pub mod performance_timeline;
 pub mod user_interaction;
 
 use dom::globalscope::GlobalScope;
-use script_thread::{Runnable, RunnableWrapper};
 use std::result::Result;
+use task::{TaskCanceller, TaskOnce};
 
 pub trait TaskSource {
-    fn queue_with_wrapper<T>(&self,
-                             msg: Box<T>,
-                             wrapper: &RunnableWrapper)
-                             -> Result<(), ()>
-                             where T: Runnable + Send + 'static;
-    fn queue<T: Runnable + Send + 'static>(&self, msg: Box<T>, global: &GlobalScope) -> Result<(), ()> {
-        self.queue_with_wrapper(msg, &global.get_runnable_wrapper())
+    fn queue_with_canceller<T>(
+        &self,
+        task: T,
+        canceller: &TaskCanceller,
+    ) -> Result<(), ()>
+    where
+        T: TaskOnce + 'static;
+
+    fn queue<T>(&self, task: T, global: &GlobalScope) -> Result<(), ()>
+    where
+        T: TaskOnce + 'static,
+    {
+        self.queue_with_canceller(task, &global.task_canceller())
     }
 }

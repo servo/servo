@@ -474,8 +474,8 @@ pub fn specified_border_radius(
     containing_size: Size2D<Au>)
     -> Size2D<Au>
 {
-    let w = radius.0.width.to_used_value(containing_size.width);
-    let h = radius.0.height.to_used_value(containing_size.height);
+    let w = radius.0.width().to_used_value(containing_size.width);
+    let h = radius.0.height().to_used_value(containing_size.height);
     Size2D::new(w, h)
 }
 
