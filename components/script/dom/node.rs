@@ -363,7 +363,9 @@ impl<'a> Iterator for QuerySelectorIterator {
         self.iterator.by_ref().filter_map(|node| {
             // TODO(cgaebel): Is it worth it to build a bloom filter here
             // (instead of passing `None`)? Probably.
-            let mut ctx = MatchingContext::new(MatchingMode::Normal, None,
+            //
+            // FIXME(bholley): Consider an nth-index cache here.
+            let mut ctx = MatchingContext::new(MatchingMode::Normal, None, None,
                 node.owner_doc().quirks_mode());
             if let Some(element) = Root::downcast(node) {
                 if matches_selector_list(selectors, &element, &mut ctx) {
@@ -754,7 +756,8 @@ impl Node {
             Err(_) => Err(Error::Syntax),
             // Step 3.
             Ok(selectors) => {
-                let mut ctx = MatchingContext::new(MatchingMode::Normal, None,
+                // FIXME(bholley): Consider an nth-index cache here.
+                let mut ctx = MatchingContext::new(MatchingMode::Normal, None, None,
                                                    self.owner_doc().quirks_mode());
                 Ok(self.traverse_preorder().filter_map(Root::downcast).find(|element| {
                     matches_selector_list(&selectors, element, &mut ctx)

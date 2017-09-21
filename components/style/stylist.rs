@@ -30,7 +30,7 @@ use selector_map::{PrecomputedHashMap, SelectorMap, SelectorMapEntry};
 use selector_parser::{SelectorImpl, PerPseudoElementMap, PseudoElement};
 use selectors::attr::NamespaceConstraint;
 use selectors::bloom::{BloomFilter, NonCountingBloomFilter};
-use selectors::matching::{ElementSelectorFlags, matches_selector, MatchingContext, MatchingMode};
+use selectors::matching::{ElementSelectorFlags, matches_selector, MatchingContext, MatchingMode, NthIndexCache};
 use selectors::matching::VisitedHandlingMode;
 use selectors::parser::{AncestorHashes, Combinator, Component, Selector};
 use selectors::parser::{SelectorIter, SelectorMethods};
@@ -1028,6 +1028,7 @@ impl Stylist {
         let mut matching_context =
             MatchingContext::new(MatchingMode::ForStatelessPseudoElement,
                                  None,
+                                 None,
                                  self.quirks_mode);
 
         self.push_applicable_declarations(
@@ -1060,6 +1061,7 @@ impl Stylist {
             let mut matching_context =
                 MatchingContext::new_for_visited(
                     MatchingMode::ForStatelessPseudoElement,
+                    None,
                     None,
                     VisitedHandlingMode::RelevantLinkVisited,
                     self.quirks_mode,
@@ -1203,7 +1205,7 @@ impl Stylist {
         V: Push<ApplicableDeclarationBlock> + VecLike<ApplicableDeclarationBlock>,
     {
         let mut matching_context =
-            MatchingContext::new(MatchingMode::Normal, None, self.quirks_mode);
+            MatchingContext::new(MatchingMode::Normal, None, None, self.quirks_mode);
         let mut dummy_flag_setter = |_: &E, _: ElementSelectorFlags| {};
 
         let rule_hash_target = element.rule_hash_target();
@@ -1427,6 +1429,7 @@ impl Stylist {
         &self,
         element: &E,
         bloom: Option<&BloomFilter>,
+        nth_index_cache: &mut NthIndexCache,
         flags_setter: &mut F
     ) -> SmallBitVec
     where
@@ -1435,8 +1438,12 @@ impl Stylist {
     {
         // NB: `MatchingMode` doesn't really matter, given we don't share style
         // between pseudos.
-        let mut matching_context =
-            MatchingContext::new(MatchingMode::Normal, bloom, self.quirks_mode);
+        let mut matching_context = MatchingContext::new(
+            MatchingMode::Normal,
+            bloom,
+            Some(nth_index_cache),
+            self.quirks_mode
+        );
 
         // Note that, by the time we're revalidating, we're guaranteed that the
         // candidate and the entry have the same id, classes, and local name.

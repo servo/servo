@@ -48,6 +48,7 @@ itertools = "0.5"
 itoa = "0.3"
 html5ever = {version = "0.19", optional = true}
 lazy_static = "0.2"
+lru_cache = { path = "../lru_cache" }
 log = "0.3"
 malloc_size_of = { path = "../malloc_size_of", optional=true }
 malloc_size_of_derive = { path = "../malloc_size_of_derive", optional=true }

@@ -2188,7 +2188,8 @@ impl ElementMethods for Element {
             Err(_) => Err(Error::Syntax),
             Ok(selectors) => {
                 let quirks_mode = document_from_node(self).quirks_mode();
-                let mut ctx = MatchingContext::new(MatchingMode::Normal, None,
+                // FIXME(bholley): Consider an nth-index cache here.
+                let mut ctx = MatchingContext::new(MatchingMode::Normal, None, None,
                                                    quirks_mode);
                 Ok(matches_selector_list(&selectors, &Root::from_ref(self), &mut ctx))
             }
@@ -2209,7 +2210,8 @@ impl ElementMethods for Element {
                 for element in root.inclusive_ancestors() {
                     if let Some(element) = Root::downcast::<Element>(element) {
                         let quirks_mode = document_from_node(self).quirks_mode();
-                        let mut ctx = MatchingContext::new(MatchingMode::Normal, None,
+                        // FIXME(bholley): Consider an nth-index cache here.
+                        let mut ctx = MatchingContext::new(MatchingMode::Normal, None, None,
                                                            quirks_mode);
                         if matches_selector_list(&selectors, &element, &mut ctx) {
                             return Ok(Some(element));

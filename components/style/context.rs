@@ -8,13 +8,13 @@
 #[cfg(feature = "servo")] use animation::PropertyAnimation;
 use app_units::Au;
 use bloom::StyleBloom;
-use cache::{Entry, LRUCache};
 use data::{EagerPseudoStyles, ElementData};
 use dom::{OpaqueNode, TNode, TElement, SendElement};
 use euclid::ScaleFactor;
 use euclid::Size2D;
 use fnv::FnvHashMap;
 use font_metrics::FontMetricsProvider;
+use lru_cache::{Entry, LRUCache};
 #[cfg(feature = "gecko")] use gecko_bindings::structs;
 use parallel::{STACK_SAFETY_MARGIN_KB, STYLE_THREAD_STACK_SIZE_KB};
 #[cfg(feature = "servo")] use parking_lot::RwLock;
@@ -23,6 +23,7 @@ use properties::ComputedValues;
 use rule_cache::RuleCache;
 use rule_tree::StrongRuleNode;
 use selector_parser::{EAGER_PSEUDO_COUNT, SnapshotMap};
+use selectors::context::NthIndexCache;
 use selectors::matching::ElementSelectorFlags;
 use servo_arc::Arc;
 #[cfg(feature = "servo")] use servo_atoms::Atom;
@@ -546,7 +547,7 @@ impl<E: TElement> SelectorFlagsMap<E> {
     pub fn new() -> Self {
         SelectorFlagsMap {
             map: FnvHashMap::default(),
-            cache: LRUCache::new(),
+            cache: LRUCache::default(),
         }
     }
 
@@ -719,6 +720,8 @@ pub struct ThreadLocalStyleContext<E: TElement> {
     /// A checker used to ensure that parallel.rs does not recurse indefinitely
     /// even on arbitrarily deep trees.  See Gecko bug 1376883.
     pub stack_limit_checker: StackLimitChecker,
+    /// A cache for nth-index-like selectors.
+    pub nth_index_cache: NthIndexCache,
 }
 
 impl<E: TElement> ThreadLocalStyleContext<E> {
@@ -737,6 +740,7 @@ impl<E: TElement> ThreadLocalStyleContext<E> {
             font_metrics_provider: E::FontMetricsProvider::create_from(shared),
             stack_limit_checker: StackLimitChecker::new(
                 (STYLE_THREAD_STACK_SIZE_KB - STACK_SAFETY_MARGIN_KB) * 1024),
+            nth_index_cache: NthIndexCache::default(),
         }
     }
 
@@ -754,6 +758,7 @@ impl<E: TElement> ThreadLocalStyleContext<E> {
             font_metrics_provider: E::FontMetricsProvider::create_from(shared),
             stack_limit_checker: StackLimitChecker::new(
                 (STYLE_THREAD_STACK_SIZE_KB - STACK_SAFETY_MARGIN_KB) * 1024),
+            nth_index_cache: NthIndexCache::default(),
         }
     }
 

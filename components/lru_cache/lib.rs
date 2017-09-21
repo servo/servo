@@ -4,6 +4,8 @@
 
 //! A simple LRU cache.
 
+extern crate arrayvec;
+
 use arrayvec::{Array, ArrayVec};
 
 /// A LRU cache using a statically-sized array for storage.
@@ -31,9 +33,8 @@ pub struct Entry<T> {
     next: u16,
 }
 
-impl<T, A: Array<Item=Entry<T>>> LRUCache<T, A> {
-    /// Create an empty LRU cache.
-    pub fn new() -> Self {
+impl<T, A: Array<Item=Entry<T>>> Default for LRUCache<T, A> {
+    fn default() -> Self {
         let cache = LRUCache {
             entries: ArrayVec::new(),
             head: 0,
@@ -42,7 +43,9 @@ impl<T, A: Array<Item=Entry<T>>> LRUCache<T, A> {
         assert!(cache.entries.capacity() < u16::max_value() as usize, "Capacity overflow");
         cache
     }
+}
 
+impl<T, A: Array<Item=Entry<T>>> LRUCache<T, A> {
     /// Returns the number of elements in the cache.
     pub fn num_entries(&self) -> usize {
         self.entries.len()
@@ -83,6 +86,31 @@ impl<T, A: Array<Item=Entry<T>>> LRUCache<T, A> {
             pos: self.head,
             done: self.entries.len() == 0,
             cache: self,
+        }
+    }
+
+    /// Performs a lookup on the cache with the given test routine. Touches
+    /// the result on a hit.
+    pub fn lookup<F, R>(&mut self, mut test_one: F) -> Option<R>
+    where
+        F: FnMut(&mut T) -> Option<R>
+    {
+        let mut result = None;
+        for (i, candidate) in self.iter_mut() {
+            if let Some(r) = test_one(candidate) {
+                result = Some((i, r));
+                break;
+            }
+        };
+
+        match result {
+            None => None,
+            Some((i, r)) => {
+                self.touch(i);
+                let front = self.front_mut().unwrap();
+                debug_assert!(test_one(front).is_some());
+                Some(r)
+            }
         }
     }
 

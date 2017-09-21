@@ -724,26 +724,26 @@ fn matches_simple_selector<E, F>(
             element.is_empty()
         }
         Component::NthChild(a, b) => {
-            matches_generic_nth_child(element, a, b, false, false, flags_setter)
+            matches_generic_nth_child(element, context, a, b, false, false, flags_setter)
         }
         Component::NthLastChild(a, b) => {
-            matches_generic_nth_child(element, a, b, false, true, flags_setter)
+            matches_generic_nth_child(element, context, a, b, false, true, flags_setter)
         }
         Component::NthOfType(a, b) => {
-            matches_generic_nth_child(element, a, b, true, false, flags_setter)
+            matches_generic_nth_child(element, context, a, b, true, false, flags_setter)
         }
         Component::NthLastOfType(a, b) => {
-            matches_generic_nth_child(element, a, b, true, true, flags_setter)
+            matches_generic_nth_child(element, context, a, b, true, true, flags_setter)
         }
         Component::FirstOfType => {
-            matches_generic_nth_child(element, 0, 1, true, false, flags_setter)
+            matches_generic_nth_child(element, context, 0, 1, true, false, flags_setter)
         }
         Component::LastOfType => {
-            matches_generic_nth_child(element, 0, 1, true, true, flags_setter)
+            matches_generic_nth_child(element, context, 0, 1, true, true, flags_setter)
         }
         Component::OnlyOfType => {
-            matches_generic_nth_child(element, 0, 1, true, false, flags_setter) &&
-            matches_generic_nth_child(element, 0, 1, true, true, flags_setter)
+            matches_generic_nth_child(element, context, 0, 1, true, false, flags_setter) &&
+            matches_generic_nth_child(element, context, 0, 1, true, true, flags_setter)
         }
         Component::Negation(ref negated) => {
             context.nesting_level += 1;
@@ -767,6 +767,7 @@ fn select_name<'a, T>(is_html: bool, local_name: &'a T, local_name_lower: &'a T)
 
 #[inline]
 fn matches_generic_nth_child<E, F>(element: &E,
+                                   context: &mut LocalMatchingContext<E::Impl>,
                                    a: i32,
                                    b: i32,
                                    is_of_type: bool,
@@ -786,6 +787,27 @@ fn matches_generic_nth_child<E, F>(element: &E,
         HAS_SLOW_SELECTOR_LATER_SIBLINGS
     });
 
+    let index = nth_child_index(element, is_of_type, is_from_end);
+
+    // Is there a non-negative integer n such that An+B=index?
+    match index.checked_sub(b) {
+        None => false,
+        Some(an) => match an.checked_div(a) {
+            Some(n) => n >= 0 && a * n == an,
+            None /* a == 0 */ => an == 0,
+        },
+    }
+}
+
+#[inline]
+fn nth_child_index<E>(
+    element: &E,
+    is_of_type: bool,
+    is_from_end: bool,
+) -> i32
+where
+    E: Element,
+{
     let mut index: i32 = 1;
     let mut next_sibling = if is_from_end {
         element.next_sibling_element()
@@ -814,14 +836,7 @@ fn matches_generic_nth_child<E, F>(element: &E,
         };
     }
 
-    // Is there a non-negative integer n such that An+B=index?
-    match index.checked_sub(b) {
-        None => false,
-        Some(an) => match an.checked_div(a) {
-            Some(n) => n >= 0 && a * n == an,
-            None /* a == 0 */ => an == 0,
-        },
-    }
+    index
 }
 
 #[inline]
