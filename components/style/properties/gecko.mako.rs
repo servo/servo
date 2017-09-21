@@ -3482,7 +3482,6 @@ fn static_assert() {
     pub fn clone_will_change(&self) -> longhands::will_change::computed_value::T {
         use properties::longhands::will_change::computed_value::T;
         use gecko_bindings::structs::nsIAtom;
-        use gecko_string_cache::Atom;
         use values::CustomIdent;
 
         if self.gecko.mWillChange.mBuffer.len() == 0 {
@@ -3490,9 +3489,7 @@ fn static_assert() {
         } else {
             T::AnimateableFeatures(
                 self.gecko.mWillChange.mBuffer.iter().map(|gecko_atom| {
-                    CustomIdent(
-                        unsafe { Atom::from_addrefed(*gecko_atom as *mut nsIAtom) }
-                    )
+                    CustomIdent((*gecko_atom as *mut nsIAtom).into())
                 }).collect()
             )
         }
