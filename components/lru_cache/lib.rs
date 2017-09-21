@@ -89,6 +89,31 @@ impl<T, A: Array<Item=Entry<T>>> LRUCache<T, A> {
         }
     }
 
+    /// Performs a lookup on the cache with the given test routine. Touches
+    /// the result on a hit.
+    pub fn lookup<F, R>(&mut self, mut test_one: F) -> Option<R>
+    where
+        F: FnMut(&mut T) -> Option<R>
+    {
+        let mut result = None;
+        for (i, candidate) in self.iter_mut() {
+            if let Some(r) = test_one(candidate) {
+                result = Some((i, r));
+                break;
+            }
+        };
+
+        match result {
+            None => None,
+            Some((i, r)) => {
+                self.touch(i);
+                let front = self.front_mut().unwrap();
+                debug_assert!(test_one(front).is_some());
+                Some(r)
+            }
+        }
+    }
+
     /// Insert a given key in the cache.
     pub fn insert(&mut self, val: T) {
         let entry = Entry { val, prev: 0, next: 0 };

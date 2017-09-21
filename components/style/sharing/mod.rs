@@ -442,29 +442,6 @@ impl<E: TElement> SharingCache<E> {
         };
         self.entries.insert(StyleSharingCandidate { element, validation_data });
     }
-
-    fn lookup<F, R>(&mut self, mut test_one: F) -> Option<R>
-    where
-        F: FnMut(&mut StyleSharingCandidate<E>) -> Option<R>
-    {
-        let mut result = None;
-        for (i, candidate) in self.entries.iter_mut() {
-            if let Some(r) = test_one(candidate) {
-                result = Some((i, r));
-                break;
-            }
-        };
-
-        match result {
-            None => None,
-            Some((i, r)) => {
-                self.entries.touch(i);
-                let front = self.entries.front_mut().unwrap();
-                debug_assert!(test_one(front).is_some());
-                Some(r)
-            }
-        }
-    }
 }
 
 /// Style sharing caches are are large allocations, so we store them in thread-local
@@ -638,7 +615,7 @@ impl<E: TElement> StyleSharingCache<E> {
             return None;
         }
 
-        self.cache_mut().lookup(|candidate| {
+        self.cache_mut().entries.lookup(|candidate| {
             Self::test_candidate(
                 target,
                 candidate,
@@ -755,7 +732,7 @@ impl<E: TElement> StyleSharingCache<E> {
             return None;
         }
 
-        self.cache_mut().lookup(|candidate| {
+        self.cache_mut().entries.lookup(|candidate| {
             debug_assert_ne!(candidate.element, target);
             if !candidate.parent_style_identity().eq(inherited) {
                 return None;
