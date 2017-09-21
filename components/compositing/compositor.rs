@@ -634,7 +634,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn send_window_size(&self, size_type: WindowSizeType) {
         let dppx = self.page_zoom * self.hidpi_factor();
 
-        self.webrender_api.set_window_parameters(self.webrender_document, self.frame_size, self.window_rect);
+        self.webrender_api.set_window_parameters(self.webrender_document,
+                                                 self.frame_size,
+                                                 self.window_rect,
+                                                 self.hidpi_factor().get());
 
         let initial_viewport = self.window_rect.size.to_f32() / dppx;
 

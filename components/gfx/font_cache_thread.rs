@@ -187,7 +187,8 @@ impl FontCache {
                                                                           font_key,
                                                                           size,
                                                                           None,
-                                                                          None);
+                                                                          None,
+                                                                          Vec::new());
                                                 webrender_api.update_resources(updates);
                                                 key
                                             });
