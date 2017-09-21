@@ -33,9 +33,8 @@ pub struct Entry<T> {
     next: u16,
 }
 
-impl<T, A: Array<Item=Entry<T>>> LRUCache<T, A> {
-    /// Create an empty LRU cache.
-    pub fn new() -> Self {
+impl<T, A: Array<Item=Entry<T>>> Default for LRUCache<T, A> {
+    fn default() -> Self {
         let cache = LRUCache {
             entries: ArrayVec::new(),
             head: 0,
@@ -44,7 +43,9 @@ impl<T, A: Array<Item=Entry<T>>> LRUCache<T, A> {
         assert!(cache.entries.capacity() < u16::max_value() as usize, "Capacity overflow");
         cache
     }
+}
 
+impl<T, A: Array<Item=Entry<T>>> LRUCache<T, A> {
     /// Returns the number of elements in the cache.
     pub fn num_entries(&self) -> usize {
         self.entries.len()

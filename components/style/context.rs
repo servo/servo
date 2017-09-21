@@ -546,7 +546,7 @@ impl<E: TElement> SelectorFlagsMap<E> {
     pub fn new() -> Self {
         SelectorFlagsMap {
             map: FnvHashMap::default(),
-            cache: LRUCache::new(),
+            cache: LRUCache::default(),
         }
     }
 

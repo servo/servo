@@ -415,7 +415,7 @@ struct SharingCacheBase<Candidate> {
 impl<Candidate> Default for SharingCacheBase<Candidate> {
     fn default() -> Self {
         Self {
-            entries: LRUCache::new(),
+            entries: LRUCache::default(),
         }
     }
 }
