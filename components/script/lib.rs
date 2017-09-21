@@ -14,9 +14,7 @@
 #![feature(on_unimplemented)]
 #![feature(plugin)]
 #![feature(proc_macro)]
-#![feature(stmt_expr_attributes)]
 #![feature(try_from)]
-#![feature(unboxed_closures)]
 #![feature(untagged_unions)]
 
 #![deny(unsafe_code)]

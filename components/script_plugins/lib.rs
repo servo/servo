@@ -15,7 +15,10 @@
 
 
 #![deny(unsafe_code)]
-#![feature(box_syntax, plugin, plugin_registrar, rustc_private)]
+#![feature(box_syntax)]
+#![feature(plugin)]
+#![feature(plugin_registrar)]
+#![feature(rustc_private)]
 
 #[macro_use]
 extern crate rustc;
