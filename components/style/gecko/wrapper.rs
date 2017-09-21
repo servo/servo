@@ -76,7 +76,7 @@ use properties::animated_properties::TransitionProperty;
 use properties::style_structs::Font;
 use rule_tree::CascadeLevel as ServoCascadeLevel;
 use selector_parser::{AttrValue, ElementExt, PseudoClassStringArg};
-use selectors::Element;
+use selectors::{Element, OpaqueElement};
 use selectors::attr::{AttrSelectorOperation, AttrSelectorOperator, CaseSensitivity, NamespaceConstraint};
 use selectors::matching::{ElementSelectorFlags, LocalMatchingContext, MatchingContext};
 use selectors::matching::{RelevantLinkStatus, VisitedHandlingMode};
@@ -1681,6 +1681,10 @@ impl<'le> PresentationalHintsSynthesizer for GeckoElement<'le> {
 
 impl<'le> ::selectors::Element for GeckoElement<'le> {
     type Impl = SelectorImpl;
+
+    fn opaque(&self) -> OpaqueElement {
+        OpaqueElement::new(self.0)
+    }
 
     fn parent_element(&self) -> Option<Self> {
         // FIXME(emilio): This will need to jump across if the parent node is a

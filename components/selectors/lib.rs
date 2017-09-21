@@ -24,6 +24,7 @@ pub mod bloom;
 mod builder;
 pub mod context;
 pub mod matching;
+mod nth_index_cache;
 pub mod parser;
 #[cfg(test)] mod size_of_tests;
 #[cfg(any(test, feature = "gecko_like_types"))] pub mod gecko_like_types;
@@ -31,5 +32,6 @@ pub mod sink;
 mod tree;
 pub mod visitor;
 
+pub use nth_index_cache::NthIndexCache;
 pub use parser::{SelectorImpl, Parser, SelectorList};
-pub use tree::Element;
+pub use tree::{Element, OpaqueElement};

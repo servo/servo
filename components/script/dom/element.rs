@@ -2500,6 +2500,10 @@ impl VirtualMethods for Element {
 impl<'a> ::selectors::Element for Root<Element> {
     type Impl = SelectorImpl;
 
+    fn opaque(&self) -> ::selectors::OpaqueElement {
+        ::selectors::OpaqueElement::new(self.reflector().get_jsobject().get())
+    }
+
     fn parent_element(&self) -> Option<Root<Element>> {
         self.upcast::<Node>().GetParentElement()
     }

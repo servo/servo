@@ -75,7 +75,7 @@ use matching::MatchMethods;
 use owning_ref::OwningHandle;
 use properties::ComputedValues;
 use rule_tree::StrongRuleNode;
-use selectors::context::NthIndexCache;
+use selectors::NthIndexCache;
 use selectors::matching::{ElementSelectorFlags, VisitedHandlingMode};
 use servo_arc::{Arc, NonZeroPtrMut};
 use smallbitvec::SmallBitVec;

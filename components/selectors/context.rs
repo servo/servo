@@ -4,6 +4,7 @@
 
 use attr::CaseSensitivity;
 use bloom::BloomFilter;
+use nth_index_cache::NthIndexCache;
 
 /// What kind of selector matching mode we should use.
 ///
@@ -69,12 +70,6 @@ impl QuirksMode {
     }
 }
 
-/// A cache to speed up matching of nth-index-like selectors.
-///
-/// NB: This is just a dummy type right now, it will be fleshed out in later patches.
-#[derive(Default)]
-pub struct NthIndexCache(usize);
-
 /// Data associated with the matching process for a element.  This context is
 /// used across many selectors for an element, so it's not appropriate for
 /// transient data that applies to only a single selector.
@@ -84,7 +79,7 @@ pub struct MatchingContext<'a> {
     /// Input with the bloom filter used to fast-reject selectors.
     pub bloom_filter: Option<&'a BloomFilter>,
     /// An optional cache to speed up nth-index-like selectors.
-    nth_index_cache: Option<&'a mut NthIndexCache>,
+    pub nth_index_cache: Option<&'a mut NthIndexCache>,
     /// Input that controls how matching for links is handled.
     pub visited_handling: VisitedHandlingMode,
     /// Output that records whether we encountered a "relevant link" while

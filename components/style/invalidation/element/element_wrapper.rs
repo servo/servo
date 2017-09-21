@@ -9,7 +9,7 @@ use {Atom, CaseSensitivityExt, LocalName, Namespace};
 use dom::TElement;
 use element_state::ElementState;
 use selector_parser::{NonTSPseudoClass, PseudoElement, SelectorImpl, Snapshot, SnapshotMap, AttrValue};
-use selectors::Element;
+use selectors::{Element, OpaqueElement};
 use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
 use selectors::matching::{ElementSelectorFlags, LocalMatchingContext, MatchingContext};
 use selectors::matching::RelevantLinkStatus;
@@ -256,6 +256,10 @@ impl<'a, E> Element for ElementWrapper<'a, E>
 
     fn is_link(&self) -> bool {
         self.element.is_link()
+    }
+
+    fn opaque(&self) -> OpaqueElement {
+        self.element.opaque()
     }
 
     fn parent_element(&self) -> Option<Self> {
