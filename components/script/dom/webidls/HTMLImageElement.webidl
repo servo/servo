@@ -9,6 +9,8 @@ interface HTMLImageElement : HTMLElement {
            attribute DOMString alt;
   [CEReactions]
            attribute DOMString src;
+  [CEReactions]
+           attribute DOMString sizes;
   // [CEReactions]
   //         attribute DOMString srcset;
   [CEReactions]
