@@ -162,7 +162,9 @@ impl Promise {
     }
 
     #[allow(unsafe_code)]
-    pub fn reject_native<T>(&self, cx: *mut JSContext, val: &T) where T: ToJSValConvertible {
+    pub fn reject_native<T>(&self, val: &T) where T: ToJSValConvertible {
+        let cx = self.global().get_cx();
+        let _ac = JSAutoCompartment::new(cx, self.reflector().get_jsobject().get());
         rooted!(in(cx) let mut v = UndefinedValue());
         unsafe {
             val.to_jsval(cx, v.handle_mut());

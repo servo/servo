@@ -73,7 +73,7 @@ impl VRMethods for VR {
                     }
                 },
                 Err(e) => {
-                    promise.reject_native(promise.global().get_cx(), &e);
+                    promise.reject_native(&e);
                     return promise;
                 }
             }

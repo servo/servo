@@ -343,7 +343,7 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
         // Step 1
         if !is_valid_custom_element_name(&name) {
             let promise = Promise::new(global_scope);
-            promise.reject_native(global_scope.get_cx(), &DOMException::new(global_scope, DOMErrorName::SyntaxError));
+            promise.reject_native(&DOMException::new(global_scope, DOMErrorName::SyntaxError));
             return promise
         }
 
