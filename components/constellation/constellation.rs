@@ -1234,6 +1234,12 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     warn!("Sending reply to get browsing context failed ({:?}).", e);
                 }
             }
+            FromScriptMsg::GetDocumentId(_pipeline_id, sender) => {
+                let result = self.webrender_document;
+                if let Err(e) = sender.send(Some(result)) {
+                    warn!("Sending reply to get Document Id failed ({:?}).", e);
+                }
+            }
             FromScriptMsg::GetParentInfo(pipeline_id, sender) => {
                 let result = self.pipelines.get(&pipeline_id).and_then(|pipeline| pipeline.parent_info);
                 if let Err(e) = sender.send(result) {

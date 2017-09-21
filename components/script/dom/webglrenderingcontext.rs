@@ -6,6 +6,7 @@ use byteorder::{NativeEndian, ReadBytesExt, WriteBytesExt};
 use canvas_traits::canvas::{byte_swap, multiply_u8_pixel};
 use canvas_traits::webgl::{WebGLContextShareMode, WebGLCommand, WebGLError};
 use canvas_traits::webgl::{WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender, WebGLParameter, WebVRCommand};
+use canvas_traits::webgl::DOMToTextureCommand;
 use canvas_traits::webgl::WebGLError::*;
 use canvas_traits::webgl::webgl_channel;
 use core::cell::Ref;
@@ -25,6 +26,7 @@ use dom::bindings::str::DOMString;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::htmlcanvaselement::HTMLCanvasElement;
 use dom::htmlcanvaselement::utils as canvas_utils;
+use dom::htmliframeelement::HTMLIFrameElement;
 use dom::node::{Node, NodeDamage, window_from_node};
 use dom::webgl_extensions::WebGLExtensions;
 use dom::webgl_validations::WebGLValidator;
@@ -46,6 +48,7 @@ use dom_struct::dom_struct;
 use euclid::Size2D;
 use fnv::FnvHashMap;
 use half::f16;
+use ipc_channel::ipc;
 use js::conversions::ConversionBehavior;
 use js::jsapi::{JSContext, JSObject, Type, Rooted};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, JSVal, NullValue, UndefinedValue};
@@ -54,6 +57,7 @@ use net_traits::image::base::PixelFormat;
 use net_traits::image_cache::ImageResponse;
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use script_layout_interface::HTMLCanvasDataSource;
+use script_traits::ScriptMsg;
 use servo_config::prefs::PREFS;
 use std::cell::Cell;
 use webrender_api;
@@ -3167,6 +3171,64 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
         self.tex_image_2d(&texture, target, data_type, format,
                           level, width, height, border, 1, pixels);
+        Ok(())
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    fn TexImageDOM(&self,
+                   target: u32,
+                   level: i32,
+                   internal_format: u32,
+                   width: i32,
+                   height: i32,
+                   format: u32,
+                   data_type: u32,
+                   source: &HTMLIFrameElement) -> Fallible<()> {
+        // Currently DOMToTexture only supports TEXTURE_2D, RGBA, UNSIGNED_BYTE and no levels.
+        if target != constants::TEXTURE_2D || level != 0 || internal_format != constants::RGBA ||
+            format != constants::RGBA || data_type != constants::UNSIGNED_BYTE {
+            return Ok(self.webgl_error(InvalidValue));
+        }
+
+        // Get bound texture
+        let texture = match self.bound_texture_2d.get() {
+            Some(texture) => texture,
+            None => {
+                return Ok(self.webgl_error(InvalidOperation));
+            }
+        };
+
+        // Get PipelineId from the source
+        let pipeline_id = match source.pipeline_id() {
+            Some(pipeline_id) => { pipeline_id },
+            _ => {
+                return Err(Error::InvalidState);
+            }
+        };
+
+        // Get DocumentId associated with the PipelineId
+        let (sender, receiver) = ipc::channel().unwrap();
+        let global = self.global();
+        let script_to_constellation_chan = global.script_to_constellation_chan();
+        script_to_constellation_chan.send(ScriptMsg::GetDocumentId(pipeline_id, sender)).unwrap();
+
+        let document_id = match receiver.recv().unwrap() {
+            Some(document_id) => { document_id },
+            _ => {
+                return Err(Error::InvalidState);
+            }
+        };
+
+        // mark that the texture is attached to DOM.
+        texture.set_attached_to_dom();
+
+        let command = DOMToTextureCommand::Attach(self.webgl_sender.ctx_id(),
+                                                  texture.id(),
+                                                  document_id,
+                                                  pipeline_id.to_webrender(),
+                                                  Size2D::new(width, height));
+        self.webgl_sender.send_dom_to_texture(command).unwrap();
+
         Ok(())
     }
 

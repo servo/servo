@@ -27,7 +27,7 @@ use servo_url::ServoUrl;
 use style_traits::CSSPixel;
 use style_traits::cursor::Cursor;
 use style_traits::viewport::ViewportConstraints;
-use webrender_api::ClipId;
+use webrender_api::{ClipId, DocumentId};
 
 /// Messages from the layout to the constellation.
 #[derive(Deserialize, Serialize)]
@@ -89,6 +89,8 @@ pub enum ScriptMsg {
     GetClipboardContents(IpcSender<String>),
     /// Get the browsing context id for a given pipeline.
     GetBrowsingContextId(PipelineId, IpcSender<Option<BrowsingContextId>>),
+    /// Get the Document id for a given pipeline.
+    GetDocumentId(PipelineId, IpcSender<Option<DocumentId>>),
     /// Get the parent info for a given pipeline.
     GetParentInfo(PipelineId, IpcSender<Option<(PipelineId, FrameType)>>),
     /// <head> tag finished parsing
