@@ -4,6 +4,8 @@
 
 //! A simple LRU cache.
 
+extern crate arrayvec;
+
 use arrayvec::{Array, ArrayVec};
 
 /// A LRU cache using a statically-sized array for storage.

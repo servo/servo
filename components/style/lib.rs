@@ -59,6 +59,7 @@ extern crate itoa;
 extern crate lazy_static;
 #[macro_use]
 extern crate log;
+extern crate lru_cache;
 #[cfg(feature = "gecko")] #[macro_use] extern crate malloc_size_of;
 #[cfg(feature = "gecko")] #[macro_use] extern crate malloc_size_of_derive;
 #[allow(unused_extern_crates)]
@@ -102,7 +103,6 @@ pub mod applicable_declarations;
 #[cfg(feature = "servo")] pub mod attr;
 pub mod bezier;
 pub mod bloom;
-pub mod cache;
 pub mod context;
 pub mod counter_style;
 pub mod custom_properties;
