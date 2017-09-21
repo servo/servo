@@ -6,7 +6,7 @@ use euclid::Size2D;
 use nonzero::NonZeroU32;
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use std::fmt;
-use webrender_api;
+use webrender_api::{DocumentId, ImageKey, PipelineId};
 
 /// Sender type used in WebGLCommands.
 pub use ::webgl_channel::WebGLSender;
@@ -46,7 +46,9 @@ pub enum WebGLMsg {
     /// Unlock messages are always sent after a Lock message.
     Unlock(WebGLContextId),
     /// Creates or updates the image keys required for WebRender.
-    UpdateWebRenderImage(WebGLContextId, WebGLSender<webrender_api::ImageKey>),
+    UpdateWebRenderImage(WebGLContextId, WebGLSender<ImageKey>),
+    /// Commands used for the DOMToTexture feature.
+    DOMToTextureCommand(DOMToTextureCommand),
     /// Frees all resources and closes the thread.
     Exit,
 }
@@ -86,6 +88,11 @@ impl WebGLMsgSender {
         }
     }
 
+    /// Returns the WebGLContextId associated to this sender
+    pub fn context_id(&self) -> WebGLContextId {
+        self.ctx_id
+    }
+
     /// Send a WebGLCommand message
     #[inline]
     pub fn send(&self, command: WebGLCommand) -> WebGLSendResult {
@@ -113,8 +120,12 @@ impl WebGLMsgSender {
     }
 
     #[inline]
-    pub fn send_update_wr_image(&self, sender: WebGLSender<webrender_api::ImageKey>) -> WebGLSendResult {
+    pub fn send_update_wr_image(&self, sender: WebGLSender<ImageKey>) -> WebGLSendResult {
         self.sender.send(WebGLMsg::UpdateWebRenderImage(self.ctx_id, sender))
+    }
+
+    pub fn send_dom_to_texture(&self, command: DOMToTextureCommand) -> WebGLSendResult {
+        self.sender.send(WebGLMsg::DOMToTextureCommand(command))
     }
 }
 
@@ -377,6 +388,17 @@ pub enum WebVRCommand {
 // Receives the texture id and size associated to the WebGLContext.
 pub trait WebVRRenderHandler: Send {
     fn handle(&mut self, command: WebVRCommand, texture: Option<(u32, Size2D<i32>)>);
+}
+
+/// WebGL commands required to implement DOMToTexture feature.
+#[derive(Clone, Deserialize, Serialize)]
+pub enum DOMToTextureCommand {
+    /// Attaches a HTMLIFrameElement to a WebGLTexture.
+    Attach(WebGLContextId, WebGLTextureId, DocumentId, PipelineId, Size2D<i32>),
+    /// Releases the HTMLIFrameElement to WebGLTexture attachment.
+    Detach(WebGLTextureId),
+    /// Lock message used for a correct synchronization with WebRender GL flow.
+    Lock(PipelineId, usize, WebGLSender<Option<(u32, Size2D<i32>)>>),
 }
 
 impl fmt::Debug for WebGLCommand {

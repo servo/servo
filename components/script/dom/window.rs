@@ -123,7 +123,7 @@ use timers::{IsInterval, TimerCallback};
 use tinyfiledialogs::{self, MessageBoxIcon};
 use url::Position;
 use webdriver_handlers::jsval_to_webdriver;
-use webrender_api::ClipId;
+use webrender_api::{ClipId, DocumentId};
 use webvr_traits::WebVRMsg;
 
 /// Current state of the window object
@@ -289,6 +289,9 @@ pub struct Window {
     test_worklet: MutNullableDom<Worklet>,
     /// https://drafts.css-houdini.org/css-paint-api-1/#paint-worklet
     paint_worklet: MutNullableDom<Worklet>,
+    /// The Webrender Document id associated with this window.
+    #[ignore_heap_size_of = "defined in webrender_api"]
+    webrender_document: DocumentId,
 }
 
 impl Window {
@@ -1760,6 +1763,10 @@ impl Window {
             .send(msg)
             .unwrap();
     }
+
+    pub fn webrender_document(&self) -> DocumentId {
+        self.webrender_document
+    }
 }
 
 impl Window {
@@ -1794,6 +1801,7 @@ impl Window {
         webgl_chan: WebGLChan,
         webvr_chan: Option<IpcSender<WebVRMsg>>,
         microtask_queue: Rc<MicrotaskQueue>,
+        webrender_document: DocumentId,
     ) -> DomRoot<Self> {
         let layout_rpc: Box<LayoutRPC + Send> = {
             let (rpc_send, rpc_recv) = channel();
@@ -1868,6 +1876,7 @@ impl Window {
             unminified_js_dir: Default::default(),
             test_worklet: Default::default(),
             paint_worklet: Default::default(),
+            webrender_document,
         });
 
         unsafe {

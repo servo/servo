@@ -15,6 +15,7 @@
   "dom.servoparser.async_html_tokenizer.enabled": false,
   "dom.testable_crash.enabled": false,
   "dom.testbinding.enabled": false,
+  "dom.webgl.dom_to_texture.enabled": false,
   "dom.webvr.enabled": false,
   "dom.webvr.event_polling_interval": 500,
   "js.asmjs.enabled": true,

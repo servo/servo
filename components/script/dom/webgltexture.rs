@@ -5,6 +5,7 @@
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 
 use canvas_traits::webgl::{webgl_channel, WebGLCommand, WebGLError, WebGLMsgSender, WebGLResult, WebGLTextureId};
+use canvas_traits::webgl::DOMToTextureCommand;
 use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::codegen::Bindings::WebGLTextureBinding;
@@ -45,6 +46,8 @@ pub struct WebGLTexture {
     mag_filter: Cell<Option<u32>>,
     #[ignore_heap_size_of = "Defined in ipc-channel"]
     renderer: WebGLMsgSender,
+    /// True if this texture is used for the DOMToTexture feature.
+    attached_to_dom: Cell<bool>,
 }
 
 impl WebGLTexture {
@@ -62,6 +65,7 @@ impl WebGLTexture {
             mag_filter: Cell::new(None),
             image_info_array: DomRefCell::new([ImageInfo::new(); MAX_LEVEL_COUNT * MAX_FACE_COUNT]),
             renderer: renderer,
+            attached_to_dom: Cell::new(false),
         }
     }
 
@@ -179,6 +183,10 @@ impl WebGLTexture {
     pub fn delete(&self) {
         if !self.is_deleted.get() {
             self.is_deleted.set(true);
+            // Notify WR to release the frame output when using DOMToTexture feature
+            if self.attached_to_dom.get() {
+                let _ = self.renderer.send_dom_to_texture(DOMToTextureCommand::Detach(self.id));
+            }
             let _ = self.renderer.send(WebGLCommand::DeleteTexture(self.id));
         }
     }
@@ -373,6 +381,10 @@ impl WebGLTexture {
         assert!((self.base_mipmap_level as usize) < MAX_LEVEL_COUNT);
 
         Some(self.image_info_at_face(0, self.base_mipmap_level))
+    }
+
+    pub fn set_attached_to_dom(&self) {
+        self.attached_to_dom.set(true);
     }
 }
 

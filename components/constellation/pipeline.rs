@@ -511,6 +511,7 @@ impl UnprivilegedPipelineContent {
             content_process_shutdown_chan: self.script_content_process_shutdown_chan,
             webgl_chan: self.webgl_chan,
             webvr_chan: self.webvr_chan,
+            webrender_document: self.webrender_document,
         }, self.load_data.clone());
 
         LTF::create(self.id,
