@@ -14284,7 +14284,7 @@ pub mod root {
     #[repr(C)]
     #[derive(Debug)]
     pub struct nsStyleBorder {
-        pub mBorderColors: *mut *mut root::nsBorderColors,
+        pub mBorderColors: root::mozilla::UniquePtr<root::nsBorderColors>,
         pub mBorderRadius: root::nsStyleCorners,
         pub mBorderImageSource: root::nsStyleImage,
         pub mBorderImageSlice: root::nsStyleSides,
@@ -30544,29 +30544,6 @@ pub mod root {
     }
     #[repr(C)]
     #[derive(Debug)]
-    pub struct nsBorderColors {
-        pub mNext: *mut root::nsBorderColors,
-        pub mColor: root::nscolor,
-    }
-    #[test]
-    fn bindgen_test_layout_nsBorderColors() {
-        assert_eq!(::std::mem::size_of::<nsBorderColors>() , 16usize , concat
-                   ! ( "Size of: " , stringify ! ( nsBorderColors ) ));
-        assert_eq! (::std::mem::align_of::<nsBorderColors>() , 8usize , concat
-                    ! ( "Alignment of " , stringify ! ( nsBorderColors ) ));
-        assert_eq! (unsafe {
-                    & ( * ( 0 as * const nsBorderColors ) ) . mNext as * const
-                    _ as usize } , 0usize , concat ! (
-                    "Alignment of field: " , stringify ! ( nsBorderColors ) ,
-                    "::" , stringify ! ( mNext ) ));
-        assert_eq! (unsafe {
-                    & ( * ( 0 as * const nsBorderColors ) ) . mColor as *
-                    const _ as usize } , 8usize , concat ! (
-                    "Alignment of field: " , stringify ! ( nsBorderColors ) ,
-                    "::" , stringify ! ( mColor ) ));
-    }
-    #[repr(C)]
-    #[derive(Debug)]
     pub struct nsCSSShadowItem {
         pub mXOffset: root::nscoord,
         pub mYOffset: root::nscoord,
@@ -30650,6 +30627,23 @@ pub mod root {
                     const _ as usize } , 12usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsCSSShadowArray )
                     , "::" , stringify ! ( mArray ) ));
+    }
+    #[repr(C)]
+    #[derive(Debug)]
+    pub struct nsBorderColors {
+        pub mColors: [root::nsTArray<::std::os::raw::c_uint>; 4usize],
+    }
+    #[test]
+    fn bindgen_test_layout_nsBorderColors() {
+        assert_eq!(::std::mem::size_of::<nsBorderColors>() , 32usize , concat
+                   ! ( "Size of: " , stringify ! ( nsBorderColors ) ));
+        assert_eq! (::std::mem::align_of::<nsBorderColors>() , 8usize , concat
+                    ! ( "Alignment of " , stringify ! ( nsBorderColors ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const nsBorderColors ) ) . mColors as *
+                    const _ as usize } , 0usize , concat ! (
+                    "Alignment of field: " , stringify ! ( nsBorderColors ) ,
+                    "::" , stringify ! ( mColors ) ));
     }
     /// An object that allows sharing of arrays that store 'quotes' property
     /// values.  This is particularly important for inheritance, where we want
@@ -33519,6 +33513,28 @@ pub mod root {
                    root::RefPtr<root::nsCSSValueSharedList> ) ));
     }
     #[test]
+    fn __bindgen_test_layout_UniquePtr_open0_nsBorderColors_DefaultDelete_open1_nsBorderColors_close1_close0_instantiation() {
+        assert_eq!(::std::mem::size_of::<root::mozilla::UniquePtr<root::nsBorderColors>>()
+                   , 8usize , concat ! (
+                   "Size of template specialization: " , stringify ! (
+                   root::mozilla::UniquePtr<root::nsBorderColors> ) ));
+        assert_eq!(::std::mem::align_of::<root::mozilla::UniquePtr<root::nsBorderColors>>()
+                   , 8usize , concat ! (
+                   "Alignment of template specialization: " , stringify ! (
+                   root::mozilla::UniquePtr<root::nsBorderColors> ) ));
+    }
+    #[test]
+    fn __bindgen_test_layout_DefaultDelete_open0_nsBorderColors_close0_instantiation() {
+        assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete>() ,
+                   1usize , concat ! (
+                   "Size of template specialization: " , stringify ! (
+                   root::mozilla::DefaultDelete ) ));
+        assert_eq!(::std::mem::align_of::<root::mozilla::DefaultDelete>() ,
+                   1usize , concat ! (
+                   "Alignment of template specialization: " , stringify ! (
+                   root::mozilla::DefaultDelete ) ));
+    }
+    #[test]
     fn __bindgen_test_layout_nsTArray_open0_nsStyleFilter_close0_instantiation() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<root::nsStyleFilter>>()
                    , 8usize , concat ! (
@@ -33572,6 +33588,17 @@ pub mod root {
                    8usize , concat ! (
                    "Alignment of template specialization: " , stringify ! (
                    root::nsTArray<::nsstring::nsStringRepr> ) ));
+    }
+    #[test]
+    fn __bindgen_test_layout_nsTString_open0_char16_t_close0_instantiation_2() {
+        assert_eq!(::std::mem::size_of::<::nsstring::nsStringRepr>() , 16usize ,
+                   concat ! (
+                   "Size of template specialization: " , stringify ! (
+                   ::nsstring::nsStringRepr ) ));
+        assert_eq!(::std::mem::align_of::<::nsstring::nsStringRepr>() , 8usize ,
+                   concat ! (
+                   "Alignment of template specialization: " , stringify ! (
+                   ::nsstring::nsStringRepr ) ));
     }
     #[test]
     fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_202536_close0_instantiation() {
@@ -34804,6 +34831,17 @@ pub mod root {
                    8usize , concat ! (
                    "Alignment of template specialization: " , stringify ! (
                    root::nsTArray<::nsstring::nsStringRepr> ) ));
+    }
+    #[test]
+    fn __bindgen_test_layout_nsTString_open0_char16_t_close0_instantiation_3() {
+        assert_eq!(::std::mem::size_of::<::nsstring::nsStringRepr>() , 16usize ,
+                   concat ! (
+                   "Size of template specialization: " , stringify ! (
+                   ::nsstring::nsStringRepr ) ));
+        assert_eq!(::std::mem::align_of::<::nsstring::nsStringRepr>() , 8usize ,
+                   concat ! (
+                   "Alignment of template specialization: " , stringify ! (
+                   ::nsstring::nsStringRepr ) ));
     }
     #[test]
     fn __bindgen_test_layout_nsTArray_open0__bindgen_ty_id_213307_close0_instantiation() {
@@ -36702,6 +36740,17 @@ pub mod root {
                    "Alignment of template specialization: " , stringify ! (
                    root::nsStyleAutoArray<root::nsStyleImageLayers_Layer> )
                    ));
+    }
+    #[test]
+    fn __bindgen_test_layout_nsTArray_open0_unsigned_int_close0_instantiation_5() {
+        assert_eq!(::std::mem::size_of::<root::nsTArray<::std::os::raw::c_uint>>()
+                   , 8usize , concat ! (
+                   "Size of template specialization: " , stringify ! (
+                   root::nsTArray<::std::os::raw::c_uint> ) ));
+        assert_eq!(::std::mem::align_of::<root::nsTArray<::std::os::raw::c_uint>>()
+                   , 8usize , concat ! (
+                   "Alignment of template specialization: " , stringify ! (
+                   root::nsTArray<::std::os::raw::c_uint> ) ));
     }
     #[test]
     fn __bindgen_test_layout_nsTArray_open0_pair_open1_nsString_nsString_close1_close0_instantiation() {
