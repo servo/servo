@@ -70,6 +70,7 @@ extern crate metrics;
 #[macro_use]
 extern crate mime;
 extern crate mime_guess;
+extern crate mitochondria;
 extern crate msg;
 extern crate net_traits;
 extern crate num_traits;

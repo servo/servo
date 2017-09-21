@@ -13,7 +13,7 @@ use dom::bindings::codegen::Bindings::HTMLFormElementBinding::HTMLFormElementMet
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
 use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
-use dom::bindings::js::{JS, MutNullableJS, Root, RootedReference};
+use dom::bindings::js::{JS, OnceCellJS, Root, RootedReference};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
 use dom::bindings::str::DOMString;
@@ -64,7 +64,7 @@ pub struct GenerationId(u32);
 pub struct HTMLFormElement {
     htmlelement: HTMLElement,
     marked_for_reset: Cell<bool>,
-    elements: MutNullableJS<HTMLFormControlsCollection>,
+    elements: OnceCellJS<HTMLFormControlsCollection>,
     generation_id: Cell<GenerationId>,
     controls: DOMRefCell<Vec<JS<Element>>>,
 }
@@ -166,10 +166,6 @@ impl HTMLFormElementMethods for HTMLFormElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-form-elements
     fn Elements(&self) -> Root<HTMLFormControlsCollection> {
-        if let Some(elements) = self.elements.get() {
-            return elements;
-        }
-
         #[derive(HeapSizeOf, JSTraceable)]
         struct ElementsFilter {
             form: Root<HTMLFormElement>
@@ -220,11 +216,11 @@ impl HTMLFormElementMethods for HTMLFormElement {
                 }
             }
         }
-        let filter = box ElementsFilter { form: Root::from_ref(self) };
-        let window = window_from_node(self);
-        let elements = HTMLFormControlsCollection::new(&window, self.upcast(), filter);
-        self.elements.set(Some(&elements));
-        elements
+        Root::from_ref(self.elements.init_once(|| {
+            let filter = box ElementsFilter { form: Root::from_ref(self) };
+            let window = window_from_node(self);
+            HTMLFormControlsCollection::new(&window, self.upcast(), filter)
+        }))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-form-length

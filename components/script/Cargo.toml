@@ -56,6 +56,7 @@ lazy_static = "0.2"
 libc = "0.2"
 log = "0.3.5"
 metrics = {path = "../metrics"}
+mitochondria = "1.1.2"
 mime = "0.2.1"
 mime_guess = "1.8.0"
 msg = {path = "../msg"}
