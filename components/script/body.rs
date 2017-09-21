@@ -44,8 +44,9 @@ pub fn consume_body<T: BodyOperations + DomObject>(object: &T, body_type: BodyTy
 
     // Step 1
     if object.get_body_used() || object.is_locked() {
-        promise.reject_error(promise.global().get_cx(), Error::Type(
-            "The response's stream is disturbed or locked".to_string()));
+        promise.reject_error(Error::Type(
+            "The response's stream is disturbed or locked".to_string(),
+        ));
         return promise;
     }
 
@@ -75,7 +76,6 @@ pub fn consume_body_with_promise<T: BodyOperations + DomObject>(object: &T,
                                                       body_type,
                                                       object.get_mime_type());
 
-    let cx = promise.global().get_cx();
     match pkg_data_results {
         Ok(results) => {
             match results {
@@ -85,7 +85,7 @@ pub fn consume_body_with_promise<T: BodyOperations + DomObject>(object: &T,
                 FetchedData::FormData(f) => promise.resolve_native(&f),
             };
         },
-        Err(err) => promise.reject_error(cx, err),
+        Err(err) => promise.reject_error(err),
     }
 }
 

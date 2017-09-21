@@ -266,7 +266,12 @@ impl BluetoothDeviceMethods for BluetoothDevice {
 }
 
 impl AsyncBluetoothListener for BluetoothDevice {
-    fn handle_response(&self, response: BluetoothResponse, promise_cx: *mut JSContext, promise: &Rc<Promise>) {
+    fn handle_response(
+        &self,
+        response: BluetoothResponse,
+        _promise_cx: *mut JSContext,
+        promise: &Rc<Promise>,
+    ) {
         match response {
             // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdevice-unwatchadvertisements
             BluetoothResponse::WatchAdvertisements(_result) => {
@@ -275,7 +280,7 @@ impl AsyncBluetoothListener for BluetoothDevice {
                 // Step 3.2.
                 promise.resolve_native(&());
             },
-            _ => promise.reject_error(promise_cx, Error::Type("Something went wrong...".to_owned())),
+            _ => promise.reject_error(Error::Type("Something went wrong...".to_owned())),
         }
     }
 }

@@ -110,7 +110,7 @@ impl<T: AsyncBluetoothListener + DomObject> BluetoothContext<T> {
             Ok(response) => self.receiver.root().handle_response(response, promise_cx, &promise),
             // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-requestdevice
             // Step 3 - 4.
-            Err(error) => promise.reject_error(promise_cx, Error::from(error)),
+            Err(error) => promise.reject_error(Error::from(error)),
         }
     }
 }
@@ -158,7 +158,7 @@ impl Bluetooth {
         if let &Some(ref filters) = filters {
             // Step 2.1.
             if filters.is_empty()  {
-                p.reject_error(p.global().get_cx(), Type(FILTER_EMPTY_ERROR.to_owned()));
+                p.reject_error(Type(FILTER_EMPTY_ERROR.to_owned()));
                 return;
             }
 
@@ -171,7 +171,7 @@ impl Bluetooth {
                     // Step 2.4.2.
                     Ok(f) => uuid_filters.push(f),
                     Err(e) => {
-                        p.reject_error(p.global().get_cx(), e);
+                        p.reject_error(e);
                         return;
                     },
                 }
@@ -186,7 +186,7 @@ impl Bluetooth {
                 let uuid = match BluetoothUUID::service(opt_service.clone()) {
                     Ok(u) => u.to_string(),
                     Err(e) => {
-                        p.reject_error(p.global().get_cx(), e);
+                        p.reject_error(e);
                         return;
                     },
                 };
@@ -205,7 +205,7 @@ impl Bluetooth {
 
         // Step 4 - 5.
         if let PermissionState::Denied = get_descriptor_permission_state(PermissionName::Bluetooth, None) {
-            return p.reject_error(p.global().get_cx(), Error::NotFound);
+            return p.reject_error(Error::NotFound);
         }
 
         // Note: Step 3, 6 - 8 are implemented in
@@ -266,20 +266,19 @@ pub fn get_gatt_children<T, F> (
         where T: AsyncBluetoothListener + DomObject + 'static,
               F: FnOnce(StringOrUnsignedLong) -> Fallible<UUID> {
     let p = Promise::new(&attribute.global());
-    let p_cx = p.global().get_cx();
 
     let result_uuid = if let Some(u) = uuid {
         // Step 1.
         let canonicalized = match uuid_canonicalizer(u) {
             Ok(canonicalized_uuid) => canonicalized_uuid.to_string(),
             Err(e) => {
-                p.reject_error(p_cx, e);
+                p.reject_error(e);
                 return p;
             }
         };
         // Step 2.
         if uuid_is_blocklisted(canonicalized.as_ref(), Blocklist::All) {
-            p.reject_error(p_cx, Security);
+            p.reject_error(Security);
             return p;
         }
         Some(canonicalized)
@@ -289,7 +288,7 @@ pub fn get_gatt_children<T, F> (
 
     // Step 3 - 4.
     if !connected {
-        p.reject_error(p_cx, Network);
+        p.reject_error(Network);
         return p;
     }
 
@@ -479,7 +478,7 @@ impl BluetoothMethods for Bluetooth {
         // Step 1.
         if (option.filters.is_some() && option.acceptAllDevices) ||
            (option.filters.is_none() && !option.acceptAllDevices) {
-            p.reject_error(p.global().get_cx(), Error::Type(OPTIONS_ERROR.to_owned()));
+            p.reject_error(Error::Type(OPTIONS_ERROR.to_owned()));
             return p;
         }
 
@@ -507,7 +506,11 @@ impl BluetoothMethods for Bluetooth {
 }
 
 impl AsyncBluetoothListener for Bluetooth {
-    fn handle_response(&self, response: BluetoothResponse, promise_cx: *mut JSContext, promise: &Rc<Promise>) {
+    fn handle_response(
+        &self, response: BluetoothResponse,
+        _promise_cx: *mut JSContext,
+        promise: &Rc<Promise>,
+    ) {
         match response {
             // https://webbluetoothcg.github.io/web-bluetooth/#request-bluetooth-devices
             // Step 11, 13 - 14.
@@ -537,7 +540,7 @@ impl AsyncBluetoothListener for Bluetooth {
             BluetoothResponse::GetAvailability(is_available) => {
                 promise.resolve_native(&is_available);
             }
-            _ => promise.reject_error(promise_cx, Error::Type("Something went wrong...".to_owned())),
+            _ => promise.reject_error(Error::Type("Something went wrong...".to_owned())),
         }
     }
 }
@@ -562,9 +565,12 @@ impl PermissionAlgorithm for Bluetooth {
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#query-the-bluetooth-permission
-    fn permission_query(cx: *mut JSContext, promise: &Rc<Promise>,
-                        descriptor: &BluetoothPermissionDescriptor,
-                        status: &BluetoothPermissionResult) {
+    fn permission_query(
+        _cx: *mut JSContext,
+        promise: &Rc<Promise>,
+        descriptor: &BluetoothPermissionDescriptor,
+        status: &BluetoothPermissionResult,
+    ) {
         // Step 1: We are not using the `global` variable.
 
         // Step 2.
@@ -604,7 +610,7 @@ impl PermissionAlgorithm for Bluetooth {
                 for filter in filters {
                     match canonicalize_filter(&filter) {
                         Ok(f) => scan_filters.push(f),
-                        Err(error) => return promise.reject_error(cx, error),
+                        Err(error) => return promise.reject_error(error),
                     }
                 }
 
@@ -620,7 +626,7 @@ impl PermissionAlgorithm for Bluetooth {
                 match receiver.recv().unwrap() {
                     Ok(true) => (),
                     Ok(false) => continue,
-                    Err(error) => return promise.reject_error(cx, Error::from(error)),
+                    Err(error) => return promise.reject_error(Error::from(error)),
                 };
             }
 
@@ -641,12 +647,15 @@ impl PermissionAlgorithm for Bluetooth {
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#request-the-bluetooth-permission
-    fn permission_request(cx: *mut JSContext, promise: &Rc<Promise>,
-                          descriptor: &BluetoothPermissionDescriptor,
-                          status: &BluetoothPermissionResult) {
+    fn permission_request(
+        _cx: *mut JSContext,
+        promise: &Rc<Promise>,
+        descriptor: &BluetoothPermissionDescriptor,
+        status: &BluetoothPermissionResult,
+    ) {
         // Step 1.
         if descriptor.filters.is_some() == descriptor.acceptAllDevices {
-            return promise.reject_error(cx, Error::Type(OPTIONS_ERROR.to_owned()));
+            return promise.reject_error(Error::Type(OPTIONS_ERROR.to_owned()));
         }
 
         // Step 2.

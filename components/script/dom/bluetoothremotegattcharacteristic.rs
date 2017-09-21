@@ -124,17 +124,16 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-readvalue
     fn ReadValue(&self) -> Rc<Promise> {
         let p = Promise::new(&self.global());
-        let p_cx = p.global().get_cx();
 
         // Step 1.
         if uuid_is_blocklisted(self.uuid.as_ref(), Blocklist::Reads) {
-            p.reject_error(p_cx, Security);
+            p.reject_error(Security);
             return p;
         }
 
         // Step 2.
         if !self.Service().Device().get_gatt().Connected() {
-            p.reject_error(p_cx, Network);
+            p.reject_error(Network);
             return p;
         }
 
@@ -142,7 +141,7 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
 
         // Step 5.1.
         if !self.Properties().Read() {
-            p.reject_error(p_cx, NotSupported);
+            p.reject_error(NotSupported);
             return p;
         }
 
@@ -158,23 +157,22 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-writevalue
     fn WriteValue(&self, value: Vec<u8>) -> Rc<Promise> {
         let p = Promise::new(&self.global());
-        let p_cx = p.global().get_cx();
 
         // Step 1.
         if uuid_is_blocklisted(self.uuid.as_ref(), Blocklist::Writes) {
-            p.reject_error(p_cx, Security);
+            p.reject_error(Security);
             return p;
         }
 
         // Step 2 - 3.
         if value.len() > MAXIMUM_ATTRIBUTE_LENGTH {
-            p.reject_error(p_cx, InvalidModification);
+            p.reject_error(InvalidModification);
             return p;
         }
 
         // Step 4.
         if !self.Service().Device().get_gatt().Connected() {
-            p.reject_error(p_cx, Network);
+            p.reject_error(Network);
             return p;
         }
 
@@ -184,7 +182,7 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
         if !(self.Properties().Write() ||
              self.Properties().WriteWithoutResponse() ||
              self.Properties().AuthenticatedSignedWrites()) {
-            p.reject_error(p_cx, NotSupported);
+            p.reject_error(NotSupported);
             return p;
         }
 
@@ -200,24 +198,23 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-startnotifications
     fn StartNotifications(&self) -> Rc<Promise> {
         let p = Promise::new(&self.global());
-        let p_cx = p.global().get_cx();
 
         // Step 1.
         if uuid_is_blocklisted(self.uuid.as_ref(), Blocklist::Reads) {
-            p.reject_error(p_cx, Security);
+            p.reject_error(Security);
             return p;
         }
 
         // Step 2.
         if !self.Service().Device().get_gatt().Connected() {
-            p.reject_error(p_cx, Network);
+            p.reject_error(Network);
             return p;
         }
 
         // Step 5.
         if !(self.Properties().Notify() ||
              self.Properties().Indicate()) {
-            p.reject_error(p_cx, NotSupported);
+            p.reject_error(NotSupported);
             return p;
         }
 
@@ -255,7 +252,12 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
 }
 
 impl AsyncBluetoothListener for BluetoothRemoteGATTCharacteristic {
-    fn handle_response(&self, response: BluetoothResponse, promise_cx: *mut JSContext, promise: &Rc<Promise>) {
+    fn handle_response(
+        &self,
+        response: BluetoothResponse,
+        _promise_cx: *mut JSContext,
+        promise: &Rc<Promise>,
+    ) {
         let device = self.Service().Device();
         match response {
             // https://webbluetoothcg.github.io/web-bluetooth/#getgattchildren
@@ -308,7 +310,7 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTCharacteristic {
                 // (StopNotification)  Step 5.
                 promise.resolve_native(self);
             },
-            _ => promise.reject_error(promise_cx, Error::Type("Something went wrong...".to_owned())),
+            _ => promise.reject_error(Error::Type("Something went wrong...".to_owned())),
         }
     }
 }

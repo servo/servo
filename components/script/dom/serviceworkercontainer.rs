@@ -58,14 +58,13 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
                 options: &RegistrationOptions) -> Rc<Promise> {
         // A: Step 1
         let promise = Promise::new(&*self.global());
-        let ctx = (&*self.global()).get_cx();
         let USVString(ref script_url) = script_url;
         let api_base_url = self.global().api_base_url();
         // A: Step 3-5
         let script_url = match api_base_url.join(script_url) {
             Ok(url) => url,
             Err(_) => {
-                promise.reject_error(ctx, Error::Type("Invalid script URL".to_owned()));
+                promise.reject_error(Error::Type("Invalid script URL".to_owned()));
                 return promise;
             }
         };
@@ -73,14 +72,14 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
         match script_url.scheme() {
             "https" | "http" => {},
             _ => {
-                promise.reject_error(ctx, Error::Type("Only secure origins are allowed".to_owned()));
+                promise.reject_error(Error::Type("Only secure origins are allowed".to_owned()));
                 return promise;
             }
         }
         // B: Step 3
         if script_url.path().to_ascii_lowercase().contains("%2f") ||
         script_url.path().to_ascii_lowercase().contains("%5c") {
-            promise.reject_error(ctx, Error::Type("Script URL contains forbidden characters".to_owned()));
+            promise.reject_error(Error::Type("Script URL contains forbidden characters".to_owned()));
             return promise;
         }
         // B: Step 4-5
@@ -90,7 +89,7 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
                 match api_base_url.join(inner_scope) {
                     Ok(url) => url,
                     Err(_) => {
-                        promise.reject_error(ctx, Error::Type("Invalid scope URL".to_owned()));
+                        promise.reject_error(Error::Type("Invalid scope URL".to_owned()));
                         return promise;
                     }
                 }
@@ -101,14 +100,14 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
         match scope.scheme() {
             "https" | "http" => {},
             _ => {
-                promise.reject_error(ctx, Error::Type("Only secure origins are allowed".to_owned()));
+                promise.reject_error(Error::Type("Only secure origins are allowed".to_owned()));
                 return promise;
             }
         }
         // B: Step 7
         if scope.path().to_ascii_lowercase().contains("%2f") ||
         scope.path().to_ascii_lowercase().contains("%5c") {
-            promise.reject_error(ctx, Error::Type("Scope URL contains forbidden characters".to_owned()));
+            promise.reject_error(Error::Type("Scope URL contains forbidden characters".to_owned()));
             return promise;
         }
 

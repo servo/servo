@@ -173,7 +173,9 @@ impl Promise {
     }
 
     #[allow(unsafe_code)]
-    pub fn reject_error(&self, cx: *mut JSContext, error: Error) {
+    pub fn reject_error(&self, error: Error) {
+        let cx = self.global().get_cx();
+        let _ac = JSAutoCompartment::new(cx, self.reflector().get_jsobject().get());
         rooted!(in(cx) let mut v = UndefinedValue());
         unsafe {
             error.to_jsval(cx, &self.global(), v.handle_mut());

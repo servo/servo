@@ -3053,17 +3053,13 @@ impl TaskOnce for ElementPerformFullscreenEnter {
     #[allow(unrooted_must_root)]
     fn run_once(self) {
         let element = self.element.root();
+        let promise = self.promise.root();
         let document = document_from_node(element.r());
 
         // Step 7.1
         if self.error || !element.fullscreen_element_ready_check() {
-            // JSAutoCompartment needs to be manually made.
-            // Otherwise, Servo will crash.
-            let promise = self.promise.root();
-            let promise_cx = promise.global().get_cx();
-            let _ac = JSAutoCompartment::new(promise_cx, promise.reflector().get_jsobject().get());
             document.upcast::<EventTarget>().fire_event(atom!("fullscreenerror"));
-            promise.reject_error(promise.global().get_cx(), Error::Type(String::from("fullscreen is not connected")));
+            promise.reject_error(Error::Type(String::from("fullscreen is not connected")));
             return
         }
 

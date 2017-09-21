@@ -79,7 +79,7 @@ impl VRMethods for VR {
             }
         } else {
             // WebVR spec: The Promise MUST be rejected if WebVR is not enabled/supported.
-            promise.reject_error(promise.global().get_cx(), Error::Security);
+            promise.reject_error(Error::Security);
             return promise;
         }
 

@@ -83,7 +83,12 @@ impl BluetoothPermissionResultMethods for BluetoothPermissionResult {
 }
 
 impl AsyncBluetoothListener for BluetoothPermissionResult {
-    fn handle_response(&self, response: BluetoothResponse, promise_cx: *mut JSContext, promise: &Rc<Promise>) {
+    fn handle_response(
+        &self,
+        response: BluetoothResponse,
+        _promise_cx: *mut JSContext,
+        promise: &Rc<Promise>,
+    ) {
         match response {
             // https://webbluetoothcg.github.io/web-bluetooth/#request-bluetooth-devices
             // Step 3, 11, 13 - 14.
@@ -119,7 +124,7 @@ impl AsyncBluetoothListener for BluetoothPermissionResult {
                 // Step 8.
                 promise.resolve_native(self);
             },
-            _ => promise.reject_error(promise_cx, Error::Type("Something went wrong...".to_owned())),
+            _ => promise.reject_error(Error::Type("Something went wrong...".to_owned())),
         }
     }
 }

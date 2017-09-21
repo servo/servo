@@ -120,16 +120,21 @@ impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
 }
 
 impl AsyncBluetoothListener for BluetoothRemoteGATTServer {
-    fn handle_response(&self, response: BluetoothResponse, promise_cx: *mut JSContext, promise: &Rc<Promise>) {
+    fn handle_response(
+        &self,
+        response: BluetoothResponse,
+        _promise_cx: *mut JSContext,
+        promise: &Rc<Promise>,
+    ) {
         match response {
             // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-connect
             BluetoothResponse::GATTServerConnect(connected) => {
                 // Step 5.2.3
                 if self.Device().is_represented_device_null() {
                     if let Err(e) = self.Device().garbage_collect_the_connection() {
-                        return promise.reject_error(promise_cx, Error::from(e));
+                        return promise.reject_error(Error::from(e));
                     }
-                    return promise.reject_error(promise_cx, Error::Network);
+                    return promise.reject_error(Error::Network);
                 }
 
                 // Step 5.2.4.
@@ -153,7 +158,7 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTServer {
                 }
                 promise.resolve_native(&services);
             },
-            _ => promise.reject_error(promise_cx, Error::Type("Something went wrong...".to_owned())),
+            _ => promise.reject_error(Error::Type("Something went wrong...".to_owned())),
         }
     }
 }

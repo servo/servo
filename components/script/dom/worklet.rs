@@ -123,7 +123,7 @@ impl WorkletMethods for Worklet {
             Err(err) => {
                 // Step 4.
                 debug!("URL {:?} parse error {:?}.", module_url.0, err);
-                promise.reject_error(self.window.get_cx(), Error::Syntax);
+                promise.reject_error(Error::Syntax);
                 return promise;
             }
         };

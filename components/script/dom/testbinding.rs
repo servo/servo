@@ -695,7 +695,7 @@ impl TestBindingMethods for TestBinding {
     }
 
     fn PromiseRejectWithTypeError(&self, p: &Promise, s: USVString) {
-        p.reject_error(self.global().get_cx(), Error::Type(s.0));
+        p.reject_error(Error::Type(s.0));
     }
 
     #[allow(unrooted_must_root)]

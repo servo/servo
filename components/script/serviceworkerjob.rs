@@ -13,11 +13,9 @@ use dom::bindings::js::JS;
 use dom::bindings::refcounted::{Trusted, TrustedPromise};
 use dom::bindings::reflector::DomObject;
 use dom::client::Client;
-use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
 use dom::serviceworkerregistration::ServiceWorkerRegistration;
 use dom::urlhelper::UrlHelper;
-use js::jsapi::JSAutoCompartment;
 use script_thread::ScriptThread;
 use servo_url::ServoUrl;
 use std::cmp::PartialEq;
@@ -261,11 +259,10 @@ impl JobQueue {
     }
 }
 
-fn settle_job_promise(global: &GlobalScope, promise: &Promise, settle: SettleType) {
-    let _ac = JSAutoCompartment::new(global.get_cx(), promise.reflector().get_jsobject().get());
+fn settle_job_promise(promise: &Promise, settle: SettleType) {
     match settle {
         SettleType::Resolve(reg) => promise.resolve_native(&*reg.root()),
-        SettleType::Reject(err) => promise.reject_error(global.get_cx(), err),
+        SettleType::Reject(err) => promise.reject_error(err),
     };
 }
 
@@ -277,7 +274,7 @@ fn queue_settle_promise_for_job(job: &Job, settle: SettleType, task_source: &DOM
     let _ = task_source.queue(
         task!(settle_promise_for_job: move || {
             let promise = promise.root();
-            settle_job_promise(&promise.global(), &promise, settle)
+            settle_job_promise(&promise, settle)
         }),
         &*global,
     );
