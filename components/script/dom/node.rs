@@ -1024,8 +1024,8 @@ pub trait LayoutNodeHelpers {
     fn image_url(&self) -> Option<ServoUrl>;
     fn canvas_data(&self) -> Option<HTMLCanvasData>;
     fn svg_data(&self) -> Option<SVGSVGData>;
-    fn iframe_browsing_context_id(&self) -> BrowsingContextId;
-    fn iframe_pipeline_id(&self) -> PipelineId;
+    fn iframe_browsing_context_id(&self) -> Option<BrowsingContextId>;
+    fn iframe_pipeline_id(&self) -> Option<PipelineId>;
     fn opaque(&self) -> OpaqueNode;
 }
 
@@ -1175,16 +1175,16 @@ impl LayoutNodeHelpers for LayoutJS<Node> {
             .map(|svg| svg.data())
     }
 
-    fn iframe_browsing_context_id(&self) -> BrowsingContextId {
+    fn iframe_browsing_context_id(&self) -> Option<BrowsingContextId> {
         let iframe_element = self.downcast::<HTMLIFrameElement>()
             .expect("not an iframe element!");
-        iframe_element.browsing_context_id().unwrap()
+        iframe_element.browsing_context_id()
     }
 
-    fn iframe_pipeline_id(&self) -> PipelineId {
+    fn iframe_pipeline_id(&self) -> Option<PipelineId> {
         let iframe_element = self.downcast::<HTMLIFrameElement>()
             .expect("not an iframe element!");
-        iframe_element.pipeline_id().unwrap()
+        iframe_element.pipeline_id()
     }
 
     #[allow(unsafe_code)]
