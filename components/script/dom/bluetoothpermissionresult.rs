@@ -20,7 +20,6 @@ use dom::permissionstatus::PermissionStatus;
 use dom::promise::Promise;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
-use js::jsapi::JSContext;
 use std::rc::Rc;
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothpermissionresult
@@ -83,12 +82,7 @@ impl BluetoothPermissionResultMethods for BluetoothPermissionResult {
 }
 
 impl AsyncBluetoothListener for BluetoothPermissionResult {
-    fn handle_response(
-        &self,
-        response: BluetoothResponse,
-        _promise_cx: *mut JSContext,
-        promise: &Rc<Promise>,
-    ) {
+    fn handle_response(&self, response: BluetoothResponse, promise: &Rc<Promise>) {
         match response {
             // https://webbluetoothcg.github.io/web-bluetooth/#request-bluetooth-devices
             // Step 3, 11, 13 - 14.

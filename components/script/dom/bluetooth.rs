@@ -33,7 +33,7 @@ use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::conversions::ConversionResult;
-use js::jsapi::{JSAutoCompartment, JSContext, JSObject};
+use js::jsapi::{JSContext, JSObject};
 use js::jsval::{ObjectValue, UndefinedValue};
 use std::cell::Ref;
 use std::collections::HashMap;
@@ -94,20 +94,21 @@ struct BluetoothContext<T: AsyncBluetoothListener + DomObject> {
 }
 
 pub trait AsyncBluetoothListener {
-    fn handle_response(&self, result: BluetoothResponse, cx: *mut JSContext, promise: &Rc<Promise>);
+    fn handle_response(&self, result: BluetoothResponse, promise: &Rc<Promise>);
 }
 
-impl<T: AsyncBluetoothListener + DomObject> BluetoothContext<T> {
+impl<T> BluetoothContext<T>
+where
+    T: AsyncBluetoothListener + DomObject,
+{
     #[allow(unrooted_must_root)]
     fn response(&mut self, response: BluetoothResponseResult) {
         let promise = self.promise.take().expect("bt promise is missing").root();
-        let promise_cx = promise.global().get_cx();
 
         // JSAutoCompartment needs to be manually made.
         // Otherwise, Servo will crash.
-        let _ac = JSAutoCompartment::new(promise_cx, promise.reflector().get_jsobject().get());
         match response {
-            Ok(response) => self.receiver.root().handle_response(response, promise_cx, &promise),
+            Ok(response) => self.receiver.root().handle_response(response, &promise),
             // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-requestdevice
             // Step 3 - 4.
             Err(error) => promise.reject_error(Error::from(error)),
@@ -506,11 +507,7 @@ impl BluetoothMethods for Bluetooth {
 }
 
 impl AsyncBluetoothListener for Bluetooth {
-    fn handle_response(
-        &self, response: BluetoothResponse,
-        _promise_cx: *mut JSContext,
-        promise: &Rc<Promise>,
-    ) {
+    fn handle_response(&self, response: BluetoothResponse, promise: &Rc<Promise>) {
         match response {
             // https://webbluetoothcg.github.io/web-bluetooth/#request-bluetooth-devices
             // Step 11, 13 - 14.

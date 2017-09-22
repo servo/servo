@@ -17,7 +17,6 @@ use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
 use dom_struct::dom_struct;
-use js::jsapi::JSContext;
 use std::rc::Rc;
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothremotegattservice
@@ -128,7 +127,7 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
 }
 
 impl AsyncBluetoothListener for BluetoothRemoteGATTService {
-    fn handle_response(&self, response: BluetoothResponse, _promise_cx: *mut JSContext, promise: &Rc<Promise>) {
+    fn handle_response(&self, response: BluetoothResponse, promise: &Rc<Promise>) {
         let device = self.Device();
         match response {
             // https://webbluetoothcg.github.io/web-bluetooth/#getgattchildren
