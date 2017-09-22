@@ -114,7 +114,7 @@ impl JobQueue {
         } else {
             // Step 2
             let mut last_job = job_queue.pop().unwrap();
-            if job == last_job && !last_job.promise.is_settled() {
+            if job == last_job && !last_job.promise.is_fulfilled() {
                 last_job.append_equivalent_job(job);
                 job_queue.push(last_job);
                 debug!("appended equivalent job");
