@@ -166,8 +166,8 @@ impl Promise {
         rooted!(in(cx) let mut v = UndefinedValue());
         unsafe {
             val.to_jsval(cx, v.handle_mut());
+            self.reject(cx, v.handle());
         }
-        self.reject(cx, v.handle());
     }
 
     #[allow(unsafe_code)]
@@ -177,18 +177,14 @@ impl Promise {
         rooted!(in(cx) let mut v = UndefinedValue());
         unsafe {
             error.to_jsval(cx, &self.global(), v.handle_mut());
+            self.reject(cx, v.handle());
         }
-        self.reject(cx, v.handle());
     }
 
     #[allow(unrooted_must_root, unsafe_code)]
-    pub fn reject(&self,
-                        cx: *mut JSContext,
-                        value: HandleValue) {
-        unsafe {
-            if !RejectPromise(cx, self.promise_obj(), value) {
-                JS_ClearPendingException(cx);
-            }
+    pub unsafe fn reject(&self, cx: *mut JSContext, value: HandleValue) {
+        if !RejectPromise(cx, self.promise_obj(), value) {
+            JS_ClearPendingException(cx);
         }
     }
 
