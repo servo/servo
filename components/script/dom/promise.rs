@@ -11,8 +11,6 @@
 //! native Promise values that refer to the same JS value yet are distinct native objects
 //! (ie. address equality for the native objects is meaningless).
 
-use dom::bindings::callback::CallbackContainer;
-use dom::bindings::codegen::Bindings::PromiseBinding::AnyCallback;
 use dom::bindings::conversions::root_from_object;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::reflector::{DomObject, MutDomObject, Reflector};
@@ -21,7 +19,7 @@ use dom::globalscope::GlobalScope;
 use dom::promisenativehandler::PromiseNativeHandler;
 use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
-use js::jsapi::{CallOriginalPromiseResolve, CallOriginalPromiseReject, CallOriginalPromiseThen};
+use js::jsapi::{CallOriginalPromiseResolve, CallOriginalPromiseReject};
 use js::jsapi::{JSAutoCompartment, CallArgs, JS_GetFunctionObject, JS_NewFunction};
 use js::jsapi::{JSContext, HandleValue, HandleObject, IsPromiseObject, GetFunctionNativeReserved};
 use js::jsapi::{JS_ClearPendingException, JSObject, AddRawValueRoot, RemoveRawValueRoot, PromiseState};
@@ -185,23 +183,6 @@ impl Promise {
     pub unsafe fn reject(&self, cx: *mut JSContext, value: HandleValue) {
         if !RejectPromise(cx, self.promise_obj(), value) {
             JS_ClearPendingException(cx);
-        }
-    }
-
-    #[allow(unrooted_must_root, unsafe_code)]
-    pub fn then(&self,
-                cx: *mut JSContext,
-                _callee: HandleObject,
-                cb_resolve: AnyCallback,
-                cb_reject: AnyCallback,
-                result: MutableHandleObject) {
-        let promise = self.promise_obj();
-        rooted!(in(cx) let resolve = cb_resolve.callback());
-        rooted!(in(cx) let reject = cb_reject.callback());
-        unsafe {
-            rooted!(in(cx) let res =
-                CallOriginalPromiseThen(cx, promise, resolve.handle(), reject.handle()));
-            result.set(*res);
         }
     }
 
