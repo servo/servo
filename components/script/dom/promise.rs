@@ -126,17 +126,15 @@ impl Promise {
     }
 
     #[allow(unrooted_must_root, unsafe_code)]
-    pub fn new_rejected(
+    pub unsafe fn new_rejected(
         global: &GlobalScope,
         cx: *mut JSContext,
         value: HandleValue,
     ) -> Fallible<Rc<Promise>> {
         let _ac = JSAutoCompartment::new(cx, global.reflector().get_jsobject().get());
-        rooted!(in(cx) let p = unsafe { CallOriginalPromiseReject(cx, value) });
+        rooted!(in(cx) let p = CallOriginalPromiseReject(cx, value));
         assert!(!p.handle().is_null());
-        unsafe {
-            Ok(Promise::new_with_js_promise(p.handle(), cx))
-        }
+        Ok(Promise::new_with_js_promise(p.handle(), cx))
     }
 
     #[allow(unsafe_code)]
