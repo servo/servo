@@ -69,7 +69,7 @@ impl<T> Clone for PersistentList<T> where T: Send + Sync {
     }
 }
 
-pub struct PersistentListIterator<'a,T> where T: 'a + Send + Sync {
+pub struct PersistentListIterator<'a, T> where T: 'a + Send + Sync {
     entry: Option<&'a PersistentListEntry<T>>,
 }
 

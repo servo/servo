@@ -163,7 +163,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for UnrootedPass {
     }
 }
 
-struct FnDefVisitor<'a, 'b: 'a, 'tcx: 'a+'b> {
+struct FnDefVisitor<'a, 'b: 'a, 'tcx: 'a + 'b> {
     cx: &'a LateContext<'b, 'tcx>,
     in_new_function: bool,
 }

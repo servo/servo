@@ -467,15 +467,6 @@ def check_rust(file_name, lines):
         prev_indent = indent
         indent = len(original_line) - len(line)
 
-        # Hack for components/selectors/build.rs
-        if multi_line_string:
-            if line.startswith('"#'):
-                multi_line_string = False
-            else:
-                continue
-        if line.endswith('r#"'):
-            multi_line_string = True
-
         is_attribute = re.search(r"#\[.*\]", line)
         is_comment = re.search(r"^//|^/\*|^\*", line)
 
@@ -494,6 +485,14 @@ def check_rust(file_name, lines):
             line = merged_lines + line
             merged_lines = ''
 
+        if multi_line_string:
+            line, count = re.subn(
+                r'^(\\.|[^"\\])*?"', '', line, count=1)
+            if count == 1:
+                multi_line_string = False
+            else:
+                continue
+
         # Ignore attributes, comments, and imports
         # Keep track of whitespace to enable checking for a merged import block
         if import_block:
@@ -504,9 +503,17 @@ def check_rust(file_name, lines):
                     import_block = False
 
         # get rid of strings and chars because cases like regex expression, keep attributes
-        if not is_attribute:
+        if not is_attribute and not is_comment:
             line = re.sub(r'"(\\.|[^\\"])*?"', '""', line)
-            line = re.sub(r"'(\\.|[^\\'])*?'", "''", line)
+            line = re.sub(
+                r"'(\\.|[^\\']|(\\x[0-9a-fA-F]{2})|(\\u{[0-9a-fA-F]{1,6}}))'",
+                "''", line)
+            # If, after parsing all single-line strings, we still have
+            # an odd number of double quotes, this line starts a
+            # multiline string
+            if line.count('"') % 2 == 1:
+                line = re.sub(r'"(\\.|[^\\"])*?$', '""', line)
+                multi_line_string = True
 
         # get rid of comments
         line = re.sub('//.*?$|/\*.*?$|^\*.*?$', '//', line)

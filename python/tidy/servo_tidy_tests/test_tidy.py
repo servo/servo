@@ -266,6 +266,11 @@ class CheckTidiness(unittest.TestCase):
         lst = list(file_list)
         self.assertEqual([os.path.join(base_path, 'whee', 'test.rs')], lst)
 
+    def test_multiline_string(self):
+        errors = tidy.collect_errors_for_files(iterFile('multiline_string.rs'), [], [tidy.check_rust], print_text=True)
+        self.assertNoMoreErrors(errors)
+
+
 def do_tests():
     suite = unittest.TestLoader().loadTestsFromTestCase(CheckTidiness)
     return 0 if unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful() else 1
