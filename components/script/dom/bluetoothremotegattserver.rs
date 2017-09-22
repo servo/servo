@@ -17,7 +17,6 @@ use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
-use js::jsapi::JSContext;
 use std::cell::Cell;
 use std::rc::Rc;
 
@@ -120,30 +119,30 @@ impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
 }
 
 impl AsyncBluetoothListener for BluetoothRemoteGATTServer {
-    fn handle_response(&self, response: BluetoothResponse, promise_cx: *mut JSContext, promise: &Rc<Promise>) {
+    fn handle_response(&self, response: BluetoothResponse, promise: &Rc<Promise>) {
         match response {
             // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-connect
             BluetoothResponse::GATTServerConnect(connected) => {
                 // Step 5.2.3
                 if self.Device().is_represented_device_null() {
                     if let Err(e) = self.Device().garbage_collect_the_connection() {
-                        return promise.reject_error(promise_cx, Error::from(e));
+                        return promise.reject_error(Error::from(e));
                     }
-                    return promise.reject_error(promise_cx, Error::Network);
+                    return promise.reject_error(Error::Network);
                 }
 
                 // Step 5.2.4.
                 self.connected.set(connected);
 
                 // Step 5.2.5.
-                promise.resolve_native(promise_cx, self);
+                promise.resolve_native(self);
             },
             // https://webbluetoothcg.github.io/web-bluetooth/#getgattchildren
             // Step 7.
             BluetoothResponse::GetPrimaryServices(services_vec, single) => {
                 let device = self.Device();
                 if single {
-                    promise.resolve_native(promise_cx, &device.get_or_create_service(&services_vec[0], &self));
+                    promise.resolve_native(&device.get_or_create_service(&services_vec[0], &self));
                     return;
                 }
                 let mut services = vec!();
@@ -151,9 +150,9 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTServer {
                     let bt_service = device.get_or_create_service(&service, &self);
                     services.push(bt_service);
                 }
-                promise.resolve_native(promise_cx, &services);
+                promise.resolve_native(&services);
             },
-            _ => promise.reject_error(promise_cx, Error::Type("Something went wrong...".to_owned())),
+            _ => promise.reject_error(Error::Type("Something went wrong...".to_owned())),
         }
     }
 }

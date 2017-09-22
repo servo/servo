@@ -316,10 +316,7 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
 
         // Step 16, 16.3
         if let Some(promise) = self.when_defined.borrow_mut().remove(&name) {
-            // 16.1
-            let cx = promise.global().get_cx();
-            // 16.2
-            promise.resolve_native(cx, &UndefinedValue());
+            promise.resolve_native(&UndefinedValue());
         }
         Ok(())
     }
@@ -346,14 +343,14 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
         // Step 1
         if !is_valid_custom_element_name(&name) {
             let promise = Promise::new(global_scope);
-            promise.reject_native(global_scope.get_cx(), &DOMException::new(global_scope, DOMErrorName::SyntaxError));
+            promise.reject_native(&DOMException::new(global_scope, DOMErrorName::SyntaxError));
             return promise
         }
 
         // Step 2
         if self.definitions.borrow().contains_key(&name) {
             let promise = Promise::new(global_scope);
-            promise.resolve_native(global_scope.get_cx(), &UndefinedValue());
+            promise.resolve_native(&UndefinedValue());
             return promise
         }
 

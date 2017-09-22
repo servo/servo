@@ -284,7 +284,7 @@ impl VRDisplayMethods for VRDisplay {
         // WebVR spec: If canPresent is false the promise MUST be rejected
         if !self.display.borrow().capabilities.can_present {
             let msg = "VRDisplay canPresent is false".to_string();
-            promise.reject_native(promise.global().get_cx(), &msg);
+            promise.reject_native(&msg);
             return promise;
         }
 
@@ -294,7 +294,7 @@ impl VRDisplayMethods for VRDisplay {
         // That functionality is not allowed by this revision of the spec.
         if layers.len() != 1 {
             let msg = "The number of layers must be 1".to_string();
-            promise.reject_native(promise.global().get_cx(), &msg);
+            promise.reject_native(&msg);
             return promise;
         }
 
@@ -311,7 +311,7 @@ impl VRDisplayMethods for VRDisplay {
             },
             Err(msg) => {
                 let msg = msg.to_string();
-                promise.reject_native(promise.global().get_cx(), &msg);
+                promise.reject_native(&msg);
                 return promise;
             }
         };
@@ -320,7 +320,7 @@ impl VRDisplayMethods for VRDisplay {
         if self.presenting.get() {
             *self.layer.borrow_mut() = layer_bounds;
             self.layer_ctx.set(Some(&layer_ctx));
-            promise.resolve_native(promise.global().get_cx(), &());
+            promise.resolve_native(&());
             return promise;
         }
 
@@ -335,10 +335,10 @@ impl VRDisplayMethods for VRDisplay {
                 *self.layer.borrow_mut() = layer_bounds;
                 self.layer_ctx.set(Some(&layer_ctx));
                 self.init_present();
-                promise.resolve_native(promise.global().get_cx(), &());
+                promise.resolve_native(&());
             },
             Err(e) => {
-                promise.reject_native(promise.global().get_cx(), &e);
+                promise.reject_native(&e);
             }
         }
 
@@ -353,7 +353,7 @@ impl VRDisplayMethods for VRDisplay {
         // WebVR spec: If the VRDisplay is not presenting the promise MUST be rejected.
         if !self.presenting.get() {
             let msg = "VRDisplay is not presenting".to_string();
-            promise.reject_native(promise.global().get_cx(), &msg);
+            promise.reject_native(&msg);
             return promise;
         }
 
@@ -366,10 +366,10 @@ impl VRDisplayMethods for VRDisplay {
         match receiver.recv().unwrap() {
             Ok(()) => {
                 self.stop_present();
-                promise.resolve_native(promise.global().get_cx(), &());
+                promise.resolve_native(&());
             },
             Err(e) => {
-                promise.reject_native(promise.global().get_cx(), &e);
+                promise.reject_native(&e);
             }
         }
 

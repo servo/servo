@@ -21,7 +21,6 @@ use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
-use js::jsapi::JSContext;
 use std::rc::Rc;
 
 // http://webbluetoothcg.github.io/web-bluetooth/#bluetoothremotegattdescriptor
@@ -89,17 +88,16 @@ impl BluetoothRemoteGATTDescriptorMethods for BluetoothRemoteGATTDescriptor {
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattdescriptor-readvalue
     fn ReadValue(&self) -> Rc<Promise> {
         let p = Promise::new(&self.global());
-        let p_cx = p.global().get_cx();
 
         // Step 1.
         if uuid_is_blocklisted(self.uuid.as_ref(), Blocklist::Reads) {
-            p.reject_error(p_cx, Security);
+            p.reject_error(Security);
             return p;
         }
 
         // Step 2.
         if !self.Characteristic().Service().Device().get_gatt().Connected() {
-            p.reject_error(p_cx, Network);
+            p.reject_error(Network);
             return p;
         }
 
@@ -116,23 +114,22 @@ impl BluetoothRemoteGATTDescriptorMethods for BluetoothRemoteGATTDescriptor {
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattdescriptor-writevalue
     fn WriteValue(&self, value: Vec<u8>) -> Rc<Promise> {
         let p = Promise::new(&self.global());
-        let p_cx = p.global().get_cx();
 
         // Step 1.
         if uuid_is_blocklisted(self.uuid.as_ref(), Blocklist::Writes) {
-            p.reject_error(p_cx, Security);
+            p.reject_error(Security);
             return p;
         }
 
         // Step 2 - 3.
         if value.len() > MAXIMUM_ATTRIBUTE_LENGTH {
-            p.reject_error(p_cx, InvalidModification);
+            p.reject_error(InvalidModification);
             return p;
         }
 
         // Step 4.
         if !self.Characteristic().Service().Device().get_gatt().Connected() {
-            p.reject_error(p_cx, Network);
+            p.reject_error(Network);
             return p;
         }
 
@@ -147,7 +144,7 @@ impl BluetoothRemoteGATTDescriptorMethods for BluetoothRemoteGATTDescriptor {
 }
 
 impl AsyncBluetoothListener for BluetoothRemoteGATTDescriptor {
-    fn handle_response(&self, response: BluetoothResponse, promise_cx: *mut JSContext, promise: &Rc<Promise>) {
+    fn handle_response(&self, response: BluetoothResponse, promise: &Rc<Promise>) {
         match response {
             // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattdescriptor-readvalue
             BluetoothResponse::ReadValue(result) => {
@@ -159,7 +156,7 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTDescriptor {
                 *self.value.borrow_mut() = Some(value.clone());
 
                 // Step 5.4.3.
-                promise.resolve_native(promise_cx, &value);
+                promise.resolve_native(&value);
             },
             // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattdescriptor-writevalue
             BluetoothResponse::WriteValue(result) => {
@@ -171,9 +168,9 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTDescriptor {
 
                 // Step 7.4.3.
                 // TODO: Resolve promise with undefined instead of a value.
-                promise.resolve_native(promise_cx, &());
+                promise.resolve_native(&());
             },
-            _ => promise.reject_error(promise_cx, Error::Type("Something went wrong...".to_owned())),
+            _ => promise.reject_error(Error::Type("Something went wrong...".to_owned())),
         }
     }
 }

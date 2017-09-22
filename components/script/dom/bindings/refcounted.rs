@@ -29,7 +29,6 @@ use dom::bindings::js::Root;
 use dom::bindings::reflector::{DomObject, Reflector};
 use dom::bindings::trace::trace_reflector;
 use dom::promise::Promise;
-use js::jsapi::JSAutoCompartment;
 use js::jsapi::JSTracer;
 use libc;
 use std::cell::RefCell;
@@ -126,10 +125,7 @@ impl TrustedPromise {
         let this = self;
         task!(reject_promise: move || {
             debug!("Rejecting promise.");
-            let this = this.root();
-            let cx = this.global().get_cx();
-            let _ac = JSAutoCompartment::new(cx, this.reflector().get_jsobject().get());
-            this.reject_error(cx, error);
+            this.root().reject_error(error);
         })
     }
 
@@ -142,10 +138,7 @@ impl TrustedPromise {
         let this = self;
         task!(resolve_promise: move || {
             debug!("Resolving promise.");
-            let this = this.root();
-            let cx = this.global().get_cx();
-            let _ac = JSAutoCompartment::new(cx, this.reflector().get_jsobject().get());
-            this.resolve_native(cx, &value);
+            this.root().resolve_native(&value);
         })
     }
 }

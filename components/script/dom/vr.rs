@@ -73,13 +73,13 @@ impl VRMethods for VR {
                     }
                 },
                 Err(e) => {
-                    promise.reject_native(promise.global().get_cx(), &e);
+                    promise.reject_native(&e);
                     return promise;
                 }
             }
         } else {
             // WebVR spec: The Promise MUST be rejected if WebVR is not enabled/supported.
-            promise.reject_error(promise.global().get_cx(), Error::Security);
+            promise.reject_error(Error::Security);
             return promise;
         }
 
@@ -87,7 +87,7 @@ impl VRMethods for VR {
         let displays: Vec<Root<VRDisplay>> = self.displays.borrow().iter()
                                                           .map(|d| Root::from_ref(&**d))
                                                           .collect();
-        promise.resolve_native(promise.global().get_cx(), &displays);
+        promise.resolve_native(&displays);
 
         promise
     }

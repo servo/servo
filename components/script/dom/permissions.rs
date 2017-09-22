@@ -89,7 +89,7 @@ impl Permissions {
         let root_desc = match Permissions::create_descriptor(cx, permissionDesc) {
             Ok(descriptor) => descriptor,
             Err(error) => {
-                p.reject_error(cx, error);
+                p.reject_error(error);
                 return p;
             },
         };
@@ -103,7 +103,7 @@ impl Permissions {
                 let bluetooth_desc = match Bluetooth::create_descriptor(cx, permissionDesc) {
                     Ok(descriptor) => descriptor,
                     Err(error) => {
-                        p.reject_error(cx, error);
+                        p.reject_error(error);
                         return p;
                     },
                 };
@@ -140,14 +140,14 @@ impl Permissions {
                         // (Request) Step 7. The default algorithm always resolve
 
                         // (Request) Step 8.
-                        p.resolve_native(cx, &status);
+                        p.resolve_native(&status);
                     },
                     &Operation::Query => {
                         // (Query) Step 6.
                         Permissions::permission_query(cx, &p, &root_desc, &status);
 
                         // (Query) Step 7.
-                        p.resolve_native(cx, &status);
+                        p.resolve_native(&status);
                     },
 
                     &Operation::Revoke => {

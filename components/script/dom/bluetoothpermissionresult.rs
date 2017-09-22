@@ -20,7 +20,6 @@ use dom::permissionstatus::PermissionStatus;
 use dom::promise::Promise;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
-use js::jsapi::JSContext;
 use std::rc::Rc;
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothpermissionresult
@@ -83,7 +82,7 @@ impl BluetoothPermissionResultMethods for BluetoothPermissionResult {
 }
 
 impl AsyncBluetoothListener for BluetoothPermissionResult {
-    fn handle_response(&self, response: BluetoothResponse, promise_cx: *mut JSContext, promise: &Rc<Promise>) {
+    fn handle_response(&self, response: BluetoothResponse, promise: &Rc<Promise>) {
         match response {
             // https://webbluetoothcg.github.io/web-bluetooth/#request-bluetooth-devices
             // Step 3, 11, 13 - 14.
@@ -98,7 +97,7 @@ impl AsyncBluetoothListener for BluetoothPermissionResult {
 
                     // https://w3c.github.io/permissions/#dom-permissions-request
                     // Step 8.
-                    return promise.resolve_native(promise_cx, self);
+                    return promise.resolve_native(self);
                 }
                 let bt_device = BluetoothDevice::new(&self.global(),
                                                      DOMString::from(device.id.clone()),
@@ -117,9 +116,9 @@ impl AsyncBluetoothListener for BluetoothPermissionResult {
 
                 // https://w3c.github.io/permissions/#dom-permissions-request
                 // Step 8.
-                promise.resolve_native(promise_cx, self);
+                promise.resolve_native(self);
             },
-            _ => promise.reject_error(promise_cx, Error::Type("Something went wrong...".to_owned())),
+            _ => promise.reject_error(Error::Type("Something went wrong...".to_owned())),
         }
     }
 }

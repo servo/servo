@@ -26,7 +26,6 @@ use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
-use js::jsapi::JSContext;
 use std::rc::Rc;
 
 // Maximum length of an attribute value.
@@ -124,17 +123,16 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-readvalue
     fn ReadValue(&self) -> Rc<Promise> {
         let p = Promise::new(&self.global());
-        let p_cx = p.global().get_cx();
 
         // Step 1.
         if uuid_is_blocklisted(self.uuid.as_ref(), Blocklist::Reads) {
-            p.reject_error(p_cx, Security);
+            p.reject_error(Security);
             return p;
         }
 
         // Step 2.
         if !self.Service().Device().get_gatt().Connected() {
-            p.reject_error(p_cx, Network);
+            p.reject_error(Network);
             return p;
         }
 
@@ -142,7 +140,7 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
 
         // Step 5.1.
         if !self.Properties().Read() {
-            p.reject_error(p_cx, NotSupported);
+            p.reject_error(NotSupported);
             return p;
         }
 
@@ -158,23 +156,22 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-writevalue
     fn WriteValue(&self, value: Vec<u8>) -> Rc<Promise> {
         let p = Promise::new(&self.global());
-        let p_cx = p.global().get_cx();
 
         // Step 1.
         if uuid_is_blocklisted(self.uuid.as_ref(), Blocklist::Writes) {
-            p.reject_error(p_cx, Security);
+            p.reject_error(Security);
             return p;
         }
 
         // Step 2 - 3.
         if value.len() > MAXIMUM_ATTRIBUTE_LENGTH {
-            p.reject_error(p_cx, InvalidModification);
+            p.reject_error(InvalidModification);
             return p;
         }
 
         // Step 4.
         if !self.Service().Device().get_gatt().Connected() {
-            p.reject_error(p_cx, Network);
+            p.reject_error(Network);
             return p;
         }
 
@@ -184,7 +181,7 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
         if !(self.Properties().Write() ||
              self.Properties().WriteWithoutResponse() ||
              self.Properties().AuthenticatedSignedWrites()) {
-            p.reject_error(p_cx, NotSupported);
+            p.reject_error(NotSupported);
             return p;
         }
 
@@ -200,24 +197,23 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-startnotifications
     fn StartNotifications(&self) -> Rc<Promise> {
         let p = Promise::new(&self.global());
-        let p_cx = p.global().get_cx();
 
         // Step 1.
         if uuid_is_blocklisted(self.uuid.as_ref(), Blocklist::Reads) {
-            p.reject_error(p_cx, Security);
+            p.reject_error(Security);
             return p;
         }
 
         // Step 2.
         if !self.Service().Device().get_gatt().Connected() {
-            p.reject_error(p_cx, Network);
+            p.reject_error(Network);
             return p;
         }
 
         // Step 5.
         if !(self.Properties().Notify() ||
              self.Properties().Indicate()) {
-            p.reject_error(p_cx, NotSupported);
+            p.reject_error(NotSupported);
             return p;
         }
 
@@ -255,14 +251,14 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
 }
 
 impl AsyncBluetoothListener for BluetoothRemoteGATTCharacteristic {
-    fn handle_response(&self, response: BluetoothResponse, promise_cx: *mut JSContext, promise: &Rc<Promise>) {
+    fn handle_response(&self, response: BluetoothResponse, promise: &Rc<Promise>) {
         let device = self.Service().Device();
         match response {
             // https://webbluetoothcg.github.io/web-bluetooth/#getgattchildren
             // Step 7.
             BluetoothResponse::GetDescriptors(descriptors_vec, single) => {
                 if single {
-                    promise.resolve_native(promise_cx, &device.get_or_create_descriptor(&descriptors_vec[0], &self));
+                    promise.resolve_native(&device.get_or_create_descriptor(&descriptors_vec[0], &self));
                     return;
                 }
                 let mut descriptors = vec!();
@@ -270,7 +266,7 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTCharacteristic {
                     let bt_descriptor = device.get_or_create_descriptor(&descriptor, &self);
                     descriptors.push(bt_descriptor);
                 }
-                promise.resolve_native(promise_cx, &descriptors);
+                promise.resolve_native(&descriptors);
             },
             // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-readvalue
             BluetoothResponse::ReadValue(result) => {
@@ -285,7 +281,7 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTCharacteristic {
                 self.upcast::<EventTarget>().fire_bubbling_event(atom!("characteristicvaluechanged"));
 
                 // Step 5.5.4.
-                promise.resolve_native(promise_cx, &value);
+                promise.resolve_native(&value);
             },
             // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-writevalue
             BluetoothResponse::WriteValue(result) => {
@@ -296,7 +292,7 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTCharacteristic {
                 *self.value.borrow_mut() = Some(ByteString::new(result));
 
                 // Step 7.5.3.
-                promise.resolve_native(promise_cx, &());
+                promise.resolve_native(&());
             },
             // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-startnotifications
             // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-stopnotifications
@@ -306,9 +302,9 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTCharacteristic {
 
                 // (StartNotification) Step 11.
                 // (StopNotification)  Step 5.
-                promise.resolve_native(promise_cx, self);
+                promise.resolve_native(self);
             },
-            _ => promise.reject_error(promise_cx, Error::Type("Something went wrong...".to_owned())),
+            _ => promise.reject_error(Error::Type("Something went wrong...".to_owned())),
         }
     }
 }

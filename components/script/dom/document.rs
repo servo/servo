@@ -2671,7 +2671,7 @@ impl Document {
         let promise = Promise::new(global.r());
         // Step 2
         if self.fullscreen_element.get().is_none() {
-            promise.reject_error(global.get_cx(), Error::Type(String::from("fullscreen is null")));
+            promise.reject_error(Error::Type(String::from("fullscreen is null")));
             return promise
         }
         // TODO Step 3-6
