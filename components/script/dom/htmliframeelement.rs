@@ -202,7 +202,7 @@ impl HTMLIFrameElement {
                 };
 
                 self.pipeline_id.set(Some(new_pipeline_id));
-                ScriptThread::process_attach_layout(new_layout_info, document.origin().clone());
+                ScriptThread::process_attach_layout(new_layout_info, document.origin().clone(), true);
             },
             NavigationType::Regular => {
                 let load_info = IFrameLoadInfoWithData {

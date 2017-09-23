@@ -171,6 +171,8 @@ struct InProgressLoad {
     navigation_start: u64,
     /// High res timestamp reporting the time when the browser started this load.
     navigation_start_precise: f64,
+    /// Whether the document being loaded is an iframe's initial about:blank.
+    initial_about_blank_load: bool,
 }
 
 impl InProgressLoad {
@@ -182,7 +184,8 @@ impl InProgressLoad {
            layout_chan: Sender<message::Msg>,
            window_size: Option<WindowSizeData>,
            url: ServoUrl,
-           origin: MutableOrigin) -> InProgressLoad {
+           origin: MutableOrigin,
+           initial_about_blank_load: bool) -> InProgressLoad {
         let current_time = get_time();
         let navigation_start_precise = precise_time_ns() as f64;
         layout_chan.send(message::Msg::SetNavigationStart(navigation_start_precise)).unwrap();
@@ -199,6 +202,7 @@ impl InProgressLoad {
             origin: origin,
             navigation_start: (current_time.sec * 1000 + current_time.nsec as i64 / 1000000) as u64,
             navigation_start_precise: navigation_start_precise,
+            initial_about_blank_load: initial_about_blank_load,
         }
     }
 }
@@ -564,7 +568,7 @@ impl ScriptThreadFactory for ScriptThread {
 
             let origin = MutableOrigin::new(load_data.url.origin());
             let new_load = InProgressLoad::new(id, browsing_context_id, top_level_browsing_context_id, parent_info,
-                                               layout_chan, window_size, load_data.url.clone(), origin);
+                                               layout_chan, window_size, load_data.url.clone(), origin, false);
             script_thread.pre_page_load(new_load, load_data);
 
             let reporter_name = format!("script-reporter-{}", id);
@@ -675,12 +679,13 @@ impl ScriptThread {
         });
     }
 
-    pub fn process_attach_layout(new_layout_info: NewLayoutInfo, origin: MutableOrigin) {
+    pub fn process_attach_layout(new_layout_info: NewLayoutInfo, origin: MutableOrigin,
+                                 initial_about_blank_layout: bool) {
         SCRIPT_THREAD_ROOT.with(|root| {
             if let Some(script_thread) = root.get() {
                 let script_thread = unsafe { &*script_thread };
                 script_thread.profile_event(ScriptThreadEventCategory::AttachLayout, || {
-                    script_thread.handle_new_layout(new_layout_info, origin);
+                    script_thread.handle_new_layout(new_layout_info, origin, initial_about_blank_layout);
                 })
             }
         });
@@ -977,7 +982,7 @@ impl ScriptThread {
                             MutableOrigin::new(ImmutableOrigin::new_opaque())
                         };
 
-                        self.handle_new_layout(new_layout_info, origin);
+                        self.handle_new_layout(new_layout_info, origin, false);
                     })
                 }
                 FromConstellation(ConstellationControlMsg::Resize(id, size, size_type)) => {
@@ -1439,7 +1444,8 @@ impl ScriptThread {
         window.set_scroll_offsets(scroll_offsets)
     }
 
-    fn handle_new_layout(&self, new_layout_info: NewLayoutInfo, origin: MutableOrigin) {
+    fn handle_new_layout(&self, new_layout_info: NewLayoutInfo, origin: MutableOrigin,
+                         initial_about_blank_layout: bool) {
         let NewLayoutInfo {
             parent_info,
             new_pipeline_id,
@@ -1491,7 +1497,8 @@ impl ScriptThread {
                                            layout_chan,
                                            window_size,
                                            load_data.url.clone(),
-                                           origin);
+                                           origin,
+                                           initial_about_blank_layout);
         if load_data.url.as_str() == "about:blank" {
             self.start_page_load_about_blank(new_load, load_data.js_eval_result);
         } else {
@@ -2091,6 +2098,11 @@ impl ScriptThread {
                                       .map(Serde::deref)
                                       .and_then(Headers::get::<ReferrerPolicyHeader>)
                                       .map(ReferrerPolicy::from);
+        let document_source = if incomplete.initial_about_blank_load {
+            DocumentSource::InitialAboutBlank
+        } else {
+            DocumentSource::FromParser
+        };
 
         let document = Document::new(&window,
                                      HasBrowsingContext::Yes,
@@ -2100,7 +2112,7 @@ impl ScriptThread {
                                      content_type,
                                      last_modified,
                                      incomplete.activity,
-                                     DocumentSource::FromParser,
+                                     document_source,
                                      loader,
                                      referrer,
                                      referrer_policy);

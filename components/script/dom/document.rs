@@ -247,6 +247,7 @@ pub struct Document {
     scripts: MutNullableJS<HTMLCollection>,
     anchors: MutNullableJS<HTMLCollection>,
     applets: MutNullableJS<HTMLCollection>,
+    source: DocumentSource,
     /// Lock use for style attributes and author-origin stylesheet objects in this document.
     /// Can be acquired once for accessing many objects.
     style_shared_lock: StyleSharedRwLock,
@@ -1740,12 +1741,14 @@ impl Document {
                 // http://w3c.github.io/navigation-timing/#widl-PerformanceNavigationTiming-loadEventStart
                 update_with_current_time_ms(&document.load_event_start);
 
-                debug!("About to dispatch load for {:?}", document.url());
-                // FIXME(nox): Why are errors silenced here?
-                let _ = window.upcast::<EventTarget>().dispatch_event_with_target(
-                    document.upcast(),
-                    &event,
-                );
+                if document.source != DocumentSource::InitialAboutBlank {
+                    debug!("About to dispatch load for {:?}", document.url());
+                    // FIXME(nox): Why are errors silenced here?
+                    let _ = window.upcast::<EventTarget>().dispatch_event_with_target(
+                        document.upcast(),
+                        &event,
+                    );
+                }
 
                 // http://w3c.github.io/navigation-timing/#widl-PerformanceNavigationTiming-loadEventEnd
                 update_with_current_time_ms(&document.load_event_end);
@@ -1756,7 +1759,9 @@ impl Document {
                     ReflowReason::DocumentLoaded,
                 );
 
-                document.notify_constellation_load();
+                if document.source != DocumentSource::InitialAboutBlank {
+                    document.notify_constellation_load();
+                }
 
                 if let Some(fragment) = document.url().fragment() {
                     document.check_and_scroll_fragment(fragment);
@@ -2074,9 +2079,10 @@ impl Document {
     }
 }
 
-#[derive(HeapSizeOf, PartialEq)]
+#[derive(HeapSizeOf, JSTraceable, PartialEq)]
 pub enum DocumentSource {
     FromParser,
+    InitialAboutBlank,
     NotFromParser,
 }
 
@@ -2307,6 +2313,7 @@ impl Document {
             dom_count: Cell::new(1),
             fullscreen_element: MutNullableJS::new(None),
             form_id_listener_map: Default::default(),
+            source: source,
         }
     }
 
