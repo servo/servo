@@ -838,6 +838,12 @@ where
                propagated_hint,
                child.implemented_pseudo_element());
 
+        // Make sure to not run style invalidation of styled elements in an
+        // unstyled-children-only traversal.
+        if child_data.is_some() && flags.intersects(traversal_flags::UnstyledOnly) {
+            continue;
+        }
+
         if let Some(ref mut child_data) = child_data {
             // Propagate the parent restyle hint, that may make us restyle the whole
             // subtree.
