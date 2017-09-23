@@ -97,10 +97,10 @@ impl Flow for MulticolFlow {
         {
             let column_style = self.block_flow.fragment.style.get_column();
 
-            let column_gap = Au::from(match column_style.column_gap {
-                Either::First(len) => len,
-                Either::Second(_normal) => self.block_flow.fragment.style.get_font().font_size,
-            });
+            let column_gap = match column_style.column_gap {
+                Either::First(len) => len.into(),
+                Either::Second(_normal) => self.block_flow.fragment.style.get_font().font_size.size(),
+            };
 
             let mut column_count;
             if let Either::First(column_width) = column_style.column_width {

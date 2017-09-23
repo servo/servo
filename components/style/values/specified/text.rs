@@ -100,7 +100,7 @@ impl ToComputedValue for LineHeight {
             GenericLineHeight::Length(ref non_negative_lop) => {
                 let result = match non_negative_lop.0 {
                     LengthOrPercentage::Length(NoCalcLength::Absolute(ref abs)) => {
-                        context.maybe_zoom_text(abs.to_computed_value(context))
+                        context.maybe_zoom_text(abs.to_computed_value(context).into()).0
                     }
                     LengthOrPercentage::Length(ref length) => {
                         length.to_computed_value(context)

@@ -18,7 +18,7 @@ use style_traits::{ToCss, ParseError, StyleParseError};
 use style_traits::values::specified::AllowedNumericType;
 use stylesheets::CssRuleType;
 use super::{AllowQuirks, Number, ToComputedValue, Percentage};
-use values::{Auto, CSSFloat, Either, FONT_MEDIUM_PX, None_, Normal};
+use values::{Auto, CSSFloat, Either, None_, Normal};
 use values::{ExtremumLength, serialize_dimension};
 use values::computed::{self, CSSPixelLength, Context};
 use values::generics::NonNegative;
@@ -96,8 +96,8 @@ impl FontBaseSize {
     pub fn resolve(&self, context: &Context) -> Au {
         match *self {
             FontBaseSize::Custom(size) => size,
-            FontBaseSize::CurrentStyle => Au::from(context.style().get_font().clone_font_size()),
-            FontBaseSize::InheritedStyle => Au::from(context.style().get_parent_font().clone_font_size()),
+            FontBaseSize::CurrentStyle => context.style().get_font().clone_font_size().size(),
+            FontBaseSize::InheritedStyle => context.style().get_parent_font().clone_font_size().size(),
         }
     }
 }
@@ -569,12 +569,6 @@ impl NoCalcLength {
             NoCalcLength::Physical(length) => length.is_zero(),
             _ => false
         }
-    }
-
-    #[inline]
-    /// Returns a `medium` length.
-    pub fn medium() -> NoCalcLength {
-        NoCalcLength::Absolute(AbsoluteLength::Px(FONT_MEDIUM_PX as f32))
     }
 
     /// Get an absolute length from a px value.

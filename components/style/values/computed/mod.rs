@@ -67,6 +67,7 @@ pub mod box_;
 pub mod color;
 pub mod effects;
 pub mod flex;
+pub mod font;
 pub mod image;
 #[cfg(feature = "gecko")]
 pub mod gecko;
@@ -159,7 +160,7 @@ impl<'a> Context<'a> {
 
     /// Apply text-zoom if enabled.
     #[cfg(feature = "gecko")]
-    pub fn maybe_zoom_text(&self, size: CSSPixelLength) -> CSSPixelLength {
+    pub fn maybe_zoom_text(&self, size: NonNegativeLength) -> NonNegativeLength {
         // We disable zoom for <svg:text> by unsetting the
         // -x-text-zoom property, which leads to a false value
         // in mAllowZoom
@@ -172,7 +173,7 @@ impl<'a> Context<'a> {
 
     /// (Servo doesn't do text-zoom)
     #[cfg(feature = "servo")]
-    pub fn maybe_zoom_text(&self, size: CSSPixelLength) -> CSSPixelLength {
+    pub fn maybe_zoom_text(&self, size: NonNegativeLength) -> NonNegativeLength {
         size
     }
 }

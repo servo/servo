@@ -10,7 +10,6 @@ pub type ServoUnsafeCell<T> = ::std::cell::UnsafeCell<T>;
 pub type ServoCell<T> = ::std::cell::Cell<T>;
 pub type ServoNodeData = AtomicRefCell<ElementData>;
 pub type ServoWritingMode = ::logical_geometry::WritingMode;
-pub type ServoFontComputationData = ::properties::FontComputationData;
 pub type ServoCustomPropertiesMap = Option<::servo_arc::Arc<::custom_properties::CustomPropertiesMap>>;
 pub type ServoRuleNode = Option<::rule_tree::StrongRuleNode>;
 pub type ServoVisitedStyle = Option<::servo_arc::RawOffsetArc<::properties::ComputedValues>>;
@@ -440,6 +439,7 @@ pub mod root {
     pub const NS_STYLE_FONT_SIZE_XXXLARGE: ::std::os::raw::c_uint = 7;
     pub const NS_STYLE_FONT_SIZE_LARGER: ::std::os::raw::c_uint = 8;
     pub const NS_STYLE_FONT_SIZE_SMALLER: ::std::os::raw::c_uint = 9;
+    pub const NS_STYLE_FONT_SIZE_NO_KEYWORD: ::std::os::raw::c_uint = 10;
     pub const NS_STYLE_FONT_STRETCH_ULTRA_CONDENSED: ::std::os::raw::c_int =
         -4;
     pub const NS_STYLE_FONT_STRETCH_EXTRA_CONDENSED: ::std::os::raw::c_int =
@@ -4462,19 +4462,6 @@ pub mod root {
             FirstLetterContinuation = 1,
             PlaceholderFrame = 2,
         }
-        #[repr(u32)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-        pub enum ServoKeywordSize {
-            Empty = 0,
-            XXSmall = 1,
-            XSmall = 2,
-            Small = 3,
-            Medium = 4,
-            Large = 5,
-            XLarge = 6,
-            XXLarge = 7,
-            XXXLarge = 8,
-        }
         #[repr(C)]
         #[derive(Debug)]
         pub struct ServoStyleContext {
@@ -4486,7 +4473,7 @@ pub mod root {
         }
         #[test]
         fn bindgen_test_layout_ServoStyleContext() {
-            assert_eq!(::std::mem::size_of::<ServoStyleContext>() , 280usize ,
+            assert_eq!(::std::mem::size_of::<ServoStyleContext>() , 264usize ,
                        concat ! (
                        "Size of: " , stringify ! ( ServoStyleContext ) ));
             assert_eq! (::std::mem::align_of::<ServoStyleContext>() , 8usize ,
@@ -4509,14 +4496,14 @@ pub mod root {
             assert_eq! (unsafe {
                         & ( * ( 0 as * const ServoStyleContext ) ) .
                         mNextInheritingAnonBoxStyle as * const _ as usize } ,
-                        264usize , concat ! (
+                        248usize , concat ! (
                         "Alignment of field: " , stringify ! (
                         ServoStyleContext ) , "::" , stringify ! (
                         mNextInheritingAnonBoxStyle ) ));
             assert_eq! (unsafe {
                         & ( * ( 0 as * const ServoStyleContext ) ) .
                         mNextLazyPseudoStyle as * const _ as usize } ,
-                        272usize , concat ! (
+                        256usize , concat ! (
                         "Alignment of field: " , stringify ! (
                         ServoStyleContext ) , "::" , stringify ! (
                         mNextLazyPseudoStyle ) ));
@@ -4528,7 +4515,7 @@ pub mod root {
         }
         #[test]
         fn bindgen_test_layout_GeckoFont() {
-            assert_eq!(::std::mem::size_of::<GeckoFont>() , 120usize , concat
+            assert_eq!(::std::mem::size_of::<GeckoFont>() , 128usize , concat
                        ! ( "Size of: " , stringify ! ( GeckoFont ) ));
             assert_eq! (::std::mem::align_of::<GeckoFont>() , 8usize , concat
                         ! ( "Alignment of " , stringify ! ( GeckoFont ) ));
@@ -12647,6 +12634,9 @@ pub mod root {
     pub struct nsStyleFont {
         pub mFont: root::nsFont,
         pub mSize: root::nscoord,
+        pub mFontSizeFactor: f32,
+        pub mFontSizeOffset: root::nscoord,
+        pub mFontSizeKeyword: u8,
         pub mGenericID: u8,
         pub mScriptLevel: i8,
         pub mMathVariant: u8,
@@ -12662,7 +12652,7 @@ pub mod root {
     pub const nsStyleFont_kHasFinishStyle: bool = false;
     #[test]
     fn bindgen_test_layout_nsStyleFont() {
-        assert_eq!(::std::mem::size_of::<nsStyleFont>() , 120usize , concat !
+        assert_eq!(::std::mem::size_of::<nsStyleFont>() , 128usize , concat !
                    ( "Size of: " , stringify ! ( nsStyleFont ) ));
         assert_eq! (::std::mem::align_of::<nsStyleFont>() , 8usize , concat !
                     ( "Alignment of " , stringify ! ( nsStyleFont ) ));
@@ -12677,60 +12667,75 @@ pub mod root {
                     "Alignment of field: " , stringify ! ( nsStyleFont ) ,
                     "::" , stringify ! ( mSize ) ));
         assert_eq! (unsafe {
+                    & ( * ( 0 as * const nsStyleFont ) ) . mFontSizeFactor as
+                    * const _ as usize } , 92usize , concat ! (
+                    "Alignment of field: " , stringify ! ( nsStyleFont ) ,
+                    "::" , stringify ! ( mFontSizeFactor ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const nsStyleFont ) ) . mFontSizeOffset as
+                    * const _ as usize } , 96usize , concat ! (
+                    "Alignment of field: " , stringify ! ( nsStyleFont ) ,
+                    "::" , stringify ! ( mFontSizeOffset ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const nsStyleFont ) ) . mFontSizeKeyword as
+                    * const _ as usize } , 100usize , concat ! (
+                    "Alignment of field: " , stringify ! ( nsStyleFont ) ,
+                    "::" , stringify ! ( mFontSizeKeyword ) ));
+        assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleFont ) ) . mGenericID as *
-                    const _ as usize } , 92usize , concat ! (
+                    const _ as usize } , 101usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleFont ) ,
                     "::" , stringify ! ( mGenericID ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleFont ) ) . mScriptLevel as *
-                    const _ as usize } , 93usize , concat ! (
+                    const _ as usize } , 102usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleFont ) ,
                     "::" , stringify ! ( mScriptLevel ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleFont ) ) . mMathVariant as *
-                    const _ as usize } , 94usize , concat ! (
+                    const _ as usize } , 103usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleFont ) ,
                     "::" , stringify ! ( mMathVariant ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleFont ) ) . mMathDisplay as *
-                    const _ as usize } , 95usize , concat ! (
+                    const _ as usize } , 104usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleFont ) ,
                     "::" , stringify ! ( mMathDisplay ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleFont ) ) . mMinFontSizeRatio
-                    as * const _ as usize } , 96usize , concat ! (
+                    as * const _ as usize } , 105usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleFont ) ,
                     "::" , stringify ! ( mMinFontSizeRatio ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleFont ) ) . mExplicitLanguage
-                    as * const _ as usize } , 97usize , concat ! (
+                    as * const _ as usize } , 106usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleFont ) ,
                     "::" , stringify ! ( mExplicitLanguage ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleFont ) ) . mAllowZoom as *
-                    const _ as usize } , 98usize , concat ! (
+                    const _ as usize } , 107usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleFont ) ,
                     "::" , stringify ! ( mAllowZoom ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleFont ) ) .
                     mScriptUnconstrainedSize as * const _ as usize } ,
-                    100usize , concat ! (
+                    108usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleFont ) ,
                     "::" , stringify ! ( mScriptUnconstrainedSize ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleFont ) ) . mScriptMinSize as *
-                    const _ as usize } , 104usize , concat ! (
+                    const _ as usize } , 112usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleFont ) ,
                     "::" , stringify ! ( mScriptMinSize ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleFont ) ) .
-                    mScriptSizeMultiplier as * const _ as usize } , 108usize ,
+                    mScriptSizeMultiplier as * const _ as usize } , 116usize ,
                     concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleFont ) ,
                     "::" , stringify ! ( mScriptSizeMultiplier ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleFont ) ) . mLanguage as *
-                    const _ as usize } , 112usize , concat ! (
+                    const _ as usize } , 120usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleFont ) ,
                     "::" , stringify ! ( mLanguage ) ));
     }
@@ -14809,11 +14814,10 @@ pub mod root {
         /// /// relevant link for this element. A element's "relevant link" is the
         /// /// element being matched if it is a link or the nearest ancestor link.
         pub visited_style: ::gecko_bindings::structs::ServoVisitedStyle,
-        pub font_computation_data: ::gecko_bindings::structs::ServoFontComputationData,
     }
     #[test]
     fn bindgen_test_layout_ServoComputedData() {
-        assert_eq!(::std::mem::size_of::<ServoComputedData>() , 232usize ,
+        assert_eq!(::std::mem::size_of::<ServoComputedData>() , 216usize ,
                    concat ! ( "Size of: " , stringify ! ( ServoComputedData )
                    ));
         assert_eq! (::std::mem::align_of::<ServoComputedData>() , 8usize ,
@@ -14960,12 +14964,6 @@ pub mod root {
                     as * const _ as usize } , 208usize , concat ! (
                     "Alignment of field: " , stringify ! ( ServoComputedData )
                     , "::" , stringify ! ( visited_style ) ));
-        assert_eq! (unsafe {
-                    & ( * ( 0 as * const ServoComputedData ) ) .
-                    font_computation_data as * const _ as usize } , 216usize ,
-                    concat ! (
-                    "Alignment of field: " , stringify ! ( ServoComputedData )
-                    , "::" , stringify ! ( font_computation_data ) ));
     }
     #[repr(u32)]
     #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]

@@ -596,347 +596,36 @@ ${helpers.single_keyword_system("font-variant-caps",
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="font-size" animation_value_type="NonNegativeLength"
+<%helpers:longhand name="font-size" animation_value_type="ComputedValue"
                    flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER"
                    allow_quirks="True" spec="https://drafts.csswg.org/css-fonts/#propdef-font-size">
     use app_units::Au;
-    use properties::longhands::system_font::SystemFont;
-    use std::fmt;
-    use style_traits::ToCss;
-    use values::FONT_MEDIUM_PX;
-    use values::computed::NonNegativeLength;
-    use values::specified::{AllowQuirks, FontRelativeLength, LengthOrPercentage, NoCalcLength};
+    use values::specified::AllowQuirks;
     use values::specified::length::FontBaseSize;
-
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match *self {
-                SpecifiedValue::Length(ref lop) => lop.to_css(dest),
-                SpecifiedValue::Keyword(kw, _, _) => kw.to_css(dest),
-                SpecifiedValue::Smaller => dest.write_str("smaller"),
-                SpecifiedValue::Larger => dest.write_str("larger"),
-                SpecifiedValue::System(sys) => sys.to_css(dest),
-            }
-        }
-    }
-
-    #[derive(Clone, Debug, PartialEq)]
-    #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub enum SpecifiedValue {
-        Length(specified::LengthOrPercentage),
-        /// A keyword value, along with a ratio and absolute offset.
-        /// The ratio in any specified keyword value
-        /// will be 1 (with offset 0), but we cascade keywordness even
-        /// after font-relative (percent and em) values
-        /// have been applied, which is where the ratio
-        /// comes in. The offset comes in if we cascaded a calc value,
-        /// where the font-relative portion (em and percentage) will
-        /// go into the ratio, and the remaining units all computed together
-        /// will go into the offset.
-        /// See bug 1355707.
-        Keyword(KeywordSize, f32, NonNegativeLength),
-        Smaller,
-        Larger,
-        System(SystemFont)
-    }
-
-    impl From<specified::LengthOrPercentage> for SpecifiedValue {
-        fn from(other: specified::LengthOrPercentage) -> Self {
-            SpecifiedValue::Length(other)
-        }
-    }
+    use values::specified::font::{FONT_MEDIUM_PX, KeywordSize};
+    use values::computed::font::{KeywordInfo};
 
     pub mod computed_value {
-        use values::computed::NonNegativeLength;
-        pub type T = NonNegativeLength;
+        use values::computed::font;
+        pub type T = font::FontSize;
     }
 
-    /// CSS font keywords
-    #[derive(Clone, Copy, Debug, PartialEq)]
-    #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub enum KeywordSize {
-        XXSmall = 1, // This is to enable the NonZero optimization
-                     // which simplifies the representation of Option<KeywordSize>
-                     // in bindgen
-        XSmall,
-        Small,
-        Medium,
-        Large,
-        XLarge,
-        XXLarge,
-        // This is not a real font keyword and will not parse
-        // HTML font-size 7 corresponds to this value
-        XXXLarge,
-    }
-
-    pub use self::KeywordSize::*;
-
-    impl KeywordSize {
-        pub fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-            try_match_ident_ignore_ascii_case! { input.expect_ident()?,
-                "xx-small" => Ok(XXSmall),
-                "x-small" => Ok(XSmall),
-                "small" => Ok(Small),
-                "medium" => Ok(Medium),
-                "large" => Ok(Large),
-                "x-large" => Ok(XLarge),
-                "xx-large" => Ok(XXLarge),
-            }
-        }
-
-        pub fn html_size(&self) -> u8 {
-            match *self {
-                KeywordSize::XXSmall => 0,
-                KeywordSize::XSmall => 1,
-                KeywordSize::Small => 2,
-                KeywordSize::Medium => 3,
-                KeywordSize::Large => 4,
-                KeywordSize::XLarge => 5,
-                KeywordSize::XXLarge => 6,
-                KeywordSize::XXXLarge => 7,
-            }
-        }
-    }
-
-    impl Default for KeywordSize {
-        fn default() -> Self {
-            Medium
-        }
-    }
-
-    impl ToCss for KeywordSize {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            dest.write_str(match *self {
-                XXSmall => "xx-small",
-                XSmall => "x-small",
-                Small => "small",
-                Medium => "medium",
-                Large => "large",
-                XLarge => "x-large",
-                XXLarge => "xx-large",
-                XXXLarge => unreachable!("We should never serialize \
-                                          specified values set via
-                                          HTML presentation attributes"),
-            })
-        }
-    }
-
-    % if product == "servo":
-        impl ToComputedValue for KeywordSize {
-            type ComputedValue = NonNegativeLength;
-            #[inline]
-            fn to_computed_value(&self, _: &Context) -> computed_value::T {
-                // https://drafts.csswg.org/css-fonts-3/#font-size-prop
-                use values::FONT_MEDIUM_PX;
-                match *self {
-                    XXSmall => Au::from_px(FONT_MEDIUM_PX) * 3 / 5,
-                    XSmall => Au::from_px(FONT_MEDIUM_PX) * 3 / 4,
-                    Small => Au::from_px(FONT_MEDIUM_PX) * 8 / 9,
-                    Medium => Au::from_px(FONT_MEDIUM_PX),
-                    Large => Au::from_px(FONT_MEDIUM_PX) * 6 / 5,
-                    XLarge => Au::from_px(FONT_MEDIUM_PX) * 3 / 2,
-                    XXLarge => Au::from_px(FONT_MEDIUM_PX) * 2,
-                    XXXLarge => Au::from_px(FONT_MEDIUM_PX) * 3,
-                }.into()
-            }
-
-            #[inline]
-            fn from_computed_value(_: &computed_value::T) -> Self {
-                unreachable!()
-            }
-        }
-    % else:
-        impl ToComputedValue for KeywordSize {
-            type ComputedValue = NonNegativeLength;
-            #[inline]
-            fn to_computed_value(&self, cx: &Context) -> computed_value::T {
-                use gecko_bindings::structs::nsIAtom;
-                use values::specified::length::au_to_int_px;
-                // Data from nsRuleNode.cpp in Gecko
-                // Mapping from base size and HTML size to pixels
-                // The first index is (base_size - 9), the second is the
-                // HTML size. "0" is CSS keyword xx-small, not HTML size 0,
-                // since HTML size 0 is the same as 1.
-                //
-                //  xxs   xs      s      m     l      xl     xxl   -
-                //  -     0/1     2      3     4      5      6     7
-                static FONT_SIZE_MAPPING: [[i32; 8]; 8] = [
-                    [9,    9,     9,     9,    11,    14,    18,    27],
-                    [9,    9,     9,    10,    12,    15,    20,    30],
-                    [9,    9,    10,    11,    13,    17,    22,    33],
-                    [9,    9,    10,    12,    14,    18,    24,    36],
-                    [9,   10,    12,    13,    16,    20,    26,    39],
-                    [9,   10,    12,    14,    17,    21,    28,    42],
-                    [9,   10,    13,    15,    18,    23,    30,    45],
-                    [9,   10,    13,    16,    18,    24,    32,    48]
-                ];
-
-                static FONT_SIZE_FACTORS: [i32; 8] = [60, 75, 89, 100, 120, 150, 200, 300];
-
-                // XXXManishearth handle quirks mode
-
-                let ref gecko_font = cx.style().get_font().gecko();
-                let base_size = unsafe { Atom::with(gecko_font.mLanguage.raw::<nsIAtom>(), |atom| {
-                    cx.font_metrics_provider.get_size(atom, gecko_font.mGenericID).0
-                }) };
-
-                let base_size_px = au_to_int_px(base_size as f32);
-                let html_size = self.html_size() as usize;
-                if base_size_px >= 9 && base_size_px <= 16 {
-                    NonNegativeLength::new(FONT_SIZE_MAPPING[(base_size_px - 9) as usize][html_size] as f32)
-                } else {
-                    Au(FONT_SIZE_FACTORS[html_size] * base_size / 100).into()
-                }
-            }
-
-            #[inline]
-            fn from_computed_value(_: &computed_value::T) -> Self {
-                unreachable!()
-            }
-        }
-    % endif
-
-    /// This is the ratio applied for font-size: larger
-    /// and smaller by both Firefox and Chrome
-    const LARGER_FONT_SIZE_RATIO: f32 = 1.2;
-
-    impl SpecifiedValue {
-        /// https://html.spec.whatwg.org/multipage/#rules-for-parsing-a-legacy-font-size
-        pub fn from_html_size(size: u8) -> Self {
-            SpecifiedValue::Keyword(match size {
-                // If value is less than 1, let it be 1.
-                0 | 1 => XSmall,
-                2 => Small,
-                3 => Medium,
-                4 => Large,
-                5 => XLarge,
-                6 => XXLarge,
-                // If value is greater than 7, let it be 7.
-                _ => XXXLarge,
-            }, 1., Au(0).into())
-        }
-
-        /// If this value is specified as a ratio of the parent font (em units
-        /// or percent) return the ratio
-        pub fn as_font_ratio(&self, context: &Context) -> Option<(f32, NonNegativeLength)> {
-            match *self {
-                SpecifiedValue::Length(ref lop) => {
-                    match *lop {
-                        LengthOrPercentage::Percentage(pc) => {
-                            Some((pc.0, NonNegativeLength::zero()))
-                        }
-                        LengthOrPercentage::Length(ref nocalc) => {
-                            match *nocalc {
-                                NoCalcLength::FontRelative(FontRelativeLength::Em(em)) => {
-                                    Some((em, NonNegativeLength::zero()))
-                                }
-                                _ => None,
-                            }
-                        }
-                        LengthOrPercentage::Calc(ref calc) => {
-                            if calc.em.is_none() && calc.percentage.is_none() {
-                                return None;
-                            }
-                            let ratio = calc.em.unwrap_or(0.) + calc.percentage.map_or(0., |pc| pc.0);
-                            // Compute it, but shave off the font-relative part (em, %)
-                            // This will mean that other font-relative units like ex and ch will be computed against
-                            // the old font even when the font changes. There's no particular "right answer" for what
-                            // to do here -- Gecko recascades as if the font had changed, we instead track the changes
-                            // and reapply, which means that we carry over old computed ex/ch values whilst Gecko
-                            // recomputes new ones. This is enough of an edge case to not really matter.
-                            let abs = calc.to_computed_value_zoomed(context, FontBaseSize::Custom(Au(0)))
-                                          .length_component().into();
-                            Some((ratio, abs))
-                        }
-                    }
-                }
-                SpecifiedValue::Larger => Some((LARGER_FONT_SIZE_RATIO, Au(0).into())),
-                SpecifiedValue::Smaller => Some((1. / LARGER_FONT_SIZE_RATIO, Au(0).into())),
-                _ => None,
-            }
-        }
-
-        /// Compute it against a given base font size
-        pub fn to_computed_value_against(
-            &self,
-            context: &Context,
-            base_size: FontBaseSize,
-        ) -> NonNegativeLength {
-            use values::specified::length::FontRelativeLength;
-            match *self {
-                SpecifiedValue::Length(LengthOrPercentage::Length(
-                        NoCalcLength::FontRelative(value))) => {
-                    value.to_computed_value(context, base_size).into()
-                }
-                SpecifiedValue::Length(LengthOrPercentage::Length(
-                        NoCalcLength::ServoCharacterWidth(value))) => {
-                    value.to_computed_value(base_size.resolve(context)).into()
-                }
-                SpecifiedValue::Length(LengthOrPercentage::Length(
-                        NoCalcLength::Absolute(ref l))) => {
-                    context.maybe_zoom_text(l.to_computed_value(context)).into()
-                }
-                SpecifiedValue::Length(LengthOrPercentage::Length(ref l)) => {
-                    l.to_computed_value(context).into()
-                }
-                SpecifiedValue::Length(LengthOrPercentage::Percentage(pc)) => {
-                    base_size.resolve(context).scale_by(pc.0).into()
-                }
-                SpecifiedValue::Length(LengthOrPercentage::Calc(ref calc)) => {
-                    let calc = calc.to_computed_value_zoomed(context, base_size);
-                    calc.to_used_value(Some(base_size.resolve(context))).unwrap().into()
-                }
-                SpecifiedValue::Keyword(ref key, fraction, offset) => {
-                    let key_len = key.to_computed_value(context).scale_by(fraction) + offset;
-                    context.maybe_zoom_text(key_len.0).into()
-                }
-                SpecifiedValue::Smaller => {
-                    FontRelativeLength::Em(1. / LARGER_FONT_SIZE_RATIO)
-                        .to_computed_value(context, base_size).into()
-                }
-                SpecifiedValue::Larger => {
-                    FontRelativeLength::Em(LARGER_FONT_SIZE_RATIO)
-                        .to_computed_value(context, base_size).into()
-                }
-
-                SpecifiedValue::System(_) => {
-                    <%self:nongecko_unreachable>
-                        context.cached_system_font.as_ref().unwrap().font_size
-                    </%self:nongecko_unreachable>
-                }
-            }
-        }
-    }
+    pub use values::specified::font::FontSize as SpecifiedValue;
 
     #[inline]
     #[allow(missing_docs)]
     pub fn get_initial_value() -> computed_value::T {
-        NonNegativeLength::new(FONT_MEDIUM_PX as f32)
+        computed_value::T {
+            size: Au::from_px(FONT_MEDIUM_PX).into(),
+            keyword_info: Some(KeywordInfo::medium())
+        }
     }
 
     #[inline]
     pub fn get_initial_specified_value() -> SpecifiedValue {
-        SpecifiedValue::Keyword(Medium, 1., Au(0).into())
+        SpecifiedValue::Keyword(KeywordInfo::medium())
     }
 
-
-    impl ToComputedValue for SpecifiedValue {
-        type ComputedValue = computed_value::T;
-
-        #[inline]
-        fn to_computed_value(&self, context: &Context) -> computed_value::T {
-            self.to_computed_value_against(context, FontBaseSize::InheritedStyle)
-        }
-
-        #[inline]
-        fn from_computed_value(computed: &computed_value::T) -> Self {
-            SpecifiedValue::Length(LengthOrPercentage::Length(
-                ToComputedValue::from_computed_value(&computed.0)
-            ))
-        }
-    }
 
     /// <length> | <percentage> | <absolute-size> | <relative-size>
     pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
@@ -955,7 +644,7 @@ ${helpers.single_keyword_system("font-variant-caps",
         }
 
         if let Ok(kw) = input.try(KeywordSize::parse) {
-            return Ok(SpecifiedValue::Keyword(kw, 1., Au(0).into()))
+            return Ok(SpecifiedValue::Keyword(kw.into()))
         }
 
         try_match_ident_ignore_ascii_case! { input.expect_ident()?,
@@ -964,42 +653,10 @@ ${helpers.single_keyword_system("font-variant-caps",
         }
     }
 
-    impl SpecifiedValue {
-        pub fn system_font(f: SystemFont) -> Self {
-            SpecifiedValue::System(f)
-        }
-        pub fn get_system(&self) -> Option<SystemFont> {
-            if let SpecifiedValue::System(s) = *self {
-                Some(s)
-            } else {
-                None
-            }
-        }
-    }
-
     #[allow(unused_mut)]
     pub fn cascade_specified_font_size(context: &mut Context,
                                        specified_value: &SpecifiedValue,
-                                       mut computed: NonNegativeLength) {
-        if let SpecifiedValue::Keyword(kw, fraction, offset) = *specified_value {
-            context.builder.font_size_keyword = Some((kw, fraction, offset));
-        } else if let Some((ratio, abs)) = specified_value.as_font_ratio(context) {
-            // In case a font-size-relative value was applied to a keyword
-            // value, we must preserve this fact in case the generic font family
-            // changes. relative values (em and %) applied to keywords must be
-            // recomputed from the base size for the keyword and the relative size.
-            //
-            // See bug 1355707
-            if let Some((kw, fraction, old_abs)) = *context.builder.inherited_font_computation_data() {
-                context.builder.font_size_keyword =
-                    Some((kw, fraction * ratio, abs + old_abs.scale_by(ratio)));
-            } else {
-                context.builder.font_size_keyword = None;
-            }
-        } else {
-            context.builder.font_size_keyword = None;
-        }
-
+                                       mut computed: computed_value::T) {
         // we could use clone_language and clone_font_family() here but that's
         // expensive. Do it only in gecko mode for now.
         % if product == "gecko":
@@ -1010,9 +667,9 @@ ${helpers.single_keyword_system("font-variant-caps",
                context.builder.get_parent_font().gecko().mLanguage.raw::<nsIAtom>() ||
                context.builder.get_font().gecko().mGenericID !=
                context.builder.get_parent_font().gecko().mGenericID {
-                if let Some((kw, ratio, offset)) = context.builder.font_size_keyword {
-                    let len = kw.to_computed_value(context).scale_by(ratio) + offset;
-                    computed = context.maybe_zoom_text(len.0).into();
+                if let Some(info) = computed.keyword_info {
+                    computed.size = context.maybe_zoom_text(info.kw.to_computed_value(context)
+                                                                .scale_by(info.factor) + info.offset)
                 }
             }
         % endif
@@ -1031,7 +688,7 @@ ${helpers.single_keyword_system("font-variant-caps",
                     .to_computed_value_against(context, FontBaseSize::Custom(Au::from(parent)));
             context.builder
                    .mutate_font()
-                   .apply_unconstrained_font_size(new_unconstrained);
+                   .apply_unconstrained_font_size(new_unconstrained.size);
         }
     }
 
@@ -1041,22 +698,17 @@ ${helpers.single_keyword_system("font-variant-caps",
         // If inheriting, we must recompute font-size in case of language
         // changes using the font_size_keyword. We also need to do this to
         // handle mathml scriptlevel changes
-        let kw_inherited_size = context.builder.font_size_keyword.map(|(kw, ratio, offset)| {
-            let len = SpecifiedValue::Keyword(kw, ratio, offset).to_computed_value(context);
-            context.maybe_zoom_text(len.0).into()
+        let kw_inherited_size = context.builder.get_parent_font()
+                                       .clone_font_size()
+                                       .keyword_info.map(|info| {
+            context.maybe_zoom_text(SpecifiedValue::Keyword(info)
+                  .to_computed_value(context).size)
         });
-        let parent_kw;
-        let device = context.builder.device;
         let mut font = context.builder.take_font();
-        let used_kw = {
-            let parent_font = context.builder.get_parent_font();
-            parent_kw = *context.builder.inherited_font_computation_data();
-
-            font.inherit_font_size_from(parent_font, kw_inherited_size, device)
-        };
+        font.inherit_font_size_from(context.builder.get_parent_font(),
+                                    kw_inherited_size,
+                                    context.builder.device);
         context.builder.put_font(font);
-        context.builder.font_size_keyword =
-            if used_kw { parent_kw } else { None };
     }
 
     /// Cascade the initial value for the `font-size` property.
@@ -1068,16 +720,14 @@ ${helpers.single_keyword_system("font-variant-caps",
     pub fn cascade_initial_font_size(context: &mut Context) {
         // font-size's default ("medium") does not always
         // compute to the same value and depends on the font
-        let computed = context.maybe_zoom_text(
-                            longhands::font_size::get_initial_specified_value()
-                                .to_computed_value(context).0
-                        ).into();
+        let mut computed = longhands::font_size::get_initial_specified_value()
+                                            .to_computed_value(context);
+        computed.size = context.maybe_zoom_text(computed.size);
         context.builder.mutate_font().set_font_size(computed);
         % if product == "gecko":
             let device = context.builder.device;
             context.builder.mutate_font().fixup_font_min_size(device);
         % endif
-        context.builder.font_size_keyword = Some((Default::default(), 1., Au(0).into()));
     }
 </%helpers:longhand>
 
@@ -2552,7 +2202,10 @@ ${helpers.single_keyword("-moz-math-variant",
                 let weight = longhands::font_weight::computed_value::T::from_gecko_weight(system.weight);
                 let ret = ComputedSystemFont {
                     font_family: longhands::font_family::computed_value::T(family),
-                    font_size: Au(system.size).into(),
+                    font_size: longhands::font_size::computed_value::T {
+                            size: Au(system.size).into(),
+                            keyword_info: None
+                    },
                     font_weight: weight,
                     font_size_adjust: longhands::font_size_adjust::computed_value
                                                ::T::from_gecko_adjust(system.sizeAdjust),
