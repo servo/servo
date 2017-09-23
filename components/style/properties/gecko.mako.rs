@@ -3208,7 +3208,7 @@ fn static_assert() {
                     TransitionProperty::Unsupported(ref ident) => unsafe {
                         Gecko_StyleTransition_SetUnsupportedProperty(gecko, ident.0.as_ptr())
                     },
-                    _ => gecko.mProperty = (&servo).into(),
+                    _ => gecko.mProperty = servo.to_nscsspropertyid().unwrap(),
                 }
             }
         } else {

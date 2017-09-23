@@ -4,12 +4,22 @@
 
 use cssparser::SourceLocation;
 use servo_arc::Arc;
-use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, Importance};
-use style::properties::animated_properties::AnimatableLonghand;
+use style::properties::{LonghandId, LonghandIdSet, PropertyDeclaration, PropertyDeclarationBlock, Importance};
 use style::shared_lock::SharedRwLock;
 use style::stylesheets::keyframes_rule::{Keyframe, KeyframesAnimation, KeyframePercentage,  KeyframeSelector};
 use style::stylesheets::keyframes_rule::{KeyframesStep, KeyframesStepValue};
 use style::values::specified::{LengthOrPercentageOrAuto, NoCalcLength};
+
+macro_rules! longhand_set {
+    ($($word:ident),+) => {{
+        let mut set = LonghandIdSet::new();
+        $(
+            set.insert(LonghandId::$word);
+        )+
+        set
+    }}
+}
+
 
 #[test]
 fn test_empty_keyframe() {
@@ -20,7 +30,7 @@ fn test_empty_keyframe() {
                                                        &shared_lock.read());
     let expected = KeyframesAnimation {
         steps: vec![],
-        properties_changed: vec![],
+        properties_changed: LonghandIdSet::new(),
         vendor_prefix: None,
     };
 
@@ -43,7 +53,7 @@ fn test_no_property_in_keyframe() {
                                                        &shared_lock.read());
     let expected = KeyframesAnimation {
         steps: vec![],
-        properties_changed: vec![],
+        properties_changed: LonghandIdSet::new(),
         vendor_prefix: None,
     };
 
@@ -106,7 +116,7 @@ fn test_missing_property_in_initial_keyframe() {
                 declared_timing_function: false,
             },
         ],
-        properties_changed: vec![AnimatableLonghand::Width, AnimatableLonghand::Height],
+        properties_changed: longhand_set!(Width, Height),
         vendor_prefix: None,
     };
 
@@ -169,7 +179,7 @@ fn test_missing_property_in_final_keyframe() {
                 declared_timing_function: false,
             },
         ],
-        properties_changed: vec![AnimatableLonghand::Width, AnimatableLonghand::Height],
+        properties_changed: longhand_set!(Width, Height),
         vendor_prefix: None,
     };
 
@@ -234,7 +244,7 @@ fn test_missing_keyframe_in_both_of_initial_and_final_keyframe() {
                 declared_timing_function: false,
             }
         ],
-        properties_changed: vec![AnimatableLonghand::Width, AnimatableLonghand::Height],
+        properties_changed: longhand_set!(Width, Height),
         vendor_prefix: None,
     };
 

@@ -156,10 +156,11 @@ pub struct AnimationValueIterator<'a, 'cx, 'cx_a:'cx> {
 }
 
 impl<'a, 'cx, 'cx_a:'cx> AnimationValueIterator<'a, 'cx, 'cx_a> {
-    fn new(declarations: &'a PropertyDeclarationBlock,
-           context: &'cx mut Context<'cx_a>,
-           default_values: &'a ComputedValues,
-           extra_custom_properties: &'a Option<Arc<::custom_properties::CustomPropertiesMap>>,
+    fn new(
+        declarations: &'a PropertyDeclarationBlock,
+        context: &'cx mut Context<'cx_a>,
+        default_values: &'a ComputedValues,
+       extra_custom_properties: &'a Option<Arc<::custom_properties::CustomPropertiesMap>>,
     ) -> AnimationValueIterator<'a, 'cx, 'cx_a> {
         AnimationValueIterator {
             iter: declarations.declaration_importance_iter(),
@@ -171,32 +172,29 @@ impl<'a, 'cx, 'cx_a:'cx> AnimationValueIterator<'a, 'cx, 'cx_a> {
 }
 
 impl<'a, 'cx, 'cx_a:'cx> Iterator for AnimationValueIterator<'a, 'cx, 'cx_a> {
-    type Item = (AnimatableLonghand, AnimationValue);
+    type Item = AnimationValue;
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             let next = self.iter.next();
-            match next {
-                Some((decl, importance)) => {
-                    if importance == Importance::Normal {
-                        let property = AnimatableLonghand::from_declaration(decl);
-                        let animation = AnimationValue::from_declaration(
-                            decl,
-                            &mut self.context,
-                            self.extra_custom_properties,
-                            self.default_values
-                        );
-                        debug_assert!(property.is_none() == animation.is_none(),
-                                      "The failure condition of AnimatableLonghand::from_declaration \
-                                       and AnimationValue::from_declaration should be the same");
-                        // Skip the property if either ::from_declaration fails.
-                        match (property, animation) {
-                            (Some(p), Some(a)) => return Some((p, a)),
-                            (_, _) => {},
-                        }
-                    }
-                },
+            let (decl, importance) = match next {
+                Some(decl_and_importance) => decl_and_importance,
                 None => return None,
+            };
+
+            if importance.important() {
+                continue;
+            }
+
+            let animation = AnimationValue::from_declaration(
+                decl,
+                &mut self.context,
+                self.extra_custom_properties,
+                self.default_values,
+            );
+
+            if let Some(anim) = animation {
+                return Some(anim);
             }
         }
     }
@@ -651,14 +649,14 @@ impl PropertyDeclarationBlock {
         let mut longhands = LonghandIdSet::new();
 
         for (property, animation_value) in animation_value_map.iter() {
-          longhands.set_animatable_longhand_bit(property);
+          longhands.insert(*property);
           declarations.push(animation_value.uncompute());
         }
 
         PropertyDeclarationBlock {
-            declarations: declarations,
+            declarations,
+            longhands,
             declarations_importance: SmallBitVec::from_elem(len as u32, false),
-            longhands: longhands,
         }
     }
 

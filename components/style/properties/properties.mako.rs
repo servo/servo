@@ -33,7 +33,6 @@ use font_metrics::FontMetricsProvider;
 use logical_geometry::WritingMode;
 use media_queries::Device;
 use parser::ParserContext;
-use properties::animated_properties::AnimatableLonghand;
 #[cfg(feature = "gecko")] use properties::longhands::system_font::SystemFont;
 use rule_cache::{RuleCache, RuleCacheConditions};
 use selector_parser::PseudoElement;
@@ -253,12 +252,56 @@ static ${name}: LonghandIdSet = LonghandIdSet {
 
 /// A set of longhand properties
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Debug, PartialEq)]
 pub struct LonghandIdSet {
     storage: [u32; (${len(data.longhands)} - 1 + 32) / 32]
 }
 
+/// An iterator over a set of longhand ids.
+pub struct LonghandIdSetIterator<'a> {
+    longhands: &'a LonghandIdSet,
+    cur: usize,
+}
+
+impl<'a> Iterator for LonghandIdSetIterator<'a> {
+    type Item = LonghandId;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        use std::mem;
+
+        loop {
+            if self.cur >= ${len(data.longhands)} {
+                return None;
+            }
+
+            let id: LonghandId = unsafe { mem::transmute(self.cur as ${"u16" if product == "gecko" else "u8"}) };
+            self.cur += 1;
+
+            if self.longhands.contains(id) {
+                return Some(id);
+            }
+        }
+    }
+}
+
 impl LonghandIdSet {
+    /// Iterate over the current longhand id set.
+    pub fn iter(&self) -> LonghandIdSetIterator {
+        LonghandIdSetIterator { longhands: self, cur: 0, }
+    }
+
+    /// Returns whether this set contains at least every longhand that `other`
+    /// also contains.
+    pub fn contains_all(&self, other: &Self) -> bool {
+        for (self_cell, other_cell) in self.storage.iter().zip(other.storage.iter()) {
+            if (*self_cell & *other_cell) != *other_cell {
+                return false;
+            }
+        }
+        true
+    }
+
     /// Create an empty set
     #[inline]
     pub fn new() -> LonghandIdSet {
@@ -294,26 +337,10 @@ impl LonghandIdSet {
         }
     }
 
-    /// Set the corresponding bit of AnimatableLonghand.
-    pub fn set_animatable_longhand_bit(&mut self, property: &AnimatableLonghand) {
-        match *property {
-            % for prop in data.longhands:
-                % if prop.animatable:
-                    AnimatableLonghand::${prop.camel_case} => self.insert(LonghandId::${prop.camel_case}),
-                % endif
-            % endfor
-        }
-    }
-
-    /// Return true if the corresponding bit of AnimatableLonghand is set.
-    pub fn has_animatable_longhand_bit(&self, property: &AnimatableLonghand) -> bool {
-        match *property {
-            % for prop in data.longhands:
-                % if prop.animatable:
-                    AnimatableLonghand::${prop.camel_case} => self.contains(LonghandId::${prop.camel_case}),
-                % endif
-            % endfor
-        }
+    /// Returns whether the set is empty.
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.storage.iter().all(|c| *c == 0)
     }
 }
 
@@ -332,6 +359,24 @@ impl PropertyDeclarationIdSet {
             longhands: LonghandIdSet::new(),
             custom: Vec::new(),
         }
+    }
+
+    /// Returns all the longhands that this set contains.
+    pub fn longhands(&self) -> &LonghandIdSet {
+        &self.longhands
+    }
+
+    /// Returns whether the set is empty.
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.longhands.is_empty() && self.custom.is_empty()
+    }
+
+    /// Clears the set.
+    #[inline]
+    pub fn clear(&mut self) {
+        self.longhands.clear();
+        self.custom.clear();
     }
 
     /// Returns whether the given ID is in the set
@@ -421,7 +466,7 @@ bitflags! {
 }
 
 /// An identifier for a given longhand property.
-#[derive(Clone, Copy, Eq, PartialEq)]
+#[derive(Clone, Copy, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum LonghandId {
@@ -512,6 +557,50 @@ impl LonghandId {
                     % endif
                 }
             % endfor
+        }
+    }
+
+    /// Returns whether this property is animatable.
+    pub fn is_animatable(self) -> bool {
+        match self {
+            % for property in data.longhands:
+            LonghandId::${property.camel_case} => {
+                ${str(property.animatable).lower()}
+            }
+            % endfor
+        }
+    }
+
+    /// Returns whether this property is animatable in a discrete way.
+    pub fn is_discrete_animatable(self) -> bool {
+        match self {
+            % for property in data.longhands:
+            LonghandId::${property.camel_case} => {
+                ${str(property.animation_value_type == "discrete").lower()}
+            }
+            % endfor
+        }
+    }
+
+    /// Converts from a LonghandId to an adequate nsCSSPropertyID.
+    #[cfg(feature = "gecko")]
+    pub fn to_nscsspropertyid(self) -> nsCSSPropertyID {
+        match self {
+            % for property in data.longhands:
+            LonghandId::${property.camel_case} => {
+                ${helpers.to_nscsspropertyid(property.ident)}
+            }
+            % endfor
+        }
+    }
+
+    #[cfg(feature = "gecko")]
+    #[allow(non_upper_case_globals)]
+    /// Returns a longhand id from Gecko's nsCSSPropertyID.
+    pub fn from_nscsspropertyid(id: nsCSSPropertyID) -> Result<Self, ()> {
+        match PropertyId::from_nscsspropertyid(id) {
+            Ok(PropertyId::Longhand(id)) => Ok(id),
+            _ => Err(()),
         }
     }
 
@@ -642,7 +731,8 @@ impl LonghandId {
 
 /// An identifier for a given shorthand property.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Copy, Debug, Eq, PartialEq, ToCss)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, ToCss)]
 pub enum ShorthandId {
     % for property in data.shorthands:
         /// ${property.name}
@@ -656,6 +746,18 @@ impl ShorthandId {
         match *self {
             % for property in data.shorthands:
                 ShorthandId::${property.camel_case} => "${property.name}",
+            % endfor
+        }
+    }
+
+    /// Converts from a ShorthandId to an adequate nsCSSPropertyID.
+    #[cfg(feature = "gecko")]
+    pub fn to_nscsspropertyid(self) -> nsCSSPropertyID {
+        match self {
+            % for property in data.shorthands:
+            ShorthandId::${property.camel_case} => {
+                ${helpers.to_nscsspropertyid(property.ident)}
+            }
             % endfor
         }
     }
@@ -1112,23 +1214,9 @@ impl PropertyId {
     #[cfg(feature = "gecko")]
     #[allow(non_upper_case_globals)]
     pub fn to_nscsspropertyid(&self) -> Result<nsCSSPropertyID, ()> {
-        use gecko_bindings::structs::*;
-
         match *self {
-            PropertyId::Longhand(id) => match id {
-                % for property in data.longhands:
-                    LonghandId::${property.camel_case} => {
-                        Ok(${helpers.to_nscsspropertyid(property.ident)})
-                    }
-                % endfor
-            },
-            PropertyId::Shorthand(id) => match id {
-                % for property in data.shorthands:
-                    ShorthandId::${property.camel_case} => {
-                        Ok(${helpers.to_nscsspropertyid(property.ident)})
-                    }
-                % endfor
-            },
+            PropertyId::Longhand(id) => Ok(id.to_nscsspropertyid()),
+            PropertyId::Shorthand(id) => Ok(id.to_nscsspropertyid()),
             _ => Err(())
         }
     }
@@ -1485,8 +1573,8 @@ impl PropertyDeclaration {
         }
     }
 
-    /// Returns true if this property is one of the animable properties, false
-    /// otherwise.
+    /// Returns true if this property declaration is for one of the animatable
+    /// properties.
     pub fn is_animatable(&self) -> bool {
         match *self {
             % for property in data.longhands:
