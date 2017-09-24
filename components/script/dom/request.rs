@@ -324,10 +324,6 @@ impl Request {
                     "The mode is 'no-cors' but the method is not a cors-safelisted method".to_string()));
             }
             // Step 30.2
-            if !borrowed_request.integrity_metadata.is_empty() {
-                return Err(Error::Type("Integrity metadata is not an empty string".to_string()));
-            }
-            // Step 30.3
             r.Headers().set_guard(Guard::RequestNoCors);
         }
 
