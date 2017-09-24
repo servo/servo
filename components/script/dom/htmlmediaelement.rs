@@ -85,7 +85,7 @@ pub struct HTMLMediaElement {
 /// https://html.spec.whatwg.org/multipage/#dom-media-networkstate
 #[derive(Clone, Copy, HeapSizeOf, JSTraceable, PartialEq)]
 #[repr(u8)]
-enum NetworkState {
+pub enum NetworkState {
     Empty = HTMLMediaElementConstants::NETWORK_EMPTY as u8,
     Idle = HTMLMediaElementConstants::NETWORK_IDLE as u8,
     Loading = HTMLMediaElementConstants::NETWORK_LOADING as u8,
@@ -443,12 +443,23 @@ impl HTMLMediaElement {
             #[allow(dead_code)]
             Object,
             Attribute(String),
-            // FIXME(nox): Support source element child.
-            #[allow(dead_code)]
             Children(Root<HTMLSourceElement>),
         }
-        let mode = if let Some(attr) = self.upcast::<Element>().get_attribute(&ns!(), &local_name!("src")) {
-            Mode::Attribute(attr.Value().into())
+        fn mode(media: &HTMLMediaElement) -> Option<Mode> {
+            if let Some(attr) = media.upcast::<Element>().get_attribute(&ns!(), &local_name!("src")) {
+                return Some(Mode::Attribute(attr.Value().into()));
+            }
+            let source_child_element = media.upcast::<Node>()
+                .children()
+                .filter_map(Root::downcast::<HTMLSourceElement>)
+                .next();
+            if let Some(element) = source_child_element {
+                return Some(Mode::Children(element));
+            }
+            None
+        }
+        let mode = if let Some(mode) = mode(self) {
+            mode
         } else {
             self.network_state.set(NetworkState::Empty);
             return;
@@ -774,6 +785,19 @@ impl HTMLMediaElement {
                 Err(ref error) => promise.reject_error(error.clone()),
             }
         }
+    }
+
+    /// Handles insertion of `source` children.
+    ///
+    /// https://html.spec.whatwg.org/multipage/#the-source-element:nodes-are-inserted
+    pub fn handle_source_child_insertion(&self) {
+        if self.upcast::<Element>().has_attribute(&local_name!("src")) {
+            return;
+        }
+        if self.network_state.get() != NetworkState::Empty {
+            return;
+        }
+        self.media_element_load_algorithm();
     }
 }
 
