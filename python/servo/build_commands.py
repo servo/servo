@@ -336,7 +336,7 @@ class MachCommands(CommandBase):
                 for ssl_lib in ["libcryptoMD.dll", "libsslMD.dll"]:
                     shutil.copy(path.join(env['OPENSSL_LIB_DIR'], "../bin" + msvc_x64, ssl_lib),
                                 servo_exe_dir)
-                vs_dll_dir = None
+                msvc_redist_dir = None
                 vs_platform = os.environ.get("PLATFORM", "").lower()
                 vc_dir = os.environ.get("VCINSTALLDIR", "")
                 vs_version = os.environ.get("VisualStudioVersion", "")
@@ -349,24 +349,36 @@ class MachCommands(CommandBase):
                 vs14_vcvars = path.join(vc_dir, "vcvarsall.bat")
                 is_vs14 = True if os.path.isfile(vs14_vcvars) or vs_version == "14.0" else False
                 if is_vs14:
-                    vs_dll_dir = path.join(vc_dir, "redist", vs_platform, "Microsoft.VC140.CRT")
+                    msvc_redist_dir = path.join(vc_dir, "redist", vs_platform, "Microsoft.VC140.CRT")
                 elif vs_version == "15.0":
-                    redist_dir = os.environ["VCToolsRedistDir"]
-                    # there are two possible paths `x64\Microsoft.VC150.CRT` or `onecore\x64\Microsoft.VC150.CRT`
-                    redist1 = path.join(redist_dir, vs_platform, "Microsoft.VC150.CRT")
-                    redist2 = path.join(redist_dir, "onecore", vs_platform, "Microsoft.VC150.CRT")
-                    if os.path.isdir(redist1):
-                        vs_dll_dir = redist1
-                    elif os.path.isdir(redist2):
-                        vs_dll_dir = redist2
-                if vs_dll_dir:
-                    dll_dirs = [
-                        vs_dll_dir,
+                    redist_dir = path.join(os.environ.get("VCINSTALLDIR", ""), "Redist", "MSVC")
+                    if os.path.isdir(redist_dir):
+                        for p in os.listdir(redist_dir)[::-1]:
+                            redist_path = path.join(redist_dir, p)
+                            if os.path.isdir(redist_path):
+                                print(redist_path)
+                            for v in ["VC141", "VC150"]:
+                                # there are two possible paths
+                                # `x64\Microsoft.VC*.CRT` or `onecore\x64\Microsoft.VC*.CRT`
+                                redist1 = path.join(redist_path, vs_platform, "Microsoft.{}.CRT".format(v))
+                                redist2 = path.join(redist_path, "onecore", vs_platform, "Microsoft.{}.CRT".format(v))
+                                if os.path.isdir(redist1):
+                                    msvc_redist_dir = redist1
+                                    break
+                                elif os.path.isdir(redist2):
+                                    msvc_redist_dir = redist2
+                                    break
+                            if msvc_redist_dir:
+                                break
+
+                if msvc_redist_dir:
+                    redist_dirs = [
+                        msvc_redist_dir,
                         path.join(os.environ["WindowsSdkDir"], "Redist", "ucrt", "DLLs", vs_platform),
                     ]
                     for msvc_dll in msvc_deps:
                         dll_found = False
-                        for dll_dir in dll_dirs:
+                        for dll_dir in redist_dirs:
                             dll = path.join(dll_dir, msvc_dll)
                             servo_dir_dll = path.join(servo_exe_dir, msvc_dll)
                             if os.path.isfile(dll):
