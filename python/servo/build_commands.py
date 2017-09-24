@@ -376,6 +376,13 @@ class MachCommands(CommandBase):
                         msvc_redist_dir,
                         path.join(os.environ["WindowsSdkDir"], "Redist", "ucrt", "DLLs", vs_platform),
                     ]
+
+                    print("Visual Studio Redist path: {}".format(msvc_redist_dir))
+                    print("Windows SDK version: {}".format(os.environ.get("WindowsSDKVersion", "")))
+                    print("Windows SDK Redist path: {}".format(redist_dirs[1]))
+                    for p in os.listdir(redist_dirs[1]):
+                        print("    " + p)
+
                     for msvc_dll in msvc_deps:
                         dll_found = False
                         for dll_dir in redist_dirs:
