@@ -791,6 +791,16 @@ impl NonNegativeLength {
         self.0.px()
     }
 
+    #[inline]
+    /// Ensures it is non negative
+    pub fn clamp(self) -> Self {
+        if (self.0).0 < 0. {
+            Self::zero()
+        } else {
+            self
+        }
+    }
+
     /// Scale this NonNegativeLength.
     /// We scale NonNegativeLength by zero if the factor is negative because it doesn't
     /// make sense to scale a negative factor on a non-negative length.

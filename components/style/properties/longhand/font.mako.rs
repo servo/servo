@@ -596,7 +596,7 @@ ${helpers.single_keyword_system("font-variant-caps",
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="font-size" animation_value_type="ComputedValue"
+<%helpers:longhand name="font-size" animation_value_type="NonNegativeLength"
                    flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER"
                    allow_quirks="True" spec="https://drafts.csswg.org/css-fonts/#propdef-font-size">
     use app_units::Au;

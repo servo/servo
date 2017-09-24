@@ -7,10 +7,11 @@
 use app_units::Au;
 use std::fmt;
 use style_traits::ToCss;
+use values::animated::ToAnimatedValue;
 use values::computed::NonNegativeLength;
 use values::specified::font as specified;
 
-#[derive(Animate, ComputeSquaredDistance, ToAnimatedValue, ToAnimatedZero)]
+#[derive(Animate, ComputeSquaredDistance, ToAnimatedZero)]
 #[derive(Clone, Copy, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
@@ -72,5 +73,26 @@ impl FontSize {
 impl ToCss for FontSize {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         self.size.to_css(dest)
+    }
+}
+
+/// XXXManishearth it might be better to
+/// animate this as computed, however this complicates
+/// clamping and might not be the right thing to do.
+/// We should figure it out.
+impl ToAnimatedValue for FontSize {
+    type AnimatedValue = NonNegativeLength;
+
+    #[inline]
+    fn to_animated_value(self) -> Self::AnimatedValue {
+        self.size
+    }
+
+    #[inline]
+    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+        FontSize {
+            size: animated.clamp(),
+            keyword_info: None,
+        }
     }
 }
