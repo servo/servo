@@ -18,7 +18,7 @@ log = "0.3.5"
 msg = {path = "../../components/msg"}
 net_traits = {path = "../../components/net_traits"}
 script_traits = {path = "../../components/script_traits"}
-servo-glutin = "0.11"
+servo-glutin = "0.12"
 servo_geometry = {path = "../../components/geometry"}
 servo_config = {path = "../../components/config"}
 servo_url = {path = "../../components/url"}
