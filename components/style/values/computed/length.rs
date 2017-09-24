@@ -792,7 +792,7 @@ impl NonNegativeLength {
     }
 
     #[inline]
-    /// Ensures it is positive
+    /// Ensures it is non negative
     pub fn clamp(self) -> Self {
         if (self.0).0 < 0. {
             Self::zero()

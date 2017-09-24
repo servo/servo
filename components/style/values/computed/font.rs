@@ -76,6 +76,10 @@ impl ToCss for FontSize {
     }
 }
 
+/// XXXManishearth it might be better to
+/// animate this as computed, however this complicates
+/// clamping and might not be the right thing to do.
+/// We should figure it out.
 impl ToAnimatedValue for FontSize {
     type AnimatedValue = NonNegativeLength;
 
