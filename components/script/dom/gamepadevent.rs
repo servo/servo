@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::GamepadEventBinding::GamepadEventMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
-use dom::bindings::root::{JS, Root};
+use dom::bindings::root::{Dom, Root};
 use dom::bindings::str::DOMString;
 use dom::event::Event;
 use dom::gamepad::Gamepad;
@@ -20,7 +20,7 @@ use servo_atoms::Atom;
 #[dom_struct]
 pub struct GamepadEvent {
     event: Event,
-    gamepad: JS<Gamepad>,
+    gamepad: Dom<Gamepad>,
 }
 
 pub enum GamepadEventType {
@@ -32,7 +32,7 @@ impl GamepadEvent {
     fn new_inherited(gamepad: &Gamepad) -> GamepadEvent {
         GamepadEvent {
             event: Event::new_inherited(),
-            gamepad: JS::from_ref(gamepad),
+            gamepad: Dom::from_ref(gamepad),
         }
     }
 

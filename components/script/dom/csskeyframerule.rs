@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::CSSKeyframeRuleBinding::{self, CSSKeyframeRuleMethods};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
-use dom::bindings::root::{JS, MutNullableJS, Root};
+use dom::bindings::root::{Dom, MutNullableJS, Root};
 use dom::bindings::str::DOMString;
 use dom::cssrule::{CSSRule, SpecificCSSRule};
 use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
@@ -51,7 +51,7 @@ impl CSSKeyframeRuleMethods for CSSKeyframeRule {
             CSSStyleDeclaration::new(
                 self.global().as_window(),
                 CSSStyleOwner::CSSRule(
-                    JS::from_ref(self.upcast()),
+                    Dom::from_ref(self.upcast()),
                     self.keyframerule.read_with(&guard).block.clone(),
                 ),
                 None,

@@ -143,7 +143,7 @@ use dom_struct::dom_struct;
 #[dom_struct]
 pub struct Document {
     node: Node,
-    window: JS<Window>,
+    window: Dom<Window>,
     is_html_document: bool,
     ...
 }
@@ -164,8 +164,8 @@ relationship. The `Document` just has a pointer to a `Window`, one of many
 pointers to that object, which can live in native DOM data structures or in
 JavaScript objects. These are precisely the pointers we need to tell the
 garbage collector about. We do this with a
-[custom type for traced pointers: `JS<T>`][js] (for example, the `JS<Window>`
-above). The implementation of `trace` for `JS<T>` is not auto-generated; this
+[custom type for traced pointers: `Dom<T>`][js] (for example, the `Dom<Window>`
+above). The implementation of `trace` for `Dom<T>` is not auto-generated; this
 is where we actually call the SpiderMonkey trace hooks:
 
 [js]: http://doc.servo.org/script/dom/bindings/root/struct.JS.html
@@ -183,7 +183,7 @@ pub fn trace_reflector(tracer: *mut JSTracer, description: &str, reflector: &Ref
     }
 }
 
-impl<T: DomObject> JSTraceable for JS<T> {
+impl<T: DomObject> JSTraceable for Dom<T> {
     unsafe fn trace(&self, trc: *mut JSTracer) {
         trace_reflector(trc, "", unsafe { (**self.ptr).reflector() });
     }
@@ -257,11 +257,11 @@ through a `Root<T>`.
 
 [deref]: https://doc.rust-lang.org/std/ops/trait.Deref.html
 
-A third way to obtain a reference is from the `JS<T>` struct we encountered
-earlier. Whenever we have a reference to a `JS<T>`, we know that the DOM struct
+A third way to obtain a reference is from the `Dom<T>` struct we encountered
+earlier. Whenever we have a reference to a `Dom<T>`, we know that the DOM struct
 that contains it is already rooted, and thus that the garbage collector is
-aware of the `JS<T>`, and will keep the DOM object it points to alive.
-This allows us to implement the `Deref` trait on `JS<T>` as well.
+aware of the `Dom<T>`, and will keep the DOM object it points to alive.
+This allows us to implement the `Deref` trait on `Dom<T>` as well.
 
 The correctness of these APIs is heavily dependent on the fact that the
 reference cannot outlive the smart pointer it was retrieved from, and the fact
@@ -298,10 +298,10 @@ To recapitulate, the safety of our system depends on two major parts:
   from Rust without telling SpiderMonkey about our temporary reference.
 
 But there's a hole in this scheme. We could copy an unrooted pointer — a
-`JS<T>` — to a local variable on the stack, and then at some later point, root
+`Dom<T>` — to a local variable on the stack, and then at some later point, root
 it and use the DOM object. In the meantime, SpiderMonkey's garbage collector
-won't know about that `JS<T>` on the stack, so it might free the DOM object.
-To really be safe, we need to make sure that `JS<T>` *only* appears in places
+won't know about that `Dom<T>` on the stack, so it might free the DOM object.
+To really be safe, we need to make sure that `Dom<T>` *only* appears in places
 where it will be traced, such as DOM structs, and never in local variables,
 function arguments, and so forth.
 
@@ -315,10 +315,10 @@ Developing the Servo Web Browser Engine using Rust</cite>][lints].
 [lints]: http://arxiv.org/pdf/1505.07383v1.pdf
 
 We have already [implemented a plugin][js-lint] which effectively forbids
-`JS<T>` from appearing on the [stack][stack]. Because lint plugins are part of
+`Dom<T>` from appearing on the [stack][stack]. Because lint plugins are part of
 the usual [warnings infrastructure][warnings], we can use the `allow` attribute
-in places where it's okay to use `JS<T>`, like DOM struct definitions and the
-implementation of `JS<T>` itself.
+in places where it's okay to use `Dom<T>`, like DOM struct definitions and the
+implementation of `Dom<T>` itself.
 
 [js-lint]: http://doc.servo.org/plugins/lints/unrooted_must_root/struct.UnrootedPass.html
 [stack]: https://en.wikipedia.org/wiki/Stack-based_memory_allocation

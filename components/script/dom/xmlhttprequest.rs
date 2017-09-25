@@ -16,7 +16,7 @@ use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
-use dom::bindings::root::{JS, MutNullableJS, Root};
+use dom::bindings::root::{Dom, MutNullableJS, Root};
 use dom::bindings::str::{ByteString, DOMString, USVString, is_token};
 use dom::blob::{Blob, BlobImpl};
 use dom::document::{Document, HasBrowsingContext, IsHTMLDocument};
@@ -123,7 +123,7 @@ pub struct XMLHttpRequest {
     ready_state: Cell<XMLHttpRequestState>,
     timeout: Cell<u32>,
     with_credentials: Cell<bool>,
-    upload: JS<XMLHttpRequestUpload>,
+    upload: Dom<XMLHttpRequestUpload>,
     response_url: DOMRefCell<String>,
     status: Cell<u16>,
     status_text: DOMRefCell<ByteString>,
@@ -174,7 +174,7 @@ impl XMLHttpRequest {
             ready_state: Cell::new(XMLHttpRequestState::Unsent),
             timeout: Cell::new(0u32),
             with_credentials: Cell::new(false),
-            upload: JS::from_ref(&*XMLHttpRequestUpload::new(global)),
+            upload: Dom::from_ref(&*XMLHttpRequestUpload::new(global)),
             response_url: DOMRefCell::new(String::new()),
             status: Cell::new(0),
             status_text: DOMRefCell::new(ByteString::new(vec!())),

@@ -9,7 +9,7 @@ use dom::bindings::codegen::Bindings::MediaQueryListBinding::{self, MediaQueryLi
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::DomObject;
 use dom::bindings::reflector::reflect_dom_object;
-use dom::bindings::root::{JS, Root};
+use dom::bindings::root::{Dom, Root};
 use dom::bindings::str::DOMString;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::weakref::{WeakRef, WeakRefVec};
@@ -32,7 +32,7 @@ pub enum MediaQueryListMatchState {
 #[dom_struct]
 pub struct MediaQueryList {
     eventtarget: EventTarget,
-    document: JS<Document>,
+    document: Dom<Document>,
     media_query_list: MediaList,
     last_match_state: Cell<Option<bool>>
 }
@@ -41,7 +41,7 @@ impl MediaQueryList {
     fn new_inherited(document: &Document, media_query_list: MediaList) -> MediaQueryList {
         MediaQueryList {
             eventtarget: EventTarget::new_inherited(),
-            document: JS::from_ref(document),
+            document: Dom::from_ref(document),
             media_query_list: media_query_list,
             last_match_state: Cell::new(None),
         }
@@ -134,7 +134,7 @@ impl WeakMediaQueryListVec {
             let mql = mql.root().unwrap();
             if let MediaQueryListMatchState::Changed(_) = mql.evaluate_changes() {
                 // Recording list of changed Media Queries
-                mql_list.push(JS::from_ref(&*mql));
+                mql_list.push(Dom::from_ref(&*mql));
             }
         });
         // Sending change events for all changed Media Queries

@@ -10,7 +10,7 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::WebGLFramebufferBinding;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::reflector::reflect_dom_object;
-use dom::bindings::root::{JS, Root};
+use dom::bindings::root::{Dom, Root};
 use dom::webglobject::WebGLObject;
 use dom::webglrenderbuffer::WebGLRenderbuffer;
 use dom::webgltexture::WebGLTexture;
@@ -21,8 +21,8 @@ use std::cell::Cell;
 #[must_root]
 #[derive(Clone, HeapSizeOf, JSTraceable)]
 enum WebGLFramebufferAttachment {
-    Renderbuffer(JS<WebGLRenderbuffer>),
-    Texture { texture: JS<WebGLTexture>, level: i32 },
+    Renderbuffer(Dom<WebGLRenderbuffer>),
+    Texture { texture: Dom<WebGLTexture>, level: i32 },
 }
 
 #[dom_struct]
@@ -194,7 +194,7 @@ impl WebGLFramebuffer {
 
         let rb_id = match rb {
             Some(rb) => {
-                *binding.borrow_mut() = Some(WebGLFramebufferAttachment::Renderbuffer(JS::from_ref(rb)));
+                *binding.borrow_mut() = Some(WebGLFramebufferAttachment::Renderbuffer(Dom::from_ref(rb)));
                 Some(rb.id())
             }
 
@@ -267,7 +267,7 @@ impl WebGLFramebuffer {
                 }
 
                 *binding.borrow_mut() = Some(WebGLFramebufferAttachment::Texture {
-                    texture: JS::from_ref(texture),
+                    texture: Dom::from_ref(texture),
                     level: level }
                 );
 

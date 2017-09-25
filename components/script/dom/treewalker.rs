@@ -10,7 +10,7 @@ use dom::bindings::codegen::Bindings::TreeWalkerBinding;
 use dom::bindings::codegen::Bindings::TreeWalkerBinding::TreeWalkerMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::root::{JS, MutJS, Root};
+use dom::bindings::root::{Dom, MutJS, Root};
 use dom::document::Document;
 use dom::node::Node;
 use dom_struct::dom_struct;
@@ -20,7 +20,7 @@ use std::rc::Rc;
 #[dom_struct]
 pub struct TreeWalker {
     reflector_: Reflector,
-    root_node: JS<Node>,
+    root_node: Dom<Node>,
     current_node: MutJS<Node>,
     what_to_show: u32,
     #[ignore_heap_size_of = "function pointers and Rc<T> are hard"]
@@ -33,7 +33,7 @@ impl TreeWalker {
                          filter: Filter) -> TreeWalker {
         TreeWalker {
             reflector_: Reflector::new(),
-            root_node: JS::from_ref(root_node),
+            root_node: Dom::from_ref(root_node),
             current_node: MutJS::new(root_node),
             what_to_show: what_to_show,
             filter: filter
@@ -55,7 +55,7 @@ impl TreeWalker {
                node_filter: Option<Rc<NodeFilter>>) -> Root<TreeWalker> {
         let filter = match node_filter {
             None => Filter::None,
-            Some(jsfilter) => Filter::JS(jsfilter)
+            Some(jsfilter) => Filter::Dom(jsfilter)
         };
         TreeWalker::new_with_filter(document, root_node, what_to_show, filter)
     }
@@ -76,7 +76,7 @@ impl TreeWalkerMethods for TreeWalker {
     fn GetFilter(&self) -> Option<Rc<NodeFilter>> {
         match self.filter {
             Filter::None => None,
-            Filter::JS(ref nf) => Some(nf.clone()),
+            Filter::Dom(ref nf) => Some(nf.clone()),
             Filter::Native(_) => panic!("Cannot convert native node filter to DOM NodeFilter")
         }
     }
@@ -430,12 +430,12 @@ impl TreeWalker {
         match self.filter {
             Filter::None => Ok(NodeFilterConstants::FILTER_ACCEPT),
             Filter::Native(f) => Ok((f)(node)),
-            Filter::JS(ref callback) => callback.AcceptNode_(self, node, Rethrow)
+            Filter::Dom(ref callback) => callback.AcceptNode_(self, node, Rethrow)
         }
     }
 
     fn is_root_node(&self, node: &Node) -> bool {
-        JS::from_ref(node) == self.root_node
+        Dom::from_ref(node) == self.root_node
     }
 
     fn is_current_node(&self, node: &Node) -> bool {
@@ -464,5 +464,5 @@ impl<'a> Iterator for &'a TreeWalker {
 pub enum Filter {
     None,
     Native(fn (node: &Node) -> u16),
-    JS(Rc<NodeFilter>)
+    Dom(Rc<NodeFilter>)
 }

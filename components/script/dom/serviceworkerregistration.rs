@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::ServiceWorkerBinding::ServiceWorkerState;
 use dom::bindings::codegen::Bindings::ServiceWorkerRegistrationBinding::{ServiceWorkerRegistrationMethods, Wrap};
 use dom::bindings::reflector::reflect_dom_object;
-use dom::bindings::root::{JS, Root};
+use dom::bindings::root::{Dom, Root};
 use dom::bindings::str::USVString;
 use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
@@ -20,9 +20,9 @@ use std::cell::Cell;
 #[dom_struct]
 pub struct ServiceWorkerRegistration {
     eventtarget: EventTarget,
-    active: Option<JS<ServiceWorker>>,
-    installing: Option<JS<ServiceWorker>>,
-    waiting: Option<JS<ServiceWorker>>,
+    active: Option<Dom<ServiceWorker>>,
+    installing: Option<Dom<ServiceWorker>>,
+    waiting: Option<Dom<ServiceWorker>>,
     scope: ServoUrl,
     uninstalling: Cell<bool>
 }
@@ -31,7 +31,7 @@ impl ServiceWorkerRegistration {
     fn new_inherited(active_sw: &ServiceWorker, scope: ServoUrl) -> ServiceWorkerRegistration {
         ServiceWorkerRegistration {
             eventtarget: EventTarget::new_inherited(),
-            active: Some(JS::from_ref(active_sw)),
+            active: Some(Dom::from_ref(active_sw)),
             installing: None,
             waiting: None,
             scope: scope,

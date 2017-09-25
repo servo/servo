@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::ValidityStateBinding;
 use dom::bindings::codegen::Bindings::ValidityStateBinding::ValidityStateMethods;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::root::{JS, Root};
+use dom::bindings::root::{Dom, Root};
 use dom::element::Element;
 use dom::window::Window;
 use dom_struct::dom_struct;
@@ -46,7 +46,7 @@ bitflags!{
 #[dom_struct]
 pub struct ValidityState {
     reflector_: Reflector,
-    element: JS<Element>,
+    element: Dom<Element>,
     state: ValidityStatus
 }
 
@@ -55,7 +55,7 @@ impl ValidityState {
     fn new_inherited(element: &Element) -> ValidityState {
         ValidityState {
             reflector_: Reflector::new(),
-            element: JS::from_ref(element),
+            element: Dom::from_ref(element),
             state: ValidityStatus::Valid
         }
     }

@@ -7,7 +7,7 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::VREyeParametersBinding;
 use dom::bindings::codegen::Bindings::VREyeParametersBinding::VREyeParametersMethods;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::root::{JS, Root};
+use dom::bindings::root::{Dom, Root};
 use dom::globalscope::GlobalScope;
 use dom::vrfieldofview::VRFieldOfView;
 use dom_struct::dom_struct;
@@ -23,7 +23,7 @@ pub struct VREyeParameters {
     #[ignore_heap_size_of = "Defined in rust-webvr"]
     parameters: DOMRefCell<WebVREyeParameters>,
     offset: Heap<*mut JSObject>,
-    fov: JS<VRFieldOfView>,
+    fov: Dom<VRFieldOfView>,
 }
 
 unsafe_no_jsmanaged_fields!(WebVREyeParameters);
@@ -34,7 +34,7 @@ impl VREyeParameters {
             reflector_: Reflector::new(),
             parameters: DOMRefCell::new(parameters),
             offset: Heap::default(),
-            fov: JS::from_ref(&*fov)
+            fov: Dom::from_ref(&*fov)
         }
     }
 

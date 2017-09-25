@@ -9,7 +9,7 @@ use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::root::{JS, Root};
+use dom::bindings::root::{Dom, Root};
 use dom::globalscope::GlobalScope;
 use dom::window::Window;
 use dom_struct::dom_struct;
@@ -21,14 +21,14 @@ use script_traits::ScriptMsg;
 #[dom_struct]
 pub struct History {
     reflector_: Reflector,
-    window: JS<Window>,
+    window: Dom<Window>,
 }
 
 impl History {
     pub fn new_inherited(window: &Window) -> History {
         History {
             reflector_: Reflector::new(),
-            window: JS::from_ref(&window),
+            window: Dom::from_ref(&window),
         }
     }
 

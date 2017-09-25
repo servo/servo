@@ -21,7 +21,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::num::Finite;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
-use dom::bindings::root::{JS, MutNullableJS, Root};
+use dom::bindings::root::{Dom, MutNullableJS, Root};
 use dom::bindings::str::DOMString;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::trace::RootedTraceableBox;
@@ -280,7 +280,7 @@ pub struct Window {
     /// initiated by layout during a reflow. They are stored in the script thread
     /// to ensure that the element can be marked dirty when the image data becomes
     /// available at some point in the future.
-    pending_layout_images: DOMRefCell<HashMap<PendingImageId, Vec<JS<Node>>>>,
+    pending_layout_images: DOMRefCell<HashMap<PendingImageId, Vec<Dom<Node>>>>,
 
     /// Directory to store unminified scripts for this window if unminify-js
     /// opt is enabled.
@@ -840,7 +840,7 @@ impl WindowMethods for Window {
 
         // Step 5.
         CSSStyleDeclaration::new(self,
-                                 CSSStyleOwner::Element(JS::from_ref(element)),
+                                 CSSStyleOwner::Element(Dom::from_ref(element)),
                                  pseudo,
                                  CSSModificationAccess::Readonly)
     }
@@ -1305,7 +1305,7 @@ impl Window {
                     let _ = image_cache_chan.send((pipeline, message.to().unwrap()));
                 });
                 self.image_cache.add_listener(id, ImageResponder::new(responder, id));
-                nodes.push(JS::from_ref(&*node));
+                nodes.push(Dom::from_ref(&*node));
             }
         }
 

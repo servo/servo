@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::GamepadButtonListBinding;
 use dom::bindings::codegen::Bindings::GamepadButtonListBinding::GamepadButtonListMethods;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::root::{JS, Root, RootedReference};
+use dom::bindings::root::{Dom, Root, RootedReference};
 use dom::gamepadbutton::GamepadButton;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
@@ -15,7 +15,7 @@ use webvr_traits::WebVRGamepadButton;
 #[dom_struct]
 pub struct GamepadButtonList {
     reflector_: Reflector,
-    list: Vec<JS<GamepadButton>>
+    list: Vec<Dom<GamepadButton>>
 }
 
 impl GamepadButtonList {
@@ -23,7 +23,7 @@ impl GamepadButtonList {
     fn new_inherited(list: &[&GamepadButton]) -> GamepadButtonList {
         GamepadButtonList {
             reflector_: Reflector::new(),
-            list: list.iter().map(|button| JS::from_ref(*button)).collect(),
+            list: list.iter().map(|button| Dom::from_ref(*button)).collect(),
         }
     }
 

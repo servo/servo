@@ -574,10 +574,10 @@ def check_rust(file_name, lines):
             # No benefit over using &str
             (r": &String", "use &str instead of &String", no_filter),
             # There should be any use of banned types:
-            # Cell<JSVal>, Cell<JS<T>>, DOMRefCell<JS<T>>, DOMRefCell<HEAP<T>>
+            # Cell<JSVal>, Cell<Dom<T>>, DOMRefCell<Dom<T>>, DOMRefCell<HEAP<T>>
             (r"(\s|:)+Cell<JSVal>", "Banned type Cell<JSVal> detected. Use MutJS<JSVal> instead", no_filter),
-            (r"(\s|:)+Cell<JS<.+>>", "Banned type Cell<JS<T>> detected. Use MutJS<T> instead", no_filter),
-            (r"DOMRefCell<JS<.+>>", "Banned type DOMRefCell<JS<T>> detected. Use MutJS<T> instead", no_filter),
+            (r"(\s|:)+Cell<Dom<.+>>", "Banned type Cell<Dom<T>> detected. Use MutJS<T> instead", no_filter),
+            (r"DOMRefCell<Dom<.+>>", "Banned type DOMRefCell<Dom<T>> detected. Use MutJS<T> instead", no_filter),
             (r"DOMRefCell<Heap<.+>>", "Banned type DOMRefCell<Heap<T>> detected. Use MutJS<T> instead", no_filter),
             # No benefit to using &Root<T>
             (r": &Root<", "use &T instead of &Root<T>", no_filter),

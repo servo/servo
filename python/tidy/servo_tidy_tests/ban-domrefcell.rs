@@ -7,13 +7,13 @@
 
 extern crate script;
 
+use script::test::Dom;
 use script::test::DOMRefCell;
-use script::test::JS;
 use script::test::Node;
 
 struct Foo {
-    bar: DOMRefCell<JS<Node>>
-    //~^ ERROR Banned type DOMRefCell<JS<T>> detected. Use MutJS<T> instead
+    bar: DOMRefCell<Dom<Node>>
+    //~^ ERROR Banned type DOMRefCell<Dom<T>> detected. Use MutJS<T> instead
 }
 
 fn main() {}

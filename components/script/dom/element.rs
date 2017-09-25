@@ -24,7 +24,7 @@ use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use dom::bindings::refcounted::{Trusted, TrustedPromise};
 use dom::bindings::reflector::DomObject;
-use dom::bindings::root::{JS, LayoutJS, MutNullableJS, Root, RootedReference};
+use dom::bindings::root::{Dom, LayoutJS, MutNullableJS, Root, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::bindings::xmlname::{namespace_from_domstring, validate_and_extract, xml_name_type};
 use dom::bindings::xmlname::XMLName::InvalidXMLName;
@@ -131,7 +131,7 @@ pub struct Element {
     tag_name: TagName,
     namespace: Namespace,
     prefix: DOMRefCell<Option<Prefix>>,
-    attrs: DOMRefCell<Vec<JS<Attr>>>,
+    attrs: DOMRefCell<Vec<Dom<Attr>>>,
     id_attribute: DOMRefCell<Option<Atom>>,
     is: DOMRefCell<Option<LocalName>>,
     #[ignore_heap_size_of = "Arc"]
@@ -912,7 +912,7 @@ impl Element {
         *self.prefix.borrow_mut() = prefix;
     }
 
-    pub fn attrs(&self) -> Ref<[JS<Attr>]> {
+    pub fn attrs(&self) -> Ref<[Dom<Attr>]> {
         Ref::map(self.attrs.borrow(), |attrs| &**attrs)
     }
 
@@ -1118,7 +1118,7 @@ impl Element {
 
         assert!(attr.GetOwnerElement().r() == Some(self));
         self.will_mutate_attr(attr);
-        self.attrs.borrow_mut().push(JS::from_ref(attr));
+        self.attrs.borrow_mut().push(Dom::from_ref(attr));
         if attr.namespace() == &ns!() {
             vtable_for(self.upcast()).attribute_mutated(attr, AttributeMutation::Set(None));
         }
@@ -1692,7 +1692,7 @@ impl ElementMethods for Element {
             }
             self.will_mutate_attr(attr);
             attr.set_owner(Some(self));
-            self.attrs.borrow_mut()[position] = JS::from_ref(attr);
+            self.attrs.borrow_mut()[position] = Dom::from_ref(attr);
             old_attr.set_owner(None);
             if attr.namespace() == &ns!() {
                 vtable.attribute_mutated(

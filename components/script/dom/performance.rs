@@ -10,7 +10,7 @@ use dom::bindings::error::{Error, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
-use dom::bindings::root::{JS, Root};
+use dom::bindings::root::{Dom, Root};
 use dom::bindings::str::DOMString;
 use dom::globalscope::GlobalScope;
 use dom::performanceentry::PerformanceEntry;
@@ -110,7 +110,7 @@ struct PerformanceObserver {
 #[dom_struct]
 pub struct Performance {
     reflector_: Reflector,
-    timing: Option<JS<PerformanceTiming>>,
+    timing: Option<Dom<PerformanceTiming>>,
     entries: DOMRefCell<PerformanceEntryList>,
     observers: DOMRefCell<Vec<PerformanceObserver>>,
     pending_notification_observers_task: Cell<bool>,
@@ -124,7 +124,7 @@ impl Performance {
         Performance {
             reflector_: Reflector::new(),
             timing: if global.is::<Window>() {
-                Some(JS::from_ref(&*PerformanceTiming::new(global.as_window(),
+                Some(Dom::from_ref(&*PerformanceTiming::new(global.as_window(),
                                                            navigation_start,
                                                            navigation_start_precise)))
             } else {

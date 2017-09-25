@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::StylePropertyMapReadOnlyBinding::StyleProp
 use dom::bindings::codegen::Bindings::StylePropertyMapReadOnlyBinding::Wrap;
 use dom::bindings::reflector::Reflector;
 use dom::bindings::reflector::reflect_dom_object;
-use dom::bindings::root::{JS, Root};
+use dom::bindings::root::{Dom, Root};
 use dom::bindings::str::DOMString;
 use dom::cssstylevalue::CSSStyleValue;
 use dom::globalscope::GlobalScope;
@@ -20,12 +20,12 @@ use style::custom_properties;
 #[dom_struct]
 pub struct StylePropertyMapReadOnly {
     reflector: Reflector,
-    entries: HashMap<Atom, JS<CSSStyleValue>>,
+    entries: HashMap<Atom, Dom<CSSStyleValue>>,
 }
 
 impl StylePropertyMapReadOnly {
     fn new_inherited<Entries>(entries: Entries) -> StylePropertyMapReadOnly where
-        Entries: IntoIterator<Item=(Atom, JS<CSSStyleValue>)>
+        Entries: IntoIterator<Item=(Atom, Dom<CSSStyleValue>)>
     {
         StylePropertyMapReadOnly {
             reflector: Reflector::new(),
@@ -45,7 +45,7 @@ impl StylePropertyMapReadOnly {
         for (key, value) in iter {
             let value = CSSStyleValue::new(global, value);
             keys.push(key);
-            values.push(JS::from_ref(&*value));
+            values.push(Dom::from_ref(&*value));
         }
         let iter = keys.drain(..).zip(values.iter().cloned());
         reflect_dom_object(box StylePropertyMapReadOnly::new_inherited(iter), global, Wrap)

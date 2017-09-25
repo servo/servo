@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::NodeListBinding;
 use dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::root::{JS, MutNullableJS, Root, RootedReference};
+use dom::bindings::root::{Dom, MutNullableJS, Root, RootedReference};
 use dom::node::{ChildrenMutation, Node};
 use dom::window::Window;
 use dom_struct::dom_struct;
@@ -15,7 +15,7 @@ use std::cell::Cell;
 #[derive(HeapSizeOf, JSTraceable)]
 #[must_root]
 pub enum NodeListType {
-    Simple(Vec<JS<Node>>),
+    Simple(Vec<Dom<Node>>),
     Children(ChildrenList),
 }
 
@@ -44,11 +44,11 @@ impl NodeList {
 
     pub fn new_simple_list<T>(window: &Window, iter: T) -> Root<NodeList>
                               where T: Iterator<Item=Root<Node>> {
-        NodeList::new(window, NodeListType::Simple(iter.map(|r| JS::from_ref(&*r)).collect()))
+        NodeList::new(window, NodeListType::Simple(iter.map(|r| Dom::from_ref(&*r)).collect()))
     }
 
     pub fn new_simple_list_slice(window: &Window, slice: &[&Node]) -> Root<NodeList> {
-        NodeList::new(window, NodeListType::Simple(slice.iter().map(|r| JS::from_ref(*r)).collect()))
+        NodeList::new(window, NodeListType::Simple(slice.iter().map(|r| Dom::from_ref(*r)).collect()))
     }
 
     pub fn new_child_list(window: &Window, node: &Node) -> Root<NodeList> {
@@ -95,7 +95,7 @@ impl NodeList {
         }
     }
 
-    pub fn as_simple_list(&self) -> &Vec<JS<Node>> {
+    pub fn as_simple_list(&self) -> &Vec<Dom<Node>> {
         if let NodeListType::Simple(ref list) = self.list_type {
             list
         } else {
@@ -112,7 +112,7 @@ impl NodeList {
 #[derive(HeapSizeOf, JSTraceable)]
 #[must_root]
 pub struct ChildrenList {
-    node: JS<Node>,
+    node: Dom<Node>,
     #[ignore_heap_size_of = "Defined in rust-mozjs"]
     last_visited: MutNullableJS<Node>,
     last_index: Cell<u32>,
@@ -122,7 +122,7 @@ impl ChildrenList {
     pub fn new(node: &Node) -> ChildrenList {
         let last_visited = node.GetFirstChild();
         ChildrenList {
-            node: JS::from_ref(node),
+            node: Dom::from_ref(node),
             last_visited: MutNullableJS::new(last_visited.r()),
             last_index: Cell::new(0u32),
         }

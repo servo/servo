@@ -6,7 +6,7 @@
 
 use dom::bindings::error::{Error, Fallible, report_pending_exception};
 use dom::bindings::reflector::DomObject;
-use dom::bindings::root::{JS, Root};
+use dom::bindings::root::{Dom, Root};
 use dom::bindings::settings_stack::{AutoEntryScript, AutoIncumbentScript};
 use dom::bindings::utils::AsCCharPtrPtr;
 use dom::globalscope::GlobalScope;
@@ -53,7 +53,7 @@ pub struct CallbackObject {
     ///
     /// ["callback context"]: https://heycam.github.io/webidl/#dfn-callback-context
     /// [sometimes]: https://github.com/whatwg/html/issues/2248
-    incumbent: Option<JS<GlobalScope>>
+    incumbent: Option<Dom<GlobalScope>>
 }
 
 impl Default for CallbackObject {
@@ -69,7 +69,7 @@ impl CallbackObject {
         CallbackObject {
             callback: Heap::default(),
             permanent_js_root: Heap::default(),
-            incumbent: GlobalScope::incumbent().map(|i| JS::from_ref(&*i)),
+            incumbent: GlobalScope::incumbent().map(|i| Dom::from_ref(&*i)),
         }
     }
 
@@ -120,7 +120,7 @@ pub trait CallbackContainer {
     ///
     /// ["callback context"]: https://heycam.github.io/webidl/#dfn-callback-context
     fn incumbent(&self) -> Option<&GlobalScope> {
-        self.callback_holder().incumbent.as_ref().map(JS::deref)
+        self.callback_holder().incumbent.as_ref().map(Dom::deref)
     }
 }
 

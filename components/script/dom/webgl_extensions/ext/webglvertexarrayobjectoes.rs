@@ -8,7 +8,7 @@ use core::iter::FromIterator;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::WebGLVertexArrayObjectOESBinding;
 use dom::bindings::reflector::reflect_dom_object;
-use dom::bindings::root::{JS, MutNullableJS, Root};
+use dom::bindings::root::{Dom, MutNullableJS, Root};
 use dom::globalscope::GlobalScope;
 use dom::webglbuffer::WebGLBuffer;
 use dom::webglobject::WebGLObject;
@@ -22,7 +22,7 @@ pub struct WebGLVertexArrayObjectOES {
     id: WebGLVertexArrayId,
     ever_bound: Cell<bool>,
     is_deleted: Cell<bool>,
-    bound_attrib_buffers: DOMRefCell<HashMap<u32, JS<WebGLBuffer>>>,
+    bound_attrib_buffers: DOMRefCell<HashMap<u32, Dom<WebGLBuffer>>>,
     bound_buffer_element_array: MutNullableJS<WebGLBuffer>,
 }
 
@@ -64,7 +64,7 @@ impl WebGLVertexArrayObjectOES {
         self.ever_bound.set(true);
     }
 
-    pub fn borrow_bound_attrib_buffers(&self) -> Ref<HashMap<u32, JS<WebGLBuffer>>> {
+    pub fn borrow_bound_attrib_buffers(&self) -> Ref<HashMap<u32, Dom<WebGLBuffer>>> {
         self.bound_attrib_buffers.borrow()
     }
 
@@ -73,7 +73,7 @@ impl WebGLVertexArrayObjectOES {
     }
 
     pub fn set_bound_attrib_buffers<'a, T>(&self, iter: T) where T: Iterator<Item=(u32, &'a WebGLBuffer)> {
-        *self.bound_attrib_buffers.borrow_mut() = HashMap::from_iter(iter.map(|(k,v)| (k, JS::from_ref(v))));
+        *self.bound_attrib_buffers.borrow_mut() = HashMap::from_iter(iter.map(|(k,v)| (k, Dom::from_ref(v))));
     }
 
     pub fn bound_buffer_element_array(&self) -> Option<Root<WebGLBuffer>> {

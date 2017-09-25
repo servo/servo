@@ -34,7 +34,7 @@ use dom::bindings::conversions::{ConversionResult, FromJSValConvertible, Stringi
 use dom::bindings::inheritance::Castable;
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::DomObject;
-use dom::bindings::root::{JS, MutNullableJS, Root, RootCollection};
+use dom::bindings::root::{Dom, MutNullableJS, Root, RootCollection};
 use dom::bindings::root::{RootCollectionPtr, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::bindings::structuredclone::StructuredCloneData;
@@ -320,7 +320,7 @@ impl OpaqueSender<CommonScriptMsg> for Sender<MainThreadScriptMsg> {
 #[derive(JSTraceable)]
 #[must_root]
 pub struct Documents {
-    map: HashMap<PipelineId, JS<Document>>,
+    map: HashMap<PipelineId, Dom<Document>>,
 }
 
 impl Documents {
@@ -331,7 +331,7 @@ impl Documents {
     }
 
     pub fn insert(&mut self, pipeline_id: PipelineId, doc: &Document) {
-        self.map.insert(pipeline_id, JS::from_ref(doc));
+        self.map.insert(pipeline_id, Dom::from_ref(doc));
     }
 
     pub fn remove(&mut self, pipeline_id: PipelineId) -> Option<Root<Document>> {
@@ -369,7 +369,7 @@ impl Documents {
 
 #[allow(unrooted_must_root)]
 pub struct DocumentsIter<'a> {
-    iter: hash_map::Iter<'a, PipelineId, JS<Document>>,
+    iter: hash_map::Iter<'a, PipelineId, Dom<Document>>,
 }
 
 impl<'a> Iterator for DocumentsIter<'a> {
@@ -388,13 +388,13 @@ pub struct ScriptThread {
     documents: DOMRefCell<Documents>,
     /// The window proxies known by this thread
     /// TODO: this map grows, but never shrinks. Issue #15258.
-    window_proxies: DOMRefCell<HashMap<BrowsingContextId, JS<WindowProxy>>>,
+    window_proxies: DOMRefCell<HashMap<BrowsingContextId, Dom<WindowProxy>>>,
     /// A list of data pertaining to loads that have not yet received a network response
     incomplete_loads: DOMRefCell<Vec<InProgressLoad>>,
     /// A vector containing parser contexts which have not yet been fully processed
     incomplete_parser_contexts: DOMRefCell<Vec<(PipelineId, ParserContext)>>,
     /// A map to store service worker registrations for a given origin
-    registration_map: DOMRefCell<HashMap<ServoUrl, JS<ServiceWorkerRegistration>>>,
+    registration_map: DOMRefCell<HashMap<ServoUrl, Dom<ServiceWorkerRegistration>>>,
     /// A job queue for Service Workers keyed by their scope url
     job_queue_map: Rc<JobQueue>,
     /// Image cache for this script thread.
@@ -476,7 +476,7 @@ pub struct ScriptThread {
     mutation_observer_compound_microtask_queued: Cell<bool>,
 
     /// The unit of related similar-origin browsing contexts' list of MutationObserver objects
-    mutation_observers: DOMRefCell<Vec<JS<MutationObserver>>>,
+    mutation_observers: DOMRefCell<Vec<Dom<MutationObserver>>>,
 
     /// A handle to the webgl thread
     webgl_chan: WebGLPipeline,
@@ -489,11 +489,11 @@ pub struct ScriptThread {
 
     /// A list of pipelines containing documents that finished loading all their blocking
     /// resources during a turn of the event loop.
-    docs_with_no_blocking_loads: DOMRefCell<HashSet<JS<Document>>>,
+    docs_with_no_blocking_loads: DOMRefCell<HashSet<Dom<Document>>>,
 
     /// A list of nodes with in-progress CSS transitions, which roots them for the duration
     /// of the transition.
-    transitioning_nodes: DOMRefCell<Vec<JS<Node>>>,
+    transitioning_nodes: DOMRefCell<Vec<Dom<Node>>>,
 
     /// https://html.spec.whatwg.org/multipage/#custom-element-reactions-stack
     custom_element_reaction_stack: CustomElementReactionStack,
@@ -588,7 +588,7 @@ impl ScriptThread {
             let js_runtime = script_thread.js_runtime.rt();
             let new_nodes = nodes
                 .into_iter()
-                .map(|n| JS::from_ref(&*from_untrusted_node_address(js_runtime, n)));
+                .map(|n| Dom::from_ref(&*from_untrusted_node_address(js_runtime, n)));
             script_thread.transitioning_nodes.borrow_mut().extend(new_nodes);
         })
     }
@@ -612,7 +612,7 @@ impl ScriptThread {
             let script_thread = unsafe { &*root.get().unwrap() };
             script_thread.mutation_observers
                 .borrow_mut()
-                .push(JS::from_ref(observer));
+                .push(Dom::from_ref(observer));
         })
     }
 
@@ -628,7 +628,7 @@ impl ScriptThread {
             let script_thread = unsafe { &*root.get().unwrap() };
             script_thread.docs_with_no_blocking_loads
                 .borrow_mut()
-                .insert(JS::from_ref(doc));
+                .insert(Dom::from_ref(doc));
         })
     }
 
@@ -1699,7 +1699,7 @@ impl ScriptThread {
             // according to spec we should replace if an older registration exists for
             // same scope otherwise just insert the new one
             let _ = reg_ref.remove(scope);
-            reg_ref.insert(scope.clone(), JS::from_ref(registration));
+            reg_ref.insert(scope.clone(), Dom::from_ref(registration));
         }
 
         // send ScopeThings to sw-manager
@@ -1959,7 +1959,7 @@ impl ScriptThread {
                                                               browsing_context_id,
                                                               top_level_browsing_context_id,
                                                               parent.r());
-        self.window_proxies.borrow_mut().insert(browsing_context_id, JS::from_ref(&*window_proxy));
+        self.window_proxies.borrow_mut().insert(browsing_context_id, Dom::from_ref(&*window_proxy));
         Some(window_proxy)
     }
 
@@ -1996,7 +1996,7 @@ impl ScriptThread {
                                             top_level_browsing_context_id,
                                             iframe.r().map(Castable::upcast),
                                             parent.r());
-        self.window_proxies.borrow_mut().insert(browsing_context_id, JS::from_ref(&*window_proxy));
+        self.window_proxies.borrow_mut().insert(browsing_context_id, Dom::from_ref(&*window_proxy));
         window_proxy
     }
 

@@ -14,7 +14,7 @@ use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::{CharacterDataTypeId, NodeTypeId};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::root::{JS, MutJS, Root, RootedReference};
+use dom::bindings::root::{Dom, MutJS, Root, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::weakref::{WeakRef, WeakRefVec};
@@ -770,7 +770,7 @@ impl RangeMethods for Range {
         let mut next = iter.next();
         while let Some(child) = next {
             if self.contains(&child) {
-                contained_children.push(JS::from_ref(&*child));
+                contained_children.push(Dom::from_ref(&*child));
                 next = iter.next_skipping_children();
             } else {
                 next = iter.next();

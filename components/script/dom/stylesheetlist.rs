@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::StyleSheetListBinding;
 use dom::bindings::codegen::Bindings::StyleSheetListBinding::StyleSheetListMethods;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::root::{JS, Root};
+use dom::bindings::root::{Dom, Root};
 use dom::document::Document;
 use dom::stylesheet::StyleSheet;
 use dom::window::Window;
@@ -14,12 +14,12 @@ use dom_struct::dom_struct;
 #[dom_struct]
 pub struct StyleSheetList {
     reflector_: Reflector,
-    document: JS<Document>,
+    document: Dom<Document>,
 }
 
 impl StyleSheetList {
     #[allow(unrooted_must_root)]
-    fn new_inherited(doc: JS<Document>) -> StyleSheetList {
+    fn new_inherited(doc: Dom<Document>) -> StyleSheetList {
         StyleSheetList {
             reflector_: Reflector::new(),
             document: doc
@@ -27,7 +27,7 @@ impl StyleSheetList {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, document: JS<Document>) -> Root<StyleSheetList> {
+    pub fn new(window: &Window, document: Dom<Document>) -> Root<StyleSheetList> {
         reflect_dom_object(box StyleSheetList::new_inherited(document),
                            window, StyleSheetListBinding::Wrap)
     }

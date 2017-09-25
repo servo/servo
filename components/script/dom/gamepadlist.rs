@@ -6,7 +6,7 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::GamepadListBinding;
 use dom::bindings::codegen::Bindings::GamepadListBinding::GamepadListMethods;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::root::{JS, Root};
+use dom::bindings::root::{Dom, Root};
 use dom::gamepad::Gamepad;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
@@ -15,14 +15,14 @@ use dom_struct::dom_struct;
 #[dom_struct]
 pub struct GamepadList {
     reflector_: Reflector,
-    list: DOMRefCell<Vec<JS<Gamepad>>>
+    list: DOMRefCell<Vec<Dom<Gamepad>>>
 }
 
 impl GamepadList {
     fn new_inherited(list: &[&Gamepad]) -> GamepadList {
         GamepadList {
             reflector_: Reflector::new(),
-            list: DOMRefCell::new(list.iter().map(|g| JS::from_ref(&**g)).collect())
+            list: DOMRefCell::new(list.iter().map(|g| Dom::from_ref(&**g)).collect())
         }
     }
 
@@ -35,7 +35,7 @@ impl GamepadList {
     pub fn add_if_not_exists(&self, gamepads: &[Root<Gamepad>]) {
         for gamepad in gamepads {
             if !self.list.borrow().iter().any(|g| g.gamepad_id() == gamepad.gamepad_id()) {
-                self.list.borrow_mut().push(JS::from_ref(&*gamepad));
+                self.list.borrow_mut().push(Dom::from_ref(&*gamepad));
                 // Ensure that the gamepad has the correct index
                 gamepad.update_index(self.list.borrow().len() as i32 - 1);
             }

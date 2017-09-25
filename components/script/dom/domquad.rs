@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::DOMQuadBinding::{DOMQuadInit, DOMQuadMetho
 use dom::bindings::codegen::Bindings::DOMRectReadOnlyBinding::DOMRectInit;
 use dom::bindings::error::Fallible;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
-use dom::bindings::root::{Root, JS};
+use dom::bindings::root::{Root, Dom};
 use dom::dompoint::DOMPoint;
 use dom::domrect::DOMRect;
 use dom::globalscope::GlobalScope;
@@ -17,10 +17,10 @@ use dom_struct::dom_struct;
 #[dom_struct]
 pub struct DOMQuad {
     reflector_: Reflector,
-    p1: JS<DOMPoint>,
-    p2: JS<DOMPoint>,
-    p3: JS<DOMPoint>,
-    p4: JS<DOMPoint>,
+    p1: Dom<DOMPoint>,
+    p2: Dom<DOMPoint>,
+    p3: Dom<DOMPoint>,
+    p4: Dom<DOMPoint>,
 }
 
 impl DOMQuad {
@@ -31,10 +31,10 @@ impl DOMQuad {
                      -> DOMQuad {
         DOMQuad {
             reflector_: Reflector::new(),
-            p1: JS::from_ref(p1),
-            p2: JS::from_ref(p2),
-            p3: JS::from_ref(p3),
-            p4: JS::from_ref(p4),
+            p1: Dom::from_ref(p1),
+            p2: Dom::from_ref(p2),
+            p3: Dom::from_ref(p3),
+            p4: Dom::from_ref(p4),
         }
     }
 

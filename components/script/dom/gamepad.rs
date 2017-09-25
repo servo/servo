@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::GamepadBinding::GamepadMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
-use dom::bindings::root::{JS, Root};
+use dom::bindings::root::{Dom, Root};
 use dom::bindings::str::DOMString;
 use dom::event::Event;
 use dom::eventtarget::EventTarget;
@@ -33,8 +33,8 @@ pub struct Gamepad {
     timestamp: Cell<f64>,
     mapping_type: String,
     axes: Heap<*mut JSObject>,
-    buttons: JS<GamepadButtonList>,
-    pose: Option<JS<VRPose>>,
+    buttons: Dom<GamepadButtonList>,
+    pose: Option<Dom<VRPose>>,
     #[ignore_heap_size_of = "Defined in rust-webvr"]
     hand: WebVRGamepadHand,
     display_id: u32
@@ -60,8 +60,8 @@ impl Gamepad {
             timestamp: Cell::new(timestamp),
             mapping_type: mapping_type,
             axes: Heap::default(),
-            buttons: JS::from_ref(buttons),
-            pose: pose.map(JS::from_ref),
+            buttons: Dom::from_ref(buttons),
+            pose: pose.map(Dom::from_ref),
             hand: hand,
             display_id: display_id
         }

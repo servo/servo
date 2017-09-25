@@ -10,7 +10,7 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::root::{JS, Root};
+use dom::bindings::root::{Dom, Root};
 use dom::bindings::str::DOMString;
 use dom::bindings::xmlname::{namespace_from_domstring, validate_qualified_name};
 use dom::document::{Document, HasBrowsingContext, IsHTMLDocument};
@@ -30,14 +30,14 @@ use script_traits::DocumentActivity;
 #[dom_struct]
 pub struct DOMImplementation {
     reflector_: Reflector,
-    document: JS<Document>,
+    document: Dom<Document>,
 }
 
 impl DOMImplementation {
     fn new_inherited(document: &Document) -> DOMImplementation {
         DOMImplementation {
             reflector_: Reflector::new(),
-            document: JS::from_ref(document),
+            document: Dom::from_ref(document),
         }
     }
 

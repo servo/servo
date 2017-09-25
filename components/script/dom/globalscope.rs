@@ -409,7 +409,7 @@ impl GlobalScope {
                 let _aes = AutoEntryScript::new(self);
                 let options = CompileOptionsWrapper::new(cx, filename.as_ptr(), line_number);
 
-                debug!("evaluating JS string");
+                debug!("evaluating Dom string");
                 let result = unsafe {
                     Evaluate2(cx, options.ptr, code.as_ptr(),
                               code.len() as libc::size_t,
@@ -417,7 +417,7 @@ impl GlobalScope {
                 };
 
                 if !result {
-                    debug!("error evaluating JS string");
+                    debug!("error evaluating Dom string");
                     unsafe { report_pending_exception(cx, true) };
                 }
 

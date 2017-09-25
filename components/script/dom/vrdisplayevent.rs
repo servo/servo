@@ -9,7 +9,7 @@ use dom::bindings::codegen::Bindings::VRDisplayEventBinding::VRDisplayEventReaso
 use dom::bindings::error::Fallible;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
-use dom::bindings::root::{JS, Root};
+use dom::bindings::root::{Dom, Root};
 use dom::bindings::str::DOMString;
 use dom::event::Event;
 use dom::globalscope::GlobalScope;
@@ -22,7 +22,7 @@ use webvr_traits::{WebVRDisplayEvent, WebVRDisplayEventReason};
 #[dom_struct]
 pub struct VRDisplayEvent {
     event: Event,
-    display: JS<VRDisplay>,
+    display: Dom<VRDisplay>,
     reason: Option<VRDisplayEventReason>
 }
 
@@ -32,7 +32,7 @@ impl VRDisplayEvent {
                      -> VRDisplayEvent {
         VRDisplayEvent {
             event: Event::new_inherited(),
-            display: JS::from_ref(display),
+            display: Dom::from_ref(display),
             reason: reason.clone()
         }
     }

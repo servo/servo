@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::DissimilarOriginLocationBinding::Dissimila
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::reflector::Reflector;
 use dom::bindings::reflector::reflect_dom_object;
-use dom::bindings::root::{JS, Root};
+use dom::bindings::root::{Dom, Root};
 use dom::bindings::str::DOMString;
 use dom::bindings::str::USVString;
 use dom::dissimilaroriginwindow::DissimilarOriginWindow;
@@ -27,7 +27,7 @@ pub struct DissimilarOriginLocation {
     reflector: Reflector,
 
     /// The window associated with this location.
-    window: JS<DissimilarOriginWindow>,
+    window: Dom<DissimilarOriginWindow>,
 }
 
 impl DissimilarOriginLocation {
@@ -35,7 +35,7 @@ impl DissimilarOriginLocation {
     fn new_inherited(window: &DissimilarOriginWindow) -> DissimilarOriginLocation {
         DissimilarOriginLocation {
             reflector: Reflector::new(),
-            window: JS::from_ref(window),
+            window: Dom::from_ref(window),
         }
     }
 

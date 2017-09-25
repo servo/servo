@@ -15,7 +15,7 @@ use dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::root::{JS, LayoutJS, MutNullableJS, Root, RootedReference};
+use dom::bindings::root::{Dom, LayoutJS, MutNullableJS, Root, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, LayoutElementHelpers, RawLayoutElementHelpers};
@@ -110,7 +110,7 @@ struct InputActivationState {
     indeterminate: bool,
     checked: bool,
     checked_changed: bool,
-    checked_radio: Option<JS<HTMLInputElement>>,
+    checked_radio: Option<Dom<HTMLInputElement>>,
     // In case mutability changed
     was_mutable: bool,
     // In case the type changed
@@ -1251,7 +1251,7 @@ impl Activatable for HTMLInputElement {
                                 in_same_group(&*r, owner.r(), group.as_ref()) &&
                                 r.Checked()
                             });
-                    cache.checked_radio = checked_member.r().map(JS::from_ref);
+                    cache.checked_radio = checked_member.r().map(Dom::from_ref);
                     cache.checked_changed = self.checked_changed.get();
                     self.SetChecked(true);
                 }

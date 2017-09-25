@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding::BluetoothRemoteGATTServiceMethods;
 use dom::bindings::error::Error;
 use dom::bindings::reflector::reflect_dom_object;
-use dom::bindings::root::{JS, Root};
+use dom::bindings::root::{Dom, Root};
 use dom::bindings::str::DOMString;
 use dom::bluetooth::{AsyncBluetoothListener, get_gatt_children};
 use dom::bluetoothdevice::BluetoothDevice;
@@ -23,7 +23,7 @@ use std::rc::Rc;
 #[dom_struct]
 pub struct BluetoothRemoteGATTService {
     eventtarget: EventTarget,
-    device: JS<BluetoothDevice>,
+    device: Dom<BluetoothDevice>,
     uuid: DOMString,
     is_primary: bool,
     instance_id: String,
@@ -37,7 +37,7 @@ impl BluetoothRemoteGATTService {
                          -> BluetoothRemoteGATTService {
         BluetoothRemoteGATTService {
             eventtarget: EventTarget::new_inherited(),
-            device: JS::from_ref(device),
+            device: Dom::from_ref(device),
             uuid: uuid,
             is_primary: is_primary,
             instance_id: instance_id,
