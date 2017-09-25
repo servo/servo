@@ -13,6 +13,7 @@ use dom::bindings::js::{MutNullableJS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::str::DOMString;
+use dom::bindings::trace::RootedTraceableBox;
 use dom::blob::Blob;
 use dom::domexception::{DOMErrorName, DOMException};
 use dom::event::{Event, EventBubbles, EventCancelable};
@@ -338,7 +339,9 @@ impl FileReaderMethods for FileReader {
             FileReaderResult::String(ref string) =>
                 StringOrObject::String(string.clone()),
             FileReaderResult::ArrayBuffer(ref arr_buffer) => {
-                StringOrObject::Object(Heap::new((*arr_buffer.ptr.get()).to_object()))
+                let result = RootedTraceableBox::new(Heap::default());
+                result.set((*arr_buffer.ptr.get()).to_object());
+                StringOrObject::Object(result)
             }
         })
     }

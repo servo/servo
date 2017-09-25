@@ -522,3 +522,12 @@ fn inner_invoke(window: Option<&Window>,
     // Step 3.
     found
 }
+
+impl Default for EventBinding::EventInit {
+    fn default() -> EventBinding::EventInit {
+        EventBinding::EventInit {
+            bubbles: false,
+            cancelable: false,
+        }
+    }
+}
