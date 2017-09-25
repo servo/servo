@@ -182,3 +182,14 @@ ${helpers.predefined_type(
     ignored_when_colors_disabled=True,
     products="gecko",
 )}
+
+${helpers.predefined_type(
+    "-moz-font-smoothing-background-color",
+    "RGBAColor",
+    "RGBA::transparent()",
+    animation_value_type="AnimatedRGBA",
+    products="gecko",
+    gecko_ffi_name="mFontSmoothingBackgroundColor",
+    internal=True,
+    spec="None (Nonstandard internal property)"
+)}
