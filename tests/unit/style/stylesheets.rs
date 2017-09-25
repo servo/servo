@@ -10,6 +10,7 @@ use selectors::attr::*;
 use selectors::parser::*;
 use servo_arc::Arc;
 use servo_atoms::Atom;
+use servo_config::prefs::{PREFS, PrefValue};
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::cell::RefCell;
@@ -282,15 +283,15 @@ impl TestingErrorReporter {
         let errors = self.errors.borrow();
         for (i, (error, &(line, column, message))) in errors.iter().zip(expected_errors).enumerate() {
             assert_eq!((error.line, error.column), (line, column),
-                       "line/column numbers of the {}th error", i + 1);
+                       "line/column numbers of the {}th error: {:?}", i + 1, error.message);
             assert!(error.message.contains(message),
                     "{:?} does not contain {:?}", error.message, message);
         }
         if errors.len() < expected_errors.len() {
-            panic!("Missing errors: {:?}", &expected_errors[errors.len()..]);
+            panic!("Missing errors: {:#?}", &expected_errors[errors.len()..]);
         }
         if errors.len() > expected_errors.len() {
-            panic!("Extra errors: {:?}", &errors[expected_errors.len()..]);
+            panic!("Extra errors: {:#?}", &errors[expected_errors.len()..]);
         }
     }
 }
@@ -314,12 +315,23 @@ impl ParseErrorReporter for TestingErrorReporter {
 
 #[test]
 fn test_report_error_stylesheet() {
+    PREFS.set("layout.viewport.enabled", PrefValue::Boolean(true));
     let css = r"
     div {
         background-color: red;
         display: invalid;
+        background-image: linear-gradient(0deg, black, invalid, transparent);
         invalid: true;
     }
+    @media (min-width: invalid 1000px) {}
+    @font-face { src: url(), invalid, url() }
+    @counter-style foo { symbols: a 0invalid b }
+    @font-feature-values Sans Sans { @foo {} @swash { foo: 1 invalid 2 } }
+    @invalid;
+    @media screen { @invalid; }
+    @supports (color: green) and invalid and (margin: 0) {}
+    @keyframes foo { from invalid {} to { margin: 0 invalid 0 } }
+    @viewport { width: 320px invalid auto; }
     ";
     let url = ServoUrl::parse("about::test").unwrap();
     let error_reporter = TestingErrorReporter::new();
@@ -331,7 +343,25 @@ fn test_report_error_stylesheet() {
 
     error_reporter.assert_messages_contain(&[
         (8, 9, "Unsupported property declaration: 'display: invalid;'"),
-        (9, 9, "Unsupported property declaration: 'invalid: true;'"),
+        (9, 9, "Unsupported property declaration: 'background-image:"),
+        (10, 9, "Unsupported property declaration: 'invalid: true;'"),
+        (12, 11, "Invalid media rule"),
+        (13, 18, "Unsupported @font-face descriptor declaration"),
+
+        // When @counter-style is supported, this should be replaced with two errors
+        (14, 5, "Invalid rule: '@counter-style "),
+
+        // When @font-feature-values is supported, this should be replaced with two errors
+        (15, 5, "Invalid rule: '@font-feature-values "),
+
+        // FIXME: these two should be consistent
+        (16, 5, "Invalid rule: '@invalid'"),
+        (17, 21, "Unsupported rule: '@invalid'"),
+
+        (18, 5, "Invalid rule: '@supports "),
+        (19, 22, "Invalid keyframe rule: 'from invalid '"),
+        (19, 43, "Unsupported keyframe property declaration: 'margin: 0 invalid 0 '"),
+        (20, 17, "Unsupported @viewport descriptor declaration: 'width: 320px invalid auto;'"),
     ]);
 
     assert_eq!(error_reporter.errors.borrow()[0].url, url);
