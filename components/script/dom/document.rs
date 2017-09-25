@@ -415,7 +415,7 @@ impl Document {
     }
 
     #[inline]
-    pub fn mut_loader(&self) -> RefMut<DocumentLoader> {
+    pub fn loader_mut(&self) -> RefMut<DocumentLoader> {
         self.loader.borrow_mut()
     }
 
