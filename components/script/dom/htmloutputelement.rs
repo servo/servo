@@ -6,7 +6,7 @@ use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLOutputElementBinding;
 use dom::bindings::codegen::Bindings::HTMLOutputElementBinding::HTMLOutputElementMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::root::{MutNullableJS, Root};
+use dom::bindings::root::{MutNullableDom, Root};
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element};
 use dom::htmlelement::HTMLElement;
@@ -21,7 +21,7 @@ use html5ever::{LocalName, Prefix};
 #[dom_struct]
 pub struct HTMLOutputElement {
     htmlelement: HTMLElement,
-    form_owner: MutNullableJS<HTMLFormElement>,
+    form_owner: MutNullableDom<HTMLFormElement>,
 }
 
 impl HTMLOutputElement {

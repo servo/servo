@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::reflect_dom_object;
-use dom::bindings::root::{MutNullableJS, Root, RootedReference};
+use dom::bindings::root::{MutNullableDom, Root, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::window::Window;
@@ -21,7 +21,7 @@ use std::default::Default;
 #[dom_struct]
 pub struct UIEvent {
     event: Event,
-    view: MutNullableJS<Window>,
+    view: MutNullableDom<Window>,
     detail: Cell<i32>
 }
 

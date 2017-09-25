@@ -8,7 +8,7 @@ use canvas_traits::webgl::webgl_channel;
 use dom::bindings::codegen::Bindings::WebGLProgramBinding;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
-use dom::bindings::root::{MutNullableJS, Root};
+use dom::bindings::root::{MutNullableDom, Root};
 use dom::bindings::str::DOMString;
 use dom::webglactiveinfo::WebGLActiveInfo;
 use dom::webglobject::WebGLObject;
@@ -25,8 +25,8 @@ pub struct WebGLProgram {
     is_deleted: Cell<bool>,
     link_called: Cell<bool>,
     linked: Cell<bool>,
-    fragment_shader: MutNullableJS<WebGLShader>,
-    vertex_shader: MutNullableJS<WebGLShader>,
+    fragment_shader: MutNullableDom<WebGLShader>,
+    vertex_shader: MutNullableDom<WebGLShader>,
     #[ignore_heap_size_of = "Defined in ipc-channel"]
     renderer: WebGLMsgSender,
 }

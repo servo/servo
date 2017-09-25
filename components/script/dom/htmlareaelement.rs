@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListMethods;
 use dom::bindings::codegen::Bindings::HTMLAreaElementBinding;
 use dom::bindings::codegen::Bindings::HTMLAreaElementBinding::HTMLAreaElementMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::root::{MutNullableJS, Root};
+use dom::bindings::root::{MutNullableDom, Root};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::domtokenlist::DOMTokenList;
@@ -217,7 +217,7 @@ impl Area {
 #[dom_struct]
 pub struct HTMLAreaElement {
     htmlelement: HTMLElement,
-    rel_list: MutNullableJS<DOMTokenList>,
+    rel_list: MutNullableDom<DOMTokenList>,
 }
 
 impl HTMLAreaElement {

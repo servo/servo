@@ -11,7 +11,7 @@ use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
-use dom::bindings::root::{MutNullableJS, Root};
+use dom::bindings::root::{MutNullableDom, Root};
 use dom::bindings::str::DOMString;
 use dom::bindings::trace::RootedTraceableBox;
 use dom::blob::Blob;
@@ -87,7 +87,7 @@ pub enum FileReaderResult {
 pub struct FileReader {
     eventtarget: EventTarget,
     ready_state: Cell<FileReaderReadyState>,
-    error: MutNullableJS<DOMException>,
+    error: MutNullableDom<DOMException>,
     result: DOMRefCell<Option<FileReaderResult>>,
     generation_id: Cell<GenerationId>,
 }
@@ -97,7 +97,7 @@ impl FileReader {
         FileReader {
             eventtarget: EventTarget::new_inherited(),
             ready_state: Cell::new(FileReaderReadyState::Empty),
-            error: MutNullableJS::new(None),
+            error: MutNullableDom::new(None),
             result: DOMRefCell::new(None),
             generation_id: Cell::new(GenerationId(0)),
         }

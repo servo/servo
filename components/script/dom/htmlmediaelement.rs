@@ -18,7 +18,7 @@ use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
-use dom::bindings::root::{MutNullableJS, Root};
+use dom::bindings::root::{MutNullableDom, Root};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{Element, AttributeMutation};
@@ -66,7 +66,7 @@ pub struct HTMLMediaElement {
     /// Reset to false every time the load algorithm is invoked.
     fired_loadeddata_event: Cell<bool>,
     /// https://html.spec.whatwg.org/multipage/#dom-media-error
-    error: MutNullableJS<MediaError>,
+    error: MutNullableDom<MediaError>,
     /// https://html.spec.whatwg.org/multipage/#dom-media-paused
     paused: Cell<bool>,
     /// https://html.spec.whatwg.org/multipage/#attr-media-autoplay

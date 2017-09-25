@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::HTMLTemplateElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::root::{MutNullableJS, Root};
+use dom::bindings::root::{MutNullableDom, Root};
 use dom::document::Document;
 use dom::documentfragment::DocumentFragment;
 use dom::htmlelement::HTMLElement;
@@ -21,7 +21,7 @@ pub struct HTMLTemplateElement {
     htmlelement: HTMLElement,
 
     /// https://html.spec.whatwg.org/multipage/#template-contents
-    contents: MutNullableJS<DocumentFragment>,
+    contents: MutNullableDom<DocumentFragment>,
 }
 
 impl HTMLTemplateElement {
@@ -31,7 +31,7 @@ impl HTMLTemplateElement {
         HTMLTemplateElement {
             htmlelement:
                 HTMLElement::new_inherited(local_name, prefix, document),
-            contents: MutNullableJS::new(None),
+            contents: MutNullableDom::new(None),
         }
     }
 

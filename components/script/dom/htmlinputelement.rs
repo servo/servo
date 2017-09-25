@@ -15,7 +15,7 @@ use dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::root::{Dom, LayoutJS, MutNullableJS, Root, RootedReference};
+use dom::bindings::root::{Dom, LayoutJS, MutNullableDom, Root, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, LayoutElementHelpers, RawLayoutElementHelpers};
@@ -99,8 +99,8 @@ pub struct HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#concept-input-value-dirty-flag
     value_dirty: Cell<bool>,
 
-    filelist: MutNullableJS<FileList>,
-    form_owner: MutNullableJS<HTMLFormElement>,
+    filelist: MutNullableDom<FileList>,
+    form_owner: MutNullableDom<HTMLFormElement>,
 }
 
 #[derive(JSTraceable)]
@@ -156,7 +156,7 @@ impl HTMLInputElement {
                                                       SelectionDirection::None)),
             activation_state: DOMRefCell::new(InputActivationState::new()),
             value_dirty: Cell::new(false),
-            filelist: MutNullableJS::new(None),
+            filelist: MutNullableDom::new(None),
             form_owner: Default::default(),
         }
     }

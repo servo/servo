@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::reflect_dom_object;
-use dom::bindings::root::{MutNullableJS, Root, RootedReference};
+use dom::bindings::root::{MutNullableDom, Root, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::event::{EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
@@ -20,7 +20,7 @@ use std::default::Default;
 #[dom_struct]
 pub struct FocusEvent {
     uievent: UIEvent,
-    related_target: MutNullableJS<EventTarget>,
+    related_target: MutNullableDom<EventTarget>,
 }
 
 impl FocusEvent {

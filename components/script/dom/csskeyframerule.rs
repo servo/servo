@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::CSSKeyframeRuleBinding::{self, CSSKeyframeRuleMethods};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
-use dom::bindings::root::{Dom, MutNullableJS, Root};
+use dom::bindings::root::{Dom, MutNullableDom, Root};
 use dom::bindings::str::DOMString;
 use dom::cssrule::{CSSRule, SpecificCSSRule};
 use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
@@ -21,7 +21,7 @@ pub struct CSSKeyframeRule {
     cssrule: CSSRule,
     #[ignore_heap_size_of = "Arc"]
     keyframerule: Arc<Locked<Keyframe>>,
-    style_decl: MutNullableJS<CSSStyleDeclaration>,
+    style_decl: MutNullableDom<CSSStyleDeclaration>,
 }
 
 impl CSSKeyframeRule {

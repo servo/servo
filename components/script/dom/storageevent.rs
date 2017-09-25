@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::StorageEventBinding::StorageEventMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::reflect_dom_object;
-use dom::bindings::root::{MutNullableJS, Root, RootedReference};
+use dom::bindings::root::{MutNullableDom, Root, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::storage::Storage;
@@ -23,7 +23,7 @@ pub struct StorageEvent {
     old_value: Option<DOMString>,
     new_value: Option<DOMString>,
     url: DOMString,
-    storage_area: MutNullableJS<Storage>
+    storage_area: MutNullableDom<Storage>
 }
 
 
@@ -39,7 +39,7 @@ impl StorageEvent {
             old_value: old_value,
             new_value: new_value,
             url: url,
-            storage_area: MutNullableJS::new(storage_area)
+            storage_area: MutNullableDom::new(storage_area)
         }
     }
 

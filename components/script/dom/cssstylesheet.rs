@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::CSSStyleSheetBinding::CSSStyleSheetMethods
 use dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::reflector::{reflect_dom_object, DomObject};
-use dom::bindings::root::{Dom, MutNullableJS, Root};
+use dom::bindings::root::{Dom, MutNullableDom, Root};
 use dom::bindings::str::DOMString;
 use dom::cssrulelist::{CSSRuleList, RulesSource};
 use dom::element::Element;
@@ -23,7 +23,7 @@ use style::stylesheets::Stylesheet as StyleStyleSheet;
 pub struct CSSStyleSheet {
     stylesheet: StyleSheet,
     owner: Dom<Element>,
-    rulelist: MutNullableJS<CSSRuleList>,
+    rulelist: MutNullableDom<CSSRuleList>,
     #[ignore_heap_size_of = "Arc"]
     style_stylesheet: Arc<StyleStyleSheet>,
     origin_clean: Cell<bool>,
@@ -38,7 +38,7 @@ impl CSSStyleSheet {
         CSSStyleSheet {
             stylesheet: StyleSheet::new_inherited(type_, href, title),
             owner: Dom::from_ref(owner),
-            rulelist: MutNullableJS::new(None),
+            rulelist: MutNullableDom::new(None),
             style_stylesheet: stylesheet,
             origin_clean: Cell::new(true),
         }

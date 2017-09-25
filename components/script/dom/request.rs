@@ -18,7 +18,7 @@ use dom::bindings::codegen::Bindings::RequestBinding::RequestRedirect;
 use dom::bindings::codegen::Bindings::RequestBinding::RequestType;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
-use dom::bindings::root::{MutNullableJS, Root};
+use dom::bindings::root::{MutNullableDom, Root};
 use dom::bindings::str::{ByteString, DOMString, USVString};
 use dom::bindings::trace::RootedTraceableBox;
 use dom::globalscope::GlobalScope;
@@ -46,7 +46,7 @@ pub struct Request {
     reflector_: Reflector,
     request: DOMRefCell<NetTraitsRequest>,
     body_used: Cell<bool>,
-    headers: MutNullableJS<Headers>,
+    headers: MutNullableDom<Headers>,
     mime_type: DOMRefCell<Vec<u8>>,
     #[ignore_heap_size_of = "Rc"]
     body_promise: DOMRefCell<Option<(Rc<Promise>, BodyType)>>,

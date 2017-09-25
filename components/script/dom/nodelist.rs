@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::NodeListBinding;
 use dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::root::{Dom, MutNullableJS, Root, RootedReference};
+use dom::bindings::root::{Dom, MutNullableDom, Root, RootedReference};
 use dom::node::{ChildrenMutation, Node};
 use dom::window::Window;
 use dom_struct::dom_struct;
@@ -114,7 +114,7 @@ impl NodeList {
 pub struct ChildrenList {
     node: Dom<Node>,
     #[ignore_heap_size_of = "Defined in rust-mozjs"]
-    last_visited: MutNullableJS<Node>,
+    last_visited: MutNullableDom<Node>,
     last_index: Cell<u32>,
 }
 
@@ -123,7 +123,7 @@ impl ChildrenList {
         let last_visited = node.GetFirstChild();
         ChildrenList {
             node: Dom::from_ref(node),
-            last_visited: MutNullableJS::new(last_visited.r()),
+            last_visited: MutNullableDom::new(last_visited.r()),
             last_index: Cell::new(0u32),
         }
     }

@@ -16,7 +16,7 @@ use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
-use dom::bindings::root::{Dom, MutNullableJS, Root};
+use dom::bindings::root::{Dom, MutNullableDom, Root};
 use dom::bindings::str::{ByteString, DOMString, USVString, is_token};
 use dom::blob::{Blob, BlobImpl};
 use dom::document::{Document, HasBrowsingContext, IsHTMLDocument};
@@ -129,8 +129,8 @@ pub struct XMLHttpRequest {
     status_text: DOMRefCell<ByteString>,
     response: DOMRefCell<ByteString>,
     response_type: Cell<XMLHttpRequestResponseType>,
-    response_xml: MutNullableJS<Document>,
-    response_blob: MutNullableJS<Blob>,
+    response_xml: MutNullableDom<Document>,
+    response_blob: MutNullableDom<Blob>,
     #[ignore_heap_size_of = "Defined in rust-mozjs"]
     response_json: Heap<JSVal>,
     #[ignore_heap_size_of = "Defined in hyper"]

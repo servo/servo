@@ -18,7 +18,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::num::Finite;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
-use dom::bindings::root::{MutDom, MutNullableJS, Root};
+use dom::bindings::root::{MutDom, MutNullableDom, Root};
 use dom::bindings::str::DOMString;
 use dom::event::Event;
 use dom::eventtarget::EventTarget;
@@ -54,12 +54,12 @@ pub struct VRDisplay {
     left_eye_params: MutDom<VREyeParameters>,
     right_eye_params: MutDom<VREyeParameters>,
     capabilities: MutDom<VRDisplayCapabilities>,
-    stage_params: MutNullableJS<VRStageParameters>,
+    stage_params: MutNullableDom<VRStageParameters>,
     #[ignore_heap_size_of = "Defined in rust-webvr"]
     frame_data: DOMRefCell<WebVRFrameData>,
     #[ignore_heap_size_of = "Defined in rust-webvr"]
     layer: DOMRefCell<WebVRLayer>,
-    layer_ctx: MutNullableJS<WebGLRenderingContext>,
+    layer_ctx: MutNullableDom<WebGLRenderingContext>,
     #[ignore_heap_size_of = "Defined in rust-webvr"]
     next_raf_id: Cell<u32>,
     /// List of request animation frame callbacks
@@ -103,10 +103,10 @@ impl VRDisplay {
             left_eye_params: MutDom::new(&*VREyeParameters::new(display.left_eye_parameters.clone(), &global)),
             right_eye_params: MutDom::new(&*VREyeParameters::new(display.right_eye_parameters.clone(), &global)),
             capabilities: MutDom::new(&*VRDisplayCapabilities::new(display.capabilities.clone(), &global)),
-            stage_params: MutNullableJS::new(stage.as_ref().map(|v| v.deref())),
+            stage_params: MutNullableDom::new(stage.as_ref().map(|v| v.deref())),
             frame_data: DOMRefCell::new(Default::default()),
             layer: DOMRefCell::new(Default::default()),
-            layer_ctx: MutNullableJS::default(),
+            layer_ctx: MutNullableDom::default(),
             next_raf_id: Cell::new(1),
             raf_callback_list: DOMRefCell::new(vec![]),
             frame_data_status: Cell::new(VRFrameDataStatus::Waiting),

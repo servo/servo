@@ -27,7 +27,7 @@ use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, Nod
 use dom::bindings::num::Finite;
 use dom::bindings::refcounted::{Trusted, TrustedPromise};
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
-use dom::bindings::root::{Dom, LayoutJS, MutNullableJS, Root, RootedReference};
+use dom::bindings::root::{Dom, LayoutJS, MutNullableDom, Root, RootedReference};
 use dom::bindings::str::{DOMString, USVString};
 use dom::bindings::xmlname::{namespace_from_domstring, validate_and_extract, xml_name_type};
 use dom::bindings::xmlname::XMLName::InvalidXMLName;
@@ -224,7 +224,7 @@ impl ::style::stylesheets::StylesheetInDocument for StyleSheetInDocument {
 pub struct Document {
     node: Node,
     window: Dom<Window>,
-    implementation: MutNullableJS<DOMImplementation>,
+    implementation: MutNullableDom<DOMImplementation>,
     content_type: DOMString,
     last_modified: Option<String>,
     encoding: Cell<EncodingRef>,
@@ -239,28 +239,28 @@ pub struct Document {
     tag_map: DOMRefCell<HashMap<LocalName, Dom<HTMLCollection>>>,
     tagns_map: DOMRefCell<HashMap<QualName, Dom<HTMLCollection>>>,
     classes_map: DOMRefCell<HashMap<Vec<Atom>, Dom<HTMLCollection>>>,
-    images: MutNullableJS<HTMLCollection>,
-    embeds: MutNullableJS<HTMLCollection>,
-    links: MutNullableJS<HTMLCollection>,
-    forms: MutNullableJS<HTMLCollection>,
-    scripts: MutNullableJS<HTMLCollection>,
-    anchors: MutNullableJS<HTMLCollection>,
-    applets: MutNullableJS<HTMLCollection>,
+    images: MutNullableDom<HTMLCollection>,
+    embeds: MutNullableDom<HTMLCollection>,
+    links: MutNullableDom<HTMLCollection>,
+    forms: MutNullableDom<HTMLCollection>,
+    scripts: MutNullableDom<HTMLCollection>,
+    anchors: MutNullableDom<HTMLCollection>,
+    applets: MutNullableDom<HTMLCollection>,
     /// Lock use for style attributes and author-origin stylesheet objects in this document.
     /// Can be acquired once for accessing many objects.
     style_shared_lock: StyleSharedRwLock,
     /// List of stylesheets associated with nodes in this document. |None| if the list needs to be refreshed.
     stylesheets: DOMRefCell<StylesheetSet<StyleSheetInDocument>>,
-    stylesheet_list: MutNullableJS<StyleSheetList>,
+    stylesheet_list: MutNullableDom<StyleSheetList>,
     ready_state: Cell<DocumentReadyState>,
     /// Whether the DOMContentLoaded event has already been dispatched.
     domcontentloaded_dispatched: Cell<bool>,
     /// The element that has most recently requested focus for itself.
-    possibly_focused: MutNullableJS<Element>,
+    possibly_focused: MutNullableDom<Element>,
     /// The element that currently has the document focus context.
-    focused: MutNullableJS<Element>,
+    focused: MutNullableDom<Element>,
     /// The script element that is currently executing.
-    current_script: MutNullableJS<HTMLScriptElement>,
+    current_script: MutNullableDom<HTMLScriptElement>,
     /// https://html.spec.whatwg.org/multipage/#pending-parsing-blocking-script
     pending_parsing_blocking_script: DOMRefCell<Option<PendingScript>>,
     /// Number of stylesheets that block executing the next parser-inserted script
@@ -288,14 +288,14 @@ pub struct Document {
     /// Tracks all outstanding loads related to this document.
     loader: DOMRefCell<DocumentLoader>,
     /// The current active HTML parser, to allow resuming after interruptions.
-    current_parser: MutNullableJS<ServoParser>,
+    current_parser: MutNullableDom<ServoParser>,
     /// When we should kick off a reflow. This happens during parsing.
     reflow_timeout: Cell<Option<u64>>,
     /// The cached first `base` element with an `href` attribute.
-    base_element: MutNullableJS<HTMLBaseElement>,
+    base_element: MutNullableDom<HTMLBaseElement>,
     /// This field is set to the document itself for inert documents.
     /// https://html.spec.whatwg.org/multipage/#appropriate-template-contents-owner-document
-    appropriate_template_contents_owner_document: MutNullableJS<Document>,
+    appropriate_template_contents_owner_document: MutNullableDom<Document>,
     /// Information on elements needing restyle to ship over to the layout thread when the
     /// time comes.
     pending_restyles: DOMRefCell<HashMap<Dom<Element>, PendingRestyle>>,
@@ -323,7 +323,7 @@ pub struct Document {
     /// https://html.spec.whatwg.org/multipage/#dom-document-referrer
     referrer: Option<String>,
     /// https://html.spec.whatwg.org/multipage/#target-element
-    target_element: MutNullableJS<Element>,
+    target_element: MutNullableDom<Element>,
     /// https://w3c.github.io/uievents/#event-type-dblclick
     #[ignore_heap_size_of = "Defined in std"]
     last_click_info: DOMRefCell<Option<(Instant, Point2D<f32>)>>,
@@ -341,7 +341,7 @@ pub struct Document {
     /// See also: https://github.com/servo/servo/issues/10110
     dom_count: Cell<u32>,
     /// Entry node for fullscreen.
-    fullscreen_element: MutNullableJS<Element>,
+    fullscreen_element: MutNullableDom<Element>,
     /// Map from ID to set of form control elements that have that ID as
     /// their 'form' content attribute. Used to reset form controls
     /// whenever any element with the same ID as the form attribute
@@ -1112,7 +1112,7 @@ impl Document {
     pub fn handle_mouse_move_event(&self,
                                    js_runtime: *mut JSRuntime,
                                    client_point: Option<Point2D<f32>>,
-                                   prev_mouse_over_target: &MutNullableJS<Element>) {
+                                   prev_mouse_over_target: &MutNullableDom<Element>) {
         let client_point = match client_point {
             None => {
                 // If there's no point, there's no target under the mouse
@@ -2264,7 +2264,7 @@ impl Document {
                 //StyleSharedRwLock::new()
             },
             stylesheets: DOMRefCell::new(StylesheetSet::new()),
-            stylesheet_list: MutNullableJS::new(None),
+            stylesheet_list: MutNullableDom::new(None),
             ready_state: Cell::new(ready_state),
             domcontentloaded_dispatched: Cell::new(domcontentloaded_dispatched),
             possibly_focused: Default::default(),
@@ -2299,12 +2299,12 @@ impl Document {
             origin: origin,
             referrer: referrer,
             referrer_policy: Cell::new(referrer_policy),
-            target_element: MutNullableJS::new(None),
+            target_element: MutNullableDom::new(None),
             last_click_info: DOMRefCell::new(None),
             ignore_destructive_writes_counter: Default::default(),
             spurious_animation_frames: Cell::new(0),
             dom_count: Cell::new(1),
-            fullscreen_element: MutNullableJS::new(None),
+            fullscreen_element: MutNullableDom::new(None),
             form_id_listener_map: Default::default(),
         }
     }

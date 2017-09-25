@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::HTMLMetaElementBinding;
 use dom::bindings::codegen::Bindings::HTMLMetaElementBinding::HTMLMetaElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::root::{MutNullableJS, Root, RootedReference};
+use dom::bindings::root::{MutNullableDom, Root, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::cssstylesheet::CSSStyleSheet;
 use dom::document::Document;
@@ -34,7 +34,7 @@ pub struct HTMLMetaElement {
     htmlelement: HTMLElement,
     #[ignore_heap_size_of = "Arc"]
     stylesheet: DOMRefCell<Option<Arc<Stylesheet>>>,
-    cssom_stylesheet: MutNullableJS<CSSStyleSheet>,
+    cssom_stylesheet: MutNullableDom<CSSStyleSheet>,
 }
 
 impl HTMLMetaElement {
@@ -44,7 +44,7 @@ impl HTMLMetaElement {
         HTMLMetaElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             stylesheet: DOMRefCell::new(None),
-            cssom_stylesheet: MutNullableJS::new(None),
+            cssom_stylesheet: MutNullableDom::new(None),
         }
     }
 

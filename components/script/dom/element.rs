@@ -24,7 +24,7 @@ use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use dom::bindings::refcounted::{Trusted, TrustedPromise};
 use dom::bindings::reflector::DomObject;
-use dom::bindings::root::{Dom, LayoutJS, MutNullableJS, Root, RootedReference};
+use dom::bindings::root::{Dom, LayoutJS, MutNullableDom, Root, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::bindings::xmlname::{namespace_from_domstring, validate_and_extract, xml_name_type};
 use dom::bindings::xmlname::XMLName::InvalidXMLName;
@@ -136,8 +136,8 @@ pub struct Element {
     is: DOMRefCell<Option<LocalName>>,
     #[ignore_heap_size_of = "Arc"]
     style_attribute: DOMRefCell<Option<Arc<Locked<PropertyDeclarationBlock>>>>,
-    attr_list: MutNullableJS<NamedNodeMap>,
-    class_list: MutNullableJS<DOMTokenList>,
+    attr_list: MutNullableDom<NamedNodeMap>,
+    class_list: MutNullableDom<DOMTokenList>,
     state: Cell<ElementState>,
     /// These flags are set by the style system to indicate the that certain
     /// operations may require restyling this element or its descendants. The

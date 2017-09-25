@@ -6,7 +6,7 @@ use canvas_traits::webgl::{webgl_channel, WebGLCommand, WebGLError};
 use dom::bindings::codegen::Bindings::OESVertexArrayObjectBinding::{self, OESVertexArrayObjectMethods};
 use dom::bindings::codegen::Bindings::OESVertexArrayObjectBinding::OESVertexArrayObjectConstants;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
-use dom::bindings::root::{Dom, MutNullableJS, Root};
+use dom::bindings::root::{Dom, MutNullableDom, Root};
 use dom::webglrenderingcontext::WebGLRenderingContext;
 use dom::webglvertexarrayobjectoes::WebGLVertexArrayObjectOES;
 use dom_struct::dom_struct;
@@ -20,7 +20,7 @@ use super::{WebGLExtension, WebGLExtensions};
 pub struct OESVertexArrayObject {
     reflector_: Reflector,
     ctx: Dom<WebGLRenderingContext>,
-    bound_vao: MutNullableJS<WebGLVertexArrayObjectOES>,
+    bound_vao: MutNullableDom<WebGLVertexArrayObjectOES>,
 }
 
 impl OESVertexArrayObject {
@@ -28,7 +28,7 @@ impl OESVertexArrayObject {
         Self {
             reflector_: Reflector::new(),
             ctx: Dom::from_ref(ctx),
-            bound_vao: MutNullableJS::new(None)
+            bound_vao: MutNullableDom::new(None)
         }
     }
 

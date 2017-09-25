@@ -7,7 +7,7 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HTMLObjectElementBinding;
 use dom::bindings::codegen::Bindings::HTMLObjectElementBinding::HTMLObjectElementMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::root::{MutNullableJS, Root};
+use dom::bindings::root::{MutNullableDom, Root};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element};
@@ -28,7 +28,7 @@ pub struct HTMLObjectElement {
     htmlelement: HTMLElement,
     #[ignore_heap_size_of = "Arc"]
     image: DOMRefCell<Option<Arc<Image>>>,
-    form_owner: MutNullableJS<HTMLFormElement>,
+    form_owner: MutNullableDom<HTMLFormElement>,
 }
 
 impl HTMLObjectElement {

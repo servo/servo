@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::DissimilarOriginWindowBinding;
 use dom::bindings::codegen::Bindings::DissimilarOriginWindowBinding::DissimilarOriginWindowMethods;
 use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::root::{Dom, MutNullableJS, Root};
+use dom::bindings::root::{Dom, MutNullableDom, Root};
 use dom::bindings::str::DOMString;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::dissimilaroriginlocation::DissimilarOriginLocation;
@@ -40,7 +40,7 @@ pub struct DissimilarOriginWindow {
     window_proxy: Dom<WindowProxy>,
 
     /// The location of this window, initialized lazily.
-    location: MutNullableJS<DissimilarOriginLocation>,
+    location: MutNullableDom<DissimilarOriginLocation>,
 }
 
 impl DissimilarOriginWindow {

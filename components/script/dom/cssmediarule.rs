@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::CSSMediaRuleBinding;
 use dom::bindings::codegen::Bindings::CSSMediaRuleBinding::CSSMediaRuleMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
-use dom::bindings::root::{MutNullableJS, Root};
+use dom::bindings::root::{MutNullableDom, Root};
 use dom::bindings::str::DOMString;
 use dom::cssconditionrule::CSSConditionRule;
 use dom::cssrule::SpecificCSSRule;
@@ -27,7 +27,7 @@ pub struct CSSMediaRule {
     cssconditionrule: CSSConditionRule,
     #[ignore_heap_size_of = "Arc"]
     mediarule: Arc<Locked<MediaRule>>,
-    medialist: MutNullableJS<MediaList>,
+    medialist: MutNullableDom<MediaList>,
 }
 
 impl CSSMediaRule {
@@ -38,7 +38,7 @@ impl CSSMediaRule {
         CSSMediaRule {
             cssconditionrule: CSSConditionRule::new_inherited(parent_stylesheet, list),
             mediarule: mediarule,
-            medialist: MutNullableJS::new(None),
+            medialist: MutNullableDom::new(None),
         }
     }
 

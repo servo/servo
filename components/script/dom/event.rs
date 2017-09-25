@@ -11,7 +11,7 @@ use dom::bindings::error::Fallible;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
-use dom::bindings::root::{Dom, MutNullableJS, Root, RootedReference};
+use dom::bindings::root::{Dom, MutNullableDom, Root, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::eventtarget::{CompiledEventListener, EventTarget, ListenerPhase};
@@ -29,8 +29,8 @@ use time;
 #[dom_struct]
 pub struct Event {
     reflector_: Reflector,
-    current_target: MutNullableJS<EventTarget>,
-    target: MutNullableJS<EventTarget>,
+    current_target: MutNullableDom<EventTarget>,
+    target: MutNullableDom<EventTarget>,
     type_: DOMRefCell<Atom>,
     phase: Cell<EventPhase>,
     canceled: Cell<EventDefault>,

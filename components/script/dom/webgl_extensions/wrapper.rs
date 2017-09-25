@@ -4,7 +4,7 @@
 
 use core::nonzero::NonZero;
 use dom::bindings::reflector::DomObject;
-use dom::bindings::root::{MutNullableJS, Root};
+use dom::bindings::root::{MutNullableDom, Root};
 use dom::bindings::trace::JSTraceable;
 use dom::webglrenderingcontext::WebGLRenderingContext;
 use heapsize::HeapSizeOf;
@@ -29,15 +29,15 @@ pub trait WebGLExtensionWrapper: JSTraceable + HeapSizeOf {
 #[must_root]
 #[derive(HeapSizeOf, JSTraceable)]
 pub struct TypedWebGLExtensionWrapper<T: WebGLExtension> {
-    extension: MutNullableJS<T::Extension>
+    extension: MutNullableDom<T::Extension>
 }
 
 /// Typed WebGL Extension implementation.
-/// Exposes the exact MutNullableJS<DOMObject> type defined by the extension.
+/// Exposes the exact MutNullableDom<DOMObject> type defined by the extension.
 impl<T: WebGLExtension> TypedWebGLExtensionWrapper<T> {
     pub fn new() -> TypedWebGLExtensionWrapper<T> {
         TypedWebGLExtensionWrapper {
-            extension: MutNullableJS::new(None)
+            extension: MutNullableDom::new(None)
         }
     }
 }

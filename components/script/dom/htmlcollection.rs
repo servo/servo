@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::HTMLCollectionBinding;
 use dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::root::{Dom, Root, MutNullableJS};
+use dom::bindings::root::{Dom, Root, MutNullableDom};
 use dom::bindings::str::DOMString;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::xmlname::namespace_from_domstring;
@@ -60,7 +60,7 @@ pub struct HTMLCollection {
     // the length of the collection, and a cursor into the collection.
     // FIXME: make the cached cursor element a weak pointer
     cached_version: Cell<u64>,
-    cached_cursor_element: MutNullableJS<Element>,
+    cached_cursor_element: MutNullableDom<Element>,
     cached_cursor_index: Cell<OptionU32>,
     cached_length: Cell<OptionU32>,
 }
@@ -74,7 +74,7 @@ impl HTMLCollection {
             filter: filter,
             // Default values for the cache
             cached_version: Cell::new(root.inclusive_descendants_version()),
-            cached_cursor_element: MutNullableJS::new(None),
+            cached_cursor_element: MutNullableDom::new(None),
             cached_cursor_index: Cell::new(OptionU32::none()),
             cached_length: Cell::new(OptionU32::none()),
         }

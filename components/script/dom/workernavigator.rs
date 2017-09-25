@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::WorkerNavigatorBinding;
 use dom::bindings::codegen::Bindings::WorkerNavigatorBinding::WorkerNavigatorMethods;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
-use dom::bindings::root::{MutNullableJS, Root};
+use dom::bindings::root::{MutNullableDom, Root};
 use dom::bindings::str::DOMString;
 use dom::navigatorinfo;
 use dom::permissions::Permissions;
@@ -16,7 +16,7 @@ use dom_struct::dom_struct;
 #[dom_struct]
 pub struct WorkerNavigator {
     reflector_: Reflector,
-    permissions: MutNullableJS<Permissions>,
+    permissions: MutNullableDom<Permissions>,
 }
 
 impl WorkerNavigator {

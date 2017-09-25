@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::HTMLLegendElementBinding;
 use dom::bindings::codegen::Bindings::HTMLLegendElementBinding::HTMLLegendElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::root::{MutNullableJS, Root};
+use dom::bindings::root::{MutNullableDom, Root};
 use dom::document::Document;
 use dom::element::Element;
 use dom::htmlelement::HTMLElement;
@@ -20,7 +20,7 @@ use html5ever::{LocalName, Prefix};
 #[dom_struct]
 pub struct HTMLLegendElement {
     htmlelement: HTMLElement,
-    form_owner: MutNullableJS<HTMLFormElement>,
+    form_owner: MutNullableDom<HTMLFormElement>,
 }
 
 impl HTMLLegendElement {

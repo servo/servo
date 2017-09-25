@@ -6,7 +6,7 @@ use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding::HTMLFieldSetElementMethods;
 use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
-use dom::bindings::root::{MutNullableJS, Root};
+use dom::bindings::root::{MutNullableDom, Root};
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element};
 use dom::htmlcollection::{CollectionFilter, HTMLCollection};
@@ -24,7 +24,7 @@ use style::element_state::*;
 #[dom_struct]
 pub struct HTMLFieldSetElement {
     htmlelement: HTMLElement,
-    form_owner: MutNullableJS<HTMLFormElement>,
+    form_owner: MutNullableDom<HTMLFormElement>,
 }
 
 impl HTMLFieldSetElement {

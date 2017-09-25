@@ -21,7 +21,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::num::Finite;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
-use dom::bindings::root::{Dom, MutNullableJS, Root};
+use dom::bindings::root::{Dom, MutNullableDom, Root};
 use dom::bindings::str::DOMString;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::trace::RootedTraceableBox;
@@ -176,22 +176,22 @@ pub struct Window {
     file_reading_task_source: FileReadingTaskSource,
     #[ignore_heap_size_of = "task sources are hard"]
     performance_timeline_task_source: PerformanceTimelineTaskSource,
-    navigator: MutNullableJS<Navigator>,
+    navigator: MutNullableDom<Navigator>,
     #[ignore_heap_size_of = "Arc"]
     image_cache: Arc<ImageCache>,
     #[ignore_heap_size_of = "channels are hard"]
     image_cache_chan: Sender<ImageCacheMsg>,
-    window_proxy: MutNullableJS<WindowProxy>,
-    document: MutNullableJS<Document>,
-    location: MutNullableJS<Location>,
-    history: MutNullableJS<History>,
-    custom_element_registry: MutNullableJS<CustomElementRegistry>,
-    performance: MutNullableJS<Performance>,
+    window_proxy: MutNullableDom<WindowProxy>,
+    document: MutNullableDom<Document>,
+    location: MutNullableDom<Location>,
+    history: MutNullableDom<History>,
+    custom_element_registry: MutNullableDom<CustomElementRegistry>,
+    performance: MutNullableDom<Performance>,
     navigation_start: Cell<u64>,
     navigation_start_precise: Cell<f64>,
-    screen: MutNullableJS<Screen>,
-    session_storage: MutNullableJS<Storage>,
-    local_storage: MutNullableJS<Storage>,
+    screen: MutNullableDom<Screen>,
+    session_storage: MutNullableDom<Storage>,
+    local_storage: MutNullableDom<Storage>,
     status: DOMRefCell<DOMString>,
 
     /// For sending timeline markers. Will be ignored if
@@ -263,7 +263,7 @@ pub struct Window {
     /// All the MediaQueryLists we need to update
     media_query_lists: WeakMediaQueryListVec,
 
-    test_runner: MutNullableJS<TestRunner>,
+    test_runner: MutNullableDom<TestRunner>,
 
     /// A handle for communicating messages to the webvr thread, if available.
     #[ignore_heap_size_of = "channels are hard"]
@@ -287,9 +287,9 @@ pub struct Window {
     unminified_js_dir: DOMRefCell<Option<String>>,
 
     /// Worklets
-    test_worklet: MutNullableJS<Worklet>,
+    test_worklet: MutNullableDom<Worklet>,
     /// https://drafts.css-houdini.org/css-paint-api-1/#paint-worklet
-    paint_worklet: MutNullableJS<Worklet>,
+    paint_worklet: MutNullableDom<Worklet>,
 }
 
 impl Window {

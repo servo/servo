@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::CSSStyleRuleBinding::{self, CSSStyleRuleMe
 use dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
-use dom::bindings::root::{Dom, MutNullableJS, Root};
+use dom::bindings::root::{Dom, MutNullableDom, Root};
 use dom::bindings::str::DOMString;
 use dom::cssrule::{CSSRule, SpecificCSSRule};
 use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
@@ -27,7 +27,7 @@ pub struct CSSStyleRule {
     cssrule: CSSRule,
     #[ignore_heap_size_of = "Arc"]
     stylerule: Arc<Locked<StyleRule>>,
-    style_decl: MutNullableJS<CSSStyleDeclaration>,
+    style_decl: MutNullableDom<CSSStyleDeclaration>,
 }
 
 impl CSSStyleRule {

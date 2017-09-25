@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::NavigatorBinding;
 use dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
 use dom::bindings::codegen::Bindings::VRBinding::VRBinding::VRMethods;
 use dom::bindings::reflector::{Reflector, DomObject, reflect_dom_object};
-use dom::bindings::root::{MutNullableJS, Root};
+use dom::bindings::root::{MutNullableDom, Root};
 use dom::bindings::str::DOMString;
 use dom::bluetooth::Bluetooth;
 use dom::gamepadlist::GamepadList;
@@ -24,13 +24,13 @@ use std::rc::Rc;
 #[dom_struct]
 pub struct Navigator {
     reflector_: Reflector,
-    bluetooth: MutNullableJS<Bluetooth>,
-    plugins: MutNullableJS<PluginArray>,
-    mime_types: MutNullableJS<MimeTypeArray>,
-    service_worker: MutNullableJS<ServiceWorkerContainer>,
-    vr: MutNullableJS<VR>,
-    gamepads: MutNullableJS<GamepadList>,
-    permissions: MutNullableJS<Permissions>,
+    bluetooth: MutNullableDom<Bluetooth>,
+    plugins: MutNullableDom<PluginArray>,
+    mime_types: MutNullableDom<MimeTypeArray>,
+    service_worker: MutNullableDom<ServiceWorkerContainer>,
+    vr: MutNullableDom<VR>,
+    gamepads: MutNullableDom<GamepadList>,
+    permissions: MutNullableDom<Permissions>,
 }
 
 impl Navigator {

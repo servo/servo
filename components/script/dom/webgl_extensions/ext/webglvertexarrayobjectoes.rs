@@ -8,7 +8,7 @@ use core::iter::FromIterator;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::WebGLVertexArrayObjectOESBinding;
 use dom::bindings::reflector::reflect_dom_object;
-use dom::bindings::root::{Dom, MutNullableJS, Root};
+use dom::bindings::root::{Dom, MutNullableDom, Root};
 use dom::globalscope::GlobalScope;
 use dom::webglbuffer::WebGLBuffer;
 use dom::webglobject::WebGLObject;
@@ -23,7 +23,7 @@ pub struct WebGLVertexArrayObjectOES {
     ever_bound: Cell<bool>,
     is_deleted: Cell<bool>,
     bound_attrib_buffers: DOMRefCell<HashMap<u32, Dom<WebGLBuffer>>>,
-    bound_buffer_element_array: MutNullableJS<WebGLBuffer>,
+    bound_buffer_element_array: MutNullableDom<WebGLBuffer>,
 }
 
 impl WebGLVertexArrayObjectOES {
@@ -34,7 +34,7 @@ impl WebGLVertexArrayObjectOES {
             ever_bound: Cell::new(false),
             is_deleted: Cell::new(false),
             bound_attrib_buffers: DOMRefCell::new(HashMap::new()),
-            bound_buffer_element_array: MutNullableJS::new(None),
+            bound_buffer_element_array: MutNullableDom::new(None),
         }
     }
 

@@ -7,7 +7,7 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::{self, AttrMethods};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::root::{LayoutJS, MutNullableJS, Root, RootedReference};
+use dom::bindings::root::{LayoutJS, MutNullableDom, Root, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::customelementregistry::CallbackReaction;
 use dom::element::{AttributeMutation, Element};
@@ -32,7 +32,7 @@ pub struct Attr {
     value: DOMRefCell<AttrValue>,
 
     /// the element that owns this attribute.
-    owner: MutNullableJS<Element>,
+    owner: MutNullableDom<Element>,
 }
 
 impl Attr {
@@ -52,7 +52,7 @@ impl Attr {
                 prefix: prefix,
             },
             value: DOMRefCell::new(value),
-            owner: MutNullableJS::new(owner),
+            owner: MutNullableDom::new(owner),
         }
     }
 

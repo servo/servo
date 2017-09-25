@@ -23,7 +23,7 @@ use dom::bindings::inheritance::{Castable, CharacterDataTypeId, ElementTypeId};
 use dom::bindings::inheritance::{EventTargetTypeId, HTMLElementTypeId, NodeTypeId};
 use dom::bindings::inheritance::{SVGElementTypeId, SVGGraphicsElementTypeId};
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
-use dom::bindings::root::{Dom, LayoutJS, MutNullableJS, Root, RootedReference};
+use dom::bindings::root::{Dom, LayoutJS, MutNullableDom, Root, RootedReference};
 use dom::bindings::str::{DOMString, USVString};
 use dom::bindings::xmlname::namespace_from_domstring;
 use dom::characterdata::{CharacterData, LayoutCharacterDataHelpers};
@@ -98,25 +98,25 @@ pub struct Node {
     eventtarget: EventTarget,
 
     /// The parent of this node.
-    parent_node: MutNullableJS<Node>,
+    parent_node: MutNullableDom<Node>,
 
     /// The first child of this node.
-    first_child: MutNullableJS<Node>,
+    first_child: MutNullableDom<Node>,
 
     /// The last child of this node.
-    last_child: MutNullableJS<Node>,
+    last_child: MutNullableDom<Node>,
 
     /// The next sibling of this node.
-    next_sibling: MutNullableJS<Node>,
+    next_sibling: MutNullableDom<Node>,
 
     /// The previous sibling of this node.
-    prev_sibling: MutNullableJS<Node>,
+    prev_sibling: MutNullableDom<Node>,
 
     /// The document that this node belongs to.
-    owner_doc: MutNullableJS<Document>,
+    owner_doc: MutNullableDom<Document>,
 
     /// The live list of children return by .childNodes.
-    child_list: MutNullableJS<NodeList>,
+    child_list: MutNullableDom<NodeList>,
 
     /// The live count of children of this node.
     children_count: Cell<u32>,
@@ -1407,7 +1407,7 @@ impl Node {
             last_child: Default::default(),
             next_sibling: Default::default(),
             prev_sibling: Default::default(),
-            owner_doc: MutNullableJS::new(doc),
+            owner_doc: MutNullableDom::new(doc),
             child_list: Default::default(),
             children_count: Cell::new(0u32),
             flags: Cell::new(flags),

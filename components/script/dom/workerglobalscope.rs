@@ -10,7 +10,7 @@ use dom::bindings::codegen::UnionTypes::RequestOrUSVString;
 use dom::bindings::error::{Error, ErrorResult, Fallible, report_pending_exception};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::DomObject;
-use dom::bindings::root::{MutNullableJS, Root};
+use dom::bindings::root::{MutNullableDom, Root};
 use dom::bindings::settings_stack::AutoEntryScript;
 use dom::bindings::str::DOMString;
 use dom::bindings::trace::RootedTraceableBox;
@@ -77,8 +77,8 @@ pub struct WorkerGlobalScope {
     closing: Option<Arc<AtomicBool>>,
     #[ignore_heap_size_of = "Defined in js"]
     runtime: Runtime,
-    location: MutNullableJS<WorkerLocation>,
-    navigator: MutNullableJS<WorkerNavigator>,
+    location: MutNullableDom<WorkerLocation>,
+    navigator: MutNullableDom<WorkerNavigator>,
 
     #[ignore_heap_size_of = "Defined in ipc-channel"]
     /// Optional `IpcSender` for sending the `DevtoolScriptControlMsg`
@@ -91,7 +91,7 @@ pub struct WorkerGlobalScope {
     from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
 
     navigation_start_precise: f64,
-    performance: MutNullableJS<Performance>,
+    performance: MutNullableDom<Performance>,
 }
 
 impl WorkerGlobalScope {

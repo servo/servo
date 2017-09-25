@@ -12,7 +12,7 @@ use dom::bindings::codegen::Bindings::ServoParserBinding;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::root::{Dom, MutNullableJS, Root, RootedReference};
+use dom::bindings::root::{Dom, MutNullableDom, Root, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::characterdata::CharacterData;
 use dom::comment::Comment;
@@ -748,7 +748,7 @@ pub struct Sink {
     base_url: ServoUrl,
     document: Dom<Document>,
     current_line: u64,
-    script: MutNullableJS<HTMLScriptElement>,
+    script: MutNullableDom<HTMLScriptElement>,
 }
 
 #[allow(unrooted_must_root)]  // FIXME: really?

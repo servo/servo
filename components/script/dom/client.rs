@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::ClientBinding::{ClientMethods, Wrap};
 use dom::bindings::codegen::Bindings::ClientBinding::FrameType;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::root::{Root, MutNullableJS};
+use dom::bindings::root::{Root, MutNullableDom};
 use dom::bindings::str::{DOMString, USVString};
 use dom::serviceworker::ServiceWorker;
 use dom::window::Window;
@@ -17,7 +17,7 @@ use uuid::Uuid;
 #[dom_struct]
 pub struct Client {
     reflector_: Reflector,
-    active_worker: MutNullableJS<ServiceWorker>,
+    active_worker: MutNullableDom<ServiceWorker>,
     url: ServoUrl,
     frame_type: FrameType,
     #[ignore_heap_size_of = "Defined in uuid"]

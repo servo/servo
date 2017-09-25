@@ -298,15 +298,15 @@ impl<T: DomObject + PartialEq> PartialEq<T> for MutDom<T> {
 /// on `Dom<T>`.
 #[must_root]
 #[derive(JSTraceable)]
-pub struct MutNullableJS<T: DomObject> {
+pub struct MutNullableDom<T: DomObject> {
     ptr: UnsafeCell<Option<Dom<T>>>,
 }
 
-impl<T: DomObject> MutNullableJS<T> {
-    /// Create a new `MutNullableJS`.
-    pub fn new(initial: Option<&T>) -> MutNullableJS<T> {
+impl<T: DomObject> MutNullableDom<T> {
+    /// Create a new `MutNullableDom`.
+    pub fn new(initial: Option<&T>) -> MutNullableDom<T> {
         debug_assert!(thread_state::get().is_script());
-        MutNullableJS {
+        MutNullableDom {
             ptr: UnsafeCell::new(initial.map(Dom::from_ref)),
         }
     }
@@ -344,7 +344,7 @@ impl<T: DomObject> MutNullableJS<T> {
         }
     }
 
-    /// Set this `MutNullableJS` to the given value.
+    /// Set this `MutNullableDom` to the given value.
     pub fn set(&self, val: Option<&T>) {
         debug_assert!(thread_state::get().is_script());
         unsafe {
@@ -360,7 +360,7 @@ impl<T: DomObject> MutNullableJS<T> {
     }
 }
 
-impl<T: DomObject> PartialEq for MutNullableJS<T> {
+impl<T: DomObject> PartialEq for MutNullableDom<T> {
     fn eq(&self, other: &Self) -> bool {
         unsafe {
             *self.ptr.get() == *other.ptr.get()
@@ -368,7 +368,7 @@ impl<T: DomObject> PartialEq for MutNullableJS<T> {
     }
 }
 
-impl<'a, T: DomObject> PartialEq<Option<&'a T>> for MutNullableJS<T> {
+impl<'a, T: DomObject> PartialEq<Option<&'a T>> for MutNullableDom<T> {
     fn eq(&self, other: &Option<&T>) -> bool {
         unsafe {
             *self.ptr.get() == other.map(Dom::from_ref)
@@ -376,17 +376,17 @@ impl<'a, T: DomObject> PartialEq<Option<&'a T>> for MutNullableJS<T> {
     }
 }
 
-impl<T: DomObject> Default for MutNullableJS<T> {
+impl<T: DomObject> Default for MutNullableDom<T> {
     #[allow(unrooted_must_root)]
-    fn default() -> MutNullableJS<T> {
+    fn default() -> MutNullableDom<T> {
         debug_assert!(thread_state::get().is_script());
-        MutNullableJS {
+        MutNullableDom {
             ptr: UnsafeCell::new(None),
         }
     }
 }
 
-impl<T: DomObject> HeapSizeOf for MutNullableJS<T> {
+impl<T: DomObject> HeapSizeOf for MutNullableDom<T> {
     fn heap_size_of_children(&self) -> usize {
         // See comment on HeapSizeOf for Dom<T>.
         0

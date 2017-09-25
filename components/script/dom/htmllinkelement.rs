@@ -9,7 +9,7 @@ use dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListBinding::
 use dom::bindings::codegen::Bindings::HTMLLinkElementBinding;
 use dom::bindings::codegen::Bindings::HTMLLinkElementBinding::HTMLLinkElementMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::root::{MutNullableJS, Root, RootedReference};
+use dom::bindings::root::{MutNullableDom, Root, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::cssstylesheet::CSSStyleSheet;
 use dom::document::Document;
@@ -50,10 +50,10 @@ impl RequestGenerationId {
 #[dom_struct]
 pub struct HTMLLinkElement {
     htmlelement: HTMLElement,
-    rel_list: MutNullableJS<DOMTokenList>,
+    rel_list: MutNullableDom<DOMTokenList>,
     #[ignore_heap_size_of = "Arc"]
     stylesheet: DOMRefCell<Option<Arc<Stylesheet>>>,
-    cssom_stylesheet: MutNullableJS<CSSStyleSheet>,
+    cssom_stylesheet: MutNullableDom<CSSStyleSheet>,
 
     /// https://html.spec.whatwg.org/multipage/#a-style-sheet-that-is-blocking-scripts
     parser_inserted: Cell<bool>,
@@ -74,7 +74,7 @@ impl HTMLLinkElement {
             rel_list: Default::default(),
             parser_inserted: Cell::new(creator.is_parser_created()),
             stylesheet: DOMRefCell::new(None),
-            cssom_stylesheet: MutNullableJS::new(None),
+            cssom_stylesheet: MutNullableDom::new(None),
             pending_loads: Cell::new(0),
             any_failed_load: Cell::new(false),
             request_generation_id: Cell::new(RequestGenerationId(0)),

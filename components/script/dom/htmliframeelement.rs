@@ -21,7 +21,7 @@ use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
-use dom::bindings::root::{LayoutJS, MutNullableJS, Root};
+use dom::bindings::root::{LayoutJS, MutNullableDom, Root};
 use dom::bindings::str::DOMString;
 use dom::customevent::CustomEvent;
 use dom::document::Document;
@@ -88,7 +88,7 @@ pub struct HTMLIFrameElement {
     browsing_context_id: Cell<Option<BrowsingContextId>>,
     pipeline_id: Cell<Option<PipelineId>>,
     pending_pipeline_id: Cell<Option<PipelineId>>,
-    sandbox: MutNullableJS<DOMTokenList>,
+    sandbox: MutNullableDom<DOMTokenList>,
     sandbox_allowance: Cell<Option<SandboxAllowance>>,
     load_blocker: DOMRefCell<Option<LoadBlocker>>,
     visibility: Cell<bool>,

@@ -12,7 +12,7 @@ use dom::bindings::error::Error;
 use dom::bindings::error::ErrorResult;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
-use dom::bindings::root::{Dom, MutNullableJS, Root};
+use dom::bindings::root::{Dom, MutNullableDom, Root};
 use dom::bindings::str::DOMString;
 use dom::bluetooth::{AsyncBluetoothListener, Bluetooth, response_async};
 use dom::bluetoothcharacteristicproperties::BluetoothCharacteristicProperties;
@@ -35,7 +35,7 @@ pub struct BluetoothDevice {
     eventtarget: EventTarget,
     id: DOMString,
     name: Option<DOMString>,
-    gatt: MutNullableJS<BluetoothRemoteGATTServer>,
+    gatt: MutNullableDom<BluetoothRemoteGATTServer>,
     context: Dom<Bluetooth>,
     attribute_instance_map: (DOMRefCell<HashMap<String, Dom<BluetoothRemoteGATTService>>>,
                              DOMRefCell<HashMap<String, Dom<BluetoothRemoteGATTCharacteristic>>>,

@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::HTMLStyleElementBinding;
 use dom::bindings::codegen::Bindings::HTMLStyleElementBinding::HTMLStyleElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::root::{MutNullableJS, Root};
+use dom::bindings::root::{MutNullableDom, Root};
 use dom::cssstylesheet::CSSStyleSheet;
 use dom::document::Document;
 use dom::element::{Element, ElementCreator};
@@ -33,7 +33,7 @@ pub struct HTMLStyleElement {
     htmlelement: HTMLElement,
     #[ignore_heap_size_of = "Arc"]
     stylesheet: DOMRefCell<Option<Arc<Stylesheet>>>,
-    cssom_stylesheet: MutNullableJS<CSSStyleSheet>,
+    cssom_stylesheet: MutNullableDom<CSSStyleSheet>,
     /// https://html.spec.whatwg.org/multipage/#a-style-sheet-that-is-blocking-scripts
     parser_inserted: Cell<bool>,
     in_stack_of_open_elements: Cell<bool>,
@@ -50,7 +50,7 @@ impl HTMLStyleElement {
         HTMLStyleElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             stylesheet: DOMRefCell::new(None),
-            cssom_stylesheet: MutNullableJS::new(None),
+            cssom_stylesheet: MutNullableDom::new(None),
             parser_inserted: Cell::new(creator.is_parser_created()),
             in_stack_of_open_elements: Cell::new(creator.is_parser_created()),
             pending_loads: Cell::new(0),

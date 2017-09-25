@@ -17,7 +17,7 @@ use dom::bindings::error::Fallible;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
-use dom::bindings::root::{LayoutJS, MutNullableJS, Root};
+use dom::bindings::root::{LayoutJS, MutNullableDom, Root};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
@@ -89,7 +89,7 @@ pub struct HTMLImageElement {
     image_request: Cell<ImageRequestPhase>,
     current_request: DOMRefCell<ImageRequest>,
     pending_request: DOMRefCell<ImageRequest>,
-    form_owner: MutNullableJS<HTMLFormElement>,
+    form_owner: MutNullableDom<HTMLFormElement>,
     generation: Cell<u32>,
 }
 

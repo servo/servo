@@ -34,7 +34,7 @@ use dom::bindings::conversions::{ConversionResult, FromJSValConvertible, Stringi
 use dom::bindings::inheritance::Castable;
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::DomObject;
-use dom::bindings::root::{Dom, MutNullableJS, Root, RootCollection};
+use dom::bindings::root::{Dom, MutNullableDom, Root, RootCollection};
 use dom::bindings::root::{RootCollectionPtr, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::bindings::structuredclone::StructuredCloneData;
@@ -458,7 +458,7 @@ pub struct ScriptThread {
     js_runtime: Rc<Runtime>,
 
     /// The topmost element over the mouse.
-    topmost_mouse_over_target: MutNullableJS<Element>,
+    topmost_mouse_over_target: MutNullableDom<Element>,
 
     /// List of pipelines that have been owned and closed by this script thread.
     closed_pipelines: DOMRefCell<HashSet<PipelineId>>,
@@ -846,7 +846,7 @@ impl ScriptThread {
             devtools_sender: ipc_devtools_sender,
 
             js_runtime: Rc::new(runtime),
-            topmost_mouse_over_target: MutNullableJS::new(Default::default()),
+            topmost_mouse_over_target: MutNullableDom::new(Default::default()),
             closed_pipelines: DOMRefCell::new(HashSet::new()),
 
             scheduler_chan: state.scheduler_chan,
