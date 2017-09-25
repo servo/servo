@@ -186,8 +186,9 @@ trait PrivateMatchMethods: TElement {
         use context::DISPLAY_CHANGED_FROM_NONE_FOR_SMIL;
         use properties::longhands::display::computed_value as display;
 
-        debug_assert!(restyle_hints.intersects(RESTYLE_SMIL),
-                      "Should have restyle hint for SMIL");
+        if !restyle_hints.intersects(RESTYLE_SMIL) {
+            return;
+        }
 
         let display_changed_from_none = old_values.map_or(false, |old| {
             let old_display_style = old.get_box().clone_display();
@@ -197,16 +198,16 @@ trait PrivateMatchMethods: TElement {
         });
 
         if display_changed_from_none {
-            // When display value is changed from none to other, we need
-            // to traverse descendant elements in a subsequent normal
-            // traversal (we can't traverse them in this animation-only
-            // restyle since we have no way to know whether the decendants
+            // When display value is changed from none to other, we need to
+            // traverse descendant elements in a subsequent normal
+            // traversal (we can't traverse them in this animation-only restyle
+            // since we have no way to know whether the decendants
             // need to be traversed at the beginning of the animation-only
-            // restyle)
-            debug_assert!(restyle_hints.intersects(RESTYLE_SMIL),
-                          "Display animation should only happen for SMIL");
-            let task = ::context::SequentialTask::process_post_animation(*self,
-                                                                         DISPLAY_CHANGED_FROM_NONE_FOR_SMIL);
+            // restyle).
+            let task = ::context::SequentialTask::process_post_animation(
+                *self,
+                DISPLAY_CHANGED_FROM_NONE_FOR_SMIL,
+            );
             context.thread_local.tasks.push(task);
         }
     }
@@ -222,12 +223,12 @@ trait PrivateMatchMethods: TElement {
         use context::UpdateAnimationsTasks;
 
         if context.shared.traversal_flags.for_animation_only() {
-            if restyle_hint.intersects(RESTYLE_SMIL) {
-                self.handle_display_change_for_smil_if_needed(context,
-                                                              old_values.as_ref().map(|v| &**v),
-                                                              new_values,
-                                                              restyle_hint);
-            }
+            self.handle_display_change_for_smil_if_needed(
+                context,
+                old_values.as_ref().map(|v| &**v),
+                new_values,
+                restyle_hint,
+            );
             return;
         }
 
