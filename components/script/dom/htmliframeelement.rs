@@ -4,7 +4,7 @@
 
 use document_loader::{LoadBlocker, LoadType};
 use dom::attr::Attr;
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserElementErrorEventDetail;
 use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserElementIconChangeEventDetail;
 use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserElementLocationChangeEventDetail;
@@ -90,7 +90,7 @@ pub struct HTMLIFrameElement {
     pending_pipeline_id: Cell<Option<PipelineId>>,
     sandbox: MutNullableDom<DOMTokenList>,
     sandbox_allowance: Cell<Option<SandboxAllowance>>,
-    load_blocker: DOMRefCell<Option<LoadBlocker>>,
+    load_blocker: DomRefCell<Option<LoadBlocker>>,
     visibility: Cell<bool>,
 }
 
@@ -329,7 +329,7 @@ impl HTMLIFrameElement {
             pending_pipeline_id: Cell::new(None),
             sandbox: Default::default(),
             sandbox_allowance: Cell::new(None),
-            load_blocker: DOMRefCell::new(None),
+            load_blocker: DomRefCell::new(None),
             visibility: Cell::new(true),
         }
     }

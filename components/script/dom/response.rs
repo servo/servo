@@ -4,7 +4,7 @@
 
 use body::{BodyOperations, BodyType, consume_body, consume_body_with_promise};
 use core::cell::Cell;
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::HeadersBinding::{HeadersInit, HeadersMethods};
 use dom::bindings::codegen::Bindings::ResponseBinding;
 use dom::bindings::codegen::Bindings::ResponseBinding::{ResponseMethods, ResponseType as DOMResponseType};
@@ -34,19 +34,19 @@ use url::Position;
 pub struct Response {
     reflector_: Reflector,
     headers_reflector: MutNullableDom<Headers>,
-    mime_type: DOMRefCell<Vec<u8>>,
+    mime_type: DomRefCell<Vec<u8>>,
     body_used: Cell<bool>,
     /// `None` can be considered a StatusCode of `0`.
     #[ignore_heap_size_of = "Defined in hyper"]
-    status: DOMRefCell<Option<StatusCode>>,
-    raw_status: DOMRefCell<Option<(u16, Vec<u8>)>>,
-    response_type: DOMRefCell<DOMResponseType>,
-    url: DOMRefCell<Option<ServoUrl>>,
-    url_list: DOMRefCell<Vec<ServoUrl>>,
+    status: DomRefCell<Option<StatusCode>>,
+    raw_status: DomRefCell<Option<(u16, Vec<u8>)>>,
+    response_type: DomRefCell<DOMResponseType>,
+    url: DomRefCell<Option<ServoUrl>>,
+    url_list: DomRefCell<Vec<ServoUrl>>,
     // For now use the existing NetTraitsResponseBody enum
-    body: DOMRefCell<NetTraitsResponseBody>,
+    body: DomRefCell<NetTraitsResponseBody>,
     #[ignore_heap_size_of = "Rc"]
-    body_promise: DOMRefCell<Option<(Rc<Promise>, BodyType)>>,
+    body_promise: DomRefCell<Option<(Rc<Promise>, BodyType)>>,
 }
 
 impl Response {
@@ -54,15 +54,15 @@ impl Response {
         Response {
             reflector_: Reflector::new(),
             headers_reflector: Default::default(),
-            mime_type: DOMRefCell::new("".to_string().into_bytes()),
+            mime_type: DomRefCell::new("".to_string().into_bytes()),
             body_used: Cell::new(false),
-            status: DOMRefCell::new(Some(StatusCode::Ok)),
-            raw_status: DOMRefCell::new(Some((200, b"OK".to_vec()))),
-            response_type: DOMRefCell::new(DOMResponseType::Default),
-            url: DOMRefCell::new(None),
-            url_list: DOMRefCell::new(vec![]),
-            body: DOMRefCell::new(NetTraitsResponseBody::Empty),
-            body_promise: DOMRefCell::new(None),
+            status: DomRefCell::new(Some(StatusCode::Ok)),
+            raw_status: DomRefCell::new(Some((200, b"OK".to_vec()))),
+            response_type: DomRefCell::new(DOMResponseType::Default),
+            url: DomRefCell::new(None),
+            url_list: DomRefCell::new(vec![]),
+            body: DomRefCell::new(NetTraitsResponseBody::Empty),
+            body_promise: DomRefCell::new(None),
         }
     }
 

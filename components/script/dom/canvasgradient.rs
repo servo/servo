@@ -5,7 +5,7 @@
 use canvas_traits::canvas::{CanvasGradientStop, FillOrStrokeStyle, LinearGradientStyle, RadialGradientStyle};
 use cssparser::{Parser, ParserInput, RGBA};
 use cssparser::Color as CSSColor;
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::CanvasGradientBinding;
 use dom::bindings::codegen::Bindings::CanvasGradientBinding::CanvasGradientMethods;
 use dom::bindings::error::{Error, ErrorResult};
@@ -21,7 +21,7 @@ use dom_struct::dom_struct;
 pub struct CanvasGradient {
     reflector_: Reflector,
     style: CanvasGradientStyle,
-    stops: DOMRefCell<Vec<CanvasGradientStop>>,
+    stops: DomRefCell<Vec<CanvasGradientStop>>,
 }
 
 #[derive(Clone, HeapSizeOf, JSTraceable)]
@@ -35,7 +35,7 @@ impl CanvasGradient {
         CanvasGradient {
             reflector_: Reflector::new(),
             style: style,
-            stops: DOMRefCell::new(Vec::new()),
+            stops: DomRefCell::new(Vec::new()),
         }
     }
 

@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::callback::{CallbackContainer, ExceptionHandling};
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::CustomElementRegistryBinding;
 use dom::bindings::codegen::Bindings::CustomElementRegistryBinding::CustomElementRegistryMethods;
 use dom::bindings::codegen::Bindings::CustomElementRegistryBinding::ElementDefinitionOptions;
@@ -48,12 +48,12 @@ pub struct CustomElementRegistry {
     window: Dom<Window>,
 
     #[ignore_heap_size_of = "Rc"]
-    when_defined: DOMRefCell<HashMap<LocalName, Rc<Promise>>>,
+    when_defined: DomRefCell<HashMap<LocalName, Rc<Promise>>>,
 
     element_definition_is_running: Cell<bool>,
 
     #[ignore_heap_size_of = "Rc"]
-    definitions: DOMRefCell<HashMap<LocalName, Rc<CustomElementDefinition>>>,
+    definitions: DomRefCell<HashMap<LocalName, Rc<CustomElementDefinition>>>,
 }
 
 impl CustomElementRegistry {
@@ -61,9 +61,9 @@ impl CustomElementRegistry {
         CustomElementRegistry {
             reflector_: Reflector::new(),
             window: Dom::from_ref(window),
-            when_defined: DOMRefCell::new(HashMap::new()),
+            when_defined: DomRefCell::new(HashMap::new()),
             element_definition_is_running: Cell::new(false),
-            definitions: DOMRefCell::new(HashMap::new()),
+            definitions: DomRefCell::new(HashMap::new()),
         }
     }
 
@@ -404,7 +404,7 @@ pub struct CustomElementDefinition {
 
     pub callbacks: LifecycleCallbacks,
 
-    pub construction_stack: DOMRefCell<Vec<ConstructionStackEntry>>,
+    pub construction_stack: DomRefCell<Vec<ConstructionStackEntry>>,
 }
 
 impl CustomElementDefinition {
@@ -627,7 +627,7 @@ enum BackupElementQueueFlag {
 #[derive(HeapSizeOf, JSTraceable)]
 #[must_root]
 pub struct CustomElementReactionStack {
-    stack: DOMRefCell<Vec<ElementQueue>>,
+    stack: DomRefCell<Vec<ElementQueue>>,
     backup_queue: ElementQueue,
     processing_backup_element_queue: Cell<BackupElementQueueFlag>,
 }
@@ -635,7 +635,7 @@ pub struct CustomElementReactionStack {
 impl CustomElementReactionStack {
     pub fn new() -> CustomElementReactionStack {
         CustomElementReactionStack {
-            stack: DOMRefCell::new(Vec::new()),
+            stack: DomRefCell::new(Vec::new()),
             backup_queue: ElementQueue::new(),
             processing_backup_element_queue: Cell::new(BackupElementQueueFlag::NotProcessing),
         }
@@ -776,7 +776,7 @@ impl CustomElementReactionStack {
 #[derive(HeapSizeOf, JSTraceable)]
 #[must_root]
 struct ElementQueue {
-    queue: DOMRefCell<VecDeque<Dom<Element>>>,
+    queue: DomRefCell<VecDeque<Dom<Element>>>,
 }
 
 impl ElementQueue {

@@ -24,7 +24,7 @@ use devtools_traits::{DevtoolScriptControlMsg, DevtoolsPageInfo};
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use devtools_traits::CSSError;
 use document_loader::DocumentLoader;
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
 use dom::bindings::codegen::Bindings::EventBinding::EventInit;
@@ -385,16 +385,16 @@ impl<'a> Iterator for DocumentsIter<'a> {
 #[allow(unrooted_must_root)]
 pub struct ScriptThread {
     /// The documents for pipelines managed by this thread
-    documents: DOMRefCell<Documents>,
+    documents: DomRefCell<Documents>,
     /// The window proxies known by this thread
     /// TODO: this map grows, but never shrinks. Issue #15258.
-    window_proxies: DOMRefCell<HashMap<BrowsingContextId, Dom<WindowProxy>>>,
+    window_proxies: DomRefCell<HashMap<BrowsingContextId, Dom<WindowProxy>>>,
     /// A list of data pertaining to loads that have not yet received a network response
-    incomplete_loads: DOMRefCell<Vec<InProgressLoad>>,
+    incomplete_loads: DomRefCell<Vec<InProgressLoad>>,
     /// A vector containing parser contexts which have not yet been fully processed
-    incomplete_parser_contexts: DOMRefCell<Vec<(PipelineId, ParserContext)>>,
+    incomplete_parser_contexts: DomRefCell<Vec<(PipelineId, ParserContext)>>,
     /// A map to store service worker registrations for a given origin
-    registration_map: DOMRefCell<HashMap<ServoUrl, Dom<ServiceWorkerRegistration>>>,
+    registration_map: DomRefCell<HashMap<ServoUrl, Dom<ServiceWorkerRegistration>>>,
     /// A job queue for Service Workers keyed by their scope url
     job_queue_map: Rc<JobQueue>,
     /// Image cache for this script thread.
@@ -461,7 +461,7 @@ pub struct ScriptThread {
     topmost_mouse_over_target: MutNullableDom<Element>,
 
     /// List of pipelines that have been owned and closed by this script thread.
-    closed_pipelines: DOMRefCell<HashSet<PipelineId>>,
+    closed_pipelines: DomRefCell<HashSet<PipelineId>>,
 
     scheduler_chan: IpcSender<TimerSchedulerMsg>,
     timer_event_chan: Sender<TimerEvent>,
@@ -476,7 +476,7 @@ pub struct ScriptThread {
     mutation_observer_compound_microtask_queued: Cell<bool>,
 
     /// The unit of related similar-origin browsing contexts' list of MutationObserver objects
-    mutation_observers: DOMRefCell<Vec<Dom<MutationObserver>>>,
+    mutation_observers: DomRefCell<Vec<Dom<MutationObserver>>>,
 
     /// A handle to the webgl thread
     webgl_chan: WebGLPipeline,
@@ -485,15 +485,15 @@ pub struct ScriptThread {
     webvr_chan: Option<IpcSender<WebVRMsg>>,
 
     /// The worklet thread pool
-    worklet_thread_pool: DOMRefCell<Option<Rc<WorkletThreadPool>>>,
+    worklet_thread_pool: DomRefCell<Option<Rc<WorkletThreadPool>>>,
 
     /// A list of pipelines containing documents that finished loading all their blocking
     /// resources during a turn of the event loop.
-    docs_with_no_blocking_loads: DOMRefCell<HashSet<Dom<Document>>>,
+    docs_with_no_blocking_loads: DomRefCell<HashSet<Dom<Document>>>,
 
     /// A list of nodes with in-progress CSS transitions, which roots them for the duration
     /// of the transition.
-    transitioning_nodes: DOMRefCell<Vec<Dom<Node>>>,
+    transitioning_nodes: DomRefCell<Vec<Dom<Node>>>,
 
     /// https://html.spec.whatwg.org/multipage/#custom-element-reactions-stack
     custom_element_reaction_stack: CustomElementReactionStack,
@@ -811,11 +811,11 @@ impl ScriptThread {
         let (image_cache_channel, image_cache_port) = channel();
 
         ScriptThread {
-            documents: DOMRefCell::new(Documents::new()),
-            window_proxies: DOMRefCell::new(HashMap::new()),
-            incomplete_loads: DOMRefCell::new(vec!()),
-            incomplete_parser_contexts: DOMRefCell::new(vec!()),
-            registration_map: DOMRefCell::new(HashMap::new()),
+            documents: DomRefCell::new(Documents::new()),
+            window_proxies: DomRefCell::new(HashMap::new()),
+            incomplete_loads: DomRefCell::new(vec!()),
+            incomplete_parser_contexts: DomRefCell::new(vec!()),
+            registration_map: DomRefCell::new(HashMap::new()),
             job_queue_map: Rc::new(JobQueue::new()),
 
             image_cache: state.image_cache.clone(),
@@ -847,7 +847,7 @@ impl ScriptThread {
 
             js_runtime: Rc::new(runtime),
             topmost_mouse_over_target: MutNullableDom::new(Default::default()),
-            closed_pipelines: DOMRefCell::new(HashSet::new()),
+            closed_pipelines: DomRefCell::new(HashSet::new()),
 
             scheduler_chan: state.scheduler_chan,
             timer_event_chan: timer_event_chan,

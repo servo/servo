@@ -11,7 +11,7 @@ use canvas_traits::webgl::webgl_channel;
 use core::cell::Ref;
 use core::iter::FromIterator;
 use core::nonzero::NonZero;
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{self, WebGLContextAttributes};
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
@@ -151,7 +151,7 @@ pub struct WebGLRenderingContext {
     bound_texture_cube_map: MutNullableDom<WebGLTexture>,
     bound_buffer_array: MutNullableDom<WebGLBuffer>,
     bound_buffer_element_array: MutNullableDom<WebGLBuffer>,
-    bound_attrib_buffers: DOMRefCell<FnvHashMap<u32, Dom<WebGLBuffer>>>,
+    bound_attrib_buffers: DomRefCell<FnvHashMap<u32, Dom<WebGLBuffer>>>,
     current_program: MutNullableDom<WebGLProgram>,
     #[ignore_heap_size_of = "Because it's small"]
     current_vertex_attrib_0: Cell<(f32, f32, f32, f32)>,
@@ -194,7 +194,7 @@ impl WebGLRenderingContext {
                 bound_texture_cube_map: MutNullableDom::new(None),
                 bound_buffer_array: MutNullableDom::new(None),
                 bound_buffer_element_array: MutNullableDom::new(None),
-                bound_attrib_buffers: DOMRefCell::new(Default::default()),
+                bound_attrib_buffers: DomRefCell::new(Default::default()),
                 bound_renderbuffer: MutNullableDom::new(None),
                 current_program: MutNullableDom::new(None),
                 current_vertex_attrib_0: Cell::new((0f32, 0f32, 0f32, 1f32)),

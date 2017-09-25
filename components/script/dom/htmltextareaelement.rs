@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::attr::Attr;
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
@@ -39,8 +39,8 @@ use textinput::{KeyReaction, Lines, SelectionDirection, TextInput};
 pub struct HTMLTextAreaElement {
     htmlelement: HTMLElement,
     #[ignore_heap_size_of = "#7193"]
-    textinput: DOMRefCell<TextInput<ScriptToConstellationChan>>,
-    placeholder: DOMRefCell<DOMString>,
+    textinput: DomRefCell<TextInput<ScriptToConstellationChan>>,
+    placeholder: DomRefCell<DOMString>,
     // https://html.spec.whatwg.org/multipage/#concept-textarea-dirty
     value_changed: Cell<bool>,
     form_owner: MutNullableDom<HTMLFormElement>,
@@ -113,8 +113,8 @@ impl HTMLTextAreaElement {
             htmlelement:
                 HTMLElement::new_inherited_with_state(IN_ENABLED_STATE | IN_READ_WRITE_STATE,
                                                       local_name, prefix, document),
-            placeholder: DOMRefCell::new(DOMString::new()),
-            textinput: DOMRefCell::new(TextInput::new(
+            placeholder: DomRefCell::new(DOMString::new()),
+            textinput: DomRefCell::new(TextInput::new(
                     Lines::Multiple, DOMString::new(), chan, None, None, SelectionDirection::None)),
             value_changed: Cell::new(false),
             form_owner: Default::default(),

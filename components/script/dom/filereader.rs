@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use base64;
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use dom::bindings::codegen::Bindings::FileReaderBinding::{self, FileReaderConstants, FileReaderMethods};
 use dom::bindings::codegen::UnionTypes::StringOrObject;
@@ -88,7 +88,7 @@ pub struct FileReader {
     eventtarget: EventTarget,
     ready_state: Cell<FileReaderReadyState>,
     error: MutNullableDom<DOMException>,
-    result: DOMRefCell<Option<FileReaderResult>>,
+    result: DomRefCell<Option<FileReaderResult>>,
     generation_id: Cell<GenerationId>,
 }
 
@@ -98,7 +98,7 @@ impl FileReader {
             eventtarget: EventTarget::new_inherited(),
             ready_state: Cell::new(FileReaderReadyState::Empty),
             error: MutNullableDom::new(None),
-            result: DOMRefCell::new(None),
+            result: DomRefCell::new(None),
             generation_id: Cell::new(GenerationId(0)),
         }
     }
@@ -216,7 +216,7 @@ impl FileReader {
     }
 
     // https://w3c.github.io/FileAPI/#dfn-readAsText
-    fn perform_readastext(result: &DOMRefCell<Option<FileReaderResult>>, data: ReadMetaData, blob_bytes: &[u8]) {
+    fn perform_readastext(result: &DomRefCell<Option<FileReaderResult>>, data: ReadMetaData, blob_bytes: &[u8]) {
         let blob_label = &data.label;
         let blob_type = &data.blobtype;
 
@@ -246,7 +246,7 @@ impl FileReader {
     }
 
     //https://w3c.github.io/FileAPI/#dfn-readAsDataURL
-    fn perform_readasdataurl(result: &DOMRefCell<Option<FileReaderResult>>, data: ReadMetaData, bytes: &[u8]) {
+    fn perform_readasdataurl(result: &DomRefCell<Option<FileReaderResult>>, data: ReadMetaData, bytes: &[u8]) {
         let base64 = base64::encode(bytes);
 
         let output = if data.blobtype.is_empty() {
@@ -260,7 +260,7 @@ impl FileReader {
 
     // https://w3c.github.io/FileAPI/#dfn-readAsArrayBuffer
     #[allow(unsafe_code)]
-    fn perform_readasarraybuffer(result: &DOMRefCell<Option<FileReaderResult>>,
+    fn perform_readasarraybuffer(result: &DomRefCell<Option<FileReaderResult>>,
         cx: *mut JSContext, _: ReadMetaData, bytes: &[u8]) {
         unsafe {
             rooted!(in(cx) let mut array_buffer = ptr::null_mut());

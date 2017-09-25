@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use core::nonzero::NonZero;
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::CryptoBinding;
 use dom::bindings::codegen::Bindings::CryptoBinding::CryptoMethods;
 use dom::bindings::error::{Error, Fallible};
@@ -22,14 +22,14 @@ unsafe_no_jsmanaged_fields!(ServoRng);
 pub struct Crypto {
     reflector_: Reflector,
     #[ignore_heap_size_of = "Defined in rand"]
-    rng: DOMRefCell<ServoRng>,
+    rng: DomRefCell<ServoRng>,
 }
 
 impl Crypto {
     fn new_inherited() -> Crypto {
         Crypto {
             reflector_: Reflector::new(),
-            rng: DOMRefCell::new(ServoRng::new()),
+            rng: DomRefCell::new(ServoRng::new()),
         }
     }
 

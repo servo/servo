@@ -5,7 +5,7 @@
 use canvas_traits::webgl::WebGLError;
 use core::iter::FromIterator;
 use core::nonzero::NonZero;
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::OESStandardDerivativesBinding::OESStandardDerivativesConstants;
 use dom::bindings::codegen::Bindings::OESTextureHalfFloatBinding::OESTextureHalfFloatConstants;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
@@ -76,15 +76,15 @@ impl Default for WebGLExtensionFeatures {
 #[must_root]
 #[derive(HeapSizeOf, JSTraceable)]
 pub struct WebGLExtensions {
-    extensions: DOMRefCell<HashMap<String, Box<WebGLExtensionWrapper>>>,
-    features: DOMRefCell<WebGLExtensionFeatures>,
+    extensions: DomRefCell<HashMap<String, Box<WebGLExtensionWrapper>>>,
+    features: DomRefCell<WebGLExtensionFeatures>,
 }
 
 impl WebGLExtensions {
     pub fn new() -> WebGLExtensions {
         Self {
-            extensions: DOMRefCell::new(HashMap::new()),
-            features: DOMRefCell::new(Default::default())
+            extensions: DomRefCell::new(HashMap::new()),
+            features: DomRefCell::new(Default::default())
         }
     }
 

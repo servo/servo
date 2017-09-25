@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use bluetooth_traits::{BluetoothRequest, BluetoothResponse};
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::BluetoothPermissionResultBinding::{self, BluetoothPermissionResultMethods};
 use dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorBinding::NavigatorMethods;
 use dom::bindings::codegen::Bindings::PermissionStatusBinding::{PermissionName, PermissionState};
@@ -26,7 +26,7 @@ use std::rc::Rc;
 #[dom_struct]
 pub struct BluetoothPermissionResult {
     status: PermissionStatus,
-    devices: DOMRefCell<Vec<Dom<BluetoothDevice>>>,
+    devices: DomRefCell<Vec<Dom<BluetoothDevice>>>,
 }
 
 impl BluetoothPermissionResult {
@@ -34,7 +34,7 @@ impl BluetoothPermissionResult {
     fn new_inherited(status: &PermissionStatus) -> BluetoothPermissionResult {
         let result = BluetoothPermissionResult {
             status: PermissionStatus::new_inherited(status.get_query()),
-            devices: DOMRefCell::new(Vec::new()),
+            devices: DomRefCell::new(Vec::new()),
         };
         result.status.set_state(status.State());
         result

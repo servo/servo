@@ -7,7 +7,7 @@
 //! perform checkpoints at appropriate times, as well as enqueue microtasks as required.
 
 use dom::bindings::callback::ExceptionHandling;
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
 use dom::bindings::root::Root;
 use dom::globalscope::GlobalScope;
@@ -24,7 +24,7 @@ use std::rc::Rc;
 #[derive(Default, HeapSizeOf, JSTraceable)]
 pub struct MicrotaskQueue {
     /// The list of enqueued microtasks that will be invoked at the next microtask checkpoint.
-    microtask_queue: DOMRefCell<Vec<Microtask>>,
+    microtask_queue: DomRefCell<Vec<Microtask>>,
     /// https://html.spec.whatwg.org/multipage/#performing-a-microtask-checkpoint
     performing_a_microtask_checkpoint: Cell<bool>,
 }

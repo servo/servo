@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use document_loader::DocumentLoader;
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::BlobBinding::BlobBinding::BlobMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding;
@@ -90,8 +90,8 @@ pub struct GenerationId(u32);
 struct XHRContext {
     xhr: TrustedXHRAddress,
     gen_id: GenerationId,
-    buf: DOMRefCell<Vec<u8>>,
-    sync_status: DOMRefCell<Option<ErrorResult>>,
+    buf: DomRefCell<Vec<u8>>,
+    sync_status: DomRefCell<Option<ErrorResult>>,
 }
 
 #[derive(Clone)]
@@ -124,34 +124,34 @@ pub struct XMLHttpRequest {
     timeout: Cell<u32>,
     with_credentials: Cell<bool>,
     upload: Dom<XMLHttpRequestUpload>,
-    response_url: DOMRefCell<String>,
+    response_url: DomRefCell<String>,
     status: Cell<u16>,
-    status_text: DOMRefCell<ByteString>,
-    response: DOMRefCell<ByteString>,
+    status_text: DomRefCell<ByteString>,
+    response: DomRefCell<ByteString>,
     response_type: Cell<XMLHttpRequestResponseType>,
     response_xml: MutNullableDom<Document>,
     response_blob: MutNullableDom<Blob>,
     #[ignore_heap_size_of = "Defined in rust-mozjs"]
     response_json: Heap<JSVal>,
     #[ignore_heap_size_of = "Defined in hyper"]
-    response_headers: DOMRefCell<Headers>,
+    response_headers: DomRefCell<Headers>,
     #[ignore_heap_size_of = "Defined in hyper"]
-    override_mime_type: DOMRefCell<Option<Mime>>,
+    override_mime_type: DomRefCell<Option<Mime>>,
     #[ignore_heap_size_of = "Defined in rust-encoding"]
-    override_charset: DOMRefCell<Option<EncodingRef>>,
+    override_charset: DomRefCell<Option<EncodingRef>>,
 
     // Associated concepts
     #[ignore_heap_size_of = "Defined in hyper"]
-    request_method: DOMRefCell<Method>,
-    request_url: DOMRefCell<Option<ServoUrl>>,
+    request_method: DomRefCell<Method>,
+    request_url: DomRefCell<Option<ServoUrl>>,
     #[ignore_heap_size_of = "Defined in hyper"]
-    request_headers: DOMRefCell<Headers>,
+    request_headers: DomRefCell<Headers>,
     request_body_len: Cell<usize>,
     sync: Cell<bool>,
     upload_complete: Cell<bool>,
     send_flag: Cell<bool>,
 
-    timeout_cancel: DOMRefCell<Option<OneshotTimerHandle>>,
+    timeout_cancel: DomRefCell<Option<OneshotTimerHandle>>,
     fetch_time: Cell<i64>,
     generation_id: Cell<GenerationId>,
     response_status: Cell<Result<(), ()>>,
@@ -175,27 +175,27 @@ impl XMLHttpRequest {
             timeout: Cell::new(0u32),
             with_credentials: Cell::new(false),
             upload: Dom::from_ref(&*XMLHttpRequestUpload::new(global)),
-            response_url: DOMRefCell::new(String::new()),
+            response_url: DomRefCell::new(String::new()),
             status: Cell::new(0),
-            status_text: DOMRefCell::new(ByteString::new(vec!())),
-            response: DOMRefCell::new(ByteString::new(vec!())),
+            status_text: DomRefCell::new(ByteString::new(vec!())),
+            response: DomRefCell::new(ByteString::new(vec!())),
             response_type: Cell::new(XMLHttpRequestResponseType::_empty),
             response_xml: Default::default(),
             response_blob: Default::default(),
             response_json: Heap::default(),
-            response_headers: DOMRefCell::new(Headers::new()),
-            override_mime_type: DOMRefCell::new(None),
-            override_charset: DOMRefCell::new(None),
+            response_headers: DomRefCell::new(Headers::new()),
+            override_mime_type: DomRefCell::new(None),
+            override_charset: DomRefCell::new(None),
 
-            request_method: DOMRefCell::new(Method::Get),
-            request_url: DOMRefCell::new(None),
-            request_headers: DOMRefCell::new(Headers::new()),
+            request_method: DomRefCell::new(Method::Get),
+            request_url: DomRefCell::new(None),
+            request_headers: DomRefCell::new(Headers::new()),
             request_body_len: Cell::new(0),
             sync: Cell::new(false),
             upload_complete: Cell::new(false),
             send_flag: Cell::new(false),
 
-            timeout_cancel: DOMRefCell::new(None),
+            timeout_cancel: DomRefCell::new(None),
             fetch_time: Cell::new(0),
             generation_id: Cell::new(GenerationId(0)),
             response_status: Cell::new(Ok(())),
@@ -1279,8 +1279,8 @@ impl XMLHttpRequest {
         let context = Arc::new(Mutex::new(XHRContext {
             xhr: xhr,
             gen_id: self.generation_id.get(),
-            buf: DOMRefCell::new(vec!()),
-            sync_status: DOMRefCell::new(None),
+            buf: DomRefCell::new(vec!()),
+            sync_status: DomRefCell::new(None),
         }));
 
         let (task_source, script_port) = if self.sync.get() {

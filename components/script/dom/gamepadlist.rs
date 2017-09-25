@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::GamepadListBinding;
 use dom::bindings::codegen::Bindings::GamepadListBinding::GamepadListMethods;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
@@ -15,14 +15,14 @@ use dom_struct::dom_struct;
 #[dom_struct]
 pub struct GamepadList {
     reflector_: Reflector,
-    list: DOMRefCell<Vec<Dom<Gamepad>>>
+    list: DomRefCell<Vec<Dom<Gamepad>>>
 }
 
 impl GamepadList {
     fn new_inherited(list: &[&Gamepad]) -> GamepadList {
         GamepadList {
             reflector_: Reflector::new(),
-            list: DOMRefCell::new(list.iter().map(|g| Dom::from_ref(&**g)).collect())
+            list: DomRefCell::new(list.iter().map(|g| Dom::from_ref(&**g)).collect())
         }
     }
 

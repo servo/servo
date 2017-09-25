@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use core::nonzero::NonZero;
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::VREyeParametersBinding;
 use dom::bindings::codegen::Bindings::VREyeParametersBinding::VREyeParametersMethods;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
@@ -21,7 +21,7 @@ use webvr_traits::WebVREyeParameters;
 pub struct VREyeParameters {
     reflector_: Reflector,
     #[ignore_heap_size_of = "Defined in rust-webvr"]
-    parameters: DOMRefCell<WebVREyeParameters>,
+    parameters: DomRefCell<WebVREyeParameters>,
     offset: Heap<*mut JSObject>,
     fov: Dom<VRFieldOfView>,
 }
@@ -32,7 +32,7 @@ impl VREyeParameters {
     fn new_inherited(parameters: WebVREyeParameters, fov: &VRFieldOfView) -> VREyeParameters {
         VREyeParameters {
             reflector_: Reflector::new(),
-            parameters: DOMRefCell::new(parameters),
+            parameters: DomRefCell::new(parameters),
             offset: Heap::default(),
             fov: Dom::from_ref(&*fov)
         }

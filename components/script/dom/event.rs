@@ -4,7 +4,7 @@
 
 use devtools_traits::{TimelineMarker, TimelineMarkerType};
 use dom::bindings::callback::ExceptionHandling;
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::EventBinding;
 use dom::bindings::codegen::Bindings::EventBinding::{EventConstants, EventMethods};
 use dom::bindings::error::Fallible;
@@ -31,7 +31,7 @@ pub struct Event {
     reflector_: Reflector,
     current_target: MutNullableDom<EventTarget>,
     target: MutNullableDom<EventTarget>,
-    type_: DOMRefCell<Atom>,
+    type_: DomRefCell<Atom>,
     phase: Cell<EventPhase>,
     canceled: Cell<EventDefault>,
     stop_propagation: Cell<bool>,
@@ -50,7 +50,7 @@ impl Event {
             reflector_: Reflector::new(),
             current_target: Default::default(),
             target: Default::default(),
-            type_: DOMRefCell::new(atom!("")),
+            type_: DomRefCell::new(atom!("")),
             phase: Cell::new(EventPhase::None),
             canceled: Cell::new(EventDefault::Allowed),
             stop_propagation: Cell::new(false),

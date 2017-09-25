@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -66,7 +66,7 @@ pub struct HTMLFormElement {
     marked_for_reset: Cell<bool>,
     elements: DomOnceCell<HTMLFormControlsCollection>,
     generation_id: Cell<GenerationId>,
-    controls: DOMRefCell<Vec<Dom<Element>>>,
+    controls: DomRefCell<Vec<Dom<Element>>>,
 }
 
 impl HTMLFormElement {
@@ -78,7 +78,7 @@ impl HTMLFormElement {
             marked_for_reset: Cell::new(false),
             elements: Default::default(),
             generation_id: Cell::new(GenerationId(0)),
-            controls: DOMRefCell::new(Vec::new()),
+            controls: DomRefCell::new(Vec::new()),
         }
     }
 

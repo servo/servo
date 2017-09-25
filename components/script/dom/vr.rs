@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::VRBinding;
 use dom::bindings::codegen::Bindings::VRBinding::VRMethods;
 use dom::bindings::codegen::Bindings::VRDisplayBinding::VRDisplayMethods;
@@ -28,16 +28,16 @@ use webvr_traits::{WebVRGamepadData, WebVRGamepadEvent, WebVRGamepadState};
 #[dom_struct]
 pub struct VR {
     reflector_: Reflector,
-    displays: DOMRefCell<Vec<Dom<VRDisplay>>>,
-    gamepads: DOMRefCell<Vec<Dom<Gamepad>>>
+    displays: DomRefCell<Vec<Dom<VRDisplay>>>,
+    gamepads: DomRefCell<Vec<Dom<Gamepad>>>
 }
 
 impl VR {
     fn new_inherited() -> VR {
         VR {
             reflector_: Reflector::new(),
-            displays: DOMRefCell::new(Vec::new()),
-            gamepads: DOMRefCell::new(Vec::new()),
+            displays: DomRefCell::new(Vec::new()),
+            gamepads: DomRefCell::new(Vec::new()),
         }
     }
 

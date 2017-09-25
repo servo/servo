@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::abstractworker::SimpleWorkerErrorHandler;
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::ServiceWorkerBinding::{ServiceWorkerMethods, ServiceWorkerState, Wrap};
 use dom::bindings::error::{ErrorResult, Error};
 use dom::bindings::inheritance::Castable;
@@ -26,7 +26,7 @@ pub type TrustedServiceWorkerAddress = Trusted<ServiceWorker>;
 #[dom_struct]
 pub struct ServiceWorker {
     eventtarget: EventTarget,
-    script_url: DOMRefCell<String>,
+    script_url: DomRefCell<String>,
     scope_url: ServoUrl,
     state: Cell<ServiceWorkerState>,
     skip_waiting: Cell<bool>
@@ -38,7 +38,7 @@ impl ServiceWorker {
                      scope_url: ServoUrl) -> ServiceWorker {
         ServiceWorker {
             eventtarget: EventTarget::new_inherited(),
-            script_url: DOMRefCell::new(String::from(script_url)),
+            script_url: DomRefCell::new(String::from(script_url)),
             state: Cell::new(ServiceWorkerState::Installing),
             scope_url: scope_url,
             skip_waiting: Cell::new(skip_waiting)

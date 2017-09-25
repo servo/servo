@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::VRFieldOfViewBinding;
 use dom::bindings::codegen::Bindings::VRFieldOfViewBinding::VRFieldOfViewMethods;
 use dom::bindings::num::Finite;
@@ -16,7 +16,7 @@ use webvr_traits::WebVRFieldOfView;
 pub struct VRFieldOfView {
     reflector_: Reflector,
     #[ignore_heap_size_of = "Defined in rust-webvr"]
-    fov: DOMRefCell<WebVRFieldOfView>
+    fov: DomRefCell<WebVRFieldOfView>
 }
 
 unsafe_no_jsmanaged_fields!(WebVRFieldOfView);
@@ -25,7 +25,7 @@ impl VRFieldOfView {
     fn new_inherited(fov: WebVRFieldOfView) -> VRFieldOfView {
         VRFieldOfView {
             reflector_: Reflector::new(),
-            fov: DOMRefCell::new(fov)
+            fov: DomRefCell::new(fov)
         }
     }
 

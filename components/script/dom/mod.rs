@@ -123,7 +123,7 @@
 //!
 //! Reflectors are JavaScript objects, and as such can be freely aliased. As
 //! Rust does not allow mutable aliasing, mutable borrows of DOM objects are
-//! not allowed. In particular, any mutable fields use `Cell` or `DOMRefCell`
+//! not allowed. In particular, any mutable fields use `Cell` or `DomRefCell`
 //! to manage their mutability.
 //!
 //! `Reflector` and `DomObject`

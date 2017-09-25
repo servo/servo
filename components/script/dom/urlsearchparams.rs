@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::URLSearchParamsBinding::URLSearchParamsMethods;
 use dom::bindings::codegen::Bindings::URLSearchParamsBinding::URLSearchParamsWrap;
 use dom::bindings::codegen::UnionTypes::USVStringOrURLSearchParams;
@@ -23,7 +23,7 @@ use url::form_urlencoded;
 pub struct URLSearchParams {
     reflector_: Reflector,
     // https://url.spec.whatwg.org/#concept-urlsearchparams-list
-    list: DOMRefCell<Vec<(String, String)>>,
+    list: DomRefCell<Vec<(String, String)>>,
     // https://url.spec.whatwg.org/#concept-urlsearchparams-url-object
     url: MutableWeakRef<URL>,
 }
@@ -32,7 +32,7 @@ impl URLSearchParams {
     fn new_inherited(url: Option<&URL>) -> URLSearchParams {
         URLSearchParams {
             reflector_: Reflector::new(),
-            list: DOMRefCell::new(url.map_or(Vec::new(), |url| url.query_pairs())),
+            list: DomRefCell::new(url.map_or(Vec::new(), |url| url.query_pairs())),
             url: MutableWeakRef::new(url),
         }
     }

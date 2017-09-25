@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::PerformanceBinding;
 use dom::bindings::codegen::Bindings::PerformanceBinding::{DOMHighResTimeStamp, PerformanceMethods};
 use dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceEntryList as DOMPerformanceEntryList;
@@ -111,8 +111,8 @@ struct PerformanceObserver {
 pub struct Performance {
     reflector_: Reflector,
     timing: Option<Dom<PerformanceTiming>>,
-    entries: DOMRefCell<PerformanceEntryList>,
-    observers: DOMRefCell<Vec<PerformanceObserver>>,
+    entries: DomRefCell<PerformanceEntryList>,
+    observers: DomRefCell<Vec<PerformanceObserver>>,
     pending_notification_observers_task: Cell<bool>,
     navigation_start_precise: f64,
 }
@@ -130,8 +130,8 @@ impl Performance {
             } else {
                 None
             },
-            entries: DOMRefCell::new(PerformanceEntryList::new(Vec::new())),
-            observers: DOMRefCell::new(Vec::new()),
+            entries: DomRefCell::new(PerformanceEntryList::new(Vec::new())),
+            observers: DomRefCell::new(Vec::new()),
             pending_notification_observers_task: Cell::new(false),
             navigation_start_precise,
         }

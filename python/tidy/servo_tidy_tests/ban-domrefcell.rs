@@ -8,12 +8,12 @@
 extern crate script;
 
 use script::test::Dom;
-use script::test::DOMRefCell;
+use script::test::DomRefCell;
 use script::test::Node;
 
 struct Foo {
-    bar: DOMRefCell<Dom<Node>>
-    //~^ ERROR Banned type DOMRefCell<Dom<T>> detected. Use MutDom<T> instead
+    bar: DomRefCell<Dom<Node>>
+    //~^ ERROR Banned type DomRefCell<Dom<T>> detected. Use MutDom<T> instead
 }
 
 fn main() {}

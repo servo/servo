@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
 use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use dom::bindings::codegen::Bindings::MediaQueryListBinding::{self, MediaQueryListMethods};
@@ -113,13 +113,13 @@ impl MediaQueryListMethods for MediaQueryList {
 
 #[derive(HeapSizeOf)]
 pub struct WeakMediaQueryListVec {
-    cell: DOMRefCell<WeakRefVec<MediaQueryList>>,
+    cell: DomRefCell<WeakRefVec<MediaQueryList>>,
 }
 
 impl WeakMediaQueryListVec {
     /// Create a new vector of weak references to MediaQueryList
     pub fn new() -> Self {
-        WeakMediaQueryListVec { cell: DOMRefCell::new(WeakRefVec::new()) }
+        WeakMediaQueryListVec { cell: DomRefCell::new(WeakRefVec::new()) }
     }
 
     pub fn push(&self, mql: &MediaQueryList) {

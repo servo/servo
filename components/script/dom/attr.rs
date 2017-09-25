@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use devtools_traits::AttrInfo;
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::{self, AttrMethods};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
@@ -29,7 +29,7 @@ use style::attr::{AttrIdentifier, AttrValue};
 pub struct Attr {
     reflector_: Reflector,
     identifier: AttrIdentifier,
-    value: DOMRefCell<AttrValue>,
+    value: DomRefCell<AttrValue>,
 
     /// the element that owns this attribute.
     owner: MutNullableDom<Element>,
@@ -51,7 +51,7 @@ impl Attr {
                 namespace: namespace,
                 prefix: prefix,
             },
-            value: DOMRefCell::new(value),
+            value: DomRefCell::new(value),
             owner: MutNullableDom::new(owner),
         }
     }

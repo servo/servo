@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
 use dom::bindings::conversions::root_from_object;
@@ -69,7 +69,7 @@ pub struct GlobalScope {
     devtools_wants_updates: Cell<bool>,
 
     /// Timers used by the Console API.
-    console_timers: DOMRefCell<HashMap<DOMString, u64>>,
+    console_timers: DomRefCell<HashMap<DOMString, u64>>,
 
     /// For providing instructions to an optional devtools server.
     #[ignore_heap_size_of = "channels are hard"]
@@ -131,7 +131,7 @@ impl GlobalScope {
             next_worker_id: Cell::new(WorkerId(0)),
             pipeline_id,
             devtools_wants_updates: Default::default(),
-            console_timers: DOMRefCell::new(Default::default()),
+            console_timers: DomRefCell::new(Default::default()),
             devtools_chan,
             mem_profiler_chan,
             time_profiler_chan,

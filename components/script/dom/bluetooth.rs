@@ -8,7 +8,7 @@ use bluetooth_traits::blocklist::{Blocklist, uuid_is_blocklisted};
 use bluetooth_traits::scanfilter::{BluetoothScanfilter, BluetoothScanfilterSequence};
 use bluetooth_traits::scanfilter::{RequestDeviceoptions, ServiceUUIDSequence};
 use core::clone::Clone;
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::BluetoothBinding::{self, BluetoothDataFilterInit, BluetoothLEScanFilterInit};
 use dom::bindings::codegen::Bindings::BluetoothBinding::{BluetoothMethods, RequestDeviceOptions};
 use dom::bindings::codegen::Bindings::BluetoothPermissionResultBinding::BluetoothPermissionDescriptor;
@@ -65,13 +65,13 @@ pub struct AllowedBluetoothDevice {
 
 #[derive(HeapSizeOf, JSTraceable)]
 pub struct BluetoothExtraPermissionData {
-    allowed_devices: DOMRefCell<Vec<AllowedBluetoothDevice>>,
+    allowed_devices: DomRefCell<Vec<AllowedBluetoothDevice>>,
 }
 
 impl BluetoothExtraPermissionData {
     pub fn new() -> BluetoothExtraPermissionData {
         BluetoothExtraPermissionData {
-            allowed_devices: DOMRefCell::new(Vec::new()),
+            allowed_devices: DomRefCell::new(Vec::new()),
         }
     }
 
@@ -120,14 +120,14 @@ where
 #[dom_struct]
 pub struct Bluetooth {
     eventtarget: EventTarget,
-    device_instance_map: DOMRefCell<HashMap<String, Dom<BluetoothDevice>>>,
+    device_instance_map: DomRefCell<HashMap<String, Dom<BluetoothDevice>>>,
 }
 
 impl Bluetooth {
     pub fn new_inherited() -> Bluetooth {
         Bluetooth {
             eventtarget: EventTarget::new_inherited(),
-            device_instance_map: DOMRefCell::new(HashMap::new()),
+            device_instance_map: DomRefCell::new(HashMap::new()),
         }
     }
 
@@ -141,7 +141,7 @@ impl Bluetooth {
         self.global().as_window().bluetooth_thread()
     }
 
-    pub fn get_device_map(&self) -> &DOMRefCell<HashMap<String, Dom<BluetoothDevice>>> {
+    pub fn get_device_map(&self) -> &DomRefCell<HashMap<String, Dom<BluetoothDevice>>> {
         &self.device_instance_map
     }
 

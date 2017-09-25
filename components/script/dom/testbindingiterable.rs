@@ -4,7 +4,7 @@
 
 // check-tidy: no specs after this line
 
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::TestBindingIterableBinding::{self, TestBindingIterableMethods};
 use dom::bindings::error::Fallible;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
@@ -16,14 +16,14 @@ use dom_struct::dom_struct;
 #[dom_struct]
 pub struct TestBindingIterable {
     reflector: Reflector,
-    vals: DOMRefCell<Vec<DOMString>>,
+    vals: DomRefCell<Vec<DOMString>>,
 }
 
 impl TestBindingIterable {
     fn new(global: &GlobalScope) -> Root<TestBindingIterable> {
         reflect_dom_object(box TestBindingIterable {
             reflector: Reflector::new(),
-            vals: DOMRefCell::new(vec![]),
+            vals: DomRefCell::new(vec![]),
         }, global, TestBindingIterableBinding::Wrap)
     }
 

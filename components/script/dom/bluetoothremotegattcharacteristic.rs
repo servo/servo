@@ -4,7 +4,7 @@
 
 use bluetooth_traits::{BluetoothRequest, BluetoothResponse, GATTType};
 use bluetooth_traits::blocklist::{Blocklist, uuid_is_blocklisted};
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::BluetoothCharacteristicPropertiesBinding::
     BluetoothCharacteristicPropertiesMethods;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTCharacteristicBinding;
@@ -39,7 +39,7 @@ pub struct BluetoothRemoteGATTCharacteristic {
     service: Dom<BluetoothRemoteGATTService>,
     uuid: DOMString,
     properties: Dom<BluetoothCharacteristicProperties>,
-    value: DOMRefCell<Option<ByteString>>,
+    value: DomRefCell<Option<ByteString>>,
     instance_id: String,
 }
 
@@ -54,7 +54,7 @@ impl BluetoothRemoteGATTCharacteristic {
             service: Dom::from_ref(service),
             uuid: uuid,
             properties: Dom::from_ref(properties),
-            value: DOMRefCell::new(None),
+            value: DomRefCell::new(None),
             instance_id: instance_id,
         }
     }

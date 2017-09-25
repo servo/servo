@@ -8,7 +8,7 @@ use canvas_traits::canvas::{LineCapStyle, LineJoinStyle, LinearGradientStyle};
 use canvas_traits::canvas::{RadialGradientStyle, RepetitionStyle, byte_swap_and_premultiply};
 use cssparser::{Parser, ParserInput, RGBA};
 use cssparser::Color as CSSColor;
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasFillRule;
@@ -71,12 +71,12 @@ pub struct CanvasRenderingContext2D {
     #[ignore_heap_size_of = "Arc"]
     image_cache: Arc<ImageCache>,
     /// Any missing image URLs.
-    missing_image_urls: DOMRefCell<Vec<ServoUrl>>,
+    missing_image_urls: DomRefCell<Vec<ServoUrl>>,
     /// The base URL for resolving CSS image URL values.
     /// Needed because of https://github.com/servo/servo/issues/17625
     base_url: ServoUrl,
-    state: DOMRefCell<CanvasContextState>,
-    saved_states: DOMRefCell<Vec<CanvasContextState>>,
+    state: DomRefCell<CanvasContextState>,
+    saved_states: DomRefCell<Vec<CanvasContextState>>,
     origin_clean: Cell<bool>,
 }
 
@@ -140,10 +140,10 @@ impl CanvasRenderingContext2D {
             ipc_renderer: ipc_renderer,
             canvas: canvas.map(Dom::from_ref),
             image_cache: image_cache,
-            missing_image_urls: DOMRefCell::new(Vec::new()),
+            missing_image_urls: DomRefCell::new(Vec::new()),
             base_url: base_url,
-            state: DOMRefCell::new(CanvasContextState::new()),
-            saved_states: DOMRefCell::new(Vec::new()),
+            state: DomRefCell::new(CanvasContextState::new()),
+            saved_states: DomRefCell::new(Vec::new()),
             origin_clean: Cell::new(true),
         }
     }

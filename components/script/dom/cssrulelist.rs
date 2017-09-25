@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::CSSRuleListBinding;
 use dom::bindings::codegen::Bindings::CSSRuleListBinding::CSSRuleListMethods;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
@@ -39,7 +39,7 @@ pub struct CSSRuleList {
     parent_stylesheet: Dom<CSSStyleSheet>,
     #[ignore_heap_size_of = "Arc"]
     rules: RulesSource,
-    dom_rules: DOMRefCell<Vec<MutNullableDom<CSSRule>>>
+    dom_rules: DomRefCell<Vec<MutNullableDom<CSSRule>>>
 }
 
 pub enum RulesSource {
@@ -64,7 +64,7 @@ impl CSSRuleList {
             reflector_: Reflector::new(),
             parent_stylesheet: Dom::from_ref(parent_stylesheet),
             rules: rules,
-            dom_rules: DOMRefCell::new(dom_rules),
+            dom_rules: DomRefCell::new(dom_rules),
         }
     }
 

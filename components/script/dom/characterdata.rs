@@ -4,7 +4,7 @@
 
 //! DOM bindings for `CharacterData`.
 
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::ProcessingInstructionBinding::ProcessingInstructionMethods;
@@ -29,14 +29,14 @@ use std::cell::Ref;
 #[dom_struct]
 pub struct CharacterData {
     node: Node,
-    data: DOMRefCell<DOMString>,
+    data: DomRefCell<DOMString>,
 }
 
 impl CharacterData {
     pub fn new_inherited(data: DOMString, document: &Document) -> CharacterData {
         CharacterData {
             node: Node::new_inherited(document),
-            data: DOMRefCell::new(data),
+            data: DomRefCell::new(data),
         }
     }
 

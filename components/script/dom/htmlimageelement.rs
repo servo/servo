@@ -6,7 +6,7 @@ use app_units::{Au, AU_PER_PX};
 use document_loader::{LoadType, LoadBlocker};
 use dom::activation::Activatable;
 use dom::attr::Attr;
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectBinding::DOMRectMethods;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::HTMLImageElementBinding;
@@ -87,8 +87,8 @@ struct ImageRequest {
 pub struct HTMLImageElement {
     htmlelement: HTMLElement,
     image_request: Cell<ImageRequestPhase>,
-    current_request: DOMRefCell<ImageRequest>,
-    pending_request: DOMRefCell<ImageRequest>,
+    current_request: DomRefCell<ImageRequest>,
+    pending_request: DomRefCell<ImageRequest>,
     form_owner: MutNullableDom<HTMLFormElement>,
     generation: Cell<u32>,
 }
@@ -579,7 +579,7 @@ impl HTMLImageElement {
         HTMLImageElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             image_request: Cell::new(ImageRequestPhase::Current),
-            current_request: DOMRefCell::new(ImageRequest {
+            current_request: DomRefCell::new(ImageRequest {
                 state: State::Unavailable,
                 parsed_url: None,
                 source_url: None,
@@ -588,7 +588,7 @@ impl HTMLImageElement {
                 blocker: None,
                 final_url: None,
             }),
-            pending_request: DOMRefCell::new(ImageRequest {
+            pending_request: DomRefCell::new(ImageRequest {
                 state: State::Unavailable,
                 parsed_url: None,
                 source_url: None,

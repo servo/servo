@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::HTMLDialogElementBinding;
 use dom::bindings::codegen::Bindings::HTMLDialogElementBinding::HTMLDialogElementMethods;
 use dom::bindings::inheritance::Castable;
@@ -19,7 +19,7 @@ use html5ever::{LocalName, Prefix};
 #[dom_struct]
 pub struct HTMLDialogElement {
     htmlelement: HTMLElement,
-    return_value: DOMRefCell<DOMString>,
+    return_value: DomRefCell<DOMString>,
 }
 
 impl HTMLDialogElement {
@@ -29,7 +29,7 @@ impl HTMLDialogElement {
         HTMLDialogElement {
             htmlelement:
                 HTMLElement::new_inherited(local_name, prefix, document),
-            return_value: DOMRefCell::new(DOMString::new()),
+            return_value: DomRefCell::new(DOMString::new()),
         }
     }
 

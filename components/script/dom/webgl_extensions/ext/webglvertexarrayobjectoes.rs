@@ -5,7 +5,7 @@
 use canvas_traits::webgl::WebGLVertexArrayId;
 use core::cell::Ref;
 use core::iter::FromIterator;
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::WebGLVertexArrayObjectOESBinding;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::root::{Dom, MutNullableDom, Root};
@@ -22,7 +22,7 @@ pub struct WebGLVertexArrayObjectOES {
     id: WebGLVertexArrayId,
     ever_bound: Cell<bool>,
     is_deleted: Cell<bool>,
-    bound_attrib_buffers: DOMRefCell<HashMap<u32, Dom<WebGLBuffer>>>,
+    bound_attrib_buffers: DomRefCell<HashMap<u32, Dom<WebGLBuffer>>>,
     bound_buffer_element_array: MutNullableDom<WebGLBuffer>,
 }
 
@@ -33,7 +33,7 @@ impl WebGLVertexArrayObjectOES {
             id: id,
             ever_bound: Cell::new(false),
             is_deleted: Cell::new(false),
-            bound_attrib_buffers: DOMRefCell::new(HashMap::new()),
+            bound_attrib_buffers: DomRefCell::new(HashMap::new()),
             bound_buffer_element_array: MutNullableDom::new(None),
         }
     }

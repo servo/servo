@@ -5,7 +5,7 @@
 use caseless::compatibility_caseless_match_str;
 use dom::activation::{Activatable, ActivationSource, synthetic_click_activation};
 use dom::attr::Attr;
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::FileListBinding::FileListMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding;
@@ -88,14 +88,14 @@ pub struct HTMLInputElement {
     htmlelement: HTMLElement,
     input_type: Cell<InputType>,
     checked_changed: Cell<bool>,
-    placeholder: DOMRefCell<DOMString>,
+    placeholder: DomRefCell<DOMString>,
     value_changed: Cell<bool>,
     size: Cell<u32>,
     maxlength: Cell<i32>,
     minlength: Cell<i32>,
     #[ignore_heap_size_of = "#7193"]
-    textinput: DOMRefCell<TextInput<ScriptToConstellationChan>>,
-    activation_state: DOMRefCell<InputActivationState>,
+    textinput: DomRefCell<TextInput<ScriptToConstellationChan>>,
+    activation_state: DomRefCell<InputActivationState>,
     // https://html.spec.whatwg.org/multipage/#concept-input-value-dirty-flag
     value_dirty: Cell<bool>,
 
@@ -142,19 +142,19 @@ impl HTMLInputElement {
                 HTMLElement::new_inherited_with_state(IN_ENABLED_STATE | IN_READ_WRITE_STATE,
                                                       local_name, prefix, document),
             input_type: Cell::new(InputType::InputText),
-            placeholder: DOMRefCell::new(DOMString::new()),
+            placeholder: DomRefCell::new(DOMString::new()),
             checked_changed: Cell::new(false),
             value_changed: Cell::new(false),
             maxlength: Cell::new(DEFAULT_MAX_LENGTH),
             minlength: Cell::new(DEFAULT_MIN_LENGTH),
             size: Cell::new(DEFAULT_INPUT_SIZE),
-            textinput: DOMRefCell::new(TextInput::new(Single,
+            textinput: DomRefCell::new(TextInput::new(Single,
                                                       DOMString::new(),
                                                       chan,
                                                       None,
                                                       None,
                                                       SelectionDirection::None)),
-            activation_state: DOMRefCell::new(InputActivationState::new()),
+            activation_state: DomRefCell::new(InputActivationState::new()),
             value_dirty: Cell::new(false),
             filelist: MutNullableDom::new(None),
             form_owner: Default::default(),

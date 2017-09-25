@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use document_loader::{DocumentLoader, LoadType};
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
 use dom::bindings::codegen::Bindings::HTMLImageElementBinding::HTMLImageElementMethods;
 use dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
@@ -75,15 +75,15 @@ pub struct ServoParser {
     document: Dom<Document>,
     /// Input received from network.
     #[ignore_heap_size_of = "Defined in html5ever"]
-    network_input: DOMRefCell<BufferQueue>,
+    network_input: DomRefCell<BufferQueue>,
     /// Part of an UTF-8 code point spanning input chunks
     #[ignore_heap_size_of = "Defined in html5ever"]
-    incomplete_utf8: DOMRefCell<Option<IncompleteUtf8>>,
+    incomplete_utf8: DomRefCell<Option<IncompleteUtf8>>,
     /// Input received from script. Used only to support document.write().
     #[ignore_heap_size_of = "Defined in html5ever"]
-    script_input: DOMRefCell<BufferQueue>,
+    script_input: DomRefCell<BufferQueue>,
     /// The tokenizer of this parser.
-    tokenizer: DOMRefCell<Tokenizer>,
+    tokenizer: DomRefCell<Tokenizer>,
     /// Whether to expect any further input from the associated network request.
     last_chunk_received: Cell<bool>,
     /// Whether this parser should avoid passing any further data to the tokenizer.
@@ -320,10 +320,10 @@ impl ServoParser {
         ServoParser {
             reflector: Reflector::new(),
             document: Dom::from_ref(document),
-            incomplete_utf8: DOMRefCell::new(None),
-            network_input: DOMRefCell::new(BufferQueue::new()),
-            script_input: DOMRefCell::new(BufferQueue::new()),
-            tokenizer: DOMRefCell::new(tokenizer),
+            incomplete_utf8: DomRefCell::new(None),
+            network_input: DomRefCell::new(BufferQueue::new()),
+            script_input: DomRefCell::new(BufferQueue::new()),
+            tokenizer: DomRefCell::new(tokenizer),
             last_chunk_received: Cell::new(last_chunk_state == LastChunkState::Received),
             suspended: Default::default(),
             script_nesting_level: Default::default(),

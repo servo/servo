@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::callback::ExceptionHandling;
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::MutationObserverBinding;
 use dom::bindings::codegen::Bindings::MutationObserverBinding::MutationCallback;
 use dom::bindings::codegen::Bindings::MutationObserverBinding::MutationObserverBinding::MutationObserverMethods;
@@ -26,7 +26,7 @@ pub struct MutationObserver {
     reflector_: Reflector,
     #[ignore_heap_size_of = "can't measure Rc values"]
     callback: Rc<MutationCallback>,
-    record_queue: DOMRefCell<Vec<Root<MutationRecord>>>,
+    record_queue: DomRefCell<Vec<Root<MutationRecord>>>,
 }
 
 pub enum Mutation<'a> {
@@ -62,7 +62,7 @@ impl MutationObserver {
         MutationObserver {
             reflector_: Reflector::new(),
             callback: callback,
-            record_queue: DOMRefCell::new(vec![]),
+            record_queue: DomRefCell::new(vec![]),
         }
     }
 

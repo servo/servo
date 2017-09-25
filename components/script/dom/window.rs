@@ -8,7 +8,7 @@ use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLChan;
 use cssparser::{Parser, ParserInput};
 use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionState;
@@ -192,13 +192,13 @@ pub struct Window {
     screen: MutNullableDom<Screen>,
     session_storage: MutNullableDom<Storage>,
     local_storage: MutNullableDom<Storage>,
-    status: DOMRefCell<DOMString>,
+    status: DomRefCell<DOMString>,
 
     /// For sending timeline markers. Will be ignored if
     /// no devtools server
-    devtools_markers: DOMRefCell<HashSet<TimelineMarkerType>>,
+    devtools_markers: DomRefCell<HashSet<TimelineMarkerType>>,
     #[ignore_heap_size_of = "channels are hard"]
-    devtools_marker_sender: DOMRefCell<Option<IpcSender<Option<TimelineMarker>>>>,
+    devtools_marker_sender: DomRefCell<Option<IpcSender<Option<TimelineMarker>>>>,
 
     /// Pending resize event, if any.
     resize_event: Cell<Option<(WindowSizeData, WindowSizeType)>>,
@@ -211,7 +211,7 @@ pub struct Window {
 
     /// The JavaScript runtime.
     #[ignore_heap_size_of = "Rc<T> is hard"]
-    js_runtime: DOMRefCell<Option<Rc<Runtime>>>,
+    js_runtime: DomRefCell<Option<Rc<Runtime>>>,
 
     /// A handle for communicating messages to the layout thread.
     #[ignore_heap_size_of = "channels are hard"]
@@ -244,7 +244,7 @@ pub struct Window {
 
     /// A channel for communicating results of async scripts back to the webdriver server
     #[ignore_heap_size_of = "channels are hard"]
-    webdriver_script_chan: DOMRefCell<Option<IpcSender<WebDriverJSResult>>>,
+    webdriver_script_chan: DomRefCell<Option<IpcSender<WebDriverJSResult>>>,
 
     /// The current state of the window object
     current_state: Cell<WindowState>,
@@ -253,12 +253,12 @@ pub struct Window {
 
     /// A flag to prevent async events from attempting to interact with this window.
     #[ignore_heap_size_of = "defined in std"]
-    ignore_further_async_events: DOMRefCell<Arc<AtomicBool>>,
+    ignore_further_async_events: DomRefCell<Arc<AtomicBool>>,
 
     error_reporter: CSSErrorReporter,
 
     /// A list of scroll offsets for each scrollable element.
-    scroll_offsets: DOMRefCell<HashMap<UntrustedNodeAddress, Vector2D<f32>>>,
+    scroll_offsets: DomRefCell<HashMap<UntrustedNodeAddress, Vector2D<f32>>>,
 
     /// All the MediaQueryLists we need to update
     media_query_lists: WeakMediaQueryListVec,
@@ -274,17 +274,17 @@ pub struct Window {
     webvr_chan: Option<IpcSender<WebVRMsg>>,
 
     /// A map for storing the previous permission state read results.
-    permission_state_invocation_results: DOMRefCell<HashMap<String, PermissionState>>,
+    permission_state_invocation_results: DomRefCell<HashMap<String, PermissionState>>,
 
     /// All of the elements that have an outstanding image request that was
     /// initiated by layout during a reflow. They are stored in the script thread
     /// to ensure that the element can be marked dirty when the image data becomes
     /// available at some point in the future.
-    pending_layout_images: DOMRefCell<HashMap<PendingImageId, Vec<Dom<Node>>>>,
+    pending_layout_images: DomRefCell<HashMap<PendingImageId, Vec<Dom<Node>>>>,
 
     /// Directory to store unminified scripts for this window if unminify-js
     /// opt is enabled.
-    unminified_js_dir: DOMRefCell<Option<String>>,
+    unminified_js_dir: DomRefCell<Option<String>>,
 
     /// Worklets
     test_worklet: MutNullableDom<Worklet>,
@@ -404,7 +404,7 @@ impl Window {
         Worklet::new(self, WorkletGlobalScopeType::Paint)
     }
 
-    pub fn permission_state_invocation_results(&self) -> &DOMRefCell<HashMap<String, PermissionState>> {
+    pub fn permission_state_invocation_results(&self) -> &DomRefCell<HashMap<String, PermissionState>> {
         &self.permission_state_invocation_results
     }
 
@@ -1866,10 +1866,10 @@ impl Window {
             screen: Default::default(),
             session_storage: Default::default(),
             local_storage: Default::default(),
-            status: DOMRefCell::new(DOMString::new()),
+            status: DomRefCell::new(DOMString::new()),
             parent_info,
             dom_static: GlobalStaticData::new(),
-            js_runtime: DOMRefCell::new(Some(runtime.clone())),
+            js_runtime: DomRefCell::new(Some(runtime.clone())),
             bluetooth_thread,
             bluetooth_extra_permission_data: BluetoothExtraPermissionData::new(),
             page_clip_rect: Cell::new(max_rect()),

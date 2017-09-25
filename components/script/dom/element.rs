@@ -7,7 +7,7 @@
 use devtools_traits::AttrInfo;
 use dom::activation::Activatable;
 use dom::attr::{Attr, AttrHelpersForLayout};
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::ElementBinding;
@@ -130,12 +130,12 @@ pub struct Element {
     local_name: LocalName,
     tag_name: TagName,
     namespace: Namespace,
-    prefix: DOMRefCell<Option<Prefix>>,
-    attrs: DOMRefCell<Vec<Dom<Attr>>>,
-    id_attribute: DOMRefCell<Option<Atom>>,
-    is: DOMRefCell<Option<LocalName>>,
+    prefix: DomRefCell<Option<Prefix>>,
+    attrs: DomRefCell<Vec<Dom<Attr>>>,
+    id_attribute: DomRefCell<Option<Atom>>,
+    is: DomRefCell<Option<LocalName>>,
     #[ignore_heap_size_of = "Arc"]
-    style_attribute: DOMRefCell<Option<Arc<Locked<PropertyDeclarationBlock>>>>,
+    style_attribute: DomRefCell<Option<Arc<Locked<PropertyDeclarationBlock>>>>,
     attr_list: MutNullableDom<NamedNodeMap>,
     class_list: MutNullableDom<DOMTokenList>,
     state: Cell<ElementState>,
@@ -146,10 +146,10 @@ pub struct Element {
     #[ignore_heap_size_of = "bitflags defined in rust-selectors"]
     selector_flags: Cell<ElementSelectorFlags>,
     /// https://html.spec.whatwg.org/multipage/#custom-element-reaction-queue
-    custom_element_reaction_queue: DOMRefCell<Vec<CustomElementReaction>>,
+    custom_element_reaction_queue: DomRefCell<Vec<CustomElementReaction>>,
     /// https://dom.spec.whatwg.org/#concept-element-custom-element-definition
     #[ignore_heap_size_of = "Rc"]
-    custom_element_definition: DOMRefCell<Option<Rc<CustomElementDefinition>>>,
+    custom_element_definition: DomRefCell<Option<Rc<CustomElementDefinition>>>,
     /// https://dom.spec.whatwg.org/#concept-element-custom-element-state
     custom_element_state: Cell<CustomElementState>,
 }
@@ -255,11 +255,11 @@ impl Element {
             local_name: local_name,
             tag_name: TagName::new(),
             namespace: namespace,
-            prefix: DOMRefCell::new(prefix),
-            attrs: DOMRefCell::new(vec![]),
-            id_attribute: DOMRefCell::new(None),
-            is: DOMRefCell::new(None),
-            style_attribute: DOMRefCell::new(None),
+            prefix: DomRefCell::new(prefix),
+            attrs: DomRefCell::new(vec![]),
+            id_attribute: DomRefCell::new(None),
+            is: DomRefCell::new(None),
+            style_attribute: DomRefCell::new(None),
             attr_list: Default::default(),
             class_list: Default::default(),
             state: Cell::new(state),
@@ -958,7 +958,7 @@ impl Element {
         ns!()
     }
 
-    pub fn style_attribute(&self) -> &DOMRefCell<Option<Arc<Locked<PropertyDeclarationBlock>>>> {
+    pub fn style_attribute(&self) -> &DomRefCell<Option<Arc<Locked<PropertyDeclarationBlock>>>> {
         &self.style_attribute
     }
 
@@ -3006,12 +3006,12 @@ impl<'a> AttributeMutation<'a> {
 /// owner changes.
 #[derive(HeapSizeOf, JSTraceable)]
 struct TagName {
-    ptr: DOMRefCell<Option<LocalName>>,
+    ptr: DomRefCell<Option<LocalName>>,
 }
 
 impl TagName {
     fn new() -> TagName {
-        TagName { ptr: DOMRefCell::new(None) }
+        TagName { ptr: DomRefCell::new(None) }
     }
 
     /// Retrieve a copy of the current inner value. If it is `None`, it is

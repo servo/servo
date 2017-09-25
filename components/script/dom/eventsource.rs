@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::EventSourceBinding::{EventSourceInit, EventSourceMethods, Wrap};
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::inheritance::Castable;
@@ -56,8 +56,8 @@ enum ReadyState {
 pub struct EventSource {
     eventtarget: EventTarget,
     url: ServoUrl,
-    request: DOMRefCell<Option<RequestInit>>,
-    last_event_id: DOMRefCell<DOMString>,
+    request: DomRefCell<Option<RequestInit>>,
+    last_event_id: DomRefCell<DOMString>,
     reconnection_time: Cell<u64>,
     generation_id: Cell<GenerationId>,
 
@@ -402,8 +402,8 @@ impl EventSource {
         EventSource {
             eventtarget: EventTarget::new_inherited(),
             url: url,
-            request: DOMRefCell::new(None),
-            last_event_id: DOMRefCell::new(DOMString::from("")),
+            request: DomRefCell::new(None),
+            last_event_id: DomRefCell::new(DOMString::from("")),
             reconnection_time: Cell::new(DEFAULT_RECONNECTION_TIME),
             generation_id: Cell::new(GenerationId(0)),
 

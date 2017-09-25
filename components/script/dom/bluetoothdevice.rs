@@ -4,7 +4,7 @@
 
 use bluetooth_traits::{BluetoothCharacteristicMsg, BluetoothDescriptorMsg};
 use bluetooth_traits::{BluetoothRequest, BluetoothResponse, BluetoothServiceMsg};
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::BluetoothDeviceBinding;
 use dom::bindings::codegen::Bindings::BluetoothDeviceBinding::BluetoothDeviceMethods;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;
@@ -37,9 +37,9 @@ pub struct BluetoothDevice {
     name: Option<DOMString>,
     gatt: MutNullableDom<BluetoothRemoteGATTServer>,
     context: Dom<Bluetooth>,
-    attribute_instance_map: (DOMRefCell<HashMap<String, Dom<BluetoothRemoteGATTService>>>,
-                             DOMRefCell<HashMap<String, Dom<BluetoothRemoteGATTCharacteristic>>>,
-                             DOMRefCell<HashMap<String, Dom<BluetoothRemoteGATTDescriptor>>>),
+    attribute_instance_map: (DomRefCell<HashMap<String, Dom<BluetoothRemoteGATTService>>>,
+                             DomRefCell<HashMap<String, Dom<BluetoothRemoteGATTCharacteristic>>>,
+                             DomRefCell<HashMap<String, Dom<BluetoothRemoteGATTDescriptor>>>),
     watching_advertisements: Cell<bool>,
 }
 
@@ -54,9 +54,9 @@ impl BluetoothDevice {
             name: name,
             gatt: Default::default(),
             context: Dom::from_ref(context),
-            attribute_instance_map: (DOMRefCell::new(HashMap::new()),
-                                     DOMRefCell::new(HashMap::new()),
-                                     DOMRefCell::new(HashMap::new())),
+            attribute_instance_map: (DomRefCell::new(HashMap::new()),
+                                     DomRefCell::new(HashMap::new()),
+                                     DomRefCell::new(HashMap::new())),
             watching_advertisements: Cell::new(false),
         }
     }

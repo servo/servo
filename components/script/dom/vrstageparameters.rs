@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use core::nonzero::NonZero;
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::VRStageParametersBinding;
 use dom::bindings::codegen::Bindings::VRStageParametersBinding::VRStageParametersMethods;
 use dom::bindings::num::Finite;
@@ -20,7 +20,7 @@ use webvr_traits::WebVRStageParameters;
 pub struct VRStageParameters {
     reflector_: Reflector,
     #[ignore_heap_size_of = "Defined in rust-webvr"]
-    parameters: DOMRefCell<WebVRStageParameters>,
+    parameters: DomRefCell<WebVRStageParameters>,
     transform: Heap<*mut JSObject>,
 }
 
@@ -30,7 +30,7 @@ impl VRStageParameters {
     fn new_inherited(parameters: WebVRStageParameters) -> VRStageParameters {
         VRStageParameters {
             reflector_: Reflector::new(),
-            parameters: DOMRefCell::new(parameters),
+            parameters: DomRefCell::new(parameters),
             transform: Heap::default()
         }
     }

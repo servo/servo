@@ -6,7 +6,7 @@ use devtools;
 use devtools_traits::DevtoolScriptControlMsg;
 use dom::abstractworker::{SharedRt, SimpleWorkerErrorHandler, WorkerScriptMsg};
 use dom::abstractworkerglobalscope::{SendableWorkerScriptChan, WorkerThreadWorkerChan};
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding;
 use dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding::DedicatedWorkerGlobalScopeMethods;
 use dom::bindings::error::{ErrorInfo, ErrorResult};
@@ -87,7 +87,7 @@ pub struct DedicatedWorkerGlobalScope {
     #[ignore_heap_size_of = "Defined in std"]
     timer_event_port: Receiver<(TrustedWorkerAddress, TimerEvent)>,
     #[ignore_heap_size_of = "Trusted<T> has unclear ownership like Dom<T>"]
-    worker: DOMRefCell<Option<TrustedWorkerAddress>>,
+    worker: DomRefCell<Option<TrustedWorkerAddress>>,
     #[ignore_heap_size_of = "Can't measure trait objects"]
     /// Sender to the parent thread.
     parent_sender: Box<ScriptChan + Send>,
@@ -116,7 +116,7 @@ impl DedicatedWorkerGlobalScope {
             own_sender: own_sender,
             timer_event_port: timer_event_port,
             parent_sender: parent_sender,
-            worker: DOMRefCell::new(None),
+            worker: DomRefCell::new(None),
         }
     }
 

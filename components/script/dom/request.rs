@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use body::{BodyOperations, BodyType, consume_body};
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::HeadersBinding::{HeadersInit, HeadersMethods};
 use dom::bindings::codegen::Bindings::RequestBinding;
 use dom::bindings::codegen::Bindings::RequestBinding::ReferrerPolicy;
@@ -44,12 +44,12 @@ use std::rc::Rc;
 #[dom_struct]
 pub struct Request {
     reflector_: Reflector,
-    request: DOMRefCell<NetTraitsRequest>,
+    request: DomRefCell<NetTraitsRequest>,
     body_used: Cell<bool>,
     headers: MutNullableDom<Headers>,
-    mime_type: DOMRefCell<Vec<u8>>,
+    mime_type: DomRefCell<Vec<u8>>,
     #[ignore_heap_size_of = "Rc"]
-    body_promise: DOMRefCell<Option<(Rc<Promise>, BodyType)>>,
+    body_promise: DomRefCell<Option<(Rc<Promise>, BodyType)>>,
 }
 
 impl Request {
@@ -57,12 +57,12 @@ impl Request {
                      url: ServoUrl) -> Request {
         Request {
             reflector_: Reflector::new(),
-            request: DOMRefCell::new(
+            request: DomRefCell::new(
                 net_request_from_global(global, url)),
             body_used: Cell::new(false),
             headers: Default::default(),
-            mime_type: DOMRefCell::new("".to_string().into_bytes()),
-            body_promise: DOMRefCell::new(None),
+            mime_type: DomRefCell::new("".to_string().into_bytes()),
+            body_promise: DomRefCell::new(None),
         }
     }
 

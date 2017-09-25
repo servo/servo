@@ -5,7 +5,7 @@
 use canvas_traits::webgl::{webgl_channel, WebGLReceiver, WebVRCommand};
 use core::ops::Deref;
 use dom::bindings::callback::ExceptionHandling;
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceBinding::PerformanceMethods;
 use dom::bindings::codegen::Bindings::VRDisplayBinding;
 use dom::bindings::codegen::Bindings::VRDisplayBinding::VRDisplayMethods;
@@ -47,7 +47,7 @@ use webvr_traits::{WebVRDisplayData, WebVRDisplayEvent, WebVRFrameData, WebVRLay
 pub struct VRDisplay {
     eventtarget: EventTarget,
     #[ignore_heap_size_of = "Defined in rust-webvr"]
-    display: DOMRefCell<WebVRDisplayData>,
+    display: DomRefCell<WebVRDisplayData>,
     depth_near: Cell<f64>,
     depth_far: Cell<f64>,
     presenting: Cell<bool>,
@@ -56,19 +56,19 @@ pub struct VRDisplay {
     capabilities: MutDom<VRDisplayCapabilities>,
     stage_params: MutNullableDom<VRStageParameters>,
     #[ignore_heap_size_of = "Defined in rust-webvr"]
-    frame_data: DOMRefCell<WebVRFrameData>,
+    frame_data: DomRefCell<WebVRFrameData>,
     #[ignore_heap_size_of = "Defined in rust-webvr"]
-    layer: DOMRefCell<WebVRLayer>,
+    layer: DomRefCell<WebVRLayer>,
     layer_ctx: MutNullableDom<WebGLRenderingContext>,
     #[ignore_heap_size_of = "Defined in rust-webvr"]
     next_raf_id: Cell<u32>,
     /// List of request animation frame callbacks
     #[ignore_heap_size_of = "closures are hard"]
-    raf_callback_list: DOMRefCell<Vec<(u32, Option<Rc<FrameRequestCallback>>)>>,
+    raf_callback_list: DomRefCell<Vec<(u32, Option<Rc<FrameRequestCallback>>)>>,
     // Compositor VRFrameData synchonization
     frame_data_status: Cell<VRFrameDataStatus>,
     #[ignore_heap_size_of = "channels are hard"]
-    frame_data_receiver: DOMRefCell<Option<WebGLReceiver<Result<Vec<u8>, ()>>>>,
+    frame_data_receiver: DomRefCell<Option<WebGLReceiver<Result<Vec<u8>, ()>>>>,
     running_display_raf: Cell<bool>,
     paused: Cell<bool>,
     stopped_on_pause: Cell<bool>,
@@ -96,7 +96,7 @@ impl VRDisplay {
 
         VRDisplay {
             eventtarget: EventTarget::new_inherited(),
-            display: DOMRefCell::new(display.clone()),
+            display: DomRefCell::new(display.clone()),
             depth_near: Cell::new(0.01),
             depth_far: Cell::new(10000.0),
             presenting: Cell::new(false),
@@ -104,13 +104,13 @@ impl VRDisplay {
             right_eye_params: MutDom::new(&*VREyeParameters::new(display.right_eye_parameters.clone(), &global)),
             capabilities: MutDom::new(&*VRDisplayCapabilities::new(display.capabilities.clone(), &global)),
             stage_params: MutNullableDom::new(stage.as_ref().map(|v| v.deref())),
-            frame_data: DOMRefCell::new(Default::default()),
-            layer: DOMRefCell::new(Default::default()),
+            frame_data: DomRefCell::new(Default::default()),
+            layer: DomRefCell::new(Default::default()),
             layer_ctx: MutNullableDom::default(),
             next_raf_id: Cell::new(1),
-            raf_callback_list: DOMRefCell::new(vec![]),
+            raf_callback_list: DomRefCell::new(vec![]),
             frame_data_status: Cell::new(VRFrameDataStatus::Waiting),
-            frame_data_receiver: DOMRefCell::new(None),
+            frame_data_receiver: DomRefCell::new(None),
             running_display_raf: Cell::new(false),
             // Some VR implementations (e.g. Daydream) can be paused in some life cycle situations
             // such as showing and hiding the controller pairing screen.

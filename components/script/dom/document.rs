@@ -10,7 +10,7 @@ use dom::activation::{ActivationSource, synthetic_click_activation};
 use dom::attr::Attr;
 use dom::beforeunloadevent::BeforeUnloadEvent;
 use dom::bindings::callback::ExceptionHandling;
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState, ElementCreationOptions};
@@ -231,14 +231,14 @@ pub struct Document {
     has_browsing_context: bool,
     is_html_document: bool,
     activity: Cell<DocumentActivity>,
-    url: DOMRefCell<ServoUrl>,
+    url: DomRefCell<ServoUrl>,
     #[ignore_heap_size_of = "defined in selectors"]
     quirks_mode: Cell<QuirksMode>,
     /// Caches for the getElement methods
-    id_map: DOMRefCell<HashMap<Atom, Vec<Dom<Element>>>>,
-    tag_map: DOMRefCell<HashMap<LocalName, Dom<HTMLCollection>>>,
-    tagns_map: DOMRefCell<HashMap<QualName, Dom<HTMLCollection>>>,
-    classes_map: DOMRefCell<HashMap<Vec<Atom>, Dom<HTMLCollection>>>,
+    id_map: DomRefCell<HashMap<Atom, Vec<Dom<Element>>>>,
+    tag_map: DomRefCell<HashMap<LocalName, Dom<HTMLCollection>>>,
+    tagns_map: DomRefCell<HashMap<QualName, Dom<HTMLCollection>>>,
+    classes_map: DomRefCell<HashMap<Vec<Atom>, Dom<HTMLCollection>>>,
     images: MutNullableDom<HTMLCollection>,
     embeds: MutNullableDom<HTMLCollection>,
     links: MutNullableDom<HTMLCollection>,
@@ -250,7 +250,7 @@ pub struct Document {
     /// Can be acquired once for accessing many objects.
     style_shared_lock: StyleSharedRwLock,
     /// List of stylesheets associated with nodes in this document. |None| if the list needs to be refreshed.
-    stylesheets: DOMRefCell<StylesheetSet<StyleSheetInDocument>>,
+    stylesheets: DomRefCell<StylesheetSet<StyleSheetInDocument>>,
     stylesheet_list: MutNullableDom<StyleSheetList>,
     ready_state: Cell<DocumentReadyState>,
     /// Whether the DOMContentLoaded event has already been dispatched.
@@ -262,7 +262,7 @@ pub struct Document {
     /// The script element that is currently executing.
     current_script: MutNullableDom<HTMLScriptElement>,
     /// https://html.spec.whatwg.org/multipage/#pending-parsing-blocking-script
-    pending_parsing_blocking_script: DOMRefCell<Option<PendingScript>>,
+    pending_parsing_blocking_script: DomRefCell<Option<PendingScript>>,
     /// Number of stylesheets that block executing the next parser-inserted script
     script_blocking_stylesheets_count: Cell<u32>,
     /// https://html.spec.whatwg.org/multipage/#list-of-scripts-that-will-execute-when-the-document-has-finished-parsing
@@ -270,7 +270,7 @@ pub struct Document {
     /// https://html.spec.whatwg.org/multipage/#list-of-scripts-that-will-execute-in-order-as-soon-as-possible
     asap_in_order_scripts_list: PendingInOrderScriptVec,
     /// https://html.spec.whatwg.org/multipage/#set-of-scripts-that-will-execute-as-soon-as-possible
-    asap_scripts_set: DOMRefCell<Vec<Dom<HTMLScriptElement>>>,
+    asap_scripts_set: DomRefCell<Vec<Dom<HTMLScriptElement>>>,
     /// https://html.spec.whatwg.org/multipage/#concept-n-noscript
     /// True if scripting is enabled for all scripts in this document
     scripting_enabled: bool,
@@ -279,14 +279,14 @@ pub struct Document {
     animation_frame_ident: Cell<u32>,
     /// https://html.spec.whatwg.org/multipage/#list-of-animation-frame-callbacks
     /// List of animation frame callbacks
-    animation_frame_list: DOMRefCell<Vec<(u32, Option<AnimationFrameCallback>)>>,
+    animation_frame_list: DomRefCell<Vec<(u32, Option<AnimationFrameCallback>)>>,
     /// Whether we're in the process of running animation callbacks.
     ///
     /// Tracking this is not necessary for correctness. Instead, it is an optimization to avoid
     /// sending needless `ChangeRunningAnimationsState` messages to the compositor.
     running_animation_callbacks: Cell<bool>,
     /// Tracks all outstanding loads related to this document.
-    loader: DOMRefCell<DocumentLoader>,
+    loader: DomRefCell<DocumentLoader>,
     /// The current active HTML parser, to allow resuming after interruptions.
     current_parser: MutNullableDom<ServoParser>,
     /// When we should kick off a reflow. This happens during parsing.
@@ -298,12 +298,12 @@ pub struct Document {
     appropriate_template_contents_owner_document: MutNullableDom<Document>,
     /// Information on elements needing restyle to ship over to the layout thread when the
     /// time comes.
-    pending_restyles: DOMRefCell<HashMap<Dom<Element>, PendingRestyle>>,
+    pending_restyles: DomRefCell<HashMap<Dom<Element>, PendingRestyle>>,
     /// This flag will be true if layout suppressed a reflow attempt that was
     /// needed in order for the page to be painted.
     needs_paint: Cell<bool>,
     /// http://w3c.github.io/touch-events/#dfn-active-touch-point
-    active_touch_points: DOMRefCell<Vec<Dom<Touch>>>,
+    active_touch_points: DomRefCell<Vec<Dom<Touch>>>,
     /// Navigation Timing properties:
     /// https://w3c.github.io/navigation-timing/#sec-PerformanceNavigationTiming
     dom_loading: Cell<u64>,
@@ -326,7 +326,7 @@ pub struct Document {
     target_element: MutNullableDom<Element>,
     /// https://w3c.github.io/uievents/#event-type-dblclick
     #[ignore_heap_size_of = "Defined in std"]
-    last_click_info: DOMRefCell<Option<(Instant, Point2D<f32>)>>,
+    last_click_info: DomRefCell<Option<(Instant, Point2D<f32>)>>,
     /// https://html.spec.whatwg.org/multipage/#ignore-destructive-writes-counter
     ignore_destructive_writes_counter: Cell<u32>,
     /// The number of spurious `requestAnimationFrame()` requests we've received.
@@ -347,7 +347,7 @@ pub struct Document {
     /// whenever any element with the same ID as the form attribute
     /// is inserted or removed from the document.
     /// See https://html.spec.whatwg.org/multipage/#form-owner
-    form_id_listener_map: DOMRefCell<HashMap<Atom, HashSet<Dom<Element>>>>,
+    form_id_listener_map: DomRefCell<HashMap<Atom, HashSet<Dom<Element>>>>,
 }
 
 #[derive(HeapSizeOf, JSTraceable)]
@@ -2230,17 +2230,17 @@ impl Document {
                 }),
             },
             last_modified: last_modified,
-            url: DOMRefCell::new(url),
+            url: DomRefCell::new(url),
             // https://dom.spec.whatwg.org/#concept-document-quirks
             quirks_mode: Cell::new(QuirksMode::NoQuirks),
             // https://dom.spec.whatwg.org/#concept-document-encoding
             encoding: Cell::new(UTF_8),
             is_html_document: is_html_document == IsHTMLDocument::HTMLDocument,
             activity: Cell::new(activity),
-            id_map: DOMRefCell::new(HashMap::new()),
-            tag_map: DOMRefCell::new(HashMap::new()),
-            tagns_map: DOMRefCell::new(HashMap::new()),
-            classes_map: DOMRefCell::new(HashMap::new()),
+            id_map: DomRefCell::new(HashMap::new()),
+            tag_map: DomRefCell::new(HashMap::new()),
+            tagns_map: DomRefCell::new(HashMap::new()),
+            classes_map: DomRefCell::new(HashMap::new()),
             images: Default::default(),
             embeds: Default::default(),
             links: Default::default(),
@@ -2263,7 +2263,7 @@ impl Document {
                 PER_PROCESS_AUTHOR_SHARED_LOCK.clone()
                 //StyleSharedRwLock::new()
             },
-            stylesheets: DOMRefCell::new(StylesheetSet::new()),
+            stylesheets: DomRefCell::new(StylesheetSet::new()),
             stylesheet_list: MutNullableDom::new(None),
             ready_state: Cell::new(ready_state),
             domcontentloaded_dispatched: Cell::new(domcontentloaded_dispatched),
@@ -2277,16 +2277,16 @@ impl Document {
             asap_scripts_set: Default::default(),
             scripting_enabled: has_browsing_context == HasBrowsingContext::Yes,
             animation_frame_ident: Cell::new(0),
-            animation_frame_list: DOMRefCell::new(vec![]),
+            animation_frame_list: DomRefCell::new(vec![]),
             running_animation_callbacks: Cell::new(false),
-            loader: DOMRefCell::new(doc_loader),
+            loader: DomRefCell::new(doc_loader),
             current_parser: Default::default(),
             reflow_timeout: Cell::new(None),
             base_element: Default::default(),
             appropriate_template_contents_owner_document: Default::default(),
-            pending_restyles: DOMRefCell::new(HashMap::new()),
+            pending_restyles: DomRefCell::new(HashMap::new()),
             needs_paint: Cell::new(false),
-            active_touch_points: DOMRefCell::new(Vec::new()),
+            active_touch_points: DomRefCell::new(Vec::new()),
             dom_loading: Cell::new(Default::default()),
             dom_interactive: Cell::new(Default::default()),
             dom_content_loaded_event_start: Cell::new(Default::default()),
@@ -2300,7 +2300,7 @@ impl Document {
             referrer: referrer,
             referrer_policy: Cell::new(referrer_policy),
             target_element: MutNullableDom::new(None),
-            last_click_info: DOMRefCell::new(None),
+            last_click_info: DomRefCell::new(None),
             ignore_destructive_writes_counter: Default::default(),
             spurious_animation_frames: Cell::new(0),
             dom_count: Cell::new(1),
@@ -4081,7 +4081,7 @@ impl AnimationFrameCallback {
 #[derive(Default, HeapSizeOf, JSTraceable)]
 #[must_root]
 struct PendingInOrderScriptVec {
-    scripts: DOMRefCell<VecDeque<PendingScript>>,
+    scripts: DomRefCell<VecDeque<PendingScript>>,
 }
 
 impl PendingInOrderScriptVec {

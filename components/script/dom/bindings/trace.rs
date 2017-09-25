@@ -38,7 +38,7 @@ use canvas_traits::webgl::{WebGLReceiver, WebGLSender, WebGLShaderId, WebGLTextu
 use cssparser::RGBA;
 use devtools_traits::{CSSError, TimelineMarkerType, WorkerId};
 use dom::abstractworker::SharedRt;
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::error::Error;
 use dom::bindings::refcounted::{Trusted, TrustedPromise};
 use dom::bindings::reflector::{DomObject, Reflector};
@@ -202,7 +202,7 @@ unsafe impl<T: JSTraceable> JSTraceable for UnsafeCell<T> {
     }
 }
 
-unsafe impl<T: JSTraceable> JSTraceable for DOMRefCell<T> {
+unsafe impl<T: JSTraceable> JSTraceable for DomRefCell<T> {
     unsafe fn trace(&self, trc: *mut JSTracer) {
         (*self).borrow_for_gc_trace().trace(trc)
     }

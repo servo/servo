@@ -4,7 +4,7 @@
 
 #![allow(dead_code)]
 
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::BeforeUnloadEventBinding;
 use dom::bindings::codegen::Bindings::BeforeUnloadEventBinding::BeforeUnloadEventMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -21,14 +21,14 @@ use servo_atoms::Atom;
 #[dom_struct]
 pub struct BeforeUnloadEvent {
     event: Event,
-    return_value: DOMRefCell<DOMString>,
+    return_value: DomRefCell<DOMString>,
 }
 
 impl BeforeUnloadEvent {
     fn new_inherited() -> BeforeUnloadEvent {
         BeforeUnloadEvent {
             event: Event::new_inherited(),
-            return_value: DOMRefCell::new(DOMString::new()),
+            return_value: DomRefCell::new(DOMString::new()),
         }
     }
 

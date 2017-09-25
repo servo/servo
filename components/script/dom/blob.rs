@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::BlobBinding;
 use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use dom::bindings::codegen::UnionTypes::BlobOrString;
@@ -27,7 +27,7 @@ use uuid::Uuid;
 pub struct FileBlob {
     id: Uuid,
     name: Option<PathBuf>,
-    cache: DOMRefCell<Option<Vec<u8>>>,
+    cache: DomRefCell<Option<Vec<u8>>>,
     size: u64,
 }
 
@@ -59,7 +59,7 @@ impl BlobImpl {
         BlobImpl::File(FileBlob {
             id: file_id,
             name: Some(name),
-            cache: DOMRefCell::new(None),
+            cache: DomRefCell::new(None),
             size: size,
         })
     }
@@ -70,7 +70,7 @@ impl BlobImpl {
 pub struct Blob {
     reflector_: Reflector,
     #[ignore_heap_size_of = "No clear owner"]
-    blob_impl: DOMRefCell<BlobImpl>,
+    blob_impl: DomRefCell<BlobImpl>,
     /// content-type string
     type_string: String,
 }
@@ -88,7 +88,7 @@ impl Blob {
     pub fn new_inherited(blob_impl: BlobImpl, type_string: String) -> Blob {
         Blob {
             reflector_: Reflector::new(),
-            blob_impl: DOMRefCell::new(blob_impl),
+            blob_impl: DomRefCell::new(blob_impl),
             // NOTE: Guarding the format correctness here,
             // https://w3c.github.io/FileAPI/#dfn-type
             type_string: normalize_type_string(&type_string),
@@ -237,7 +237,7 @@ impl Blob {
                 *self.blob_impl.borrow_mut() = BlobImpl::File(FileBlob {
                     id: id.clone(),
                     name: None,
-                    cache: DOMRefCell::new(Some(bytes.to_vec())),
+                    cache: DomRefCell::new(Some(bytes.to_vec())),
                     size: bytes.len() as u64,
                 });
                 id
@@ -262,7 +262,7 @@ impl Blob {
                 *self.blob_impl.borrow_mut() = BlobImpl::File(FileBlob {
                     id: new_id.clone(),
                     name: None,
-                    cache: DOMRefCell::new(None),
+                    cache: DomRefCell::new(None),
                     size: rel_pos.to_abs_range(parent_len as usize).len() as u64,
                 });
 

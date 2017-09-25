@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::KeyboardEventBinding;
 use dom::bindings::codegen::Bindings::KeyboardEventBinding::{KeyboardEventConstants, KeyboardEventMethods};
 use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
@@ -26,8 +26,8 @@ unsafe_no_jsmanaged_fields!(Key);
 pub struct KeyboardEvent {
     uievent: UIEvent,
     key: Cell<Option<Key>>,
-    key_string: DOMRefCell<DOMString>,
-    code: DOMRefCell<DOMString>,
+    key_string: DomRefCell<DOMString>,
+    code: DomRefCell<DOMString>,
     location: Cell<u32>,
     ctrl: Cell<bool>,
     alt: Cell<bool>,
@@ -45,8 +45,8 @@ impl KeyboardEvent {
         KeyboardEvent {
             uievent: UIEvent::new_inherited(),
             key: Cell::new(None),
-            key_string: DOMRefCell::new(DOMString::new()),
-            code: DOMRefCell::new(DOMString::new()),
+            key_string: DomRefCell::new(DOMString::new()),
+            code: DomRefCell::new(DOMString::new()),
             location: Cell::new(0),
             ctrl: Cell::new(false),
             alt: Cell::new(false),

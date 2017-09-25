@@ -4,7 +4,7 @@
 
 // check-tidy: no specs after this line
 
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::TestBindingPairIterableBinding;
 use dom::bindings::codegen::Bindings::TestBindingPairIterableBinding::TestBindingPairIterableMethods;
 use dom::bindings::error::Fallible;
@@ -18,7 +18,7 @@ use dom_struct::dom_struct;
 #[dom_struct]
 pub struct TestBindingPairIterable {
     reflector: Reflector,
-    map: DOMRefCell<Vec<(DOMString, u32)>>,
+    map: DomRefCell<Vec<(DOMString, u32)>>,
 }
 
 impl Iterable for TestBindingPairIterable {
@@ -39,7 +39,7 @@ impl TestBindingPairIterable {
     fn new(global: &GlobalScope) -> Root<TestBindingPairIterable> {
         reflect_dom_object(box TestBindingPairIterable {
             reflector: Reflector::new(),
-            map: DOMRefCell::new(vec![]),
+            map: DomRefCell::new(vec![]),
         }, global, TestBindingPairIterableBinding::TestBindingPairIterableWrap)
     }
 

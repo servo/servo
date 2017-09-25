@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::FormDataBinding::FormDataMethods;
 use dom::bindings::codegen::Bindings::FormDataBinding::FormDataWrap;
 use dom::bindings::codegen::UnionTypes::FileOrUSVString;
@@ -25,7 +25,7 @@ use std::iter;
 #[dom_struct]
 pub struct FormData {
     reflector_: Reflector,
-    data: DOMRefCell<HashMap<LocalName, Vec<FormDatum>>>,
+    data: DomRefCell<HashMap<LocalName, Vec<FormDatum>>>,
 }
 
 impl FormData {
@@ -43,7 +43,7 @@ impl FormData {
 
         FormData {
             reflector_: Reflector::new(),
-            data: DOMRefCell::new(hashmap),
+            data: DomRefCell::new(hashmap),
         }
     }
 

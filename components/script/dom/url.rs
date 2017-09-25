@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::URLBinding::{self, URLMethods};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
@@ -27,7 +27,7 @@ pub struct URL {
     reflector_: Reflector,
 
     // https://url.spec.whatwg.org/#concept-url-url
-    url: DOMRefCell<ServoUrl>,
+    url: DomRefCell<ServoUrl>,
 
     // https://url.spec.whatwg.org/#dom-url-searchparams
     search_params: MutNullableDom<URLSearchParams>,
@@ -37,7 +37,7 @@ impl URL {
     fn new_inherited(url: ServoUrl) -> URL {
         URL {
             reflector_: Reflector::new(),
-            url: DOMRefCell::new(url),
+            url: DomRefCell::new(url),
             search_params: Default::default(),
         }
     }

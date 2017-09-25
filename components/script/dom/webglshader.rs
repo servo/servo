@@ -5,7 +5,7 @@
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use angle::hl::{BuiltInResources, Output, ShaderValidator};
 use canvas_traits::webgl::{webgl_channel, WebGLCommand, WebGLMsgSender, WebGLParameter, WebGLResult, WebGLShaderId};
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::WebGLShaderBinding;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::root::Root;
@@ -30,8 +30,8 @@ pub struct WebGLShader {
     webgl_object: WebGLObject,
     id: WebGLShaderId,
     gl_type: u32,
-    source: DOMRefCell<Option<DOMString>>,
-    info_log: DOMRefCell<Option<String>>,
+    source: DomRefCell<Option<DOMString>>,
+    info_log: DomRefCell<Option<String>>,
     is_deleted: Cell<bool>,
     attached_counter: Cell<u32>,
     compilation_status: Cell<ShaderCompilationStatus>,
@@ -57,8 +57,8 @@ impl WebGLShader {
             webgl_object: WebGLObject::new_inherited(),
             id: id,
             gl_type: shader_type,
-            source: DOMRefCell::new(None),
-            info_log: DOMRefCell::new(None),
+            source: DomRefCell::new(None),
+            info_log: DomRefCell::new(None),
             is_deleted: Cell::new(false),
             attached_counter: Cell::new(0),
             compilation_status: Cell::new(ShaderCompilationStatus::NotCompiled),

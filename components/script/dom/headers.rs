@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::HeadersBinding::{HeadersInit, HeadersMethods, HeadersWrap};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::iterable::Iterable;
@@ -22,7 +22,7 @@ pub struct Headers {
     reflector_: Reflector,
     guard: Cell<Guard>,
     #[ignore_heap_size_of = "Defined in hyper"]
-    header_list: DOMRefCell<HyperHeaders>
+    header_list: DomRefCell<HyperHeaders>
 }
 
 // https://fetch.spec.whatwg.org/#concept-headers-guard
@@ -40,7 +40,7 @@ impl Headers {
         Headers {
             reflector_: Reflector::new(),
             guard: Cell::new(Guard::None),
-            header_list: DOMRefCell::new(HyperHeaders::new()),
+            header_list: DomRefCell::new(HyperHeaders::new()),
         }
     }
 

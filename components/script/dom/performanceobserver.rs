@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::callback::ExceptionHandling;
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceEntryList as DOMPerformanceEntryList;
 use dom::bindings::codegen::Bindings::PerformanceObserverBinding;
 use dom::bindings::codegen::Bindings::PerformanceObserverBinding::PerformanceObserverCallback;
@@ -34,12 +34,12 @@ pub struct PerformanceObserver {
     reflector_: Reflector,
     #[ignore_heap_size_of = "can't measure Rc values"]
     callback: Rc<PerformanceObserverCallback>,
-    entries: DOMRefCell<DOMPerformanceEntryList>,
+    entries: DomRefCell<DOMPerformanceEntryList>,
 }
 
 impl PerformanceObserver {
     fn new_inherited(callback: Rc<PerformanceObserverCallback>,
-                     entries: DOMRefCell<DOMPerformanceEntryList>)
+                     entries: DomRefCell<DOMPerformanceEntryList>)
         -> PerformanceObserver {
         PerformanceObserver {
             reflector_: Reflector::new(),
@@ -53,7 +53,7 @@ impl PerformanceObserver {
                callback: Rc<PerformanceObserverCallback>,
                entries: DOMPerformanceEntryList)
         -> Root<PerformanceObserver> {
-        let observer = PerformanceObserver::new_inherited(callback, DOMRefCell::new(entries));
+        let observer = PerformanceObserver::new_inherited(callback, DomRefCell::new(entries));
         reflect_dom_object(box observer, global, PerformanceObserverBinding::Wrap)
     }
 

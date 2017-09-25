@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::activation::Activatable;
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListMethods;
 use dom::bindings::codegen::Bindings::HTMLAnchorElementBinding;
@@ -38,7 +38,7 @@ use style::attr::AttrValue;
 pub struct HTMLAnchorElement {
     htmlelement: HTMLElement,
     rel_list: MutNullableDom<DOMTokenList>,
-    url: DOMRefCell<Option<ServoUrl>>,
+    url: DomRefCell<Option<ServoUrl>>,
 }
 
 impl HTMLAnchorElement {
@@ -49,7 +49,7 @@ impl HTMLAnchorElement {
             htmlelement:
                 HTMLElement::new_inherited(local_name, prefix, document),
             rel_list: Default::default(),
-            url: DOMRefCell::new(None),
+            url: DomRefCell::new(None),
         }
     }
 

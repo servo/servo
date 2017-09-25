@@ -5,7 +5,7 @@
 use base64;
 use canvas_traits::canvas::{CanvasMsg, FromScriptMsg};
 use dom::attr::Attr;
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasRenderingContext2DMethods;
 use dom::bindings::codegen::Bindings::HTMLCanvasElementBinding;
 use dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::HTMLCanvasElementMethods;
@@ -51,7 +51,7 @@ pub enum CanvasContext {
 #[dom_struct]
 pub struct HTMLCanvasElement {
     htmlelement: HTMLElement,
-    context: DOMRefCell<Option<CanvasContext>>,
+    context: DomRefCell<Option<CanvasContext>>,
 }
 
 impl HTMLCanvasElement {
@@ -60,7 +60,7 @@ impl HTMLCanvasElement {
                      document: &Document) -> HTMLCanvasElement {
         HTMLCanvasElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
-            context: DOMRefCell::new(None),
+            context: DomRefCell::new(None),
         }
     }
 

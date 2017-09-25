@@ -7,7 +7,7 @@
 use app_units::Au;
 use devtools_traits::NodeInfo;
 use document_loader::DocumentLoader;
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
@@ -140,7 +140,7 @@ pub struct Node {
     style_and_layout_data: Cell<Option<OpaqueStyleAndLayoutData>>,
 
     /// Registered observers for this node.
-    mutation_observers: DOMRefCell<Vec<RegisteredObserver>>,
+    mutation_observers: DomRefCell<Vec<RegisteredObserver>>,
 
     unique_id: UniqueId,
 }
