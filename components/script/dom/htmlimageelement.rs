@@ -798,8 +798,7 @@ impl LayoutHTMLImageElementHelpers for LayoutJS<HTMLImageElement> {
 //https://html.spec.whatwg.org/multipage/#parse-a-sizes-attribute
 pub fn parse_a_sizes_attribute(input: DOMString, width: Option<u32>) -> Vec<Size> {
     let mut sizes = Vec::<Size>::new();
-    let unparsed_sizes = input.split(',').collect::<Vec<_>>();
-    for unparsed_size in &unparsed_sizes {
+    for unparsed_size in input.split(',') {
         let whitespace = unparsed_size.chars().rev().take_while(|c| char::is_whitespace(*c)).count();
         let trimmed: String = unparsed_size.chars().take(unparsed_size.chars().count() - whitespace).collect();
 
