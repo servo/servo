@@ -12,7 +12,7 @@ use servo_arc::Arc;
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
-use std::sync::Mutex;
+use std::cell::RefCell;
 use std::sync::atomic::AtomicBool;
 use style::context::QuirksMode;
 use style::error_reporting::{ParseErrorReporter, ContextualParseError};
@@ -259,6 +259,7 @@ fn test_parse_stylesheet() {
     assert_eq!(format!("{:#?}", stylesheet), format!("{:#?}", expected));
 }
 
+#[derive(Debug)]
 struct CSSError {
     pub url : ServoUrl,
     pub line: u32,
@@ -266,32 +267,47 @@ struct CSSError {
     pub message: String
 }
 
-struct CSSInvalidErrorReporterTest {
-    pub errors: Arc<Mutex<Vec<CSSError>>>
+struct TestingErrorReporter {
+    errors: RefCell<Vec<CSSError>>,
 }
 
-impl CSSInvalidErrorReporterTest {
-    pub fn new() -> CSSInvalidErrorReporterTest {
-        return CSSInvalidErrorReporterTest{
-            errors: Arc::new(Mutex::new(Vec::new()))
+impl TestingErrorReporter {
+    pub fn new() -> Self {
+        TestingErrorReporter {
+            errors: RefCell::new(Vec::new()),
+        }
+    }
+
+    fn assert_messages_contain(&self, expected_errors: &[(u32, u32, &str)]) {
+        let errors = self.errors.borrow();
+        for (i, (error, &(line, column, message))) in errors.iter().zip(expected_errors).enumerate() {
+            assert_eq!((error.line, error.column), (line, column),
+                       "line/column numbers of the {}th error", i + 1);
+            assert!(error.message.contains(message),
+                    "{:?} does not contain {:?}", error.message, message);
+        }
+        if errors.len() < expected_errors.len() {
+            panic!("Missing errors: {:?}", &expected_errors[errors.len()..]);
+        }
+        if errors.len() > expected_errors.len() {
+            panic!("Extra errors: {:?}", &errors[expected_errors.len()..]);
         }
     }
 }
 
-impl ParseErrorReporter for CSSInvalidErrorReporterTest {
+impl ParseErrorReporter for TestingErrorReporter {
     fn report_error(&self,
                     url: &ServoUrl,
                     location: SourceLocation,
                     error: ContextualParseError) {
-        let mut errors = self.errors.lock().unwrap();
-        errors.push(
+        self.errors.borrow_mut().push(
             CSSError{
                 url: url.clone(),
                 line: location.line,
                 column: location.column,
                 message: error.to_string(),
             }
-        );
+        )
     }
 }
 
@@ -306,31 +322,19 @@ fn test_report_error_stylesheet() {
     }
     ";
     let url = ServoUrl::parse("about::test").unwrap();
-    let error_reporter = CSSInvalidErrorReporterTest::new();
-
-    let errors = error_reporter.errors.clone();
+    let error_reporter = TestingErrorReporter::new();
 
     let lock = SharedRwLock::new();
     let media = Arc::new(lock.wrap(MediaList::empty()));
     Stylesheet::from_str(css, url.clone(), Origin::UserAgent, media, lock,
                          None, &error_reporter, QuirksMode::NoQuirks, 5);
 
-    let mut errors = errors.lock().unwrap();
+    error_reporter.assert_messages_contain(&[
+        (8, 9, "Unsupported property declaration: 'display: invalid;'"),
+        (9, 9, "Unsupported property declaration: 'invalid: true;'"),
+    ]);
 
-    let error = errors.pop().unwrap();
-    assert_eq!("Unsupported property declaration: 'invalid: true;', \
-                Custom(PropertyDeclaration(UnknownProperty(\"invalid\")))", error.message);
-    assert_eq!(9, error.line);
-    assert_eq!(9, error.column);
-
-    let error = errors.pop().unwrap();
-    assert_eq!("Unsupported property declaration: 'display: invalid;', \
-                Custom(PropertyDeclaration(InvalidValue(\"display\", None)))", error.message);
-    assert_eq!(8, error.line);
-    assert_eq!(9, error.column);
-
-    // testing for the url
-    assert_eq!(url, error.url);
+    assert_eq!(error_reporter.errors.borrow()[0].url, url);
 }
 
 #[test]
@@ -343,21 +347,16 @@ fn test_no_report_unrecognized_vendor_properties() {
     }
     ";
     let url = ServoUrl::parse("about::test").unwrap();
-    let error_reporter = CSSInvalidErrorReporterTest::new();
-
-    let errors = error_reporter.errors.clone();
+    let error_reporter = TestingErrorReporter::new();
 
     let lock = SharedRwLock::new();
     let media = Arc::new(lock.wrap(MediaList::empty()));
     Stylesheet::from_str(css, url, Origin::UserAgent, media, lock,
                          None, &error_reporter, QuirksMode::NoQuirks, 0);
 
-    let mut errors = errors.lock().unwrap();
-    let error = errors.pop().unwrap();
-    assert_eq!("Unsupported property declaration: '-moz-background-color: red;', \
-                Custom(PropertyDeclaration(UnknownProperty(\"-moz-background-color\")))",
-               error.message);
-    assert!(errors.is_empty());
+    error_reporter.assert_messages_contain(&[
+        (4, 9, "Unsupported property declaration: '-moz-background-color: red;'"),
+    ]);
 }
 
 #[test]
