@@ -237,20 +237,20 @@ impl LayoutJS<Node> {
 /// on `Dom<T>`.
 #[must_root]
 #[derive(JSTraceable)]
-pub struct MutJS<T: DomObject> {
+pub struct MutDom<T: DomObject> {
     val: UnsafeCell<Dom<T>>,
 }
 
-impl<T: DomObject> MutJS<T> {
-    /// Create a new `MutJS`.
-    pub fn new(initial: &T) -> MutJS<T> {
+impl<T: DomObject> MutDom<T> {
+    /// Create a new `MutDom`.
+    pub fn new(initial: &T) -> MutDom<T> {
         debug_assert!(thread_state::get().is_script());
-        MutJS {
+        MutDom {
             val: UnsafeCell::new(Dom::from_ref(initial)),
         }
     }
 
-    /// Set this `MutJS` to the given value.
+    /// Set this `MutDom` to the given value.
     pub fn set(&self, val: &T) {
         debug_assert!(thread_state::get().is_script());
         unsafe {
@@ -258,7 +258,7 @@ impl<T: DomObject> MutJS<T> {
         }
     }
 
-    /// Get the value in this `MutJS`.
+    /// Get the value in this `MutDom`.
     pub fn get(&self) -> Root<T> {
         debug_assert!(thread_state::get().is_script());
         unsafe {
@@ -267,14 +267,14 @@ impl<T: DomObject> MutJS<T> {
     }
 }
 
-impl<T: DomObject> HeapSizeOf for MutJS<T> {
+impl<T: DomObject> HeapSizeOf for MutDom<T> {
     fn heap_size_of_children(&self) -> usize {
         // See comment on HeapSizeOf for Dom<T>.
         0
     }
 }
 
-impl<T: DomObject> PartialEq for MutJS<T> {
+impl<T: DomObject> PartialEq for MutDom<T> {
    fn eq(&self, other: &Self) -> bool {
         unsafe {
             *self.val.get() == *other.val.get()
@@ -282,7 +282,7 @@ impl<T: DomObject> PartialEq for MutJS<T> {
     }
 }
 
-impl<T: DomObject + PartialEq> PartialEq<T> for MutJS<T> {
+impl<T: DomObject + PartialEq> PartialEq<T> for MutDom<T> {
     fn eq(&self, other: &T) -> bool {
         unsafe {
             **self.val.get() == *other

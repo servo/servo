@@ -13,7 +13,7 @@ use script::test::Node;
 
 struct Foo {
     bar: DOMRefCell<Dom<Node>>
-    //~^ ERROR Banned type DOMRefCell<Dom<T>> detected. Use MutJS<T> instead
+    //~^ ERROR Banned type DOMRefCell<Dom<T>> detected. Use MutDom<T> instead
 }
 
 fn main() {}

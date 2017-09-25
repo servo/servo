@@ -10,7 +10,7 @@ use dom::bindings::codegen::Bindings::TreeWalkerBinding;
 use dom::bindings::codegen::Bindings::TreeWalkerBinding::TreeWalkerMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::root::{Dom, MutJS, Root};
+use dom::bindings::root::{Dom, MutDom, Root};
 use dom::document::Document;
 use dom::node::Node;
 use dom_struct::dom_struct;
@@ -21,7 +21,7 @@ use std::rc::Rc;
 pub struct TreeWalker {
     reflector_: Reflector,
     root_node: Dom<Node>,
-    current_node: MutJS<Node>,
+    current_node: MutDom<Node>,
     what_to_show: u32,
     #[ignore_heap_size_of = "function pointers and Rc<T> are hard"]
     filter: Filter
@@ -34,7 +34,7 @@ impl TreeWalker {
         TreeWalker {
             reflector_: Reflector::new(),
             root_node: Dom::from_ref(root_node),
-            current_node: MutJS::new(root_node),
+            current_node: MutDom::new(root_node),
             what_to_show: what_to_show,
             filter: filter
         }

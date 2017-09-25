@@ -33,7 +33,7 @@
 //!   the [`Root`](bindings/root/struct.Root.html) smart pointer;
 //! * tracing pointers in member fields: the [`Dom`](bindings/root/struct.Dom.html),
 //!   [`MutNullableJS`](bindings/root/struct.MutNullableJS.html) and
-//!   [`MutJS`](bindings/root/struct.MutJS.html) smart pointers and
+//!   [`MutDom`](bindings/root/struct.MutDom.html) smart pointers and
 //!   [the tracing implementation](bindings/trace/index.html);
 //! * rooting pointers from across thread boundaries or in channels: the
 //!   [`Trusted`](bindings/refcounted/struct.Trusted.html) smart pointer;

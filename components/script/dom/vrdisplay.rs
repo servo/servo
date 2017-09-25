@@ -18,7 +18,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::num::Finite;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
-use dom::bindings::root::{MutJS, MutNullableJS, Root};
+use dom::bindings::root::{MutDom, MutNullableJS, Root};
 use dom::bindings::str::DOMString;
 use dom::event::Event;
 use dom::eventtarget::EventTarget;
@@ -51,9 +51,9 @@ pub struct VRDisplay {
     depth_near: Cell<f64>,
     depth_far: Cell<f64>,
     presenting: Cell<bool>,
-    left_eye_params: MutJS<VREyeParameters>,
-    right_eye_params: MutJS<VREyeParameters>,
-    capabilities: MutJS<VRDisplayCapabilities>,
+    left_eye_params: MutDom<VREyeParameters>,
+    right_eye_params: MutDom<VREyeParameters>,
+    capabilities: MutDom<VRDisplayCapabilities>,
     stage_params: MutNullableJS<VRStageParameters>,
     #[ignore_heap_size_of = "Defined in rust-webvr"]
     frame_data: DOMRefCell<WebVRFrameData>,
@@ -100,9 +100,9 @@ impl VRDisplay {
             depth_near: Cell::new(0.01),
             depth_far: Cell::new(10000.0),
             presenting: Cell::new(false),
-            left_eye_params: MutJS::new(&*VREyeParameters::new(display.left_eye_parameters.clone(), &global)),
-            right_eye_params: MutJS::new(&*VREyeParameters::new(display.right_eye_parameters.clone(), &global)),
-            capabilities: MutJS::new(&*VRDisplayCapabilities::new(display.capabilities.clone(), &global)),
+            left_eye_params: MutDom::new(&*VREyeParameters::new(display.left_eye_parameters.clone(), &global)),
+            right_eye_params: MutDom::new(&*VREyeParameters::new(display.right_eye_parameters.clone(), &global)),
+            capabilities: MutDom::new(&*VRDisplayCapabilities::new(display.capabilities.clone(), &global)),
             stage_params: MutNullableJS::new(stage.as_ref().map(|v| v.deref())),
             frame_data: DOMRefCell::new(Default::default()),
             layer: DOMRefCell::new(Default::default()),
