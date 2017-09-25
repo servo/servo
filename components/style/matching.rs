@@ -194,17 +194,17 @@ trait PrivateMatchMethods: TElement {
         });
 
         if display_changed_from_none {
-          // When display value is changed from none to other, we need
-          // to traverse descendant elements in a subsequent normal
-          // traversal (we can't traverse them in this animation-only
-          // restyle since we have no way to know whether the decendants
-          // need to be traversed at the beginning of the animation-only
-          // restyle)
-          debug_assert!(restyle_hints.intersects(RESTYLE_SMIL),
-                        "Display animation should only happen for SMIL");
-          let task = ::context::SequentialTask::process_post_animation(*self,
-                                                                       DISPLAY_CHANGED_FROM_NONE_FOR_SMIL);
-          context.thread_local.tasks.push(task);
+            // When display value is changed from none to other, we need
+            // to traverse descendant elements in a subsequent normal
+            // traversal (we can't traverse them in this animation-only
+            // restyle since we have no way to know whether the decendants
+            // need to be traversed at the beginning of the animation-only
+            // restyle)
+            debug_assert!(restyle_hints.intersects(RESTYLE_SMIL),
+                          "Display animation should only happen for SMIL");
+            let task = ::context::SequentialTask::process_post_animation(*self,
+                                                                         DISPLAY_CHANGED_FROM_NONE_FOR_SMIL);
+            context.thread_local.tasks.push(task);
         }
     }
 
