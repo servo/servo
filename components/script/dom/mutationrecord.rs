@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::MutationRecordBinding::MutationRecordBinding;
 use dom::bindings::codegen::Bindings::MutationRecordBinding::MutationRecordBinding::MutationRecordMethods;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::root::{JS, MutNullableJS, Root};
+use dom::bindings::root::{Dom, MutNullableJS, Root};
 use dom::bindings::str::DOMString;
 use dom::node::{Node, window_from_node};
 use dom::nodelist::NodeList;
@@ -16,14 +16,14 @@ use html5ever::{LocalName, Namespace};
 pub struct MutationRecord {
     reflector_: Reflector,
     record_type: DOMString,
-    target: JS<Node>,
+    target: Dom<Node>,
     attribute_name: Option<DOMString>,
     attribute_namespace: Option<DOMString>,
     old_value: Option<DOMString>,
     added_nodes: MutNullableJS<NodeList>,
     removed_nodes: MutNullableJS<NodeList>,
-    next_sibling: Option<JS<Node>>,
-    prev_sibling: Option<JS<Node>>,
+    next_sibling: Option<Dom<Node>>,
+    prev_sibling: Option<Dom<Node>>,
 }
 
 impl MutationRecord {
@@ -73,14 +73,14 @@ impl MutationRecord {
         MutationRecord {
             reflector_: Reflector::new(),
             record_type: DOMString::from(record_type),
-            target: JS::from_ref(target),
+            target: Dom::from_ref(target),
             attribute_name: attribute_name,
             attribute_namespace: attribute_namespace,
             old_value: old_value,
             added_nodes: MutNullableJS::new(added_nodes),
             removed_nodes: MutNullableJS::new(removed_nodes),
-            next_sibling: next_sibling.map(JS::from_ref),
-            prev_sibling: prev_sibling.map(JS::from_ref),
+            next_sibling: next_sibling.map(Dom::from_ref),
+            prev_sibling: prev_sibling.map(Dom::from_ref),
         }
     }
 }

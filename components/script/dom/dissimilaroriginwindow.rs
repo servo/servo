@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::DissimilarOriginWindowBinding;
 use dom::bindings::codegen::Bindings::DissimilarOriginWindowBinding::DissimilarOriginWindowMethods;
 use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::root::{JS, MutNullableJS, Root};
+use dom::bindings::root::{Dom, MutNullableJS, Root};
 use dom::bindings::str::DOMString;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::dissimilaroriginlocation::DissimilarOriginLocation;
@@ -37,7 +37,7 @@ pub struct DissimilarOriginWindow {
     globalscope: GlobalScope,
 
     /// The window proxy for this window.
-    window_proxy: JS<WindowProxy>,
+    window_proxy: Dom<WindowProxy>,
 
     /// The location of this window, initialized lazily.
     location: MutNullableJS<DissimilarOriginLocation>,
@@ -67,7 +67,7 @@ impl DissimilarOriginWindow {
                 // here, but this whole DOM interface is a hack anyway.
                 global_to_clone_from.microtask_queue().clone(),
             ),
-            window_proxy: JS::from_ref(window_proxy),
+            window_proxy: Dom::from_ref(window_proxy),
             location: Default::default(),
         };
         unsafe { DissimilarOriginWindowBinding::Wrap(cx, win) }

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::root::{JS, Root};
+use dom::bindings::root::{Dom, Root};
 use dom::bindings::trace::JSTraceable;
 use dom::globalscope::GlobalScope;
 use js::jsapi::GetScriptedCallerGlobal;
@@ -24,7 +24,7 @@ enum StackEntryKind {
 #[allow(unrooted_must_root)]
 #[derive(JSTraceable)]
 struct StackEntry {
-    global: JS<GlobalScope>,
+    global: Dom<GlobalScope>,
     kind: StackEntryKind,
 }
 
@@ -47,7 +47,7 @@ impl AutoEntryScript {
             trace!("Prepare to run script with {:p}", global);
             let mut stack = stack.borrow_mut();
             stack.push(StackEntry {
-                global: JS::from_ref(global),
+                global: Dom::from_ref(global),
                 kind: StackEntryKind::Entry,
             });
             AutoEntryScript {
@@ -109,7 +109,7 @@ impl AutoIncumbentScript {
             // Step 1.
             let mut stack = stack.borrow_mut();
             stack.push(StackEntry {
-                global: JS::from_ref(global),
+                global: Dom::from_ref(global),
                 kind: StackEntryKind::Incumbent,
             });
             AutoIncumbentScript {

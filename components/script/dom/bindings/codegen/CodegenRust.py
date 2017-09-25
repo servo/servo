@@ -1272,7 +1272,7 @@ class CGArgumentConverter(CGThing):
             arg = "arg%d" % index
             if argument.type.isGeckoInterface():
                 init = "rooted_vec!(let mut %s)" % arg
-                innerConverter.append(CGGeneric("%s.push(JS::from_ref(&*slot));" % arg))
+                innerConverter.append(CGGeneric("%s.push(Dom::from_ref(&*slot));" % arg))
             else:
                 init = "let mut %s = vec![]" % arg
                 innerConverter.append(CGGeneric("%s.push(slot);" % arg))
@@ -5712,7 +5712,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'dom::bindings::namespace::create_namespace_object',
         'dom::bindings::reflector::MutDomObject',
         'dom::bindings::reflector::DomObject',
-        'dom::bindings::root::JS',
+        'dom::bindings::root::Dom',
         'dom::bindings::root::OptionalHeapSetter',
         'dom::bindings::root::Root',
         'dom::bindings::root::RootedReference',
@@ -6961,7 +6961,7 @@ class CallbackGetter(CallbackMember):
                                 needThisHandling=False)
 
     def getRvalDecl(self):
-        return "JS::Rooted<JS::Value> rval(cx, JS::UndefinedValue());\n"
+        return "Dom::Rooted<Dom::Value> rval(cx, JS::UndefinedValue());\n"
 
     def getCall(self):
         replacements = {
@@ -7195,7 +7195,7 @@ class GlobalGenRoots():
         imports = [CGGeneric("use dom::types::*;\n"),
                    CGGeneric("use dom::bindings::conversions::{DerivedFrom, get_dom_class};\n"),
                    CGGeneric("use dom::bindings::inheritance::Castable;\n"),
-                   CGGeneric("use dom::bindings::root::{JS, LayoutJS, Root};\n"),
+                   CGGeneric("use dom::bindings::root::{Dom, LayoutJS, Root};\n"),
                    CGGeneric("use dom::bindings::trace::JSTraceable;\n"),
                    CGGeneric("use dom::bindings::reflector::DomObject;\n"),
                    CGGeneric("use js::jsapi::JSTracer;\n\n"),

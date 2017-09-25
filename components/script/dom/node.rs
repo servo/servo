@@ -23,7 +23,7 @@ use dom::bindings::inheritance::{Castable, CharacterDataTypeId, ElementTypeId};
 use dom::bindings::inheritance::{EventTargetTypeId, HTMLElementTypeId, NodeTypeId};
 use dom::bindings::inheritance::{SVGElementTypeId, SVGGraphicsElementTypeId};
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
-use dom::bindings::root::{JS, LayoutJS, MutNullableJS, Root, RootedReference};
+use dom::bindings::root::{Dom, LayoutJS, MutNullableJS, Root, RootedReference};
 use dom::bindings::str::{DOMString, USVString};
 use dom::bindings::xmlname::namespace_from_domstring;
 use dom::characterdata::{CharacterData, LayoutCharacterDataHelpers};
@@ -989,7 +989,7 @@ pub unsafe fn from_untrusted_node_address(_runtime: *mut JSRuntime, candidate: U
 //                                                                                  candidate);
     let object: *mut JSObject = mem::transmute(candidate);
     if object.is_null() {
-        panic!("Attempted to create a `JS<Node>` from an invalid pointer!")
+        panic!("Attempted to create a `Dom<Node>` from an invalid pointer!")
     }
     let boxed_node = conversions::private_from_object(object) as *const Node;
     Root::from_ref(&*boxed_node)
@@ -1612,7 +1612,7 @@ impl Node {
         rooted_vec!(let mut new_nodes);
         let new_nodes = if let NodeTypeId::DocumentFragment = node.type_id() {
             // Step 3.
-            new_nodes.extend(node.children().map(|kid| JS::from_ref(&*kid)));
+            new_nodes.extend(node.children().map(|kid| Dom::from_ref(&*kid)));
             // Step 4.
             for kid in new_nodes.r() {
                 Node::remove(*kid, node, SuppressObserver::Suppressed);
@@ -1687,7 +1687,7 @@ impl Node {
         rooted_vec!(let mut added_nodes);
         let added_nodes = if let Some(node) = node.as_ref() {
             if let NodeTypeId::DocumentFragment = node.type_id() {
-                added_nodes.extend(node.children().map(|child| JS::from_ref(&*child)));
+                added_nodes.extend(node.children().map(|child| Dom::from_ref(&*child)));
                 added_nodes.r()
             } else {
                 ref_slice(node)
@@ -2216,7 +2216,7 @@ impl NodeMethods for Node {
         // Step 12.
         rooted_vec!(let mut nodes);
         let nodes = if node.type_id() == NodeTypeId::DocumentFragment {
-            nodes.extend(node.children().map(|node| JS::from_ref(&*node)));
+            nodes.extend(node.children().map(|node| Dom::from_ref(&*node)));
             nodes.r()
         } else {
             ref_slice(&node)
@@ -2786,7 +2786,7 @@ pub trait VecPreOrderInsertionHelper<T> {
     fn insert_pre_order(&mut self, elem: &T, tree_root: &Node);
 }
 
-impl<T> VecPreOrderInsertionHelper<T> for Vec<JS<T>>
+impl<T> VecPreOrderInsertionHelper<T> for Vec<Dom<T>>
     where T: DerivedFrom<Node> + DomObject
 {
     /// This algorithm relies on the following assumptions:
@@ -2800,7 +2800,7 @@ impl<T> VecPreOrderInsertionHelper<T> for Vec<JS<T>>
     /// the traversal.
     fn insert_pre_order(&mut self, elem: &T, tree_root: &Node) {
         if self.is_empty() {
-            self.push(JS::from_ref(elem));
+            self.push(Dom::from_ref(elem));
             return;
         }
 
@@ -2815,6 +2815,6 @@ impl<T> VecPreOrderInsertionHelper<T> for Vec<JS<T>>
                 break;
             }
         }
-        self.insert(head, JS::from_ref(elem));
+        self.insert(head, Dom::from_ref(elem));
     }
 }

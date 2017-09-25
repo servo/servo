@@ -12,7 +12,7 @@ use dom::bindings::error::Error;
 use dom::bindings::error::ErrorResult;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
-use dom::bindings::root::{JS, MutNullableJS, Root};
+use dom::bindings::root::{Dom, MutNullableJS, Root};
 use dom::bindings::str::DOMString;
 use dom::bluetooth::{AsyncBluetoothListener, Bluetooth, response_async};
 use dom::bluetoothcharacteristicproperties::BluetoothCharacteristicProperties;
@@ -36,10 +36,10 @@ pub struct BluetoothDevice {
     id: DOMString,
     name: Option<DOMString>,
     gatt: MutNullableJS<BluetoothRemoteGATTServer>,
-    context: JS<Bluetooth>,
-    attribute_instance_map: (DOMRefCell<HashMap<String, JS<BluetoothRemoteGATTService>>>,
-                             DOMRefCell<HashMap<String, JS<BluetoothRemoteGATTCharacteristic>>>,
-                             DOMRefCell<HashMap<String, JS<BluetoothRemoteGATTDescriptor>>>),
+    context: Dom<Bluetooth>,
+    attribute_instance_map: (DOMRefCell<HashMap<String, Dom<BluetoothRemoteGATTService>>>,
+                             DOMRefCell<HashMap<String, Dom<BluetoothRemoteGATTCharacteristic>>>,
+                             DOMRefCell<HashMap<String, Dom<BluetoothRemoteGATTDescriptor>>>),
     watching_advertisements: Cell<bool>,
 }
 
@@ -53,7 +53,7 @@ impl BluetoothDevice {
             id: id,
             name: name,
             gatt: Default::default(),
-            context: JS::from_ref(context),
+            context: Dom::from_ref(context),
             attribute_instance_map: (DOMRefCell::new(HashMap::new()),
                                      DOMRefCell::new(HashMap::new()),
                                      DOMRefCell::new(HashMap::new())),
@@ -97,7 +97,7 @@ impl BluetoothDevice {
                                                          DOMString::from(service.uuid.clone()),
                                                          service.is_primary,
                                                          service.instance_id.clone());
-        service_map.insert(service.instance_id.clone(), JS::from_ref(&bt_service));
+        service_map.insert(service.instance_id.clone(), Dom::from_ref(&bt_service));
         return bt_service;
     }
 
@@ -126,7 +126,7 @@ impl BluetoothDevice {
                                                                        DOMString::from(characteristic.uuid.clone()),
                                                                        &properties,
                                                                        characteristic.instance_id.clone());
-        characteristic_map.insert(characteristic.instance_id.clone(), JS::from_ref(&bt_characteristic));
+        characteristic_map.insert(characteristic.instance_id.clone(), Dom::from_ref(&bt_characteristic));
         return bt_characteristic;
     }
 
@@ -150,7 +150,7 @@ impl BluetoothDevice {
                                                                characteristic,
                                                                DOMString::from(descriptor.uuid.clone()),
                                                                descriptor.instance_id.clone());
-        descriptor_map.insert(descriptor.instance_id.clone(), JS::from_ref(&bt_descriptor));
+        descriptor_map.insert(descriptor.instance_id.clone(), Dom::from_ref(&bt_descriptor));
         return bt_descriptor;
     }
 

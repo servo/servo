@@ -7,7 +7,7 @@ pub use dom::headers::normalize_value;
 
 // For compile-fail tests only.
 pub use dom::bindings::cell::DOMRefCell;
-pub use dom::bindings::root::JS;
+pub use dom::bindings::root::Dom;
 pub use dom::node::Node;
 pub use dom::bindings::refcounted::TrustedPromise;
 

@@ -11,7 +11,7 @@ use dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionStatusB
 use dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use dom::bindings::error::Error;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
-use dom::bindings::root::{JS, Root};
+use dom::bindings::root::{Dom, Root};
 use dom::bindings::str::DOMString;
 use dom::bluetooth::{AsyncBluetoothListener, Bluetooth, AllowedBluetoothDevice};
 use dom::bluetoothdevice::BluetoothDevice;
@@ -26,7 +26,7 @@ use std::rc::Rc;
 #[dom_struct]
 pub struct BluetoothPermissionResult {
     status: PermissionStatus,
-    devices: DOMRefCell<Vec<JS<BluetoothDevice>>>,
+    devices: DOMRefCell<Vec<Dom<BluetoothDevice>>>,
 }
 
 impl BluetoothPermissionResult {
@@ -67,7 +67,7 @@ impl BluetoothPermissionResult {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn set_devices(&self, devices: Vec<JS<BluetoothDevice>>) {
+    pub fn set_devices(&self, devices: Vec<Dom<BluetoothDevice>>) {
         *self.devices.borrow_mut() = devices;
     }
 }
@@ -93,7 +93,7 @@ impl AsyncBluetoothListener for BluetoothPermissionResult {
                 if let Some(ref existing_device) = device_instance_map.get(&device.id) {
                     // https://webbluetoothcg.github.io/web-bluetooth/#request-the-bluetooth-permission
                     // Step 3.
-                    self.set_devices(vec!(JS::from_ref(&*existing_device)));
+                    self.set_devices(vec!(Dom::from_ref(&*existing_device)));
 
                     // https://w3c.github.io/permissions/#dom-permissions-request
                     // Step 8.
@@ -103,7 +103,7 @@ impl AsyncBluetoothListener for BluetoothPermissionResult {
                                                      DOMString::from(device.id.clone()),
                                                      device.name.map(DOMString::from),
                                                      &bluetooth);
-                device_instance_map.insert(device.id.clone(), JS::from_ref(&bt_device));
+                device_instance_map.insert(device.id.clone(), Dom::from_ref(&bt_device));
                 self.global().as_window().bluetooth_extra_permission_data().add_new_allowed_device(
                     AllowedBluetoothDevice {
                         deviceId: DOMString::from(device.id),
@@ -112,7 +112,7 @@ impl AsyncBluetoothListener for BluetoothPermissionResult {
                 );
                 // https://webbluetoothcg.github.io/web-bluetooth/#request-the-bluetooth-permission
                 // Step 3.
-                self.set_devices(vec!(JS::from_ref(&bt_device)));
+                self.set_devices(vec!(Dom::from_ref(&bt_device)));
 
                 // https://w3c.github.io/permissions/#dom-permissions-request
                 // Step 8.

@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::CSSStyleRuleBinding::{self, CSSStyleRuleMe
 use dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
-use dom::bindings::root::{JS, MutNullableJS, Root};
+use dom::bindings::root::{Dom, MutNullableJS, Root};
 use dom::bindings::str::DOMString;
 use dom::cssrule::{CSSRule, SpecificCSSRule};
 use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
@@ -69,7 +69,7 @@ impl CSSStyleRuleMethods for CSSStyleRule {
             CSSStyleDeclaration::new(
                 self.global().as_window(),
                 CSSStyleOwner::CSSRule(
-                    JS::from_ref(self.upcast()),
+                    Dom::from_ref(self.upcast()),
                     self.stylerule.read_with(&guard).block.clone()
                 ),
                 None,

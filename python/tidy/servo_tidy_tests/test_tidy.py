@@ -151,7 +151,7 @@ class CheckTidiness(unittest.TestCase):
         self.assertNoMoreErrors(ban_errors)
 
         ban_errors = tidy.collect_errors_for_files(iterFile('ban-domrefcell.rs'), [], [tidy.check_rust], print_text=False)
-        self.assertEqual('Banned type DOMRefCell<JS<T>> detected. Use MutJS<T> instead', ban_errors.next()[2])
+        self.assertEqual('Banned type DOMRefCell<Dom<T>> detected. Use MutJS<T> instead', ban_errors.next()[2])
         self.assertNoMoreErrors(ban_errors)
 
     def test_spec_link(self):

@@ -13,7 +13,7 @@ use dom::bindings::error::Error;
 use dom::bindings::error::Fallible;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::DomObject;
-use dom::bindings::root::{JS, Root};
+use dom::bindings::root::{Dom, Root};
 use dom::bindings::str::DOMString;
 use dom::cssstylevalue::CSSStyleValue;
 use dom::paintrenderingcontext2d::PaintRenderingContext2D;
@@ -476,7 +476,7 @@ struct PaintDefinition {
     // TODO: the spec calls for fresh rendering contexts each time a paint image is drawn,
     // but to avoid having the primary worklet thread create a new renering context,
     // we recycle them.
-    context: JS<PaintRenderingContext2D>,
+    context: Dom<PaintRenderingContext2D>,
 }
 
 impl PaintDefinition {
@@ -493,7 +493,7 @@ impl PaintDefinition {
             constructor_valid_flag: Cell::new(true),
             context_alpha_flag: alpha,
             input_arguments_len: input_arguments_len,
-            context: JS::from_ref(context),
+            context: Dom::from_ref(context),
         });
         result.class_constructor.set(class_constructor.get());
         result.paint_function.set(paint_function.get());

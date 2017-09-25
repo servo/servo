@@ -14,7 +14,7 @@ use dom::bindings::conversions::{ConversionResult, FromJSValConvertible, Stringi
 use dom::bindings::error::{Error, ErrorResult, Fallible, report_pending_exception, throw_dom_exception};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
-use dom::bindings::root::{JS, Root};
+use dom::bindings::root::{Dom, Root};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::domexception::{DOMErrorName, DOMException};
@@ -45,7 +45,7 @@ use std::rc::Rc;
 pub struct CustomElementRegistry {
     reflector_: Reflector,
 
-    window: JS<Window>,
+    window: Dom<Window>,
 
     #[ignore_heap_size_of = "Rc"]
     when_defined: DOMRefCell<HashMap<LocalName, Rc<Promise>>>,
@@ -60,7 +60,7 @@ impl CustomElementRegistry {
     fn new_inherited(window: &Window) -> CustomElementRegistry {
         CustomElementRegistry {
             reflector_: Reflector::new(),
-            window: JS::from_ref(window),
+            window: Dom::from_ref(window),
             when_defined: DOMRefCell::new(HashMap::new()),
             element_definition_is_running: Cell::new(false),
             definitions: DOMRefCell::new(HashMap::new()),
@@ -776,7 +776,7 @@ impl CustomElementReactionStack {
 #[derive(HeapSizeOf, JSTraceable)]
 #[must_root]
 struct ElementQueue {
-    queue: DOMRefCell<VecDeque<JS<Element>>>,
+    queue: DOMRefCell<VecDeque<Dom<Element>>>,
 }
 
 impl ElementQueue {
@@ -796,11 +796,11 @@ impl ElementQueue {
     }
 
     fn next_element(&self) -> Option<Root<Element>> {
-        self.queue.borrow_mut().pop_front().as_ref().map(JS::deref).map(Root::from_ref)
+        self.queue.borrow_mut().pop_front().as_ref().map(Dom::deref).map(Root::from_ref)
     }
 
     fn append_element(&self, element: &Element) {
-        self.queue.borrow_mut().push_back(JS::from_ref(element));
+        self.queue.borrow_mut().push_back(Dom::from_ref(element));
     }
 }
 

@@ -12,10 +12,10 @@
 //! Here is a brief overview of the important types:
 //!
 //! - `Root<T>`: a stack-based reference to a rooted DOM object.
-//! - `JS<T>`: a reference to a DOM object that can automatically be traced by
+//! - `Dom<T>`: a reference to a DOM object that can automatically be traced by
 //!   the GC when encountered as a field of a Rust structure.
 //!
-//! `JS<T>` does not allow access to their inner value without explicitly
+//! `Dom<T>` does not allow access to their inner value without explicitly
 //! creating a stack-based root via the `root` method. This returns a `Root<T>`,
 //! which causes the JS-owned value to be uncollectable for the duration of the
 //! `Root` object's lifetime. A reference to the object can then be obtained
@@ -50,24 +50,24 @@ use style::thread_state;
 /// A traced reference to a DOM object
 ///
 /// This type is critical to making garbage collection work with the DOM,
-/// but it is very dangerous; if garbage collection happens with a `JS<T>`
-/// on the stack, the `JS<T>` can point to freed memory.
+/// but it is very dangerous; if garbage collection happens with a `Dom<T>`
+/// on the stack, the `Dom<T>` can point to freed memory.
 ///
 /// This should only be used as a field in other DOM objects.
 #[must_root]
-pub struct JS<T> {
+pub struct Dom<T> {
     ptr: NonZero<*const T>,
 }
 
-// JS<T> is similar to Rc<T>, in that it's not always clear how to avoid double-counting.
+// Dom<T> is similar to Rc<T>, in that it's not always clear how to avoid double-counting.
 // For now, we choose not to follow any such pointers.
-impl<T> HeapSizeOf for JS<T> {
+impl<T> HeapSizeOf for Dom<T> {
     fn heap_size_of_children(&self) -> usize {
         0
     }
 }
 
-impl<T> JS<T> {
+impl<T> Dom<T> {
     /// Returns `LayoutJS<T>` containing the same pointer.
     pub unsafe fn to_layout(&self) -> LayoutJS<T> {
         debug_assert!(thread_state::get().is_layout());
@@ -77,36 +77,36 @@ impl<T> JS<T> {
     }
 }
 
-impl<T: DomObject> JS<T> {
-    /// Create a JS<T> from a &T
+impl<T: DomObject> Dom<T> {
+    /// Create a Dom<T> from a &T
     #[allow(unrooted_must_root)]
-    pub fn from_ref(obj: &T) -> JS<T> {
+    pub fn from_ref(obj: &T) -> Dom<T> {
         debug_assert!(thread_state::get().is_script());
-        JS {
+        Dom {
             ptr: unsafe { NonZero::new_unchecked(&*obj) },
         }
     }
 }
 
-impl<'root, T: DomObject + 'root> RootedReference<'root> for JS<T> {
+impl<'root, T: DomObject + 'root> RootedReference<'root> for Dom<T> {
     type Ref = &'root T;
     fn r(&'root self) -> &'root T {
         &self
     }
 }
 
-impl<T: DomObject> Deref for JS<T> {
+impl<T: DomObject> Deref for Dom<T> {
     type Target = T;
 
     fn deref(&self) -> &T {
         debug_assert!(thread_state::get().is_script());
-        // We can only have &JS<T> from a rooted thing, so it's safe to deref
+        // We can only have &Dom<T> from a rooted thing, so it's safe to deref
         // it to &T.
         unsafe { &*self.ptr.get() }
     }
 }
 
-unsafe impl<T: DomObject> JSTraceable for JS<T> {
+unsafe impl<T: DomObject> JSTraceable for Dom<T> {
     unsafe fn trace(&self, trc: *mut JSTracer) {
         #[cfg(debug_assertions)]
         let trace_str = format!("for {} on heap", type_name::<T>());
@@ -169,13 +169,13 @@ impl<T: DomObject> LayoutJS<T> {
 
 impl<T> Copy for LayoutJS<T> {}
 
-impl<T> PartialEq for JS<T> {
-    fn eq(&self, other: &JS<T>) -> bool {
+impl<T> PartialEq for Dom<T> {
+    fn eq(&self, other: &Dom<T>) -> bool {
         self.ptr == other.ptr
     }
 }
 
-impl<T> Eq for JS<T> {}
+impl<T> Eq for Dom<T> {}
 
 impl<T> PartialEq for LayoutJS<T> {
     fn eq(&self, other: &LayoutJS<T>) -> bool {
@@ -185,7 +185,7 @@ impl<T> PartialEq for LayoutJS<T> {
 
 impl<T> Eq for LayoutJS<T> {}
 
-impl<T> Hash for JS<T> {
+impl<T> Hash for Dom<T> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.ptr.hash(state)
     }
@@ -197,12 +197,12 @@ impl<T> Hash for LayoutJS<T> {
     }
 }
 
-impl <T> Clone for JS<T> {
+impl <T> Clone for Dom<T> {
     #[inline]
     #[allow(unrooted_must_root)]
-    fn clone(&self) -> JS<T> {
+    fn clone(&self) -> Dom<T> {
         debug_assert!(thread_state::get().is_script());
-        JS {
+        Dom {
             ptr: self.ptr.clone(),
         }
     }
@@ -231,14 +231,14 @@ impl LayoutJS<Node> {
 }
 
 /// A holder that provides interior mutability for GC-managed values such as
-/// `JS<T>`.  Essentially a `Cell<JS<T>>`, but safer.
+/// `Dom<T>`.  Essentially a `Cell<Dom<T>>`, but safer.
 ///
 /// This should only be used as a field in other DOM objects; see warning
-/// on `JS<T>`.
+/// on `Dom<T>`.
 #[must_root]
 #[derive(JSTraceable)]
 pub struct MutJS<T: DomObject> {
-    val: UnsafeCell<JS<T>>,
+    val: UnsafeCell<Dom<T>>,
 }
 
 impl<T: DomObject> MutJS<T> {
@@ -246,7 +246,7 @@ impl<T: DomObject> MutJS<T> {
     pub fn new(initial: &T) -> MutJS<T> {
         debug_assert!(thread_state::get().is_script());
         MutJS {
-            val: UnsafeCell::new(JS::from_ref(initial)),
+            val: UnsafeCell::new(Dom::from_ref(initial)),
         }
     }
 
@@ -254,7 +254,7 @@ impl<T: DomObject> MutJS<T> {
     pub fn set(&self, val: &T) {
         debug_assert!(thread_state::get().is_script());
         unsafe {
-            *self.val.get() = JS::from_ref(val);
+            *self.val.get() = Dom::from_ref(val);
         }
     }
 
@@ -269,7 +269,7 @@ impl<T: DomObject> MutJS<T> {
 
 impl<T: DomObject> HeapSizeOf for MutJS<T> {
     fn heap_size_of_children(&self) -> usize {
-        // See comment on HeapSizeOf for JS<T>.
+        // See comment on HeapSizeOf for Dom<T>.
         0
     }
 }
@@ -291,15 +291,15 @@ impl<T: DomObject + PartialEq> PartialEq<T> for MutJS<T> {
 }
 
 /// A holder that provides interior mutability for GC-managed values such as
-/// `JS<T>`, with nullability represented by an enclosing Option wrapper.
-/// Essentially a `Cell<Option<JS<T>>>`, but safer.
+/// `Dom<T>`, with nullability represented by an enclosing Option wrapper.
+/// Essentially a `Cell<Option<Dom<T>>>`, but safer.
 ///
 /// This should only be used as a field in other DOM objects; see warning
-/// on `JS<T>`.
+/// on `Dom<T>`.
 #[must_root]
 #[derive(JSTraceable)]
 pub struct MutNullableJS<T: DomObject> {
-    ptr: UnsafeCell<Option<JS<T>>>,
+    ptr: UnsafeCell<Option<Dom<T>>>,
 }
 
 impl<T: DomObject> MutNullableJS<T> {
@@ -307,7 +307,7 @@ impl<T: DomObject> MutNullableJS<T> {
     pub fn new(initial: Option<&T>) -> MutNullableJS<T> {
         debug_assert!(thread_state::get().is_script());
         MutNullableJS {
-            ptr: UnsafeCell::new(initial.map(JS::from_ref)),
+            ptr: UnsafeCell::new(initial.map(Dom::from_ref)),
         }
     }
 
@@ -327,7 +327,7 @@ impl<T: DomObject> MutNullableJS<T> {
         }
     }
 
-    /// Retrieve a copy of the inner optional `JS<T>` as `LayoutJS<T>`.
+    /// Retrieve a copy of the inner optional `Dom<T>` as `LayoutJS<T>`.
     /// For use by layout, which can't use safe types like Temporary.
     #[allow(unrooted_must_root)]
     pub unsafe fn get_inner_as_layout(&self) -> Option<LayoutJS<T>> {
@@ -348,7 +348,7 @@ impl<T: DomObject> MutNullableJS<T> {
     pub fn set(&self, val: Option<&T>) {
         debug_assert!(thread_state::get().is_script());
         unsafe {
-            *self.ptr.get() = val.map(|p| JS::from_ref(p));
+            *self.ptr.get() = val.map(|p| Dom::from_ref(p));
         }
     }
 
@@ -371,7 +371,7 @@ impl<T: DomObject> PartialEq for MutNullableJS<T> {
 impl<'a, T: DomObject> PartialEq<Option<&'a T>> for MutNullableJS<T> {
     fn eq(&self, other: &Option<&T>) -> bool {
         unsafe {
-            *self.ptr.get() == other.map(JS::from_ref)
+            *self.ptr.get() == other.map(Dom::from_ref)
         }
     }
 }
@@ -388,20 +388,20 @@ impl<T: DomObject> Default for MutNullableJS<T> {
 
 impl<T: DomObject> HeapSizeOf for MutNullableJS<T> {
     fn heap_size_of_children(&self) -> usize {
-        // See comment on HeapSizeOf for JS<T>.
+        // See comment on HeapSizeOf for Dom<T>.
         0
     }
 }
 
 /// A holder that allows to lazily initialize the value only once
-/// `JS<T>`, using OnceCell
-/// Essentially a `OnceCell<JS<T>>`.
+/// `Dom<T>`, using OnceCell
+/// Essentially a `OnceCell<Dom<T>>`.
 ///
 /// This should only be used as a field in other DOM objects; see warning
-/// on `JS<T>`.
+/// on `Dom<T>`.
 #[must_root]
 pub struct OnceCellJS<T: DomObject> {
-    ptr: OnceCell<JS<T>>,
+    ptr: OnceCell<Dom<T>>,
 }
 
 impl<T: DomObject> OnceCellJS<T> {
@@ -412,7 +412,7 @@ impl<T: DomObject> OnceCellJS<T> {
         where F: FnOnce() -> Root<T>
     {
         debug_assert!(thread_state::get().is_script());
-        &self.ptr.init_once(|| JS::from_ref(&cb()))
+        &self.ptr.init_once(|| Dom::from_ref(&cb()))
     }
 }
 
@@ -428,7 +428,7 @@ impl<T: DomObject> Default for OnceCellJS<T> {
 
 impl<T: DomObject> HeapSizeOf for OnceCellJS<T> {
     fn heap_size_of_children(&self) -> usize {
-        // See comment on HeapSizeOf for JS<T>.
+        // See comment on HeapSizeOf for Dom<T>.
         0
     }
 }
@@ -468,7 +468,7 @@ pub trait RootedReference<'root> {
     fn r(&'root self) -> Self::Ref;
 }
 
-impl<'root, T: JSTraceable + DomObject + 'root> RootedReference<'root> for [JS<T>] {
+impl<'root, T: JSTraceable + DomObject + 'root> RootedReference<'root> for [Dom<T>] {
     type Ref = &'root [&'root T];
     fn r(&'root self) -> &'root [&'root T] {
         unsafe { mem::transmute(self) }

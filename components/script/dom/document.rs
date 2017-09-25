@@ -27,7 +27,7 @@ use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, Nod
 use dom::bindings::num::Finite;
 use dom::bindings::refcounted::{Trusted, TrustedPromise};
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
-use dom::bindings::root::{JS, LayoutJS, MutNullableJS, Root, RootedReference};
+use dom::bindings::root::{Dom, LayoutJS, MutNullableJS, Root, RootedReference};
 use dom::bindings::str::{DOMString, USVString};
 use dom::bindings::xmlname::{namespace_from_domstring, validate_and_extract, xml_name_type};
 use dom::bindings::xmlname::XMLName::InvalidXMLName;
@@ -196,7 +196,7 @@ impl PendingRestyle {
 struct StyleSheetInDocument {
     #[ignore_heap_size_of = "Arc"]
     sheet: Arc<Stylesheet>,
-    owner: JS<Element>,
+    owner: Dom<Element>,
 }
 
 impl PartialEq for StyleSheetInDocument {
@@ -223,7 +223,7 @@ impl ::style::stylesheets::StylesheetInDocument for StyleSheetInDocument {
 #[dom_struct]
 pub struct Document {
     node: Node,
-    window: JS<Window>,
+    window: Dom<Window>,
     implementation: MutNullableJS<DOMImplementation>,
     content_type: DOMString,
     last_modified: Option<String>,
@@ -235,10 +235,10 @@ pub struct Document {
     #[ignore_heap_size_of = "defined in selectors"]
     quirks_mode: Cell<QuirksMode>,
     /// Caches for the getElement methods
-    id_map: DOMRefCell<HashMap<Atom, Vec<JS<Element>>>>,
-    tag_map: DOMRefCell<HashMap<LocalName, JS<HTMLCollection>>>,
-    tagns_map: DOMRefCell<HashMap<QualName, JS<HTMLCollection>>>,
-    classes_map: DOMRefCell<HashMap<Vec<Atom>, JS<HTMLCollection>>>,
+    id_map: DOMRefCell<HashMap<Atom, Vec<Dom<Element>>>>,
+    tag_map: DOMRefCell<HashMap<LocalName, Dom<HTMLCollection>>>,
+    tagns_map: DOMRefCell<HashMap<QualName, Dom<HTMLCollection>>>,
+    classes_map: DOMRefCell<HashMap<Vec<Atom>, Dom<HTMLCollection>>>,
     images: MutNullableJS<HTMLCollection>,
     embeds: MutNullableJS<HTMLCollection>,
     links: MutNullableJS<HTMLCollection>,
@@ -270,7 +270,7 @@ pub struct Document {
     /// https://html.spec.whatwg.org/multipage/#list-of-scripts-that-will-execute-in-order-as-soon-as-possible
     asap_in_order_scripts_list: PendingInOrderScriptVec,
     /// https://html.spec.whatwg.org/multipage/#set-of-scripts-that-will-execute-as-soon-as-possible
-    asap_scripts_set: DOMRefCell<Vec<JS<HTMLScriptElement>>>,
+    asap_scripts_set: DOMRefCell<Vec<Dom<HTMLScriptElement>>>,
     /// https://html.spec.whatwg.org/multipage/#concept-n-noscript
     /// True if scripting is enabled for all scripts in this document
     scripting_enabled: bool,
@@ -298,12 +298,12 @@ pub struct Document {
     appropriate_template_contents_owner_document: MutNullableJS<Document>,
     /// Information on elements needing restyle to ship over to the layout thread when the
     /// time comes.
-    pending_restyles: DOMRefCell<HashMap<JS<Element>, PendingRestyle>>,
+    pending_restyles: DOMRefCell<HashMap<Dom<Element>, PendingRestyle>>,
     /// This flag will be true if layout suppressed a reflow attempt that was
     /// needed in order for the page to be painted.
     needs_paint: Cell<bool>,
     /// http://w3c.github.io/touch-events/#dfn-active-touch-point
-    active_touch_points: DOMRefCell<Vec<JS<Touch>>>,
+    active_touch_points: DOMRefCell<Vec<Dom<Touch>>>,
     /// Navigation Timing properties:
     /// https://w3c.github.io/navigation-timing/#sec-PerformanceNavigationTiming
     dom_loading: Cell<u64>,
@@ -347,7 +347,7 @@ pub struct Document {
     /// whenever any element with the same ID as the form attribute
     /// is inserted or removed from the document.
     /// See https://html.spec.whatwg.org/multipage/#form-owner
-    form_id_listener_map: DOMRefCell<HashMap<Atom, HashSet<JS<Element>>>>,
+    form_id_listener_map: DOMRefCell<HashMap<Atom, HashSet<Dom<Element>>>>,
 }
 
 #[derive(HeapSizeOf, JSTraceable)]
@@ -659,13 +659,13 @@ impl Document {
         let mut map = self.form_id_listener_map.borrow_mut();
         let listener = listener.to_element();
         let set = map.entry(Atom::from(id)).or_insert(HashSet::new());
-        set.insert(JS::from_ref(listener));
+        set.insert(Dom::from_ref(listener));
     }
 
     pub fn unregister_form_id_listener<T: ?Sized + FormControl>(&self, id: DOMString, listener: &T) {
         let mut map = self.form_id_listener_map.borrow_mut();
         if let Occupied(mut entry) = map.entry(Atom::from(id)) {
-            entry.get_mut().remove(&JS::from_ref(listener.to_element()));
+            entry.get_mut().remove(&Dom::from_ref(listener.to_element()));
             if entry.get().is_empty() {
                 entry.remove();
             }
@@ -1274,13 +1274,13 @@ impl Document {
         match event_type {
             TouchEventType::Down => {
                 // Add a new touch point
-                self.active_touch_points.borrow_mut().push(JS::from_ref(&*touch));
+                self.active_touch_points.borrow_mut().push(Dom::from_ref(&*touch));
             }
             TouchEventType::Move => {
                 // Replace an existing touch point
                 let mut active_touch_points = self.active_touch_points.borrow_mut();
                 match active_touch_points.iter_mut().find(|t| t.Identifier() == identifier) {
-                    Some(t) => *t = JS::from_ref(&*touch),
+                    Some(t) => *t = Dom::from_ref(&*touch),
                     None => warn!("Got a touchmove event for a non-active touch point"),
                 }
             }
@@ -1820,7 +1820,7 @@ impl Document {
 
     // https://html.spec.whatwg.org/multipage/#set-of-scripts-that-will-execute-as-soon-as-possible
     pub fn add_asap_script(&self, script: &HTMLScriptElement) {
-        self.asap_scripts_set.borrow_mut().push(JS::from_ref(script));
+        self.asap_scripts_set.borrow_mut().push(Dom::from_ref(script));
     }
 
     /// https://html.spec.whatwg.org/multipage/#the-end step 5.
@@ -2217,7 +2217,7 @@ impl Document {
 
         Document {
             node: Node::new_document_node(),
-            window: JS::from_ref(window),
+            window: Dom::from_ref(window),
             has_browsing_context: has_browsing_context == HasBrowsingContext::Yes,
             implementation: Default::default(),
             content_type: match content_type {
@@ -2426,7 +2426,7 @@ impl Document {
             None,
             StyleSheetInDocument {
                 sheet: s.clone(),
-                owner: JS::from_ref(owner),
+                owner: Dom::from_ref(owner),
             },
             &guard,
         );
@@ -2461,7 +2461,7 @@ impl Document {
 
         let sheet = StyleSheetInDocument {
             sheet,
-            owner: JS::from_ref(owner),
+            owner: Dom::from_ref(owner),
         };
 
         let lock = self.style_shared_lock();
@@ -2522,7 +2522,7 @@ impl Document {
 
     pub fn ensure_pending_restyle(&self, el: &Element) -> RefMut<PendingRestyle> {
         let map = self.pending_restyles.borrow_mut();
-        RefMut::map(map, |m| m.entry(JS::from_ref(el)).or_insert_with(PendingRestyle::new))
+        RefMut::map(map, |m| m.entry(Dom::from_ref(el)).or_insert_with(PendingRestyle::new))
     }
 
     pub fn element_state_will_change(&self, el: &Element) {
@@ -2748,7 +2748,7 @@ impl Element {
 impl DocumentMethods for Document {
     // https://drafts.csswg.org/cssom/#dom-document-stylesheets
     fn StyleSheets(&self) -> Root<StyleSheetList> {
-        self.stylesheet_list.or_init(|| StyleSheetList::new(&self.window, JS::from_ref(&self)))
+        self.stylesheet_list.or_init(|| StyleSheetList::new(&self.window, Dom::from_ref(&self)))
     }
 
     // https://dom.spec.whatwg.org/#dom-document-implementation
@@ -2916,7 +2916,7 @@ impl DocumentMethods for Document {
             Vacant(entry) => {
                 let result = HTMLCollection::by_qualified_name(
                     &self.window, self.upcast(), qualified_name);
-                entry.insert(JS::from_ref(&*result));
+                entry.insert(Dom::from_ref(&*result));
                 result
             }
         }
@@ -2934,7 +2934,7 @@ impl DocumentMethods for Document {
             Occupied(entry) => Root::from_ref(entry.get()),
             Vacant(entry) => {
                 let result = HTMLCollection::by_qual_tag_name(&self.window, self.upcast(), qname);
-                entry.insert(JS::from_ref(&*result));
+                entry.insert(Dom::from_ref(&*result));
                 result
             }
         }
@@ -2951,7 +2951,7 @@ impl DocumentMethods for Document {
                 let result = HTMLCollection::by_atomic_class_name(&self.window,
                                                                   self.upcast(),
                                                                   class_atoms);
-                entry.insert(JS::from_ref(&*result));
+                entry.insert(Dom::from_ref(&*result));
                 result
             }
         }
@@ -4117,17 +4117,17 @@ impl PendingInOrderScriptVec {
 #[derive(HeapSizeOf, JSTraceable)]
 #[must_root]
 struct PendingScript {
-    element: JS<HTMLScriptElement>,
+    element: Dom<HTMLScriptElement>,
     load: Option<ScriptResult>,
 }
 
 impl PendingScript {
     fn new(element: &HTMLScriptElement) -> Self {
-        Self { element: JS::from_ref(element), load: None }
+        Self { element: Dom::from_ref(element), load: None }
     }
 
     fn new_with_load(element: &HTMLScriptElement, load: Option<ScriptResult>) -> Self {
-        Self { element: JS::from_ref(element), load }
+        Self { element: Dom::from_ref(element), load }
     }
 
     fn loaded(&mut self, result: ScriptResult) {

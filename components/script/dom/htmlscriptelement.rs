@@ -11,7 +11,7 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
-use dom::bindings::root::{JS, Root, RootedReference};
+use dom::bindings::root::{Dom, Root, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, ElementCreator};
@@ -61,7 +61,7 @@ pub struct HTMLScriptElement {
     non_blocking: Cell<bool>,
 
     /// Document of the parser that created this element
-    parser_document: JS<Document>,
+    parser_document: Dom<Document>,
 
     /// Track line line_number
     line_number: u64,
@@ -76,7 +76,7 @@ impl HTMLScriptElement {
             already_started: Cell::new(false),
             parser_inserted: Cell::new(creator.is_parser_created()),
             non_blocking: Cell::new(!creator.is_parser_created()),
-            parser_document: JS::from_ref(document),
+            parser_document: Dom::from_ref(document),
             line_number: creator.return_line_number(),
         }
     }

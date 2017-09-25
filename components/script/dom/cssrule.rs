@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::CSSRuleBinding::CSSRuleMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::Reflector;
-use dom::bindings::root::{JS, Root};
+use dom::bindings::root::{Dom, Root};
 use dom::bindings::str::DOMString;
 use dom::cssfontfacerule::CSSFontFaceRule;
 use dom::cssimportrule::CSSImportRule;
@@ -27,7 +27,7 @@ use style::stylesheets::CssRule as StyleCssRule;
 #[dom_struct]
 pub struct CSSRule {
     reflector_: Reflector,
-    parent_stylesheet: JS<CSSStyleSheet>,
+    parent_stylesheet: Dom<CSSStyleSheet>,
 
     /// Whether the parentStyleSheet attribute should return null.
     /// We keep parent_stylesheet in that case because insertRule needs it
@@ -40,7 +40,7 @@ impl CSSRule {
     pub fn new_inherited(parent_stylesheet: &CSSStyleSheet) -> CSSRule {
         CSSRule {
             reflector_: Reflector::new(),
-            parent_stylesheet: JS::from_ref(parent_stylesheet),
+            parent_stylesheet: Dom::from_ref(parent_stylesheet),
             parent_stylesheet_removed: Cell::new(false),
         }
     }

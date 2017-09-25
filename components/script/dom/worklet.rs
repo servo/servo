@@ -20,7 +20,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::TrustedPromise;
 use dom::bindings::reflector::Reflector;
 use dom::bindings::reflector::reflect_dom_object;
-use dom::bindings::root::{JS, Root, RootCollection};
+use dom::bindings::root::{Dom, Root, RootCollection};
 use dom::bindings::str::USVString;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::trace::RootedTraceableBox;
@@ -78,7 +78,7 @@ const MIN_GC_THRESHOLD: u32 = 1_000_000;
 /// https://drafts.css-houdini.org/worklets/#worklet
 pub struct Worklet {
     reflector: Reflector,
-    window: JS<Window>,
+    window: Dom<Window>,
     worklet_id: WorkletId,
     global_type: WorkletGlobalScopeType,
 }
@@ -87,7 +87,7 @@ impl Worklet {
     fn new_inherited(window: &Window, global_type: WorkletGlobalScopeType) -> Worklet {
         Worklet {
             reflector: Reflector::new(),
-            window: JS::from_ref(window),
+            window: Dom::from_ref(window),
             worklet_id: WorkletId::new(),
             global_type: global_type,
         }
@@ -396,7 +396,7 @@ struct WorkletThread {
     global_init: WorkletGlobalScopeInit,
 
     /// The global scopes created by this thread
-    global_scopes: HashMap<WorkletId, JS<WorkletGlobalScope>>,
+    global_scopes: HashMap<WorkletId, Dom<WorkletGlobalScope>>,
 
     /// A one-place buffer for control messages
     control_buffer: Option<WorkletControl>,
@@ -546,7 +546,7 @@ impl WorkletThread {
                 debug!("Creating new worklet global scope.");
                 let executor = WorkletExecutor::new(worklet_id, self.primary_sender.clone());
                 let result = global_type.new(&self.runtime, pipeline_id, base_url, executor, &self.global_init);
-                entry.insert(JS::from_ref(&*result));
+                entry.insert(Dom::from_ref(&*result));
                 result
             },
         }

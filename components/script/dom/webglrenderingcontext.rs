@@ -20,7 +20,7 @@ use dom::bindings::conversions::{ConversionResult, FromJSValConvertible, ToJSVal
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
-use dom::bindings::root::{JS, LayoutJS, MutNullableJS, Root};
+use dom::bindings::root::{Dom, LayoutJS, MutNullableJS, Root};
 use dom::bindings::str::DOMString;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::htmlcanvaselement::HTMLCanvasElement;
@@ -140,7 +140,7 @@ pub struct WebGLRenderingContext {
     share_mode: WebGLContextShareMode,
     #[ignore_heap_size_of = "Defined in offscreen_gl_context"]
     limits: GLLimits,
-    canvas: JS<HTMLCanvasElement>,
+    canvas: Dom<HTMLCanvasElement>,
     #[ignore_heap_size_of = "Defined in canvas_traits"]
     last_error: Cell<Option<WebGLError>>,
     texture_unpacking_settings: Cell<TextureUnpacking>,
@@ -151,7 +151,7 @@ pub struct WebGLRenderingContext {
     bound_texture_cube_map: MutNullableJS<WebGLTexture>,
     bound_buffer_array: MutNullableJS<WebGLBuffer>,
     bound_buffer_element_array: MutNullableJS<WebGLBuffer>,
-    bound_attrib_buffers: DOMRefCell<FnvHashMap<u32, JS<WebGLBuffer>>>,
+    bound_attrib_buffers: DOMRefCell<FnvHashMap<u32, Dom<WebGLBuffer>>>,
     current_program: MutNullableJS<WebGLProgram>,
     #[ignore_heap_size_of = "Because it's small"]
     current_vertex_attrib_0: Cell<(f32, f32, f32, f32)>,
@@ -185,7 +185,7 @@ impl WebGLRenderingContext {
                 webrender_image: Cell::new(None),
                 share_mode: ctx_data.share_mode,
                 limits: ctx_data.limits,
-                canvas: JS::from_ref(canvas),
+                canvas: Dom::from_ref(canvas),
                 last_error: Cell::new(None),
                 texture_unpacking_settings: Cell::new(CONVERT_COLORSPACE),
                 texture_unpacking_alignment: Cell::new(4),
@@ -239,12 +239,12 @@ impl WebGLRenderingContext {
         }
     }
 
-    pub fn borrow_bound_attrib_buffers(&self) -> Ref<FnvHashMap<u32, JS<WebGLBuffer>>> {
+    pub fn borrow_bound_attrib_buffers(&self) -> Ref<FnvHashMap<u32, Dom<WebGLBuffer>>> {
         self.bound_attrib_buffers.borrow()
     }
 
     pub fn set_bound_attrib_buffers<'a, T>(&self, iter: T) where T: Iterator<Item=(u32, &'a WebGLBuffer)> {
-        *self.bound_attrib_buffers.borrow_mut() = FnvHashMap::from_iter(iter.map(|(k,v)| (k, JS::from_ref(v))));
+        *self.bound_attrib_buffers.borrow_mut() = FnvHashMap::from_iter(iter.map(|(k,v)| (k, Dom::from_ref(v))));
     }
 
     pub fn bound_buffer_element_array(&self) -> Option<Root<WebGLBuffer>> {
@@ -3024,7 +3024,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
         }
 
-        self.bound_attrib_buffers.borrow_mut().insert(attrib_id, JS::from_ref(&*buffer_array));
+        self.bound_attrib_buffers.borrow_mut().insert(attrib_id, Dom::from_ref(&*buffer_array));
 
         let msg = WebGLCommand::VertexAttribPointer(attrib_id, size, data_type, normalized, stride, offset as u32);
         self.send_command(msg);

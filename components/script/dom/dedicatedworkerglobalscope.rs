@@ -86,7 +86,7 @@ pub struct DedicatedWorkerGlobalScope {
     own_sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
     #[ignore_heap_size_of = "Defined in std"]
     timer_event_port: Receiver<(TrustedWorkerAddress, TimerEvent)>,
-    #[ignore_heap_size_of = "Trusted<T> has unclear ownership like JS<T>"]
+    #[ignore_heap_size_of = "Trusted<T> has unclear ownership like Dom<T>"]
     worker: DOMRefCell<Option<TrustedWorkerAddress>>,
     #[ignore_heap_size_of = "Can't measure trait objects"]
     /// Sender to the parent thread.

@@ -23,7 +23,7 @@ use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
-use dom::bindings::root::{JS, LayoutJS, Root};
+use dom::bindings::root::{Dom, LayoutJS, Root};
 use dom::bindings::str::DOMString;
 use dom::canvasgradient::{CanvasGradient, CanvasGradientStyle, ToFillOrStrokeStyle};
 use dom::canvaspattern::CanvasPattern;
@@ -55,8 +55,8 @@ use unpremultiplytable::UNPREMULTIPLY_TABLE;
 #[allow(dead_code)]
 enum CanvasFillOrStrokeStyle {
     Color(RGBA),
-    Gradient(JS<CanvasGradient>),
-    Pattern(JS<CanvasPattern>),
+    Gradient(Dom<CanvasGradient>),
+    Pattern(Dom<CanvasPattern>),
 }
 
 // https://html.spec.whatwg.org/multipage/#canvasrenderingcontext2d
@@ -67,7 +67,7 @@ pub struct CanvasRenderingContext2D {
     ipc_renderer: IpcSender<CanvasMsg>,
     /// For rendering contexts created by an HTML canvas element, this is Some,
     /// for ones created by a paint worklet, this is None.
-    canvas: Option<JS<HTMLCanvasElement>>,
+    canvas: Option<Dom<HTMLCanvasElement>>,
     #[ignore_heap_size_of = "Arc"]
     image_cache: Arc<ImageCache>,
     /// Any missing image URLs.
@@ -138,7 +138,7 @@ impl CanvasRenderingContext2D {
         CanvasRenderingContext2D {
             reflector_: Reflector::new(),
             ipc_renderer: ipc_renderer,
-            canvas: canvas.map(JS::from_ref),
+            canvas: canvas.map(Dom::from_ref),
             image_cache: image_cache,
             missing_image_urls: DOMRefCell::new(Vec::new()),
             base_url: base_url,
@@ -1019,14 +1019,14 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
             },
             StringOrCanvasGradientOrCanvasPattern::CanvasGradient(gradient) => {
                 self.state.borrow_mut().stroke_style =
-                    CanvasFillOrStrokeStyle::Gradient(JS::from_ref(&*gradient));
+                    CanvasFillOrStrokeStyle::Gradient(Dom::from_ref(&*gradient));
                 let msg = CanvasMsg::Canvas2d(
                     Canvas2dMsg::SetStrokeStyle(gradient.to_fill_or_stroke_style()));
                 self.ipc_renderer.send(msg).unwrap();
             },
             StringOrCanvasGradientOrCanvasPattern::CanvasPattern(pattern) => {
                 self.state.borrow_mut().stroke_style =
-                    CanvasFillOrStrokeStyle::Pattern(JS::from_ref(&*pattern));
+                    CanvasFillOrStrokeStyle::Pattern(Dom::from_ref(&*pattern));
                 let msg = CanvasMsg::Canvas2d(
                     Canvas2dMsg::SetStrokeStyle(pattern.to_fill_or_stroke_style()));
                 self.ipc_renderer.send(msg).unwrap();
@@ -1068,14 +1068,14 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
             }
             StringOrCanvasGradientOrCanvasPattern::CanvasGradient(gradient) => {
                 self.state.borrow_mut().fill_style =
-                    CanvasFillOrStrokeStyle::Gradient(JS::from_ref(&*gradient));
+                    CanvasFillOrStrokeStyle::Gradient(Dom::from_ref(&*gradient));
                 let msg = CanvasMsg::Canvas2d(
                     Canvas2dMsg::SetFillStyle(gradient.to_fill_or_stroke_style()));
                 self.ipc_renderer.send(msg).unwrap();
             }
             StringOrCanvasGradientOrCanvasPattern::CanvasPattern(pattern) => {
                 self.state.borrow_mut().fill_style =
-                    CanvasFillOrStrokeStyle::Pattern(JS::from_ref(&*pattern));
+                    CanvasFillOrStrokeStyle::Pattern(Dom::from_ref(&*pattern));
                 let msg = CanvasMsg::Canvas2d(
                     Canvas2dMsg::SetFillStyle(pattern.to_fill_or_stroke_style()));
                 self.ipc_renderer.send(msg).unwrap();

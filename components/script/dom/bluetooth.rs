@@ -20,7 +20,7 @@ use dom::bindings::error::Error::{self, Network, Security, Type};
 use dom::bindings::error::Fallible;
 use dom::bindings::refcounted::{Trusted, TrustedPromise};
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
-use dom::bindings::root::{JS, Root};
+use dom::bindings::root::{Dom, Root};
 use dom::bindings::str::DOMString;
 use dom::bluetoothdevice::BluetoothDevice;
 use dom::bluetoothpermissionresult::BluetoothPermissionResult;
@@ -120,7 +120,7 @@ where
 #[dom_struct]
 pub struct Bluetooth {
     eventtarget: EventTarget,
-    device_instance_map: DOMRefCell<HashMap<String, JS<BluetoothDevice>>>,
+    device_instance_map: DOMRefCell<HashMap<String, Dom<BluetoothDevice>>>,
 }
 
 impl Bluetooth {
@@ -141,7 +141,7 @@ impl Bluetooth {
         self.global().as_window().bluetooth_thread()
     }
 
-    pub fn get_device_map(&self) -> &DOMRefCell<HashMap<String, JS<BluetoothDevice>>> {
+    pub fn get_device_map(&self) -> &DOMRefCell<HashMap<String, Dom<BluetoothDevice>>> {
         &self.device_instance_map
     }
 
@@ -520,7 +520,7 @@ impl AsyncBluetoothListener for Bluetooth {
                                                      DOMString::from(device.id.clone()),
                                                      device.name.map(DOMString::from),
                                                      &self);
-                device_instance_map.insert(device.id.clone(), JS::from_ref(&bt_device));
+                device_instance_map.insert(device.id.clone(), Dom::from_ref(&bt_device));
 
                 self.global().as_window().bluetooth_extra_permission_data().add_new_allowed_device(
                     AllowedBluetoothDevice {
@@ -631,7 +631,7 @@ impl PermissionAlgorithm for Bluetooth {
             // TODO: Implement this correctly, not just using device ids here.
             // https://webbluetoothcg.github.io/web-bluetooth/#get-the-bluetoothdevice-representing
             if let Some(device) = device_map.get(&device_id) {
-                matching_devices.push(JS::from_ref(&**device));
+                matching_devices.push(Dom::from_ref(&**device));
             }
         }
 

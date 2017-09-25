@@ -9,7 +9,7 @@ use dom::bindings::codegen::Bindings::VRDisplayBinding::VRDisplayMethods;
 use dom::bindings::error::Error;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
-use dom::bindings::root::{JS, Root};
+use dom::bindings::root::{Dom, Root};
 use dom::event::Event;
 use dom::eventtarget::EventTarget;
 use dom::gamepad::Gamepad;
@@ -28,8 +28,8 @@ use webvr_traits::{WebVRGamepadData, WebVRGamepadEvent, WebVRGamepadState};
 #[dom_struct]
 pub struct VR {
     reflector_: Reflector,
-    displays: DOMRefCell<Vec<JS<VRDisplay>>>,
-    gamepads: DOMRefCell<Vec<JS<Gamepad>>>
+    displays: DOMRefCell<Vec<Dom<VRDisplay>>>,
+    gamepads: DOMRefCell<Vec<Dom<Gamepad>>>
 }
 
 impl VR {
@@ -83,7 +83,7 @@ impl VRMethods for VR {
             return promise;
         }
 
-        // convert from JS to Root
+        // convert from Dom to Root
         let displays: Vec<Root<VRDisplay>> = self.displays.borrow().iter()
                                                           .map(|d| Root::from_ref(&**d))
                                                           .collect();
@@ -126,7 +126,7 @@ impl VR {
             existing
         } else {
             let root = VRDisplay::new(&self.global(), display.clone());
-            self.displays.borrow_mut().push(JS::from_ref(&*root));
+            self.displays.borrow_mut().push(Dom::from_ref(&*root));
             root
         }
     }
@@ -223,7 +223,7 @@ impl VR {
                                             index as i32,
                                             &data,
                                             &state);
-            self.gamepads.borrow_mut().push(JS::from_ref(&*root));
+            self.gamepads.borrow_mut().push(Dom::from_ref(&*root));
             if state.connected {
                 root.notify_event(GamepadEventType::Connected);
             }

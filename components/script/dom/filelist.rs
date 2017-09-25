@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::FileListBinding;
 use dom::bindings::codegen::Bindings::FileListBinding::FileListMethods;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::root::{JS, Root};
+use dom::bindings::root::{Dom, Root};
 use dom::file::File;
 use dom::window::Window;
 use dom_struct::dom_struct;
@@ -15,12 +15,12 @@ use std::slice::Iter;
 #[dom_struct]
 pub struct FileList {
     reflector_: Reflector,
-    list: Vec<JS<File>>
+    list: Vec<Dom<File>>
 }
 
 impl FileList {
     #[allow(unrooted_must_root)]
-    fn new_inherited(files: Vec<JS<File>>) -> FileList {
+    fn new_inherited(files: Vec<Dom<File>>) -> FileList {
         FileList {
             reflector_: Reflector::new(),
             list: files
@@ -29,12 +29,12 @@ impl FileList {
 
     #[allow(unrooted_must_root)]
     pub fn new(window: &Window, files: Vec<Root<File>>) -> Root<FileList> {
-        reflect_dom_object(box FileList::new_inherited(files.iter().map(|r| JS::from_ref(&**r)).collect()),
+        reflect_dom_object(box FileList::new_inherited(files.iter().map(|r| Dom::from_ref(&**r)).collect()),
                            window,
                            FileListBinding::Wrap)
     }
 
-    pub fn iter_files(&self) -> Iter<JS<File>> {
+    pub fn iter_files(&self) -> Iter<Dom<File>> {
         self.list.iter()
     }
 }

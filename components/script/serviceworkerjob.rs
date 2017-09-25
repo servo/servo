@@ -11,7 +11,7 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::error::Error;
 use dom::bindings::refcounted::{Trusted, TrustedPromise};
 use dom::bindings::reflector::DomObject;
-use dom::bindings::root::JS;
+use dom::bindings::root::Dom;
 use dom::client::Client;
 use dom::promise::Promise;
 use dom::serviceworkerregistration::ServiceWorkerRegistration;
@@ -46,7 +46,7 @@ pub struct Job {
     pub promise: Rc<Promise>,
     pub equivalent_jobs: Vec<Job>,
     // client can be a window client, worker client so `Client` will be an enum in future
-    pub client: JS<Client>,
+    pub client: Dom<Client>,
     pub referrer: ServoUrl
 }
 
@@ -64,7 +64,7 @@ impl Job {
             script_url: script_url,
             promise: promise,
             equivalent_jobs: vec![],
-            client: JS::from_ref(client),
+            client: Dom::from_ref(client),
             referrer: client.creation_url()
         }
     }

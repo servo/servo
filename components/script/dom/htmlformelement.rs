@@ -15,7 +15,7 @@ use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaEl
 use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
-use dom::bindings::root::{JS, OnceCellJS, Root, RootedReference};
+use dom::bindings::root::{Dom, OnceCellJS, Root, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::blob::Blob;
 use dom::document::Document;
@@ -66,7 +66,7 @@ pub struct HTMLFormElement {
     marked_for_reset: Cell<bool>,
     elements: OnceCellJS<HTMLFormControlsCollection>,
     generation_id: Cell<GenerationId>,
-    controls: DOMRefCell<Vec<JS<Element>>>,
+    controls: DOMRefCell<Vec<Dom<Element>>>,
 }
 
 impl HTMLFormElement {

@@ -11,7 +11,7 @@ use dom::bindings::error::Fallible;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
-use dom::bindings::root::{JS, MutNullableJS, Root, RootedReference};
+use dom::bindings::root::{Dom, MutNullableJS, Root, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::eventtarget::{CompiledEventListener, EventTarget, ListenerPhase};
@@ -137,13 +137,13 @@ impl Event {
         // Step 4.
         if let Some(target_node) = target.downcast::<Node>() {
             for ancestor in target_node.ancestors() {
-                event_path.push(JS::from_ref(ancestor.upcast::<EventTarget>()));
+                event_path.push(Dom::from_ref(ancestor.upcast::<EventTarget>()));
             }
             let top_most_ancestor_or_target =
                 Root::from_ref(event_path.r().last().cloned().unwrap_or(target));
             if let Some(document) = Root::downcast::<Document>(top_most_ancestor_or_target) {
                 if self.type_() != atom!("load") && document.browsing_context().is_some() {
-                    event_path.push(JS::from_ref(document.window().upcast()));
+                    event_path.push(Dom::from_ref(document.window().upcast()));
                 }
             }
         }

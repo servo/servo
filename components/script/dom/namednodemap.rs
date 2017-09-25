@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::NamedNodeMapBinding;
 use dom::bindings::codegen::Bindings::NamedNodeMapBinding::NamedNodeMapMethods;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::root::{JS, Root};
+use dom::bindings::root::{Dom, Root};
 use dom::bindings::str::DOMString;
 use dom::bindings::xmlname::namespace_from_domstring;
 use dom::element::Element;
@@ -20,14 +20,14 @@ use std::ascii::AsciiExt;
 #[dom_struct]
 pub struct NamedNodeMap {
     reflector_: Reflector,
-    owner: JS<Element>,
+    owner: Dom<Element>,
 }
 
 impl NamedNodeMap {
     fn new_inherited(elem: &Element) -> NamedNodeMap {
         NamedNodeMap {
             reflector_: Reflector::new(),
-            owner: JS::from_ref(elem),
+            owner: Dom::from_ref(elem),
         }
     }
 

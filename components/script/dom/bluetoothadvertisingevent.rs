@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::EventBinding::EventBinding::EventMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::reflect_dom_object;
-use dom::bindings::root::{JS, Root, RootedReference};
+use dom::bindings::root::{Dom, Root, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::bluetoothdevice::BluetoothDevice;
 use dom::event::{Event, EventBubbles, EventCancelable};
@@ -21,7 +21,7 @@ use servo_atoms::Atom;
 #[dom_struct]
 pub struct BluetoothAdvertisingEvent {
     event: Event,
-    device: JS<BluetoothDevice>,
+    device: Dom<BluetoothDevice>,
     name: Option<DOMString>,
     appearance: Option<u16>,
     tx_power: Option<i8>,
@@ -37,7 +37,7 @@ impl BluetoothAdvertisingEvent {
                          -> BluetoothAdvertisingEvent {
         BluetoothAdvertisingEvent {
             event: Event::new_inherited(),
-            device: JS::from_ref(device),
+            device: Dom::from_ref(device),
             name: name,
             appearance: appearance,
             tx_power: tx_power,

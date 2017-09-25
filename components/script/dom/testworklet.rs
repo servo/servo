@@ -11,7 +11,7 @@ use dom::bindings::codegen::Bindings::WorkletBinding::WorkletOptions;
 use dom::bindings::error::Fallible;
 use dom::bindings::reflector::Reflector;
 use dom::bindings::reflector::reflect_dom_object;
-use dom::bindings::root::{JS, Root};
+use dom::bindings::root::{Dom, Root};
 use dom::bindings::str::DOMString;
 use dom::bindings::str::USVString;
 use dom::promise::Promise;
@@ -25,14 +25,14 @@ use std::rc::Rc;
 #[dom_struct]
 pub struct TestWorklet {
     reflector: Reflector,
-    worklet: JS<Worklet>,
+    worklet: Dom<Worklet>,
 }
 
 impl TestWorklet {
     fn new_inherited(worklet: &Worklet) -> TestWorklet {
         TestWorklet {
             reflector: Reflector::new(),
-            worklet: JS::from_ref(worklet),
+            worklet: Dom::from_ref(worklet),
         }
     }
 

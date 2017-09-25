@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::DOMTokenListBinding;
 use dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListMethods;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::root::{JS, Root};
+use dom::bindings::root::{Dom, Root};
 use dom::bindings::str::DOMString;
 use dom::element::Element;
 use dom::node::window_from_node;
@@ -19,7 +19,7 @@ use style::str::HTML_SPACE_CHARACTERS;
 #[dom_struct]
 pub struct DOMTokenList {
     reflector_: Reflector,
-    element: JS<Element>,
+    element: Dom<Element>,
     local_name: LocalName,
 }
 
@@ -27,7 +27,7 @@ impl DOMTokenList {
     pub fn new_inherited(element: &Element, local_name: LocalName) -> DOMTokenList {
         DOMTokenList {
             reflector_: Reflector::new(),
-            element: JS::from_ref(element),
+            element: Dom::from_ref(element),
             local_name: local_name,
         }
     }

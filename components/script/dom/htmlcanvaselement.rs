@@ -15,7 +15,7 @@ use dom::bindings::conversions::ConversionResult;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::num::Finite;
-use dom::bindings::root::{JS, LayoutJS, Root};
+use dom::bindings::root::{Dom, LayoutJS, Root};
 use dom::bindings::str::DOMString;
 use dom::canvasrenderingcontext2d::{CanvasRenderingContext2D, LayoutCanvasRenderingContext2DHelpers};
 use dom::document::Document;
@@ -44,8 +44,8 @@ const DEFAULT_HEIGHT: u32 = 150;
 #[must_root]
 #[derive(Clone, HeapSizeOf, JSTraceable)]
 pub enum CanvasContext {
-    Context2d(JS<CanvasRenderingContext2D>),
-    WebGL(JS<WebGLRenderingContext>),
+    Context2d(Dom<CanvasRenderingContext2D>),
+    WebGL(Dom<WebGLRenderingContext>),
 }
 
 #[dom_struct]
@@ -156,7 +156,7 @@ impl HTMLCanvasElement {
             let window = window_from_node(self);
             let size = self.get_size();
             let context = CanvasRenderingContext2D::new(window.upcast::<GlobalScope>(), self, size);
-            *self.context.borrow_mut() = Some(CanvasContext::Context2d(JS::from_ref(&*context)));
+            *self.context.borrow_mut() = Some(CanvasContext::Context2d(Dom::from_ref(&*context)));
         }
 
         match *self.context.borrow().as_ref().unwrap() {
@@ -192,7 +192,7 @@ impl HTMLCanvasElement {
 
             let maybe_ctx = WebGLRenderingContext::new(&window, self, size, attrs);
 
-            *self.context.borrow_mut() = maybe_ctx.map( |ctx| CanvasContext::WebGL(JS::from_ref(&*ctx)));
+            *self.context.borrow_mut() = maybe_ctx.map( |ctx| CanvasContext::WebGL(Dom::from_ref(&*ctx)));
         }
 
         if let Some(CanvasContext::WebGL(ref context)) = *self.context.borrow() {

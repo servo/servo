@@ -6,7 +6,7 @@
 
 use dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
 use dom::bindings::inheritance::{Castable, CharacterDataTypeId, NodeTypeId};
-use dom::bindings::root::{JS, Root};
+use dom::bindings::root::{Dom, Root};
 use dom::bindings::trace::JSTraceable;
 use dom::characterdata::CharacterData;
 use dom::document::Document;
@@ -32,7 +32,7 @@ use std::io;
 #[must_root]
 pub struct Tokenizer {
     #[ignore_heap_size_of = "Defined in html5ever"]
-    inner: HtmlTokenizer<TreeBuilder<JS<Node>, Sink>>,
+    inner: HtmlTokenizer<TreeBuilder<Dom<Node>, Sink>>,
 }
 
 impl Tokenizer {
@@ -43,7 +43,7 @@ impl Tokenizer {
             -> Self {
         let sink = Sink {
             base_url: url,
-            document: JS::from_ref(document),
+            document: Dom::from_ref(document),
             current_line: 1,
             script: Default::default(),
         };
@@ -56,8 +56,8 @@ impl Tokenizer {
         let inner = if let Some(fc) = fragment_context {
             let tb = TreeBuilder::new_for_fragment(
                 sink,
-                JS::from_ref(fc.context_elem),
-                fc.form_elem.map(|n| JS::from_ref(n)),
+                Dom::from_ref(fc.context_elem),
+                fc.form_elem.map(|n| Dom::from_ref(n)),
                 options);
 
             let tok_options = TokenizerOpts {
@@ -96,15 +96,15 @@ impl Tokenizer {
 }
 
 #[allow(unsafe_code)]
-unsafe impl JSTraceable for HtmlTokenizer<TreeBuilder<JS<Node>, Sink>> {
+unsafe impl JSTraceable for HtmlTokenizer<TreeBuilder<Dom<Node>, Sink>> {
     unsafe fn trace(&self, trc: *mut JSTracer) {
         struct Tracer(*mut JSTracer);
         let tracer = Tracer(trc);
 
         impl HtmlTracer for Tracer {
-            type Handle = JS<Node>;
+            type Handle = Dom<Node>;
             #[allow(unrooted_must_root)]
-            fn trace_handle(&self, node: &JS<Node>) {
+            fn trace_handle(&self, node: &Dom<Node>) {
                 unsafe { node.trace(self.0); }
             }
         }

@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::CSSRuleListBinding;
 use dom::bindings::codegen::Bindings::CSSRuleListBinding::CSSRuleListMethods;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
-use dom::bindings::root::{JS, MutNullableJS, Root};
+use dom::bindings::root::{Dom, MutNullableJS, Root};
 use dom::csskeyframerule::CSSKeyframeRule;
 use dom::cssrule::CSSRule;
 use dom::cssstylesheet::CSSStyleSheet;
@@ -36,7 +36,7 @@ impl From<RulesMutateError> for Error {
 #[dom_struct]
 pub struct CSSRuleList {
     reflector_: Reflector,
-    parent_stylesheet: JS<CSSStyleSheet>,
+    parent_stylesheet: Dom<CSSStyleSheet>,
     #[ignore_heap_size_of = "Arc"]
     rules: RulesSource,
     dom_rules: DOMRefCell<Vec<MutNullableJS<CSSRule>>>
@@ -62,7 +62,7 @@ impl CSSRuleList {
 
         CSSRuleList {
             reflector_: Reflector::new(),
-            parent_stylesheet: JS::from_ref(parent_stylesheet),
+            parent_stylesheet: Dom::from_ref(parent_stylesheet),
             rules: rules,
             dom_rules: DOMRefCell::new(dom_rules),
         }

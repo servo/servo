@@ -31,7 +31,7 @@
 //!
 //! * rooting pointers on the stack:
 //!   the [`Root`](bindings/root/struct.Root.html) smart pointer;
-//! * tracing pointers in member fields: the [`JS`](bindings/root/struct.JS.html),
+//! * tracing pointers in member fields: the [`Dom`](bindings/root/struct.Dom.html),
 //!   [`MutNullableJS`](bindings/root/struct.MutNullableJS.html) and
 //!   [`MutJS`](bindings/root/struct.MutJS.html) smart pointers and
 //!   [the tracing implementation](bindings/trace/index.html);
@@ -44,7 +44,7 @@
 //! Rust does not support struct inheritance, as would be used for the
 //! object-oriented DOM APIs. To work around this issue, Servo stores an
 //! instance of the superclass in the first field of its subclasses. (Note that
-//! it is stored by value, rather than in a smart pointer such as `JS<T>`.)
+//! it is stored by value, rather than in a smart pointer such as `Dom<T>`.)
 //!
 //! This implies that a pointer to an object can safely be cast to a pointer
 //! to all its classes.

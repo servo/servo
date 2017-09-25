@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::VRFrameDataBinding::VRFrameDataMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
-use dom::bindings::root::{JS, Root};
+use dom::bindings::root::{Dom, Root};
 use dom::globalscope::GlobalScope;
 use dom::vrpose::VRPose;
 use dom::window::Window;
@@ -26,7 +26,7 @@ pub struct VRFrameData {
     left_view: Heap<*mut JSObject>,
     right_proj: Heap<*mut JSObject>,
     right_view: Heap<*mut JSObject>,
-    pose: JS<VRPose>,
+    pose: Dom<VRPose>,
     timestamp: Cell<f64>,
     first_timestamp: Cell<f64>
 }
@@ -39,7 +39,7 @@ impl VRFrameData {
             left_view: Heap::default(),
             right_proj: Heap::default(),
             right_view: Heap::default(),
-            pose: JS::from_ref(&*pose),
+            pose: Dom::from_ref(&*pose),
             timestamp: Cell::new(0.0),
             first_timestamp: Cell::new(0.0)
         }

@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::TouchListBinding;
 use dom::bindings::codegen::Bindings::TouchListBinding::TouchListMethods;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::root::{JS, Root};
+use dom::bindings::root::{Dom, Root};
 use dom::touch::Touch;
 use dom::window::Window;
 use dom_struct::dom_struct;
@@ -13,14 +13,14 @@ use dom_struct::dom_struct;
 #[dom_struct]
 pub struct TouchList {
     reflector_: Reflector,
-    touches: Vec<JS<Touch>>,
+    touches: Vec<Dom<Touch>>,
 }
 
 impl TouchList {
     fn new_inherited(touches: &[&Touch]) -> TouchList {
         TouchList {
             reflector_: Reflector::new(),
-            touches: touches.iter().map(|touch| JS::from_ref(*touch)).collect(),
+            touches: touches.iter().map(|touch| Dom::from_ref(*touch)).collect(),
         }
     }
 

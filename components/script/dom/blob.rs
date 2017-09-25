@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use dom::bindings::codegen::UnionTypes::BlobOrString;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
-use dom::bindings::root::{JS, Root};
+use dom::bindings::root::{Dom, Root};
 use dom::bindings::str::DOMString;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
@@ -44,7 +44,7 @@ pub enum BlobImpl {
     /// relative positions of current slicing range,
     /// IMPORTANT: The depth of tree is only two, i.e. the parent Blob must be
     /// either File-based or Memory-based
-    Sliced(JS<Blob>, RelativePos),
+    Sliced(Dom<Blob>, RelativePos),
 }
 
 impl BlobImpl {
@@ -101,11 +101,11 @@ impl Blob {
         let blob_impl = match *parent.blob_impl.borrow() {
             BlobImpl::File(_) => {
                 // Create new parent node
-                BlobImpl::Sliced(JS::from_ref(parent), rel_pos)
+                BlobImpl::Sliced(Dom::from_ref(parent), rel_pos)
             }
             BlobImpl::Memory(_) => {
                 // Create new parent node
-                BlobImpl::Sliced(JS::from_ref(parent), rel_pos)
+                BlobImpl::Sliced(Dom::from_ref(parent), rel_pos)
             }
             BlobImpl::Sliced(ref grandparent, ref old_rel_pos) => {
                 // Adjust the slicing position, using same parent
