@@ -74,6 +74,7 @@ enum State {
     CompletelyAvailable,
     Broken,
 }
+
 #[derive(PartialEq)]
 #[derive(Debug)]
 pub struct Size {
@@ -822,7 +823,7 @@ pub fn parse_a_sizes_attribute(input: DOMString, width: Option<u32>) -> Vec<Size
                 let mut media_query_parser = parser;
                 let media_query = media_query_parser.try(|i| MediaQuery::parse(&context, i));
                 if let Ok(query) = media_query {
-                        let length = Length::parse_non_negative(&context, &mut media_query_parser);
+                    let length = Length::parse_non_negative(&context, &mut media_query_parser);
                         if let Ok(length) = length {
                             sizes.push(Size {
                                 length: length,

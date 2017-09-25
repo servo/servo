@@ -17,12 +17,11 @@ pub fn test_length_for_no_default_provided(len: f32) -> Length {
 
 #[test]
 fn no_default_provided() {
-    let mut a = vec![];
+    let a = vec![size];
     let length = test_length_for_no_default_provided(100f32);
     let size = Size { query: None, length: length };
     a.push(size);
     assert_eq!(parse_a_sizes_attribute(DOMString::new(), None), a);
-    println!("{:?}", parse_a_sizes_attribute(DOMString::new(), None));
 }
 
 pub fn test_length_for_default_provided(len: f32) -> Length {
@@ -32,12 +31,11 @@ pub fn test_length_for_default_provided(len: f32) -> Length {
 
 #[test]
 fn default_provided() {
-    let mut a = vec![];
+    let a = vec![size];
     let length = test_length_for_default_provided(2f32);
     let size = Size { query: None, length: length };
     a.push(size);
     assert_eq!(parse_a_sizes_attribute(DOMString::new(), Some(2)), a);
-    println!("{:?}", parse_a_sizes_attribute(DOMString::new(), Some(2)));
 }
 
 pub fn test_media_query(len: f32) -> MediaQuery {
@@ -58,7 +56,7 @@ pub fn test_length(len: f32) -> Length {
 
 #[test]
 fn one_value() {
-    let mut a = vec![];
+    let a = vec![size];
     let media_query = test_media_query(200f32);
     let length = test_length(545f32);
     let size = Size { query: Some(media_query), length: length };
@@ -81,7 +79,7 @@ fn more_then_one_value() {
 
 #[test]
 fn no_extra_whitespace() {
-    let mut a = vec![];
+    let a = vec![size];
     let media_query = test_media_query(200f32);
     let length = test_length(545f32);
     let size = Size { query: Some(media_query), length: length };
