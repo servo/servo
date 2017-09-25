@@ -137,21 +137,27 @@ ${helpers.predefined_type("marker-end", "UrlOrNone", "Either::Second(None_)",
     use std::fmt;
     use style_traits::ToCss;
 
-    pub const NORMAL: u8 = 0;
-    pub const FILL: u8 = 1;
-    pub const STROKE: u8 = 2;
-    pub const MARKERS: u8 = 3;
+    /// The specified value for a single CSS paint-order property.
+    #[repr(u8)]
+    #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd, ToCss)]
+    pub enum PaintOrder {
+        Normal = 0,
+        Fill = 1,
+        Stroke = 2,
+        Markers = 3,
+    }
 
-    // number of bits for each component
-    pub const SHIFT: u8 = 2;
-    // mask with above bits set
-    pub const MASK: u8 = 0b11;
-    // number of non-normal keyword values
-    pub const COUNT: u8 = 3;
-    // all keywords
-    pub const ALL: [u8; 3] = [FILL, STROKE, MARKERS];
+    /// Number of non-normal components.
+    const COUNT: u8 = 3;
 
-    /// Represented as a six-bit field, of 3 two-bit pairs
+    /// Number of bits for each component
+    const SHIFT: u8 = 2;
+
+    /// Mask with above bits set
+    const MASK: u8 = 0b11;
+
+    /// The specified value is tree `PaintOrder` values packed into the
+    /// bitfields below, as a six-bit field, of 3 two-bit pairs
     ///
     /// Each pair can be set to FILL, STROKE, or MARKERS
     /// Lowest significant bit pairs are highest priority.
@@ -165,74 +171,83 @@ ${helpers.predefined_type("marker-end", "UrlOrNone", "Either::Second(None_)",
     #[derive(Clone, Copy, Debug, PartialEq, ToComputedValue)]
     pub struct SpecifiedValue(pub u8);
 
+    impl SpecifiedValue {
+        fn normal() -> Self {
+            SpecifiedValue(0)
+        }
+    }
+
     pub mod computed_value {
         pub use super::SpecifiedValue as T;
     }
 
     pub fn get_initial_value() -> SpecifiedValue {
-      SpecifiedValue(NORMAL)
+        SpecifiedValue::normal()
     }
 
     impl SpecifiedValue {
-        pub fn bits_at(&self, pos: u8) -> u8 {
-            (self.0 >> pos * SHIFT) & MASK
+        fn order_at(&self, pos: u8) -> PaintOrder {
+            // Safe because PaintOrder covers all possible patterns.
+            unsafe { ::std::mem::transmute((self.0 >> pos * SHIFT) & MASK) }
         }
     }
 
-    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
-                         -> Result<SpecifiedValue,ParseError<'i>> {
+    pub fn parse<'i, 't>(
+        _context: &ParserContext,
+        input: &mut Parser<'i, 't>
+    ) -> Result<SpecifiedValue,ParseError<'i>> {
         if let Ok(()) = input.try(|i| i.expect_ident_matching("normal")) {
-            Ok(SpecifiedValue(0))
-        } else {
-            let mut value = 0;
-            // bitfield representing what we've seen so far
-            // bit 1 is fill, bit 2 is stroke, bit 3 is markers
-            let mut seen = 0;
-            let mut pos = 0;
+            return Ok(SpecifiedValue::normal())
+        }
 
-            loop {
-                let result: Result<_, ParseError> = input.try(|i| {
-                    try_match_ident_ignore_ascii_case! { i.expect_ident()?,
-                        "fill" => Ok(FILL),
-                        "stroke" => Ok(STROKE),
-                        "markers" => Ok(MARKERS),
-                    }
-                });
+        let mut value = 0;
+        // bitfield representing what we've seen so far
+        // bit 1 is fill, bit 2 is stroke, bit 3 is markers
+        let mut seen = 0;
+        let mut pos = 0;
 
-                match result {
-                    Ok(val) => {
-                        if (seen & (1 << val)) != 0 {
-                            // don't parse the same ident twice
-                            return Err(StyleParseError::UnspecifiedError.into())
-                        } else {
-                            value |= val << (pos * SHIFT);
-                            seen |= 1 << val;
-                            pos += 1;
-                        }
-                    }
-                    Err(_) => break,
+        loop {
+            let result: Result<_, ParseError> = input.try(|i| {
+                try_match_ident_ignore_ascii_case! { i.expect_ident()?,
+                    "fill" => Ok(PaintOrder::Fill),
+                    "stroke" => Ok(PaintOrder::Stroke),
+                    "markers" => Ok(PaintOrder::Markers),
                 }
-            }
+            });
 
-            if value == 0 {
-                // couldn't find any keyword
-                Err(StyleParseError::UnspecifiedError.into())
-            } else {
-                // fill in rest
-                for i in pos..COUNT {
-                    for paint in &ALL {
-                        // if not seen, set bit at position, mark as seen
-                        if (seen & (1 << paint)) == 0 {
-                            seen |= 1 << paint;
-                            value |= paint << (i * SHIFT);
-                            break;
-                        }
+            match result {
+                Ok(val) => {
+                    if (seen & (1 << val as u8)) != 0 {
+                        // don't parse the same ident twice
+                        return Err(StyleParseError::UnspecifiedError.into())
                     }
-                }
 
-                Ok(SpecifiedValue(value))
+                    value |= (val as u8) << (pos * SHIFT);
+                    seen |= 1 << (val as u8);
+                    pos += 1;
+                }
+                Err(_) => break,
             }
         }
+
+        if value == 0 {
+            // Couldn't find any keyword
+            return Err(StyleParseError::UnspecifiedError.into())
+        }
+
+        // fill in rest
+        for i in pos..COUNT {
+            for paint in 0..COUNT {
+                // if not seen, set bit at position, mark as seen
+                if (seen & (1 << paint)) == 0 {
+                    seen |= 1 << paint;
+                    value |= paint << (i * SHIFT);
+                    break;
+                }
+            }
+        }
+
+        Ok(SpecifiedValue(value))
     }
 
     impl ToCss for SpecifiedValue {
@@ -241,16 +256,21 @@ ${helpers.predefined_type("marker-end", "UrlOrNone", "Either::Second(None_)",
                 return dest.write_str("normal")
             }
 
-            for pos in 0..COUNT {
+            let mut last_pos_to_serialize = 0;
+            for i in (1..COUNT).rev() {
+                let component = self.order_at(i);
+                let earlier_component = self.order_at(i - 1);
+                if component < earlier_component {
+                    last_pos_to_serialize = i - 1;
+                    break;
+                }
+            }
+
+            for pos in 0..last_pos_to_serialize + 1 {
                 if pos != 0 {
                     dest.write_str(" ")?
                 }
-                match self.bits_at(pos) {
-                    FILL => dest.write_str("fill")?,
-                    STROKE => dest.write_str("stroke")?,
-                    MARKERS => dest.write_str("markers")?,
-                    _ => unreachable!(),
-                }
+                self.order_at(pos).to_css(dest)?;
             }
             Ok(())
         }
