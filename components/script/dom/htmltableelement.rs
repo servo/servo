@@ -10,7 +10,7 @@ use dom::bindings::codegen::Bindings::HTMLTableElementBinding::HTMLTableElementM
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::root::{Dom, LayoutJS, MutNullableDom, Root, RootedReference};
+use dom::bindings::root::{Dom, LayoutDom, MutNullableDom, Root, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
@@ -379,7 +379,7 @@ pub trait HTMLTableElementLayoutHelpers {
     fn get_width(&self) -> LengthOrPercentageOrAuto;
 }
 
-impl HTMLTableElementLayoutHelpers for LayoutJS<HTMLTableElement> {
+impl HTMLTableElementLayoutHelpers for LayoutDom<HTMLTableElement> {
     #[allow(unsafe_code)]
     fn get_background_color(&self) -> Option<RGBA> {
         unsafe {

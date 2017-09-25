@@ -27,7 +27,7 @@ use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, Nod
 use dom::bindings::num::Finite;
 use dom::bindings::refcounted::{Trusted, TrustedPromise};
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
-use dom::bindings::root::{Dom, LayoutJS, MutNullableDom, Root, RootedReference};
+use dom::bindings::root::{Dom, LayoutDom, MutNullableDom, Root, RootedReference};
 use dom::bindings::str::{DOMString, USVString};
 use dom::bindings::xmlname::{namespace_from_domstring, validate_and_extract, xml_name_type};
 use dom::bindings::xmlname::XMLName::InvalidXMLName;
@@ -2082,7 +2082,7 @@ pub enum DocumentSource {
 #[allow(unsafe_code)]
 pub trait LayoutDocumentHelpers {
     unsafe fn is_html_document_for_layout(&self) -> bool;
-    unsafe fn drain_pending_restyles(&self) -> Vec<(LayoutJS<Element>, PendingRestyle)>;
+    unsafe fn drain_pending_restyles(&self) -> Vec<(LayoutDom<Element>, PendingRestyle)>;
     unsafe fn needs_paint_from_layout(&self);
     unsafe fn will_paint(&self);
     unsafe fn quirks_mode(&self) -> QuirksMode;
@@ -2090,7 +2090,7 @@ pub trait LayoutDocumentHelpers {
 }
 
 #[allow(unsafe_code)]
-impl LayoutDocumentHelpers for LayoutJS<Document> {
+impl LayoutDocumentHelpers for LayoutDom<Document> {
     #[inline]
     unsafe fn is_html_document_for_layout(&self) -> bool {
         (*self.unsafe_get()).is_html_document
@@ -2098,7 +2098,7 @@ impl LayoutDocumentHelpers for LayoutJS<Document> {
 
     #[inline]
     #[allow(unrooted_must_root)]
-    unsafe fn drain_pending_restyles(&self) -> Vec<(LayoutJS<Element>, PendingRestyle)> {
+    unsafe fn drain_pending_restyles(&self) -> Vec<(LayoutDom<Element>, PendingRestyle)> {
         let mut elements = (*self.unsafe_get()).pending_restyles.borrow_mut_for_layout();
         // Elements were in a document when they were adding to this list, but that
         // may no longer be true when the next layout occurs.

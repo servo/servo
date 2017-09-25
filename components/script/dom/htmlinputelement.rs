@@ -15,7 +15,7 @@ use dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::root::{Dom, LayoutJS, MutNullableDom, Root, RootedReference};
+use dom::bindings::root::{Dom, LayoutDom, MutNullableDom, Root, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, LayoutElementHelpers, RawLayoutElementHelpers};
@@ -206,15 +206,15 @@ pub trait LayoutHTMLInputElementHelpers {
 }
 
 #[allow(unsafe_code)]
-unsafe fn get_raw_textinput_value(input: LayoutJS<HTMLInputElement>) -> DOMString {
+unsafe fn get_raw_textinput_value(input: LayoutDom<HTMLInputElement>) -> DOMString {
     (*input.unsafe_get()).textinput.borrow_for_layout().get_content()
 }
 
-impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
+impl LayoutHTMLInputElementHelpers for LayoutDom<HTMLInputElement> {
     #[allow(unsafe_code)]
     unsafe fn value_for_layout(self) -> String {
         #[allow(unsafe_code)]
-        unsafe fn get_raw_attr_value(input: LayoutJS<HTMLInputElement>, default: &str) -> String {
+        unsafe fn get_raw_attr_value(input: LayoutDom<HTMLInputElement>, default: &str) -> String {
             let elem = input.upcast::<Element>();
             let value = (*elem.unsafe_get())
                 .get_attr_val_for_layout(&ns!(), &local_name!("value"))

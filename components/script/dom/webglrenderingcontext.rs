@@ -20,7 +20,7 @@ use dom::bindings::conversions::{ConversionResult, FromJSValConvertible, ToJSVal
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
-use dom::bindings::root::{Dom, LayoutJS, MutNullableDom, Root};
+use dom::bindings::root::{Dom, LayoutDom, MutNullableDom, Root};
 use dom::bindings::str::DOMString;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::htmlcanvaselement::HTMLCanvasElement;
@@ -3384,7 +3384,7 @@ pub trait LayoutCanvasWebGLRenderingContextHelpers {
     unsafe fn canvas_data_source(&self) -> HTMLCanvasDataSource;
 }
 
-impl LayoutCanvasWebGLRenderingContextHelpers for LayoutJS<WebGLRenderingContext> {
+impl LayoutCanvasWebGLRenderingContextHelpers for LayoutDom<WebGLRenderingContext> {
     #[allow(unsafe_code)]
     unsafe fn canvas_data_source(&self) -> HTMLCanvasDataSource {
         HTMLCanvasDataSource::WebGL((*self.unsafe_get()).layout_handle())

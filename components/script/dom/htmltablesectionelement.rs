@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::HTMLTableSectionElementBinding::{self, HTM
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::root::{LayoutJS, Root, RootedReference};
+use dom::bindings::root::{LayoutDom, Root, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{Element, RawLayoutElementHelpers};
@@ -81,7 +81,7 @@ pub trait HTMLTableSectionElementLayoutHelpers {
 }
 
 #[allow(unsafe_code)]
-impl HTMLTableSectionElementLayoutHelpers for LayoutJS<HTMLTableSectionElement> {
+impl HTMLTableSectionElementLayoutHelpers for LayoutDom<HTMLTableSectionElement> {
     fn get_background_color(&self) -> Option<RGBA> {
         unsafe {
             (&*self.upcast::<Element>().unsafe_get())

@@ -9,7 +9,7 @@ use dom::bindings::codegen::Bindings::HTMLTableSectionElementBinding::HTMLTableS
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::root::{LayoutJS, MutNullableDom, Root, RootedReference};
+use dom::bindings::root::{LayoutDom, MutNullableDom, Root, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{Element, RawLayoutElementHelpers};
@@ -142,7 +142,7 @@ pub trait HTMLTableRowElementLayoutHelpers {
 }
 
 #[allow(unsafe_code)]
-impl HTMLTableRowElementLayoutHelpers for LayoutJS<HTMLTableRowElement> {
+impl HTMLTableRowElementLayoutHelpers for LayoutDom<HTMLTableRowElement> {
     fn get_background_color(&self) -> Option<RGBA> {
         unsafe {
             (&*self.upcast::<Element>().unsafe_get())

@@ -15,7 +15,7 @@ use dom::bindings::conversions::ConversionResult;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::num::Finite;
-use dom::bindings::root::{Dom, LayoutJS, Root};
+use dom::bindings::root::{Dom, LayoutDom, Root};
 use dom::bindings::str::DOMString;
 use dom::canvasrenderingcontext2d::{CanvasRenderingContext2D, LayoutCanvasRenderingContext2DHelpers};
 use dom::document::Document;
@@ -101,7 +101,7 @@ pub trait LayoutHTMLCanvasElementHelpers {
     fn get_height(&self) -> LengthOrPercentageOrAuto;
 }
 
-impl LayoutHTMLCanvasElementHelpers for LayoutJS<HTMLCanvasElement> {
+impl LayoutHTMLCanvasElementHelpers for LayoutDom<HTMLCanvasElement> {
     #[allow(unsafe_code)]
     fn data(&self) -> HTMLCanvasData {
         unsafe {

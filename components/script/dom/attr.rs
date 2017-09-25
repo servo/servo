@@ -7,7 +7,7 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::{self, AttrMethods};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::root::{LayoutJS, MutNullableDom, Root, RootedReference};
+use dom::bindings::root::{LayoutDom, MutNullableDom, Root, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::customelementregistry::CallbackReaction;
 use dom::element::{AttributeMutation, Element};
@@ -256,7 +256,7 @@ pub trait AttrHelpersForLayout {
 }
 
 #[allow(unsafe_code)]
-impl AttrHelpersForLayout for LayoutJS<Attr> {
+impl AttrHelpersForLayout for LayoutDom<Attr> {
     #[inline]
     unsafe fn value_forever(&self) -> &'static AttrValue {
         // This transmute is used to cheat the lifetime restriction.

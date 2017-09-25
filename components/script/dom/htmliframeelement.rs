@@ -21,7 +21,7 @@ use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
-use dom::bindings::root::{LayoutJS, MutNullableDom, Root};
+use dom::bindings::root::{LayoutDom, MutNullableDom, Root};
 use dom::bindings::str::DOMString;
 use dom::customevent::CustomEvent;
 use dom::document::Document;
@@ -419,7 +419,7 @@ pub trait HTMLIFrameElementLayoutMethods {
     fn get_height(&self) -> LengthOrPercentageOrAuto;
 }
 
-impl HTMLIFrameElementLayoutMethods for LayoutJS<HTMLIFrameElement> {
+impl HTMLIFrameElementLayoutMethods for LayoutDom<HTMLIFrameElement> {
     #[inline]
     #[allow(unsafe_code)]
     fn pipeline_id(&self) -> Option<PipelineId> {

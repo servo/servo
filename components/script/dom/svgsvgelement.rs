@@ -5,7 +5,7 @@
 use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::SVGSVGElementBinding;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::root::{LayoutJS, Root};
+use dom::bindings::root::{LayoutDom, Root};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
@@ -49,7 +49,7 @@ pub trait LayoutSVGSVGElementHelpers {
     fn data(&self) -> SVGSVGData;
 }
 
-impl LayoutSVGSVGElementHelpers for LayoutJS<SVGSVGElement> {
+impl LayoutSVGSVGElementHelpers for LayoutDom<SVGSVGElement> {
     #[allow(unsafe_code)]
     fn data(&self) -> SVGSVGData {
         unsafe {

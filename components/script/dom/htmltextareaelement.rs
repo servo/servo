@@ -9,7 +9,7 @@ use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::root::{LayoutJS, MutNullableDom, Root};
+use dom::bindings::root::{LayoutDom, MutNullableDom, Root};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element};
@@ -57,7 +57,7 @@ pub trait LayoutHTMLTextAreaElementHelpers {
     fn get_rows(self) -> u32;
 }
 
-impl LayoutHTMLTextAreaElementHelpers for LayoutJS<HTMLTextAreaElement> {
+impl LayoutHTMLTextAreaElementHelpers for LayoutDom<HTMLTextAreaElement> {
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
     unsafe fn get_value_for_layout(self) -> String {

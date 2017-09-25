@@ -5,7 +5,7 @@
 use cssparser::RGBA;
 use dom::bindings::codegen::Bindings::HTMLHRElementBinding::{self, HTMLHRElementMethods};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::root::{LayoutJS, Root};
+use dom::bindings::root::{LayoutDom, Root};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{Element, RawLayoutElementHelpers};
@@ -63,7 +63,7 @@ pub trait HTMLHRLayoutHelpers {
     fn get_width(&self) -> LengthOrPercentageOrAuto;
 }
 
-impl HTMLHRLayoutHelpers for LayoutJS<HTMLHRElement> {
+impl HTMLHRLayoutHelpers for LayoutDom<HTMLHRElement> {
     #[allow(unsafe_code)]
     fn get_color(&self) -> Option<RGBA> {
         unsafe {

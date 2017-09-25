@@ -17,7 +17,7 @@ use dom::bindings::error::Fallible;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
-use dom::bindings::root::{LayoutJS, MutNullableDom, Root};
+use dom::bindings::root::{LayoutDom, MutNullableDom, Root};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
@@ -694,7 +694,7 @@ pub trait LayoutHTMLImageElementHelpers {
     fn get_height(&self) -> LengthOrPercentageOrAuto;
 }
 
-impl LayoutHTMLImageElementHelpers for LayoutJS<HTMLImageElement> {
+impl LayoutHTMLImageElementHelpers for LayoutDom<HTMLImageElement> {
     #[allow(unsafe_code)]
     unsafe fn image(&self) -> Option<Arc<Image>> {
         (*self.unsafe_get()).current_request.borrow_for_layout().image.clone()

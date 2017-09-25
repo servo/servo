@@ -12,7 +12,7 @@ use dom::bindings::codegen::InheritTypes::{CharacterDataTypeId, NodeTypeId};
 use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::root::{LayoutJS, Root};
+use dom::bindings::root::{LayoutDom, Root};
 use dom::bindings::str::DOMString;
 use dom::comment::Comment;
 use dom::document::Document;
@@ -253,7 +253,7 @@ pub trait LayoutCharacterDataHelpers {
 }
 
 #[allow(unsafe_code)]
-impl LayoutCharacterDataHelpers for LayoutJS<CharacterData> {
+impl LayoutCharacterDataHelpers for LayoutDom<CharacterData> {
     #[inline]
     unsafe fn data_for_layout(&self) -> &str {
         &(*self.unsafe_get()).data.borrow_for_layout()

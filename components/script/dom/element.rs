@@ -24,7 +24,7 @@ use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use dom::bindings::refcounted::{Trusted, TrustedPromise};
 use dom::bindings::reflector::DomObject;
-use dom::bindings::root::{Dom, LayoutJS, MutNullableDom, Root, RootedReference};
+use dom::bindings::root::{Dom, LayoutDom, MutNullableDom, Root, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::bindings::xmlname::{namespace_from_domstring, validate_and_extract, xml_name_type};
 use dom::bindings::xmlname::XMLName::InvalidXMLName;
@@ -384,7 +384,7 @@ pub trait RawLayoutElementHelpers {
 #[inline]
 #[allow(unsafe_code)]
 pub unsafe fn get_attr_for_layout<'a>(elem: &'a Element, namespace: &Namespace, name: &LocalName)
-                                      -> Option<LayoutJS<Attr>> {
+                                      -> Option<LayoutDom<Attr>> {
     // cast to point to T in RefCell<T> directly
     let attrs = elem.attrs.borrow_for_layout();
     attrs.iter().find(|attr| {
@@ -453,7 +453,7 @@ pub trait LayoutElementHelpers {
     fn has_selector_flags(&self, flags: ElementSelectorFlags) -> bool;
 }
 
-impl LayoutElementHelpers for LayoutJS<Element> {
+impl LayoutElementHelpers for LayoutDom<Element> {
     #[allow(unsafe_code)]
     #[inline]
     unsafe fn has_class_for_layout(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {

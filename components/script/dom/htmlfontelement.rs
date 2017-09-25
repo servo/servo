@@ -7,7 +7,7 @@ use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLFontElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFontElementBinding::HTMLFontElementMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::root::{LayoutJS, Root};
+use dom::bindings::root::{LayoutDom, Root};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{Element, RawLayoutElementHelpers};
@@ -96,7 +96,7 @@ pub trait HTMLFontElementLayoutHelpers {
     fn get_size(&self) -> Option<u32>;
 }
 
-impl HTMLFontElementLayoutHelpers for LayoutJS<HTMLFontElement> {
+impl HTMLFontElementLayoutHelpers for LayoutDom<HTMLFontElement> {
     #[allow(unsafe_code)]
     fn get_color(&self) -> Option<RGBA> {
         unsafe {

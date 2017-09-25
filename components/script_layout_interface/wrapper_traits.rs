@@ -79,7 +79,7 @@ pub trait GetLayoutData {
 }
 
 /// A wrapper so that layout can access only the methods that it should have access to. Layout must
-/// only ever see these and must never see instances of `LayoutJS`.
+/// only ever see these and must never see instances of `LayoutDom`.
 pub trait LayoutNode: Debug + GetLayoutData + TNode {
     type ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode;
     fn to_threadsafe(&self) -> Self::ConcreteThreadSafeLayoutNode;
