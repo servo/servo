@@ -182,57 +182,57 @@ ${helpers.predefined_type("marker-end", "UrlOrNone", "Either::Second(None_)",
     pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
                          -> Result<SpecifiedValue,ParseError<'i>> {
         if let Ok(()) = input.try(|i| i.expect_ident_matching("normal")) {
-            Ok(SpecifiedValue(0))
-        } else {
-            let mut value = 0;
-            // bitfield representing what we've seen so far
-            // bit 1 is fill, bit 2 is stroke, bit 3 is markers
-            let mut seen = 0;
-            let mut pos = 0;
+            return Ok(SpecifiedValue(0))
+        }
 
-            loop {
-                let result: Result<_, ParseError> = input.try(|i| {
-                    try_match_ident_ignore_ascii_case! { i.expect_ident()?,
-                        "fill" => Ok(FILL),
-                        "stroke" => Ok(STROKE),
-                        "markers" => Ok(MARKERS),
-                    }
-                });
+        let mut value = 0;
+        // bitfield representing what we've seen so far
+        // bit 1 is fill, bit 2 is stroke, bit 3 is markers
+        let mut seen = 0;
+        let mut pos = 0;
 
-                match result {
-                    Ok(val) => {
-                        if (seen & (1 << val)) != 0 {
-                            // don't parse the same ident twice
-                            return Err(StyleParseError::UnspecifiedError.into())
-                        } else {
-                            value |= val << (pos * SHIFT);
-                            seen |= 1 << val;
-                            pos += 1;
-                        }
-                    }
-                    Err(_) => break,
+        loop {
+            let result: Result<_, ParseError> = input.try(|i| {
+                try_match_ident_ignore_ascii_case! { i.expect_ident()?,
+                    "fill" => Ok(FILL),
+                    "stroke" => Ok(STROKE),
+                    "markers" => Ok(MARKERS),
                 }
-            }
+            });
 
-            if value == 0 {
-                // couldn't find any keyword
-                Err(StyleParseError::UnspecifiedError.into())
-            } else {
-                // fill in rest
-                for i in pos..COUNT {
-                    for paint in &ALL {
-                        // if not seen, set bit at position, mark as seen
-                        if (seen & (1 << paint)) == 0 {
-                            seen |= 1 << paint;
-                            value |= paint << (i * SHIFT);
-                            break;
-                        }
+            match result {
+                Ok(val) => {
+                    if (seen & (1 << val)) != 0 {
+                        // don't parse the same ident twice
+                        return Err(StyleParseError::UnspecifiedError.into())
                     }
-                }
 
-                Ok(SpecifiedValue(value))
+                    value |= val << (pos * SHIFT);
+                    seen |= 1 << val;
+                    pos += 1;
+                }
+                Err(_) => break,
             }
         }
+
+        if value == 0 {
+            // couldn't find any keyword
+            return Err(StyleParseError::UnspecifiedError.into())
+        }
+
+        // fill in rest
+        for i in pos..COUNT {
+            for paint in &ALL {
+                // if not seen, set bit at position, mark as seen
+                if (seen & (1 << paint)) == 0 {
+                    seen |= 1 << paint;
+                    value |= paint << (i * SHIFT);
+                    break;
+                }
+            }
+        }
+
+        Ok(SpecifiedValue(value))
     }
 
     impl ToCss for SpecifiedValue {
