@@ -20,18 +20,18 @@ pub enum LoadType {
     Subframe(ServoUrl),
     Stylesheet(ServoUrl),
     PageSource(ServoUrl),
-    Media(ServoUrl),
+    Media,
 }
 
 impl LoadType {
-    fn url(&self) -> &ServoUrl {
+    fn url(&self) -> Option<&ServoUrl> {
         match *self {
             LoadType::Image(ref url) |
             LoadType::Script(ref url) |
             LoadType::Subframe(ref url) |
             LoadType::Stylesheet(ref url) |
-            LoadType::Media(ref url) |
-            LoadType::PageSource(ref url) => url,
+            LoadType::PageSource(ref url) => Some(url),
+            LoadType::Media => None,
         }
     }
 }
@@ -68,7 +68,7 @@ impl LoadBlocker {
 
     /// Return the url associated with this load.
     pub fn url(&self) -> Option<&ServoUrl> {
-        self.load.as_ref().map(LoadType::url)
+        self.load.as_ref().and_then(LoadType::url)
     }
 }
 
