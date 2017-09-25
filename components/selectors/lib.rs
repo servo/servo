@@ -10,7 +10,6 @@
 #[macro_use] extern crate log;
 #[macro_use] extern crate matches;
 extern crate fnv;
-extern crate lru_cache;
 extern crate malloc_size_of;
 #[macro_use] extern crate malloc_size_of_derive;
 extern crate phf;

@@ -30,7 +30,6 @@ log = "0.3"
 fnv = "1.0"
 malloc_size_of = { path = "../malloc_size_of" }
 malloc_size_of_derive = { path = "../malloc_size_of_derive" }
-lru_cache = { path = "../lru_cache" }
 phf = "0.7.18"
 precomputed-hash = "0.1"
 servo_arc = { path = "../servo_arc" }
