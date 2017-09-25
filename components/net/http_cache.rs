@@ -15,16 +15,17 @@ use hyper::status::StatusCode;
 use net_traits::Metadata;
 use net_traits::request::Request;
 use net_traits::response::{Response, ResponseBody};
+use servo_url::ServoUrl;
 use std::collections::HashMap;
 use std::iter::Map;
 use std::mem;
+use std::str::FromStr;
 use std::str::Split;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::Sender;
 use std::u64::{self, MAX, MIN};
 use time;
 use time::{Duration, Tm, Timespec};
-use url::Url;
 
 //TODO: Store an Arc<Vec<u8>> instead?
 //TODO: Cache HEAD requests
@@ -41,7 +42,7 @@ use url::Url;
 /// The key used to differentiate requests in the cache.
 #[derive(Clone, Eq, Hash, PartialEq)]
 pub struct CacheKey {
-    url: Url,
+    url: ServoUrl,
     request_headers: Vec<(String, String)>,
 }
 
@@ -51,7 +52,8 @@ impl CacheKey {
             url: request.url().clone(),
             request_headers: request.headers
                                       .iter()
-                                      .map(|header| (*header.name().toString(), header.value_string()))
+                                      .map(|header| (String::from_str(header.name()).unwrap_or(String::from("None")),
+                                                      header.value_string()))
                                       .collect(),
         }
     }
