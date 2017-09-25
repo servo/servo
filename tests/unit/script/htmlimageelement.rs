@@ -17,7 +17,7 @@ pub fn test_length_for_no_default_provided(len: f32) -> Length {
 
 #[test]
 fn no_default_provided() {
-    let a = vec![size];
+    let mut a = vec![];
     let length = test_length_for_no_default_provided(100f32);
     let size = Size { query: None, length: length };
     a.push(size);
@@ -31,7 +31,7 @@ pub fn test_length_for_default_provided(len: f32) -> Length {
 
 #[test]
 fn default_provided() {
-    let a = vec![size];
+    let mut a = vec![];
     let length = test_length_for_default_provided(2f32);
     let size = Size { query: None, length: length };
     a.push(size);
@@ -56,7 +56,7 @@ pub fn test_length(len: f32) -> Length {
 
 #[test]
 fn one_value() {
-    let a = vec![size];
+    let mut a = vec![];
     let media_query = test_media_query(200f32);
     let length = test_length(545f32);
     let size = Size { query: Some(media_query), length: length };
@@ -79,7 +79,7 @@ fn more_then_one_value() {
 
 #[test]
 fn no_extra_whitespace() {
-    let a = vec![size];
+    let mut a = vec![];
     let media_query = test_media_query(200f32);
     let length = test_length(545f32);
     let size = Size { query: Some(media_query), length: length };
