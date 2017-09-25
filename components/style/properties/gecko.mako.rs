@@ -5060,51 +5060,14 @@ clip-path
 <%self:impl_trait style_struct_name="InheritedSVG"
                   skip_longhands="paint-order stroke-dasharray -moz-context-properties">
     pub fn set_paint_order(&mut self, v: longhands::paint_order::computed_value::T) {
-        use self::longhands::paint_order;
-
-        if v.0 == 0 {
-            self.gecko.mPaintOrder = structs::NS_STYLE_PAINT_ORDER_NORMAL as u8;
-        } else {
-            let mut order = 0;
-
-            for pos in 0..3 {
-                let geckoval = match v.bits_at(pos) {
-                    paint_order::FILL => structs::NS_STYLE_PAINT_ORDER_FILL as u8,
-                    paint_order::STROKE => structs::NS_STYLE_PAINT_ORDER_STROKE as u8,
-                    paint_order::MARKERS => structs::NS_STYLE_PAINT_ORDER_MARKERS as u8,
-                    _ => unreachable!(),
-                };
-                order |= geckoval << (pos * structs::NS_STYLE_PAINT_ORDER_BITWIDTH as u8);
-            }
-
-            self.gecko.mPaintOrder = order;
-        }
+        self.gecko.mPaintOrder = v.0;
     }
 
     ${impl_simple_copy('paint_order', 'mPaintOrder')}
 
     pub fn clone_paint_order(&self) -> longhands::paint_order::computed_value::T {
-        use self::longhands::paint_order::{COUNT, FILL, MARKERS, NORMAL, SHIFT, STROKE};
-        use self::longhands::paint_order::computed_value::T;
-
-        if self.gecko.mPaintOrder == structs::NS_STYLE_PAINT_ORDER_NORMAL as u8 {
-            return T(NORMAL);
-        }
-
-        const PAINT_ORDER_BITWIDTH: u8 = structs::NS_STYLE_PAINT_ORDER_BITWIDTH as u8;
-        let mask = (1 << PAINT_ORDER_BITWIDTH) - 1;
-        let mut order = 0;
-        for pos in 0..COUNT {
-            let value =
-                match (self.gecko.mPaintOrder >> pos * PAINT_ORDER_BITWIDTH & mask) as u32 {
-                    structs::NS_STYLE_PAINT_ORDER_FILL => FILL,
-                    structs::NS_STYLE_PAINT_ORDER_STROKE => STROKE,
-                    structs::NS_STYLE_PAINT_ORDER_MARKERS => MARKERS,
-                    _ => unreachable!(),
-                };
-            order |= value << (pos * SHIFT);
-        };
-        T(order)
+        use properties::longhands::paint_order::computed_value::T;
+        T(self.gecko.mPaintOrder)
     }
 
     pub fn set_stroke_dasharray(&mut self, v: longhands::stroke_dasharray::computed_value::T) {
