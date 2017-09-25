@@ -8,6 +8,7 @@
 //! without bound. Implements the logic specified in http://tools.ietf.org/html/rfc7234
 //! and http://tools.ietf.org/html/rfc7232.
 
+use hyper::header;
 use hyper::header::EntityTag;
 use hyper::header::Headers;
 use hyper::method::Method;
@@ -152,8 +153,10 @@ fn any_token_matches(header: &str, tokens: &[&str]) -> bool {
 /// Determine if a given response is cacheable based on the initial metadata received.
 /// Based on http://tools.ietf.org/html/rfc7234#section-5
 fn response_is_cacheable(metadata: &Metadata) -> bool {
-    if metadata.status != StatusCode::Ok {
-        return false;
+    if let Some((_, status)) = metadata.status {
+        if status != b"OK".to_vec() {
+            return false;
+        }
     }
 
     if metadata.headers.is_none() {
@@ -161,20 +164,27 @@ fn response_is_cacheable(metadata: &Metadata) -> bool {
     }
 
     let headers = metadata.headers.as_ref().unwrap();
-    match headers.cache_control {
-        Some(ref cache_control) => {
-            if any_token_matches("cache_control[]", &["no-cache", "no-store", "max-age=0"]) {
+    match headers.get::<header::CacheControl>() {
+        Some(&header::CacheControl(directive)) => {
+            let has_no_cache_directives = directive.iter().any(|directive|
+                match *directive {
+                    header::CacheDirective::NoCache |
+                    header::CacheDirective::NoStore |
+                    header::CacheDirective::MaxAge(0u32) => {
+                        true
+                    },
+                    _ => false,
+            });
+            if has_no_cache_directives {
                 return false;
             }
-        }
+        },
         None => ()
     }
 
-    match headers.pragma {
-        Some(ref pragma) => {
-            if any_token_matches("pragma[]", &["no-cache"]) {
-                return false;
-            }
+    match headers.get::<header::Pragma>() {
+        Some(&header::Pragma::NoCache) => {
+            return false;
         }
         None => ()
     }
