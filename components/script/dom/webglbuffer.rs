@@ -7,8 +7,8 @@ use canvas_traits::webgl::{WebGLBufferId, WebGLCommand, WebGLError, WebGLMsgSend
 use canvas_traits::webgl::webgl_channel;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::WebGLBufferBinding;
-use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::Root;
 use dom::webglobject::WebGLObject;
 use dom::window::Window;
 use dom_struct::dom_struct;

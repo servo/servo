@@ -9,8 +9,8 @@ use dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScop
 use dom::bindings::conversions::root_from_object;
 use dom::bindings::error::{ErrorInfo, report_pending_exception};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{MutNullableJS, Root};
 use dom::bindings::reflector::DomObject;
+use dom::bindings::root::{MutNullableJS, Root};
 use dom::bindings::settings_stack::{AutoEntryScript, entry_global, incumbent_global};
 use dom::bindings::str::DOMString;
 use dom::crypto::Crypto;

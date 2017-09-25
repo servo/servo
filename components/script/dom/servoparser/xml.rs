@@ -4,7 +4,7 @@
 
 #![allow(unrooted_must_root)]
 
-use dom::bindings::js::{JS, Root};
+use dom::bindings::root::{JS, Root};
 use dom::bindings::trace::JSTraceable;
 use dom::document::Document;
 use dom::htmlscriptelement::HTMLScriptElement;

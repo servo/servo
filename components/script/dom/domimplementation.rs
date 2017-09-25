@@ -9,8 +9,8 @@ use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, Element
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::root::{JS, Root};
 use dom::bindings::str::DOMString;
 use dom::bindings::xmlname::{namespace_from_domstring, validate_qualified_name};
 use dom::document::{Document, HasBrowsingContext, IsHTMLDocument};

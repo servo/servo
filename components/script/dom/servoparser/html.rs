@@ -6,7 +6,7 @@
 
 use dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
 use dom::bindings::inheritance::{Castable, CharacterDataTypeId, NodeTypeId};
-use dom::bindings::js::{JS, Root};
+use dom::bindings::root::{JS, Root};
 use dom::bindings::trace::JSTraceable;
 use dom::characterdata::CharacterData;
 use dom::document::Document;

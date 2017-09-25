@@ -10,8 +10,8 @@ use dom::bindings::codegen::Bindings::PermissionStatusBinding::{PermissionName, 
 use dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionStatusBinding::PermissionStatusMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use dom::bindings::error::Error;
-use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
+use dom::bindings::root::{JS, Root};
 use dom::bindings::str::DOMString;
 use dom::bluetooth::{AsyncBluetoothListener, Bluetooth, AllowedBluetoothDevice};
 use dom::bluetoothdevice::BluetoothDevice;

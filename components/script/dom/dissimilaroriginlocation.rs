@@ -5,9 +5,9 @@
 use dom::bindings::codegen::Bindings::DissimilarOriginLocationBinding;
 use dom::bindings::codegen::Bindings::DissimilarOriginLocationBinding::DissimilarOriginLocationMethods;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
-use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::Reflector;
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::{JS, Root};
 use dom::bindings::str::DOMString;
 use dom::bindings::str::USVString;
 use dom::dissimilaroriginwindow::DissimilarOriginWindow;

@@ -6,8 +6,8 @@ use dom::bindings::codegen::Bindings::DOMPointBinding::{DOMPointInit, DOMPointMe
 use dom::bindings::codegen::Bindings::DOMQuadBinding::{DOMQuadInit, DOMQuadMethods, Wrap};
 use dom::bindings::codegen::Bindings::DOMRectReadOnlyBinding::DOMRectInit;
 use dom::bindings::error::Fallible;
-use dom::bindings::js::{Root, JS};
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use dom::bindings::root::{Root, JS};
 use dom::dompoint::DOMPoint;
 use dom::domrect::DOMRect;
 use dom::globalscope::GlobalScope;

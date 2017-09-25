@@ -5,8 +5,8 @@
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::PerformanceObserverEntryListBinding;
 use dom::bindings::codegen::Bindings::PerformanceObserverEntryListBinding::PerformanceObserverEntryListMethods;
-use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::root::Root;
 use dom::bindings::str::DOMString;
 use dom::globalscope::GlobalScope;
 use dom::performance::PerformanceEntryList;

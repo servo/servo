@@ -5,7 +5,7 @@
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::TestWorkletGlobalScopeBinding;
 use dom::bindings::codegen::Bindings::TestWorkletGlobalScopeBinding::TestWorkletGlobalScopeMethods;
-use dom::bindings::js::Root;
+use dom::bindings::root::Root;
 use dom::bindings::str::DOMString;
 use dom::worklet::WorkletExecutor;
 use dom::workletglobalscope::WorkletGlobalScope;

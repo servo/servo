@@ -30,10 +30,10 @@
 //! For more information, see:
 //!
 //! * rooting pointers on the stack:
-//!   the [`Root`](bindings/js/struct.Root.html) smart pointer;
-//! * tracing pointers in member fields: the [`JS`](bindings/js/struct.JS.html),
-//!   [`MutNullableJS`](bindings/js/struct.MutNullableJS.html) and
-//!   [`MutJS`](bindings/js/struct.MutJS.html) smart pointers and
+//!   the [`Root`](bindings/root/struct.Root.html) smart pointer;
+//! * tracing pointers in member fields: the [`JS`](bindings/root/struct.JS.html),
+//!   [`MutNullableJS`](bindings/root/struct.MutNullableJS.html) and
+//!   [`MutJS`](bindings/root/struct.MutJS.html) smart pointers and
 //!   [the tracing implementation](bindings/trace/index.html);
 //! * rooting pointers from across thread boundaries or in channels: the
 //!   [`Trusted`](bindings/refcounted/struct.Trusted.html) smart pointer;
@@ -195,7 +195,7 @@
 //! =================================
 //!
 //! Layout code can access the DOM through the
-//! [`LayoutJS`](bindings/js/struct.LayoutJS.html) smart pointer. This does not
+//! [`LayoutJS`](bindings/root/struct.LayoutJS.html) smart pointer. This does not
 //! keep the DOM object alive; we ensure that no DOM code (Garbage Collection
 //! in particular) runs while the layout thread is accessing the DOM.
 //!

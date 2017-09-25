@@ -8,8 +8,8 @@ use dom::bindings::codegen::Bindings::WebGLContextEventBinding::WebGLContextEven
 use dom::bindings::codegen::Bindings::WebGLContextEventBinding::WebGLContextEventMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::Root;
 use dom::bindings::str::DOMString;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::window::Window;

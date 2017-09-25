@@ -4,8 +4,8 @@
 
 use dom::bindings::codegen::Bindings::ValidityStateBinding;
 use dom::bindings::codegen::Bindings::ValidityStateBinding::ValidityStateMethods;
-use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::root::{JS, Root};
 use dom::element::Element;
 use dom::window::Window;
 use dom_struct::dom_struct;

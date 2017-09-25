@@ -4,10 +4,9 @@
 
 use dom::bindings::codegen::Bindings::StylePropertyMapReadOnlyBinding::StylePropertyMapReadOnlyMethods;
 use dom::bindings::codegen::Bindings::StylePropertyMapReadOnlyBinding::Wrap;
-use dom::bindings::js::JS;
-use dom::bindings::js::Root;
 use dom::bindings::reflector::Reflector;
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::{JS, Root};
 use dom::bindings::str::DOMString;
 use dom::cssstylevalue::CSSStyleValue;
 use dom::globalscope::GlobalScope;

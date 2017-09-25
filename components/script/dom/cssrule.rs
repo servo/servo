@@ -4,8 +4,8 @@
 
 use dom::bindings::codegen::Bindings::CSSRuleBinding::CSSRuleMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::Reflector;
+use dom::bindings::root::{JS, Root};
 use dom::bindings::str::DOMString;
 use dom::cssfontfacerule::CSSFontFaceRule;
 use dom::cssimportrule::CSSImportRule;

@@ -5,9 +5,9 @@
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::VRFieldOfViewBinding;
 use dom::bindings::codegen::Bindings::VRFieldOfViewBinding::VRFieldOfViewMethods;
-use dom::bindings::js::Root;
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::root::Root;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use webvr_traits::WebVRFieldOfView;

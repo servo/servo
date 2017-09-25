@@ -4,8 +4,8 @@
 
 use dom::bindings::codegen::Bindings::ClientBinding::{ClientMethods, Wrap};
 use dom::bindings::codegen::Bindings::ClientBinding::FrameType;
-use dom::bindings::js::{Root, MutNullableJS};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::root::{Root, MutNullableJS};
 use dom::bindings::str::{DOMString, USVString};
 use dom::serviceworker::ServiceWorker;
 use dom::window::Window;

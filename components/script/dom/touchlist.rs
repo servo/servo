@@ -4,8 +4,8 @@
 
 use dom::bindings::codegen::Bindings::TouchListBinding;
 use dom::bindings::codegen::Bindings::TouchListBinding::TouchListMethods;
-use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::root::{JS, Root};
 use dom::touch::Touch;
 use dom::window::Window;
 use dom_struct::dom_struct;

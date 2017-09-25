@@ -5,7 +5,7 @@
 //! Tracking of pending loads in a document.
 //! https://html.spec.whatwg.org/multipage/#the-end
 
-use dom::bindings::js::JS;
+use dom::bindings::root::JS;
 use dom::document::Document;
 use ipc_channel::ipc::IpcSender;
 use net_traits::{CoreResourceMsg, FetchResponseMsg, ResourceThreads, IpcSend};

@@ -8,8 +8,8 @@ use dom::bindings::codegen::Bindings::URLSearchParamsBinding::URLSearchParamsWra
 use dom::bindings::codegen::UnionTypes::USVStringOrURLSearchParams;
 use dom::bindings::error::Fallible;
 use dom::bindings::iterable::Iterable;
-use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::root::Root;
 use dom::bindings::str::{DOMString, USVString};
 use dom::bindings::weakref::MutableWeakRef;
 use dom::globalscope::GlobalScope;

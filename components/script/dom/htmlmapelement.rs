@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::HTMLMapElementBinding;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
+use dom::bindings::root::Root;
 use dom::document::Document;
 use dom::htmlareaelement::HTMLAreaElement;
 use dom::htmlelement::HTMLElement;

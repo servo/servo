@@ -5,8 +5,8 @@
 use dom::bindings::codegen::Bindings::DOMStringMapBinding;
 use dom::bindings::codegen::Bindings::DOMStringMapBinding::DOMStringMapMethods;
 use dom::bindings::error::ErrorResult;
-use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::root::{JS, Root};
 use dom::bindings::str::DOMString;
 use dom::htmlelement::HTMLElement;
 use dom::node::window_from_node;

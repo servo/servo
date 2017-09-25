@@ -4,8 +4,8 @@
 
 use dom::bindings::codegen::Bindings::ScreenBinding;
 use dom::bindings::codegen::Bindings::ScreenBinding::ScreenMethods;
-use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::root::Root;
 use dom::window::Window;
 use dom_struct::dom_struct;
 

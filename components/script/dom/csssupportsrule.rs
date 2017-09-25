@@ -5,8 +5,8 @@
 use cssparser::{Parser, ParserInput};
 use dom::bindings::codegen::Bindings::CSSSupportsRuleBinding;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
-use dom::bindings::js::Root;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
+use dom::bindings::root::Root;
 use dom::bindings::str::DOMString;
 use dom::cssconditionrule::CSSConditionRule;
 use dom::cssrule::SpecificCSSRule;

@@ -6,8 +6,8 @@ use dom::bindings::codegen::Bindings::PermissionStatusBinding::{PermissionDescri
 use dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionStatusMethods;
 use dom::bindings::codegen::Bindings::PermissionsBinding::{self, PermissionsMethods};
 use dom::bindings::error::Error;
-use dom::bindings::js::Root;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use dom::bindings::root::Root;
 use dom::bluetooth::Bluetooth;
 use dom::bluetoothpermissionresult::BluetoothPermissionResult;
 use dom::globalscope::GlobalScope;

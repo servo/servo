@@ -7,8 +7,8 @@ use dom::bindings::codegen::Bindings::BluetoothAdvertisingEventBinding::Bluetoot
 use dom::bindings::codegen::Bindings::EventBinding::EventBinding::EventMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, Root, RootedReference};
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::{JS, Root, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::bluetoothdevice::BluetoothDevice;
 use dom::event::{Event, EventBubbles, EventCancelable};

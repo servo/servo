@@ -77,7 +77,7 @@ use dom::bindings::constant::{ConstantSpec, define_constants};
 use dom::bindings::conversions::{DOM_OBJECT_SLOT, DerivedFrom, get_dom_class};
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::guard::Guard;
-use dom::bindings::js::Root;
+use dom::bindings::root::Root;
 use dom::bindings::utils::{DOM_PROTOTYPE_SLOT, ProtoOrIfaceArray, get_proto_or_iface_array};
 use dom::create::create_native_html_element;
 use dom::customelementregistry::ConstructionStackEntry;

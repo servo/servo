@@ -10,8 +10,8 @@ use dom::bindings::codegen::Bindings::PerformanceObserverBinding::PerformanceObs
 use dom::bindings::codegen::Bindings::PerformanceObserverBinding::PerformanceObserverInit;
 use dom::bindings::codegen::Bindings::PerformanceObserverBinding::PerformanceObserverMethods;
 use dom::bindings::error::{Error, Fallible};
-use dom::bindings::js::Root;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use dom::bindings::root::Root;
 use dom::bindings::str::DOMString;
 use dom::globalscope::GlobalScope;
 use dom::performance::PerformanceEntryList;

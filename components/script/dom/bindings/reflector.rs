@@ -5,7 +5,7 @@
 //! The `Reflector` struct.
 
 use dom::bindings::conversions::DerivedFrom;
-use dom::bindings::js::Root;
+use dom::bindings::root::Root;
 use dom::globalscope::GlobalScope;
 use js::jsapi::{HandleObject, JSContext, JSObject, Heap};
 use std::default::Default;

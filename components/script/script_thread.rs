@@ -32,10 +32,10 @@ use dom::bindings::codegen::Bindings::TransitionEventBinding::TransitionEventIni
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::{ConversionResult, FromJSValConvertible, StringificationBehavior};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, MutNullableJS, Root, RootCollection};
-use dom::bindings::js::{RootCollectionPtr, RootedReference};
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::DomObject;
+use dom::bindings::root::{JS, MutNullableJS, Root, RootCollection};
+use dom::bindings::root::{RootCollectionPtr, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::trace::JSTraceable;

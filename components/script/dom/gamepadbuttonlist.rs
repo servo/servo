@@ -4,8 +4,8 @@
 
 use dom::bindings::codegen::Bindings::GamepadButtonListBinding;
 use dom::bindings::codegen::Bindings::GamepadButtonListBinding::GamepadButtonListMethods;
-use dom::bindings::js::{JS, Root, RootedReference};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::root::{JS, Root, RootedReference};
 use dom::gamepadbutton::GamepadButton;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;

@@ -4,9 +4,9 @@
 
 use dom::bindings::codegen::Bindings::GamepadButtonBinding;
 use dom::bindings::codegen::Bindings::GamepadButtonBinding::GamepadButtonMethods;
-use dom::bindings::js::Root;
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::root::Root;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use std::cell::Cell;

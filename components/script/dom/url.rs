@@ -5,8 +5,8 @@
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::URLBinding::{self, URLMethods};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
-use dom::bindings::js::{MutNullableJS, Root};
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use dom::bindings::root::{MutNullableJS, Root};
 use dom::bindings::str::{DOMString, USVString};
 use dom::blob::Blob;
 use dom::globalscope::GlobalScope;

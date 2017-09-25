@@ -4,8 +4,8 @@
 
 use dom::bindings::codegen::Bindings::WorkerNavigatorBinding;
 use dom::bindings::codegen::Bindings::WorkerNavigatorBinding::WorkerNavigatorMethods;
-use dom::bindings::js::{MutNullableJS, Root};
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use dom::bindings::root::{MutNullableJS, Root};
 use dom::bindings::str::DOMString;
 use dom::navigatorinfo;
 use dom::permissions::Permissions;

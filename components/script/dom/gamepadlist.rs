@@ -5,8 +5,8 @@
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::GamepadListBinding;
 use dom::bindings::codegen::Bindings::GamepadListBinding::GamepadListMethods;
-use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::root::{JS, Root};
 use dom::gamepad::Gamepad;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;

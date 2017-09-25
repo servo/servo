@@ -4,8 +4,8 @@
 
 use dom::bindings::codegen::Bindings::ServiceWorkerBinding::ServiceWorkerState;
 use dom::bindings::codegen::Bindings::ServiceWorkerRegistrationBinding::{ServiceWorkerRegistrationMethods, Wrap};
-use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::{JS, Root};
 use dom::bindings::str::USVString;
 use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;

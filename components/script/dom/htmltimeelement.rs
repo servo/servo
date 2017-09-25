@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::HTMLTimeElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTimeElementBinding::HTMLTimeElementMethods;
-use dom::bindings::js::Root;
+use dom::bindings::root::Root;
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::htmlelement::HTMLElement;

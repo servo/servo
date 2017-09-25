@@ -9,8 +9,8 @@ use dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScop
 use dom::bindings::codegen::UnionTypes::RequestOrUSVString;
 use dom::bindings::error::{Error, ErrorResult, Fallible, report_pending_exception};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{MutNullableJS, Root};
 use dom::bindings::reflector::DomObject;
+use dom::bindings::root::{MutNullableJS, Root};
 use dom::bindings::settings_stack::AutoEntryScript;
 use dom::bindings::str::DOMString;
 use dom::bindings::trace::RootedTraceableBox;

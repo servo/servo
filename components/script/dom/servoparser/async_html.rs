@@ -7,7 +7,7 @@
 use dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, Root};
+use dom::bindings::root::{JS, Root};
 use dom::bindings::str::DOMString;
 use dom::comment::Comment;
 use dom::document::Document;

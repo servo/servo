@@ -5,8 +5,8 @@
 use dom::bindings::codegen::Bindings::CompositionEventBinding::{self, CompositionEventMethods};
 use dom::bindings::codegen::Bindings::UIEventBinding::UIEventBinding::UIEventMethods;
 use dom::bindings::error::Fallible;
-use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::{Root, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::uievent::UIEvent;
 use dom::window::Window;

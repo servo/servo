@@ -7,8 +7,8 @@
 
 use dom::bindings::conversions::root_from_handleobject;
 use dom::bindings::error::{Error, Fallible};
-use dom::bindings::js::Root;
 use dom::bindings::reflector::DomObject;
+use dom::bindings::root::Root;
 use dom::blob::{Blob, BlobImpl};
 use dom::globalscope::GlobalScope;
 use js::jsapi::{Handle, HandleObject, HandleValue, MutableHandleValue, JSAutoCompartment, JSContext};

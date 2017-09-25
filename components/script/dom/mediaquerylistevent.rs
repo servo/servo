@@ -8,8 +8,8 @@ use dom::bindings::codegen::Bindings::MediaQueryListEventBinding::MediaQueryList
 use dom::bindings::codegen::Bindings::MediaQueryListEventBinding::MediaQueryListEventMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::Root;
 use dom::bindings::str::DOMString;
 use dom::event::Event;
 use dom::globalscope::GlobalScope;

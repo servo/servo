@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::HTMLHeadElementBinding;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{Root, RootedReference};
+use dom::bindings::root::{Root, RootedReference};
 use dom::document::{Document, determine_policy_for_token};
 use dom::element::Element;
 use dom::htmlelement::HTMLElement;

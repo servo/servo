@@ -9,9 +9,9 @@
 
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::error::Error;
-use dom::bindings::js::JS;
 use dom::bindings::refcounted::{Trusted, TrustedPromise};
 use dom::bindings::reflector::DomObject;
+use dom::bindings::root::JS;
 use dom::client::Client;
 use dom::promise::Promise;
 use dom::serviceworkerregistration::ServiceWorkerRegistration;

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::js::{JS, Root};
+use dom::bindings::root::{JS, Root};
 use dom::bindings::trace::JSTraceable;
 use dom::globalscope::GlobalScope;
 use js::jsapi::GetScriptedCallerGlobal;

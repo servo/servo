@@ -4,8 +4,8 @@
 
 use dom::bindings::codegen::Bindings::MutationRecordBinding::MutationRecordBinding;
 use dom::bindings::codegen::Bindings::MutationRecordBinding::MutationRecordBinding::MutationRecordMethods;
-use dom::bindings::js::{JS, MutNullableJS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::root::{JS, MutNullableJS, Root};
 use dom::bindings::str::DOMString;
 use dom::node::{Node, window_from_node};
 use dom::nodelist::NodeList;

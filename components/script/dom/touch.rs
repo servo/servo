@@ -4,9 +4,9 @@
 
 use dom::bindings::codegen::Bindings::TouchBinding;
 use dom::bindings::codegen::Bindings::TouchBinding::TouchMethods;
-use dom::bindings::js::{MutJS, Root};
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::root::{MutJS, Root};
 use dom::eventtarget::EventTarget;
 use dom::window::Window;
 use dom_struct::dom_struct;

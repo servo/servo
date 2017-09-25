@@ -25,8 +25,8 @@
 use core::nonzero::NonZero;
 use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::Error;
-use dom::bindings::js::Root;
 use dom::bindings::reflector::{DomObject, Reflector};
+use dom::bindings::root::Root;
 use dom::bindings::trace::trace_reflector;
 use dom::promise::Promise;
 use js::jsapi::JSTracer;

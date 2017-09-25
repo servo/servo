@@ -5,8 +5,8 @@
 use dom::bindings::codegen::Bindings::BluetoothCharacteristicPropertiesBinding;
 use dom::bindings::codegen::Bindings::BluetoothCharacteristicPropertiesBinding::
     BluetoothCharacteristicPropertiesMethods;
-use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::root::Root;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 

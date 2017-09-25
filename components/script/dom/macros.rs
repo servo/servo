@@ -600,8 +600,8 @@ macro_rules! rooted_vec {
 macro_rules! impl_performance_entry_struct(
     ($binding:ident, $struct:ident, $type:expr) => (
         use dom::bindings::codegen::Bindings::$binding;
-        use dom::bindings::js::Root;
         use dom::bindings::reflector::reflect_dom_object;
+        use dom::bindings::root::Root;
         use dom::bindings::str::DOMString;
         use dom::globalscope::GlobalScope;
         use dom::performanceentry::PerformanceEntry;

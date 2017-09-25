@@ -12,8 +12,8 @@
 //! `WeakBox` itself is dropped too.
 
 use core::nonzero::NonZero;
-use dom::bindings::js::Root;
 use dom::bindings::reflector::DomObject;
+use dom::bindings::root::Root;
 use dom::bindings::trace::JSTraceable;
 use heapsize::HeapSizeOf;
 use js::jsapi::{JSTracer, JS_GetReservedSlot, JS_SetReservedSlot};

@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::HTMLLIElementBinding;
 use dom::bindings::codegen::Bindings::HTMLLIElementBinding::HTMLLIElementMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
+use dom::bindings::root::Root;
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::htmlelement::HTMLElement;

@@ -34,9 +34,9 @@
 
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::{DomObject, Reflector};
+use dom::bindings::root::Root;
 use dom::bindings::str::{ByteString, DOMString, USVString};
 use dom::bindings::trace::{JSTraceable, RootedTraceableBox};
 use dom::bindings::utils::DOMClass;

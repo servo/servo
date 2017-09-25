@@ -5,8 +5,8 @@
 use dom::bindings::codegen::Bindings::NavigatorBinding;
 use dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
 use dom::bindings::codegen::Bindings::VRBinding::VRBinding::VRMethods;
-use dom::bindings::js::{MutNullableJS, Root};
 use dom::bindings::reflector::{Reflector, DomObject, reflect_dom_object};
+use dom::bindings::root::{MutNullableJS, Root};
 use dom::bindings::str::DOMString;
 use dom::bluetooth::Bluetooth;
 use dom::gamepadlist::GamepadList;

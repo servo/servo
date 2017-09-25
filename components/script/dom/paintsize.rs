@@ -4,10 +4,10 @@
 
 use dom::bindings::codegen::Bindings::PaintSizeBinding;
 use dom::bindings::codegen::Bindings::PaintSizeBinding::PaintSizeMethods;
-use dom::bindings::js::Root;
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::Reflector;
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::Root;
 use dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use dom_struct::dom_struct;
 use euclid::TypedSize2D;

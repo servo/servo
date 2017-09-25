@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::HTMLFrameSetElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFrameSetElementBinding::HTMLFrameSetElementMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::js::Root;
+use dom::bindings::root::Root;
 use dom::document::Document;
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, document_from_node};

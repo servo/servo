@@ -168,7 +168,7 @@ garbage collector about. We do this with a
 above). The implementation of `trace` for `JS<T>` is not auto-generated; this
 is where we actually call the SpiderMonkey trace hooks:
 
-[js]: http://doc.servo.org/script/dom/bindings/js/struct.JS.html
+[js]: http://doc.servo.org/script/dom/bindings/root/struct.JS.html
 
 ```rust
 pub fn trace_reflector(tracer: *mut JSTracer, description: &str, reflector: &Reflector) {
@@ -232,10 +232,10 @@ In some cases, we need to use a DOM object longer than the reference we
 received allows us to; the [`Root::from_ref` associated function][from-ref]
 allows creating a new `Root<T>` struct in that case.
 
-[root]: http://doc.servo.org/script/dom/bindings/js/struct.Root.html
+[root]: http://doc.servo.org/script/dom/bindings/root/struct.Root.html
 [raii]: https://en.wikipedia.org/wiki/Resource_Acquisition_Is_Initialization
 [new]: http://doc.servo.org/script/dom/index.html#construction
-[from-ref]: http://doc.servo.org/script/dom/bindings/js/struct.Root.html#method.from_ref
+[from-ref]: http://doc.servo.org/script/dom/bindings/root/struct.Root.html#method.from_ref
 
 We can then obtain a reference from the `Root<T>` through Rust's built-in
 [`Deref` trait][deref], which exposes a method `deref` with the following
@@ -282,10 +282,10 @@ use-after-free and other dangerous bugs.
 [lifetimes]: https://doc.rust-lang.org/book/lifetimes.html
 [ti]: https://en.wikipedia.org/wiki/Type_inference
 
-You can check out the [`js` module's documentation][js-docs] for more details
+You can check out the [`root` module's documentation][root-docs] for more details
 that didn't make it into this document.
 
-[js-docs]: http://doc.servo.org/script/dom/bindings/js/index.html
+[root-docs]: http://doc.servo.org/script/dom/bindings/root/index.html
 
 Custom static analysis
 ======================

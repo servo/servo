@@ -8,8 +8,8 @@ use dom::bindings::codegen::Bindings::KeyboardEventBinding::{KeyboardEventConsta
 use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::{Root, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::event::Event;
 use dom::uievent::UIEvent;

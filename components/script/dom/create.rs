@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::error::{report_pending_exception, throw_dom_exception};
-use dom::bindings::js::Root;
 use dom::bindings::reflector::DomObject;
+use dom::bindings::root::Root;
 use dom::customelementregistry::{is_valid_custom_element_name, upgrade_element};
 use dom::document::Document;
 use dom::element::{CustomElementCreationMode, CustomElementState, Element, ElementCreator};
