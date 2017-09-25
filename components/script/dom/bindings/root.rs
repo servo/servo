@@ -400,11 +400,11 @@ impl<T: DomObject> HeapSizeOf for MutNullableDom<T> {
 /// This should only be used as a field in other DOM objects; see warning
 /// on `Dom<T>`.
 #[must_root]
-pub struct OnceCellJS<T: DomObject> {
+pub struct DomOnceCell<T: DomObject> {
     ptr: OnceCell<Dom<T>>,
 }
 
-impl<T: DomObject> OnceCellJS<T> {
+impl<T: DomObject> DomOnceCell<T> {
     /// Retrieve a copy of the current inner value. If it is `None`, it is
     /// initialized with the result of `cb` first.
     #[allow(unrooted_must_root)]
@@ -416,17 +416,17 @@ impl<T: DomObject> OnceCellJS<T> {
     }
 }
 
-impl<T: DomObject> Default for OnceCellJS<T> {
+impl<T: DomObject> Default for DomOnceCell<T> {
     #[allow(unrooted_must_root)]
-    fn default() -> OnceCellJS<T> {
+    fn default() -> DomOnceCell<T> {
         debug_assert!(thread_state::get().is_script());
-        OnceCellJS {
+        DomOnceCell {
             ptr: OnceCell::new(),
         }
     }
 }
 
-impl<T: DomObject> HeapSizeOf for OnceCellJS<T> {
+impl<T: DomObject> HeapSizeOf for DomOnceCell<T> {
     fn heap_size_of_children(&self) -> usize {
         // See comment on HeapSizeOf for Dom<T>.
         0
@@ -434,7 +434,7 @@ impl<T: DomObject> HeapSizeOf for OnceCellJS<T> {
 }
 
 #[allow(unrooted_must_root)]
-unsafe impl<T: DomObject> JSTraceable for OnceCellJS<T> {
+unsafe impl<T: DomObject> JSTraceable for DomOnceCell<T> {
     unsafe fn trace(&self, trc: *mut JSTracer) {
         if let Some(ptr) = self.ptr.as_ref() {
             ptr.trace(trc);
