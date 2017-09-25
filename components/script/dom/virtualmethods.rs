@@ -41,6 +41,7 @@ use dom::htmloptionelement::HTMLOptionElement;
 use dom::htmloutputelement::HTMLOutputElement;
 use dom::htmlscriptelement::HTMLScriptElement;
 use dom::htmlselectelement::HTMLSelectElement;
+use dom::htmlsourceelement::HTMLSourceElement;
 use dom::htmlstyleelement::HTMLStyleElement;
 use dom::htmltablecellelement::HTMLTableCellElement;
 use dom::htmltableelement::HTMLTableElement;
@@ -230,6 +231,9 @@ pub fn vtable_for(node: &Node) -> &VirtualMethods {
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSelectElement)) => {
             node.downcast::<HTMLSelectElement>().unwrap() as &VirtualMethods
+        }
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSourceElement)) => {
+            node.downcast::<HTMLSourceElement>().unwrap() as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLStyleElement)) => {
             node.downcast::<HTMLStyleElement>().unwrap() as &VirtualMethods

@@ -50,7 +50,7 @@ interface HTMLMediaElement : HTMLElement {
            attribute boolean autoplay;
   // [CEReactions]
   //          attribute boolean loop;
-  void play();
+  Promise<void> play();
   void pause();
 
   // media controller
