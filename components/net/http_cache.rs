@@ -59,7 +59,7 @@ impl CacheKey {
     }
 
     /// Retrieve the URL associated with this key
-    pub fn url(&self) -> Url {
+    pub fn url(&self) -> ServoUrl {
         self.url.clone()
     }
 }
