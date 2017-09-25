@@ -39,7 +39,7 @@ use url::Url;
 //TODO: Vary header
 
 /// The key used to differentiate requests in the cache.
-#[derive(Clone, Hash, PartialEq, Eq)]
+#[derive(Clone, Eq, Hash, PartialEq)]
 pub struct CacheKey {
     url: Url,
     request_headers: Vec<(String, String)>,
@@ -48,10 +48,10 @@ pub struct CacheKey {
 impl CacheKey {
     fn new(request: Request) -> CacheKey {
         CacheKey {
-            url: request.url.clone(),
+            url: request.url().clone(),
             request_headers: request.headers
                                       .iter()
-                                      .map(|header| (header.header_name(), header.header_value()))
+                                      .map(|header| (*header.name().toString(), header.value_string()))
                                       .collect(),
         }
     }
