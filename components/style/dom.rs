@@ -35,8 +35,6 @@ use std::ops::Deref;
 use stylist::Stylist;
 use traversal_flags::{TraversalFlags, self};
 
-pub use style_traits::UnsafeNode;
-
 /// An opaque handle to a node, which, unlike UnsafeNode, cannot be transformed
 /// back into a non-opaque representation. The only safe operation that can be
 /// performed on this node is to compare it to another opaque handle or to another
@@ -104,12 +102,6 @@ pub trait TNode : Sized + Copy + Clone + Debug + NodeInfo {
     /// TODO(emilio): We should eventually replace this with the `impl Trait`
     /// syntax.
     type ConcreteChildrenIterator: Iterator<Item = Self>;
-
-    /// Convert this node in an `UnsafeNode`.
-    fn to_unsafe(&self) -> UnsafeNode;
-
-    /// Get a node back from an `UnsafeNode`.
-    unsafe fn from_unsafe(n: &UnsafeNode) -> Self;
 
     /// Get this node's parent node.
     fn parent_node(&self) -> Option<Self>;

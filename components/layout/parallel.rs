@@ -17,21 +17,13 @@ use servo_config::opts;
 use smallvec::SmallVec;
 use std::mem;
 use std::sync::atomic::{AtomicIsize, Ordering};
-use style::dom::UnsafeNode;
 use traversal::{AssignBSizes, AssignISizes, BubbleISizes};
 use traversal::{PostorderFlowTraversal, PreorderFlowTraversal};
 
 /// Traversal chunk size.
 const CHUNK_SIZE: usize = 16;
 
-pub type FlowList = SmallVec<[UnsafeNode; CHUNK_SIZE]>;
-
-#[allow(dead_code)]
-fn static_assertion(node: UnsafeNode) {
-    unsafe {
-        let _: UnsafeFlow = ::std::intrinsics::transmute(node);
-    }
-}
+pub type FlowList = SmallVec<[UnsafeFlow; CHUNK_SIZE]>;
 
 /// Vtable + pointer representation of a Flow trait object.
 pub type UnsafeFlow = (usize, usize);

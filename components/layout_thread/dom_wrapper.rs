@@ -61,7 +61,6 @@ use std::fmt;
 use std::fmt::Debug;
 use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
-use std::mem::transmute;
 use std::sync::atomic::Ordering;
 use style::CaseSensitivityExt;
 use style::applicable_declarations::ApplicableDeclarationBlock;
@@ -70,7 +69,7 @@ use style::computed_values::display;
 use style::context::SharedStyleContext;
 use style::data::ElementData;
 use style::dom::{LayoutIterator, NodeInfo, OpaqueNode};
-use style::dom::{PresentationalHintsSynthesizer, TElement, TNode, UnsafeNode};
+use style::dom::{PresentationalHintsSynthesizer, TElement, TNode};
 use style::element_state::*;
 use style::font_metrics::ServoMetricsProvider;
 use style::properties::{ComputedValues, PropertyDeclarationBlock};
@@ -161,17 +160,6 @@ impl<'ln> NodeInfo for ServoLayoutNode<'ln> {
 impl<'ln> TNode for ServoLayoutNode<'ln> {
     type ConcreteElement = ServoLayoutElement<'ln>;
     type ConcreteChildrenIterator = ServoChildrenIterator<'ln>;
-
-    fn to_unsafe(&self) -> UnsafeNode {
-        unsafe {
-            (self.node.unsafe_get() as usize, 0)
-        }
-    }
-
-    unsafe fn from_unsafe(n: &UnsafeNode) -> Self {
-        let (node, _) = *n;
-        transmute(node)
-    }
 
     fn parent_node(&self) -> Option<Self> {
         unsafe {

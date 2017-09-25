@@ -20,7 +20,7 @@ use applicable_declarations::ApplicableDeclarationBlock;
 use atomic_refcell::{AtomicRefCell, AtomicRefMut};
 use context::{QuirksMode, SharedStyleContext, PostAnimationTasks, UpdateAnimationsTasks};
 use data::ElementData;
-use dom::{LayoutIterator, NodeInfo, TElement, TNode, UnsafeNode};
+use dom::{LayoutIterator, NodeInfo, TElement, TNode};
 use dom::{OpaqueNode, PresentationalHintsSynthesizer};
 use element_state::{ElementState, DocumentState, NS_DOCUMENT_STATE_WINDOW_INACTIVE};
 use error_reporting::ParseErrorReporter;
@@ -245,14 +245,6 @@ impl<'ln> NodeInfo for GeckoNode<'ln> {
 impl<'ln> TNode for GeckoNode<'ln> {
     type ConcreteElement = GeckoElement<'ln>;
     type ConcreteChildrenIterator = GeckoChildrenIterator<'ln>;
-
-    fn to_unsafe(&self) -> UnsafeNode {
-        (self.0 as *const _ as usize, 0)
-    }
-
-    unsafe fn from_unsafe(n: &UnsafeNode) -> Self {
-        GeckoNode(&*(n.0 as *mut RawGeckoNode))
-    }
 
     fn parent_node(&self) -> Option<Self> {
         unsafe { self.0.mParent.as_ref().map(GeckoNode) }

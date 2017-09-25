@@ -39,10 +39,6 @@ use selectors::parser::SelectorParseError;
 #[derive(Clone, Copy, Debug)]
 pub enum DevicePixel {}
 
-/// Opaque type stored in type-unsafe work queues for parallel layout.
-/// Must be transmutable to and from `TNode`.
-pub type UnsafeNode = (usize, usize);
-
 /// Represents a mobile style pinch zoom factor.
 /// TODO(gw): Once WR supports pinch zoom, use a type directly from webrender_api.
 #[derive(Clone, Copy, Debug, PartialEq)]
