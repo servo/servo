@@ -12,7 +12,7 @@ use dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding::Dedicat
 use dom::bindings::error::{ErrorInfo, ErrorResult};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::DomObject;
-use dom::bindings::root::{Root, RootCollection};
+use dom::bindings::root::{DomRoot, RootCollection};
 use dom::bindings::str::DOMString;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::errorevent::ErrorEvent;
@@ -131,7 +131,7 @@ impl DedicatedWorkerGlobalScope {
                timer_event_chan: IpcSender<TimerEvent>,
                timer_event_port: Receiver<(TrustedWorkerAddress, TimerEvent)>,
                closing: Arc<AtomicBool>)
-               -> Root<DedicatedWorkerGlobalScope> {
+               -> DomRoot<DedicatedWorkerGlobalScope> {
         let cx = runtime.cx();
         let scope = box DedicatedWorkerGlobalScope::new_inherited(init,
                                                                   worker_url,
@@ -387,7 +387,7 @@ impl DedicatedWorkerGlobalScope {
 #[allow(unsafe_code)]
 unsafe extern "C" fn interrupt_callback(cx: *mut JSContext) -> bool {
     let worker =
-        Root::downcast::<WorkerGlobalScope>(GlobalScope::from_context(cx))
+        DomRoot::downcast::<WorkerGlobalScope>(GlobalScope::from_context(cx))
             .expect("global is not a worker scope");
     assert!(worker.is::<DedicatedWorkerGlobalScope>());
 

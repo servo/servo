@@ -9,7 +9,7 @@ use dom::bindings::codegen::Bindings::VRDisplayBinding::VRDisplayMethods;
 use dom::bindings::error::Error;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
-use dom::bindings::root::{Dom, Root};
+use dom::bindings::root::{Dom, DomRoot};
 use dom::event::Event;
 use dom::eventtarget::EventTarget;
 use dom::gamepad::Gamepad;
@@ -41,7 +41,7 @@ impl VR {
         }
     }
 
-    pub fn new(global: &GlobalScope) -> Root<VR> {
+    pub fn new(global: &GlobalScope) -> DomRoot<VR> {
         let root = reflect_dom_object(box VR::new_inherited(),
                            global,
                            VRBinding::Wrap);
@@ -83,9 +83,9 @@ impl VRMethods for VR {
             return promise;
         }
 
-        // convert from Dom to Root
-        let displays: Vec<Root<VRDisplay>> = self.displays.borrow().iter()
-                                                          .map(|d| Root::from_ref(&**d))
+        // convert from Dom to DomRoot
+        let displays: Vec<DomRoot<VRDisplay>> = self.displays.borrow().iter()
+                                                          .map(|d| DomRoot::from_ref(&**d))
                                                           .collect();
         promise.resolve_native(&displays);
 
@@ -99,11 +99,11 @@ impl VR {
         self.global().as_window().webvr_thread()
     }
 
-    fn find_display(&self, display_id: u32) -> Option<Root<VRDisplay>> {
+    fn find_display(&self, display_id: u32) -> Option<DomRoot<VRDisplay>> {
         self.displays.borrow()
                      .iter()
                      .find(|d| d.DisplayId() == display_id)
-                     .map(|d| Root::from_ref(&**d))
+                     .map(|d| DomRoot::from_ref(&**d))
     }
 
     fn register(&self) {
@@ -120,7 +120,7 @@ impl VR {
         }
     }
 
-    fn sync_display(&self, display: &WebVRDisplayData) -> Root<VRDisplay> {
+    fn sync_display(&self, display: &WebVRDisplayData) -> DomRoot<VRDisplay> {
         if let Some(existing) = self.find_display(display.display_id) {
             existing.update_display(&display);
             existing
@@ -206,11 +206,11 @@ impl VR {
 
 // Gamepad
 impl VR {
-    fn find_gamepad(&self, gamepad_id: u32) -> Option<Root<Gamepad>> {
+    fn find_gamepad(&self, gamepad_id: u32) -> Option<DomRoot<Gamepad>> {
         self.gamepads.borrow()
                      .iter()
                      .find(|g| g.gamepad_id() == gamepad_id)
-                     .map(|g| Root::from_ref(&**g))
+                     .map(|g| DomRoot::from_ref(&**g))
     }
 
     fn sync_gamepad(&self, data: Option<WebVRGamepadData>, state: &WebVRGamepadState) {
@@ -234,7 +234,7 @@ impl VR {
     // The current approach allows the to sample gamepad state multiple times per frame. This
     // guarantees that the gamepads always have a valid state and can be very useful for
     // motion capture or drawing applications.
-    pub fn get_gamepads(&self) -> Vec<Root<Gamepad>> {
+    pub fn get_gamepads(&self) -> Vec<DomRoot<Gamepad>> {
         if let Some(wevbr_sender) = self.webvr_thread() {
             let (sender, receiver) = ipc::channel().unwrap();
             let synced_ids = self.gamepads.borrow().iter().map(|g| g.gamepad_id()).collect();
@@ -252,7 +252,7 @@ impl VR {
 
         // We can add other not VR related gamepad providers here
         self.gamepads.borrow().iter()
-                              .map(|g| Root::from_ref(&**g))
+                              .map(|g| DomRoot::from_ref(&**g))
                               .collect()
     }
 }

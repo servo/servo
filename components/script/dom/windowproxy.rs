@@ -7,7 +7,7 @@ use dom::bindings::error::{Error, throw_dom_exception};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::proxyhandler::{fill_property_descriptor, get_property_descriptor};
 use dom::bindings::reflector::{DomObject, Reflector};
-use dom::bindings::root::{Dom, Root, RootedReference};
+use dom::bindings::root::{Dom, DomRoot, RootedReference};
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{WindowProxyHandler, get_array_index_from_id, AsVoidPtr};
 use dom::dissimilaroriginwindow::DissimilarOriginWindow;
@@ -97,7 +97,7 @@ impl WindowProxy {
                top_level_browsing_context_id: TopLevelBrowsingContextId,
                frame_element: Option<&Element>,
                parent: Option<&WindowProxy>)
-               -> Root<WindowProxy>
+               -> DomRoot<WindowProxy>
     {
         unsafe {
             let WindowProxyHandler(handler) = window.windowproxy_handler();
@@ -131,7 +131,7 @@ impl WindowProxy {
             // Set the reflector.
             debug!("Initializing reflector of {:p} to {:p}.", window_proxy, js_proxy.get());
             window_proxy.reflector.set_jsobject(js_proxy.get());
-            Root::from_ref(&*Box::into_raw(window_proxy))
+            DomRoot::from_ref(&*Box::into_raw(window_proxy))
         }
     }
 
@@ -140,7 +140,7 @@ impl WindowProxy {
                                  browsing_context_id: BrowsingContextId,
                                  top_level_browsing_context_id: TopLevelBrowsingContextId,
                                  parent: Option<&WindowProxy>)
-                                 -> Root<WindowProxy>
+                                 -> DomRoot<WindowProxy>
     {
         unsafe {
             let handler = CreateWrapperProxyHandler(&XORIGIN_PROXY_HANDLER);
@@ -176,7 +176,7 @@ impl WindowProxy {
             // Set the reflector.
             debug!("Initializing reflector of {:p} to {:p}.", window_proxy, js_proxy.get());
             window_proxy.reflector.set_jsobject(js_proxy.get());
-            Root::from_ref(&*Box::into_raw(window_proxy))
+            DomRoot::from_ref(&*Box::into_raw(window_proxy))
         }
     }
 
@@ -278,7 +278,7 @@ impl WindowProxy {
 unsafe fn GetSubframeWindow(cx: *mut JSContext,
                             proxy: HandleObject,
                             id: HandleId)
-                            -> Option<Root<Window>> {
+                            -> Option<DomRoot<Window>> {
     let index = get_array_index_from_id(cx, id);
     if let Some(index) = index {
         rooted!(in(cx) let target = GetProxyPrivate(*proxy.ptr).to_object());

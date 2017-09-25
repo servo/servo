@@ -15,7 +15,7 @@ use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding::Bluetoo
 use dom::bindings::error::Error::{self, InvalidModification, Network, NotSupported, Security};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
-use dom::bindings::root::{Dom, Root};
+use dom::bindings::root::{Dom, DomRoot};
 use dom::bindings::str::{ByteString, DOMString};
 use dom::bluetooth::{AsyncBluetoothListener, get_gatt_children, response_async};
 use dom::bluetoothcharacteristicproperties::BluetoothCharacteristicProperties;
@@ -64,7 +64,7 @@ impl BluetoothRemoteGATTCharacteristic {
                uuid: DOMString,
                properties: &BluetoothCharacteristicProperties,
                instanceID: String)
-               -> Root<BluetoothRemoteGATTCharacteristic> {
+               -> DomRoot<BluetoothRemoteGATTCharacteristic> {
         reflect_dom_object(box BluetoothRemoteGATTCharacteristic::new_inherited(service,
                                                                                 uuid,
                                                                                 properties,
@@ -84,13 +84,13 @@ impl BluetoothRemoteGATTCharacteristic {
 
 impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteristic {
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-properties
-    fn Properties(&self) -> Root<BluetoothCharacteristicProperties> {
-        Root::from_ref(&self.properties)
+    fn Properties(&self) -> DomRoot<BluetoothCharacteristicProperties> {
+        DomRoot::from_ref(&self.properties)
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-service
-    fn Service(&self) -> Root<BluetoothRemoteGATTService> {
-        Root::from_ref(&self.service)
+    fn Service(&self) -> DomRoot<BluetoothRemoteGATTService> {
+        DomRoot::from_ref(&self.service)
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-uuid

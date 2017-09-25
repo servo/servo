@@ -6,7 +6,7 @@ use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::VRDisplayCapabilitiesBinding;
 use dom::bindings::codegen::Bindings::VRDisplayCapabilitiesBinding::VRDisplayCapabilitiesMethods;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::root::Root;
+use dom::bindings::root::DomRoot;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use webvr_traits::WebVRDisplayCapabilities;
@@ -28,7 +28,7 @@ impl VRDisplayCapabilities {
         }
     }
 
-    pub fn new(capabilities: WebVRDisplayCapabilities, global: &GlobalScope) -> Root<VRDisplayCapabilities> {
+    pub fn new(capabilities: WebVRDisplayCapabilities, global: &GlobalScope) -> DomRoot<VRDisplayCapabilities> {
         reflect_dom_object(box VRDisplayCapabilities::new_inherited(capabilities),
                            global,
                            VRDisplayCapabilitiesBinding::Wrap)

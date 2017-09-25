@@ -11,7 +11,7 @@ use dom::bindings::codegen::Bindings::PerformanceObserverBinding::PerformanceObs
 use dom::bindings::codegen::Bindings::PerformanceObserverBinding::PerformanceObserverMethods;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
-use dom::bindings::root::Root;
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::globalscope::GlobalScope;
 use dom::performance::PerformanceEntryList;
@@ -52,19 +52,19 @@ impl PerformanceObserver {
     pub fn new(global: &GlobalScope,
                callback: Rc<PerformanceObserverCallback>,
                entries: DOMPerformanceEntryList)
-        -> Root<PerformanceObserver> {
+        -> DomRoot<PerformanceObserver> {
         let observer = PerformanceObserver::new_inherited(callback, DomRefCell::new(entries));
         reflect_dom_object(box observer, global, PerformanceObserverBinding::Wrap)
     }
 
     pub fn Constructor(global: &GlobalScope, callback: Rc<PerformanceObserverCallback>)
-        -> Fallible<Root<PerformanceObserver>> {
+        -> Fallible<DomRoot<PerformanceObserver>> {
         Ok(PerformanceObserver::new(global, callback, Vec::new()))
     }
 
     /// Buffer a new performance entry.
     pub fn queue_entry(&self, entry: &PerformanceEntry) {
-        self.entries.borrow_mut().push(Root::from_ref(entry));
+        self.entries.borrow_mut().push(DomRoot::from_ref(entry));
     }
 
     /// Trigger performance observer callback with the list of performance entries

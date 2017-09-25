@@ -17,7 +17,7 @@ use dom::bindings::error::Fallible;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
-use dom::bindings::root::{LayoutDom, MutNullableDom, Root};
+use dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
@@ -569,7 +569,7 @@ impl HTMLImageElement {
         // step 6, await a stable state.
         self.generation.set(self.generation.get() + 1);
         let task = ImageElementMicrotask::StableStateUpdateImageDataTask {
-            elem: Root::from_ref(self),
+            elem: DomRoot::from_ref(self),
             generation: self.generation.get(),
         };
         ScriptThread::await_stable_state(Microtask::ImageElement(task));
@@ -605,7 +605,7 @@ impl HTMLImageElement {
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
-               document: &Document) -> Root<HTMLImageElement> {
+               document: &Document) -> DomRoot<HTMLImageElement> {
         Node::reflect_node(box HTMLImageElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLImageElementBinding::Wrap)
@@ -613,7 +613,7 @@ impl HTMLImageElement {
 
     pub fn Image(window: &Window,
                  width: Option<u32>,
-                 height: Option<u32>) -> Fallible<Root<HTMLImageElement>> {
+                 height: Option<u32>) -> Fallible<DomRoot<HTMLImageElement>> {
         let document = window.Document();
         let image = HTMLImageElement::new(local_name!("img"), None, &document);
         if let Some(w) = width {
@@ -625,7 +625,7 @@ impl HTMLImageElement {
 
         Ok(image)
     }
-    pub fn areas(&self) -> Option<Vec<Root<HTMLAreaElement>>> {
+    pub fn areas(&self) -> Option<Vec<DomRoot<HTMLAreaElement>>> {
         let elem = self.upcast::<Element>();
         let usemap_attr = match elem.get_attribute(&ns!(), &local_name!("usemap")) {
             Some(attr) => attr,
@@ -646,7 +646,7 @@ impl HTMLImageElement {
 
         let useMapElements = document_from_node(self).upcast::<Node>()
                                 .traverse_preorder()
-                                .filter_map(Root::downcast::<HTMLMapElement>)
+                                .filter_map(DomRoot::downcast::<HTMLMapElement>)
                                 .find(|n| n.upcast::<Element>().get_string_attribute(&LocalName::from("name")) == last);
 
         useMapElements.map(|mapElem| mapElem.get_area_elements())
@@ -664,7 +664,7 @@ impl HTMLImageElement {
 #[derive(HeapSizeOf, JSTraceable)]
 pub enum ImageElementMicrotask {
     StableStateUpdateImageDataTask {
-        elem: Root<HTMLImageElement>,
+        elem: DomRoot<HTMLImageElement>,
         generation: u32,
     }
 }
@@ -937,7 +937,7 @@ impl VirtualMethods for HTMLImageElement {
 }
 
 impl FormControl for HTMLImageElement {
-    fn form_owner(&self) -> Option<Root<HTMLFormElement>> {
+    fn form_owner(&self) -> Option<DomRoot<HTMLFormElement>> {
         self.form_owner.get()
     }
 

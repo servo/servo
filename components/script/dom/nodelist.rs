@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::NodeListBinding;
 use dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::root::{Dom, MutNullableDom, Root, RootedReference};
+use dom::bindings::root::{Dom, DomRoot, MutNullableDom, RootedReference};
 use dom::node::{ChildrenMutation, Node};
 use dom::window::Window;
 use dom_struct::dom_struct;
@@ -36,26 +36,26 @@ impl NodeList {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, list_type: NodeListType) -> Root<NodeList> {
+    pub fn new(window: &Window, list_type: NodeListType) -> DomRoot<NodeList> {
         reflect_dom_object(box NodeList::new_inherited(list_type),
                            window,
                            NodeListBinding::Wrap)
     }
 
-    pub fn new_simple_list<T>(window: &Window, iter: T) -> Root<NodeList>
-                              where T: Iterator<Item=Root<Node>> {
+    pub fn new_simple_list<T>(window: &Window, iter: T) -> DomRoot<NodeList>
+                              where T: Iterator<Item=DomRoot<Node>> {
         NodeList::new(window, NodeListType::Simple(iter.map(|r| Dom::from_ref(&*r)).collect()))
     }
 
-    pub fn new_simple_list_slice(window: &Window, slice: &[&Node]) -> Root<NodeList> {
+    pub fn new_simple_list_slice(window: &Window, slice: &[&Node]) -> DomRoot<NodeList> {
         NodeList::new(window, NodeListType::Simple(slice.iter().map(|r| Dom::from_ref(*r)).collect()))
     }
 
-    pub fn new_child_list(window: &Window, node: &Node) -> Root<NodeList> {
+    pub fn new_child_list(window: &Window, node: &Node) -> DomRoot<NodeList> {
         NodeList::new(window, NodeListType::Children(ChildrenList::new(node)))
     }
 
-    pub fn empty(window: &Window) -> Root<NodeList> {
+    pub fn empty(window: &Window) -> DomRoot<NodeList> {
         NodeList::new(window, NodeListType::Simple(vec![]))
     }
 }
@@ -70,17 +70,17 @@ impl NodeListMethods for NodeList {
     }
 
     // https://dom.spec.whatwg.org/#dom-nodelist-item
-    fn Item(&self, index: u32) -> Option<Root<Node>> {
+    fn Item(&self, index: u32) -> Option<DomRoot<Node>> {
         match self.list_type {
             NodeListType::Simple(ref elems) => {
-                elems.get(index as usize).map(|node| Root::from_ref(&**node))
+                elems.get(index as usize).map(|node| DomRoot::from_ref(&**node))
             },
             NodeListType::Children(ref list) => list.item(index),
         }
     }
 
     // https://dom.spec.whatwg.org/#dom-nodelist-item
-    fn IndexedGetter(&self, index: u32) -> Option<Root<Node>> {
+    fn IndexedGetter(&self, index: u32) -> Option<DomRoot<Node>> {
         self.Item(index)
     }
 }
@@ -103,7 +103,7 @@ impl NodeList {
         }
     }
 
-    pub fn iter<'a>(&'a self) -> impl Iterator<Item=Root<Node>> + 'a {
+    pub fn iter<'a>(&'a self) -> impl Iterator<Item=DomRoot<Node>> + 'a {
         let len = self.Length();
         (0..len).flat_map(move |i| self.Item(i))
     }
@@ -132,7 +132,7 @@ impl ChildrenList {
         self.node.children_count()
     }
 
-    pub fn item(&self, index: u32) -> Option<Root<Node>> {
+    pub fn item(&self, index: u32) -> Option<DomRoot<Node>> {
         // This always start traversing the children from the closest element
         // among parent's first and last children and the last visited one.
         let len = self.len() as u32;

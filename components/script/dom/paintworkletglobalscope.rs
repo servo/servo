@@ -13,7 +13,7 @@ use dom::bindings::error::Error;
 use dom::bindings::error::Fallible;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::DomObject;
-use dom::bindings::root::{Dom, Root};
+use dom::bindings::root::{Dom, DomRoot};
 use dom::bindings::str::DOMString;
 use dom::cssstylevalue::CSSStyleValue;
 use dom::paintrenderingcontext2d::PaintRenderingContext2D;
@@ -95,7 +95,7 @@ impl PaintWorkletGlobalScope {
                base_url: ServoUrl,
                executor: WorkletExecutor,
                init: &WorkletGlobalScopeInit)
-               -> Root<PaintWorkletGlobalScope> {
+               -> DomRoot<PaintWorkletGlobalScope> {
         debug!("Creating paint worklet global scope for pipeline {}.", pipeline_id);
         let global = box PaintWorkletGlobalScope {
             worklet_global: WorkletGlobalScope::new_inherited(pipeline_id, base_url, executor, init),
@@ -222,7 +222,7 @@ impl PaintWorkletGlobalScope {
                 }
                 class_constructor.set(definition.class_constructor.get());
                 paint_function.set(definition.paint_function.get());
-                Root::from_ref(&*definition.context)
+                DomRoot::from_ref(&*definition.context)
             }
         };
 

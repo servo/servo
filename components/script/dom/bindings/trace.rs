@@ -42,7 +42,7 @@ use dom::bindings::cell::DomRefCell;
 use dom::bindings::error::Error;
 use dom::bindings::refcounted::{Trusted, TrustedPromise};
 use dom::bindings::reflector::{DomObject, Reflector};
-use dom::bindings::root::{Dom, Root};
+use dom::bindings::root::{Dom, DomRoot};
 use dom::bindings::str::{DOMString, USVString};
 use dom::bindings::utils::WindowProxyHandler;
 use dom::document::PendingRestyle;
@@ -710,7 +710,7 @@ impl RootedTraceableSet {
 
 /// Roots any JSTraceable thing
 ///
-/// If you have a valid DomObject, use Root.
+/// If you have a valid DomObject, use DomRoot.
 /// If you have GC things like *mut JSObject or JSVal, use rooted!.
 /// If you have an arbitrary number of DomObjects to root, use rooted_vec!.
 /// If you know what you're doing, use this.
@@ -720,7 +720,7 @@ pub struct RootedTraceable<'a, T: 'static + JSTraceable> {
 }
 
 impl<'a, T: JSTraceable + 'static> RootedTraceable<'a, T> {
-    /// Root a JSTraceable thing for the life of this RootedTraceable
+    /// DomRoot a JSTraceable thing for the life of this RootedTraceable
     pub fn new(traceable: &'a T) -> RootedTraceable<'a, T> {
         unsafe {
             RootedTraceableSet::add(traceable);
@@ -741,7 +741,7 @@ impl<'a, T: JSTraceable + 'static> Drop for RootedTraceable<'a, T> {
 
 /// Roots any JSTraceable thing
 ///
-/// If you have a valid DomObject, use Root.
+/// If you have a valid DomObject, use DomRoot.
 /// If you have GC things like *mut JSObject or JSVal, use rooted!.
 /// If you have an arbitrary number of DomObjects to root, use rooted_vec!.
 /// If you know what you're doing, use this.
@@ -757,7 +757,7 @@ unsafe impl<T: JSTraceable + 'static> JSTraceable for RootedTraceableBox<T> {
 }
 
 impl<T: JSTraceable + 'static> RootedTraceableBox<T> {
-    /// Root a JSTraceable thing for the life of this RootedTraceable
+    /// DomRoot a JSTraceable thing for the life of this RootedTraceable
     pub fn new(traceable: T) -> RootedTraceableBox<T> {
         let traceable = Box::into_raw(box traceable);
         unsafe {
@@ -804,7 +804,7 @@ impl<T: JSTraceable + 'static> Drop for RootedTraceableBox<T> {
 /// A vector of items to be rooted with `RootedVec`.
 /// Guaranteed to be empty when not rooted.
 /// Usage: `rooted_vec!(let mut v);` or if you have an
-/// iterator of `Root`s, `rooted_vec!(let v <- iterator);`.
+/// iterator of `DomRoot`s, `rooted_vec!(let v <- iterator);`.
 #[allow(unrooted_must_root)]
 #[derive(JSTraceable)]
 #[allow_unrooted_interior]
@@ -844,7 +844,7 @@ impl<'a, T: 'static + JSTraceable + DomObject> RootedVec<'a, Dom<T>> {
     /// Create a vector of items of type Dom<T> that is rooted for
     /// the lifetime of this struct
     pub fn from_iter<I>(root: &'a mut RootableVec<Dom<T>>, iter: I) -> Self
-        where I: Iterator<Item = Root<T>>
+        where I: Iterator<Item = DomRoot<T>>
     {
         unsafe {
             RootedTraceableSet::add(root);

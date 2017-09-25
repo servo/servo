@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::CSSGroupingRuleBinding::CSSGroupingRuleMet
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::DomObject;
-use dom::bindings::root::{MutNullableDom, Root};
+use dom::bindings::root::{DomRoot, MutNullableDom};
 use dom::bindings::str::DOMString;
 use dom::cssrule::CSSRule;
 use dom::cssrulelist::{CSSRuleList, RulesSource};
@@ -34,7 +34,7 @@ impl CSSGroupingRule {
         }
     }
 
-    fn rulelist(&self) -> Root<CSSRuleList> {
+    fn rulelist(&self) -> DomRoot<CSSRuleList> {
         let parent_stylesheet = self.upcast::<CSSRule>().parent_stylesheet();
         self.rulelist.or_init(|| CSSRuleList::new(self.global().as_window(),
                                                   parent_stylesheet,
@@ -52,7 +52,7 @@ impl CSSGroupingRule {
 
 impl CSSGroupingRuleMethods for CSSGroupingRule {
     // https://drafts.csswg.org/cssom/#dom-cssgroupingrule-cssrules
-    fn CssRules(&self) -> Root<CSSRuleList> {
+    fn CssRules(&self) -> DomRoot<CSSRuleList> {
         // XXXManishearth check origin clean flag
         self.rulelist()
     }

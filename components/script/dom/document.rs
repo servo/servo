@@ -27,7 +27,7 @@ use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, Nod
 use dom::bindings::num::Finite;
 use dom::bindings::refcounted::{Trusted, TrustedPromise};
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
-use dom::bindings::root::{Dom, LayoutDom, MutNullableDom, Root, RootedReference};
+use dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, RootedReference};
 use dom::bindings::str::{DOMString, USVString};
 use dom::bindings::xmlname::{namespace_from_domstring, validate_and_extract, xml_name_type};
 use dom::bindings::xmlname::XMLName::InvalidXMLName;
@@ -423,7 +423,7 @@ impl Document {
 
     /// https://html.spec.whatwg.org/multipage/#concept-document-bc
     #[inline]
-    pub fn browsing_context(&self) -> Option<Root<WindowProxy>> {
+    pub fn browsing_context(&self) -> Option<DomRoot<WindowProxy>> {
         if self.has_browsing_context {
             self.window.undiscarded_window_proxy()
         } else {
@@ -523,7 +523,7 @@ impl Document {
     }
 
     /// Returns the first `base` element in the DOM that has an `href` attribute.
-    pub fn base_element(&self) -> Option<Root<HTMLBaseElement>> {
+    pub fn base_element(&self) -> Option<DomRoot<HTMLBaseElement>> {
         self.base_element.get()
     }
 
@@ -532,7 +532,7 @@ impl Document {
     pub fn refresh_base_element(&self) {
         let base = self.upcast::<Node>()
                        .traverse_preorder()
-                       .filter_map(Root::downcast::<HTMLBaseElement>)
+                       .filter_map(DomRoot::downcast::<HTMLBaseElement>)
                        .find(|element| element.upcast::<Element>().has_attribute(&local_name!("href")));
         self.base_element.set(base.r());
     }
@@ -674,7 +674,7 @@ impl Document {
 
     /// Attempt to find a named element in this page's document.
     /// https://html.spec.whatwg.org/multipage/#the-indicated-part-of-the-document
-    pub fn find_fragment_node(&self, fragid: &str) -> Option<Root<Element>> {
+    pub fn find_fragment_node(&self, fragid: &str) -> Option<DomRoot<Element>> {
         // Step 1 is not handled here; the fragid is already obtained by the calling function
         // Step 2: Simply use None to indicate the top of the document.
         // Step 3 & 4
@@ -730,7 +730,7 @@ impl Document {
         }
     }
 
-    fn get_anchor_by_name(&self, name: &str) -> Option<Root<Element>> {
+    fn get_anchor_by_name(&self, name: &str) -> Option<DomRoot<Element>> {
         let check_anchor = |node: &HTMLAnchorElement| {
             let elem = node.upcast::<Element>();
             elem.get_attribute(&ns!(), &local_name!("name"))
@@ -738,9 +738,9 @@ impl Document {
         };
         let doc_node = self.upcast::<Node>();
         doc_node.traverse_preorder()
-                .filter_map(Root::downcast)
+                .filter_map(DomRoot::downcast)
                 .find(|node| check_anchor(&node))
-                .map(Root::upcast)
+                .map(DomRoot::upcast)
     }
 
     // https://html.spec.whatwg.org/multipage/#current-document-readiness
@@ -771,7 +771,7 @@ impl Document {
 
     /// Return the element that currently has focus.
     // https://w3c.github.io/uievents/#events-focusevent-doc-focus
-    pub fn get_focused_element(&self) -> Option<Root<Element>> {
+    pub fn get_focused_element(&self) -> Option<DomRoot<Element>> {
         self.focused.get()
     }
 
@@ -863,10 +863,10 @@ impl Document {
         };
 
         let el = match node.downcast::<Element>() {
-            Some(el) => Root::from_ref(el),
+            Some(el) => DomRoot::from_ref(el),
             None => {
                 let parent = node.GetParentNode();
-                match parent.and_then(Root::downcast::<Element>) {
+                match parent.and_then(DomRoot::downcast::<Element>) {
                     Some(parent) => parent,
                     None => return,
                 }
@@ -1018,10 +1018,10 @@ impl Document {
         };
 
         let el = match node.downcast::<Element>() {
-            Some(el) => Root::from_ref(el),
+            Some(el) => DomRoot::from_ref(el),
             None => {
                 let parent = node.GetParentNode();
-                match parent.and_then(Root::downcast::<Element>) {
+                match parent.and_then(DomRoot::downcast::<Element>) {
                     Some(parent) => parent,
                     None => return
                 }
@@ -1126,7 +1126,7 @@ impl Document {
         let maybe_new_target = self.window.hit_test_query(client_point, true).and_then(|address| {
             let node = unsafe { node::from_untrusted_node_address(js_runtime, address) };
             node.inclusive_ancestors()
-                .filter_map(Root::downcast::<Element>)
+                .filter_map(DomRoot::downcast::<Element>)
                 .next()
         });
 
@@ -1169,7 +1169,7 @@ impl Document {
             if !old_target_is_ancestor_of_new_target {
                 for element in old_target.upcast::<Node>()
                                          .inclusive_ancestors()
-                                         .filter_map(Root::downcast::<Element>) {
+                                         .filter_map(DomRoot::downcast::<Element>) {
                     element.set_hover_state(false);
                     element.set_active_state(false);
                 }
@@ -1185,7 +1185,7 @@ impl Document {
         if let Some(ref new_target) = maybe_new_target {
             for element in new_target.upcast::<Node>()
                                      .inclusive_ancestors()
-                                     .filter_map(Root::downcast::<Element>) {
+                                     .filter_map(DomRoot::downcast::<Element>) {
                 if element.hover_state() {
                     break;
                 }
@@ -1229,10 +1229,10 @@ impl Document {
             None => return TouchEventResult::Processed(false),
         };
         let el = match node.downcast::<Element>() {
-            Some(el) => Root::from_ref(el),
+            Some(el) => DomRoot::from_ref(el),
             None => {
                 let parent = node.GetParentNode();
-                match parent.and_then(Root::downcast::<Element>) {
+                match parent.and_then(DomRoot::downcast::<Element>) {
                     Some(parent) => parent,
                     None => return TouchEventResult::Processed(false),
                 }
@@ -1253,7 +1253,7 @@ impl Document {
             return TouchEventResult::Forwarded;
         }
 
-        let target = Root::upcast::<EventTarget>(el);
+        let target = DomRoot::upcast::<EventTarget>(el);
         let window = &*self.window;
 
         let client_x = Finite::wrap(point.x as f64);
@@ -1455,21 +1455,21 @@ impl Document {
     // https://dom.spec.whatwg.org/#converting-nodes-into-a-node
     pub fn node_from_nodes_and_strings(&self,
                                        mut nodes: Vec<NodeOrString>)
-                                       -> Fallible<Root<Node>> {
+                                       -> Fallible<DomRoot<Node>> {
         if nodes.len() == 1 {
             Ok(match nodes.pop().unwrap() {
                 NodeOrString::Node(node) => node,
-                NodeOrString::String(string) => Root::upcast(self.CreateTextNode(string)),
+                NodeOrString::String(string) => DomRoot::upcast(self.CreateTextNode(string)),
             })
         } else {
-            let fragment = Root::upcast::<Node>(self.CreateDocumentFragment());
+            let fragment = DomRoot::upcast::<Node>(self.CreateDocumentFragment());
             for node in nodes {
                 match node {
                     NodeOrString::Node(node) => {
                         fragment.AppendChild(&node)?;
                     },
                     NodeOrString::String(string) => {
-                        let node = Root::upcast::<Node>(self.CreateTextNode(string));
+                        let node = DomRoot::upcast::<Node>(self.CreateTextNode(string));
                         // No try!() here because appending a text node
                         // should not fail.
                         fragment.AppendChild(&node).unwrap();
@@ -1481,7 +1481,7 @@ impl Document {
     }
 
     pub fn get_body_attribute(&self, local_name: &LocalName) -> DOMString {
-        match self.GetBody().and_then(Root::downcast::<HTMLBodyElement>) {
+        match self.GetBody().and_then(DomRoot::downcast::<HTMLBodyElement>) {
             Some(ref body) => {
                 body.upcast::<Element>().get_string_attribute(local_name)
             },
@@ -1490,7 +1490,7 @@ impl Document {
     }
 
     pub fn set_body_attribute(&self, local_name: &LocalName, value: DOMString) {
-        if let Some(ref body) = self.GetBody().and_then(Root::downcast::<HTMLBodyElement>) {
+        if let Some(ref body) = self.GetBody().and_then(DomRoot::downcast::<HTMLBodyElement>) {
             let body = body.upcast::<Element>();
             let value = body.parse_attribute(&ns!(), &local_name, value);
             body.set_attribute(local_name, value);
@@ -1948,19 +1948,19 @@ impl Document {
         self.current_parser.set(script);
     }
 
-    pub fn get_current_parser(&self) -> Option<Root<ServoParser>> {
+    pub fn get_current_parser(&self) -> Option<DomRoot<ServoParser>> {
         self.current_parser.get()
     }
 
     /// Iterate over all iframes in the document.
-    pub fn iter_iframes(&self) -> impl Iterator<Item=Root<HTMLIFrameElement>> {
+    pub fn iter_iframes(&self) -> impl Iterator<Item=DomRoot<HTMLIFrameElement>> {
         self.upcast::<Node>()
             .traverse_preorder()
-            .filter_map(Root::downcast::<HTMLIFrameElement>)
+            .filter_map(DomRoot::downcast::<HTMLIFrameElement>)
     }
 
     /// Find an iframe element in the document.
-    pub fn find_iframe(&self, browsing_context_id: BrowsingContextId) -> Option<Root<HTMLIFrameElement>> {
+    pub fn find_iframe(&self, browsing_context_id: BrowsingContextId) -> Option<DomRoot<HTMLIFrameElement>> {
         self.iter_iframes()
             .find(|node| node.browsing_context_id() == Some(browsing_context_id))
     }
@@ -1968,7 +1968,7 @@ impl Document {
     /// Find a mozbrowser iframe element in the document.
     pub fn find_mozbrowser_iframe(&self,
                                   top_level_browsing_context_id: TopLevelBrowsingContextId)
-                                  -> Option<Root<HTMLIFrameElement>>
+                                  -> Option<DomRoot<HTMLIFrameElement>>
     {
         match self.find_iframe(BrowsingContextId::from(top_level_browsing_context_id)) {
             None => None,
@@ -2310,7 +2310,7 @@ impl Document {
     }
 
     // https://dom.spec.whatwg.org/#dom-document-document
-    pub fn Constructor(window: &Window) -> Fallible<Root<Document>> {
+    pub fn Constructor(window: &Window) -> Fallible<DomRoot<Document>> {
         let doc = window.Document();
         let docloader = DocumentLoader::new(&*doc.loader());
         Ok(Document::new(window,
@@ -2339,7 +2339,7 @@ impl Document {
                doc_loader: DocumentLoader,
                referrer: Option<String>,
                referrer_policy: Option<ReferrerPolicy>)
-               -> Root<Document> {
+               -> DomRoot<Document> {
         let document = reflect_dom_object(box Document::new_inherited(window,
                                                                       has_browsing_context,
                                                                       url,
@@ -2361,7 +2361,7 @@ impl Document {
         document
     }
 
-    fn create_node_list<F: Fn(&Node) -> bool>(&self, callback: F) -> Root<NodeList> {
+    fn create_node_list<F: Fn(&Node) -> bool>(&self, callback: F) -> DomRoot<NodeList> {
         let doc = self.GetDocumentElement();
         let maybe_node = doc.r().map(Castable::upcast::<Node>);
         let iter = maybe_node.iter()
@@ -2370,8 +2370,8 @@ impl Document {
         NodeList::new_simple_list(&self.window, iter)
     }
 
-    fn get_html_element(&self) -> Option<Root<HTMLHtmlElement>> {
-        self.GetDocumentElement().and_then(Root::downcast)
+    fn get_html_element(&self) -> Option<DomRoot<HTMLHtmlElement>> {
+        self.GetDocumentElement().and_then(DomRoot::downcast)
     }
 
     /// Return a reference to the per-document shared lock used in stylesheets.
@@ -2482,7 +2482,7 @@ impl Document {
         self.stylesheets.borrow().len()
     }
 
-    pub fn stylesheet_at(&self, index: usize) -> Option<Root<CSSStyleSheet>> {
+    pub fn stylesheet_at(&self, index: usize) -> Option<DomRoot<CSSStyleSheet>> {
         let stylesheets = self.stylesheets.borrow();
 
         stylesheets.get(Origin::Author, index).and_then(|s| {
@@ -2491,7 +2491,7 @@ impl Document {
     }
 
     /// https://html.spec.whatwg.org/multipage/#appropriate-template-contents-owner-document
-    pub fn appropriate_template_contents_owner_document(&self) -> Root<Document> {
+    pub fn appropriate_template_contents_owner_document(&self) -> DomRoot<Document> {
         self.appropriate_template_contents_owner_document.or_init(|| {
             let doctype = if self.is_html_document {
                 IsHTMLDocument::HTMLDocument
@@ -2516,8 +2516,8 @@ impl Document {
         })
     }
 
-    pub fn get_element_by_id(&self, id: &Atom) -> Option<Root<Element>> {
-        self.id_map.borrow().get(&id).map(|ref elements| Root::from_ref(&*(*elements)[0]))
+    pub fn get_element_by_id(&self, id: &Atom) -> Option<DomRoot<Element>> {
+        self.id_map.borrow().get(&id).map(|ref elements| DomRoot::from_ref(&*(*elements)[0]))
     }
 
     pub fn ensure_pending_restyle(&self, el: &Element) -> RefMut<PendingRestyle> {
@@ -2747,12 +2747,12 @@ impl Element {
 
 impl DocumentMethods for Document {
     // https://drafts.csswg.org/cssom/#dom-document-stylesheets
-    fn StyleSheets(&self) -> Root<StyleSheetList> {
+    fn StyleSheets(&self) -> DomRoot<StyleSheetList> {
         self.stylesheet_list.or_init(|| StyleSheetList::new(&self.window, Dom::from_ref(&self)))
     }
 
     // https://dom.spec.whatwg.org/#dom-document-implementation
-    fn Implementation(&self) -> Root<DOMImplementation> {
+    fn Implementation(&self) -> DomRoot<DOMImplementation> {
         self.implementation.or_init(|| DOMImplementation::new(self))
     }
 
@@ -2762,13 +2762,13 @@ impl DocumentMethods for Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-activeelement
-    fn GetActiveElement(&self) -> Option<Root<Element>> {
+    fn GetActiveElement(&self) -> Option<DomRoot<Element>> {
         // TODO: Step 2.
 
         match self.get_focused_element() {
             Some(element) => Some(element),     // Step 3. and 4.
             None => match self.GetBody() {      // Step 5.
-                Some(body) => Some(Root::upcast(body)),
+                Some(body) => Some(DomRoot::upcast(body)),
                 None => self.GetDocumentElement(),
             },
         }
@@ -2899,20 +2899,20 @@ impl DocumentMethods for Document {
     }
 
     // https://dom.spec.whatwg.org/#dom-document-doctype
-    fn GetDoctype(&self) -> Option<Root<DocumentType>> {
-        self.upcast::<Node>().children().filter_map(Root::downcast).next()
+    fn GetDoctype(&self) -> Option<DomRoot<DocumentType>> {
+        self.upcast::<Node>().children().filter_map(DomRoot::downcast).next()
     }
 
     // https://dom.spec.whatwg.org/#dom-document-documentelement
-    fn GetDocumentElement(&self) -> Option<Root<Element>> {
+    fn GetDocumentElement(&self) -> Option<DomRoot<Element>> {
         self.upcast::<Node>().child_elements().next()
     }
 
     // https://dom.spec.whatwg.org/#dom-document-getelementsbytagname
-    fn GetElementsByTagName(&self, qualified_name: DOMString) -> Root<HTMLCollection> {
+    fn GetElementsByTagName(&self, qualified_name: DOMString) -> DomRoot<HTMLCollection> {
         let qualified_name = LocalName::from(&*qualified_name);
         match self.tag_map.borrow_mut().entry(qualified_name.clone()) {
-            Occupied(entry) => Root::from_ref(entry.get()),
+            Occupied(entry) => DomRoot::from_ref(entry.get()),
             Vacant(entry) => {
                 let result = HTMLCollection::by_qualified_name(
                     &self.window, self.upcast(), qualified_name);
@@ -2926,12 +2926,12 @@ impl DocumentMethods for Document {
     fn GetElementsByTagNameNS(&self,
                               maybe_ns: Option<DOMString>,
                               tag_name: DOMString)
-                              -> Root<HTMLCollection> {
+                              -> DomRoot<HTMLCollection> {
         let ns = namespace_from_domstring(maybe_ns);
         let local = LocalName::from(tag_name);
         let qname = QualName::new(None, ns, local);
         match self.tagns_map.borrow_mut().entry(qname.clone()) {
-            Occupied(entry) => Root::from_ref(entry.get()),
+            Occupied(entry) => DomRoot::from_ref(entry.get()),
             Vacant(entry) => {
                 let result = HTMLCollection::by_qual_tag_name(&self.window, self.upcast(), qname);
                 entry.insert(Dom::from_ref(&*result));
@@ -2941,12 +2941,12 @@ impl DocumentMethods for Document {
     }
 
     // https://dom.spec.whatwg.org/#dom-document-getelementsbyclassname
-    fn GetElementsByClassName(&self, classes: DOMString) -> Root<HTMLCollection> {
+    fn GetElementsByClassName(&self, classes: DOMString) -> DomRoot<HTMLCollection> {
         let class_atoms: Vec<Atom> = split_html_space_chars(&classes)
                                          .map(Atom::from)
                                          .collect();
         match self.classes_map.borrow_mut().entry(class_atoms.clone()) {
-            Occupied(entry) => Root::from_ref(entry.get()),
+            Occupied(entry) => DomRoot::from_ref(entry.get()),
             Vacant(entry) => {
                 let result = HTMLCollection::by_atomic_class_name(&self.window,
                                                                   self.upcast(),
@@ -2958,7 +2958,7 @@ impl DocumentMethods for Document {
     }
 
     // https://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid
-    fn GetElementById(&self, id: DOMString) -> Option<Root<Element>> {
+    fn GetElementById(&self, id: DOMString) -> Option<DomRoot<Element>> {
         self.get_element_by_id(&Atom::from(id))
     }
 
@@ -2966,7 +2966,7 @@ impl DocumentMethods for Document {
     fn CreateElement(&self,
                      mut local_name: DOMString,
                      options: &ElementCreationOptions)
-                     -> Fallible<Root<Element>> {
+                     -> Fallible<DomRoot<Element>> {
         if xml_name_type(&local_name) == InvalidXMLName {
             debug!("Not a valid element name");
             return Err(Error::InvalidCharacter);
@@ -2991,7 +2991,7 @@ impl DocumentMethods for Document {
                        namespace: Option<DOMString>,
                        qualified_name: DOMString,
                        options: &ElementCreationOptions)
-                       -> Fallible<Root<Element>> {
+                       -> Fallible<DomRoot<Element>> {
         let (namespace, prefix, local_name) = validate_and_extract(namespace,
                                                                         &qualified_name)?;
         let name = QualName::new(prefix, namespace, local_name);
@@ -3000,7 +3000,7 @@ impl DocumentMethods for Document {
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createattribute
-    fn CreateAttribute(&self, mut local_name: DOMString) -> Fallible<Root<Attr>> {
+    fn CreateAttribute(&self, mut local_name: DOMString) -> Fallible<DomRoot<Attr>> {
         if xml_name_type(&local_name) == InvalidXMLName {
             debug!("Not a valid element name");
             return Err(Error::InvalidCharacter);
@@ -3018,7 +3018,7 @@ impl DocumentMethods for Document {
     fn CreateAttributeNS(&self,
                          namespace: Option<DOMString>,
                          qualified_name: DOMString)
-                         -> Fallible<Root<Attr>> {
+                         -> Fallible<DomRoot<Attr>> {
         let (namespace, prefix, local_name) = validate_and_extract(namespace,
                                                                         &qualified_name)?;
         let value = AttrValue::String("".to_owned());
@@ -3033,17 +3033,17 @@ impl DocumentMethods for Document {
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createdocumentfragment
-    fn CreateDocumentFragment(&self) -> Root<DocumentFragment> {
+    fn CreateDocumentFragment(&self) -> DomRoot<DocumentFragment> {
         DocumentFragment::new(self)
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createtextnode
-    fn CreateTextNode(&self, data: DOMString) -> Root<Text> {
+    fn CreateTextNode(&self, data: DOMString) -> DomRoot<Text> {
         Text::new(data, self)
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createcomment
-    fn CreateComment(&self, data: DOMString) -> Root<Comment> {
+    fn CreateComment(&self, data: DOMString) -> DomRoot<Comment> {
         Comment::new(data, self)
     }
 
@@ -3051,7 +3051,7 @@ impl DocumentMethods for Document {
     fn CreateProcessingInstruction(&self,
                                    target: DOMString,
                                    data: DOMString)
-                                   -> Fallible<Root<ProcessingInstruction>> {
+                                   -> Fallible<DomRoot<ProcessingInstruction>> {
         // Step 1.
         if xml_name_type(&target) == InvalidXMLName {
             return Err(Error::InvalidCharacter);
@@ -3067,7 +3067,7 @@ impl DocumentMethods for Document {
     }
 
     // https://dom.spec.whatwg.org/#dom-document-importnode
-    fn ImportNode(&self, node: &Node, deep: bool) -> Fallible<Root<Node>> {
+    fn ImportNode(&self, node: &Node, deep: bool) -> Fallible<DomRoot<Node>> {
         // Step 1.
         if node.is::<Document>() {
             return Err(Error::NotSupported);
@@ -3084,7 +3084,7 @@ impl DocumentMethods for Document {
     }
 
     // https://dom.spec.whatwg.org/#dom-document-adoptnode
-    fn AdoptNode(&self, node: &Node) -> Fallible<Root<Node>> {
+    fn AdoptNode(&self, node: &Node) -> Fallible<DomRoot<Node>> {
         // Step 1.
         if node.is::<Document>() {
             return Err(Error::NotSupported);
@@ -3094,44 +3094,44 @@ impl DocumentMethods for Document {
         Node::adopt(node, self);
 
         // Step 3.
-        Ok(Root::from_ref(node))
+        Ok(DomRoot::from_ref(node))
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createevent
-    fn CreateEvent(&self, mut interface: DOMString) -> Fallible<Root<Event>> {
+    fn CreateEvent(&self, mut interface: DOMString) -> Fallible<DomRoot<Event>> {
         interface.make_ascii_lowercase();
         match &*interface {
             "beforeunloadevent" =>
-                Ok(Root::upcast(BeforeUnloadEvent::new_uninitialized(&self.window))),
+                Ok(DomRoot::upcast(BeforeUnloadEvent::new_uninitialized(&self.window))),
             "closeevent" =>
-                Ok(Root::upcast(CloseEvent::new_uninitialized(self.window.upcast()))),
+                Ok(DomRoot::upcast(CloseEvent::new_uninitialized(self.window.upcast()))),
             "customevent" =>
-                Ok(Root::upcast(CustomEvent::new_uninitialized(self.window.upcast()))),
+                Ok(DomRoot::upcast(CustomEvent::new_uninitialized(self.window.upcast()))),
             "errorevent" =>
-                Ok(Root::upcast(ErrorEvent::new_uninitialized(self.window.upcast()))),
+                Ok(DomRoot::upcast(ErrorEvent::new_uninitialized(self.window.upcast()))),
             "events" | "event" | "htmlevents" | "svgevents" =>
                 Ok(Event::new_uninitialized(&self.window.upcast())),
             "focusevent" =>
-                Ok(Root::upcast(FocusEvent::new_uninitialized(&self.window))),
+                Ok(DomRoot::upcast(FocusEvent::new_uninitialized(&self.window))),
             "hashchangeevent" =>
-                Ok(Root::upcast(HashChangeEvent::new_uninitialized(&self.window))),
+                Ok(DomRoot::upcast(HashChangeEvent::new_uninitialized(&self.window))),
             "keyboardevent" =>
-                Ok(Root::upcast(KeyboardEvent::new_uninitialized(&self.window))),
+                Ok(DomRoot::upcast(KeyboardEvent::new_uninitialized(&self.window))),
             "messageevent" =>
-                Ok(Root::upcast(MessageEvent::new_uninitialized(self.window.upcast()))),
+                Ok(DomRoot::upcast(MessageEvent::new_uninitialized(self.window.upcast()))),
             "mouseevent" | "mouseevents" =>
-                Ok(Root::upcast(MouseEvent::new_uninitialized(&self.window))),
+                Ok(DomRoot::upcast(MouseEvent::new_uninitialized(&self.window))),
             "pagetransitionevent" =>
-                Ok(Root::upcast(PageTransitionEvent::new_uninitialized(&self.window))),
+                Ok(DomRoot::upcast(PageTransitionEvent::new_uninitialized(&self.window))),
             "popstateevent" =>
-                Ok(Root::upcast(PopStateEvent::new_uninitialized(&self.window))),
+                Ok(DomRoot::upcast(PopStateEvent::new_uninitialized(&self.window))),
             "progressevent" =>
-                Ok(Root::upcast(ProgressEvent::new_uninitialized(self.window.upcast()))),
+                Ok(DomRoot::upcast(ProgressEvent::new_uninitialized(self.window.upcast()))),
             "storageevent" => {
-                Ok(Root::upcast(StorageEvent::new_uninitialized(&self.window, "".into())))
+                Ok(DomRoot::upcast(StorageEvent::new_uninitialized(&self.window, "".into())))
             },
             "touchevent" =>
-                Ok(Root::upcast(
+                Ok(DomRoot::upcast(
                     TouchEvent::new_uninitialized(&self.window,
                         &TouchList::new(&self.window, &[]),
                         &TouchList::new(&self.window, &[]),
@@ -3139,9 +3139,9 @@ impl DocumentMethods for Document {
                     )
                 )),
             "uievent" | "uievents" =>
-                Ok(Root::upcast(UIEvent::new_uninitialized(&self.window))),
+                Ok(DomRoot::upcast(UIEvent::new_uninitialized(&self.window))),
             "webglcontextevent" =>
-                Ok(Root::upcast(WebGLContextEvent::new_uninitialized(&self.window))),
+                Ok(DomRoot::upcast(WebGLContextEvent::new_uninitialized(&self.window))),
             _ =>
                 Err(Error::NotSupported),
         }
@@ -3156,7 +3156,7 @@ impl DocumentMethods for Document {
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createrange
-    fn CreateRange(&self) -> Root<Range> {
+    fn CreateRange(&self) -> DomRoot<Range> {
         Range::new_with_doc(self)
     }
 
@@ -3165,7 +3165,7 @@ impl DocumentMethods for Document {
                           root: &Node,
                           what_to_show: u32,
                           filter: Option<Rc<NodeFilter>>)
-                          -> Root<NodeIterator> {
+                          -> DomRoot<NodeIterator> {
         NodeIterator::new(self, root, what_to_show, filter)
     }
 
@@ -3178,7 +3178,7 @@ impl DocumentMethods for Document {
                    page_y: Finite<f64>,
                    screen_x: Finite<f64>,
                    screen_y: Finite<f64>)
-                   -> Root<Touch> {
+                   -> DomRoot<Touch> {
         let client_x = Finite::wrap(*page_x - window.PageXOffset() as f64);
         let client_y = Finite::wrap(*page_y - window.PageYOffset() as f64);
         Touch::new(window,
@@ -3193,7 +3193,7 @@ impl DocumentMethods for Document {
     }
 
     // https://w3c.github.io/touch-events/#idl-def-document-createtouchlist(touch...)
-    fn CreateTouchList(&self, touches: &[&Touch]) -> Root<TouchList> {
+    fn CreateTouchList(&self, touches: &[&Touch]) -> DomRoot<TouchList> {
         TouchList::new(&self.window, &touches)
     }
 
@@ -3202,7 +3202,7 @@ impl DocumentMethods for Document {
                         root: &Node,
                         what_to_show: u32,
                         filter: Option<Rc<NodeFilter>>)
-                        -> Root<TreeWalker> {
+                        -> DomRoot<TreeWalker> {
         TreeWalker::new(self, root, what_to_show, filter)
     }
 
@@ -3216,7 +3216,7 @@ impl DocumentMethods for Document {
                     .find(|node| {
                         node.namespace() == &ns!(svg) && node.local_name() == &local_name!("title")
                     })
-                    .map(Root::upcast::<Node>)
+                    .map(DomRoot::upcast::<Node>)
             } else {
                 // Step 2.
                 root.upcast::<Node>()
@@ -3247,7 +3247,7 @@ impl DocumentMethods for Document {
                 node.namespace() == &ns!(svg) && node.local_name() == &local_name!("title")
             });
             match elem {
-                Some(elem) => Root::upcast::<Node>(elem),
+                Some(elem) => DomRoot::upcast::<Node>(elem),
                 None => {
                     let name = QualName::new(None, ns!(svg), local_name!("title"));
                     let elem = Element::create(name,
@@ -3292,18 +3292,18 @@ impl DocumentMethods for Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-head
-    fn GetHead(&self) -> Option<Root<HTMLHeadElement>> {
+    fn GetHead(&self) -> Option<DomRoot<HTMLHeadElement>> {
         self.get_html_element()
-            .and_then(|root| root.upcast::<Node>().children().filter_map(Root::downcast).next())
+            .and_then(|root| root.upcast::<Node>().children().filter_map(DomRoot::downcast).next())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-currentscript
-    fn GetCurrentScript(&self) -> Option<Root<HTMLScriptElement>> {
+    fn GetCurrentScript(&self) -> Option<DomRoot<HTMLScriptElement>> {
         self.current_script.get()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-body
-    fn GetBody(&self) -> Option<Root<HTMLElement>> {
+    fn GetBody(&self) -> Option<DomRoot<HTMLElement>> {
         self.get_html_element().and_then(|root| {
             let node = root.upcast::<Node>();
             node.children().find(|child| {
@@ -3312,7 +3312,7 @@ impl DocumentMethods for Document {
                     NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFrameSetElement)) => true,
                     _ => false
                 }
-            }).map(|node| Root::downcast(node).unwrap())
+            }).map(|node| DomRoot::downcast(node).unwrap())
         })
     }
 
@@ -3357,7 +3357,7 @@ impl DocumentMethods for Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-getelementsbyname
-    fn GetElementsByName(&self, name: DOMString) -> Root<NodeList> {
+    fn GetElementsByName(&self, name: DOMString) -> DomRoot<NodeList> {
         self.create_node_list(|node| {
             let element = match node.downcast::<Element>() {
                 Some(element) => element,
@@ -3372,7 +3372,7 @@ impl DocumentMethods for Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-images
-    fn Images(&self) -> Root<HTMLCollection> {
+    fn Images(&self) -> DomRoot<HTMLCollection> {
         self.images.or_init(|| {
             let filter = box ImagesFilter;
             HTMLCollection::create(&self.window, self.upcast(), filter)
@@ -3380,7 +3380,7 @@ impl DocumentMethods for Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-embeds
-    fn Embeds(&self) -> Root<HTMLCollection> {
+    fn Embeds(&self) -> DomRoot<HTMLCollection> {
         self.embeds.or_init(|| {
             let filter = box EmbedsFilter;
             HTMLCollection::create(&self.window, self.upcast(), filter)
@@ -3388,12 +3388,12 @@ impl DocumentMethods for Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-plugins
-    fn Plugins(&self) -> Root<HTMLCollection> {
+    fn Plugins(&self) -> DomRoot<HTMLCollection> {
         self.Embeds()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-links
-    fn Links(&self) -> Root<HTMLCollection> {
+    fn Links(&self) -> DomRoot<HTMLCollection> {
         self.links.or_init(|| {
             let filter = box LinksFilter;
             HTMLCollection::create(&self.window, self.upcast(), filter)
@@ -3401,7 +3401,7 @@ impl DocumentMethods for Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-forms
-    fn Forms(&self) -> Root<HTMLCollection> {
+    fn Forms(&self) -> DomRoot<HTMLCollection> {
         self.forms.or_init(|| {
             let filter = box FormsFilter;
             HTMLCollection::create(&self.window, self.upcast(), filter)
@@ -3409,7 +3409,7 @@ impl DocumentMethods for Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-scripts
-    fn Scripts(&self) -> Root<HTMLCollection> {
+    fn Scripts(&self) -> DomRoot<HTMLCollection> {
         self.scripts.or_init(|| {
             let filter = box ScriptsFilter;
             HTMLCollection::create(&self.window, self.upcast(), filter)
@@ -3417,7 +3417,7 @@ impl DocumentMethods for Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-anchors
-    fn Anchors(&self) -> Root<HTMLCollection> {
+    fn Anchors(&self) -> DomRoot<HTMLCollection> {
         self.anchors.or_init(|| {
             let filter = box AnchorsFilter;
             HTMLCollection::create(&self.window, self.upcast(), filter)
@@ -3425,7 +3425,7 @@ impl DocumentMethods for Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-applets
-    fn Applets(&self) -> Root<HTMLCollection> {
+    fn Applets(&self) -> DomRoot<HTMLCollection> {
         // FIXME: This should be return OBJECT elements containing applets.
         self.applets.or_init(|| {
             let filter = box AppletsFilter;
@@ -3434,7 +3434,7 @@ impl DocumentMethods for Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-location
-    fn GetLocation(&self) -> Option<Root<Location>> {
+    fn GetLocation(&self) -> Option<DomRoot<Location>> {
         if self.is_fully_active() {
             Some(self.window.Location())
         } else {
@@ -3443,18 +3443,18 @@ impl DocumentMethods for Document {
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-children
-    fn Children(&self) -> Root<HTMLCollection> {
+    fn Children(&self) -> DomRoot<HTMLCollection> {
         HTMLCollection::children(&self.window, self.upcast())
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-firstelementchild
-    fn GetFirstElementChild(&self) -> Option<Root<Element>> {
+    fn GetFirstElementChild(&self) -> Option<DomRoot<Element>> {
         self.upcast::<Node>().child_elements().next()
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-lastelementchild
-    fn GetLastElementChild(&self) -> Option<Root<Element>> {
-        self.upcast::<Node>().rev_children().filter_map(Root::downcast).next()
+    fn GetLastElementChild(&self) -> Option<DomRoot<Element>> {
+        self.upcast::<Node>().rev_children().filter_map(DomRoot::downcast).next()
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-childelementcount
@@ -3473,13 +3473,13 @@ impl DocumentMethods for Document {
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-queryselector
-    fn QuerySelector(&self, selectors: DOMString) -> Fallible<Option<Root<Element>>> {
+    fn QuerySelector(&self, selectors: DOMString) -> Fallible<Option<DomRoot<Element>>> {
         let root = self.upcast::<Node>();
         root.query_selector(selectors)
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-queryselectorall
-    fn QuerySelectorAll(&self, selectors: DOMString) -> Fallible<Root<NodeList>> {
+    fn QuerySelectorAll(&self, selectors: DOMString) -> Fallible<DomRoot<NodeList>> {
         let root = self.upcast::<Node>();
         root.query_selector_all(selectors)
     }
@@ -3490,9 +3490,9 @@ impl DocumentMethods for Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-defaultview
-    fn GetDefaultView(&self) -> Option<Root<Window>> {
+    fn GetDefaultView(&self) -> Option<DomRoot<Window>> {
         if self.has_browsing_context {
-            Some(Root::from_ref(&*self.window))
+            Some(DomRoot::from_ref(&*self.window))
         } else {
             None
         }
@@ -3673,7 +3673,7 @@ impl DocumentMethods for Document {
 
     #[allow(unsafe_code)]
     // https://drafts.csswg.org/cssom-view/#dom-document-elementfrompoint
-    fn ElementFromPoint(&self, x: Finite<f64>, y: Finite<f64>) -> Option<Root<Element>> {
+    fn ElementFromPoint(&self, x: Finite<f64>, y: Finite<f64>) -> Option<DomRoot<Element>> {
         let x = *x as f32;
         let y = *y as f32;
         let point = &Point2D::new(x, y);
@@ -3700,7 +3700,7 @@ impl DocumentMethods for Document {
                     parent_node.downcast::<Element>().unwrap()
                 });
 
-                Some(Root::from_ref(element_ref))
+                Some(DomRoot::from_ref(element_ref))
             },
             None => self.GetDocumentElement()
         }
@@ -3708,7 +3708,7 @@ impl DocumentMethods for Document {
 
     #[allow(unsafe_code)]
     // https://drafts.csswg.org/cssom-view/#dom-document-elementsfrompoint
-    fn ElementsFromPoint(&self, x: Finite<f64>, y: Finite<f64>) -> Vec<Root<Element>> {
+    fn ElementsFromPoint(&self, x: Finite<f64>, y: Finite<f64>) -> Vec<DomRoot<Element>> {
         let x = *x as f32;
         let y = *y as f32;
         let point = &Point2D::new(x, y);
@@ -3727,12 +3727,12 @@ impl DocumentMethods for Document {
         let js_runtime = unsafe { JS_GetRuntime(window.get_cx()) };
 
         // Step 1 and Step 3
-        let mut elements: Vec<Root<Element>> = self.nodes_from_point(point).iter()
+        let mut elements: Vec<DomRoot<Element>> = self.nodes_from_point(point).iter()
             .flat_map(|&untrusted_node_address| {
                 let node = unsafe {
                     node::from_untrusted_node_address(js_runtime, untrusted_node_address)
                 };
-                Root::downcast::<Element>(node)
+                DomRoot::downcast::<Element>(node)
         }).collect();
 
         // Step 4
@@ -3747,7 +3747,7 @@ impl DocumentMethods for Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-open
-    fn Open(&self, type_: DOMString, replace: DOMString) -> Fallible<Root<Document>> {
+    fn Open(&self, type_: DOMString, replace: DOMString) -> Fallible<DomRoot<Document>> {
         if !self.is_html_document() {
             // Step 1.
             return Err(Error::InvalidState);
@@ -3758,7 +3758,7 @@ impl DocumentMethods for Document {
 
         if !self.is_active() {
             // Step 3.
-            return Ok(Root::from_ref(self));
+            return Ok(DomRoot::from_ref(self));
         }
 
         let entry_responsible_document = GlobalScope::entry().as_window().Document();
@@ -3773,7 +3773,7 @@ impl DocumentMethods for Document {
 
         if self.get_current_parser().map_or(false, |parser| parser.script_nesting_level() > 0) {
             // Step 5.
-            return Ok(Root::from_ref(self));
+            return Ok(DomRoot::from_ref(self));
         }
 
         // Step 6.
@@ -3889,7 +3889,7 @@ impl DocumentMethods for Document {
         // Step 34 is handled when creating the parser in step 25.
 
         // Step 35.
-        Ok(Root::from_ref(self))
+        Ok(DomRoot::from_ref(self))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-write
@@ -3907,7 +3907,7 @@ impl DocumentMethods for Document {
         }
 
         let parser = match self.get_current_parser() {
-            Some(ref parser) if parser.can_write() => Root::from_ref(&**parser),
+            Some(ref parser) if parser.can_write() => DomRoot::from_ref(&**parser),
             _ => {
                 // Either there is no parser, which means the parsing ended;
                 // or script nesting level is 0, which means the method was
@@ -3950,7 +3950,7 @@ impl DocumentMethods for Document {
         // TODO: handle throw-on-dynamic-markup-insertion counter.
 
         let parser = match self.get_current_parser() {
-            Some(ref parser) if parser.is_script_created() => Root::from_ref(&**parser),
+            Some(ref parser) if parser.is_script_created() => DomRoot::from_ref(&**parser),
             _ => {
                 // Step 3.
                 return Ok(());
@@ -3983,7 +3983,7 @@ impl DocumentMethods for Document {
     }
 
     // https://fullscreen.spec.whatwg.org/#dom-document-fullscreenelement
-    fn GetFullscreenElement(&self) -> Option<Root<Element>> {
+    fn GetFullscreenElement(&self) -> Option<DomRoot<Element>> {
         // TODO ShadowRoot
         self.fullscreen_element.get()
     }
@@ -4099,7 +4099,7 @@ impl PendingInOrderScriptVec {
         entry.loaded(result);
     }
 
-    fn take_next_ready_to_be_executed(&self) -> Option<(Root<HTMLScriptElement>, ScriptResult)> {
+    fn take_next_ready_to_be_executed(&self) -> Option<(DomRoot<HTMLScriptElement>, ScriptResult)> {
         let mut scripts = self.scripts.borrow_mut();
         let pair = scripts.front_mut().and_then(PendingScript::take_result);
         if pair.is_none() {
@@ -4135,7 +4135,7 @@ impl PendingScript {
         self.load = Some(result);
     }
 
-    fn take_result(&mut self) -> Option<(Root<HTMLScriptElement>, ScriptResult)> {
-        self.load.take().map(|result| (Root::from_ref(&*self.element), result))
+    fn take_result(&mut self) -> Option<(DomRoot<HTMLScriptElement>, ScriptResult)> {
+        self.load.take().map(|result| (DomRoot::from_ref(&*self.element), result))
     }
 }

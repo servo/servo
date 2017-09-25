@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::DissimilarOriginLocationBinding::Dissimila
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::reflector::Reflector;
 use dom::bindings::reflector::reflect_dom_object;
-use dom::bindings::root::{Dom, Root};
+use dom::bindings::root::{Dom, DomRoot};
 use dom::bindings::str::DOMString;
 use dom::bindings::str::USVString;
 use dom::dissimilaroriginwindow::DissimilarOriginWindow;
@@ -39,7 +39,7 @@ impl DissimilarOriginLocation {
         }
     }
 
-    pub fn new(window: &DissimilarOriginWindow) -> Root<DissimilarOriginLocation> {
+    pub fn new(window: &DissimilarOriginWindow) -> DomRoot<DissimilarOriginLocation> {
         reflect_dom_object(box DissimilarOriginLocation::new_inherited(window),
                            window,
                            DissimilarOriginLocationBinding::Wrap)

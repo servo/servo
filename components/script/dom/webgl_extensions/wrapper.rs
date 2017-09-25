@@ -4,7 +4,7 @@
 
 use core::nonzero::NonZero;
 use dom::bindings::reflector::DomObject;
-use dom::bindings::root::{MutNullableDom, Root};
+use dom::bindings::root::{DomRoot, MutNullableDom};
 use dom::bindings::trace::JSTraceable;
 use dom::webglrenderingcontext::WebGLRenderingContext;
 use heapsize::HeapSizeOf;
@@ -84,7 +84,7 @@ impl<T> WebGLExtensionWrapper for TypedWebGLExtensionWrapper<T>
 }
 
 impl<T> TypedWebGLExtensionWrapper<T> where T: WebGLExtension + JSTraceable + HeapSizeOf + 'static {
-    pub fn dom_object(&self) -> Option<Root<T::Extension>> {
+    pub fn dom_object(&self) -> Option<DomRoot<T::Extension>> {
         self.extension.get()
     }
 }

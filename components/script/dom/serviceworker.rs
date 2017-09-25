@@ -9,7 +9,7 @@ use dom::bindings::error::{ErrorResult, Error};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
-use dom::bindings::root::Root;
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::USVString;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::eventtarget::EventTarget;
@@ -48,7 +48,7 @@ impl ServiceWorker {
     pub fn install_serviceworker(global: &GlobalScope,
                                  script_url: ServoUrl,
                                  scope_url: ServoUrl,
-                                 skip_waiting: bool) -> Root<ServiceWorker> {
+                                 skip_waiting: bool) -> DomRoot<ServiceWorker> {
         reflect_dom_object(box ServiceWorker::new_inherited(script_url.as_str(),
                                                             skip_waiting,
                                                             scope_url), global, Wrap)

@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::LocationBinding::LocationMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::root::{Dom, Root};
+use dom::bindings::root::{Dom, DomRoot};
 use dom::bindings::str::{DOMString, USVString};
 use dom::globalscope::GlobalScope;
 use dom::urlhelper::UrlHelper;
@@ -29,7 +29,7 @@ impl Location {
         }
     }
 
-    pub fn new(window: &Window) -> Root<Location> {
+    pub fn new(window: &Window) -> DomRoot<Location> {
         reflect_dom_object(box Location::new_inherited(window),
                            window,
                            LocationBinding::Wrap)

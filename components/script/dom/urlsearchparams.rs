@@ -9,7 +9,7 @@ use dom::bindings::codegen::UnionTypes::USVStringOrURLSearchParams;
 use dom::bindings::error::Fallible;
 use dom::bindings::iterable::Iterable;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::root::Root;
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::{DOMString, USVString};
 use dom::bindings::weakref::MutableWeakRef;
 use dom::globalscope::GlobalScope;
@@ -37,14 +37,14 @@ impl URLSearchParams {
         }
     }
 
-    pub fn new(global: &GlobalScope, url: Option<&URL>) -> Root<URLSearchParams> {
+    pub fn new(global: &GlobalScope, url: Option<&URL>) -> DomRoot<URLSearchParams> {
         reflect_dom_object(box URLSearchParams::new_inherited(url), global,
                            URLSearchParamsWrap)
     }
 
     // https://url.spec.whatwg.org/#dom-urlsearchparams-urlsearchparams
     pub fn Constructor(global: &GlobalScope, init: Option<USVStringOrURLSearchParams>) ->
-                       Fallible<Root<URLSearchParams>> {
+                       Fallible<DomRoot<URLSearchParams>> {
         // Step 1.
         let query = URLSearchParams::new(global, None);
         match init {

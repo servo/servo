@@ -8,7 +8,7 @@ use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
-use dom::bindings::root::Root;
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::storageevent::StorageEvent;
@@ -35,7 +35,7 @@ impl Storage {
         }
     }
 
-    pub fn new(global: &Window, storage_type: StorageType) -> Root<Storage> {
+    pub fn new(global: &Window, storage_type: StorageType) -> DomRoot<Storage> {
         reflect_dom_object(box Storage::new_inherited(storage_type), global, StorageBinding::Wrap)
     }
 

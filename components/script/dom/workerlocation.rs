@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::WorkerLocationBinding;
 use dom::bindings::codegen::Bindings::WorkerLocationBinding::WorkerLocationMethods;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::root::Root;
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::{DOMString, USVString};
 use dom::urlhelper::UrlHelper;
 use dom::workerglobalscope::WorkerGlobalScope;
@@ -27,7 +27,7 @@ impl WorkerLocation {
         }
     }
 
-    pub fn new(global: &WorkerGlobalScope, url: ServoUrl) -> Root<WorkerLocation> {
+    pub fn new(global: &WorkerGlobalScope, url: ServoUrl) -> DomRoot<WorkerLocation> {
         reflect_dom_object(box WorkerLocation::new_inherited(url),
                            global,
                            WorkerLocationBinding::Wrap)

@@ -18,7 +18,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::num::Finite;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
-use dom::bindings::root::{MutDom, MutNullableDom, Root};
+use dom::bindings::root::{DomRoot, MutDom, MutNullableDom};
 use dom::bindings::str::DOMString;
 use dom::event::Event;
 use dom::eventtarget::EventTarget;
@@ -121,7 +121,7 @@ impl VRDisplay {
         }
     }
 
-    pub fn new(global: &GlobalScope, display: WebVRDisplayData) -> Root<VRDisplay> {
+    pub fn new(global: &GlobalScope, display: WebVRDisplayData) -> DomRoot<VRDisplay> {
         reflect_dom_object(box VRDisplay::new_inherited(&global, display),
                            global,
                            VRDisplayBinding::Wrap)
@@ -148,20 +148,20 @@ impl VRDisplayMethods for VRDisplay {
     }
 
     // https://w3c.github.io/webvr/#dom-vrdisplay-capabilities
-    fn Capabilities(&self) -> Root<VRDisplayCapabilities> {
-        Root::from_ref(&*self.capabilities.get())
+    fn Capabilities(&self) -> DomRoot<VRDisplayCapabilities> {
+        DomRoot::from_ref(&*self.capabilities.get())
     }
 
     // https://w3c.github.io/webvr/#dom-vrdisplay-stageparameters
-    fn GetStageParameters(&self) -> Option<Root<VRStageParameters>> {
-        self.stage_params.get().map(|s| Root::from_ref(&*s))
+    fn GetStageParameters(&self) -> Option<DomRoot<VRStageParameters>> {
+        self.stage_params.get().map(|s| DomRoot::from_ref(&*s))
     }
 
     // https://w3c.github.io/webvr/#dom-vrdisplay-geteyeparameters
-    fn GetEyeParameters(&self, eye: VREye) -> Root<VREyeParameters> {
+    fn GetEyeParameters(&self, eye: VREye) -> DomRoot<VREyeParameters> {
         match eye {
-            VREye::Left => Root::from_ref(&*self.left_eye_params.get()),
-            VREye::Right => Root::from_ref(&*self.right_eye_params.get())
+            VREye::Left => DomRoot::from_ref(&*self.left_eye_params.get()),
+            VREye::Right => DomRoot::from_ref(&*self.right_eye_params.get())
         }
     }
 
@@ -211,7 +211,7 @@ impl VRDisplayMethods for VRDisplay {
     }
 
     // https://w3c.github.io/webvr/#dom-vrdisplay-getpose
-    fn GetPose(&self) -> Root<VRPose> {
+    fn GetPose(&self) -> DomRoot<VRPose> {
         VRPose::new(&self.global(), &self.frame_data.borrow().pose)
     }
 
@@ -478,7 +478,7 @@ impl VRDisplay {
     }
 
     fn notify_event(&self, event: &WebVRDisplayEvent) {
-        let root = Root::from_ref(&*self);
+        let root = DomRoot::from_ref(&*self);
         let event = VRDisplayEvent::new_from_webvr(&self.global(), &root, &event);
         event.upcast::<Event>().fire(self.global().upcast::<EventTarget>());
     }
@@ -630,7 +630,7 @@ fn parse_bounds(src: &Option<Vec<Finite<f32>>>, dst: &mut [f32; 4]) -> Result<()
 
 fn validate_layer(cx: *mut JSContext,
                   layer: &VRLayer)
-                  -> Result<(WebVRLayer, Root<WebGLRenderingContext>), &'static str> {
+                  -> Result<(WebVRLayer, DomRoot<WebGLRenderingContext>), &'static str> {
     let ctx = layer.source.as_ref().map(|ref s| s.get_or_init_webgl_context(cx, None)).unwrap_or(None);
     if let Some(ctx) = ctx {
         let mut data = WebVRLayer::default();

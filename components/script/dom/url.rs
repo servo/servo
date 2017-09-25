@@ -6,7 +6,7 @@ use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::URLBinding::{self, URLMethods};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
-use dom::bindings::root::{MutNullableDom, Root};
+use dom::bindings::root::{DomRoot, MutNullableDom};
 use dom::bindings::str::{DOMString, USVString};
 use dom::blob::Blob;
 use dom::globalscope::GlobalScope;
@@ -42,7 +42,7 @@ impl URL {
         }
     }
 
-    pub fn new(global: &GlobalScope, url: ServoUrl) -> Root<URL> {
+    pub fn new(global: &GlobalScope, url: ServoUrl) -> DomRoot<URL> {
         reflect_dom_object(box URL::new_inherited(url),
                            global, URLBinding::Wrap)
     }
@@ -61,7 +61,7 @@ impl URL {
     // https://url.spec.whatwg.org/#constructors
     pub fn Constructor(global: &GlobalScope, url: USVString,
                        base: Option<USVString>)
-                       -> Fallible<Root<URL>> {
+                       -> Fallible<DomRoot<URL>> {
         let parsed_base = match base {
             None => {
                 // Step 1.
@@ -254,7 +254,7 @@ impl URLMethods for URL {
     }
 
     // https://url.spec.whatwg.org/#dom-url-searchparams
-    fn SearchParams(&self) -> Root<URLSearchParams> {
+    fn SearchParams(&self) -> DomRoot<URLSearchParams> {
         self.search_params.or_init(|| {
             URLSearchParams::new(&self.global(), Some(self))
         })

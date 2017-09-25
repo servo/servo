@@ -9,7 +9,7 @@ use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::reflect_dom_object;
-use dom::bindings::root::Root;
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::bindings::trace::RootedTraceableBox;
 use dom::event::{Event, EventBubbles, EventCancelable};
@@ -43,7 +43,7 @@ impl ErrorEvent {
         }
     }
 
-    pub fn new_uninitialized(global: &GlobalScope) -> Root<ErrorEvent> {
+    pub fn new_uninitialized(global: &GlobalScope) -> DomRoot<ErrorEvent> {
         reflect_dom_object(box ErrorEvent::new_inherited(),
                            global,
                            ErrorEventBinding::Wrap)
@@ -57,7 +57,7 @@ impl ErrorEvent {
                filename: DOMString,
                lineno: u32,
                colno: u32,
-               error: HandleValue) -> Root<ErrorEvent> {
+               error: HandleValue) -> DomRoot<ErrorEvent> {
         let ev = ErrorEvent::new_uninitialized(global);
         {
             let event = ev.upcast::<Event>();
@@ -75,7 +75,7 @@ impl ErrorEvent {
     pub fn Constructor(global: &GlobalScope,
                        type_: DOMString,
                        init: RootedTraceableBox<ErrorEventBinding::ErrorEventInit>)
-                       -> Fallible<Root<ErrorEvent>>{
+                       -> Fallible<DomRoot<ErrorEvent>>{
         let msg = match init.message.as_ref() {
             Some(message) => message.clone(),
             None => DOMString::new(),

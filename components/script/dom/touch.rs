@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::TouchBinding;
 use dom::bindings::codegen::Bindings::TouchBinding::TouchMethods;
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::root::{MutDom, Root};
+use dom::bindings::root::{DomRoot, MutDom};
 use dom::eventtarget::EventTarget;
 use dom::window::Window;
 use dom_struct::dom_struct;
@@ -45,7 +45,7 @@ impl Touch {
     pub fn new(window: &Window, identifier: i32, target: &EventTarget,
               screen_x: Finite<f64>, screen_y: Finite<f64>,
               client_x: Finite<f64>, client_y: Finite<f64>,
-              page_x: Finite<f64>, page_y: Finite<f64>) -> Root<Touch> {
+              page_x: Finite<f64>, page_y: Finite<f64>) -> DomRoot<Touch> {
         reflect_dom_object(box Touch::new_inherited(identifier, target,
                                                     screen_x, screen_y,
                                                     client_x, client_y,
@@ -62,7 +62,7 @@ impl TouchMethods for Touch {
     }
 
     /// https://w3c.github.io/touch-events/#widl-Touch-target
-    fn Target(&self) -> Root<EventTarget> {
+    fn Target(&self) -> DomRoot<EventTarget> {
         self.target.get()
     }
 

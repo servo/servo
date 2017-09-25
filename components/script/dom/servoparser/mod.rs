@@ -12,7 +12,7 @@ use dom::bindings::codegen::Bindings::ServoParserBinding;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::root::{Dom, MutNullableDom, Root, RootedReference};
+use dom::bindings::root::{Dom, DomRoot, MutNullableDom, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::characterdata::CharacterData;
 use dom::comment::Comment;
@@ -119,7 +119,7 @@ impl ServoParser {
     }
 
     // https://html.spec.whatwg.org/multipage/#parsing-html-fragments
-    pub fn parse_html_fragment(context: &Element, input: DOMString) -> impl Iterator<Item=Root<Node>> {
+    pub fn parse_html_fragment(context: &Element, input: DOMString) -> impl Iterator<Item=DomRoot<Node>> {
         let context_node = context.upcast::<Node>();
         let context_document = context_node.owner_doc();
         let window = context_document.window();
@@ -337,7 +337,7 @@ impl ServoParser {
            tokenizer: Tokenizer,
            last_chunk_state: LastChunkState,
            kind: ParserKind)
-           -> Root<Self> {
+           -> DomRoot<Self> {
         reflect_dom_object(box ServoParser::new_inherited(document, tokenizer, last_chunk_state, kind),
                            document.window(),
                            ServoParserBinding::Wrap)
@@ -422,7 +422,7 @@ impl ServoParser {
     }
 
     fn tokenize<F>(&self, mut feed: F)
-        where F: FnMut(&mut Tokenizer) -> Result<(), Root<HTMLScriptElement>>,
+        where F: FnMut(&mut Tokenizer) -> Result<(), DomRoot<HTMLScriptElement>>,
     {
         loop {
             assert!(!self.suspended.get());
@@ -469,17 +469,17 @@ impl ServoParser {
 }
 
 struct FragmentParsingResult<I>
-    where I: Iterator<Item=Root<Node>>
+    where I: Iterator<Item=DomRoot<Node>>
 {
     inner: I,
 }
 
 impl<I> Iterator for FragmentParsingResult<I>
-    where I: Iterator<Item=Root<Node>>
+    where I: Iterator<Item=DomRoot<Node>>
 {
-    type Item = Root<Node>;
+    type Item = DomRoot<Node>;
 
-    fn next(&mut self) -> Option<Root<Node>> {
+    fn next(&mut self) -> Option<DomRoot<Node>> {
         let next = match self.inner.next() {
             Some(next) => next,
             None => return None,
@@ -508,7 +508,7 @@ enum Tokenizer {
 }
 
 impl Tokenizer {
-    fn feed(&mut self, input: &mut BufferQueue) -> Result<(), Root<HTMLScriptElement>> {
+    fn feed(&mut self, input: &mut BufferQueue) -> Result<(), DomRoot<HTMLScriptElement>> {
         match *self {
             Tokenizer::Html(ref mut tokenizer) => tokenizer.feed(input),
             Tokenizer::AsyncHtml(ref mut tokenizer) => tokenizer.feed(input),
@@ -624,10 +624,10 @@ impl FetchResponseListener for ParserContext {
                 parser.parse_sync();
 
                 let doc = &parser.document;
-                let doc_body = Root::upcast::<Node>(doc.GetBody().unwrap());
+                let doc_body = DomRoot::upcast::<Node>(doc.GetBody().unwrap());
                 let img = HTMLImageElement::new(local_name!("img"), None, doc);
                 img.SetSrc(DOMString::from(self.url.to_string()));
-                doc_body.AppendChild(&Root::upcast::<Node>(img)).expect("Appending failed");
+                doc_body.AppendChild(&DomRoot::upcast::<Node>(img)).expect("Appending failed");
 
             },
             Some(ContentType(Mime(TopLevel::Text, SubLevel::Plain, _))) => {
@@ -730,7 +730,7 @@ fn insert(parent: &Node, reference_child: Option<&Node>, child: NodeOrText<Dom<N
             let text = reference_child
                 .and_then(Node::GetPreviousSibling)
                 .or_else(|| parent.GetLastChild())
-                .and_then(Root::downcast::<Text>);
+                .and_then(DomRoot::downcast::<Text>);
 
             if let Some(text) = text {
                 text.upcast::<CharacterData>().append_data(&t);
@@ -834,7 +834,7 @@ impl TreeSink for Sink {
         }
 
         let node = target;
-        let form = Root::downcast::<HTMLFormElement>(Root::from_ref(&**form))
+        let form = DomRoot::downcast::<HTMLFormElement>(DomRoot::from_ref(&**form))
             .expect("Owner must be a form element");
 
         let elem = node.downcast::<Element>();
@@ -945,7 +945,7 @@ impl TreeSink for Sink {
     }
 
     fn pop(&mut self, node: &Dom<Node>) {
-        let node = Root::from_ref(&**node);
+        let node = DomRoot::from_ref(&**node);
         vtable_for(&node).pop();
     }
 }

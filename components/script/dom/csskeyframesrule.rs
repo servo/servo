@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::CSSKeyframesRuleBinding::CSSKeyframesRuleM
 use dom::bindings::error::ErrorResult;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
-use dom::bindings::root::{MutNullableDom, Root};
+use dom::bindings::root::{DomRoot, MutNullableDom};
 use dom::bindings::str::DOMString;
 use dom::csskeyframerule::CSSKeyframeRule;
 use dom::cssrule::{CSSRule, SpecificCSSRule};
@@ -41,13 +41,13 @@ impl CSSKeyframesRule {
 
     #[allow(unrooted_must_root)]
     pub fn new(window: &Window, parent_stylesheet: &CSSStyleSheet,
-               keyframesrule: Arc<Locked<KeyframesRule>>) -> Root<CSSKeyframesRule> {
+               keyframesrule: Arc<Locked<KeyframesRule>>) -> DomRoot<CSSKeyframesRule> {
         reflect_dom_object(box CSSKeyframesRule::new_inherited(parent_stylesheet, keyframesrule),
                            window,
                            CSSKeyframesRuleBinding::Wrap)
     }
 
-    fn rulelist(&self) -> Root<CSSRuleList> {
+    fn rulelist(&self) -> DomRoot<CSSRuleList> {
         self.rulelist.or_init(|| {
             let parent_stylesheet = &self.upcast::<CSSRule>().parent_stylesheet();
             CSSRuleList::new(self.global().as_window(),
@@ -76,7 +76,7 @@ impl CSSKeyframesRule {
 
 impl CSSKeyframesRuleMethods for CSSKeyframesRule {
     // https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-cssrules
-    fn CssRules(&self) -> Root<CSSRuleList> {
+    fn CssRules(&self) -> DomRoot<CSSRuleList> {
         self.rulelist()
     }
 
@@ -104,10 +104,10 @@ impl CSSKeyframesRuleMethods for CSSKeyframesRule {
     }
 
     // https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-findrule
-    fn FindRule(&self, selector: DOMString) -> Option<Root<CSSKeyframeRule>> {
+    fn FindRule(&self, selector: DOMString) -> Option<DomRoot<CSSKeyframeRule>> {
         self.find_rule(&selector).and_then(|idx| {
             self.rulelist().item(idx as u32)
-        }).and_then(Root::downcast)
+        }).and_then(DomRoot::downcast)
     }
 
     // https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-name

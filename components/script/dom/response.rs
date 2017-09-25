@@ -11,7 +11,7 @@ use dom::bindings::codegen::Bindings::ResponseBinding::{ResponseMethods, Respons
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::BodyInit;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
-use dom::bindings::root::{MutNullableDom, Root};
+use dom::bindings::root::{DomRoot, MutNullableDom};
 use dom::bindings::str::{ByteString, USVString};
 use dom::globalscope::GlobalScope;
 use dom::headers::{Headers, Guard};
@@ -67,12 +67,12 @@ impl Response {
     }
 
     // https://fetch.spec.whatwg.org/#dom-response
-    pub fn new(global: &GlobalScope) -> Root<Response> {
+    pub fn new(global: &GlobalScope) -> DomRoot<Response> {
         reflect_dom_object(box Response::new_inherited(), global, ResponseBinding::Wrap)
     }
 
     pub fn Constructor(global: &GlobalScope, body: Option<BodyInit>, init: &ResponseBinding::ResponseInit)
-                       -> Fallible<Root<Response>> {
+                       -> Fallible<DomRoot<Response>> {
         // Step 1
         if init.status < 200 || init.status > 599 {
             return Err(Error::Range(
@@ -139,7 +139,7 @@ impl Response {
     }
 
     // https://fetch.spec.whatwg.org/#dom-response-error
-    pub fn Error(global: &GlobalScope) -> Root<Response> {
+    pub fn Error(global: &GlobalScope) -> DomRoot<Response> {
         let r = Response::new(global);
         *r.response_type.borrow_mut() = DOMResponseType::Error;
         r.Headers().set_guard(Guard::Immutable);
@@ -148,7 +148,7 @@ impl Response {
     }
 
     // https://fetch.spec.whatwg.org/#dom-response-redirect
-    pub fn Redirect(global: &GlobalScope, url: USVString, status: u16) -> Fallible<Root<Response>> {
+    pub fn Redirect(global: &GlobalScope, url: USVString, status: u16) -> Fallible<DomRoot<Response>> {
         // Step 1
         let base_url = global.api_base_url();
         let parsed_url = base_url.join(&url.0);
@@ -291,12 +291,12 @@ impl ResponseMethods for Response {
     }
 
     // https://fetch.spec.whatwg.org/#dom-response-headers
-    fn Headers(&self) -> Root<Headers> {
+    fn Headers(&self) -> DomRoot<Headers> {
         self.headers_reflector.or_init(|| Headers::for_response(&self.global()))
     }
 
     // https://fetch.spec.whatwg.org/#dom-response-clone
-    fn Clone(&self) -> Fallible<Root<Response>> {
+    fn Clone(&self) -> Fallible<DomRoot<Response>> {
         // Step 1
         if self.is_locked() || self.body_used.get() {
             return Err(Error::Type("cannot clone a disturbed response".to_string()));

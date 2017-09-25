@@ -9,7 +9,7 @@ use dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListBinding::
 use dom::bindings::codegen::Bindings::HTMLLinkElementBinding;
 use dom::bindings::codegen::Bindings::HTMLLinkElementBinding::HTMLLinkElementMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::root::{MutNullableDom, Root, RootedReference};
+use dom::bindings::root::{DomRoot, MutNullableDom, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::cssstylesheet::CSSStyleSheet;
 use dom::document::Document;
@@ -85,7 +85,7 @@ impl HTMLLinkElement {
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
                document: &Document,
-               creator: ElementCreator) -> Root<HTMLLinkElement> {
+               creator: ElementCreator) -> DomRoot<HTMLLinkElement> {
         Node::reflect_node(box HTMLLinkElement::new_inherited(local_name, prefix, document, creator),
                            document,
                            HTMLLinkElementBinding::Wrap)
@@ -111,7 +111,7 @@ impl HTMLLinkElement {
         self.stylesheet.borrow().clone()
     }
 
-    pub fn get_cssom_stylesheet(&self) -> Option<Root<CSSStyleSheet>> {
+    pub fn get_cssom_stylesheet(&self) -> Option<DomRoot<CSSStyleSheet>> {
         self.get_stylesheet().map(|sheet| {
             self.cssom_stylesheet.or_init(|| {
                 CSSStyleSheet::new(&window_from_node(self),
@@ -408,7 +408,7 @@ impl HTMLLinkElementMethods for HTMLLinkElement {
     make_setter!(SetType, "type");
 
     // https://html.spec.whatwg.org/multipage/#dom-link-rellist
-    fn RelList(&self) -> Root<DOMTokenList> {
+    fn RelList(&self) -> DomRoot<DOMTokenList> {
         self.rel_list.or_init(|| DOMTokenList::new(self.upcast(), &local_name!("rel")))
     }
 
@@ -441,7 +441,7 @@ impl HTMLLinkElementMethods for HTMLLinkElement {
     }
 
     // https://drafts.csswg.org/cssom/#dom-linkstyle-sheet
-    fn GetSheet(&self) -> Option<Root<DOMStyleSheet>> {
-        self.get_cssom_stylesheet().map(Root::upcast)
+    fn GetSheet(&self) -> Option<DomRoot<DOMStyleSheet>> {
+        self.get_cssom_stylesheet().map(DomRoot::upcast)
     }
 }

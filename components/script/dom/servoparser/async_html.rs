@@ -7,7 +7,7 @@
 use dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::root::{Dom, Root};
+use dom::bindings::root::{Dom, DomRoot};
 use dom::bindings::str::DOMString;
 use dom::comment::Comment;
 use dom::document::Document;
@@ -230,7 +230,7 @@ impl Tokenizer {
         tokenizer
     }
 
-    pub fn feed(&mut self, input: &mut BufferQueue) -> Result<(), Root<HTMLScriptElement>> {
+    pub fn feed(&mut self, input: &mut BufferQueue) -> Result<(), DomRoot<HTMLScriptElement>> {
         let mut send_tendrils = VecDeque::new();
         while let Some(str) = input.pop_front() {
             send_tendrils.push_back(SendTendril::from(str));
@@ -252,7 +252,7 @@ impl Tokenizer {
                     let buffer_queue = create_buffer_queue(updated_input);
                     *input = buffer_queue;
                     let script = self.get_node(&script.id);
-                    return Err(Root::from_ref(script.downcast().unwrap()));
+                    return Err(DomRoot::from_ref(script.downcast().unwrap()));
                 }
                 ToTokenizerMsg::End => unreachable!(),
             };
@@ -326,11 +326,11 @@ impl Tokenizer {
     }
 
     fn process_operation(&mut self, op: ParseOperation) {
-        let document = Root::from_ref(&**self.get_node(&0));
+        let document = DomRoot::from_ref(&**self.get_node(&0));
         let document = document.downcast::<Document>().expect("Document node should be downcasted!");
         match op {
             ParseOperation::GetTemplateContents { target, contents } => {
-                let target = Root::from_ref(&**self.get_node(&target));
+                let target = DomRoot::from_ref(&**self.get_node(&target));
                 let template = target.downcast::<HTMLTemplateElement>().expect(
                     "Tried to extract contents from non-template element while parsing");
                 self.insert_node(contents, Dom::from_ref(template.Content().upcast()));
@@ -407,7 +407,7 @@ impl Tokenizer {
                     return;
                 }
                 let form = self.get_node(&form);
-                let form = Root::downcast::<HTMLFormElement>(Root::from_ref(&**form))
+                let form = DomRoot::downcast::<HTMLFormElement>(DomRoot::from_ref(&**form))
                     .expect("Owner must be a form element");
 
                 let node = self.get_node(&target);

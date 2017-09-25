@@ -11,7 +11,7 @@ use dom::bindings::codegen::Bindings::HTMLAnchorElementBinding::HTMLAnchorElemen
 use dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::root::{MutNullableDom, Root};
+use dom::bindings::root::{DomRoot, MutNullableDom};
 use dom::bindings::str::{DOMString, USVString};
 use dom::document::Document;
 use dom::domtokenlist::DOMTokenList;
@@ -56,7 +56,7 @@ impl HTMLAnchorElement {
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
-               document: &Document) -> Root<HTMLAnchorElement> {
+               document: &Document) -> DomRoot<HTMLAnchorElement> {
         Node::reflect_node(box HTMLAnchorElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLAnchorElementBinding::Wrap)
@@ -122,7 +122,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-a-rellist
-    fn RelList(&self) -> Root<DOMTokenList> {
+    fn RelList(&self) -> DomRoot<DOMTokenList> {
         self.rel_list.or_init(|| DOMTokenList::new(self.upcast(), &local_name!("rel")))
     }
 

@@ -4,7 +4,7 @@
 
 #![allow(unrooted_must_root)]
 
-use dom::bindings::root::{Dom, Root};
+use dom::bindings::root::{Dom, DomRoot};
 use dom::bindings::trace::JSTraceable;
 use dom::document::Document;
 use dom::htmlscriptelement::HTMLScriptElement;
@@ -40,7 +40,7 @@ impl Tokenizer {
         }
     }
 
-    pub fn feed(&mut self, input: &mut BufferQueue) -> Result<(), Root<HTMLScriptElement>> {
+    pub fn feed(&mut self, input: &mut BufferQueue) -> Result<(), DomRoot<HTMLScriptElement>> {
         if !input.is_empty() {
             while let Some(chunk) = input.pop_front() {
                 self.inner.feed(chunk);

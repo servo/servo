@@ -14,7 +14,7 @@ use dom::bindings::conversions::{ConversionResult, FromJSValConvertible, Stringi
 use dom::bindings::error::{Error, ErrorResult, Fallible, report_pending_exception, throw_dom_exception};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
-use dom::bindings::root::{Dom, Root};
+use dom::bindings::root::{Dom, DomRoot};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::domexception::{DOMErrorName, DOMException};
@@ -67,7 +67,7 @@ impl CustomElementRegistry {
         }
     }
 
-    pub fn new(window: &Window) -> Root<CustomElementRegistry> {
+    pub fn new(window: &Window) -> DomRoot<CustomElementRegistry> {
         reflect_dom_object(box CustomElementRegistry::new_inherited(window),
                            window,
                            CustomElementRegistryBinding::Wrap)
@@ -304,7 +304,7 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
         let document = self.window.Document();
 
         // Steps 14-15
-        for candidate in document.upcast::<Node>().traverse_preorder().filter_map(Root::downcast::<Element>) {
+        for candidate in document.upcast::<Node>().traverse_preorder().filter_map(DomRoot::downcast::<Element>) {
             let is = candidate.get_is();
             if *candidate.local_name() == local_name &&
                 *candidate.namespace() == ns!(html) &&
@@ -386,7 +386,7 @@ pub struct LifecycleCallbacks {
 
 #[derive(Clone, HeapSizeOf, JSTraceable)]
 pub enum ConstructionStackEntry {
-    Element(Root<Element>),
+    Element(DomRoot<Element>),
     AlreadyConstructedMarker,
 }
 
@@ -431,7 +431,7 @@ impl CustomElementDefinition {
 
     /// https://dom.spec.whatwg.org/#concept-create-element Step 6.1
     #[allow(unsafe_code)]
-    pub fn create_element(&self, document: &Document, prefix: Option<Prefix>) -> Fallible<Root<Element>> {
+    pub fn create_element(&self, document: &Document, prefix: Option<Prefix>) -> Fallible<DomRoot<Element>> {
         let window = document.window();
         let cx = window.get_cx();
         // Step 2
@@ -447,7 +447,7 @@ impl CustomElementDefinition {
         }
 
         rooted!(in(cx) let element_val = ObjectValue(element.get()));
-        let element: Root<Element> = match unsafe { Root::from_jsval(cx, element_val.handle(), ()) } {
+        let element: DomRoot<Element> = match unsafe { DomRoot::from_jsval(cx, element_val.handle(), ()) } {
             Ok(ConversionResult::Success(element)) => element,
             Ok(ConversionResult::Failure(..)) =>
                 return Err(Error::Type("Constructor did not return a DOM node".to_owned())),
@@ -504,7 +504,7 @@ pub fn upgrade_element(definition: Rc<CustomElementDefinition>, element: &Elemen
     }
 
     // Step 5
-    definition.construction_stack.borrow_mut().push(ConstructionStackEntry::Element(Root::from_ref(element)));
+    definition.construction_stack.borrow_mut().push(ConstructionStackEntry::Element(DomRoot::from_ref(element)));
 
     // Step 7
     let result = run_upgrade_constructor(&definition.constructor, element);
@@ -612,7 +612,7 @@ impl CustomElementReaction {
 pub enum CallbackReaction {
     Connected,
     Disconnected,
-    Adopted(Root<Document>, Root<Document>),
+    Adopted(DomRoot<Document>, DomRoot<Document>),
     AttributeChanged(LocalName, Option<DOMString>, Option<DOMString>, Namespace),
 }
 
@@ -795,8 +795,8 @@ impl ElementQueue {
         self.queue.borrow_mut().clear();
     }
 
-    fn next_element(&self) -> Option<Root<Element>> {
-        self.queue.borrow_mut().pop_front().as_ref().map(Dom::deref).map(Root::from_ref)
+    fn next_element(&self) -> Option<DomRoot<Element>> {
+        self.queue.borrow_mut().pop_front().as_ref().map(Dom::deref).map(DomRoot::from_ref)
     }
 
     fn append_element(&self, element: &Element) {

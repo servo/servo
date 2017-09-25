@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::DOMTokenListBinding;
 use dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListMethods;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::root::{Dom, Root};
+use dom::bindings::root::{Dom, DomRoot};
 use dom::bindings::str::DOMString;
 use dom::element::Element;
 use dom::node::window_from_node;
@@ -32,14 +32,14 @@ impl DOMTokenList {
         }
     }
 
-    pub fn new(element: &Element, local_name: &LocalName) -> Root<DOMTokenList> {
+    pub fn new(element: &Element, local_name: &LocalName) -> DomRoot<DOMTokenList> {
         let window = window_from_node(element);
         reflect_dom_object(box DOMTokenList::new_inherited(element, local_name.clone()),
                            &*window,
                            DOMTokenListBinding::Wrap)
     }
 
-    fn attribute(&self) -> Option<Root<Attr>> {
+    fn attribute(&self) -> Option<DomRoot<Attr>> {
         self.element.get_attribute(&ns!(), &self.local_name)
     }
 

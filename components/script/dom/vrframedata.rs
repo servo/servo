@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::VRFrameDataBinding::VRFrameDataMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
-use dom::bindings::root::{Dom, Root};
+use dom::bindings::root::{Dom, DomRoot};
 use dom::globalscope::GlobalScope;
 use dom::vrpose::VRPose;
 use dom::window::Window;
@@ -46,7 +46,7 @@ impl VRFrameData {
     }
 
     #[allow(unsafe_code)]
-    fn new(global: &GlobalScope) -> Root<VRFrameData> {
+    fn new(global: &GlobalScope) -> DomRoot<VRFrameData> {
         let matrix = [1.0, 0.0, 0.0, 0.0,
                       0.0, 1.0, 0.0, 0.0,
                       0.0, 0.0, 1.0, 0.0,
@@ -65,7 +65,7 @@ impl VRFrameData {
         root
     }
 
-    pub fn Constructor(window: &Window) -> Fallible<Root<VRFrameData>> {
+    pub fn Constructor(window: &Window) -> Fallible<DomRoot<VRFrameData>> {
         Ok(VRFrameData::new(&window.global()))
     }
 }
@@ -141,7 +141,7 @@ impl VRFrameDataMethods for VRFrameData {
     }
 
     // https://w3c.github.io/webvr/#dom-vrframedata-pose
-    fn Pose(&self) -> Root<VRPose> {
-        Root::from_ref(&*self.pose)
+    fn Pose(&self) -> DomRoot<VRPose> {
+        DomRoot::from_ref(&*self.pose)
     }
 }

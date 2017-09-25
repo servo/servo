@@ -10,7 +10,7 @@ use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::WebGLFramebufferBinding;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::reflector::reflect_dom_object;
-use dom::bindings::root::{Dom, Root};
+use dom::bindings::root::{Dom, DomRoot};
 use dom::webglobject::WebGLObject;
 use dom::webglrenderbuffer::WebGLRenderbuffer;
 use dom::webgltexture::WebGLTexture;
@@ -65,7 +65,7 @@ impl WebGLFramebuffer {
     }
 
     pub fn maybe_new(window: &Window, renderer: WebGLMsgSender)
-                     -> Option<Root<WebGLFramebuffer>> {
+                     -> Option<DomRoot<WebGLFramebuffer>> {
         let (sender, receiver) = webgl_channel().unwrap();
         renderer.send(WebGLCommand::CreateFramebuffer(sender)).unwrap();
 
@@ -76,7 +76,7 @@ impl WebGLFramebuffer {
     pub fn new(window: &Window,
                renderer: WebGLMsgSender,
                id: WebGLFramebufferId)
-               -> Root<WebGLFramebuffer> {
+               -> DomRoot<WebGLFramebuffer> {
         reflect_dom_object(box WebGLFramebuffer::new_inherited(renderer, id),
                            window,
                            WebGLFramebufferBinding::Wrap)

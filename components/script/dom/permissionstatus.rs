@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::PermissionStatusBinding::{self, Permission
 use dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionState;
 use dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionStatusMethods;
 use dom::bindings::reflector::reflect_dom_object;
-use dom::bindings::root::Root;
+use dom::bindings::root::DomRoot;
 use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
@@ -30,7 +30,7 @@ impl PermissionStatus {
         }
     }
 
-    pub fn new(global: &GlobalScope, query: &PermissionDescriptor) -> Root<PermissionStatus> {
+    pub fn new(global: &GlobalScope, query: &PermissionDescriptor) -> DomRoot<PermissionStatus> {
         reflect_dom_object(box PermissionStatus::new_inherited(query.name),
                            global,
                            PermissionStatusBinding::Wrap)

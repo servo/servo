@@ -11,7 +11,7 @@ use dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionStatusB
 use dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use dom::bindings::error::Error;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
-use dom::bindings::root::{Dom, Root};
+use dom::bindings::root::{Dom, DomRoot};
 use dom::bindings::str::DOMString;
 use dom::bluetooth::{AsyncBluetoothListener, Bluetooth, AllowedBluetoothDevice};
 use dom::bluetoothdevice::BluetoothDevice;
@@ -40,13 +40,13 @@ impl BluetoothPermissionResult {
         result
     }
 
-    pub fn new(global: &GlobalScope, status: &PermissionStatus) -> Root<BluetoothPermissionResult> {
+    pub fn new(global: &GlobalScope, status: &PermissionStatus) -> DomRoot<BluetoothPermissionResult> {
         reflect_dom_object(box BluetoothPermissionResult::new_inherited(status),
                            global,
                            BluetoothPermissionResultBinding::Wrap)
     }
 
-    pub fn get_bluetooth(&self) -> Root<Bluetooth> {
+    pub fn get_bluetooth(&self) -> DomRoot<Bluetooth> {
         self.global().as_window().Navigator().Bluetooth()
     }
 
@@ -74,9 +74,9 @@ impl BluetoothPermissionResult {
 
 impl BluetoothPermissionResultMethods for BluetoothPermissionResult {
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothpermissionresult-devices
-    fn Devices(&self) -> Vec<Root<BluetoothDevice>> {
-        let device_vec: Vec<Root<BluetoothDevice>> =
-            self.devices.borrow().iter().map(|d| Root::from_ref(&**d)).collect();
+    fn Devices(&self) -> Vec<DomRoot<BluetoothDevice>> {
+        let device_vec: Vec<DomRoot<BluetoothDevice>> =
+            self.devices.borrow().iter().map(|d| DomRoot::from_ref(&**d)).collect();
         device_vec
     }
 }

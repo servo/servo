@@ -18,7 +18,7 @@ use dom::bindings::codegen::Bindings::RequestBinding::RequestRedirect;
 use dom::bindings::codegen::Bindings::RequestBinding::RequestType;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
-use dom::bindings::root::{MutNullableDom, Root};
+use dom::bindings::root::{DomRoot, MutNullableDom};
 use dom::bindings::str::{ByteString, DOMString, USVString};
 use dom::bindings::trace::RootedTraceableBox;
 use dom::globalscope::GlobalScope;
@@ -67,7 +67,7 @@ impl Request {
     }
 
     pub fn new(global: &GlobalScope,
-               url: ServoUrl) -> Root<Request> {
+               url: ServoUrl) -> DomRoot<Request> {
         reflect_dom_object(box Request::new_inherited(global,
                                                       url),
                            global, RequestBinding::Wrap)
@@ -77,7 +77,7 @@ impl Request {
     pub fn Constructor(global: &GlobalScope,
                        input: RequestInfo,
                        init: RootedTraceableBox<RequestInit>)
-                       -> Fallible<Root<Request>> {
+                       -> Fallible<DomRoot<Request>> {
         // Step 1
         let temporary_request: NetTraitsRequest;
 
@@ -293,7 +293,7 @@ impl Request {
         if let Some(possible_header) = init.headers.as_ref() {
             match possible_header {
                 &HeadersInit::Headers(ref init_headers) => {
-                    headers_copy = Root::from_ref(&*init_headers);
+                    headers_copy = DomRoot::from_ref(&*init_headers);
                 }
                 &HeadersInit::ByteStringSequenceSequence(ref init_sequence) => {
                     headers_copy.fill(Some(
@@ -310,7 +310,7 @@ impl Request {
         // We cannot empty `r.Headers().header_list` because
         // we would undo the Step 27 above.  One alternative is to set
         // `headers_copy` as a deep copy of `r.Headers()`. However,
-        // `r.Headers()` is a `Root<T>`, and therefore it is difficult
+        // `r.Headers()` is a `DomRoot<T>`, and therefore it is difficult
         // to obtain a mutable reference to `r.Headers()`. Without the
         // mutable reference, we cannot mutate `r.Headers()` to be the
         // deep copied headers in Step 27.
@@ -409,14 +409,14 @@ impl Request {
 
 impl Request {
     fn from_net_request(global: &GlobalScope,
-                        net_request: NetTraitsRequest) -> Root<Request> {
+                        net_request: NetTraitsRequest) -> DomRoot<Request> {
         let r = Request::new(global,
                              net_request.current_url());
         *r.request.borrow_mut() = net_request;
         r
     }
 
-    fn clone_from(r: &Request) -> Fallible<Root<Request>> {
+    fn clone_from(r: &Request) -> Fallible<DomRoot<Request>> {
         let req = r.request.borrow();
         let url = req.url();
         let body_used = r.body_used.get();
@@ -527,7 +527,7 @@ impl RequestMethods for Request {
     }
 
     // https://fetch.spec.whatwg.org/#dom-request-headers
-    fn Headers(&self) -> Root<Headers> {
+    fn Headers(&self) -> DomRoot<Headers> {
         self.headers.or_init(|| Headers::new(&self.global()))
     }
 
@@ -594,7 +594,7 @@ impl RequestMethods for Request {
     }
 
     // https://fetch.spec.whatwg.org/#dom-request-clone
-    fn Clone(&self) -> Fallible<Root<Request>> {
+    fn Clone(&self) -> Fallible<DomRoot<Request>> {
         // Step 1
         if request_is_locked(self) {
             return Err(Error::Type("Request is locked".to_string()));

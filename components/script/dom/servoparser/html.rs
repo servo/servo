@@ -6,7 +6,7 @@
 
 use dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
 use dom::bindings::inheritance::{Castable, CharacterDataTypeId, NodeTypeId};
-use dom::bindings::root::{Dom, Root};
+use dom::bindings::root::{Dom, DomRoot};
 use dom::bindings::trace::JSTraceable;
 use dom::characterdata::CharacterData;
 use dom::document::Document;
@@ -75,10 +75,10 @@ impl Tokenizer {
         }
     }
 
-    pub fn feed(&mut self, input: &mut BufferQueue) -> Result<(), Root<HTMLScriptElement>> {
+    pub fn feed(&mut self, input: &mut BufferQueue) -> Result<(), DomRoot<HTMLScriptElement>> {
         match self.inner.feed(input) {
             TokenizerResult::Done => Ok(()),
-            TokenizerResult::Script(script) => Err(Root::from_ref(script.downcast().unwrap())),
+            TokenizerResult::Script(script) => Err(DomRoot::from_ref(script.downcast().unwrap())),
         }
     }
 
@@ -140,16 +140,16 @@ fn end_element<S: Serializer>(node: &Element, serializer: &mut S) -> io::Result<
 
 
 enum SerializationCommand {
-    OpenElement(Root<Element>),
-    CloseElement(Root<Element>),
-    SerializeNonelement(Root<Node>),
+    OpenElement(DomRoot<Element>),
+    CloseElement(DomRoot<Element>),
+    SerializeNonelement(DomRoot<Node>),
 }
 
 struct SerializationIterator {
     stack: Vec<SerializationCommand>,
 }
 
-fn rev_children_iter(n: &Node) -> impl Iterator<Item=Root<Node>>{
+fn rev_children_iter(n: &Node) -> impl Iterator<Item=DomRoot<Node>>{
     match n.downcast::<HTMLTemplateElement>() {
         Some(t) => t.Content().upcast::<Node>().rev_children(),
         None => n.rev_children(),
@@ -173,8 +173,8 @@ impl SerializationIterator {
 
     fn push_node(&mut self, n: &Node) {
         match n.downcast::<Element>() {
-            Some(e) => self.stack.push(SerializationCommand::OpenElement(Root::from_ref(e))),
-            None => self.stack.push(SerializationCommand::SerializeNonelement(Root::from_ref(n))),
+            Some(e) => self.stack.push(SerializationCommand::OpenElement(DomRoot::from_ref(e))),
+            None => self.stack.push(SerializationCommand::SerializeNonelement(DomRoot::from_ref(n))),
         }
     }
 }

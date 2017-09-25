@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::ValidityStateBinding;
 use dom::bindings::codegen::Bindings::ValidityStateBinding::ValidityStateMethods;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::root::{Dom, Root};
+use dom::bindings::root::{Dom, DomRoot};
 use dom::element::Element;
 use dom::window::Window;
 use dom_struct::dom_struct;
@@ -60,7 +60,7 @@ impl ValidityState {
         }
     }
 
-    pub fn new(window: &Window, element: &Element) -> Root<ValidityState> {
+    pub fn new(window: &Window, element: &Element) -> DomRoot<ValidityState> {
         reflect_dom_object(box ValidityState::new_inherited(element),
                            window,
                            ValidityStateBinding::Wrap)

@@ -8,7 +8,7 @@ use dom::bindings::error::{Error, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
-use dom::bindings::root::Root;
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::event::Event;
 use dom::eventtarget::EventTarget;
@@ -412,7 +412,7 @@ impl EventSource {
         }
     }
 
-    fn new(global: &GlobalScope, url: ServoUrl, with_credentials: bool) -> Root<EventSource> {
+    fn new(global: &GlobalScope, url: ServoUrl, with_credentials: bool) -> DomRoot<EventSource> {
         reflect_dom_object(box EventSource::new_inherited(url, with_credentials),
                            global,
                            Wrap)
@@ -424,7 +424,7 @@ impl EventSource {
 
     pub fn Constructor(global: &GlobalScope,
                        url: DOMString,
-                       event_source_init: &EventSourceInit) -> Fallible<Root<EventSource>> {
+                       event_source_init: &EventSourceInit) -> Fallible<DomRoot<EventSource>> {
         // TODO: Step 2 relevant settings object
         // Step 3
         let base_url = global.api_base_url();

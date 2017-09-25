@@ -222,22 +222,22 @@ objects.
 [gc-root]: https://en.wikipedia.org/wiki/Tracing_garbage_collection#Reachability_of_an_object
 
 Another common situation is creating a stack-local root manually. For this
-purpose, we have a [`Root<T>`][root] struct. When the `Root<T>` is destroyed,
+purpose, we have a [`DomRoot<T>`][root] struct. When the `DomRoot<T>` is destroyed,
 typically at the end of the function (or block) where it was created, its
 destructor will un-root the DOM object. This is an example of the
 [RAII idiom][raii], which Rust inherits from C++.
-`Root<T>` structs are primarily returned from [`T::new` functions][new] when
+`DomRoot<T>` structs are primarily returned from [`T::new` functions][new] when
 creating a new DOM object.
 In some cases, we need to use a DOM object longer than the reference we
-received allows us to; the [`Root::from_ref` associated function][from-ref]
-allows creating a new `Root<T>` struct in that case.
+received allows us to; the [`DomRoot::from_ref` associated function][from-ref]
+allows creating a new `DomRoot<T>` struct in that case.
 
-[root]: http://doc.servo.org/script/dom/bindings/root/struct.Root.html
+[root]: http://doc.servo.org/script/dom/bindings/root/struct.DomRoot.html
 [raii]: https://en.wikipedia.org/wiki/Resource_Acquisition_Is_Initialization
 [new]: http://doc.servo.org/script/dom/index.html#construction
-[from-ref]: http://doc.servo.org/script/dom/bindings/root/struct.Root.html#method.from_ref
+[from-ref]: http://doc.servo.org/script/dom/bindings/root/struct.DomRoot.html#method.from_ref
 
-We can then obtain a reference from the `Root<T>` through Rust's built-in
+We can then obtain a reference from the `DomRoot<T>` through Rust's built-in
 [`Deref` trait][deref], which exposes a method `deref` with the following
 signature:
 
@@ -249,11 +249,11 @@ pub fn deref<'a>(&'a self) -> &'a T {
 What this syntax means is:
 
 - **`<'a>`**: 'for any lifetime `'a`',
-- **`(&'a self)`**: 'take a reference to a `Root` which is valid over lifetime `'a`',
+- **`(&'a self)`**: 'take a reference to a `DomRoot` which is valid over lifetime `'a`',
 - **`-> &'a T`**: 'return a reference whose lifetime is limited to `'a`'.
 
 This allows us to call methods and access fields of the underlying type `T`
-through a `Root<T>`.
+through a `DomRoot<T>`.
 
 [deref]: https://doc.rust-lang.org/std/ops/trait.Deref.html
 
@@ -294,7 +294,7 @@ To recapitulate, the safety of our system depends on two major parts:
 
 - The auto-generated `trace` methods ensure that SpiderMonkey's garbage
   collector can see all of the references between DOM objects.
-- The implementation of `Root<T>` guarantees that we can't use a DOM object
+- The implementation of `DomRoot<T>` guarantees that we can't use a DOM object
   from Rust without telling SpiderMonkey about our temporary reference.
 
 But there's a hole in this scheme. We could copy an unrooted pointer — a

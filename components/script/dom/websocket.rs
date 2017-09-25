@@ -12,7 +12,7 @@ use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
-use dom::bindings::root::Root;
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::{DOMString, USVString, is_token};
 use dom::blob::{Blob, BlobImpl};
 use dom::closeevent::CloseEvent;
@@ -124,7 +124,7 @@ impl WebSocket {
         }
     }
 
-    fn new(global: &GlobalScope, url: ServoUrl) -> Root<WebSocket> {
+    fn new(global: &GlobalScope, url: ServoUrl) -> DomRoot<WebSocket> {
         reflect_dom_object(box WebSocket::new_inherited(url),
                            global, WebSocketBinding::Wrap)
     }
@@ -133,7 +133,7 @@ impl WebSocket {
     pub fn Constructor(global: &GlobalScope,
                        url: DOMString,
                        protocols: Option<StringOrStringSequence>)
-                       -> Fallible<Root<WebSocket>> {
+                       -> Fallible<DomRoot<WebSocket>> {
         // Steps 1-2.
         let url_record = ServoUrl::parse(&url).or(Err(Error::Syntax))?;
 

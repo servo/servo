@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::PerformanceTimingBinding;
 use dom::bindings::codegen::Bindings::PerformanceTimingBinding::PerformanceTimingMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::root::{Dom, Root};
+use dom::bindings::root::{Dom, DomRoot};
 use dom::document::Document;
 use dom::window::Window;
 use dom_struct::dom_struct;
@@ -36,7 +36,7 @@ impl PerformanceTiming {
     pub fn new(window: &Window,
                navigation_start: u64,
                navigation_start_precise: f64)
-               -> Root<PerformanceTiming> {
+               -> DomRoot<PerformanceTiming> {
         let timing = PerformanceTiming::new_inherited(navigation_start,
                                                       navigation_start_precise,
                                                       &window.Document());

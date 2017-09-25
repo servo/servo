@@ -10,7 +10,7 @@ use dom::bindings::error::Fallible;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::iterable::Iterable;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
-use dom::bindings::root::Root;
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::{DOMString, USVString};
 use dom::blob::{Blob, BlobImpl};
 use dom::file::File;
@@ -47,12 +47,12 @@ impl FormData {
         }
     }
 
-    pub fn new(form: Option<&HTMLFormElement>, global: &GlobalScope) -> Root<FormData> {
+    pub fn new(form: Option<&HTMLFormElement>, global: &GlobalScope) -> DomRoot<FormData> {
         reflect_dom_object(box FormData::new_inherited(form),
                            global, FormDataWrap)
     }
 
-    pub fn Constructor(global: &GlobalScope, form: Option<&HTMLFormElement>) -> Fallible<Root<FormData>> {
+    pub fn Constructor(global: &GlobalScope, form: Option<&HTMLFormElement>) -> Fallible<DomRoot<FormData>> {
         // TODO: Construct form data set for form if it is supplied
         Ok(FormData::new(form, global))
     }
@@ -80,7 +80,7 @@ impl FormDataMethods for FormData {
         let datum = FormDatum {
             ty: DOMString::from("file"),
             name: DOMString::from(name.0.clone()),
-            value: FormDatumValue::File(Root::from_ref(&*self.create_an_entry(blob, filename))),
+            value: FormDatumValue::File(DomRoot::from_ref(&*self.create_an_entry(blob, filename))),
         };
 
         let mut data = self.data.borrow_mut();
@@ -102,7 +102,7 @@ impl FormDataMethods for FormData {
                  .get(&LocalName::from(name.0))
                  .map(|entry| match entry[0].value {
                      FormDatumValue::String(ref s) => FileOrUSVString::USVString(USVString(s.to_string())),
-                     FormDatumValue::File(ref b) => FileOrUSVString::File(Root::from_ref(&*b)),
+                     FormDatumValue::File(ref b) => FileOrUSVString::File(DomRoot::from_ref(&*b)),
                  })
     }
 
@@ -113,7 +113,7 @@ impl FormDataMethods for FormData {
                  .map_or(vec![], |data|
                     data.iter().map(|item| match item.value {
                         FormDatumValue::String(ref s) => FileOrUSVString::USVString(USVString(s.to_string())),
-                        FormDatumValue::File(ref b) => FileOrUSVString::File(Root::from_ref(&*b)),
+                        FormDatumValue::File(ref b) => FileOrUSVString::File(DomRoot::from_ref(&*b)),
                     }).collect()
                  )
     }
@@ -138,7 +138,7 @@ impl FormDataMethods for FormData {
         self.data.borrow_mut().insert(LocalName::from(name.0.clone()), vec![FormDatum {
             ty: DOMString::from("file"),
             name: DOMString::from(name.0),
-            value: FormDatumValue::File(Root::from_ref(&*self.create_an_entry(blob, filename))),
+            value: FormDatumValue::File(DomRoot::from_ref(&*self.create_an_entry(blob, filename))),
         }]);
     }
 
@@ -148,7 +148,7 @@ impl FormDataMethods for FormData {
 impl FormData {
     // https://xhr.spec.whatwg.org/#create-an-entry
     // Steps 3-4.
-    fn create_an_entry(&self, blob: &Blob, opt_filename: Option<USVString>) -> Root<File> {
+    fn create_an_entry(&self, blob: &Blob, opt_filename: Option<USVString>) -> DomRoot<File> {
         let name = match opt_filename {
             Some(filename) => DOMString::from(filename.0),
             None if blob.downcast::<File>().is_none() => DOMString::from("blob"),
@@ -185,7 +185,7 @@ impl Iterable for FormData {
                          .value;
         match *value {
             FormDatumValue::String(ref s) => FileOrUSVString::USVString(USVString(s.to_string())),
-            FormDatumValue::File(ref b) => FileOrUSVString::File(Root::from_ref(&*b)),
+            FormDatumValue::File(ref b) => FileOrUSVString::File(DomRoot::from_ref(&*b)),
         }
     }
 

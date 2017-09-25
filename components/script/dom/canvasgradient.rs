@@ -11,7 +11,7 @@ use dom::bindings::codegen::Bindings::CanvasGradientBinding::CanvasGradientMetho
 use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::root::Root;
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
@@ -39,7 +39,7 @@ impl CanvasGradient {
         }
     }
 
-    pub fn new(global: &GlobalScope, style: CanvasGradientStyle) -> Root<CanvasGradient> {
+    pub fn new(global: &GlobalScope, style: CanvasGradientStyle) -> DomRoot<CanvasGradient> {
         reflect_dom_object(box CanvasGradient::new_inherited(style),
                            global,
                            CanvasGradientBinding::Wrap)

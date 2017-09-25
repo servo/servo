@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::CSSViewportRuleBinding;
 use dom::bindings::reflector::reflect_dom_object;
-use dom::bindings::root::Root;
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::cssrule::{CSSRule, SpecificCSSRule};
 use dom::cssstylesheet::CSSStyleSheet;
@@ -31,7 +31,7 @@ impl CSSViewportRule {
 
     #[allow(unrooted_must_root)]
     pub fn new(window: &Window, parent_stylesheet: &CSSStyleSheet,
-               viewportrule: Arc<Locked<ViewportRule>>) -> Root<CSSViewportRule> {
+               viewportrule: Arc<Locked<ViewportRule>>) -> DomRoot<CSSViewportRule> {
         reflect_dom_object(box CSSViewportRule::new_inherited(parent_stylesheet, viewportrule),
                            window,
                            CSSViewportRuleBinding::Wrap)

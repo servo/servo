@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::StorageEventBinding::StorageEventMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::reflect_dom_object;
-use dom::bindings::root::{MutNullableDom, Root, RootedReference};
+use dom::bindings::root::{DomRoot, MutNullableDom, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::storage::Storage;
@@ -44,7 +44,7 @@ impl StorageEvent {
     }
 
     pub fn new_uninitialized(window: &Window,
-                             url: DOMString) -> Root<StorageEvent> {
+                             url: DOMString) -> DomRoot<StorageEvent> {
         reflect_dom_object(box StorageEvent::new_inherited(None, None, None, url, None),
                            window,
                            StorageEventBinding::Wrap)
@@ -58,7 +58,7 @@ impl StorageEvent {
                oldValue: Option<DOMString>,
                newValue: Option<DOMString>,
                url: DOMString,
-               storageArea: Option<&Storage>) -> Root<StorageEvent> {
+               storageArea: Option<&Storage>) -> DomRoot<StorageEvent> {
         let ev = reflect_dom_object(box StorageEvent::new_inherited(key, oldValue, newValue,
                                                                     url, storageArea),
                                     global,
@@ -72,7 +72,7 @@ impl StorageEvent {
 
     pub fn Constructor(global: &Window,
                        type_: DOMString,
-                       init: &StorageEventBinding::StorageEventInit) -> Fallible<Root<StorageEvent>> {
+                       init: &StorageEventBinding::StorageEventInit) -> Fallible<DomRoot<StorageEvent>> {
         let key = init.key.clone();
         let oldValue = init.oldValue.clone();
         let newValue = init.newValue.clone();
@@ -110,7 +110,7 @@ impl StorageEventMethods for StorageEvent {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-storageevent-storagearea
-    fn GetStorageArea(&self) -> Option<Root<Storage>> {
+    fn GetStorageArea(&self) -> Option<DomRoot<Storage>> {
         self.storage_area.get()
     }
 

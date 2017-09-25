@@ -6,7 +6,7 @@ use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::HTMLDialogElementBinding;
 use dom::bindings::codegen::Bindings::HTMLDialogElementBinding::HTMLDialogElementMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::root::Root;
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::Element;
@@ -36,7 +36,7 @@ impl HTMLDialogElement {
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
-               document: &Document) -> Root<HTMLDialogElement> {
+               document: &Document) -> DomRoot<HTMLDialogElement> {
         Node::reflect_node(box HTMLDialogElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLDialogElementBinding::Wrap)

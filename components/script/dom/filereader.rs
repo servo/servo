@@ -11,7 +11,7 @@ use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
-use dom::bindings::root::{MutNullableDom, Root};
+use dom::bindings::root::{DomRoot, MutNullableDom};
 use dom::bindings::str::DOMString;
 use dom::bindings::trace::RootedTraceableBox;
 use dom::blob::Blob;
@@ -103,12 +103,12 @@ impl FileReader {
         }
     }
 
-    pub fn new(global: &GlobalScope) -> Root<FileReader> {
+    pub fn new(global: &GlobalScope) -> DomRoot<FileReader> {
         reflect_dom_object(box FileReader::new_inherited(),
                            global, FileReaderBinding::Wrap)
     }
 
-    pub fn Constructor(global: &GlobalScope) -> Fallible<Root<FileReader>> {
+    pub fn Constructor(global: &GlobalScope) -> Fallible<DomRoot<FileReader>> {
         Ok(FileReader::new(global))
     }
 
@@ -328,7 +328,7 @@ impl FileReaderMethods for FileReader {
     }
 
     // https://w3c.github.io/FileAPI/#dfn-error
-    fn GetError(&self) -> Option<Root<DOMException>> {
+    fn GetError(&self) -> Option<DomRoot<DOMException>> {
         self.error.get()
     }
 

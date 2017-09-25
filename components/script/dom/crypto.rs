@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::CryptoBinding;
 use dom::bindings::codegen::Bindings::CryptoBinding::CryptoMethods;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::root::Root;
+use dom::bindings::root::DomRoot;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use js::jsapi::{JSContext, JSObject};
@@ -33,7 +33,7 @@ impl Crypto {
         }
     }
 
-    pub fn new(global: &GlobalScope) -> Root<Crypto> {
+    pub fn new(global: &GlobalScope) -> DomRoot<Crypto> {
         reflect_dom_object(box Crypto::new_inherited(), global, CryptoBinding::Wrap)
     }
 }

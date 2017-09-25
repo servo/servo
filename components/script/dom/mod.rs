@@ -94,7 +94,7 @@
 //! DOM objects of type `T` in Servo have two constructors:
 //!
 //! * a `T::new_inherited` static method that returns a plain `T`, and
-//! * a `T::new` static method that returns `Root<T>`.
+//! * a `T::new` static method that returns `DomRoot<T>`.
 //!
 //! (The result of either method can be wrapped in `Result`, if that is
 //! appropriate for the type in question.)

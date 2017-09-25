@@ -34,7 +34,7 @@ use dom::bindings::conversions::{ConversionResult, FromJSValConvertible, Stringi
 use dom::bindings::inheritance::Castable;
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::DomObject;
-use dom::bindings::root::{Dom, MutNullableDom, Root, RootCollection};
+use dom::bindings::root::{Dom, DomRoot, MutNullableDom, RootCollection};
 use dom::bindings::root::{RootCollectionPtr, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::bindings::structuredclone::StructuredCloneData;
@@ -334,28 +334,28 @@ impl Documents {
         self.map.insert(pipeline_id, Dom::from_ref(doc));
     }
 
-    pub fn remove(&mut self, pipeline_id: PipelineId) -> Option<Root<Document>> {
-        self.map.remove(&pipeline_id).map(|ref doc| Root::from_ref(&**doc))
+    pub fn remove(&mut self, pipeline_id: PipelineId) -> Option<DomRoot<Document>> {
+        self.map.remove(&pipeline_id).map(|ref doc| DomRoot::from_ref(&**doc))
     }
 
     pub fn is_empty(&self) -> bool {
         self.map.is_empty()
     }
 
-    pub fn find_document(&self, pipeline_id: PipelineId) -> Option<Root<Document>> {
-        self.map.get(&pipeline_id).map(|doc| Root::from_ref(&**doc))
+    pub fn find_document(&self, pipeline_id: PipelineId) -> Option<DomRoot<Document>> {
+        self.map.get(&pipeline_id).map(|doc| DomRoot::from_ref(&**doc))
     }
 
-    pub fn find_window(&self, pipeline_id: PipelineId) -> Option<Root<Window>> {
-        self.find_document(pipeline_id).map(|doc| Root::from_ref(doc.window()))
+    pub fn find_window(&self, pipeline_id: PipelineId) -> Option<DomRoot<Window>> {
+        self.find_document(pipeline_id).map(|doc| DomRoot::from_ref(doc.window()))
     }
 
-    pub fn find_global(&self, pipeline_id: PipelineId) -> Option<Root<GlobalScope>> {
-        self.find_window(pipeline_id).map(|window| Root::from_ref(window.upcast()))
+    pub fn find_global(&self, pipeline_id: PipelineId) -> Option<DomRoot<GlobalScope>> {
+        self.find_window(pipeline_id).map(|window| DomRoot::from_ref(window.upcast()))
     }
 
     pub fn find_iframe(&self, pipeline_id: PipelineId, browsing_context_id: BrowsingContextId)
-                       -> Option<Root<HTMLIFrameElement>>
+                       -> Option<DomRoot<HTMLIFrameElement>>
     {
         self.find_document(pipeline_id).and_then(|doc| doc.find_iframe(browsing_context_id))
     }
@@ -373,10 +373,10 @@ pub struct DocumentsIter<'a> {
 }
 
 impl<'a> Iterator for DocumentsIter<'a> {
-    type Item = (PipelineId, Root<Document>);
+    type Item = (PipelineId, DomRoot<Document>);
 
-    fn next(&mut self) -> Option<(PipelineId, Root<Document>)> {
-        self.iter.next().map(|(id, doc)| (*id, Root::from_ref(&**doc)))
+    fn next(&mut self) -> Option<(PipelineId, DomRoot<Document>)> {
+        self.iter.next().map(|(id, doc)| (*id, DomRoot::from_ref(&**doc)))
     }
 }
 
@@ -616,10 +616,10 @@ impl ScriptThread {
         })
     }
 
-    pub fn get_mutation_observers() -> Vec<Root<MutationObserver>> {
+    pub fn get_mutation_observers() -> Vec<DomRoot<MutationObserver>> {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
-            script_thread.mutation_observers.borrow().iter().map(|o| Root::from_ref(&**o)).collect()
+            script_thread.mutation_observers.borrow().iter().map(|o| DomRoot::from_ref(&**o)).collect()
         })
     }
 
@@ -640,7 +640,7 @@ impl ScriptThread {
     }
 
     pub fn page_headers_available(id: &PipelineId, metadata: Option<Metadata>)
-                                  -> Option<Root<ServoParser>> {
+                                  -> Option<DomRoot<ServoParser>> {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
             script_thread.handle_page_headers_available(id, metadata)
@@ -686,18 +686,18 @@ impl ScriptThread {
         });
     }
 
-    pub fn find_document(id: PipelineId) -> Option<Root<Document>> {
+    pub fn find_document(id: PipelineId) -> Option<DomRoot<Document>> {
         SCRIPT_THREAD_ROOT.with(|root| root.get().and_then(|script_thread| {
             let script_thread = unsafe { &*script_thread };
             script_thread.documents.borrow().find_document(id)
         }))
     }
 
-    pub fn find_window_proxy(id: BrowsingContextId) -> Option<Root<WindowProxy>> {
+    pub fn find_window_proxy(id: BrowsingContextId) -> Option<DomRoot<WindowProxy>> {
         SCRIPT_THREAD_ROOT.with(|root| root.get().and_then(|script_thread| {
             let script_thread = unsafe { &*script_thread };
             script_thread.window_proxies.borrow().get(&id)
-                .map(|context| Root::from_ref(&**context))
+                .map(|context| DomRoot::from_ref(&**context))
         }))
     }
 
@@ -1657,7 +1657,7 @@ impl ScriptThread {
     /// We have received notification that the response associated with a load has completed.
     /// Kick off the document and frame tree creation process using the result.
     fn handle_page_headers_available(&self, id: &PipelineId,
-                                     metadata: Option<Metadata>) -> Option<Root<ServoParser>> {
+                                     metadata: Option<Metadata>) -> Option<DomRoot<ServoParser>> {
         let idx = self.incomplete_loads.borrow().iter().position(|load| { load.pipeline_id == *id });
         // The matching in progress load structure may not exist if
         // the pipeline exited before the page load completed.
@@ -1685,9 +1685,9 @@ impl ScriptThread {
         }
     }
 
-    pub fn handle_get_registration(&self, scope_url: &ServoUrl) -> Option<Root<ServiceWorkerRegistration>> {
+    pub fn handle_get_registration(&self, scope_url: &ServoUrl) -> Option<DomRoot<ServiceWorkerRegistration>> {
         let maybe_registration_ref = self.registration_map.borrow();
-        maybe_registration_ref.get(scope_url).map(|x| Root::from_ref(&**x))
+        maybe_registration_ref.get(scope_url).map(|x| DomRoot::from_ref(&**x))
     }
 
     pub fn handle_serviceworker_registration(&self,
@@ -1940,14 +1940,14 @@ impl ScriptThread {
                            global_to_clone: &GlobalScope,
                            top_level_browsing_context_id: TopLevelBrowsingContextId,
                            pipeline_id: PipelineId)
-                           -> Option<Root<WindowProxy>>
+                           -> Option<DomRoot<WindowProxy>>
     {
         let browsing_context_id = match self.ask_constellation_for_browsing_context_id(pipeline_id) {
             Some(browsing_context_id) => browsing_context_id,
             None => return None,
         };
         if let Some(window_proxy) = self.window_proxies.borrow().get(&browsing_context_id) {
-            return Some(Root::from_ref(window_proxy));
+            return Some(DomRoot::from_ref(window_proxy));
         }
         let parent = match self.ask_constellation_for_parent_info(pipeline_id) {
             Some((parent_id, FrameType::IFrame)) => self.remote_window_proxy(global_to_clone,
@@ -1974,11 +1974,11 @@ impl ScriptThread {
                           browsing_context_id: BrowsingContextId,
                           top_level_browsing_context_id: TopLevelBrowsingContextId,
                           parent_info: Option<(PipelineId, FrameType)>)
-                          -> Root<WindowProxy>
+                          -> DomRoot<WindowProxy>
     {
         if let Some(window_proxy) = self.window_proxies.borrow().get(&browsing_context_id) {
             window_proxy.set_currently_active(&*window);
-            return Root::from_ref(window_proxy);
+            return DomRoot::from_ref(window_proxy);
         }
         let iframe = match parent_info {
             Some((parent_id, FrameType::IFrame)) => self.documents.borrow().find_iframe(parent_id, browsing_context_id),
@@ -2002,7 +2002,7 @@ impl ScriptThread {
 
     /// The entry point to document loading. Defines bindings, sets up the window and document
     /// objects, parses HTML and CSS, and kicks off initial layout.
-    fn load(&self, metadata: Metadata, incomplete: InProgressLoad) -> Root<ServoParser> {
+    fn load(&self, metadata: Metadata, incomplete: InProgressLoad) -> DomRoot<ServoParser> {
         let final_url = metadata.final_url.clone();
         {
             // send the final url to the layout thread.
@@ -2213,7 +2213,7 @@ impl ScriptThread {
                 if let Some(target) = self.topmost_mouse_over_target.get() {
                     if let Some(anchor) = target.upcast::<Node>()
                                                 .inclusive_ancestors()
-                                                .filter_map(Root::downcast::<HTMLAnchorElement>)
+                                                .filter_map(DomRoot::downcast::<HTMLAnchorElement>)
                                                 .next() {
                         let status = anchor.upcast::<Element>()
                                            .get_attribute(&ns!(), &local_name!("href"))
@@ -2235,7 +2235,7 @@ impl ScriptThread {
                     if let Some(target) = prev_mouse_over_target {
                         if let Some(_) = target.upcast::<Node>()
                                                .inclusive_ancestors()
-                                               .filter_map(Root::downcast::<HTMLAnchorElement>)
+                                               .filter_map(DomRoot::downcast::<HTMLAnchorElement>)
                                                .next() {
                             let event = ScriptMsg::NodeStatus(None);
                             self.script_sender.send((pipeline_id, event)).unwrap();

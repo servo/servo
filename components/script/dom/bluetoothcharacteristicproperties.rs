@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::BluetoothCharacteristicPropertiesBinding;
 use dom::bindings::codegen::Bindings::BluetoothCharacteristicPropertiesBinding::
     BluetoothCharacteristicPropertiesMethods;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::root::Root;
+use dom::bindings::root::DomRoot;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 
@@ -60,7 +60,7 @@ impl BluetoothCharacteristicProperties {
                authenticatedSignedWrites: bool,
                reliableWrite: bool,
                writableAuxiliaries: bool)
-               -> Root<BluetoothCharacteristicProperties> {
+               -> DomRoot<BluetoothCharacteristicProperties> {
         reflect_dom_object(box BluetoothCharacteristicProperties::new_inherited(broadcast,
                                                                                 read,
                                                                                 writeWithoutResponse,

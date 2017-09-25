@@ -11,16 +11,16 @@
 //!
 //! Here is a brief overview of the important types:
 //!
-//! - `Root<T>`: a stack-based reference to a rooted DOM object.
+//! - `DomRoot<T>`: a stack-based reference to a rooted DOM object.
 //! - `Dom<T>`: a reference to a DOM object that can automatically be traced by
 //!   the GC when encountered as a field of a Rust structure.
 //!
 //! `Dom<T>` does not allow access to their inner value without explicitly
-//! creating a stack-based root via the `root` method. This returns a `Root<T>`,
+//! creating a stack-based root via the `root` method. This returns a `DomRoot<T>`,
 //! which causes the JS-owned value to be uncollectable for the duration of the
 //! `Root` object's lifetime. A reference to the object can then be obtained
 //! from the `Root` object. These references are not allowed to outlive their
-//! originating `Root<T>`.
+//! originating `DomRoot<T>`.
 //!
 
 use core::nonzero::NonZero;
@@ -259,10 +259,10 @@ impl<T: DomObject> MutDom<T> {
     }
 
     /// Get the value in this `MutDom`.
-    pub fn get(&self) -> Root<T> {
+    pub fn get(&self) -> DomRoot<T> {
         debug_assert!(thread_state::get().is_script());
         unsafe {
-            Root::from_ref(&*ptr::read(self.val.get()))
+            DomRoot::from_ref(&*ptr::read(self.val.get()))
         }
     }
 }
@@ -313,8 +313,8 @@ impl<T: DomObject> MutNullableDom<T> {
 
     /// Retrieve a copy of the current inner value. If it is `None`, it is
     /// initialized with the result of `cb` first.
-    pub fn or_init<F>(&self, cb: F) -> Root<T>
-        where F: FnOnce() -> Root<T>
+    pub fn or_init<F>(&self, cb: F) -> DomRoot<T>
+        where F: FnOnce() -> DomRoot<T>
     {
         debug_assert!(thread_state::get().is_script());
         match self.get() {
@@ -337,10 +337,10 @@ impl<T: DomObject> MutNullableDom<T> {
 
     /// Get a rooted value out of this object
     #[allow(unrooted_must_root)]
-    pub fn get(&self) -> Option<Root<T>> {
+    pub fn get(&self) -> Option<DomRoot<T>> {
         debug_assert!(thread_state::get().is_script());
         unsafe {
-            ptr::read(self.ptr.get()).map(|o| Root::from_ref(&*o))
+            ptr::read(self.ptr.get()).map(|o| DomRoot::from_ref(&*o))
         }
     }
 
@@ -353,7 +353,7 @@ impl<T: DomObject> MutNullableDom<T> {
     }
 
     /// Gets the current value out of this object and sets it to `None`.
-    pub fn take(&self) -> Option<Root<T>> {
+    pub fn take(&self) -> Option<DomRoot<T>> {
         let value = self.get();
         self.set(None);
         value
@@ -409,7 +409,7 @@ impl<T: DomObject> DomOnceCell<T> {
     /// initialized with the result of `cb` first.
     #[allow(unrooted_must_root)]
     pub fn init_once<F>(&self, cb: F) -> &T
-        where F: FnOnce() -> Root<T>
+        where F: FnOnce() -> DomRoot<T>
     {
         debug_assert!(thread_state::get().is_script());
         &self.ptr.init_once(|| Dom::from_ref(&cb()))
@@ -559,16 +559,16 @@ pub unsafe fn trace_roots(tracer: *mut JSTracer) {
 /// for the same JS value. `Root`s cannot outlive the associated
 /// `RootCollection` object.
 #[allow_unrooted_interior]
-pub struct Root<T: DomObject> {
+pub struct DomRoot<T: DomObject> {
     /// Reference to rooted value that must not outlive this container
     ptr: NonZero<*const T>,
     /// List that ensures correct dynamic root ordering
     root_list: *const RootCollection,
 }
 
-impl<T: Castable> Root<T> {
+impl<T: Castable> DomRoot<T> {
     /// Cast a DOM object root upwards to one of the interfaces it derives from.
-    pub fn upcast<U>(root: Root<T>) -> Root<U>
+    pub fn upcast<U>(root: DomRoot<T>) -> DomRoot<U>
         where U: Castable,
               T: DerivedFrom<U>
     {
@@ -576,7 +576,7 @@ impl<T: Castable> Root<T> {
     }
 
     /// Cast a DOM object root downwards to one of the interfaces it might implement.
-    pub fn downcast<U>(root: Root<T>) -> Option<Root<U>>
+    pub fn downcast<U>(root: DomRoot<T>) -> Option<DomRoot<U>>
         where U: DerivedFrom<T>
     {
         if root.is::<U>() {
@@ -587,16 +587,16 @@ impl<T: Castable> Root<T> {
     }
 }
 
-impl<T: DomObject> Root<T> {
+impl<T: DomObject> DomRoot<T> {
     /// Create a new stack-bounded root for the provided JS-owned value.
     /// It cannot outlive its associated `RootCollection`, and it gives
     /// out references which cannot outlive this new `Root`.
-    pub fn new(unrooted: NonZero<*const T>) -> Root<T> {
+    pub fn new(unrooted: NonZero<*const T>) -> DomRoot<T> {
         debug_assert!(thread_state::get().is_script());
         STACK_ROOTS.with(|ref collection| {
             let RootCollectionPtr(collection) = collection.get().unwrap();
             unsafe { (*collection).root(&*(*unrooted.get()).reflector()) }
-            Root {
+            DomRoot {
                 ptr: unrooted,
                 root_list: collection,
             }
@@ -604,19 +604,19 @@ impl<T: DomObject> Root<T> {
     }
 
     /// Generate a new root from a reference
-    pub fn from_ref(unrooted: &T) -> Root<T> {
-        Root::new(unsafe { NonZero::new_unchecked(unrooted) })
+    pub fn from_ref(unrooted: &T) -> DomRoot<T> {
+        DomRoot::new(unsafe { NonZero::new_unchecked(unrooted) })
     }
 }
 
-impl<'root, T: DomObject + 'root> RootedReference<'root> for Root<T> {
+impl<'root, T: DomObject + 'root> RootedReference<'root> for DomRoot<T> {
     type Ref = &'root T;
     fn r(&'root self) -> &'root T {
         self
     }
 }
 
-impl<T: DomObject> Deref for Root<T> {
+impl<T: DomObject> Deref for DomRoot<T> {
     type Target = T;
     fn deref(&self) -> &T {
         debug_assert!(thread_state::get().is_script());
@@ -624,25 +624,25 @@ impl<T: DomObject> Deref for Root<T> {
     }
 }
 
-impl<T: DomObject + HeapSizeOf> HeapSizeOf for Root<T> {
+impl<T: DomObject + HeapSizeOf> HeapSizeOf for DomRoot<T> {
     fn heap_size_of_children(&self) -> usize {
         (**self).heap_size_of_children()
     }
 }
 
-impl<T: DomObject> PartialEq for Root<T> {
+impl<T: DomObject> PartialEq for DomRoot<T> {
     fn eq(&self, other: &Self) -> bool {
         self.ptr == other.ptr
     }
 }
 
-impl<T: DomObject> Clone for Root<T> {
-    fn clone(&self) -> Root<T> {
-        Root::from_ref(&*self)
+impl<T: DomObject> Clone for DomRoot<T> {
+    fn clone(&self) -> DomRoot<T> {
+        DomRoot::from_ref(&*self)
     }
 }
 
-impl<T: DomObject> Drop for Root<T> {
+impl<T: DomObject> Drop for DomRoot<T> {
     fn drop(&mut self) {
         unsafe {
             (*self.root_list).unroot(self.reflector());
@@ -650,7 +650,7 @@ impl<T: DomObject> Drop for Root<T> {
     }
 }
 
-unsafe impl<T: DomObject> JSTraceable for Root<T> {
+unsafe impl<T: DomObject> JSTraceable for DomRoot<T> {
     unsafe fn trace(&self, _: *mut JSTracer) {
         // Already traced.
     }

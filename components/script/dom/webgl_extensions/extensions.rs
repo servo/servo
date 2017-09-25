@@ -9,7 +9,7 @@ use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::OESStandardDerivativesBinding::OESStandardDerivativesConstants;
 use dom::bindings::codegen::Bindings::OESTextureHalfFloatBinding::OESTextureHalfFloatConstants;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
-use dom::bindings::root::Root;
+use dom::bindings::root::DomRoot;
 use dom::bindings::trace::JSTraceable;
 use dom::webglrenderingcontext::WebGLRenderingContext;
 use fnv::{FnvHashMap, FnvHashSet};
@@ -128,7 +128,7 @@ impl WebGLExtensions {
         self.extensions.borrow().get(&name).map_or(false, |ext| { ext.is_enabled() })
     }
 
-    pub fn get_dom_object<T>(&self) -> Option<Root<T::Extension>>
+    pub fn get_dom_object<T>(&self) -> Option<DomRoot<T::Extension>>
     where
         T: 'static + WebGLExtension + JSTraceable + HeapSizeOf
     {

@@ -9,7 +9,7 @@ use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::codegen::Bindings::WebGLTextureBinding;
 use dom::bindings::reflector::reflect_dom_object;
-use dom::bindings::root::Root;
+use dom::bindings::root::DomRoot;
 use dom::webgl_validations::types::{TexImageTarget, TexFormat, TexDataType};
 use dom::webglobject::WebGLObject;
 use dom::window::Window;
@@ -66,7 +66,7 @@ impl WebGLTexture {
     }
 
     pub fn maybe_new(window: &Window, renderer: WebGLMsgSender)
-                     -> Option<Root<WebGLTexture>> {
+                     -> Option<DomRoot<WebGLTexture>> {
         let (sender, receiver) = webgl_channel().unwrap();
         renderer.send(WebGLCommand::CreateTexture(sender)).unwrap();
 
@@ -77,7 +77,7 @@ impl WebGLTexture {
     pub fn new(window: &Window,
                renderer: WebGLMsgSender,
                id: WebGLTextureId)
-               -> Root<WebGLTexture> {
+               -> DomRoot<WebGLTexture> {
         reflect_dom_object(box WebGLTexture::new_inherited(renderer, id),
                            window,
                            WebGLTextureBinding::Wrap)

@@ -21,7 +21,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::num::Finite;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
-use dom::bindings::root::{Dom, MutNullableDom, Root};
+use dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use dom::bindings::str::DOMString;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::trace::RootedTraceableBox;
@@ -353,13 +353,13 @@ impl Window {
     }
 
     /// This can panic if it is called after the browsing context has been discarded
-    pub fn window_proxy(&self) -> Root<WindowProxy> {
+    pub fn window_proxy(&self) -> DomRoot<WindowProxy> {
         self.window_proxy.get().unwrap()
     }
 
     /// Returns the window proxy if it has not been discarded.
     /// https://html.spec.whatwg.org/multipage/#a-browsing-context-is-discarded
-    pub fn undiscarded_window_proxy(&self) -> Option<Root<WindowProxy>> {
+    pub fn undiscarded_window_proxy(&self) -> Option<DomRoot<WindowProxy>> {
         self.window_proxy.get()
             .and_then(|window_proxy| if window_proxy.is_browsing_context_discarded() {
                 None
@@ -399,7 +399,7 @@ impl Window {
         self.webvr_chan.clone()
     }
 
-    fn new_paint_worklet(&self) -> Root<Worklet> {
+    fn new_paint_worklet(&self) -> DomRoot<Worklet> {
         debug!("Creating new paint worklet.");
         Worklet::new(self, WorkletGlobalScopeType::Paint)
     }
@@ -553,42 +553,42 @@ impl WindowMethods for Window {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-2
-    fn Document(&self) -> Root<Document> {
+    fn Document(&self) -> DomRoot<Document> {
         self.document.get().expect("Document accessed before initialization.")
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-history
-    fn History(&self) -> Root<History> {
+    fn History(&self) -> DomRoot<History> {
         self.history.or_init(|| History::new(self))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-window-customelements
-    fn CustomElements(&self) -> Root<CustomElementRegistry> {
+    fn CustomElements(&self) -> DomRoot<CustomElementRegistry> {
         self.custom_element_registry.or_init(|| CustomElementRegistry::new(self))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location
-    fn Location(&self) -> Root<Location> {
+    fn Location(&self) -> DomRoot<Location> {
         self.location.or_init(|| Location::new(self))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-sessionstorage
-    fn SessionStorage(&self) -> Root<Storage> {
+    fn SessionStorage(&self) -> DomRoot<Storage> {
         self.session_storage.or_init(|| Storage::new(self, StorageType::Session))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-localstorage
-    fn LocalStorage(&self) -> Root<Storage> {
+    fn LocalStorage(&self) -> DomRoot<Storage> {
         self.local_storage.or_init(|| Storage::new(self, StorageType::Local))
     }
 
     // https://dvcs.w3.org/hg/webcrypto-api/raw-file/tip/spec/Overview.html#dfn-GlobalCrypto
-    fn Crypto(&self) -> Root<Crypto> {
+    fn Crypto(&self) -> DomRoot<Crypto> {
         self.upcast::<GlobalScope>().crypto()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-frameelement
-    fn GetFrameElement(&self) -> Option<Root<Element>> {
+    fn GetFrameElement(&self) -> Option<DomRoot<Element>> {
         // Steps 1-3.
         let window_proxy = match self.window_proxy.get() {
             None => return None,
@@ -606,11 +606,11 @@ impl WindowMethods for Window {
             return None;
         }
         // Step 7.
-        Some(Root::from_ref(container))
+        Some(DomRoot::from_ref(container))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator
-    fn Navigator(&self) -> Root<Navigator> {
+    fn Navigator(&self) -> DomRoot<Navigator> {
         self.navigator.or_init(|| Navigator::new(self))
     }
 
@@ -669,22 +669,22 @@ impl WindowMethods for Window {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-window
-    fn Window(&self) -> Root<WindowProxy> {
+    fn Window(&self) -> DomRoot<WindowProxy> {
         self.window_proxy()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-self
-    fn Self_(&self) -> Root<WindowProxy> {
+    fn Self_(&self) -> DomRoot<WindowProxy> {
         self.window_proxy()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-frames
-    fn Frames(&self) -> Root<WindowProxy> {
+    fn Frames(&self) -> DomRoot<WindowProxy> {
         self.window_proxy()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-parent
-    fn GetParent(&self) -> Option<Root<WindowProxy>> {
+    fn GetParent(&self) -> Option<DomRoot<WindowProxy>> {
         // Steps 1-3.
         let window_proxy = match self.undiscarded_window_proxy() {
             Some(window_proxy) => window_proxy,
@@ -692,26 +692,26 @@ impl WindowMethods for Window {
         };
         // Step 4.
         if let Some(parent) = window_proxy.parent() {
-            return Some(Root::from_ref(parent));
+            return Some(DomRoot::from_ref(parent));
         }
         // Step 5.
         Some(window_proxy)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-top
-    fn GetTop(&self) -> Option<Root<WindowProxy>> {
+    fn GetTop(&self) -> Option<DomRoot<WindowProxy>> {
         // Steps 1-3.
         let window_proxy = match self.undiscarded_window_proxy() {
             Some(window_proxy) => window_proxy,
             None => return None,
         };
         // Steps 4-5.
-        Some(Root::from_ref(window_proxy.top()))
+        Some(DomRoot::from_ref(window_proxy.top()))
     }
 
     // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/
     // NavigationTiming/Overview.html#sec-window.performance-attribute
-    fn Performance(&self) -> Root<Performance> {
+    fn Performance(&self) -> DomRoot<Performance> {
         self.performance.or_init(|| {
             let global_scope = self.upcast::<GlobalScope>();
             Performance::new(global_scope, self.navigation_start.get(),
@@ -726,7 +726,7 @@ impl WindowMethods for Window {
     window_event_handlers!();
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Window/screen
-    fn Screen(&self) -> Root<Screen> {
+    fn Screen(&self) -> DomRoot<Screen> {
         self.screen.or_init(|| Screen::new(self))
     }
 
@@ -828,7 +828,7 @@ impl WindowMethods for Window {
     // https://drafts.csswg.org/cssom/#dom-window-getcomputedstyle
     fn GetComputedStyle(&self,
                         element: &Element,
-                        pseudo: Option<DOMString>) -> Root<CSSStyleDeclaration> {
+                        pseudo: Option<DOMString>) -> DomRoot<CSSStyleDeclaration> {
         // Steps 1-4.
         let pseudo = match pseudo.map(|mut s| { s.make_ascii_lowercase(); s }) {
             Some(ref pseudo) if pseudo == ":before" || pseudo == "::before" =>
@@ -1007,7 +1007,7 @@ impl WindowMethods for Window {
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-matchmedia
-    fn MatchMedia(&self, query: DOMString) -> Root<MediaQueryList> {
+    fn MatchMedia(&self, query: DOMString) -> DomRoot<MediaQueryList> {
         let mut input = ParserInput::new(&query);
         let mut parser = Parser::new(&mut input);
         let url = self.get_url();
@@ -1030,11 +1030,11 @@ impl WindowMethods for Window {
     }
 
     // https://drafts.css-houdini.org/css-paint-api-1/#paint-worklet
-    fn PaintWorklet(&self) -> Root<Worklet> {
+    fn PaintWorklet(&self) -> DomRoot<Worklet> {
         self.paint_worklet.or_init(|| self.new_paint_worklet())
     }
 
-    fn TestRunner(&self) -> Root<TestRunner> {
+    fn TestRunner(&self) -> DomRoot<TestRunner> {
         self.test_runner.or_init(|| TestRunner::new(self.upcast()))
     }
 }
@@ -1500,7 +1500,7 @@ impl Window {
     }
 
     #[allow(unsafe_code)]
-    pub fn offset_parent_query(&self, node: TrustedNodeAddress) -> (Option<Root<Element>>, Rect<Au>) {
+    pub fn offset_parent_query(&self, node: TrustedNodeAddress) -> (Option<DomRoot<Element>>, Rect<Au>) {
         if !self.reflow(ReflowGoal::ForScriptQuery,
                         ReflowQueryType::OffsetParentQuery(node),
                         ReflowReason::Query) {
@@ -1512,7 +1512,7 @@ impl Window {
         let js_runtime = js_runtime.as_ref().unwrap();
         let element = response.node_address.and_then(|parent_node_address| {
             let node = unsafe { from_untrusted_node_address(js_runtime.rt(), parent_node_address) };
-            Root::downcast(node)
+            DomRoot::downcast(node)
         });
         (element, response.rect)
     }
@@ -1661,7 +1661,7 @@ impl Window {
     }
 
     // https://html.spec.whatwg.org/multipage/#accessing-other-browsing-contexts
-    pub fn IndexedGetter(&self, _index: u32, _found: &mut bool) -> Option<Root<Window>> {
+    pub fn IndexedGetter(&self, _index: u32, _found: &mut bool) -> Option<DomRoot<Window>> {
         None
     }
 
@@ -1822,7 +1822,7 @@ impl Window {
         webgl_chan: WebGLChan,
         webvr_chan: Option<IpcSender<WebVRMsg>>,
         microtask_queue: Rc<MicrotaskQueue>,
-    ) -> Root<Self> {
+    ) -> DomRoot<Self> {
         let layout_rpc: Box<LayoutRPC + Send> = {
             let (rpc_send, rpc_recv) = channel();
             layout_chan.send(Msg::GetRPC(rpc_send)).unwrap();

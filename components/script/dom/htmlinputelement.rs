@@ -15,7 +15,7 @@ use dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::root::{Dom, LayoutDom, MutNullableDom, Root, RootedReference};
+use dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, LayoutElementHelpers, RawLayoutElementHelpers};
@@ -164,7 +164,7 @@ impl HTMLInputElement {
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
-               document: &Document) -> Root<HTMLInputElement> {
+               document: &Document) -> DomRoot<HTMLInputElement> {
         Node::reflect_node(box HTMLInputElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLInputElementBinding::Wrap)
@@ -318,12 +318,12 @@ impl HTMLInputElementMethods for HTMLInputElement {
     make_bool_setter!(SetDisabled, "disabled");
 
     // https://html.spec.whatwg.org/multipage/#dom-fae-form
-    fn GetForm(&self) -> Option<Root<HTMLFormElement>> {
+    fn GetForm(&self) -> Option<DomRoot<HTMLFormElement>> {
         self.form_owner()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-files
-    fn GetFiles(&self) -> Option<Root<FileList>> {
+    fn GetFiles(&self) -> Option<DomRoot<FileList>> {
         match self.filelist.get() {
             Some(ref fl) => Some(fl.clone()),
             None => None,
@@ -549,7 +549,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
-    fn Labels(&self) -> Root<NodeList> {
+    fn Labels(&self) -> DomRoot<NodeList> {
         if self.type_() == atom!("hidden") {
             let window = window_from_node(self);
             NodeList::empty(&window)
@@ -638,7 +638,7 @@ fn broadcast_radio_checked(broadcaster: &HTMLInputElement, group: Option<&Atom>)
     fn do_broadcast(doc_node: &Node, broadcaster: &HTMLInputElement,
                         owner: Option<&HTMLFormElement>, group: Option<&Atom>) {
         let iter = doc_node.query_selector_iter(DOMString::from("input[type=radio]")).unwrap()
-                .filter_map(Root::downcast::<HTMLInputElement>)
+                .filter_map(DomRoot::downcast::<HTMLInputElement>)
                 .filter(|r| in_same_group(&r, owner, group) && broadcaster != &**r);
         for ref r in iter {
             if r.Checked() {
@@ -705,7 +705,7 @@ impl HTMLInputElement {
                             datums.push(FormDatum {
                                 ty: type_.clone(),
                                 name: name.clone(),
-                                value: FormDatumValue::File(Root::from_ref(&f)),
+                                value: FormDatumValue::File(DomRoot::from_ref(&f)),
                             });
                         }
                     }
@@ -805,7 +805,7 @@ impl HTMLInputElement {
         let origin = get_blob_origin(&window.get_url());
         let resource_threads = window.upcast::<GlobalScope>().resource_threads();
 
-        let mut files: Vec<Root<File>> = vec![];
+        let mut files: Vec<DomRoot<File>> = vec![];
         let mut error = None;
 
         let filter = filter_from_accept(&self.Accept());
@@ -1169,7 +1169,7 @@ impl VirtualMethods for HTMLInputElement {
 }
 
 impl FormControl for HTMLInputElement {
-    fn form_owner(&self) -> Option<Root<HTMLFormElement>> {
+    fn form_owner(&self) -> Option<DomRoot<HTMLFormElement>> {
         self.form_owner.get()
     }
 
@@ -1246,7 +1246,7 @@ impl Activatable for HTMLInputElement {
                     // Safe since we only manipulate the DOM tree after finding an element
                     let checked_member = doc_node.query_selector_iter(DOMString::from("input[type=radio]"))
                             .unwrap()
-                            .filter_map(Root::downcast::<HTMLInputElement>)
+                            .filter_map(DomRoot::downcast::<HTMLInputElement>)
                             .find(|r| {
                                 in_same_group(&*r, owner.r(), group.as_ref()) &&
                                 r.Checked()
@@ -1361,7 +1361,7 @@ impl Activatable for HTMLInputElement {
         }
         let submit_button;
         submit_button = node.query_selector_iter(DOMString::from("input[type=submit]")).unwrap()
-            .filter_map(Root::downcast::<HTMLInputElement>)
+            .filter_map(DomRoot::downcast::<HTMLInputElement>)
             .find(|r| r.form_owner() == owner);
         match submit_button {
             Some(ref button) => {
@@ -1376,7 +1376,7 @@ impl Activatable for HTMLInputElement {
             }
             None => {
                 let inputs = node.query_selector_iter(DOMString::from("input")).unwrap()
-                    .filter_map(Root::downcast::<HTMLInputElement>)
+                    .filter_map(DomRoot::downcast::<HTMLInputElement>)
                     .filter(|input| {
                         input.form_owner() == owner && match input.type_() {
                             atom!("text") | atom!("search") | atom!("url") | atom!("tel") |

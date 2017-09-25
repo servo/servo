@@ -8,7 +8,7 @@ use canvas_traits::webgl::{webgl_channel, WebGLCommand, WebGLMsgSender, WebGLPar
 use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::WebGLShaderBinding;
 use dom::bindings::reflector::reflect_dom_object;
-use dom::bindings::root::Root;
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::webgl_extensions::WebGLExtensions;
 use dom::webgl_extensions::ext::oesstandardderivatives::OESStandardDerivatives;
@@ -69,7 +69,7 @@ impl WebGLShader {
     pub fn maybe_new(window: &Window,
                      renderer: WebGLMsgSender,
                      shader_type: u32)
-                     -> Option<Root<WebGLShader>> {
+                     -> Option<DomRoot<WebGLShader>> {
         let (sender, receiver) = webgl_channel().unwrap();
         renderer.send(WebGLCommand::CreateShader(shader_type, sender)).unwrap();
 
@@ -81,7 +81,7 @@ impl WebGLShader {
                renderer: WebGLMsgSender,
                id: WebGLShaderId,
                shader_type: u32)
-               -> Root<WebGLShader> {
+               -> DomRoot<WebGLShader> {
         reflect_dom_object(box WebGLShader::new_inherited(renderer, id, shader_type),
                            window,
                            WebGLShaderBinding::Wrap)

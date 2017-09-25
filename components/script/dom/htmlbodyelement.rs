@@ -7,7 +7,7 @@ use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLBodyElementBinding::{self, HTMLBodyElementMethods};
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::root::{LayoutDom, Root};
+use dom::bindings::root::{LayoutDom, DomRoot};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
@@ -42,7 +42,7 @@ impl HTMLBodyElement {
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName, prefix: Option<Prefix>, document: &Document)
-               -> Root<HTMLBodyElement> {
+               -> DomRoot<HTMLBodyElement> {
         Node::reflect_node(box HTMLBodyElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLBodyElementBinding::Wrap)

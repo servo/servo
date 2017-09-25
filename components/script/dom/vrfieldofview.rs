@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::VRFieldOfViewBinding;
 use dom::bindings::codegen::Bindings::VRFieldOfViewBinding::VRFieldOfViewMethods;
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::root::Root;
+use dom::bindings::root::DomRoot;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use webvr_traits::WebVRFieldOfView;
@@ -29,7 +29,7 @@ impl VRFieldOfView {
         }
     }
 
-    pub fn new(global: &GlobalScope, fov: WebVRFieldOfView) -> Root<VRFieldOfView> {
+    pub fn new(global: &GlobalScope, fov: WebVRFieldOfView) -> DomRoot<VRFieldOfView> {
         reflect_dom_object(box VRFieldOfView::new_inherited(fov),
                            global,
                            VRFieldOfViewBinding::Wrap)

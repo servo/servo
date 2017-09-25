@@ -9,7 +9,7 @@
 use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
-use dom::bindings::root::Root;
+use dom::bindings::root::DomRoot;
 use dom::globalscope::GlobalScope;
 use dom::htmlimageelement::ImageElementMicrotask;
 use dom::htmlmediaelement::MediaElementMicrotask;
@@ -60,7 +60,7 @@ impl MicrotaskQueue {
     /// https://html.spec.whatwg.org/multipage/#perform-a-microtask-checkpoint
     /// Perform a microtask checkpoint, executing all queued microtasks until the queue is empty.
     pub fn checkpoint<F>(&self, target_provider: F)
-        where F: Fn(PipelineId) -> Option<Root<GlobalScope>>
+        where F: Fn(PipelineId) -> Option<DomRoot<GlobalScope>>
     {
         if self.performing_a_microtask_checkpoint.get() {
             return;

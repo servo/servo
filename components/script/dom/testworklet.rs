@@ -11,7 +11,7 @@ use dom::bindings::codegen::Bindings::WorkletBinding::WorkletOptions;
 use dom::bindings::error::Fallible;
 use dom::bindings::reflector::Reflector;
 use dom::bindings::reflector::reflect_dom_object;
-use dom::bindings::root::{Dom, Root};
+use dom::bindings::root::{Dom, DomRoot};
 use dom::bindings::str::DOMString;
 use dom::bindings::str::USVString;
 use dom::promise::Promise;
@@ -36,12 +36,12 @@ impl TestWorklet {
         }
     }
 
-    fn new(window: &Window) -> Root<TestWorklet> {
+    fn new(window: &Window) -> DomRoot<TestWorklet> {
         let worklet = Worklet::new(window, WorkletGlobalScopeType::Test);
         reflect_dom_object(box TestWorklet::new_inherited(&*worklet), window, Wrap)
     }
 
-    pub fn Constructor(window: &Window) -> Fallible<Root<TestWorklet>> {
+    pub fn Constructor(window: &Window) -> Fallible<DomRoot<TestWorklet>> {
         Ok(TestWorklet::new(window))
     }
 }

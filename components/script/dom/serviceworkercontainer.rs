@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::ServiceWorkerContainerBinding::{ServiceWor
 use dom::bindings::codegen::Bindings::ServiceWorkerContainerBinding::RegistrationOptions;
 use dom::bindings::error::Error;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
-use dom::bindings::root::{Dom, MutNullableDom, Root};
+use dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use dom::bindings::str::USVString;
 use dom::client::Client;
 use dom::eventtarget::EventTarget;
@@ -37,7 +37,7 @@ impl ServiceWorkerContainer {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(global: &GlobalScope) -> Root<ServiceWorkerContainer> {
+    pub fn new(global: &GlobalScope) -> DomRoot<ServiceWorkerContainer> {
         let client = Client::new(&global.as_window());
         let container = ServiceWorkerContainer::new_inherited(&*client);
         reflect_dom_object(box container, global, Wrap)
@@ -46,7 +46,7 @@ impl ServiceWorkerContainer {
 
 impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
     // https://w3c.github.io/ServiceWorker/#service-worker-container-controller-attribute
-    fn GetController(&self) -> Option<Root<ServiceWorker>> {
+    fn GetController(&self) -> Option<DomRoot<ServiceWorker>> {
         self.client.get_controller()
     }
 

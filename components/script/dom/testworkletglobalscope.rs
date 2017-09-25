@@ -5,7 +5,7 @@
 use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::TestWorkletGlobalScopeBinding;
 use dom::bindings::codegen::Bindings::TestWorkletGlobalScopeBinding::TestWorkletGlobalScopeMethods;
-use dom::bindings::root::Root;
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::worklet::WorkletExecutor;
 use dom::workletglobalscope::WorkletGlobalScope;
@@ -34,7 +34,7 @@ impl TestWorkletGlobalScope {
                base_url: ServoUrl,
                executor: WorkletExecutor,
                init: &WorkletGlobalScopeInit)
-               -> Root<TestWorkletGlobalScope>
+               -> DomRoot<TestWorkletGlobalScope>
     {
         debug!("Creating test worklet global scope for pipeline {}.", pipeline_id);
         let global = box TestWorkletGlobalScope {

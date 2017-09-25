@@ -8,7 +8,7 @@ use canvas_traits::webgl::webgl_channel;
 use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::WebGLBufferBinding;
 use dom::bindings::reflector::reflect_dom_object;
-use dom::bindings::root::Root;
+use dom::bindings::root::DomRoot;
 use dom::webglobject::WebGLObject;
 use dom::window::Window;
 use dom_struct::dom_struct;
@@ -48,7 +48,7 @@ impl WebGLBuffer {
     }
 
     pub fn maybe_new(window: &Window, renderer: WebGLMsgSender)
-                     -> Option<Root<WebGLBuffer>> {
+                     -> Option<DomRoot<WebGLBuffer>> {
         let (sender, receiver) = webgl_channel().unwrap();
         renderer.send(WebGLCommand::CreateBuffer(sender)).unwrap();
 
@@ -59,7 +59,7 @@ impl WebGLBuffer {
     pub fn new(window: &Window,
                renderer: WebGLMsgSender,
                id: WebGLBufferId)
-              -> Root<WebGLBuffer> {
+              -> DomRoot<WebGLBuffer> {
         reflect_dom_object(box WebGLBuffer::new_inherited(renderer, id),
                            window, WebGLBufferBinding::Wrap)
     }

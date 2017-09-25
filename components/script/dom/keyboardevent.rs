@@ -9,7 +9,7 @@ use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::reflect_dom_object;
-use dom::bindings::root::{Root, RootedReference};
+use dom::bindings::root::{DomRoot, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::event::Event;
 use dom::uievent::UIEvent;
@@ -60,7 +60,7 @@ impl KeyboardEvent {
         }
     }
 
-    pub fn new_uninitialized(window: &Window) -> Root<KeyboardEvent> {
+    pub fn new_uninitialized(window: &Window) -> DomRoot<KeyboardEvent> {
         reflect_dom_object(box KeyboardEvent::new_inherited(),
                            window,
                            KeyboardEventBinding::Wrap)
@@ -84,7 +84,7 @@ impl KeyboardEvent {
                shift_key: bool,
                meta_key: bool,
                char_code: Option<u32>,
-               key_code: u32) -> Root<KeyboardEvent> {
+               key_code: u32) -> DomRoot<KeyboardEvent> {
         let ev = KeyboardEvent::new_uninitialized(window);
         ev.InitKeyboardEvent(type_, can_bubble, cancelable, view, key_string, location,
                              DOMString::new(), repeat, DOMString::new());
@@ -103,7 +103,7 @@ impl KeyboardEvent {
 
     pub fn Constructor(window: &Window,
                        type_: DOMString,
-                       init: &KeyboardEventBinding::KeyboardEventInit) -> Fallible<Root<KeyboardEvent>> {
+                       init: &KeyboardEventBinding::KeyboardEventInit) -> Fallible<DomRoot<KeyboardEvent>> {
         let event = KeyboardEvent::new(window,
                                        type_,
                                        init.parent.parent.parent.bubbles,

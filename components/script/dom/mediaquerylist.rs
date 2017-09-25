@@ -9,7 +9,7 @@ use dom::bindings::codegen::Bindings::MediaQueryListBinding::{self, MediaQueryLi
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::DomObject;
 use dom::bindings::reflector::reflect_dom_object;
-use dom::bindings::root::{Dom, Root};
+use dom::bindings::root::{Dom, DomRoot};
 use dom::bindings::str::DOMString;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::weakref::{WeakRef, WeakRefVec};
@@ -47,7 +47,7 @@ impl MediaQueryList {
         }
     }
 
-    pub fn new(document: &Document, media_query_list: MediaList) -> Root<MediaQueryList> {
+    pub fn new(document: &Document, media_query_list: MediaList) -> DomRoot<MediaQueryList> {
         reflect_dom_object(box MediaQueryList::new_inherited(document, media_query_list),
                            document.window(),
                            MediaQueryListBinding::Wrap)

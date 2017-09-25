@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::StylePropertyMapReadOnlyBinding::StyleProp
 use dom::bindings::codegen::Bindings::StylePropertyMapReadOnlyBinding::Wrap;
 use dom::bindings::reflector::Reflector;
 use dom::bindings::reflector::reflect_dom_object;
-use dom::bindings::root::{Dom, Root};
+use dom::bindings::root::{Dom, DomRoot};
 use dom::bindings::str::DOMString;
 use dom::cssstylevalue::CSSStyleValue;
 use dom::globalscope::GlobalScope;
@@ -33,7 +33,7 @@ impl StylePropertyMapReadOnly {
         }
     }
 
-    pub fn from_iter<Entries>(global: &GlobalScope, entries: Entries) -> Root<StylePropertyMapReadOnly> where
+    pub fn from_iter<Entries>(global: &GlobalScope, entries: Entries) -> DomRoot<StylePropertyMapReadOnly> where
         Entries: IntoIterator<Item=(Atom, String)>,
     {
         let mut keys = Vec::new();
@@ -54,9 +54,9 @@ impl StylePropertyMapReadOnly {
 
 impl StylePropertyMapReadOnlyMethods for StylePropertyMapReadOnly {
     /// https://drafts.css-houdini.org/css-typed-om-1/#dom-stylepropertymapreadonly-get
-    fn Get(&self, property: DOMString) -> Option<Root<CSSStyleValue>> {
+    fn Get(&self, property: DOMString) -> Option<DomRoot<CSSStyleValue>> {
         // TODO: avoid constructing an Atom
-        self.entries.get(&Atom::from(property)).map(|value| Root::from_ref(&**value))
+        self.entries.get(&Atom::from(property)).map(|value| DomRoot::from_ref(&**value))
     }
 
     /// https://drafts.css-houdini.org/css-typed-om-1/#dom-stylepropertymapreadonly-has

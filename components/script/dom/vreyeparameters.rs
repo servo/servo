@@ -7,7 +7,7 @@ use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::VREyeParametersBinding;
 use dom::bindings::codegen::Bindings::VREyeParametersBinding::VREyeParametersMethods;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::root::{Dom, Root};
+use dom::bindings::root::{Dom, DomRoot};
 use dom::globalscope::GlobalScope;
 use dom::vrfieldofview::VRFieldOfView;
 use dom_struct::dom_struct;
@@ -39,7 +39,7 @@ impl VREyeParameters {
     }
 
     #[allow(unsafe_code)]
-    pub fn new(parameters: WebVREyeParameters, global: &GlobalScope) -> Root<VREyeParameters> {
+    pub fn new(parameters: WebVREyeParameters, global: &GlobalScope) -> DomRoot<VREyeParameters> {
         let fov = VRFieldOfView::new(&global, parameters.field_of_view.clone());
 
         let cx = global.get_cx();
@@ -65,8 +65,8 @@ impl VREyeParametersMethods for VREyeParameters {
     }
 
     // https://w3c.github.io/webvr/#dom-vreyeparameters-fieldofview
-    fn FieldOfView(&self) -> Root<VRFieldOfView> {
-        Root::from_ref(&*self.fov)
+    fn FieldOfView(&self) -> DomRoot<VRFieldOfView> {
+        DomRoot::from_ref(&*self.fov)
     }
 
     // https://w3c.github.io/webvr/#dom-vreyeparameters-renderwidth

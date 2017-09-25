@@ -7,7 +7,7 @@ use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::{self, AttrMethods};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::root::{LayoutDom, MutNullableDom, Root, RootedReference};
+use dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::customelementregistry::CallbackReaction;
 use dom::element::{AttributeMutation, Element};
@@ -63,7 +63,7 @@ impl Attr {
                namespace: Namespace,
                prefix: Option<Prefix>,
                owner: Option<&Element>)
-               -> Root<Attr> {
+               -> DomRoot<Attr> {
         reflect_dom_object(box Attr::new_inherited(local_name,
                                                    value,
                                                    name,
@@ -161,7 +161,7 @@ impl AttrMethods for Attr {
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-ownerelement
-    fn GetOwnerElement(&self) -> Option<Root<Element>> {
+    fn GetOwnerElement(&self) -> Option<DomRoot<Element>> {
         self.owner()
     }
 
@@ -232,7 +232,7 @@ impl Attr {
         self.owner.set(owner);
     }
 
-    pub fn owner(&self) -> Option<Root<Element>> {
+    pub fn owner(&self) -> Option<DomRoot<Element>> {
         self.owner.get()
     }
 

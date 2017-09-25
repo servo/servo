@@ -11,7 +11,7 @@ use dom::bindings::error::Fallible;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
-use dom::bindings::root::{Dom, MutNullableDom, Root, RootedReference};
+use dom::bindings::root::{Dom, DomRoot, MutNullableDom, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::eventtarget::{CompiledEventListener, EventTarget, ListenerPhase};
@@ -64,7 +64,7 @@ impl Event {
         }
     }
 
-    pub fn new_uninitialized(global: &GlobalScope) -> Root<Event> {
+    pub fn new_uninitialized(global: &GlobalScope) -> DomRoot<Event> {
         reflect_dom_object(box Event::new_inherited(),
                            global,
                            EventBinding::Wrap)
@@ -73,7 +73,7 @@ impl Event {
     pub fn new(global: &GlobalScope,
                type_: Atom,
                bubbles: EventBubbles,
-               cancelable: EventCancelable) -> Root<Event> {
+               cancelable: EventCancelable) -> DomRoot<Event> {
         let event = Event::new_uninitialized(global);
         event.init_event(type_, bool::from(bubbles), bool::from(cancelable));
         event
@@ -81,7 +81,7 @@ impl Event {
 
     pub fn Constructor(global: &GlobalScope,
                        type_: DOMString,
-                       init: &EventBinding::EventInit) -> Fallible<Root<Event>> {
+                       init: &EventBinding::EventInit) -> Fallible<DomRoot<Event>> {
         let bubbles = EventBubbles::from(init.bubbles);
         let cancelable = EventCancelable::from(init.cancelable);
         Ok(Event::new(global, Atom::from(type_), bubbles, cancelable))
@@ -140,8 +140,8 @@ impl Event {
                 event_path.push(Dom::from_ref(ancestor.upcast::<EventTarget>()));
             }
             let top_most_ancestor_or_target =
-                Root::from_ref(event_path.r().last().cloned().unwrap_or(target));
-            if let Some(document) = Root::downcast::<Document>(top_most_ancestor_or_target) {
+                DomRoot::from_ref(event_path.r().last().cloned().unwrap_or(target));
+            if let Some(document) = DomRoot::downcast::<Document>(top_most_ancestor_or_target) {
                 if self.type_() != atom!("load") && document.browsing_context().is_some() {
                     event_path.push(Dom::from_ref(document.window().upcast()));
                 }
@@ -233,12 +233,12 @@ impl EventMethods for Event {
     }
 
     // https://dom.spec.whatwg.org/#dom-event-target
-    fn GetTarget(&self) -> Option<Root<EventTarget>> {
+    fn GetTarget(&self) -> Option<DomRoot<EventTarget>> {
         self.target.get()
     }
 
     // https://dom.spec.whatwg.org/#dom-event-currenttarget
-    fn GetCurrentTarget(&self) -> Option<Root<EventTarget>> {
+    fn GetCurrentTarget(&self) -> Option<DomRoot<EventTarget>> {
         self.current_target.get()
     }
 
@@ -416,7 +416,7 @@ fn dispatch_to_listeners(event: &Event, target: &EventTarget, event_path: &[&Eve
     assert!(!event.stop_propagation.get());
     assert!(!event.stop_immediate.get());
 
-    let window = match Root::downcast::<Window>(target.global()) {
+    let window = match DomRoot::downcast::<Window>(target.global()) {
         Some(window) => {
             if window.need_emit_timeline_marker(TimelineMarkerType::DOMEvent) {
                 Some(window)

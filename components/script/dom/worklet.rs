@@ -20,7 +20,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::TrustedPromise;
 use dom::bindings::reflector::Reflector;
 use dom::bindings::reflector::reflect_dom_object;
-use dom::bindings::root::{Dom, Root, RootCollection};
+use dom::bindings::root::{Dom, DomRoot, RootCollection};
 use dom::bindings::str::USVString;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::trace::RootedTraceableBox;
@@ -93,7 +93,7 @@ impl Worklet {
         }
     }
 
-    pub fn new(window: &Window, global_type: WorkletGlobalScopeType) -> Root<Worklet> {
+    pub fn new(window: &Window, global_type: WorkletGlobalScopeType) -> DomRoot<Worklet> {
         debug!("Creating worklet {:?}.", global_type);
         reflect_dom_object(box Worklet::new_inherited(window, global_type), window, Wrap)
     }
@@ -538,10 +538,10 @@ impl WorkletThread {
                                 worklet_id: WorkletId,
                                 global_type: WorkletGlobalScopeType,
                                 base_url: ServoUrl)
-                                -> Root<WorkletGlobalScope>
+                                -> DomRoot<WorkletGlobalScope>
     {
         match self.global_scopes.entry(worklet_id) {
-            hash_map::Entry::Occupied(entry) => Root::from_ref(entry.get()),
+            hash_map::Entry::Occupied(entry) => DomRoot::from_ref(entry.get()),
             hash_map::Entry::Vacant(entry) => {
                 debug!("Creating new worklet global scope.");
                 let executor = WorkletExecutor::new(worklet_id, self.primary_sender.clone());

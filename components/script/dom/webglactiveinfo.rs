@@ -6,7 +6,7 @@
 use dom::bindings::codegen::Bindings::WebGLActiveInfoBinding;
 use dom::bindings::codegen::Bindings::WebGLActiveInfoBinding::WebGLActiveInfoMethods;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::root::Root;
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::window::Window;
 use dom_struct::dom_struct;
@@ -30,7 +30,7 @@ impl WebGLActiveInfo {
         }
     }
 
-    pub fn new(window: &Window, size: i32, ty: u32, name: DOMString) -> Root<WebGLActiveInfo> {
+    pub fn new(window: &Window, size: i32, ty: u32, name: DOMString) -> DomRoot<WebGLActiveInfo> {
         reflect_dom_object(box WebGLActiveInfo::new_inherited(size, ty, name), window, WebGLActiveInfoBinding::Wrap)
     }
 }

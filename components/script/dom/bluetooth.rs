@@ -20,7 +20,7 @@ use dom::bindings::error::Error::{self, Network, Security, Type};
 use dom::bindings::error::Fallible;
 use dom::bindings::refcounted::{Trusted, TrustedPromise};
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
-use dom::bindings::root::{Dom, Root};
+use dom::bindings::root::{Dom, DomRoot};
 use dom::bindings::str::DOMString;
 use dom::bluetoothdevice::BluetoothDevice;
 use dom::bluetoothpermissionresult::BluetoothPermissionResult;
@@ -131,7 +131,7 @@ impl Bluetooth {
         }
     }
 
-    pub fn new(global: &GlobalScope) -> Root<Bluetooth> {
+    pub fn new(global: &GlobalScope) -> DomRoot<Bluetooth> {
         reflect_dom_object(box Bluetooth::new_inherited(),
                            global,
                            BluetoothBinding::Wrap)

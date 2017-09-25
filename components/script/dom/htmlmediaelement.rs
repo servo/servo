@@ -18,7 +18,7 @@ use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
-use dom::bindings::root::{MutNullableDom, Root};
+use dom::bindings::root::{DomRoot, MutNullableDom};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{Element, AttributeMutation};
@@ -444,7 +444,7 @@ impl HTMLMediaElement {
         // right here.
         let doc = document_from_node(self);
         let task = MediaElementMicrotask::ResourceSelectionTask {
-            elem: Root::from_ref(self),
+            elem: DomRoot::from_ref(self),
             base_url: doc.base_url()
         };
 
@@ -466,7 +466,7 @@ impl HTMLMediaElement {
             #[allow(dead_code)]
             Object,
             Attribute(String),
-            Children(Root<HTMLSourceElement>),
+            Children(DomRoot<HTMLSourceElement>),
         }
         fn mode(media: &HTMLMediaElement) -> Option<Mode> {
             if let Some(attr) = media.upcast::<Element>().get_attribute(&ns!(), &local_name!("src")) {
@@ -474,7 +474,7 @@ impl HTMLMediaElement {
             }
             let source_child_element = media.upcast::<Node>()
                 .children()
-                .filter_map(Root::downcast::<HTMLSourceElement>)
+                .filter_map(DomRoot::downcast::<HTMLSourceElement>)
                 .next();
             if let Some(element) = source_child_element {
                 return Some(Mode::Children(element));
@@ -880,7 +880,7 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-media-error
-    fn GetError(&self) -> Option<Root<MediaError>> {
+    fn GetError(&self) -> Option<DomRoot<MediaError>> {
         self.error.get()
     }
 
@@ -933,7 +933,7 @@ impl VirtualMethods for HTMLMediaElement {
 
         if context.tree_in_doc {
             let task = MediaElementMicrotask::PauseIfNotInDocumentTask {
-                elem: Root::from_ref(self)
+                elem: DomRoot::from_ref(self)
             };
             ScriptThread::await_stable_state(Microtask::MediaElement(task));
         }
@@ -943,11 +943,11 @@ impl VirtualMethods for HTMLMediaElement {
 #[derive(HeapSizeOf, JSTraceable)]
 pub enum MediaElementMicrotask {
     ResourceSelectionTask {
-        elem: Root<HTMLMediaElement>,
+        elem: DomRoot<HTMLMediaElement>,
         base_url: ServoUrl
     },
     PauseIfNotInDocumentTask {
-        elem: Root<HTMLMediaElement>,
+        elem: DomRoot<HTMLMediaElement>,
     }
 }
 

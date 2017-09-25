@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::StyleSheetListBinding;
 use dom::bindings::codegen::Bindings::StyleSheetListBinding::StyleSheetListMethods;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::root::{Dom, Root};
+use dom::bindings::root::{Dom, DomRoot};
 use dom::document::Document;
 use dom::stylesheet::StyleSheet;
 use dom::window::Window;
@@ -27,7 +27,7 @@ impl StyleSheetList {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, document: Dom<Document>) -> Root<StyleSheetList> {
+    pub fn new(window: &Window, document: Dom<Document>) -> DomRoot<StyleSheetList> {
         reflect_dom_object(box StyleSheetList::new_inherited(document),
                            window, StyleSheetListBinding::Wrap)
     }
@@ -40,14 +40,14 @@ impl StyleSheetListMethods for StyleSheetList {
     }
 
     // https://drafts.csswg.org/cssom/#dom-stylesheetlist-item
-    fn Item(&self, index: u32) -> Option<Root<StyleSheet>> {
+    fn Item(&self, index: u32) -> Option<DomRoot<StyleSheet>> {
         // XXXManishearth this  doesn't handle the origin clean flag and is a
         // cors vulnerability
-        self.document.stylesheet_at(index as usize).map(Root::upcast)
+        self.document.stylesheet_at(index as usize).map(DomRoot::upcast)
     }
 
     // check-tidy: no specs after this line
-    fn IndexedGetter(&self, index: u32) -> Option<Root<StyleSheet>> {
+    fn IndexedGetter(&self, index: u32) -> Option<DomRoot<StyleSheet>> {
         self.Item(index)
     }
 }

@@ -7,7 +7,7 @@ use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLFontElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFontElementBinding::HTMLFontElementMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::root::{LayoutDom, Root};
+use dom::bindings::root::{DomRoot, LayoutDom};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{Element, RawLayoutElementHelpers};
@@ -36,7 +36,7 @@ impl HTMLFontElement {
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
-               document: &Document) -> Root<HTMLFontElement> {
+               document: &Document) -> DomRoot<HTMLFontElement> {
         Node::reflect_node(box HTMLFontElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLFontElementBinding::Wrap)

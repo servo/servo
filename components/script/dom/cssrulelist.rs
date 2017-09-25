@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::CSSRuleListBinding;
 use dom::bindings::codegen::Bindings::CSSRuleListBinding::CSSRuleListMethods;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
-use dom::bindings::root::{Dom, MutNullableDom, Root};
+use dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use dom::csskeyframerule::CSSKeyframeRule;
 use dom::cssrule::CSSRule;
 use dom::cssstylesheet::CSSStyleSheet;
@@ -70,7 +70,7 @@ impl CSSRuleList {
 
     #[allow(unrooted_must_root)]
     pub fn new(window: &Window, parent_stylesheet: &CSSStyleSheet,
-               rules: RulesSource) -> Root<CSSRuleList> {
+               rules: RulesSource) -> DomRoot<CSSRuleList> {
         reflect_dom_object(box CSSRuleList::new_inherited(parent_stylesheet, rules),
                            window,
                            CSSRuleListBinding::Wrap)
@@ -133,11 +133,11 @@ impl CSSRuleList {
     // Remove parent stylesheets from all children
     pub fn deparent_all(&self) {
         for rule in self.dom_rules.borrow().iter() {
-            rule.get().map(|r| Root::upcast(r).deparent());
+            rule.get().map(|r| DomRoot::upcast(r).deparent());
         }
     }
 
-    pub fn item(&self, idx: u32) -> Option<Root<CSSRule>> {
+    pub fn item(&self, idx: u32) -> Option<DomRoot<CSSRule>> {
         self.dom_rules.borrow().get(idx as usize).map(|rule| {
             rule.or_init(|| {
                 let parent_stylesheet = &self.parent_stylesheet;
@@ -149,7 +149,7 @@ impl CSSRuleList {
                                              rules.read_with(&guard).0[idx as usize].clone())
                     }
                     RulesSource::Keyframes(ref rules) => {
-                        Root::upcast(CSSKeyframeRule::new(self.global().as_window(),
+                        DomRoot::upcast(CSSKeyframeRule::new(self.global().as_window(),
                                                           parent_stylesheet,
                                                           rules.read_with(&guard)
                                                                 .keyframes[idx as usize]
@@ -176,7 +176,7 @@ impl CSSRuleList {
 
 impl CSSRuleListMethods for CSSRuleList {
     // https://drafts.csswg.org/cssom/#ref-for-dom-cssrulelist-item-1
-    fn Item(&self, idx: u32) -> Option<Root<CSSRule>> {
+    fn Item(&self, idx: u32) -> Option<DomRoot<CSSRule>> {
         self.item(idx)
     }
 
@@ -186,7 +186,7 @@ impl CSSRuleListMethods for CSSRuleList {
     }
 
     // check-tidy: no specs after this line
-    fn IndexedGetter(&self, index: u32) -> Option<Root<CSSRule>> {
+    fn IndexedGetter(&self, index: u32) -> Option<DomRoot<CSSRule>> {
         self.Item(index)
     }
 }

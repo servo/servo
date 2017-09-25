@@ -24,7 +24,7 @@ use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use dom::bindings::refcounted::{Trusted, TrustedPromise};
 use dom::bindings::reflector::DomObject;
-use dom::bindings::root::{Dom, LayoutDom, MutNullableDom, Root, RootedReference};
+use dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::bindings::xmlname::{namespace_from_domstring, validate_and_extract, xml_name_type};
 use dom::bindings::xmlname::XMLName::InvalidXMLName;
@@ -164,7 +164,7 @@ impl fmt::Debug for Element {
     }
 }
 
-impl fmt::Debug for Root<Element> {
+impl fmt::Debug for DomRoot<Element> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         (**self).fmt(f)
     }
@@ -235,7 +235,7 @@ impl Element {
                   document: &Document,
                   creator: ElementCreator,
                   mode: CustomElementCreationMode)
-                  -> Root<Element> {
+                  -> DomRoot<Element> {
         create_element(name, is, document, creator, mode)
     }
 
@@ -273,7 +273,7 @@ impl Element {
     pub fn new(local_name: LocalName,
                namespace: Namespace,
                prefix: Option<Prefix>,
-               document: &Document) -> Root<Element> {
+               document: &Document) -> DomRoot<Element> {
         Node::reflect_node(
             box Element::new_inherited(local_name, namespace, prefix, document),
             document,
@@ -923,7 +923,7 @@ impl Element {
         let inclusive_ancestor_elements =
             self.upcast::<Node>()
                 .inclusive_ancestors()
-                .filter_map(Root::downcast::<Self>);
+                .filter_map(DomRoot::downcast::<Self>);
 
         // Steps 3-4.
         for element in inclusive_ancestor_elements {
@@ -1002,7 +1002,7 @@ impl Element {
         }
     }
 
-    pub fn root_element(&self) -> Root<Element> {
+    pub fn root_element(&self) -> DomRoot<Element> {
         if self.node.is_in_doc() {
             self.upcast::<Node>()
                 .owner_doc()
@@ -1011,7 +1011,7 @@ impl Element {
         } else {
             self.upcast::<Node>()
                 .inclusive_ancestors()
-                .filter_map(Root::downcast)
+                .filter_map(DomRoot::downcast)
                 .last()
                 .expect("We know inclusive_ancestors will return `self` which is an element")
         }
@@ -1124,18 +1124,18 @@ impl Element {
         }
     }
 
-    pub fn get_attribute(&self, namespace: &Namespace, local_name: &LocalName) -> Option<Root<Attr>> {
+    pub fn get_attribute(&self, namespace: &Namespace, local_name: &LocalName) -> Option<DomRoot<Attr>> {
         self.attrs
             .borrow()
             .iter()
             .find(|attr| attr.local_name() == local_name && attr.namespace() == namespace)
-            .map(|js| Root::from_ref(&**js))
+            .map(|js| DomRoot::from_ref(&**js))
     }
 
     // https://dom.spec.whatwg.org/#concept-element-attributes-get-by-name
-    pub fn get_attribute_by_name(&self, name: DOMString) -> Option<Root<Attr>> {
+    pub fn get_attribute_by_name(&self, name: DOMString) -> Option<DomRoot<Attr>> {
         let name = &self.parsed_name(name);
-        self.attrs.borrow().iter().find(|a| a.name() == name).map(|js| Root::from_ref(&**js))
+        self.attrs.borrow().iter().find(|a| a.name() == name).map(|js| DomRoot::from_ref(&**js))
     }
 
     pub fn set_attribute_from_parser(&self,
@@ -1207,7 +1207,7 @@ impl Element {
                        .borrow()
                        .iter()
                        .find(|attr| find(&attr))
-                       .map(|js| Root::from_ref(&**js));
+                       .map(|js| DomRoot::from_ref(&**js));
         if let Some(attr) = attr {
             attr.set_value(value, self);
         } else {
@@ -1227,21 +1227,21 @@ impl Element {
         }
     }
 
-    pub fn remove_attribute(&self, namespace: &Namespace, local_name: &LocalName) -> Option<Root<Attr>> {
+    pub fn remove_attribute(&self, namespace: &Namespace, local_name: &LocalName) -> Option<DomRoot<Attr>> {
         self.remove_first_matching_attribute(|attr| {
             attr.namespace() == namespace && attr.local_name() == local_name
         })
     }
 
-    pub fn remove_attribute_by_name(&self, name: &LocalName) -> Option<Root<Attr>> {
+    pub fn remove_attribute_by_name(&self, name: &LocalName) -> Option<DomRoot<Attr>> {
         self.remove_first_matching_attribute(|attr| attr.name() == name)
     }
 
-    fn remove_first_matching_attribute<F>(&self, find: F) -> Option<Root<Attr>>
+    fn remove_first_matching_attribute<F>(&self, find: F) -> Option<DomRoot<Attr>>
         where F: Fn(&Attr) -> bool {
         let idx = self.attrs.borrow().iter().position(|attr| find(&attr));
         idx.map(|idx| {
-            let attr = Root::from_ref(&*(*self.attrs.borrow())[idx]);
+            let attr = DomRoot::from_ref(&*(*self.attrs.borrow())[idx]);
             self.will_mutate_attr(&attr);
 
             let name = attr.local_name().clone();
@@ -1396,7 +1396,7 @@ impl Element {
 
     // https://dom.spec.whatwg.org/#insert-adjacent
     pub fn insert_adjacent(&self, where_: AdjacentPosition, node: &Node)
-                           -> Fallible<Option<Root<Node>>> {
+                           -> Fallible<Option<DomRoot<Node>>> {
         let self_node = self.upcast::<Node>();
         match where_ {
             AdjacentPosition::BeforeBegin => {
@@ -1468,7 +1468,7 @@ impl Element {
     }
 
     // https://w3c.github.io/DOM-Parsing/#parsing
-    pub fn parse_fragment(&self, markup: DOMString) -> Fallible<Root<DocumentFragment>> {
+    pub fn parse_fragment(&self, markup: DOMString) -> Fallible<DomRoot<DocumentFragment>> {
         // Steps 1-2.
         let context_document = document_from_node(self);
         // TODO(#11995): XML case.
@@ -1483,13 +1483,13 @@ impl Element {
         Ok(fragment)
     }
 
-    pub fn fragment_parsing_context(owner_doc: &Document, element: Option<&Self>) -> Root<Self> {
+    pub fn fragment_parsing_context(owner_doc: &Document, element: Option<&Self>) -> DomRoot<Self> {
         match element {
             Some(elem) if elem.local_name() != &local_name!("html") || !elem.html_element_in_html_document() => {
-                Root::from_ref(elem)
+                DomRoot::from_ref(elem)
             },
             _ => {
-                Root::upcast(HTMLBodyElement::new(local_name!("body"), None, owner_doc))
+                DomRoot::upcast(HTMLBodyElement::new(local_name!("body"), None, owner_doc))
             }
         }
     }
@@ -1568,12 +1568,12 @@ impl ElementMethods for Element {
     }
 
     // https://dom.spec.whatwg.org/#dom-element-classlist
-    fn ClassList(&self) -> Root<DOMTokenList> {
+    fn ClassList(&self) -> DomRoot<DOMTokenList> {
         self.class_list.or_init(|| DOMTokenList::new(self, &local_name!("class")))
     }
 
     // https://dom.spec.whatwg.org/#dom-element-attributes
-    fn Attributes(&self) -> Root<NamedNodeMap> {
+    fn Attributes(&self) -> DomRoot<NamedNodeMap> {
         self.attr_list.or_init(|| NamedNodeMap::new(&window_from_node(self), self))
     }
 
@@ -1603,7 +1603,7 @@ impl ElementMethods for Element {
     }
 
     // https://dom.spec.whatwg.org/#dom-element-getattributenode
-    fn GetAttributeNode(&self, name: DOMString) -> Option<Root<Attr>> {
+    fn GetAttributeNode(&self, name: DOMString) -> Option<DomRoot<Attr>> {
         self.get_attribute_by_name(name)
     }
 
@@ -1611,7 +1611,7 @@ impl ElementMethods for Element {
     fn GetAttributeNodeNS(&self,
                           namespace: Option<DOMString>,
                           local_name: DOMString)
-                          -> Option<Root<Attr>> {
+                          -> Option<DomRoot<Attr>> {
         let namespace = &namespace_from_domstring(namespace);
         self.get_attribute(namespace, &LocalName::from(local_name))
     }
@@ -1650,7 +1650,7 @@ impl ElementMethods for Element {
     }
 
     // https://dom.spec.whatwg.org/#dom-element-setattributenode
-    fn SetAttributeNode(&self, attr: &Attr) -> Fallible<Option<Root<Attr>>> {
+    fn SetAttributeNode(&self, attr: &Attr) -> Fallible<Option<DomRoot<Attr>>> {
         // Step 1.
         if let Some(owner) = attr.GetOwnerElement() {
             if &*owner != self {
@@ -1673,11 +1673,11 @@ impl ElementMethods for Element {
         });
 
         if let Some(position) = position {
-            let old_attr = Root::from_ref(&*self.attrs.borrow()[position]);
+            let old_attr = DomRoot::from_ref(&*self.attrs.borrow()[position]);
 
             // Step 3.
             if &*old_attr == attr {
-                return Ok(Some(Root::from_ref(attr)));
+                return Ok(Some(DomRoot::from_ref(attr)));
             }
 
             // Step 4.
@@ -1712,7 +1712,7 @@ impl ElementMethods for Element {
     }
 
     // https://dom.spec.whatwg.org/#dom-element-setattributenodens
-    fn SetAttributeNodeNS(&self, attr: &Attr) -> Fallible<Option<Root<Attr>>> {
+    fn SetAttributeNodeNS(&self, attr: &Attr) -> Fallible<Option<DomRoot<Attr>>> {
         self.SetAttributeNode(attr)
     }
 
@@ -1730,7 +1730,7 @@ impl ElementMethods for Element {
     }
 
     // https://dom.spec.whatwg.org/#dom-element-removeattributenode
-    fn RemoveAttributeNode(&self, attr: &Attr) -> Fallible<Root<Attr>> {
+    fn RemoveAttributeNode(&self, attr: &Attr) -> Fallible<DomRoot<Attr>> {
         self.remove_first_matching_attribute(|a| a == attr)
             .ok_or(Error::NotFound)
     }
@@ -1746,7 +1746,7 @@ impl ElementMethods for Element {
     }
 
     // https://dom.spec.whatwg.org/#dom-element-getelementsbytagname
-    fn GetElementsByTagName(&self, localname: DOMString) -> Root<HTMLCollection> {
+    fn GetElementsByTagName(&self, localname: DOMString) -> DomRoot<HTMLCollection> {
         let window = window_from_node(self);
         HTMLCollection::by_qualified_name(&window, self.upcast(), LocalName::from(&*localname))
     }
@@ -1755,19 +1755,19 @@ impl ElementMethods for Element {
     fn GetElementsByTagNameNS(&self,
                               maybe_ns: Option<DOMString>,
                               localname: DOMString)
-                              -> Root<HTMLCollection> {
+                              -> DomRoot<HTMLCollection> {
         let window = window_from_node(self);
         HTMLCollection::by_tag_name_ns(&window, self.upcast(), localname, maybe_ns)
     }
 
     // https://dom.spec.whatwg.org/#dom-element-getelementsbyclassname
-    fn GetElementsByClassName(&self, classes: DOMString) -> Root<HTMLCollection> {
+    fn GetElementsByClassName(&self, classes: DOMString) -> DomRoot<HTMLCollection> {
         let window = window_from_node(self);
         HTMLCollection::by_class_name(&window, self.upcast(), classes)
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-getclientrects
-    fn GetClientRects(&self) -> Vec<Root<DOMRect>> {
+    fn GetClientRects(&self) -> Vec<DomRoot<DOMRect>> {
         let win = window_from_node(self);
         let raw_rects = self.upcast::<Node>().content_boxes();
         raw_rects.iter().map(|rect| {
@@ -1780,7 +1780,7 @@ impl ElementMethods for Element {
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-getboundingclientrect
-    fn GetBoundingClientRect(&self) -> Root<DOMRect> {
+    fn GetBoundingClientRect(&self) -> DomRoot<DOMRect> {
         let win = window_from_node(self);
         let rect = self.upcast::<Node>().bounding_content_box_or_zero();
         DOMRect::new(win.upcast(),
@@ -2059,9 +2059,9 @@ impl ElementMethods for Element {
         // Step 2.
         // https://github.com/w3c/DOM-Parsing/issues/1
         let target = if let Some(template) = self.downcast::<HTMLTemplateElement>() {
-            Root::upcast(template.Content())
+            DomRoot::upcast(template.Content())
         } else {
-            Root::from_ref(self.upcast())
+            DomRoot::from_ref(self.upcast())
         };
         Node::replace_all(Some(frag.upcast()), &target);
         Ok(())
@@ -2096,7 +2096,7 @@ impl ElementMethods for Element {
                                                 &context_document,
                                                 ElementCreator::ScriptCreated,
                                                 CustomElementCreationMode::Synchronous);
-                Root::upcast(body_elem)
+                DomRoot::upcast(body_elem)
             },
             _ => context_node.GetParentElement().unwrap()
         };
@@ -2109,29 +2109,29 @@ impl ElementMethods for Element {
     }
 
     // https://dom.spec.whatwg.org/#dom-nondocumenttypechildnode-previouselementsibling
-    fn GetPreviousElementSibling(&self) -> Option<Root<Element>> {
-        self.upcast::<Node>().preceding_siblings().filter_map(Root::downcast).next()
+    fn GetPreviousElementSibling(&self) -> Option<DomRoot<Element>> {
+        self.upcast::<Node>().preceding_siblings().filter_map(DomRoot::downcast).next()
     }
 
     // https://dom.spec.whatwg.org/#dom-nondocumenttypechildnode-nextelementsibling
-    fn GetNextElementSibling(&self) -> Option<Root<Element>> {
-        self.upcast::<Node>().following_siblings().filter_map(Root::downcast).next()
+    fn GetNextElementSibling(&self) -> Option<DomRoot<Element>> {
+        self.upcast::<Node>().following_siblings().filter_map(DomRoot::downcast).next()
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-children
-    fn Children(&self) -> Root<HTMLCollection> {
+    fn Children(&self) -> DomRoot<HTMLCollection> {
         let window = window_from_node(self);
         HTMLCollection::children(&window, self.upcast())
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-firstelementchild
-    fn GetFirstElementChild(&self) -> Option<Root<Element>> {
+    fn GetFirstElementChild(&self) -> Option<DomRoot<Element>> {
         self.upcast::<Node>().child_elements().next()
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-lastelementchild
-    fn GetLastElementChild(&self) -> Option<Root<Element>> {
-        self.upcast::<Node>().rev_children().filter_map(Root::downcast::<Element>).next()
+    fn GetLastElementChild(&self) -> Option<DomRoot<Element>> {
+        self.upcast::<Node>().rev_children().filter_map(DomRoot::downcast::<Element>).next()
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-childelementcount
@@ -2150,13 +2150,13 @@ impl ElementMethods for Element {
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-queryselector
-    fn QuerySelector(&self, selectors: DOMString) -> Fallible<Option<Root<Element>>> {
+    fn QuerySelector(&self, selectors: DOMString) -> Fallible<Option<DomRoot<Element>>> {
         let root = self.upcast::<Node>();
         root.query_selector(selectors)
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-queryselectorall
-    fn QuerySelectorAll(&self, selectors: DOMString) -> Fallible<Root<NodeList>> {
+    fn QuerySelectorAll(&self, selectors: DOMString) -> Fallible<DomRoot<NodeList>> {
         let root = self.upcast::<Node>();
         root.query_selector_all(selectors)
     }
@@ -2190,7 +2190,7 @@ impl ElementMethods for Element {
                 // FIXME(bholley): Consider an nth-index cache here.
                 let mut ctx = MatchingContext::new(MatchingMode::Normal, None, None,
                                                    quirks_mode);
-                Ok(matches_selector_list(&selectors, &Root::from_ref(self), &mut ctx))
+                Ok(matches_selector_list(&selectors, &DomRoot::from_ref(self), &mut ctx))
             }
         }
     }
@@ -2201,13 +2201,13 @@ impl ElementMethods for Element {
     }
 
     // https://dom.spec.whatwg.org/#dom-element-closest
-    fn Closest(&self, selectors: DOMString) -> Fallible<Option<Root<Element>>> {
+    fn Closest(&self, selectors: DOMString) -> Fallible<Option<DomRoot<Element>>> {
         match SelectorParser::parse_author_origin_no_namespace(&selectors) {
             Err(_) => Err(Error::Syntax),
             Ok(selectors) => {
                 let root = self.upcast::<Node>();
                 for element in root.inclusive_ancestors() {
-                    if let Some(element) = Root::downcast::<Element>(element) {
+                    if let Some(element) = DomRoot::downcast::<Element>(element) {
                         let quirks_mode = document_from_node(self).quirks_mode();
                         // FIXME(bholley): Consider an nth-index cache here.
                         let mut ctx = MatchingContext::new(MatchingMode::Normal, None, None,
@@ -2224,10 +2224,10 @@ impl ElementMethods for Element {
 
     // https://dom.spec.whatwg.org/#dom-element-insertadjacentelement
     fn InsertAdjacentElement(&self, where_: DOMString, element: &Element)
-                             -> Fallible<Option<Root<Element>>> {
+                             -> Fallible<Option<DomRoot<Element>>> {
         let where_ = AdjacentPosition::try_from(&*where_)?;
         let inserted_node = self.insert_adjacent(where_, element.upcast())?;
-        Ok(inserted_node.map(|node| Root::downcast(node).unwrap()))
+        Ok(inserted_node.map(|node| DomRoot::downcast(node).unwrap()))
     }
 
     // https://dom.spec.whatwg.org/#dom-element-insertadjacenttext
@@ -2258,7 +2258,7 @@ impl ElementMethods for Element {
                 }
             }
             AdjacentPosition::AfterBegin | AdjacentPosition::BeforeEnd => {
-                Root::from_ref(self.upcast::<Node>())
+                DomRoot::from_ref(self.upcast::<Node>())
             }
         };
 
@@ -2496,14 +2496,14 @@ impl VirtualMethods for Element {
     }
 }
 
-impl<'a> ::selectors::Element for Root<Element> {
+impl<'a> ::selectors::Element for DomRoot<Element> {
     type Impl = SelectorImpl;
 
     fn opaque(&self) -> ::selectors::OpaqueElement {
         ::selectors::OpaqueElement::new(self.reflector().get_jsobject().get())
     }
 
-    fn parent_element(&self) -> Option<Root<Element>> {
+    fn parent_element(&self) -> Option<DomRoot<Element>> {
         self.upcast::<Node>().GetParentElement()
     }
 
@@ -2516,20 +2516,20 @@ impl<'a> ::selectors::Element for Root<Element> {
     }
 
 
-    fn first_child_element(&self) -> Option<Root<Element>> {
+    fn first_child_element(&self) -> Option<DomRoot<Element>> {
         self.node.child_elements().next()
     }
 
-    fn last_child_element(&self) -> Option<Root<Element>> {
-        self.node.rev_children().filter_map(Root::downcast).next()
+    fn last_child_element(&self) -> Option<DomRoot<Element>> {
+        self.node.rev_children().filter_map(DomRoot::downcast).next()
     }
 
-    fn prev_sibling_element(&self) -> Option<Root<Element>> {
-        self.node.preceding_siblings().filter_map(Root::downcast).next()
+    fn prev_sibling_element(&self) -> Option<DomRoot<Element>> {
+        self.node.preceding_siblings().filter_map(DomRoot::downcast).next()
     }
 
-    fn next_sibling_element(&self) -> Option<Root<Element>> {
-        self.node.following_siblings().filter_map(Root::downcast).next()
+    fn next_sibling_element(&self) -> Option<DomRoot<Element>> {
+        self.node.following_siblings().filter_map(DomRoot::downcast).next()
     }
 
     fn attr_matches(&self,
@@ -2739,15 +2739,15 @@ impl Element {
     }
 
     // https://html.spec.whatwg.org/multipage/#nearest-activatable-element
-    pub fn nearest_activable_element(&self) -> Option<Root<Element>> {
+    pub fn nearest_activable_element(&self) -> Option<DomRoot<Element>> {
         match self.as_maybe_activatable() {
-            Some(el) => Some(Root::from_ref(el.as_element())),
+            Some(el) => Some(DomRoot::from_ref(el.as_element())),
             None => {
                 let node = self.upcast::<Node>();
                 for node in node.ancestors() {
                     if let Some(node) = node.downcast::<Element>() {
                         if node.as_maybe_activatable().is_some() {
-                            return Some(Root::from_ref(node));
+                            return Some(DomRoot::from_ref(node));
                         }
                     }
                 }

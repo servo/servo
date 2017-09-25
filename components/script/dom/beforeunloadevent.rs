@@ -10,7 +10,7 @@ use dom::bindings::codegen::Bindings::BeforeUnloadEventBinding::BeforeUnloadEven
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::reflect_dom_object;
-use dom::bindings::root::Root;
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::window::Window;
@@ -32,7 +32,7 @@ impl BeforeUnloadEvent {
         }
     }
 
-    pub fn new_uninitialized(window: &Window) -> Root<BeforeUnloadEvent> {
+    pub fn new_uninitialized(window: &Window) -> DomRoot<BeforeUnloadEvent> {
         reflect_dom_object(box BeforeUnloadEvent::new_inherited(),
                            window,
                            BeforeUnloadEventBinding::Wrap)
@@ -41,7 +41,7 @@ impl BeforeUnloadEvent {
     pub fn new(window: &Window,
                type_: Atom,
                bubbles: EventBubbles,
-               cancelable: EventCancelable) -> Root<BeforeUnloadEvent> {
+               cancelable: EventCancelable) -> DomRoot<BeforeUnloadEvent> {
         let ev = BeforeUnloadEvent::new_uninitialized(window);
         {
             let event = ev.upcast::<Event>();

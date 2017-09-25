@@ -212,7 +212,7 @@ class Descriptor(DescriptorProvider):
             self.argumentType = "???"
             self.nativeType = ty
         else:
-            self.returnType = "Root<%s>" % typeName
+            self.returnType = "DomRoot<%s>" % typeName
             self.argumentType = "&%s" % typeName
             self.nativeType = "*const %s" % typeName
             if self.interface.isIteratorInterface():

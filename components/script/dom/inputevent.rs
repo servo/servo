@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::InputEventBinding::{self, InputEventMethod
 use dom::bindings::codegen::Bindings::UIEventBinding::UIEventBinding::UIEventMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::reflector::reflect_dom_object;
-use dom::bindings::root::{Root, RootedReference};
+use dom::bindings::root::{DomRoot, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::uievent::UIEvent;
 use dom::window::Window;
@@ -27,7 +27,7 @@ impl InputEvent {
                view: Option<&Window>,
                detail: i32,
                data: Option<DOMString>,
-               is_composing: bool) -> Root<InputEvent> {
+               is_composing: bool) -> DomRoot<InputEvent> {
         let ev = reflect_dom_object(box InputEvent {
                                         uievent: UIEvent::new_inherited(),
                                         data: data,
@@ -42,7 +42,7 @@ impl InputEvent {
     pub fn Constructor(window: &Window,
                        type_: DOMString,
                        init: &InputEventBinding::InputEventInit)
-                       -> Fallible<Root<InputEvent>> {
+                       -> Fallible<DomRoot<InputEvent>> {
         let event = InputEvent::new(window,
                                     type_,
                                     init.parent.parent.bubbles,

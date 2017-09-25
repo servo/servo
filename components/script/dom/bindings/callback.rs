@@ -6,7 +6,7 @@
 
 use dom::bindings::error::{Error, Fallible, report_pending_exception};
 use dom::bindings::reflector::DomObject;
-use dom::bindings::root::{Dom, Root};
+use dom::bindings::root::{Dom, DomRoot};
 use dom::bindings::settings_stack::{AutoEntryScript, AutoIncumbentScript};
 use dom::bindings::utils::AsCCharPtrPtr;
 use dom::globalscope::GlobalScope;
@@ -223,7 +223,7 @@ pub fn wrap_call_this_object<T: DomObject>(cx: *mut JSContext,
 pub struct CallSetup {
     /// The global for reporting exceptions. This is the global object of the
     /// (possibly wrapped) callback object.
-    exception_global: Root<GlobalScope>,
+    exception_global: DomRoot<GlobalScope>,
     /// The `JSContext` used for the call.
     cx: *mut JSContext,
     /// The compartment we were in before the call.

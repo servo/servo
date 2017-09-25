@@ -9,7 +9,7 @@ use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::Bluetoot
 use dom::bindings::error::Error;
 use dom::bindings::error::ErrorResult;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
-use dom::bindings::root::{Dom, Root};
+use dom::bindings::root::{Dom, DomRoot};
 use dom::bluetooth::{AsyncBluetoothListener, get_gatt_children, response_async};
 use dom::bluetoothdevice::BluetoothDevice;
 use dom::bluetoothuuid::{BluetoothServiceUUID, BluetoothUUID};
@@ -37,7 +37,7 @@ impl BluetoothRemoteGATTServer {
         }
     }
 
-    pub fn new(global: &GlobalScope, device: &BluetoothDevice) -> Root<BluetoothRemoteGATTServer> {
+    pub fn new(global: &GlobalScope, device: &BluetoothDevice) -> DomRoot<BluetoothRemoteGATTServer> {
         reflect_dom_object(box BluetoothRemoteGATTServer::new_inherited(device),
                            global,
                            BluetoothRemoteGATTServerBinding::Wrap)
@@ -54,8 +54,8 @@ impl BluetoothRemoteGATTServer {
 
 impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-device
-    fn Device(&self) -> Root<BluetoothDevice> {
-        Root::from_ref(&self.device)
+    fn Device(&self) -> DomRoot<BluetoothDevice> {
+        DomRoot::from_ref(&self.device)
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-connected

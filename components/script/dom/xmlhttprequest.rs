@@ -16,7 +16,7 @@ use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
-use dom::bindings::root::{Dom, MutNullableDom, Root};
+use dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use dom::bindings::str::{ByteString, DOMString, USVString, is_token};
 use dom::blob::{Blob, BlobImpl};
 use dom::document::{Document, HasBrowsingContext, IsHTMLDocument};
@@ -203,14 +203,14 @@ impl XMLHttpRequest {
             referrer_policy: referrer_policy,
         }
     }
-    pub fn new(global: &GlobalScope) -> Root<XMLHttpRequest> {
+    pub fn new(global: &GlobalScope) -> DomRoot<XMLHttpRequest> {
         reflect_dom_object(box XMLHttpRequest::new_inherited(global),
                            global,
                            XMLHttpRequestBinding::Wrap)
     }
 
     // https://xhr.spec.whatwg.org/#constructors
-    pub fn Constructor(global: &GlobalScope) -> Fallible<Root<XMLHttpRequest>> {
+    pub fn Constructor(global: &GlobalScope) -> Fallible<DomRoot<XMLHttpRequest>> {
         Ok(XMLHttpRequest::new(global))
     }
 
@@ -289,7 +289,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     fn Open_(&self, method: ByteString, url: USVString, async: bool,
              username: Option<USVString>, password: Option<USVString>) -> ErrorResult {
         // Step 1
-        if let Some(window) = Root::downcast::<Window>(self.global()) {
+        if let Some(window) = DomRoot::downcast::<Window>(self.global()) {
             if !window.Document().is_fully_active() {
                 return Err(Error::InvalidState);
             }
@@ -481,8 +481,8 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     }
 
     // https://xhr.spec.whatwg.org/#the-upload-attribute
-    fn Upload(&self) -> Root<XMLHttpRequestUpload> {
-        Root::from_ref(&*self.upload)
+    fn Upload(&self) -> DomRoot<XMLHttpRequestUpload> {
+        DomRoot::from_ref(&*self.upload)
     }
 
     // https://xhr.spec.whatwg.org/#the-send()-method
@@ -570,7 +570,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             // preference is enabled, we allow bypassing the CORS check.
             // This is a temporary measure until we figure out Servo privilege
             // story. See https://github.com/servo/servo/issues/9582
-            if let Some(win) = Root::downcast::<Window>(self.global()) {
+            if let Some(win) = DomRoot::downcast::<Window>(self.global()) {
                 let is_root_pipeline = win.parent_info().is_none();
                 is_root_pipeline && PREFS.is_mozbrowser_enabled()
             } else {
@@ -811,7 +811,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     }
 
     // https://xhr.spec.whatwg.org/#the-responsexml-attribute
-    fn GetResponseXML(&self) -> Fallible<Option<Root<Document>>> {
+    fn GetResponseXML(&self) -> Fallible<Option<DomRoot<Document>>> {
         // TODO(#2823): Until [Exposed] is implemented, this attribute needs to return null
         //              explicitly in the worker scope.
         if self.global().is::<WorkerGlobalScope>() {
@@ -1088,7 +1088,7 @@ impl XMLHttpRequest {
     }
 
     // https://xhr.spec.whatwg.org/#blob-response
-    fn blob_response(&self) -> Root<Blob> {
+    fn blob_response(&self) -> DomRoot<Blob> {
         // Step 1
         if let Some(response) = self.response_blob.get() {
             return response;
@@ -1104,7 +1104,7 @@ impl XMLHttpRequest {
     }
 
     // https://xhr.spec.whatwg.org/#document-response
-    fn document_response(&self) -> Option<Root<Document>> {
+    fn document_response(&self) -> Option<DomRoot<Document>> {
         // Step 1
         let response = self.response_xml.get();
         if response.is_some() {
@@ -1114,7 +1114,7 @@ impl XMLHttpRequest {
         let mime_type = self.final_mime_type();
         // TODO: prescan the response to determine encoding if final charset is null
         let charset = self.final_charset().unwrap_or(UTF_8);
-        let temp_doc: Root<Document>;
+        let temp_doc: DomRoot<Document>;
         match mime_type {
             Some(Mime(mime::TopLevel::Text, mime::SubLevel::Html, _)) => {
                 // Step 5
@@ -1181,7 +1181,7 @@ impl XMLHttpRequest {
         self.response_json.get()
     }
 
-    fn document_text_html(&self) -> Root<Document> {
+    fn document_text_html(&self) -> DomRoot<Document> {
         let charset = self.final_charset().unwrap_or(UTF_8);
         let wr = self.global();
         let decoded = charset.decode(&self.response.borrow(), DecoderTrap::Replace).unwrap();
@@ -1194,7 +1194,7 @@ impl XMLHttpRequest {
         document
     }
 
-    fn handle_xml(&self) -> Root<Document> {
+    fn handle_xml(&self) -> DomRoot<Document> {
         let charset = self.final_charset().unwrap_or(UTF_8);
         let wr = self.global();
         let decoded = charset.decode(&self.response.borrow(), DecoderTrap::Replace).unwrap();
@@ -1207,7 +1207,7 @@ impl XMLHttpRequest {
         document
     }
 
-    fn new_doc(&self, is_html_document: IsHTMLDocument) -> Root<Document> {
+    fn new_doc(&self, is_html_document: IsHTMLDocument) -> DomRoot<Document> {
         let wr = self.global();
         let win = wr.as_window();
         let doc = win.Document();

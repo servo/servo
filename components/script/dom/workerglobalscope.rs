@@ -10,7 +10,7 @@ use dom::bindings::codegen::UnionTypes::RequestOrUSVString;
 use dom::bindings::error::{Error, ErrorResult, Fallible, report_pending_exception};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::DomObject;
-use dom::bindings::root::{MutNullableDom, Root};
+use dom::bindings::root::{DomRoot, MutNullableDom};
 use dom::bindings::settings_stack::AutoEntryScript;
 use dom::bindings::str::DOMString;
 use dom::bindings::trace::RootedTraceableBox;
@@ -170,12 +170,12 @@ impl WorkerGlobalScope {
 
 impl WorkerGlobalScopeMethods for WorkerGlobalScope {
     // https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-self
-    fn Self_(&self) -> Root<WorkerGlobalScope> {
-        Root::from_ref(self)
+    fn Self_(&self) -> DomRoot<WorkerGlobalScope> {
+        DomRoot::from_ref(self)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-location
-    fn Location(&self) -> Root<WorkerLocation> {
+    fn Location(&self) -> DomRoot<WorkerLocation> {
         self.location.or_init(|| {
             WorkerLocation::new(self, self.worker_url.clone())
         })
@@ -236,12 +236,12 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-worker-navigator
-    fn Navigator(&self) -> Root<WorkerNavigator> {
+    fn Navigator(&self) -> DomRoot<WorkerNavigator> {
         self.navigator.or_init(|| WorkerNavigator::new(self))
     }
 
     // https://html.spec.whatwg.org/multipage/#dfn-Crypto
-    fn Crypto(&self) -> Root<Crypto> {
+    fn Crypto(&self) -> DomRoot<Crypto> {
         self.upcast::<GlobalScope>().crypto()
     }
 
@@ -316,7 +316,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
     }
 
     // https://w3c.github.io/hr-time/#the-performance-attribute
-    fn Performance(&self) -> Root<Performance> {
+    fn Performance(&self) -> DomRoot<Performance> {
         self.performance.or_init(|| {
             let global_scope = self.upcast::<GlobalScope>();
             Performance::new(global_scope,

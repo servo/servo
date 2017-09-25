@@ -11,7 +11,7 @@ use dom::bindings::codegen::Bindings::IterableIteratorBinding::IterableKeyAndVal
 use dom::bindings::codegen::Bindings::IterableIteratorBinding::IterableKeyOrValueResult;
 use dom::bindings::error::Fallible;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
-use dom::bindings::root::{Dom, Root};
+use dom::bindings::root::{Dom, DomRoot};
 use dom::bindings::trace::JSTraceable;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
@@ -61,7 +61,7 @@ impl<T: DomObject + JSTraceable + Iterable> IterableIterator<T> {
     pub fn new(iterable: &T,
                type_: IteratorType,
                wrap: unsafe fn(*mut JSContext, &GlobalScope, Box<IterableIterator<T>>)
-                     -> Root<Self>) -> Root<Self> {
+                     -> DomRoot<Self>) -> DomRoot<Self> {
         let iterator = box IterableIterator {
             reflector: Reflector::new(),
             type_: type_,

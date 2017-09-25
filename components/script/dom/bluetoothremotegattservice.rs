@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding::BluetoothRemoteGATTServiceMethods;
 use dom::bindings::error::Error;
 use dom::bindings::reflector::reflect_dom_object;
-use dom::bindings::root::{Dom, Root};
+use dom::bindings::root::{Dom, DomRoot};
 use dom::bindings::str::DOMString;
 use dom::bluetooth::{AsyncBluetoothListener, get_gatt_children};
 use dom::bluetoothdevice::BluetoothDevice;
@@ -49,7 +49,7 @@ impl BluetoothRemoteGATTService {
                uuid: DOMString,
                isPrimary: bool,
                instanceID: String)
-               -> Root<BluetoothRemoteGATTService> {
+               -> DomRoot<BluetoothRemoteGATTService> {
         reflect_dom_object(box BluetoothRemoteGATTService::new_inherited(device,
                                                                          uuid,
                                                                          isPrimary,
@@ -65,8 +65,8 @@ impl BluetoothRemoteGATTService {
 
 impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-device
-    fn Device(&self) -> Root<BluetoothDevice> {
-        Root::from_ref(&self.device)
+    fn Device(&self) -> DomRoot<BluetoothDevice> {
+        DomRoot::from_ref(&self.device)
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-isprimary

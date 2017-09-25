@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use dom::bindings::codegen::UnionTypes::BlobOrString;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
-use dom::bindings::root::{Dom, Root};
+use dom::bindings::root::{Dom, DomRoot};
 use dom::bindings::str::DOMString;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
@@ -79,7 +79,7 @@ impl Blob {
     #[allow(unrooted_must_root)]
     pub fn new(
             global: &GlobalScope, blob_impl: BlobImpl, typeString: String)
-            -> Root<Blob> {
+            -> DomRoot<Blob> {
         let boxed_blob = box Blob::new_inherited(blob_impl, typeString);
         reflect_dom_object(boxed_blob, global, BlobBinding::Wrap)
     }
@@ -97,7 +97,7 @@ impl Blob {
 
     #[allow(unrooted_must_root)]
     fn new_sliced(parent: &Blob, rel_pos: RelativePos,
-                  relative_content_type: DOMString) -> Root<Blob> {
+                  relative_content_type: DOMString) -> DomRoot<Blob> {
         let blob_impl = match *parent.blob_impl.borrow() {
             BlobImpl::File(_) => {
                 // Create new parent node
@@ -120,7 +120,7 @@ impl Blob {
     pub fn Constructor(global: &GlobalScope,
                        blobParts: Option<Vec<BlobOrString>>,
                        blobPropertyBag: &BlobBinding::BlobPropertyBag)
-                       -> Fallible<Root<Blob>> {
+                       -> Fallible<DomRoot<Blob>> {
         // TODO: accept other blobParts types - ArrayBuffer or ArrayBufferView
         let bytes: Vec<u8> = match blobParts {
             None => Vec::new(),
@@ -369,7 +369,7 @@ impl BlobMethods for Blob {
              start: Option<i64>,
              end: Option<i64>,
              content_type: Option<DOMString>)
-             -> Root<Blob> {
+             -> DomRoot<Blob> {
         let rel_pos = RelativePos::from_opts(start, end);
         Blob::new_sliced(self, rel_pos, content_type.unwrap_or(DOMString::from("")))
     }
