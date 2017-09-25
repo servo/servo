@@ -51,7 +51,7 @@ pub struct LoadBlocker {
 impl LoadBlocker {
     /// Mark the document's load event as blocked on this new load.
     pub fn new(doc: &Document, load: LoadType) -> LoadBlocker {
-        doc.mut_loader().add_blocking_load(load.clone());
+        doc.loader_mut().add_blocking_load(load.clone());
         LoadBlocker {
             doc: JS::from_ref(doc),
             load: Some(load),
