@@ -1970,7 +1970,8 @@ extern "C" {
                                             result: *mut nsAString);
 }
 extern "C" {
-    pub fn Servo_StyleSheet_GetSourceURL(sheet: RawServoStyleSheetContentsBorrowed,
+    pub fn Servo_StyleSheet_GetSourceURL(sheet:
+                                             RawServoStyleSheetContentsBorrowed,
                                          result: *mut nsAString);
 }
 extern "C" {
@@ -2854,6 +2855,9 @@ extern "C" {
     pub fn Servo_Initialize(dummy_url_data: *mut RawGeckoURLExtraData);
 }
 extern "C" {
+    pub fn Servo_InitializeCooperativeThread();
+}
+extern "C" {
     pub fn Servo_Shutdown();
 }
 extern "C" {
@@ -2970,6 +2974,19 @@ extern "C" {
 extern "C" {
     pub fn Servo_HasPendingRestyleAncestor(element: RawGeckoElementBorrowed)
      -> bool;
+}
+extern "C" {
+    pub fn Servo_GetArcStringData(arg1: *const RustString,
+                                  chars: *mut *const u8, len: *mut u32);
+}
+extern "C" {
+    pub fn Servo_ReleaseArcStringData(string:
+                                          *const ServoRawOffsetArc<RustString>);
+}
+extern "C" {
+    pub fn Servo_CloneArcStringData(string:
+                                        *const ServoRawOffsetArc<RustString>)
+     -> ServoRawOffsetArc<RustString>;
 }
 extern "C" {
     pub fn Gecko_CreateCSSErrorReporter(sheet: *mut ServoStyleSheet,
