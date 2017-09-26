@@ -740,28 +740,32 @@ impl Attr {
         let first = input.try(|i| i.expect_ident_cloned()).ok();
         if let Ok(token) = input.try(|i| i.next_including_whitespace().map(|t| t.clone())) {
             match token {
-                Token::Delim('|') => {}
+                Token::Delim('|') => {
+                    // must be followed by an ident
+                    let second_token = match *input.next_including_whitespace()? {
+                        Token::Ident(ref second) => second,
+                        ref t => return Err(BasicParseError::UnexpectedToken(t.clone()).into()),
+                    };
+
+                    let ns_with_id = if let Some(ns) = first {
+                        let ns = Namespace::from(ns.as_ref());
+                        let id: Result<_, ParseError> =
+                            get_id_for_namespace(&ns, context)
+                            .map_err(|()| StyleParseError::UnspecifiedError.into());
+                        Some((ns, id?))
+                    } else {
+                        None
+                    };
+                    return Ok(Attr {
+                        namespace: ns_with_id,
+                        attribute: second_token.as_ref().to_owned(),
+                    })
+                }
+                // In the case of attr(foobar    ) we don't want to error out
+                // because of the trailing whitespace
+                Token::WhiteSpace(_) => (),
                 ref t => return Err(BasicParseError::UnexpectedToken(t.clone()).into()),
             }
-            // must be followed by an ident
-            let second_token = match *input.next_including_whitespace()? {
-                Token::Ident(ref second) => second,
-                ref t => return Err(BasicParseError::UnexpectedToken(t.clone()).into()),
-            };
-
-            let ns_with_id = if let Some(ns) = first {
-                let ns = Namespace::from(ns.as_ref());
-                let id: Result<_, ParseError> =
-                    get_id_for_namespace(&ns, context)
-                    .map_err(|()| StyleParseError::UnspecifiedError.into());
-                Some((ns, id?))
-            } else {
-                None
-            };
-            return Ok(Attr {
-                namespace: ns_with_id,
-                attribute: second_token.as_ref().to_owned(),
-            })
         }
 
         if let Some(first) = first {
