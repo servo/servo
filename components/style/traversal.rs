@@ -34,10 +34,17 @@ pub struct PerLevelTraversalData {
 
 /// We use this structure, rather than just returning a boolean from pre_traverse,
 /// to enfore that callers process root invalidations before starting the traversal.
-pub struct PreTraverseToken(bool);
-impl PreTraverseToken {
+pub struct PreTraverseToken<E: TElement>(Option<E>);
+impl<E: TElement> PreTraverseToken<E> {
     /// Whether we should traverse children.
-    pub fn should_traverse(&self) -> bool { self.0 }
+    pub fn should_traverse(&self) -> bool {
+        self.0.is_some()
+    }
+
+    /// Returns the traversal root for the current traversal.
+    pub(crate) fn traversal_root(self) -> Option<E> {
+        self.0
+    }
 }
 
 #[cfg(feature = "servo")]
@@ -139,36 +146,48 @@ pub trait DomTraversal<E: TElement> : Sync {
     fn pre_traverse(
         root: E,
         shared_context: &SharedStyleContext,
-        traversal_flags: TraversalFlags,
-    ) -> PreTraverseToken {
+    ) -> PreTraverseToken<E> {
+        let traversal_flags = shared_context.traversal_flags;
+
         // If this is an unstyled-only traversal, the caller has already verified
         // that there's something to traverse, and we don't need to do any
         // invalidation since we're not doing any restyling.
         if traversal_flags.contains(traversal_flags::UnstyledOnly) {
-            return PreTraverseToken(true)
+            return PreTraverseToken(Some(root))
         }
 
-        let flags = shared_context.traversal_flags;
         let mut data = root.mutate_data();
         let mut data = data.as_mut().map(|d| &mut **d);
-
-        if let Some(ref mut data) = data {
-            // Invalidate our style, and the one of our siblings and descendants
-            // as needed.
-            data.invalidate_style_if_needed(root, shared_context, None);
-
-            // Make sure we don't have any stale RECONSTRUCTED_ANCESTOR bits from
-            // the last traversal (at a potentially-higher root). From the
-            // perspective of this traversal, the root cannot have reconstructed
-            // ancestors.
-            data.set_reconstructed_ancestor(false);
-        };
-
         let parent = root.traversal_parent();
         let parent_data = parent.as_ref().and_then(|p| p.borrow_data());
+
+        if let Some(ref mut data) = data {
+            // Make sure we don't have any stale RECONSTRUCTED_ANCESTOR bits
+            // from the last traversal (at a potentially-higher root).
+            //
+            // From the perspective of this traversal, the root cannot have
+            // reconstructed ancestors.
+            data.set_reconstructed_ancestor(false);
+
+            if !traversal_flags.for_animation_only() {
+                // Invalidate our style, and that of our siblings and
+                // descendants as needed.
+                let invalidation_result =
+                    data.invalidate_style_if_needed(root, shared_context, None);
+
+                if invalidation_result.has_invalidated_siblings() {
+                    let actual_root =
+                        parent.expect("How in the world can you invalidate \
+                                       siblings without a parent?");
+                    unsafe { actual_root.set_dirty_descendants() }
+                    return PreTraverseToken(Some(actual_root));
+                }
+            }
+        }
+
         let should_traverse = Self::element_needs_traversal(
             root,
-            flags,
+            traversal_flags,
             data.as_mut().map(|d| &**d),
             parent_data.as_ref().map(|d| &**d)
         );
@@ -176,10 +195,10 @@ pub trait DomTraversal<E: TElement> : Sync {
         // If we're not going to traverse at all, we may need to clear some state
         // off the root (which would normally be done at the end of recalc_style_at).
         if !should_traverse && data.is_some() {
-            clear_state_after_traversing(root, data.unwrap(), flags);
+            clear_state_after_traversing(root, data.unwrap(), traversal_flags);
         }
 
-        PreTraverseToken(should_traverse)
+        PreTraverseToken(if should_traverse { Some(root) } else { None })
     }
 
     /// Returns true if traversal should visit a text node. The style system

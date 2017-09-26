@@ -235,16 +235,19 @@ fn traverse_subtree(element: GeckoElement,
 
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
-    let shared_style_context = create_shared_context(&global_style_data,
-                                                     &guard,
-                                                     &per_doc_data,
-                                                     traversal_flags,
-                                                     snapshots);
+    let shared_style_context = create_shared_context(
+        &global_style_data,
+        &guard,
+        &per_doc_data,
+        traversal_flags,
+        snapshots,
+    );
 
+    let token = RecalcStyleOnly::pre_traverse(
+        element,
+        &shared_style_context,
+    );
 
-    let token = RecalcStyleOnly::pre_traverse(element,
-                                              &shared_style_context,
-                                              traversal_flags);
     if !token.should_traverse() {
         return;
     }
@@ -259,13 +262,13 @@ fn traverse_subtree(element: GeckoElement,
     };
 
     let traversal = RecalcStyleOnly::new(shared_style_context);
-    driver::traverse_dom(&traversal, element, token, thread_pool);
+    driver::traverse_dom(&traversal, token, thread_pool);
 }
 
 /// Traverses the subtree rooted at `root` for restyling.
 ///
-/// Returns whether a Gecko post-traversal (to perform lazy frame construction,
-/// or consume any RestyleData, or drop any ElementData) is required.
+/// Returns whether the root was restyled. Whether anything else was restyled or
+/// not can be inferred from the dirty bits in the rest of the tree.
 #[no_mangle]
 pub extern "C" fn Servo_TraverseSubtree(
     root: RawGeckoElementBorrowed,
@@ -309,7 +312,9 @@ pub extern "C" fn Servo_TraverseSubtree(
            element.needs_frame(),
            element.borrow_data().unwrap());
 
-    element.needs_post_traversal()
+    let element_was_restyled =
+        element.borrow_data().unwrap().contains_restyle_data();
+    element_was_restyled
 }
 
 /// Checks whether the rule tree has crossed its threshold for unused nodes, and
