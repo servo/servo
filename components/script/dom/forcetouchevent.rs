@@ -6,9 +6,9 @@ use dom::bindings::codegen::Bindings::ForceTouchEventBinding;
 use dom::bindings::codegen::Bindings::ForceTouchEventBinding::ForceTouchEventMethods;
 use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::uievent::UIEvent;
 use dom::window::Window;
@@ -30,7 +30,7 @@ impl ForceTouchEvent {
 
     pub fn new(window: &Window,
                type_: DOMString,
-               force: f32) -> Root<ForceTouchEvent> {
+               force: f32) -> DomRoot<ForceTouchEvent> {
         let event = box ForceTouchEvent::new_inherited(force);
         let ev = reflect_dom_object(event, window, ForceTouchEventBinding::Wrap);
         ev.upcast::<UIEvent>().InitUIEvent(type_, true, true, Some(window), 0);

@@ -4,8 +4,8 @@
 
 use dom::bindings::codegen::Bindings::WorkerNavigatorBinding;
 use dom::bindings::codegen::Bindings::WorkerNavigatorBinding::WorkerNavigatorMethods;
-use dom::bindings::js::{MutNullableJS, Root};
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use dom::bindings::root::{DomRoot, MutNullableDom};
 use dom::bindings::str::DOMString;
 use dom::navigatorinfo;
 use dom::permissions::Permissions;
@@ -16,7 +16,7 @@ use dom_struct::dom_struct;
 #[dom_struct]
 pub struct WorkerNavigator {
     reflector_: Reflector,
-    permissions: MutNullableJS<Permissions>,
+    permissions: MutNullableDom<Permissions>,
 }
 
 impl WorkerNavigator {
@@ -27,7 +27,7 @@ impl WorkerNavigator {
         }
     }
 
-    pub fn new(global: &WorkerGlobalScope) -> Root<WorkerNavigator> {
+    pub fn new(global: &WorkerGlobalScope) -> DomRoot<WorkerNavigator> {
         reflect_dom_object(box WorkerNavigator::new_inherited(),
                            global,
                            WorkerNavigatorBinding::Wrap)
@@ -76,7 +76,7 @@ impl WorkerNavigatorMethods for WorkerNavigator {
     }
 
     // https://w3c.github.io/permissions/#navigator-and-workernavigator-extension
-    fn Permissions(&self) -> Root<Permissions> {
+    fn Permissions(&self) -> DomRoot<Permissions> {
         self.permissions.or_init(|| Permissions::new(&self.global()))
     }
 }

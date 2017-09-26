@@ -5,7 +5,7 @@
 //! The `Reflector` struct.
 
 use dom::bindings::conversions::DerivedFrom;
-use dom::bindings::js::Root;
+use dom::bindings::root::DomRoot;
 use dom::globalscope::GlobalScope;
 use js::jsapi::{HandleObject, JSContext, JSObject, Heap};
 use std::default::Default;
@@ -15,8 +15,8 @@ use std::default::Default;
 pub fn reflect_dom_object<T, U>(
         obj: Box<T>,
         global: &U,
-        wrap_fn: unsafe fn(*mut JSContext, &GlobalScope, Box<T>) -> Root<T>)
-        -> Root<T>
+        wrap_fn: unsafe fn(*mut JSContext, &GlobalScope, Box<T>) -> DomRoot<T>)
+        -> DomRoot<T>
     where T: DomObject, U: DerivedFrom<GlobalScope>
 {
     let global_scope = global.upcast();
@@ -77,7 +77,7 @@ pub trait DomObject {
     fn reflector(&self) -> &Reflector;
 
     /// Returns the global scope of the realm that the DomObject was created in.
-    fn global(&self) -> Root<GlobalScope> where Self: Sized {
+    fn global(&self) -> DomRoot<GlobalScope> where Self: Sized {
         GlobalScope::from_reflector(self)
     }
 }

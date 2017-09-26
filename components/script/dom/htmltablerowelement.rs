@@ -9,7 +9,7 @@ use dom::bindings::codegen::Bindings::HTMLTableSectionElementBinding::HTMLTableS
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{LayoutJS, MutNullableJS, Root, RootedReference};
+use dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{Element, RawLayoutElementHelpers};
@@ -37,7 +37,7 @@ impl CollectionFilter for CellsFilter {
 #[dom_struct]
 pub struct HTMLTableRowElement {
     htmlelement: HTMLElement,
-    cells: MutNullableJS<HTMLCollection>,
+    cells: MutNullableDom<HTMLCollection>,
 }
 
 impl HTMLTableRowElement {
@@ -51,7 +51,7 @@ impl HTMLTableRowElement {
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName, prefix: Option<Prefix>, document: &Document)
-               -> Root<HTMLTableRowElement> {
+               -> DomRoot<HTMLTableRowElement> {
         Node::reflect_node(box HTMLTableRowElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLTableRowElementBinding::Wrap)
@@ -59,7 +59,7 @@ impl HTMLTableRowElement {
 
     /// Determine the index for this `HTMLTableRowElement` within the given
     /// `HTMLCollection`. Returns `-1` if not found within collection.
-    fn row_index(&self, collection: Root<HTMLCollection>) -> i32 {
+    fn row_index(&self, collection: DomRoot<HTMLCollection>) -> i32 {
         collection.elements_iter()
                   .position(|elem| (&elem as &Element) == self.upcast())
                   .map_or(-1, |i| i as i32)
@@ -74,7 +74,7 @@ impl HTMLTableRowElementMethods for HTMLTableRowElement {
     make_legacy_color_setter!(SetBgColor, "bgcolor");
 
     // https://html.spec.whatwg.org/multipage/#dom-tr-cells
-    fn Cells(&self) -> Root<HTMLCollection> {
+    fn Cells(&self) -> DomRoot<HTMLCollection> {
         self.cells.or_init(|| {
             let window = window_from_node(self);
             let filter = box CellsFilter;
@@ -83,7 +83,7 @@ impl HTMLTableRowElementMethods for HTMLTableRowElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tr-insertcell
-    fn InsertCell(&self, index: i32) -> Fallible<Root<HTMLElement>> {
+    fn InsertCell(&self, index: i32) -> Fallible<DomRoot<HTMLElement>> {
         let node = self.upcast::<Node>();
         node.insert_cell_or_row(
             index,
@@ -142,7 +142,7 @@ pub trait HTMLTableRowElementLayoutHelpers {
 }
 
 #[allow(unsafe_code)]
-impl HTMLTableRowElementLayoutHelpers for LayoutJS<HTMLTableRowElement> {
+impl HTMLTableRowElementLayoutHelpers for LayoutDom<HTMLTableRowElement> {
     fn get_background_color(&self) -> Option<RGBA> {
         unsafe {
             (&*self.upcast::<Element>().unsafe_get())

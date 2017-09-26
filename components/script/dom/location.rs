@@ -6,8 +6,8 @@ use dom::bindings::codegen::Bindings::LocationBinding;
 use dom::bindings::codegen::Bindings::LocationBinding::LocationMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
-use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::root::{Dom, DomRoot};
 use dom::bindings::str::{DOMString, USVString};
 use dom::globalscope::GlobalScope;
 use dom::urlhelper::UrlHelper;
@@ -18,18 +18,18 @@ use servo_url::{MutableOrigin, ServoUrl};
 #[dom_struct]
 pub struct Location {
     reflector_: Reflector,
-    window: JS<Window>,
+    window: Dom<Window>,
 }
 
 impl Location {
     fn new_inherited(window: &Window) -> Location {
         Location {
             reflector_: Reflector::new(),
-            window: JS::from_ref(window)
+            window: Dom::from_ref(window)
         }
     }
 
-    pub fn new(window: &Window) -> Root<Location> {
+    pub fn new(window: &Window) -> DomRoot<Location> {
         reflect_dom_object(box Location::new_inherited(window),
                            window,
                            LocationBinding::Wrap)

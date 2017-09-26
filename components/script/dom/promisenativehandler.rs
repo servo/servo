@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::PromiseNativeHandlerBinding;
-use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::root::DomRoot;
 use dom::bindings::trace::JSTraceable;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
@@ -26,7 +26,7 @@ impl PromiseNativeHandler {
     pub fn new(global: &GlobalScope,
                resolve: Option<Box<Callback>>,
                reject: Option<Box<Callback>>)
-               -> Root<PromiseNativeHandler> {
+               -> DomRoot<PromiseNativeHandler> {
         reflect_dom_object(box PromiseNativeHandler {
             reflector: Reflector::new(),
             resolve: resolve,

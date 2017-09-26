@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::URLBinding::{self, URLMethods};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
-use dom::bindings::js::{MutNullableJS, Root};
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use dom::bindings::root::{DomRoot, MutNullableDom};
 use dom::bindings::str::{DOMString, USVString};
 use dom::blob::Blob;
 use dom::globalscope::GlobalScope;
@@ -27,22 +27,22 @@ pub struct URL {
     reflector_: Reflector,
 
     // https://url.spec.whatwg.org/#concept-url-url
-    url: DOMRefCell<ServoUrl>,
+    url: DomRefCell<ServoUrl>,
 
     // https://url.spec.whatwg.org/#dom-url-searchparams
-    search_params: MutNullableJS<URLSearchParams>,
+    search_params: MutNullableDom<URLSearchParams>,
 }
 
 impl URL {
     fn new_inherited(url: ServoUrl) -> URL {
         URL {
             reflector_: Reflector::new(),
-            url: DOMRefCell::new(url),
+            url: DomRefCell::new(url),
             search_params: Default::default(),
         }
     }
 
-    pub fn new(global: &GlobalScope, url: ServoUrl) -> Root<URL> {
+    pub fn new(global: &GlobalScope, url: ServoUrl) -> DomRoot<URL> {
         reflect_dom_object(box URL::new_inherited(url),
                            global, URLBinding::Wrap)
     }
@@ -61,7 +61,7 @@ impl URL {
     // https://url.spec.whatwg.org/#constructors
     pub fn Constructor(global: &GlobalScope, url: USVString,
                        base: Option<USVString>)
-                       -> Fallible<Root<URL>> {
+                       -> Fallible<DomRoot<URL>> {
         let parsed_base = match base {
             None => {
                 // Step 1.
@@ -254,7 +254,7 @@ impl URLMethods for URL {
     }
 
     // https://url.spec.whatwg.org/#dom-url-searchparams
-    fn SearchParams(&self) -> Root<URLSearchParams> {
+    fn SearchParams(&self) -> DomRoot<URLSearchParams> {
         self.search_params.or_init(|| {
             URLSearchParams::new(&self.global(), Some(self))
         })

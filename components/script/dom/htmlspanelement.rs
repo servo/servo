@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::HTMLSpanElementBinding;
-use dom::bindings::js::Root;
+use dom::bindings::root::DomRoot;
 use dom::document::Document;
 use dom::htmlelement::HTMLElement;
 use dom::node::Node;
@@ -25,7 +25,7 @@ impl HTMLSpanElement {
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
-               document: &Document) -> Root<HTMLSpanElement> {
+               document: &Document) -> DomRoot<HTMLSpanElement> {
         Node::reflect_node(box HTMLSpanElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLSpanElementBinding::Wrap)

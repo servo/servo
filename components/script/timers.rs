@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::callback::ExceptionHandling::Report;
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::reflector::DomObject;
 use dom::bindings::str::DOMString;
@@ -38,7 +38,7 @@ pub struct OneshotTimers {
     #[ignore_heap_size_of = "Defined in std"]
     scheduler_chan: IpcSender<TimerSchedulerMsg>,
     next_timer_handle: Cell<OneshotTimerHandle>,
-    timers: DOMRefCell<Vec<OneshotTimer>>,
+    timers: DomRefCell<Vec<OneshotTimer>>,
     suspended_since: Cell<Option<MsDuration>>,
     /// Initially 0, increased whenever the associated document is reactivated
     /// by the amount of ms the document was inactive. The current time can be
@@ -117,7 +117,7 @@ impl OneshotTimers {
             timer_event_chan: timer_event_chan,
             scheduler_chan: scheduler_chan,
             next_timer_handle: Cell::new(OneshotTimerHandle(1)),
-            timers: DOMRefCell::new(Vec::new()),
+            timers: DomRefCell::new(Vec::new()),
             suspended_since: Cell::new(None),
             suspension_offset: Cell::new(Length::new(0)),
             expected_event_id: Cell::new(TimerEventId(0)),
@@ -307,7 +307,7 @@ pub struct JsTimerHandle(i32);
 #[derive(DenyPublicFields, HeapSizeOf, JSTraceable)]
 pub struct JsTimers {
     next_timer_handle: Cell<JsTimerHandle>,
-    active_timers: DOMRefCell<HashMap<JsTimerHandle, JsTimerEntry>>,
+    active_timers: DomRefCell<HashMap<JsTimerHandle, JsTimerEntry>>,
     /// The nesting level of the currently executing timer task or 0.
     nesting_level: Cell<u32>,
     /// Used to introduce a minimum delay in event intervals
@@ -364,7 +364,7 @@ impl JsTimers {
     pub fn new() -> JsTimers {
         JsTimers {
             next_timer_handle: Cell::new(JsTimerHandle(1)),
-            active_timers: DOMRefCell::new(HashMap::new()),
+            active_timers: DomRefCell::new(HashMap::new()),
             nesting_level: Cell::new(0),
             min_duration: Cell::new(None),
         }

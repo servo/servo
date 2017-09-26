@@ -2,15 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::PerformanceBinding;
 use dom::bindings::codegen::Bindings::PerformanceBinding::{DOMHighResTimeStamp, PerformanceMethods};
 use dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceEntryList as DOMPerformanceEntryList;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, Root};
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use dom::bindings::root::{Dom, DomRoot};
 use dom::bindings::str::DOMString;
 use dom::globalscope::GlobalScope;
 use dom::performanceentry::PerformanceEntry;
@@ -63,11 +63,11 @@ impl PerformanceEntryList {
     }
 
     pub fn get_entries_by_name_and_type(&self, name: Option<DOMString>, entry_type: Option<DOMString>)
-        -> Vec<Root<PerformanceEntry>> {
+        -> Vec<DomRoot<PerformanceEntry>> {
         let mut res = self.entries.iter().filter(|e|
             name.as_ref().map_or(true, |name_| *e.name() == *name_) &&
             entry_type.as_ref().map_or(true, |type_| *e.entry_type() == *type_)
-        ).map(|e| e.clone()).collect::<Vec<Root<PerformanceEntry>>>();
+        ).map(|e| e.clone()).collect::<Vec<DomRoot<PerformanceEntry>>>();
         res.sort_by(|a, b| a.start_time().partial_cmp(&b.start_time()).unwrap_or(Ordering::Equal));
         res
     }
@@ -93,8 +93,8 @@ impl PerformanceEntryList {
 }
 
 impl IntoIterator for PerformanceEntryList {
-    type Item = Root<PerformanceEntry>;
-    type IntoIter = ::std::vec::IntoIter<Root<PerformanceEntry>>;
+    type Item = DomRoot<PerformanceEntry>;
+    type IntoIter = ::std::vec::IntoIter<DomRoot<PerformanceEntry>>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.entries.into_iter()
@@ -103,16 +103,16 @@ impl IntoIterator for PerformanceEntryList {
 
 #[derive(HeapSizeOf, JSTraceable)]
 struct PerformanceObserver {
-    observer: Root<DOMPerformanceObserver>,
+    observer: DomRoot<DOMPerformanceObserver>,
     entry_types: Vec<DOMString>,
 }
 
 #[dom_struct]
 pub struct Performance {
     reflector_: Reflector,
-    timing: Option<JS<PerformanceTiming>>,
-    entries: DOMRefCell<PerformanceEntryList>,
-    observers: DOMRefCell<Vec<PerformanceObserver>>,
+    timing: Option<Dom<PerformanceTiming>>,
+    entries: DomRefCell<PerformanceEntryList>,
+    observers: DomRefCell<Vec<PerformanceObserver>>,
     pending_notification_observers_task: Cell<bool>,
     navigation_start_precise: f64,
 }
@@ -124,14 +124,14 @@ impl Performance {
         Performance {
             reflector_: Reflector::new(),
             timing: if global.is::<Window>() {
-                Some(JS::from_ref(&*PerformanceTiming::new(global.as_window(),
+                Some(Dom::from_ref(&*PerformanceTiming::new(global.as_window(),
                                                            navigation_start,
                                                            navigation_start_precise)))
             } else {
                 None
             },
-            entries: DOMRefCell::new(PerformanceEntryList::new(Vec::new())),
-            observers: DOMRefCell::new(Vec::new()),
+            entries: DomRefCell::new(PerformanceEntryList::new(Vec::new())),
+            observers: DomRefCell::new(Vec::new()),
             pending_notification_observers_task: Cell::new(false),
             navigation_start_precise,
         }
@@ -139,7 +139,7 @@ impl Performance {
 
     pub fn new(global: &GlobalScope,
                navigation_start: u64,
-               navigation_start_precise: f64) -> Root<Performance> {
+               navigation_start_precise: f64) -> DomRoot<Performance> {
         reflect_dom_object(box Performance::new_inherited(global,
                                                           navigation_start,
                                                           navigation_start_precise),
@@ -169,7 +169,7 @@ impl Performance {
             Some(p) => observers[p].entry_types = entry_types,
             // Otherwise, we create and insert the new PerformanceObserver.
             None => observers.push(PerformanceObserver {
-                observer: Root::from_ref(observer),
+                observer: DomRoot::from_ref(observer),
                 entry_types
             })
         };
@@ -214,7 +214,7 @@ impl Performance {
         // If the "add to performance entry buffer flag" is set, add the
         // new entry to the buffer.
         if add_to_performance_entries_buffer {
-            self.entries.borrow_mut().entries.push(Root::from_ref(entry));
+            self.entries.borrow_mut().entries.push(DomRoot::from_ref(entry));
         }
 
         // Step 5.
@@ -242,7 +242,7 @@ impl Performance {
         // We have to operate over a copy of the performance observers to avoid
         // the risk of an observer's callback modifying the list of registered
         // observers.
-        let observers: Vec<Root<DOMPerformanceObserver>> =
+        let observers: Vec<DomRoot<DOMPerformanceObserver>> =
             self.observers.borrow().iter()
                                    .map(|o| DOMPerformanceObserver::new(&self.global(),
                                                                         o.observer.callback(),
@@ -266,9 +266,9 @@ impl Performance {
 
 impl PerformanceMethods for Performance {
     // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/NavigationTiming/Overview.html#performance-timing-attribute
-    fn Timing(&self) -> Root<PerformanceTiming> {
+    fn Timing(&self) -> DomRoot<PerformanceTiming> {
         match self.timing {
-            Some(ref timing) => Root::from_ref(&*timing),
+            Some(ref timing) => DomRoot::from_ref(&*timing),
             None => unreachable!("Are we trying to expose Performance.timing in workers?"),
         }
     }
@@ -279,18 +279,18 @@ impl PerformanceMethods for Performance {
     }
 
     // https://www.w3.org/TR/performance-timeline-2/#dom-performance-getentries
-    fn GetEntries(&self) -> Vec<Root<PerformanceEntry>> {
+    fn GetEntries(&self) -> Vec<DomRoot<PerformanceEntry>> {
         self.entries.borrow().get_entries_by_name_and_type(None, None)
     }
 
     // https://www.w3.org/TR/performance-timeline-2/#dom-performance-getentriesbytype
-    fn GetEntriesByType(&self, entry_type: DOMString) -> Vec<Root<PerformanceEntry>> {
+    fn GetEntriesByType(&self, entry_type: DOMString) -> Vec<DomRoot<PerformanceEntry>> {
         self.entries.borrow().get_entries_by_name_and_type(None, Some(entry_type))
     }
 
     // https://www.w3.org/TR/performance-timeline-2/#dom-performance-getentriesbyname
     fn GetEntriesByName(&self, name: DOMString, entry_type: Option<DOMString>)
-        -> Vec<Root<PerformanceEntry>> {
+        -> Vec<DomRoot<PerformanceEntry>> {
         self.entries.borrow().get_entries_by_name_and_type(Some(name), entry_type)
     }
 

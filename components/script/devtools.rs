@@ -13,8 +13,8 @@ use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::{ConversionResult, FromJSValConvertible, jsstring_to_str};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
 use dom::bindings::reflector::DomObject;
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::document::AnimationFrameCallback;
 use dom::element::Element;
@@ -90,7 +90,7 @@ pub fn handle_get_document_element(documents: &Documents,
 fn find_node_by_unique_id(documents: &Documents,
                           pipeline: PipelineId,
                           node_id: &str)
-                          -> Option<Root<Node>> {
+                          -> Option<DomRoot<Node>> {
     documents.find_document(pipeline).and_then(|document|
         document.upcast::<Node>().traverse_preorder().find(|candidate| candidate.unique_id() == node_id)
     )

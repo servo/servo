@@ -17,12 +17,10 @@ use dom::bindings::codegen::Bindings::WorkletBinding::WorkletOptions;
 use dom::bindings::codegen::Bindings::WorkletBinding::Wrap;
 use dom::bindings::error::Error;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::JS;
-use dom::bindings::js::Root;
-use dom::bindings::js::RootCollection;
 use dom::bindings::refcounted::TrustedPromise;
 use dom::bindings::reflector::Reflector;
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::{Dom, DomRoot, RootCollection};
 use dom::bindings::str::USVString;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::trace::RootedTraceableBox;
@@ -80,7 +78,7 @@ const MIN_GC_THRESHOLD: u32 = 1_000_000;
 /// https://drafts.css-houdini.org/worklets/#worklet
 pub struct Worklet {
     reflector: Reflector,
-    window: JS<Window>,
+    window: Dom<Window>,
     worklet_id: WorkletId,
     global_type: WorkletGlobalScopeType,
 }
@@ -89,13 +87,13 @@ impl Worklet {
     fn new_inherited(window: &Window, global_type: WorkletGlobalScopeType) -> Worklet {
         Worklet {
             reflector: Reflector::new(),
-            window: JS::from_ref(window),
+            window: Dom::from_ref(window),
             worklet_id: WorkletId::new(),
             global_type: global_type,
         }
     }
 
-    pub fn new(window: &Window, global_type: WorkletGlobalScopeType) -> Root<Worklet> {
+    pub fn new(window: &Window, global_type: WorkletGlobalScopeType) -> DomRoot<Worklet> {
         debug!("Creating worklet {:?}.", global_type);
         reflect_dom_object(box Worklet::new_inherited(window, global_type), window, Wrap)
     }
@@ -398,7 +396,7 @@ struct WorkletThread {
     global_init: WorkletGlobalScopeInit,
 
     /// The global scopes created by this thread
-    global_scopes: HashMap<WorkletId, JS<WorkletGlobalScope>>,
+    global_scopes: HashMap<WorkletId, Dom<WorkletGlobalScope>>,
 
     /// A one-place buffer for control messages
     control_buffer: Option<WorkletControl>,
@@ -540,15 +538,15 @@ impl WorkletThread {
                                 worklet_id: WorkletId,
                                 global_type: WorkletGlobalScopeType,
                                 base_url: ServoUrl)
-                                -> Root<WorkletGlobalScope>
+                                -> DomRoot<WorkletGlobalScope>
     {
         match self.global_scopes.entry(worklet_id) {
-            hash_map::Entry::Occupied(entry) => Root::from_ref(entry.get()),
+            hash_map::Entry::Occupied(entry) => DomRoot::from_ref(entry.get()),
             hash_map::Entry::Vacant(entry) => {
                 debug!("Creating new worklet global scope.");
                 let executor = WorkletExecutor::new(worklet_id, self.primary_sender.clone());
                 let result = global_type.new(&self.runtime, pipeline_id, base_url, executor, &self.global_init);
-                entry.insert(JS::from_ref(&*result));
+                entry.insert(Dom::from_ref(&*result));
                 result
             },
         }

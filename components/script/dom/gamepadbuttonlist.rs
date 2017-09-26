@@ -4,8 +4,8 @@
 
 use dom::bindings::codegen::Bindings::GamepadButtonListBinding;
 use dom::bindings::codegen::Bindings::GamepadButtonListBinding::GamepadButtonListMethods;
-use dom::bindings::js::{JS, Root, RootedReference};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::root::{Dom, DomRoot, RootedReference};
 use dom::gamepadbutton::GamepadButton;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
@@ -15,7 +15,7 @@ use webvr_traits::WebVRGamepadButton;
 #[dom_struct]
 pub struct GamepadButtonList {
     reflector_: Reflector,
-    list: Vec<JS<GamepadButton>>
+    list: Vec<Dom<GamepadButton>>
 }
 
 impl GamepadButtonList {
@@ -23,11 +23,11 @@ impl GamepadButtonList {
     fn new_inherited(list: &[&GamepadButton]) -> GamepadButtonList {
         GamepadButtonList {
             reflector_: Reflector::new(),
-            list: list.iter().map(|button| JS::from_ref(*button)).collect(),
+            list: list.iter().map(|button| Dom::from_ref(*button)).collect(),
         }
     }
 
-    pub fn new_from_vr(global: &GlobalScope, buttons: &[WebVRGamepadButton]) -> Root<GamepadButtonList> {
+    pub fn new_from_vr(global: &GlobalScope, buttons: &[WebVRGamepadButton]) -> DomRoot<GamepadButtonList> {
         rooted_vec!(let list <- buttons.iter()
                                        .map(|btn| GamepadButton::new(&global, btn.pressed, btn.touched)));
 
@@ -52,12 +52,12 @@ impl GamepadButtonListMethods for GamepadButtonList {
     }
 
     // https://w3c.github.io/gamepad/#dom-gamepad-buttons
-    fn Item(&self, index: u32) -> Option<Root<GamepadButton>> {
-        self.list.get(index as usize).map(|button| Root::from_ref(&**button))
+    fn Item(&self, index: u32) -> Option<DomRoot<GamepadButton>> {
+        self.list.get(index as usize).map(|button| DomRoot::from_ref(&**button))
     }
 
     // https://w3c.github.io/gamepad/#dom-gamepad-buttons
-    fn IndexedGetter(&self, index: u32) -> Option<Root<GamepadButton>> {
+    fn IndexedGetter(&self, index: u32) -> Option<DomRoot<GamepadButton>> {
         self.Item(index)
     }
 }

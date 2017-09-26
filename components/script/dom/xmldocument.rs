@@ -7,8 +7,8 @@ use document_loader::DocumentLoader;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::XMLDocumentBinding::{self, XMLDocumentMethods};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
 use dom::location::Location;
@@ -62,7 +62,7 @@ impl XMLDocument {
                activity: DocumentActivity,
                source: DocumentSource,
                doc_loader: DocumentLoader)
-               -> Root<XMLDocument> {
+               -> DomRoot<XMLDocument> {
         let doc = reflect_dom_object(
             box XMLDocument::new_inherited(window,
                                            has_browsing_context,
@@ -86,7 +86,7 @@ impl XMLDocument {
 
 impl XMLDocumentMethods for XMLDocument {
     // https://html.spec.whatwg.org/multipage/#dom-document-location
-    fn GetLocation(&self) -> Option<Root<Location>> {
+    fn GetLocation(&self) -> Option<DomRoot<Location>> {
         self.upcast::<Document>().GetLocation()
     }
 

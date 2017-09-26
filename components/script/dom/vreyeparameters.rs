@@ -3,11 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use core::nonzero::NonZero;
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::VREyeParametersBinding;
 use dom::bindings::codegen::Bindings::VREyeParametersBinding::VREyeParametersMethods;
-use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::root::{Dom, DomRoot};
 use dom::globalscope::GlobalScope;
 use dom::vrfieldofview::VRFieldOfView;
 use dom_struct::dom_struct;
@@ -21,9 +21,9 @@ use webvr_traits::WebVREyeParameters;
 pub struct VREyeParameters {
     reflector_: Reflector,
     #[ignore_heap_size_of = "Defined in rust-webvr"]
-    parameters: DOMRefCell<WebVREyeParameters>,
+    parameters: DomRefCell<WebVREyeParameters>,
     offset: Heap<*mut JSObject>,
-    fov: JS<VRFieldOfView>,
+    fov: Dom<VRFieldOfView>,
 }
 
 unsafe_no_jsmanaged_fields!(WebVREyeParameters);
@@ -32,14 +32,14 @@ impl VREyeParameters {
     fn new_inherited(parameters: WebVREyeParameters, fov: &VRFieldOfView) -> VREyeParameters {
         VREyeParameters {
             reflector_: Reflector::new(),
-            parameters: DOMRefCell::new(parameters),
+            parameters: DomRefCell::new(parameters),
             offset: Heap::default(),
-            fov: JS::from_ref(&*fov)
+            fov: Dom::from_ref(&*fov)
         }
     }
 
     #[allow(unsafe_code)]
-    pub fn new(parameters: WebVREyeParameters, global: &GlobalScope) -> Root<VREyeParameters> {
+    pub fn new(parameters: WebVREyeParameters, global: &GlobalScope) -> DomRoot<VREyeParameters> {
         let fov = VRFieldOfView::new(&global, parameters.field_of_view.clone());
 
         let cx = global.get_cx();
@@ -65,8 +65,8 @@ impl VREyeParametersMethods for VREyeParameters {
     }
 
     // https://w3c.github.io/webvr/#dom-vreyeparameters-fieldofview
-    fn FieldOfView(&self) -> Root<VRFieldOfView> {
-        Root::from_ref(&*self.fov)
+    fn FieldOfView(&self) -> DomRoot<VRFieldOfView> {
+        DomRoot::from_ref(&*self.fov)
     }
 
     // https://w3c.github.io/webvr/#dom-vreyeparameters-renderwidth

@@ -4,7 +4,7 @@
 
 use bluetooth_traits::{BluetoothRequest, BluetoothResponse};
 use bluetooth_traits::blocklist::{Blocklist, uuid_is_blocklisted};
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTCharacteristicBinding::
     BluetoothRemoteGATTCharacteristicMethods;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTDescriptorBinding;
@@ -12,8 +12,8 @@ use dom::bindings::codegen::Bindings::BluetoothRemoteGATTDescriptorBinding::Blue
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding::BluetoothRemoteGATTServiceMethods;
 use dom::bindings::error::Error::{self, InvalidModification, Network, Security};
-use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use dom::bindings::root::{Dom, DomRoot};
 use dom::bindings::str::{ByteString, DOMString};
 use dom::bluetooth::{AsyncBluetoothListener, response_async};
 use dom::bluetoothremotegattcharacteristic::{BluetoothRemoteGATTCharacteristic, MAXIMUM_ATTRIBUTE_LENGTH};
@@ -27,9 +27,9 @@ use std::rc::Rc;
 #[dom_struct]
 pub struct BluetoothRemoteGATTDescriptor {
     reflector_: Reflector,
-    characteristic: JS<BluetoothRemoteGATTCharacteristic>,
+    characteristic: Dom<BluetoothRemoteGATTCharacteristic>,
     uuid: DOMString,
-    value: DOMRefCell<Option<ByteString>>,
+    value: DomRefCell<Option<ByteString>>,
     instance_id: String,
 }
 
@@ -40,9 +40,9 @@ impl BluetoothRemoteGATTDescriptor {
                          -> BluetoothRemoteGATTDescriptor {
         BluetoothRemoteGATTDescriptor {
             reflector_: Reflector::new(),
-            characteristic: JS::from_ref(characteristic),
+            characteristic: Dom::from_ref(characteristic),
             uuid: uuid,
-            value: DOMRefCell::new(None),
+            value: DomRefCell::new(None),
             instance_id: instance_id,
         }
     }
@@ -51,7 +51,7 @@ impl BluetoothRemoteGATTDescriptor {
                characteristic: &BluetoothRemoteGATTCharacteristic,
                uuid: DOMString,
                instanceID: String)
-               -> Root<BluetoothRemoteGATTDescriptor>{
+               -> DomRoot<BluetoothRemoteGATTDescriptor>{
         reflect_dom_object(box BluetoothRemoteGATTDescriptor::new_inherited(characteristic,
                                                                             uuid,
                                                                             instanceID),
@@ -70,8 +70,8 @@ impl BluetoothRemoteGATTDescriptor {
 
 impl BluetoothRemoteGATTDescriptorMethods for BluetoothRemoteGATTDescriptor {
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattdescriptor-characteristic
-    fn Characteristic(&self) -> Root<BluetoothRemoteGATTCharacteristic> {
-       Root::from_ref(&self.characteristic)
+    fn Characteristic(&self) -> DomRoot<BluetoothRemoteGATTCharacteristic> {
+       DomRoot::from_ref(&self.characteristic)
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattdescriptor-uuid

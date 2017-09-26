@@ -7,8 +7,8 @@ use canvas_traits::webgl::{WebGLCommand, WebGLError, WebGLMsgSender, WebGLParame
 use canvas_traits::webgl::webgl_channel;
 use dom::bindings::codegen::Bindings::WebGLProgramBinding;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
-use dom::bindings::js::{MutNullableJS, Root};
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
+use dom::bindings::root::{DomRoot, MutNullableDom};
 use dom::bindings::str::DOMString;
 use dom::webglactiveinfo::WebGLActiveInfo;
 use dom::webglobject::WebGLObject;
@@ -25,8 +25,8 @@ pub struct WebGLProgram {
     is_deleted: Cell<bool>,
     link_called: Cell<bool>,
     linked: Cell<bool>,
-    fragment_shader: MutNullableJS<WebGLShader>,
-    vertex_shader: MutNullableJS<WebGLShader>,
+    fragment_shader: MutNullableDom<WebGLShader>,
+    vertex_shader: MutNullableDom<WebGLShader>,
     #[ignore_heap_size_of = "Defined in ipc-channel"]
     renderer: WebGLMsgSender,
 }
@@ -48,7 +48,7 @@ impl WebGLProgram {
     }
 
     pub fn maybe_new(window: &Window, renderer: WebGLMsgSender)
-                     -> Option<Root<WebGLProgram>> {
+                     -> Option<DomRoot<WebGLProgram>> {
         let (sender, receiver) = webgl_channel().unwrap();
         renderer.send(WebGLCommand::CreateProgram(sender)).unwrap();
 
@@ -59,7 +59,7 @@ impl WebGLProgram {
     pub fn new(window: &Window,
                renderer: WebGLMsgSender,
                id: WebGLProgramId)
-               -> Root<WebGLProgram> {
+               -> DomRoot<WebGLProgram> {
         reflect_dom_object(box WebGLProgram::new_inherited(renderer, id),
                            window,
                            WebGLProgramBinding::Wrap)
@@ -219,7 +219,7 @@ impl WebGLProgram {
         Ok(())
     }
 
-    pub fn get_active_uniform(&self, index: u32) -> WebGLResult<Root<WebGLActiveInfo>> {
+    pub fn get_active_uniform(&self, index: u32) -> WebGLResult<DomRoot<WebGLActiveInfo>> {
         if self.is_deleted() {
             return Err(WebGLError::InvalidValue);
         }
@@ -233,7 +233,7 @@ impl WebGLProgram {
     }
 
     /// glGetActiveAttrib
-    pub fn get_active_attrib(&self, index: u32) -> WebGLResult<Root<WebGLActiveInfo>> {
+    pub fn get_active_attrib(&self, index: u32) -> WebGLResult<DomRoot<WebGLActiveInfo>> {
         if self.is_deleted() {
             return Err(WebGLError::InvalidValue);
         }

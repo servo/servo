@@ -7,8 +7,8 @@ use cssparser::ToCss;
 use dom::bindings::codegen::Bindings::CSSStyleRuleBinding::{self, CSSStyleRuleMethods};
 use dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, MutNullableJS, Root};
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
+use dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use dom::bindings::str::DOMString;
 use dom::cssrule::{CSSRule, SpecificCSSRule};
 use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
@@ -27,7 +27,7 @@ pub struct CSSStyleRule {
     cssrule: CSSRule,
     #[ignore_heap_size_of = "Arc"]
     stylerule: Arc<Locked<StyleRule>>,
-    style_decl: MutNullableJS<CSSStyleDeclaration>,
+    style_decl: MutNullableDom<CSSStyleDeclaration>,
 }
 
 impl CSSStyleRule {
@@ -42,7 +42,7 @@ impl CSSStyleRule {
 
     #[allow(unrooted_must_root)]
     pub fn new(window: &Window, parent_stylesheet: &CSSStyleSheet,
-               stylerule: Arc<Locked<StyleRule>>) -> Root<CSSStyleRule> {
+               stylerule: Arc<Locked<StyleRule>>) -> DomRoot<CSSStyleRule> {
         reflect_dom_object(box CSSStyleRule::new_inherited(parent_stylesheet, stylerule),
                            window,
                            CSSStyleRuleBinding::Wrap)
@@ -63,13 +63,13 @@ impl SpecificCSSRule for CSSStyleRule {
 
 impl CSSStyleRuleMethods for CSSStyleRule {
     // https://drafts.csswg.org/cssom/#dom-cssstylerule-style
-    fn Style(&self) -> Root<CSSStyleDeclaration> {
+    fn Style(&self) -> DomRoot<CSSStyleDeclaration> {
         self.style_decl.or_init(|| {
             let guard = self.cssrule.shared_lock().read();
             CSSStyleDeclaration::new(
                 self.global().as_window(),
                 CSSStyleOwner::CSSRule(
-                    JS::from_ref(self.upcast()),
+                    Dom::from_ref(self.upcast()),
                     self.stylerule.read_with(&guard).block.clone()
                 ),
                 None,

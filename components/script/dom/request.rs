@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use body::{BodyOperations, BodyType, consume_body};
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::HeadersBinding::{HeadersInit, HeadersMethods};
 use dom::bindings::codegen::Bindings::RequestBinding;
 use dom::bindings::codegen::Bindings::RequestBinding::ReferrerPolicy;
@@ -17,8 +17,8 @@ use dom::bindings::codegen::Bindings::RequestBinding::RequestMode;
 use dom::bindings::codegen::Bindings::RequestBinding::RequestRedirect;
 use dom::bindings::codegen::Bindings::RequestBinding::RequestType;
 use dom::bindings::error::{Error, Fallible};
-use dom::bindings::js::{MutNullableJS, Root};
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use dom::bindings::root::{DomRoot, MutNullableDom};
 use dom::bindings::str::{ByteString, DOMString, USVString};
 use dom::bindings::trace::RootedTraceableBox;
 use dom::globalscope::GlobalScope;
@@ -44,12 +44,12 @@ use std::rc::Rc;
 #[dom_struct]
 pub struct Request {
     reflector_: Reflector,
-    request: DOMRefCell<NetTraitsRequest>,
+    request: DomRefCell<NetTraitsRequest>,
     body_used: Cell<bool>,
-    headers: MutNullableJS<Headers>,
-    mime_type: DOMRefCell<Vec<u8>>,
+    headers: MutNullableDom<Headers>,
+    mime_type: DomRefCell<Vec<u8>>,
     #[ignore_heap_size_of = "Rc"]
-    body_promise: DOMRefCell<Option<(Rc<Promise>, BodyType)>>,
+    body_promise: DomRefCell<Option<(Rc<Promise>, BodyType)>>,
 }
 
 impl Request {
@@ -57,17 +57,17 @@ impl Request {
                      url: ServoUrl) -> Request {
         Request {
             reflector_: Reflector::new(),
-            request: DOMRefCell::new(
+            request: DomRefCell::new(
                 net_request_from_global(global, url)),
             body_used: Cell::new(false),
             headers: Default::default(),
-            mime_type: DOMRefCell::new("".to_string().into_bytes()),
-            body_promise: DOMRefCell::new(None),
+            mime_type: DomRefCell::new("".to_string().into_bytes()),
+            body_promise: DomRefCell::new(None),
         }
     }
 
     pub fn new(global: &GlobalScope,
-               url: ServoUrl) -> Root<Request> {
+               url: ServoUrl) -> DomRoot<Request> {
         reflect_dom_object(box Request::new_inherited(global,
                                                       url),
                            global, RequestBinding::Wrap)
@@ -77,7 +77,7 @@ impl Request {
     pub fn Constructor(global: &GlobalScope,
                        input: RequestInfo,
                        init: RootedTraceableBox<RequestInit>)
-                       -> Fallible<Root<Request>> {
+                       -> Fallible<DomRoot<Request>> {
         // Step 1
         let temporary_request: NetTraitsRequest;
 
@@ -293,7 +293,7 @@ impl Request {
         if let Some(possible_header) = init.headers.as_ref() {
             match possible_header {
                 &HeadersInit::Headers(ref init_headers) => {
-                    headers_copy = Root::from_ref(&*init_headers);
+                    headers_copy = DomRoot::from_ref(&*init_headers);
                 }
                 &HeadersInit::ByteStringSequenceSequence(ref init_sequence) => {
                     headers_copy.fill(Some(
@@ -310,7 +310,7 @@ impl Request {
         // We cannot empty `r.Headers().header_list` because
         // we would undo the Step 27 above.  One alternative is to set
         // `headers_copy` as a deep copy of `r.Headers()`. However,
-        // `r.Headers()` is a `Root<T>`, and therefore it is difficult
+        // `r.Headers()` is a `DomRoot<T>`, and therefore it is difficult
         // to obtain a mutable reference to `r.Headers()`. Without the
         // mutable reference, we cannot mutate `r.Headers()` to be the
         // deep copied headers in Step 27.
@@ -405,14 +405,14 @@ impl Request {
 
 impl Request {
     fn from_net_request(global: &GlobalScope,
-                        net_request: NetTraitsRequest) -> Root<Request> {
+                        net_request: NetTraitsRequest) -> DomRoot<Request> {
         let r = Request::new(global,
                              net_request.current_url());
         *r.request.borrow_mut() = net_request;
         r
     }
 
-    fn clone_from(r: &Request) -> Fallible<Root<Request>> {
+    fn clone_from(r: &Request) -> Fallible<DomRoot<Request>> {
         let req = r.request.borrow();
         let url = req.url();
         let body_used = r.body_used.get();
@@ -523,7 +523,7 @@ impl RequestMethods for Request {
     }
 
     // https://fetch.spec.whatwg.org/#dom-request-headers
-    fn Headers(&self) -> Root<Headers> {
+    fn Headers(&self) -> DomRoot<Headers> {
         self.headers.or_init(|| Headers::new(&self.global()))
     }
 
@@ -590,7 +590,7 @@ impl RequestMethods for Request {
     }
 
     // https://fetch.spec.whatwg.org/#dom-request-clone
-    fn Clone(&self) -> Fallible<Root<Request>> {
+    fn Clone(&self) -> Fallible<DomRoot<Request>> {
         // Step 1
         if request_is_locked(self) {
             return Err(Error::Type("Request is locked".to_string()));
@@ -792,7 +792,7 @@ impl Into<RequestMode> for NetTraitsRequestMode {
             NetTraitsRequestMode::SameOrigin => RequestMode::Same_origin,
             NetTraitsRequestMode::NoCors => RequestMode::No_cors,
             NetTraitsRequestMode::CorsMode => RequestMode::Cors,
-            NetTraitsRequestMode::WebSocket => unreachable!("Websocket request mode should never be exposed to JS"),
+            NetTraitsRequestMode::WebSocket => unreachable!("Websocket request mode should never be exposed to Dom"),
         }
     }
 }

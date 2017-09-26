@@ -6,8 +6,8 @@ use dom::bindings::codegen::Bindings::PermissionStatusBinding::{PermissionDescri
 use dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionStatusMethods;
 use dom::bindings::codegen::Bindings::PermissionsBinding::{self, PermissionsMethods};
 use dom::bindings::error::Error;
-use dom::bindings::js::Root;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use dom::bindings::root::DomRoot;
 use dom::bluetooth::Bluetooth;
 use dom::bluetoothpermissionresult::BluetoothPermissionResult;
 use dom::globalscope::GlobalScope;
@@ -63,7 +63,7 @@ impl Permissions {
         }
     }
 
-    pub fn new(global: &GlobalScope) -> Root<Permissions> {
+    pub fn new(global: &GlobalScope) -> DomRoot<Permissions> {
         reflect_dom_object(box Permissions::new_inherited(),
                            global,
                            PermissionsBinding::Wrap)
@@ -265,7 +265,7 @@ pub fn get_descriptor_permission_state(permission_name: PermissionName,
                                        -> PermissionState {
     // Step 1.
     let settings = match env_settings_obj {
-        Some(env_settings_obj) => Root::from_ref(env_settings_obj),
+        Some(env_settings_obj) => DomRoot::from_ref(env_settings_obj),
         None => GlobalScope::current().expect("No current global object"),
     };
 

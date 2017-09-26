@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::HTMLMapElementBinding;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
+use dom::bindings::root::DomRoot;
 use dom::document::Document;
 use dom::htmlareaelement::HTMLAreaElement;
 use dom::htmlelement::HTMLElement;
@@ -29,15 +29,15 @@ impl HTMLMapElement {
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
-               document: &Document) -> Root<HTMLMapElement> {
+               document: &Document) -> DomRoot<HTMLMapElement> {
         Node::reflect_node(box HTMLMapElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLMapElementBinding::Wrap)
     }
 
-    pub fn get_area_elements(&self) -> Vec<Root<HTMLAreaElement>> {
+    pub fn get_area_elements(&self) -> Vec<DomRoot<HTMLAreaElement>> {
         self.upcast::<Node>()
             .traverse_preorder()
-            .filter_map(Root::downcast::<HTMLAreaElement>).collect()
+            .filter_map(DomRoot::downcast::<HTMLAreaElement>).collect()
     }
 }

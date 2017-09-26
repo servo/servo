@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::HTMLTimeElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTimeElementBinding::HTMLTimeElementMethods;
-use dom::bindings::js::Root;
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::htmlelement::HTMLElement;
@@ -27,7 +27,7 @@ impl HTMLTimeElement {
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
-               document: &Document) -> Root<HTMLTimeElement> {
+               document: &Document) -> DomRoot<HTMLTimeElement> {
         Node::reflect_node(box HTMLTimeElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLTimeElementBinding::Wrap)

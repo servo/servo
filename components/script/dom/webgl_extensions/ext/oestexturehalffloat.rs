@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::OESTextureHalfFloatBinding::{self, OESTextureHalfFloatConstants};
-use dom::bindings::js::Root;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use dom::bindings::root::DomRoot;
 use dom::webglrenderingcontext::WebGLRenderingContext;
 use dom_struct::dom_struct;
 use super::{constants as webgl, ext_constants as gl, WebGLExtension, WebGLExtensions};
@@ -24,7 +24,7 @@ impl OESTextureHalfFloat {
 
 impl WebGLExtension for OESTextureHalfFloat {
     type Extension = OESTextureHalfFloat;
-    fn new(ctx: &WebGLRenderingContext) -> Root<OESTextureHalfFloat> {
+    fn new(ctx: &WebGLRenderingContext) -> DomRoot<OESTextureHalfFloat> {
         reflect_dom_object(box OESTextureHalfFloat::new_inherited(),
                            &*ctx.global(),
                            OESTextureHalfFloatBinding::Wrap)

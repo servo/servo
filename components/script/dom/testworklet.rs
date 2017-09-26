@@ -9,10 +9,9 @@ use dom::bindings::codegen::Bindings::TestWorkletBinding::Wrap;
 use dom::bindings::codegen::Bindings::WorkletBinding::WorkletBinding::WorkletMethods;
 use dom::bindings::codegen::Bindings::WorkletBinding::WorkletOptions;
 use dom::bindings::error::Fallible;
-use dom::bindings::js::JS;
-use dom::bindings::js::Root;
 use dom::bindings::reflector::Reflector;
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::{Dom, DomRoot};
 use dom::bindings::str::DOMString;
 use dom::bindings::str::USVString;
 use dom::promise::Promise;
@@ -26,23 +25,23 @@ use std::rc::Rc;
 #[dom_struct]
 pub struct TestWorklet {
     reflector: Reflector,
-    worklet: JS<Worklet>,
+    worklet: Dom<Worklet>,
 }
 
 impl TestWorklet {
     fn new_inherited(worklet: &Worklet) -> TestWorklet {
         TestWorklet {
             reflector: Reflector::new(),
-            worklet: JS::from_ref(worklet),
+            worklet: Dom::from_ref(worklet),
         }
     }
 
-    fn new(window: &Window) -> Root<TestWorklet> {
+    fn new(window: &Window) -> DomRoot<TestWorklet> {
         let worklet = Worklet::new(window, WorkletGlobalScopeType::Test);
         reflect_dom_object(box TestWorklet::new_inherited(&*worklet), window, Wrap)
     }
 
-    pub fn Constructor(window: &Window) -> Fallible<Root<TestWorklet>> {
+    pub fn Constructor(window: &Window) -> Fallible<DomRoot<TestWorklet>> {
         Ok(TestWorklet::new(window))
     }
 }

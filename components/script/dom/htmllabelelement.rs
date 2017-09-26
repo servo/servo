@@ -7,7 +7,7 @@ use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLLabelElementBinding;
 use dom::bindings::codegen::Bindings::HTMLLabelElementBinding::HTMLLabelElementMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element};
@@ -39,7 +39,7 @@ impl HTMLLabelElement {
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
-               document: &Document) -> Root<HTMLLabelElement> {
+               document: &Document) -> DomRoot<HTMLLabelElement> {
         Node::reflect_node(box HTMLLabelElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLLabelElementBinding::Wrap)
@@ -88,7 +88,7 @@ impl Activatable for HTMLLabelElement {
 
 impl HTMLLabelElementMethods for HTMLLabelElement {
     // https://html.spec.whatwg.org/multipage/#dom-fae-form
-    fn GetForm(&self) -> Option<Root<HTMLFormElement>> {
+    fn GetForm(&self) -> Option<DomRoot<HTMLFormElement>> {
         self.form_owner()
     }
 
@@ -99,7 +99,7 @@ impl HTMLLabelElementMethods for HTMLLabelElement {
     make_atomic_setter!(SetHtmlFor, "for");
 
     // https://html.spec.whatwg.org/multipage/#dom-label-control
-    fn GetControl(&self) -> Option<Root<HTMLElement>> {
+    fn GetControl(&self) -> Option<DomRoot<HTMLElement>> {
         if !self.upcast::<Node>().is_in_doc() {
             return None;
         }
@@ -111,7 +111,7 @@ impl HTMLLabelElementMethods for HTMLLabelElement {
 
         let for_value = for_attr.value();
         document_from_node(self).get_element_by_id(for_value.as_atom())
-                                .and_then(Root::downcast::<HTMLElement>)
+                                .and_then(DomRoot::downcast::<HTMLElement>)
                                 .into_iter()
                                 .filter(|e| e.is_labelable_element())
                                 .next()
@@ -142,18 +142,18 @@ impl VirtualMethods for HTMLLabelElement {
 }
 
 impl HTMLLabelElement {
-    pub fn first_labelable_descendant(&self) -> Option<Root<HTMLElement>> {
+    pub fn first_labelable_descendant(&self) -> Option<DomRoot<HTMLElement>> {
         self.upcast::<Node>()
             .traverse_preorder()
-            .filter_map(Root::downcast::<HTMLElement>)
+            .filter_map(DomRoot::downcast::<HTMLElement>)
             .filter(|elem| elem.is_labelable_element())
             .next()
     }
 }
 
 impl FormControl for HTMLLabelElement {
-    fn form_owner(&self) -> Option<Root<HTMLFormElement>> {
-        self.GetControl().map(Root::upcast::<Element>).and_then(|elem| {
+    fn form_owner(&self) -> Option<DomRoot<HTMLFormElement>> {
+        self.GetControl().map(DomRoot::upcast::<Element>).and_then(|elem| {
             elem.as_maybe_form_control().and_then(|control| control.form_owner())
         })
     }

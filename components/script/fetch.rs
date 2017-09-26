@@ -8,9 +8,9 @@ use dom::bindings::codegen::Bindings::ResponseBinding::ResponseBinding::Response
 use dom::bindings::codegen::Bindings::ResponseBinding::ResponseType as DOMResponseType;
 use dom::bindings::error::Error;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
 use dom::bindings::refcounted::{Trusted, TrustedPromise};
 use dom::bindings::reflector::DomObject;
+use dom::bindings::root::DomRoot;
 use dom::bindings::trace::RootedTraceableBox;
 use dom::globalscope::GlobalScope;
 use dom::headers::Guard;
@@ -184,7 +184,7 @@ impl FetchResponseListener for FetchContext {
     }
 }
 
-fn fill_headers_with_metadata(r: Root<Response>, m: Metadata) {
+fn fill_headers_with_metadata(r: DomRoot<Response>, m: Metadata) {
     r.set_headers(m.headers);
     r.set_raw_status(m.status);
     r.set_final_url(m.final_url);

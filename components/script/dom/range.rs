@@ -13,8 +13,8 @@ use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::{CharacterDataTypeId, NodeTypeId};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, MutJS, Root, RootedReference};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::root::{Dom, DomRoot, MutDom, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::weakref::{WeakRef, WeakRefVec};
@@ -49,7 +49,7 @@ impl Range {
         }
     }
 
-    pub fn new_with_doc(document: &Document) -> Root<Range> {
+    pub fn new_with_doc(document: &Document) -> DomRoot<Range> {
         let root = document.upcast();
         Range::new(document, root, 0, root, 0)
     }
@@ -57,7 +57,7 @@ impl Range {
     pub fn new(document: &Document,
                start_container: &Node, start_offset: u32,
                end_container: &Node, end_offset: u32)
-               -> Root<Range> {
+               -> DomRoot<Range> {
         let range = reflect_dom_object(box Range::new_inherited(start_container, start_offset,
                                                                 end_container, end_offset),
                                        document.window(),
@@ -70,7 +70,7 @@ impl Range {
     }
 
     // https://dom.spec.whatwg.org/#dom-range
-    pub fn Constructor(window: &Window) -> Fallible<Root<Range>> {
+    pub fn Constructor(window: &Window) -> Fallible<DomRoot<Range>> {
         let document = window.Document();
         Ok(Range::new_with_doc(&document))
     }
@@ -91,9 +91,9 @@ impl Range {
     }
 
     // https://dom.spec.whatwg.org/#concept-range-clone
-    fn contained_children(&self) -> Fallible<(Option<Root<Node>>,
-                                              Option<Root<Node>>,
-                                              Vec<Root<Node>>)> {
+    fn contained_children(&self) -> Fallible<(Option<DomRoot<Node>>,
+                                              Option<DomRoot<Node>>,
+                                              Vec<DomRoot<Node>>)> {
         let start_node = self.StartContainer();
         let end_node = self.EndContainer();
         // Steps 5-6.
@@ -120,7 +120,7 @@ impl Range {
             };
 
         // Step 11.
-        let contained_children: Vec<Root<Node>> =
+        let contained_children: Vec<DomRoot<Node>> =
             common_ancestor.children().filter(|n| self.contains(n)).collect();
 
         // Step 12.
@@ -191,7 +191,7 @@ impl Range {
 
 impl RangeMethods for Range {
     // https://dom.spec.whatwg.org/#dom-range-startcontainer
-    fn StartContainer(&self) -> Root<Node> {
+    fn StartContainer(&self) -> DomRoot<Node> {
         self.start.node.get()
     }
 
@@ -201,7 +201,7 @@ impl RangeMethods for Range {
     }
 
     // https://dom.spec.whatwg.org/#dom-range-endcontainer
-    fn EndContainer(&self) -> Root<Node> {
+    fn EndContainer(&self) -> DomRoot<Node> {
         self.end.node.get()
     }
 
@@ -216,7 +216,7 @@ impl RangeMethods for Range {
     }
 
     // https://dom.spec.whatwg.org/#dom-range-commonancestorcontainer
-    fn CommonAncestorContainer(&self) -> Root<Node> {
+    fn CommonAncestorContainer(&self) -> DomRoot<Node> {
         let end_container = self.EndContainer();
         // Step 1.
         for container in self.StartContainer().inclusive_ancestors() {
@@ -366,7 +366,7 @@ impl RangeMethods for Range {
     }
 
     // https://dom.spec.whatwg.org/#dom-range-clonerange
-    fn CloneRange(&self) -> Root<Range> {
+    fn CloneRange(&self) -> DomRoot<Range> {
         let start_node = self.StartContainer();
         let owner_doc = start_node.owner_doc();
         Range::new(&owner_doc, &start_node, self.StartOffset(),
@@ -425,7 +425,7 @@ impl RangeMethods for Range {
 
     // https://dom.spec.whatwg.org/#dom-range-clonecontents
     // https://dom.spec.whatwg.org/#concept-range-clone
-    fn CloneContents(&self) -> Fallible<Root<DocumentFragment>> {
+    fn CloneContents(&self) -> Fallible<DomRoot<DocumentFragment>> {
         // Step 3.
         let start_node = self.StartContainer();
         let start_offset = self.StartOffset();
@@ -524,7 +524,7 @@ impl RangeMethods for Range {
 
     // https://dom.spec.whatwg.org/#dom-range-extractcontents
     // https://dom.spec.whatwg.org/#concept-range-extract
-    fn ExtractContents(&self) -> Fallible<Root<DocumentFragment>> {
+    fn ExtractContents(&self) -> Fallible<DomRoot<DocumentFragment>> {
         // Step 3.
         let start_node = self.StartContainer();
         let start_offset = self.StartOffset();
@@ -563,13 +563,13 @@ impl RangeMethods for Range {
 
         let (new_node, new_offset) = if start_node.is_inclusive_ancestor_of(&end_node) {
             // Step 13.
-            (Root::from_ref(&*start_node), start_offset)
+            (DomRoot::from_ref(&*start_node), start_offset)
         } else {
             // Step 14.1-2.
             let reference_node = start_node.ancestors()
                                            .take_while(|n| !n.is_inclusive_ancestor_of(&end_node))
                                            .last()
-                                           .unwrap_or(Root::from_ref(&start_node));
+                                           .unwrap_or(DomRoot::from_ref(&start_node));
             // Step 14.3.
             (reference_node.GetParentNode().unwrap(), reference_node.index() + 1)
         };
@@ -682,11 +682,11 @@ impl RangeMethods for Range {
                     None => return Err(Error::HierarchyRequest)
                 };
                 // Step 5.
-                (Some(Root::from_ref(&*start_node)), parent)
+                (Some(DomRoot::from_ref(&*start_node)), parent)
             } else {
                 // Steps 4-5.
                 let child = start_node.ChildNodes().Item(start_offset);
-                (child, Root::from_ref(&*start_node))
+                (child, DomRoot::from_ref(&*start_node))
             };
 
         // Step 6.
@@ -700,7 +700,7 @@ impl RangeMethods for Range {
             match start_node.downcast::<Text>() {
                 Some(text) => {
                     split_text = text.SplitText(start_offset)?;
-                    let new_reference = Root::upcast::<Node>(split_text);
+                    let new_reference = DomRoot::upcast::<Node>(split_text);
                     assert!(new_reference.GetParentNode().r() == Some(&parent));
                     Some(new_reference)
                 },
@@ -770,7 +770,7 @@ impl RangeMethods for Range {
         let mut next = iter.next();
         while let Some(child) = next {
             if self.contains(&child) {
-                contained_children.push(JS::from_ref(&*child));
+                contained_children.push(Dom::from_ref(&*child));
                 next = iter.next_skipping_children();
             } else {
                 next = iter.next();
@@ -779,11 +779,11 @@ impl RangeMethods for Range {
 
         let (new_node, new_offset) = if start_node.is_inclusive_ancestor_of(&end_node) {
             // Step 5.
-            (Root::from_ref(&*start_node), start_offset)
+            (DomRoot::from_ref(&*start_node), start_offset)
         } else {
             // Step 6.
-            fn compute_reference(start_node: &Node, end_node: &Node) -> (Root<Node>, u32) {
-                let mut reference_node = Root::from_ref(start_node);
+            fn compute_reference(start_node: &Node, end_node: &Node) -> (DomRoot<Node>, u32) {
+                let mut reference_node = DomRoot::from_ref(start_node);
                 while let Some(parent) = reference_node.GetParentNode() {
                     if parent.is_inclusive_ancestor_of(end_node) {
                         return (parent, reference_node.index() + 1)
@@ -879,7 +879,7 @@ impl RangeMethods for Range {
         // Step 4.
         let ancestor = self.CommonAncestorContainer();
         let mut iter = start_node.following_nodes(&ancestor)
-                                 .filter_map(Root::downcast::<Text>);
+                                 .filter_map(DomRoot::downcast::<Text>);
 
         while let Some(child) = iter.next() {
             if self.contains(child.upcast()) {
@@ -898,13 +898,13 @@ impl RangeMethods for Range {
     }
 
     // https://dvcs.w3.org/hg/innerhtml/raw-file/tip/index.html#extensions-to-the-range-interface
-    fn CreateContextualFragment(&self, fragment: DOMString) -> Fallible<Root<DocumentFragment>> {
+    fn CreateContextualFragment(&self, fragment: DOMString) -> Fallible<DomRoot<DocumentFragment>> {
         // Step 1.
         let node = self.StartContainer();
         let owner_doc = node.owner_doc();
         let element = match node.type_id() {
             NodeTypeId::Document(_) | NodeTypeId::DocumentFragment => None,
-            NodeTypeId::Element(_) => Some(Root::downcast::<Element>(node).unwrap()),
+            NodeTypeId::Element(_) => Some(DomRoot::downcast::<Element>(node).unwrap()),
             NodeTypeId::CharacterData(CharacterDataTypeId::Comment) |
             NodeTypeId::CharacterData(CharacterDataTypeId::Text) => node.GetParentElement(),
             NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) |
@@ -933,7 +933,7 @@ impl RangeMethods for Range {
 #[derive(DenyPublicFields, HeapSizeOf, JSTraceable)]
 #[must_root]
 pub struct BoundaryPoint {
-    node: MutJS<Node>,
+    node: MutDom<Node>,
     offset: Cell<u32>,
 }
 
@@ -942,7 +942,7 @@ impl BoundaryPoint {
         debug_assert!(!node.is_doctype());
         debug_assert!(offset <= node.len());
         BoundaryPoint {
-            node: MutJS::new(node),
+            node: MutDom::new(node),
             offset: Cell::new(offset),
         }
     }

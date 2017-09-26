@@ -5,8 +5,8 @@
 use dom::bindings::codegen::Bindings::ServiceWorkerContainerBinding::{ServiceWorkerContainerMethods, Wrap};
 use dom::bindings::codegen::Bindings::ServiceWorkerContainerBinding::RegistrationOptions;
 use dom::bindings::error::Error;
-use dom::bindings::js::{JS, MutNullableJS, Root};
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
+use dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use dom::bindings::str::USVString;
 use dom::client::Client;
 use dom::eventtarget::EventTarget;
@@ -23,8 +23,8 @@ use std::rc::Rc;
 #[dom_struct]
 pub struct ServiceWorkerContainer {
     eventtarget: EventTarget,
-    controller: MutNullableJS<ServiceWorker>,
-    client: JS<Client>
+    controller: MutNullableDom<ServiceWorker>,
+    client: Dom<Client>
 }
 
 impl ServiceWorkerContainer {
@@ -32,12 +32,12 @@ impl ServiceWorkerContainer {
         ServiceWorkerContainer {
             eventtarget: EventTarget::new_inherited(),
             controller: Default::default(),
-            client: JS::from_ref(client),
+            client: Dom::from_ref(client),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(global: &GlobalScope) -> Root<ServiceWorkerContainer> {
+    pub fn new(global: &GlobalScope) -> DomRoot<ServiceWorkerContainer> {
         let client = Client::new(&global.as_window());
         let container = ServiceWorkerContainer::new_inherited(&*client);
         reflect_dom_object(box container, global, Wrap)
@@ -46,7 +46,7 @@ impl ServiceWorkerContainer {
 
 impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
     // https://w3c.github.io/ServiceWorker/#service-worker-container-controller-attribute
-    fn GetController(&self) -> Option<Root<ServiceWorker>> {
+    fn GetController(&self) -> Option<DomRoot<ServiceWorker>> {
         self.client.get_controller()
     }
 

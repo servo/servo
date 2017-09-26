@@ -21,11 +21,11 @@ use dom::bindings::codegen::UnionTypes::{HTMLElementOrUnsignedLongOrStringOrBool
 use dom::bindings::codegen::UnionTypes::{StringOrLongSequence, StringOrStringSequence, StringSequenceOrUnsignedLong};
 use dom::bindings::codegen::UnionTypes::{StringOrUnsignedLong, StringOrBoolean, UnsignedLongOrBoolean};
 use dom::bindings::error::{Error, Fallible};
-use dom::bindings::js::Root;
 use dom::bindings::mozmap::MozMap;
 use dom::bindings::num::Finite;
 use dom::bindings::refcounted::TrustedPromise;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::{ByteString, DOMString, USVString};
 use dom::bindings::trace::RootedTraceableBox;
 use dom::bindings::weakref::MutableWeakRef;
@@ -59,22 +59,22 @@ impl TestBinding {
         }
     }
 
-    pub fn new(global: &GlobalScope) -> Root<TestBinding> {
+    pub fn new(global: &GlobalScope) -> DomRoot<TestBinding> {
         reflect_dom_object(box TestBinding::new_inherited(),
                            global, TestBindingBinding::Wrap)
     }
 
-    pub fn Constructor(global: &GlobalScope) -> Fallible<Root<TestBinding>> {
+    pub fn Constructor(global: &GlobalScope) -> Fallible<DomRoot<TestBinding>> {
         Ok(TestBinding::new(global))
     }
 
     #[allow(unused_variables)]
-    pub fn Constructor_(global: &GlobalScope, nums: Vec<f64>) -> Fallible<Root<TestBinding>> {
+    pub fn Constructor_(global: &GlobalScope, nums: Vec<f64>) -> Fallible<DomRoot<TestBinding>> {
         Ok(TestBinding::new(global))
     }
 
     #[allow(unused_variables)]
-    pub fn Constructor__(global: &GlobalScope, num: f64) -> Fallible<Root<TestBinding>> {
+    pub fn Constructor__(global: &GlobalScope, num: f64) -> Fallible<DomRoot<TestBinding>> {
         Ok(TestBinding::new(global))
     }
 }
@@ -114,7 +114,7 @@ impl TestBindingMethods for TestBinding {
     fn SetByteStringAttribute(&self, _: ByteString) {}
     fn EnumAttribute(&self) -> TestEnum { TestEnum::_empty }
     fn SetEnumAttribute(&self, _: TestEnum) {}
-    fn InterfaceAttribute(&self) -> Root<Blob> {
+    fn InterfaceAttribute(&self) -> DomRoot<Blob> {
         Blob::new(&self.global(), BlobImpl::new_from_bytes(vec![]), "".to_owned())
     }
     fn SetInterfaceAttribute(&self, _: &Blob) {}
@@ -202,18 +202,18 @@ impl TestBindingMethods for TestBinding {
     fn GetUsvstringAttributeNullable(&self) -> Option<USVString> { Some(USVString("".to_owned())) }
     fn SetUsvstringAttributeNullable(&self, _: Option<USVString>) {}
     fn SetBinaryRenamedAttribute(&self, _: DOMString) {}
-    fn ForwardedAttribute(&self) -> Root<TestBinding> { Root::from_ref(self) }
+    fn ForwardedAttribute(&self) -> DomRoot<TestBinding> { DomRoot::from_ref(self) }
     fn BinaryRenamedAttribute(&self) -> DOMString { DOMString::new() }
     fn SetBinaryRenamedAttribute2(&self, _: DOMString) {}
     fn BinaryRenamedAttribute2(&self) -> DOMString { DOMString::new() }
     fn Attr_to_automatically_rename(&self) -> DOMString { DOMString::new() }
     fn SetAttr_to_automatically_rename(&self, _: DOMString) {}
     fn GetEnumAttributeNullable(&self) -> Option<TestEnum> { Some(TestEnum::_empty) }
-    fn GetInterfaceAttributeNullable(&self) -> Option<Root<Blob>> {
+    fn GetInterfaceAttributeNullable(&self) -> Option<DomRoot<Blob>> {
         Some(Blob::new(&self.global(), BlobImpl::new_from_bytes(vec![]), "".to_owned()))
     }
     fn SetInterfaceAttributeNullable(&self, _: Option<&Blob>) {}
-    fn GetInterfaceAttributeWeak(&self) -> Option<Root<URL>> {
+    fn GetInterfaceAttributeWeak(&self) -> Option<DomRoot<URL>> {
         self.url.root()
     }
     fn SetInterfaceAttributeWeak(&self, url: Option<&URL>) {
@@ -266,7 +266,7 @@ impl TestBindingMethods for TestBinding {
     fn ReceiveUsvstring(&self) -> USVString { USVString("".to_owned()) }
     fn ReceiveByteString(&self) -> ByteString { ByteString::new(vec!()) }
     fn ReceiveEnum(&self) -> TestEnum { TestEnum::_empty }
-    fn ReceiveInterface(&self) -> Root<Blob> {
+    fn ReceiveInterface(&self) -> DomRoot<Blob> {
         Blob::new(&self.global(), BlobImpl::new_from_bytes(vec![]), "".to_owned())
     }
     #[allow(unsafe_code)]
@@ -291,7 +291,7 @@ impl TestBindingMethods for TestBinding {
         ByteStringSequenceOrLongOrString::ByteStringSequence(vec!(ByteString::new(vec!())))
     }
     fn ReceiveSequence(&self) -> Vec<i32> { vec![1] }
-    fn ReceiveInterfaceSequence(&self) -> Vec<Root<Blob>> {
+    fn ReceiveInterfaceSequence(&self) -> Vec<DomRoot<Blob>> {
         vec![Blob::new(&self.global(), BlobImpl::new_from_bytes(vec![]), "".to_owned())]
     }
 
@@ -312,7 +312,7 @@ impl TestBindingMethods for TestBinding {
     fn ReceiveNullableUsvstring(&self) -> Option<USVString> { Some(USVString("".to_owned())) }
     fn ReceiveNullableByteString(&self) -> Option<ByteString> { Some(ByteString::new(vec!())) }
     fn ReceiveNullableEnum(&self) -> Option<TestEnum> { Some(TestEnum::_empty) }
-    fn ReceiveNullableInterface(&self) -> Option<Root<Blob>> {
+    fn ReceiveNullableInterface(&self) -> Option<DomRoot<Blob>> {
         Some(Blob::new(&self.global(), BlobImpl::new_from_bytes(vec![]), "".to_owned()))
     }
     #[allow(unsafe_code)]
@@ -449,7 +449,7 @@ impl TestBindingMethods for TestBinding {
     fn PassCallbackInterface(&self, _: Rc<EventListener>) {}
     fn PassSequence(&self, _: Vec<i32>) {}
     fn PassStringSequence(&self, _: Vec<DOMString>) {}
-    fn PassInterfaceSequence(&self, _: Vec<Root<Blob>>) {}
+    fn PassInterfaceSequence(&self, _: Vec<DomRoot<Blob>>) {}
 
     fn PassNullableBoolean(&self, _: Option<bool>) {}
     fn PassNullableByte(&self, _: Option<i8>) {}
@@ -651,14 +651,14 @@ impl TestBindingMethods for TestBinding {
     fn PassMozMapOfNullableInts(&self, _: MozMap<Option<i32>>) {}
     fn PassOptionalMozMapOfNullableInts(&self, _: Option<MozMap<Option<i32>>>) {}
     fn PassOptionalNullableMozMapOfNullableInts(&self, _: Option<Option<MozMap<Option<i32>> >>) {}
-    fn PassCastableObjectMozMap(&self, _: MozMap<Root<TestBinding>>) {}
-    fn PassNullableCastableObjectMozMap(&self, _: MozMap<Option<Root<TestBinding>>>) {}
-    fn PassCastableObjectNullableMozMap(&self, _: Option<MozMap<Root<TestBinding>>>) {}
-    fn PassNullableCastableObjectNullableMozMap(&self, _: Option<MozMap<Option<Root<TestBinding>>>>) {}
+    fn PassCastableObjectMozMap(&self, _: MozMap<DomRoot<TestBinding>>) {}
+    fn PassNullableCastableObjectMozMap(&self, _: MozMap<Option<DomRoot<TestBinding>>>) {}
+    fn PassCastableObjectNullableMozMap(&self, _: Option<MozMap<DomRoot<TestBinding>>>) {}
+    fn PassNullableCastableObjectNullableMozMap(&self, _: Option<MozMap<Option<DomRoot<TestBinding>>>>) {}
     fn PassOptionalMozMap(&self, _: Option<MozMap<i32>>) {}
     fn PassOptionalNullableMozMap(&self, _: Option<Option<MozMap<i32>>>) {}
     fn PassOptionalNullableMozMapWithDefaultValue(&self, _: Option<MozMap<i32>>) {}
-    fn PassOptionalObjectMozMap(&self, _: Option<MozMap<Root<TestBinding>>>) {}
+    fn PassOptionalObjectMozMap(&self, _: Option<MozMap<DomRoot<TestBinding>>>) {}
     fn PassStringMozMap(&self, _: MozMap<DOMString>) {}
     fn PassByteStringMozMap(&self, _: MozMap<ByteString>) {}
     fn PassMozMapOfMozMaps(&self, _: MozMap<MozMap<i32>>) {}
@@ -776,10 +776,10 @@ impl TestBindingMethods for TestBinding {
 
     fn Panic(&self) { panic!("explicit panic from script") }
 
-    fn EntryGlobal(&self) -> Root<GlobalScope> {
+    fn EntryGlobal(&self) -> DomRoot<GlobalScope> {
         GlobalScope::entry()
     }
-    fn IncumbentGlobal(&self) -> Root<GlobalScope> {
+    fn IncumbentGlobal(&self) -> DomRoot<GlobalScope> {
         GlobalScope::incumbent().unwrap()
     }
 }

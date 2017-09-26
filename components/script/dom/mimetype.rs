@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::MimeTypeBinding::MimeTypeMethods;
-use dom::bindings::js::Root;
 use dom::bindings::reflector::Reflector;
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::plugin::Plugin;
 use dom_struct::dom_struct;
@@ -31,7 +31,7 @@ impl MimeTypeMethods for MimeType {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-mimetype-enabledplugin
-    fn EnabledPlugin(&self) -> Root<Plugin> {
+    fn EnabledPlugin(&self) -> DomRoot<Plugin> {
         unreachable!()
     }
 }

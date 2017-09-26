@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::OESTextureFloatLinearBinding;
-use dom::bindings::js::Root;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use dom::bindings::root::DomRoot;
 use dom::webglrenderingcontext::WebGLRenderingContext;
 use dom_struct::dom_struct;
 use super::{constants as webgl, WebGLExtension, WebGLExtensions};
@@ -24,7 +24,7 @@ impl OESTextureFloatLinear {
 
 impl WebGLExtension for OESTextureFloatLinear {
     type Extension = OESTextureFloatLinear;
-    fn new(ctx: &WebGLRenderingContext) -> Root<OESTextureFloatLinear> {
+    fn new(ctx: &WebGLRenderingContext) -> DomRoot<OESTextureFloatLinear> {
         reflect_dom_object(box OESTextureFloatLinear::new_inherited(),
                            &*ctx.global(),
                            OESTextureFloatLinearBinding::Wrap)

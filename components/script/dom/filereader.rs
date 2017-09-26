@@ -3,15 +3,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use base64;
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use dom::bindings::codegen::Bindings::FileReaderBinding::{self, FileReaderConstants, FileReaderMethods};
 use dom::bindings::codegen::UnionTypes::StringOrObject;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{MutNullableJS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
+use dom::bindings::root::{DomRoot, MutNullableDom};
 use dom::bindings::str::DOMString;
 use dom::bindings::trace::RootedTraceableBox;
 use dom::blob::Blob;
@@ -87,8 +87,8 @@ pub enum FileReaderResult {
 pub struct FileReader {
     eventtarget: EventTarget,
     ready_state: Cell<FileReaderReadyState>,
-    error: MutNullableJS<DOMException>,
-    result: DOMRefCell<Option<FileReaderResult>>,
+    error: MutNullableDom<DOMException>,
+    result: DomRefCell<Option<FileReaderResult>>,
     generation_id: Cell<GenerationId>,
 }
 
@@ -97,18 +97,18 @@ impl FileReader {
         FileReader {
             eventtarget: EventTarget::new_inherited(),
             ready_state: Cell::new(FileReaderReadyState::Empty),
-            error: MutNullableJS::new(None),
-            result: DOMRefCell::new(None),
+            error: MutNullableDom::new(None),
+            result: DomRefCell::new(None),
             generation_id: Cell::new(GenerationId(0)),
         }
     }
 
-    pub fn new(global: &GlobalScope) -> Root<FileReader> {
+    pub fn new(global: &GlobalScope) -> DomRoot<FileReader> {
         reflect_dom_object(box FileReader::new_inherited(),
                            global, FileReaderBinding::Wrap)
     }
 
-    pub fn Constructor(global: &GlobalScope) -> Fallible<Root<FileReader>> {
+    pub fn Constructor(global: &GlobalScope) -> Fallible<DomRoot<FileReader>> {
         Ok(FileReader::new(global))
     }
 
@@ -216,7 +216,7 @@ impl FileReader {
     }
 
     // https://w3c.github.io/FileAPI/#dfn-readAsText
-    fn perform_readastext(result: &DOMRefCell<Option<FileReaderResult>>, data: ReadMetaData, blob_bytes: &[u8]) {
+    fn perform_readastext(result: &DomRefCell<Option<FileReaderResult>>, data: ReadMetaData, blob_bytes: &[u8]) {
         let blob_label = &data.label;
         let blob_type = &data.blobtype;
 
@@ -246,7 +246,7 @@ impl FileReader {
     }
 
     //https://w3c.github.io/FileAPI/#dfn-readAsDataURL
-    fn perform_readasdataurl(result: &DOMRefCell<Option<FileReaderResult>>, data: ReadMetaData, bytes: &[u8]) {
+    fn perform_readasdataurl(result: &DomRefCell<Option<FileReaderResult>>, data: ReadMetaData, bytes: &[u8]) {
         let base64 = base64::encode(bytes);
 
         let output = if data.blobtype.is_empty() {
@@ -260,7 +260,7 @@ impl FileReader {
 
     // https://w3c.github.io/FileAPI/#dfn-readAsArrayBuffer
     #[allow(unsafe_code)]
-    fn perform_readasarraybuffer(result: &DOMRefCell<Option<FileReaderResult>>,
+    fn perform_readasarraybuffer(result: &DomRefCell<Option<FileReaderResult>>,
         cx: *mut JSContext, _: ReadMetaData, bytes: &[u8]) {
         unsafe {
             rooted!(in(cx) let mut array_buffer = ptr::null_mut());
@@ -328,7 +328,7 @@ impl FileReaderMethods for FileReader {
     }
 
     // https://w3c.github.io/FileAPI/#dfn-error
-    fn GetError(&self) -> Option<Root<DOMException>> {
+    fn GetError(&self) -> Option<DomRoot<DOMException>> {
         self.error.get()
     }
 

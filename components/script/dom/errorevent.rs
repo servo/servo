@@ -2,14 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::ErrorEventBinding;
 use dom::bindings::codegen::Bindings::ErrorEventBinding::ErrorEventMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::bindings::trace::RootedTraceableBox;
 use dom::event::{Event, EventBubbles, EventCancelable};
@@ -23,8 +23,8 @@ use std::cell::Cell;
 #[dom_struct]
 pub struct ErrorEvent {
     event: Event,
-    message: DOMRefCell<DOMString>,
-    filename: DOMRefCell<DOMString>,
+    message: DomRefCell<DOMString>,
+    filename: DomRefCell<DOMString>,
     lineno: Cell<u32>,
     colno: Cell<u32>,
     #[ignore_heap_size_of = "Defined in rust-mozjs"]
@@ -35,15 +35,15 @@ impl ErrorEvent {
     fn new_inherited() -> ErrorEvent {
         ErrorEvent {
             event: Event::new_inherited(),
-            message: DOMRefCell::new(DOMString::new()),
-            filename: DOMRefCell::new(DOMString::new()),
+            message: DomRefCell::new(DOMString::new()),
+            filename: DomRefCell::new(DOMString::new()),
             lineno: Cell::new(0),
             colno: Cell::new(0),
             error: Heap::default()
         }
     }
 
-    pub fn new_uninitialized(global: &GlobalScope) -> Root<ErrorEvent> {
+    pub fn new_uninitialized(global: &GlobalScope) -> DomRoot<ErrorEvent> {
         reflect_dom_object(box ErrorEvent::new_inherited(),
                            global,
                            ErrorEventBinding::Wrap)
@@ -57,7 +57,7 @@ impl ErrorEvent {
                filename: DOMString,
                lineno: u32,
                colno: u32,
-               error: HandleValue) -> Root<ErrorEvent> {
+               error: HandleValue) -> DomRoot<ErrorEvent> {
         let ev = ErrorEvent::new_uninitialized(global);
         {
             let event = ev.upcast::<Event>();
@@ -75,7 +75,7 @@ impl ErrorEvent {
     pub fn Constructor(global: &GlobalScope,
                        type_: DOMString,
                        init: RootedTraceableBox<ErrorEventBinding::ErrorEventInit>)
-                       -> Fallible<Root<ErrorEvent>>{
+                       -> Fallible<DomRoot<ErrorEvent>>{
         let msg = match init.message.as_ref() {
             Some(message) => message.clone(),
             None => DOMString::new(),

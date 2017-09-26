@@ -8,7 +8,7 @@ use bluetooth_traits::blocklist::{Blocklist, uuid_is_blocklisted};
 use bluetooth_traits::scanfilter::{BluetoothScanfilter, BluetoothScanfilterSequence};
 use bluetooth_traits::scanfilter::{RequestDeviceoptions, ServiceUUIDSequence};
 use core::clone::Clone;
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::BluetoothBinding::{self, BluetoothDataFilterInit, BluetoothLEScanFilterInit};
 use dom::bindings::codegen::Bindings::BluetoothBinding::{BluetoothMethods, RequestDeviceOptions};
 use dom::bindings::codegen::Bindings::BluetoothPermissionResultBinding::BluetoothPermissionDescriptor;
@@ -18,9 +18,9 @@ use dom::bindings::codegen::Bindings::PermissionStatusBinding::{PermissionName, 
 use dom::bindings::codegen::UnionTypes::StringOrUnsignedLong;
 use dom::bindings::error::Error::{self, Network, Security, Type};
 use dom::bindings::error::Fallible;
-use dom::bindings::js::{JS, Root};
 use dom::bindings::refcounted::{Trusted, TrustedPromise};
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
+use dom::bindings::root::{Dom, DomRoot};
 use dom::bindings::str::DOMString;
 use dom::bluetoothdevice::BluetoothDevice;
 use dom::bluetoothpermissionresult::BluetoothPermissionResult;
@@ -65,13 +65,13 @@ pub struct AllowedBluetoothDevice {
 
 #[derive(HeapSizeOf, JSTraceable)]
 pub struct BluetoothExtraPermissionData {
-    allowed_devices: DOMRefCell<Vec<AllowedBluetoothDevice>>,
+    allowed_devices: DomRefCell<Vec<AllowedBluetoothDevice>>,
 }
 
 impl BluetoothExtraPermissionData {
     pub fn new() -> BluetoothExtraPermissionData {
         BluetoothExtraPermissionData {
-            allowed_devices: DOMRefCell::new(Vec::new()),
+            allowed_devices: DomRefCell::new(Vec::new()),
         }
     }
 
@@ -120,18 +120,18 @@ where
 #[dom_struct]
 pub struct Bluetooth {
     eventtarget: EventTarget,
-    device_instance_map: DOMRefCell<HashMap<String, JS<BluetoothDevice>>>,
+    device_instance_map: DomRefCell<HashMap<String, Dom<BluetoothDevice>>>,
 }
 
 impl Bluetooth {
     pub fn new_inherited() -> Bluetooth {
         Bluetooth {
             eventtarget: EventTarget::new_inherited(),
-            device_instance_map: DOMRefCell::new(HashMap::new()),
+            device_instance_map: DomRefCell::new(HashMap::new()),
         }
     }
 
-    pub fn new(global: &GlobalScope) -> Root<Bluetooth> {
+    pub fn new(global: &GlobalScope) -> DomRoot<Bluetooth> {
         reflect_dom_object(box Bluetooth::new_inherited(),
                            global,
                            BluetoothBinding::Wrap)
@@ -141,7 +141,7 @@ impl Bluetooth {
         self.global().as_window().bluetooth_thread()
     }
 
-    pub fn get_device_map(&self) -> &DOMRefCell<HashMap<String, JS<BluetoothDevice>>> {
+    pub fn get_device_map(&self) -> &DomRefCell<HashMap<String, Dom<BluetoothDevice>>> {
         &self.device_instance_map
     }
 
@@ -520,7 +520,7 @@ impl AsyncBluetoothListener for Bluetooth {
                                                      DOMString::from(device.id.clone()),
                                                      device.name.map(DOMString::from),
                                                      &self);
-                device_instance_map.insert(device.id.clone(), JS::from_ref(&bt_device));
+                device_instance_map.insert(device.id.clone(), Dom::from_ref(&bt_device));
 
                 self.global().as_window().bluetooth_extra_permission_data().add_new_allowed_device(
                     AllowedBluetoothDevice {
@@ -631,7 +631,7 @@ impl PermissionAlgorithm for Bluetooth {
             // TODO: Implement this correctly, not just using device ids here.
             // https://webbluetoothcg.github.io/web-bluetooth/#get-the-bluetoothdevice-representing
             if let Some(device) = device_map.get(&device_id) {
-                matching_devices.push(JS::from_ref(&**device));
+                matching_devices.push(Dom::from_ref(&**device));
             }
         }
 

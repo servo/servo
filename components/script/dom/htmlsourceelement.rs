@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::HTMLSourceElementBinding;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
+use dom::bindings::root::DomRoot;
 use dom::document::Document;
 use dom::htmlelement::HTMLElement;
 use dom::htmlmediaelement::HTMLMediaElement;
@@ -32,7 +32,7 @@ impl HTMLSourceElement {
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
-               document: &Document) -> Root<HTMLSourceElement> {
+               document: &Document) -> DomRoot<HTMLSourceElement> {
         Node::reflect_node(box HTMLSourceElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLSourceElementBinding::Wrap)

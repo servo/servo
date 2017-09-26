@@ -6,7 +6,7 @@ use app_units::{Au, AU_PER_PX};
 use document_loader::{LoadType, LoadBlocker};
 use dom::activation::Activatable;
 use dom::attr::Attr;
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectBinding::DOMRectMethods;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::HTMLImageElementBinding;
@@ -15,9 +15,9 @@ use dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{LayoutJS, MutNullableJS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
+use dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
@@ -87,9 +87,9 @@ struct ImageRequest {
 pub struct HTMLImageElement {
     htmlelement: HTMLElement,
     image_request: Cell<ImageRequestPhase>,
-    current_request: DOMRefCell<ImageRequest>,
-    pending_request: DOMRefCell<ImageRequest>,
-    form_owner: MutNullableJS<HTMLFormElement>,
+    current_request: DomRefCell<ImageRequest>,
+    pending_request: DomRefCell<ImageRequest>,
+    form_owner: MutNullableDom<HTMLFormElement>,
     generation: Cell<u32>,
 }
 
@@ -569,7 +569,7 @@ impl HTMLImageElement {
         // step 6, await a stable state.
         self.generation.set(self.generation.get() + 1);
         let task = ImageElementMicrotask::StableStateUpdateImageDataTask {
-            elem: Root::from_ref(self),
+            elem: DomRoot::from_ref(self),
             generation: self.generation.get(),
         };
         ScriptThread::await_stable_state(Microtask::ImageElement(task));
@@ -579,7 +579,7 @@ impl HTMLImageElement {
         HTMLImageElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             image_request: Cell::new(ImageRequestPhase::Current),
-            current_request: DOMRefCell::new(ImageRequest {
+            current_request: DomRefCell::new(ImageRequest {
                 state: State::Unavailable,
                 parsed_url: None,
                 source_url: None,
@@ -588,7 +588,7 @@ impl HTMLImageElement {
                 blocker: None,
                 final_url: None,
             }),
-            pending_request: DOMRefCell::new(ImageRequest {
+            pending_request: DomRefCell::new(ImageRequest {
                 state: State::Unavailable,
                 parsed_url: None,
                 source_url: None,
@@ -605,7 +605,7 @@ impl HTMLImageElement {
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
-               document: &Document) -> Root<HTMLImageElement> {
+               document: &Document) -> DomRoot<HTMLImageElement> {
         Node::reflect_node(box HTMLImageElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLImageElementBinding::Wrap)
@@ -613,7 +613,7 @@ impl HTMLImageElement {
 
     pub fn Image(window: &Window,
                  width: Option<u32>,
-                 height: Option<u32>) -> Fallible<Root<HTMLImageElement>> {
+                 height: Option<u32>) -> Fallible<DomRoot<HTMLImageElement>> {
         let document = window.Document();
         let image = HTMLImageElement::new(local_name!("img"), None, &document);
         if let Some(w) = width {
@@ -625,7 +625,7 @@ impl HTMLImageElement {
 
         Ok(image)
     }
-    pub fn areas(&self) -> Option<Vec<Root<HTMLAreaElement>>> {
+    pub fn areas(&self) -> Option<Vec<DomRoot<HTMLAreaElement>>> {
         let elem = self.upcast::<Element>();
         let usemap_attr = match elem.get_attribute(&ns!(), &local_name!("usemap")) {
             Some(attr) => attr,
@@ -646,7 +646,7 @@ impl HTMLImageElement {
 
         let useMapElements = document_from_node(self).upcast::<Node>()
                                 .traverse_preorder()
-                                .filter_map(Root::downcast::<HTMLMapElement>)
+                                .filter_map(DomRoot::downcast::<HTMLMapElement>)
                                 .find(|n| n.upcast::<Element>().get_string_attribute(&LocalName::from("name")) == last);
 
         useMapElements.map(|mapElem| mapElem.get_area_elements())
@@ -664,7 +664,7 @@ impl HTMLImageElement {
 #[derive(HeapSizeOf, JSTraceable)]
 pub enum ImageElementMicrotask {
     StableStateUpdateImageDataTask {
-        elem: Root<HTMLImageElement>,
+        elem: DomRoot<HTMLImageElement>,
         generation: u32,
     }
 }
@@ -694,7 +694,7 @@ pub trait LayoutHTMLImageElementHelpers {
     fn get_height(&self) -> LengthOrPercentageOrAuto;
 }
 
-impl LayoutHTMLImageElementHelpers for LayoutJS<HTMLImageElement> {
+impl LayoutHTMLImageElementHelpers for LayoutDom<HTMLImageElement> {
     #[allow(unsafe_code)]
     unsafe fn image(&self) -> Option<Arc<Image>> {
         (*self.unsafe_get()).current_request.borrow_for_layout().image.clone()
@@ -937,7 +937,7 @@ impl VirtualMethods for HTMLImageElement {
 }
 
 impl FormControl for HTMLImageElement {
-    fn form_owner(&self) -> Option<Root<HTMLFormElement>> {
+    fn form_owner(&self) -> Option<DomRoot<HTMLFormElement>> {
         self.form_owner.get()
     }
 

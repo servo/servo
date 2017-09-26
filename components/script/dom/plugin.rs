@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::PluginBinding::PluginMethods;
-use dom::bindings::js::Root;
 use dom::bindings::reflector::Reflector;
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::mimetype::MimeType;
 use dom_struct::dom_struct;
@@ -36,22 +36,22 @@ impl PluginMethods for Plugin {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-plugin-item
-    fn Item(&self, _index: u32) -> Option<Root<MimeType>> {
+    fn Item(&self, _index: u32) -> Option<DomRoot<MimeType>> {
         unreachable!()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-plugin-nameditem
-    fn NamedItem(&self, _name: DOMString) -> Option<Root<MimeType>> {
+    fn NamedItem(&self, _name: DOMString) -> Option<DomRoot<MimeType>> {
         unreachable!()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-plugin-item
-    fn IndexedGetter(&self, _index: u32) -> Option<Root<MimeType>> {
+    fn IndexedGetter(&self, _index: u32) -> Option<DomRoot<MimeType>> {
         unreachable!()
     }
 
     // check-tidy: no specs after this line
-    fn NamedGetter(&self, _name: DOMString) -> Option<Root<MimeType>> {
+    fn NamedGetter(&self, _name: DOMString) -> Option<DomRoot<MimeType>> {
         unreachable!()
     }
 

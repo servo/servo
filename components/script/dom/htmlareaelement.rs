@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListMethods;
 use dom::bindings::codegen::Bindings::HTMLAreaElementBinding;
 use dom::bindings::codegen::Bindings::HTMLAreaElementBinding::HTMLAreaElementMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{MutNullableJS, Root};
+use dom::bindings::root::{DomRoot, MutNullableDom};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::domtokenlist::DOMTokenList;
@@ -217,7 +217,7 @@ impl Area {
 #[dom_struct]
 pub struct HTMLAreaElement {
     htmlelement: HTMLElement,
-    rel_list: MutNullableJS<DOMTokenList>,
+    rel_list: MutNullableDom<DOMTokenList>,
 }
 
 impl HTMLAreaElement {
@@ -231,7 +231,7 @@ impl HTMLAreaElement {
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
-               document: &Document) -> Root<HTMLAreaElement> {
+               document: &Document) -> DomRoot<HTMLAreaElement> {
         Node::reflect_node(box HTMLAreaElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLAreaElementBinding::Wrap)
@@ -273,7 +273,7 @@ impl VirtualMethods for HTMLAreaElement {
 
 impl HTMLAreaElementMethods for HTMLAreaElement {
     // https://html.spec.whatwg.org/multipage/#dom-area-rellist
-    fn RelList(&self) -> Root<DOMTokenList> {
+    fn RelList(&self) -> DomRoot<DOMTokenList> {
         self.rel_list.or_init(|| {
             DOMTokenList::new(self.upcast(), &local_name!("rel"))
         })

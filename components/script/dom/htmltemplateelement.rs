@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::HTMLTemplateElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{MutNullableJS, Root};
+use dom::bindings::root::{DomRoot, MutNullableDom};
 use dom::document::Document;
 use dom::documentfragment::DocumentFragment;
 use dom::htmlelement::HTMLElement;
@@ -21,7 +21,7 @@ pub struct HTMLTemplateElement {
     htmlelement: HTMLElement,
 
     /// https://html.spec.whatwg.org/multipage/#template-contents
-    contents: MutNullableJS<DocumentFragment>,
+    contents: MutNullableDom<DocumentFragment>,
 }
 
 impl HTMLTemplateElement {
@@ -31,14 +31,14 @@ impl HTMLTemplateElement {
         HTMLTemplateElement {
             htmlelement:
                 HTMLElement::new_inherited(local_name, prefix, document),
-            contents: MutNullableJS::new(None),
+            contents: MutNullableDom::new(None),
         }
     }
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
-               document: &Document) -> Root<HTMLTemplateElement> {
+               document: &Document) -> DomRoot<HTMLTemplateElement> {
         Node::reflect_node(box HTMLTemplateElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLTemplateElementBinding::Wrap)
@@ -47,7 +47,7 @@ impl HTMLTemplateElement {
 
 impl HTMLTemplateElementMethods for HTMLTemplateElement {
     /// https://html.spec.whatwg.org/multipage/#dom-template-content
-    fn Content(&self) -> Root<DocumentFragment> {
+    fn Content(&self) -> DomRoot<DocumentFragment> {
         self.contents.or_init(|| {
             let doc = document_from_node(self);
             doc.appropriate_template_contents_owner_document().CreateDocumentFragment()
@@ -79,7 +79,7 @@ impl VirtualMethods for HTMLTemplateElement {
         }
         let copy = copy.downcast::<HTMLTemplateElement>().unwrap();
         // Steps 2-3.
-        let copy_contents = Root::upcast::<Node>(copy.Content());
+        let copy_contents = DomRoot::upcast::<Node>(copy.Content());
         let copy_contents_doc = copy_contents.owner_doc();
         for child in self.Content().upcast::<Node>().children() {
             let copy_child = Node::clone(

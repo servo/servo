@@ -4,8 +4,8 @@
 
 use dom::bindings::codegen::Bindings::MimeTypeArrayBinding;
 use dom::bindings::codegen::Bindings::MimeTypeArrayBinding::MimeTypeArrayMethods;
-use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::globalscope::GlobalScope;
 use dom::mimetype::MimeType;
@@ -23,7 +23,7 @@ impl MimeTypeArray {
         }
     }
 
-    pub fn new(global: &GlobalScope) -> Root<MimeTypeArray> {
+    pub fn new(global: &GlobalScope) -> DomRoot<MimeTypeArray> {
         reflect_dom_object(box MimeTypeArray::new_inherited(),
                            global,
                            MimeTypeArrayBinding::Wrap)
@@ -37,22 +37,22 @@ impl MimeTypeArrayMethods for MimeTypeArray {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-mimetypearray-item
-    fn Item(&self, _index: u32) -> Option<Root<MimeType>> {
+    fn Item(&self, _index: u32) -> Option<DomRoot<MimeType>> {
         None
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-mimetypearray-nameditem
-    fn NamedItem(&self, _name: DOMString) -> Option<Root<MimeType>> {
+    fn NamedItem(&self, _name: DOMString) -> Option<DomRoot<MimeType>> {
         None
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-mimetypearray-item
-    fn IndexedGetter(&self, _index: u32) -> Option<Root<MimeType>> {
+    fn IndexedGetter(&self, _index: u32) -> Option<DomRoot<MimeType>> {
         None
     }
 
     // check-tidy: no specs after this line
-    fn NamedGetter(&self, _name: DOMString) -> Option<Root<MimeType>> {
+    fn NamedGetter(&self, _name: DOMString) -> Option<DomRoot<MimeType>> {
         None
     }
 

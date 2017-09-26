@@ -4,8 +4,8 @@
 
 use dom::bindings::codegen::Bindings::PluginArrayBinding;
 use dom::bindings::codegen::Bindings::PluginArrayBinding::PluginArrayMethods;
-use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::globalscope::GlobalScope;
 use dom::plugin::Plugin;
@@ -23,7 +23,7 @@ impl PluginArray {
         }
     }
 
-    pub fn new(global: &GlobalScope) -> Root<PluginArray> {
+    pub fn new(global: &GlobalScope) -> DomRoot<PluginArray> {
         reflect_dom_object(box PluginArray::new_inherited(),
                            global,
                            PluginArrayBinding::Wrap)
@@ -41,22 +41,22 @@ impl PluginArrayMethods for PluginArray {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-pluginarray-item
-    fn Item(&self, _index: u32) -> Option<Root<Plugin>> {
+    fn Item(&self, _index: u32) -> Option<DomRoot<Plugin>> {
         None
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-pluginarray-nameditem
-    fn NamedItem(&self, _name: DOMString) -> Option<Root<Plugin>> {
+    fn NamedItem(&self, _name: DOMString) -> Option<DomRoot<Plugin>> {
         None
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-pluginarray-item
-    fn IndexedGetter(&self, _index: u32) -> Option<Root<Plugin>> {
+    fn IndexedGetter(&self, _index: u32) -> Option<DomRoot<Plugin>> {
         None
     }
 
     // check-tidy: no specs after this line
-    fn NamedGetter(&self, _name: DOMString) -> Option<Root<Plugin>> {
+    fn NamedGetter(&self, _name: DOMString) -> Option<DomRoot<Plugin>> {
         None
     }
 

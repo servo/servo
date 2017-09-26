@@ -3,12 +3,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use core::nonzero::NonZero;
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::CryptoBinding;
 use dom::bindings::codegen::Bindings::CryptoBinding::CryptoMethods;
 use dom::bindings::error::{Error, Fallible};
-use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::root::DomRoot;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use js::jsapi::{JSContext, JSObject};
@@ -22,18 +22,18 @@ unsafe_no_jsmanaged_fields!(ServoRng);
 pub struct Crypto {
     reflector_: Reflector,
     #[ignore_heap_size_of = "Defined in rand"]
-    rng: DOMRefCell<ServoRng>,
+    rng: DomRefCell<ServoRng>,
 }
 
 impl Crypto {
     fn new_inherited() -> Crypto {
         Crypto {
             reflector_: Reflector::new(),
-            rng: DOMRefCell::new(ServoRng::new()),
+            rng: DomRefCell::new(ServoRng::new()),
         }
     }
 
-    pub fn new(global: &GlobalScope) -> Root<Crypto> {
+    pub fn new(global: &GlobalScope) -> DomRoot<Crypto> {
         reflect_dom_object(box Crypto::new_inherited(), global, CryptoBinding::Wrap)
     }
 }

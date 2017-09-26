@@ -5,8 +5,8 @@
 use dom::bindings::codegen::Bindings::TextDecoderBinding;
 use dom::bindings::codegen::Bindings::TextDecoderBinding::TextDecoderMethods;
 use dom::bindings::error::{Error, Fallible};
-use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::{DOMString, USVString};
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
@@ -32,11 +32,11 @@ impl TextDecoder {
         }
     }
 
-    fn make_range_error() -> Fallible<Root<TextDecoder>> {
+    fn make_range_error() -> Fallible<DomRoot<TextDecoder>> {
         Err(Error::Range("The given encoding is not supported.".to_owned()))
     }
 
-    pub fn new(global: &GlobalScope, encoding: EncodingRef, fatal: bool) -> Root<TextDecoder> {
+    pub fn new(global: &GlobalScope, encoding: EncodingRef, fatal: bool) -> DomRoot<TextDecoder> {
         reflect_dom_object(box TextDecoder::new_inherited(encoding, fatal),
                            global,
                            TextDecoderBinding::Wrap)
@@ -46,7 +46,7 @@ impl TextDecoder {
     pub fn Constructor(global: &GlobalScope,
                        label: DOMString,
                        options: &TextDecoderBinding::TextDecoderOptions)
-                            -> Fallible<Root<TextDecoder>> {
+                            -> Fallible<DomRoot<TextDecoder>> {
         let encoding = match encoding_from_whatwg_label(&label) {
             None => return TextDecoder::make_range_error(),
             Some(enc) => enc

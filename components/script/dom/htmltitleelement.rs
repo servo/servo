@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::HTMLTitleElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTitleElementBinding::HTMLTitleElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::htmlelement::HTMLElement;
@@ -30,7 +30,7 @@ impl HTMLTitleElement {
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
-               document: &Document) -> Root<HTMLTitleElement> {
+               document: &Document) -> DomRoot<HTMLTitleElement> {
         Node::reflect_node(box HTMLTitleElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLTitleElementBinding::Wrap)

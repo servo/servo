@@ -8,8 +8,8 @@ use dom::abstractworker::WorkerScriptMsg;
 use dom::bindings::codegen::Bindings::ServiceWorkerGlobalScopeBinding;
 use dom::bindings::codegen::Bindings::ServiceWorkerGlobalScopeBinding::ServiceWorkerGlobalScopeMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{Root, RootCollection};
 use dom::bindings::reflector::DomObject;
+use dom::bindings::root::{DomRoot, RootCollection};
 use dom::bindings::str::DOMString;
 use dom::event::Event;
 use dom::eventtarget::EventTarget;
@@ -120,7 +120,7 @@ impl ServiceWorkerGlobalScope {
                timer_event_port: Receiver<()>,
                swmanager_sender: IpcSender<ServiceWorkerMsg>,
                scope_url: ServoUrl)
-               -> Root<ServiceWorkerGlobalScope> {
+               -> DomRoot<ServiceWorkerGlobalScope> {
         let cx = runtime.cx();
         let scope = box ServiceWorkerGlobalScope::new_inherited(init,
                                                                   worker_url,
@@ -322,7 +322,7 @@ impl ServiceWorkerGlobalScope {
 #[allow(unsafe_code)]
 unsafe extern "C" fn interrupt_callback(cx: *mut JSContext) -> bool {
     let worker =
-        Root::downcast::<WorkerGlobalScope>(GlobalScope::from_context(cx))
+        DomRoot::downcast::<WorkerGlobalScope>(GlobalScope::from_context(cx))
             .expect("global is not a worker scope");
     assert!(worker.is::<ServiceWorkerGlobalScope>());
 

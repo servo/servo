@@ -4,8 +4,8 @@
 
 use dom::bindings::codegen::Bindings::FileReaderSyncBinding;
 use dom::bindings::error::Fallible;
-use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::DomRoot;
 use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
@@ -22,12 +22,12 @@ impl FileReaderSync {
         }
     }
 
-    pub fn new(global: &GlobalScope) -> Root<FileReaderSync> {
+    pub fn new(global: &GlobalScope) -> DomRoot<FileReaderSync> {
         reflect_dom_object(box FileReaderSync::new_inherited(),
                            global, FileReaderSyncBinding::Wrap)
     }
 
-    pub fn Constructor(global: &GlobalScope) -> Fallible<Root<FileReaderSync>> {
+    pub fn Constructor(global: &GlobalScope) -> Fallible<DomRoot<FileReaderSync>> {
         Ok(FileReaderSync::new(global))
     }
 }

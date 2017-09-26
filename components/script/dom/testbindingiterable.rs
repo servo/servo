@@ -4,11 +4,11 @@
 
 // check-tidy: no specs after this line
 
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::TestBindingIterableBinding::{self, TestBindingIterableMethods};
 use dom::bindings::error::Fallible;
-use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
@@ -16,18 +16,18 @@ use dom_struct::dom_struct;
 #[dom_struct]
 pub struct TestBindingIterable {
     reflector: Reflector,
-    vals: DOMRefCell<Vec<DOMString>>,
+    vals: DomRefCell<Vec<DOMString>>,
 }
 
 impl TestBindingIterable {
-    fn new(global: &GlobalScope) -> Root<TestBindingIterable> {
+    fn new(global: &GlobalScope) -> DomRoot<TestBindingIterable> {
         reflect_dom_object(box TestBindingIterable {
             reflector: Reflector::new(),
-            vals: DOMRefCell::new(vec![]),
+            vals: DomRefCell::new(vec![]),
         }, global, TestBindingIterableBinding::Wrap)
     }
 
-    pub fn Constructor(global: &GlobalScope) -> Fallible<Root<TestBindingIterable>> {
+    pub fn Constructor(global: &GlobalScope) -> Fallible<DomRoot<TestBindingIterable>> {
         Ok(TestBindingIterable::new(global))
     }
 }

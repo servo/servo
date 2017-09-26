@@ -7,8 +7,8 @@ use dom::bindings::codegen::Bindings::UIEventBinding;
 use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{MutNullableJS, Root, RootedReference};
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::{DomRoot, MutNullableDom, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::window::Window;
@@ -21,7 +21,7 @@ use std::default::Default;
 #[dom_struct]
 pub struct UIEvent {
     event: Event,
-    view: MutNullableJS<Window>,
+    view: MutNullableDom<Window>,
     detail: Cell<i32>
 }
 
@@ -34,7 +34,7 @@ impl UIEvent {
         }
     }
 
-    pub fn new_uninitialized(window: &Window) -> Root<UIEvent> {
+    pub fn new_uninitialized(window: &Window) -> DomRoot<UIEvent> {
         reflect_dom_object(box UIEvent::new_inherited(),
                            window,
                            UIEventBinding::Wrap)
@@ -45,7 +45,7 @@ impl UIEvent {
                can_bubble: EventBubbles,
                cancelable: EventCancelable,
                view: Option<&Window>,
-               detail: i32) -> Root<UIEvent> {
+               detail: i32) -> DomRoot<UIEvent> {
         let ev = UIEvent::new_uninitialized(window);
         ev.InitUIEvent(type_, bool::from(can_bubble), bool::from(cancelable), view, detail);
         ev
@@ -53,7 +53,7 @@ impl UIEvent {
 
     pub fn Constructor(window: &Window,
                        type_: DOMString,
-                       init: &UIEventBinding::UIEventInit) -> Fallible<Root<UIEvent>> {
+                       init: &UIEventBinding::UIEventInit) -> Fallible<DomRoot<UIEvent>> {
         let bubbles = EventBubbles::from(init.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.cancelable);
         let event = UIEvent::new(window,
@@ -66,7 +66,7 @@ impl UIEvent {
 
 impl UIEventMethods for UIEvent {
     // https://w3c.github.io/uievents/#widl-UIEvent-view
-    fn GetView(&self) -> Option<Root<Window>> {
+    fn GetView(&self) -> Option<DomRoot<Window>> {
         self.view.get()
     }
 

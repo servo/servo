@@ -6,13 +6,13 @@ use devtools;
 use devtools_traits::DevtoolScriptControlMsg;
 use dom::abstractworker::{SharedRt, SimpleWorkerErrorHandler, WorkerScriptMsg};
 use dom::abstractworkerglobalscope::{SendableWorkerScriptChan, WorkerThreadWorkerChan};
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding;
 use dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding::DedicatedWorkerGlobalScopeMethods;
 use dom::bindings::error::{ErrorInfo, ErrorResult};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{Root, RootCollection};
 use dom::bindings::reflector::DomObject;
+use dom::bindings::root::{DomRoot, RootCollection};
 use dom::bindings::str::DOMString;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::errorevent::ErrorEvent;
@@ -86,8 +86,8 @@ pub struct DedicatedWorkerGlobalScope {
     own_sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
     #[ignore_heap_size_of = "Defined in std"]
     timer_event_port: Receiver<(TrustedWorkerAddress, TimerEvent)>,
-    #[ignore_heap_size_of = "Trusted<T> has unclear ownership like JS<T>"]
-    worker: DOMRefCell<Option<TrustedWorkerAddress>>,
+    #[ignore_heap_size_of = "Trusted<T> has unclear ownership like Dom<T>"]
+    worker: DomRefCell<Option<TrustedWorkerAddress>>,
     #[ignore_heap_size_of = "Can't measure trait objects"]
     /// Sender to the parent thread.
     parent_sender: Box<ScriptChan + Send>,
@@ -116,7 +116,7 @@ impl DedicatedWorkerGlobalScope {
             own_sender: own_sender,
             timer_event_port: timer_event_port,
             parent_sender: parent_sender,
-            worker: DOMRefCell::new(None),
+            worker: DomRefCell::new(None),
         }
     }
 
@@ -131,7 +131,7 @@ impl DedicatedWorkerGlobalScope {
                timer_event_chan: IpcSender<TimerEvent>,
                timer_event_port: Receiver<(TrustedWorkerAddress, TimerEvent)>,
                closing: Arc<AtomicBool>)
-               -> Root<DedicatedWorkerGlobalScope> {
+               -> DomRoot<DedicatedWorkerGlobalScope> {
         let cx = runtime.cx();
         let scope = box DedicatedWorkerGlobalScope::new_inherited(init,
                                                                   worker_url,
@@ -387,7 +387,7 @@ impl DedicatedWorkerGlobalScope {
 #[allow(unsafe_code)]
 unsafe extern "C" fn interrupt_callback(cx: *mut JSContext) -> bool {
     let worker =
-        Root::downcast::<WorkerGlobalScope>(GlobalScope::from_context(cx))
+        DomRoot::downcast::<WorkerGlobalScope>(GlobalScope::from_context(cx))
             .expect("global is not a worker scope");
     assert!(worker.is::<DedicatedWorkerGlobalScope>());
 

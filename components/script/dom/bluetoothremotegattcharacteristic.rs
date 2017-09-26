@@ -4,7 +4,7 @@
 
 use bluetooth_traits::{BluetoothRequest, BluetoothResponse, GATTType};
 use bluetooth_traits::blocklist::{Blocklist, uuid_is_blocklisted};
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::BluetoothCharacteristicPropertiesBinding::
     BluetoothCharacteristicPropertiesMethods;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTCharacteristicBinding;
@@ -14,8 +14,8 @@ use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::Bluetoot
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding::BluetoothRemoteGATTServiceMethods;
 use dom::bindings::error::Error::{self, InvalidModification, Network, NotSupported, Security};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
+use dom::bindings::root::{Dom, DomRoot};
 use dom::bindings::str::{ByteString, DOMString};
 use dom::bluetooth::{AsyncBluetoothListener, get_gatt_children, response_async};
 use dom::bluetoothcharacteristicproperties::BluetoothCharacteristicProperties;
@@ -36,10 +36,10 @@ pub const MAXIMUM_ATTRIBUTE_LENGTH: usize = 512;
 #[dom_struct]
 pub struct BluetoothRemoteGATTCharacteristic {
     eventtarget: EventTarget,
-    service: JS<BluetoothRemoteGATTService>,
+    service: Dom<BluetoothRemoteGATTService>,
     uuid: DOMString,
-    properties: JS<BluetoothCharacteristicProperties>,
-    value: DOMRefCell<Option<ByteString>>,
+    properties: Dom<BluetoothCharacteristicProperties>,
+    value: DomRefCell<Option<ByteString>>,
     instance_id: String,
 }
 
@@ -51,10 +51,10 @@ impl BluetoothRemoteGATTCharacteristic {
                          -> BluetoothRemoteGATTCharacteristic {
         BluetoothRemoteGATTCharacteristic {
             eventtarget: EventTarget::new_inherited(),
-            service: JS::from_ref(service),
+            service: Dom::from_ref(service),
             uuid: uuid,
-            properties: JS::from_ref(properties),
-            value: DOMRefCell::new(None),
+            properties: Dom::from_ref(properties),
+            value: DomRefCell::new(None),
             instance_id: instance_id,
         }
     }
@@ -64,7 +64,7 @@ impl BluetoothRemoteGATTCharacteristic {
                uuid: DOMString,
                properties: &BluetoothCharacteristicProperties,
                instanceID: String)
-               -> Root<BluetoothRemoteGATTCharacteristic> {
+               -> DomRoot<BluetoothRemoteGATTCharacteristic> {
         reflect_dom_object(box BluetoothRemoteGATTCharacteristic::new_inherited(service,
                                                                                 uuid,
                                                                                 properties,
@@ -84,13 +84,13 @@ impl BluetoothRemoteGATTCharacteristic {
 
 impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteristic {
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-properties
-    fn Properties(&self) -> Root<BluetoothCharacteristicProperties> {
-        Root::from_ref(&self.properties)
+    fn Properties(&self) -> DomRoot<BluetoothCharacteristicProperties> {
+        DomRoot::from_ref(&self.properties)
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-service
-    fn Service(&self) -> Root<BluetoothRemoteGATTService> {
-        Root::from_ref(&self.service)
+    fn Service(&self) -> DomRoot<BluetoothRemoteGATTService> {
+        DomRoot::from_ref(&self.service)
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-uuid

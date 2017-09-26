@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::PerformancePaintTimingBinding;
-use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::globalscope::GlobalScope;
 use dom::performanceentry::PerformanceEntry;
@@ -34,7 +34,7 @@ impl PerformancePaintTiming {
     #[allow(unrooted_must_root)]
     pub fn new(global: &GlobalScope,
                metric_type: PaintMetricType,
-               start_time: f64) -> Root<PerformancePaintTiming> {
+               start_time: f64) -> DomRoot<PerformancePaintTiming> {
         let entry = PerformancePaintTiming::new_inherited(metric_type, start_time);
         reflect_dom_object(box entry, global, PerformancePaintTimingBinding::Wrap)
     }

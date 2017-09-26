@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::HTMLTableSectionElementBinding::{self, HTM
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{LayoutJS, Root, RootedReference};
+use dom::bindings::root::{DomRoot, LayoutDom, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{Element, RawLayoutElementHelpers};
@@ -35,7 +35,7 @@ impl HTMLTableSectionElement {
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName, prefix: Option<Prefix>, document: &Document)
-               -> Root<HTMLTableSectionElement> {
+               -> DomRoot<HTMLTableSectionElement> {
         Node::reflect_node(box HTMLTableSectionElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLTableSectionElementBinding::Wrap)
@@ -53,12 +53,12 @@ impl CollectionFilter for RowsFilter {
 
 impl HTMLTableSectionElementMethods for HTMLTableSectionElement {
     // https://html.spec.whatwg.org/multipage/#dom-tbody-rows
-    fn Rows(&self) -> Root<HTMLCollection> {
+    fn Rows(&self) -> DomRoot<HTMLCollection> {
         HTMLCollection::create(&window_from_node(self), self.upcast(), box RowsFilter)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tbody-insertrow
-    fn InsertRow(&self, index: i32) -> Fallible<Root<HTMLElement>> {
+    fn InsertRow(&self, index: i32) -> Fallible<DomRoot<HTMLElement>> {
         let node = self.upcast::<Node>();
         node.insert_cell_or_row(
             index,
@@ -81,7 +81,7 @@ pub trait HTMLTableSectionElementLayoutHelpers {
 }
 
 #[allow(unsafe_code)]
-impl HTMLTableSectionElementLayoutHelpers for LayoutJS<HTMLTableSectionElement> {
+impl HTMLTableSectionElementLayoutHelpers for LayoutDom<HTMLTableSectionElement> {
     fn get_background_color(&self) -> Option<RGBA> {
         unsafe {
             (&*self.upcast::<Element>().unsafe_get())

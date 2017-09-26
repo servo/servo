@@ -4,8 +4,8 @@
 
 use dom::bindings::codegen::Bindings::OESTextureHalfFloatBinding::OESTextureHalfFloatConstants;
 use dom::bindings::codegen::Bindings::OESTextureHalfFloatLinearBinding;
-use dom::bindings::js::Root;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use dom::bindings::root::DomRoot;
 use dom::webglrenderingcontext::WebGLRenderingContext;
 use dom_struct::dom_struct;
 use super::{WebGLExtension, WebGLExtensions};
@@ -25,7 +25,7 @@ impl OESTextureHalfFloatLinear {
 
 impl WebGLExtension for OESTextureHalfFloatLinear {
     type Extension = OESTextureHalfFloatLinear;
-    fn new(ctx: &WebGLRenderingContext) -> Root<OESTextureHalfFloatLinear> {
+    fn new(ctx: &WebGLRenderingContext) -> DomRoot<OESTextureHalfFloatLinear> {
         reflect_dom_object(box OESTextureHalfFloatLinear::new_inherited(),
                            &*ctx.global(),
                            OESTextureHalfFloatLinearBinding::Wrap)

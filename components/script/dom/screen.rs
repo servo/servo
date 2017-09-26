@@ -4,8 +4,8 @@
 
 use dom::bindings::codegen::Bindings::ScreenBinding;
 use dom::bindings::codegen::Bindings::ScreenBinding::ScreenMethods;
-use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::root::DomRoot;
 use dom::window::Window;
 use dom_struct::dom_struct;
 
@@ -21,7 +21,7 @@ impl Screen {
         }
     }
 
-    pub fn new(window: &Window) -> Root<Screen> {
+    pub fn new(window: &Window) -> DomRoot<Screen> {
         reflect_dom_object(box Screen::new_inherited(),
                            window,
                            ScreenBinding::Wrap)

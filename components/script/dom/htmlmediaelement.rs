@@ -5,7 +5,7 @@
 use audio_video_metadata;
 use document_loader::{LoadBlocker, LoadType};
 use dom::attr::Attr;
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::HTMLMediaElementBinding::CanPlayTypeResult;
 use dom::bindings::codegen::Bindings::HTMLMediaElementBinding::HTMLMediaElementConstants;
@@ -16,9 +16,9 @@ use dom::bindings::codegen::InheritTypes::{ElementTypeId, HTMLElementTypeId};
 use dom::bindings::codegen::InheritTypes::{HTMLMediaElementTypeId, NodeTypeId};
 use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{MutNullableJS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
+use dom::bindings::root::{DomRoot, MutNullableDom};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{Element, AttributeMutation};
@@ -58,7 +58,7 @@ pub struct HTMLMediaElement {
     /// https://html.spec.whatwg.org/multipage/#dom-media-readystate
     ready_state: Cell<ReadyState>,
     /// https://html.spec.whatwg.org/multipage/#dom-media-currentsrc
-    current_src: DOMRefCell<String>,
+    current_src: DomRefCell<String>,
     /// Incremented whenever tasks associated with this element are cancelled.
     generation_id: Cell<u32>,
     /// https://html.spec.whatwg.org/multipage/#fire-loadeddata
@@ -66,22 +66,22 @@ pub struct HTMLMediaElement {
     /// Reset to false every time the load algorithm is invoked.
     fired_loadeddata_event: Cell<bool>,
     /// https://html.spec.whatwg.org/multipage/#dom-media-error
-    error: MutNullableJS<MediaError>,
+    error: MutNullableDom<MediaError>,
     /// https://html.spec.whatwg.org/multipage/#dom-media-paused
     paused: Cell<bool>,
     /// https://html.spec.whatwg.org/multipage/#attr-media-autoplay
     autoplaying: Cell<bool>,
     /// https://html.spec.whatwg.org/multipage/#delaying-the-load-event-flag
-    delaying_the_load_event_flag: DOMRefCell<Option<LoadBlocker>>,
+    delaying_the_load_event_flag: DomRefCell<Option<LoadBlocker>>,
     /// https://html.spec.whatwg.org/multipage/#list-of-pending-play-promises
     #[ignore_heap_size_of = "promises are hard"]
-    pending_play_promises: DOMRefCell<Vec<Rc<Promise>>>,
+    pending_play_promises: DomRefCell<Vec<Rc<Promise>>>,
     /// Play promises which are soon to be fulfilled by a queued task.
     #[ignore_heap_size_of = "promises are hard"]
-    in_flight_play_promises_queue: DOMRefCell<VecDeque<(Box<[Rc<Promise>]>, ErrorResult)>>,
+    in_flight_play_promises_queue: DomRefCell<VecDeque<(Box<[Rc<Promise>]>, ErrorResult)>>,
     /// The details of the video currently related to this media element.
     // FIXME(nox): Why isn't this in HTMLVideoElement?
-    video: DOMRefCell<Option<VideoMedia>>,
+    video: DomRefCell<Option<VideoMedia>>,
 }
 
 /// https://html.spec.whatwg.org/multipage/#dom-media-networkstate
@@ -126,7 +126,7 @@ impl HTMLMediaElement {
             htmlelement: HTMLElement::new_inherited(tag_name, prefix, document),
             network_state: Cell::new(NetworkState::Empty),
             ready_state: Cell::new(ReadyState::HaveNothing),
-            current_src: DOMRefCell::new("".to_owned()),
+            current_src: DomRefCell::new("".to_owned()),
             generation_id: Cell::new(0),
             fired_loadeddata_event: Cell::new(false),
             error: Default::default(),
@@ -136,7 +136,7 @@ impl HTMLMediaElement {
             delaying_the_load_event_flag: Default::default(),
             pending_play_promises: Default::default(),
             in_flight_play_promises_queue: Default::default(),
-            video: DOMRefCell::new(None),
+            video: DomRefCell::new(None),
         }
     }
 
@@ -444,7 +444,7 @@ impl HTMLMediaElement {
         // right here.
         let doc = document_from_node(self);
         let task = MediaElementMicrotask::ResourceSelectionTask {
-            elem: Root::from_ref(self),
+            elem: DomRoot::from_ref(self),
             base_url: doc.base_url()
         };
 
@@ -466,7 +466,7 @@ impl HTMLMediaElement {
             #[allow(dead_code)]
             Object,
             Attribute(String),
-            Children(Root<HTMLSourceElement>),
+            Children(DomRoot<HTMLSourceElement>),
         }
         fn mode(media: &HTMLMediaElement) -> Option<Mode> {
             if let Some(attr) = media.upcast::<Element>().get_attribute(&ns!(), &local_name!("src")) {
@@ -474,7 +474,7 @@ impl HTMLMediaElement {
             }
             let source_child_element = media.upcast::<Node>()
                 .children()
-                .filter_map(Root::downcast::<HTMLSourceElement>)
+                .filter_map(DomRoot::downcast::<HTMLSourceElement>)
                 .next();
             if let Some(element) = source_child_element {
                 return Some(Mode::Children(element));
@@ -880,7 +880,7 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-media-error
-    fn GetError(&self) -> Option<Root<MediaError>> {
+    fn GetError(&self) -> Option<DomRoot<MediaError>> {
         self.error.get()
     }
 
@@ -933,7 +933,7 @@ impl VirtualMethods for HTMLMediaElement {
 
         if context.tree_in_doc {
             let task = MediaElementMicrotask::PauseIfNotInDocumentTask {
-                elem: Root::from_ref(self)
+                elem: DomRoot::from_ref(self)
             };
             ScriptThread::await_stable_state(Microtask::MediaElement(task));
         }
@@ -943,11 +943,11 @@ impl VirtualMethods for HTMLMediaElement {
 #[derive(HeapSizeOf, JSTraceable)]
 pub enum MediaElementMicrotask {
     ResourceSelectionTask {
-        elem: Root<HTMLMediaElement>,
+        elem: DomRoot<HTMLMediaElement>,
         base_url: ServoUrl
     },
     PauseIfNotInDocumentTask {
-        elem: Root<HTMLMediaElement>,
+        elem: DomRoot<HTMLMediaElement>,
     }
 }
 

@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::callback::CallbackContainer;
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::PaintWorkletGlobalScopeBinding;
 use dom::bindings::codegen::Bindings::PaintWorkletGlobalScopeBinding::PaintWorkletGlobalScopeMethods;
 use dom::bindings::codegen::Bindings::VoidFunctionBinding::VoidFunction;
@@ -12,9 +12,8 @@ use dom::bindings::conversions::get_property_jsval;
 use dom::bindings::error::Error;
 use dom::bindings::error::Fallible;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::JS;
-use dom::bindings::js::Root;
 use dom::bindings::reflector::DomObject;
+use dom::bindings::root::{Dom, DomRoot};
 use dom::bindings::str::DOMString;
 use dom::cssstylevalue::CSSStyleValue;
 use dom::paintrenderingcontext2d::PaintRenderingContext2D;
@@ -72,21 +71,21 @@ pub struct PaintWorkletGlobalScope {
     #[ignore_heap_size_of = "Arc"]
     image_cache: Arc<ImageCache>,
     /// https://drafts.css-houdini.org/css-paint-api/#paint-definitions
-    paint_definitions: DOMRefCell<HashMap<Atom, Box<PaintDefinition>>>,
+    paint_definitions: DomRefCell<HashMap<Atom, Box<PaintDefinition>>>,
     /// https://drafts.css-houdini.org/css-paint-api/#paint-class-instances
-    paint_class_instances: DOMRefCell<HashMap<Atom, Box<Heap<JSVal>>>>,
+    paint_class_instances: DomRefCell<HashMap<Atom, Box<Heap<JSVal>>>>,
     /// The most recent name the worklet was called with
-    cached_name: DOMRefCell<Atom>,
+    cached_name: DomRefCell<Atom>,
     /// The most recent size the worklet was drawn at
     cached_size: Cell<TypedSize2D<f32, CSSPixel>>,
     /// The most recent device pixel ratio the worklet was drawn at
     cached_device_pixel_ratio: Cell<ScaleFactor<f32, CSSPixel, DevicePixel>>,
     /// The most recent properties the worklet was drawn at
-    cached_properties: DOMRefCell<Vec<(Atom, String)>>,
+    cached_properties: DomRefCell<Vec<(Atom, String)>>,
     /// The most recent arguments the worklet was drawn at
-    cached_arguments: DOMRefCell<Vec<String>>,
+    cached_arguments: DomRefCell<Vec<String>>,
     /// The most recent result
-    cached_result: DOMRefCell<DrawAPaintImageResult>,
+    cached_result: DomRefCell<DrawAPaintImageResult>,
 }
 
 impl PaintWorkletGlobalScope {
@@ -96,19 +95,19 @@ impl PaintWorkletGlobalScope {
                base_url: ServoUrl,
                executor: WorkletExecutor,
                init: &WorkletGlobalScopeInit)
-               -> Root<PaintWorkletGlobalScope> {
+               -> DomRoot<PaintWorkletGlobalScope> {
         debug!("Creating paint worklet global scope for pipeline {}.", pipeline_id);
         let global = box PaintWorkletGlobalScope {
             worklet_global: WorkletGlobalScope::new_inherited(pipeline_id, base_url, executor, init),
             image_cache: init.image_cache.clone(),
             paint_definitions: Default::default(),
             paint_class_instances: Default::default(),
-            cached_name: DOMRefCell::new(Atom::from("")),
+            cached_name: DomRefCell::new(Atom::from("")),
             cached_size: Cell::new(TypedSize2D::zero()),
             cached_device_pixel_ratio: Cell::new(ScaleFactor::new(1.0)),
             cached_properties: Default::default(),
             cached_arguments: Default::default(),
-            cached_result: DOMRefCell::new(DrawAPaintImageResult {
+            cached_result: DomRefCell::new(DrawAPaintImageResult {
                 width: 0,
                 height: 0,
                 format: PixelFormat::BGRA8,
@@ -223,7 +222,7 @@ impl PaintWorkletGlobalScope {
                 }
                 class_constructor.set(definition.class_constructor.get());
                 paint_function.set(definition.paint_function.get());
-                Root::from_ref(&*definition.context)
+                DomRoot::from_ref(&*definition.context)
             }
         };
 
@@ -477,7 +476,7 @@ struct PaintDefinition {
     // TODO: the spec calls for fresh rendering contexts each time a paint image is drawn,
     // but to avoid having the primary worklet thread create a new renering context,
     // we recycle them.
-    context: JS<PaintRenderingContext2D>,
+    context: Dom<PaintRenderingContext2D>,
 }
 
 impl PaintDefinition {
@@ -494,7 +493,7 @@ impl PaintDefinition {
             constructor_valid_flag: Cell::new(true),
             context_alpha_flag: alpha,
             input_arguments_len: input_arguments_len,
-            context: JS::from_ref(context),
+            context: Dom::from_ref(context),
         });
         result.class_constructor.set(class_constructor.get());
         result.paint_function.set(paint_function.get());

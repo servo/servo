@@ -6,7 +6,7 @@ use cssparser::RGBA;
 use dom::bindings::codegen::Bindings::HTMLTableCellElementBinding::HTMLTableCellElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::LayoutJS;
+use dom::bindings::root::LayoutDom;
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{Element, RawLayoutElementHelpers};
@@ -88,7 +88,7 @@ pub trait HTMLTableCellElementLayoutHelpers {
 }
 
 #[allow(unsafe_code)]
-impl HTMLTableCellElementLayoutHelpers for LayoutJS<HTMLTableCellElement> {
+impl HTMLTableCellElementLayoutHelpers for LayoutDom<HTMLTableCellElement> {
     fn get_background_color(&self) -> Option<RGBA> {
         unsafe {
             (&*self.upcast::<Element>().unsafe_get())

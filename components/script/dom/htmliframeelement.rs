@@ -4,7 +4,7 @@
 
 use document_loader::{LoadBlocker, LoadType};
 use dom::attr::Attr;
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserElementErrorEventDetail;
 use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserElementIconChangeEventDetail;
 use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserElementLocationChangeEventDetail;
@@ -19,9 +19,9 @@ use dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethod
 use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{LayoutJS, MutNullableJS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
+use dom::bindings::root::{LayoutDom, DomRoot, MutNullableDom};
 use dom::bindings::str::DOMString;
 use dom::customevent::CustomEvent;
 use dom::document::Document;
@@ -88,9 +88,9 @@ pub struct HTMLIFrameElement {
     browsing_context_id: Cell<Option<BrowsingContextId>>,
     pipeline_id: Cell<Option<PipelineId>>,
     pending_pipeline_id: Cell<Option<PipelineId>>,
-    sandbox: MutNullableJS<DOMTokenList>,
+    sandbox: MutNullableDom<DOMTokenList>,
     sandbox_allowance: Cell<Option<SandboxAllowance>>,
-    load_blocker: DOMRefCell<Option<LoadBlocker>>,
+    load_blocker: DomRefCell<Option<LoadBlocker>>,
     visibility: Cell<bool>,
 }
 
@@ -329,7 +329,7 @@ impl HTMLIFrameElement {
             pending_pipeline_id: Cell::new(None),
             sandbox: Default::default(),
             sandbox_allowance: Cell::new(None),
-            load_blocker: DOMRefCell::new(None),
+            load_blocker: DomRefCell::new(None),
             visibility: Cell::new(true),
         }
     }
@@ -337,7 +337,7 @@ impl HTMLIFrameElement {
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
-               document: &Document) -> Root<HTMLIFrameElement> {
+               document: &Document) -> DomRoot<HTMLIFrameElement> {
         Node::reflect_node(box HTMLIFrameElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLIFrameElementBinding::Wrap)
@@ -419,7 +419,7 @@ pub trait HTMLIFrameElementLayoutMethods {
     fn get_height(&self) -> LengthOrPercentageOrAuto;
 }
 
-impl HTMLIFrameElementLayoutMethods for LayoutJS<HTMLIFrameElement> {
+impl HTMLIFrameElementLayoutMethods for LayoutDom<HTMLIFrameElement> {
     #[inline]
     #[allow(unsafe_code)]
     fn pipeline_id(&self) -> Option<PipelineId> {
@@ -461,7 +461,7 @@ impl HTMLIFrameElementLayoutMethods for LayoutJS<HTMLIFrameElement> {
 }
 
 #[allow(unsafe_code)]
-pub fn build_mozbrowser_custom_event(window: &Window, event: MozBrowserEvent) -> Root<CustomEvent> {
+pub fn build_mozbrowser_custom_event(window: &Window, event: MozBrowserEvent) -> DomRoot<CustomEvent> {
     // TODO(gw): Support mozbrowser event types that have detail which is not a string.
     // See https://developer.mozilla.org/en-US/docs/Web/API/Using_the_Browser_API
     // for a list of mozbrowser events.
@@ -583,19 +583,19 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-sandbox
-    fn Sandbox(&self) -> Root<DOMTokenList> {
+    fn Sandbox(&self) -> DomRoot<DOMTokenList> {
         self.sandbox.or_init(|| DOMTokenList::new(self.upcast::<Element>(), &local_name!("sandbox")))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-contentwindow
-    fn GetContentWindow(&self) -> Option<Root<WindowProxy>> {
+    fn GetContentWindow(&self) -> Option<DomRoot<WindowProxy>> {
         self.browsing_context_id.get()
             .and_then(|browsing_context_id| ScriptThread::find_window_proxy(browsing_context_id))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-contentdocument
     // https://html.spec.whatwg.org/multipage/#concept-bcc-content-document
-    fn GetContentDocument(&self) -> Option<Root<Document>> {
+    fn GetContentDocument(&self) -> Option<DomRoot<Document>> {
         // Step 1.
         let pipeline_id = match self.pipeline_id.get() {
             None => return None,

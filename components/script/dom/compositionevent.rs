@@ -5,8 +5,8 @@
 use dom::bindings::codegen::Bindings::CompositionEventBinding::{self, CompositionEventMethods};
 use dom::bindings::codegen::Bindings::UIEventBinding::UIEventBinding::UIEventMethods;
 use dom::bindings::error::Fallible;
-use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::{DomRoot, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::uievent::UIEvent;
 use dom::window::Window;
@@ -25,7 +25,7 @@ impl CompositionEvent {
                cancelable: bool,
                view: Option<&Window>,
                detail: i32,
-               data: DOMString) -> Root<CompositionEvent> {
+               data: DOMString) -> DomRoot<CompositionEvent> {
         let ev = reflect_dom_object(box CompositionEvent {
                                         uievent: UIEvent::new_inherited(),
                                         data: data,
@@ -39,7 +39,7 @@ impl CompositionEvent {
     pub fn Constructor(window: &Window,
                        type_: DOMString,
                        init: &CompositionEventBinding::CompositionEventInit)
-                       -> Fallible<Root<CompositionEvent>> {
+                       -> Fallible<DomRoot<CompositionEvent>> {
         let event = CompositionEvent::new(window,
                                     type_,
                                     init.parent.parent.bubbles,

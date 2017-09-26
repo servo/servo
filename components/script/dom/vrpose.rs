@@ -5,8 +5,8 @@
 use core::nonzero::NonZero;
 use dom::bindings::codegen::Bindings::VRPoseBinding;
 use dom::bindings::codegen::Bindings::VRPoseBinding::VRPoseMethods;
-use dom::bindings::js::Root;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use dom::bindings::root::DomRoot;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSContext, JSObject};
@@ -76,7 +76,7 @@ impl VRPose {
         }
     }
 
-    pub fn new(global: &GlobalScope, pose: &webvr::VRPose) -> Root<VRPose> {
+    pub fn new(global: &GlobalScope, pose: &webvr::VRPose) -> DomRoot<VRPose> {
         let root = reflect_dom_object(box VRPose::new_inherited(),
                                       global,
                                       VRPoseBinding::Wrap);

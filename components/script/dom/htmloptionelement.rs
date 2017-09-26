@@ -9,7 +9,7 @@ use dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptionElemen
 use dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElementBinding::HTMLSelectElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::characterdata::CharacterData;
 use dom::document::Document;
@@ -55,7 +55,7 @@ impl HTMLOptionElement {
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
-               document: &Document) -> Root<HTMLOptionElement> {
+               document: &Document) -> DomRoot<HTMLOptionElement> {
         Node::reflect_node(box HTMLOptionElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLOptionElementBinding::Wrap)
@@ -71,7 +71,7 @@ impl HTMLOptionElement {
 
     fn pick_if_selected_and_reset(&self) {
         if let Some(select) = self.upcast::<Node>().ancestors()
-                .filter_map(Root::downcast::<HTMLSelectElement>)
+                .filter_map(DomRoot::downcast::<HTMLSelectElement>)
                 .next() {
             if self.Selected() {
                 select.pick_option(self);
@@ -119,7 +119,7 @@ impl HTMLOptionElementMethods for HTMLOptionElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-option-form
-    fn GetForm(&self) -> Option<Root<HTMLFormElement>> {
+    fn GetForm(&self) -> Option<DomRoot<HTMLFormElement>> {
         let parent = self.upcast::<Node>().GetParentNode().and_then(|p|
             if p.is::<HTMLOptGroupElement>() {
                 p.upcast::<Node>().GetParentNode()
@@ -234,7 +234,7 @@ impl VirtualMethods for HTMLOptionElement {
         self.super_type().unwrap().unbind_from_tree(context);
 
         if let Some(select) = context.parent.inclusive_ancestors()
-                .filter_map(Root::downcast::<HTMLSelectElement>)
+                .filter_map(DomRoot::downcast::<HTMLSelectElement>)
                 .next() {
             select.ask_for_reset();
         }

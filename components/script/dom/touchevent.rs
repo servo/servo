@@ -6,8 +6,8 @@ use dom::bindings::codegen::Bindings::TouchEventBinding;
 use dom::bindings::codegen::Bindings::TouchEventBinding::TouchEventMethods;
 use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{MutJS, Root};
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::{DomRoot, MutDom};
 use dom::bindings::str::DOMString;
 use dom::event::{EventBubbles, EventCancelable};
 use dom::touchlist::TouchList;
@@ -19,9 +19,9 @@ use std::cell::Cell;
 #[dom_struct]
 pub struct TouchEvent {
     uievent: UIEvent,
-    touches: MutJS<TouchList>,
-    target_touches: MutJS<TouchList>,
-    changed_touches: MutJS<TouchList>,
+    touches: MutDom<TouchList>,
+    target_touches: MutDom<TouchList>,
+    changed_touches: MutDom<TouchList>,
     alt_key: Cell<bool>,
     meta_key: Cell<bool>,
     ctrl_key: Cell<bool>,
@@ -34,9 +34,9 @@ impl TouchEvent {
                      target_touches: &TouchList) -> TouchEvent {
         TouchEvent {
             uievent: UIEvent::new_inherited(),
-            touches: MutJS::new(touches),
-            target_touches: MutJS::new(target_touches),
-            changed_touches: MutJS::new(changed_touches),
+            touches: MutDom::new(touches),
+            target_touches: MutDom::new(target_touches),
+            changed_touches: MutDom::new(changed_touches),
             ctrl_key: Cell::new(false),
             shift_key: Cell::new(false),
             alt_key: Cell::new(false),
@@ -47,7 +47,7 @@ impl TouchEvent {
     pub fn new_uninitialized(window: &Window,
                      touches: &TouchList,
                      changed_touches: &TouchList,
-                     target_touches: &TouchList) -> Root<TouchEvent> {
+                     target_touches: &TouchList) -> DomRoot<TouchEvent> {
         reflect_dom_object(box TouchEvent::new_inherited(touches, changed_touches, target_touches),
                            window,
                            TouchEventBinding::Wrap)
@@ -65,7 +65,7 @@ impl TouchEvent {
                ctrl_key: bool,
                alt_key: bool,
                shift_key: bool,
-               meta_key: bool) -> Root<TouchEvent> {
+               meta_key: bool) -> DomRoot<TouchEvent> {
         let ev = TouchEvent::new_uninitialized(window, touches, changed_touches, target_touches);
         ev.upcast::<UIEvent>().InitUIEvent(type_,
                                            bool::from(can_bubble),
@@ -101,17 +101,17 @@ impl<'a> TouchEventMethods for &'a TouchEvent {
     }
 
     /// https://w3c.github.io/touch-events/#widl-TouchEventInit-touches
-    fn Touches(&self) -> Root<TouchList> {
+    fn Touches(&self) -> DomRoot<TouchList> {
         self.touches.get()
     }
 
     /// https://w3c.github.io/touch-events/#widl-TouchEvent-targetTouches
-    fn TargetTouches(&self) -> Root<TouchList> {
+    fn TargetTouches(&self) -> DomRoot<TouchList> {
         self.target_touches.get()
     }
 
     /// https://w3c.github.io/touch-events/#widl-TouchEvent-changedTouches
-    fn ChangedTouches(&self) -> Root<TouchList> {
+    fn ChangedTouches(&self) -> DomRoot<TouchList> {
         self.changed_touches.get()
     }
 

@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::HTMLHeadElementBinding;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{Root, RootedReference};
+use dom::bindings::root::{DomRoot, RootedReference};
 use dom::document::{Document, determine_policy_for_token};
 use dom::element::Element;
 use dom::htmlelement::HTMLElement;
@@ -33,7 +33,7 @@ impl HTMLHeadElement {
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
-               document: &Document) -> Root<HTMLHeadElement> {
+               document: &Document) -> DomRoot<HTMLHeadElement> {
         Node::reflect_node(box HTMLHeadElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLHeadElementBinding::Wrap)
@@ -49,7 +49,7 @@ impl HTMLHeadElement {
 
         let node = self.upcast::<Node>();
         let candidates = node.traverse_preorder()
-                             .filter_map(Root::downcast::<Element>)
+                             .filter_map(DomRoot::downcast::<Element>)
                              .filter(|elem| elem.is::<HTMLMetaElement>())
                              .filter(|elem| elem.get_string_attribute(&local_name!("name")) == "referrer")
                              .filter(|elem| elem.get_attribute(&ns!(), &local_name!("content")).is_some());

@@ -11,8 +11,8 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeBinding::NodeMethods;
 use dom::bindings::codegen::UnionTypes::{HTMLOptionElementOrHTMLOptGroupElement, HTMLElementOrLong};
 use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::{DomRoot, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::element::Element;
 use dom::htmlcollection::{CollectionFilter, HTMLCollection};
@@ -35,7 +35,7 @@ impl HTMLOptionsCollection {
     }
 
     pub fn new(window: &Window, select: &HTMLSelectElement, filter: Box<CollectionFilter + 'static>)
-        -> Root<HTMLOptionsCollection>
+        -> DomRoot<HTMLOptionsCollection>
     {
         reflect_dom_object(box HTMLOptionsCollection::new_inherited(select, filter),
                            window,
@@ -61,7 +61,7 @@ impl HTMLOptionsCollectionMethods for HTMLOptionsCollection {
     // https://github.com/servo/servo/issues/5875
     //
     // https://dom.spec.whatwg.org/#dom-htmlcollection-nameditem
-    fn NamedGetter(&self, name: DOMString) -> Option<Root<Element>> {
+    fn NamedGetter(&self, name: DOMString) -> Option<DomRoot<Element>> {
         self.upcast().NamedItem(name)
     }
 
@@ -75,7 +75,7 @@ impl HTMLOptionsCollectionMethods for HTMLOptionsCollection {
     // https://github.com/servo/servo/issues/5875
     //
     // https://dom.spec.whatwg.org/#dom-htmlcollection-item
-    fn IndexedGetter(&self, index: u32) -> Option<Root<Element>> {
+    fn IndexedGetter(&self, index: u32) -> Option<DomRoot<Element>> {
         self.upcast().IndexedGetter(index)
     }
 
@@ -161,9 +161,9 @@ impl HTMLOptionsCollectionMethods for HTMLOptionsCollection {
         // Step 4
         let reference_node = before.and_then(|before| {
             match before {
-                HTMLElementOrLong::HTMLElement(element) => Some(Root::upcast::<Node>(element)),
+                HTMLElementOrLong::HTMLElement(element) => Some(DomRoot::upcast::<Node>(element)),
                 HTMLElementOrLong::Long(index) => {
-                    self.upcast().IndexedGetter(index as u32).map(Root::upcast::<Node>)
+                    self.upcast().IndexedGetter(index as u32).map(DomRoot::upcast::<Node>)
                 }
             }
         });

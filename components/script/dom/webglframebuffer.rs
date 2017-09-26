@@ -6,11 +6,11 @@
 use canvas_traits::webgl::{WebGLCommand, WebGLFramebufferBindingRequest, WebGLFramebufferId};
 use canvas_traits::webgl::{WebGLMsgSender, WebGLResult, WebGLError};
 use canvas_traits::webgl::webgl_channel;
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::WebGLFramebufferBinding;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
-use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::{Dom, DomRoot};
 use dom::webglobject::WebGLObject;
 use dom::webglrenderbuffer::WebGLRenderbuffer;
 use dom::webgltexture::WebGLTexture;
@@ -21,8 +21,8 @@ use std::cell::Cell;
 #[must_root]
 #[derive(Clone, HeapSizeOf, JSTraceable)]
 enum WebGLFramebufferAttachment {
-    Renderbuffer(JS<WebGLRenderbuffer>),
-    Texture { texture: JS<WebGLTexture>, level: i32 },
+    Renderbuffer(Dom<WebGLRenderbuffer>),
+    Texture { texture: Dom<WebGLTexture>, level: i32 },
 }
 
 #[dom_struct]
@@ -39,10 +39,10 @@ pub struct WebGLFramebuffer {
 
     // The attachment points for textures and renderbuffers on this
     // FBO.
-    color: DOMRefCell<Option<WebGLFramebufferAttachment>>,
-    depth: DOMRefCell<Option<WebGLFramebufferAttachment>>,
-    stencil: DOMRefCell<Option<WebGLFramebufferAttachment>>,
-    depthstencil: DOMRefCell<Option<WebGLFramebufferAttachment>>,
+    color: DomRefCell<Option<WebGLFramebufferAttachment>>,
+    depth: DomRefCell<Option<WebGLFramebufferAttachment>>,
+    stencil: DomRefCell<Option<WebGLFramebufferAttachment>>,
+    depthstencil: DomRefCell<Option<WebGLFramebufferAttachment>>,
 }
 
 impl WebGLFramebuffer {
@@ -57,15 +57,15 @@ impl WebGLFramebuffer {
             renderer: renderer,
             size: Cell::new(None),
             status: Cell::new(constants::FRAMEBUFFER_UNSUPPORTED),
-            color: DOMRefCell::new(None),
-            depth: DOMRefCell::new(None),
-            stencil: DOMRefCell::new(None),
-            depthstencil: DOMRefCell::new(None),
+            color: DomRefCell::new(None),
+            depth: DomRefCell::new(None),
+            stencil: DomRefCell::new(None),
+            depthstencil: DomRefCell::new(None),
         }
     }
 
     pub fn maybe_new(window: &Window, renderer: WebGLMsgSender)
-                     -> Option<Root<WebGLFramebuffer>> {
+                     -> Option<DomRoot<WebGLFramebuffer>> {
         let (sender, receiver) = webgl_channel().unwrap();
         renderer.send(WebGLCommand::CreateFramebuffer(sender)).unwrap();
 
@@ -76,7 +76,7 @@ impl WebGLFramebuffer {
     pub fn new(window: &Window,
                renderer: WebGLMsgSender,
                id: WebGLFramebufferId)
-               -> Root<WebGLFramebuffer> {
+               -> DomRoot<WebGLFramebuffer> {
         reflect_dom_object(box WebGLFramebuffer::new_inherited(renderer, id),
                            window,
                            WebGLFramebufferBinding::Wrap)
@@ -194,7 +194,7 @@ impl WebGLFramebuffer {
 
         let rb_id = match rb {
             Some(rb) => {
-                *binding.borrow_mut() = Some(WebGLFramebufferAttachment::Renderbuffer(JS::from_ref(rb)));
+                *binding.borrow_mut() = Some(WebGLFramebufferAttachment::Renderbuffer(Dom::from_ref(rb)));
                 Some(rb.id())
             }
 
@@ -267,7 +267,7 @@ impl WebGLFramebuffer {
                 }
 
                 *binding.borrow_mut() = Some(WebGLFramebufferAttachment::Texture {
-                    texture: JS::from_ref(texture),
+                    texture: Dom::from_ref(texture),
                     level: level }
                 );
 
@@ -291,7 +291,7 @@ impl WebGLFramebuffer {
     }
 
     fn with_matching_renderbuffers<F>(&self, rb: &WebGLRenderbuffer, mut closure: F)
-        where F: FnMut(&DOMRefCell<Option<WebGLFramebufferAttachment>>)
+        where F: FnMut(&DomRefCell<Option<WebGLFramebufferAttachment>>)
     {
         let attachments = [&self.color,
                            &self.depth,
@@ -314,7 +314,7 @@ impl WebGLFramebuffer {
     }
 
     fn with_matching_textures<F>(&self, texture: &WebGLTexture, mut closure: F)
-        where F: FnMut(&DOMRefCell<Option<WebGLFramebufferAttachment>>)
+        where F: FnMut(&DomRefCell<Option<WebGLFramebufferAttachment>>)
     {
         let attachments = [&self.color,
                            &self.depth,

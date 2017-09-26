@@ -6,8 +6,8 @@ use dom::bindings::codegen::Bindings::CSSStyleSheetBinding;
 use dom::bindings::codegen::Bindings::CSSStyleSheetBinding::CSSStyleSheetMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
-use dom::bindings::js::{JS, MutNullableJS, Root};
 use dom::bindings::reflector::{reflect_dom_object, DomObject};
+use dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use dom::bindings::str::DOMString;
 use dom::cssrulelist::{CSSRuleList, RulesSource};
 use dom::element::Element;
@@ -22,8 +22,8 @@ use style::stylesheets::Stylesheet as StyleStyleSheet;
 #[dom_struct]
 pub struct CSSStyleSheet {
     stylesheet: StyleSheet,
-    owner: JS<Element>,
-    rulelist: MutNullableJS<CSSRuleList>,
+    owner: Dom<Element>,
+    rulelist: MutNullableDom<CSSRuleList>,
     #[ignore_heap_size_of = "Arc"]
     style_stylesheet: Arc<StyleStyleSheet>,
     origin_clean: Cell<bool>,
@@ -37,8 +37,8 @@ impl CSSStyleSheet {
                      stylesheet: Arc<StyleStyleSheet>) -> CSSStyleSheet {
         CSSStyleSheet {
             stylesheet: StyleSheet::new_inherited(type_, href, title),
-            owner: JS::from_ref(owner),
-            rulelist: MutNullableJS::new(None),
+            owner: Dom::from_ref(owner),
+            rulelist: MutNullableDom::new(None),
             style_stylesheet: stylesheet,
             origin_clean: Cell::new(true),
         }
@@ -50,13 +50,13 @@ impl CSSStyleSheet {
                type_: DOMString,
                href: Option<DOMString>,
                title: Option<DOMString>,
-               stylesheet: Arc<StyleStyleSheet>) -> Root<CSSStyleSheet> {
+               stylesheet: Arc<StyleStyleSheet>) -> DomRoot<CSSStyleSheet> {
         reflect_dom_object(box CSSStyleSheet::new_inherited(owner, type_, href, title, stylesheet),
                            window,
                            CSSStyleSheetBinding::Wrap)
     }
 
-    fn rulelist(&self) -> Root<CSSRuleList> {
+    fn rulelist(&self) -> DomRoot<CSSRuleList> {
         self.rulelist.or_init(|| {
             let rules = self.style_stylesheet.contents.rules.clone();
             CSSRuleList::new(
@@ -92,7 +92,7 @@ impl CSSStyleSheet {
 
 impl CSSStyleSheetMethods for CSSStyleSheet {
     // https://drafts.csswg.org/cssom/#dom-cssstylesheet-cssrules
-    fn GetCssRules(&self) -> Fallible<Root<CSSRuleList>> {
+    fn GetCssRules(&self) -> Fallible<DomRoot<CSSRuleList>> {
         if !self.origin_clean.get() {
             return Err(Error::Security);
         }

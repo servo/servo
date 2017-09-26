@@ -6,7 +6,7 @@ use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLOptGroupElementBinding;
 use dom::bindings::codegen::Bindings::HTMLOptGroupElementBinding::HTMLOptGroupElementMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
+use dom::bindings::root::DomRoot;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element};
 use dom::htmlelement::HTMLElement;
@@ -36,7 +36,7 @@ impl HTMLOptGroupElement {
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
-               document: &Document) -> Root<HTMLOptGroupElement> {
+               document: &Document) -> DomRoot<HTMLOptGroupElement> {
         Node::reflect_node(box HTMLOptGroupElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLOptGroupElementBinding::Wrap)
@@ -73,7 +73,7 @@ impl VirtualMethods for HTMLOptGroupElement {
                 el.set_enabled_state(!disabled_state);
                 let options = el.upcast::<Node>().children().filter(|child| {
                     child.is::<HTMLOptionElement>()
-                }).map(|child| Root::from_ref(child.downcast::<HTMLOptionElement>().unwrap()));
+                }).map(|child| DomRoot::from_ref(child.downcast::<HTMLOptionElement>().unwrap()));
                 if disabled_state {
                     for option in options {
                         let el = option.upcast::<Element>();

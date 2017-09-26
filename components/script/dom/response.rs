@@ -4,14 +4,14 @@
 
 use body::{BodyOperations, BodyType, consume_body, consume_body_with_promise};
 use core::cell::Cell;
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::HeadersBinding::{HeadersInit, HeadersMethods};
 use dom::bindings::codegen::Bindings::ResponseBinding;
 use dom::bindings::codegen::Bindings::ResponseBinding::{ResponseMethods, ResponseType as DOMResponseType};
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::BodyInit;
 use dom::bindings::error::{Error, Fallible};
-use dom::bindings::js::{MutNullableJS, Root};
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use dom::bindings::root::{DomRoot, MutNullableDom};
 use dom::bindings::str::{ByteString, USVString};
 use dom::globalscope::GlobalScope;
 use dom::headers::{Headers, Guard};
@@ -33,20 +33,20 @@ use url::Position;
 #[dom_struct]
 pub struct Response {
     reflector_: Reflector,
-    headers_reflector: MutNullableJS<Headers>,
-    mime_type: DOMRefCell<Vec<u8>>,
+    headers_reflector: MutNullableDom<Headers>,
+    mime_type: DomRefCell<Vec<u8>>,
     body_used: Cell<bool>,
     /// `None` can be considered a StatusCode of `0`.
     #[ignore_heap_size_of = "Defined in hyper"]
-    status: DOMRefCell<Option<StatusCode>>,
-    raw_status: DOMRefCell<Option<(u16, Vec<u8>)>>,
-    response_type: DOMRefCell<DOMResponseType>,
-    url: DOMRefCell<Option<ServoUrl>>,
-    url_list: DOMRefCell<Vec<ServoUrl>>,
+    status: DomRefCell<Option<StatusCode>>,
+    raw_status: DomRefCell<Option<(u16, Vec<u8>)>>,
+    response_type: DomRefCell<DOMResponseType>,
+    url: DomRefCell<Option<ServoUrl>>,
+    url_list: DomRefCell<Vec<ServoUrl>>,
     // For now use the existing NetTraitsResponseBody enum
-    body: DOMRefCell<NetTraitsResponseBody>,
+    body: DomRefCell<NetTraitsResponseBody>,
     #[ignore_heap_size_of = "Rc"]
-    body_promise: DOMRefCell<Option<(Rc<Promise>, BodyType)>>,
+    body_promise: DomRefCell<Option<(Rc<Promise>, BodyType)>>,
 }
 
 impl Response {
@@ -54,25 +54,25 @@ impl Response {
         Response {
             reflector_: Reflector::new(),
             headers_reflector: Default::default(),
-            mime_type: DOMRefCell::new("".to_string().into_bytes()),
+            mime_type: DomRefCell::new("".to_string().into_bytes()),
             body_used: Cell::new(false),
-            status: DOMRefCell::new(Some(StatusCode::Ok)),
-            raw_status: DOMRefCell::new(Some((200, b"OK".to_vec()))),
-            response_type: DOMRefCell::new(DOMResponseType::Default),
-            url: DOMRefCell::new(None),
-            url_list: DOMRefCell::new(vec![]),
-            body: DOMRefCell::new(NetTraitsResponseBody::Empty),
-            body_promise: DOMRefCell::new(None),
+            status: DomRefCell::new(Some(StatusCode::Ok)),
+            raw_status: DomRefCell::new(Some((200, b"OK".to_vec()))),
+            response_type: DomRefCell::new(DOMResponseType::Default),
+            url: DomRefCell::new(None),
+            url_list: DomRefCell::new(vec![]),
+            body: DomRefCell::new(NetTraitsResponseBody::Empty),
+            body_promise: DomRefCell::new(None),
         }
     }
 
     // https://fetch.spec.whatwg.org/#dom-response
-    pub fn new(global: &GlobalScope) -> Root<Response> {
+    pub fn new(global: &GlobalScope) -> DomRoot<Response> {
         reflect_dom_object(box Response::new_inherited(), global, ResponseBinding::Wrap)
     }
 
     pub fn Constructor(global: &GlobalScope, body: Option<BodyInit>, init: &ResponseBinding::ResponseInit)
-                       -> Fallible<Root<Response>> {
+                       -> Fallible<DomRoot<Response>> {
         // Step 1
         if init.status < 200 || init.status > 599 {
             return Err(Error::Range(
@@ -139,7 +139,7 @@ impl Response {
     }
 
     // https://fetch.spec.whatwg.org/#dom-response-error
-    pub fn Error(global: &GlobalScope) -> Root<Response> {
+    pub fn Error(global: &GlobalScope) -> DomRoot<Response> {
         let r = Response::new(global);
         *r.response_type.borrow_mut() = DOMResponseType::Error;
         r.Headers().set_guard(Guard::Immutable);
@@ -148,7 +148,7 @@ impl Response {
     }
 
     // https://fetch.spec.whatwg.org/#dom-response-redirect
-    pub fn Redirect(global: &GlobalScope, url: USVString, status: u16) -> Fallible<Root<Response>> {
+    pub fn Redirect(global: &GlobalScope, url: USVString, status: u16) -> Fallible<DomRoot<Response>> {
         // Step 1
         let base_url = global.api_base_url();
         let parsed_url = base_url.join(&url.0);
@@ -291,12 +291,12 @@ impl ResponseMethods for Response {
     }
 
     // https://fetch.spec.whatwg.org/#dom-response-headers
-    fn Headers(&self) -> Root<Headers> {
+    fn Headers(&self) -> DomRoot<Headers> {
         self.headers_reflector.or_init(|| Headers::for_response(&self.global()))
     }
 
     // https://fetch.spec.whatwg.org/#dom-response-clone
-    fn Clone(&self) -> Fallible<Root<Response>> {
+    fn Clone(&self) -> Fallible<DomRoot<Response>> {
         // Step 1
         if self.is_locked() || self.body_used.get() {
             return Err(Error::Type("cannot clone a disturbed response".to_string()));

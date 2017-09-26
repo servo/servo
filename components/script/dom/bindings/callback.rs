@@ -5,8 +5,8 @@
 //! Base classes to work with IDL callbacks.
 
 use dom::bindings::error::{Error, Fallible, report_pending_exception};
-use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::DomObject;
+use dom::bindings::root::{Dom, DomRoot};
 use dom::bindings::settings_stack::{AutoEntryScript, AutoIncumbentScript};
 use dom::bindings::utils::AsCCharPtrPtr;
 use dom::globalscope::GlobalScope;
@@ -53,7 +53,7 @@ pub struct CallbackObject {
     ///
     /// ["callback context"]: https://heycam.github.io/webidl/#dfn-callback-context
     /// [sometimes]: https://github.com/whatwg/html/issues/2248
-    incumbent: Option<JS<GlobalScope>>
+    incumbent: Option<Dom<GlobalScope>>
 }
 
 impl Default for CallbackObject {
@@ -69,7 +69,7 @@ impl CallbackObject {
         CallbackObject {
             callback: Heap::default(),
             permanent_js_root: Heap::default(),
-            incumbent: GlobalScope::incumbent().map(|i| JS::from_ref(&*i)),
+            incumbent: GlobalScope::incumbent().map(|i| Dom::from_ref(&*i)),
         }
     }
 
@@ -120,7 +120,7 @@ pub trait CallbackContainer {
     ///
     /// ["callback context"]: https://heycam.github.io/webidl/#dfn-callback-context
     fn incumbent(&self) -> Option<&GlobalScope> {
-        self.callback_holder().incumbent.as_ref().map(JS::deref)
+        self.callback_holder().incumbent.as_ref().map(Dom::deref)
     }
 }
 
@@ -223,7 +223,7 @@ pub fn wrap_call_this_object<T: DomObject>(cx: *mut JSContext,
 pub struct CallSetup {
     /// The global for reporting exceptions. This is the global object of the
     /// (possibly wrapped) callback object.
-    exception_global: Root<GlobalScope>,
+    exception_global: DomRoot<GlobalScope>,
     /// The `JSContext` used for the call.
     cx: *mut JSContext,
     /// The compartment we were in before the call.

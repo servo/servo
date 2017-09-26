@@ -7,8 +7,8 @@ use dom::bindings::codegen::Bindings::BluetoothAdvertisingEventBinding::Bluetoot
 use dom::bindings::codegen::Bindings::EventBinding::EventBinding::EventMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, Root, RootedReference};
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::{Dom, DomRoot, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::bluetoothdevice::BluetoothDevice;
 use dom::event::{Event, EventBubbles, EventCancelable};
@@ -21,7 +21,7 @@ use servo_atoms::Atom;
 #[dom_struct]
 pub struct BluetoothAdvertisingEvent {
     event: Event,
-    device: JS<BluetoothDevice>,
+    device: Dom<BluetoothDevice>,
     name: Option<DOMString>,
     appearance: Option<u16>,
     tx_power: Option<i8>,
@@ -37,7 +37,7 @@ impl BluetoothAdvertisingEvent {
                          -> BluetoothAdvertisingEvent {
         BluetoothAdvertisingEvent {
             event: Event::new_inherited(),
-            device: JS::from_ref(device),
+            device: Dom::from_ref(device),
             name: name,
             appearance: appearance,
             tx_power: tx_power,
@@ -54,7 +54,7 @@ impl BluetoothAdvertisingEvent {
                appearance: Option<u16>,
                txPower: Option<i8>,
                rssi: Option<i8>)
-               -> Root<BluetoothAdvertisingEvent> {
+               -> DomRoot<BluetoothAdvertisingEvent> {
         let ev = reflect_dom_object(box BluetoothAdvertisingEvent::new_inherited(device,
                                                                                  name,
                                                                                  appearance,
@@ -73,7 +73,7 @@ impl BluetoothAdvertisingEvent {
     pub fn Constructor(window: &Window,
                        type_: DOMString,
                        init: &BluetoothAdvertisingEventInit)
-                       -> Fallible<Root<BluetoothAdvertisingEvent>> {
+                       -> Fallible<DomRoot<BluetoothAdvertisingEvent>> {
         let global = window.upcast::<GlobalScope>();
         let device = init.device.r();
         let name = init.name.clone();
@@ -96,8 +96,8 @@ impl BluetoothAdvertisingEvent {
 
 impl BluetoothAdvertisingEventMethods for BluetoothAdvertisingEvent {
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothadvertisingevent-device
-    fn Device(&self) -> Root<BluetoothDevice> {
-        Root::from_ref(&*self.device)
+    fn Device(&self) -> DomRoot<BluetoothDevice> {
+        DomRoot::from_ref(&*self.device)
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothadvertisingevent-name

@@ -3,14 +3,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::callback::ExceptionHandling;
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::MutationObserverBinding;
 use dom::bindings::codegen::Bindings::MutationObserverBinding::MutationCallback;
 use dom::bindings::codegen::Bindings::MutationObserverBinding::MutationObserverBinding::MutationObserverMethods;
 use dom::bindings::codegen::Bindings::MutationObserverBinding::MutationObserverInit;
 use dom::bindings::error::{Error, Fallible};
-use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::mutationrecord::MutationRecord;
 use dom::node::Node;
@@ -26,7 +26,7 @@ pub struct MutationObserver {
     reflector_: Reflector,
     #[ignore_heap_size_of = "can't measure Rc values"]
     callback: Rc<MutationCallback>,
-    record_queue: DOMRefCell<Vec<Root<MutationRecord>>>,
+    record_queue: DomRefCell<Vec<DomRoot<MutationRecord>>>,
 }
 
 pub enum Mutation<'a> {
@@ -37,7 +37,7 @@ pub enum Mutation<'a> {
 
 #[derive(HeapSizeOf, JSTraceable)]
 pub struct RegisteredObserver {
-    observer: Root<MutationObserver>,
+    observer: DomRoot<MutationObserver>,
     options: ObserverOptions,
 }
 
@@ -53,7 +53,7 @@ pub struct ObserverOptions {
 }
 
 impl MutationObserver {
-    fn new(global: &Window, callback: Rc<MutationCallback>) -> Root<MutationObserver> {
+    fn new(global: &Window, callback: Rc<MutationCallback>) -> DomRoot<MutationObserver> {
         let boxed_observer = box MutationObserver::new_inherited(callback);
         reflect_dom_object(boxed_observer, global, MutationObserverBinding::Wrap)
     }
@@ -62,11 +62,11 @@ impl MutationObserver {
         MutationObserver {
             reflector_: Reflector::new(),
             callback: callback,
-            record_queue: DOMRefCell::new(vec![]),
+            record_queue: DomRefCell::new(vec![]),
         }
     }
 
-    pub fn Constructor(global: &Window, callback: Rc<MutationCallback>) -> Fallible<Root<MutationObserver>> {
+    pub fn Constructor(global: &Window, callback: Rc<MutationCallback>) -> Fallible<DomRoot<MutationObserver>> {
         let observer = MutationObserver::new(global, callback);
         ScriptThread::add_mutation_observer(&*observer);
         Ok(observer)
@@ -93,7 +93,7 @@ impl MutationObserver {
         // TODO: steps 3-4 (slots)
         // Step 5
         for mo in &notify_list {
-            let queue: Vec<Root<MutationRecord>> = mo.record_queue.borrow().clone();
+            let queue: Vec<DomRoot<MutationRecord>> = mo.record_queue.borrow().clone();
             mo.record_queue.borrow_mut().clear();
             // TODO: Step 5.3 Remove all transient registered observers whose observer is mo.
             if !queue.is_empty() {
@@ -106,7 +106,7 @@ impl MutationObserver {
     /// https://dom.spec.whatwg.org/#queueing-a-mutation-record
     pub fn queue_a_mutation_record(target: &Node, attr_type: Mutation) {
         // Step 1
-        let mut interestedObservers: Vec<(Root<MutationObserver>, Option<DOMString>)> = vec![];
+        let mut interestedObservers: Vec<(DomRoot<MutationObserver>, Option<DOMString>)> = vec![];
         // Step 2 & 3
         for node in target.inclusive_ancestors() {
             for registered in &*node.registered_mutation_observers() {
@@ -141,7 +141,7 @@ impl MutationObserver {
                         if let Some(idx) = idx {
                             interestedObservers[idx].1 = paired_string;
                         } else {
-                            interestedObservers.push((Root::from_ref(&*registered.observer),
+                            interestedObservers.push((DomRoot::from_ref(&*registered.observer),
                                                       paired_string));
                         }
                     },
@@ -149,7 +149,7 @@ impl MutationObserver {
                         if !registered.options.child_list {
                             continue;
                         }
-                        interestedObservers.push((Root::from_ref(&*registered.observer), None));
+                        interestedObservers.push((DomRoot::from_ref(&*registered.observer), None));
                     }
                 }
             }
@@ -246,7 +246,7 @@ impl MutationObserverMethods for MutationObserver {
         // Step 8
         if add_new_observer {
             target.registered_mutation_observers().push(RegisteredObserver {
-                observer: Root::from_ref(self),
+                observer: DomRoot::from_ref(self),
                 options: ObserverOptions {
                     attributes,
                     attribute_old_value,

@@ -7,8 +7,8 @@ use dom::bindings::codegen::Bindings::ProgressEventBinding;
 use dom::bindings::codegen::Bindings::ProgressEventBinding::ProgressEventMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::globalscope::GlobalScope;
@@ -32,14 +32,14 @@ impl ProgressEvent {
             total: total
         }
     }
-    pub fn new_uninitialized(global: &GlobalScope) -> Root<ProgressEvent> {
+    pub fn new_uninitialized(global: &GlobalScope) -> DomRoot<ProgressEvent> {
         reflect_dom_object(box ProgressEvent::new_inherited(false, 0, 0),
                            global,
                            ProgressEventBinding::Wrap)
     }
     pub fn new(global: &GlobalScope, type_: Atom,
                can_bubble: EventBubbles, cancelable: EventCancelable,
-               length_computable: bool, loaded: u64, total: u64) -> Root<ProgressEvent> {
+               length_computable: bool, loaded: u64, total: u64) -> DomRoot<ProgressEvent> {
         let ev = reflect_dom_object(box ProgressEvent::new_inherited(length_computable, loaded, total),
                                     global,
                                     ProgressEventBinding::Wrap);
@@ -52,7 +52,7 @@ impl ProgressEvent {
     pub fn Constructor(global: &GlobalScope,
                        type_: DOMString,
                        init: &ProgressEventBinding::ProgressEventInit)
-                       -> Fallible<Root<ProgressEvent>> {
+                       -> Fallible<DomRoot<ProgressEvent>> {
         let bubbles = EventBubbles::from(init.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.cancelable);
         let ev = ProgressEvent::new(global, Atom::from(type_), bubbles, cancelable,

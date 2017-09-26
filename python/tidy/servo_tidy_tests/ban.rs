@@ -13,7 +13,7 @@ use std::cell::UnsafeCell;
 
 struct Foo {
     bar: Cell<JSVal>,
-    //~^ ERROR Banned type Cell<JSVal> detected. Use MutJS<JSVal> instead
+    //~^ ERROR Banned type Cell<JSVal> detected. Use MutDom<JSVal> instead
     foo: UnsafeCell<JSVal>
     //~^ NOT AN ERROR
 }

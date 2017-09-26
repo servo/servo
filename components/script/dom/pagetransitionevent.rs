@@ -7,8 +7,8 @@ use dom::bindings::codegen::Bindings::PageTransitionEventBinding;
 use dom::bindings::codegen::Bindings::PageTransitionEventBinding::PageTransitionEventMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::event::Event;
 use dom::window::Window;
@@ -31,7 +31,7 @@ impl PageTransitionEvent {
         }
     }
 
-    pub fn new_uninitialized(window: &Window) -> Root<PageTransitionEvent> {
+    pub fn new_uninitialized(window: &Window) -> DomRoot<PageTransitionEvent> {
         reflect_dom_object(box PageTransitionEvent::new_inherited(),
                            window,
                            PageTransitionEventBinding::Wrap)
@@ -42,7 +42,7 @@ impl PageTransitionEvent {
                bubbles: bool,
                cancelable: bool,
                persisted: bool)
-               -> Root<PageTransitionEvent> {
+               -> DomRoot<PageTransitionEvent> {
         let ev = PageTransitionEvent::new_uninitialized(window);
         ev.persisted.set(persisted);
         {
@@ -55,7 +55,7 @@ impl PageTransitionEvent {
     pub fn Constructor(window: &Window,
                        type_: DOMString,
                        init: &PageTransitionEventBinding::PageTransitionEventInit)
-                       -> Fallible<Root<PageTransitionEvent>> {
+                       -> Fallible<DomRoot<PageTransitionEvent>> {
         Ok(PageTransitionEvent::new(window,
                               Atom::from(type_),
                               init.parent.bubbles,

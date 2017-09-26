@@ -13,7 +13,7 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::{ConversionResult, FromJSValConvertible, StringificationBehavior};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::element::Element;
 use dom::globalscope::GlobalScope;
@@ -40,7 +40,7 @@ use servo_url::ServoUrl;
 fn find_node_by_unique_id(documents: &Documents,
                           pipeline: PipelineId,
                           node_id: String)
-                          -> Option<Root<Node>> {
+                          -> Option<DomRoot<Node>> {
     documents.find_document(pipeline).and_then(|document|
         document.upcast::<Node>().traverse_preorder().find(|candidate| candidate.unique_id() == node_id)
     )

@@ -7,9 +7,9 @@ use dom::bindings::codegen::Bindings::TransitionEventBinding;
 use dom::bindings::codegen::Bindings::TransitionEventBinding::{TransitionEventInit, TransitionEventMethods};
 use dom::bindings::error::Fallible;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::event::Event;
 use dom::window::Window;
@@ -36,7 +36,7 @@ impl TransitionEvent {
 
     pub fn new(window: &Window,
                type_: Atom,
-               init: &TransitionEventInit) -> Root<TransitionEvent> {
+               init: &TransitionEventInit) -> DomRoot<TransitionEvent> {
         let ev = reflect_dom_object(box TransitionEvent::new_inherited(init),
                                     window,
                                     TransitionEventBinding::Wrap);
@@ -49,7 +49,7 @@ impl TransitionEvent {
 
     pub fn Constructor(window: &Window,
                        type_: DOMString,
-                       init: &TransitionEventInit) -> Fallible<Root<TransitionEvent>> {
+                       init: &TransitionEventInit) -> Fallible<DomRoot<TransitionEvent>> {
         Ok(TransitionEvent::new(window, Atom::from(type_), init))
     }
 }

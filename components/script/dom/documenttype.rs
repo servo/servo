@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::DocumentTypeBinding::DocumentTypeMethods;
 use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::error::ErrorResult;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::node::Node;
@@ -41,7 +41,7 @@ impl DocumentType {
                public_id: Option<DOMString>,
                system_id: Option<DOMString>,
                document: &Document)
-               -> Root<DocumentType> {
+               -> DomRoot<DocumentType> {
         Node::reflect_node(box DocumentType::new_inherited(name, public_id, system_id, document),
                            document,
                            DocumentTypeBinding::Wrap)

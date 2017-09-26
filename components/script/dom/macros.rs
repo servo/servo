@@ -600,8 +600,8 @@ macro_rules! rooted_vec {
 macro_rules! impl_performance_entry_struct(
     ($binding:ident, $struct:ident, $type:expr) => (
         use dom::bindings::codegen::Bindings::$binding;
-        use dom::bindings::js::Root;
         use dom::bindings::reflector::reflect_dom_object;
+        use dom::bindings::root::DomRoot;
         use dom::bindings::str::DOMString;
         use dom::globalscope::GlobalScope;
         use dom::performanceentry::PerformanceEntry;
@@ -627,7 +627,7 @@ macro_rules! impl_performance_entry_struct(
             pub fn new(global: &GlobalScope,
                        name: DOMString,
                        start_time: f64,
-                       duration: f64) -> Root<$struct> {
+                       duration: f64) -> DomRoot<$struct> {
                 let entry = $struct::new_inherited(name, start_time, duration);
                 reflect_dom_object(box entry, global, $binding::Wrap)
             }

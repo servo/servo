@@ -4,12 +4,12 @@
 
 use cssparser::{Parser as CssParser, ParserInput};
 use dom::attr::Attr;
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListBinding::DOMTokenListMethods;
 use dom::bindings::codegen::Bindings::HTMLLinkElementBinding;
 use dom::bindings::codegen::Bindings::HTMLLinkElementBinding::HTMLLinkElementMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{MutNullableJS, Root, RootedReference};
+use dom::bindings::root::{DomRoot, MutNullableDom, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::cssstylesheet::CSSStyleSheet;
 use dom::document::Document;
@@ -50,10 +50,10 @@ impl RequestGenerationId {
 #[dom_struct]
 pub struct HTMLLinkElement {
     htmlelement: HTMLElement,
-    rel_list: MutNullableJS<DOMTokenList>,
+    rel_list: MutNullableDom<DOMTokenList>,
     #[ignore_heap_size_of = "Arc"]
-    stylesheet: DOMRefCell<Option<Arc<Stylesheet>>>,
-    cssom_stylesheet: MutNullableJS<CSSStyleSheet>,
+    stylesheet: DomRefCell<Option<Arc<Stylesheet>>>,
+    cssom_stylesheet: MutNullableDom<CSSStyleSheet>,
 
     /// https://html.spec.whatwg.org/multipage/#a-style-sheet-that-is-blocking-scripts
     parser_inserted: Cell<bool>,
@@ -73,8 +73,8 @@ impl HTMLLinkElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             rel_list: Default::default(),
             parser_inserted: Cell::new(creator.is_parser_created()),
-            stylesheet: DOMRefCell::new(None),
-            cssom_stylesheet: MutNullableJS::new(None),
+            stylesheet: DomRefCell::new(None),
+            cssom_stylesheet: MutNullableDom::new(None),
             pending_loads: Cell::new(0),
             any_failed_load: Cell::new(false),
             request_generation_id: Cell::new(RequestGenerationId(0)),
@@ -85,7 +85,7 @@ impl HTMLLinkElement {
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
                document: &Document,
-               creator: ElementCreator) -> Root<HTMLLinkElement> {
+               creator: ElementCreator) -> DomRoot<HTMLLinkElement> {
         Node::reflect_node(box HTMLLinkElement::new_inherited(local_name, prefix, document, creator),
                            document,
                            HTMLLinkElementBinding::Wrap)
@@ -111,7 +111,7 @@ impl HTMLLinkElement {
         self.stylesheet.borrow().clone()
     }
 
-    pub fn get_cssom_stylesheet(&self) -> Option<Root<CSSStyleSheet>> {
+    pub fn get_cssom_stylesheet(&self) -> Option<DomRoot<CSSStyleSheet>> {
         self.get_stylesheet().map(|sheet| {
             self.cssom_stylesheet.or_init(|| {
                 CSSStyleSheet::new(&window_from_node(self),
@@ -408,7 +408,7 @@ impl HTMLLinkElementMethods for HTMLLinkElement {
     make_setter!(SetType, "type");
 
     // https://html.spec.whatwg.org/multipage/#dom-link-rellist
-    fn RelList(&self) -> Root<DOMTokenList> {
+    fn RelList(&self) -> DomRoot<DOMTokenList> {
         self.rel_list.or_init(|| DOMTokenList::new(self.upcast(), &local_name!("rel")))
     }
 
@@ -441,7 +441,7 @@ impl HTMLLinkElementMethods for HTMLLinkElement {
     }
 
     // https://drafts.csswg.org/cssom/#dom-linkstyle-sheet
-    fn GetSheet(&self) -> Option<Root<DOMStyleSheet>> {
-        self.get_cssom_stylesheet().map(Root::upcast)
+    fn GetSheet(&self) -> Option<DomRoot<DOMStyleSheet>> {
+        self.get_cssom_stylesheet().map(DomRoot::upcast)
     }
 }

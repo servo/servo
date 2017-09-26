@@ -6,9 +6,9 @@ use cssparser::Parser;
 use cssparser::ParserInput;
 use dom::bindings::codegen::Bindings::CSSStyleValueBinding::CSSStyleValueMethods;
 use dom::bindings::codegen::Bindings::CSSStyleValueBinding::Wrap;
-use dom::bindings::js::Root;
 use dom::bindings::reflector::Reflector;
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
@@ -28,7 +28,7 @@ impl CSSStyleValue {
         }
     }
 
-    pub fn new(global: &GlobalScope, value: String) -> Root<CSSStyleValue> {
+    pub fn new(global: &GlobalScope, value: String) -> DomRoot<CSSStyleValue> {
         reflect_dom_object(box CSSStyleValue::new_inherited(value), global, Wrap)
     }
 }

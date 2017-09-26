@@ -9,10 +9,9 @@ use dom::bindings::codegen::Bindings::HTMLScriptElementBinding;
 use dom::bindings::codegen::Bindings::HTMLScriptElementBinding::HTMLScriptElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, Root};
-use dom::bindings::js::RootedReference;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
+use dom::bindings::root::{Dom, DomRoot, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, ElementCreator};
@@ -62,7 +61,7 @@ pub struct HTMLScriptElement {
     non_blocking: Cell<bool>,
 
     /// Document of the parser that created this element
-    parser_document: JS<Document>,
+    parser_document: Dom<Document>,
 
     /// Track line line_number
     line_number: u64,
@@ -77,14 +76,14 @@ impl HTMLScriptElement {
             already_started: Cell::new(false),
             parser_inserted: Cell::new(creator.is_parser_created()),
             non_blocking: Cell::new(!creator.is_parser_created()),
-            parser_document: JS::from_ref(document),
+            parser_document: Dom::from_ref(document),
             line_number: creator.return_line_number(),
         }
     }
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName, prefix: Option<Prefix>, document: &Document,
-               creator: ElementCreator) -> Root<HTMLScriptElement> {
+               creator: ElementCreator) -> DomRoot<HTMLScriptElement> {
         Node::reflect_node(box HTMLScriptElement::new_inherited(local_name, prefix, document, creator),
                            document,
                            HTMLScriptElementBinding::Wrap)

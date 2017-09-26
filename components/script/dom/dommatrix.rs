@@ -6,8 +6,8 @@ use dom::bindings::codegen::Bindings::DOMMatrixBinding::{Wrap, DOMMatrixMethods,
 use dom::bindings::codegen::Bindings::DOMMatrixReadOnlyBinding::DOMMatrixReadOnlyMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::DomRoot;
 use dom::dommatrixreadonly::{dommatrixinit_to_matrix, DOMMatrixReadOnly, entries_to_matrix};
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
@@ -21,7 +21,7 @@ pub struct DOMMatrix {
 
 impl DOMMatrix {
     #[allow(unrooted_must_root)]
-    pub fn new(global: &GlobalScope, is2D: bool, matrix: Transform3D<f64>) -> Root<Self> {
+    pub fn new(global: &GlobalScope, is2D: bool, matrix: Transform3D<f64>) -> DomRoot<Self> {
         let dommatrix = Self::new_inherited(is2D, matrix);
         reflect_dom_object(box dommatrix, global, Wrap)
     }
@@ -33,12 +33,12 @@ impl DOMMatrix {
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-dommatrix
-    pub fn Constructor(global: &GlobalScope) -> Fallible<Root<Self>> {
+    pub fn Constructor(global: &GlobalScope) -> Fallible<DomRoot<Self>> {
         Self::Constructor_(global, vec![1.0, 0.0, 0.0, 1.0, 0.0, 0.0])
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-dommatrix-numbersequence
-    pub fn Constructor_(global: &GlobalScope, entries: Vec<f64>) -> Fallible<Root<Self>> {
+    pub fn Constructor_(global: &GlobalScope, entries: Vec<f64>) -> Fallible<DomRoot<Self>> {
         entries_to_matrix(&entries[..])
             .map(|(is2D, matrix)| {
                 Self::new(global, is2D, matrix)
@@ -46,14 +46,14 @@ impl DOMMatrix {
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-frommatrix
-    pub fn FromMatrix(global: &GlobalScope, other: &DOMMatrixInit) -> Fallible<Root<Self>> {
+    pub fn FromMatrix(global: &GlobalScope, other: &DOMMatrixInit) -> Fallible<DomRoot<Self>> {
         dommatrixinit_to_matrix(&other)
             .map(|(is2D, matrix)| {
                 Self::new(global, is2D, matrix)
             })
     }
 
-    pub fn from_readonly(global: &GlobalScope, ro: &DOMMatrixReadOnly) -> Root<Self> {
+    pub fn from_readonly(global: &GlobalScope, ro: &DOMMatrixReadOnly) -> DomRoot<Self> {
         Self::new(global, ro.is_2d(), ro.matrix().clone())
     }
 }
@@ -280,91 +280,91 @@ impl DOMMatrixMethods for DOMMatrix {
         }
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-multiplyself
-        fn MultiplySelf(&self, other:&DOMMatrixInit) -> Fallible<Root<DOMMatrix>> {
+        fn MultiplySelf(&self, other:&DOMMatrixInit) -> Fallible<DomRoot<DOMMatrix>> {
             // Steps 1-3.
             self.upcast::<DOMMatrixReadOnly>().multiply_self(other)
                 // Step 4.
-                .and(Ok(Root::from_ref(&self)))
+                .and(Ok(DomRoot::from_ref(&self)))
         }
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-premultiplyself
-        fn PreMultiplySelf(&self, other:&DOMMatrixInit) -> Fallible<Root<DOMMatrix>> {
+        fn PreMultiplySelf(&self, other:&DOMMatrixInit) -> Fallible<DomRoot<DOMMatrix>> {
             // Steps 1-3.
             self.upcast::<DOMMatrixReadOnly>().pre_multiply_self(other)
                 // Step 4.
-                .and(Ok(Root::from_ref(&self)))
+                .and(Ok(DomRoot::from_ref(&self)))
         }
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-translateself
-        fn TranslateSelf(&self, tx: f64, ty: f64, tz: f64) -> Root<DOMMatrix> {
+        fn TranslateSelf(&self, tx: f64, ty: f64, tz: f64) -> DomRoot<DOMMatrix> {
             // Steps 1-2.
             self.upcast::<DOMMatrixReadOnly>().translate_self(tx, ty, tz);
             // Step 3.
-            Root::from_ref(&self)
+            DomRoot::from_ref(&self)
         }
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-scaleself
         fn ScaleSelf(&self, scaleX: f64, scaleY: Option<f64>, scaleZ: f64,
-                            originX: f64, originY: f64, originZ: f64) -> Root<DOMMatrix> {
+                            originX: f64, originY: f64, originZ: f64) -> DomRoot<DOMMatrix> {
             // Steps 1-6.
             self.upcast::<DOMMatrixReadOnly>().scale_self(scaleX, scaleY, scaleZ, originX, originY, originZ);
             // Step 7.
-            Root::from_ref(&self)
+            DomRoot::from_ref(&self)
         }
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-scale3dself
-        fn Scale3dSelf(&self, scale: f64, originX: f64, originY: f64, originZ: f64) -> Root<DOMMatrix> {
+        fn Scale3dSelf(&self, scale: f64, originX: f64, originY: f64, originZ: f64) -> DomRoot<DOMMatrix> {
             // Steps 1-4.
             self.upcast::<DOMMatrixReadOnly>().scale_3d_self(scale, originX, originY, originZ);
             // Step 5.
-            Root::from_ref(&self)
+            DomRoot::from_ref(&self)
         }
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-rotateself
-        fn RotateSelf(&self, rotX: f64, rotY: Option<f64>, rotZ: Option<f64>) -> Root<DOMMatrix> {
+        fn RotateSelf(&self, rotX: f64, rotY: Option<f64>, rotZ: Option<f64>) -> DomRoot<DOMMatrix> {
             // Steps 1-7.
             self.upcast::<DOMMatrixReadOnly>().rotate_self(rotX, rotY, rotZ);
             // Step 8.
-            Root::from_ref(&self)
+            DomRoot::from_ref(&self)
         }
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-rotatefromvectorself
-        fn RotateFromVectorSelf(&self, x: f64, y: f64) -> Root<DOMMatrix> {
+        fn RotateFromVectorSelf(&self, x: f64, y: f64) -> DomRoot<DOMMatrix> {
             // Step 1.
             self.upcast::<DOMMatrixReadOnly>().rotate_from_vector_self(x, y);
             // Step 2.
-            Root::from_ref(&self)
+            DomRoot::from_ref(&self)
         }
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-rotateaxisangleself
-        fn RotateAxisAngleSelf(&self, x: f64, y: f64, z: f64, angle: f64) -> Root<DOMMatrix> {
+        fn RotateAxisAngleSelf(&self, x: f64, y: f64, z: f64, angle: f64) -> DomRoot<DOMMatrix> {
             // Steps 1-2.
             self.upcast::<DOMMatrixReadOnly>().rotate_axis_angle_self(x, y, z, angle);
             // Step 3.
-            Root::from_ref(&self)
+            DomRoot::from_ref(&self)
         }
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-skewxself
-        fn SkewXSelf(&self, sx: f64) -> Root<DOMMatrix> {
+        fn SkewXSelf(&self, sx: f64) -> DomRoot<DOMMatrix> {
             // Step 1.
             self.upcast::<DOMMatrixReadOnly>().skew_x_self(sx);
             // Step 2.
-            Root::from_ref(&self)
+            DomRoot::from_ref(&self)
         }
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-skewyself
-        fn SkewYSelf(&self, sy: f64) -> Root<DOMMatrix> {
+        fn SkewYSelf(&self, sy: f64) -> DomRoot<DOMMatrix> {
             // Step 1.
             self.upcast::<DOMMatrixReadOnly>().skew_y_self(sy);
             // Step 2.
-            Root::from_ref(&self)
+            DomRoot::from_ref(&self)
         }
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-invertself
-        fn InvertSelf(&self) -> Root<DOMMatrix> {
+        fn InvertSelf(&self) -> DomRoot<DOMMatrix> {
             // Steps 1-2.
             self.upcast::<DOMMatrixReadOnly>().invert_self();
             // Step 3.
-            Root::from_ref(&self)
+            DomRoot::from_ref(&self)
         }
 }

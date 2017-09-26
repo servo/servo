@@ -7,7 +7,7 @@
 use dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, Root};
+use dom::bindings::root::{Dom, DomRoot};
 use dom::bindings::str::DOMString;
 use dom::comment::Comment;
 use dom::document::Document;
@@ -168,13 +168,13 @@ fn create_buffer_queue(mut buffers: VecDeque<SendTendril<UTF8>>) -> BufferQueue 
 #[derive(HeapSizeOf, JSTraceable)]
 #[must_root]
 pub struct Tokenizer {
-    document: JS<Document>,
+    document: Dom<Document>,
     #[ignore_heap_size_of = "Defined in std"]
     receiver: Receiver<ToTokenizerMsg>,
     #[ignore_heap_size_of = "Defined in std"]
     html_tokenizer_sender: Sender<ToHtmlTokenizerMsg>,
     #[ignore_heap_size_of = "Defined in std"]
-    nodes: HashMap<ParseNodeId, JS<Node>>,
+    nodes: HashMap<ParseNodeId, Dom<Node>>,
     url: ServoUrl,
 }
 
@@ -190,13 +190,13 @@ impl Tokenizer {
         let (to_tokenizer_sender, tokenizer_receiver) = channel();
 
         let mut tokenizer = Tokenizer {
-            document: JS::from_ref(document),
+            document: Dom::from_ref(document),
             receiver: tokenizer_receiver,
             html_tokenizer_sender: to_html_tokenizer_sender,
             nodes: HashMap::new(),
             url: url
         };
-        tokenizer.insert_node(0, JS::from_ref(document.upcast()));
+        tokenizer.insert_node(0, Dom::from_ref(document.upcast()));
 
         let mut sink = Sink::new(to_tokenizer_sender.clone());
         let mut ctxt_parse_node = None;
@@ -204,12 +204,12 @@ impl Tokenizer {
         let mut fragment_context_is_some = false;
         if let Some(fc) = fragment_context {
             let node = sink.new_parse_node();
-            tokenizer.insert_node(node.id, JS::from_ref(fc.context_elem));
+            tokenizer.insert_node(node.id, Dom::from_ref(fc.context_elem));
             ctxt_parse_node = Some(node);
 
             form_parse_node = fc.form_elem.map(|form_elem| {
                 let node = sink.new_parse_node();
-                tokenizer.insert_node(node.id, JS::from_ref(form_elem));
+                tokenizer.insert_node(node.id, Dom::from_ref(form_elem));
                 node
             });
             fragment_context_is_some = true;
@@ -230,7 +230,7 @@ impl Tokenizer {
         tokenizer
     }
 
-    pub fn feed(&mut self, input: &mut BufferQueue) -> Result<(), Root<HTMLScriptElement>> {
+    pub fn feed(&mut self, input: &mut BufferQueue) -> Result<(), DomRoot<HTMLScriptElement>> {
         let mut send_tendrils = VecDeque::new();
         while let Some(str) = input.pop_front() {
             send_tendrils.push_back(SendTendril::from(str));
@@ -252,7 +252,7 @@ impl Tokenizer {
                     let buffer_queue = create_buffer_queue(updated_input);
                     *input = buffer_queue;
                     let script = self.get_node(&script.id);
-                    return Err(Root::from_ref(script.downcast().unwrap()));
+                    return Err(DomRoot::from_ref(script.downcast().unwrap()));
                 }
                 ToTokenizerMsg::End => unreachable!(),
             };
@@ -278,18 +278,18 @@ impl Tokenizer {
         self.html_tokenizer_sender.send(ToHtmlTokenizerMsg::SetPlainTextState).unwrap();
     }
 
-    fn insert_node(&mut self, id: ParseNodeId, node: JS<Node>) {
+    fn insert_node(&mut self, id: ParseNodeId, node: Dom<Node>) {
         assert!(self.nodes.insert(id, node).is_none());
     }
 
-    fn get_node<'a>(&'a self, id: &ParseNodeId) -> &'a JS<Node> {
+    fn get_node<'a>(&'a self, id: &ParseNodeId) -> &'a Dom<Node> {
         self.nodes.get(id).expect("Node not found!")
     }
 
 
     fn append_before_sibling(&mut self, sibling: ParseNodeId, node: NodeOrText) {
         let node = match node {
-            NodeOrText::Node(n) => HtmlNodeOrText::AppendNode(JS::from_ref(&**self.get_node(&n.id))),
+            NodeOrText::Node(n) => HtmlNodeOrText::AppendNode(Dom::from_ref(&**self.get_node(&n.id))),
             NodeOrText::Text(text) => HtmlNodeOrText::AppendText(
                 Tendril::from(text)
             )
@@ -302,7 +302,7 @@ impl Tokenizer {
 
     fn append(&mut self, parent: ParseNodeId, node: NodeOrText) {
         let node = match node {
-            NodeOrText::Node(n) => HtmlNodeOrText::AppendNode(JS::from_ref(&**self.get_node(&n.id))),
+            NodeOrText::Node(n) => HtmlNodeOrText::AppendNode(Dom::from_ref(&**self.get_node(&n.id))),
             NodeOrText::Text(text) => HtmlNodeOrText::AppendText(
                 Tendril::from(text)
             )
@@ -326,14 +326,14 @@ impl Tokenizer {
     }
 
     fn process_operation(&mut self, op: ParseOperation) {
-        let document = Root::from_ref(&**self.get_node(&0));
+        let document = DomRoot::from_ref(&**self.get_node(&0));
         let document = document.downcast::<Document>().expect("Document node should be downcasted!");
         match op {
             ParseOperation::GetTemplateContents { target, contents } => {
-                let target = Root::from_ref(&**self.get_node(&target));
+                let target = DomRoot::from_ref(&**self.get_node(&target));
                 let template = target.downcast::<HTMLTemplateElement>().expect(
                     "Tried to extract contents from non-template element while parsing");
-                self.insert_node(contents, JS::from_ref(template.Content().upcast()));
+                self.insert_node(contents, Dom::from_ref(template.Content().upcast()));
             }
             ParseOperation::CreateElement { node, name, attrs, current_line } => {
                 let is = attrs.iter()
@@ -349,11 +349,11 @@ impl Tokenizer {
                     elem.set_attribute_from_parser(attr.name, DOMString::from(attr.value), None);
                 }
 
-                self.insert_node(node, JS::from_ref(elem.upcast()));
+                self.insert_node(node, Dom::from_ref(elem.upcast()));
             }
             ParseOperation::CreateComment { text, node } => {
                 let comment = Comment::new(DOMString::from(text), document);
-                self.insert_node(node, JS::from_ref(&comment.upcast()));
+                self.insert_node(node, Dom::from_ref(&comment.upcast()));
             }
             ParseOperation::AppendBeforeSibling { sibling, node } => {
                 self.append_before_sibling(sibling, node);
@@ -407,7 +407,7 @@ impl Tokenizer {
                     return;
                 }
                 let form = self.get_node(&form);
-                let form = Root::downcast::<HTMLFormElement>(Root::from_ref(&**form))
+                let form = DomRoot::downcast::<HTMLFormElement>(DomRoot::from_ref(&**form))
                     .expect("Owner must be a form element");
 
                 let node = self.get_node(&target);
@@ -429,7 +429,7 @@ impl Tokenizer {
                     DOMString::from(target),
                     DOMString::from(data),
                     document);
-                self.insert_node(node, JS::from_ref(pi.upcast()));
+                self.insert_node(node, Dom::from_ref(pi.upcast()));
             }
             ParseOperation::SetQuirksMode { mode } => {
                 document.set_quirks_mode(mode);

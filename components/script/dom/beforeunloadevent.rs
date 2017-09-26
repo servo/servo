@@ -4,13 +4,13 @@
 
 #![allow(dead_code)]
 
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::BeforeUnloadEventBinding;
 use dom::bindings::codegen::Bindings::BeforeUnloadEventBinding::BeforeUnloadEventMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::window::Window;
@@ -21,18 +21,18 @@ use servo_atoms::Atom;
 #[dom_struct]
 pub struct BeforeUnloadEvent {
     event: Event,
-    return_value: DOMRefCell<DOMString>,
+    return_value: DomRefCell<DOMString>,
 }
 
 impl BeforeUnloadEvent {
     fn new_inherited() -> BeforeUnloadEvent {
         BeforeUnloadEvent {
             event: Event::new_inherited(),
-            return_value: DOMRefCell::new(DOMString::new()),
+            return_value: DomRefCell::new(DOMString::new()),
         }
     }
 
-    pub fn new_uninitialized(window: &Window) -> Root<BeforeUnloadEvent> {
+    pub fn new_uninitialized(window: &Window) -> DomRoot<BeforeUnloadEvent> {
         reflect_dom_object(box BeforeUnloadEvent::new_inherited(),
                            window,
                            BeforeUnloadEventBinding::Wrap)
@@ -41,7 +41,7 @@ impl BeforeUnloadEvent {
     pub fn new(window: &Window,
                type_: Atom,
                bubbles: EventBubbles,
-               cancelable: EventCancelable) -> Root<BeforeUnloadEvent> {
+               cancelable: EventCancelable) -> DomRoot<BeforeUnloadEvent> {
         let ev = BeforeUnloadEvent::new_uninitialized(window);
         {
             let event = ev.upcast::<Event>();

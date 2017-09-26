@@ -7,8 +7,8 @@ use dom::bindings::codegen::Bindings::CloseEventBinding::CloseEventMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::globalscope::GlobalScope;
@@ -33,7 +33,7 @@ impl CloseEvent {
         }
     }
 
-    pub fn new_uninitialized(global: &GlobalScope) -> Root<CloseEvent> {
+    pub fn new_uninitialized(global: &GlobalScope) -> DomRoot<CloseEvent> {
         reflect_dom_object(box CloseEvent::new_inherited(false, 0, DOMString::new()),
                            global,
                            CloseEventBinding::Wrap)
@@ -46,7 +46,7 @@ impl CloseEvent {
                wasClean: bool,
                code: u16,
                reason: DOMString)
-               -> Root<CloseEvent> {
+               -> DomRoot<CloseEvent> {
         let event = box CloseEvent::new_inherited(wasClean, code, reason);
         let ev = reflect_dom_object(event, global, CloseEventBinding::Wrap);
         {
@@ -61,7 +61,7 @@ impl CloseEvent {
     pub fn Constructor(global: &GlobalScope,
                        type_: DOMString,
                        init: &CloseEventBinding::CloseEventInit)
-                       -> Fallible<Root<CloseEvent>> {
+                       -> Fallible<DomRoot<CloseEvent>> {
         let bubbles = EventBubbles::from(init.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.cancelable);
         Ok(CloseEvent::new(global,

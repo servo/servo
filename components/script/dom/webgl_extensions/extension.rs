@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::js::Root;
 use dom::bindings::reflector::DomObject;
+use dom::bindings::root::DomRoot;
 use dom::bindings::trace::JSTraceable;
 use dom::webglrenderingcontext::WebGLRenderingContext;
 use super::WebGLExtensions;
@@ -13,7 +13,7 @@ pub trait WebGLExtension: Sized where Self::Extension: DomObject + JSTraceable {
     type Extension;
 
     /// Creates the DOM object of the WebGL extension.
-    fn new(ctx: &WebGLRenderingContext) -> Root<Self::Extension>;
+    fn new(ctx: &WebGLRenderingContext) -> DomRoot<Self::Extension>;
 
     /// Checks if the extension is supported.
     fn is_supported(ext: &WebGLExtensions) -> bool;

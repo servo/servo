@@ -7,8 +7,8 @@ use dom::bindings::codegen::Bindings::GamepadEventBinding;
 use dom::bindings::codegen::Bindings::GamepadEventBinding::GamepadEventMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
+use dom::bindings::root::{Dom, DomRoot};
 use dom::bindings::str::DOMString;
 use dom::event::Event;
 use dom::gamepad::Gamepad;
@@ -20,7 +20,7 @@ use servo_atoms::Atom;
 #[dom_struct]
 pub struct GamepadEvent {
     event: Event,
-    gamepad: JS<Gamepad>,
+    gamepad: Dom<Gamepad>,
 }
 
 pub enum GamepadEventType {
@@ -32,7 +32,7 @@ impl GamepadEvent {
     fn new_inherited(gamepad: &Gamepad) -> GamepadEvent {
         GamepadEvent {
             event: Event::new_inherited(),
-            gamepad: JS::from_ref(gamepad),
+            gamepad: Dom::from_ref(gamepad),
         }
     }
 
@@ -41,7 +41,7 @@ impl GamepadEvent {
                bubbles: bool,
                cancelable: bool,
                gamepad: &Gamepad)
-               -> Root<GamepadEvent> {
+               -> DomRoot<GamepadEvent> {
         let ev = reflect_dom_object(box GamepadEvent::new_inherited(&gamepad),
                            global,
                            GamepadEventBinding::Wrap);
@@ -53,7 +53,7 @@ impl GamepadEvent {
     }
 
     pub fn new_with_type(global: &GlobalScope, event_type: GamepadEventType, gamepad: &Gamepad)
-                         -> Root<GamepadEvent> {
+                         -> DomRoot<GamepadEvent> {
         let name = match event_type {
             GamepadEventType::Connected => "gamepadconnected",
             GamepadEventType::Disconnected => "gamepaddisconnected"
@@ -70,7 +70,7 @@ impl GamepadEvent {
     pub fn Constructor(window: &Window,
                        type_: DOMString,
                        init: &GamepadEventBinding::GamepadEventInit)
-                       -> Fallible<Root<GamepadEvent>> {
+                       -> Fallible<DomRoot<GamepadEvent>> {
         Ok(GamepadEvent::new(&window.global(),
                              Atom::from(type_),
                              init.parent.bubbles,
@@ -81,8 +81,8 @@ impl GamepadEvent {
 
 impl GamepadEventMethods for GamepadEvent {
     // https://w3c.github.io/gamepad/#gamepadevent-interface
-    fn Gamepad(&self) -> Root<Gamepad> {
-        Root::from_ref(&*self.gamepad)
+    fn Gamepad(&self) -> DomRoot<Gamepad> {
+        DomRoot::from_ref(&*self.gamepad)
     }
 
     // https://dom.spec.whatwg.org/#dom-event-istrusted

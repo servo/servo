@@ -7,8 +7,8 @@ use dom::bindings::codegen::Bindings::FileBinding::FileMethods;
 use dom::bindings::codegen::UnionTypes::BlobOrString;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::blob::{Blob, BlobImpl, blob_parts_to_bytes};
 use dom::globalscope::GlobalScope;
@@ -44,14 +44,14 @@ impl File {
 
     #[allow(unrooted_must_root)]
     pub fn new(global: &GlobalScope, blob_impl: BlobImpl,
-               name: DOMString, modified: Option<i64>, typeString: &str) -> Root<File> {
+               name: DOMString, modified: Option<i64>, typeString: &str) -> DomRoot<File> {
         reflect_dom_object(box File::new_inherited(blob_impl, name, modified, typeString),
                            global,
                            FileBinding::Wrap)
     }
 
     // Construct from selected file message from file manager thread
-    pub fn new_from_selected(window: &Window, selected: SelectedFile) -> Root<File> {
+    pub fn new_from_selected(window: &Window, selected: SelectedFile) -> DomRoot<File> {
         let name = DOMString::from(selected.filename.to_str().expect("File name encoding error"));
 
         File::new(window.upcast(), BlobImpl::new_from_file(selected.id, selected.filename, selected.size),
@@ -63,7 +63,7 @@ impl File {
                        fileBits: Vec<BlobOrString>,
                        filename: DOMString,
                        filePropertyBag: &FileBinding::FilePropertyBag)
-                       -> Fallible<Root<File>> {
+                       -> Fallible<DomRoot<File>> {
         let bytes: Vec<u8> = match blob_parts_to_bytes(fileBits) {
             Ok(bytes) => bytes,
             Err(_) => return Err(Error::InvalidCharacter),

@@ -4,10 +4,9 @@
 
 use dom::bindings::codegen::Bindings::StylePropertyMapReadOnlyBinding::StylePropertyMapReadOnlyMethods;
 use dom::bindings::codegen::Bindings::StylePropertyMapReadOnlyBinding::Wrap;
-use dom::bindings::js::JS;
-use dom::bindings::js::Root;
 use dom::bindings::reflector::Reflector;
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::{Dom, DomRoot};
 use dom::bindings::str::DOMString;
 use dom::cssstylevalue::CSSStyleValue;
 use dom::globalscope::GlobalScope;
@@ -21,12 +20,12 @@ use style::custom_properties;
 #[dom_struct]
 pub struct StylePropertyMapReadOnly {
     reflector: Reflector,
-    entries: HashMap<Atom, JS<CSSStyleValue>>,
+    entries: HashMap<Atom, Dom<CSSStyleValue>>,
 }
 
 impl StylePropertyMapReadOnly {
     fn new_inherited<Entries>(entries: Entries) -> StylePropertyMapReadOnly where
-        Entries: IntoIterator<Item=(Atom, JS<CSSStyleValue>)>
+        Entries: IntoIterator<Item=(Atom, Dom<CSSStyleValue>)>
     {
         StylePropertyMapReadOnly {
             reflector: Reflector::new(),
@@ -34,7 +33,7 @@ impl StylePropertyMapReadOnly {
         }
     }
 
-    pub fn from_iter<Entries>(global: &GlobalScope, entries: Entries) -> Root<StylePropertyMapReadOnly> where
+    pub fn from_iter<Entries>(global: &GlobalScope, entries: Entries) -> DomRoot<StylePropertyMapReadOnly> where
         Entries: IntoIterator<Item=(Atom, String)>,
     {
         let mut keys = Vec::new();
@@ -46,7 +45,7 @@ impl StylePropertyMapReadOnly {
         for (key, value) in iter {
             let value = CSSStyleValue::new(global, value);
             keys.push(key);
-            values.push(JS::from_ref(&*value));
+            values.push(Dom::from_ref(&*value));
         }
         let iter = keys.drain(..).zip(values.iter().cloned());
         reflect_dom_object(box StylePropertyMapReadOnly::new_inherited(iter), global, Wrap)
@@ -55,9 +54,9 @@ impl StylePropertyMapReadOnly {
 
 impl StylePropertyMapReadOnlyMethods for StylePropertyMapReadOnly {
     /// https://drafts.css-houdini.org/css-typed-om-1/#dom-stylepropertymapreadonly-get
-    fn Get(&self, property: DOMString) -> Option<Root<CSSStyleValue>> {
+    fn Get(&self, property: DOMString) -> Option<DomRoot<CSSStyleValue>> {
         // TODO: avoid constructing an Atom
-        self.entries.get(&Atom::from(property)).map(|value| Root::from_ref(&**value))
+        self.entries.get(&Atom::from(property)).map(|value| DomRoot::from_ref(&**value))
     }
 
     /// https://drafts.css-houdini.org/css-typed-om-1/#dom-stylepropertymapreadonly-has

@@ -3,11 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::attr::Attr;
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::HTMLObjectElementBinding;
 use dom::bindings::codegen::Bindings::HTMLObjectElementBinding::HTMLObjectElementMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{MutNullableJS, Root};
+use dom::bindings::root::{DomRoot, MutNullableDom};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element};
@@ -27,8 +27,8 @@ use std::default::Default;
 pub struct HTMLObjectElement {
     htmlelement: HTMLElement,
     #[ignore_heap_size_of = "Arc"]
-    image: DOMRefCell<Option<Arc<Image>>>,
-    form_owner: MutNullableJS<HTMLFormElement>,
+    image: DomRefCell<Option<Arc<Image>>>,
+    form_owner: MutNullableDom<HTMLFormElement>,
 }
 
 impl HTMLObjectElement {
@@ -38,7 +38,7 @@ impl HTMLObjectElement {
         HTMLObjectElement {
             htmlelement:
                 HTMLElement::new_inherited(local_name, prefix, document),
-            image: DOMRefCell::new(None),
+            image: DomRefCell::new(None),
             form_owner: Default::default(),
         }
     }
@@ -46,7 +46,7 @@ impl HTMLObjectElement {
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
-               document: &Document) -> Root<HTMLObjectElement> {
+               document: &Document) -> DomRoot<HTMLObjectElement> {
         Node::reflect_node(box HTMLObjectElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLObjectElementBinding::Wrap)
@@ -76,7 +76,7 @@ impl<'a> ProcessDataURL for &'a HTMLObjectElement {
 
 impl HTMLObjectElementMethods for HTMLObjectElement {
     // https://html.spec.whatwg.org/multipage/#dom-cva-validity
-    fn Validity(&self) -> Root<ValidityState> {
+    fn Validity(&self) -> DomRoot<ValidityState> {
         let window = window_from_node(self);
         ValidityState::new(&window, self.upcast())
     }
@@ -88,7 +88,7 @@ impl HTMLObjectElementMethods for HTMLObjectElement {
     make_setter!(SetType, "type");
 
     // https://html.spec.whatwg.org/multipage/#dom-fae-form
-    fn GetForm(&self) -> Option<Root<HTMLFormElement>> {
+    fn GetForm(&self) -> Option<DomRoot<HTMLFormElement>> {
         self.form_owner()
     }
 }
@@ -126,7 +126,7 @@ impl VirtualMethods for HTMLObjectElement {
 }
 
 impl FormControl for HTMLObjectElement {
-    fn form_owner(&self) -> Option<Root<HTMLFormElement>> {
+    fn form_owner(&self) -> Option<DomRoot<HTMLFormElement>> {
         self.form_owner.get()
     }
 

@@ -3,12 +3,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use core::nonzero::NonZero;
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::VRStageParametersBinding;
 use dom::bindings::codegen::Bindings::VRStageParametersBinding::VRStageParametersMethods;
-use dom::bindings::js::Root;
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use dom::bindings::root::DomRoot;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSContext, JSObject};
@@ -20,7 +20,7 @@ use webvr_traits::WebVRStageParameters;
 pub struct VRStageParameters {
     reflector_: Reflector,
     #[ignore_heap_size_of = "Defined in rust-webvr"]
-    parameters: DOMRefCell<WebVRStageParameters>,
+    parameters: DomRefCell<WebVRStageParameters>,
     transform: Heap<*mut JSObject>,
 }
 
@@ -30,13 +30,13 @@ impl VRStageParameters {
     fn new_inherited(parameters: WebVRStageParameters) -> VRStageParameters {
         VRStageParameters {
             reflector_: Reflector::new(),
-            parameters: DOMRefCell::new(parameters),
+            parameters: DomRefCell::new(parameters),
             transform: Heap::default()
         }
     }
 
     #[allow(unsafe_code)]
-    pub fn new(parameters: WebVRStageParameters, global: &GlobalScope) -> Root<VRStageParameters> {
+    pub fn new(parameters: WebVRStageParameters, global: &GlobalScope) -> DomRoot<VRStageParameters> {
         let cx = global.get_cx();
         rooted!(in (cx) let mut array = ptr::null_mut());
         unsafe {

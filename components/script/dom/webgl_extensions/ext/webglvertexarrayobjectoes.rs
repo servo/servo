@@ -5,11 +5,10 @@
 use canvas_traits::webgl::WebGLVertexArrayId;
 use core::cell::Ref;
 use core::iter::FromIterator;
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::WebGLVertexArrayObjectOESBinding;
-use dom::bindings::js::{JS, MutNullableJS};
-use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use dom::globalscope::GlobalScope;
 use dom::webglbuffer::WebGLBuffer;
 use dom::webglobject::WebGLObject;
@@ -23,8 +22,8 @@ pub struct WebGLVertexArrayObjectOES {
     id: WebGLVertexArrayId,
     ever_bound: Cell<bool>,
     is_deleted: Cell<bool>,
-    bound_attrib_buffers: DOMRefCell<HashMap<u32, JS<WebGLBuffer>>>,
-    bound_buffer_element_array: MutNullableJS<WebGLBuffer>,
+    bound_attrib_buffers: DomRefCell<HashMap<u32, Dom<WebGLBuffer>>>,
+    bound_buffer_element_array: MutNullableDom<WebGLBuffer>,
 }
 
 impl WebGLVertexArrayObjectOES {
@@ -34,12 +33,12 @@ impl WebGLVertexArrayObjectOES {
             id: id,
             ever_bound: Cell::new(false),
             is_deleted: Cell::new(false),
-            bound_attrib_buffers: DOMRefCell::new(HashMap::new()),
-            bound_buffer_element_array: MutNullableJS::new(None),
+            bound_attrib_buffers: DomRefCell::new(HashMap::new()),
+            bound_buffer_element_array: MutNullableDom::new(None),
         }
     }
 
-    pub fn new(global: &GlobalScope, id: WebGLVertexArrayId) -> Root<WebGLVertexArrayObjectOES> {
+    pub fn new(global: &GlobalScope, id: WebGLVertexArrayId) -> DomRoot<WebGLVertexArrayObjectOES> {
         reflect_dom_object(box WebGLVertexArrayObjectOES::new_inherited(id),
                            global,
                            WebGLVertexArrayObjectOESBinding::Wrap)
@@ -65,19 +64,19 @@ impl WebGLVertexArrayObjectOES {
         self.ever_bound.set(true);
     }
 
-    pub fn borrow_bound_attrib_buffers(&self) -> Ref<HashMap<u32, JS<WebGLBuffer>>> {
+    pub fn borrow_bound_attrib_buffers(&self) -> Ref<HashMap<u32, Dom<WebGLBuffer>>> {
         self.bound_attrib_buffers.borrow()
     }
 
-    pub fn bound_attrib_buffers(&self) -> Vec<Root<WebGLBuffer>> {
-        self.bound_attrib_buffers.borrow().iter().map(|(_, b)| Root::from_ref(&**b)).collect()
+    pub fn bound_attrib_buffers(&self) -> Vec<DomRoot<WebGLBuffer>> {
+        self.bound_attrib_buffers.borrow().iter().map(|(_, b)| DomRoot::from_ref(&**b)).collect()
     }
 
     pub fn set_bound_attrib_buffers<'a, T>(&self, iter: T) where T: Iterator<Item=(u32, &'a WebGLBuffer)> {
-        *self.bound_attrib_buffers.borrow_mut() = HashMap::from_iter(iter.map(|(k,v)| (k, JS::from_ref(v))));
+        *self.bound_attrib_buffers.borrow_mut() = HashMap::from_iter(iter.map(|(k,v)| (k, Dom::from_ref(v))));
     }
 
-    pub fn bound_buffer_element_array(&self) -> Option<Root<WebGLBuffer>> {
+    pub fn bound_buffer_element_array(&self) -> Option<DomRoot<WebGLBuffer>> {
         self.bound_buffer_element_array.get()
     }
 

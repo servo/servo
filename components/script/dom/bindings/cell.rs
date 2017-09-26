@@ -12,14 +12,14 @@ use style::thread_state;
 /// This extends the API of `core::cell::RefCell` to allow unsafe access in
 /// certain situations, with dynamic checking in debug builds.
 #[derive(Clone, Debug, Default, HeapSizeOf, PartialEq)]
-pub struct DOMRefCell<T> {
+pub struct DomRefCell<T> {
     value: RefCell<T>,
 }
 
-// Functionality specific to Servo's `DOMRefCell` type
+// Functionality specific to Servo's `DomRefCell` type
 // ===================================================
 
-impl<T> DOMRefCell<T> {
+impl<T> DomRefCell<T> {
     /// Return a reference to the contents.
     ///
     /// For use in the layout thread only.
@@ -59,10 +59,10 @@ impl<T> DOMRefCell<T> {
 
 // Functionality duplicated with `core::cell::RefCell`
 // ===================================================
-impl<T> DOMRefCell<T> {
-    /// Create a new `DOMRefCell` containing `value`.
-    pub fn new(value: T) -> DOMRefCell<T> {
-        DOMRefCell {
+impl<T> DomRefCell<T> {
+    /// Create a new `DomRefCell` containing `value`.
+    pub fn new(value: T) -> DomRefCell<T> {
+        DomRefCell {
             value: RefCell::new(value),
         }
     }
@@ -79,7 +79,7 @@ impl<T> DOMRefCell<T> {
     ///
     /// Panics if the value is currently mutably borrowed.
     pub fn borrow(&self) -> Ref<T> {
-        self.try_borrow().expect("DOMRefCell<T> already mutably borrowed")
+        self.try_borrow().expect("DomRefCell<T> already mutably borrowed")
     }
 
     /// Mutably borrows the wrapped value.
@@ -93,7 +93,7 @@ impl<T> DOMRefCell<T> {
     ///
     /// Panics if the value is currently borrowed.
     pub fn borrow_mut(&self) -> RefMut<T> {
-        self.try_borrow_mut().expect("DOMRefCell<T> already borrowed")
+        self.try_borrow_mut().expect("DomRefCell<T> already borrowed")
     }
 
     /// Attempts to immutably borrow the wrapped value.

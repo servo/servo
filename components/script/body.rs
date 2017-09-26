@@ -4,8 +4,8 @@
 
 use dom::bindings::codegen::Bindings::FormDataBinding::FormDataMethods;
 use dom::bindings::error::{Error, Fallible};
-use dom::bindings::js::Root;
 use dom::bindings::reflector::DomObject;
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::USVString;
 use dom::blob::{Blob, BlobImpl};
 use dom::formdata::FormData;
@@ -33,8 +33,8 @@ pub enum BodyType {
 pub enum FetchedData {
     Text(String),
     Json(JSValue),
-    BlobData(Root<Blob>),
-    FormData(Root<FormData>),
+    BlobData(DomRoot<Blob>),
+    FormData(DomRoot<FormData>),
 }
 
 // https://fetch.spec.whatwg.org/#concept-body-consume-body

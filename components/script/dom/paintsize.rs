@@ -4,10 +4,10 @@
 
 use dom::bindings::codegen::Bindings::PaintSizeBinding;
 use dom::bindings::codegen::Bindings::PaintSizeBinding::PaintSizeMethods;
-use dom::bindings::js::Root;
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::Reflector;
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::DomRoot;
 use dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use dom_struct::dom_struct;
 use euclid::TypedSize2D;
@@ -29,7 +29,7 @@ impl PaintSize {
         }
     }
 
-    pub fn new(global: &PaintWorkletGlobalScope, size: TypedSize2D<f32, CSSPixel>) -> Root<PaintSize> {
+    pub fn new(global: &PaintWorkletGlobalScope, size: TypedSize2D<f32, CSSPixel>) -> DomRoot<PaintSize> {
         reflect_dom_object(box PaintSize::new_inherited(size), global, PaintSizeBinding::Wrap)
     }
 }

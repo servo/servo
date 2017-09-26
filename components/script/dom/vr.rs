@@ -2,14 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::VRBinding;
 use dom::bindings::codegen::Bindings::VRBinding::VRMethods;
 use dom::bindings::codegen::Bindings::VRDisplayBinding::VRDisplayMethods;
 use dom::bindings::error::Error;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use dom::bindings::root::{Dom, DomRoot};
 use dom::event::Event;
 use dom::eventtarget::EventTarget;
 use dom::gamepad::Gamepad;
@@ -28,20 +28,20 @@ use webvr_traits::{WebVRGamepadData, WebVRGamepadEvent, WebVRGamepadState};
 #[dom_struct]
 pub struct VR {
     reflector_: Reflector,
-    displays: DOMRefCell<Vec<JS<VRDisplay>>>,
-    gamepads: DOMRefCell<Vec<JS<Gamepad>>>
+    displays: DomRefCell<Vec<Dom<VRDisplay>>>,
+    gamepads: DomRefCell<Vec<Dom<Gamepad>>>
 }
 
 impl VR {
     fn new_inherited() -> VR {
         VR {
             reflector_: Reflector::new(),
-            displays: DOMRefCell::new(Vec::new()),
-            gamepads: DOMRefCell::new(Vec::new()),
+            displays: DomRefCell::new(Vec::new()),
+            gamepads: DomRefCell::new(Vec::new()),
         }
     }
 
-    pub fn new(global: &GlobalScope) -> Root<VR> {
+    pub fn new(global: &GlobalScope) -> DomRoot<VR> {
         let root = reflect_dom_object(box VR::new_inherited(),
                            global,
                            VRBinding::Wrap);
@@ -83,9 +83,9 @@ impl VRMethods for VR {
             return promise;
         }
 
-        // convert from JS to Root
-        let displays: Vec<Root<VRDisplay>> = self.displays.borrow().iter()
-                                                          .map(|d| Root::from_ref(&**d))
+        // convert from Dom to DomRoot
+        let displays: Vec<DomRoot<VRDisplay>> = self.displays.borrow().iter()
+                                                          .map(|d| DomRoot::from_ref(&**d))
                                                           .collect();
         promise.resolve_native(&displays);
 
@@ -99,11 +99,11 @@ impl VR {
         self.global().as_window().webvr_thread()
     }
 
-    fn find_display(&self, display_id: u32) -> Option<Root<VRDisplay>> {
+    fn find_display(&self, display_id: u32) -> Option<DomRoot<VRDisplay>> {
         self.displays.borrow()
                      .iter()
                      .find(|d| d.DisplayId() == display_id)
-                     .map(|d| Root::from_ref(&**d))
+                     .map(|d| DomRoot::from_ref(&**d))
     }
 
     fn register(&self) {
@@ -120,13 +120,13 @@ impl VR {
         }
     }
 
-    fn sync_display(&self, display: &WebVRDisplayData) -> Root<VRDisplay> {
+    fn sync_display(&self, display: &WebVRDisplayData) -> DomRoot<VRDisplay> {
         if let Some(existing) = self.find_display(display.display_id) {
             existing.update_display(&display);
             existing
         } else {
             let root = VRDisplay::new(&self.global(), display.clone());
-            self.displays.borrow_mut().push(JS::from_ref(&*root));
+            self.displays.borrow_mut().push(Dom::from_ref(&*root));
             root
         }
     }
@@ -206,11 +206,11 @@ impl VR {
 
 // Gamepad
 impl VR {
-    fn find_gamepad(&self, gamepad_id: u32) -> Option<Root<Gamepad>> {
+    fn find_gamepad(&self, gamepad_id: u32) -> Option<DomRoot<Gamepad>> {
         self.gamepads.borrow()
                      .iter()
                      .find(|g| g.gamepad_id() == gamepad_id)
-                     .map(|g| Root::from_ref(&**g))
+                     .map(|g| DomRoot::from_ref(&**g))
     }
 
     fn sync_gamepad(&self, data: Option<WebVRGamepadData>, state: &WebVRGamepadState) {
@@ -223,7 +223,7 @@ impl VR {
                                             index as i32,
                                             &data,
                                             &state);
-            self.gamepads.borrow_mut().push(JS::from_ref(&*root));
+            self.gamepads.borrow_mut().push(Dom::from_ref(&*root));
             if state.connected {
                 root.notify_event(GamepadEventType::Connected);
             }
@@ -234,7 +234,7 @@ impl VR {
     // The current approach allows the to sample gamepad state multiple times per frame. This
     // guarantees that the gamepads always have a valid state and can be very useful for
     // motion capture or drawing applications.
-    pub fn get_gamepads(&self) -> Vec<Root<Gamepad>> {
+    pub fn get_gamepads(&self) -> Vec<DomRoot<Gamepad>> {
         if let Some(wevbr_sender) = self.webvr_thread() {
             let (sender, receiver) = ipc::channel().unwrap();
             let synced_ids = self.gamepads.borrow().iter().map(|g| g.gamepad_id()).collect();
@@ -252,7 +252,7 @@ impl VR {
 
         // We can add other not VR related gamepad providers here
         self.gamepads.borrow().iter()
-                              .map(|g| Root::from_ref(&**g))
+                              .map(|g| DomRoot::from_ref(&**g))
                               .collect()
     }
 }

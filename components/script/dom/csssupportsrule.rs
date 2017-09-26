@@ -5,8 +5,8 @@
 use cssparser::{Parser, ParserInput};
 use dom::bindings::codegen::Bindings::CSSSupportsRuleBinding;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
-use dom::bindings::js::Root;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::cssconditionrule::CSSConditionRule;
 use dom::cssrule::SpecificCSSRule;
@@ -40,7 +40,7 @@ impl CSSSupportsRule {
 
     #[allow(unrooted_must_root)]
     pub fn new(window: &Window, parent_stylesheet: &CSSStyleSheet,
-               supportsrule: Arc<Locked<SupportsRule>>) -> Root<CSSSupportsRule> {
+               supportsrule: Arc<Locked<SupportsRule>>) -> DomRoot<CSSSupportsRule> {
         reflect_dom_object(box CSSSupportsRule::new_inherited(parent_stylesheet, supportsrule),
                            window,
                            CSSSupportsRuleBinding::Wrap)

@@ -3,12 +3,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::{Parser as CssParser, ParserInput};
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::HTMLStyleElementBinding;
 use dom::bindings::codegen::Bindings::HTMLStyleElementBinding::HTMLStyleElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{MutNullableJS, Root};
+use dom::bindings::root::{DomRoot, MutNullableDom};
 use dom::cssstylesheet::CSSStyleSheet;
 use dom::document::Document;
 use dom::element::{Element, ElementCreator};
@@ -32,8 +32,8 @@ use stylesheet_loader::{StylesheetLoader, StylesheetOwner};
 pub struct HTMLStyleElement {
     htmlelement: HTMLElement,
     #[ignore_heap_size_of = "Arc"]
-    stylesheet: DOMRefCell<Option<Arc<Stylesheet>>>,
-    cssom_stylesheet: MutNullableJS<CSSStyleSheet>,
+    stylesheet: DomRefCell<Option<Arc<Stylesheet>>>,
+    cssom_stylesheet: MutNullableDom<CSSStyleSheet>,
     /// https://html.spec.whatwg.org/multipage/#a-style-sheet-that-is-blocking-scripts
     parser_inserted: Cell<bool>,
     in_stack_of_open_elements: Cell<bool>,
@@ -49,8 +49,8 @@ impl HTMLStyleElement {
                      creator: ElementCreator) -> HTMLStyleElement {
         HTMLStyleElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
-            stylesheet: DOMRefCell::new(None),
-            cssom_stylesheet: MutNullableJS::new(None),
+            stylesheet: DomRefCell::new(None),
+            cssom_stylesheet: MutNullableDom::new(None),
             parser_inserted: Cell::new(creator.is_parser_created()),
             in_stack_of_open_elements: Cell::new(creator.is_parser_created()),
             pending_loads: Cell::new(0),
@@ -63,7 +63,7 @@ impl HTMLStyleElement {
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
                document: &Document,
-               creator: ElementCreator) -> Root<HTMLStyleElement> {
+               creator: ElementCreator) -> DomRoot<HTMLStyleElement> {
         Node::reflect_node(box HTMLStyleElement::new_inherited(local_name, prefix, document, creator),
                            document,
                            HTMLStyleElementBinding::Wrap)
@@ -128,7 +128,7 @@ impl HTMLStyleElement {
         self.stylesheet.borrow().clone()
     }
 
-    pub fn get_cssom_stylesheet(&self) -> Option<Root<CSSStyleSheet>> {
+    pub fn get_cssom_stylesheet(&self) -> Option<DomRoot<CSSStyleSheet>> {
         self.get_stylesheet().map(|sheet| {
             self.cssom_stylesheet.or_init(|| {
                 CSSStyleSheet::new(&window_from_node(self),
@@ -236,7 +236,7 @@ impl StylesheetOwner for HTMLStyleElement {
 
 impl HTMLStyleElementMethods for HTMLStyleElement {
     // https://drafts.csswg.org/cssom/#dom-linkstyle-sheet
-    fn GetSheet(&self) -> Option<Root<DOMStyleSheet>> {
-        self.get_cssom_stylesheet().map(Root::upcast)
+    fn GetSheet(&self) -> Option<DomRoot<DOMStyleSheet>> {
+        self.get_cssom_stylesheet().map(DomRoot::upcast)
     }
 }

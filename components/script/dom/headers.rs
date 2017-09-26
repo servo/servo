@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::HeadersBinding::{HeadersInit, HeadersMethods, HeadersWrap};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::iterable::Iterable;
-use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::{ByteString, is_token};
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
@@ -22,7 +22,7 @@ pub struct Headers {
     reflector_: Reflector,
     guard: Cell<Guard>,
     #[ignore_heap_size_of = "Defined in hyper"]
-    header_list: DOMRefCell<HyperHeaders>
+    header_list: DomRefCell<HyperHeaders>
 }
 
 // https://fetch.spec.whatwg.org/#concept-headers-guard
@@ -40,17 +40,17 @@ impl Headers {
         Headers {
             reflector_: Reflector::new(),
             guard: Cell::new(Guard::None),
-            header_list: DOMRefCell::new(HyperHeaders::new()),
+            header_list: DomRefCell::new(HyperHeaders::new()),
         }
     }
 
-    pub fn new(global: &GlobalScope) -> Root<Headers> {
+    pub fn new(global: &GlobalScope) -> DomRoot<Headers> {
         reflect_dom_object(box Headers::new_inherited(), global, HeadersWrap)
     }
 
     // https://fetch.spec.whatwg.org/#dom-headers
     pub fn Constructor(global: &GlobalScope, init: Option<HeadersInit>)
-                       -> Fallible<Root<Headers>> {
+                       -> Fallible<DomRoot<Headers>> {
         let dom_headers_new = Headers::new(global);
         dom_headers_new.fill(init)?;
         Ok(dom_headers_new)
@@ -206,13 +206,13 @@ impl Headers {
         }
     }
 
-    pub fn for_request(global: &GlobalScope) -> Root<Headers> {
+    pub fn for_request(global: &GlobalScope) -> DomRoot<Headers> {
         let headers_for_request = Headers::new(global);
         headers_for_request.guard.set(Guard::Request);
         headers_for_request
     }
 
-    pub fn for_response(global: &GlobalScope) -> Root<Headers> {
+    pub fn for_response(global: &GlobalScope) -> DomRoot<Headers> {
         let headers_for_response = Headers::new(global);
         headers_for_response.guard.set(Guard::Response);
         headers_for_response

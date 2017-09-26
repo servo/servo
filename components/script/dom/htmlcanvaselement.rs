@@ -5,7 +5,7 @@
 use base64;
 use canvas_traits::canvas::{CanvasMsg, FromScriptMsg};
 use dom::attr::Attr;
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasRenderingContext2DMethods;
 use dom::bindings::codegen::Bindings::HTMLCanvasElementBinding;
 use dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::HTMLCanvasElementMethods;
@@ -14,8 +14,8 @@ use dom::bindings::codegen::UnionTypes::CanvasRenderingContext2DOrWebGLRendering
 use dom::bindings::conversions::ConversionResult;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, LayoutJS, Root};
 use dom::bindings::num::Finite;
+use dom::bindings::root::{Dom, DomRoot, LayoutDom};
 use dom::bindings::str::DOMString;
 use dom::canvasrenderingcontext2d::{CanvasRenderingContext2D, LayoutCanvasRenderingContext2DHelpers};
 use dom::document::Document;
@@ -44,14 +44,14 @@ const DEFAULT_HEIGHT: u32 = 150;
 #[must_root]
 #[derive(Clone, HeapSizeOf, JSTraceable)]
 pub enum CanvasContext {
-    Context2d(JS<CanvasRenderingContext2D>),
-    WebGL(JS<WebGLRenderingContext>),
+    Context2d(Dom<CanvasRenderingContext2D>),
+    WebGL(Dom<WebGLRenderingContext>),
 }
 
 #[dom_struct]
 pub struct HTMLCanvasElement {
     htmlelement: HTMLElement,
-    context: DOMRefCell<Option<CanvasContext>>,
+    context: DomRefCell<Option<CanvasContext>>,
 }
 
 impl HTMLCanvasElement {
@@ -60,14 +60,14 @@ impl HTMLCanvasElement {
                      document: &Document) -> HTMLCanvasElement {
         HTMLCanvasElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
-            context: DOMRefCell::new(None),
+            context: DomRefCell::new(None),
         }
     }
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
-               document: &Document) -> Root<HTMLCanvasElement> {
+               document: &Document) -> DomRoot<HTMLCanvasElement> {
         Node::reflect_node(box HTMLCanvasElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLCanvasElementBinding::Wrap)
@@ -101,7 +101,7 @@ pub trait LayoutHTMLCanvasElementHelpers {
     fn get_height(&self) -> LengthOrPercentageOrAuto;
 }
 
-impl LayoutHTMLCanvasElementHelpers for LayoutJS<HTMLCanvasElement> {
+impl LayoutHTMLCanvasElementHelpers for LayoutDom<HTMLCanvasElement> {
     #[allow(unsafe_code)]
     fn data(&self) -> HTMLCanvasData {
         unsafe {
@@ -151,16 +151,16 @@ impl LayoutHTMLCanvasElementHelpers for LayoutJS<HTMLCanvasElement> {
 
 
 impl HTMLCanvasElement {
-    pub fn get_or_init_2d_context(&self) -> Option<Root<CanvasRenderingContext2D>> {
+    pub fn get_or_init_2d_context(&self) -> Option<DomRoot<CanvasRenderingContext2D>> {
         if self.context.borrow().is_none() {
             let window = window_from_node(self);
             let size = self.get_size();
             let context = CanvasRenderingContext2D::new(window.upcast::<GlobalScope>(), self, size);
-            *self.context.borrow_mut() = Some(CanvasContext::Context2d(JS::from_ref(&*context)));
+            *self.context.borrow_mut() = Some(CanvasContext::Context2d(Dom::from_ref(&*context)));
         }
 
         match *self.context.borrow().as_ref().unwrap() {
-            CanvasContext::Context2d(ref context) => Some(Root::from_ref(&*context)),
+            CanvasContext::Context2d(ref context) => Some(DomRoot::from_ref(&*context)),
             _   => None,
         }
     }
@@ -168,7 +168,7 @@ impl HTMLCanvasElement {
     #[allow(unsafe_code)]
     pub fn get_or_init_webgl_context(&self,
                                  cx: *mut JSContext,
-                                 attrs: Option<HandleValue>) -> Option<Root<WebGLRenderingContext>> {
+                                 attrs: Option<HandleValue>) -> Option<DomRoot<WebGLRenderingContext>> {
         if self.context.borrow().is_none() {
             let window = window_from_node(self);
             let size = self.get_size();
@@ -192,11 +192,11 @@ impl HTMLCanvasElement {
 
             let maybe_ctx = WebGLRenderingContext::new(&window, self, size, attrs);
 
-            *self.context.borrow_mut() = maybe_ctx.map( |ctx| CanvasContext::WebGL(JS::from_ref(&*ctx)));
+            *self.context.borrow_mut() = maybe_ctx.map( |ctx| CanvasContext::WebGL(Dom::from_ref(&*ctx)));
         }
 
         if let Some(CanvasContext::WebGL(ref context)) = *self.context.borrow() {
-            Some(Root::from_ref(&*context))
+            Some(DomRoot::from_ref(&*context))
         } else {
             None
         }

@@ -5,8 +5,8 @@
 use dom::bindings::codegen::Bindings::DOMExceptionBinding;
 use dom::bindings::codegen::Bindings::DOMExceptionBinding::DOMExceptionConstants;
 use dom::bindings::codegen::Bindings::DOMExceptionBinding::DOMExceptionMethods;
-use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
@@ -51,7 +51,7 @@ impl DOMException {
         }
     }
 
-    pub fn new(global: &GlobalScope, code: DOMErrorName) -> Root<DOMException> {
+    pub fn new(global: &GlobalScope, code: DOMErrorName) -> DomRoot<DOMException> {
         reflect_dom_object(box DOMException::new_inherited(code),
                            global,
                            DOMExceptionBinding::Wrap)

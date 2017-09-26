@@ -7,8 +7,8 @@ use dom::bindings::codegen::Bindings::PopStateEventBinding;
 use dom::bindings::codegen::Bindings::PopStateEventBinding::PopStateEventMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::bindings::trace::RootedTraceableBox;
 use dom::event::Event;
@@ -34,7 +34,7 @@ impl PopStateEvent {
         }
     }
 
-    pub fn new_uninitialized(window: &Window) -> Root<PopStateEvent> {
+    pub fn new_uninitialized(window: &Window) -> DomRoot<PopStateEvent> {
         reflect_dom_object(box PopStateEvent::new_inherited(),
                            window,
                            PopStateEventBinding::Wrap)
@@ -45,7 +45,7 @@ impl PopStateEvent {
                bubbles: bool,
                cancelable: bool,
                state: HandleValue)
-               -> Root<PopStateEvent> {
+               -> DomRoot<PopStateEvent> {
         let ev = PopStateEvent::new_uninitialized(window);
         ev.state.set(state.get());
         {
@@ -58,7 +58,7 @@ impl PopStateEvent {
     pub fn Constructor(window: &Window,
                        type_: DOMString,
                        init: RootedTraceableBox<PopStateEventBinding::PopStateEventInit>)
-                       -> Fallible<Root<PopStateEvent>> {
+                       -> Fallible<DomRoot<PopStateEvent>> {
         Ok(PopStateEvent::new(window,
                               Atom::from(type_),
                               init.parent.bubbles,

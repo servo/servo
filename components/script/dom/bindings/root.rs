@@ -11,16 +11,16 @@
 //!
 //! Here is a brief overview of the important types:
 //!
-//! - `Root<T>`: a stack-based reference to a rooted DOM object.
-//! - `JS<T>`: a reference to a DOM object that can automatically be traced by
+//! - `DomRoot<T>`: a stack-based reference to a rooted DOM object.
+//! - `Dom<T>`: a reference to a DOM object that can automatically be traced by
 //!   the GC when encountered as a field of a Rust structure.
 //!
-//! `JS<T>` does not allow access to their inner value without explicitly
-//! creating a stack-based root via the `root` method. This returns a `Root<T>`,
+//! `Dom<T>` does not allow access to their inner value without explicitly
+//! creating a stack-based root via the `root` method. This returns a `DomRoot<T>`,
 //! which causes the JS-owned value to be uncollectable for the duration of the
 //! `Root` object's lifetime. A reference to the object can then be obtained
 //! from the `Root` object. These references are not allowed to outlive their
-//! originating `Root<T>`.
+//! originating `DomRoot<T>`.
 //!
 
 use core::nonzero::NonZero;
@@ -50,63 +50,63 @@ use style::thread_state;
 /// A traced reference to a DOM object
 ///
 /// This type is critical to making garbage collection work with the DOM,
-/// but it is very dangerous; if garbage collection happens with a `JS<T>`
-/// on the stack, the `JS<T>` can point to freed memory.
+/// but it is very dangerous; if garbage collection happens with a `Dom<T>`
+/// on the stack, the `Dom<T>` can point to freed memory.
 ///
 /// This should only be used as a field in other DOM objects.
 #[must_root]
-pub struct JS<T> {
+pub struct Dom<T> {
     ptr: NonZero<*const T>,
 }
 
-// JS<T> is similar to Rc<T>, in that it's not always clear how to avoid double-counting.
+// Dom<T> is similar to Rc<T>, in that it's not always clear how to avoid double-counting.
 // For now, we choose not to follow any such pointers.
-impl<T> HeapSizeOf for JS<T> {
+impl<T> HeapSizeOf for Dom<T> {
     fn heap_size_of_children(&self) -> usize {
         0
     }
 }
 
-impl<T> JS<T> {
-    /// Returns `LayoutJS<T>` containing the same pointer.
-    pub unsafe fn to_layout(&self) -> LayoutJS<T> {
+impl<T> Dom<T> {
+    /// Returns `LayoutDom<T>` containing the same pointer.
+    pub unsafe fn to_layout(&self) -> LayoutDom<T> {
         debug_assert!(thread_state::get().is_layout());
-        LayoutJS {
+        LayoutDom {
             ptr: self.ptr.clone(),
         }
     }
 }
 
-impl<T: DomObject> JS<T> {
-    /// Create a JS<T> from a &T
+impl<T: DomObject> Dom<T> {
+    /// Create a Dom<T> from a &T
     #[allow(unrooted_must_root)]
-    pub fn from_ref(obj: &T) -> JS<T> {
+    pub fn from_ref(obj: &T) -> Dom<T> {
         debug_assert!(thread_state::get().is_script());
-        JS {
+        Dom {
             ptr: unsafe { NonZero::new_unchecked(&*obj) },
         }
     }
 }
 
-impl<'root, T: DomObject + 'root> RootedReference<'root> for JS<T> {
+impl<'root, T: DomObject + 'root> RootedReference<'root> for Dom<T> {
     type Ref = &'root T;
     fn r(&'root self) -> &'root T {
         &self
     }
 }
 
-impl<T: DomObject> Deref for JS<T> {
+impl<T: DomObject> Deref for Dom<T> {
     type Target = T;
 
     fn deref(&self) -> &T {
         debug_assert!(thread_state::get().is_script());
-        // We can only have &JS<T> from a rooted thing, so it's safe to deref
+        // We can only have &Dom<T> from a rooted thing, so it's safe to deref
         // it to &T.
         unsafe { &*self.ptr.get() }
     }
 }
 
-unsafe impl<T: DomObject> JSTraceable for JS<T> {
+unsafe impl<T: DomObject> JSTraceable for Dom<T> {
     unsafe fn trace(&self, trc: *mut JSTracer) {
         #[cfg(debug_assertions)]
         let trace_str = format!("for {} on heap", type_name::<T>());
@@ -124,32 +124,32 @@ unsafe impl<T: DomObject> JSTraceable for JS<T> {
 /// An unrooted reference to a DOM object for use in layout. `Layout*Helpers`
 /// traits must be implemented on this.
 #[allow_unrooted_interior]
-pub struct LayoutJS<T> {
+pub struct LayoutDom<T> {
     ptr: NonZero<*const T>,
 }
 
-impl<T: Castable> LayoutJS<T> {
+impl<T: Castable> LayoutDom<T> {
     /// Cast a DOM object root upwards to one of the interfaces it derives from.
-    pub fn upcast<U>(&self) -> LayoutJS<U>
+    pub fn upcast<U>(&self) -> LayoutDom<U>
         where U: Castable,
               T: DerivedFrom<U>
     {
         debug_assert!(thread_state::get().is_layout());
         let ptr: *const T = self.ptr.get();
-        LayoutJS {
+        LayoutDom {
             ptr: unsafe { NonZero::new_unchecked(ptr as *const U) },
         }
     }
 
     /// Cast a DOM object downwards to one of the interfaces it might implement.
-    pub fn downcast<U>(&self) -> Option<LayoutJS<U>>
+    pub fn downcast<U>(&self) -> Option<LayoutDom<U>>
         where U: DerivedFrom<T>
     {
         debug_assert!(thread_state::get().is_layout());
         unsafe {
             if (*self.unsafe_get()).is::<U>() {
                 let ptr: *const T = self.ptr.get();
-                Some(LayoutJS {
+                Some(LayoutDom {
                     ptr: NonZero::new_unchecked(ptr as *const U),
                 })
             } else {
@@ -159,7 +159,7 @@ impl<T: Castable> LayoutJS<T> {
     }
 }
 
-impl<T: DomObject> LayoutJS<T> {
+impl<T: DomObject> LayoutDom<T> {
     /// Get the reflector.
     pub unsafe fn get_jsobject(&self) -> *mut JSObject {
         debug_assert!(thread_state::get().is_layout());
@@ -167,114 +167,114 @@ impl<T: DomObject> LayoutJS<T> {
     }
 }
 
-impl<T> Copy for LayoutJS<T> {}
+impl<T> Copy for LayoutDom<T> {}
 
-impl<T> PartialEq for JS<T> {
-    fn eq(&self, other: &JS<T>) -> bool {
+impl<T> PartialEq for Dom<T> {
+    fn eq(&self, other: &Dom<T>) -> bool {
         self.ptr == other.ptr
     }
 }
 
-impl<T> Eq for JS<T> {}
+impl<T> Eq for Dom<T> {}
 
-impl<T> PartialEq for LayoutJS<T> {
-    fn eq(&self, other: &LayoutJS<T>) -> bool {
+impl<T> PartialEq for LayoutDom<T> {
+    fn eq(&self, other: &LayoutDom<T>) -> bool {
         self.ptr == other.ptr
     }
 }
 
-impl<T> Eq for LayoutJS<T> {}
+impl<T> Eq for LayoutDom<T> {}
 
-impl<T> Hash for JS<T> {
+impl<T> Hash for Dom<T> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.ptr.hash(state)
     }
 }
 
-impl<T> Hash for LayoutJS<T> {
+impl<T> Hash for LayoutDom<T> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.ptr.hash(state)
     }
 }
 
-impl <T> Clone for JS<T> {
+impl <T> Clone for Dom<T> {
     #[inline]
     #[allow(unrooted_must_root)]
-    fn clone(&self) -> JS<T> {
+    fn clone(&self) -> Dom<T> {
         debug_assert!(thread_state::get().is_script());
-        JS {
+        Dom {
             ptr: self.ptr.clone(),
         }
     }
 }
 
-impl <T> Clone for LayoutJS<T> {
+impl <T> Clone for LayoutDom<T> {
     #[inline]
-    fn clone(&self) -> LayoutJS<T> {
+    fn clone(&self) -> LayoutDom<T> {
         debug_assert!(thread_state::get().is_layout());
-        LayoutJS {
+        LayoutDom {
             ptr: self.ptr.clone(),
         }
     }
 }
 
-impl LayoutJS<Node> {
+impl LayoutDom<Node> {
     /// Create a new JS-owned value wrapped from an address known to be a
     /// `Node` pointer.
-    pub unsafe fn from_trusted_node_address(inner: TrustedNodeAddress) -> LayoutJS<Node> {
+    pub unsafe fn from_trusted_node_address(inner: TrustedNodeAddress) -> LayoutDom<Node> {
         debug_assert!(thread_state::get().is_layout());
         let TrustedNodeAddress(addr) = inner;
-        LayoutJS {
+        LayoutDom {
             ptr: NonZero::new_unchecked(addr as *const Node),
         }
     }
 }
 
 /// A holder that provides interior mutability for GC-managed values such as
-/// `JS<T>`.  Essentially a `Cell<JS<T>>`, but safer.
+/// `Dom<T>`.  Essentially a `Cell<Dom<T>>`, but safer.
 ///
 /// This should only be used as a field in other DOM objects; see warning
-/// on `JS<T>`.
+/// on `Dom<T>`.
 #[must_root]
 #[derive(JSTraceable)]
-pub struct MutJS<T: DomObject> {
-    val: UnsafeCell<JS<T>>,
+pub struct MutDom<T: DomObject> {
+    val: UnsafeCell<Dom<T>>,
 }
 
-impl<T: DomObject> MutJS<T> {
-    /// Create a new `MutJS`.
-    pub fn new(initial: &T) -> MutJS<T> {
+impl<T: DomObject> MutDom<T> {
+    /// Create a new `MutDom`.
+    pub fn new(initial: &T) -> MutDom<T> {
         debug_assert!(thread_state::get().is_script());
-        MutJS {
-            val: UnsafeCell::new(JS::from_ref(initial)),
+        MutDom {
+            val: UnsafeCell::new(Dom::from_ref(initial)),
         }
     }
 
-    /// Set this `MutJS` to the given value.
+    /// Set this `MutDom` to the given value.
     pub fn set(&self, val: &T) {
         debug_assert!(thread_state::get().is_script());
         unsafe {
-            *self.val.get() = JS::from_ref(val);
+            *self.val.get() = Dom::from_ref(val);
         }
     }
 
-    /// Get the value in this `MutJS`.
-    pub fn get(&self) -> Root<T> {
+    /// Get the value in this `MutDom`.
+    pub fn get(&self) -> DomRoot<T> {
         debug_assert!(thread_state::get().is_script());
         unsafe {
-            Root::from_ref(&*ptr::read(self.val.get()))
+            DomRoot::from_ref(&*ptr::read(self.val.get()))
         }
     }
 }
 
-impl<T: DomObject> HeapSizeOf for MutJS<T> {
+impl<T: DomObject> HeapSizeOf for MutDom<T> {
     fn heap_size_of_children(&self) -> usize {
-        // See comment on HeapSizeOf for JS<T>.
+        // See comment on HeapSizeOf for Dom<T>.
         0
     }
 }
 
-impl<T: DomObject> PartialEq for MutJS<T> {
+impl<T: DomObject> PartialEq for MutDom<T> {
    fn eq(&self, other: &Self) -> bool {
         unsafe {
             *self.val.get() == *other.val.get()
@@ -282,7 +282,7 @@ impl<T: DomObject> PartialEq for MutJS<T> {
     }
 }
 
-impl<T: DomObject + PartialEq> PartialEq<T> for MutJS<T> {
+impl<T: DomObject + PartialEq> PartialEq<T> for MutDom<T> {
     fn eq(&self, other: &T) -> bool {
         unsafe {
             **self.val.get() == *other
@@ -291,30 +291,30 @@ impl<T: DomObject + PartialEq> PartialEq<T> for MutJS<T> {
 }
 
 /// A holder that provides interior mutability for GC-managed values such as
-/// `JS<T>`, with nullability represented by an enclosing Option wrapper.
-/// Essentially a `Cell<Option<JS<T>>>`, but safer.
+/// `Dom<T>`, with nullability represented by an enclosing Option wrapper.
+/// Essentially a `Cell<Option<Dom<T>>>`, but safer.
 ///
 /// This should only be used as a field in other DOM objects; see warning
-/// on `JS<T>`.
+/// on `Dom<T>`.
 #[must_root]
 #[derive(JSTraceable)]
-pub struct MutNullableJS<T: DomObject> {
-    ptr: UnsafeCell<Option<JS<T>>>,
+pub struct MutNullableDom<T: DomObject> {
+    ptr: UnsafeCell<Option<Dom<T>>>,
 }
 
-impl<T: DomObject> MutNullableJS<T> {
-    /// Create a new `MutNullableJS`.
-    pub fn new(initial: Option<&T>) -> MutNullableJS<T> {
+impl<T: DomObject> MutNullableDom<T> {
+    /// Create a new `MutNullableDom`.
+    pub fn new(initial: Option<&T>) -> MutNullableDom<T> {
         debug_assert!(thread_state::get().is_script());
-        MutNullableJS {
-            ptr: UnsafeCell::new(initial.map(JS::from_ref)),
+        MutNullableDom {
+            ptr: UnsafeCell::new(initial.map(Dom::from_ref)),
         }
     }
 
     /// Retrieve a copy of the current inner value. If it is `None`, it is
     /// initialized with the result of `cb` first.
-    pub fn or_init<F>(&self, cb: F) -> Root<T>
-        where F: FnOnce() -> Root<T>
+    pub fn or_init<F>(&self, cb: F) -> DomRoot<T>
+        where F: FnOnce() -> DomRoot<T>
     {
         debug_assert!(thread_state::get().is_script());
         match self.get() {
@@ -327,40 +327,40 @@ impl<T: DomObject> MutNullableJS<T> {
         }
     }
 
-    /// Retrieve a copy of the inner optional `JS<T>` as `LayoutJS<T>`.
+    /// Retrieve a copy of the inner optional `Dom<T>` as `LayoutDom<T>`.
     /// For use by layout, which can't use safe types like Temporary.
     #[allow(unrooted_must_root)]
-    pub unsafe fn get_inner_as_layout(&self) -> Option<LayoutJS<T>> {
+    pub unsafe fn get_inner_as_layout(&self) -> Option<LayoutDom<T>> {
         debug_assert!(thread_state::get().is_layout());
         ptr::read(self.ptr.get()).map(|js| js.to_layout())
     }
 
     /// Get a rooted value out of this object
     #[allow(unrooted_must_root)]
-    pub fn get(&self) -> Option<Root<T>> {
+    pub fn get(&self) -> Option<DomRoot<T>> {
         debug_assert!(thread_state::get().is_script());
         unsafe {
-            ptr::read(self.ptr.get()).map(|o| Root::from_ref(&*o))
+            ptr::read(self.ptr.get()).map(|o| DomRoot::from_ref(&*o))
         }
     }
 
-    /// Set this `MutNullableJS` to the given value.
+    /// Set this `MutNullableDom` to the given value.
     pub fn set(&self, val: Option<&T>) {
         debug_assert!(thread_state::get().is_script());
         unsafe {
-            *self.ptr.get() = val.map(|p| JS::from_ref(p));
+            *self.ptr.get() = val.map(|p| Dom::from_ref(p));
         }
     }
 
     /// Gets the current value out of this object and sets it to `None`.
-    pub fn take(&self) -> Option<Root<T>> {
+    pub fn take(&self) -> Option<DomRoot<T>> {
         let value = self.get();
         self.set(None);
         value
     }
 }
 
-impl<T: DomObject> PartialEq for MutNullableJS<T> {
+impl<T: DomObject> PartialEq for MutNullableDom<T> {
     fn eq(&self, other: &Self) -> bool {
         unsafe {
             *self.ptr.get() == *other.ptr.get()
@@ -368,73 +368,73 @@ impl<T: DomObject> PartialEq for MutNullableJS<T> {
     }
 }
 
-impl<'a, T: DomObject> PartialEq<Option<&'a T>> for MutNullableJS<T> {
+impl<'a, T: DomObject> PartialEq<Option<&'a T>> for MutNullableDom<T> {
     fn eq(&self, other: &Option<&T>) -> bool {
         unsafe {
-            *self.ptr.get() == other.map(JS::from_ref)
+            *self.ptr.get() == other.map(Dom::from_ref)
         }
     }
 }
 
-impl<T: DomObject> Default for MutNullableJS<T> {
+impl<T: DomObject> Default for MutNullableDom<T> {
     #[allow(unrooted_must_root)]
-    fn default() -> MutNullableJS<T> {
+    fn default() -> MutNullableDom<T> {
         debug_assert!(thread_state::get().is_script());
-        MutNullableJS {
+        MutNullableDom {
             ptr: UnsafeCell::new(None),
         }
     }
 }
 
-impl<T: DomObject> HeapSizeOf for MutNullableJS<T> {
+impl<T: DomObject> HeapSizeOf for MutNullableDom<T> {
     fn heap_size_of_children(&self) -> usize {
-        // See comment on HeapSizeOf for JS<T>.
+        // See comment on HeapSizeOf for Dom<T>.
         0
     }
 }
 
 /// A holder that allows to lazily initialize the value only once
-/// `JS<T>`, using OnceCell
-/// Essentially a `OnceCell<JS<T>>`.
+/// `Dom<T>`, using OnceCell
+/// Essentially a `OnceCell<Dom<T>>`.
 ///
 /// This should only be used as a field in other DOM objects; see warning
-/// on `JS<T>`.
+/// on `Dom<T>`.
 #[must_root]
-pub struct OnceCellJS<T: DomObject> {
-    ptr: OnceCell<JS<T>>,
+pub struct DomOnceCell<T: DomObject> {
+    ptr: OnceCell<Dom<T>>,
 }
 
-impl<T: DomObject> OnceCellJS<T> {
+impl<T: DomObject> DomOnceCell<T> {
     /// Retrieve a copy of the current inner value. If it is `None`, it is
     /// initialized with the result of `cb` first.
     #[allow(unrooted_must_root)]
     pub fn init_once<F>(&self, cb: F) -> &T
-        where F: FnOnce() -> Root<T>
+        where F: FnOnce() -> DomRoot<T>
     {
         debug_assert!(thread_state::get().is_script());
-        &self.ptr.init_once(|| JS::from_ref(&cb()))
+        &self.ptr.init_once(|| Dom::from_ref(&cb()))
     }
 }
 
-impl<T: DomObject> Default for OnceCellJS<T> {
+impl<T: DomObject> Default for DomOnceCell<T> {
     #[allow(unrooted_must_root)]
-    fn default() -> OnceCellJS<T> {
+    fn default() -> DomOnceCell<T> {
         debug_assert!(thread_state::get().is_script());
-        OnceCellJS {
+        DomOnceCell {
             ptr: OnceCell::new(),
         }
     }
 }
 
-impl<T: DomObject> HeapSizeOf for OnceCellJS<T> {
+impl<T: DomObject> HeapSizeOf for DomOnceCell<T> {
     fn heap_size_of_children(&self) -> usize {
-        // See comment on HeapSizeOf for JS<T>.
+        // See comment on HeapSizeOf for Dom<T>.
         0
     }
 }
 
 #[allow(unrooted_must_root)]
-unsafe impl<T: DomObject> JSTraceable for OnceCellJS<T> {
+unsafe impl<T: DomObject> JSTraceable for DomOnceCell<T> {
     unsafe fn trace(&self, trc: *mut JSTracer) {
         if let Some(ptr) = self.ptr.as_ref() {
             ptr.trace(trc);
@@ -442,7 +442,7 @@ unsafe impl<T: DomObject> JSTraceable for OnceCellJS<T> {
     }
 }
 
-impl<T: DomObject> LayoutJS<T> {
+impl<T: DomObject> LayoutDom<T> {
     /// Returns an unsafe pointer to the interior of this JS object. This is
     /// the only method that be safely accessed from layout. (The fact that
     /// this is unsafe is what necessitates the layout wrappers.)
@@ -468,7 +468,7 @@ pub trait RootedReference<'root> {
     fn r(&'root self) -> Self::Ref;
 }
 
-impl<'root, T: JSTraceable + DomObject + 'root> RootedReference<'root> for [JS<T>] {
+impl<'root, T: JSTraceable + DomObject + 'root> RootedReference<'root> for [Dom<T>] {
     type Ref = &'root [&'root T];
     fn r(&'root self) -> &'root [&'root T] {
         unsafe { mem::transmute(self) }
@@ -559,16 +559,16 @@ pub unsafe fn trace_roots(tracer: *mut JSTracer) {
 /// for the same JS value. `Root`s cannot outlive the associated
 /// `RootCollection` object.
 #[allow_unrooted_interior]
-pub struct Root<T: DomObject> {
+pub struct DomRoot<T: DomObject> {
     /// Reference to rooted value that must not outlive this container
     ptr: NonZero<*const T>,
     /// List that ensures correct dynamic root ordering
     root_list: *const RootCollection,
 }
 
-impl<T: Castable> Root<T> {
+impl<T: Castable> DomRoot<T> {
     /// Cast a DOM object root upwards to one of the interfaces it derives from.
-    pub fn upcast<U>(root: Root<T>) -> Root<U>
+    pub fn upcast<U>(root: DomRoot<T>) -> DomRoot<U>
         where U: Castable,
               T: DerivedFrom<U>
     {
@@ -576,7 +576,7 @@ impl<T: Castable> Root<T> {
     }
 
     /// Cast a DOM object root downwards to one of the interfaces it might implement.
-    pub fn downcast<U>(root: Root<T>) -> Option<Root<U>>
+    pub fn downcast<U>(root: DomRoot<T>) -> Option<DomRoot<U>>
         where U: DerivedFrom<T>
     {
         if root.is::<U>() {
@@ -587,16 +587,16 @@ impl<T: Castable> Root<T> {
     }
 }
 
-impl<T: DomObject> Root<T> {
+impl<T: DomObject> DomRoot<T> {
     /// Create a new stack-bounded root for the provided JS-owned value.
     /// It cannot outlive its associated `RootCollection`, and it gives
     /// out references which cannot outlive this new `Root`.
-    pub fn new(unrooted: NonZero<*const T>) -> Root<T> {
+    pub fn new(unrooted: NonZero<*const T>) -> DomRoot<T> {
         debug_assert!(thread_state::get().is_script());
         STACK_ROOTS.with(|ref collection| {
             let RootCollectionPtr(collection) = collection.get().unwrap();
             unsafe { (*collection).root(&*(*unrooted.get()).reflector()) }
-            Root {
+            DomRoot {
                 ptr: unrooted,
                 root_list: collection,
             }
@@ -604,19 +604,19 @@ impl<T: DomObject> Root<T> {
     }
 
     /// Generate a new root from a reference
-    pub fn from_ref(unrooted: &T) -> Root<T> {
-        Root::new(unsafe { NonZero::new_unchecked(unrooted) })
+    pub fn from_ref(unrooted: &T) -> DomRoot<T> {
+        DomRoot::new(unsafe { NonZero::new_unchecked(unrooted) })
     }
 }
 
-impl<'root, T: DomObject + 'root> RootedReference<'root> for Root<T> {
+impl<'root, T: DomObject + 'root> RootedReference<'root> for DomRoot<T> {
     type Ref = &'root T;
     fn r(&'root self) -> &'root T {
         self
     }
 }
 
-impl<T: DomObject> Deref for Root<T> {
+impl<T: DomObject> Deref for DomRoot<T> {
     type Target = T;
     fn deref(&self) -> &T {
         debug_assert!(thread_state::get().is_script());
@@ -624,25 +624,25 @@ impl<T: DomObject> Deref for Root<T> {
     }
 }
 
-impl<T: DomObject + HeapSizeOf> HeapSizeOf for Root<T> {
+impl<T: DomObject + HeapSizeOf> HeapSizeOf for DomRoot<T> {
     fn heap_size_of_children(&self) -> usize {
         (**self).heap_size_of_children()
     }
 }
 
-impl<T: DomObject> PartialEq for Root<T> {
+impl<T: DomObject> PartialEq for DomRoot<T> {
     fn eq(&self, other: &Self) -> bool {
         self.ptr == other.ptr
     }
 }
 
-impl<T: DomObject> Clone for Root<T> {
-    fn clone(&self) -> Root<T> {
-        Root::from_ref(&*self)
+impl<T: DomObject> Clone for DomRoot<T> {
+    fn clone(&self) -> DomRoot<T> {
+        DomRoot::from_ref(&*self)
     }
 }
 
-impl<T: DomObject> Drop for Root<T> {
+impl<T: DomObject> Drop for DomRoot<T> {
     fn drop(&mut self) {
         unsafe {
             (*self.root_list).unroot(self.reflector());
@@ -650,7 +650,7 @@ impl<T: DomObject> Drop for Root<T> {
     }
 }
 
-unsafe impl<T: DomObject> JSTraceable for Root<T> {
+unsafe impl<T: DomObject> JSTraceable for DomRoot<T> {
     unsafe fn trace(&self, _: *mut JSTracer) {
         // Already traced.
     }

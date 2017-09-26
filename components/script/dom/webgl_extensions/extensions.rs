@@ -5,11 +5,11 @@
 use canvas_traits::webgl::WebGLError;
 use core::iter::FromIterator;
 use core::nonzero::NonZero;
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::OESStandardDerivativesBinding::OESStandardDerivativesConstants;
 use dom::bindings::codegen::Bindings::OESTextureHalfFloatBinding::OESTextureHalfFloatConstants;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
-use dom::bindings::js::Root;
+use dom::bindings::root::DomRoot;
 use dom::bindings::trace::JSTraceable;
 use dom::webglrenderingcontext::WebGLRenderingContext;
 use fnv::{FnvHashMap, FnvHashSet};
@@ -76,15 +76,15 @@ impl Default for WebGLExtensionFeatures {
 #[must_root]
 #[derive(HeapSizeOf, JSTraceable)]
 pub struct WebGLExtensions {
-    extensions: DOMRefCell<HashMap<String, Box<WebGLExtensionWrapper>>>,
-    features: DOMRefCell<WebGLExtensionFeatures>,
+    extensions: DomRefCell<HashMap<String, Box<WebGLExtensionWrapper>>>,
+    features: DomRefCell<WebGLExtensionFeatures>,
 }
 
 impl WebGLExtensions {
     pub fn new() -> WebGLExtensions {
         Self {
-            extensions: DOMRefCell::new(HashMap::new()),
-            features: DOMRefCell::new(Default::default())
+            extensions: DomRefCell::new(HashMap::new()),
+            features: DomRefCell::new(Default::default())
         }
     }
 
@@ -128,7 +128,7 @@ impl WebGLExtensions {
         self.extensions.borrow().get(&name).map_or(false, |ext| { ext.is_enabled() })
     }
 
-    pub fn get_dom_object<T>(&self) -> Option<Root<T::Extension>>
+    pub fn get_dom_object<T>(&self) -> Option<DomRoot<T::Extension>>
     where
         T: 'static + WebGLExtension + JSTraceable + HeapSizeOf
     {

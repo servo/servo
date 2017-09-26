@@ -6,8 +6,8 @@
 use canvas_traits::webgl::{webgl_channel, WebGLCommand, WebGLError, WebGLMsgSender, WebGLRenderbufferId, WebGLResult};
 use dom::bindings::codegen::Bindings::WebGLRenderbufferBinding;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
-use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::DomRoot;
 use dom::webglobject::WebGLObject;
 use dom::window::Window;
 use dom_struct::dom_struct;
@@ -41,7 +41,7 @@ impl WebGLRenderbuffer {
     }
 
     pub fn maybe_new(window: &Window, renderer: WebGLMsgSender)
-                     -> Option<Root<WebGLRenderbuffer>> {
+                     -> Option<DomRoot<WebGLRenderbuffer>> {
         let (sender, receiver) = webgl_channel().unwrap();
         renderer.send(WebGLCommand::CreateRenderbuffer(sender)).unwrap();
 
@@ -52,7 +52,7 @@ impl WebGLRenderbuffer {
     pub fn new(window: &Window,
                renderer: WebGLMsgSender,
                id: WebGLRenderbufferId)
-               -> Root<WebGLRenderbuffer> {
+               -> DomRoot<WebGLRenderbuffer> {
         reflect_dom_object(box WebGLRenderbuffer::new_inherited(renderer, id),
                            window,
                            WebGLRenderbufferBinding::Wrap)

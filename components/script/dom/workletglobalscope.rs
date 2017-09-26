@@ -4,7 +4,7 @@
 
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
+use dom::bindings::root::DomRoot;
 use dom::globalscope::GlobalScope;
 use dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use dom::paintworkletglobalscope::PaintWorkletTask;
@@ -86,7 +86,7 @@ impl WorkletGlobalScope {
 
     /// Evaluate a JS script in this global.
     pub fn evaluate_js(&self, script: &str) -> bool {
-        debug!("Evaluating JS.");
+        debug!("Evaluating Dom.");
         rooted!(in (self.globalscope.get_cx()) let mut rval = UndefinedValue());
         self.globalscope.evaluate_js_on_global_with_result(&*script, rval.handle_mut())
     }
@@ -171,13 +171,13 @@ impl WorkletGlobalScopeType {
                base_url: ServoUrl,
                executor: WorkletExecutor,
                init: &WorkletGlobalScopeInit)
-               -> Root<WorkletGlobalScope>
+               -> DomRoot<WorkletGlobalScope>
     {
         match *self {
             WorkletGlobalScopeType::Test =>
-                Root::upcast(TestWorkletGlobalScope::new(runtime, pipeline_id, base_url, executor, init)),
+                DomRoot::upcast(TestWorkletGlobalScope::new(runtime, pipeline_id, base_url, executor, init)),
             WorkletGlobalScopeType::Paint =>
-                Root::upcast(PaintWorkletGlobalScope::new(runtime, pipeline_id, base_url, executor, init)),
+                DomRoot::upcast(PaintWorkletGlobalScope::new(runtime, pipeline_id, base_url, executor, init)),
         }
     }
 }

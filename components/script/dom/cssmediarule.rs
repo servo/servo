@@ -6,8 +6,8 @@ use cssparser::{Parser, ParserInput};
 use dom::bindings::codegen::Bindings::CSSMediaRuleBinding;
 use dom::bindings::codegen::Bindings::CSSMediaRuleBinding::CSSMediaRuleMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
-use dom::bindings::js::{MutNullableJS, Root};
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
+use dom::bindings::root::{DomRoot, MutNullableDom};
 use dom::bindings::str::DOMString;
 use dom::cssconditionrule::CSSConditionRule;
 use dom::cssrule::SpecificCSSRule;
@@ -27,7 +27,7 @@ pub struct CSSMediaRule {
     cssconditionrule: CSSConditionRule,
     #[ignore_heap_size_of = "Arc"]
     mediarule: Arc<Locked<MediaRule>>,
-    medialist: MutNullableJS<MediaList>,
+    medialist: MutNullableDom<MediaList>,
 }
 
 impl CSSMediaRule {
@@ -38,19 +38,19 @@ impl CSSMediaRule {
         CSSMediaRule {
             cssconditionrule: CSSConditionRule::new_inherited(parent_stylesheet, list),
             mediarule: mediarule,
-            medialist: MutNullableJS::new(None),
+            medialist: MutNullableDom::new(None),
         }
     }
 
     #[allow(unrooted_must_root)]
     pub fn new(window: &Window, parent_stylesheet: &CSSStyleSheet,
-               mediarule: Arc<Locked<MediaRule>>) -> Root<CSSMediaRule> {
+               mediarule: Arc<Locked<MediaRule>>) -> DomRoot<CSSMediaRule> {
         reflect_dom_object(box CSSMediaRule::new_inherited(parent_stylesheet, mediarule),
                            window,
                            CSSMediaRuleBinding::Wrap)
     }
 
-    fn medialist(&self) -> Root<MediaList> {
+    fn medialist(&self) -> DomRoot<MediaList> {
         self.medialist.or_init(|| {
             let guard = self.cssconditionrule.shared_lock().read();
             MediaList::new(self.global().as_window(),
@@ -108,7 +108,7 @@ impl SpecificCSSRule for CSSMediaRule {
 
 impl CSSMediaRuleMethods for CSSMediaRule {
     // https://drafts.csswg.org/cssom/#dom-cssgroupingrule-media
-    fn Media(&self) -> Root<MediaList> {
+    fn Media(&self) -> DomRoot<MediaList> {
         self.medialist()
     }
 }

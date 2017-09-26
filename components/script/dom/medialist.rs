@@ -6,8 +6,8 @@ use cssparser::{Parser, ParserInput};
 use dom::bindings::codegen::Bindings::MediaListBinding;
 use dom::bindings::codegen::Bindings::MediaListBinding::MediaListMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
-use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use dom::bindings::root::{Dom, DomRoot};
 use dom::bindings::str::DOMString;
 use dom::cssstylesheet::CSSStyleSheet;
 use dom::window::Window;
@@ -23,7 +23,7 @@ use style_traits::{PARSING_MODE_DEFAULT, ToCss};
 #[dom_struct]
 pub struct MediaList {
     reflector_: Reflector,
-    parent_stylesheet: JS<CSSStyleSheet>,
+    parent_stylesheet: Dom<CSSStyleSheet>,
     #[ignore_heap_size_of = "Arc"]
     media_queries: Arc<Locked<StyleMediaList>>,
 }
@@ -33,7 +33,7 @@ impl MediaList {
     pub fn new_inherited(parent_stylesheet: &CSSStyleSheet,
                          media_queries: Arc<Locked<StyleMediaList>>) -> MediaList {
         MediaList {
-            parent_stylesheet: JS::from_ref(parent_stylesheet),
+            parent_stylesheet: Dom::from_ref(parent_stylesheet),
             reflector_: Reflector::new(),
             media_queries: media_queries,
         }
@@ -42,7 +42,7 @@ impl MediaList {
     #[allow(unrooted_must_root)]
     pub fn new(window: &Window, parent_stylesheet: &CSSStyleSheet,
                media_queries: Arc<Locked<StyleMediaList>>)
-        -> Root<MediaList> {
+        -> DomRoot<MediaList> {
         reflect_dom_object(box MediaList::new_inherited(parent_stylesheet, media_queries),
                            window,
                            MediaListBinding::Wrap)

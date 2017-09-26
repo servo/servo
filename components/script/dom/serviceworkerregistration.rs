@@ -4,8 +4,8 @@
 
 use dom::bindings::codegen::Bindings::ServiceWorkerBinding::ServiceWorkerState;
 use dom::bindings::codegen::Bindings::ServiceWorkerRegistrationBinding::{ServiceWorkerRegistrationMethods, Wrap};
-use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::{Dom, DomRoot};
 use dom::bindings::str::USVString;
 use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
@@ -20,9 +20,9 @@ use std::cell::Cell;
 #[dom_struct]
 pub struct ServiceWorkerRegistration {
     eventtarget: EventTarget,
-    active: Option<JS<ServiceWorker>>,
-    installing: Option<JS<ServiceWorker>>,
-    waiting: Option<JS<ServiceWorker>>,
+    active: Option<Dom<ServiceWorker>>,
+    installing: Option<Dom<ServiceWorker>>,
+    waiting: Option<Dom<ServiceWorker>>,
     scope: ServoUrl,
     uninstalling: Cell<bool>
 }
@@ -31,7 +31,7 @@ impl ServiceWorkerRegistration {
     fn new_inherited(active_sw: &ServiceWorker, scope: ServoUrl) -> ServiceWorkerRegistration {
         ServiceWorkerRegistration {
             eventtarget: EventTarget::new_inherited(),
-            active: Some(JS::from_ref(active_sw)),
+            active: Some(Dom::from_ref(active_sw)),
             installing: None,
             waiting: None,
             scope: scope,
@@ -41,7 +41,7 @@ impl ServiceWorkerRegistration {
     #[allow(unrooted_must_root)]
     pub fn new(global: &GlobalScope,
                script_url: &ServoUrl,
-               scope: ServoUrl) -> Root<ServiceWorkerRegistration> {
+               scope: ServoUrl) -> DomRoot<ServiceWorkerRegistration> {
         let active_worker = ServiceWorker::install_serviceworker(global, script_url.clone(), scope.clone(), true);
         active_worker.set_transition_state(ServiceWorkerState::Installed);
         reflect_dom_object(box ServiceWorkerRegistration::new_inherited(&*active_worker, scope), global, Wrap)
@@ -79,13 +79,13 @@ impl ServiceWorkerRegistration {
     }
 
     // https://w3c.github.io/ServiceWorker/#get-newest-worker-algorithm
-    pub fn get_newest_worker(&self) -> Option<Root<ServiceWorker>> {
+    pub fn get_newest_worker(&self) -> Option<DomRoot<ServiceWorker>> {
         if self.installing.as_ref().is_some() {
-            self.installing.as_ref().map(|sw| Root::from_ref(&**sw))
+            self.installing.as_ref().map(|sw| DomRoot::from_ref(&**sw))
         } else if self.waiting.as_ref().is_some() {
-            self.waiting.as_ref().map(|sw| Root::from_ref(&**sw))
+            self.waiting.as_ref().map(|sw| DomRoot::from_ref(&**sw))
         } else {
-            self.active.as_ref().map(|sw| Root::from_ref(&**sw))
+            self.active.as_ref().map(|sw| DomRoot::from_ref(&**sw))
         }
     }
 }
@@ -105,18 +105,18 @@ pub fn longest_prefix_match(stored_scope: &ServoUrl, potential_match: &ServoUrl)
 
 impl ServiceWorkerRegistrationMethods for ServiceWorkerRegistration {
     // https://w3c.github.io/ServiceWorker/#service-worker-registration-installing-attribute
-    fn GetInstalling(&self) -> Option<Root<ServiceWorker>> {
-        self.installing.as_ref().map(|sw| Root::from_ref(&**sw))
+    fn GetInstalling(&self) -> Option<DomRoot<ServiceWorker>> {
+        self.installing.as_ref().map(|sw| DomRoot::from_ref(&**sw))
     }
 
     // https://w3c.github.io/ServiceWorker/#service-worker-registration-active-attribute
-    fn GetActive(&self) -> Option<Root<ServiceWorker>> {
-        self.active.as_ref().map(|sw| Root::from_ref(&**sw))
+    fn GetActive(&self) -> Option<DomRoot<ServiceWorker>> {
+        self.active.as_ref().map(|sw| DomRoot::from_ref(&**sw))
     }
 
     // https://w3c.github.io/ServiceWorker/#service-worker-registration-waiting-attribute
-    fn GetWaiting(&self) -> Option<Root<ServiceWorker>> {
-        self.waiting.as_ref().map(|sw| Root::from_ref(&**sw))
+    fn GetWaiting(&self) -> Option<DomRoot<ServiceWorker>> {
+        self.waiting.as_ref().map(|sw| DomRoot::from_ref(&**sw))
     }
 
     // https://w3c.github.io/ServiceWorker/#service-worker-registration-scope-attribute

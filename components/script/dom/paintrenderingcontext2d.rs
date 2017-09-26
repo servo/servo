@@ -16,9 +16,9 @@ use dom::bindings::codegen::UnionTypes::StringOrCanvasGradientOrCanvasPattern;
 use dom::bindings::error::ErrorResult;
 use dom::bindings::error::Fallible;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::canvasgradient::CanvasGradient;
 use dom::canvaspattern::CanvasPattern;
@@ -52,7 +52,7 @@ impl PaintRenderingContext2D {
         }
     }
 
-    pub fn new(global: &PaintWorkletGlobalScope) -> Root<PaintRenderingContext2D> {
+    pub fn new(global: &PaintWorkletGlobalScope) -> DomRoot<PaintRenderingContext2D> {
         reflect_dom_object(box PaintRenderingContext2D::new_inherited(global),
                            global,
                            PaintRenderingContext2DBinding::Wrap)
@@ -304,7 +304,7 @@ impl PaintRenderingContext2DMethods for PaintRenderingContext2D {
                             y0: Finite<f64>,
                             x1: Finite<f64>,
                             y1: Finite<f64>)
-                            -> Root<CanvasGradient> {
+                            -> DomRoot<CanvasGradient> {
         self.context.CreateLinearGradient(x0, y0, x1, y1)
     }
 
@@ -316,7 +316,7 @@ impl PaintRenderingContext2DMethods for PaintRenderingContext2D {
                             x1: Finite<f64>,
                             y1: Finite<f64>,
                             r1: Finite<f64>)
-                            -> Fallible<Root<CanvasGradient>> {
+                            -> Fallible<DomRoot<CanvasGradient>> {
         self.context.CreateRadialGradient(x0, y0, r0, x1, y1, r1)
     }
 
@@ -324,7 +324,7 @@ impl PaintRenderingContext2DMethods for PaintRenderingContext2D {
     fn CreatePattern(&self,
                      image: HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2DOrCSSStyleValue,
                      repetition: DOMString)
-                     -> Fallible<Root<CanvasPattern>> {
+                     -> Fallible<DomRoot<CanvasPattern>> {
         self.context.CreatePattern(image, repetition)
     }
 

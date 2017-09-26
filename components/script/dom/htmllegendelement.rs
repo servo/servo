@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::HTMLLegendElementBinding;
 use dom::bindings::codegen::Bindings::HTMLLegendElementBinding::HTMLLegendElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{MutNullableJS, Root};
+use dom::bindings::root::{DomRoot, MutNullableDom};
 use dom::document::Document;
 use dom::element::Element;
 use dom::htmlelement::HTMLElement;
@@ -20,7 +20,7 @@ use html5ever::{LocalName, Prefix};
 #[dom_struct]
 pub struct HTMLLegendElement {
     htmlelement: HTMLElement,
-    form_owner: MutNullableJS<HTMLFormElement>,
+    form_owner: MutNullableDom<HTMLFormElement>,
 }
 
 impl HTMLLegendElement {
@@ -38,7 +38,7 @@ impl HTMLLegendElement {
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
                document: &Document)
-               -> Root<HTMLLegendElement> {
+               -> DomRoot<HTMLLegendElement> {
         Node::reflect_node(box HTMLLegendElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLLegendElementBinding::Wrap)
@@ -74,7 +74,7 @@ impl VirtualMethods for HTMLLegendElement {
 
 impl HTMLLegendElementMethods for HTMLLegendElement {
     // https://html.spec.whatwg.org/multipage/#dom-legend-form
-    fn GetForm(&self) -> Option<Root<HTMLFormElement>> {
+    fn GetForm(&self) -> Option<DomRoot<HTMLFormElement>> {
         let parent = match self.upcast::<Node>().GetParentElement() {
             Some(parent) => parent,
             None => return None,
@@ -87,7 +87,7 @@ impl HTMLLegendElementMethods for HTMLLegendElement {
 }
 
 impl FormControl for HTMLLegendElement {
-    fn form_owner(&self) -> Option<Root<HTMLFormElement>> {
+    fn form_owner(&self) -> Option<DomRoot<HTMLFormElement>> {
         self.form_owner.get()
     }
 

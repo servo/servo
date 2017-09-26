@@ -6,8 +6,8 @@ use bluetooth_traits::BluetoothRequest;
 use dom::bindings::codegen::Bindings::TestRunnerBinding;
 use dom::bindings::codegen::Bindings::TestRunnerBinding::TestRunnerMethods;
 use dom::bindings::error::{Error, ErrorResult};
-use dom::bindings::js::Root;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
@@ -26,7 +26,7 @@ impl TestRunner {
         }
     }
 
-    pub fn new(global: &GlobalScope) -> Root<TestRunner> {
+    pub fn new(global: &GlobalScope) -> DomRoot<TestRunner> {
         reflect_dom_object(box TestRunner::new_inherited(),
                            global,
                            TestRunnerBinding::Wrap)

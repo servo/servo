@@ -6,7 +6,7 @@ use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLBaseElementBinding;
 use dom::bindings::codegen::Bindings::HTMLBaseElementBinding::HTMLBaseElementMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element};
@@ -33,7 +33,7 @@ impl HTMLBaseElement {
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
-               document: &Document) -> Root<HTMLBaseElement> {
+               document: &Document) -> DomRoot<HTMLBaseElement> {
         Node::reflect_node(box HTMLBaseElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLBaseElementBinding::Wrap)

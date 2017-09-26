@@ -4,7 +4,7 @@
 
 use dom::beforeunloadevent::BeforeUnloadEvent;
 use dom::bindings::callback::{CallbackContainer, ExceptionHandling, CallbackFunction};
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::BeforeUnloadEventBinding::BeforeUnloadEventMethods;
 use dom::bindings::codegen::Bindings::ErrorEventBinding::ErrorEventMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -17,8 +17,8 @@ use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::UnionTypes::EventOrString;
 use dom::bindings::error::{Error, Fallible, report_pending_exception};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
 use dom::bindings::reflector::{DomObject, Reflector};
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::element::Element;
 use dom::errorevent::ErrorEvent;
@@ -174,7 +174,7 @@ impl CompiledEventListener {
                             return;
                         }
 
-                        let _ = handler.Call_(object, EventOrString::Event(Root::from_ref(event)),
+                        let _ = handler.Call_(object, EventOrString::Event(DomRoot::from_ref(event)),
                                               None, None, None, None, exception_handle);
                     }
 
@@ -276,14 +276,14 @@ impl EventListeners {
 #[dom_struct]
 pub struct EventTarget {
     reflector_: Reflector,
-    handlers: DOMRefCell<HashMap<Atom, EventListeners, BuildHasherDefault<FnvHasher>>>,
+    handlers: DomRefCell<HashMap<Atom, EventListeners, BuildHasherDefault<FnvHasher>>>,
 }
 
 impl EventTarget {
     pub fn new_inherited() -> EventTarget {
         EventTarget {
             reflector_: Reflector::new(),
-            handlers: DOMRefCell::new(Default::default()),
+            handlers: DomRefCell::new(Default::default()),
         }
     }
 
@@ -506,28 +506,28 @@ impl EventTarget {
     }
 
     // https://dom.spec.whatwg.org/#concept-event-fire
-    pub fn fire_event(&self, name: Atom) -> Root<Event> {
+    pub fn fire_event(&self, name: Atom) -> DomRoot<Event> {
         self.fire_event_with_params(name,
                                     EventBubbles::DoesNotBubble,
                                     EventCancelable::NotCancelable)
     }
 
     // https://dom.spec.whatwg.org/#concept-event-fire
-    pub fn fire_bubbling_event(&self, name: Atom) -> Root<Event> {
+    pub fn fire_bubbling_event(&self, name: Atom) -> DomRoot<Event> {
         self.fire_event_with_params(name,
                                     EventBubbles::Bubbles,
                                     EventCancelable::NotCancelable)
     }
 
     // https://dom.spec.whatwg.org/#concept-event-fire
-    pub fn fire_cancelable_event(&self, name: Atom) -> Root<Event> {
+    pub fn fire_cancelable_event(&self, name: Atom) -> DomRoot<Event> {
         self.fire_event_with_params(name,
                                     EventBubbles::DoesNotBubble,
                                     EventCancelable::Cancelable)
     }
 
     // https://dom.spec.whatwg.org/#concept-event-fire
-    pub fn fire_bubbling_cancelable_event(&self, name: Atom) -> Root<Event> {
+    pub fn fire_bubbling_cancelable_event(&self, name: Atom) -> DomRoot<Event> {
         self.fire_event_with_params(name,
                                     EventBubbles::Bubbles,
                                     EventCancelable::Cancelable)
@@ -538,7 +538,7 @@ impl EventTarget {
                                   name: Atom,
                                   bubbles: EventBubbles,
                                   cancelable: EventCancelable)
-                                  -> Root<Event> {
+                                  -> DomRoot<Event> {
         let event = Event::new(&self.global(), name, bubbles, cancelable);
         event.fire(self);
         event

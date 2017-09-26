@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::HTMLDirectoryElementBinding;
-use dom::bindings::js::Root;
+use dom::bindings::root::DomRoot;
 use dom::document::Document;
 use dom::htmlelement::HTMLElement;
 use dom::node::Node;
@@ -28,7 +28,7 @@ impl HTMLDirectoryElement {
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
-               document: &Document) -> Root<HTMLDirectoryElement> {
+               document: &Document) -> DomRoot<HTMLDirectoryElement> {
         Node::reflect_node(box HTMLDirectoryElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLDirectoryElementBinding::Wrap)

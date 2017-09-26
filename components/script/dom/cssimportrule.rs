@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::CSSImportRuleBinding;
-use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::cssrule::{CSSRule, SpecificCSSRule};
 use dom::cssstylesheet::CSSStyleSheet;
@@ -34,7 +34,7 @@ impl CSSImportRule {
     #[allow(unrooted_must_root)]
     pub fn new(window: &Window,
                parent_stylesheet: &CSSStyleSheet,
-               import_rule: Arc<Locked<ImportRule>>) -> Root<Self> {
+               import_rule: Arc<Locked<ImportRule>>) -> DomRoot<Self> {
         reflect_dom_object(box Self::new_inherited(parent_stylesheet, import_rule),
                            window,
                            CSSImportRuleBinding::Wrap)

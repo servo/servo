@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::HTMLModElementBinding;
-use dom::bindings::js::Root;
+use dom::bindings::root::DomRoot;
 use dom::document::Document;
 use dom::htmlelement::HTMLElement;
 use dom::node::Node;
@@ -28,7 +28,7 @@ impl HTMLModElement {
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
-               document: &Document) -> Root<HTMLModElement> {
+               document: &Document) -> DomRoot<HTMLModElement> {
         Node::reflect_node(box HTMLModElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLModElementBinding::Wrap)

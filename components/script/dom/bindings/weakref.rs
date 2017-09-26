@@ -12,8 +12,8 @@
 //! `WeakBox` itself is dropped too.
 
 use core::nonzero::NonZero;
-use dom::bindings::js::Root;
 use dom::bindings::reflector::DomObject;
+use dom::bindings::root::DomRoot;
 use dom::bindings::trace::JSTraceable;
 use heapsize::HeapSizeOf;
 use js::jsapi::{JSTracer, JS_GetReservedSlot, JS_SetReservedSlot};
@@ -84,9 +84,9 @@ impl<T: WeakReferenceable> WeakRef<T> {
         value.downgrade()
     }
 
-    /// Root a weak reference. Returns `None` if the object was already collected.
-    pub fn root(&self) -> Option<Root<T>> {
-        unsafe { &*self.ptr.get() }.value.get().map(Root::new)
+    /// DomRoot a weak reference. Returns `None` if the object was already collected.
+    pub fn root(&self) -> Option<DomRoot<T>> {
+        unsafe { &*self.ptr.get() }.value.get().map(DomRoot::new)
     }
 
     /// Return whether the weakly-referenced object is still alive.
@@ -179,9 +179,9 @@ impl<T: WeakReferenceable> MutableWeakRef<T> {
         }
     }
 
-    /// Root a mutable weak reference. Returns `None` if the object
+    /// DomRoot a mutable weak reference. Returns `None` if the object
     /// was already collected.
-    pub fn root(&self) -> Option<Root<T>> {
+    pub fn root(&self) -> Option<DomRoot<T>> {
         unsafe { &*self.cell.get() }.as_ref().and_then(WeakRef::root)
     }
 }

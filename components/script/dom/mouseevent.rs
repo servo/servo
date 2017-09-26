@@ -7,8 +7,8 @@ use dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
 use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{MutNullableJS, Root, RootedReference};
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::{DomRoot, MutNullableDom, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
@@ -31,7 +31,7 @@ pub struct MouseEvent {
     alt_key: Cell<bool>,
     meta_key: Cell<bool>,
     button: Cell<i16>,
-    related_target: MutNullableJS<EventTarget>,
+    related_target: MutNullableDom<EventTarget>,
 }
 
 impl MouseEvent {
@@ -51,7 +51,7 @@ impl MouseEvent {
         }
     }
 
-    pub fn new_uninitialized(window: &Window) -> Root<MouseEvent> {
+    pub fn new_uninitialized(window: &Window) -> DomRoot<MouseEvent> {
         reflect_dom_object(box MouseEvent::new_inherited(),
                            window,
                            MouseEventBinding::Wrap)
@@ -72,7 +72,7 @@ impl MouseEvent {
                shift_key: bool,
                meta_key: bool,
                button: i16,
-               related_target: Option<&EventTarget>) -> Root<MouseEvent> {
+               related_target: Option<&EventTarget>) -> DomRoot<MouseEvent> {
         let ev = MouseEvent::new_uninitialized(window);
         ev.InitMouseEvent(type_, bool::from(can_bubble), bool::from(cancelable),
                           view, detail,
@@ -84,7 +84,7 @@ impl MouseEvent {
 
     pub fn Constructor(window: &Window,
                        type_: DOMString,
-                       init: &MouseEventBinding::MouseEventInit) -> Fallible<Root<MouseEvent>> {
+                       init: &MouseEventBinding::MouseEventInit) -> Fallible<DomRoot<MouseEvent>> {
         let bubbles = EventBubbles::from(init.parent.parent.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.parent.parent.cancelable);
         let event = MouseEvent::new(window,
@@ -148,7 +148,7 @@ impl MouseEventMethods for MouseEvent {
     }
 
     // https://w3c.github.io/uievents/#widl-MouseEvent-relatedTarget
-    fn GetRelatedTarget(&self) -> Option<Root<EventTarget>> {
+    fn GetRelatedTarget(&self) -> Option<DomRoot<EventTarget>> {
         self.related_target.get()
     }
 

@@ -2,14 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
 use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use dom::bindings::codegen::Bindings::MediaQueryListBinding::{self, MediaQueryListMethods};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::DomObject;
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::{Dom, DomRoot};
 use dom::bindings::str::DOMString;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::weakref::{WeakRef, WeakRefVec};
@@ -32,7 +32,7 @@ pub enum MediaQueryListMatchState {
 #[dom_struct]
 pub struct MediaQueryList {
     eventtarget: EventTarget,
-    document: JS<Document>,
+    document: Dom<Document>,
     media_query_list: MediaList,
     last_match_state: Cell<Option<bool>>
 }
@@ -41,13 +41,13 @@ impl MediaQueryList {
     fn new_inherited(document: &Document, media_query_list: MediaList) -> MediaQueryList {
         MediaQueryList {
             eventtarget: EventTarget::new_inherited(),
-            document: JS::from_ref(document),
+            document: Dom::from_ref(document),
             media_query_list: media_query_list,
             last_match_state: Cell::new(None),
         }
     }
 
-    pub fn new(document: &Document, media_query_list: MediaList) -> Root<MediaQueryList> {
+    pub fn new(document: &Document, media_query_list: MediaList) -> DomRoot<MediaQueryList> {
         reflect_dom_object(box MediaQueryList::new_inherited(document, media_query_list),
                            document.window(),
                            MediaQueryListBinding::Wrap)
@@ -113,13 +113,13 @@ impl MediaQueryListMethods for MediaQueryList {
 
 #[derive(HeapSizeOf)]
 pub struct WeakMediaQueryListVec {
-    cell: DOMRefCell<WeakRefVec<MediaQueryList>>,
+    cell: DomRefCell<WeakRefVec<MediaQueryList>>,
 }
 
 impl WeakMediaQueryListVec {
     /// Create a new vector of weak references to MediaQueryList
     pub fn new() -> Self {
-        WeakMediaQueryListVec { cell: DOMRefCell::new(WeakRefVec::new()) }
+        WeakMediaQueryListVec { cell: DomRefCell::new(WeakRefVec::new()) }
     }
 
     pub fn push(&self, mql: &MediaQueryList) {
@@ -134,7 +134,7 @@ impl WeakMediaQueryListVec {
             let mql = mql.root().unwrap();
             if let MediaQueryListMatchState::Changed(_) = mql.evaluate_changes() {
                 // Recording list of changed Media Queries
-                mql_list.push(JS::from_ref(&*mql));
+                mql_list.push(Dom::from_ref(&*mql));
             }
         });
         // Sending change events for all changed Media Queries

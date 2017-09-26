@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::HTMLDataListElementBinding;
 use dom::bindings::codegen::Bindings::HTMLDataListElementBinding::HTMLDataListElementMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
+use dom::bindings::root::DomRoot;
 use dom::document::Document;
 use dom::element::Element;
 use dom::htmlcollection::{CollectionFilter, HTMLCollection};
@@ -33,7 +33,7 @@ impl HTMLDataListElement {
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
-               document: &Document) -> Root<HTMLDataListElement> {
+               document: &Document) -> DomRoot<HTMLDataListElement> {
         Node::reflect_node(box HTMLDataListElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLDataListElementBinding::Wrap)
@@ -42,7 +42,7 @@ impl HTMLDataListElement {
 
 impl HTMLDataListElementMethods for HTMLDataListElement {
     // https://html.spec.whatwg.org/multipage/#dom-datalist-options
-    fn Options(&self) -> Root<HTMLCollection> {
+    fn Options(&self) -> DomRoot<HTMLCollection> {
         #[derive(HeapSizeOf, JSTraceable)]
         struct HTMLDataListOptionsFilter;
         impl CollectionFilter for HTMLDataListOptionsFilter {

@@ -6,7 +6,7 @@ use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLOutputElementBinding;
 use dom::bindings::codegen::Bindings::HTMLOutputElementBinding::HTMLOutputElementMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{MutNullableJS, Root};
+use dom::bindings::root::{DomRoot, MutNullableDom};
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element};
 use dom::htmlelement::HTMLElement;
@@ -21,7 +21,7 @@ use html5ever::{LocalName, Prefix};
 #[dom_struct]
 pub struct HTMLOutputElement {
     htmlelement: HTMLElement,
-    form_owner: MutNullableJS<HTMLFormElement>,
+    form_owner: MutNullableDom<HTMLFormElement>,
 }
 
 impl HTMLOutputElement {
@@ -38,7 +38,7 @@ impl HTMLOutputElement {
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
-               document: &Document) -> Root<HTMLOutputElement> {
+               document: &Document) -> DomRoot<HTMLOutputElement> {
         Node::reflect_node(box HTMLOutputElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLOutputElementBinding::Wrap)
@@ -47,18 +47,18 @@ impl HTMLOutputElement {
 
 impl HTMLOutputElementMethods for HTMLOutputElement {
     // https://html.spec.whatwg.org/multipage/#dom-cva-validity
-    fn Validity(&self) -> Root<ValidityState> {
+    fn Validity(&self) -> DomRoot<ValidityState> {
         let window = window_from_node(self);
         ValidityState::new(&window, self.upcast())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-fae-form
-    fn GetForm(&self) -> Option<Root<HTMLFormElement>> {
+    fn GetForm(&self) -> Option<DomRoot<HTMLFormElement>> {
         self.form_owner()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
-    fn Labels(&self) -> Root<NodeList> {
+    fn Labels(&self) -> DomRoot<NodeList> {
         self.upcast::<HTMLElement>().labels()
     }
 }
@@ -80,7 +80,7 @@ impl VirtualMethods for HTMLOutputElement {
 }
 
 impl FormControl for HTMLOutputElement {
-    fn form_owner(&self) -> Option<Root<HTMLFormElement>> {
+    fn form_owner(&self) -> Option<DomRoot<HTMLFormElement>> {
         self.form_owner.get()
     }
 

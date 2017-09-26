@@ -4,8 +4,8 @@
 
 use dom::bindings::codegen::Bindings::DOMRectReadOnlyBinding::{DOMRectReadOnlyMethods, Wrap};
 use dom::bindings::error::Fallible;
-use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::root::DomRoot;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use std::cell::Cell;
@@ -35,7 +35,7 @@ impl DOMRectReadOnly {
                y: f64,
                width: f64,
                height: f64)
-               -> Root<DOMRectReadOnly> {
+               -> DomRoot<DOMRectReadOnly> {
         reflect_dom_object(box DOMRectReadOnly::new_inherited(x, y, width, height),
                            global,
                            Wrap)
@@ -46,7 +46,7 @@ impl DOMRectReadOnly {
                        y: f64,
                        width: f64,
                        height: f64)
-                       -> Fallible<Root<DOMRectReadOnly>> {
+                       -> Fallible<DomRoot<DOMRectReadOnly>> {
         Ok(DOMRectReadOnly::new(global, x, y, width, height))
     }
 

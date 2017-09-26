@@ -7,11 +7,11 @@
 //! the script thread. The script thread contains a JobQueue, which stores all scheduled Jobs
 //! by multiple service worker clients in a Vec.
 
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::error::Error;
-use dom::bindings::js::JS;
 use dom::bindings::refcounted::{Trusted, TrustedPromise};
 use dom::bindings::reflector::DomObject;
+use dom::bindings::root::Dom;
 use dom::client::Client;
 use dom::promise::Promise;
 use dom::serviceworkerregistration::ServiceWorkerRegistration;
@@ -46,7 +46,7 @@ pub struct Job {
     pub promise: Rc<Promise>,
     pub equivalent_jobs: Vec<Job>,
     // client can be a window client, worker client so `Client` will be an enum in future
-    pub client: JS<Client>,
+    pub client: Dom<Client>,
     pub referrer: ServoUrl
 }
 
@@ -64,7 +64,7 @@ impl Job {
             script_url: script_url,
             promise: promise,
             equivalent_jobs: vec![],
-            client: JS::from_ref(client),
+            client: Dom::from_ref(client),
             referrer: client.creation_url()
         }
     }
@@ -93,11 +93,11 @@ impl PartialEq for Job {
 
 #[must_root]
 #[derive(JSTraceable)]
-pub struct JobQueue(pub DOMRefCell<HashMap<ServoUrl, Vec<Job>>>);
+pub struct JobQueue(pub DomRefCell<HashMap<ServoUrl, Vec<Job>>>);
 
 impl JobQueue {
     pub fn new() -> JobQueue {
-        JobQueue(DOMRefCell::new(HashMap::new()))
+        JobQueue(DomRefCell::new(HashMap::new()))
     }
     #[allow(unrooted_must_root)]
     // https://w3c.github.io/ServiceWorker/#schedule-job-algorithm

@@ -8,8 +8,8 @@ use dom::bindings::codegen::Bindings::WebGLContextEventBinding::WebGLContextEven
 use dom::bindings::codegen::Bindings::WebGLContextEventBinding::WebGLContextEventMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::window::Window;
@@ -42,7 +42,7 @@ impl WebGLContextEvent {
         }
     }
 
-    pub fn new_uninitialized(window: &Window) -> Root<WebGLContextEvent> {
+    pub fn new_uninitialized(window: &Window) -> DomRoot<WebGLContextEvent> {
         // according to https://www.khronos.org/registry/webgl/specs/1.0/#5.15 this is
         // additional information or the empty string if no additional information is
         // available.
@@ -57,7 +57,7 @@ impl WebGLContextEvent {
                type_: Atom,
                bubbles: EventBubbles,
                cancelable: EventCancelable,
-               status_message: DOMString) -> Root<WebGLContextEvent> {
+               status_message: DOMString) -> DomRoot<WebGLContextEvent> {
         let event = reflect_dom_object(
                         box WebGLContextEvent::new_inherited(status_message),
                         window,
@@ -73,7 +73,7 @@ impl WebGLContextEvent {
 
     pub fn Constructor(window: &Window,
                        type_: DOMString,
-                       init: &WebGLContextEventInit) -> Fallible<Root<WebGLContextEvent>> {
+                       init: &WebGLContextEventInit) -> Fallible<DomRoot<WebGLContextEvent>> {
         let status_message = match init.statusMessage.as_ref() {
             Some(message) => message.clone(),
             None => DOMString::new(),

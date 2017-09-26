@@ -6,9 +6,9 @@ use core::nonzero::NonZero;
 use dom::bindings::codegen::Bindings::GamepadBinding;
 use dom::bindings::codegen::Bindings::GamepadBinding::GamepadMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, Root};
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use dom::bindings::root::{Dom, DomRoot};
 use dom::bindings::str::DOMString;
 use dom::event::Event;
 use dom::eventtarget::EventTarget;
@@ -33,8 +33,8 @@ pub struct Gamepad {
     timestamp: Cell<f64>,
     mapping_type: String,
     axes: Heap<*mut JSObject>,
-    buttons: JS<GamepadButtonList>,
-    pose: Option<JS<VRPose>>,
+    buttons: Dom<GamepadButtonList>,
+    pose: Option<Dom<VRPose>>,
     #[ignore_heap_size_of = "Defined in rust-webvr"]
     hand: WebVRGamepadHand,
     display_id: u32
@@ -60,8 +60,8 @@ impl Gamepad {
             timestamp: Cell::new(timestamp),
             mapping_type: mapping_type,
             axes: Heap::default(),
-            buttons: JS::from_ref(buttons),
-            pose: pose.map(JS::from_ref),
+            buttons: Dom::from_ref(buttons),
+            pose: pose.map(Dom::from_ref),
             hand: hand,
             display_id: display_id
         }
@@ -71,7 +71,7 @@ impl Gamepad {
     pub fn new_from_vr(global: &GlobalScope,
                        index: i32,
                        data: &WebVRGamepadData,
-                       state: &WebVRGamepadState) -> Root<Gamepad> {
+                       state: &WebVRGamepadState) -> DomRoot<Gamepad> {
         let buttons = GamepadButtonList::new_from_vr(&global, &state.buttons);
         let pose = VRPose::new(&global, &state.pose);
 
@@ -132,8 +132,8 @@ impl GamepadMethods for Gamepad {
     }
 
     // https://w3c.github.io/gamepad/#dom-gamepad-buttons
-    fn Buttons(&self) -> Root<GamepadButtonList> {
-        Root::from_ref(&*self.buttons)
+    fn Buttons(&self) -> DomRoot<GamepadButtonList> {
+        DomRoot::from_ref(&*self.buttons)
     }
 
     // https://w3c.github.io/gamepad/extensions.html#gamepadhand-enum
@@ -147,8 +147,8 @@ impl GamepadMethods for Gamepad {
     }
 
     // https://w3c.github.io/gamepad/extensions.html#dom-gamepad-pose
-    fn GetPose(&self) -> Option<Root<VRPose>> {
-        self.pose.as_ref().map(|p| Root::from_ref(&**p))
+    fn GetPose(&self) -> Option<DomRoot<VRPose>> {
+        self.pose.as_ref().map(|p| DomRoot::from_ref(&**p))
     }
 
     // https://w3c.github.io/webvr/spec/1.1/#gamepad-getvrdisplays-attribute

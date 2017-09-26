@@ -4,9 +4,9 @@
 
 use dom::bindings::codegen::Bindings::PerformanceEntryBinding;
 use dom::bindings::codegen::Bindings::PerformanceEntryBinding::PerformanceEntryMethods;
-use dom::bindings::js::Root;
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
@@ -39,7 +39,7 @@ impl PerformanceEntry {
                name: DOMString,
                entry_type: DOMString,
                start_time: f64,
-               duration: f64) -> Root<PerformanceEntry> {
+               duration: f64) -> DomRoot<PerformanceEntry> {
         let entry = PerformanceEntry::new_inherited(name, entry_type, start_time, duration);
         reflect_dom_object(box entry, global, PerformanceEntryBinding::Wrap)
     }

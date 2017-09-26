@@ -5,8 +5,8 @@
 use canvas_traits::webgl::{webgl_channel, WebGLCommand, WebGLError};
 use dom::bindings::codegen::Bindings::OESVertexArrayObjectBinding::{self, OESVertexArrayObjectMethods};
 use dom::bindings::codegen::Bindings::OESVertexArrayObjectBinding::OESVertexArrayObjectConstants;
-use dom::bindings::js::{JS, MutNullableJS, Root};
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use dom::webglrenderingcontext::WebGLRenderingContext;
 use dom::webglvertexarrayobjectoes::WebGLVertexArrayObjectOES;
 use dom_struct::dom_struct;
@@ -19,16 +19,16 @@ use super::{WebGLExtension, WebGLExtensions};
 #[dom_struct]
 pub struct OESVertexArrayObject {
     reflector_: Reflector,
-    ctx: JS<WebGLRenderingContext>,
-    bound_vao: MutNullableJS<WebGLVertexArrayObjectOES>,
+    ctx: Dom<WebGLRenderingContext>,
+    bound_vao: MutNullableDom<WebGLVertexArrayObjectOES>,
 }
 
 impl OESVertexArrayObject {
     fn new_inherited(ctx: &WebGLRenderingContext) -> OESVertexArrayObject {
         Self {
             reflector_: Reflector::new(),
-            ctx: JS::from_ref(ctx),
-            bound_vao: MutNullableJS::new(None)
+            ctx: Dom::from_ref(ctx),
+            bound_vao: MutNullableDom::new(None)
         }
     }
 
@@ -46,7 +46,7 @@ impl OESVertexArrayObject {
 
 impl OESVertexArrayObjectMethods for OESVertexArrayObject {
     // https://www.khronos.org/registry/webgl/extensions/OES_vertex_array_object/
-    fn CreateVertexArrayOES(&self) -> Option<Root<WebGLVertexArrayObjectOES>> {
+    fn CreateVertexArrayOES(&self) -> Option<DomRoot<WebGLVertexArrayObjectOES>> {
         let (sender, receiver) = webgl_channel().unwrap();
         self.ctx.send_command(WebGLCommand::CreateVertexArray(sender));
 
@@ -132,7 +132,7 @@ impl OESVertexArrayObjectMethods for OESVertexArrayObject {
 
 impl WebGLExtension for OESVertexArrayObject {
     type Extension = OESVertexArrayObject;
-    fn new(ctx: &WebGLRenderingContext) -> Root<OESVertexArrayObject> {
+    fn new(ctx: &WebGLRenderingContext) -> DomRoot<OESVertexArrayObject> {
         reflect_dom_object(box OESVertexArrayObject::new_inherited(ctx),
                            &*ctx.global(),
                            OESVertexArrayObjectBinding::Wrap)

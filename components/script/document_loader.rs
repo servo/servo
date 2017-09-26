@@ -5,7 +5,7 @@
 //! Tracking of pending loads in a document.
 //! https://html.spec.whatwg.org/multipage/#the-end
 
-use dom::bindings::js::JS;
+use dom::bindings::root::Dom;
 use dom::document::Document;
 use ipc_channel::ipc::IpcSender;
 use net_traits::{CoreResourceMsg, FetchResponseMsg, ResourceThreads, IpcSend};
@@ -43,7 +43,7 @@ impl LoadType {
 #[must_root]
 pub struct LoadBlocker {
     /// The document whose load event is blocked by this object existing.
-    doc: JS<Document>,
+    doc: Dom<Document>,
     /// The load that is blocking the document's load event.
     load: Option<LoadType>,
 }
@@ -53,7 +53,7 @@ impl LoadBlocker {
     pub fn new(doc: &Document, load: LoadType) -> LoadBlocker {
         doc.loader_mut().add_blocking_load(load.clone());
         LoadBlocker {
-            doc: JS::from_ref(doc),
+            doc: Dom::from_ref(doc),
             load: Some(load),
         }
     }

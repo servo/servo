@@ -6,8 +6,8 @@ use dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::{self, CSSStyl
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use dom::bindings::root::{Dom, DomRoot};
 use dom::bindings::str::DOMString;
 use dom::cssrule::CSSRule;
 use dom::element::Element;
@@ -36,8 +36,8 @@ pub struct CSSStyleDeclaration {
 #[derive(HeapSizeOf, JSTraceable)]
 #[must_root]
 pub enum CSSStyleOwner {
-    Element(JS<Element>),
-    CSSRule(JS<CSSRule>,
+    Element(Dom<Element>),
+    CSSRule(Dom<CSSRule>,
             #[ignore_heap_size_of = "Arc"]
             Arc<Locked<PropertyDeclarationBlock>>),
 }
@@ -137,10 +137,10 @@ impl CSSStyleOwner {
         }
     }
 
-    fn window(&self) -> Root<Window> {
+    fn window(&self) -> DomRoot<Window> {
         match *self {
             CSSStyleOwner::Element(ref el) => window_from_node(&**el),
-            CSSStyleOwner::CSSRule(ref rule, _) => Root::from_ref(rule.global().as_window()),
+            CSSStyleOwner::CSSRule(ref rule, _) => DomRoot::from_ref(rule.global().as_window()),
         }
     }
 
@@ -192,7 +192,7 @@ impl CSSStyleDeclaration {
                owner: CSSStyleOwner,
                pseudo: Option<PseudoElement>,
                modification_access: CSSModificationAccess)
-               -> Root<CSSStyleDeclaration> {
+               -> DomRoot<CSSStyleDeclaration> {
         reflect_dom_object(box CSSStyleDeclaration::new_inherited(owner,
                                                                   pseudo,
                                                                   modification_access),

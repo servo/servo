@@ -7,9 +7,9 @@
 //! perform checkpoints at appropriate times, as well as enqueue microtasks as required.
 
 use dom::bindings::callback::ExceptionHandling;
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
-use dom::bindings::js::Root;
+use dom::bindings::root::DomRoot;
 use dom::globalscope::GlobalScope;
 use dom::htmlimageelement::ImageElementMicrotask;
 use dom::htmlmediaelement::MediaElementMicrotask;
@@ -24,7 +24,7 @@ use std::rc::Rc;
 #[derive(Default, HeapSizeOf, JSTraceable)]
 pub struct MicrotaskQueue {
     /// The list of enqueued microtasks that will be invoked at the next microtask checkpoint.
-    microtask_queue: DOMRefCell<Vec<Microtask>>,
+    microtask_queue: DomRefCell<Vec<Microtask>>,
     /// https://html.spec.whatwg.org/multipage/#performing-a-microtask-checkpoint
     performing_a_microtask_checkpoint: Cell<bool>,
 }
@@ -60,7 +60,7 @@ impl MicrotaskQueue {
     /// https://html.spec.whatwg.org/multipage/#perform-a-microtask-checkpoint
     /// Perform a microtask checkpoint, executing all queued microtasks until the queue is empty.
     pub fn checkpoint<F>(&self, target_provider: F)
-        where F: Fn(PipelineId) -> Option<Root<GlobalScope>>
+        where F: Fn(PipelineId) -> Option<DomRoot<GlobalScope>>
     {
         if self.performing_a_microtask_checkpoint.get() {
             return;

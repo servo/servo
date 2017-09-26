@@ -1272,7 +1272,7 @@ class CGArgumentConverter(CGThing):
             arg = "arg%d" % index
             if argument.type.isGeckoInterface():
                 init = "rooted_vec!(let mut %s)" % arg
-                innerConverter.append(CGGeneric("%s.push(JS::from_ref(&*slot));" % arg))
+                innerConverter.append(CGGeneric("%s.push(Dom::from_ref(&*slot));" % arg))
             else:
                 init = "let mut %s = vec![]" % arg
                 innerConverter.append(CGGeneric("%s.push(slot);" % arg))
@@ -2253,8 +2253,8 @@ def UnionTypes(descriptors, dictionaries, callbacks, typedefs, config):
         'dom::bindings::conversions::StringificationBehavior',
         'dom::bindings::conversions::root_from_handlevalue',
         'dom::bindings::error::throw_not_in_union',
-        'dom::bindings::js::Root',
         'dom::bindings::mozmap::MozMap',
+        'dom::bindings::root::DomRoot',
         'dom::bindings::str::ByteString',
         'dom::bindings::str::DOMString',
         'dom::bindings::str::USVString',
@@ -2558,7 +2558,7 @@ class CGWrapMethod(CGAbstractMethod):
         args = [Argument('*mut JSContext', 'cx'),
                 Argument('&GlobalScope', 'scope'),
                 Argument("Box<%s>" % descriptor.concreteType, 'object')]
-        retval = 'Root<%s>' % descriptor.concreteType
+        retval = 'DomRoot<%s>' % descriptor.concreteType
         CGAbstractMethod.__init__(self, descriptor, 'Wrap', retval, args,
                                   pub=True, unsafe=True)
 
@@ -2580,7 +2580,7 @@ assert!(!proto.is_null());
 %(copyUnforgeable)s
 (*raw).init_reflector(obj.get());
 
-Root::from_ref(&*raw)""" % {'copyUnforgeable': unforgeable, 'createObject': create})
+DomRoot::from_ref(&*raw)""" % {'copyUnforgeable': unforgeable, 'createObject': create})
 
 
 class CGWrapGlobalMethod(CGAbstractMethod):
@@ -2592,7 +2592,7 @@ class CGWrapGlobalMethod(CGAbstractMethod):
         assert descriptor.isGlobal()
         args = [Argument('*mut JSContext', 'cx'),
                 Argument("Box<%s>" % descriptor.concreteType, 'object')]
-        retval = 'Root<%s>' % descriptor.concreteType
+        retval = 'DomRoot<%s>' % descriptor.concreteType
         CGAbstractMethod.__init__(self, descriptor, 'Wrap', retval, args,
                                   pub=True, unsafe=True)
         self.properties = properties
@@ -2638,7 +2638,7 @@ assert!(immutable);
 
 %(unforgeable)s
 
-Root::from_ref(&*raw)\
+DomRoot::from_ref(&*raw)\
 """ % values)
 
 
@@ -3421,7 +3421,9 @@ class CGAbstractStaticBindingMethod(CGAbstractMethod):
     def definition_body(self):
         preamble = "let global = GlobalScope::from_object(JS_CALLEE(cx, vp).to_object());\n"
         if len(self.exposureSet) == 1:
-            preamble += "let global = Root::downcast::<dom::types::%s>(global).unwrap();\n" % list(self.exposureSet)[0]
+            preamble += """
+let global = DomRoot::downcast::<dom::types::%s>(global).unwrap();
+""" % list(self.exposureSet)[0]
         return CGList([CGGeneric(preamble), self.generate_code()])
 
     def generate_code(self):
@@ -5352,7 +5354,9 @@ class CGClassConstructHook(CGAbstractExternMethod):
     def definition_body(self):
         preamble = """let global = GlobalScope::from_object(JS_CALLEE(cx, vp).to_object());\n"""
         if len(self.exposureSet) == 1:
-            preamble += "let global = Root::downcast::<dom::types::%s>(global).unwrap();\n" % list(self.exposureSet)[0]
+            preamble += """\
+let global = DomRoot::downcast::<dom::types::%s>(global).unwrap();
+""" % list(self.exposureSet)[0]
         preamble += """let args = CallArgs::from_vp(vp, argc);\n"""
         preamble = CGGeneric(preamble)
         if self.constructor.isHTMLConstructor():
@@ -5408,7 +5412,7 @@ if !JS_WrapObject(cx, prototype.handle_mut()) {
     return false;
 }
 
-let result: Result<Root<%s>, Error> = html_constructor(&global, &args);
+let result: Result<DomRoot<%s>, Error> = html_constructor(&global, &args);
 let result = match result {
     Ok(result) => result,
     Err(e) => {
@@ -5708,14 +5712,14 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'dom::bindings::interface::push_new_element_queue',
         'dom::bindings::iterable::Iterable',
         'dom::bindings::iterable::IteratorType',
-        'dom::bindings::js::JS',
-        'dom::bindings::js::OptionalHeapSetter',
-        'dom::bindings::js::Root',
-        'dom::bindings::js::RootedReference',
         'dom::bindings::namespace::NamespaceObjectClass',
         'dom::bindings::namespace::create_namespace_object',
         'dom::bindings::reflector::MutDomObject',
         'dom::bindings::reflector::DomObject',
+        'dom::bindings::root::Dom',
+        'dom::bindings::root::DomRoot',
+        'dom::bindings::root::OptionalHeapSetter',
+        'dom::bindings::root::RootedReference',
         'dom::bindings::utils::AsVoidPtr',
         'dom::bindings::utils::DOMClass',
         'dom::bindings::utils::DOMJSClass',
@@ -6281,7 +6285,7 @@ class CGRegisterProxyHandlers(CGThing):
 
 class CGBindingRoot(CGThing):
     """
-    Root codegen class for binding generation. Instantiate the class, and call
+    DomRoot codegen class for binding generation. Instantiate the class, and call
     declare or define to generate header or cpp code (respectively).
     """
     def __init__(self, config, prefix, webIDLFile):
@@ -6961,7 +6965,7 @@ class CallbackGetter(CallbackMember):
                                 needThisHandling=False)
 
     def getRvalDecl(self):
-        return "JS::Rooted<JS::Value> rval(cx, JS::UndefinedValue());\n"
+        return "Dom::Rooted<Dom::Value> rval(cx, JS::UndefinedValue());\n"
 
     def getCall(self):
         replacements = {
@@ -7195,7 +7199,7 @@ class GlobalGenRoots():
         imports = [CGGeneric("use dom::types::*;\n"),
                    CGGeneric("use dom::bindings::conversions::{DerivedFrom, get_dom_class};\n"),
                    CGGeneric("use dom::bindings::inheritance::Castable;\n"),
-                   CGGeneric("use dom::bindings::js::{JS, LayoutJS, Root};\n"),
+                   CGGeneric("use dom::bindings::root::{Dom, DomRoot, LayoutDom};\n"),
                    CGGeneric("use dom::bindings::trace::JSTraceable;\n"),
                    CGGeneric("use dom::bindings::reflector::DomObject;\n"),
                    CGGeneric("use js::jsapi::JSTracer;\n\n"),

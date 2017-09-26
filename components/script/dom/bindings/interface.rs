@@ -77,7 +77,7 @@ use dom::bindings::constant::{ConstantSpec, define_constants};
 use dom::bindings::conversions::{DOM_OBJECT_SLOT, DerivedFrom, get_dom_class};
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::guard::Guard;
-use dom::bindings::js::Root;
+use dom::bindings::root::DomRoot;
 use dom::bindings::utils::{DOM_PROTOTYPE_SLOT, ProtoOrIfaceArray, get_proto_or_iface_array};
 use dom::create::create_native_html_element;
 use dom::customelementregistry::ConstructionStackEntry;
@@ -236,7 +236,7 @@ pub unsafe fn create_global_object(
 }
 
 // https://html.spec.whatwg.org/multipage/#htmlconstructor
-pub unsafe fn html_constructor<T>(window: &Window, call_args: &CallArgs) -> Fallible<Root<T>>
+pub unsafe fn html_constructor<T>(window: &Window, call_args: &CallArgs) -> Fallible<DomRoot<T>>
                                   where T: DerivedFrom<Element> {
     let document = window.Document();
 
@@ -289,7 +289,7 @@ pub unsafe fn html_constructor<T>(window: &Window, call_args: &CallArgs) -> Fall
             // Step 8.1
             let name = QualName::new(None, ns!(html), definition.local_name.clone());
             let element = if definition.is_autonomous() {
-                Root::upcast(HTMLElement::new(name.local, None, &*document))
+                DomRoot::upcast(HTMLElement::new(name.local, None, &*document))
             } else {
                 create_native_html_element(name, None, &*document, ElementCreator::ScriptCreated)
             };
@@ -303,7 +303,7 @@ pub unsafe fn html_constructor<T>(window: &Window, call_args: &CallArgs) -> Fall
             element.set_custom_element_definition(definition.clone());
 
             // Step 8.5
-            Root::downcast(element).ok_or(Error::InvalidState)
+            DomRoot::downcast(element).ok_or(Error::InvalidState)
         },
         // Step 9
         Some(ConstructionStackEntry::Element(element)) => {
@@ -315,7 +315,7 @@ pub unsafe fn html_constructor<T>(window: &Window, call_args: &CallArgs) -> Fall
             construction_stack.push(ConstructionStackEntry::AlreadyConstructedMarker);
 
             // Step 13
-            Root::downcast(element).ok_or(Error::InvalidState)
+            DomRoot::downcast(element).ok_or(Error::InvalidState)
         },
         // Step 10
         Some(ConstructionStackEntry::AlreadyConstructedMarker) => Err(Error::InvalidState),

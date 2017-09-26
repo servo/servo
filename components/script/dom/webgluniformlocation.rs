@@ -5,8 +5,8 @@
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use canvas_traits::webgl::WebGLProgramId;
 use dom::bindings::codegen::Bindings::WebGLUniformLocationBinding;
-use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::root::DomRoot;
 use dom::window::Window;
 use dom_struct::dom_struct;
 
@@ -31,7 +31,7 @@ impl WebGLUniformLocation {
     pub fn new(window: &Window,
                id: i32,
                program_id: WebGLProgramId)
-               -> Root<WebGLUniformLocation> {
+               -> DomRoot<WebGLUniformLocation> {
         reflect_dom_object(box WebGLUniformLocation::new_inherited(id, program_id),
                            window,
                            WebGLUniformLocationBinding::Wrap)

@@ -8,8 +8,8 @@ use dom::bindings::codegen::Bindings::VRDisplayEventBinding::VRDisplayEventMetho
 use dom::bindings::codegen::Bindings::VRDisplayEventBinding::VRDisplayEventReason;
 use dom::bindings::error::Fallible;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
+use dom::bindings::root::{Dom, DomRoot};
 use dom::bindings::str::DOMString;
 use dom::event::Event;
 use dom::globalscope::GlobalScope;
@@ -22,7 +22,7 @@ use webvr_traits::{WebVRDisplayEvent, WebVRDisplayEventReason};
 #[dom_struct]
 pub struct VRDisplayEvent {
     event: Event,
-    display: JS<VRDisplay>,
+    display: Dom<VRDisplay>,
     reason: Option<VRDisplayEventReason>
 }
 
@@ -32,7 +32,7 @@ impl VRDisplayEvent {
                      -> VRDisplayEvent {
         VRDisplayEvent {
             event: Event::new_inherited(),
-            display: JS::from_ref(display),
+            display: Dom::from_ref(display),
             reason: reason.clone()
         }
     }
@@ -43,7 +43,7 @@ impl VRDisplayEvent {
                cancelable: bool,
                display: &VRDisplay,
                reason: Option<VRDisplayEventReason>)
-               -> Root<VRDisplayEvent> {
+               -> DomRoot<VRDisplayEvent> {
         let ev = reflect_dom_object(box VRDisplayEvent::new_inherited(&display, reason),
                            global,
                            VRDisplayEventBinding::Wrap);
@@ -57,7 +57,7 @@ impl VRDisplayEvent {
     pub fn new_from_webvr(global: &GlobalScope,
                           display: &VRDisplay,
                           event: &WebVRDisplayEvent)
-                          -> Root<VRDisplayEvent> {
+                          -> DomRoot<VRDisplayEvent> {
         let (name, reason) = match *event {
             WebVRDisplayEvent::Connect(_) => ("vrdisplayconnect", None),
             WebVRDisplayEvent::Disconnect(_) => ("vrdisplaydisconnect", None),
@@ -94,7 +94,7 @@ impl VRDisplayEvent {
     pub fn Constructor(window: &Window,
                        type_: DOMString,
                        init: &VRDisplayEventBinding::VRDisplayEventInit)
-                       -> Fallible<Root<VRDisplayEvent>> {
+                       -> Fallible<DomRoot<VRDisplayEvent>> {
         Ok(VRDisplayEvent::new(&window.global(),
                             Atom::from(type_),
                             init.parent.bubbles,
@@ -106,8 +106,8 @@ impl VRDisplayEvent {
 
 impl VRDisplayEventMethods for VRDisplayEvent {
     // https://w3c.github.io/webvr/#dom-vrdisplayevent-display
-    fn Display(&self) -> Root<VRDisplay> {
-        Root::from_ref(&*self.display)
+    fn Display(&self) -> DomRoot<VRDisplay> {
+        DomRoot::from_ref(&*self.display)
     }
 
     // https://w3c.github.io/webvr/#enumdef-vrdisplayeventreason

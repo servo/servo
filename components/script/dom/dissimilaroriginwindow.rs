@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::DissimilarOriginWindowBinding;
 use dom::bindings::codegen::Bindings::DissimilarOriginWindowBinding::DissimilarOriginWindowMethods;
 use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, MutNullableJS, Root};
+use dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use dom::bindings::str::DOMString;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::dissimilaroriginlocation::DissimilarOriginLocation;
@@ -37,10 +37,10 @@ pub struct DissimilarOriginWindow {
     globalscope: GlobalScope,
 
     /// The window proxy for this window.
-    window_proxy: JS<WindowProxy>,
+    window_proxy: Dom<WindowProxy>,
 
     /// The location of this window, initialized lazily.
-    location: MutNullableJS<DissimilarOriginLocation>,
+    location: MutNullableDom<DissimilarOriginLocation>,
 }
 
 impl DissimilarOriginWindow {
@@ -48,7 +48,7 @@ impl DissimilarOriginWindow {
     pub fn new(
         global_to_clone_from: &GlobalScope,
         window_proxy: &WindowProxy,
-    ) -> Root<Self> {
+    ) -> DomRoot<Self> {
         let cx = global_to_clone_from.get_cx();
         // Any timer events fired on this window are ignored.
         let (timer_event_chan, _) = ipc::channel().unwrap();
@@ -67,7 +67,7 @@ impl DissimilarOriginWindow {
                 // here, but this whole DOM interface is a hack anyway.
                 global_to_clone_from.microtask_queue().clone(),
             ),
-            window_proxy: JS::from_ref(window_proxy),
+            window_proxy: Dom::from_ref(window_proxy),
             location: Default::default(),
         };
         unsafe { DissimilarOriginWindowBinding::Wrap(cx, win) }
@@ -80,42 +80,42 @@ impl DissimilarOriginWindow {
 
 impl DissimilarOriginWindowMethods for DissimilarOriginWindow {
     // https://html.spec.whatwg.org/multipage/#dom-window
-    fn Window(&self) -> Root<WindowProxy> {
-        Root::from_ref(&*self.window_proxy)
+    fn Window(&self) -> DomRoot<WindowProxy> {
+        DomRoot::from_ref(&*self.window_proxy)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-self
-    fn Self_(&self) -> Root<WindowProxy> {
-        Root::from_ref(&*self.window_proxy)
+    fn Self_(&self) -> DomRoot<WindowProxy> {
+        DomRoot::from_ref(&*self.window_proxy)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-frames
-    fn Frames(&self) -> Root<WindowProxy> {
-        Root::from_ref(&*self.window_proxy)
+    fn Frames(&self) -> DomRoot<WindowProxy> {
+        DomRoot::from_ref(&*self.window_proxy)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-parent
-    fn GetParent(&self) -> Option<Root<WindowProxy>> {
+    fn GetParent(&self) -> Option<DomRoot<WindowProxy>> {
         // Steps 1-3.
         if self.window_proxy.is_browsing_context_discarded() {
             return None;
         }
         // Step 4.
         if let Some(parent) = self.window_proxy.parent() {
-            return Some(Root::from_ref(parent));
+            return Some(DomRoot::from_ref(parent));
         }
         // Step 5.
-        Some(Root::from_ref(&*self.window_proxy))
+        Some(DomRoot::from_ref(&*self.window_proxy))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-top
-    fn GetTop(&self) -> Option<Root<WindowProxy>> {
+    fn GetTop(&self) -> Option<DomRoot<WindowProxy>> {
         // Steps 1-3.
         if self.window_proxy.is_browsing_context_discarded() {
             return None;
         }
         // Steps 4-5.
-        Some(Root::from_ref(self.window_proxy.top()))
+        Some(DomRoot::from_ref(self.window_proxy.top()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-length
@@ -184,7 +184,7 @@ impl DissimilarOriginWindowMethods for DissimilarOriginWindow {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location
-    fn Location(&self) -> Root<DissimilarOriginLocation> {
+    fn Location(&self) -> DomRoot<DissimilarOriginLocation> {
         self.location.or_init(|| DissimilarOriginLocation::new(self))
     }
 }

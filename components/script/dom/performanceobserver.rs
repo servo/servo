@@ -3,15 +3,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::callback::ExceptionHandling;
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceEntryList as DOMPerformanceEntryList;
 use dom::bindings::codegen::Bindings::PerformanceObserverBinding;
 use dom::bindings::codegen::Bindings::PerformanceObserverBinding::PerformanceObserverCallback;
 use dom::bindings::codegen::Bindings::PerformanceObserverBinding::PerformanceObserverInit;
 use dom::bindings::codegen::Bindings::PerformanceObserverBinding::PerformanceObserverMethods;
 use dom::bindings::error::{Error, Fallible};
-use dom::bindings::js::Root;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::globalscope::GlobalScope;
 use dom::performance::PerformanceEntryList;
@@ -34,12 +34,12 @@ pub struct PerformanceObserver {
     reflector_: Reflector,
     #[ignore_heap_size_of = "can't measure Rc values"]
     callback: Rc<PerformanceObserverCallback>,
-    entries: DOMRefCell<DOMPerformanceEntryList>,
+    entries: DomRefCell<DOMPerformanceEntryList>,
 }
 
 impl PerformanceObserver {
     fn new_inherited(callback: Rc<PerformanceObserverCallback>,
-                     entries: DOMRefCell<DOMPerformanceEntryList>)
+                     entries: DomRefCell<DOMPerformanceEntryList>)
         -> PerformanceObserver {
         PerformanceObserver {
             reflector_: Reflector::new(),
@@ -52,19 +52,19 @@ impl PerformanceObserver {
     pub fn new(global: &GlobalScope,
                callback: Rc<PerformanceObserverCallback>,
                entries: DOMPerformanceEntryList)
-        -> Root<PerformanceObserver> {
-        let observer = PerformanceObserver::new_inherited(callback, DOMRefCell::new(entries));
+        -> DomRoot<PerformanceObserver> {
+        let observer = PerformanceObserver::new_inherited(callback, DomRefCell::new(entries));
         reflect_dom_object(box observer, global, PerformanceObserverBinding::Wrap)
     }
 
     pub fn Constructor(global: &GlobalScope, callback: Rc<PerformanceObserverCallback>)
-        -> Fallible<Root<PerformanceObserver>> {
+        -> Fallible<DomRoot<PerformanceObserver>> {
         Ok(PerformanceObserver::new(global, callback, Vec::new()))
     }
 
     /// Buffer a new performance entry.
     pub fn queue_entry(&self, entry: &PerformanceEntry) {
-        self.entries.borrow_mut().push(Root::from_ref(entry));
+        self.entries.borrow_mut().push(DomRoot::from_ref(entry));
     }
 
     /// Trigger performance observer callback with the list of performance entries

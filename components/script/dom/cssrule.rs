@@ -4,8 +4,8 @@
 
 use dom::bindings::codegen::Bindings::CSSRuleBinding::CSSRuleMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::Reflector;
+use dom::bindings::root::{Dom, DomRoot};
 use dom::bindings::str::DOMString;
 use dom::cssfontfacerule::CSSFontFaceRule;
 use dom::cssimportrule::CSSImportRule;
@@ -27,7 +27,7 @@ use style::stylesheets::CssRule as StyleCssRule;
 #[dom_struct]
 pub struct CSSRule {
     reflector_: Reflector,
-    parent_stylesheet: JS<CSSStyleSheet>,
+    parent_stylesheet: Dom<CSSStyleSheet>,
 
     /// Whether the parentStyleSheet attribute should return null.
     /// We keep parent_stylesheet in that case because insertRule needs it
@@ -40,7 +40,7 @@ impl CSSRule {
     pub fn new_inherited(parent_stylesheet: &CSSStyleSheet) -> CSSRule {
         CSSRule {
             reflector_: Reflector::new(),
-            parent_stylesheet: JS::from_ref(parent_stylesheet),
+            parent_stylesheet: Dom::from_ref(parent_stylesheet),
             parent_stylesheet_removed: Cell::new(false),
         }
     }
@@ -72,19 +72,19 @@ impl CSSRule {
     // Given a StyleCssRule, create a new instance of a derived class of
     // CSSRule based on which rule it is
     pub fn new_specific(window: &Window, parent_stylesheet: &CSSStyleSheet,
-                        rule: StyleCssRule) -> Root<CSSRule> {
+                        rule: StyleCssRule) -> DomRoot<CSSRule> {
         // be sure to update the match in as_specific when this is updated
         match rule {
-            StyleCssRule::Import(s) => Root::upcast(CSSImportRule::new(window, parent_stylesheet, s)),
-            StyleCssRule::Style(s) => Root::upcast(CSSStyleRule::new(window, parent_stylesheet, s)),
-            StyleCssRule::FontFace(s) => Root::upcast(CSSFontFaceRule::new(window, parent_stylesheet, s)),
+            StyleCssRule::Import(s) => DomRoot::upcast(CSSImportRule::new(window, parent_stylesheet, s)),
+            StyleCssRule::Style(s) => DomRoot::upcast(CSSStyleRule::new(window, parent_stylesheet, s)),
+            StyleCssRule::FontFace(s) => DomRoot::upcast(CSSFontFaceRule::new(window, parent_stylesheet, s)),
             StyleCssRule::FontFeatureValues(_) => unimplemented!(),
             StyleCssRule::CounterStyle(_) => unimplemented!(),
-            StyleCssRule::Keyframes(s) => Root::upcast(CSSKeyframesRule::new(window, parent_stylesheet, s)),
-            StyleCssRule::Media(s) => Root::upcast(CSSMediaRule::new(window, parent_stylesheet, s)),
-            StyleCssRule::Namespace(s) => Root::upcast(CSSNamespaceRule::new(window, parent_stylesheet, s)),
-            StyleCssRule::Viewport(s) => Root::upcast(CSSViewportRule::new(window, parent_stylesheet, s)),
-            StyleCssRule::Supports(s) => Root::upcast(CSSSupportsRule::new(window, parent_stylesheet, s)),
+            StyleCssRule::Keyframes(s) => DomRoot::upcast(CSSKeyframesRule::new(window, parent_stylesheet, s)),
+            StyleCssRule::Media(s) => DomRoot::upcast(CSSMediaRule::new(window, parent_stylesheet, s)),
+            StyleCssRule::Namespace(s) => DomRoot::upcast(CSSNamespaceRule::new(window, parent_stylesheet, s)),
+            StyleCssRule::Viewport(s) => DomRoot::upcast(CSSViewportRule::new(window, parent_stylesheet, s)),
+            StyleCssRule::Supports(s) => DomRoot::upcast(CSSSupportsRule::new(window, parent_stylesheet, s)),
             StyleCssRule::Page(_) => unreachable!(),
             StyleCssRule::Document(_) => unimplemented!(), // TODO
         }
@@ -121,11 +121,11 @@ impl CSSRuleMethods for CSSRule {
     }
 
     // https://drafts.csswg.org/cssom/#dom-cssrule-parentstylesheet
-    fn GetParentStyleSheet(&self) -> Option<Root<CSSStyleSheet>> {
+    fn GetParentStyleSheet(&self) -> Option<DomRoot<CSSStyleSheet>> {
         if self.parent_stylesheet_removed.get() {
             None
         } else {
-            Some(Root::from_ref(&*self.parent_stylesheet))
+            Some(DomRoot::from_ref(&*self.parent_stylesheet))
         }
     }
 

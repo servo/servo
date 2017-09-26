@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::CommentBinding;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::error::Fallible;
-use dom::bindings::js::Root;
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::characterdata::CharacterData;
 use dom::document::Document;
@@ -26,13 +26,13 @@ impl Comment {
         }
     }
 
-    pub fn new(text: DOMString, document: &Document) -> Root<Comment> {
+    pub fn new(text: DOMString, document: &Document) -> DomRoot<Comment> {
         Node::reflect_node(box Comment::new_inherited(text, document),
                            document,
                            CommentBinding::Wrap)
     }
 
-    pub fn Constructor(window: &Window, data: DOMString) -> Fallible<Root<Comment>> {
+    pub fn Constructor(window: &Window, data: DOMString) -> Fallible<DomRoot<Comment>> {
         let document = window.Document();
         Ok(Comment::new(data, &document))
     }

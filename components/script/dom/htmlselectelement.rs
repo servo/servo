@@ -14,7 +14,7 @@ use dom::bindings::codegen::UnionTypes::HTMLElementOrLong;
 use dom::bindings::codegen::UnionTypes::HTMLOptionElementOrHTMLOptGroupElement;
 //use dom::bindings::error::ErrorResult;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{MutNullableJS, Root};
+use dom::bindings::root::{DomRoot, MutNullableDom};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element};
@@ -61,8 +61,8 @@ impl CollectionFilter for OptionsFilter {
 #[dom_struct]
 pub struct HTMLSelectElement {
     htmlelement: HTMLElement,
-    options: MutNullableJS<HTMLOptionsCollection>,
-    form_owner: MutNullableJS<HTMLFormElement>,
+    options: MutNullableDom<HTMLOptionsCollection>,
+    form_owner: MutNullableDom<HTMLFormElement>,
 }
 
 static DEFAULT_SELECT_SIZE: u32 = 0;
@@ -83,22 +83,22 @@ impl HTMLSelectElement {
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
-               document: &Document) -> Root<HTMLSelectElement> {
+               document: &Document) -> DomRoot<HTMLSelectElement> {
         Node::reflect_node(box HTMLSelectElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLSelectElementBinding::Wrap)
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-select-option-list
-    fn list_of_options(&self) -> impl Iterator<Item=Root<HTMLOptionElement>> {
+    fn list_of_options(&self) -> impl Iterator<Item=DomRoot<HTMLOptionElement>> {
         self.upcast::<Node>()
             .children()
             .flat_map(|node| {
                 if node.is::<HTMLOptionElement>() {
-                    let node = Root::downcast::<HTMLOptionElement>(node).unwrap();
+                    let node = DomRoot::downcast::<HTMLOptionElement>(node).unwrap();
                     Choice3::First(iter::once(node))
                 } else if node.is::<HTMLOptGroupElement>() {
-                    Choice3::Second(node.children().filter_map(Root::downcast))
+                    Choice3::Second(node.children().filter_map(DomRoot::downcast))
                 } else {
                     Choice3::Third(iter::empty())
                 }
@@ -120,17 +120,17 @@ impl HTMLSelectElement {
             return;
         }
 
-        let mut first_enabled: Option<Root<HTMLOptionElement>> = None;
-        let mut last_selected: Option<Root<HTMLOptionElement>> = None;
+        let mut first_enabled: Option<DomRoot<HTMLOptionElement>> = None;
+        let mut last_selected: Option<DomRoot<HTMLOptionElement>> = None;
 
         for opt in self.list_of_options() {
             if opt.Selected() {
                 opt.set_selectedness(false);
-                last_selected = Some(Root::from_ref(&opt));
+                last_selected = Some(DomRoot::from_ref(&opt));
             }
             let element = opt.upcast::<Element>();
             if first_enabled.is_none() && !element.disabled_state() {
-                first_enabled = Some(Root::from_ref(&opt));
+                first_enabled = Some(DomRoot::from_ref(&opt));
             }
         }
 
@@ -189,7 +189,7 @@ impl HTMLSelectElement {
 
 impl HTMLSelectElementMethods for HTMLSelectElement {
     // https://html.spec.whatwg.org/multipage/#dom-cva-validity
-    fn Validity(&self) -> Root<ValidityState> {
+    fn Validity(&self) -> DomRoot<ValidityState> {
         let window = window_from_node(self);
         ValidityState::new(&window, self.upcast())
     }
@@ -206,7 +206,7 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
     make_bool_setter!(SetDisabled, "disabled");
 
     // https://html.spec.whatwg.org/multipage/#dom-fae-form
-    fn GetForm(&self) -> Option<Root<HTMLFormElement>> {
+    fn GetForm(&self) -> Option<DomRoot<HTMLFormElement>> {
         self.form_owner()
     }
 
@@ -238,12 +238,12 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
-    fn Labels(&self) -> Root<NodeList> {
+    fn Labels(&self) -> DomRoot<NodeList> {
         self.upcast::<HTMLElement>().labels()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-select-options
-    fn Options(&self) -> Root<HTMLOptionsCollection> {
+    fn Options(&self) -> DomRoot<HTMLOptionsCollection> {
         self.options.or_init(|| {
             let window = window_from_node(self);
             HTMLOptionsCollection::new(
@@ -262,18 +262,18 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-select-item
-    fn Item(&self, index: u32) -> Option<Root<Element>> {
+    fn Item(&self, index: u32) -> Option<DomRoot<Element>> {
         self.Options().upcast().Item(index)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-select-item
-    fn IndexedGetter(&self, index: u32) -> Option<Root<Element>> {
+    fn IndexedGetter(&self, index: u32) -> Option<DomRoot<Element>> {
         self.Options().IndexedGetter(index)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-select-nameditem
-    fn NamedItem(&self, name: DOMString) -> Option<Root<HTMLOptionElement>> {
-        self.Options().NamedGetter(name).map_or(None, |e| Root::downcast::<HTMLOptionElement>(e))
+    fn NamedItem(&self, name: DOMString) -> Option<DomRoot<HTMLOptionElement>> {
+        self.Options().NamedGetter(name).map_or(None, |e| DomRoot::downcast::<HTMLOptionElement>(e))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-select-remove
@@ -398,7 +398,7 @@ impl VirtualMethods for HTMLSelectElement {
 }
 
 impl FormControl for HTMLSelectElement {
-    fn form_owner(&self) -> Option<Root<HTMLFormElement>> {
+    fn form_owner(&self) -> Option<DomRoot<HTMLFormElement>> {
         self.form_owner.get()
     }
 

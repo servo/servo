@@ -5,7 +5,7 @@
 use caseless::compatibility_caseless_match_str;
 use dom::activation::{Activatable, ActivationSource, synthetic_click_activation};
 use dom::attr::Attr;
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::FileListBinding::FileListMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding;
@@ -15,7 +15,7 @@ use dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, LayoutJS, MutNullableJS, Root, RootedReference};
+use dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, LayoutElementHelpers, RawLayoutElementHelpers};
@@ -88,19 +88,19 @@ pub struct HTMLInputElement {
     htmlelement: HTMLElement,
     input_type: Cell<InputType>,
     checked_changed: Cell<bool>,
-    placeholder: DOMRefCell<DOMString>,
+    placeholder: DomRefCell<DOMString>,
     value_changed: Cell<bool>,
     size: Cell<u32>,
     maxlength: Cell<i32>,
     minlength: Cell<i32>,
     #[ignore_heap_size_of = "#7193"]
-    textinput: DOMRefCell<TextInput<ScriptToConstellationChan>>,
-    activation_state: DOMRefCell<InputActivationState>,
+    textinput: DomRefCell<TextInput<ScriptToConstellationChan>>,
+    activation_state: DomRefCell<InputActivationState>,
     // https://html.spec.whatwg.org/multipage/#concept-input-value-dirty-flag
     value_dirty: Cell<bool>,
 
-    filelist: MutNullableJS<FileList>,
-    form_owner: MutNullableJS<HTMLFormElement>,
+    filelist: MutNullableDom<FileList>,
+    form_owner: MutNullableDom<HTMLFormElement>,
 }
 
 #[derive(JSTraceable)]
@@ -110,7 +110,7 @@ struct InputActivationState {
     indeterminate: bool,
     checked: bool,
     checked_changed: bool,
-    checked_radio: Option<JS<HTMLInputElement>>,
+    checked_radio: Option<Dom<HTMLInputElement>>,
     // In case mutability changed
     was_mutable: bool,
     // In case the type changed
@@ -142,21 +142,21 @@ impl HTMLInputElement {
                 HTMLElement::new_inherited_with_state(IN_ENABLED_STATE | IN_READ_WRITE_STATE,
                                                       local_name, prefix, document),
             input_type: Cell::new(InputType::InputText),
-            placeholder: DOMRefCell::new(DOMString::new()),
+            placeholder: DomRefCell::new(DOMString::new()),
             checked_changed: Cell::new(false),
             value_changed: Cell::new(false),
             maxlength: Cell::new(DEFAULT_MAX_LENGTH),
             minlength: Cell::new(DEFAULT_MIN_LENGTH),
             size: Cell::new(DEFAULT_INPUT_SIZE),
-            textinput: DOMRefCell::new(TextInput::new(Single,
+            textinput: DomRefCell::new(TextInput::new(Single,
                                                       DOMString::new(),
                                                       chan,
                                                       None,
                                                       None,
                                                       SelectionDirection::None)),
-            activation_state: DOMRefCell::new(InputActivationState::new()),
+            activation_state: DomRefCell::new(InputActivationState::new()),
             value_dirty: Cell::new(false),
-            filelist: MutNullableJS::new(None),
+            filelist: MutNullableDom::new(None),
             form_owner: Default::default(),
         }
     }
@@ -164,7 +164,7 @@ impl HTMLInputElement {
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
-               document: &Document) -> Root<HTMLInputElement> {
+               document: &Document) -> DomRoot<HTMLInputElement> {
         Node::reflect_node(box HTMLInputElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLInputElementBinding::Wrap)
@@ -206,15 +206,15 @@ pub trait LayoutHTMLInputElementHelpers {
 }
 
 #[allow(unsafe_code)]
-unsafe fn get_raw_textinput_value(input: LayoutJS<HTMLInputElement>) -> DOMString {
+unsafe fn get_raw_textinput_value(input: LayoutDom<HTMLInputElement>) -> DOMString {
     (*input.unsafe_get()).textinput.borrow_for_layout().get_content()
 }
 
-impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
+impl LayoutHTMLInputElementHelpers for LayoutDom<HTMLInputElement> {
     #[allow(unsafe_code)]
     unsafe fn value_for_layout(self) -> String {
         #[allow(unsafe_code)]
-        unsafe fn get_raw_attr_value(input: LayoutJS<HTMLInputElement>, default: &str) -> String {
+        unsafe fn get_raw_attr_value(input: LayoutDom<HTMLInputElement>, default: &str) -> String {
             let elem = input.upcast::<Element>();
             let value = (*elem.unsafe_get())
                 .get_attr_val_for_layout(&ns!(), &local_name!("value"))
@@ -318,12 +318,12 @@ impl HTMLInputElementMethods for HTMLInputElement {
     make_bool_setter!(SetDisabled, "disabled");
 
     // https://html.spec.whatwg.org/multipage/#dom-fae-form
-    fn GetForm(&self) -> Option<Root<HTMLFormElement>> {
+    fn GetForm(&self) -> Option<DomRoot<HTMLFormElement>> {
         self.form_owner()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-files
-    fn GetFiles(&self) -> Option<Root<FileList>> {
+    fn GetFiles(&self) -> Option<DomRoot<FileList>> {
         match self.filelist.get() {
             Some(ref fl) => Some(fl.clone()),
             None => None,
@@ -549,7 +549,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
-    fn Labels(&self) -> Root<NodeList> {
+    fn Labels(&self) -> DomRoot<NodeList> {
         if self.type_() == atom!("hidden") {
             let window = window_from_node(self);
             NodeList::empty(&window)
@@ -638,7 +638,7 @@ fn broadcast_radio_checked(broadcaster: &HTMLInputElement, group: Option<&Atom>)
     fn do_broadcast(doc_node: &Node, broadcaster: &HTMLInputElement,
                         owner: Option<&HTMLFormElement>, group: Option<&Atom>) {
         let iter = doc_node.query_selector_iter(DOMString::from("input[type=radio]")).unwrap()
-                .filter_map(Root::downcast::<HTMLInputElement>)
+                .filter_map(DomRoot::downcast::<HTMLInputElement>)
                 .filter(|r| in_same_group(&r, owner, group) && broadcaster != &**r);
         for ref r in iter {
             if r.Checked() {
@@ -705,7 +705,7 @@ impl HTMLInputElement {
                             datums.push(FormDatum {
                                 ty: type_.clone(),
                                 name: name.clone(),
-                                value: FormDatumValue::File(Root::from_ref(&f)),
+                                value: FormDatumValue::File(DomRoot::from_ref(&f)),
                             });
                         }
                     }
@@ -805,7 +805,7 @@ impl HTMLInputElement {
         let origin = get_blob_origin(&window.get_url());
         let resource_threads = window.upcast::<GlobalScope>().resource_threads();
 
-        let mut files: Vec<Root<File>> = vec![];
+        let mut files: Vec<DomRoot<File>> = vec![];
         let mut error = None;
 
         let filter = filter_from_accept(&self.Accept());
@@ -1169,7 +1169,7 @@ impl VirtualMethods for HTMLInputElement {
 }
 
 impl FormControl for HTMLInputElement {
-    fn form_owner(&self) -> Option<Root<HTMLFormElement>> {
+    fn form_owner(&self) -> Option<DomRoot<HTMLFormElement>> {
         self.form_owner.get()
     }
 
@@ -1246,12 +1246,12 @@ impl Activatable for HTMLInputElement {
                     // Safe since we only manipulate the DOM tree after finding an element
                     let checked_member = doc_node.query_selector_iter(DOMString::from("input[type=radio]"))
                             .unwrap()
-                            .filter_map(Root::downcast::<HTMLInputElement>)
+                            .filter_map(DomRoot::downcast::<HTMLInputElement>)
                             .find(|r| {
                                 in_same_group(&*r, owner.r(), group.as_ref()) &&
                                 r.Checked()
                             });
-                    cache.checked_radio = checked_member.r().map(JS::from_ref);
+                    cache.checked_radio = checked_member.r().map(Dom::from_ref);
                     cache.checked_changed = self.checked_changed.get();
                     self.SetChecked(true);
                 }
@@ -1361,7 +1361,7 @@ impl Activatable for HTMLInputElement {
         }
         let submit_button;
         submit_button = node.query_selector_iter(DOMString::from("input[type=submit]")).unwrap()
-            .filter_map(Root::downcast::<HTMLInputElement>)
+            .filter_map(DomRoot::downcast::<HTMLInputElement>)
             .find(|r| r.form_owner() == owner);
         match submit_button {
             Some(ref button) => {
@@ -1376,7 +1376,7 @@ impl Activatable for HTMLInputElement {
             }
             None => {
                 let inputs = node.query_selector_iter(DOMString::from("input")).unwrap()
-                    .filter_map(Root::downcast::<HTMLInputElement>)
+                    .filter_map(DomRoot::downcast::<HTMLInputElement>)
                     .filter(|input| {
                         input.form_owner() == owner && match input.type_() {
                             atom!("text") | atom!("search") | atom!("url") | atom!("tel") |

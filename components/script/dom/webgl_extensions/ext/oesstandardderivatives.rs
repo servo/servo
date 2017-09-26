@@ -4,8 +4,8 @@
 
 use dom::bindings::codegen::Bindings::OESStandardDerivativesBinding;
 use dom::bindings::codegen::Bindings::OESStandardDerivativesBinding::OESStandardDerivativesConstants;
-use dom::bindings::js::Root;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use dom::bindings::root::DomRoot;
 use dom::webglrenderingcontext::WebGLRenderingContext;
 use dom_struct::dom_struct;
 use super::{WebGLExtension, WebGLExtensions};
@@ -25,7 +25,7 @@ impl OESStandardDerivatives {
 
 impl WebGLExtension for OESStandardDerivatives {
     type Extension = OESStandardDerivatives;
-    fn new(ctx: &WebGLRenderingContext) -> Root<OESStandardDerivatives> {
+    fn new(ctx: &WebGLRenderingContext) -> DomRoot<OESStandardDerivatives> {
         reflect_dom_object(box OESStandardDerivatives::new_inherited(),
                            &*ctx.global(),
                            OESStandardDerivativesBinding::Wrap)

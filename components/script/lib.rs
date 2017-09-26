@@ -141,7 +141,7 @@ mod webdriver_handlers;
 pub mod layout_exports {
     pub use dom::bindings::inheritance::{CharacterDataTypeId, ElementTypeId};
     pub use dom::bindings::inheritance::{HTMLElementTypeId, NodeTypeId};
-    pub use dom::bindings::js::LayoutJS;
+    pub use dom::bindings::root::LayoutDom;
     pub use dom::characterdata::LayoutCharacterDataHelpers;
     pub use dom::document::{Document, LayoutDocumentHelpers, PendingRestyle};
     pub use dom::element::{Element, LayoutElementHelpers, RawLayoutElementHelpers};

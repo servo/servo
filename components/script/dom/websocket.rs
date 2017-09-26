@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use dom::bindings::codegen::Bindings::WebSocketBinding;
 use dom::bindings::codegen::Bindings::WebSocketBinding::{BinaryType, WebSocketMethods};
@@ -10,9 +10,9 @@ use dom::bindings::codegen::UnionTypes::StringOrStringSequence;
 use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::{DOMString, USVString, is_token};
 use dom::blob::{Blob, BlobImpl};
 use dom::closeevent::CloseEvent;
@@ -105,9 +105,9 @@ pub struct WebSocket {
     buffered_amount: Cell<u64>,
     clearing_buffer: Cell<bool>, //Flag to tell if there is a running thread to clear buffered_amount
     #[ignore_heap_size_of = "Defined in std"]
-    sender: DOMRefCell<Option<IpcSender<WebSocketDomAction>>>,
+    sender: DomRefCell<Option<IpcSender<WebSocketDomAction>>>,
     binary_type: Cell<BinaryType>,
-    protocol: DOMRefCell<String>, //Subprotocol selected by server
+    protocol: DomRefCell<String>, //Subprotocol selected by server
 }
 
 impl WebSocket {
@@ -118,13 +118,13 @@ impl WebSocket {
             ready_state: Cell::new(WebSocketRequestState::Connecting),
             buffered_amount: Cell::new(0),
             clearing_buffer: Cell::new(false),
-            sender: DOMRefCell::new(None),
+            sender: DomRefCell::new(None),
             binary_type: Cell::new(BinaryType::Blob),
-            protocol: DOMRefCell::new("".to_owned()),
+            protocol: DomRefCell::new("".to_owned()),
         }
     }
 
-    fn new(global: &GlobalScope, url: ServoUrl) -> Root<WebSocket> {
+    fn new(global: &GlobalScope, url: ServoUrl) -> DomRoot<WebSocket> {
         reflect_dom_object(box WebSocket::new_inherited(url),
                            global, WebSocketBinding::Wrap)
     }
@@ -133,7 +133,7 @@ impl WebSocket {
     pub fn Constructor(global: &GlobalScope,
                        url: DOMString,
                        protocols: Option<StringOrStringSequence>)
-                       -> Fallible<Root<WebSocket>> {
+                       -> Fallible<DomRoot<WebSocket>> {
         // Steps 1-2.
         let url_record = ServoUrl::parse(&url).or(Err(Error::Syntax))?;
 

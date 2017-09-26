@@ -4,8 +4,8 @@
 
 use dom::bindings::codegen::Bindings::DOMPointReadOnlyBinding::{DOMPointReadOnlyMethods, Wrap};
 use dom::bindings::error::Fallible;
-use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::root::DomRoot;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use std::cell::Cell;
@@ -31,7 +31,7 @@ impl DOMPointReadOnly {
         }
     }
 
-    pub fn new(global: &GlobalScope, x: f64, y: f64, z: f64, w: f64) -> Root<DOMPointReadOnly> {
+    pub fn new(global: &GlobalScope, x: f64, y: f64, z: f64, w: f64) -> DomRoot<DOMPointReadOnly> {
         reflect_dom_object(box DOMPointReadOnly::new_inherited(x, y, z, w),
                            global,
                            Wrap)
@@ -42,7 +42,7 @@ impl DOMPointReadOnly {
                        y: f64,
                        z: f64,
                        w: f64)
-                       -> Fallible<Root<DOMPointReadOnly>> {
+                       -> Fallible<DomRoot<DOMPointReadOnly>> {
         Ok(DOMPointReadOnly::new(global, x, y, z, w))
     }
 }

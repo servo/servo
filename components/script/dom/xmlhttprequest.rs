@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use document_loader::DocumentLoader;
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::BlobBinding::BlobBinding::BlobMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding;
@@ -14,9 +14,9 @@ use dom::bindings::codegen::UnionTypes::DocumentOrBodyInit;
 use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, MutNullableJS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
+use dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use dom::bindings::str::{ByteString, DOMString, USVString, is_token};
 use dom::blob::{Blob, BlobImpl};
 use dom::document::{Document, HasBrowsingContext, IsHTMLDocument};
@@ -90,8 +90,8 @@ pub struct GenerationId(u32);
 struct XHRContext {
     xhr: TrustedXHRAddress,
     gen_id: GenerationId,
-    buf: DOMRefCell<Vec<u8>>,
-    sync_status: DOMRefCell<Option<ErrorResult>>,
+    buf: DomRefCell<Vec<u8>>,
+    sync_status: DomRefCell<Option<ErrorResult>>,
 }
 
 #[derive(Clone)]
@@ -123,35 +123,35 @@ pub struct XMLHttpRequest {
     ready_state: Cell<XMLHttpRequestState>,
     timeout: Cell<u32>,
     with_credentials: Cell<bool>,
-    upload: JS<XMLHttpRequestUpload>,
-    response_url: DOMRefCell<String>,
+    upload: Dom<XMLHttpRequestUpload>,
+    response_url: DomRefCell<String>,
     status: Cell<u16>,
-    status_text: DOMRefCell<ByteString>,
-    response: DOMRefCell<ByteString>,
+    status_text: DomRefCell<ByteString>,
+    response: DomRefCell<ByteString>,
     response_type: Cell<XMLHttpRequestResponseType>,
-    response_xml: MutNullableJS<Document>,
-    response_blob: MutNullableJS<Blob>,
+    response_xml: MutNullableDom<Document>,
+    response_blob: MutNullableDom<Blob>,
     #[ignore_heap_size_of = "Defined in rust-mozjs"]
     response_json: Heap<JSVal>,
     #[ignore_heap_size_of = "Defined in hyper"]
-    response_headers: DOMRefCell<Headers>,
+    response_headers: DomRefCell<Headers>,
     #[ignore_heap_size_of = "Defined in hyper"]
-    override_mime_type: DOMRefCell<Option<Mime>>,
+    override_mime_type: DomRefCell<Option<Mime>>,
     #[ignore_heap_size_of = "Defined in rust-encoding"]
-    override_charset: DOMRefCell<Option<EncodingRef>>,
+    override_charset: DomRefCell<Option<EncodingRef>>,
 
     // Associated concepts
     #[ignore_heap_size_of = "Defined in hyper"]
-    request_method: DOMRefCell<Method>,
-    request_url: DOMRefCell<Option<ServoUrl>>,
+    request_method: DomRefCell<Method>,
+    request_url: DomRefCell<Option<ServoUrl>>,
     #[ignore_heap_size_of = "Defined in hyper"]
-    request_headers: DOMRefCell<Headers>,
+    request_headers: DomRefCell<Headers>,
     request_body_len: Cell<usize>,
     sync: Cell<bool>,
     upload_complete: Cell<bool>,
     send_flag: Cell<bool>,
 
-    timeout_cancel: DOMRefCell<Option<OneshotTimerHandle>>,
+    timeout_cancel: DomRefCell<Option<OneshotTimerHandle>>,
     fetch_time: Cell<i64>,
     generation_id: Cell<GenerationId>,
     response_status: Cell<Result<(), ()>>,
@@ -174,28 +174,28 @@ impl XMLHttpRequest {
             ready_state: Cell::new(XMLHttpRequestState::Unsent),
             timeout: Cell::new(0u32),
             with_credentials: Cell::new(false),
-            upload: JS::from_ref(&*XMLHttpRequestUpload::new(global)),
-            response_url: DOMRefCell::new(String::new()),
+            upload: Dom::from_ref(&*XMLHttpRequestUpload::new(global)),
+            response_url: DomRefCell::new(String::new()),
             status: Cell::new(0),
-            status_text: DOMRefCell::new(ByteString::new(vec!())),
-            response: DOMRefCell::new(ByteString::new(vec!())),
+            status_text: DomRefCell::new(ByteString::new(vec!())),
+            response: DomRefCell::new(ByteString::new(vec!())),
             response_type: Cell::new(XMLHttpRequestResponseType::_empty),
             response_xml: Default::default(),
             response_blob: Default::default(),
             response_json: Heap::default(),
-            response_headers: DOMRefCell::new(Headers::new()),
-            override_mime_type: DOMRefCell::new(None),
-            override_charset: DOMRefCell::new(None),
+            response_headers: DomRefCell::new(Headers::new()),
+            override_mime_type: DomRefCell::new(None),
+            override_charset: DomRefCell::new(None),
 
-            request_method: DOMRefCell::new(Method::Get),
-            request_url: DOMRefCell::new(None),
-            request_headers: DOMRefCell::new(Headers::new()),
+            request_method: DomRefCell::new(Method::Get),
+            request_url: DomRefCell::new(None),
+            request_headers: DomRefCell::new(Headers::new()),
             request_body_len: Cell::new(0),
             sync: Cell::new(false),
             upload_complete: Cell::new(false),
             send_flag: Cell::new(false),
 
-            timeout_cancel: DOMRefCell::new(None),
+            timeout_cancel: DomRefCell::new(None),
             fetch_time: Cell::new(0),
             generation_id: Cell::new(GenerationId(0)),
             response_status: Cell::new(Ok(())),
@@ -203,14 +203,14 @@ impl XMLHttpRequest {
             referrer_policy: referrer_policy,
         }
     }
-    pub fn new(global: &GlobalScope) -> Root<XMLHttpRequest> {
+    pub fn new(global: &GlobalScope) -> DomRoot<XMLHttpRequest> {
         reflect_dom_object(box XMLHttpRequest::new_inherited(global),
                            global,
                            XMLHttpRequestBinding::Wrap)
     }
 
     // https://xhr.spec.whatwg.org/#constructors
-    pub fn Constructor(global: &GlobalScope) -> Fallible<Root<XMLHttpRequest>> {
+    pub fn Constructor(global: &GlobalScope) -> Fallible<DomRoot<XMLHttpRequest>> {
         Ok(XMLHttpRequest::new(global))
     }
 
@@ -289,7 +289,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     fn Open_(&self, method: ByteString, url: USVString, async: bool,
              username: Option<USVString>, password: Option<USVString>) -> ErrorResult {
         // Step 1
-        if let Some(window) = Root::downcast::<Window>(self.global()) {
+        if let Some(window) = DomRoot::downcast::<Window>(self.global()) {
             if !window.Document().is_fully_active() {
                 return Err(Error::InvalidState);
             }
@@ -481,8 +481,8 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     }
 
     // https://xhr.spec.whatwg.org/#the-upload-attribute
-    fn Upload(&self) -> Root<XMLHttpRequestUpload> {
-        Root::from_ref(&*self.upload)
+    fn Upload(&self) -> DomRoot<XMLHttpRequestUpload> {
+        DomRoot::from_ref(&*self.upload)
     }
 
     // https://xhr.spec.whatwg.org/#the-send()-method
@@ -570,7 +570,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             // preference is enabled, we allow bypassing the CORS check.
             // This is a temporary measure until we figure out Servo privilege
             // story. See https://github.com/servo/servo/issues/9582
-            if let Some(win) = Root::downcast::<Window>(self.global()) {
+            if let Some(win) = DomRoot::downcast::<Window>(self.global()) {
                 let is_root_pipeline = win.parent_info().is_none();
                 is_root_pipeline && PREFS.is_mozbrowser_enabled()
             } else {
@@ -811,7 +811,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     }
 
     // https://xhr.spec.whatwg.org/#the-responsexml-attribute
-    fn GetResponseXML(&self) -> Fallible<Option<Root<Document>>> {
+    fn GetResponseXML(&self) -> Fallible<Option<DomRoot<Document>>> {
         // TODO(#2823): Until [Exposed] is implemented, this attribute needs to return null
         //              explicitly in the worker scope.
         if self.global().is::<WorkerGlobalScope>() {
@@ -1088,7 +1088,7 @@ impl XMLHttpRequest {
     }
 
     // https://xhr.spec.whatwg.org/#blob-response
-    fn blob_response(&self) -> Root<Blob> {
+    fn blob_response(&self) -> DomRoot<Blob> {
         // Step 1
         if let Some(response) = self.response_blob.get() {
             return response;
@@ -1104,7 +1104,7 @@ impl XMLHttpRequest {
     }
 
     // https://xhr.spec.whatwg.org/#document-response
-    fn document_response(&self) -> Option<Root<Document>> {
+    fn document_response(&self) -> Option<DomRoot<Document>> {
         // Step 1
         let response = self.response_xml.get();
         if response.is_some() {
@@ -1114,7 +1114,7 @@ impl XMLHttpRequest {
         let mime_type = self.final_mime_type();
         // TODO: prescan the response to determine encoding if final charset is null
         let charset = self.final_charset().unwrap_or(UTF_8);
-        let temp_doc: Root<Document>;
+        let temp_doc: DomRoot<Document>;
         match mime_type {
             Some(Mime(mime::TopLevel::Text, mime::SubLevel::Html, _)) => {
                 // Step 5
@@ -1181,7 +1181,7 @@ impl XMLHttpRequest {
         self.response_json.get()
     }
 
-    fn document_text_html(&self) -> Root<Document> {
+    fn document_text_html(&self) -> DomRoot<Document> {
         let charset = self.final_charset().unwrap_or(UTF_8);
         let wr = self.global();
         let decoded = charset.decode(&self.response.borrow(), DecoderTrap::Replace).unwrap();
@@ -1194,7 +1194,7 @@ impl XMLHttpRequest {
         document
     }
 
-    fn handle_xml(&self) -> Root<Document> {
+    fn handle_xml(&self) -> DomRoot<Document> {
         let charset = self.final_charset().unwrap_or(UTF_8);
         let wr = self.global();
         let decoded = charset.decode(&self.response.borrow(), DecoderTrap::Replace).unwrap();
@@ -1207,7 +1207,7 @@ impl XMLHttpRequest {
         document
     }
 
-    fn new_doc(&self, is_html_document: IsHTMLDocument) -> Root<Document> {
+    fn new_doc(&self, is_html_document: IsHTMLDocument) -> DomRoot<Document> {
         let wr = self.global();
         let win = wr.as_window();
         let doc = win.Document();
@@ -1279,8 +1279,8 @@ impl XMLHttpRequest {
         let context = Arc::new(Mutex::new(XHRContext {
             xhr: xhr,
             gen_id: self.generation_id.get(),
-            buf: DOMRefCell::new(vec!()),
-            sync_status: DOMRefCell::new(None),
+            buf: DomRefCell::new(vec!()),
+            sync_status: DomRefCell::new(None),
         }));
 
         let (task_source, script_port) = if self.sync.get() {

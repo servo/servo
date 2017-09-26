@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::VRDisplayCapabilitiesBinding;
 use dom::bindings::codegen::Bindings::VRDisplayCapabilitiesBinding::VRDisplayCapabilitiesMethods;
-use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::root::DomRoot;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use webvr_traits::WebVRDisplayCapabilities;
@@ -15,7 +15,7 @@ use webvr_traits::WebVRDisplayCapabilities;
 pub struct VRDisplayCapabilities {
     reflector_: Reflector,
     #[ignore_heap_size_of = "Defined in rust-webvr"]
-    capabilities: DOMRefCell<WebVRDisplayCapabilities>
+    capabilities: DomRefCell<WebVRDisplayCapabilities>
 }
 
 unsafe_no_jsmanaged_fields!(WebVRDisplayCapabilities);
@@ -24,11 +24,11 @@ impl VRDisplayCapabilities {
     fn new_inherited(capabilities: WebVRDisplayCapabilities) -> VRDisplayCapabilities {
         VRDisplayCapabilities {
             reflector_: Reflector::new(),
-            capabilities: DOMRefCell::new(capabilities)
+            capabilities: DomRefCell::new(capabilities)
         }
     }
 
-    pub fn new(capabilities: WebVRDisplayCapabilities, global: &GlobalScope) -> Root<VRDisplayCapabilities> {
+    pub fn new(capabilities: WebVRDisplayCapabilities, global: &GlobalScope) -> DomRoot<VRDisplayCapabilities> {
         reflect_dom_object(box VRDisplayCapabilities::new_inherited(capabilities),
                            global,
                            VRDisplayCapabilitiesBinding::Wrap)

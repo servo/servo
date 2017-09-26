@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::HTMLDataElementBinding;
 use dom::bindings::codegen::Bindings::HTMLDataElementBinding::HTMLDataElementMethods;
-use dom::bindings::js::Root;
+use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::htmlelement::HTMLElement;
@@ -29,7 +29,7 @@ impl HTMLDataElement {
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
-               document: &Document) -> Root<HTMLDataElement> {
+               document: &Document) -> DomRoot<HTMLDataElement> {
         Node::reflect_node(box HTMLDataElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLDataElementBinding::Wrap)

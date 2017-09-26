@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use canvas_traits::webgl::WebGLError::*;
-use dom::bindings::js::Root;
+use dom::bindings::root::DomRoot;
 use dom::webglrenderingcontext::WebGLRenderingContext;
 use dom::webgltexture::WebGLTexture;
 use std::{self, fmt};
@@ -97,7 +97,7 @@ pub struct CommonTexImage2DValidator<'a> {
 }
 
 pub struct CommonTexImage2DValidatorResult {
-    pub texture: Root<WebGLTexture>,
+    pub texture: DomRoot<WebGLTexture>,
     pub target: TexImageTarget,
     pub level: u32,
     pub internal_format: TexFormat,
@@ -263,7 +263,7 @@ pub struct TexImage2DValidatorResult {
     pub height: u32,
     pub level: u32,
     pub border: u32,
-    pub texture: Root<WebGLTexture>,
+    pub texture: DomRoot<WebGLTexture>,
     pub target: TexImageTarget,
     pub format: TexFormat,
     pub data_type: TexDataType,

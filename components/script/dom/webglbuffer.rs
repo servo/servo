@@ -5,10 +5,10 @@
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use canvas_traits::webgl::{WebGLBufferId, WebGLCommand, WebGLError, WebGLMsgSender, WebGLResult, WebGLVertexArrayId};
 use canvas_traits::webgl::webgl_channel;
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::WebGLBufferBinding;
-use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::DomRoot;
 use dom::webglobject::WebGLObject;
 use dom::window::Window;
 use dom_struct::dom_struct;
@@ -25,7 +25,7 @@ pub struct WebGLBuffer {
     capacity: Cell<usize>,
     is_deleted: Cell<bool>,
     // The Vertex Array Objects that are referencing this buffer
-    vao_references: DOMRefCell<Option<HashSet<WebGLVertexArrayId>>>,
+    vao_references: DomRefCell<Option<HashSet<WebGLVertexArrayId>>>,
     pending_delete: Cell<bool>,
     #[ignore_heap_size_of = "Defined in ipc-channel"]
     renderer: WebGLMsgSender,
@@ -41,14 +41,14 @@ impl WebGLBuffer {
             target: Cell::new(None),
             capacity: Cell::new(0),
             is_deleted: Cell::new(false),
-            vao_references: DOMRefCell::new(None),
+            vao_references: DomRefCell::new(None),
             pending_delete: Cell::new(false),
             renderer: renderer,
         }
     }
 
     pub fn maybe_new(window: &Window, renderer: WebGLMsgSender)
-                     -> Option<Root<WebGLBuffer>> {
+                     -> Option<DomRoot<WebGLBuffer>> {
         let (sender, receiver) = webgl_channel().unwrap();
         renderer.send(WebGLCommand::CreateBuffer(sender)).unwrap();
 
@@ -59,7 +59,7 @@ impl WebGLBuffer {
     pub fn new(window: &Window,
                renderer: WebGLMsgSender,
                id: WebGLBufferId)
-              -> Root<WebGLBuffer> {
+              -> DomRoot<WebGLBuffer> {
         reflect_dom_object(box WebGLBuffer::new_inherited(renderer, id),
                            window, WebGLBufferBinding::Wrap)
     }
