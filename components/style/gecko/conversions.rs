@@ -623,7 +623,7 @@ pub mod basic_shape {
                     }
                 },
                 StyleShapeSourceType::Shape => {
-                    let other_shape = unsafe { &(**other.__bindgen_anon_1.mBasicShape.as_ref()) };
+                    let other_shape = unsafe { &*other.mBasicShape.mPtr };
                     let shape = other_shape.into();
                     let reference_box = if other.mReferenceBox == StyleGeometryBox::NoBox {
                         None
