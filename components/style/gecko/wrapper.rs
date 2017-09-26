@@ -488,23 +488,6 @@ impl<'le> GeckoElement<'le> {
         self.flags() & (NODE_NEEDS_FRAME as u32) != 0
     }
 
-    /// Returns true if a traversal starting from this element requires a post-traversal.
-    pub fn needs_post_traversal(&self) -> bool {
-        debug!("needs_post_traversal: dd={}, aodd={}, lfcd={}, lfc={}, data={:?}",
-               self.has_dirty_descendants(),
-               self.has_animation_only_dirty_descendants(),
-               self.descendants_need_frames(),
-               self.needs_frame(),
-               self.borrow_data().unwrap());
-
-        let has_flag =
-            self.flags() & (ELEMENT_HAS_DIRTY_DESCENDANTS_FOR_SERVO as u32 |
-                            ELEMENT_HAS_ANIMATION_ONLY_DIRTY_DESCENDANTS_FOR_SERVO as u32 |
-                            NODE_DESCENDANTS_NEED_FRAMES as u32 |
-                            NODE_NEEDS_FRAME as u32) != 0;
-        has_flag || self.borrow_data().unwrap().contains_restyle_data()
-    }
-
     /// Returns true if this element has a shadow root.
     fn has_shadow_root(&self) -> bool {
         self.get_extended_slots().map_or(false, |slots| !slots.mShadowRoot.mRawPtr.is_null())

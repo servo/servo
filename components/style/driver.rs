@@ -27,15 +27,15 @@ use traversal::{DomTraversal, PerLevelTraversalData, PreTraverseToken};
 /// then transfer control over to the parallel traversal.
 pub fn traverse_dom<E, D>(
     traversal: &D,
-    root: E,
-    token: PreTraverseToken,
+    token: PreTraverseToken<E>,
     pool: Option<&rayon::ThreadPool>
 )
 where
     E: TElement,
     D: DomTraversal<E>,
 {
-    debug_assert!(token.should_traverse());
+    let root =
+        token.traversal_root().expect("Should've ensured we needed to traverse");
 
     let dump_stats = traversal.shared_context().options.dump_style_statistics;
     let start_time = if dump_stats { Some(time::precise_time_s()) } else { None };
