@@ -9,6 +9,7 @@ description = "Rust bindings to xpcom string types"
 # Revendoring nsstring from m-c into Servo
 
 [dependencies]
+bitflags = "0.8"
 
 [features]
 gecko_debug = []

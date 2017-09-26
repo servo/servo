@@ -11,7 +11,7 @@ use gecko_bindings::bindings::Gecko_Atomize;
 use gecko_bindings::bindings::Gecko_Atomize16;
 use gecko_bindings::bindings::Gecko_ReleaseAtom;
 use gecko_bindings::structs::{nsIAtom, nsIAtom_AtomKind};
-use nsstring::{nsAString, nsString};
+use nsstring::{nsAString, nsStr};
 use precomputed_hash::PrecomputedHash;
 use std::ascii::AsciiExt;
 use std::borrow::{Cow, Borrow};
@@ -346,7 +346,7 @@ impl<'a> From<&'a str> for Atom {
 impl<'a> From<&'a [u16]> for Atom {
     #[inline]
     fn from(slice: &[u16]) -> Atom {
-        Atom::from(&*nsString::from(slice))
+        Atom::from(&*nsStr::from(slice))
     }
 }
 

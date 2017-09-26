@@ -14,7 +14,7 @@ use gecko_bindings::structs::{CounterStylePtr, nsStyleCoord};
 use gecko_bindings::structs::{StyleGridTrackBreadth, StyleShapeRadius};
 use gecko_bindings::sugar::ns_style_coord::{CoordData, CoordDataMut, CoordDataValue};
 use media_queries::Device;
-use nsstring::{nsACString, nsCString};
+use nsstring::{nsACString, nsCStr};
 use std::cmp::max;
 use values::{Auto, Either, ExtremumLength, None_, Normal};
 use values::computed::{Angle, Length, LengthOrPercentage, LengthOrPercentageOrAuto};
@@ -465,7 +465,7 @@ impl CounterStyleOrNone {
             },
             CounterStyleOrNone::Symbols(symbols_type, symbols) => {
                 let symbols: Vec<_> = symbols.0.iter().map(|symbol| match *symbol {
-                    Symbol::String(ref s) => nsCString::from(s),
+                    Symbol::String(ref s) => nsCStr::from(s),
                     Symbol::Ident(_) => unreachable!("Should not have identifier in symbols()"),
                 }).collect();
                 let symbols: Vec<_> = symbols.iter()

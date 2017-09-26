@@ -138,7 +138,7 @@ impl UrlMatchingFunction {
     pub fn evaluate(&self, device: &Device) -> bool {
         use gecko_bindings::bindings::Gecko_DocumentRule_UseForPresentation;
         use gecko_bindings::structs::URLMatchingFunction as GeckoUrlMatchingFunction;
-        use nsstring::nsCString;
+        use nsstring::nsCStr;
 
         let func = match *self {
             UrlMatchingFunction::Url(_) => GeckoUrlMatchingFunction::eURL,
@@ -147,7 +147,7 @@ impl UrlMatchingFunction {
             UrlMatchingFunction::RegExp(_) => GeckoUrlMatchingFunction::eRegExp,
         };
 
-        let pattern = nsCString::from(match *self {
+        let pattern = nsCStr::from(match *self {
             UrlMatchingFunction::Url(ref url) => url.as_str(),
             UrlMatchingFunction::UrlPrefix(ref pat) |
             UrlMatchingFunction::Domain(ref pat) |
