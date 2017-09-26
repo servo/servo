@@ -39,8 +39,8 @@
 //! - If you need an additional synchronization argument, provide a function
 //!   that is like the standard trait method, but with the extra argument.
 //! - If you need multiple measurements for a type, provide a function named
-//!   `add_size_of_children` that takes a mutable reference to a struct that
-//!   contains the multiple measurement fields.
+//!   `add_size_of` that takes a mutable reference to a struct that contains
+//!   the multiple measurement fields.
 //! - When deep measurement (via `MallocSizeOf`) cannot be implemented for a
 //!   type, shallow measurement (via `MallocShallowSizeOf`) in combination with
 //!   iteration can be a useful substitute.
@@ -64,8 +64,6 @@ extern crate servo_arc;
 extern crate smallbitvec;
 extern crate smallvec;
 
-use servo_arc::Arc;
-use smallvec::{Array, SmallVec};
 use std::hash::{BuildHasher, Hash};
 use std::ops::Range;
 use std::os::raw::c_void;
@@ -244,7 +242,7 @@ impl<T: MallocSizeOf> MallocSizeOf for Vec<T> {
     }
 }
 
-impl<A: Array> MallocShallowSizeOf for SmallVec<A> {
+impl<A: smallvec::Array> MallocShallowSizeOf for smallvec::SmallVec<A> {
     fn shallow_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         if self.spilled() {
             unsafe { ops.malloc_size_of(self.as_ptr()) }
@@ -254,8 +252,8 @@ impl<A: Array> MallocShallowSizeOf for SmallVec<A> {
     }
 }
 
-impl<A> MallocSizeOf for SmallVec<A>
-    where A: Array,
+impl<A> MallocSizeOf for smallvec::SmallVec<A>
+    where A: smallvec::Array,
           A::Item: MallocSizeOf
 {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
@@ -348,19 +346,19 @@ impl<K, V, S> MallocSizeOf for hashglobe::hash_map::HashMap<K, V, S>
 //impl<T> !MallocSizeOf for Arc<T> { }
 //impl<T> !MallocShallowSizeOf for Arc<T> { }
 
-impl<T> MallocUnconditionalShallowSizeOf for Arc<T> {
+impl<T> MallocUnconditionalShallowSizeOf for servo_arc::Arc<T> {
     fn unconditional_shallow_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         unsafe { ops.malloc_size_of(self.heap_ptr()) }
     }
 }
 
-impl<T: MallocSizeOf> MallocUnconditionalSizeOf for Arc<T> {
+impl<T: MallocSizeOf> MallocUnconditionalSizeOf for servo_arc::Arc<T> {
     fn unconditional_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         self.unconditional_shallow_size_of(ops) + (**self).size_of(ops)
     }
 }
 
-impl<T> MallocConditionalShallowSizeOf for Arc<T> {
+impl<T> MallocConditionalShallowSizeOf for servo_arc::Arc<T> {
     fn conditional_shallow_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         if ops.have_seen_ptr(self.heap_ptr()) {
             0
@@ -370,7 +368,7 @@ impl<T> MallocConditionalShallowSizeOf for Arc<T> {
     }
 }
 
-impl<T: MallocSizeOf> MallocConditionalSizeOf for Arc<T> {
+impl<T: MallocSizeOf> MallocConditionalSizeOf for servo_arc::Arc<T> {
     fn conditional_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         if ops.have_seen_ptr(self.heap_ptr()) {
             0

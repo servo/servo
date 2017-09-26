@@ -3781,7 +3781,7 @@ pub extern "C" fn Servo_StyleSet_AddSizeOfExcludingThis(
                                        malloc_enclosing_size_of.unwrap(),
                                        None);
     let sizes = unsafe { sizes.as_mut() }.unwrap();
-    data.add_size_of_children(&mut ops, sizes);
+    data.add_size_of(&mut ops, sizes);
 }
 
 #[no_mangle]
