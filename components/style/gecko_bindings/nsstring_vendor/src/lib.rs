@@ -210,7 +210,6 @@ macro_rules! define_string_types {
 
         drop = $drop: ident;
         assign = $assign: ident, $fallible_assign: ident;
-        take_from = $take_from: ident, $fallible_take_from: ident;
         append = $append: ident, $fallible_append: ident;
         set_length = $set_length: ident, $fallible_set_length: ident;
         begin_writing = $begin_writing: ident, $fallible_begin_writing: ident;
@@ -296,25 +295,6 @@ macro_rules! define_string_types {
             /// Returns Ok(()) on success, and Err(()) if the allocation failed.
             pub fn fallible_assign<T: $StringLike + ?Sized>(&mut self, other: &T) -> Result<(), ()> {
                 if unsafe { $fallible_assign(self, other.adapt().as_ptr()) } {
-                    Ok(())
-                } else {
-                    Err(())
-                }
-            }
-
-            /// Take the value of `other` and set `self`, overwriting any value
-            /// currently stored. The passed-in string will be truncated.
-            pub fn take_from(&mut self, other: &mut $AString) {
-                unsafe { $take_from(self, other) };
-            }
-
-            /// Take the value of `other` and set `self`, overwriting any value
-            /// currently stored. If this function fails, the source string will
-            /// be left untouched, otherwise it will be truncated.
-            ///
-            /// Returns Ok(()) on success, and Err(()) if the allocation failed.
-            pub fn fallible_take_from(&mut self, other: &mut $AString) -> Result<(), ()> {
-                if unsafe { $fallible_take_from(self, other) } {
                     Ok(())
                 } else {
                     Err(())
@@ -934,7 +914,6 @@ define_string_types! {
 
     drop = Gecko_FinalizeCString;
     assign = Gecko_AssignCString, Gecko_FallibleAssignCString;
-    take_from = Gecko_TakeFromCString, Gecko_FallibleTakeFromCString;
     append = Gecko_AppendCString, Gecko_FallibleAppendCString;
     set_length = Gecko_SetLengthCString, Gecko_FallibleSetLengthCString;
     begin_writing = Gecko_BeginWritingCString, Gecko_FallibleBeginWritingCString;
@@ -1077,7 +1056,6 @@ define_string_types! {
 
     drop = Gecko_FinalizeString;
     assign = Gecko_AssignString, Gecko_FallibleAssignString;
-    take_from = Gecko_TakeFromString, Gecko_FallibleTakeFromString;
     append = Gecko_AppendString, Gecko_FallibleAppendString;
     set_length = Gecko_SetLengthString, Gecko_FallibleSetLengthString;
     begin_writing = Gecko_BeginWritingString, Gecko_FallibleBeginWritingString;
@@ -1171,12 +1149,10 @@ extern "C" {
     fn Gecko_FinalizeCString(this: *mut nsACString);
 
     fn Gecko_AssignCString(this: *mut nsACString, other: *const nsACString);
-    fn Gecko_TakeFromCString(this: *mut nsACString, other: *mut nsACString);
     fn Gecko_AppendCString(this: *mut nsACString, other: *const nsACString);
     fn Gecko_SetLengthCString(this: *mut nsACString, length: u32);
     fn Gecko_BeginWritingCString(this: *mut nsACString) -> *mut u8;
     fn Gecko_FallibleAssignCString(this: *mut nsACString, other: *const nsACString) -> bool;
-    fn Gecko_FallibleTakeFromCString(this: *mut nsACString, other: *mut nsACString) -> bool;
     fn Gecko_FallibleAppendCString(this: *mut nsACString, other: *const nsACString) -> bool;
     fn Gecko_FallibleSetLengthCString(this: *mut nsACString, length: u32) -> bool;
     fn Gecko_FallibleBeginWritingCString(this: *mut nsACString) -> *mut u8;
@@ -1184,12 +1160,10 @@ extern "C" {
     fn Gecko_FinalizeString(this: *mut nsAString);
 
     fn Gecko_AssignString(this: *mut nsAString, other: *const nsAString);
-    fn Gecko_TakeFromString(this: *mut nsAString, other: *mut nsAString);
     fn Gecko_AppendString(this: *mut nsAString, other: *const nsAString);
     fn Gecko_SetLengthString(this: *mut nsAString, length: u32);
     fn Gecko_BeginWritingString(this: *mut nsAString) -> *mut u16;
     fn Gecko_FallibleAssignString(this: *mut nsAString, other: *const nsAString) -> bool;
-    fn Gecko_FallibleTakeFromString(this: *mut nsAString, other: *mut nsAString) -> bool;
     fn Gecko_FallibleAppendString(this: *mut nsAString, other: *const nsAString) -> bool;
     fn Gecko_FallibleSetLengthString(this: *mut nsAString, length: u32) -> bool;
     fn Gecko_FallibleBeginWritingString(this: *mut nsAString) -> *mut u16;
