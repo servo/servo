@@ -86,7 +86,9 @@ impl<T: WeakReferenceable> WeakRef<T> {
 
     /// DomRoot a weak reference. Returns `None` if the object was already collected.
     pub fn root(&self) -> Option<DomRoot<T>> {
-        unsafe { &*self.ptr.get() }.value.get().map(DomRoot::new)
+        unsafe { &*self.ptr.get() }.value.get().map(|ptr| unsafe {
+            DomRoot::from_ref(&*ptr.get())
+        })
     }
 
     /// Return whether the weakly-referenced object is still alive.

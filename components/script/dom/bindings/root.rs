@@ -591,11 +591,11 @@ impl<T: DomObject> DomRoot<T> {
     /// Create a new stack-bounded root for the provided JS-owned value.
     /// It cannot outlive its associated `RootCollection`, and it gives
     /// out references which cannot outlive this new `Root`.
-    pub fn new(unrooted: NonZero<*const T>) -> DomRoot<T> {
+    pub unsafe fn new(unrooted: NonZero<*const T>) -> DomRoot<T> {
         debug_assert!(thread_state::get().is_script());
         STACK_ROOTS.with(|ref collection| {
             let RootCollectionPtr(collection) = collection.get().unwrap();
-            unsafe { (*collection).root(&*(*unrooted.get()).reflector()) }
+            (*collection).root(&*(*unrooted.get()).reflector())
             DomRoot {
                 ptr: unrooted,
                 root_list: collection,
@@ -605,7 +605,7 @@ impl<T: DomObject> DomRoot<T> {
 
     /// Generate a new root from a reference
     pub fn from_ref(unrooted: &T) -> DomRoot<T> {
-        DomRoot::new(unsafe { NonZero::new_unchecked(unrooted) })
+        unsafe { DomRoot::new(NonZero::new_unchecked(unrooted)) }
     }
 }
 

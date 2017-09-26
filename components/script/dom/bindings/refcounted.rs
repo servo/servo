@@ -22,7 +22,6 @@
 //! its hash table during the next GC. During GC, the entries of the hash table are counted
 //! as JS roots.
 
-use core::nonzero::NonZero;
 use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::Error;
 use dom::bindings::reflector::{DomObject, Reflector};
@@ -185,7 +184,7 @@ impl<T: DomObject> Trusted<T> {
             self.owner_thread == (&*live_references) as *const _ as *const libc::c_void
         }));
         unsafe {
-            DomRoot::new(NonZero::new_unchecked(self.refcount.0 as *const T))
+            DomRoot::from_ref(&*(self.refcount.0 as *const T))
         }
     }
 }
