@@ -499,8 +499,6 @@ impl Stylist {
 
     /// Flush the list of stylesheets if they changed, ensuring the stylist is
     /// up-to-date.
-    ///
-    /// FIXME(emilio): Move the `ua_sheets` to the Stylist too?
     pub fn flush<E>(
         &mut self,
         guards: &StylesheetGuards,
