@@ -2045,6 +2045,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "nsstring_vendor"
 version = "0.1.0"
+dependencies = [
+ "bitflags 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "num-integer"
