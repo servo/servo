@@ -2286,6 +2286,8 @@ cfg_if! {
             pub static nsGkAtoms_repeat: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms7replaceE"]
             pub static nsGkAtoms_replace: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms16requestcontextidE"]
+            pub static nsGkAtoms_requestcontextid: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms8requiredE"]
             pub static nsGkAtoms_required: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms8reservedE"]
@@ -3270,8 +3272,6 @@ cfg_if! {
             pub static nsGkAtoms_set: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms4seedE"]
             pub static nsGkAtoms_seed: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms6shadowE"]
-            pub static nsGkAtoms_shadow: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms15shape_renderingE"]
             pub static nsGkAtoms_shape_rendering: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms5skewXE"]
@@ -7451,6 +7451,8 @@ cfg_if! {
             pub static nsGkAtoms_repeat: *mut nsIAtom;
             #[link_name = "?replace@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_replace: *mut nsIAtom;
+            #[link_name = "?requestcontextid@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_requestcontextid: *mut nsIAtom;
             #[link_name = "?required@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_required: *mut nsIAtom;
             #[link_name = "?reserved@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -8435,8 +8437,6 @@ cfg_if! {
             pub static nsGkAtoms_set: *mut nsIAtom;
             #[link_name = "?seed@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_seed: *mut nsIAtom;
-            #[link_name = "?shadow@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_shadow: *mut nsIAtom;
             #[link_name = "?shape_rendering@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_shape_rendering: *mut nsIAtom;
             #[link_name = "?skewX@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -12616,6 +12616,8 @@ cfg_if! {
             pub static nsGkAtoms_repeat: *mut nsIAtom;
             #[link_name = "\x01?replace@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_replace: *mut nsIAtom;
+            #[link_name = "\x01?requestcontextid@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_requestcontextid: *mut nsIAtom;
             #[link_name = "\x01?required@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_required: *mut nsIAtom;
             #[link_name = "\x01?reserved@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -13600,8 +13602,6 @@ cfg_if! {
             pub static nsGkAtoms_set: *mut nsIAtom;
             #[link_name = "\x01?seed@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_seed: *mut nsIAtom;
-            #[link_name = "\x01?shadow@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_shadow: *mut nsIAtom;
             #[link_name = "\x01?shape_rendering@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_shape_rendering: *mut nsIAtom;
             #[link_name = "\x01?skewX@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -17784,6 +17784,8 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_repeat as *mut _) } };
 ("replace") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_replace as *mut _) } };
+("requestcontextid") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_requestcontextid as *mut _) } };
 ("required") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_required as *mut _) } };
 ("reserved") =>
@@ -18768,8 +18770,6 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_set as *mut _) } };
 ("seed") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_seed as *mut _) } };
-("shadow") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_shadow as *mut _) } };
 ("shape-rendering") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_shape_rendering as *mut _) } };
 ("skewX") =>
