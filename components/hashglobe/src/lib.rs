@@ -13,6 +13,7 @@ extern crate heapsize;
 mod alloc;
 pub mod hash_map;
 pub mod hash_set;
+pub mod protected;
 mod shim;
 mod table;
 

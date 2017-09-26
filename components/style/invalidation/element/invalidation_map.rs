@@ -299,6 +299,24 @@ impl InvalidationMap {
 
         Ok(())
     }
+
+    /// Allows mutation of this InvalidationMap.
+    #[cfg(feature = "gecko")]
+    pub fn begin_mutation(&mut self) {
+        self.class_to_selector.begin_mutation();
+        self.id_to_selector.begin_mutation();
+        self.state_affecting_selectors.begin_mutation();
+        self.other_attribute_affecting_selectors.begin_mutation();
+    }
+
+    /// Disallows mutation of this InvalidationMap.
+    #[cfg(feature = "gecko")]
+    pub fn end_mutation(&mut self) {
+        self.class_to_selector.end_mutation();
+        self.id_to_selector.end_mutation();
+        self.state_affecting_selectors.end_mutation();
+        self.other_attribute_affecting_selectors.end_mutation();
+    }
 }
 
 /// A struct that collects invalidations for a given compound selector.
