@@ -695,11 +695,12 @@ impl Expression {
         self.evaluate_against(device, &value, quirks_mode)
     }
 
-    fn evaluate_against(&self,
-                        device: &Device,
-                        actual_value: &MediaExpressionValue,
-                        quirks_mode: QuirksMode)
-                        -> bool {
+    fn evaluate_against(
+        &self,
+        device: &Device,
+        actual_value: &MediaExpressionValue,
+        quirks_mode: QuirksMode,
+    ) -> bool {
         use self::MediaExpressionValue::*;
         use std::cmp::Ordering;
 
@@ -721,8 +722,7 @@ impl Expression {
             font_metrics_provider: &provider,
             cached_system_font: None,
             in_media_query: true,
-            // TODO: pass the correct value here.
-            quirks_mode: quirks_mode,
+            quirks_mode,
             for_smil_animation: false,
             for_non_inherited_property: None,
             rule_cache_conditions: RefCell::new(&mut conditions),
