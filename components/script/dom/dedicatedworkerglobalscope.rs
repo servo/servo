@@ -12,7 +12,7 @@ use dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding::Dedicat
 use dom::bindings::error::{ErrorInfo, ErrorResult};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::DomObject;
-use dom::bindings::root::{DomRoot, RootCollection};
+use dom::bindings::root::{DomRoot, RootCollection, ThreadLocalStackRoots};
 use dom::bindings::str::DOMString;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::errorevent::ErrorEvent;
@@ -32,7 +32,7 @@ use js::rust::Runtime;
 use msg::constellation_msg::TopLevelBrowsingContextId;
 use net_traits::{IpcSend, load_whole_resource};
 use net_traits::request::{CredentialsMode, Destination, RequestInit, Type as RequestType};
-use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, StackRootTLS, new_rt_and_cx};
+use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, new_rt_and_cx};
 use script_runtime::ScriptThreadEventCategory::WorkerEvent;
 use script_traits::{TimerEvent, TimerSource, WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
 use servo_rand::random;
@@ -172,7 +172,7 @@ impl DedicatedWorkerGlobalScope {
             }
 
             let roots = RootCollection::new();
-            let _stack_roots_tls = StackRootTLS::new(&roots);
+            let _stack_roots = ThreadLocalStackRoots::new(&roots);
 
             let WorkerScriptLoadOrigin { referrer_url, referrer_policy, pipeline_id } = worker_load_origin;
 

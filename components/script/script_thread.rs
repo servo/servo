@@ -35,7 +35,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::DomObject;
 use dom::bindings::root::{Dom, DomRoot, MutNullableDom, RootCollection};
-use dom::bindings::root::{RootCollectionPtr, RootedReference};
+use dom::bindings::root::{RootedReference, ThreadLocalStackRoots};
 use dom::bindings::str::DOMString;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::trace::JSTraceable;
@@ -86,7 +86,7 @@ use profile_traits::mem::{self, OpaqueSender, Report, ReportKind, ReportsChan};
 use profile_traits::time::{self, ProfilerCategory, profile};
 use script_layout_interface::message::{self, Msg, NewLayoutThreadInfo, ReflowQueryType};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
-use script_runtime::{ScriptPort, StackRootTLS, get_reports, new_rt_and_cx};
+use script_runtime::{ScriptPort, get_reports, new_rt_and_cx};
 use script_traits::{CompositorEvent, ConstellationControlMsg};
 use script_traits::{DiscardBrowsingContext, DocumentActivity, EventResult};
 use script_traits::{InitialScriptState, JsEvalResult, LayoutMsg, LoadData};
@@ -129,7 +129,6 @@ use webvr_traits::{WebVREvent, WebVRMsg};
 
 pub type ImageCacheMsg = (PipelineId, PendingImageResponse);
 
-thread_local!(pub static STACK_ROOTS: Cell<Option<RootCollectionPtr>> = Cell::new(None));
 thread_local!(static SCRIPT_THREAD_ROOT: Cell<Option<*const ScriptThread>> = Cell::new(None));
 
 pub unsafe fn trace_thread(tr: *mut JSTracer) {
@@ -545,7 +544,7 @@ impl ScriptThreadFactory for ScriptThread {
             PipelineNamespace::install(state.pipeline_namespace_id);
             TopLevelBrowsingContextId::install(state.top_level_browsing_context_id);
             let roots = RootCollection::new();
-            let _stack_roots_tls = StackRootTLS::new(&roots);
+            let _stack_roots = ThreadLocalStackRoots::new(&roots);
             let id = state.id;
             let browsing_context_id = state.browsing_context_id;
             let top_level_browsing_context_id = state.top_level_browsing_context_id;

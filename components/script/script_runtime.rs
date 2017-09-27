@@ -7,7 +7,7 @@
 
 use dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
 use dom::bindings::refcounted::{LiveDOMReferences, trace_refcounted_objects};
-use dom::bindings::root::{RootCollection, RootCollectionPtr, trace_roots};
+use dom::bindings::root::trace_roots;
 use dom::bindings::settings_stack;
 use dom::bindings::trace::{JSTraceable, trace_traceables};
 use dom::bindings::utils::DOM_CALLBACKS;
@@ -23,13 +23,12 @@ use js::panic::wrap_panic;
 use js::rust::Runtime;
 use microtask::{EnqueuedPromiseCallback, Microtask};
 use profile_traits::mem::{Report, ReportKind, ReportsChan};
-use script_thread::{STACK_ROOTS, trace_thread};
+use script_thread::trace_thread;
 use servo_config::opts;
 use servo_config::prefs::PREFS;
 use std::cell::Cell;
 use std::fmt;
 use std::io::{Write, stdout};
-use std::marker::PhantomData;
 use std::os;
 use std::os::raw::c_void;
 use std::panic::AssertUnwindSafe;
@@ -100,23 +99,6 @@ pub enum ScriptThreadEventCategory {
 /// different Receiver interfaces.
 pub trait ScriptPort {
     fn recv(&self) -> Result<CommonScriptMsg, ()>;
-}
-
-pub struct StackRootTLS<'a>(PhantomData<&'a u32>);
-
-impl<'a> StackRootTLS<'a> {
-    pub fn new(roots: &'a RootCollection) -> StackRootTLS<'a> {
-        STACK_ROOTS.with(|ref r| {
-            r.set(Some(RootCollectionPtr(roots as *const _)))
-        });
-        StackRootTLS(PhantomData)
-    }
-}
-
-impl<'a> Drop for StackRootTLS<'a> {
-    fn drop(&mut self) {
-        STACK_ROOTS.with(|ref r| r.set(None));
-    }
 }
 
 /// SM callback for promise job resolution. Adds a promise callback to the current
