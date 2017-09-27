@@ -41,6 +41,7 @@ use std::default::Default;
 use std::hash::{Hash, Hasher};
 #[cfg(debug_assertions)]
 use std::intrinsics::type_name;
+use std::marker::PhantomData;
 use std::mem;
 use std::ops::Deref;
 use std::ptr;
@@ -162,6 +163,23 @@ impl Copy for RootCollectionPtr {}
 impl Clone for RootCollectionPtr {
     fn clone(&self) -> RootCollectionPtr {
         *self
+    }
+}
+
+pub struct ThreadLocalStackRoots<'a>(PhantomData<&'a u32>);
+
+impl<'a> ThreadLocalStackRoots<'a> {
+    pub fn new(roots: &'a RootCollection) -> Self {
+        STACK_ROOTS.with(|ref r| {
+            r.set(Some(RootCollectionPtr(roots as *const _)))
+        });
+        ThreadLocalStackRoots(PhantomData)
+    }
+}
+
+impl<'a> Drop for ThreadLocalStackRoots<'a> {
+    fn drop(&mut self) {
+        STACK_ROOTS.with(|ref r| r.set(None));
     }
 }
 

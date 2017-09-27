@@ -20,7 +20,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::TrustedPromise;
 use dom::bindings::reflector::Reflector;
 use dom::bindings::reflector::reflect_dom_object;
-use dom::bindings::root::{Dom, DomRoot, RootCollection};
+use dom::bindings::root::{Dom, DomRoot, RootCollection, ThreadLocalStackRoots};
 use dom::bindings::str::USVString;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::trace::RootedTraceableBox;
@@ -47,7 +47,6 @@ use net_traits::request::RequestMode;
 use net_traits::request::Type as RequestType;
 use script_runtime::CommonScriptMsg;
 use script_runtime::ScriptThreadEventCategory;
-use script_runtime::StackRootTLS;
 use script_runtime::new_rt_and_cx;
 use script_thread::{MainThreadScriptMsg, ScriptThread};
 use servo_rand;
@@ -429,7 +428,7 @@ impl WorkletThread {
             debug!("Initializing worklet thread.");
             thread_state::initialize(thread_state::SCRIPT | thread_state::IN_WORKER);
             let roots = RootCollection::new();
-            let _stack_roots_tls = StackRootTLS::new(&roots);
+            let _stack_roots = ThreadLocalStackRoots::new(&roots);
             let mut thread = RootedTraceableBox::new(WorkletThread {
                 role: role,
                 control_receiver: control_receiver,
