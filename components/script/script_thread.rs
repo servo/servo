@@ -35,7 +35,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::DomObject;
 use dom::bindings::root::{Dom, DomRoot, MutNullableDom, RootCollection};
-use dom::bindings::root::{RootCollectionPtr, RootedReference, ThreadLocalStackRoots};
+use dom::bindings::root::{RootedReference, ThreadLocalStackRoots};
 use dom::bindings::str::DOMString;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::trace::JSTraceable;
@@ -129,7 +129,6 @@ use webvr_traits::{WebVREvent, WebVRMsg};
 
 pub type ImageCacheMsg = (PipelineId, PendingImageResponse);
 
-thread_local!(pub static STACK_ROOTS: Cell<Option<RootCollectionPtr>> = Cell::new(None));
 thread_local!(static SCRIPT_THREAD_ROOT: Cell<Option<*const ScriptThread>> = Cell::new(None));
 
 pub unsafe fn trace_thread(tr: *mut JSTracer) {

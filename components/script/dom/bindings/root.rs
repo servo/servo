@@ -35,8 +35,7 @@ use js::jsapi::{JSObject, JSTracer, Heap};
 use js::rust::GCMethods;
 use mitochondria::OnceCell;
 use script_layout_interface::TrustedNodeAddress;
-use script_thread::STACK_ROOTS;
-use std::cell::UnsafeCell;
+use std::cell::{Cell, UnsafeCell};
 use std::default::Default;
 use std::hash::{Hash, Hasher};
 #[cfg(debug_assertions)]
@@ -157,7 +156,7 @@ pub struct RootCollection {
 }
 
 /// A pointer to a RootCollection, for use in global variables.
-pub struct RootCollectionPtr(pub *const RootCollection);
+struct RootCollectionPtr(pub *const RootCollection);
 
 impl Copy for RootCollectionPtr {}
 impl Clone for RootCollectionPtr {
@@ -165,6 +164,8 @@ impl Clone for RootCollectionPtr {
         *self
     }
 }
+
+thread_local!(static STACK_ROOTS: Cell<Option<RootCollectionPtr>> = Cell::new(None));
 
 pub struct ThreadLocalStackRoots<'a>(PhantomData<&'a u32>);
 
