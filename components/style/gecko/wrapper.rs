@@ -1972,14 +1972,11 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             NonTSPseudoClass::MozLocaleDir(ref s) |
             NonTSPseudoClass::Dir(ref s) => {
                 unsafe {
-                    let mut set_slow_selector = false;
-                    let matches = Gecko_MatchStringArgPseudo(self.0,
-                                       pseudo_class.to_gecko_pseudoclasstype().unwrap(),
-                                       s.as_ptr(), &mut set_slow_selector);
-                    if set_slow_selector {
-                        flags_setter(self, HAS_SLOW_SELECTOR);
-                    }
-                    matches
+                    Gecko_MatchStringArgPseudo(
+                        self.0,
+                        pseudo_class.to_gecko_pseudoclasstype().unwrap(),
+                        s.as_ptr(),
+                    )
                 }
             }
         }
