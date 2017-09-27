@@ -3342,7 +3342,23 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeLis
     let guard = global_style_data.shared_lock.read();
     let default_values = data.default_computed_values();
 
+    let mut raw_custom_properties_block; // To make the raw block alive in the scope.
     for (index, keyframe) in keyframes.iter().enumerate() {
+        let mut custom_properties = None;
+        for property in keyframe.mPropertyValues.iter() {
+            // Find the block for custom properties first.
+            if property.mProperty == nsCSSPropertyID::eCSSPropertyExtra_variable {
+                raw_custom_properties_block = unsafe {
+                    &*property.mServoDeclarationBlock.mRawPtr.clone()
+                };
+                let guard = Locked::<PropertyDeclarationBlock>::as_arc(
+                    &raw_custom_properties_block).read_with(&guard);
+                custom_properties = guard.cascade_custom_properties_with_context(&context);
+                // There should be one PropertyDeclarationBlock for custom properties.
+                break;
+            }
+        }
+
         let ref mut animation_values = computed_keyframes[index];
 
         let mut seen = LonghandIdSet::new();
@@ -3393,8 +3409,13 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeLis
             let declarations = unsafe { &*property.mServoDeclarationBlock.mRawPtr.clone() };
             let declarations = Locked::<PropertyDeclarationBlock>::as_arc(&declarations);
             let guard = declarations.read_with(&guard);
+            let iter = guard.to_animation_value_iter(
+                &mut context,
+                &default_values,
+                &custom_properties,
+            );
 
-            for anim in guard.to_animation_value_iter(&mut context, &default_values) {
+            for anim in iter {
                 maybe_append_animation_value(anim.0, Some(anim.1));
             }
         }
@@ -3433,7 +3454,13 @@ pub extern "C" fn Servo_GetAnimationValues(declarations: RawServoDeclarationBloc
 
     let declarations = Locked::<PropertyDeclarationBlock>::as_arc(&declarations);
     let guard = declarations.read_with(&guard);
-    for (index, anim) in guard.to_animation_value_iter(&mut context, &default_values).enumerate() {
+    let no_extra_custom_properties = None; // SMIL has no extra custom properties.
+    let iter = guard.to_animation_value_iter(
+        &mut context,
+        &default_values,
+        &no_extra_custom_properties,
+    );
+    for (index, anim) in iter.enumerate() {
         unsafe { animation_values.set_len((index + 1) as u32) };
         animation_values[index].set_arc_leaky(Arc::new(anim.1));
     }
@@ -3472,7 +3499,13 @@ pub extern "C" fn Servo_AnimationValue_Compute(element: RawGeckoElementBorrowed,
     // We only compute the first element in declarations.
     match declarations.read_with(&guard).declaration_importance_iter().next() {
         Some((decl, imp)) if imp == Importance::Normal => {
-            let animation = AnimationValue::from_declaration(decl, &mut context, default_values);
+            let no_extra_custom_properties = None; // No extra custom properties for devtools.
+            let animation = AnimationValue::from_declaration(
+                decl,
+                &mut context,
+                &no_extra_custom_properties,
+                default_values,
+            );
             animation.map_or(RawServoAnimationValueStrong::null(), |value| {
                 Arc::new(value).into_strong()
             })
