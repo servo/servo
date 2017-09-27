@@ -6,6 +6,7 @@ extern crate atomic_refcell;
 extern crate cssparser;
 extern crate env_logger;
 extern crate geckoservo;
+extern crate hashglobe;
 #[macro_use] extern crate log;
 extern crate malloc_size_of;
 extern crate selectors;
