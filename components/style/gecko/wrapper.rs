@@ -1970,7 +1970,6 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             }
             NonTSPseudoClass::MozSystemMetric(ref s) |
             NonTSPseudoClass::MozLocaleDir(ref s) |
-            NonTSPseudoClass::MozEmptyExceptChildrenWithLocalname(ref s) |
             NonTSPseudoClass::Dir(ref s) => {
                 unsafe {
                     let mut set_slow_selector = false;
