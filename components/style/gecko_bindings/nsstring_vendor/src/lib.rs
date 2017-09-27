@@ -988,7 +988,7 @@ impl From<String> for nsCString {
 // Support for the write!() macro for appending to nsACStrings
 impl fmt::Write for nsACString {
     fn write_str(&mut self, s: &str) -> Result<(), fmt::Error> {
-        self.append(&nsCString::from(s));
+        self.append(s);
         Ok(())
     }
 }
@@ -1106,7 +1106,7 @@ impl fmt::Write for nsAString {
     fn write_str(&mut self, s: &str) -> Result<(), fmt::Error> {
         // Directly invoke gecko's routines for appending utf8 strings to
         // nsAString values, to avoid as much overhead as possible
-        self.append_utf8(&nsCString::from(s));
+        self.append_utf8(s);
         Ok(())
     }
 }
