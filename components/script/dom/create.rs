@@ -10,7 +10,6 @@ use dom::document::Document;
 use dom::element::{CustomElementCreationMode, CustomElementState, Element, ElementCreator};
 use dom::globalscope::GlobalScope;
 use dom::htmlanchorelement::HTMLAnchorElement;
-use dom::htmlappletelement::HTMLAppletElement;
 use dom::htmlareaelement::HTMLAreaElement;
 use dom::htmlaudioelement::HTMLAudioElement;
 use dom::htmlbaseelement::HTMLBaseElement;
@@ -191,12 +190,13 @@ fn create_html_element(name: QualName,
     result
 }
 
-pub fn create_native_html_element(name: QualName,
-                                  prefix: Option<Prefix>,
-                                  document: &Document,
-                                  creator: ElementCreator)
-                                  -> DomRoot<Element> {
-    assert!(name.ns == ns!(html));
+pub fn create_native_html_element(
+    name: QualName,
+    prefix: Option<Prefix>,
+    document: &Document,
+    creator: ElementCreator,
+) -> DomRoot<Element> {
+    assert_eq!(name.ns, ns!(html));
 
     macro_rules! make(
         ($ctor:ident) => ({
@@ -217,7 +217,6 @@ pub fn create_native_html_element(name: QualName,
         local_name!("abbr")       => make!(HTMLElement),
         local_name!("acronym")    => make!(HTMLElement),
         local_name!("address")    => make!(HTMLElement),
-        local_name!("applet")     => make!(HTMLAppletElement),
         local_name!("area")       => make!(HTMLAreaElement),
         local_name!("article")    => make!(HTMLElement),
         local_name!("aside")      => make!(HTMLElement),

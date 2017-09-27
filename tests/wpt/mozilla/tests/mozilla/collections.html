@@ -27,7 +27,6 @@
 <p>pppppppppp</p>
 <q>qqqqqqqqqqqqqqqqqqqqqqqqqqq</q>
 <progress max="100" value="80">80%</progress>
-<applet></applet>
 <input type="text" value="input"/>
 <iframe></iframe>
 <ol type="1">
@@ -100,7 +99,6 @@ test(function() {
   check_collection(document.embeds,  1, [HTMLEmbedElement],  "EMBED");
   check_collection(document.plugins, 1, [HTMLEmbedElement],  "EMBED");
   check_collection(document.scripts, 3, [HTMLScriptElement], "SCRIPT");
-  check_collection(document.applets, 1, [HTMLAppletElement], "APPLET");
   check_collection(document.forms,   1, [HTMLFormElement],   "FORM");
 
   check_collection(document.getElementsByTagName("nosuchtag"), 0);
