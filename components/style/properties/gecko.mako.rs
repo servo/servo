@@ -124,7 +124,7 @@ impl ComputedValues {
     pub fn pseudo(&self) -> Option<PseudoElement> {
         use string_cache::Atom;
 
-        let atom = (self.0)._base.mPseudoTag.raw::<structs::nsIAtom>();
+        let atom = (self.0)._base.mPseudoTag.mRawPtr;
         if atom.is_null() {
             return None;
         }
@@ -3235,11 +3235,10 @@ fn static_assert() {
         use gecko_bindings::structs::nsCSSPropertyID::eCSSPropertyExtra_no_properties;
         use gecko_bindings::structs::nsCSSPropertyID::eCSSPropertyExtra_variable;
         use gecko_bindings::structs::nsCSSPropertyID::eCSSProperty_UNKNOWN;
-        use gecko_bindings::structs::nsIAtom;
 
         let property = self.gecko.mTransitions[index].mProperty;
         if property == eCSSProperty_UNKNOWN || property == eCSSPropertyExtra_variable {
-            let atom = self.gecko.mTransitions[index].mUnknownProperty.raw::<nsIAtom>();
+            let atom = self.gecko.mTransitions[index].mUnknownProperty.mRawPtr;
             debug_assert!(!atom.is_null());
             TransitionProperty::Unsupported(CustomIdent(atom.into()))
         } else if property == eCSSPropertyExtra_no_properties {
@@ -3258,7 +3257,6 @@ fn static_assert() {
     pub fn copy_transition_property_from(&mut self, other: &Self) {
         use gecko_bindings::structs::nsCSSPropertyID::eCSSPropertyExtra_variable;
         use gecko_bindings::structs::nsCSSPropertyID::eCSSProperty_UNKNOWN;
-        use gecko_bindings::structs::nsIAtom;
         unsafe { self.gecko.mTransitions.ensure_len(other.gecko.mTransitions.len()) };
 
         let count = other.gecko.mTransitionPropertyCount;
@@ -3268,7 +3266,7 @@ fn static_assert() {
             transition.mProperty = other.gecko.mTransitions[index].mProperty;
             if transition.mProperty == eCSSProperty_UNKNOWN ||
                transition.mProperty == eCSSPropertyExtra_variable {
-                let atom = other.gecko.mTransitions[index].mUnknownProperty.raw::<nsIAtom>();
+                let atom = other.gecko.mTransitions[index].mUnknownProperty.mRawPtr;
                 debug_assert!(!atom.is_null());
                 unsafe { Gecko_StyleTransition_SetUnsupportedProperty(transition, atom) };
             }
@@ -3533,12 +3531,12 @@ fn static_assert() {
         use gecko_bindings::structs::nsIAtom;
         use values::CustomIdent;
 
-        if self.gecko.mWillChange.mBuffer.len() == 0 {
+        if self.gecko.mWillChange.len() == 0 {
             T::Auto
         } else {
             T::AnimateableFeatures(
-                self.gecko.mWillChange.mBuffer.iter().map(|gecko_atom| {
-                    CustomIdent((*gecko_atom as *mut nsIAtom).into())
+                self.gecko.mWillChange.iter().map(|gecko_atom| {
+                    CustomIdent((gecko_atom.mRawPtr as *mut nsIAtom).into())
                 }).collect()
             )
         }
@@ -5161,7 +5159,7 @@ clip-path
             } else if servo.0 == atom!("stroke-opacity") {
                 self.gecko.mContextPropsBits |= structs::NS_STYLE_CONTEXT_PROPERTY_STROKE_OPACITY as u8;
             }
-            unsafe { gecko.set_raw_from_addrefed::<structs::nsIAtom>(servo.0.into_addrefed()) }
+            unsafe { gecko.mRawPtr = servo.0.into_addrefed() }
         }
     }
 

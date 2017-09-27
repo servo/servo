@@ -660,11 +660,10 @@ ${helpers.single_keyword_system("font-variant-caps",
         // we could use clone_language and clone_font_family() here but that's
         // expensive. Do it only in gecko mode for now.
         % if product == "gecko":
-            use gecko_bindings::structs::nsIAtom;
             // if the language or generic changed, we need to recalculate
             // the font size from the stored font-size origin information.
-            if context.builder.get_font().gecko().mLanguage.raw::<nsIAtom>() !=
-               context.builder.get_parent_font().gecko().mLanguage.raw::<nsIAtom>() ||
+            if context.builder.get_font().gecko().mLanguage.mRawPtr !=
+               context.builder.get_parent_font().gecko().mLanguage.mRawPtr ||
                context.builder.get_font().gecko().mGenericID !=
                context.builder.get_parent_font().gecko().mGenericID {
                 if let Some(info) = computed.keyword_info {

@@ -11,7 +11,7 @@ use dom::TElement;
 use element_state::ElementState;
 use font_metrics::FontMetricsProvider;
 #[cfg(feature = "gecko")]
-use gecko_bindings::structs::{nsIAtom, ServoStyleSetSizes, StyleRuleInclusion};
+use gecko_bindings::structs::{ServoStyleSetSizes, StyleRuleInclusion};
 use hashglobe::FailedAllocationError;
 use invalidation::element::invalidation_map::InvalidationMap;
 use invalidation::media_queries::{EffectiveMediaQueryResults, ToMediaListKey};
@@ -1588,7 +1588,7 @@ impl ExtraStyleData {
         guard: &SharedRwLockReadGuard,
         rule: &Arc<Locked<CounterStyleRule>>,
     ) {
-        let name = rule.read_with(guard).mName.raw::<nsIAtom>().into();
+        let name = rule.read_with(guard).mName.mRawPtr.into();
         self.counter_styles.insert(name, rule.clone());
     }
 
