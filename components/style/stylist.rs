@@ -964,12 +964,6 @@ impl Stylist {
         )
     }
 
-    fn has_rules_for_pseudo(&self, pseudo: &PseudoElement) -> bool {
-        self.cascade_data
-            .iter_origins()
-            .any(|(d, _)| d.has_rules_for_pseudo(pseudo))
-    }
-
     /// Computes the cascade inputs for a lazily-cascaded pseudo-element.
     ///
     /// See the documentation on lazy pseudo-elements in
@@ -987,10 +981,6 @@ impl Stylist {
     {
         let pseudo = pseudo.canonical();
         debug_assert!(pseudo.is_lazy());
-
-        if !self.has_rules_for_pseudo(&pseudo) {
-            return CascadeInputs::default()
-        }
 
         // Apply the selector flags. We should be in sequential mode
         // already, so we can directly apply the parent flags.
@@ -2193,10 +2183,6 @@ impl CascadeData {
             Some(pseudo) => self.pseudos_map.get(&pseudo.canonical()).map(|p| &**p),
             None => Some(&self.element_map),
         }
-    }
-
-    fn has_rules_for_pseudo(&self, pseudo: &PseudoElement) -> bool {
-        self.pseudos_map.get(pseudo).is_some()
     }
 
     /// Clears the cascade data, but not the invalidation data.
