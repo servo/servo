@@ -1514,6 +1514,12 @@ impl PropertyDeclaration {
         }
     }
 
+    /// Returns true if this property is a custom property, false
+    /// otherwise.
+    pub fn is_custom(&self) -> bool {
+        matches!(*self, PropertyDeclaration::Custom(_, _))
+    }
+
     /// The `context` parameter controls this:
     ///
     /// https://drafts.csswg.org/css-animations/#keyframes

@@ -3552,6 +3552,8 @@ pub extern "C" fn Servo_StyleSet_GetKeyframesForName(raw_data: RawServoStyleSetB
                                                      name: *const nsACString,
                                                      inherited_timing_function: nsTimingFunctionBorrowed,
                                                      keyframes: RawGeckoKeyframeListBorrowedMut) -> bool {
+    use smallvec::SmallVec;
+
     debug_assert!(keyframes.len() == 0,
                   "keyframes should be initially empty");
 
@@ -3622,6 +3624,25 @@ pub extern "C" fn Servo_StyleSet_GetKeyframesForName(raw_data: RawServoStyleSetB
                 let animatable =
                     guard.normal_declaration_iter()
                          .filter(|declaration| declaration.is_animatable());
+
+                let custom_properties: SmallVec<[&PropertyDeclaration; 1]> =
+                    guard.normal_declaration_iter()
+                         .filter(|declaration| declaration.is_custom())
+                         .collect();
+
+                if custom_properties.len() > 0 {
+                    let mut pdb = PropertyDeclarationBlock::new();
+                    for custom in custom_properties.iter() {
+                        pdb.push((*custom).clone(), Importance::Normal);
+                    }
+                    unsafe {
+                        let pair =
+                            Gecko_AppendPropertyValuePair(&mut (*keyframe).mPropertyValues,
+                                                          nsCSSPropertyID::eCSSPropertyExtra_variable);
+                        (*pair).mServoDeclarationBlock.set_arc_leaky(
+                            Arc::new(global_style_data.shared_lock.wrap(pdb)));
+                    }
+                }
 
                 for declaration in animatable {
                     let property = AnimatableLonghand::from_declaration(declaration).unwrap();
