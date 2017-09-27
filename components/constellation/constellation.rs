@@ -1207,6 +1207,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 self.embedder_proxy.send(EmbedderMsg::ResizeTo(source_top_ctx_id, size));
             }
 
+            FromScriptMsg::GetScreenSize(send) => {
+                self.embedder_proxy.send(EmbedderMsg::GetScreenSize(source_top_ctx_id, send));
+            }
+
             FromScriptMsg::Exit => {
                 self.compositor_proxy.send(ToCompositorMsg::Exit);
             }

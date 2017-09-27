@@ -727,6 +727,7 @@ impl WindowMethods for Window {
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Window/screen
     fn Screen(&self) -> DomRoot<Screen> {
+        let global_scope = self.upcast::<GlobalScope>();
         self.screen.or_init(|| Screen::new(self))
     }
 
