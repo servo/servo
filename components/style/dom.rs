@@ -26,7 +26,6 @@ use selectors::matching::{ElementSelectorFlags, VisitedHandlingMode};
 use selectors::sink::Push;
 use servo_arc::{Arc, ArcBorrow};
 use shared_lock::Locked;
-use smallvec::VecLike;
 use std::fmt;
 #[cfg(feature = "gecko")] use hash::HashMap;
 use std::fmt::Debug;
@@ -646,24 +645,6 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
         F: FnMut(&Stylist),
     {
         false
-    }
-
-    /// Gets declarations from XBL bindings from the element.
-    fn get_declarations_from_xbl_bindings<V>(
-        &self,
-        pseudo_element: Option<&PseudoElement>,
-        applicable_declarations: &mut V
-    ) -> bool
-    where
-        V: Push<ApplicableDeclarationBlock> + VecLike<ApplicableDeclarationBlock>
-    {
-        self.each_xbl_stylist(|stylist| {
-            stylist.push_applicable_declarations_as_xbl_only_stylist(
-                self,
-                pseudo_element,
-                applicable_declarations
-            );
-        })
     }
 
     /// Gets the current existing CSS transitions, by |property, end value| pairs in a HashMap.
