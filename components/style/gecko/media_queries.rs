@@ -18,7 +18,6 @@ use gecko_bindings::structs::{nsCSSKeyword, nsCSSProps_KTableEntry, nsCSSValue, 
 use gecko_bindings::structs::{nsMediaExpression_Range, nsMediaFeature};
 use gecko_bindings::structs::{nsMediaFeature_ValueType, nsMediaFeature_RangeType, nsMediaFeature_RequirementFlags};
 use gecko_bindings::structs::{nsPresContext, RawGeckoPresContextOwned};
-use gecko_bindings::structs::nsIAtom;
 use media_queries::MediaType;
 use parser::ParserContext;
 use properties::{ComputedValues, StyleBuilder};
@@ -165,7 +164,7 @@ impl Device {
             // mMediaEmulated.
             let context = self.pres_context();
             let medium_to_use = if context.mIsEmulatingMedia() != 0 {
-                context.mMediaEmulated.raw::<nsIAtom>()
+                context.mMediaEmulated.mRawPtr
             } else {
                 context.mMedium
             };
