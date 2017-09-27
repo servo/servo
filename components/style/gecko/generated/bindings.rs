@@ -2601,7 +2601,9 @@ extern "C" {
                                                     property: nsCSSPropertyID,
                                                     buffer: *mut nsAString,
                                                     computed_values:
-                                                        ServoStyleContextBorrowedOrNull);
+                                                        ServoStyleContextBorrowedOrNull,
+                                                    custom_properties:
+                                                        RawServoDeclarationBlockBorrowedOrNull);
 }
 extern "C" {
     pub fn Servo_DeclarationBlock_Count(declarations:
