@@ -584,6 +584,7 @@ impl PropertyDeclarationBlock {
         property: &PropertyId,
         dest: &mut W,
         computed_values: Option<&ComputedValues>,
+        custom_properties_block: Option<&PropertyDeclarationBlock>,
     ) -> fmt::Result
     where
         W: fmt::Write,
@@ -592,17 +593,29 @@ impl PropertyDeclarationBlock {
             Err(_longhand_or_custom) => {
                 if self.declarations.len() == 1 {
                     let declaration = &self.declarations[0];
-                    // If we have a longhand declaration with variables, those variables will be
-                    // stored as unparsed values. As a temporary measure to produce sensible results
-                    // in Gecko's getKeyframes() implementation for CSS animations, if
-                    // |computed_values| is supplied, we use it to expand such variable
-                    // declarations. This will be fixed properly in Gecko bug 1391537.
+                    let custom_properties = if let Some(cv) = computed_values {
+                        // If there are extra custom properties for this declaration block,
+                        // factor them in too.
+                        if let Some(block) = custom_properties_block {
+                            block.cascade_custom_properties(cv.custom_properties())
+                        } else {
+                            cv.custom_properties()
+                        }
+                    } else {
+                        None
+                    };
+
                     match (declaration, computed_values) {
+                        // If we have a longhand declaration with variables, those variables will be
+                        // stored as unparsed values. As a temporary measure to produce sensible results
+                        // in Gecko's getKeyframes() implementation for CSS animations, if
+                        // |computed_values| is supplied, we use it to expand such variable
+                        // declarations. This will be fixed properly in Gecko bug 1391537.
                         (&PropertyDeclaration::WithVariables(id, ref unparsed),
-                         Some(ref computed_values)) => unparsed
+                         Some(ref _computed_values)) => unparsed
                             .substitute_variables(
                                 id,
-                                &computed_values.custom_properties(),
+                                &custom_properties,
                                 QuirksMode::NoQuirks,
                             )
                             .to_css(dest),
@@ -671,7 +684,16 @@ impl PropertyDeclarationBlock {
         &self,
         context: &Context,
     ) -> Option<Arc<::custom_properties::CustomPropertiesMap>> {
-        let inherited_custom_properties = context.style().custom_properties();
+        self.cascade_custom_properties(context.style().custom_properties())
+    }
+
+    /// Returns a custom properties map which is the result of cascading custom
+    /// properties in this declaration block along with the given custom
+    /// properties.
+    pub fn cascade_custom_properties(
+        &self,
+        inherited_custom_properties: Option<Arc<::custom_properties::CustomPropertiesMap>>,
+    ) -> Option<Arc<::custom_properties::CustomPropertiesMap>> {
         let mut custom_properties = None;
         // FIXME: Use PrecomputedHasher instead.
         let mut seen_custom = HashSet::new();

@@ -69,6 +69,7 @@ use style::gecko_bindings::bindings::RawServoAnimationValueBorrowed;
 use style::gecko_bindings::bindings::RawServoAnimationValueMapBorrowedMut;
 use style::gecko_bindings::bindings::RawServoAnimationValueStrong;
 use style::gecko_bindings::bindings::RawServoAnimationValueTableBorrowed;
+use style::gecko_bindings::bindings::RawServoDeclarationBlockBorrowedOrNull;
 use style::gecko_bindings::bindings::RawServoStyleRuleBorrowed;
 use style::gecko_bindings::bindings::RawServoStyleSet;
 use style::gecko_bindings::bindings::ServoStyleContextBorrowedOrNull;
@@ -593,7 +594,7 @@ pub extern "C" fn Servo_AnimationValue_Serialize(value: RawServoAnimationValueBo
     let mut string = String::new();
     let rv = PropertyDeclarationBlock::with_one(uncomputed_value, Importance::Normal)
         .single_value_to_css(&get_property_id_from_nscsspropertyid!(property, ()), &mut string,
-                             None);
+                             None, None /* No extra custom properties */);
     debug_assert!(rv.is_ok());
 
     let buffer = unsafe { buffer.as_mut().unwrap() };
@@ -2286,17 +2287,25 @@ pub extern "C" fn Servo_DeclarationBlock_GetCssText(declarations: RawServoDeclar
 pub extern "C" fn Servo_DeclarationBlock_SerializeOneValue(
     declarations: RawServoDeclarationBlockBorrowed,
     property_id: nsCSSPropertyID, buffer: *mut nsAString,
-    computed_values: ServoStyleContextBorrowedOrNull)
+    computed_values: ServoStyleContextBorrowedOrNull,
+    custom_properties: RawServoDeclarationBlockBorrowedOrNull)
 {
     let property_id = get_property_id_from_nscsspropertyid!(property_id, ());
-    read_locked_arc(declarations, |decls: &PropertyDeclarationBlock| {
-        let mut string = String::new();
-        let rv = decls.single_value_to_css(&property_id, &mut string, computed_values);
-        debug_assert!(rv.is_ok());
 
-        let buffer = unsafe { buffer.as_mut().unwrap() };
-        buffer.assign_utf8(&string);
-    })
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
+    let decls = Locked::<PropertyDeclarationBlock>::as_arc(&declarations).read_with(&guard);
+
+    let mut string = String::new();
+
+    let custom_properties = Locked::<PropertyDeclarationBlock>::arc_from_borrowed(&custom_properties);
+    let custom_properties = custom_properties.map(|block| block.read_with(&guard));
+    let rv = decls.single_value_to_css(
+        &property_id, &mut string, computed_values, custom_properties);
+    debug_assert!(rv.is_ok());
+
+    let buffer = unsafe { buffer.as_mut().unwrap() };
+    buffer.assign_utf8(&string);
 }
 
 #[no_mangle]
