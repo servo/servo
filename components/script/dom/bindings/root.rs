@@ -91,7 +91,7 @@ impl<T: DomObject> DomRoot<T> {
     unsafe fn new(unrooted: Dom<T>) -> DomRoot<T> {
         debug_assert!(thread_state::get().is_script());
         STACK_ROOTS.with(|ref collection| {
-            let RootCollectionPtr(collection) = collection.get().unwrap();
+            let collection = collection.get().unwrap();
             (*collection).root(unrooted.reflector());
             DomRoot {
                 ptr: unrooted,
@@ -155,24 +155,14 @@ pub struct RootCollection {
     roots: UnsafeCell<Vec<*const Reflector>>,
 }
 
-/// A pointer to a RootCollection, for use in global variables.
-struct RootCollectionPtr(pub *const RootCollection);
-
-impl Copy for RootCollectionPtr {}
-impl Clone for RootCollectionPtr {
-    fn clone(&self) -> RootCollectionPtr {
-        *self
-    }
-}
-
-thread_local!(static STACK_ROOTS: Cell<Option<RootCollectionPtr>> = Cell::new(None));
+thread_local!(static STACK_ROOTS: Cell<Option<*const RootCollection>> = Cell::new(None));
 
 pub struct ThreadLocalStackRoots<'a>(PhantomData<&'a u32>);
 
 impl<'a> ThreadLocalStackRoots<'a> {
     pub fn new(roots: &'a RootCollection) -> Self {
         STACK_ROOTS.with(|ref r| {
-            r.set(Some(RootCollectionPtr(roots as *const _)))
+            r.set(Some(roots))
         });
         ThreadLocalStackRoots(PhantomData)
     }
@@ -220,8 +210,7 @@ impl RootCollection {
 pub unsafe fn trace_roots(tracer: *mut JSTracer) {
     debug!("tracing stack roots");
     STACK_ROOTS.with(|ref collection| {
-        let RootCollectionPtr(collection) = collection.get().unwrap();
-        let collection = &*(*collection).roots.get();
+        let collection = &*(*collection.get().unwrap()).roots.get();
         for root in collection {
             trace_reflector(tracer, "on stack", &**root);
         }
