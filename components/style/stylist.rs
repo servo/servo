@@ -964,12 +964,6 @@ impl Stylist {
         )
     }
 
-    fn has_rules_for_pseudo(&self, pseudo: &PseudoElement) -> bool {
-        self.cascade_data
-            .iter_origins()
-            .any(|(d, _)| d.has_rules_for_pseudo(pseudo))
-    }
-
     /// Computes the cascade inputs for a lazily-cascaded pseudo-element.
     ///
     /// See the documentation on lazy pseudo-elements in
@@ -987,10 +981,6 @@ impl Stylist {
     {
         let pseudo = pseudo.canonical();
         debug_assert!(pseudo.is_lazy());
-
-        if !self.has_rules_for_pseudo(&pseudo) {
-            return CascadeInputs::default()
-        }
 
         // Apply the selector flags. We should be in sequential mode
         // already, so we can directly apply the parent flags.
@@ -1025,10 +1015,12 @@ impl Stylist {
         let mut inputs = CascadeInputs::default();
         let mut declarations = ApplicableDeclarationList::new();
         let mut matching_context =
-            MatchingContext::new(MatchingMode::ForStatelessPseudoElement,
-                                 None,
-                                 None,
-                                 self.quirks_mode);
+            MatchingContext::new(
+                MatchingMode::ForStatelessPseudoElement,
+                None,
+                None,
+                self.quirks_mode,
+            );
 
         self.push_applicable_declarations(
             element,
@@ -1191,39 +1183,6 @@ impl Stylist {
         self.quirks_mode = quirks_mode;
     }
 
-    /// Returns the applicable CSS declarations for the given element by
-    /// treating us as an XBL stylesheet-only stylist.
-    pub fn push_applicable_declarations_as_xbl_only_stylist<E, V>(
-        &self,
-        element: &E,
-        pseudo_element: Option<&PseudoElement>,
-        applicable_declarations: &mut V
-    )
-    where
-        E: TElement,
-        V: Push<ApplicableDeclarationBlock> + VecLike<ApplicableDeclarationBlock>,
-    {
-        let mut matching_context =
-            MatchingContext::new(MatchingMode::Normal, None, None, self.quirks_mode);
-        let mut dummy_flag_setter = |_: &E, _: ElementSelectorFlags| {};
-
-        let rule_hash_target = element.rule_hash_target();
-
-        // nsXBLPrototypeResources::LoadResources() loads Chrome XBL style
-        // sheets under eAuthorSheetFeatures level.
-        if let Some(map) = self.cascade_data.author.borrow_for_pseudo(pseudo_element) {
-            map.get_all_matching_rules(
-                element,
-                &rule_hash_target,
-                applicable_declarations,
-                &mut matching_context,
-                self.quirks_mode,
-                &mut dummy_flag_setter,
-                CascadeLevel::XBL,
-            );
-        }
-    }
-
     /// Returns the applicable CSS declarations for the given element.
     ///
     /// This corresponds to `ElementRuleCollector` in WebKit.
@@ -1313,11 +1272,21 @@ impl Stylist {
         }
 
         // Step 3b: XBL rules.
-        let cut_off_inheritance =
-            element.get_declarations_from_xbl_bindings(
-                pseudo_element,
-                applicable_declarations,
-            );
+        let cut_off_inheritance = element.each_xbl_stylist(|stylist| {
+            // ServoStyleSet::CreateXBLServoStyleSet() loads XBL style sheets
+            // under eAuthorSheetFeatures level.
+            if let Some(map) = stylist.cascade_data.author.borrow_for_pseudo(pseudo_element) {
+                map.get_all_matching_rules(
+                    element,
+                    &rule_hash_target,
+                    applicable_declarations,
+                    context,
+                    self.quirks_mode,
+                    flags_setter,
+                    CascadeLevel::XBL,
+                );
+            }
+        });
 
         if rule_hash_target.matches_user_and_author_rules() && !only_default_rules {
             // Gecko skips author normal rules if cutting off inheritance.
@@ -2193,10 +2162,6 @@ impl CascadeData {
             Some(pseudo) => self.pseudos_map.get(&pseudo.canonical()).map(|p| &**p),
             None => Some(&self.element_map),
         }
-    }
-
-    fn has_rules_for_pseudo(&self, pseudo: &PseudoElement) -> bool {
-        self.pseudos_map.get(pseudo).is_some()
     }
 
     /// Clears the cascade data, but not the invalidation data.
