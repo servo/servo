@@ -11,6 +11,7 @@ extern crate libc;
 extern crate malloc_size_of;
 extern crate selectors;
 extern crate servo_arc;
+extern crate smallvec;
 #[macro_use] extern crate style;
 extern crate style_traits;
 
