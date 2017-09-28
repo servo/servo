@@ -67,16 +67,14 @@ impl CacheKey {
 
 /// A complete cached resource.
 struct CachedResource {
-    metadata: Metadata,
     body: ResponseBody,
     expires: Duration,
     last_validated: Tm,
-    revalidating_consumers: Vec<Sender<Response>>,
 }
 
 /// A memory cache that tracks incomplete and complete responses, differentiated by
 /// the initial request.
-pub struct MemoryCache {
+pub struct HttpCache {
     /// Complete cached responses.
     complete_entries: HashMap<CacheKey, CachedResource>,
     /// The time at which this cache was created for use by expiry checks.
@@ -180,14 +178,20 @@ fn get_response_expiry(metadata: &Metadata) -> Duration {
     }).unwrap_or(Duration::max_value())
 }
 
-impl MemoryCache {
+impl HttpCache {
     /// Create a new memory cache instance.
-    pub fn new() -> MemoryCache {
-        MemoryCache {
+    pub fn new() -> HttpCache {
+        HttpCache {
             complete_entries: HashMap::new(),
             base_time: time::now().to_timespec(),
         }
     }
+
+    pub fn try_cache_fetch(&self, request: &Request) -> Option<Response> {
+        None
+    }
+
+    pub fn update_cache(&self, response: &Response) {}
 
     /// Process a revalidation that returned new content for an expired entry.
     pub fn process_revalidation_failed(&mut self, key: &CacheKey) {

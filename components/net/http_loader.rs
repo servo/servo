@@ -13,6 +13,7 @@ use fetch::methods::{Data, DoneChannel, FetchContext, Target};
 use fetch::methods::{is_cors_safelisted_request_header, is_cors_safelisted_method, main_fetch};
 use flate2::read::{DeflateDecoder, GzDecoder};
 use hsts::HstsList;
+use http_cache::HttpCache;
 use hyper::Error as HttpError;
 use hyper::LanguageTag;
 use hyper::client::{Pool, Request as HyperRequest, Response as HyperResponse};
@@ -70,6 +71,7 @@ fn read_block<R: Read>(reader: &mut R) -> Result<Data, ()> {
 pub struct HttpState {
     pub hsts_list: RwLock<HstsList>,
     pub cookie_jar: RwLock<CookieStorage>,
+    pub http_cache: RwLock<HttpCache>,
     pub auth_cache: RwLock<AuthCache>,
     pub ssl_client: OpensslClient,
     pub connector: Pool<Connector>,
@@ -81,6 +83,7 @@ impl HttpState {
             hsts_list: RwLock::new(HstsList::new()),
             cookie_jar: RwLock::new(CookieStorage::new(150)),
             auth_cache: RwLock::new(AuthCache::new()),
+            http_cache: RwLock::new(HttpCache::new()),
             ssl_client: ssl_client.clone(),
             connector: create_http_connector(ssl_client),
         }
@@ -897,34 +900,35 @@ fn http_network_or_cache_fetch(request: &mut Request,
     let mut revalidating_flag = false;
 
     // Step 21
-    // TODO have a HTTP cache to check for a completed response
-    let complete_http_response_from_cache: Option<Response> = None;
-    if http_request.cache_mode != CacheMode::NoStore &&
-       http_request.cache_mode != CacheMode::Reload &&
-       complete_http_response_from_cache.is_some() {
-        // TODO Substep 1 and 2. Select a response from HTTP cache.
+    if let Ok(http_cache) = context.state.http_cache.read() {
+        let complete_http_response_from_cache = http_cache.try_cache_fetch(&http_request);
+        if http_request.cache_mode != CacheMode::NoStore &&
+           http_request.cache_mode != CacheMode::Reload &&
+           complete_http_response_from_cache.is_some() {
+            // TODO Substep 1 and 2. Select a response from HTTP cache.
 
-        // Substep 3
-        if let Some(ref response) = response {
-            revalidating_flag = response_needs_revalidation(&response);
-        };
+            // Substep 3
+            if let Some(ref response) = response {
+                revalidating_flag = response_needs_revalidation(&response);
+            };
 
-        // Substep 4
-        if http_request.cache_mode == CacheMode::ForceCache ||
-           http_request.cache_mode == CacheMode::OnlyIfCached {
-            // TODO pull response from HTTP cache
-            // response = http_request
-        }
+            // Substep 4
+            if http_request.cache_mode == CacheMode::ForceCache ||
+               http_request.cache_mode == CacheMode::OnlyIfCached {
+                // TODO pull response from HTTP cache
+                // response = http_request
+            }
 
-        if revalidating_flag {
-            // Substep 5
-            // TODO set If-None-Match and If-Modified-Since according to cached
-            //      response headers.
-        } else {
-            // Substep 6
-            // TODO pull response from HTTP cache
-            // response = http_request
-            // response.cache_state = CacheState::Local;
+            if revalidating_flag {
+                // Substep 5
+                // TODO set If-None-Match and If-Modified-Since according to cached
+                //      response headers.
+            } else {
+                // Substep 6
+                // TODO pull response from HTTP cache
+                // response = http_request
+                // response.cache_state = CacheState::Local;
+            }
         }
     }
 
@@ -1172,7 +1176,9 @@ fn http_network_fetch(request: &Request,
 
     // Step 14
     if !response.is_network_error() && request.cache_mode != CacheMode::NoStore {
-        // TODO update response in the HTTP cache for request
+        if let Ok(http_cache) = context.state.http_cache.write() {
+            http_cache.update_cache(&response);
+        }
     }
 
     // TODO this step isn't possible yet
