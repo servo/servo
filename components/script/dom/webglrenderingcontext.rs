@@ -110,6 +110,18 @@ macro_rules! object_binding_to_js_or_null {
     };
 }
 
+macro_rules! optional_root_object_to_js_or_null {
+    ($cx: expr, $binding:expr) => {
+        {
+            rooted!(in($cx) let mut rval = NullValue());
+            if let Some(object) = $binding {
+                object.to_jsval($cx, rval.handle_mut());
+            }
+            rval.get()
+        }
+    };
+}
+
 fn has_invalid_blend_constants(arg1: u32, arg2: u32) -> bool {
     match (arg1, arg2) {
         (constants::CONSTANT_COLOR, constants::CONSTANT_ALPHA) => true,
@@ -130,6 +142,41 @@ bitflags! {
     }
 }
 
+/// Information about the bound textures of a WebGL texture unit.
+#[must_root]
+#[derive(HeapSizeOf, JSTraceable)]
+struct TextureUnitBindings {
+    bound_texture_2d: MutNullableDom<WebGLTexture>,
+    bound_texture_cube_map: MutNullableDom<WebGLTexture>,
+}
+
+impl TextureUnitBindings {
+    fn new() -> Self {
+        Self {
+            bound_texture_2d: MutNullableDom::new(None),
+            bound_texture_cube_map: MutNullableDom::new(None),
+        }
+    }
+
+    /// Clears the slot associated to the given texture.
+    /// Returns the GL target of the cleared slot, if any.
+    fn clear_slot(&self, texture: &WebGLTexture) -> Option<u32> {
+        let fields = [(&self.bound_texture_2d, constants::TEXTURE_2D),
+                      (&self.bound_texture_cube_map, constants::TEXTURE_CUBE_MAP)];
+
+        fields.iter().find(|field| {
+            match field.0.get() {
+                Some(t) => t.id() == texture.id(),
+                _ => false,
+            }
+        }).and_then(|field| {
+            field.0.set(None);
+            Some(field.1)
+        })
+    }
+}
+
+
 #[dom_struct]
 pub struct WebGLRenderingContext {
     reflector_: Reflector,
@@ -147,8 +194,8 @@ pub struct WebGLRenderingContext {
     texture_unpacking_alignment: Cell<u32>,
     bound_framebuffer: MutNullableDom<WebGLFramebuffer>,
     bound_renderbuffer: MutNullableDom<WebGLRenderbuffer>,
-    bound_texture_2d: MutNullableDom<WebGLTexture>,
-    bound_texture_cube_map: MutNullableDom<WebGLTexture>,
+    bound_textures: DomRefCell<FnvHashMap<u32, TextureUnitBindings>>,
+    bound_texture_unit: Cell<u32>,
     bound_buffer_array: MutNullableDom<WebGLBuffer>,
     bound_buffer_element_array: MutNullableDom<WebGLBuffer>,
     bound_attrib_buffers: DomRefCell<FnvHashMap<u32, Dom<WebGLBuffer>>>,
@@ -190,8 +237,8 @@ impl WebGLRenderingContext {
                 texture_unpacking_settings: Cell::new(CONVERT_COLORSPACE),
                 texture_unpacking_alignment: Cell::new(4),
                 bound_framebuffer: MutNullableDom::new(None),
-                bound_texture_2d: MutNullableDom::new(None),
-                bound_texture_cube_map: MutNullableDom::new(None),
+                bound_textures: DomRefCell::new(Default::default()),
+                bound_texture_unit: Cell::new(constants::TEXTURE0),
                 bound_buffer_array: MutNullableDom::new(None),
                 bound_buffer_element_array: MutNullableDom::new(None),
                 bound_attrib_buffers: DomRefCell::new(Default::default()),
@@ -227,16 +274,34 @@ impl WebGLRenderingContext {
         &self.limits
     }
 
-    pub fn bound_texture_for_target(&self, target: &TexImageTarget) -> Option<DomRoot<WebGLTexture>> {
-        match *target {
-            TexImageTarget::Texture2D => self.bound_texture_2d.get(),
-            TexImageTarget::CubeMapPositiveX |
-            TexImageTarget::CubeMapNegativeX |
-            TexImageTarget::CubeMapPositiveY |
-            TexImageTarget::CubeMapNegativeY |
-            TexImageTarget::CubeMapPositiveZ |
-            TexImageTarget::CubeMapNegativeZ => self.bound_texture_cube_map.get(),
+    fn bound_texture(&self, target: u32) -> Option<DomRoot<WebGLTexture>> {
+        match target {
+            constants::TEXTURE_2D => {
+                self.bound_textures.borrow().get(&self.bound_texture_unit.get()).and_then(|t| {
+                    t.bound_texture_2d.get()
+                })
+            },
+            constants::TEXTURE_CUBE_MAP => {
+                self.bound_textures.borrow().get(&self.bound_texture_unit.get()).and_then(|t| {
+                    t.bound_texture_cube_map.get()
+                })
+            },
+            _ => None,
         }
+    }
+
+    pub fn bound_texture_for_target(&self, target: &TexImageTarget) -> Option<DomRoot<WebGLTexture>> {
+        self.bound_textures.borrow().get(&self.bound_texture_unit.get()).and_then(|binding| {
+            match *target {
+                TexImageTarget::Texture2D => binding.bound_texture_2d.get(),
+                TexImageTarget::CubeMapPositiveX |
+                TexImageTarget::CubeMapNegativeX |
+                TexImageTarget::CubeMapPositiveY |
+                TexImageTarget::CubeMapNegativeY |
+                TexImageTarget::CubeMapPositiveZ |
+                TexImageTarget::CubeMapNegativeZ => binding.bound_texture_cube_map.get(),
+            }
+        })
     }
 
     pub fn borrow_bound_attrib_buffers(&self) -> Ref<FnvHashMap<u32, Dom<WebGLBuffer>>> {
@@ -280,7 +345,7 @@ impl WebGLRenderingContext {
         // Right now offscreen_gl_context generates a new FBO and the bound texture is changed
         // in order to create a new render to texture attachment.
         // Send a command to re-bind the TEXTURE_2D, if any.
-        if let Some(texture) = self.bound_texture_2d.get() {
+        if let Some(texture) = self.bound_texture(constants::TEXTURE_2D) {
             self.send_command(WebGLCommand::BindTexture(constants::TEXTURE_2D, Some(texture.id())));
         }
 
@@ -356,8 +421,8 @@ impl WebGLRenderingContext {
 
     fn tex_parameter(&self, target: u32, name: u32, value: TexParameterValue) {
         let texture = match target {
-            constants::TEXTURE_2D => self.bound_texture_2d.get(),
-            constants::TEXTURE_CUBE_MAP => self.bound_texture_cube_map.get(),
+            constants::TEXTURE_2D |
+            constants::TEXTURE_CUBE_MAP => self.bound_texture(target),
             _ => return self.webgl_error(InvalidEnum),
         };
         if let Some(texture) = texture {
@@ -1194,11 +1259,14 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 return object_binding_to_js_or_null!(cx, &self.bound_framebuffer),
             constants::RENDERBUFFER_BINDING =>
                 return object_binding_to_js_or_null!(cx, &self.bound_renderbuffer),
-            constants::TEXTURE_BINDING_2D =>
-                return object_binding_to_js_or_null!(cx, &self.bound_texture_2d),
-            constants::TEXTURE_BINDING_CUBE_MAP =>
-                return object_binding_to_js_or_null!(cx, &self.bound_texture_cube_map),
-
+            constants::TEXTURE_BINDING_2D => {
+                let texture = self.bound_texture(constants::TEXTURE_2D);
+                return optional_root_object_to_js_or_null!(cx, texture)
+            },
+            constants::TEXTURE_BINDING_CUBE_MAP => {
+                let texture = self.bound_texture(constants::TEXTURE_CUBE_MAP);
+                return optional_root_object_to_js_or_null!(cx, texture)
+            },
             // In readPixels we currently support RGBA/UBYTE only.  If
             // we wanted to support other formats, we could ask the
             // driver, but we would need to check for
@@ -1318,6 +1386,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn ActiveTexture(&self, texture: u32) {
+        self.bound_texture_unit.set(texture);
         self.send_command(WebGLCommand::ActiveTexture(texture));
     }
 
@@ -1475,9 +1544,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
     fn BindTexture(&self, target: u32, texture: Option<&WebGLTexture>) {
+        let mut bound_textures = self.bound_textures.borrow_mut();
+        let binding = bound_textures.entry(self.bound_texture_unit.get())
+                                    .or_insert(TextureUnitBindings::new());
         let slot = match target {
-            constants::TEXTURE_2D => &self.bound_texture_2d,
-            constants::TEXTURE_CUBE_MAP => &self.bound_texture_cube_map,
+            constants::TEXTURE_2D => &binding.bound_texture_2d,
+            constants::TEXTURE_CUBE_MAP => &binding.bound_texture_cube_map,
             _ => return self.webgl_error(InvalidEnum),
         };
 
@@ -1495,14 +1567,13 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
     fn GenerateMipmap(&self, target: u32) {
-        let slot = match target {
-            constants::TEXTURE_2D => &self.bound_texture_2d,
-            constants::TEXTURE_CUBE_MAP => &self.bound_texture_cube_map,
-
+        let texture = match target {
+            constants::TEXTURE_2D |
+            constants::TEXTURE_CUBE_MAP => self.bound_texture(target),
             _ => return self.webgl_error(InvalidEnum),
         };
 
-        match slot.get() {
+        match texture {
             Some(texture) => handle_potential_webgl_error!(self, texture.generate_mipmap()),
             None => self.webgl_error(InvalidOperation)
         }
@@ -1940,10 +2011,29 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
     fn DeleteTexture(&self, texture: Option<&WebGLTexture>) {
         if let Some(texture) = texture {
-            handle_object_deletion!(self, self.bound_texture_2d, texture,
-                                    Some(WebGLCommand::BindTexture(constants::TEXTURE_2D, None)));
-            handle_object_deletion!(self, self.bound_texture_cube_map, texture,
-                                    Some(WebGLCommand::BindTexture(constants::TEXTURE_CUBE_MAP, None)));
+            // From the GLES 2.0.25 spec, page 85:
+            //
+            //     "If a texture that is currently bound to one of the targets
+            //      TEXTURE_2D, or TEXTURE_CUBE_MAP is deleted, it is as though
+            //      BindTexture had been executed with the same target and texture
+            //      zero."
+            //
+            // The same texture may be bound to multiple texture units.
+            let mut bound_unit = self.bound_texture_unit.get();
+            for (texture_unit, binding) in self.bound_textures.borrow().iter() {
+                if let Some(target) = binding.clear_slot(texture) {
+                    if *texture_unit != bound_unit {
+                        self.send_command(WebGLCommand::ActiveTexture(*texture_unit));
+                        bound_unit = *texture_unit;
+                    }
+                    self.send_command(WebGLCommand::BindTexture(target, None));
+                }
+            }
+
+            // Restore bound texture unit if it has been changed.
+            if self.bound_texture_unit.get() != bound_unit {
+                self.send_command(WebGLCommand::ActiveTexture(self.bound_texture_unit.get()));
+            }
 
             // From the GLES 2.0.25 spec, page 113:
             //
