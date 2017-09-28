@@ -139,16 +139,6 @@ pub enum RevalidationMethod {
     Etag(EntityTag),
 }
 
-/// Tokenize a header value.
-fn split_header(header: &str) -> Map<&str, Split<char>> {
-    header.split(',')
-          .map(|v| v.trim())
-}
-
-/// Match any header value token.
-fn any_token_matches(header: &str, tokens: &[&str]) -> bool {
-    split_header(header).any(|token| tokens.iter().any(|&s| s == token))
-}
 
 /// Determine if a given response is cacheable based on the initial metadata received.
 /// Based on http://tools.ietf.org/html/rfc7234#section-5
