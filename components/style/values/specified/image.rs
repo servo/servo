@@ -626,6 +626,32 @@ impl GenericsLineDirection for LineDirection {
                 if compat_mode == CompatMode::Modern => true,
             LineDirection::Vertical(Y::Top)
                 if compat_mode != CompatMode::Modern => true,
+            #[cfg(feature = "gecko")]
+            LineDirection::MozPosition(Some(LegacyPosition {
+                horizontal: ref x,
+                vertical: ref y,
+            }), None) => {
+                use values::computed::Percentage as ComputedPercentage;
+                use values::specified::transform::OriginComponent;
+
+                // `50% 0%` is the default value for line direction.
+                // These percentage values can also be keywords.
+                let x = match *x {
+                    OriginComponent::Center => true,
+                    OriginComponent::Length(LengthOrPercentage::Percentage(ComputedPercentage(val))) => {
+                        val == 0.5
+                    },
+                    _ => false,
+                };
+                let y = match *y {
+                    OriginComponent::Side(Y::Top) => true,
+                    OriginComponent::Length(LengthOrPercentage::Percentage(ComputedPercentage(val))) => {
+                        val == 0.0
+                    },
+                    _ => false,
+                };
+                x && y
+            },
             _ => false,
         }
     }
