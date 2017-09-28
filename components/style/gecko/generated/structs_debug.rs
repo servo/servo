@@ -4424,7 +4424,7 @@ pub mod root {
         }
         #[test]
         fn bindgen_test_layout_ServoStyleContext() {
-            assert_eq!(::std::mem::size_of::<ServoStyleContext>() , 264usize ,
+            assert_eq!(::std::mem::size_of::<ServoStyleContext>() , 256usize ,
                        concat ! (
                        "Size of: " , stringify ! ( ServoStyleContext ) ));
             assert_eq! (::std::mem::align_of::<ServoStyleContext>() , 8usize ,
@@ -4433,28 +4433,28 @@ pub mod root {
                         ));
             assert_eq! (unsafe {
                         & ( * ( 0 as * const ServoStyleContext ) ) .
-                        mPresContext as * const _ as usize } , 24usize ,
+                        mPresContext as * const _ as usize } , 16usize ,
                         concat ! (
                         "Alignment of field: " , stringify ! (
                         ServoStyleContext ) , "::" , stringify ! (
                         mPresContext ) ));
             assert_eq! (unsafe {
                         & ( * ( 0 as * const ServoStyleContext ) ) . mSource
-                        as * const _ as usize } , 32usize , concat ! (
+                        as * const _ as usize } , 24usize , concat ! (
                         "Alignment of field: " , stringify ! (
                         ServoStyleContext ) , "::" , stringify ! ( mSource )
                         ));
             assert_eq! (unsafe {
                         & ( * ( 0 as * const ServoStyleContext ) ) .
                         mNextInheritingAnonBoxStyle as * const _ as usize } ,
-                        248usize , concat ! (
+                        240usize , concat ! (
                         "Alignment of field: " , stringify ! (
                         ServoStyleContext ) , "::" , stringify ! (
                         mNextInheritingAnonBoxStyle ) ));
             assert_eq! (unsafe {
                         & ( * ( 0 as * const ServoStyleContext ) ) .
                         mNextLazyPseudoStyle as * const _ as usize } ,
-                        256usize , concat ! (
+                        248usize , concat ! (
                         "Alignment of field: " , stringify ! (
                         ServoStyleContext ) , "::" , stringify ! (
                         mNextLazyPseudoStyle ) ));
@@ -19509,7 +19509,6 @@ pub mod root {
     pub struct nsStyleContext {
         pub mPseudoTag: root::RefPtr<root::nsIAtom>,
         pub mBits: u64,
-        pub mFrameRefCnt: u32,
     }
     pub const nsStyleContext_kAllResolvedStructs:
               root::nsStyleContext__bindgen_ty_1 =
@@ -19525,7 +19524,7 @@ pub mod root {
     }
     #[test]
     fn bindgen_test_layout_nsStyleContext() {
-        assert_eq!(::std::mem::size_of::<nsStyleContext>() , 24usize , concat
+        assert_eq!(::std::mem::size_of::<nsStyleContext>() , 16usize , concat
                    ! ( "Size of: " , stringify ! ( nsStyleContext ) ));
         assert_eq! (::std::mem::align_of::<nsStyleContext>() , 8usize , concat
                     ! ( "Alignment of " , stringify ! ( nsStyleContext ) ));
@@ -19539,11 +19538,6 @@ pub mod root {
                     _ as usize } , 8usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleContext ) ,
                     "::" , stringify ! ( mBits ) ));
-        assert_eq! (unsafe {
-                    & ( * ( 0 as * const nsStyleContext ) ) . mFrameRefCnt as
-                    * const _ as usize } , 16usize , concat ! (
-                    "Alignment of field: " , stringify ! ( nsStyleContext ) ,
-                    "::" , stringify ! ( mFrameRefCnt ) ));
     }
     #[repr(C)]
     #[derive(Debug)]
