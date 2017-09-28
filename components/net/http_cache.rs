@@ -182,7 +182,7 @@ impl HttpCache {
     /// Create a new memory cache instance.
     pub fn new() -> HttpCache {
         HttpCache {
-            complete_entries: HashMap::new(),
+            entries: HashMap::new(),
             base_time: time::now().to_timespec(),
         }
     }
@@ -193,112 +193,4 @@ impl HttpCache {
 
     pub fn update_cache(&self, response: &Response) {}
 
-    /// Process a revalidation that returned new content for an expired entry.
-    pub fn process_revalidation_failed(&mut self, key: &CacheKey) {
-        debug!("recreating entry for {} (cache entry expired)", key.url);
-        let resource = self.complete_entries.remove(key).unwrap();
-        self.add_pending_cache_entry(key.clone(), resource.revalidating_consumers);
-    }
-
-    /// Handle a 304 response to a revalidation request. Updates the cached response
-    /// metadata with any new expiration data.
-    pub fn process_not_modified(&mut self, key: &CacheKey, headers: &Headers) {
-        debug!("updating metadata for {}", key.url);
-        let resource = self.complete_entries.get_mut(key).unwrap();
-        resource.expires = get_response_expiry_from_headers(headers);
-
-        for consumer in mem::replace(&mut resource.revalidating_consumers, vec!()).into_iter() {
-            MemoryCache::send_complete_resource(resource, consumer);
-        }
-    }
-
-    /// Handle a response body final payload for response.
-    pub fn add_cache_entry(&mut self, key: &CacheKey) {
-        let complete = CachedResource {
-            metadata: metadata,
-            body: body,
-            expires: resource.expires,
-            last_validated: resource.last_validated,
-            revalidating_consumers: vec!(),
-        };
-        self.complete_entries.insert(key.clone(), complete);
-    }
-
-    /// Match a new request against the set of incomplete and complete cached requests.
-    /// If the request matches an existing, non-doomed entry, any existing response data will
-    /// be synchronously streamed to the consumer. If the request does not match but can be
-    /// cached, a new cache entry will be created and the request will be responsible for
-    /// notifying the cache of the subsequent HTTP response. If the request does not match
-    /// and cannot be cached, the request is responsible for handling its own response and
-    /// consumer.
-    pub fn process_pending_request(&mut self, request: &Request, start_chan: Sender<Response>)
-                                   -> CacheOperationResult {
-        fn revalidate(resource: &mut CachedResource,
-                      key: &CacheKey,
-                      start_chan: Sender<Response>,
-                      method: RevalidationMethod) -> CacheOperationResult {
-            // Ensure that at most one revalidation is taking place at a time for a
-            // cached resource.
-            resource.revalidating_consumers.push(start_chan);
-            if resource.revalidating_consumers.len() > 1 {
-                CacheOperationResult::CachedContentPending
-            } else {
-                CacheOperationResult::Revalidate(key.clone(), method)
-            }
-        }
-
-        if request.method != Method::Get {
-            return CacheOperationResult::Uncacheable("Only GET requests can be cached.");
-        }
-
-        let key = CacheKey::new(request.clone());
-        match self.complete_entries.get_mut(&key) {
-            Some(resource) => {
-                if self.base_time + resource.expires < time::now().to_timespec() {
-                    debug!("entry for {} has expired", key.url());
-                    let expiry = time::at(self.base_time + resource.expires);
-                    return revalidate(resource, &key, start_chan, RevalidationMethod::ExpiryDate(expiry));
-                }
-
-                let must_revalidate = resource.metadata.headers.as_ref().and_then(|headers| {
-                    headers.cache_control.as_ref().map(|header| {
-                        any_token_matches("header[]", &["must-revalidate"])
-                    })
-                }).unwrap_or(false);
-
-                if must_revalidate {
-                    debug!("entry for {} must be revalidated", key.url());
-                    let last_validated = resource.last_validated;
-                    return revalidate(resource, &key, start_chan, RevalidationMethod::ExpiryDate(last_validated));
-                }
-
-                let etag = resource.metadata.headers.as_ref().and_then(|headers| headers.etag.clone());
-                match etag {
-                    Some(etag) => {
-                        debug!("entry for {} has an RevalidationMethod::Etag", key.url());
-                        return revalidate(resource, &key, start_chan, RevalidationMethod::Etag(etag.clone()));
-                    }
-                    None => ()
-                }
-
-                //TODO: CacheOperationResult::Revalidate once per session for response with no explicit expiry
-            }
-
-            None => ()
-        }
-
-        if self.complete_entries.contains_key(&key) {
-            self.send_complete_entry(key, start_chan);
-            return CacheOperationResult::CachedContentPending;
-        }
-        self.add_cache_entry(key.clone());
-        CacheOperationResult::NewCacheEntry(key)
-    }
-
-    /// Synchronously send the entire cached response body to the given consumer.
-    fn send_complete_entry(&self, key: CacheKey, start_chan: Sender<Response>) {
-        debug!("returning full cache body for {}", key.url);
-        let resource = self.complete_entries.get(&key).unwrap();
-        MemoryCache::send_complete_resource(resource, start_chan)
-    }
 }
