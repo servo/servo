@@ -20,7 +20,9 @@ use std::fmt;
 use style_traits::{ToCss, ParseError, StyleParseError};
 use values::{Either, None_};
 #[cfg(feature = "gecko")]
-use values::computed::{Context, Position as ComputedPosition, ToComputedValue};
+use values::computed::{Context, Percentage as ComputedPercentage, Position as ComputedPosition};
+#[cfg(feature = "gecko")]
+use values::computed::ToComputedValue;
 use values::generics::image::{Circle, CompatMode, Ellipse, ColorStop as GenericColorStop};
 use values::generics::image::{EndingShape as GenericEndingShape, Gradient as GenericGradient};
 use values::generics::image::{GradientItem as GenericGradientItem, GradientKind as GenericGradientKind};
@@ -31,6 +33,8 @@ use values::generics::position::Position as GenericPosition;
 use values::specified::{Angle, Color, Length, LengthOrPercentage};
 use values::specified::{Number, NumberOrPercentage, Percentage, RGBAColor};
 use values::specified::position::{LegacyPosition, Position, PositionComponent, Side, X, Y};
+#[cfg(feature = "gecko")]
+use values::specified::transform::OriginComponent;
 use values::specified::url::SpecifiedUrl;
 
 /// A specified image layer.
@@ -626,6 +630,25 @@ impl GenericsLineDirection for LineDirection {
                 if compat_mode == CompatMode::Modern => true,
             LineDirection::Vertical(Y::Top)
                 if compat_mode != CompatMode::Modern => true,
+            #[cfg(feature = "gecko")]
+            LineDirection::MozPosition(Some(LegacyPosition {
+                horizontal: ref x,
+                vertical: ref y,
+            }), None) => {
+                let x = match *x {
+                    OriginComponent::Center => true,
+                    OriginComponent::Length(LengthOrPercentage::Percentage(ComputedPercentage(val)))
+                     if val == 0.5 => true,
+                    _ => false,
+                };
+                let y = match *y {
+                    OriginComponent::Side(Y::Top) => true,
+                    OriginComponent::Length(LengthOrPercentage::Percentage(ComputedPercentage(val)))
+                     if val == 0.0 => true,
+                    _ => false,
+                };
+                x && y
+            },
             _ => false,
         }
     }
