@@ -1548,8 +1548,7 @@ extern "C" {
 extern "C" {
     pub fn Gecko_MatchStringArgPseudo(element: RawGeckoElementBorrowed,
                                       type_: CSSPseudoClassType,
-                                      ident: *const u16,
-                                      set_slow_selector: *mut bool) -> bool;
+                                      ident: *const u16) -> bool;
 }
 extern "C" {
     pub fn Gecko_AddPropertyToSet(arg1: nsCSSPropertyIDSetBorrowedMut,
