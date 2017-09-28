@@ -105,8 +105,8 @@ pub enum RevalidationMethod {
 /// Determine if a given response is cacheable based on the initial metadata received.
 /// Based on http://tools.ietf.org/html/rfc7234#section-5
 fn response_is_cacheable(metadata: &Metadata) -> bool {
-    if let Some((_, status)) = metadata.status {
-        if status != b"OK".to_vec() {
+    if let Some((_, ref status)) = metadata.status {
+        if status != &b"OK".to_vec() {
             return false;
         }
     }
@@ -117,7 +117,7 @@ fn response_is_cacheable(metadata: &Metadata) -> bool {
 
     let headers = metadata.headers.as_ref().unwrap();
     match headers.get::<header::CacheControl>() {
-        Some(&header::CacheControl(directive)) => {
+        Some(&header::CacheControl(ref directive)) => {
             let has_no_cache_directives = directive.iter().any(|directive|
                 match *directive {
                     header::CacheDirective::NoCache |
@@ -137,8 +137,8 @@ fn response_is_cacheable(metadata: &Metadata) -> bool {
     match headers.get::<header::Pragma>() {
         Some(&header::Pragma::NoCache) => {
             return false;
-        }
-        None => ()
+        },
+        _ => ()
     }
 
     return true;
@@ -147,10 +147,10 @@ fn response_is_cacheable(metadata: &Metadata) -> bool {
 /// Determine the expiry date of the given response headers.
 /// Returns a far-future date if the response does not expire.
 fn get_response_expiry_from_headers(headers: &Headers) -> Duration {
-    if let Some(&header::CacheControl(directives)) = headers.get::<header::CacheControl>() {
+    if let Some(&header::CacheControl(ref directives)) = headers.get::<header::CacheControl>() {
         for directive in directives {
             match directive {
-                header::CacheDirective::MaxAge(secs) => {
+                &header::CacheDirective::MaxAge(secs) => {
                     return Duration::seconds(secs as i64);
                 },
                 _ => (),
@@ -187,10 +187,12 @@ impl HttpCache {
         }
     }
 
+    /// Try to fetch a cached response.
     pub fn try_cache_fetch(&self, request: &Request) -> Option<Response> {
         None
     }
 
+    /// Update the cache with a new response.
     pub fn update_cache(&self, response: &Response) {}
 
 }
