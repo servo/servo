@@ -445,14 +445,7 @@ impl MemoryCache {
 
     /// Synchronously send the entire cached response body to the given consumer.
     fn send_complete_resource(resource: &CachedResource, start_chan: Sender<Response>) {
-        let progress_chan = start_sending_opt(start_chan, resource.metadata.clone());
-        match progress_chan {
-            Ok(chan) => {
-                let _ = chan.send_opt(ResponseBody::Receiving(resource.body.clone()));
-                let _ = chan.send_opt(ResponseBody::Done(resource.body.clone()));
-            }
-            Err(_) => ()
-        }
+        //pass
     }
 
     /// Synchronously send the entire cached response body to the given consumer.
