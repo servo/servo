@@ -1508,6 +1508,17 @@ impl Stylist {
     pub fn shutdown() {
         UA_CASCADE_DATA_CACHE.lock().unwrap().clear()
     }
+
+    /// Temporary testing method. See bug 1403397.
+    pub fn corrupt_rule_hash_and_crash(&self, index: usize) {
+        let mut origin_iter = self.cascade_data.iter_origins();
+        let d = origin_iter.next().unwrap().0;
+        let mut it = d.element_map.local_name_hash.iter();
+        let nth = index % it.len();
+        let entry = it.nth(nth).unwrap();
+        let ptr = entry.0 as *const _ as *const usize as *mut usize;
+        unsafe { *ptr = 0; }
+    }
 }
 
 /// This struct holds data which users of Stylist may want to extract

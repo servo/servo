@@ -4046,3 +4046,9 @@ pub extern "C" fn Servo_HasPendingRestyleAncestor(element: RawGeckoElementBorrow
     }
     false
 }
+
+#[no_mangle]
+pub extern "C" fn Servo_CorruptRuleHashAndCrash(set: RawServoStyleSetBorrowed, index: usize) {
+    let per_doc_data = PerDocumentStyleData::from_ffi(set).borrow();
+    per_doc_data.stylist.corrupt_rule_hash_and_crash(index);
+}
