@@ -14,7 +14,7 @@ use eutil::Downcast;
 use interfaces::CefApp;
 use interfaces::CefBrowser;
 use render_handler::CefRenderHandlerExtensions;
-use types::{cef_cursor_handle_t, cef_cursor_type_t, cef_rect_t};
+use types::{cef_cursor_handle_t, cef_cursor_type_t, cef_rect_t, CefScreenInfo};
 use wrappers::CefWrap;
 
 use compositing::compositor_thread::EventLoopWaker;
@@ -169,6 +169,19 @@ impl Window {
     fn cursor_handle_for_cursor(&self, _: Cursor) -> cef_cursor_handle_t {
         0
     }
+
+    fn screen_info(&self) -> CefScreenInfo {
+        let mut screen_info = CefScreenInfo::default();
+        let browser = self.cef_browser.borrow();
+        if let Some(ref browser) = *browser {
+            browser.get_host()
+                   .get_client()
+                   .get_render_handler()
+                   .get_screen_info(browser.clone(), &mut screen_info);
+        }
+        screen_info
+    }
+
 }
 
 impl WindowMethods for Window {
@@ -500,6 +513,16 @@ impl WindowMethods for Window {
 
     fn supports_clipboard(&self) -> bool {
         false
+    }
+
+    fn screen_size(&self, _: BrowserId) -> Size2D<u32> {
+        let screen_info = self.screen_info();
+        Size2D::new(screen_info.rect.width as u32, screen_info.rect.height as u32)
+    }
+
+    fn screen_avail_size(&self, _: BrowserId) -> Size2D<u32> {
+        let screen_info = self.screen_info();
+        Size2D::new(screen_info.available_rect.width as u32, screen_info.available_rect.height as u32)
     }
 }
 

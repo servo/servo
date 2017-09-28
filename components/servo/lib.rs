@@ -401,6 +401,14 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
                     }
                 },
 
+                (EmbedderMsg::GetScreenAvailSize(top_level_browsing_context, send),
+                 ShutdownState::NotShuttingDown) => {
+                    let rect = self.compositor.window.screen_avail_size(top_level_browsing_context);
+                    if let Err(e) = send.send(rect) {
+                        warn!("Sending response to get screen available size failed ({}).", e);
+                    }
+                },
+
                 (EmbedderMsg::AllowNavigation(top_level_browsing_context,
                                               url,
                                               response_chan),

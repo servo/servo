@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::ScreenBinding;
 use dom::bindings::codegen::Bindings::ScreenBinding::ScreenMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::num::Finite;
-use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::root::{Dom, DomRoot};
 use dom::globalscope::GlobalScope;
 use dom::window::Window;
@@ -37,7 +37,15 @@ impl Screen {
 
     fn screen_size(&self) -> Size2D<u32> {
         let (send, recv) = ipc::channel::<(Size2D<u32>)>().unwrap();
-        self.window.upcast::<GlobalScope>().script_to_constellation_chan().send(ScriptMsg::GetScreenSize(send)).unwrap();
+        self.window.upcast::<GlobalScope>()
+            .script_to_constellation_chan().send(ScriptMsg::GetScreenSize(send)).unwrap();
+        recv.recv().unwrap_or((Size2D::zero()))
+    }
+
+    fn screen_avail_size(&self) -> Size2D<u32> {
+        let (send, recv) = ipc::channel::<(Size2D<u32>)>().unwrap();
+        self.window.upcast::<GlobalScope>()
+            .script_to_constellation_chan().send(ScriptMsg::GetScreenAvailSize(send)).unwrap();
         recv.recv().unwrap_or((Size2D::zero()))
     }
 }
@@ -45,16 +53,12 @@ impl Screen {
 impl ScreenMethods for Screen {
     // https://drafts.csswg.org/cssom-view/#dom-screen-availwidth
     fn AvailWidth(&self) -> Finite<f64> {
-        // FIXME: Not spec complient because glutin don't have corresponding API
-        // Fallback to window.screen.width behavior
-        self.Width()
+        Finite::wrap(self.screen_avail_size().width as f64)
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-screen-availheight
     fn AvailHeight(&self) -> Finite<f64> {
-        // FIXME: Not spec complient because glutin don't have corresponding API
-        // Fallback to window.screen.height behavior
-        self.Height()
+        Finite::wrap(self.screen_avail_size().height as f64)
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-screen-width
