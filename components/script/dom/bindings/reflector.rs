@@ -72,7 +72,7 @@ impl Reflector {
 }
 
 /// A trait to provide access to the `Reflector` for a DOM object.
-pub trait DomObject {
+pub trait DomObject: 'static {
     /// Returns the receiver's reflector.
     fn reflector(&self) -> &Reflector;
 
