@@ -1772,21 +1772,31 @@ pub extern "C" fn Servo_ResolvePseudoStyle(element: RawGeckoElementBorrowed,
      -> ServoStyleContextStrong
 {
     let element = GeckoElement(element);
-    let data = unsafe { element.ensure_data() };
     let doc_data = PerDocumentStyleData::from_ffi(raw_data).borrow();
 
     debug!("Servo_ResolvePseudoStyle: {:?} {:?}, is_probe: {}",
            element, PseudoElement::from_pseudo_type(pseudo_type), is_probe);
 
-    // FIXME(bholley): Assert against this.
-    if !data.has_styles() {
-        warn!("Calling Servo_ResolvePseudoStyle on unstyled element");
-        return if is_probe {
-            Strong::null()
-        } else {
-            doc_data.default_computed_values().clone().into()
-        };
-    }
+    let data = element.borrow_data();
+
+    let data = match data.as_ref() {
+        Some(data) if data.has_styles() => data,
+        _ => {
+            // FIXME(bholley, emilio): Assert against this.
+            //
+            // Known offender is nsMathMLmoFrame::MarkIntrinsicISizesDirty,
+            // which goes and does a bunch of work involving style resolution.
+            //
+            // Bug 1403865 tracks fixing it, and potentially adding an assert
+            // here instead.
+            warn!("Calling Servo_ResolvePseudoStyle on unstyled element");
+            return if is_probe {
+                Strong::null()
+            } else {
+                doc_data.default_computed_values().clone().into()
+            };
+        }
+    };
 
     let pseudo = PseudoElement::from_pseudo_type(pseudo_type)
                     .expect("ResolvePseudoStyle with a non-pseudo?");
