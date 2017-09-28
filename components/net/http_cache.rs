@@ -75,8 +75,8 @@ struct CachedResource {
 /// A memory cache that tracks incomplete and complete responses, differentiated by
 /// the initial request.
 pub struct HttpCache {
-    /// Complete cached responses.
-    complete_entries: HashMap<CacheKey, CachedResource>,
+    /// cached responses.
+    entries: HashMap<CacheKey, CachedResource>,
     /// The time at which this cache was created for use by expiry checks.
     base_time: Timespec,
 }
