@@ -813,6 +813,24 @@ impl<K, V> RawTable<K, V> {
         }
     }
 
+    /// Access to the raw buffer backing this table.
+    pub fn raw_buffer(&self) -> (*const (), usize) {
+        debug_assert!(self.capacity() != 0);
+
+        let buffer = self.hashes.ptr() as *const ();
+        let size = {
+            let hashes_size = self.capacity() * size_of::<HashUint>();
+            let pairs_size = self.capacity() * size_of::<(K, V)>();
+            let (_, _, size, _) = calculate_allocation(hashes_size,
+                                                       align_of::<HashUint>(),
+                                                       pairs_size,
+                                                       align_of::<(K, V)>());
+            round_up_to_page_size(size)
+        };
+        (buffer, size)
+    }
+
+
     /// Creates a new raw table from a given capacity. All buckets are
     /// initially empty.
     pub fn new(capacity: usize) -> Result<RawTable<K, V>, FailedAllocationError> {

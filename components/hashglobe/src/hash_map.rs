@@ -1027,6 +1027,12 @@ impl<K, V, S> HashMap<K, V, S>
         self.table.size()
     }
 
+    /// Access to the raw buffer backing this hashmap.
+    pub fn raw_buffer(&self) -> (*const (), usize) {
+        assert!(self.raw_capacity() != 0);
+        self.table.raw_buffer()
+    }
+
     /// Returns true if the map contains no elements.
     ///
     /// # Examples

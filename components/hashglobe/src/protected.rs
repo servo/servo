@@ -25,12 +25,14 @@ impl<K: Hash + Eq, V, S: BuildHasher> ProtectedHashMap<K, V, S>
     #[inline(always)]
     pub fn begin_mutation(&mut self) {
         assert!(self.readonly);
+        self.unprotect();
         self.readonly = false;
     }
 
     #[inline(always)]
     pub fn end_mutation(&mut self) {
         assert!(!self.readonly);
+        self.protect();
         self.readonly = true;
     }
 
@@ -130,6 +132,36 @@ impl<K: Hash + Eq, V, S: BuildHasher> ProtectedHashMap<K, V, S>
         self.map.clear();
         self.end_mutation();
     }
+
+    fn protect(&mut self) {
+        if self.map.capacity() == 0 {
+            return;
+        }
+        let buff = self.map.raw_buffer();
+        if buff.0 as usize % ::SYSTEM_PAGE_SIZE.load(::std::sync::atomic::Ordering::Relaxed) != 0 {
+            // Safely handle weird allocators like ASAN that return
+            // non-page-aligned buffers to page-sized allocations.
+            return;
+        }
+        unsafe {
+            Gecko_ProtectBuffer(buff.0 as *mut _, buff.1);
+        }
+    }
+
+    fn unprotect(&mut self) {
+        if self.map.capacity() == 0 {
+            return;
+        }
+        let buff = self.map.raw_buffer();
+        if buff.0 as usize % ::SYSTEM_PAGE_SIZE.load(::std::sync::atomic::Ordering::Relaxed) != 0 {
+            // Safely handle weird allocators like ASAN that return
+            // non-page-aligned buffers to page-sized allocations.
+            return;
+        }
+        unsafe {
+            Gecko_UnprotectBuffer(buff.0 as *mut _, buff.1);
+        }
+    }
 }
 
 impl<K, V> ProtectedHashMap<K, V, RandomState>
@@ -143,10 +175,12 @@ impl<K, V> ProtectedHashMap<K, V, RandomState>
     }
 
     pub fn with_capacity(capacity: usize) -> Self {
-        Self {
+        let mut result = Self {
             map: HashMap::with_capacity(capacity),
             readonly: true,
-        }
+        };
+        result.protect();
+        result
     }
 }
 
@@ -177,4 +211,25 @@ impl<K, V, S> Default for ProtectedHashMap<K, V, S>
             readonly: true,
         }
     }
+}
+
+impl<K: Hash + Eq, V, S: BuildHasher> Drop for ProtectedHashMap<K, V, S>
+    where K: Eq + Hash,
+          S: BuildHasher
+{
+    fn drop(&mut self) {
+        debug_assert!(self.readonly, "Dropped while mutating");
+        self.unprotect();
+    }
+}
+
+// Manually declare the FFI functions since we don't depend on the crate with
+// the bindings.
+extern "C" {
+    pub fn Gecko_ProtectBuffer(buffer: *mut ::std::os::raw::c_void,
+                               size: usize);
+}
+extern "C" {
+    pub fn Gecko_UnprotectBuffer(buffer: *mut ::std::os::raw::c_void,
+                                 size: usize);
 }
