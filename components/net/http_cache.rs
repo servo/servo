@@ -65,24 +65,6 @@ impl CacheKey {
     }
 }
 
-/// The list of consumers waiting on this requests's response.
-enum PendingConsumers {
-    /// Consumers awaiting the initial response metadata
-    AwaitingHeaders(Vec<Sender<Response>>),
-    /// Consumers awaiting the remaining response body. Incomplete body stored as Vec<u8>.
-    AwaitingBody(Metadata, Vec<u8>, Vec<Sender<ResponseBody>>),
-}
-
-/// An unfulfilled request representing both the consumers waiting for the initial
-/// metadata and the subsequent response body. If doomed, the entry will be removed
-/// after the final payload.
-struct PendingResource {
-    consumers: PendingConsumers,
-    expires: Duration,
-    last_validated: Tm,
-    doomed: bool,
-}
-
 /// A complete cached resource.
 struct CachedResource {
     metadata: Metadata,
@@ -97,26 +79,8 @@ struct CachedResource {
 pub struct MemoryCache {
     /// Complete cached responses.
     complete_entries: HashMap<CacheKey, CachedResource>,
-    /// Incomplete cached responses.
-    pending_entries: HashMap<CacheKey, PendingResource>,
     /// The time at which this cache was created for use by expiry checks.
     base_time: Timespec,
-}
-
-/// Abstraction over the concept of a single target for HTTP response messages.
-pub enum ResourceResponseTarget {
-    /// A response is being streamed into the cache.
-    CachedPendingResource(CacheKey, Arc<Mutex<MemoryCache>>),
-    /// A response is being streamed directly to a consumer and skipping the cache.
-    UncachedPendingResource(Sender<Response>),
-}
-
-/// Abstraction over the concept of a single target for HTTP response payload messages.
-pub enum ResourceProgressTarget {
-    /// A response is being streamed into the cache.
-    CachedInProgressResource(CacheKey, Arc<Mutex<MemoryCache>>),
-    /// A response is being streamed directly to a consumer and skipping the cache.
-    UncachedInProgressResource(Sender<ResponseBody>),
 }
 
 /// The result of matching a request against an HTTP cache.
@@ -221,7 +185,6 @@ impl MemoryCache {
     pub fn new() -> MemoryCache {
         MemoryCache {
             complete_entries: HashMap::new(),
-            pending_entries: HashMap::new(),
             base_time: time::now().to_timespec(),
         }
     }
@@ -231,29 +194,6 @@ impl MemoryCache {
         debug!("recreating entry for {} (cache entry expired)", key.url);
         let resource = self.complete_entries.remove(key).unwrap();
         self.add_pending_cache_entry(key.clone(), resource.revalidating_consumers);
-    }
-
-    /// Mark an incomplete cached request as doomed. Any waiting consumers will immediately
-    /// receive an error message or a final body payload. The cache entry is immediately
-    /// removed.
-    pub fn doom_request(&mut self, key: &CacheKey, err: String) {
-        debug!("dooming entry for {} ({})", key.url, err);
-
-        assert!(!self.complete_entries.contains_key(key));
-
-        let resource = self.pending_entries.remove(key).unwrap();
-        match resource.consumers {
-            PendingConsumers::AwaitingHeaders(ref consumers) => {
-                for consumer in consumers.iter() {
-                    // TODO: send_error_direct(key.url.clone(), err.clone(), consumer.clone());
-                }
-            }
-            PendingConsumers::AwaitingBody(_, _, ref consumers) => {
-                for consumer in consumers.iter() {
-                    let _ = consumer.send_opt(ResponseBody::Empty);
-                }
-            }
-        }
     }
 
     /// Handle a 304 response to a revalidation request. Updates the cached response
@@ -268,76 +208,8 @@ impl MemoryCache {
         }
     }
 
-    /// Handle the initial response metadata for an incomplete cached request.
-    /// If the response should not be cached, the entry will be doomed and any
-    /// subsequent requests will not see the cached request. All waiting consumers
-    /// will see the new metadata.
-    pub fn process_metadata(&mut self, key: &CacheKey, metadata: Metadata) {
-        debug!("storing metadata for {}", key.url);
-        let resource = self.pending_entries.get_mut(key).unwrap();
-        let chans: Vec<Sender<ProgressMsg>>;
-        match resource.consumers {
-            PendingConsumers::AwaitingHeaders(ref consumers) => {
-                chans = consumers.iter()
-                                 .map(|chan| start_sending_opt(chan.clone(), metadata.clone()))
-                                 .take_while(|chan| chan.is_ok())
-                                 .map(|chan| chan.unwrap())
-                                 .collect();
-            }
-            PendingConsumers::AwaitingBody(..) => panic!("obtained headers for {} but awaiting body?", key.url)
-        }
-
-        if !response_is_cacheable(&metadata) {
-            resource.doomed = true;
-        }
-
-        resource.expires = get_response_expiry(&metadata);
-        resource.last_validated = time::now();
-        resource.consumers = PendingConsumers::AwaitingBody(metadata, vec!(), chans);
-    }
-
-    /// Handle a repsonse body payload for an incomplete cached response.
-    /// All waiting consumers will see the new payload addition.
-    pub fn process_payload(&mut self, key: &CacheKey, payload: Vec<u8>) {
-        debug!("storing partial response for {}", key.url);
-        let resource = self.pending_entries.get_mut(key).unwrap();
-        match resource.consumers {
-            PendingConsumers::AwaitingBody(_, ref mut body, ref consumers) => {
-                body.extend(payload.as_slice());
-                for consumer in consumers.iter() {
-                    //FIXME: maybe remove consumer on failure to avoid extra clones?
-                    let _ = consumer.send_opt(ResponseBody::Receiving(payload.clone()));
-                }
-            }
-            PendingConsumers::AwaitingHeaders(_) => panic!("obtained body for {} but awaiting headers?", key.url)
-        }
-    }
-
-    /// Handle a response body final payload for an incomplete cached response.
-    /// All waiting consumers will see the new message. If the cache entry is
-    /// doomed, it will not be transferred to the set of complete cache entries.
-    pub fn process_done(&mut self, key: &CacheKey) {
-        debug!("finished fetching {}", key.url);
-        let resource = self.pending_entries.remove(key).unwrap();
-        match resource.consumers {
-            PendingConsumers::AwaitingHeaders(_) => panic!("saw Done for {} but awaiting headers?", key.url),
-            PendingConsumers::AwaitingBody(_, _, ref consumers) => {
-                for consumer in consumers.iter() {
-                    let _ = consumer.send_opt(ResponseBody::Done(resource.body.clone()));
-                }
-            }
-        }
-
-        if resource.doomed {
-            debug!("completing dooming of {}", key.url);
-            return;
-        }
-
-        let (metadata, body) = match resource.consumers {
-            PendingConsumers::AwaitingBody(metadata, body, _) => (metadata, body),
-            _ => panic!("expected consumer list awaiting bodies"),
-        };
-
+    /// Handle a response body final payload for response.
+    pub fn add_cache_entry(&mut self, key: &CacheKey) {
         let complete = CachedResource {
             metadata: metadata,
             body: body,
@@ -415,37 +287,8 @@ impl MemoryCache {
             self.send_complete_entry(key, start_chan);
             return CacheOperationResult::CachedContentPending;
         }
-
-        let new_entry = match self.pending_entries.get(&key) {
-            Some(resource) if resource.doomed => return CacheOperationResult::Uncacheable("Cache entry already doomed"),
-            Some(_) => false,
-            None => true,
-        };
-
-        if new_entry {
-            self.add_pending_cache_entry(key.clone(), vec!(start_chan));
-            CacheOperationResult::NewCacheEntry(key)
-        } else {
-            self.send_partial_entry(key, start_chan);
-            CacheOperationResult::CachedContentPending
-        }
-    }
-
-    /// Add a new pending request to the set of incomplete cache entries.
-    fn add_pending_cache_entry(&mut self, key: CacheKey, consumers: Vec<Sender<Response>>) {
-        let resource = PendingResource {
-            consumers: PendingConsumers::AwaitingHeaders(consumers),
-            expires: Duration::max_value(),
-            last_validated: time::now(),
-            doomed: false,
-        };
-        debug!("creating cache entry for {}", key.url);
-        self.pending_entries.insert(key, resource);
-    }
-
-    /// Synchronously send the entire cached response body to the given consumer.
-    fn send_complete_resource(resource: &CachedResource, start_chan: Sender<Response>) {
-        //pass
+        self.add_cache_entry(key.clone());
+        CacheOperationResult::NewCacheEntry(key)
     }
 
     /// Synchronously send the entire cached response body to the given consumer.
@@ -453,35 +296,5 @@ impl MemoryCache {
         debug!("returning full cache body for {}", key.url);
         let resource = self.complete_entries.get(&key).unwrap();
         MemoryCache::send_complete_resource(resource, start_chan)
-    }
-
-    /// Synchronously send all partial stored response data for a cached request to the
-    /// given consumer.
-    fn send_partial_entry(&mut self, key: CacheKey, start_chan: Sender<Response>) {
-        debug!("returning partial cache data for {}", key.url);
-
-        let resource = self.pending_entries.get_mut(&key).unwrap();
-
-        match resource.consumers {
-            PendingConsumers::AwaitingHeaders(ref mut consumers) => {
-                consumers.push(start_chan);
-            }
-            PendingConsumers::AwaitingBody(ref metadata, ref body, ref mut consumers) => {
-                debug!("headers available for {}", key.url);
-                let progress_chan = start_sending_opt(start_chan, metadata.clone());
-                match progress_chan {
-                    Ok(chan) => {
-                        consumers.push(chan.clone());
-
-                        if !body.is_empty() {
-                            debug!("partial body available for {}", key.url);
-                            let _ = chan.send_opt(ResponseBody::Receiving(body.clone()));
-                        }
-                    }
-
-                    Err(_) => ()
-                }
-            }
-        }
     }
 }
