@@ -503,7 +503,7 @@ pub fn finish_cascade(specified_values_map: Option<OrderedMap<&Name, BorrowedSpe
                       -> Option<Arc<CustomPropertiesMap>> {
     if let Some(mut map) = specified_values_map {
         remove_cycles(&mut map);
-        Some(Arc::new(substitute_all(map, inherited)))
+        Some(Arc::new(substitute_all(map)))
     } else {
         inherited.clone()
     }
@@ -555,8 +555,7 @@ fn remove_cycles(map: &mut OrderedMap<&Name, BorrowedSpecifiedValue>) {
 }
 
 /// Replace `var()` functions for all custom properties.
-fn substitute_all(specified_values_map: OrderedMap<&Name, BorrowedSpecifiedValue>,
-                  inherited: &Option<Arc<CustomPropertiesMap>>)
+fn substitute_all(specified_values_map: OrderedMap<&Name, BorrowedSpecifiedValue>)
                   -> CustomPropertiesMap {
     let mut custom_properties_map = CustomPropertiesMap::new();
     let mut invalid = HashSet::new();
@@ -566,7 +565,7 @@ fn substitute_all(specified_values_map: OrderedMap<&Name, BorrowedSpecifiedValue
         // If this value is invalid at computed-time it won’t be inserted in computed_values_map.
         // Nothing else to do.
         let _ = substitute_one(
-            name, value, &specified_values_map, inherited, None,
+            name, value, &specified_values_map, None,
             &mut custom_properties_map, &mut invalid);
     }
 
@@ -580,7 +579,6 @@ fn substitute_all(specified_values_map: OrderedMap<&Name, BorrowedSpecifiedValue
 fn substitute_one(name: &Name,
                   specified_value: &BorrowedSpecifiedValue,
                   specified_values_map: &OrderedMap<&Name, BorrowedSpecifiedValue>,
-                  inherited: &Option<Arc<CustomPropertiesMap>>,
                   partial_computed_value: Option<&mut ComputedValue>,
                   custom_properties_map: &mut CustomPropertiesMap,
                   invalid: &mut HashSet<Name>)
@@ -604,7 +602,7 @@ fn substitute_one(name: &Name,
             &mut input, &mut position, &mut partial_computed_value,
             &mut |name, partial_computed_value| {
                 if let Some(other_specified_value) = specified_values_map.get(&name) {
-                    substitute_one(name, other_specified_value, specified_values_map, inherited,
+                    substitute_one(name, other_specified_value, specified_values_map,
                                    Some(partial_computed_value), custom_properties_map, invalid)
                 } else {
                     Err(())
@@ -615,13 +613,8 @@ fn substitute_one(name: &Name,
             partial_computed_value.push_from(position, &input, last_token_type);
             partial_computed_value
         } else {
-            // Invalid at computed-value time. Use the inherited value.
-            if let Some(inherited_value) = inherited.as_ref().and_then(|i| i.values.get(name)) {
-                inherited_value.clone()
-            } else {
-                invalid.insert(name.clone());
-                return Err(())
-            }
+            invalid.insert(name.clone());
+            return Err(())
         }
     } else {
         // The specified value contains no var() reference
