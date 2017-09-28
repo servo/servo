@@ -59,8 +59,7 @@ macro_rules! apply_non_ts_list {
                 ("-moz-drag-over", MozDragOver, mozDragOver, IN_DRAGOVER_STATE, _),
                 ("target", Target, target, IN_TARGET_STATE, _),
                 ("indeterminate", Indeterminate, indeterminate, IN_INDETERMINATE_STATE, _),
-                // FIXME(emilio): Unship this for content docs (bug 1396073).
-                ("-moz-devtools-highlighted", MozDevtoolsHighlighted, mozDevtoolsHighlighted, IN_DEVTOOLS_HIGHLIGHTED_STATE, _),
+                ("-moz-devtools-highlighted", MozDevtoolsHighlighted, mozDevtoolsHighlighted, IN_DEVTOOLS_HIGHLIGHTED_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS),
                 // FIXME(emilio): Unship this for content docs (bug 1396073).
                 ("-moz-styleeditor-transitioning", MozStyleeditorTransitioning, mozStyleeditorTransitioning, IN_STYLEEDITOR_TRANSITIONING_STATE, _),
                 ("fullscreen", Fullscreen, fullscreen, IN_FULLSCREEN_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME),
@@ -120,9 +119,6 @@ macro_rules! apply_non_ts_list {
             string: [
                 // FIXME(emilio): Unship this for content docs (bug 1396066).
                 ("-moz-system-metric", MozSystemMetric, mozSystemMetric, _, _),
-                // FIXME(emilio): Unship this for content docs (bug 1396073).
-                ("-moz-empty-except-children-with-localname", MozEmptyExceptChildrenWithLocalname,
-                 mozEmptyExceptChildrenWithLocalname, _, _),
                 ("lang", Lang, lang, _, _),
             ],
             keyword: [
