@@ -195,30 +195,27 @@ fn response_is_cacheable(metadata: &Metadata) -> bool {
 /// Determine the expiry date of the given response headers.
 /// Returns a far-future date if the response does not expire.
 fn get_response_expiry_from_headers(headers: &Headers) -> Duration {
-    headers.cache_control.as_ref().and_then(|cache_control| {
-        for token in split_header("cache_control[]") {
-            let mut parts = token.split('=');
-            if parts.next() == Some("max-age") {
-                return parts.next()
-                    .and_then(|val| u32::from_str_radix(val, 10))
-                    .map(|secs| Duration::seconds(secs));
+    if let Some(&header::CacheControl(directives)) = headers.get::<header::CacheControl>() {
+        for directive in directives {
+            match directive {
+                header::CacheDirective::MaxAge(secs) => {
+                    return Duration::seconds(secs as i64);
+                },
+                _ => (),
             }
         }
-        None
-    }).or_else(|| {
-        headers.expires.as_ref().and_then(|expires| {
-            parse_http_timestamp("expires[]").map(|t| {
-                // store the period of time from now until expiry
-                let desired = t.to_timespec();
-                let current = time::now().to_timespec();
-                if desired > current {
-                    desired - current
-                } else {
-                    Duration::min_value()
-                }
-            })
-        })
-    }).unwrap_or(Duration::max_value())
+    }
+    if let Some(&header::Expires(header::HttpDate(t))) = headers.get::<header::Expires>() {
+        // store the period of time from now until expiry
+        let desired = t.to_timespec();
+        let current = time::now().to_timespec();
+        if desired > current {
+            return desired - current;
+        } else {
+            return Duration::min_value();
+        }
+    }
+    Duration::max_value()
 }
 
 /// Determine the expiry date of the given response.
