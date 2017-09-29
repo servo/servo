@@ -61,7 +61,7 @@ ordered-float = "0.4"
 owning_ref = "0.3.3"
 parking_lot = "0.4"
 pdqsort = "0.1.0"
-precomputed-hash = "0.1"
+precomputed-hash = "0.1.1"
 rayon = "0.8"
 selectors = { path = "../selectors" }
 serde = {version = "1.0", optional = true, features = ["derive"]}
