@@ -693,8 +693,7 @@ impl PropertyDeclarationBlock {
         inherited_custom_properties: Option<Arc<::custom_properties::CustomPropertiesMap>>,
     ) -> Option<Arc<::custom_properties::CustomPropertiesMap>> {
         let mut custom_properties = None;
-        // FIXME: Use PrecomputedHasher instead.
-        let mut seen_custom = HashSet::new();
+        let mut seen_custom = PrecomputedHashSet::default();
 
         for declaration in self.normal_declaration_iter() {
             if let PropertyDeclaration::Custom(ref name, ref value) = *declaration {
