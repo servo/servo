@@ -13,6 +13,7 @@ function error_test(tagName, src) {
   async_test(function(t) {
     var e = document.createElement(tagName);
     e.src = src;
+    e.onerror = t.unreached_func();
     e.onloadeddata = t.step_func(function() {
       assert_equals(e.error, null);
       t.done();
