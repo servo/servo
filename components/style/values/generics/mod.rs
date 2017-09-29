@@ -9,7 +9,7 @@ use counter_style::{Symbols, parse_counter_style_name};
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use std::fmt;
-use style_traits::{Comma, OneOrMoreSeparated, ParseError, StyleParseError, ToCss};
+use style_traits::{Comma, OneOrMoreSeparated, ParseError, StyleParseErrorKind, ToCss};
 use super::CustomIdent;
 
 pub mod background;
@@ -114,16 +114,16 @@ impl Parse for CounterStyleOrNone {
                 // numeric system.
                 if (symbols_type == SymbolsType::Alphabetic ||
                     symbols_type == SymbolsType::Numeric) && symbols.0.len() < 2 {
-                    return Err(StyleParseError::UnspecifiedError.into());
+                    return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
                 }
                 // Identifier is not allowed in symbols() function.
                 if symbols.0.iter().any(|sym| !sym.is_allowed_in_symbols()) {
-                    return Err(StyleParseError::UnspecifiedError.into());
+                    return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
                 }
                 Ok(CounterStyleOrNone::Symbols(symbols_type, symbols))
             });
         }
-        Err(StyleParseError::UnspecifiedError.into())
+        Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
     }
 }
 
@@ -170,13 +170,14 @@ impl<T: Parse> Parse for FontSettingTag<T> {
 
         let u_tag;
         {
+            let location = input.current_source_location();
             let tag = input.expect_string()?;
 
             // allowed strings of length 4 containing chars: <U+20, U+7E>
             if tag.len() != 4 ||
                tag.chars().any(|c| c < ' ' || c > '~')
             {
-                return Err(StyleParseError::UnspecifiedError.into())
+                return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError))
             }
 
             let mut raw = Cursor::new(tag.as_bytes());
@@ -248,7 +249,7 @@ impl Parse for FontSettingTagInt {
             if value >= 0 {
                 Ok(FontSettingTagInt(value as u32))
             } else {
-                Err(StyleParseError::UnspecifiedError.into())
+                Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
             }
         } else if let Ok(_) = input.try(|input| input.expect_ident_matching("on")) {
             // on is an alias for '1'

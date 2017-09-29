@@ -7,7 +7,8 @@ use attr::{ParsedCaseSensitivity, SELECTOR_WHITESPACE, NamespaceConstraint};
 use bloom::BLOOM_HASH_MASK;
 use builder::{SelectorBuilder, SpecificityAndFlags};
 use context::QuirksMode;
-use cssparser::{ParseError, BasicParseError, CowRcStr, Delimiter};
+use cssparser::{ParseError, ParseErrorKind, BasicParseError, BasicParseErrorKind};
+use cssparser::{SourceLocation, CowRcStr, Delimiter};
 use cssparser::{Token, Parser as CssParser, parse_nth, ToCss, serialize_identifier, CssStringWriter};
 use precomputed_hash::PrecomputedHash;
 use servo_arc::ThinArc;
@@ -46,8 +47,10 @@ fn to_ascii_lowercase(s: &str) -> Cow<str> {
     }
 }
 
+pub type SelectorParseError<'i, E> = ParseError<'i, SelectorParseErrorKind<'i, E>>;
+
 #[derive(Clone, Debug, PartialEq)]
-pub enum SelectorParseError<'i, T> {
+pub enum SelectorParseErrorKind<'i, E> {
     PseudoElementInComplexSelector,
     NoQualifiedNameInAttributeSelector(Token<'i>),
     EmptySelector,
@@ -66,12 +69,12 @@ pub enum SelectorParseError<'i, T> {
     ExplicitNamespaceUnexpectedToken(Token<'i>),
     ClassNeedsIdent(Token<'i>),
     EmptyNegation,
-    Custom(T),
+    Custom(E),
 }
 
-impl<'a, T> Into<ParseError<'a, SelectorParseError<'a, T>>> for SelectorParseError<'a, T> {
-    fn into(self) -> ParseError<'a, SelectorParseError<'a, T>> {
-        ParseError::Custom(self)
+impl<'i, E> From<E> for SelectorParseErrorKind<'i, E> {
+    fn from(custom: E) -> Self {
+        SelectorParseErrorKind::Custom(custom)
     }
 }
 
@@ -138,31 +141,31 @@ pub trait Parser<'i> {
 
     /// This function can return an "Err" pseudo-element in order to support CSS2.1
     /// pseudo-elements.
-    fn parse_non_ts_pseudo_class(&self, name: CowRcStr<'i>)
+    fn parse_non_ts_pseudo_class(&self, location: SourceLocation, name: CowRcStr<'i>)
                                  -> Result<<Self::Impl as SelectorImpl>::NonTSPseudoClass,
-                                           ParseError<'i, SelectorParseError<'i, Self::Error>>> {
-        Err(ParseError::Custom(SelectorParseError::UnsupportedPseudoClassOrElement(name)))
+                                           SelectorParseError<'i, Self::Error>> {
+        Err(location.new_custom_error(SelectorParseErrorKind::UnsupportedPseudoClassOrElement(name)))
     }
 
     fn parse_non_ts_functional_pseudo_class<'t>
-        (&self, name: CowRcStr<'i>, _arguments: &mut CssParser<'i, 't>)
+        (&self, name: CowRcStr<'i>, arguments: &mut CssParser<'i, 't>)
          -> Result<<Self::Impl as SelectorImpl>::NonTSPseudoClass,
-                   ParseError<'i, SelectorParseError<'i, Self::Error>>>
+                   SelectorParseError<'i, Self::Error>>
     {
-        Err(ParseError::Custom(SelectorParseError::UnsupportedPseudoClassOrElement(name)))
+        Err(arguments.new_custom_error(SelectorParseErrorKind::UnsupportedPseudoClassOrElement(name)))
     }
 
-    fn parse_pseudo_element(&self, name: CowRcStr<'i>)
+    fn parse_pseudo_element(&self, location: SourceLocation, name: CowRcStr<'i>)
                             -> Result<<Self::Impl as SelectorImpl>::PseudoElement,
-                                      ParseError<'i, SelectorParseError<'i, Self::Error>>> {
-        Err(ParseError::Custom(SelectorParseError::UnsupportedPseudoClassOrElement(name)))
+                                      SelectorParseError<'i, Self::Error>> {
+        Err(location.new_custom_error(SelectorParseErrorKind::UnsupportedPseudoClassOrElement(name)))
     }
 
     fn parse_functional_pseudo_element<'t>
-        (&self, name: CowRcStr<'i>, _arguments: &mut CssParser<'i, 't>)
+        (&self, name: CowRcStr<'i>, arguments: &mut CssParser<'i, 't>)
          -> Result<<Self::Impl as SelectorImpl>::PseudoElement,
-                   ParseError<'i, SelectorParseError<'i, Self::Error>>> {
-        Err(ParseError::Custom(SelectorParseError::UnsupportedPseudoClassOrElement(name)))
+                   SelectorParseError<'i, Self::Error>> {
+        Err(arguments.new_custom_error(SelectorParseErrorKind::UnsupportedPseudoClassOrElement(name)))
     }
 
     fn default_namespace(&self) -> Option<<Self::Impl as SelectorImpl>::NamespaceUrl> {
@@ -184,7 +187,7 @@ impl<Impl: SelectorImpl> SelectorList<Impl> {
     ///
     /// Return the Selectors or Err if there is an invalid selector.
     pub fn parse<'i, 't, P, E>(parser: &P, input: &mut CssParser<'i, 't>)
-                               -> Result<Self, ParseError<'i, SelectorParseError<'i, E>>>
+                               -> Result<Self, SelectorParseError<'i, E>>
     where P: Parser<'i, Impl=Impl, Error=E> {
         let mut values = SmallVec::new();
         loop {
@@ -1053,7 +1056,7 @@ fn display_to_css_identifier<T: Display, W: fmt::Write>(x: &T, dest: &mut W) -> 
 fn parse_selector<'i, 't, P, E, Impl>(
         parser: &P,
         input: &mut CssParser<'i, 't>)
-        -> Result<Selector<Impl>, ParseError<'i, SelectorParseError<'i, E>>>
+        -> Result<Selector<Impl>, SelectorParseError<'i, E>>
     where P: Parser<'i, Impl=Impl, Error=E>, Impl: SelectorImpl
 {
     let mut builder = SelectorBuilder::default();
@@ -1063,8 +1066,9 @@ fn parse_selector<'i, 't, P, E, Impl>(
         // Parse a sequence of simple selectors.
         parsed_pseudo_element = match parse_compound_selector(parser, input, &mut builder) {
             Ok(result) => result,
-            Err(ParseError::Custom(SelectorParseError::EmptySelector)) if builder.has_combinators() =>
-                return Err(SelectorParseError::DanglingCombinator.into()),
+            Err(ParseError { kind: ParseErrorKind::Custom(SelectorParseErrorKind::EmptySelector), .. })
+            if builder.has_combinators() =>
+                return Err(input.new_custom_error(SelectorParseErrorKind::DanglingCombinator)),
             Err(e) => return Err(e),
         };
         if parsed_pseudo_element {
@@ -1111,12 +1115,12 @@ fn parse_selector<'i, 't, P, E, Impl>(
 impl<Impl: SelectorImpl> Selector<Impl> {
     /// Parse a selector, without any pseudo-element.
     pub fn parse<'i, 't, P, E>(parser: &P, input: &mut CssParser<'i, 't>)
-                               -> Result<Self, ParseError<'i, SelectorParseError<'i, E>>>
+                               -> Result<Self, SelectorParseError<'i, E>>
         where P: Parser<'i, Impl=Impl, Error=E>
     {
         let selector = parse_selector(parser, input)?;
         if selector.has_pseudo_element() {
-            return Err(ParseError::Custom(SelectorParseError::PseudoElementInComplexSelector))
+            return Err(input.new_custom_error(SelectorParseErrorKind::PseudoElementInComplexSelector))
         }
         Ok(selector)
     }
@@ -1126,13 +1130,13 @@ impl<Impl: SelectorImpl> Selector<Impl> {
 /// * `Ok(false)`: Not a type selector, could be something else. `input` was not consumed.
 /// * `Ok(true)`: Length 0 (`*|*`), 1 (`*|E` or `ns|*`) or 2 (`|E` or `ns|E`)
 fn parse_type_selector<'i, 't, P, E, Impl, S>(parser: &P, input: &mut CssParser<'i, 't>, sink: &mut S)
-                                              -> Result<bool, ParseError<'i, SelectorParseError<'i, E>>>
+                                              -> Result<bool, SelectorParseError<'i, E>>
     where P: Parser<'i, Impl=Impl, Error=E>,
           Impl: SelectorImpl,
           S: Push<Component<Impl>>,
 {
     match parse_qualified_name(parser, input, /* in_attr_selector = */ false) {
-        Err(ParseError::Basic(BasicParseError::EndOfInput)) |
+        Err(ParseError { kind: ParseErrorKind::Basic(BasicParseErrorKind::EndOfInput), .. }) |
         Ok(OptionalQName::None(_)) => Ok(false),
         Ok(OptionalQName::Some(namespace, local_name)) => {
             match namespace {
@@ -1215,8 +1219,7 @@ enum OptionalQName<'i, Impl: SelectorImpl> {
 fn parse_qualified_name<'i, 't, P, E, Impl>
                        (parser: &P, input: &mut CssParser<'i, 't>,
                         in_attr_selector: bool)
-                        -> Result<OptionalQName<'i, Impl>,
-                                  ParseError<'i, SelectorParseError<'i, E>>>
+                        -> Result<OptionalQName<'i, Impl>, SelectorParseError<'i, E>>
     where P: Parser<'i, Impl=Impl, Error=E>, Impl: SelectorImpl
 {
     let default_namespace = |local_name| {
@@ -1228,6 +1231,7 @@ fn parse_qualified_name<'i, 't, P, E, Impl>
     };
 
     let explicit_namespace = |input: &mut CssParser<'i, 't>, namespace| {
+        let location = input.current_source_location();
         match input.next_including_whitespace() {
             Ok(&Token::Delim('*')) if !in_attr_selector => {
                 Ok(OptionalQName::Some(namespace, None))
@@ -1235,9 +1239,13 @@ fn parse_qualified_name<'i, 't, P, E, Impl>
             Ok(&Token::Ident(ref local_name)) => {
                 Ok(OptionalQName::Some(namespace, Some(local_name.clone())))
             },
-            Ok(t) if in_attr_selector => Err(SelectorParseError::InvalidQualNameInAttr(t.clone()).into()),
-            Ok(t) => Err(SelectorParseError::ExplicitNamespaceUnexpectedToken(t.clone()).into()),
-            Err(e) => Err(ParseError::Basic(e)),
+            Ok(t) if in_attr_selector => Err(location.new_custom_error(
+                SelectorParseErrorKind::InvalidQualNameInAttr(t.clone())
+            )),
+            Ok(t) => Err(location.new_custom_error(
+                SelectorParseErrorKind::ExplicitNamespaceUnexpectedToken(t.clone())
+            )),
+            Err(e) => Err(e.into()),
         }
     };
 
@@ -1250,8 +1258,8 @@ fn parse_qualified_name<'i, 't, P, E, Impl>
                 Ok(&Token::Delim('|')) => {
                     let prefix = value.as_ref().into();
                     let result = parser.namespace_for_prefix(&prefix);
-                    let url = result.ok_or(ParseError::Custom(
-                        SelectorParseError::ExpectedNamespace(value)))?;
+                    let url = result.ok_or(after_ident.source_location().new_custom_error(
+                        SelectorParseErrorKind::ExpectedNamespace(value)))?;
                     explicit_namespace(input, QNamePrefix::ExplicitNamespace(prefix, url))
                 },
                 _ => {
@@ -1275,8 +1283,10 @@ fn parse_qualified_name<'i, 't, P, E, Impl>
                     input.reset(&after_star);
                     if in_attr_selector {
                         match result {
-                            Ok(t) => Err(SelectorParseError::ExpectedBarInAttr(t).into()),
-                            Err(e) => Err(ParseError::Basic(e)),
+                            Ok(t) => Err(after_star.source_location().new_custom_error(
+                                SelectorParseErrorKind::ExpectedBarInAttr(t)
+                            )),
+                            Err(e) => Err(e.into()),
                         }
                     } else {
                         default_namespace(None)
@@ -1300,15 +1310,17 @@ fn parse_qualified_name<'i, 't, P, E, Impl>
 
 
 fn parse_attribute_selector<'i, 't, P, E, Impl>(parser: &P, input: &mut CssParser<'i, 't>)
-                                                -> Result<Component<Impl>,
-                                                          ParseError<'i, SelectorParseError<'i, E>>>
+                                                -> Result<Component<Impl>, SelectorParseError<'i, E>>
     where P: Parser<'i, Impl=Impl, Error=E>, Impl: SelectorImpl
 {
     let namespace;
     let local_name;
     match parse_qualified_name(parser, input, /* in_attr_selector = */ true)? {
-        OptionalQName::None(t) =>
-            return Err(ParseError::Custom(SelectorParseError::NoQualifiedNameInAttributeSelector(t))),
+        OptionalQName::None(t) => {
+            return Err(input.new_custom_error(
+                SelectorParseErrorKind::NoQualifiedNameInAttributeSelector(t)
+            ))
+        }
         OptionalQName::Some(_, None) => unreachable!(),
         OptionalQName::Some(ns, Some(ln)) => {
             local_name = ln;
@@ -1331,6 +1343,7 @@ fn parse_attribute_selector<'i, 't, P, E, Impl>(parser: &P, input: &mut CssParse
         }
     }
 
+    let location = input.current_source_location();
     let operator = match input.next() {
         // [foo]
         Err(_) => {
@@ -1364,13 +1377,16 @@ fn parse_attribute_selector<'i, 't, P, E, Impl>(parser: &P, input: &mut CssParse
         Ok(&Token::SubstringMatch) => AttrSelectorOperator::Substring,
         // [foo$=bar]
         Ok(&Token::SuffixMatch) => AttrSelectorOperator::Suffix,
-        Ok(t) => return Err(SelectorParseError::UnexpectedTokenInAttributeSelector(t.clone()).into())
+        Ok(t) => return Err(location.new_custom_error(
+            SelectorParseErrorKind::UnexpectedTokenInAttributeSelector(t.clone())
+        ))
     };
 
     let value = match input.expect_ident_or_string() {
         Ok(t) => t.clone(),
-        Err(BasicParseError::UnexpectedToken(t)) =>
-            return Err(SelectorParseError::BadValueInAttr(t.clone()).into()),
+        Err(BasicParseError { kind: BasicParseErrorKind::UnexpectedToken(t), location }) => {
+            return Err(location.new_custom_error(SelectorParseErrorKind::BadValueInAttr(t)))
+        }
         Err(e) => return Err(e.into()),
     };
     let never_matches = match operator {
@@ -1430,8 +1446,8 @@ fn parse_attribute_selector<'i, 't, P, E, Impl>(parser: &P, input: &mut CssParse
 
 
 fn parse_attribute_flags<'i, 't, E>(input: &mut CssParser<'i, 't>)
-                                    -> Result<ParsedCaseSensitivity,
-                                              ParseError<'i, SelectorParseError<'i, E>>> {
+                                    -> Result<ParsedCaseSensitivity, SelectorParseError<'i, E>> {
+    let location = input.current_source_location();
     match input.next() {
         Err(_) => {
             // Selectors spec says language-defined, but HTML says sensitive.
@@ -1440,7 +1456,7 @@ fn parse_attribute_flags<'i, 't, E>(input: &mut CssParser<'i, 't>)
         Ok(&Token::Ident(ref value)) if value.eq_ignore_ascii_case("i") => {
             Ok(ParsedCaseSensitivity::AsciiCaseInsensitive)
         }
-        Ok(t) => Err(ParseError::Basic(BasicParseError::UnexpectedToken(t.clone())))
+        Ok(t) => Err(location.new_unexpected_token_error(t.clone()))
     }
 }
 
@@ -1449,8 +1465,7 @@ fn parse_attribute_flags<'i, 't, E>(input: &mut CssParser<'i, 't>)
 /// implied "<defaultns>|*" type selector.)
 fn parse_negation<'i, 't, P, E, Impl>(parser: &P,
                                       input: &mut CssParser<'i, 't>)
-                                      -> Result<Component<Impl>,
-                                                ParseError<'i, SelectorParseError<'i, E>>>
+                                      -> Result<Component<Impl>, SelectorParseError<'i, E>>
     where P: Parser<'i, Impl=Impl, Error=E>, Impl: SelectorImpl
 {
     // We use a sequence because a type selector may be represented as two Components.
@@ -1462,8 +1477,9 @@ fn parse_negation<'i, 't, P, E, Impl>(parser: &P,
     // that there are no trailing tokens after we're done.
     let is_type_sel = match parse_type_selector(parser, input, &mut sequence) {
         Ok(result) => result,
-        Err(ParseError::Basic(BasicParseError::EndOfInput)) =>
-            return Err(SelectorParseError::EmptyNegation.into()),
+        Err(ParseError { kind: ParseErrorKind::Basic(BasicParseErrorKind::EndOfInput), .. }) => {
+            return Err(input.new_custom_error(SelectorParseErrorKind::EmptyNegation))
+        }
         Err(e) => return Err(e.into()),
     };
     if !is_type_sel {
@@ -1472,10 +1488,10 @@ fn parse_negation<'i, 't, P, E, Impl>(parser: &P,
                 sequence.push(s);
             },
             None => {
-                return Err(ParseError::Custom(SelectorParseError::EmptyNegation));
+                return Err(input.new_custom_error(SelectorParseErrorKind::EmptyNegation));
             },
             Some(SimpleSelectorParseResult::PseudoElement(_)) => {
-                return Err(ParseError::Custom(SelectorParseError::NonSimpleSelectorInNegation));
+                return Err(input.new_custom_error(SelectorParseErrorKind::NonSimpleSelectorInNegation));
             }
         }
     }
@@ -1495,7 +1511,7 @@ fn parse_compound_selector<'i, 't, P, E, Impl>(
     parser: &P,
     input: &mut CssParser<'i, 't>,
     builder: &mut SelectorBuilder<Impl>)
-    -> Result<bool, ParseError<'i, SelectorParseError<'i, E>>>
+    -> Result<bool, SelectorParseError<'i, E>>
     where P: Parser<'i, Impl=Impl, Error=E>, Impl: SelectorImpl
 {
     input.skip_whitespace();
@@ -1526,24 +1542,32 @@ fn parse_compound_selector<'i, 't, P, E, Impl>(
                 let mut state_selectors = SmallVec::<[Component<Impl>; 3]>::new();
 
                 loop {
+                    let location = input.current_source_location();
                     match input.next_including_whitespace() {
                         Ok(&Token::Colon) => {},
                         Ok(&Token::WhiteSpace(_)) | Err(_) => break,
                         Ok(t) =>
-                            return Err(SelectorParseError::PseudoElementExpectedColon(t.clone()).into()),
+                            return Err(location.new_custom_error(
+                                SelectorParseErrorKind::PseudoElementExpectedColon(t.clone())
+                            )),
                     }
 
+                    let location = input.current_source_location();
                     // TODO(emilio): Functional pseudo-classes too?
                     // We don't need it for now.
                     let name = match input.next_including_whitespace()? {
                         &Token::Ident(ref name) => name.clone(),
-                        t => return Err(SelectorParseError::NoIdentForPseudo(t.clone()).into()),
+                        t => return Err(location.new_custom_error(
+                            SelectorParseErrorKind::NoIdentForPseudo(t.clone())
+                        )),
                     };
 
                     let pseudo_class =
-                        P::parse_non_ts_pseudo_class(parser, name.clone())?;
+                        P::parse_non_ts_pseudo_class(parser, location, name.clone())?;
                     if !p.supports_pseudo_class(&pseudo_class) {
-                        return Err(SelectorParseError::UnsupportedPseudoClassOrElement(name).into());
+                        return Err(input.new_custom_error(
+                            SelectorParseErrorKind::UnsupportedPseudoClassOrElement(name)
+                        ));
                     }
                     state_selectors.push(Component::NonTSPseudoClass(pseudo_class));
                 }
@@ -1565,7 +1589,7 @@ fn parse_compound_selector<'i, 't, P, E, Impl>(
     }
     if empty {
         // An empty selector is invalid.
-        Err(ParseError::Custom(SelectorParseError::EmptySelector))
+        Err(input.new_custom_error(SelectorParseErrorKind::EmptySelector))
     } else {
         Ok(pseudo)
     }
@@ -1575,8 +1599,7 @@ fn parse_functional_pseudo_class<'i, 't, P, E, Impl>(parser: &P,
                                                      input: &mut CssParser<'i, 't>,
                                                      name: CowRcStr<'i>,
                                                      inside_negation: bool)
-                                                     -> Result<Component<Impl>,
-                                                               ParseError<'i, SelectorParseError<'i, E>>>
+                                                     -> Result<Component<Impl>, SelectorParseError<'i, E>>
     where P: Parser<'i, Impl=Impl, Error=E>, Impl: SelectorImpl
 {
     match_ignore_ascii_case! { &name,
@@ -1586,7 +1609,9 @@ fn parse_functional_pseudo_class<'i, 't, P, E, Impl>(parser: &P,
         "nth-last-of-type" => return parse_nth_pseudo_class(input, Component::NthLastOfType),
         "not" => {
             if inside_negation {
-                return Err(ParseError::Custom(SelectorParseError::UnexpectedIdent("not".into())));
+                return Err(input.new_custom_error(
+                    SelectorParseErrorKind::UnexpectedIdent("not".into())
+                ));
             }
             return parse_negation(parser, input)
         },
@@ -1598,8 +1623,7 @@ fn parse_functional_pseudo_class<'i, 't, P, E, Impl>(parser: &P,
 
 
 fn parse_nth_pseudo_class<'i, 't, Impl, F, E>(input: &mut CssParser<'i, 't>, selector: F)
-                                              -> Result<Component<Impl>,
-                                                        ParseError<'i, SelectorParseError<'i, E>>>
+                                              -> Result<Component<Impl>, SelectorParseError<'i, E>>
 where Impl: SelectorImpl, F: FnOnce(i32, i32) -> Component<Impl> {
     let (a, b) = parse_nth(input)?;
     Ok(selector(a, b))
@@ -1626,7 +1650,7 @@ fn parse_one_simple_selector<'i, 't, P, E, Impl>(parser: &P,
                                                  input: &mut CssParser<'i, 't>,
                                                  inside_negation: bool)
                                                  -> Result<Option<SimpleSelectorParseResult<Impl>>,
-                                                           ParseError<'i, SelectorParseError<'i, E>>>
+                                                           SelectorParseError<'i, E>>
     where P: Parser<'i, Impl=Impl, Error=E>, Impl: SelectorImpl
 {
     let start = input.state();
@@ -1637,12 +1661,15 @@ fn parse_one_simple_selector<'i, 't, P, E, Impl>(parser: &P,
             Ok(Some(SimpleSelectorParseResult::SimpleSelector(id)))
         }
         Ok(Token::Delim('.')) => {
+            let location = input.current_source_location();
             match *input.next_including_whitespace()? {
                 Token::Ident(ref class) => {
                     let class = Component::Class(class.as_ref().into());
                     Ok(Some(SimpleSelectorParseResult::SimpleSelector(class)))
                 }
-                ref t => Err(SelectorParseError::ClassNeedsIdent(t.clone()).into()),
+                ref t => Err(location.new_custom_error(
+                    SelectorParseErrorKind::ClassNeedsIdent(t.clone())
+                )),
             }
         }
         Ok(Token::SquareBracketBlock) => {
@@ -1650,6 +1677,7 @@ fn parse_one_simple_selector<'i, 't, P, E, Impl>(parser: &P,
             Ok(Some(SimpleSelectorParseResult::SimpleSelector(attr)))
         }
         Ok(Token::Colon) => {
+            let location = input.current_source_location();
             let (is_single_colon, next_token) = match input.next_including_whitespace()?.clone() {
                 Token::Colon => (false, input.next_including_whitespace()?.clone()),
                 t => (true, t),
@@ -1657,7 +1685,9 @@ fn parse_one_simple_selector<'i, 't, P, E, Impl>(parser: &P,
             let (name, is_functional) = match next_token {
                 Token::Ident(name) => (name, false),
                 Token::Function(name) => (name, true),
-                t => return Err(SelectorParseError::PseudoElementExpectedIdent(t).into()),
+                t => return Err(input.new_custom_error(
+                    SelectorParseErrorKind::PseudoElementExpectedIdent(t)
+                )),
             };
             let is_pseudo_element = !is_single_colon ||
                 P::is_pseudo_element_allows_single_colon(&name);
@@ -1667,7 +1697,7 @@ fn parse_one_simple_selector<'i, 't, P, E, Impl>(parser: &P,
                         P::parse_functional_pseudo_element(parser, name, input)
                     })?
                 } else {
-                    P::parse_pseudo_element(parser, name)?
+                    P::parse_pseudo_element(parser, location, name)?
                 };
                 Ok(Some(SimpleSelectorParseResult::PseudoElement(pseudo_element)))
             } else {
@@ -1676,7 +1706,7 @@ fn parse_one_simple_selector<'i, 't, P, E, Impl>(parser: &P,
                         parse_functional_pseudo_class(parser, input, name, inside_negation)
                     })?
                 } else {
-                    parse_simple_pseudo_class(parser, name)?
+                    parse_simple_pseudo_class(parser, location, name)?
                 };
                 Ok(Some(SimpleSelectorParseResult::SimpleSelector(pseudo_class)))
             }
@@ -1688,9 +1718,9 @@ fn parse_one_simple_selector<'i, 't, P, E, Impl>(parser: &P,
     }
 }
 
-fn parse_simple_pseudo_class<'i, P, E, Impl>(parser: &P, name: CowRcStr<'i>)
-                                             -> Result<Component<Impl>,
-                                                       ParseError<'i, SelectorParseError<'i, E>>>
+fn parse_simple_pseudo_class<'i, P, E, Impl>(parser: &P, location: SourceLocation,
+                                             name: CowRcStr<'i>)
+                                             -> Result<Component<Impl>, SelectorParseError<'i, E>>
     where P: Parser<'i, Impl=Impl, Error=E>, Impl: SelectorImpl
 {
     (match_ignore_ascii_case! { &name,
@@ -1704,7 +1734,7 @@ fn parse_simple_pseudo_class<'i, P, E, Impl>(parser: &P, name: CowRcStr<'i>)
         "only-of-type"  => Ok(Component::OnlyOfType),
         _ => Err(())
     }).or_else(|()| {
-        P::parse_non_ts_pseudo_class(parser, name)
+        P::parse_non_ts_pseudo_class(parser, location, name)
             .map(Component::NonTSPseudoClass)
     })
 }
@@ -1842,33 +1872,31 @@ pub mod tests {
         type Impl = DummySelectorImpl;
         type Error = ();
 
-        fn parse_non_ts_pseudo_class(&self, name: CowRcStr<'i>)
-                                     -> Result<PseudoClass,
-                                               ParseError<'i, SelectorParseError<'i, ()>>> {
+        fn parse_non_ts_pseudo_class(&self, location: SourceLocation, name: CowRcStr<'i>)
+                                     -> Result<PseudoClass, SelectorParseError<'i, ()>> {
             match_ignore_ascii_case! { &name,
                 "hover" => Ok(PseudoClass::Hover),
                 "active" => Ok(PseudoClass::Active),
-                _ => Err(SelectorParseError::Custom(()).into())
+                _ => Err(location.new_custom_error(SelectorParseErrorKind::Custom(())))
             }
         }
 
         fn parse_non_ts_functional_pseudo_class<'t>(&self, name: CowRcStr<'i>,
                                                     parser: &mut CssParser<'i, 't>)
-                                                    -> Result<PseudoClass,
-                                                              ParseError<'i, SelectorParseError<'i, ()>>> {
+                                                    -> Result<PseudoClass, SelectorParseError<'i, ()>> {
             match_ignore_ascii_case! { &name,
                 "lang" => Ok(PseudoClass::Lang(parser.expect_ident_or_string()?.as_ref().to_owned())),
-                _ => Err(SelectorParseError::Custom(()).into())
+                _ => Err(parser.new_custom_error(SelectorParseErrorKind::Custom(())))
             }
         }
 
-        fn parse_pseudo_element(&self, name: CowRcStr<'i>)
+        fn parse_pseudo_element(&self, location: SourceLocation, name: CowRcStr<'i>)
                                 -> Result<PseudoElement,
-                                          ParseError<'i, SelectorParseError<'i, ()>>> {
+                                          SelectorParseError<'i, ()>> {
             match_ignore_ascii_case! { &name,
                 "before" => Ok(PseudoElement::Before),
                 "after" => Ok(PseudoElement::After),
-                _ => Err(SelectorParseError::Custom(()).into())
+                _ => Err(location.new_custom_error(SelectorParseErrorKind::Custom(())))
             }
         }
 
@@ -1882,17 +1910,17 @@ pub mod tests {
     }
 
     fn parse<'i>(input: &'i str)
-                 -> Result<SelectorList<DummySelectorImpl>, ParseError<'i, SelectorParseError<'i, ()>>> {
+                 -> Result<SelectorList<DummySelectorImpl>, SelectorParseError<'i, ()>> {
         parse_ns(input, &DummyParser::default())
     }
 
     fn parse_expected<'i, 'a>(input: &'i str, expected: Option<&'a str>)
-                              -> Result<SelectorList<DummySelectorImpl>, ParseError<'i, SelectorParseError<'i, ()>>> {
+                              -> Result<SelectorList<DummySelectorImpl>, SelectorParseError<'i, ()>> {
         parse_ns_expected(input, &DummyParser::default(), expected)
     }
 
     fn parse_ns<'i>(input: &'i str, parser: &DummyParser)
-                    -> Result<SelectorList<DummySelectorImpl>, ParseError<'i, SelectorParseError<'i, ()>>> {
+                    -> Result<SelectorList<DummySelectorImpl>, SelectorParseError<'i, ()>> {
         parse_ns_expected(input, parser, None)
     }
 
@@ -1900,7 +1928,7 @@ pub mod tests {
         input: &'i str,
         parser: &DummyParser,
         expected: Option<&'a str>
-    ) -> Result<SelectorList<DummySelectorImpl>, ParseError<'i, SelectorParseError<'i, ()>>> {
+    ) -> Result<SelectorList<DummySelectorImpl>, SelectorParseError<'i, ()>> {
         let mut parser_input = ParserInput::new(input);
         let result = SelectorList::parse(parser, &mut CssParser::new(&mut parser_input));
         if let Ok(ref selectors) = result {

@@ -14,8 +14,8 @@
     pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                                -> Result<Longhands, ParseError<'i>> {
         % if product == "gecko":
-            let moz_kw_found = input.try(|i| {
-                try_match_ident_ignore_ascii_case! { i.expect_ident()?,
+            let moz_kw_found = input.try(|input| {
+                try_match_ident_ignore_ascii_case! { input,
                     "-moz-scrollbars-horizontal" => {
                         Ok(expanded! {
                             overflow_x: SpecifiedValue::scroll,
@@ -141,7 +141,7 @@ macro_rules! try_parse_one {
                         Some(transition_property::single_value::get_initial_specified_value())),
                 })
             } else {
-                Err(StyleParseError::UnspecifiedError.into())
+                Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
             }
         }
 
@@ -158,7 +158,7 @@ macro_rules! try_parse_one {
                 // If there is more than one item, and any of transitions has 'none',
                 // then it's invalid. Othersize, leave propertys to be empty (which
                 // means "transition-property: none");
-                return Err(StyleParseError::UnspecifiedError.into());
+                return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
             }
 
             % for prop in "duration timing_function delay".split():
@@ -269,7 +269,7 @@ macro_rules! try_parse_one {
 
             // If nothing is parsed, this is an invalid entry.
             if parsed == 0 {
-                Err(StyleParseError::UnspecifiedError.into())
+                Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
             } else {
                 Ok(SingleAnimation {
                     % for prop in props:

@@ -92,13 +92,14 @@
                          -> Result<computed_value::Keyword, ParseError<'i>> {
             use std::ascii::AsciiExt;
             use style_traits::cursor::Cursor;
+            let location = input.current_source_location();
             let ident = input.expect_ident()?;
             if ident.eq_ignore_ascii_case("auto") {
                 Ok(computed_value::Keyword::Auto)
             } else {
                 Cursor::from_css_keyword(&ident)
                     .map(computed_value::Keyword::Cursor)
-                    .map_err(|()| SelectorParseError::UnexpectedIdent(ident.clone()).into())
+                    .map_err(|()| location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident.clone())))
             }
         }
     }

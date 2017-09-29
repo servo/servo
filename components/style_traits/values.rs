@@ -5,7 +5,7 @@
 //! Helper types and traits for the handling of CSS values.
 
 use app_units::Au;
-use cssparser::{BasicParseError, ParseError, Parser, Token, UnicodeRange, serialize_string};
+use cssparser::{ParseError, Parser, Token, UnicodeRange, serialize_string};
 use cssparser::ToCss as CssparserToCss;
 use servo_arc::Arc;
 use std::fmt::{self, Write};
@@ -299,12 +299,13 @@ impl Separator for CommaWithSpace {
         let mut results = vec![parse_one(input)?];
         loop {
             input.skip_whitespace();  // Unnecessary for correctness, but may help try() rewind less.
+            let comma_location = input.current_source_location();
             let comma = input.try(|i| i.expect_comma()).is_ok();
             input.skip_whitespace();  // Unnecessary for correctness, but may help try() rewind less.
             if let Ok(item) = input.try(&mut parse_one) {
                 results.push(item);
             } else if comma {
-                return Err(BasicParseError::UnexpectedToken(Token::Comma).into());
+                return Err(comma_location.new_unexpected_token_error(Token::Comma));
             } else {
                 break;
             }
@@ -449,11 +450,16 @@ macro_rules! __define_css_keyword_enum__actual {
             /// Parse this property from a CSS input stream.
             pub fn parse<'i, 't>(input: &mut ::cssparser::Parser<'i, 't>)
                                  -> Result<$name, $crate::ParseError<'i>> {
-                let ident = input.expect_ident()?;
-                Self::from_ident(&ident)
-                    .map_err(|()| ::cssparser::ParseError::Basic(
-                        ::cssparser::BasicParseError::UnexpectedToken(
-                            ::cssparser::Token::Ident(ident.clone()))))
+                use cssparser::Token;
+                let location = input.current_source_location();
+                match *input.next()? {
+                    Token::Ident(ref ident) => {
+                        Self::from_ident(ident).map_err(|()| {
+                            location.new_unexpected_token_error(Token::Ident(ident.clone()))
+                        })
+                    }
+                    ref token => Err(location.new_unexpected_token_error(token.clone()))
+                }
             }
 
             /// Parse this property from an already-tokenized identifier.

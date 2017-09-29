@@ -6,7 +6,7 @@
 //! initially in CSS Conditional Rules Module Level 3, @document has been postponed to the level 4.
 //! We implement the prefixed `@-moz-document`.
 
-use cssparser::{Parser, Token, SourceLocation, BasicParseError};
+use cssparser::{Parser, Token, SourceLocation};
 #[cfg(feature = "gecko")]
 use malloc_size_of::{MallocSizeOfOps, MallocUnconditionalShallowSizeOf};
 use media_queries::Device;
@@ -14,7 +14,7 @@ use parser::{Parse, ParserContext};
 use servo_arc::Arc;
 use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt;
-use style_traits::{ToCss, ParseError, StyleParseError};
+use style_traits::{ToCss, ParseError, StyleParseErrorKind};
 use stylesheets::CssRules;
 use values::specified::url::SpecifiedUrl;
 
@@ -100,10 +100,11 @@ macro_rules! parse_quoted_or_unquoted_string {
         $input.parse_nested_block(|input| {
             let start = input.position();
             input.parse_entirely(|input| {
+                let location = input.current_source_location();
                 match input.next() {
                     Ok(&Token::QuotedString(ref value)) =>
                         Ok($url_matching_function(value.as_ref().to_owned())),
-                    Ok(t) => Err(BasicParseError::UnexpectedToken(t.clone()).into()),
+                    Ok(t) => Err(location.new_unexpected_token_error(t.clone())),
                     Err(e) => Err(e.into()),
                 }
             }).or_else(|_: ParseError| {
@@ -129,7 +130,7 @@ impl UrlMatchingFunction {
         } else if let Ok(url) = input.try(|input| SpecifiedUrl::parse(context, input)) {
             Ok(UrlMatchingFunction::Url(url))
         } else {
-            Err(StyleParseError::UnspecifiedError.into())
+            Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
         }
     }
 

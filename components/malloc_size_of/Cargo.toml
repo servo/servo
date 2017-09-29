@@ -10,7 +10,7 @@ path = "lib.rs"
 
 [dependencies]
 app_units = "0.5.5"
-cssparser = "0.21.1"
+cssparser = "0.22.0"
 euclid = "0.15"
 hashglobe = { path = "../hashglobe" }
 servo_arc = { path = "../servo_arc" }

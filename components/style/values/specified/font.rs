@@ -83,7 +83,7 @@ pub enum KeywordSize {
 impl KeywordSize {
     /// Parse a keyword size
     pub fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        try_match_ident_ignore_ascii_case! { input.expect_ident()?,
+        try_match_ident_ignore_ascii_case! { input,
             "xx-small" => Ok(KeywordSize::XXSmall),
             "x-small" => Ok(KeywordSize::XSmall),
             "small" => Ok(KeywordSize::Small),

@@ -340,6 +340,7 @@ ${helpers.predefined_type("object-position",
         let mut dense = false;
 
         while !input.is_exhausted() {
+            let location = input.current_source_location();
             let ident = input.expect_ident()?;
             let success = match_ignore_ascii_case! { &ident,
                 "row" if value.is_none() => {
@@ -357,7 +358,7 @@ ${helpers.predefined_type("object-position",
                 _ => false
             };
             if !success {
-                return Err(SelectorParseError::UnexpectedIdent(ident.clone()).into());
+                return Err(location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident.clone())));
             }
         }
 
@@ -367,7 +368,7 @@ ${helpers.predefined_type("object-position",
                 dense: dense,
             })
         } else {
-            Err(StyleParseError::UnspecifiedError.into())
+            Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
         }
     }
 
@@ -465,7 +466,7 @@ ${helpers.predefined_type("object-position",
             }
 
             TemplateAreas::from_vec(strings)
-                .map_err(|()| StyleParseError::UnspecifiedError.into())
+                .map_err(|()| input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
         }
     }
 

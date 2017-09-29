@@ -6,7 +6,7 @@
 
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
-use selectors::parser::SelectorParseError;
+use selectors::parser::SelectorParseErrorKind;
 use style_traits::ParseError;
 use values::generics::background::BackgroundSize as GenericBackgroundSize;
 use values::specified::length::LengthOrPercentageOrAuto;
@@ -22,12 +22,13 @@ impl Parse for BackgroundSize {
                 .unwrap_or(LengthOrPercentageOrAuto::Auto);
             return Ok(GenericBackgroundSize::Explicit { width, height });
         }
+        let location = input.current_source_location();
         let ident = input.expect_ident()?;
         (match_ignore_ascii_case! { &ident,
             "cover" => Ok(GenericBackgroundSize::Cover),
             "contain" => Ok(GenericBackgroundSize::Contain),
             _ => Err(()),
-        }).map_err(|()| SelectorParseError::UnexpectedIdent(ident.clone()).into())
+        }).map_err(|()| location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident.clone())))
     }
 }
 

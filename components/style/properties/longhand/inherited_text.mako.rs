@@ -585,7 +585,7 @@ ${helpers.predefined_type(
             (Some(fill), Ok(shape)) => KeywordValue::FillAndShape(fill,shape),
             (Some(fill), Err(_)) => KeywordValue::Fill(fill),
             (None, Ok(shape)) => KeywordValue::Shape(shape),
-            _ => return Err(StyleParseError::UnspecifiedError.into()),
+            _ => return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
         };
         Ok(SpecifiedValue::Keyword(keyword_value))
     }

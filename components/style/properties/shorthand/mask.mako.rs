@@ -108,7 +108,7 @@
                 % endfor
                 Ok(())
             } else {
-                Err(StyleParseError::UnspecifiedError.into())
+                Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
             }
         })?;
 
@@ -203,7 +203,7 @@
             Ok(())
         })?;
         if any == false {
-            return Err(StyleParseError::UnspecifiedError.into());
+            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
 
         Ok(expanded! {

@@ -5,11 +5,11 @@
 //! CSS handling for the computed value of
 //! [grids](https://drafts.csswg.org/css-grid/)
 
-use cssparser::{Parser, Token, BasicParseError};
+use cssparser::{Parser, Token, ParseError as CssParseError};
 use parser::{Parse, ParserContext};
 use std::ascii::AsciiExt;
 use std::mem;
-use style_traits::{ParseError, StyleParseError};
+use style_traits::{ParseError, StyleParseErrorKind};
 use values::{CSSFloat, CustomIdent};
 use values::computed::{self, Context, ToComputedValue};
 use values::generics::grid::{GridTemplateComponent, RepeatCount, TrackBreadth, TrackKeyword, TrackRepeat};
@@ -18,10 +18,11 @@ use values::specified::{LengthOrPercentage, Integer};
 
 /// Parse a single flexible length.
 pub fn parse_flex<'i, 't>(input: &mut Parser<'i, 't>) -> Result<CSSFloat, ParseError<'i>> {
+    let location = input.current_source_location();
     match *input.next()? {
         Token::Dimension { value, ref unit, .. } if unit.eq_ignore_ascii_case("fr") && value.is_sign_positive()
             => Ok(value),
-        ref t => Err(BasicParseError::UnexpectedToken(t.clone()).into()),
+        ref t => Err(location.new_unexpected_token_error(t.clone())),
     }
 }
 
@@ -74,8 +75,10 @@ pub fn parse_line_names<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Box<[Custo
     input.expect_square_bracket_block()?;
     input.parse_nested_block(|input| {
         let mut values = vec![];
-        while let Ok(ident) = input.try(|i| i.expect_ident_cloned()) {
-            let ident = CustomIdent::from_ident(&ident, &["span"])?;
+        while let Ok((loc, ident)) = input.try(|i| -> Result<_, CssParseError<()>> {
+             Ok((i.current_source_location(), i.expect_ident_cloned()?))
+        }) {
+            let ident = CustomIdent::from_ident(loc, &ident, &["span"])?;
             values.push(ident);
         }
 
@@ -124,7 +127,7 @@ impl TrackRepeat<LengthOrPercentage, Integer> {
                         if !track_size.is_fixed() {
                             if is_auto {
                                 // should be <fixed-size> for <auto-repeat>
-                                return Err(StyleParseError::UnspecifiedError.into())
+                                return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
                             }
 
                             if repeat_type == RepeatType::Fixed {
@@ -147,7 +150,7 @@ impl TrackRepeat<LengthOrPercentage, Integer> {
                     } else {
                         if values.is_empty() {
                             // expecting at least one <track-size>
-                            return Err(StyleParseError::UnspecifiedError.into())
+                            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
                         }
 
                         names.push(current_names);      // final `<line-names>`
@@ -191,7 +194,7 @@ impl Parse for TrackList<LengthOrPercentage, Integer> {
                     atleast_one_not_fixed = true;
                     if auto_repeat.is_some() {
                         // <auto-track-list> only accepts <fixed-size> and <fixed-repeat>
-                        return Err(StyleParseError::UnspecifiedError.into())
+                        return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
                     }
                 }
 
@@ -207,13 +210,13 @@ impl Parse for TrackList<LengthOrPercentage, Integer> {
                     RepeatType::Normal => {
                         atleast_one_not_fixed = true;
                         if auto_repeat.is_some() { // only <fixed-repeat>
-                            return Err(StyleParseError::UnspecifiedError.into())
+                            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
                         }
                     },
                     RepeatType::Auto => {
                         if auto_repeat.is_some() || atleast_one_not_fixed {
                             // We've either seen <auto-repeat> earlier, or there's at least one non-fixed value
-                            return Err(StyleParseError::UnspecifiedError.into())
+                            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
                         }
 
                         list_type = TrackListType::Auto(values.len() as u16 + auto_offset);
@@ -233,7 +236,7 @@ impl Parse for TrackList<LengthOrPercentage, Integer> {
                 values.push(TrackListValue::TrackRepeat(repeat));
             } else {
                 if values.is_empty() && auto_repeat.is_none() {
-                    return Err(StyleParseError::UnspecifiedError.into())
+                    return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
                 }
 
                 names.push(current_names.into_boxed_slice());

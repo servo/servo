@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use selectors::parser::SelectorParseError;
+use selectors::parser::{SelectorParseError, SelectorParseErrorKind};
 use style::invalidation::element::invalidation_map::Dependency;
 use style::properties;
 
@@ -14,8 +14,15 @@ size_of_test!(test_size_of_property_declaration, properties::PropertyDeclaration
 // we only pass `&mut SourcePropertyDeclaration` references around.
 size_of_test!(test_size_of_parsed_declaration, properties::SourcePropertyDeclaration, 576);
 
-size_of_test!(test_size_of_selector_parse_error_with_unit, SelectorParseError<()>, 40);
-size_of_test!(test_size_of_style_parse_error, ::style_traits::StyleParseError, 80);
-size_of_test!(test_size_of_value_parse_error, ::style_traits::ValueParseError, 40);
-size_of_test!(test_size_of_declaration_parse_error, ::style_traits::PropertyDeclarationParseError, 72);
-size_of_test!(test_size_of_style_traits_parse_error, ::style_traits::ParseError, 96);
+size_of_test!(test_size_of_selector_parse_error_kind_with_unit, SelectorParseErrorKind<()>, 40);
+size_of_test!(test_size_of_style_parse_error_kind, ::style_traits::StyleParseErrorKind, 80);
+size_of_test!(test_size_of_value_parse_error_kind, ::style_traits::ValueParseErrorKind, 40);
+size_of_test!(test_size_of_declaration_parse_error_kind, ::style_traits::PropertyDeclarationParseErrorKind, 72);
+size_of_test!(test_size_of_style_traits_parse_error_kind,
+              SelectorParseErrorKind<::style_traits::StyleParseErrorKind>, 88);
+
+size_of_test!(test_size_of_selector_parse_error_with_unit, SelectorParseError<()>, 56);
+size_of_test!(test_size_of_style_parse_error, ::style_traits::StyleParseError, 96);
+size_of_test!(test_size_of_value_parse_error, ::style_traits::ValueParseError, 56);
+size_of_test!(test_size_of_declaration_parse_error, ::style_traits::PropertyDeclarationParseError, 88);
+size_of_test!(test_size_of_style_traits_parse_error, ::style_traits::ParseError, 104);

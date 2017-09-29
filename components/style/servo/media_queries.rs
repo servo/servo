@@ -14,7 +14,7 @@ use parser::ParserContext;
 use properties::{ComputedValues, StyleBuilder};
 use properties::longhands::font_size;
 use rule_cache::RuleCacheConditions;
-use selectors::parser::SelectorParseError;
+use selectors::parser::SelectorParseErrorKind;
 use std::cell::RefCell;
 use std::fmt;
 use std::sync::atomic::{AtomicBool, AtomicIsize, Ordering};
@@ -198,7 +198,7 @@ impl Expression {
                 "width" => {
                     ExpressionKind::Width(Range::Eq(specified::Length::parse_non_negative(context, input)?))
                 },
-                _ => return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
+                _ => return Err(input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone())))
             }))
         })
     }

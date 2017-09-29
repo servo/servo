@@ -188,14 +188,16 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
 
         let mut quotes = Vec::new();
         loop {
+            let location = input.current_source_location();
             let first = match input.next() {
                 Ok(&Token::QuotedString(ref value)) => value.as_ref().to_owned(),
-                Ok(t) => return Err(BasicParseError::UnexpectedToken(t.clone()).into()),
+                Ok(t) => return Err(location.new_unexpected_token_error(t.clone())),
                 Err(_) => break,
             };
+            let location = input.current_source_location();
             let second = match input.next() {
                 Ok(&Token::QuotedString(ref value)) => value.as_ref().to_owned(),
-                Ok(t) => return Err(BasicParseError::UnexpectedToken(t.clone()).into()),
+                Ok(t) => return Err(location.new_unexpected_token_error(t.clone())),
                 Err(e) => return Err(e.into()),
             };
             quotes.push((first, second))
@@ -203,7 +205,7 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
         if !quotes.is_empty() {
             Ok(SpecifiedValue(quotes))
         } else {
-            Err(StyleParseError::UnspecifiedError.into())
+            Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
         }
     }
 </%helpers:longhand>

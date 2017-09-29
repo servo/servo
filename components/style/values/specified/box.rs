@@ -23,7 +23,7 @@ impl Parse for VerticalAlign {
             return Ok(GenericVerticalAlign::Length(lop));
         }
 
-        try_match_ident_ignore_ascii_case! { input.expect_ident()?,
+        try_match_ident_ignore_ascii_case! { input,
             "baseline" => Ok(GenericVerticalAlign::Baseline),
             "sub" => Ok(GenericVerticalAlign::Sub),
             "super" => Ok(GenericVerticalAlign::Super),

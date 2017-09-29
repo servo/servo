@@ -394,8 +394,8 @@ impl Stylesheet {
                             break;
                         }
                     },
-                    Err(err) => {
-                        let error = ContextualParseError::InvalidRule(err.slice, err.error);
+                    Err((error, slice)) => {
+                        let error = ContextualParseError::InvalidRule(slice, error);
                         let location = iter.input.current_source_location();
                         iter.parser.context.log_css_error(&iter.parser.error_context,
                                                           location, error);

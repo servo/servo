@@ -187,7 +187,7 @@ ${helpers.gecko_keyword_conversion(Keyword('border-style',
             if !result.is_empty() {
                 Ok(SpecifiedValue::Colors(result))
             } else {
-                Err(StyleParseError::UnspecifiedError.into())
+                Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
             }
         }
     </%helpers:longhand>
